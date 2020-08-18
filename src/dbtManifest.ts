@@ -250,7 +250,7 @@ class DBTManifest {
           }
         }
       }catch (error) {
-        console.log(`File not found at '${fullPath}', probably compiled is outdated!`, error)
+        console.log(`File not found at '${fullPath}', probably compiled is outdated!`, error);
       }
       
     });
