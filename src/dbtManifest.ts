@@ -96,8 +96,9 @@ class DBTManifest {
   }
 
   private async refresh() {
-    const projectConfig = this.readAndParseProjectConfig();
     this.createProjectConfigWatcher();
+
+    const projectConfig = this.readAndParseProjectConfig();
 
     const projectName = projectConfig.name;
     const targetPath = projectConfig[DBTManifest.TARGET_PATH_VAR];
@@ -158,12 +159,14 @@ class DBTManifest {
   }
 
   private readAndParseManifest(targetPath: string) {
+    const manifestLocation = path.join(
+      vscode.workspace.workspaceFolders![0].uri.path,
+      targetPath,
+      DBTManifest.MANIFEST_FILE
+    );
+    console.log(`Reading manifest at location '${manifestLocation}'`);
     const manifestFile = readFileSync(
-      path.join(
-        vscode.workspace.workspaceFolders![0].uri.path,
-        targetPath,
-        DBTManifest.MANIFEST_FILE
-      ),
+      manifestLocation,
       "utf8"
     );
     return JSON.parse(manifestFile);
@@ -231,20 +234,25 @@ class DBTManifest {
       const macroName =
         packageName === projectName ? name : `${packageName}.${name}`;
       const fullPath = path.join(macro.root_path, macro.original_file_path);
-      const macroFile: string = readFileSync(fullPath).toString("utf8");
-      const macroFileLines = macroFile.split("\n");
-
-      for (let index = 0; index < macroFileLines.length; index++) {
-        const currentLine = macroFileLines[index];
-        if (currentLine.match(new RegExp(`macro\\s${name}\\(`))) {
-          macroMetaMap.set(macroName, {
-            path: fullPath,
-            line: index,
-            character: currentLine.indexOf(name),
-          });
-          break;
+      try {
+        const macroFile: string = readFileSync(fullPath).toString("utf8");
+        const macroFileLines = macroFile.split("\n");
+  
+        for (let index = 0; index < macroFileLines.length; index++) {
+          const currentLine = macroFileLines[index];
+          if (currentLine.match(new RegExp(`macro\\s${name}\\(`))) {
+            macroMetaMap.set(macroName, {
+              path: fullPath,
+              line: index,
+              character: currentLine.indexOf(name),
+            });
+            break;
+          }
         }
+      }catch (error) {
+        console.log(`File not found at '${fullPath}', probably compiled is outdated!`, error)
       }
+      
     });
     return macroMetaMap;
   }
