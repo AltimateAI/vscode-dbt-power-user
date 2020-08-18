@@ -31,14 +31,14 @@ export class SourceAutocompletionProvider
       .lineAt(position)
       .text.substr(0, position.character);
     if (!isEnclosedWithinCodeBlock(document, position))
-      return undefined;
+      {return undefined;}
 
     if (linePrefix.endsWith("source("))
-      return this.showSourceNameAutocompletionItems();
+      {return this.showSourceNameAutocompletionItems();}
 
     if (linePrefix.match(SourceAutocompletionProvider.GET_SOURCE_NAME) &&
       linePrefix.includes('source'))
-      return this.showTableNameAutocompletionItems(linePrefix);
+      {return this.showTableNameAutocompletionItems(linePrefix);}
     return undefined;
   }
 
@@ -48,10 +48,10 @@ export class SourceAutocompletionProvider
     );
     event.sourceMetaMap.forEach((value, key) => {
       const autocompleteItems = value.tables.map(item => {
-        return new CompletionItem(item.name, CompletionItemKind.File)
+        return new CompletionItem(item.name, CompletionItemKind.File);
       });
       this.sourceAutocompleteTableMap.set(key, autocompleteItems);
-    })
+    });
   }
 
   private showSourceNameAutocompletionItems() {
