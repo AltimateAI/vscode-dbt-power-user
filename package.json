@@ -26,7 +26,7 @@
 		"jinja-sql"
 	],
 	"activationEvents": [
-		"workspaceContains:dbt_project.yml"
+		"workspaceContains:**/dbt_project.yml"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
