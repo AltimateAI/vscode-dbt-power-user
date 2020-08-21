@@ -15,7 +15,6 @@ import {
   DBTManifestCacheChangedEvent,
 } from "../dbtManifest";
 import { isEnclosedWithinCodeBlock } from "../utils";
-
 export class MacroDefinitionProvider
   implements DefinitionProvider, OnDBTManifestCacheChanged {
   private macroToLocationMap: MacroMetaMap = new Map();
@@ -37,7 +36,13 @@ export class MacroDefinitionProvider
         textLine[range.end.character] === "(" &&
         isEnclosedWithinCodeBlock(document, range)
       ) {
-        const definition = this.getMacroDefinition(word);
+        const documentPath = document.uri.path;
+        const projectPath = workspace.workspaceFolders![0].uri.path + '/';
+        const pathSegments = documentPath
+          .replace(projectPath, "")
+          .split('/');
+        const macroName = pathSegments.length > 1 && pathSegments[0] === 'dbt_modules' ? `${pathSegments[1]}.${word}` : word;
+        const definition = this.getMacroDefinition(macroName);
         if (definition !== undefined) {
           resolve(definition);
           return;
