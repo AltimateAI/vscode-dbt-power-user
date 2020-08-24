@@ -19,6 +19,7 @@ export class MacroDefinitionProvider
   implements DefinitionProvider, OnDBTManifestCacheChanged {
   private macroToLocationMap: MacroMetaMap = new Map();
   private static readonly IS_MACRO = /\w+\.?\w+/;
+  private static readonly DBT_MODULES = 'dbt_modules';
 
   provideDefinition(
     document: TextDocument,
@@ -41,7 +42,12 @@ export class MacroDefinitionProvider
         const pathSegments = documentPath
           .replace(projectPath, "")
           .split('/');
-        const macroName = pathSegments.length > 1 && pathSegments[0] === 'dbt_modules' ? `${pathSegments[1]}.${word}` : word;
+
+        const insidePackage = pathSegments.length > 1 &&
+          pathSegments[0] === MacroDefinitionProvider.DBT_MODULES;
+
+        const macroName = insidePackage && !word.includes(".") ? `${pathSegments[1]}.${word}` : word;
+
         const definition = this.getMacroDefinition(macroName);
         if (definition !== undefined) {
           resolve(definition);
