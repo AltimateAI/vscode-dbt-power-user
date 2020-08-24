@@ -1,5 +1,6 @@
 import { SourceMetaMap, DBTManifestCacheChangedEvent } from "../dbtManifest";
-import { DefinitionProvider, TextDocument, Position, CancellationToken, ProviderResult, Definition, DefinitionLink, workspace, Location, Uri, Range } from "vscode";
+import { DefinitionProvider, TextDocument, Position, CancellationToken, ProviderResult, Definition, DefinitionLink, Location, Uri } from "vscode";
+import { readFileSync } from "fs";
 import path = require("path");
 import { isEnclosedWithinCodeBlock } from "../utils";
 
@@ -38,10 +39,18 @@ export class SourceDefinitionProvider implements DefinitionProvider {
   private getSourceDefinition(name: string): Definition | undefined {
     const location = this.sourceMetaMap.get(name);
     if (location) {
-      return new Location(
-        Uri.file(location.path),
-        new Range(0, 0, 0, 0)
-      );
+      const sourceFile: string = readFileSync(location.path).toString("utf8");
+      const sourceFileLines = sourceFile.split("\n");
+
+      for (let index = 0; index < sourceFileLines.length; index++) {
+        const currentLine = sourceFileLines[index];
+        if (currentLine.includes(name)) {
+          return new Location(
+            Uri.file(location.path),
+            new Position(index, currentLine.indexOf(name))
+          );
+        }
+      }
     }
     return undefined;
   }
