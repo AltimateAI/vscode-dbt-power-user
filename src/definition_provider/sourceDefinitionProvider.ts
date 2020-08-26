@@ -1,12 +1,23 @@
 import { SourceMetaMap, DBTManifestCacheChangedEvent } from "../dbtManifest";
-import { DefinitionProvider, TextDocument, Position, CancellationToken, ProviderResult, Definition, DefinitionLink, workspace, Location, Uri, Range } from "vscode";
+import {
+  DefinitionProvider,
+  TextDocument,
+  Position,
+  CancellationToken,
+  ProviderResult,
+  Definition,
+  DefinitionLink,
+  Location,
+  Uri,
+} from "vscode";
+import { readFileSync } from "fs";
 import path = require("path");
 import { isEnclosedWithinCodeBlock } from "../utils";
 
 export class SourceDefinitionProvider implements DefinitionProvider {
   private sourceMetaMap: SourceMetaMap = new Map();
   private static readonly IS_SOURCE = /(source)[^}]*/;
-  private static readonly GET_SOURCE_NAME = /(?!['"])(\w+)(?=['"])/ig;
+  private static readonly GET_SOURCE_INFO = /(?!['"])(\w+)(?=['"])/g;
 
   provideDefinition(
     document: TextDocument,
@@ -15,19 +26,36 @@ export class SourceDefinitionProvider implements DefinitionProvider {
   ): ProviderResult<Definition | DefinitionLink[]> {
     return new Promise((resolve, reject) => {
       const hover = document.getText(document.getWordRangeAtPosition(position));
-      const range = document.getWordRangeAtPosition(position, SourceDefinitionProvider.IS_SOURCE);
+      const range = document.getWordRangeAtPosition(
+        position,
+        SourceDefinitionProvider.IS_SOURCE
+      );
       const word = document.getText(range);
 
-      if (range && word !== undefined && hover !== "source"
-        && isEnclosedWithinCodeBlock(document, range)) {
-        const source = word.match(SourceDefinitionProvider.GET_SOURCE_NAME);
-        if (source) {
-          const definition = this.getSourceDefinition(source[0]);
-          resolve(definition);
-          return;
-        }
+      const linePrefix = document
+        .lineAt(position)
+        .text.substr(0, position.character);
+
+      if (
+        !isEnclosedWithinCodeBlock(document, position) ||
+        !linePrefix.includes("source") ||
+        hover === "source"
+      ) {
+        reject();
+        return;
       }
-      reject();
+
+      const source = word.match(SourceDefinitionProvider.GET_SOURCE_INFO);
+      if (source === null || source === undefined) {
+        reject();
+        return;
+      }
+      console.log(source.length > 1 && hover === source[1] ? source[1] : undefined)
+      const definition = this.getSourceDefinition(
+        source[0],
+        source.length > 1 && hover === source[1] ? source[1] : undefined
+      );
+      resolve(definition);
     });
   }
 
@@ -35,13 +63,25 @@ export class SourceDefinitionProvider implements DefinitionProvider {
     this.sourceMetaMap = event.sourceMetaMap;
   }
 
-  private getSourceDefinition(name: string): Definition | undefined {
-    const location = this.sourceMetaMap.get(name);
+  private getSourceDefinition(
+    sourceName: string,
+    tableName?: string
+  ): Definition | undefined {
+    const location = this.sourceMetaMap.get(sourceName);
     if (location) {
-      return new Location(
-        Uri.file(location.path),
-        new Range(0, 0, 0, 0)
-      );
+      const sourceFile: string = readFileSync(location.path).toString("utf8");
+      const sourceFileLines = sourceFile.split("\n");
+      const lookupItem = tableName || sourceName;
+
+      for (let index = 0; index < sourceFileLines.length; index++) {
+        const currentLine = sourceFileLines[index];
+        if (currentLine.includes(lookupItem)) {
+          return new Location(
+            Uri.file(location.path),
+            new Position(index, currentLine.indexOf(lookupItem))
+          );
+        }
+      }
     }
     return undefined;
   }
