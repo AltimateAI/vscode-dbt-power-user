@@ -1,6 +1,4 @@
-import { workspace, TextDocument, Range, Position, Location, Uri } from "vscode";
-import { SourceMetaMap, ModelMetaMap } from "./dbtManifest";
-import * as path from "path";
+import { workspace, TextDocument, Range, Position } from "vscode";
 
 export const isEnclosedWithinCodeBlock: (
   document: TextDocument,

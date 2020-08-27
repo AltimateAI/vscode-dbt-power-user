@@ -1,6 +1,20 @@
-import { TreeDataProvider, TreeItem, Event, TreeItemCollapsibleState, window, EventEmitter } from "vscode";
-import { DBTManifestCacheChangedEvent, Node, Model, GraphMetaMap } from "../dbtManifest";
-import * as path from 'path';
+import {
+  TreeDataProvider,
+  TreeItem,
+  Event,
+  TreeItemCollapsibleState,
+  window,
+  EventEmitter,
+} from "vscode";
+import {
+  DBTManifestCacheChangedEvent,
+  Node,
+  Model,
+  GraphMetaMap,
+  Test,
+  Seed,
+} from "../dbtManifest";
+import * as path from "path";
 import { getPackageName } from "../utils";
 
 export class ModelTreeviewProvider implements TreeDataProvider<NodeTreeItem> {
@@ -11,11 +25,14 @@ export class ModelTreeviewProvider implements TreeDataProvider<NodeTreeItem> {
     this.treeType = treeType;
     window.onDidChangeActiveTextEditor(() => {
       this._onDidChangeTreeData.fire();
-    })
+    });
   }
 
-  private _onDidChangeTreeData: EventEmitter<ModelTreeItem | undefined | void> = new EventEmitter<ModelTreeItem | undefined | void>();
-  readonly onDidChangeTreeData: Event<ModelTreeItem | undefined | void> = this._onDidChangeTreeData.event;
+  private _onDidChangeTreeData: EventEmitter<
+    ModelTreeItem | undefined | void
+  > = new EventEmitter<ModelTreeItem | undefined | void>();
+  readonly onDidChangeTreeData: Event<ModelTreeItem | undefined | void> = this
+    ._onDidChangeTreeData.event;
 
   onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
     this.event = event;
@@ -37,26 +54,38 @@ export class ModelTreeviewProvider implements TreeDataProvider<NodeTreeItem> {
 
     const { projectName } = this.event;
     const currentPath = window.activeTextEditor!.document.uri.path;
-    const fileName = path.basename(window.activeTextEditor!.document.fileName, '.sql');
+    const fileName = path.basename(
+      window.activeTextEditor!.document.fileName,
+      ".sql"
+    );
     const packageName = getPackageName(currentPath) || projectName;
-    return Promise.resolve(this.getTreeItems(`model.${packageName}.${fileName}`));
+    return Promise.resolve(
+      this.getTreeItems(`model.${packageName}.${fileName}`)
+    );
   }
 
   private getTreeItems(elementName: string): NodeTreeItem[] {
-    const {
-      graphMetaMap
-    } = this.event!;
+    const { graphMetaMap } = this.event!;
     const parentModels = graphMetaMap[this.treeType].get(elementName);
     if (parentModels === undefined) {
       return [];
     }
-    return parentModels.nodes.map((node) => {
-      const nextLevelModels = graphMetaMap[this.treeType].get(node.key);
-      if (node instanceof Model && nextLevelModels?.nodes.length === 0) {
-        return new DashboardTreeItem(node);
-      }
-      return node instanceof Model ? new ModelTreeItem(node) : new SourceTreeItem(node);
-    });
+    return parentModels.nodes
+      .filter((node) => !(node instanceof Test) && !(node instanceof Seed))
+      .map((node) => {
+        const childNodes = graphMetaMap[this.treeType]
+          .get(node.key)
+          ?.nodes.filter(
+            (node) => !(node instanceof Test) && !(node instanceof Seed)
+          );
+
+        if (node instanceof Model && childNodes?.length === 0) {
+          return new DashboardTreeItem(node);
+        }
+        return node instanceof Model
+          ? new ModelTreeItem(node)
+          : new SourceTreeItem(node);
+      });
   }
 }
 
@@ -80,10 +109,10 @@ export class NodeTreeItem extends TreeItem {
 class ModelTreeItem extends NodeTreeItem {
   iconPath = {
     light: path.join(path.resolve(__dirname), "../../media/model_light.svg"),
-    dark: path.join(path.resolve(__dirname), "../../media/model_dark.svg")
-  }
+    dark: path.join(path.resolve(__dirname), "../../media/model_dark.svg"),
+  };
 
-  contextValue = 'model'
+  contextValue = "model";
 }
 
 class SourceTreeItem extends NodeTreeItem {
@@ -91,19 +120,22 @@ class SourceTreeItem extends NodeTreeItem {
 
   iconPath = {
     light: path.join(path.resolve(__dirname), "../../media/source_light.svg"),
-    dark: path.join(path.resolve(__dirname), "../../media/source_dark.svg")
-  }
+    dark: path.join(path.resolve(__dirname), "../../media/source_dark.svg"),
+  };
 
-  contextValue = 'source'
+  contextValue = "source";
 }
 
 class DashboardTreeItem extends NodeTreeItem {
   collapsibleState = TreeItemCollapsibleState.None;
 
   iconPath = {
-    light: path.join(path.resolve(__dirname), "../../media/dashboard_light.svg"),
-    dark: path.join(path.resolve(__dirname), "../../media/dashboard_dark.svg")
-  }
+    light: path.join(
+      path.resolve(__dirname),
+      "../../media/dashboard_light.svg"
+    ),
+    dark: path.join(path.resolve(__dirname), "../../media/dashboard_dark.svg"),
+  };
 
-  contextValue = 'dashboard'
+  contextValue = "dashboard";
 }

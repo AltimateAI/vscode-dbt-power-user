@@ -9,7 +9,7 @@ interface MacroMetaData {
   character: number;
 }
 
-interface ModelMetaData {
+interface NodeMetaData {
   path: string;
 }
 
@@ -22,7 +22,7 @@ interface SourceTable {
   name: string;
 }
 
-export class Node {
+export abstract class Node {
   label: string;
   key: string;
   url: string;
@@ -33,19 +33,15 @@ export class Node {
   }
 }
 
-export class Model extends Node {
-  constructor(modelName: string, parentNodeName: string, url: string) {
-    super(modelName, parentNodeName, url);
-  }
-}
+export class Model extends Node {}
 
-export class Source extends Node {
-  constructor(sourceName: string, parentNodeName: string, url: string) {
-    super(sourceName, parentNodeName, url);
-  }
-}
+export class Seed extends Node {}
 
-interface NodeModelMetaData {
+export class Test extends Node {}
+
+export class Source extends Node {}
+
+interface NodeGraphMetaData {
   nodes: Node[];
 }
 
@@ -57,13 +53,15 @@ type OnDBTManifestCacheChangedHandler = (
   event: DBTManifestCacheChangedEvent
 ) => void;
 
-export type ModelMetaMap = Map<string, ModelMetaData>;
+export type NodeMetaMap = Map<string, NodeMetaData>;
 export type MacroMetaMap = Map<string, MacroMetaData>;
 export type SourceMetaMap = Map<string, SourceMetaData>;
-type NodeModelMap = Map<string, NodeModelMetaData>;
+
+type NodeGraphMap = Map<string, NodeGraphMetaData>;
+
 export interface GraphMetaMap {
-  parents: NodeModelMap;
-  children: NodeModelMap;
+  parents: NodeGraphMap;
+  children: NodeGraphMap;
 }
 
 export interface OnDBTManifestCacheChanged {
@@ -72,20 +70,20 @@ export interface OnDBTManifestCacheChanged {
 
 export class DBTManifestCacheChangedEvent {
   projectName: string;
-  modelMetaMap: ModelMetaMap;
+  nodeMetaMap: NodeMetaMap;
   macroMetaMap: MacroMetaMap;
   sourceMetaMap: SourceMetaMap;
   graphMetaMap: GraphMetaMap;
 
   constructor(
     projectName: string,
-    modelMetaMap: ModelMetaMap,
+    nodeMetaMap: NodeMetaMap,
     macroMetaMap: MacroMetaMap,
     sourceMetaMap: SourceMetaMap,
     parentModelMap: GraphMetaMap,
   ) {
     this.projectName = projectName;
-    this.modelMetaMap = modelMetaMap;
+    this.nodeMetaMap = nodeMetaMap;
     this.macroMetaMap = macroMetaMap;
     this.sourceMetaMap = sourceMetaMap;
     this.graphMetaMap = parentModelMap;
@@ -249,34 +247,25 @@ class DBTManifest {
   }
 
   private createModelMetaMap(projectName: string, nodes: any[]) {
-    const modelMetaMap: ModelMetaMap = new Map();
+    const modelMetaMap: NodeMetaMap = new Map();
     Object.values(nodes)
       .filter(
         (model) => model.resource_type === DBTManifest.RESOURCE_TYPE_MODEL
       )
-      .forEach((model) => {
-        const packageName = model.package_name;
-        const location =
-          packageName === projectName
-            ? model.original_file_path
-            : path.join(
-              DBTManifest.DBT_MODULES_PATH,
-              packageName,
-              model.original_file_path
-            );
-        modelMetaMap.set(model.name, { path: path.join(vscode.workspace.rootPath!, location) });
+      .forEach(({name, root_path, original_file_path}) => {
+        const fullPath = path.join(root_path, original_file_path);
+        modelMetaMap.set(name, { path: fullPath });
       });
     return modelMetaMap;
   }
 
   private createMacroMetaMap(projectName: string, macros: any[]) {
     const macroMetaMap: MacroMetaMap = new Map();
-    Object.values(macros).forEach((macro) => {
-      const packageName = macro.package_name;
-      const name = macro.name;
+    Object.values(macros).forEach(({package_name, name, root_path, original_file_path}) => {
+      const packageName = package_name;
       const macroName =
         packageName === projectName ? name : `${packageName}.${name}`;
-      const fullPath = path.join(macro.root_path, macro.original_file_path);
+      const fullPath = path.join(root_path, original_file_path);
       try {
         const macroFile: string = readFileSync(fullPath).toString("utf8");
         const macroFileLines = macroFile.split("\n");
@@ -300,43 +289,57 @@ class DBTManifest {
     return macroMetaMap;
   }
 
-  private createGraphMetaMap(parentMap: DBTGraphType, childrenMap: DBTGraphType, modelMetaMap: ModelMetaMap, sourceMetaMap: SourceMetaMap): GraphMetaMap {
+  private createGraphMetaMap(parentMap: DBTGraphType, childrenMap: DBTGraphType, modelMetaMap: NodeMetaMap, sourceMetaMap: SourceMetaMap): GraphMetaMap {
+    const unique = (nodes: any[]) => Array.from(new Set(nodes));
+    
     const parents = Object.entries(parentMap)
       .reduce((map, [nodeName, nodes]) => {
-        const currentNodes = nodes.map(this.mapToModelOrSource(sourceMetaMap, modelMetaMap));
+        const currentNodes = unique(nodes).map(this.mapToNode(sourceMetaMap, modelMetaMap));
         map.set(nodeName, { nodes: currentNodes })
         return map;
-      }, new Map<string, NodeModelMetaData>());
+      }, new Map<string, NodeGraphMetaData>());
 
     const children = Object.entries(childrenMap)
       .reduce((map, [nodeName, nodes]) => {
-        const currentNodes = nodes.map(this.mapToModelOrSource(sourceMetaMap, modelMetaMap));
+        const currentNodes = unique(nodes).map(this.mapToNode(sourceMetaMap, modelMetaMap));
         map.set(nodeName, { nodes: currentNodes })
         return map;
-      }, new Map<string, NodeModelMetaData>());
+      }, new Map<string, NodeGraphMetaData>());
+    
     return {
       parents,
       children
     };
   }
 
-  private mapToModelOrSource(sourceMetaMap: SourceMetaMap, modelMetaMap: ModelMetaMap): (parentNodeName: string) => Node {
+  private mapToNode(sourceMetaMap: SourceMetaMap, nodeMetaMap: NodeMetaMap): (parentNodeName: string) => Node {
     return parentNodeName => {
       const nodeSegment = parentNodeName.split('.');
       const nodeType = nodeSegment[0];
       switch (nodeType) {
         case "source": {
           const sourceName = nodeSegment[2];
+          const tableName = nodeSegment[3];
           const url = sourceMetaMap.get(sourceName)?.path!;
-          return new Source(sourceName, parentNodeName, url);
+          return new Source(`${tableName} (${sourceName})`, parentNodeName, url);
         };
         case "model": {
           const modelName = nodeSegment[2];
-          const url = modelMetaMap.get(modelName)?.path!;
+          const url = nodeMetaMap.get(modelName)?.path!;
           return new Model(modelName, parentNodeName, url);
         }
+        case "seed": {
+          const modelName = nodeSegment[2];
+          const url = nodeMetaMap.get(modelName)?.path!;
+          return new Seed(modelName, parentNodeName, url);
+        }
+        case "test": {
+          const modelName = nodeSegment[2];
+          const url = nodeMetaMap.get(modelName)?.path!;
+          return new Test(modelName, parentNodeName, url);
+        }
         default:
-          throw Error("Node Type not implemented");
+          throw Error(`Node Type '${nodeType}' not implemented!`);
       }
     };
   }

@@ -34,9 +34,9 @@
 			"activitybar": [
 				{
 					"id": "dbt_view",
-					"title": "DBT power user",
+					"title": "DBT Power User",
 					"icon": "./media/dbt_icon.svg",
-					"contextualTitle": "DBT power user"
+					"contextualTitle": "DBT Power User"
 				}
 			]
 		},
@@ -55,7 +55,7 @@
 		"commands": [
 			{
 				"command": "run.dbt.currentModel",
-				"title": "Run current model",
+				"title": "Run Current Model",
 				"icon": {
 					"light": "./media/run-light.svg",
 					"dark": "./media/run-dark.svg"
@@ -63,7 +63,7 @@
 			},
 			{
 				"command": "run.dbt.childrenModels",
-				"title": "Run children models",
+				"title": "Run Children Models",
 				"icon": {
 					"light": "./media/run-light.svg",
 					"dark": "./media/run-dark.svg"
@@ -71,7 +71,7 @@
 			},
 			{
 				"command": "run.dbt.parentModels",
-				"title": "Run parent models",
+				"title": "Run Parent Models",
 				"icon": {
 					"light": "./media/run-light.svg",
 					"dark": "./media/run-dark.svg"

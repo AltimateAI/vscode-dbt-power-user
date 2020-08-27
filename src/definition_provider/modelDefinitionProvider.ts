@@ -11,11 +11,10 @@ import {
   Position,
   Range,
 } from "vscode";
-import { DBTManifestCacheChangedEvent, ModelMetaMap } from "../dbtManifest";
-import * as path from 'path';
+import { DBTManifestCacheChangedEvent, NodeMetaMap } from "../dbtManifest";
 
 export class ModelDefinitionProvider implements DefinitionProvider {
-  private modelToLocationMap: ModelMetaMap = new Map();
+  private modelToLocationMap: NodeMetaMap = new Map();
   private static readonly IS_REF = /(ref)[^}]*/;
   private static readonly GET_DBT_MODEL = /(?!'|")([^(?!'|")]*)(?='|")/gi;
 
@@ -42,14 +41,14 @@ export class ModelDefinitionProvider implements DefinitionProvider {
   }
 
   onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
-    this.modelToLocationMap = event.modelMetaMap;
+    this.modelToLocationMap = event.nodeMetaMap;
   }
 
   private getDefinitionFor(name: string): Definition | undefined {
     const location = this.modelToLocationMap.get(name);
-    if (workspace.rootPath && location) {
+    if (location) {
       return new Location(
-        Uri.file(path.join(workspace.rootPath, location.path)),
+        Uri.file(location.path),
         new Range(0, 0, 0, 0)
       );
     }

@@ -58,7 +58,7 @@ export class MacroDefinitionProvider
 
   private getMacroDefinition(macroName: string): Definition | undefined {
     const location = this.macroToLocationMap.get(macroName);
-    if (workspace.rootPath && location) {
+    if (location) {
       return new Location(
         Uri.file(location.path),
         new Position(location.line, location.character)
