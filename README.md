@@ -13,6 +13,10 @@ Please let us know about any bugs or feature requests through the github issues.
 
 ## Features at work
 
+### (new) See the model graph
+
+![See the graph and execute parent or children models](./media/definition-model.gif)
+
 ### Go to definition
 
 ![Go to model definition](./media/definition-model.gif)

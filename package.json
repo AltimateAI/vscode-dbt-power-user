@@ -1,6 +1,6 @@
 {
 	"name": "vscode-dbt-power-user",
-	"displayName": "vscode-dbt-power-user",
+	"displayName": "DBT Power User",
 	"description": "This extension makes vscode seamlessly work with dbt",
 	"icon": "media/dbt.png",
 	"publisher": "innoverio",
@@ -13,7 +13,7 @@
 	"bugs": {
 		"url": "https://github.com/innoverio/vscode-dbt-power-user/issues"
 	},
-	"version": "0.0.8",
+	"version": "0.1.0",
 	"engines": {
 		"vscode": "^1.47.0"
 	},
@@ -77,7 +77,6 @@
 					"dark": "./media/run-dark.svg"
 				}
 			}
-
 		],
 		"menus": {
 			"editor/title": [
