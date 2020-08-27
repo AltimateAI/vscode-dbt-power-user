@@ -42,7 +42,7 @@ export class ModelDefinitionProvider implements DefinitionProvider {
   }
 
   onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
-    this.modelToLocationMap = event.modelToLocationMap;
+    this.modelToLocationMap = event.modelMetaMap;
   }
 
   private getDefinitionFor(name: string): Definition | undefined {

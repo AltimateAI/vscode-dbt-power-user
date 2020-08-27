@@ -38,7 +38,7 @@ export class ModelAutocompletionProvider
   }
 
   onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
-    this.modelAutocompleteItems = Array.from(event.modelToLocationMap.keys()).map(
+    this.modelAutocompleteItems = Array.from(event.modelMetaMap.keys()).map(
       (model) => new CompletionItem(`'${model}'`, CompletionItemKind.File)
     );
   }

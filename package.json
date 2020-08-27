@@ -30,6 +30,28 @@
 	],
 	"main": "./out/extension.js",
 	"contributes": {
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "dbt_view",
+					"title": "DBT power user",
+					"icon": "./media/dbt_icon.svg",
+					"contextualTitle": "DBT power user"
+				}
+			]
+		},
+		"views": {
+			"dbt_view": [
+				{
+					"id": "parent_model_treeview",
+					"name": "Parent Models"
+				},
+				{
+					"id": "children_model_treeview",
+					"name": "Children Models"
+				}
+			]
+		},
 		"commands": [
 			{
 				"command": "run.dbt.currentModel",
@@ -38,7 +60,24 @@
 					"light": "./media/run-light.svg",
 					"dark": "./media/run-dark.svg"
 				}
+			},
+			{
+				"command": "run.dbt.childrenModels",
+				"title": "Run children models",
+				"icon": {
+					"light": "./media/run-light.svg",
+					"dark": "./media/run-dark.svg"
+				}
+			},
+			{
+				"command": "run.dbt.parentModels",
+				"title": "Run parent models",
+				"icon": {
+					"light": "./media/run-light.svg",
+					"dark": "./media/run-dark.svg"
+				}
 			}
+
 		],
 		"menus": {
 			"editor/title": [
@@ -46,6 +85,30 @@
 					"command": "run.dbt.currentModel",
 					"when": "resourceLangId == jinja-sql",
 					"group": "1_run"
+				}
+			],
+			"view/title": [
+				{
+					"command": "run.dbt.childrenModels",
+					"when": "view == children_model_treeview",
+					"group": "navigation"
+				},
+				{
+					"command": "run.dbt.parentModels",
+					"when": "view == parent_model_treeview",
+					"group": "navigation"
+				}
+			],
+			"view/item/context": [
+				{
+					"command": "run.dbt.childrenModels",
+					"when": "view == children_model_treeview && viewItem != source",
+					"group": "inline"
+				},
+				{
+					"command": "run.dbt.parentModels",
+					"when": "view == parent_model_treeview && viewItem != source",
+					"group": "inline"
 				}
 			]
 		},

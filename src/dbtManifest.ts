@@ -22,6 +22,37 @@ interface SourceTable {
   name: string;
 }
 
+export class Node {
+  label: string;
+  key: string;
+  url: string;
+  constructor(label: string, key: string, url: string) {
+    this.label = label;
+    this.key = key;
+    this.url = url;
+  }
+}
+
+export class Model extends Node {
+  constructor(modelName: string, parentNodeName: string, url: string) {
+    super(modelName, parentNodeName, url);
+  }
+}
+
+export class Source extends Node {
+  constructor(sourceName: string, parentNodeName: string, url: string) {
+    super(sourceName, parentNodeName, url);
+  }
+}
+
+interface NodeModelMetaData {
+  nodes: Node[];
+}
+
+type DBTGraphType = {
+  [name: string]: string[]
+}
+
 type OnDBTManifestCacheChangedHandler = (
   event: DBTManifestCacheChangedEvent
 ) => void;
@@ -29,24 +60,35 @@ type OnDBTManifestCacheChangedHandler = (
 export type ModelMetaMap = Map<string, ModelMetaData>;
 export type MacroMetaMap = Map<string, MacroMetaData>;
 export type SourceMetaMap = Map<string, SourceMetaData>;
+type NodeModelMap = Map<string, NodeModelMetaData>;
+export interface GraphMetaMap {
+  parents: NodeModelMap;
+  children: NodeModelMap;
+}
 
 export interface OnDBTManifestCacheChanged {
   onDBTManifestCacheChanged: OnDBTManifestCacheChangedHandler;
 }
 
 export class DBTManifestCacheChangedEvent {
-  modelToLocationMap: ModelMetaMap;
-  macroToLocationMap: MacroMetaMap;
+  projectName: string;
+  modelMetaMap: ModelMetaMap;
+  macroMetaMap: MacroMetaMap;
   sourceMetaMap: SourceMetaMap;
+  graphMetaMap: GraphMetaMap;
 
   constructor(
-    modelToLocationMap: ModelMetaMap,
-    macroToLocationMap: MacroMetaMap,
-    sourceInfoMap: SourceMetaMap
+    projectName: string,
+    modelMetaMap: ModelMetaMap,
+    macroMetaMap: MacroMetaMap,
+    sourceMetaMap: SourceMetaMap,
+    parentModelMap: GraphMetaMap,
   ) {
-    this.modelToLocationMap = modelToLocationMap;
-    this.macroToLocationMap = macroToLocationMap;
-    this.sourceMetaMap = sourceInfoMap;
+    this.projectName = projectName;
+    this.modelMetaMap = modelMetaMap;
+    this.macroMetaMap = macroMetaMap;
+    this.sourceMetaMap = sourceMetaMap;
+    this.graphMetaMap = parentModelMap;
   }
 }
 
@@ -107,13 +149,14 @@ class DBTManifest {
     this.createManifestWatcher(targetPath);
     this.createSourcesWatcher(sourcesPath);
 
-    const { nodes, macros } = this.readAndParseManifest(targetPath);
+    const { nodes, macros, parent_map, child_map } = this.readAndParseManifest(targetPath);
 
     const modelMetaMap = this.createModelMetaMap(projectName, nodes);
     const macroMetaMap = this.createMacroMetaMap(projectName, macros);
     const sourceMetaMap = await this.createSourceMetaMap(sourcesPath);
+    const graphMetaMap = this.createGraphMetaMap(parent_map, child_map, modelMetaMap, sourceMetaMap);
 
-    const event = new DBTManifestCacheChangedEvent(modelMetaMap, macroMetaMap, sourceMetaMap);
+    const event = new DBTManifestCacheChangedEvent(projectName, modelMetaMap, macroMetaMap, sourceMetaMap, graphMetaMap);
 
     this.onDBTManifestCacheChangedHandlers.forEach((handler) => handler(event));
   }
@@ -196,11 +239,11 @@ class DBTManifest {
             sourceMetaMap.set(sourceName, { path: sourceFile.path, tables: tables });
           });
         }
-      }catch(error) {
+      } catch (error) {
         // if we can't parse a file, we shouldn't completely fail
         console.log(`An error ocurred while processing ${sourceFile.path}`, error);
       }
-      
+
     });
     return sourceMetaMap;
   }
@@ -221,7 +264,7 @@ class DBTManifest {
               packageName,
               model.original_file_path
             );
-        modelMetaMap.set(model.name, { path: location });
+        modelMetaMap.set(model.name, { path: path.join(vscode.workspace.rootPath!, location) });
       });
     return modelMetaMap;
   }
@@ -237,7 +280,7 @@ class DBTManifest {
       try {
         const macroFile: string = readFileSync(fullPath).toString("utf8");
         const macroFileLines = macroFile.split("\n");
-  
+
         for (let index = 0; index < macroFileLines.length; index++) {
           const currentLine = macroFileLines[index];
           if (currentLine.match(new RegExp(`macro\\s${name}\\(`))) {
@@ -249,12 +292,53 @@ class DBTManifest {
             break;
           }
         }
-      }catch (error) {
+      } catch (error) {
         console.log(`File not found at '${fullPath}', probably compiled is outdated!`, error);
       }
-      
+
     });
     return macroMetaMap;
+  }
+
+  private createGraphMetaMap(parentMap: DBTGraphType, childrenMap: DBTGraphType, modelMetaMap: ModelMetaMap, sourceMetaMap: SourceMetaMap): GraphMetaMap {
+    const parents = Object.entries(parentMap)
+      .reduce((map, [nodeName, nodes]) => {
+        const currentNodes = nodes.map(this.mapToModelOrSource(sourceMetaMap, modelMetaMap));
+        map.set(nodeName, { nodes: currentNodes })
+        return map;
+      }, new Map<string, NodeModelMetaData>());
+
+    const children = Object.entries(childrenMap)
+      .reduce((map, [nodeName, nodes]) => {
+        const currentNodes = nodes.map(this.mapToModelOrSource(sourceMetaMap, modelMetaMap));
+        map.set(nodeName, { nodes: currentNodes })
+        return map;
+      }, new Map<string, NodeModelMetaData>());
+    return {
+      parents,
+      children
+    };
+  }
+
+  private mapToModelOrSource(sourceMetaMap: SourceMetaMap, modelMetaMap: ModelMetaMap): (parentNodeName: string) => Node {
+    return parentNodeName => {
+      const nodeSegment = parentNodeName.split('.');
+      const nodeType = nodeSegment[0];
+      switch (nodeType) {
+        case "source": {
+          const sourceName = nodeSegment[2];
+          const url = sourceMetaMap.get(sourceName)?.path!;
+          return new Source(sourceName, parentNodeName, url);
+        };
+        case "model": {
+          const modelName = nodeSegment[2];
+          const url = modelMetaMap.get(modelName)?.path!;
+          return new Model(modelName, parentNodeName, url);
+        }
+        default:
+          throw Error("Node Type not implemented");
+      }
+    };
   }
 }
 
