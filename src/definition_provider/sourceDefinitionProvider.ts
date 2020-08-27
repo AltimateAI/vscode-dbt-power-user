@@ -50,7 +50,6 @@ export class SourceDefinitionProvider implements DefinitionProvider {
         reject();
         return;
       }
-      console.log(source.length > 1 && hover === source[1] ? source[1] : undefined)
       const definition = this.getSourceDefinition(
         source[0],
         source.length > 1 && hover === source[1] ? source[1] : undefined

@@ -15,7 +15,7 @@ Please let us know about any bugs or feature requests through the github issues.
 
 ### (new) See the model graph
 
-![See the graph and execute parent or children models](./media/definition-model.gif)
+![See the graph and execute parent or children models](./media/graph.gif)
 
 ### Go to definition
 
