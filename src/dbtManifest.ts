@@ -47,7 +47,7 @@ interface NodeGraphMetaData {
 
 type DBTGraphType = {
   [name: string]: string[]
-}
+};
 
 type OnDBTManifestCacheChangedHandler = (
   event: DBTManifestCacheChangedEvent
@@ -295,14 +295,14 @@ class DBTManifest {
     const parents = Object.entries(parentMap)
       .reduce((map, [nodeName, nodes]) => {
         const currentNodes = unique(nodes).map(this.mapToNode(sourceMetaMap, modelMetaMap));
-        map.set(nodeName, { nodes: currentNodes })
+        map.set(nodeName, { nodes: currentNodes });
         return map;
       }, new Map<string, NodeGraphMetaData>());
 
     const children = Object.entries(childrenMap)
       .reduce((map, [nodeName, nodes]) => {
         const currentNodes = unique(nodes).map(this.mapToNode(sourceMetaMap, modelMetaMap));
-        map.set(nodeName, { nodes: currentNodes })
+        map.set(nodeName, { nodes: currentNodes });
         return map;
       }, new Map<string, NodeGraphMetaData>());
     

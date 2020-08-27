@@ -71,4 +71,4 @@ export const getPackageName = (currentPath: string): string | undefined => {
     return pathSegments[1];
   }
   return undefined;
-}
+};

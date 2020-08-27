@@ -18,6 +18,6 @@ const runModel = (type: RunModelType) => (model?: NodeTreeItem) => {
     terminal.sendText(`dbt run --model ${plusOperatorLeft}${fileName}${plusOperatorRight}`);
     terminal.show(true);
   }
-}
+};
 
 export default runModel;
