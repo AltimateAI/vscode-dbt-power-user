@@ -34,7 +34,7 @@ export class MacroAutocompletionProvider
 
   onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
     this.macrosAutocompleteItems = Array.from(
-      event.macroToLocationMap.keys()
+      event.macroMetaMap.keys()
     ).map((macro) => new CompletionItem(macro, CompletionItemKind.File));
   }
 }

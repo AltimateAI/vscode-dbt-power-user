@@ -1,11 +1,11 @@
-import * as vscode from "vscode";
+import { workspace, TextDocument, Range, Position } from "vscode";
 
 export const isEnclosedWithinCodeBlock: (
-  document: vscode.TextDocument,
-  rangeOrPosition: vscode.Range | vscode.Position
+  document: TextDocument,
+  rangeOrPosition: Range | Position
 ) => boolean = (document, rangeOrPosition) => {
   const isWithinCodeBlock: (
-    startPosition: vscode.Position,
+    startPosition: Position,
     direction: "asc" | "desc",
     lookupChar: "{" | "}",
     stopChar: "{" | "}"
@@ -48,7 +48,7 @@ export const isEnclosedWithinCodeBlock: (
     return false;
   };
   const { start, end } =
-    rangeOrPosition instanceof vscode.Position
+    rangeOrPosition instanceof Position
       ? { start: rangeOrPosition, end: rangeOrPosition }
       : rangeOrPosition;
   return (
@@ -56,3 +56,19 @@ export const isEnclosedWithinCodeBlock: (
     isWithinCodeBlock(end, "asc", "}", "{")
   );
 };
+
+export const getPackageName = (currentPath: string): string | undefined => {
+  const documentPath = currentPath;
+  const projectPath = workspace.workspaceFolders![0].uri.path + '/';
+  const pathSegments = documentPath
+    .replace(projectPath, "")
+    .split('/');
+
+  const insidePackage = pathSegments.length > 1 &&
+    pathSegments[0] === 'dbt_modules';
+
+  if (insidePackage) {
+    return pathSegments[1];
+  }
+  return undefined;
+}
