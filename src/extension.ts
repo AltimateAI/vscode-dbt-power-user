@@ -30,12 +30,12 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.languages.registerCompletionItemProvider(
       DBT_MODE,
       AutocompletionProviderFactory.createModelAutocompletionProvider(),
-      "("
+      '"', "'"
     ),
     vscode.languages.registerCompletionItemProvider(
       DBT_MODE,
       AutocompletionProviderFactory.createSourceAutocompletionProvider(),
-      "(", "'"
+      '"', "'"
     ),
     vscode.window.registerTreeDataProvider('parent_model_treeview',
       TreeviewProviderFactory.createModelTreeview("parents")),

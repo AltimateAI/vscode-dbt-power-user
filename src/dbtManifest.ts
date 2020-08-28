@@ -228,7 +228,7 @@ class DBTManifest {
       ));
     sourceFilePaths.forEach(sourceFile => {
       try {
-        const file = readFileSync(sourceFile.path, "utf8");
+        const file = readFileSync(sourceFile.fsPath, "utf8");
         const parsedFile = safeLoad(file) as any;
         const sources = parsedFile.sources;
 
@@ -240,7 +240,7 @@ class DBTManifest {
                 return { name: table.name };
               }
             });
-            sourceMetaMap.set(sourceName, { path: sourceFile.path, tables: tables });
+            sourceMetaMap.set(sourceName, { path: sourceFile.fsPath, tables: tables });
           });
         }
       } catch (error) {

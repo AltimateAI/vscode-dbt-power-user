@@ -18,6 +18,7 @@ import {
 export class SourceAutocompletionProvider
   implements CompletionItemProvider, OnDBTManifestCacheChanged {
   private static readonly GET_SOURCE_NAME = /(?!['"])(\w+)(?=['"])/;
+  private static readonly ENDS_WTTH_SOURCE = /source\(['|"]$/;
   private sourceAutocompleteNameItems: CompletionItem[] = [];
   private sourceAutocompleteTableMap: Map<string, CompletionItem[]> = new Map();
 
@@ -30,21 +31,24 @@ export class SourceAutocompletionProvider
     const linePrefix = document
       .lineAt(position)
       .text.substr(0, position.character);
-    if (!isEnclosedWithinCodeBlock(document, position))
-      {return undefined;}
+    if (!isEnclosedWithinCodeBlock(document, position)) {
+      return undefined;
+    }
 
-    if (linePrefix.endsWith("source("))
-      {return this.showSourceNameAutocompletionItems();}
+    if (linePrefix.match(SourceAutocompletionProvider.ENDS_WTTH_SOURCE)) {
+      return this.showSourceNameAutocompletionItems();
+    }
 
     if (linePrefix.match(SourceAutocompletionProvider.GET_SOURCE_NAME) &&
-      linePrefix.includes('source'))
-      {return this.showTableNameAutocompletionItems(linePrefix);}
+      linePrefix.includes('source')) {
+        return this.showTableNameAutocompletionItems(linePrefix);
+      }
     return undefined;
   }
 
   onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
     this.sourceAutocompleteNameItems = Array.from(event.sourceMetaMap.keys()).map(
-      (source) => new CompletionItem(`'${source}'`, CompletionItemKind.File)
+      (source) => new CompletionItem(source, CompletionItemKind.File)
     );
     event.sourceMetaMap.forEach((value, key) => {
       const autocompleteItems = value.tables.map(item => {

@@ -17,6 +17,8 @@ import {
 
 export class ModelAutocompletionProvider
   implements CompletionItemProvider, OnDBTManifestCacheChanged {
+  
+  private static readonly ENDS_WTTH_REF = /ref\(['|"]$/;
   private modelAutocompleteItems: CompletionItem[] = [];
 
   provideCompletionItems(
@@ -29,7 +31,7 @@ export class ModelAutocompletionProvider
       .lineAt(position)
       .text.substr(0, position.character);
     if (
-      linePrefix.endsWith("ref(") &&
+      linePrefix.match(ModelAutocompletionProvider.ENDS_WTTH_REF) &&
       isEnclosedWithinCodeBlock(document, position)
     ) {
       return this.modelAutocompleteItems;
@@ -40,7 +42,7 @@ export class ModelAutocompletionProvider
   onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
     const models = event.nodeMetaMap.keys();
     this.modelAutocompleteItems = Array.from(models).map(
-      (model) => new CompletionItem(`'${model}'`, CompletionItemKind.File)
+      (model) => new CompletionItem(model, CompletionItemKind.File)
     );
   }
 }
