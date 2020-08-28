@@ -127,7 +127,7 @@ class DBTManifest {
   readAndParseProjectConfig() {
     const dbtProjectYamlFile = readFileSync(
       path.join(
-        vscode.workspace.workspaceFolders![0].uri.path,
+        vscode.workspace.workspaceFolders![0].uri.fsPath,
         DBTManifest.DBT_PROJECT_FILE
       ),
       "utf8"
@@ -201,16 +201,22 @@ class DBTManifest {
 
   private readAndParseManifest(targetPath: string) {
     const manifestLocation = path.join(
-      vscode.workspace.workspaceFolders![0].uri.path,
+      vscode.workspace.workspaceFolders![0].uri.fsPath,
       targetPath,
       DBTManifest.MANIFEST_FILE
     );
     console.log(`Reading manifest at location '${manifestLocation}'`);
-    const manifestFile = readFileSync(
-      manifestLocation,
-      "utf8"
-    );
-    return JSON.parse(manifestFile);
+    try {
+      const manifestFile = readFileSync(
+        manifestLocation,
+        "utf8"
+      );
+      return JSON.parse(manifestFile);
+    } catch(e) {
+      vscode.window.showWarningMessage(`Have you compiled your project? Could not read your manifest file at '${manifestLocation}'`);
+      throw Error("Could not read the manifest!");
+    }
+    
   }
 
   private async createSourceMetaMap(sourcesPath: string) {
@@ -221,8 +227,8 @@ class DBTManifest {
         `${sourcesPath}/**/*.yml`
       ));
     sourceFilePaths.forEach(sourceFile => {
-      const file = readFileSync(sourceFile.path, "utf8");
       try {
+        const file = readFileSync(sourceFile.path, "utf8");
         const parsedFile = safeLoad(file) as any;
         const sources = parsedFile.sources;
 
