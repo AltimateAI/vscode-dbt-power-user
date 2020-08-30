@@ -8,8 +8,9 @@ export enum RunModelType {
   CHILDREN
 }
 
-const runModel = (type: RunModelType) => (model?: NodeTreeItem) => {
+const runModel = (type: RunModelType) => async (model?: NodeTreeItem) => {
   const terminal = window.createTerminal('DBT');
+  await sleep(500);
   const fullPath = model === undefined ? window.activeTextEditor?.document.fileName : model.url;
   if (fullPath !== undefined) {
     const fileName = path.basename(fullPath, '.sql');
@@ -18,6 +19,12 @@ const runModel = (type: RunModelType) => (model?: NodeTreeItem) => {
     terminal.sendText(`dbt run --model ${plusOperatorLeft}${fileName}${plusOperatorRight}`);
     terminal.show(true);
   }
+};
+
+const sleep: (timeout: number) => Promise<void>  = async (timeout: number) => {
+  return new Promise<void>(resolve => {
+      setTimeout(resolve, timeout);
+  });
 };
 
 export default runModel;

@@ -132,7 +132,7 @@
 		"@types/glob": "^7.1.1",
 		"@types/js-yaml": "^3.12.5",
 		"@types/mocha": "^7.0.2",
-		"@types/node": "^13.11.0",
+		"@types/node": "^13.13.15",
 		"@types/vscode": "^1.47.0",
 		"@typescript-eslint/eslint-plugin": "^2.30.0",
 		"@typescript-eslint/parser": "^2.30.0",
