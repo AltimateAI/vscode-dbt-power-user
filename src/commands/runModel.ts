@@ -9,7 +9,7 @@ export enum RunModelType {
 }
 
 const runModel = (type: RunModelType) => async (model?: NodeTreeItem) => {
-  const terminal = window.createTerminal('DBT');
+  const terminal = window.activeTerminal ? window.activeTerminal : window.createTerminal('DBT');
   await sleep(500);
   const fullPath = model === undefined ? window.activeTextEditor?.document.fileName : model.url;
   if (fullPath !== undefined) {
