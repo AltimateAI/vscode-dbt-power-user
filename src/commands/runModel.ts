@@ -11,7 +11,7 @@ export enum RunModelType {
 const runModel = (type: RunModelType) => async (model?: NodeTreeItem) => {
   const terminal = window.activeTerminal ? window.activeTerminal : window.createTerminal('DBT');
   await sleep(500);
-  const fullPath = model === undefined ? window.activeTextEditor?.document.fileName : model.url;
+  const fullPath = model instanceof NodeTreeItem ? model.url : window.activeTextEditor?.document.fileName;
   if (fullPath !== undefined) {
     const fileName = path.basename(fullPath, '.sql');
     const plusOperatorLeft = type === RunModelType.PARENTS ? '+' : '';
