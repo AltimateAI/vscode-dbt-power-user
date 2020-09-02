@@ -1,9 +1,9 @@
-import { commands, Uri, window } from "vscode";
+import { window } from "vscode";
+import navigateToFile from "./navigateToFile";
 
 const navigateToFileWithErrorMessage = async (url: string, errorMessage: string) => {
-  const uri = Uri.file(url);
   window.showErrorMessage(errorMessage);
-  await commands.executeCommand('vscode.open', uri, { preview: false });
+  await navigateToFile(url);
 };
 
 export default navigateToFileWithErrorMessage;

@@ -1,17 +1,17 @@
 import { DBTManifestCacheChangedEvent, RunResultMetaMap } from "../dbtManifest";
-import { window, StatusBarAlignment, StatusBarItem, ThemeColor } from "vscode";
+import { window, StatusBarAlignment, StatusBarItem, ThemeColor, Command } from "vscode";
 import * as dayjs from "dayjs";
 import * as relativeTime from "dayjs/plugin/relativeTime";
 import * as path from "path";
 dayjs.extend(relativeTime);
 
 export class RunResultStatusBar {
-  private runResultMetaMap: RunResultMetaMap = new Map();
   statusBar: StatusBarItem;
+  private runResultMetaMap: RunResultMetaMap = new Map();
 
   constructor() {
     this.statusBar = window.createStatusBarItem(StatusBarAlignment.Left, 0);
-    window.onDidChangeActiveTextEditor(this.showRunResult, this);
+    window.onDidChangeActiveTextEditor(() => this.showRunResult());
   }
 
   onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
@@ -29,15 +29,21 @@ export class RunResultStatusBar {
         statusBar.hide();
         return;
       };
-      if (runResult.error === null) {
-        statusBar.text = `✓ ran ${dayjs().to(dayjs(runResult.timestamp))}`;
-        statusBar.color = undefined;
-        statusBar.command = { command: 'navigateToFile', arguments: [runResult.buildPath], title: 'Go to compiled SQL' };
-
+      if(runResult.status === null) {
+        statusBar.text = `✓ model compiled ${dayjs().to(dayjs(runResult.timestamp))}`;
+          statusBar.color = undefined;
+          statusBar.command = { command: 'navigateToFile', arguments: [runResult.compiledPath], title: 'Go to compiled SQL' };
       } else {
-        statusBar.text = `x ran ${dayjs().to(dayjs(runResult.timestamp))}`;
-        statusBar.color = new ThemeColor('errorForeground');
-        statusBar.command = { command: 'navigateToFileWithErrorMessage', arguments: [runResult.buildPath, runResult.error], title: 'Go to compiled SQL' };
+        if (runResult.error === null) {
+          statusBar.text = `✓ model ran ${dayjs().to(dayjs(runResult.timestamp))}`;
+          statusBar.color = undefined;
+          statusBar.command = { command: 'navigateToFile', arguments: [runResult.compiledPath], title: 'Go to compiled SQL' };
+  
+        } else {
+          statusBar.text = `x model ran ${dayjs().to(dayjs(runResult.timestamp))}`;
+          statusBar.color = new ThemeColor('errorForeground');
+          statusBar.command = { command: 'navigateToFileWithErrorMessage', arguments: [runResult.compiledPath, runResult.error], title: 'Go to compiled SQL' };
+        }
       }
       statusBar.tooltip = 'Go to compiled SQL';
       statusBar.show();

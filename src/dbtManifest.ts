@@ -33,13 +33,13 @@ export abstract class Node {
   }
 }
 
-export class Model extends Node { }
+export class Model extends Node {}
 
-export class Seed extends Node { }
+export class Seed extends Node {}
 
-export class Test extends Node { }
+export class Test extends Node {}
 
-export class Source extends Node { }
+export class Source extends Node {}
 
 interface NodeGraphMetaData {
   nodes: Node[];
@@ -66,9 +66,10 @@ export interface GraphMetaMap {
 }
 
 interface RunResultMetaData {
-  buildPath: string;
+  compiledPath: string;
   error: string;
   timestamp: string;
+  status: string;
 }
 
 export interface OnDBTManifestCacheChanged {
@@ -113,6 +114,7 @@ class DBTManifest {
   private dbtProjectWatcher?: vscode.FileSystemWatcher;
   private manifestWatcher?: vscode.FileSystemWatcher;
   private runResultsWatcher?: vscode.FileSystemWatcher;
+  private targetFolderWatcher?: vscode.FileSystemWatcher;
   private currentTargetPath?: string;
 
   addOnDBTManifestCacheChangedHandler: (
@@ -153,8 +155,7 @@ class DBTManifest {
     const targetPath = projectConfig[DBTManifest.TARGET_PATH_VAR];
     const sourcesPath = projectConfig[DBTManifest.SOURCE_FOLDER_VAR];
 
-    this.createManifestWatcher(targetPath);
-    this.createRunResultsWatcher(targetPath);
+    this.createTargetWatchers(targetPath);
 
     const manifest = this.readAndParseManifest(targetPath);
 
@@ -209,7 +210,7 @@ class DBTManifest {
     }
   }
 
-  private createManifestWatcher(targetPath: any) {
+  private createTargetWatchers(targetPath: any) {
     if (
       this.currentTargetPath === undefined ||
       this.currentTargetPath !== targetPath
@@ -221,16 +222,7 @@ class DBTManifest {
         )
       );
       this.setupRefreshHandler(this.manifestWatcher);
-      this.currentTargetPath = targetPath;
-    }
-  }
 
-  private createRunResultsWatcher(targetPath: string) {
-    if (
-      this.runResultsWatcher === undefined ||
-      this.currentTargetPath === undefined ||
-      this.currentTargetPath !== targetPath
-    ) {
       this.runResultsWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
           vscode.workspace.workspaceFolders![0],
@@ -238,6 +230,15 @@ class DBTManifest {
         )
       );
       this.setupRefreshHandler(this.runResultsWatcher);
+
+      this.targetFolderWatcher = vscode.workspace.createFileSystemWatcher(
+        new vscode.RelativePattern(
+          vscode.workspace.workspaceFolders![0],
+          `${targetPath}`
+        )
+      );
+      this.targetFolderWatcher.onDidDelete(() => this.tryRefresh());
+
       this.currentTargetPath = targetPath;
     }
   }
@@ -254,15 +255,10 @@ class DBTManifest {
       targetPath,
       DBTManifest.MANIFEST_FILE
     );
-    console.log(`Reading manifest at location '${manifestLocation}'`);
     try {
       const manifestFile = readFileSync(manifestLocation, "utf8");
       return JSON.parse(manifestFile);
-    } catch (e) {
-      vscode.window.showWarningMessage(
-        `Have you compiled your project? Could not read your manifest file at '${manifestLocation}'`
-      );
-    }
+    } catch (_) {}
   }
 
   private createSourceMetaMap(sourcesMap: any[]): SourceMetaMap {
@@ -271,16 +267,22 @@ class DBTManifest {
       .filter(
         (source) => source.resource_type === DBTManifest.RESOURCE_TYPE_SOURCE
       )
-      .reduce((previousValue: SourceMetaMap, { source_name, name, root_path, original_file_path }) => {
-        let source = previousValue.get(source_name);
-        if (!source) {
-          const fullPath = path.join(root_path, original_file_path);
-          source = { path: fullPath, tables: [] };
-          previousValue.set(source_name, source);
-        }
-        source.tables.push(name);
-        return previousValue;
-      }, sourceMetaMap);
+      .reduce(
+        (
+          previousValue: SourceMetaMap,
+          { source_name, name, root_path, original_file_path }
+        ) => {
+          let source = previousValue.get(source_name);
+          if (!source) {
+            const fullPath = path.join(root_path, original_file_path);
+            source = { path: fullPath, tables: [] };
+            previousValue.set(source_name, source);
+          }
+          source.tables.push(name);
+          return previousValue;
+        },
+        sourceMetaMap
+      );
     return sourceMetaMap;
   }
 
@@ -414,19 +416,21 @@ class DBTManifest {
       "run_results.json"
     );
     const runResultFile = JSON.parse(readFileSync(runResultPath, "utf8"));
-    const results = runResultFile["results"];
-    const timestamp = runResultFile["generated_at"];
+    const { results, generated_at } = runResultFile;
     results.forEach((result: any) => {
-      const node = result["node"];
-      const fullPath = path.join(node["root_path"], node["original_file_path"]);
-      const buildPath =
-        node["build_path"] !== null
-          ? path.join(node["root_path"], node["build_path"])
-          : null;
+      const {
+        node: { root_path, build_path, original_file_path },
+        error,
+        status,
+      } = result;
+      const fullPath = path.join(root_path, original_file_path);
+      const compiledPath =
+        build_path !== null ? path.join(root_path, build_path) : null;
       runResultMetaMap.set(fullPath, {
-        buildPath,
-        error: result["error"],
-        timestamp,
+        buildPath: compiledPath,
+        error,
+        timestamp: generated_at,
+        status,
       });
     });
     return runResultMetaMap;
