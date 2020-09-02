@@ -105,7 +105,6 @@ class DBTManifest {
   private static DBT_PROJECT_FILE = "dbt_project.yml";
   private static MANIFEST_FILE = "manifest.json";
   private static TARGET_PATH_VAR = "target-path";
-  private static SOURCE_FOLDER_VAR = "source-paths";
   private static RESOURCE_TYPE_MODEL = "model";
   private static RESOURCE_TYPE_SOURCE = "source";
   private static RUN_RESULTS_FILE = "run_results.json";
@@ -153,7 +152,6 @@ class DBTManifest {
 
     const projectName = projectConfig.name;
     const targetPath = projectConfig[DBTManifest.TARGET_PATH_VAR];
-    const sourcesPath = projectConfig[DBTManifest.SOURCE_FOLDER_VAR];
 
     this.createTargetWatchers(targetPath);
 
