@@ -106,7 +106,6 @@ class DBTManifest {
   private static TARGET_PATH_VAR = "target-path";
   private static SOURCE_FOLDER_VAR = "source-paths";
   private static RESOURCE_TYPE_MODEL = "model";
-  private static DBT_MODULES_PATH = "dbt_modules";
   private static RUN_RESULTS_FILE = "run_results.json";
 
   private onDBTManifestCacheChangedHandlers: OnDBTManifestCacheChangedHandler[] = [];
@@ -123,9 +122,9 @@ class DBTManifest {
     this.onDBTManifestCacheChangedHandlers.push(handler);
   };
 
-  tryRefresh() {
+  async tryRefresh() {
     try {
-      this.refresh();
+      await this.refresh();
     } catch (error) {
       // will get here if manifest file is not yet compiled
       console.log(error);
@@ -180,7 +179,7 @@ class DBTManifest {
           DBTManifest.DBT_PROJECT_FILE
         )
       );
-      this.dbtProjectWatcher.onDidChange(() => this.tryRefresh());
+      this.setupRefreshHandler(this.dbtProjectWatcher);
     }
   }
 
@@ -193,7 +192,7 @@ class DBTManifest {
           `${targetPath}/${DBTManifest.MANIFEST_FILE}`
         )
       );
-      this.manifestWatcher.onDidChange(() => this.tryRefresh());
+      this.setupRefreshHandler(this.manifestWatcher);
       this.currentTargetPath = targetPath;
     }
   }
@@ -207,7 +206,7 @@ class DBTManifest {
           `${sourcesPath}/**/*.yml`
         )
       );
-      this.sourcesWatcher.onDidChange(() => this.tryRefresh());
+      this.setupRefreshHandler(this.sourcesWatcher);
       this.currentSourcesPath = sourcesPath;
     };
   }
@@ -220,9 +219,15 @@ class DBTManifest {
           `${targetPath}/${DBTManifest.RUN_RESULTS_FILE}`
         )
       );
-      this.runResultsWatcher.onDidChange(() => this.tryRefresh());
+      this.setupRefreshHandler(this.runResultsWatcher);
       this.currentTargetPath = targetPath;
     }
+  }
+
+  private setupRefreshHandler(watcher: vscode.FileSystemWatcher): void {
+    watcher.onDidChange(() => this.tryRefresh());
+    watcher.onDidCreate(() => this.tryRefresh());
+    watcher.onDidDelete(() => this.tryRefresh());
   }
 
   private readAndParseManifest(targetPath: string) {

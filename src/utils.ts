@@ -1,5 +1,7 @@
 import { workspace, TextDocument, Range, Position } from "vscode";
 
+const DBT_MODULES = "dbt_modules";
+
 export const isEnclosedWithinCodeBlock: (
   document: TextDocument,
   rangeOrPosition: Range | Position
@@ -65,7 +67,7 @@ export const getPackageName = (currentPath: string): string | undefined => {
     .split('/');
 
   const insidePackage = pathSegments.length > 1 &&
-    pathSegments[0] === 'dbt_modules';
+    pathSegments[0] === DBT_MODULES;
 
   if (insidePackage) {
     return pathSegments[1];

@@ -19,7 +19,6 @@ export class MacroDefinitionProvider
   implements DefinitionProvider, OnDBTManifestCacheChanged {
   private macroToLocationMap: MacroMetaMap = new Map();
   private static readonly IS_MACRO = /\w+\.?\w+/;
-  private static readonly DBT_MODULES = 'dbt_modules';
 
   provideDefinition(
     document: TextDocument,
