@@ -66,7 +66,7 @@ export interface GraphMetaMap {
 }
 
 interface RunResultMetaData {
-  compiledPath: string;
+  compiledPath?: string;
   error: string;
   timestamp: string;
   status: string;
@@ -126,8 +126,9 @@ class DBTManifest {
     try {
       await this.refresh();
     } catch (error) {
-      // will get here if manifest file is not yet compiled
-      console.log(error);
+      console.log(
+        "We should never come here, means that our exceptions are not handled!"
+      );
     }
   }
 
@@ -256,7 +257,12 @@ class DBTManifest {
     try {
       const manifestFile = readFileSync(manifestLocation, "utf8");
       return JSON.parse(manifestFile);
-    } catch (_) {}
+    } catch (error) {
+      console.log(
+        `File not found at '${manifestLocation}', probably not compiled!`,
+        error
+      );
+    }
   }
 
   private createSourceMetaMap(sourcesMap: any[]): SourceMetaMap {
@@ -407,11 +413,11 @@ class DBTManifest {
   }
 
   private createRunResultMetaMap(targetPath: string): RunResultMetaMap {
-    const runResultMetaMap = new Map();
+    const runResultMetaMap = new Map<string, RunResultMetaData>();
     const runResultPath = path.join(
       vscode.workspace.workspaceFolders![0].uri.fsPath,
       targetPath,
-      "run_results.json"
+      DBTManifest.RUN_RESULTS_FILE
     );
     if (!existsSync(runResultPath)) {
       return runResultMetaMap;
@@ -420,15 +426,15 @@ class DBTManifest {
     const { results, generated_at } = runResultFile;
     results.forEach((result: any) => {
       const {
-        node: { root_path, build_path, original_file_path },
+        node: { root_path, build_path, original_file_path, compiled },
         error,
         status,
       } = result;
       const fullPath = path.join(root_path, original_file_path);
       const compiledPath =
-        build_path !== null ? path.join(root_path, build_path) : null;
+        build_path !== null ? path.join(root_path, build_path) : undefined;
       runResultMetaMap.set(fullPath, {
-        buildPath: compiledPath,
+        compiledPath,
         error,
         timestamp: generated_at,
         status,

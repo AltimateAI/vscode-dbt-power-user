@@ -2,7 +2,6 @@ import { DBTManifestCacheChangedEvent, RunResultMetaMap } from "../dbtManifest";
 import { window, StatusBarAlignment, StatusBarItem, ThemeColor, Command } from "vscode";
 import * as dayjs from "dayjs";
 import * as relativeTime from "dayjs/plugin/relativeTime";
-import * as path from "path";
 dayjs.extend(relativeTime);
 
 export class RunResultStatusBar {
@@ -25,7 +24,7 @@ export class RunResultStatusBar {
       const currentFilePath = activeTextEditor.document.uri.path;
       const runResult = this.runResultMetaMap.get(currentFilePath);
       const statusBar = this.statusBar;
-      if (runResult === undefined) {
+      if (runResult === undefined || runResult.compiledPath === undefined) {
         statusBar.hide();
         return;
       };

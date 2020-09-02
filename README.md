@@ -15,7 +15,11 @@ This module is sponsored by [innover.io](https://innover.io/).
 
 ## Features at work
 
-### (new) See the model graph
+### See the compiled SQL and the run status in the statusbar (new)
+
+![See compilation and run status](./media/definition-model.gif)
+
+### See the model graph
 
 ![See the graph and execute parent or children models](./media/graph.gif)
 
