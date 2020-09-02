@@ -32,12 +32,13 @@ export class RunResultStatusBar {
       if (runResult.error === null) {
         statusBar.text = `✓ ran ${dayjs().to(dayjs(runResult.timestamp))}`;
         statusBar.color = undefined;
+        statusBar.command = { command: 'navigateToFile', arguments: [runResult.buildPath], title: 'Go to compiled SQL' };
 
       } else {
         statusBar.text = `x ran ${dayjs().to(dayjs(runResult.timestamp))}`;
         statusBar.color = new ThemeColor('errorForeground');
+        statusBar.command = { command: 'navigateToFileWithErrorMessage', arguments: [runResult.buildPath, runResult.error], title: 'Go to compiled SQL' };
       }
-      statusBar.command = { command: 'navigateToFile', arguments: [runResult.buildPath], title: 'Go to compiled SQL' };
       statusBar.tooltip = 'Go to compiled SQL';
       statusBar.show();
     }

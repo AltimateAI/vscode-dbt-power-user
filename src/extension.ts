@@ -6,6 +6,7 @@ import { TreeviewProviderFactory } from "./treeview_provider/treeviewProviderFac
 import navigateToFile from "./commands/navigateToFile";
 import { runModelOnNodeTreeItem, runModelOnActiveWindow, RunModelType } from "./commands/runModel";
 import { StatusBarProviderFactory } from "./statusbar_provider/statusBarProviderFactory";
+import navigateToFileWithErrorMessage from "./commands/navigateToFileWithErrorMessage";
 
 export const DBT_MODE = { language: "jinja-sql", scheme: "file" };
 
@@ -47,6 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('run.dbt.childrenModels', runModelOnNodeTreeItem(RunModelType.CHILDREN)),
     vscode.commands.registerCommand('run.dbt.parentModels', runModelOnNodeTreeItem(RunModelType.PARENTS)),
     vscode.commands.registerCommand('navigateToFile', navigateToFile),
+    vscode.commands.registerCommand('navigateToFileWithErrorMessage', navigateToFileWithErrorMessage),
     runStatusBar.statusBar,
   );
 
