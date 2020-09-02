@@ -33,13 +33,13 @@ export abstract class Node {
   }
 }
 
-export class Model extends Node {}
+export class Model extends Node { }
 
-export class Seed extends Node {}
+export class Seed extends Node { }
 
-export class Test extends Node {}
+export class Test extends Node { }
 
-export class Source extends Node {}
+export class Source extends Node { }
 
 interface NodeGraphMetaData {
   nodes: Node[];
@@ -106,15 +106,14 @@ class DBTManifest {
   private static TARGET_PATH_VAR = "target-path";
   private static SOURCE_FOLDER_VAR = "source-paths";
   private static RESOURCE_TYPE_MODEL = "model";
+  private static RESOURCE_TYPE_SOURCE = "source";
   private static RUN_RESULTS_FILE = "run_results.json";
 
   private onDBTManifestCacheChangedHandlers: OnDBTManifestCacheChangedHandler[] = [];
   private dbtProjectWatcher?: vscode.FileSystemWatcher;
   private manifestWatcher?: vscode.FileSystemWatcher;
-  private sourcesWatcher?: vscode.FileSystemWatcher;
   private runResultsWatcher?: vscode.FileSystemWatcher;
   private currentTargetPath?: string;
-  private currentSourcesPath?: string;
 
   addOnDBTManifestCacheChangedHandler: (
     handler: OnDBTManifestCacheChangedHandler
@@ -155,7 +154,6 @@ class DBTManifest {
     const sourcesPath = projectConfig[DBTManifest.SOURCE_FOLDER_VAR];
 
     this.createManifestWatcher(targetPath);
-    this.createSourcesWatcher(sourcesPath);
     this.createRunResultsWatcher(targetPath);
 
     const manifest = this.readAndParseManifest(targetPath);
@@ -175,11 +173,11 @@ class DBTManifest {
       return;
     }
 
-    const { nodes, macros, parent_map, child_map } = manifest;
+    const { nodes, sources, macros, parent_map, child_map } = manifest;
 
-    const modelMetaMap = this.createModelMetaMap(projectName, nodes);
+    const modelMetaMap = this.createModelMetaMap(nodes);
     const macroMetaMap = this.createMacroMetaMap(projectName, macros);
-    const sourceMetaMap = await this.createSourceMetaMap(sourcesPath);
+    const sourceMetaMap = this.createSourceMetaMap(sources);
     const graphMetaMap = this.createGraphMetaMap(
       parent_map,
       child_map,
@@ -227,22 +225,6 @@ class DBTManifest {
     }
   }
 
-  private createSourcesWatcher(sourcesPath: any) {
-    if (
-      this.currentSourcesPath === undefined ||
-      this.currentSourcesPath !== sourcesPath
-    ) {
-      this.sourcesWatcher = vscode.workspace.createFileSystemWatcher(
-        new vscode.RelativePattern(
-          vscode.workspace.workspaceFolders![0],
-          `${sourcesPath}/**/*.yml`
-        )
-      );
-      this.setupRefreshHandler(this.sourcesWatcher);
-      this.currentSourcesPath = sourcesPath;
-    }
-  }
-
   private createRunResultsWatcher(targetPath: string) {
     if (
       this.runResultsWatcher === undefined ||
@@ -283,48 +265,28 @@ class DBTManifest {
     }
   }
 
-  private async createSourceMetaMap(sourcesPath: string) {
-    const sourceMetaMap: SourceMetaMap = new Map();
-    const sourceFilePaths = await vscode.workspace.findFiles(
-      new vscode.RelativePattern(
-        vscode.workspace.workspaceFolders![0],
-        `${sourcesPath}/**/*.yml`
+  private createSourceMetaMap(sourcesMap: any[]): SourceMetaMap {
+    const sourceMetaMap = new Map<string, SourceMetaData>();
+    Object.values(sourcesMap)
+      .filter(
+        (source) => source.resource_type === DBTManifest.RESOURCE_TYPE_SOURCE
       )
-    );
-    sourceFilePaths.forEach((sourceFile) => {
-      try {
-        const file = readFileSync(sourceFile.fsPath, "utf8");
-        const parsedFile = safeLoad(file) as any;
-        const sources = parsedFile.sources;
-
-        if (sources !== undefined) {
-          sources.forEach((source: any) => {
-            const sourceName = source["name"];
-            const tables = source["tables"].map((table: any) => {
-              if (table.name !== undefined) {
-                return { name: table.name };
-              }
-            });
-            sourceMetaMap.set(sourceName, {
-              path: sourceFile.fsPath,
-              tables: tables,
-            });
-          });
+      .reduce((previousValue: SourceMetaMap, { source_name, name, root_path, original_file_path }) => {
+        let source = previousValue.get(source_name);
+        if (!source) {
+          const fullPath = path.join(root_path, original_file_path);
+          source = { path: fullPath, tables: [] };
+          previousValue.set(source_name, source);
         }
-      } catch (error) {
-        // if we can't parse a file, we shouldn't completely fail
-        console.log(
-          `An error ocurred while processing ${sourceFile.path}`,
-          error
-        );
-      }
-    });
+        source.tables.push(name);
+        return previousValue;
+      }, sourceMetaMap);
     return sourceMetaMap;
   }
 
-  private createModelMetaMap(projectName: string, nodes: any[]) {
+  private createModelMetaMap(nodesMap: any[]): NodeMetaMap {
     const modelMetaMap: NodeMetaMap = new Map();
-    Object.values(nodes)
+    Object.values(nodesMap)
       .filter(
         (model) => model.resource_type === DBTManifest.RESOURCE_TYPE_MODEL
       )
@@ -335,7 +297,7 @@ class DBTManifest {
     return modelMetaMap;
   }
 
-  private createMacroMetaMap(projectName: string, macros: any[]) {
+  private createMacroMetaMap(projectName: string, macros: any[]): MacroMetaMap {
     const macroMetaMap: MacroMetaMap = new Map();
     Object.values(macros).forEach(
       ({ package_name, name, root_path, original_file_path }) => {
