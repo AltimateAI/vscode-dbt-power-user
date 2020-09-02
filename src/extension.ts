@@ -3,12 +3,14 @@ import { DBTManifestInstance } from "./dbtManifest";
 import { DefinitionProviderFactory } from "./definition_provider/definitionProviderFactory";
 import { AutocompletionProviderFactory } from "./autocompletion_provider/autocompletionProviderFactory";
 import { TreeviewProviderFactory } from "./treeview_provider/treeviewProviderFactory";
-import navigateToSelectedNode from "./commands/navigateToSelectedNode";
+import navigateToFile from "./commands/navigateToFile";
 import { runModelOnNodeTreeItem, runModelOnActiveWindow, RunModelType } from "./commands/runModel";
+import { StatusBarProviderFactory } from "./statusbar_provider/statusBarProviderFactory";
 
 export const DBT_MODE = { language: "jinja-sql", scheme: "file" };
 
 export function activate(context: vscode.ExtensionContext) {
+  const runStatusBar = StatusBarProviderFactory.createRunResultStatusBar();
 
   context.subscriptions.push(
     vscode.languages.registerDefinitionProvider(
@@ -44,7 +46,8 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('run.dbt.currentModel', runModelOnActiveWindow),
     vscode.commands.registerCommand('run.dbt.childrenModels', runModelOnNodeTreeItem(RunModelType.CHILDREN)),
     vscode.commands.registerCommand('run.dbt.parentModels', runModelOnNodeTreeItem(RunModelType.PARENTS)),
-    vscode.commands.registerCommand('treeview.selectNode', navigateToSelectedNode),
+    vscode.commands.registerCommand('navigateToFile', navigateToFile),
+    runStatusBar.statusBar,
   );
 
   DBTManifestInstance.tryRefresh();

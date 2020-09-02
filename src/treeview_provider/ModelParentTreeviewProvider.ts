@@ -99,7 +99,7 @@ export class NodeTreeItem extends TreeItem {
     this.key = node.key;
     this.url = node.url;
     this.command = {
-      command: "treeview.selectNode",
+      command: "navigateToFile",
       title: "Select Node",
       arguments: [node.url],
     };
