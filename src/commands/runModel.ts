@@ -1,5 +1,5 @@
 import * as path from "path";
-import { window, Uri } from "vscode";
+import { window } from "vscode";
 import { NodeTreeItem } from "../treeview_provider/ModelParentTreeviewProvider";
 
 export enum RunModelType {
@@ -35,7 +35,7 @@ const runTerminal = async (modelName: string, type?: RunModelType) => {
   await sleep(500);
   if (modelName !== undefined) {
     const plusOperatorLeft = type === RunModelType.PARENTS ? '+' : '';
-    const plusOperatorRight = type === RunModelType.CHILDREN ? '+' : '';;
+    const plusOperatorRight = type === RunModelType.CHILDREN ? '+' : '';
     terminal.sendText(`dbt run --model ${plusOperatorLeft}${modelName}${plusOperatorRight}`);
     terminal.show(true);
   }

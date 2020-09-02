@@ -147,6 +147,7 @@
 		"samuelcolvin.jinjahtml"
 	],
 	"dependencies": {
+		"dayjs": "^1.8.34",
 		"js-yaml": "^3.14.0"
 	}
 }
