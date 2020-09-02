@@ -17,7 +17,7 @@ This module is sponsored by [innover.io](https://innover.io/).
 
 ### See the compiled SQL and the run status in the statusbar (new)
 
-![See compilation and run status](./media/definition-model.gif)
+![See compilation and run status](./media/run-status.gif)
 
 ### See the model graph
 
