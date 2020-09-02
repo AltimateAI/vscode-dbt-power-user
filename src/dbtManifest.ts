@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { safeLoad } from "js-yaml";
 import * as path from "path";
 
@@ -413,6 +413,9 @@ class DBTManifest {
       targetPath,
       "run_results.json"
     );
+    if (!existsSync(runResultPath)) {
+      return runResultMetaMap;
+    }
     const runResultFile = JSON.parse(readFileSync(runResultPath, "utf8"));
     const { results, generated_at } = runResultFile;
     results.forEach((result: any) => {

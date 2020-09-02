@@ -11,6 +11,8 @@ Main features:
 
 Please let us know about any bugs or feature requests through the github issues.
 
+This module is sponsored by [innover.io](https://innover.io/).
+
 ## Features at work
 
 ### (new) See the model graph
