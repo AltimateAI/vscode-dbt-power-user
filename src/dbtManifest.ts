@@ -33,20 +33,20 @@ export abstract class Node {
   }
 }
 
-export class Model extends Node { }
+export class Model extends Node {}
 
-export class Seed extends Node { }
+export class Seed extends Node {}
 
-export class Test extends Node { }
+export class Test extends Node {}
 
-export class Source extends Node { }
+export class Source extends Node {}
 
 interface NodeGraphMetaData {
   nodes: Node[];
 }
 
 type DBTGraphType = {
-  [name: string]: string[]
+  [name: string]: string[];
 };
 
 type OnDBTManifestCacheChangedHandler = (
@@ -89,7 +89,7 @@ export class DBTManifestCacheChangedEvent {
     macroMetaMap: MacroMetaMap,
     sourceMetaMap: SourceMetaMap,
     parentModelMap: GraphMetaMap,
-    runResultMetaMap: RunResultMetaMap,
+    runResultMetaMap: RunResultMetaMap
   ) {
     this.projectName = projectName;
     this.nodeMetaMap = nodeMetaMap;
@@ -158,16 +158,44 @@ class DBTManifest {
     this.createSourcesWatcher(sourcesPath);
     this.createRunResultsWatcher(targetPath);
 
-    const { nodes, macros, parent_map, child_map } = this.readAndParseManifest(targetPath);
+    const manifest = this.readAndParseManifest(targetPath);
+
+    if (manifest === undefined) {
+      const event = new DBTManifestCacheChangedEvent(
+        projectName,
+        new Map(),
+        new Map(),
+        new Map(),
+        { parents: new Map(), children: new Map() },
+        new Map()
+      );
+      this.onDBTManifestCacheChangedHandlers.forEach((handler) =>
+        handler(event)
+      );
+      return;
+    }
+
+    const { nodes, macros, parent_map, child_map } = manifest;
 
     const modelMetaMap = this.createModelMetaMap(projectName, nodes);
     const macroMetaMap = this.createMacroMetaMap(projectName, macros);
     const sourceMetaMap = await this.createSourceMetaMap(sourcesPath);
-    const graphMetaMap = this.createGraphMetaMap(parent_map, child_map, modelMetaMap, sourceMetaMap);
+    const graphMetaMap = this.createGraphMetaMap(
+      parent_map,
+      child_map,
+      modelMetaMap,
+      sourceMetaMap
+    );
     const runResultMetaMap = this.createRunResultMetaMap(targetPath);
 
-    const event = new DBTManifestCacheChangedEvent(projectName, modelMetaMap, macroMetaMap, sourceMetaMap, graphMetaMap, runResultMetaMap);
-
+    const event = new DBTManifestCacheChangedEvent(
+      projectName,
+      modelMetaMap,
+      macroMetaMap,
+      sourceMetaMap,
+      graphMetaMap,
+      runResultMetaMap
+    );
     this.onDBTManifestCacheChangedHandlers.forEach((handler) => handler(event));
   }
 
@@ -184,8 +212,10 @@ class DBTManifest {
   }
 
   private createManifestWatcher(targetPath: any) {
-    if (this.currentTargetPath === undefined ||
-      this.currentTargetPath !== targetPath) {
+    if (
+      this.currentTargetPath === undefined ||
+      this.currentTargetPath !== targetPath
+    ) {
       this.manifestWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
           vscode.workspace.workspaceFolders![0],
@@ -198,8 +228,10 @@ class DBTManifest {
   }
 
   private createSourcesWatcher(sourcesPath: any) {
-    if (this.currentSourcesPath === undefined ||
-      this.currentSourcesPath !== sourcesPath) {
+    if (
+      this.currentSourcesPath === undefined ||
+      this.currentSourcesPath !== sourcesPath
+    ) {
       this.sourcesWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
           vscode.workspace.workspaceFolders![0],
@@ -208,11 +240,15 @@ class DBTManifest {
       );
       this.setupRefreshHandler(this.sourcesWatcher);
       this.currentSourcesPath = sourcesPath;
-    };
+    }
   }
 
   private createRunResultsWatcher(targetPath: string) {
-    if (this.runResultsWatcher === undefined || this.currentTargetPath === undefined || this.currentTargetPath !== targetPath) {
+    if (
+      this.runResultsWatcher === undefined ||
+      this.currentTargetPath === undefined ||
+      this.currentTargetPath !== targetPath
+    ) {
       this.runResultsWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
           vscode.workspace.workspaceFolders![0],
@@ -238,16 +274,13 @@ class DBTManifest {
     );
     console.log(`Reading manifest at location '${manifestLocation}'`);
     try {
-      const manifestFile = readFileSync(
-        manifestLocation,
-        "utf8"
-      );
+      const manifestFile = readFileSync(manifestLocation, "utf8");
       return JSON.parse(manifestFile);
     } catch (e) {
-      vscode.window.showWarningMessage(`Have you compiled your project? Could not read your manifest file at '${manifestLocation}'`);
-      throw Error("Could not read the manifest!");
+      vscode.window.showWarningMessage(
+        `Have you compiled your project? Could not read your manifest file at '${manifestLocation}'`
+      );
     }
-
   }
 
   private async createSourceMetaMap(sourcesPath: string) {
@@ -256,8 +289,9 @@ class DBTManifest {
       new vscode.RelativePattern(
         vscode.workspace.workspaceFolders![0],
         `${sourcesPath}/**/*.yml`
-      ));
-    sourceFilePaths.forEach(sourceFile => {
+      )
+    );
+    sourceFilePaths.forEach((sourceFile) => {
       try {
         const file = readFileSync(sourceFile.fsPath, "utf8");
         const parsedFile = safeLoad(file) as any;
@@ -271,14 +305,19 @@ class DBTManifest {
                 return { name: table.name };
               }
             });
-            sourceMetaMap.set(sourceName, { path: sourceFile.fsPath, tables: tables });
+            sourceMetaMap.set(sourceName, {
+              path: sourceFile.fsPath,
+              tables: tables,
+            });
           });
         }
       } catch (error) {
         // if we can't parse a file, we shouldn't completely fail
-        console.log(`An error ocurred while processing ${sourceFile.path}`, error);
+        console.log(
+          `An error ocurred while processing ${sourceFile.path}`,
+          error
+        );
       }
-
     });
     return sourceMetaMap;
   }
@@ -298,68 +337,92 @@ class DBTManifest {
 
   private createMacroMetaMap(projectName: string, macros: any[]) {
     const macroMetaMap: MacroMetaMap = new Map();
-    Object.values(macros).forEach(({ package_name, name, root_path, original_file_path }) => {
-      const packageName = package_name;
-      const macroName =
-        packageName === projectName ? name : `${packageName}.${name}`;
-      const fullPath = path.join(root_path, original_file_path);
-      try {
-        const macroFile: string = readFileSync(fullPath).toString("utf8");
-        const macroFileLines = macroFile.split("\n");
+    Object.values(macros).forEach(
+      ({ package_name, name, root_path, original_file_path }) => {
+        const packageName = package_name;
+        const macroName =
+          packageName === projectName ? name : `${packageName}.${name}`;
+        const fullPath = path.join(root_path, original_file_path);
+        try {
+          const macroFile: string = readFileSync(fullPath).toString("utf8");
+          const macroFileLines = macroFile.split("\n");
 
-        for (let index = 0; index < macroFileLines.length; index++) {
-          const currentLine = macroFileLines[index];
-          if (currentLine.match(new RegExp(`macro\\s${name}\\(`))) {
-            macroMetaMap.set(macroName, {
-              path: fullPath,
-              line: index,
-              character: currentLine.indexOf(name),
-            });
-            break;
+          for (let index = 0; index < macroFileLines.length; index++) {
+            const currentLine = macroFileLines[index];
+            if (currentLine.match(new RegExp(`macro\\s${name}\\(`))) {
+              macroMetaMap.set(macroName, {
+                path: fullPath,
+                line: index,
+                character: currentLine.indexOf(name),
+              });
+              break;
+            }
           }
+        } catch (error) {
+          console.log(
+            `File not found at '${fullPath}', probably compiled is outdated!`,
+            error
+          );
         }
-      } catch (error) {
-        console.log(`File not found at '${fullPath}', probably compiled is outdated!`, error);
       }
-
-    });
+    );
     return macroMetaMap;
   }
 
-  private createGraphMetaMap(parentMap: DBTGraphType, childrenMap: DBTGraphType, modelMetaMap: NodeMetaMap, sourceMetaMap: SourceMetaMap): GraphMetaMap {
+  private createGraphMetaMap(
+    parentMap: DBTGraphType,
+    childrenMap: DBTGraphType,
+    modelMetaMap: NodeMetaMap,
+    sourceMetaMap: SourceMetaMap
+  ): GraphMetaMap {
     const unique = (nodes: any[]) => Array.from(new Set(nodes));
 
-    const parents = Object.entries(parentMap)
-      .reduce((map, [nodeName, nodes]) => {
-        const currentNodes = unique(nodes).map(this.mapToNode(sourceMetaMap, modelMetaMap));
+    const parents = Object.entries(parentMap).reduce(
+      (map, [nodeName, nodes]) => {
+        const currentNodes = unique(nodes).map(
+          this.mapToNode(sourceMetaMap, modelMetaMap)
+        );
         map.set(nodeName, { nodes: currentNodes });
         return map;
-      }, new Map<string, NodeGraphMetaData>());
+      },
+      new Map<string, NodeGraphMetaData>()
+    );
 
-    const children = Object.entries(childrenMap)
-      .reduce((map, [nodeName, nodes]) => {
-        const currentNodes = unique(nodes).map(this.mapToNode(sourceMetaMap, modelMetaMap));
+    const children = Object.entries(childrenMap).reduce(
+      (map, [nodeName, nodes]) => {
+        const currentNodes = unique(nodes).map(
+          this.mapToNode(sourceMetaMap, modelMetaMap)
+        );
         map.set(nodeName, { nodes: currentNodes });
         return map;
-      }, new Map<string, NodeGraphMetaData>());
+      },
+      new Map<string, NodeGraphMetaData>()
+    );
 
     return {
       parents,
-      children
+      children,
     };
   }
 
-  private mapToNode(sourceMetaMap: SourceMetaMap, nodeMetaMap: NodeMetaMap): (parentNodeName: string) => Node {
-    return parentNodeName => {
-      const nodeSegment = parentNodeName.split('.');
+  private mapToNode(
+    sourceMetaMap: SourceMetaMap,
+    nodeMetaMap: NodeMetaMap
+  ): (parentNodeName: string) => Node {
+    return (parentNodeName) => {
+      const nodeSegment = parentNodeName.split(".");
       const nodeType = nodeSegment[0];
       switch (nodeType) {
         case "source": {
           const sourceName = nodeSegment[2];
           const tableName = nodeSegment[3];
           const url = sourceMetaMap.get(sourceName)?.path!;
-          return new Source(`${tableName} (${sourceName})`, parentNodeName, url);
-        };
+          return new Source(
+            `${tableName} (${sourceName})`,
+            parentNodeName,
+            url
+          );
+        }
         case "model": {
           const modelName = nodeSegment[2];
           const url = nodeMetaMap.get(modelName)?.path!;
@@ -386,14 +449,18 @@ class DBTManifest {
     const runResultPath = path.join(
       vscode.workspace.workspaceFolders![0].uri.fsPath,
       targetPath,
-      'run_results.json');
-    const runResultFile = JSON.parse(readFileSync(runResultPath, 'utf8'));
+      "run_results.json"
+    );
+    const runResultFile = JSON.parse(readFileSync(runResultPath, "utf8"));
     const results = runResultFile["results"];
     const timestamp = runResultFile["generated_at"];
     results.forEach((result: any) => {
       const node = result["node"];
       const fullPath = path.join(node["root_path"], node["original_file_path"]);
-      const buildPath = node["build_path"] !== null ? path.join(node["root_path"], node["build_path"]) : null;
+      const buildPath =
+        node["build_path"] !== null
+          ? path.join(node["root_path"], node["build_path"])
+          : null;
       runResultMetaMap.set(fullPath, {
         buildPath,
         error: result["error"],
