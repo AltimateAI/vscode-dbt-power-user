@@ -5,14 +5,12 @@ import { AutocompletionProviderFactory } from "./autocompletion_provider/autocom
 import { TreeviewProviderFactory } from "./treeview_provider/treeviewProviderFactory";
 import navigateToFile from "./commands/navigateToFile";
 import { runModelOnNodeTreeItem, runModelOnActiveWindow, RunModelType } from "./commands/runModel";
-import { StatusBarProviderFactory } from "./statusbar_provider/statusBarProviderFactory";
+import { StatusBarFactory } from "./statusbar/statusBarFactory";
 import navigateToFileWithErrorMessage from "./commands/navigateToFileWithErrorMessage";
 
 export const DBT_MODE = { language: "jinja-sql", scheme: "file" };
 
 export function activate(context: vscode.ExtensionContext) {
-  const runStatusBar = StatusBarProviderFactory.createRunResultStatusBar();
-
   context.subscriptions.push(
     vscode.languages.registerDefinitionProvider(
       DBT_MODE,
@@ -49,7 +47,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('run.dbt.parentModels', runModelOnNodeTreeItem(RunModelType.PARENTS)),
     vscode.commands.registerCommand('navigateToFile', navigateToFile),
     vscode.commands.registerCommand('navigateToFileWithErrorMessage', navigateToFileWithErrorMessage),
-    runStatusBar.statusBar,
+    StatusBarFactory.createRunResultStatusBar(),
   );
 
   DBTManifestInstance.tryRefresh();
