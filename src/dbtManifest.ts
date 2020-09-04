@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { existsSync, readFileSync } from "fs";
 import { safeLoad } from "js-yaml";
 import * as path from "path";
+import { notEmpty } from "./utils";
 
 interface MacroMetaData {
   path: string;
@@ -32,6 +33,11 @@ export abstract class Node {
   label: string;
   key: string;
   url: string;
+  iconPath?: {
+    light: string;
+    dark: string;
+  };
+
   constructor(label: string, key: string, url: string) {
     this.label = label;
     this.key = key;
@@ -39,13 +45,22 @@ export abstract class Node {
   }
 }
 
-export class Model extends Node { }
+export class Model extends Node {
+  iconPath = {
+    light: path.join(path.resolve(__dirname), "../media/model_light.svg"),
+    dark: path.join(path.resolve(__dirname), "../media/model_dark.svg"),
+  };
+}
 
 export class Seed extends Node { }
-
 export class Test extends Node { }
-
-export class Source extends Node { }
+export class Analysis extends Node { }
+export class Source extends Node {
+  iconPath = {
+    light: path.join(path.resolve(__dirname), "../media/source_light.svg"),
+    dark: path.join(path.resolve(__dirname), "../media/source_dark.svg"),
+  };
+}
 
 interface NodeGraphMetaData {
   nodes: Node[];
@@ -282,6 +297,10 @@ class DBTManifest {
 
   private createSourceMetaMap(sourcesMap: any[]): SourceMetaMap {
     const sourceMetaMap = new Map<string, SourceMetaData>();
+    if (sourcesMap === null || sourcesMap === undefined) {
+      console.log("No sources found in manifest! Are we on an older dbt version?");
+      return sourceMetaMap;
+    }
     Object.values(sourcesMap)
       .filter(
         (source) => source.resource_type === DBTManifest.RESOURCE_TYPE_SOURCE
@@ -307,6 +326,10 @@ class DBTManifest {
 
   private createModelMetaMap(nodesMap: any[]): NodeMetaMap {
     const modelMetaMap: NodeMetaMap = new Map();
+    if (nodesMap === null || nodesMap === undefined) {
+      console.log("No nodes found in manifest!");
+      return modelMetaMap;
+    }
     Object.values(nodesMap)
       .filter(
         (model) => model.resource_type === DBTManifest.RESOURCE_TYPE_MODEL
@@ -320,6 +343,10 @@ class DBTManifest {
 
   private createMacroMetaMap(projectName: string, macros: any[]): MacroMetaMap {
     const macroMetaMap: MacroMetaMap = new Map();
+    if (macros === null || macros === undefined) {
+      console.log("No macros found in manifest!");
+      return macros;
+    }
     Object.values(macros).forEach(
       ({ package_name, name, root_path, original_file_path }) => {
         const packageName = package_name;
@@ -362,9 +389,11 @@ class DBTManifest {
 
     const parents = Object.entries(parentMap).reduce(
       (map, [nodeName, nodes]) => {
-        const currentNodes = unique(nodes).map(
-          this.mapToNode(sourceMetaMap, modelMetaMap)
-        );
+        const currentNodes = unique(nodes)
+          .map(
+            this.mapToNode(sourceMetaMap, modelMetaMap)
+          )
+          .filter(notEmpty);
         map.set(nodeName, { nodes: currentNodes });
         return map;
       },
@@ -373,9 +402,11 @@ class DBTManifest {
 
     const children = Object.entries(childrenMap).reduce(
       (map, [nodeName, nodes]) => {
-        const currentNodes = unique(nodes).map(
-          this.mapToNode(sourceMetaMap, modelMetaMap)
-        );
+        const currentNodes = unique(nodes)
+          .map(
+            this.mapToNode(sourceMetaMap, modelMetaMap)
+          )
+          .filter(notEmpty);
         map.set(nodeName, { nodes: currentNodes });
         return map;
       },
@@ -391,7 +422,7 @@ class DBTManifest {
   private mapToNode(
     sourceMetaMap: SourceMetaMap,
     nodeMetaMap: NodeMetaMap
-  ): (parentNodeName: string) => Node {
+  ): (parentNodeName: string) => Node | undefined {
     return (parentNodeName) => {
       const nodeSegment = parentNodeName.split(".");
       const nodeType = nodeSegment[0];
@@ -421,8 +452,14 @@ class DBTManifest {
           const url = nodeMetaMap.get(modelName)?.path!;
           return new Test(modelName, parentNodeName, url);
         }
+        case "analysis": {
+          const modelName = nodeSegment[2];
+          const url = nodeMetaMap.get(modelName)?.path!;
+          return new Analysis(modelName, parentNodeName, url);
+        }
         default:
-          throw Error(`Node Type '${nodeType}' not implemented!`);
+          console.log(`Node Type '${nodeType}' not implemented!`);
+          return undefined;
       }
     };
   }

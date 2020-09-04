@@ -74,3 +74,7 @@ export const getPackageName = (currentPath: string): string | undefined => {
   }
   return undefined;
 };
+
+export const notEmpty = <T>(value: T | null | undefined): value is T => {
+  return value !== null && value !== undefined;
+};

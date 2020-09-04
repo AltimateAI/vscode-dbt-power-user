@@ -13,6 +13,7 @@ import {
   GraphMetaMap,
   Test,
   Seed,
+  Analysis,
 } from "../dbtManifest";
 import * as path from "path";
 import { getPackageName } from "../utils";
@@ -71,12 +72,16 @@ export class ModelTreeviewProvider implements TreeDataProvider<NodeTreeItem> {
       return [];
     }
     return parentModels.nodes
-      .filter((node) => !(node instanceof Test) && !(node instanceof Seed))
+      .filter((node) => !(node instanceof Test)
+        && !(node instanceof Seed)
+        && !(node instanceof Analysis))
       .map((node) => {
         const childNodes = graphMetaMap[this.treeType]
           .get(node.key)
           ?.nodes.filter(
-            (node) => !(node instanceof Test) && !(node instanceof Seed)
+            (node) => !(node instanceof Test)
+              && !(node instanceof Seed)
+              && !(node instanceof Analysis)
           );
 
         if (node instanceof Model && childNodes?.length === 0) {
@@ -98,6 +103,9 @@ export class NodeTreeItem extends TreeItem {
     super(node.label);
     this.key = node.key;
     this.url = node.url;
+    if (node.iconPath !== undefined) {
+      this.iconPath = node.iconPath;
+    }
     this.command = {
       command: "navigateToFile",
       title: "Select Node",
@@ -107,21 +115,11 @@ export class NodeTreeItem extends TreeItem {
 }
 
 class ModelTreeItem extends NodeTreeItem {
-  iconPath = {
-    light: path.join(path.resolve(__dirname), "../../media/model_light.svg"),
-    dark: path.join(path.resolve(__dirname), "../../media/model_dark.svg"),
-  };
-
   contextValue = "model";
 }
 
 class SourceTreeItem extends NodeTreeItem {
   collapsibleState = TreeItemCollapsibleState.None;
-
-  iconPath = {
-    light: path.join(path.resolve(__dirname), "../../media/source_light.svg"),
-    dark: path.join(path.resolve(__dirname), "../../media/source_dark.svg"),
-  };
 
   contextValue = "source";
 }
