@@ -110,13 +110,7 @@
 					"group": "inline"
 				}
 			]
-		},
-		"snippets": [
-			{
-				"language": "jinja-sql",
-				"path": "./snippets/snippets.json"
-			}
-		]
+		}
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
