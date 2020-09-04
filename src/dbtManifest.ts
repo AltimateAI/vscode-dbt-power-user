@@ -130,7 +130,7 @@ class DBTManifest {
         "We should never come here, means that our exceptions are not handled!",
         error
       );
-      vscode.window.showErrorMessage(`An unknown issue occurred wihtin the dbt Power User extension, please raise this issue on our reposititory (https://github.com/innoverio/vscode-dbt-power-user/issues/) along with the exception: ${error}\n${error.stack}`);
+      vscode.window.showErrorMessage(`An unknown issue occurred within the dbt Power User extension, please raise this issue on our reposititory (https://github.com/innoverio/vscode-dbt-power-user/issues/) along with the exception: ${error}\n${error.stack}`);
     }
   }
 
