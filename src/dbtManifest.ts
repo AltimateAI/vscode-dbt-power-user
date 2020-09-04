@@ -18,6 +18,12 @@ interface SourceMetaData {
   tables: SourceTable[];
 }
 
+interface ModelNodeMetaData {
+  uniqueId: string;
+  name: string;
+  dependencies: string[];
+}
+
 interface SourceTable {
   name: string;
 }
@@ -33,13 +39,13 @@ export abstract class Node {
   }
 }
 
-export class Model extends Node {}
+export class Model extends Node { }
 
-export class Seed extends Node {}
+export class Seed extends Node { }
 
-export class Test extends Node {}
+export class Test extends Node { }
 
-export class Source extends Node {}
+export class Source extends Node { }
 
 interface NodeGraphMetaData {
   nodes: Node[];
@@ -57,6 +63,7 @@ export type NodeMetaMap = Map<string, NodeMetaData>;
 export type MacroMetaMap = Map<string, MacroMetaData>;
 export type SourceMetaMap = Map<string, SourceMetaData>;
 export type RunResultMetaMap = Map<string, RunResultMetaData>;
+export type ModelNodeMetaMap = Map<string, ModelNodeMetaData>;
 
 type NodeGraphMap = Map<string, NodeGraphMetaData>;
 
@@ -83,6 +90,7 @@ export class DBTManifestCacheChangedEvent {
   sourceMetaMap: SourceMetaMap;
   graphMetaMap: GraphMetaMap;
   runResultMetaMap: RunResultMetaMap;
+  modelNodeMetaMap: ModelNodeMetaMap;
 
   constructor(
     projectName: string,
@@ -90,7 +98,8 @@ export class DBTManifestCacheChangedEvent {
     macroMetaMap: MacroMetaMap,
     sourceMetaMap: SourceMetaMap,
     parentModelMap: GraphMetaMap,
-    runResultMetaMap: RunResultMetaMap
+    runResultMetaMap: RunResultMetaMap,
+    modelNodeMetaMap: ModelNodeMetaMap
   ) {
     this.projectName = projectName;
     this.nodeMetaMap = nodeMetaMap;
@@ -98,6 +107,7 @@ export class DBTManifestCacheChangedEvent {
     this.sourceMetaMap = sourceMetaMap;
     this.graphMetaMap = parentModelMap;
     this.runResultMetaMap = runResultMetaMap;
+    this.modelNodeMetaMap = modelNodeMetaMap;
   }
 }
 
@@ -167,7 +177,8 @@ class DBTManifest {
         new Map(),
         new Map(),
         { parents: new Map(), children: new Map() },
-        new Map()
+        new Map(),
+        new Map(),
       );
       this.onDBTManifestCacheChangedHandlers.forEach((handler) =>
         handler(event)
@@ -178,6 +189,7 @@ class DBTManifest {
     const { nodes, sources, macros, parent_map, child_map } = manifest;
 
     const modelMetaMap = this.createModelMetaMap(nodes);
+    const modelNodeMetaMap = this.createModelNodeMetaMap(nodes);
     const macroMetaMap = this.createMacroMetaMap(projectName, macros);
     const sourceMetaMap = this.createSourceMetaMap(sources);
     const graphMetaMap = this.createGraphMetaMap(
@@ -194,7 +206,8 @@ class DBTManifest {
       macroMetaMap,
       sourceMetaMap,
       graphMetaMap,
-      runResultMetaMap
+      runResultMetaMap,
+      modelNodeMetaMap
     );
     this.onDBTManifestCacheChangedHandlers.forEach((handler) => handler(event));
   }
@@ -443,6 +456,18 @@ class DBTManifest {
       });
     });
     return runResultMetaMap;
+  }
+
+  private createModelNodeMetaMap(nodesMap: any[]) {
+    const modelNodeMap: ModelNodeMetaMap = new Map();
+    Object.values(nodesMap)
+      .filter(
+        (model) => model.resource_type === DBTManifest.RESOURCE_TYPE_MODEL
+      )
+      .forEach(({ name, depends_on, unique_id }) => {
+        modelNodeMap.set(unique_id, { uniqueId: unique_id, name, dependencies: depends_on !== undefined ? depends_on["nodes"] : undefined });
+      });
+    return modelNodeMap;
   }
 }
 

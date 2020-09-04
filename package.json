@@ -76,12 +76,21 @@
 					"light": "./media/run-light.svg",
 					"dark": "./media/run-dark.svg"
 				}
+			},
+			{
+				"command": "showModelGraph",
+				"title": "Show Model Graph"
 			}
 		],
 		"menus": {
 			"editor/title": [
 				{
 					"command": "run.dbt.currentModel",
+					"when": "resourceLangId == jinja-sql",
+					"group": "1_run"
+				},
+				{
+					"command": "showModelGraph",
 					"when": "resourceLangId == jinja-sql",
 					"group": "1_run"
 				}
@@ -147,6 +156,7 @@
 		"samuelcolvin.jinjahtml"
 	],
 	"dependencies": {
+		"@antv/g6": "^3.7.1",
 		"dayjs": "^1.8.34",
 		"js-yaml": "^3.14.0"
 	}

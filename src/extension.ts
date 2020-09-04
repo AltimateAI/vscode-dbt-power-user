@@ -7,6 +7,7 @@ import navigateToFile from "./commands/navigateToFile";
 import { runModelOnNodeTreeItem, runModelOnActiveWindow, RunModelType } from "./commands/runModel";
 import { StatusBarFactory } from "./statusbar/statusBarFactory";
 import navigateToFileWithErrorMessage from "./commands/navigateToFileWithErrorMessage";
+import { WebviewFactory } from "./webviews/webviewFactory";
 
 export const DBT_MODE = { language: "jinja-sql", scheme: "file" };
 
@@ -47,6 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('run.dbt.parentModels', runModelOnNodeTreeItem(RunModelType.PARENTS)),
     vscode.commands.registerCommand('navigateToFile', navigateToFile),
     vscode.commands.registerCommand('navigateToFileWithErrorMessage', navigateToFileWithErrorMessage),
+    vscode.commands.registerCommand('showModelGraph', WebviewFactory.createModelGraphView(context)),
     StatusBarFactory.createRunResultStatusBar(),
   );
 
