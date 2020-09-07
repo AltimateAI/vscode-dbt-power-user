@@ -11,18 +11,20 @@ interface MacroMetaData {
 }
 
 interface NodeMetaData {
+  uniqueId: string;
   path: string;
 }
 
 interface SourceMetaData {
+  uniqueId: string;
   path: string;
   tables: SourceTable[];
 }
 
-interface ModelNodeMetaData {
+interface ModelGraphMetaData {
   uniqueId: string;
   name: string;
-  dependencies: string[];
+  dependencies?: string[];
 }
 
 interface SourceTable {
@@ -63,6 +65,7 @@ export class Source extends Node {
 }
 
 interface NodeGraphMetaData {
+  currentNode: Node;
   nodes: Node[];
 }
 
@@ -78,7 +81,7 @@ export type NodeMetaMap = Map<string, NodeMetaData>;
 export type MacroMetaMap = Map<string, MacroMetaData>;
 export type SourceMetaMap = Map<string, SourceMetaData>;
 export type RunResultMetaMap = Map<string, RunResultMetaData>;
-export type ModelNodeMetaMap = Map<string, ModelNodeMetaData>;
+export type ModelGraphMetaMap = Map<string, ModelGraphMetaData>;
 
 type NodeGraphMap = Map<string, NodeGraphMetaData>;
 
@@ -105,7 +108,7 @@ export class DBTManifestCacheChangedEvent {
   sourceMetaMap: SourceMetaMap;
   graphMetaMap: GraphMetaMap;
   runResultMetaMap: RunResultMetaMap;
-  modelNodeMetaMap: ModelNodeMetaMap;
+  modelGraphMetaMap: ModelGraphMetaMap;
 
   constructor(
     projectName: string,
@@ -114,7 +117,7 @@ export class DBTManifestCacheChangedEvent {
     sourceMetaMap: SourceMetaMap,
     parentModelMap: GraphMetaMap,
     runResultMetaMap: RunResultMetaMap,
-    modelNodeMetaMap: ModelNodeMetaMap
+    modelGraphMetaMap: ModelGraphMetaMap
   ) {
     this.projectName = projectName;
     this.nodeMetaMap = nodeMetaMap;
@@ -122,7 +125,7 @@ export class DBTManifestCacheChangedEvent {
     this.sourceMetaMap = sourceMetaMap;
     this.graphMetaMap = parentModelMap;
     this.runResultMetaMap = runResultMetaMap;
-    this.modelNodeMetaMap = modelNodeMetaMap;
+    this.modelGraphMetaMap = modelGraphMetaMap;
   }
 }
 
@@ -204,7 +207,7 @@ class DBTManifest {
     const { nodes, sources, macros, parent_map, child_map } = manifest;
 
     const modelMetaMap = this.createModelMetaMap(nodes);
-    const modelNodeMetaMap = this.createModelNodeMetaMap(nodes);
+    const modelNodeMetaMap = this.createModelGraphMetaMap(nodes, sources);
     const macroMetaMap = this.createMacroMetaMap(projectName, macros);
     const sourceMetaMap = this.createSourceMetaMap(sources);
     const graphMetaMap = this.createGraphMetaMap(
@@ -308,12 +311,12 @@ class DBTManifest {
       .reduce(
         (
           previousValue: SourceMetaMap,
-          { source_name, name, root_path, original_file_path }
+          { source_name, name, root_path, original_file_path, unique_id }
         ) => {
           let source = previousValue.get(source_name);
           if (!source) {
             const fullPath = path.join(root_path, original_file_path);
-            source = { path: fullPath, tables: [] };
+            source = { path: fullPath, tables: [], uniqueId: unique_id };
             previousValue.set(source_name, source);
           }
           source.tables.push({ name });
@@ -334,9 +337,9 @@ class DBTManifest {
       .filter(
         (model) => model.resource_type === DBTManifest.RESOURCE_TYPE_MODEL
       )
-      .forEach(({ name, root_path, original_file_path }) => {
+      .forEach(({ name, root_path, original_file_path, unique_id }) => {
         const fullPath = path.join(root_path, original_file_path);
-        modelMetaMap.set(name, { path: fullPath });
+        modelMetaMap.set(name, { path: fullPath, uniqueId: unique_id });
       });
     return modelMetaMap;
   }
@@ -394,7 +397,7 @@ class DBTManifest {
             this.mapToNode(sourceMetaMap, modelMetaMap)
           )
           .filter(notEmpty);
-        map.set(nodeName, { nodes: currentNodes });
+        map.set(nodeName, { currentNode: this.mapToNode(sourceMetaMap, modelMetaMap)(nodeName)!, nodes: currentNodes });
         return map;
       },
       new Map<string, NodeGraphMetaData>()
@@ -407,7 +410,7 @@ class DBTManifest {
             this.mapToNode(sourceMetaMap, modelMetaMap)
           )
           .filter(notEmpty);
-        map.set(nodeName, { nodes: currentNodes });
+        map.set(nodeName, { currentNode: this.mapToNode(sourceMetaMap, modelMetaMap)(nodeName)!, nodes: currentNodes });
         return map;
       },
       new Map<string, NodeGraphMetaData>()
@@ -478,7 +481,7 @@ class DBTManifest {
     const { results, generated_at } = runResultFile;
     results.forEach((result: any) => {
       const {
-        node: { root_path, build_path, original_file_path, compiled },
+        node: { root_path, build_path, original_file_path },
         error,
         status,
       } = result;
@@ -495,16 +498,23 @@ class DBTManifest {
     return runResultMetaMap;
   }
 
-  private createModelNodeMetaMap(nodesMap: any[]) {
-    const modelNodeMap: ModelNodeMetaMap = new Map();
+  private createModelGraphMetaMap(nodesMap: any[], sourcesMap: any[]) {
+    const modelGraphMap: ModelGraphMetaMap = new Map();
     Object.values(nodesMap)
       .filter(
-        (model) => model.resource_type === DBTManifest.RESOURCE_TYPE_MODEL
+        (node) => node.resource_type === DBTManifest.RESOURCE_TYPE_MODEL
       )
       .forEach(({ name, depends_on, unique_id }) => {
-        modelNodeMap.set(unique_id, { uniqueId: unique_id, name, dependencies: depends_on !== undefined ? depends_on["nodes"] : undefined });
+        modelGraphMap.set(unique_id, { uniqueId: unique_id, name, dependencies: depends_on !== undefined ? depends_on["nodes"] : undefined });
       });
-    return modelNodeMap;
+    Object.values(sourcesMap)
+      .filter(
+        (source) => source.resource_type === DBTManifest.RESOURCE_TYPE_SOURCE
+      )
+      .forEach(({ unique_id, source_name, identifier }) => {
+        modelGraphMap.set(unique_id, { uniqueId: unique_id, name: `${source_name}_${identifier}` });
+      });
+    return modelGraphMap;
   }
 }
 

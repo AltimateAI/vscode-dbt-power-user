@@ -1,6 +1,6 @@
-import { WebviewPanel, ViewColumn, window, ExtensionContext } from "vscode";
-import G6 from '@antv/g6';
-import { DBTManifestCacheChangedEvent, ModelNodeMetaMap } from "../dbtManifest";
+import { WebviewPanel, ViewColumn, window, ExtensionContext, Uri } from "vscode";
+import { DBTManifestCacheChangedEvent, NodeMetaMap, GraphMetaMap } from "../dbtManifest";
+import navigateToFile from "../commands/navigateToFile";
 
 interface G6DataModel {
   nodes: {
@@ -13,42 +13,55 @@ interface G6DataModel {
   }[];
 }
 
-interface Edge {
-  target: string;
-  source: string;
-}
-
 export class ModelGraphView {
   private currentPanel: WebviewPanel | undefined = undefined;
   private g6Data?: G6DataModel;
   private context: ExtensionContext;
+  private childrenMap?: GraphMetaMap["children"];
 
   constructor(context: ExtensionContext) {
     this.context = context;
   }
 
   onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
-    this.g6Data = this.mapToG6DataModel(event.modelNodeMetaMap);
+    this.childrenMap = event.graphMetaMap.children;
+    if (this.currentPanel !== undefined) {
+      this.show();
+    }
   }
 
   show(): void {
-    if (this.currentPanel !== undefined) {
-      this.currentPanel.reveal();
-      return;
-    }
-    if (this.g6Data !== undefined) {
+    if (this.childrenMap !== undefined) {
       this.currentPanel = window.createWebviewPanel(
-        'modelNodeView',
-        'Model Node View',
+        'modelGraphView',
+        'Model Graph View',
         ViewColumn.One,
         {
-          enableScripts: true
+          enableScripts: true,
+          localResourceRoots: [Uri.joinPath(this.context.extensionUri, 'media')]
         }
       );
+
+      this.g6Data = this.mapToG6DataModel();
+
       this.currentPanel.webview.html = this.getWebviewContent();
       this.currentPanel.onDidDispose(
         () => {
           this.currentPanel = undefined;
+        },
+        null,
+        this.context.subscriptions
+      );
+      this.currentPanel.webview.onDidReceiveMessage(
+        message => {
+          if (this.childrenMap === undefined) {
+            return;
+          }
+          const nodeInfo = this.childrenMap.get(message.nodeName);
+          if (nodeInfo === undefined) {
+            return;
+          }
+          navigateToFile(nodeInfo.currentNode.url);
         },
         null,
         this.context.subscriptions
@@ -68,6 +81,7 @@ export class ModelGraphView {
     <div id="container"></div>
     <script src="https://gw.alipayobjects.com/os/antv/pkg/_antv.g6-3.7.1/dist/g6.min.js"></script>
     <script>
+    const vscode = acquireVsCodeApi();
     const width = document.getElementById('container').scrollWidth;
     const height = document.getElementById('container').scrollHeight || 500;
     const graph = new G6.Graph({
@@ -76,7 +90,7 @@ export class ModelGraphView {
       height,
       fitView: true,
       modes: {
-        default: ['drag-canvas', 'zoom-canvas', 'drag-node'],
+        default: ['zoom-canvas', 'click-select', 'drag-canvas'],
       },
       layout: {
         type: 'dagre',
@@ -87,51 +101,79 @@ export class ModelGraphView {
         ranksepFunc: () => 1,
       },
       defaultNode: {
-        size: [200, 20],
-        type: 'rect',
+        size: [250, 40],
+        type: 'modelRect',
         style: {
           lineWidth: 2,
           stroke: '#5B8FF9',
           fill: '#C6E5FF',
         },
+        stateIcon: {
+          show: false,
+        }
       },
       defaultEdge: {
         type: 'polyline',
         size: 1,
         color: '#e2e2e2',
         style: {
-          endArrow: {
-            path: 'M 0,0 L 8,4 L 8,-4 Z',
-            fill: '#e2e2e2',
-          },
-          radius: 20,
-        },
+          endArrow: true,
+        }
       },
     });
 
     graph.data(${JSON.stringify(this.g6Data)});
     graph.render();
+    graph.on('nodeselectchange', (e) => {
+      const nodeName = e.target._cfg.model.id;
+      vscode.postMessage({
+        nodeName
+      })
+    });
     </script>
 </body>
 </html>`;
   }
 
-  private mapToG6DataModel = (modelNodeMetaMap: ModelNodeMetaMap) => {
-    const modelNodes = Array.from(modelNodeMetaMap.values());
+  private mapToG6DataModel = () => {
+    if (this.childrenMap === undefined) {
+      return;
+    }
 
-    const nodes = modelNodes.map((modelNode) => {
-      return {
-        id: modelNode.uniqueId,
-        label: modelNode.name,
-      };
+    const mapToWebviewURI = (uri: string) => {
+      return this.currentPanel?.webview.asWebviewUri(Uri.file(uri));
+    };
+
+    const nodes: any[] = [];
+
+    Array.from(this.childrenMap.keys()).forEach(key => {
+      const childNode = this.childrenMap!.get(key)!;
+      const currentNode = childNode.currentNode;
+
+      const image = currentNode.iconPath !== undefined ? {
+        show: true,
+        img: mapToWebviewURI(currentNode.iconPath.dark)!.toString(),
+      } : {
+          show: false,
+        };
+
+      nodes.push({
+        id: key,
+        label: currentNode.label,
+        logoIcon: image,
+        style: {
+          fill: '#ffffff'
+        }
+      });
     });
 
     const edges: any[] = [];
 
-    modelNodes.forEach(modelNode => {
-      if (modelNode.dependencies !== undefined) {
-        modelNode.dependencies.forEach(dependency => {
-          edges.push({ target: modelNode.uniqueId, source: dependency });
+    Array.from(this.childrenMap.keys()).forEach(key => {
+      const childrenNodes = this.childrenMap!.get(key);
+      if (childrenNodes !== undefined) {
+        childrenNodes.nodes.map(childrenNode => {
+          edges.push({ target: childrenNode.key, source: key });
         });
       }
     });
