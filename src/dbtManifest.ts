@@ -316,7 +316,7 @@ class DBTManifest {
             source = { path: fullPath, tables: [] };
             previousValue.set(source_name, source);
           }
-          source.tables.push(name);
+          source.tables.push({ name });
           return previousValue;
         },
         sourceMetaMap

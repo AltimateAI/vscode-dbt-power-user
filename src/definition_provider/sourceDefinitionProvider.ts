@@ -16,7 +16,7 @@ import { isEnclosedWithinCodeBlock } from "../utils";
 
 export class SourceDefinitionProvider implements DefinitionProvider {
   private sourceMetaMap: SourceMetaMap = new Map();
-  private static readonly IS_SOURCE = /(source)[^}]*/;
+  private static readonly IS_SOURCE = /(source)\([^)]*\)/;
   private static readonly GET_SOURCE_INFO = /(?!['"])(\w+)(?=['"])/g;
 
   provideDefinition(
