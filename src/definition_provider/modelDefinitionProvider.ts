@@ -15,7 +15,7 @@ import { DBTManifestCacheChangedEvent, NodeMetaMap } from "../dbtManifest";
 
 export class ModelDefinitionProvider implements DefinitionProvider {
   private modelToLocationMap: NodeMetaMap = new Map();
-  private static readonly IS_REF = /(ref)[^}]*/;
+  private static readonly IS_REF = /(ref)\([^)]*\)/;
   private static readonly GET_DBT_MODEL = /(?!'|")([^(?!'|")]*)(?='|")/gi;
 
   provideDefinition(
