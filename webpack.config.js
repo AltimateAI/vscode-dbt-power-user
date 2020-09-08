@@ -7,12 +7,15 @@ const path = require('path');
 /**@type {import('webpack').Configuration}*/
 const config = {
   target: 'node',
-  entry: './src/extension.ts',
+  entry: path.resolve(__dirname, "src/extension.ts"),
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'extension.js',
     libraryTarget: 'commonjs2',
     devtoolModuleFilenameTemplate: '../[resource-path]'
+  },
+  node: {
+    __dirname: false
   },
   devtool: 'source-map',
   externals: {
@@ -30,14 +33,6 @@ const config = {
           {
             loader: 'ts-loader'
           }
-        ]
-      },
-      {
-        test: /\.svg$/,
-        use: [
-          {
-            loader: 'file-loader'
-          },
         ]
       }
     ]
