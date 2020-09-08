@@ -3,6 +3,10 @@ import { existsSync, readFileSync } from "fs";
 import { safeLoad } from "js-yaml";
 import * as path from "path";
 import { notEmpty } from "./utils";
+import model_dark from "../media/model_dark.svg";
+import model_light from "../media/model_light.svg";
+import source_dark from "../media/source_dark.svg";
+import source_light from "../media/source_light.svg";
 
 interface MacroMetaData {
   path: string;
@@ -41,8 +45,8 @@ export abstract class Node {
 
 export class Model extends Node {
   iconPath = {
-    light: path.join(path.resolve(__dirname), "../media/model_light.svg"),
-    dark: path.join(path.resolve(__dirname), "../media/model_dark.svg"),
+    light: model_light,
+    dark: model_dark,
   };
 }
 
@@ -51,8 +55,8 @@ export class Test extends Node { }
 export class Analysis extends Node { }
 export class Source extends Node {
   iconPath = {
-    light: path.join(path.resolve(__dirname), "../media/source_light.svg"),
-    dark: path.join(path.resolve(__dirname), "../media/source_dark.svg"),
+    light: source_light,
+    dark: source_dark,
   };
 }
 
