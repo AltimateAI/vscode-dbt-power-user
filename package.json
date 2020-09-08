@@ -28,7 +28,7 @@
 	"activationEvents": [
 		"workspaceContains:dbt_project.yml"
 	],
-	"main": "./out/extension.js",
+	"main": "./dist/extension",
 	"contributes": {
 		"viewsContainers": {
 			"activitybar": [
@@ -113,13 +113,12 @@
 		}
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
+		"vscode:prepublish": "webpack --mode production",
+		"webpack": "webpack --mode development",
+		"webpack-dev": "webpack --mode development --watch",
+		"test-compile": "tsc -p ./",
 		"lint": "eslint src --ext ts",
 		"lint:fix": "eslint src --ext ts --fix",
-		"watch": "tsc -watch -p ./",
-		"pretest": "npm run compile && npm run lint",
-		"test": "node ./out/test/runTest.js",
 		"deploy": "vsce publish"
 	},
 	"devDependencies": {
@@ -131,11 +130,15 @@
 		"@typescript-eslint/eslint-plugin": "^2.30.0",
 		"@typescript-eslint/parser": "^2.30.0",
 		"eslint": "^6.8.0",
+		"file-loader": "^6.1.0",
 		"glob": "^7.1.6",
 		"mocha": "^7.1.2",
+		"ts-loader": "^8.0.3",
 		"typescript": "^3.8.3",
 		"vsce": "^1.77.0",
-		"vscode-test": "^1.3.0"
+		"vscode-test": "^1.3.0",
+		"webpack": "^4.44.1",
+		"webpack-cli": "^3.3.12"
 	},
 	"extensionDependencies": [
 		"samuelcolvin.jinjahtml",
