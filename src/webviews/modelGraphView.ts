@@ -84,6 +84,11 @@ export class ModelGraphView {
     const vscode = acquireVsCodeApi();
     const width = document.getElementById('container').scrollWidth;
     const height = document.getElementById('container').scrollHeight || 500;
+    const miniMap = new G6.Minimap({
+      size: [200, 100],
+      className: 'minimap',
+    });
+
     const graph = new G6.Graph({
       container: 'container',
       width,
@@ -121,6 +126,8 @@ export class ModelGraphView {
         }
       },
     });
+    
+    graph.addPlugin(miniMap);
 
     graph.data(${JSON.stringify(this.g6Data)});
     graph.render();
