@@ -1,4 +1,4 @@
-import { SourceMetaMap, DBTManifestCacheChangedEvent } from "../dbtManifest";
+import { DBTManifestCacheChangedEvent } from "../dbtManifest";
 import {
   DefinitionProvider,
   TextDocument,
@@ -9,13 +9,14 @@ import {
   DefinitionLink,
   Location,
   Uri,
+  workspace
 } from "vscode";
 import { readFileSync } from "fs";
 import path = require("path");
-import { isEnclosedWithinCodeBlock } from "../utils";
+import { getProjectRootpath, isEnclosedWithinCodeBlock } from "../utils";
 
 export class SourceDefinitionProvider implements DefinitionProvider {
-  private sourceMetaMap: SourceMetaMap = new Map();
+  private sourceMetaMap = new Map();
   private static readonly IS_SOURCE = /(source)\([^)]*\)/;
   private static readonly GET_SOURCE_INFO = /(?!['"])(\w+)(?=['"])/g;
 
@@ -52,21 +53,28 @@ export class SourceDefinitionProvider implements DefinitionProvider {
       }
       const definition = this.getSourceDefinition(
         source[0],
-        source.length > 1 && hover === source[1] ? source[1] : undefined
+        document.uri.path,
+        source.length > 1 && hover === source[1] ? source[1] : undefined,
       );
       resolve(definition);
     });
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
-    this.sourceMetaMap = event.sourceMetaMap;
+  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, path: string): void {
+    this.sourceMetaMap.set(path, event.sourceMetaMap);
   }
 
   private getSourceDefinition(
     sourceName: string,
-    tableName?: string
+    currentFilePath: string,
+    tableName?: string,
   ): Definition | undefined {
-    const location = this.sourceMetaMap.get(sourceName);
+    const workspaceFolders = workspace.workspaceFolders;
+    if (workspaceFolders === undefined) {
+      return;
+    }
+    const projectRootpath = getProjectRootpath(workspaceFolders, currentFilePath);
+    const location = this.sourceMetaMap.get(projectRootpath).get(sourceName);
     if (location) {
       const sourceFile: string = readFileSync(location.path).toString("utf8");
       const sourceFileLines = sourceFile.split("\n");

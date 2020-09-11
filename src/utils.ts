@@ -1,4 +1,4 @@
-import { workspace, TextDocument, Range, Position } from "vscode";
+import { workspace, TextDocument, Range, Position, WorkspaceFolder } from "vscode";
 
 const DBT_MODULES = "dbt_modules";
 
@@ -77,4 +77,13 @@ export const getPackageName = (currentPath: string): string | undefined => {
 
 export const notEmpty = <T>(value: T | null | undefined): value is T => {
   return value !== null && value !== undefined;
+};
+
+export const getProjectRootpath = (workspaceFolders: readonly WorkspaceFolder[], currentFilePath: string): string | undefined => {
+  for (const workspaceFolder of workspaceFolders) {
+    if (currentFilePath.includes(workspaceFolder.uri.path)) {
+      return workspaceFolder.uri.path;
+    }
+  }
+  return undefined;
 };

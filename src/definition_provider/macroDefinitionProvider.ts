@@ -10,14 +10,13 @@ import {
   DefinitionLink,
 } from "vscode";
 import {
-  MacroMetaMap,
   OnDBTManifestCacheChanged,
   DBTManifestCacheChangedEvent,
 } from "../dbtManifest";
-import { isEnclosedWithinCodeBlock, getPackageName } from "../utils";
+import { isEnclosedWithinCodeBlock, getPackageName, getProjectRootpath } from "../utils";
 export class MacroDefinitionProvider
   implements DefinitionProvider, OnDBTManifestCacheChanged {
-  private macroToLocationMap: MacroMetaMap = new Map();
+  private macroToLocationMap = new Map();
   private static readonly IS_MACRO = /\w+\.?\w+/;
 
   provideDefinition(
@@ -41,7 +40,7 @@ export class MacroDefinitionProvider
 
         const macroName = packageName !== undefined && !word.includes(".") ? `${packageName}.${word}` : word;
 
-        const definition = this.getMacroDefinition(macroName);
+        const definition = this.getMacroDefinition(macroName, document.uri.path);
         if (definition !== undefined) {
           resolve(definition);
           return;
@@ -51,12 +50,17 @@ export class MacroDefinitionProvider
     });
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
-    this.macroToLocationMap = event.macroMetaMap;
+  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, path: string): void {
+    this.macroToLocationMap.set(path, event.macroMetaMap);
   }
 
-  private getMacroDefinition(macroName: string): Definition | undefined {
-    const location = this.macroToLocationMap.get(macroName);
+  private getMacroDefinition(macroName: string, currentFilePath: string): Definition | undefined {
+    const workspaceFolders = workspace.workspaceFolders;
+    if (workspaceFolders === undefined) {
+      return;
+    }
+    const projectRootpath = getProjectRootpath(workspaceFolders, currentFilePath);
+    const location = this.macroToLocationMap.get(projectRootpath).get(macroName);
     if (location) {
       return new Location(
         Uri.file(location.path),

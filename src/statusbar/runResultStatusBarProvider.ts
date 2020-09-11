@@ -1,4 +1,4 @@
-import { DBTManifestCacheChangedEvent, RunResultMetaMap } from "../dbtManifest";
+import { DBTManifestCacheChangedEvent } from "../dbtManifest";
 import { window, StatusBarAlignment, StatusBarItem, ThemeColor, Command } from "vscode";
 import * as dayjs from "dayjs";
 import * as relativeTime from "dayjs/plugin/relativeTime";
@@ -6,7 +6,7 @@ dayjs.extend(relativeTime);
 
 export class RunResultStatusBar {
   statusBar: StatusBarItem;
-  private runResultMetaMap: RunResultMetaMap = new Map();
+  private runResultMetaMap = new Map();
 
   constructor() {
     this.statusBar = window.createStatusBarItem(StatusBarAlignment.Left, 0);
