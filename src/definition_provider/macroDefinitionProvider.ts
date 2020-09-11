@@ -13,10 +13,11 @@ import {
   OnDBTManifestCacheChanged,
   DBTManifestCacheChangedEvent,
 } from "../dbtManifest";
+import { MacroMetaMap } from "../domain";
 import { isEnclosedWithinCodeBlock, getPackageName, getProjectRootpath } from "../utils";
 export class MacroDefinitionProvider
   implements DefinitionProvider, OnDBTManifestCacheChanged {
-  private macroToLocationMap = new Map();
+  private macroToLocationMap: Map<string, MacroMetaMap> = new Map();
   private static readonly IS_MACRO = /\w+\.?\w+/;
 
   provideDefinition(
@@ -60,7 +61,14 @@ export class MacroDefinitionProvider
       return;
     }
     const projectRootpath = getProjectRootpath(workspaceFolders, currentFilePath);
-    const location = this.macroToLocationMap.get(projectRootpath).get(macroName);
+    if (projectRootpath === undefined) {
+      return;
+    }
+    const macroMetaMap = this.macroToLocationMap.get(projectRootpath);
+    if (macroMetaMap === undefined) {
+      return;
+    }
+    const location = macroMetaMap.get(macroName);
     if (location) {
       return new Location(
         Uri.file(location.path),

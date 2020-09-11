@@ -12,10 +12,11 @@ import {
   Range,
 } from "vscode";
 import { DBTManifestCacheChangedEvent } from "../dbtManifest";
+import { NodeMetaMap } from "../domain";
 import { getProjectRootpath } from "../utils";
 
 export class ModelDefinitionProvider implements DefinitionProvider {
-  private modelToLocationMap = new Map();
+  private modelToLocationMap: Map<string, NodeMetaMap> = new Map();
   private static readonly IS_REF = /(ref)\([^)]*\)/;
   private static readonly GET_DBT_MODEL = /(?!'|")([^(?!'|")]*)(?='|")/gi;
 
@@ -51,7 +52,14 @@ export class ModelDefinitionProvider implements DefinitionProvider {
       return;
     }
     const projectRootpath = getProjectRootpath(workspaceFolders, currentFilePath);
-    const location = this.modelToLocationMap.get(projectRootpath).get(name);
+    if (projectRootpath === undefined) {
+      return;
+    }
+    const nodeMetaMap = this.modelToLocationMap.get(projectRootpath);
+    if (nodeMetaMap === undefined) {
+      return;
+    }
+    const location = nodeMetaMap.get(name);
     if (location) {
       return new Location(
         Uri.file(location.path),

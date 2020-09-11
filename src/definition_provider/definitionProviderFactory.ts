@@ -1,5 +1,4 @@
 import { ModelDefinitionProvider } from "./modelDefinitionProvider";
-import { DBTManifestInstance } from "../dbtManifest";
 import { MacroDefinitionProvider } from "./macroDefinitionProvider";
 import { SourceDefinitionProvider } from "./sourceDefinitionProvider";
 import { manifestContainer } from "../manifestContainer";

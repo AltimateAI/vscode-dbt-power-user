@@ -1,5 +1,4 @@
 import { MacroAutocompletionProvider } from "./macroAutocompletionProvider";
-import { DBTManifestInstance } from "../dbtManifest";
 import { ModelAutocompletionProvider } from "./modelAutocompletionProvider";
 import { SourceAutocompletionProvider } from "./sourceAutocompletionProvider";
 import { manifestContainer } from "../manifestContainer";

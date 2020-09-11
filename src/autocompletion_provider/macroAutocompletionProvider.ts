@@ -1,4 +1,4 @@
-import { isEnclosedWithinCodeBlock } from "../utils";
+import { getProjectRootpath, isEnclosedWithinCodeBlock } from "../utils";
 import {
   CompletionItemProvider,
   CompletionItem,
@@ -9,6 +9,7 @@ import {
   ProviderResult,
   CompletionList,
   CompletionItemKind,
+  workspace
 } from "vscode";
 import {
   OnDBTManifestCacheChanged,
@@ -17,7 +18,7 @@ import {
 
 export class MacroAutocompletionProvider
   implements CompletionItemProvider, OnDBTManifestCacheChanged {
-  private macrosAutocompleteItems: CompletionItem[] = [];
+  private macrosAutocompleteMap: Map<string, CompletionItem[]> = new Map();
 
   provideCompletionItems(
     document: TextDocument,
@@ -27,14 +28,26 @@ export class MacroAutocompletionProvider
   ): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
     const range = document.getWordRangeAtPosition(position);
     if (range && isEnclosedWithinCodeBlock(document, range)) {
-      return this.macrosAutocompleteItems;
+      return this.getAutoCompleteItems(document.uri.path);
     }
     return undefined;
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
-    this.macrosAutocompleteItems = Array.from(
+  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, rootpath: string): void {
+    this.macrosAutocompleteMap.set(rootpath, Array.from(
       event.macroMetaMap.keys()
-    ).map((macro) => new CompletionItem(macro, CompletionItemKind.File));
+    ).map((macro) => new CompletionItem(macro, CompletionItemKind.File)));
   }
+
+  private getAutoCompleteItems = (currentFilePath: string) => {
+    const workspaceFolders = workspace.workspaceFolders;
+    if (workspaceFolders === undefined) {
+      return;
+    }
+    const projectRootpath = getProjectRootpath(workspaceFolders, currentFilePath);
+    if (projectRootpath === undefined) {
+      return;
+    }
+    return this.macrosAutocompleteMap.get(projectRootpath);
+  };
 }

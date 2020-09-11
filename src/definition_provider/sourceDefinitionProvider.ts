@@ -14,9 +14,10 @@ import {
 import { readFileSync } from "fs";
 import path = require("path");
 import { getProjectRootpath, isEnclosedWithinCodeBlock } from "../utils";
+import { SourceMetaMap } from "../domain";
 
 export class SourceDefinitionProvider implements DefinitionProvider {
-  private sourceMetaMap = new Map();
+  private sourceMetaMap: Map<string, SourceMetaMap> = new Map();
   private static readonly IS_SOURCE = /(source)\([^)]*\)/;
   private static readonly GET_SOURCE_INFO = /(?!['"])(\w+)(?=['"])/g;
 
@@ -74,7 +75,14 @@ export class SourceDefinitionProvider implements DefinitionProvider {
       return;
     }
     const projectRootpath = getProjectRootpath(workspaceFolders, currentFilePath);
-    const location = this.sourceMetaMap.get(projectRootpath).get(sourceName);
+    if (projectRootpath === undefined) {
+      return;
+    }
+    const sourceMetaMap = this.sourceMetaMap.get(projectRootpath);
+    if (sourceMetaMap === undefined) {
+      return;
+    }
+    const location = sourceMetaMap.get(sourceName);
     if (location) {
       const sourceFile: string = readFileSync(location.path).toString("utf8");
       const sourceFileLines = sourceFile.split("\n");
