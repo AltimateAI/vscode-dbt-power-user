@@ -5,6 +5,7 @@ import {
   TreeItemCollapsibleState,
   window,
   EventEmitter,
+  workspace
 } from "vscode";
 import {
   DBTManifestCacheChangedEvent,
@@ -16,10 +17,10 @@ import {
   Analysis,
 } from "../dbtManifest";
 import * as path from "path";
-import { getPackageName } from "../utils";
+import { getPackageName, getProjectRootpath } from "../utils";
 
 export class ModelTreeviewProvider implements TreeDataProvider<NodeTreeItem> {
-  private event?: DBTManifestCacheChangedEvent;
+  private eventMap: Map<string, DBTManifestCacheChangedEvent> = new Map();
   private treeType: keyof GraphMetaMap;
 
   constructor(treeType: keyof GraphMetaMap) {
@@ -35,8 +36,8 @@ export class ModelTreeviewProvider implements TreeDataProvider<NodeTreeItem> {
   readonly onDidChangeTreeData: Event<ModelTreeItem | undefined | void> = this
     ._onDidChangeTreeData.event;
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
-    this.event = event;
+  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, rootpath: string): void {
+    this.eventMap.set(rootpath, event);
     this._onDidChangeTreeData.fire();
   }
 
@@ -45,28 +46,42 @@ export class ModelTreeviewProvider implements TreeDataProvider<NodeTreeItem> {
   }
 
   getChildren(element?: NodeTreeItem): Thenable<NodeTreeItem[]> {
-    if (window.activeTextEditor === undefined || this.event === undefined) {
+    if (window.activeTextEditor === undefined || this.eventMap === undefined) {
+      return Promise.resolve([]);
+    }
+
+    const workspaceFolders = workspace.workspaceFolders;
+    if (workspaceFolders === undefined) {
+      return Promise.resolve([]);
+    }
+    const currentFilePath = window.activeTextEditor!.document.uri.path;
+    const projectRootpath = getProjectRootpath(workspaceFolders, currentFilePath);
+    if (projectRootpath === undefined) {
+      return Promise.resolve([]);
+    }
+
+    const event = this.eventMap.get(projectRootpath);
+    if (event === undefined) {
       return Promise.resolve([]);
     }
 
     if (element) {
-      return Promise.resolve(this.getTreeItems(element.key));
+      return Promise.resolve(this.getTreeItems(element.key, event));
     }
 
-    const { projectName } = this.event;
-    const currentPath = window.activeTextEditor!.document.uri.path;
+    const { projectName } = event;
     const fileName = path.basename(
       window.activeTextEditor!.document.fileName,
       ".sql"
     );
-    const packageName = getPackageName(currentPath) || projectName;
+    const packageName = getPackageName(currentFilePath) || projectName;
     return Promise.resolve(
-      this.getTreeItems(`model.${packageName}.${fileName}`)
+      this.getTreeItems(`model.${packageName}.${fileName}`, event)
     );
   }
 
-  private getTreeItems(elementName: string): NodeTreeItem[] {
-    const { graphMetaMap } = this.event!;
+  private getTreeItems(elementName: string, event: DBTManifestCacheChangedEvent): NodeTreeItem[] {
+    const { graphMetaMap } = event;
     const parentModels = graphMetaMap[this.treeType].get(elementName);
     if (parentModels === undefined) {
       return [];

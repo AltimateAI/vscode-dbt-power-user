@@ -3,11 +3,12 @@ import { window, StatusBarAlignment, StatusBarItem, ThemeColor, workspace } from
 import * as dayjs from "dayjs";
 import * as relativeTime from "dayjs/plugin/relativeTime";
 import { getProjectRootpath } from "../utils";
+import { RunResultMetaMap } from "../domain";
 dayjs.extend(relativeTime);
 
 export class RunResultStatusBar {
   statusBar: StatusBarItem;
-  private runResultMetaMap = new Map();
+  private runResultMetaMap: Map<string, RunResultMetaMap> = new Map();
 
   constructor() {
     this.statusBar = window.createStatusBarItem(StatusBarAlignment.Left, 0);
@@ -28,7 +29,14 @@ export class RunResultStatusBar {
         return;
       }
       const projectRootpath = getProjectRootpath(workspaceFolders, currentFilePath);
-      const runResult = this.runResultMetaMap.get(projectRootpath).get(currentFilePath);
+      if (projectRootpath === undefined) {
+        return;
+      }
+      const runResultMap = this.runResultMetaMap.get(projectRootpath);
+      if (runResultMap === undefined) {
+        return;
+      }
+      const runResult = runResultMap.get(currentFilePath);
       const statusBar = this.statusBar;
       if (runResult === undefined || runResult.compiledPath === undefined) {
         statusBar.hide();

@@ -78,11 +78,11 @@ export class SourceDefinitionProvider implements DefinitionProvider {
     if (projectRootpath === undefined) {
       return;
     }
-    const sourceMetaMap = this.sourceMetaMap.get(projectRootpath);
-    if (sourceMetaMap === undefined) {
+    const sourceMap = this.sourceMetaMap.get(projectRootpath);
+    if (sourceMap === undefined) {
       return;
     }
-    const location = sourceMetaMap.get(sourceName);
+    const location = sourceMap.get(sourceName);
     if (location) {
       const sourceFile: string = readFileSync(location.path).toString("utf8");
       const sourceFileLines = sourceFile.split("\n");

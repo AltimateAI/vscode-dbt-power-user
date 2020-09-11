@@ -64,11 +64,11 @@ export class MacroDefinitionProvider
     if (projectRootpath === undefined) {
       return;
     }
-    const macroMetaMap = this.macroToLocationMap.get(projectRootpath);
-    if (macroMetaMap === undefined) {
+    const macroMap = this.macroToLocationMap.get(projectRootpath);
+    if (macroMap === undefined) {
       return;
     }
-    const location = macroMetaMap.get(macroName);
+    const location = macroMap.get(macroName);
     if (location) {
       return new Location(
         Uri.file(location.path),

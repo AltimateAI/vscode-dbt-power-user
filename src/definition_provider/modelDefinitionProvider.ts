@@ -55,11 +55,11 @@ export class ModelDefinitionProvider implements DefinitionProvider {
     if (projectRootpath === undefined) {
       return;
     }
-    const nodeMetaMap = this.modelToLocationMap.get(projectRootpath);
-    if (nodeMetaMap === undefined) {
+    const nodeMap = this.modelToLocationMap.get(projectRootpath);
+    if (nodeMap === undefined) {
       return;
     }
-    const location = nodeMetaMap.get(name);
+    const location = nodeMap.get(name);
     if (location) {
       return new Location(
         Uri.file(location.path),
