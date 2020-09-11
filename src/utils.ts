@@ -81,7 +81,7 @@ export const notEmpty = <T>(value: T | null | undefined): value is T => {
 
 export const getProjectRootpath = (workspaceFolders: readonly WorkspaceFolder[], currentFilePath: string): string | undefined => {
   for (const workspaceFolder of workspaceFolders) {
-    if (currentFilePath.includes(workspaceFolder.uri.path)) {
+    if (currentFilePath.startsWith(workspaceFolder.uri.path + '/')) {
       return workspaceFolder.uri.path;
     }
   }
