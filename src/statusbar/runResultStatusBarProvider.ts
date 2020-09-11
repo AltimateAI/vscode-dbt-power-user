@@ -29,9 +29,6 @@ export class RunResultStatusBar {
         return;
       }
       const projectRootpath = getProjectRootpath(workspaceFolders, currentFilePath);
-      if (projectRootpath === undefined) {
-        return;
-      }
       const runResultMap = this.runResultMetaMap.get(projectRootpath);
       if (runResultMap === undefined) {
         return;
@@ -43,7 +40,8 @@ export class RunResultStatusBar {
         return;
       };
       if (runResult.status === null) {
-        statusBar.text = `$(check) Model compiled ${dayjs().to(dayjs(runResult.timestamp))}`;
+        statusBar.text = `✓ model compiled ${dayjs().to(dayjs(runResult.timestamp))}`;
+        statusBar.color = undefined;
         statusBar.command = { command: 'navigateToFile', arguments: [runResult.compiledPath], title: 'Go to compiled SQL' };
       } else {
         if (runResult.error === null) {
