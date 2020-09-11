@@ -50,8 +50,8 @@ export class MacroDefinitionProvider
     });
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, path: string): void {
-    this.macroToLocationMap.set(path, event.macroMetaMap);
+  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, rootpath: string): void {
+    this.macroToLocationMap.set(rootpath, event.macroMetaMap);
   }
 
   private getMacroDefinition(macroName: string, currentFilePath: string): Definition | undefined {

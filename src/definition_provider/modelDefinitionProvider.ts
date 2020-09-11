@@ -41,8 +41,8 @@ export class ModelDefinitionProvider implements DefinitionProvider {
     });
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, path: string): void {
-    this.modelToLocationMap.set(path, event.nodeMetaMap);
+  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, rootpath: string): void {
+    this.modelToLocationMap.set(rootpath, event.nodeMetaMap);
   }
 
   private getDefinitionFor(name: string, currentFilePath: string): Definition | undefined {

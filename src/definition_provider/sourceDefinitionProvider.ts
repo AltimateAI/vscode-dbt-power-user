@@ -60,8 +60,8 @@ export class SourceDefinitionProvider implements DefinitionProvider {
     });
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, path: string): void {
-    this.sourceMetaMap.set(path, event.sourceMetaMap);
+  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, rootpath: string): void {
+    this.sourceMetaMap.set(rootpath, event.sourceMetaMap);
   }
 
   private getSourceDefinition(
