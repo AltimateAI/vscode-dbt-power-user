@@ -39,8 +39,7 @@ export class RunResultStatusBar {
         return;
       };
       if (runResult.status === null) {
-        statusBar.text = `✓ model compiled ${dayjs().to(dayjs(runResult.timestamp))}`;
-        statusBar.color = undefined;
+        statusBar.text = `$(check) Model compiled ${dayjs().to(dayjs(runResult.timestamp))}`;
         statusBar.command = { command: 'navigateToFile', arguments: [runResult.compiledPath], title: 'Go to compiled SQL' };
       } else {
         if (runResult.error === null) {
