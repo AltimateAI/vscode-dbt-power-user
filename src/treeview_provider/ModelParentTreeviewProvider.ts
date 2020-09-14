@@ -145,9 +145,9 @@ class DashboardTreeItem extends NodeTreeItem {
   iconPath = {
     light: path.join(
       path.resolve(__dirname),
-      "../../media/dashboard_light.svg"
+      "../media/dashboard_light.svg"
     ),
-    dark: path.join(path.resolve(__dirname), "../../media/dashboard_dark.svg"),
+    dark: path.join(path.resolve(__dirname), "../media/dashboard_dark.svg"),
   };
 
   contextValue = "dashboard";

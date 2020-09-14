@@ -1,4 +1,4 @@
-import { DBTManifestInstance, GraphMetaMap } from "../dbtManifest";
+import { GraphMetaMap } from "../dbtManifest";
 import { manifestContainer } from "../manifestContainer";
 import { ModelTreeviewProvider } from "./ModelParentTreeviewProvider";
 

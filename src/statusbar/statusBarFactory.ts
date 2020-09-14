@@ -1,4 +1,3 @@
-import { DBTManifestInstance } from "../dbtManifest";
 import { RunResultStatusBar } from "./runResultStatusBarProvider";
 import { StatusBarItem } from "vscode";
 import { manifestContainer } from "../manifestContainer";

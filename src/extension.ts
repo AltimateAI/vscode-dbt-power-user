@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import { DBTManifestInstance } from "./dbtManifest";
 import { DefinitionProviderFactory } from "./definition_provider/definitionProviderFactory";
 import { AutocompletionProviderFactory } from "./autocompletion_provider/autocompletionProviderFactory";
 import { TreeviewProviderFactory } from "./treeview_provider/treeviewProviderFactory";

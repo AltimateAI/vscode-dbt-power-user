@@ -1,5 +1,7 @@
 import { workspace, TextDocument, Range, Position, WorkspaceFolder } from "vscode";
 
+export const DBT_PROJECT_FILE = "dbt_project.yml";
+
 const DBT_MODULES = "dbt_modules";
 
 export const isEnclosedWithinCodeBlock: (

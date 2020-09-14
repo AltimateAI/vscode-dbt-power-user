@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { existsSync, readFileSync } from "fs";
 import { safeLoad } from "js-yaml";
 import * as path from "path";
-import { notEmpty } from "./utils";
+import { DBT_PROJECT_FILE, notEmpty } from "./utils";
 import { NodeMetaMap, MacroMetaMap, SourceMetaMap, RunResultMetaMap, DBTGraphType } from "./domain";
 
 interface NodeGraphMetaData {
@@ -10,7 +10,6 @@ interface NodeGraphMetaData {
 }
 
 export type NodeGraphMap = Map<string, NodeGraphMetaData>;
-
 
 export interface GraphMetaMap {
   parents: NodeGraphMap;
@@ -85,7 +84,6 @@ export class DBTManifestCacheChangedEvent {
 }
 
 export class DBTManifest {
-  private static DBT_PROJECT_FILE = "dbt_project.yml";
   private static MANIFEST_FILE = "manifest.json";
   private static TARGET_PATH_VAR = "target-path";
   private static RESOURCE_TYPE_MODEL = "model";
@@ -130,7 +128,7 @@ export class DBTManifest {
     const dbtProjectYamlFile = readFileSync(
       path.join(
         this.folder.uri.fsPath,
-        DBTManifest.DBT_PROJECT_FILE
+        DBT_PROJECT_FILE
       ),
       "utf8"
     );
@@ -192,7 +190,7 @@ export class DBTManifest {
       this.dbtProjectWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
           this.folder,
-          DBTManifest.DBT_PROJECT_FILE
+          DBT_PROJECT_FILE
         )
       );
       this.setupRefreshHandler(this.dbtProjectWatcher);
@@ -455,5 +453,3 @@ export class DBTManifest {
     return runResultMetaMap;
   }
 }
-
-export const DBTManifestInstance = '';

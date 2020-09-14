@@ -1,28 +1,30 @@
 import { DBTManifest, OnDBTManifestCacheChanged } from "./dbtManifest";
 import { workspace, RelativePattern, WorkspaceFolder, Uri } from "vscode";
+import { DBT_PROJECT_FILE } from "./utils";
 
 type ManifestMetaMap = Map<Uri, DBTManifest>;
 
 class ManifestContainer {
-  manifestMetaMap?: ManifestMetaMap;
+  manifestMetaMap: ManifestMetaMap = new Map();
+
+  constructor() {
+    workspace.onDidChangeWorkspaceFolders(() => {
+      this.createManifests();
+    });
+  }
 
   async createManifests(): Promise<void> {
     const folders = workspace.workspaceFolders;
-    this.manifestMetaMap = new Map();
     if (folders === undefined) { return; }
+
     for (const folder of folders) {
-      const dbtProjectFile = await this.discoverProjectFile(folder);
-      if (dbtProjectFile.length === 0) {
-        break;
+      if (await this.isDBTProject(folder)) {
+        this.manifestMetaMap.set(folder.uri, new DBTManifest(folder));
       }
-      this.manifestMetaMap.set(folder.uri, new DBTManifest(folder));
     }
   }
 
-  addEventHandler(provider: OnDBTManifestCacheChanged) {
-    if (this.manifestMetaMap === undefined) {
-      return;
-    }
+  addEventHandler(provider: OnDBTManifestCacheChanged): void {
     this.manifestMetaMap.forEach((manifestInstance, uri) => {
       manifestInstance.addOnDBTManifestCacheChangedHandler(
         (event) => provider.onDBTManifestCacheChanged(event, uri.path)
@@ -30,27 +32,24 @@ class ManifestContainer {
     });
   }
 
-  tryRefreshAll() {
-    if (this.manifestMetaMap === undefined) {
-      return;
-    }
+  async tryRefreshAll(): Promise<void> {
     this.manifestMetaMap.forEach((manifestInstance) => {
       manifestInstance.tryRefresh();
     });
   }
 
-  removeEventHandlers() {
-    if (this.manifestMetaMap === undefined) {
-      return;
-    }
+  removeEventHandlers(): void {
     this.manifestMetaMap.forEach((manifestInstance) => {
       manifestInstance.removeEventHandlers();
     });
   }
 
-  private async discoverProjectFile(folder: WorkspaceFolder): Promise<Uri[]> {
-    const dbtProjectFile = await workspace.findFiles(new RelativePattern(folder, 'dbt_project.yml'));
-    return dbtProjectFile;
+  private async isDBTProject(folder: WorkspaceFolder): Promise<boolean> {
+    const dbtProjectFile = await workspace.findFiles(new RelativePattern(folder, DBT_PROJECT_FILE));
+    if (dbtProjectFile.length > 0) {
+      return true;
+    }
+    return false;
   }
 }
 
