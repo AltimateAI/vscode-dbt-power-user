@@ -1,7 +1,6 @@
 import {
   DefinitionProvider,
   Definition,
-  workspace,
   Location,
   Uri,
   Position,
@@ -10,14 +9,15 @@ import {
   DefinitionLink,
 } from "vscode";
 import {
-  MacroMetaMap,
   OnDBTManifestCacheChanged,
   DBTManifestCacheChangedEvent,
 } from "../dbtManifest";
+import { MacroMetaMap } from "../domain";
+import { manifestContainer } from "../manifestContainer";
 import { isEnclosedWithinCodeBlock, getPackageName } from "../utils";
 export class MacroDefinitionProvider
   implements DefinitionProvider, OnDBTManifestCacheChanged {
-  private macroToLocationMap: MacroMetaMap = new Map();
+  private macroToLocationMap: Map<string, MacroMetaMap> = new Map();
   private static readonly IS_MACRO = /\w+\.?\w+/;
 
   provideDefinition(
@@ -41,7 +41,7 @@ export class MacroDefinitionProvider
 
         const macroName = packageName !== undefined && !word.includes(".") ? `${packageName}.${word}` : word;
 
-        const definition = this.getMacroDefinition(macroName);
+        const definition = this.getMacroDefinition(macroName, document.uri.path);
         if (definition !== undefined) {
           resolve(definition);
           return;
@@ -51,12 +51,20 @@ export class MacroDefinitionProvider
     });
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
-    this.macroToLocationMap = event.macroMetaMap;
+  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, rootpath: string): void {
+    this.macroToLocationMap.set(rootpath, event.macroMetaMap);
   }
 
-  private getMacroDefinition(macroName: string): Definition | undefined {
-    const location = this.macroToLocationMap.get(macroName);
+  private getMacroDefinition(macroName: string, currentFilePath: string): Definition | undefined {
+    const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
+    if (projectRootpath === undefined) {
+      return;
+    }
+    const macroMap = this.macroToLocationMap.get(projectRootpath);
+    if (macroMap === undefined) {
+      return;
+    }
+    const location = macroMap.get(macroName);
     if (location) {
       return new Location(
         Uri.file(location.path),

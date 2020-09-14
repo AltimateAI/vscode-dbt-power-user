@@ -2,25 +2,18 @@ import * as vscode from "vscode";
 import { existsSync, readFileSync } from "fs";
 import { safeLoad } from "js-yaml";
 import * as path from "path";
-import { notEmpty } from "./utils";
+import { DBT_PROJECT_FILE, notEmpty } from "./utils";
+import { NodeMetaMap, MacroMetaMap, SourceMetaMap, RunResultMetaMap, DBTGraphType } from "./domain";
 
-interface MacroMetaData {
-  path: string;
-  line: number;
-  character: number;
+interface NodeGraphMetaData {
+  nodes: Node[];
 }
 
-interface NodeMetaData {
-  path: string;
-}
+export type NodeGraphMap = Map<string, NodeGraphMetaData>;
 
-interface SourceMetaData {
-  path: string;
-  tables: SourceTable[];
-}
-
-interface SourceTable {
-  name: string;
+export interface GraphMetaMap {
+  parents: NodeGraphMap;
+  children: NodeGraphMap;
 }
 
 export abstract class Node {
@@ -56,40 +49,14 @@ export class Source extends Node {
   };
 }
 
-interface NodeGraphMetaData {
-  nodes: Node[];
-}
-
-type DBTGraphType = {
-  [name: string]: string[];
-};
-
-type OnDBTManifestCacheChangedHandler = (
-  event: DBTManifestCacheChangedEvent
-) => void;
-
-export type NodeMetaMap = Map<string, NodeMetaData>;
-export type MacroMetaMap = Map<string, MacroMetaData>;
-export type SourceMetaMap = Map<string, SourceMetaData>;
-export type RunResultMetaMap = Map<string, RunResultMetaData>;
-
-type NodeGraphMap = Map<string, NodeGraphMetaData>;
-
-export interface GraphMetaMap {
-  parents: NodeGraphMap;
-  children: NodeGraphMap;
-}
-
-interface RunResultMetaData {
-  compiledPath?: string;
-  error: string;
-  timestamp: string;
-  status: string;
-}
-
 export interface OnDBTManifestCacheChanged {
   onDBTManifestCacheChanged: OnDBTManifestCacheChangedHandler;
 }
+
+type OnDBTManifestCacheChangedHandler = (
+  event: DBTManifestCacheChangedEvent,
+  path: string
+) => void;
 
 export class DBTManifestCacheChangedEvent {
   projectName: string;
@@ -116,8 +83,7 @@ export class DBTManifestCacheChangedEvent {
   }
 }
 
-class DBTManifest {
-  private static DBT_PROJECT_FILE = "dbt_project.yml";
+export class DBTManifest {
   private static MANIFEST_FILE = "manifest.json";
   private static TARGET_PATH_VAR = "target-path";
   private static RESOURCE_TYPE_MODEL = "model";
@@ -130,12 +96,17 @@ class DBTManifest {
   private runResultsWatcher?: vscode.FileSystemWatcher;
   private targetFolderWatcher?: vscode.FileSystemWatcher;
   private currentTargetPath?: string;
+  private path: string;
 
   addOnDBTManifestCacheChangedHandler: (
     handler: OnDBTManifestCacheChangedHandler
   ) => void = (handler) => {
     this.onDBTManifestCacheChangedHandlers.push(handler);
   };
+
+  constructor(path: string) {
+    this.path = path;
+  }
 
   async tryRefresh() {
     try {
@@ -144,9 +115,7 @@ class DBTManifest {
       console.log(
         "We should never come here, means that our exceptions are not handled!",
         error
-      );
-      vscode.window.showErrorMessage(`An unknown issue occurred within the dbt Power User extension, please raise this issue on our reposititory (https://github.com/innoverio/vscode-dbt-power-user/issues/) along with the exception: ${error}\n${error.stack}`);
-    }
+      );    }
   }
 
   removeEventHandlers: () => void = () => {
@@ -156,8 +125,8 @@ class DBTManifest {
   readAndParseProjectConfig() {
     const dbtProjectYamlFile = readFileSync(
       path.join(
-        vscode.workspace.workspaceFolders![0].uri.fsPath,
-        DBTManifest.DBT_PROJECT_FILE
+        this.path,
+        DBT_PROJECT_FILE
       ),
       "utf8"
     );
@@ -185,7 +154,7 @@ class DBTManifest {
         new Map()
       );
       this.onDBTManifestCacheChangedHandlers.forEach((handler) =>
-        handler(event)
+        handler(event, this.path)
       );
       return;
     }
@@ -211,15 +180,15 @@ class DBTManifest {
       graphMetaMap,
       runResultMetaMap
     );
-    this.onDBTManifestCacheChangedHandlers.forEach((handler) => handler(event));
+    this.onDBTManifestCacheChangedHandlers.forEach((handler) => handler(event, this.path));
   }
 
   private createProjectConfigWatcher() {
     if (this.dbtProjectWatcher === undefined) {
       this.dbtProjectWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
-          vscode.workspace.workspaceFolders![0],
-          DBTManifest.DBT_PROJECT_FILE
+          this.path,
+          DBT_PROJECT_FILE
         )
       );
       this.setupRefreshHandler(this.dbtProjectWatcher);
@@ -233,7 +202,7 @@ class DBTManifest {
     ) {
       this.manifestWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
-          vscode.workspace.workspaceFolders![0],
+          this.path,
           `${targetPath}/${DBTManifest.MANIFEST_FILE}`
         )
       );
@@ -241,7 +210,7 @@ class DBTManifest {
 
       this.runResultsWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
-          vscode.workspace.workspaceFolders![0],
+          this.path,
           `${targetPath}/${DBTManifest.RUN_RESULTS_FILE}`
         )
       );
@@ -249,7 +218,7 @@ class DBTManifest {
 
       this.targetFolderWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
-          vscode.workspace.workspaceFolders![0],
+          this.path,
           `${targetPath}`
         )
       );
@@ -267,7 +236,7 @@ class DBTManifest {
 
   private readAndParseManifest(targetPath: string) {
     const manifestLocation = path.join(
-      vscode.workspace.workspaceFolders![0].uri.fsPath,
+      this.path,
       targetPath,
       DBTManifest.MANIFEST_FILE
     );
@@ -283,7 +252,7 @@ class DBTManifest {
   }
 
   private createSourceMetaMap(sourcesMap: any[]): SourceMetaMap {
-    const sourceMetaMap = new Map<string, SourceMetaData>();
+    const sourceMetaMap: SourceMetaMap = new Map();
     if (sourcesMap === null || sourcesMap === undefined) {
       console.log("No sources found in manifest! Are we on an older dbt version?");
       return sourceMetaMap;
@@ -374,7 +343,7 @@ class DBTManifest {
   ): GraphMetaMap {
     const unique = (nodes: any[]) => Array.from(new Set(nodes));
 
-    const parents = Object.entries(parentMap).reduce(
+    const parents: NodeGraphMap = Object.entries(parentMap).reduce(
       (map, [nodeName, nodes]) => {
         const currentNodes = unique(nodes)
           .map(
@@ -384,10 +353,10 @@ class DBTManifest {
         map.set(nodeName, { nodes: currentNodes });
         return map;
       },
-      new Map<string, NodeGraphMetaData>()
+      new Map()
     );
 
-    const children = Object.entries(childrenMap).reduce(
+    const children: NodeGraphMap = Object.entries(childrenMap).reduce(
       (map, [nodeName, nodes]) => {
         const currentNodes = unique(nodes)
           .map(
@@ -397,7 +366,7 @@ class DBTManifest {
         map.set(nodeName, { nodes: currentNodes });
         return map;
       },
-      new Map<string, NodeGraphMetaData>()
+      new Map()
     );
 
     return {
@@ -452,9 +421,9 @@ class DBTManifest {
   }
 
   private createRunResultMetaMap(targetPath: string): RunResultMetaMap {
-    const runResultMetaMap = new Map<string, RunResultMetaData>();
+    const runResultMetaMap: RunResultMetaMap = new Map();
     const runResultPath = path.join(
-      vscode.workspace.workspaceFolders![0].uri.fsPath,
+      this.path,
       targetPath,
       DBTManifest.RUN_RESULTS_FILE
     );
@@ -482,5 +451,3 @@ class DBTManifest {
     return runResultMetaMap;
   }
 }
-
-export const DBTManifestInstance = new DBTManifest();

@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import { DBTManifestInstance } from "./dbtManifest";
 import { DefinitionProviderFactory } from "./definition_provider/definitionProviderFactory";
 import { AutocompletionProviderFactory } from "./autocompletion_provider/autocompletionProviderFactory";
 import { TreeviewProviderFactory } from "./treeview_provider/treeviewProviderFactory";
@@ -7,10 +6,13 @@ import navigateToFile from "./commands/navigateToFile";
 import { runModelOnNodeTreeItem, runModelOnActiveWindow, RunModelType } from "./commands/runModel";
 import { StatusBarFactory } from "./statusbar/statusBarFactory";
 import navigateToFileWithErrorMessage from "./commands/navigateToFileWithErrorMessage";
+import { manifestContainer } from "./manifestContainer";
 
 export const DBT_MODE = { language: "jinja-sql", scheme: "file" };
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
+  await manifestContainer.createManifests();
+
   context.subscriptions.push(
     vscode.languages.registerDefinitionProvider(
       DBT_MODE,
@@ -50,9 +52,9 @@ export function activate(context: vscode.ExtensionContext) {
     StatusBarFactory.createRunResultStatusBar(),
   );
 
-  DBTManifestInstance.tryRefresh();
+  manifestContainer.tryRefreshAll();
 }
 
 export function deactivate() {
-  DBTManifestInstance.removeEventHandlers();
+  manifestContainer.removeEventHandlers();
 }

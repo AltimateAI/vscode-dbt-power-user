@@ -1,5 +1,6 @@
 import * as path from "path";
 import { window } from "vscode";
+import { manifestContainer } from "../manifestContainer";
 import { NodeTreeItem } from "../treeview_provider/ModelParentTreeviewProvider";
 
 export enum RunModelType {
@@ -32,10 +33,16 @@ const sleep: (timeout: number) => Promise<void> = async (timeout: number) => {
 
 const runTerminal = async (modelName: string, type?: RunModelType) => {
   const terminal = window.activeTerminal ? window.activeTerminal : window.createTerminal('DBT');
+  if (window.activeTextEditor === undefined) {
+    return;
+  }
+  const currentFilePath = window.activeTextEditor.document.uri.path;
+  const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
   await sleep(500);
   if (modelName !== undefined) {
     const plusOperatorLeft = type === RunModelType.PARENTS ? '+' : '';
     const plusOperatorRight = type === RunModelType.CHILDREN ? '+' : '';
+    terminal.sendText(`cd ${projectRootpath}`);
     terminal.sendText(`dbt run --model ${plusOperatorLeft}${modelName}${plusOperatorRight}`);
     terminal.show(true);
   }

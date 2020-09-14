@@ -1,20 +1,22 @@
-import { DBTManifestCacheChangedEvent, RunResultMetaMap } from "../dbtManifest";
-import { window, StatusBarAlignment, StatusBarItem, ThemeColor, Command } from "vscode";
+import { DBTManifestCacheChangedEvent } from "../dbtManifest";
+import { window, StatusBarAlignment, StatusBarItem, ThemeColor } from "vscode";
 import * as dayjs from "dayjs";
 import * as relativeTime from "dayjs/plugin/relativeTime";
+import { RunResultMetaMap } from "../domain";
+import { manifestContainer } from "../manifestContainer";
 dayjs.extend(relativeTime);
 
 export class RunResultStatusBar {
   statusBar: StatusBarItem;
-  private runResultMetaMap: RunResultMetaMap = new Map();
+  private runResultMetaMap: Map<string, RunResultMetaMap> = new Map();
 
   constructor() {
     this.statusBar = window.createStatusBarItem(StatusBarAlignment.Left, 0);
     window.onDidChangeActiveTextEditor(() => this.showRunResult());
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
-    this.runResultMetaMap = event.runResultMetaMap;
+  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, rootpath: string): void {
+    this.runResultMetaMap.set(rootpath, event.runResultMetaMap);
     this.showRunResult();
   }
 
@@ -22,7 +24,15 @@ export class RunResultStatusBar {
     const activeTextEditor = window.activeTextEditor;
     if (activeTextEditor !== undefined) {
       const currentFilePath = activeTextEditor.document.uri.path;
-      const runResult = this.runResultMetaMap.get(currentFilePath);
+      const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
+      if (projectRootpath === undefined) {
+        return;
+      }
+      const runResultMap = this.runResultMetaMap.get(projectRootpath);
+      if (runResultMap === undefined) {
+        return;
+      }
+      const runResult = runResultMap.get(currentFilePath);
       const statusBar = this.statusBar;
       if (runResult === undefined || runResult.compiledPath === undefined) {
         statusBar.hide();
@@ -35,7 +45,7 @@ export class RunResultStatusBar {
         if (runResult.error === null) {
           statusBar.text = `$(check) Model ran ${dayjs().to(dayjs(runResult.timestamp))}`;
           statusBar.command = { command: 'navigateToFile', arguments: [runResult.compiledPath], title: 'Go to compiled SQL' };
-  
+
         } else {
           statusBar.text = `$(error) Model ran ${dayjs().to(dayjs(runResult.timestamp))}`;
           statusBar.command = { command: 'navigateToFileWithErrorMessage', arguments: [runResult.compiledPath, runResult.error], title: 'Go to compiled SQL' };

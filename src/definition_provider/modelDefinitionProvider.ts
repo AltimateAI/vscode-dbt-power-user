@@ -1,7 +1,6 @@
 import {
   DefinitionProvider,
   Definition,
-  workspace,
   Uri,
   TextDocument,
   CancellationToken,
@@ -11,10 +10,12 @@ import {
   Position,
   Range,
 } from "vscode";
-import { DBTManifestCacheChangedEvent, NodeMetaMap } from "../dbtManifest";
+import { DBTManifestCacheChangedEvent } from "../dbtManifest";
+import { NodeMetaMap } from "../domain";
+import { manifestContainer } from "../manifestContainer";
 
 export class ModelDefinitionProvider implements DefinitionProvider {
-  private modelToLocationMap: NodeMetaMap = new Map();
+  private modelToLocationMap: Map<string, NodeMetaMap> = new Map();
   private static readonly IS_REF = /(ref)\([^)]*\)/;
   private static readonly GET_DBT_MODEL = /(?!'|")([^(?!'|")]*)(?='|")/gi;
 
@@ -31,7 +32,7 @@ export class ModelDefinitionProvider implements DefinitionProvider {
       if (word !== undefined && hover !== "ref") {
         const dbtModel = word.match(ModelDefinitionProvider.GET_DBT_MODEL);
         if (dbtModel && dbtModel.length === 1) {
-          const definition = this.getDefinitionFor(dbtModel[0]);
+          const definition = this.getDefinitionFor(dbtModel[0], document.uri.path);
           resolve(definition);
           return;
         }
@@ -40,12 +41,20 @@ export class ModelDefinitionProvider implements DefinitionProvider {
     });
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
-    this.modelToLocationMap = event.nodeMetaMap;
+  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, rootpath: string): void {
+    this.modelToLocationMap.set(rootpath, event.nodeMetaMap);
   }
 
-  private getDefinitionFor(name: string): Definition | undefined {
-    const location = this.modelToLocationMap.get(name);
+  private getDefinitionFor(name: string, currentFilePath: string): Definition | undefined {
+    const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
+    if (projectRootpath === undefined) {
+      return;
+    }
+    const nodeMap = this.modelToLocationMap.get(projectRootpath);
+    if (nodeMap === undefined) {
+      return;
+    }
+    const location = nodeMap.get(name);
     if (location) {
       return new Location(
         Uri.file(location.path),

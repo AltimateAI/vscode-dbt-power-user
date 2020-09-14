@@ -1,30 +1,24 @@
 import { ModelDefinitionProvider } from "./modelDefinitionProvider";
-import { DBTManifestInstance } from "../dbtManifest";
 import { MacroDefinitionProvider } from "./macroDefinitionProvider";
 import { SourceDefinitionProvider } from "./sourceDefinitionProvider";
+import { manifestContainer } from "../manifestContainer";
 
 export class DefinitionProviderFactory {
   static createModelDefinitionProvider() {
     const modelDefinitionProvider = new ModelDefinitionProvider();
-    DBTManifestInstance.addOnDBTManifestCacheChangedHandler(
-      (event) => modelDefinitionProvider.onDBTManifestCacheChanged(event)
-    );
+    manifestContainer.addEventHandler(modelDefinitionProvider);
     return modelDefinitionProvider;
   }
 
   static createMacroDefinitionProvider() {
     const macroDefinitionProvider = new MacroDefinitionProvider();
-    DBTManifestInstance.addOnDBTManifestCacheChangedHandler(
-      (event) => macroDefinitionProvider.onDBTManifestCacheChanged(event)
-    );
+    manifestContainer.addEventHandler(macroDefinitionProvider);
     return macroDefinitionProvider;
   }
 
   static createSourceDefinitionProvider() {
     const sourceDefinitionProvider = new SourceDefinitionProvider();
-    DBTManifestInstance.addOnDBTManifestCacheChangedHandler(
-      (event) => sourceDefinitionProvider.onDBTManifestCacheChanged(event)
-    );
+    manifestContainer.addEventHandler(sourceDefinitionProvider);
     return sourceDefinitionProvider;
   }
 }

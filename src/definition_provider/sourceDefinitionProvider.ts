@@ -1,4 +1,4 @@
-import { SourceMetaMap, DBTManifestCacheChangedEvent } from "../dbtManifest";
+import { DBTManifestCacheChangedEvent } from "../dbtManifest";
 import {
   DefinitionProvider,
   TextDocument,
@@ -13,9 +13,11 @@ import {
 import { readFileSync } from "fs";
 import path = require("path");
 import { isEnclosedWithinCodeBlock } from "../utils";
+import { SourceMetaMap } from "../domain";
+import { manifestContainer } from "../manifestContainer";
 
 export class SourceDefinitionProvider implements DefinitionProvider {
-  private sourceMetaMap: SourceMetaMap = new Map();
+  private sourceMetaMap: Map<string, SourceMetaMap> = new Map();
   private static readonly IS_SOURCE = /(source)\([^)]*\)/;
   private static readonly GET_SOURCE_INFO = /(?!['"])(\w+)(?=['"])/g;
 
@@ -52,21 +54,31 @@ export class SourceDefinitionProvider implements DefinitionProvider {
       }
       const definition = this.getSourceDefinition(
         source[0],
-        source.length > 1 && hover === source[1] ? source[1] : undefined
+        document.uri.path,
+        source.length > 1 && hover === source[1] ? source[1] : undefined,
       );
       resolve(definition);
     });
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
-    this.sourceMetaMap = event.sourceMetaMap;
+  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, rootpath: string): void {
+    this.sourceMetaMap.set(rootpath, event.sourceMetaMap);
   }
 
   private getSourceDefinition(
     sourceName: string,
-    tableName?: string
+    currentFilePath: string,
+    tableName?: string,
   ): Definition | undefined {
-    const location = this.sourceMetaMap.get(sourceName);
+    const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
+    if (projectRootpath === undefined) {
+      return;
+    }
+    const sourceMap = this.sourceMetaMap.get(projectRootpath);
+    if (sourceMap === undefined) {
+      return;
+    }
+    const location = sourceMap.get(sourceName);
     if (location) {
       const sourceFile: string = readFileSync(location.path).toString("utf8");
       const sourceFileLines = sourceFile.split("\n");

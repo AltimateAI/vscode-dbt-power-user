@@ -14,13 +14,14 @@ import {
   OnDBTManifestCacheChanged,
   DBTManifestCacheChangedEvent,
 } from "../dbtManifest";
+import { manifestContainer } from "../manifestContainer";
 
 export class SourceAutocompletionProvider
   implements CompletionItemProvider, OnDBTManifestCacheChanged {
   private static readonly GET_SOURCE_NAME = /(?!['"])(\w+)(?=['"])/;
   private static readonly ENDS_WTTH_SOURCE = /source\(['|"]$/;
-  private sourceAutocompleteNameItems: CompletionItem[] = [];
-  private sourceAutocompleteTableMap: Map<string, CompletionItem[]> = new Map();
+  private sourceAutocompleteNameItemsMap: Map<string, CompletionItem[]> = new Map();
+  private sourceAutocompleteTableMap: Map<string, Map<string, CompletionItem[]>> = new Map();
 
   provideCompletionItems(
     document: TextDocument,
@@ -34,38 +35,48 @@ export class SourceAutocompletionProvider
     if (!isEnclosedWithinCodeBlock(document, position)) {
       return undefined;
     }
+    const projectRootpath = manifestContainer.getProjectRootpath(document.uri.path);
+    if (projectRootpath === undefined) {
+      return;
+    }
 
     if (linePrefix.match(SourceAutocompletionProvider.ENDS_WTTH_SOURCE)) {
-      return this.showSourceNameAutocompletionItems();
+      return this.showSourceNameAutocompletionItems(projectRootpath);
     }
 
     if (linePrefix.match(SourceAutocompletionProvider.GET_SOURCE_NAME) &&
       linePrefix.includes('source')) {
-        return this.showTableNameAutocompletionItems(linePrefix);
-      }
+      return this.showTableNameAutocompletionItems(linePrefix, projectRootpath);
+    }
     return undefined;
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
-    this.sourceAutocompleteNameItems = Array.from(event.sourceMetaMap.keys()).map(
+  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, rootpath: string): void {
+    this.sourceAutocompleteNameItemsMap.set(rootpath, Array.from(event.sourceMetaMap.keys()).map(
       (source) => new CompletionItem(source, CompletionItemKind.File)
-    );
+    ));
+    const sourceTableMap: Map<string, CompletionItem[]> = new Map();
     event.sourceMetaMap.forEach((value, key) => {
       const autocompleteItems = value.tables.map(item => {
         return new CompletionItem(item.name, CompletionItemKind.File);
       });
-      this.sourceAutocompleteTableMap.set(key, autocompleteItems);
+      sourceTableMap.set(key, autocompleteItems);
     });
+    this.sourceAutocompleteTableMap.set(rootpath, sourceTableMap);
   }
 
-  private showSourceNameAutocompletionItems() {
-    return this.sourceAutocompleteNameItems;
+  private showSourceNameAutocompletionItems(projectRootpath: string) {
+    return this.sourceAutocompleteNameItemsMap.get(projectRootpath);
   }
 
-  private showTableNameAutocompletionItems(linePrefix: string) {
+  private showTableNameAutocompletionItems(linePrefix: string, projectRootpath: string) {
     const sourceNameMatch = linePrefix.match(SourceAutocompletionProvider.GET_SOURCE_NAME);
     if (sourceNameMatch !== null) {
-      return this.sourceAutocompleteTableMap.get(sourceNameMatch[0]);
+      const sourceTableMap = this.sourceAutocompleteTableMap.get(projectRootpath);
+      if (sourceTableMap === undefined) {
+        return;
+      }
+      return sourceTableMap.get(sourceNameMatch[0]);
     }
   }
 }
