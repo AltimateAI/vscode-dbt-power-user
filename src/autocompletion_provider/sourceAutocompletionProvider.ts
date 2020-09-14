@@ -8,13 +8,13 @@ import {
   ProviderResult,
   CompletionList,
   CompletionItemKind,
-  workspace
 } from "vscode";
-import { getProjectRootpath, isEnclosedWithinCodeBlock } from "../utils";
+import { isEnclosedWithinCodeBlock } from "../utils";
 import {
   OnDBTManifestCacheChanged,
   DBTManifestCacheChangedEvent,
 } from "../dbtManifest";
+import { manifestContainer } from "../manifestContainer";
 
 export class SourceAutocompletionProvider
   implements CompletionItemProvider, OnDBTManifestCacheChanged {
@@ -35,12 +35,7 @@ export class SourceAutocompletionProvider
     if (!isEnclosedWithinCodeBlock(document, position)) {
       return undefined;
     }
-
-    const workspaceFolders = workspace.workspaceFolders;
-    if (workspaceFolders === undefined) {
-      return;
-    }
-    const projectRootpath = getProjectRootpath(workspaceFolders, document.uri.path);
+    const projectRootpath = manifestContainer.getProjectRootpath(document.uri.path);
     if (projectRootpath === undefined) {
       return;
     }

@@ -18,9 +18,13 @@ class ManifestContainer {
     if (folders === undefined) { return; }
 
     for (const folder of folders) {
-      if (await this.isDBTProject(folder)) {
-        this.manifestMetaMap.set(folder.uri, new DBTManifest(folder));
+      const projects = await this.discoverDBTProject(folder);
+      if (projects === undefined) {
+        break;
       }
+      projects.forEach(project => {
+        this.manifestMetaMap.set(project, new DBTManifest(project.path));
+      });
     }
   }
 
@@ -44,12 +48,21 @@ class ManifestContainer {
     });
   }
 
-  private async isDBTProject(folder: WorkspaceFolder): Promise<boolean> {
-    const dbtProjectFile = await workspace.findFiles(new RelativePattern(folder, DBT_PROJECT_FILE));
-    if (dbtProjectFile.length > 0) {
-      return true;
+  getProjectRootpath = (currentFilePath: string): string | undefined => {
+    for (const projectRootUri of Array.from(this.manifestMetaMap.keys())) {
+      if (currentFilePath.startsWith(projectRootUri.path + '/')) {
+        return projectRootUri.path;
+      }
     }
-    return false;
+    return undefined;
+  };
+
+  private async discoverDBTProject(folder: WorkspaceFolder): Promise<Uri[] | undefined> {
+    const dbtProjectFiles = await workspace.findFiles(new RelativePattern(folder, DBT_PROJECT_FILE));
+    if (dbtProjectFiles.length > 0) {
+      return [folder.uri];
+    }
+    return undefined;
   }
 }
 

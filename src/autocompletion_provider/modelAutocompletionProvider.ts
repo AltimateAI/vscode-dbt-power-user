@@ -7,14 +7,14 @@ import {
   CompletionContext,
   ProviderResult,
   CompletionList,
-  CompletionItemKind,
-  workspace
+  CompletionItemKind
 } from "vscode";
-import { getProjectRootpath, isEnclosedWithinCodeBlock } from "../utils";
+import { isEnclosedWithinCodeBlock } from "../utils";
 import {
   OnDBTManifestCacheChanged,
   DBTManifestCacheChangedEvent,
 } from "../dbtManifest";
+import { manifestContainer } from "../manifestContainer";
 
 export class ModelAutocompletionProvider
   implements CompletionItemProvider, OnDBTManifestCacheChanged {
@@ -48,11 +48,7 @@ export class ModelAutocompletionProvider
   }
 
   private getAutoCompleteItems = (currentFilePath: string) => {
-    const workspaceFolders = workspace.workspaceFolders;
-    if (workspaceFolders === undefined) {
-      return;
-    }
-    const projectRootpath = getProjectRootpath(workspaceFolders, currentFilePath);
+    const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
       return;
     }

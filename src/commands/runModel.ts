@@ -1,7 +1,7 @@
 import * as path from "path";
-import { window, workspace } from "vscode";
+import { window } from "vscode";
+import { manifestContainer } from "../manifestContainer";
 import { NodeTreeItem } from "../treeview_provider/ModelParentTreeviewProvider";
-import { getProjectRootpath } from "../utils";
 
 export enum RunModelType {
   PARENTS,
@@ -37,11 +37,7 @@ const runTerminal = async (modelName: string, type?: RunModelType) => {
     return;
   }
   const currentFilePath = window.activeTextEditor.document.uri.path;
-  const workspaceFolders = workspace.workspaceFolders;
-  if (workspaceFolders === undefined) {
-    return;
-  }
-  const projectRootpath = getProjectRootpath(workspaceFolders, currentFilePath);
+  const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
   await sleep(500);
   if (modelName !== undefined) {
     const plusOperatorLeft = type === RunModelType.PARENTS ? '+' : '';

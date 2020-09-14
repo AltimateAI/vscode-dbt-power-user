@@ -96,7 +96,7 @@ export class DBTManifest {
   private runResultsWatcher?: vscode.FileSystemWatcher;
   private targetFolderWatcher?: vscode.FileSystemWatcher;
   private currentTargetPath?: string;
-  private folder: vscode.WorkspaceFolder;
+  private path: string;
 
   addOnDBTManifestCacheChangedHandler: (
     handler: OnDBTManifestCacheChangedHandler
@@ -104,8 +104,8 @@ export class DBTManifest {
     this.onDBTManifestCacheChangedHandlers.push(handler);
   };
 
-  constructor(folder: vscode.WorkspaceFolder) {
-    this.folder = folder;
+  constructor(path: string) {
+    this.path = path;
   }
 
   async tryRefresh() {
@@ -127,7 +127,7 @@ export class DBTManifest {
   readAndParseProjectConfig() {
     const dbtProjectYamlFile = readFileSync(
       path.join(
-        this.folder.uri.fsPath,
+        this.path,
         DBT_PROJECT_FILE
       ),
       "utf8"
@@ -156,7 +156,7 @@ export class DBTManifest {
         new Map()
       );
       this.onDBTManifestCacheChangedHandlers.forEach((handler) =>
-        handler(event, this.folder.uri.path)
+        handler(event, this.path)
       );
       return;
     }
@@ -182,14 +182,14 @@ export class DBTManifest {
       graphMetaMap,
       runResultMetaMap
     );
-    this.onDBTManifestCacheChangedHandlers.forEach((handler) => handler(event, this.folder.uri.path));
+    this.onDBTManifestCacheChangedHandlers.forEach((handler) => handler(event, this.path));
   }
 
   private createProjectConfigWatcher() {
     if (this.dbtProjectWatcher === undefined) {
       this.dbtProjectWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
-          this.folder,
+          this.path,
           DBT_PROJECT_FILE
         )
       );
@@ -204,7 +204,7 @@ export class DBTManifest {
     ) {
       this.manifestWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
-          this.folder,
+          this.path,
           `${targetPath}/${DBTManifest.MANIFEST_FILE}`
         )
       );
@@ -212,7 +212,7 @@ export class DBTManifest {
 
       this.runResultsWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
-          this.folder,
+          this.path,
           `${targetPath}/${DBTManifest.RUN_RESULTS_FILE}`
         )
       );
@@ -220,7 +220,7 @@ export class DBTManifest {
 
       this.targetFolderWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
-          this.folder,
+          this.path,
           `${targetPath}`
         )
       );
@@ -238,7 +238,7 @@ export class DBTManifest {
 
   private readAndParseManifest(targetPath: string) {
     const manifestLocation = path.join(
-      this.folder.uri.fsPath,
+      this.path,
       targetPath,
       DBTManifest.MANIFEST_FILE
     );
@@ -425,7 +425,7 @@ export class DBTManifest {
   private createRunResultMetaMap(targetPath: string): RunResultMetaMap {
     const runResultMetaMap: RunResultMetaMap = new Map();
     const runResultPath = path.join(
-      this.folder.uri.fsPath,
+      this.path,
       targetPath,
       DBTManifest.RUN_RESULTS_FILE
     );

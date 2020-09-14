@@ -9,12 +9,12 @@ import {
   DefinitionLink,
   Location,
   Uri,
-  workspace
 } from "vscode";
 import { readFileSync } from "fs";
 import path = require("path");
-import { getProjectRootpath, isEnclosedWithinCodeBlock } from "../utils";
+import { isEnclosedWithinCodeBlock } from "../utils";
 import { SourceMetaMap } from "../domain";
+import { manifestContainer } from "../manifestContainer";
 
 export class SourceDefinitionProvider implements DefinitionProvider {
   private sourceMetaMap: Map<string, SourceMetaMap> = new Map();
@@ -70,11 +70,7 @@ export class SourceDefinitionProvider implements DefinitionProvider {
     currentFilePath: string,
     tableName?: string,
   ): Definition | undefined {
-    const workspaceFolders = workspace.workspaceFolders;
-    if (workspaceFolders === undefined) {
-      return;
-    }
-    const projectRootpath = getProjectRootpath(workspaceFolders, currentFilePath);
+    const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
       return;
     }

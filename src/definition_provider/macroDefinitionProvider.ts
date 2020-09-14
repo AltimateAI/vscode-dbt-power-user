@@ -1,7 +1,6 @@
 import {
   DefinitionProvider,
   Definition,
-  workspace,
   Location,
   Uri,
   Position,
@@ -14,7 +13,8 @@ import {
   DBTManifestCacheChangedEvent,
 } from "../dbtManifest";
 import { MacroMetaMap } from "../domain";
-import { isEnclosedWithinCodeBlock, getPackageName, getProjectRootpath } from "../utils";
+import { manifestContainer } from "../manifestContainer";
+import { isEnclosedWithinCodeBlock, getPackageName } from "../utils";
 export class MacroDefinitionProvider
   implements DefinitionProvider, OnDBTManifestCacheChanged {
   private macroToLocationMap: Map<string, MacroMetaMap> = new Map();
@@ -56,11 +56,7 @@ export class MacroDefinitionProvider
   }
 
   private getMacroDefinition(macroName: string, currentFilePath: string): Definition | undefined {
-    const workspaceFolders = workspace.workspaceFolders;
-    if (workspaceFolders === undefined) {
-      return;
-    }
-    const projectRootpath = getProjectRootpath(workspaceFolders, currentFilePath);
+    const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
       return;
     }

@@ -5,7 +5,6 @@ import {
   TreeItemCollapsibleState,
   window,
   EventEmitter,
-  workspace
 } from "vscode";
 import {
   DBTManifestCacheChangedEvent,
@@ -17,7 +16,8 @@ import {
   Analysis,
 } from "../dbtManifest";
 import * as path from "path";
-import { getPackageName, getProjectRootpath } from "../utils";
+import { getPackageName } from "../utils";
+import { manifestContainer } from "../manifestContainer";
 
 export class ModelTreeviewProvider implements TreeDataProvider<NodeTreeItem> {
   private eventMap: Map<string, DBTManifestCacheChangedEvent> = new Map();
@@ -50,12 +50,8 @@ export class ModelTreeviewProvider implements TreeDataProvider<NodeTreeItem> {
       return Promise.resolve([]);
     }
 
-    const workspaceFolders = workspace.workspaceFolders;
-    if (workspaceFolders === undefined) {
-      return Promise.resolve([]);
-    }
     const currentFilePath = window.activeTextEditor!.document.uri.path;
-    const projectRootpath = getProjectRootpath(workspaceFolders, currentFilePath);
+    const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
       return Promise.resolve([]);
     }

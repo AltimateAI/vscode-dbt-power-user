@@ -1,7 +1,6 @@
 import {
   DefinitionProvider,
   Definition,
-  workspace,
   Uri,
   TextDocument,
   CancellationToken,
@@ -13,7 +12,7 @@ import {
 } from "vscode";
 import { DBTManifestCacheChangedEvent } from "../dbtManifest";
 import { NodeMetaMap } from "../domain";
-import { getProjectRootpath } from "../utils";
+import { manifestContainer } from "../manifestContainer";
 
 export class ModelDefinitionProvider implements DefinitionProvider {
   private modelToLocationMap: Map<string, NodeMetaMap> = new Map();
@@ -47,11 +46,7 @@ export class ModelDefinitionProvider implements DefinitionProvider {
   }
 
   private getDefinitionFor(name: string, currentFilePath: string): Definition | undefined {
-    const workspaceFolders = workspace.workspaceFolders;
-    if (workspaceFolders === undefined) {
-      return;
-    }
-    const projectRootpath = getProjectRootpath(workspaceFolders, currentFilePath);
+    const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
       return;
     }

@@ -1,9 +1,9 @@
 import { DBTManifestCacheChangedEvent } from "../dbtManifest";
-import { window, StatusBarAlignment, StatusBarItem, ThemeColor, workspace } from "vscode";
+import { window, StatusBarAlignment, StatusBarItem, ThemeColor } from "vscode";
 import * as dayjs from "dayjs";
 import * as relativeTime from "dayjs/plugin/relativeTime";
-import { getProjectRootpath } from "../utils";
 import { RunResultMetaMap } from "../domain";
+import { manifestContainer } from "../manifestContainer";
 dayjs.extend(relativeTime);
 
 export class RunResultStatusBar {
@@ -24,11 +24,10 @@ export class RunResultStatusBar {
     const activeTextEditor = window.activeTextEditor;
     if (activeTextEditor !== undefined) {
       const currentFilePath = activeTextEditor.document.uri.path;
-      const workspaceFolders = workspace.workspaceFolders;
-      if (workspaceFolders === undefined) {
+      const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
+      if (projectRootpath === undefined) {
         return;
       }
-      const projectRootpath = getProjectRootpath(workspaceFolders, currentFilePath);
       const runResultMap = this.runResultMetaMap.get(projectRootpath);
       if (runResultMap === undefined) {
         return;
