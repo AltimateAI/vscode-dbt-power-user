@@ -5,7 +5,7 @@ import { OnManifestCacheChanged } from "./manifestCacheChangedEvent";
 type ManifestMetaMap = Map<Uri, Manifest>;
 
 class ManifestContainer {
-  private manifestMetaMap: ManifestMetaMap = new Map();
+  private manifestMetaMap?: ManifestMetaMap;
 
   constructor() {
     workspace.onDidChangeWorkspaceFolders(() => {
@@ -19,18 +19,22 @@ class ManifestContainer {
       return;
     }
 
+    const manifests: ManifestMetaMap = new Map()
+
     for (const folder of folders) {
       const projectUris = await this.discoverProjects(folder);
-      if (projectUris === undefined) {
-        break;
-      }
       projectUris.forEach((projectUri) => {
-        this.manifestMetaMap.set(projectUri, new Manifest(projectUri));
+        manifests.set(projectUri, new Manifest(projectUri));
       });
     }
+    this.manifestMetaMap = manifests;
   }
 
   addEventHandler(provider: OnManifestCacheChanged): void {
+    if(this.manifestMetaMap === undefined) {
+      console.error("Trying to add eventhandlers to an empty manifests map!");
+      return;
+    }
     this.manifestMetaMap.forEach((manifestInstance) => {
       manifestInstance.addOnManifestCacheChangedHandler((event) =>
         provider.onManifestCacheChanged(event)
@@ -39,12 +43,19 @@ class ManifestContainer {
   }
 
   async tryRefreshAll(): Promise<void> {
+    if(this.manifestMetaMap === undefined) {
+      console.error("Trying to refresh an empty manifests map!");
+      return;
+    }
     this.manifestMetaMap.forEach((manifestInstance) => {
       manifestInstance.tryRefresh();
     });
   }
 
   removeEventHandlers(): void {
+    if(this.manifestMetaMap === undefined) {
+      return;
+    }
     this.manifestMetaMap.forEach((manifestInstance) => {
       manifestInstance.removeEventHandlers();
     });
@@ -70,6 +81,10 @@ class ManifestContainer {
   };
 
   getProjectRootpath = (currentFilePath: Uri): Uri | undefined => {
+    if(this.manifestMetaMap === undefined) {
+      console.error("Trying to call getProjectRootpath an empty manifests map!");
+      return;
+    }
     for (const projectRootUri of Array.from(this.manifestMetaMap.keys())) {
       if (currentFilePath.path.startsWith(projectRootUri.path + "/")) {
         return projectRootUri;
