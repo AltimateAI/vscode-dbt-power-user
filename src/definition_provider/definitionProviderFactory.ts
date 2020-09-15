@@ -1,7 +1,7 @@
 import { ModelDefinitionProvider } from "./modelDefinitionProvider";
 import { MacroDefinitionProvider } from "./macroDefinitionProvider";
 import { SourceDefinitionProvider } from "./sourceDefinitionProvider";
-import { manifestContainer } from "../manifestContainer";
+import { manifestContainer } from "../manifest/manifestContainer";
 
 export class DefinitionProviderFactory {
   static createModelDefinitionProvider() {

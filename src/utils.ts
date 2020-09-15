@@ -1,8 +1,4 @@
-import { workspace, TextDocument, Range, Position, Uri } from "vscode";
-
-export const DBT_PROJECT_FILE = "dbt_project.yml";
-
-const DBT_MODULES = "dbt_modules";
+import { TextDocument, Range, Position } from "vscode";
 
 export const isEnclosedWithinCodeBlock: (
   document: TextDocument,
@@ -59,20 +55,6 @@ export const isEnclosedWithinCodeBlock: (
     isWithinCodeBlock(start, "desc", "{", "}") &&
     isWithinCodeBlock(end, "asc", "}", "{")
   );
-};
-
-export const getPackageName = (currentPath: Uri): string | undefined => {
-  const documentPath = currentPath.path;
-  const projectPath = workspace.workspaceFolders![0].uri.path + "/";
-  const pathSegments = documentPath.replace(projectPath, "").split("/");
-
-  const insidePackage =
-    pathSegments.length > 1 && pathSegments[0] === DBT_MODULES;
-
-  if (insidePackage) {
-    return pathSegments[1];
-  }
-  return undefined;
 };
 
 export const notEmpty = <T>(value: T | null | undefined): value is T => {

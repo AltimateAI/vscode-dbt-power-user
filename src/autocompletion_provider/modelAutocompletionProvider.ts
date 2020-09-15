@@ -12,13 +12,13 @@ import {
 } from "vscode";
 import { isEnclosedWithinCodeBlock } from "../utils";
 import {
-  OnDBTManifestCacheChanged,
-  DBTManifestCacheChangedEvent,
-} from "../dbtManifest";
-import { manifestContainer } from "../manifestContainer";
+  ManifestCacheChangedEvent,
+  OnManifestCacheChanged,
+} from "../manifest/manifestCacheChangedEvent";
+import { manifestContainer } from "../manifest/manifestContainer";
 
 export class ModelAutocompletionProvider
-  implements CompletionItemProvider, OnDBTManifestCacheChanged {
+  implements CompletionItemProvider, OnManifestCacheChanged {
   private static readonly ENDS_WTTH_REF = /ref\(['|"]$/;
   private modelAutocompleteMap: Map<string, CompletionItem[]> = new Map();
 
@@ -40,7 +40,7 @@ export class ModelAutocompletionProvider
     return undefined;
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
+  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     const models = event.nodeMetaMap.keys();
     this.modelAutocompleteMap.set(
       event.projectRoot.fsPath,

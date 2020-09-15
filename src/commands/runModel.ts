@@ -1,6 +1,6 @@
 import * as path from "path";
 import { window } from "vscode";
-import { manifestContainer } from "../manifestContainer";
+import { manifestContainer } from "../manifest/manifestContainer";
 import { NodeTreeItem } from "../treeview_provider/ModelParentTreeviewProvider";
 
 export enum RunModelType {

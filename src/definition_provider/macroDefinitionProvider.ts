@@ -9,14 +9,14 @@ import {
   DefinitionLink,
 } from "vscode";
 import {
-  OnDBTManifestCacheChanged,
-  DBTManifestCacheChangedEvent,
-} from "../dbtManifest";
+  ManifestCacheChangedEvent,
+  OnManifestCacheChanged,
+} from "../manifest/manifestCacheChangedEvent";
 import { MacroMetaMap } from "../domain";
-import { manifestContainer } from "../manifestContainer";
-import { isEnclosedWithinCodeBlock, getPackageName } from "../utils";
+import { manifestContainer } from "../manifest/manifestContainer";
+import { isEnclosedWithinCodeBlock } from "../utils";
 export class MacroDefinitionProvider
-  implements DefinitionProvider, OnDBTManifestCacheChanged {
+  implements DefinitionProvider, OnManifestCacheChanged {
   private macroToLocationMap: Map<string, MacroMetaMap> = new Map();
   private static readonly IS_MACRO = /\w+\.?\w+/;
 
@@ -37,7 +37,7 @@ export class MacroDefinitionProvider
         isEnclosedWithinCodeBlock(document, range)
       ) {
 
-        const packageName = getPackageName(document.uri);
+        const packageName = manifestContainer.getPackageName(document.uri);
 
         const macroName = packageName !== undefined && !word.includes(".") ? `${packageName}.${word}` : word;
 
@@ -51,7 +51,7 @@ export class MacroDefinitionProvider
     });
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
+  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     this.macroToLocationMap.set(event.projectRoot.fsPath, event.macroMetaMap);
   }
 

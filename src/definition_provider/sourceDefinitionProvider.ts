@@ -1,4 +1,7 @@
-import { DBTManifestCacheChangedEvent, OnDBTManifestCacheChanged } from "../dbtManifest";
+import {
+  ManifestCacheChangedEvent,
+  OnManifestCacheChanged,
+} from "../manifest/manifestCacheChangedEvent";
 import {
   DefinitionProvider,
   TextDocument,
@@ -14,9 +17,9 @@ import { readFileSync } from "fs";
 import path = require("path");
 import { isEnclosedWithinCodeBlock } from "../utils";
 import { SourceMetaMap } from "../domain";
-import { manifestContainer } from "../manifestContainer";
+import { manifestContainer } from "../manifest/manifestContainer";
 
-export class SourceDefinitionProvider implements DefinitionProvider, OnDBTManifestCacheChanged  {
+export class SourceDefinitionProvider implements DefinitionProvider, OnManifestCacheChanged  {
   private sourceMetaMap: Map<string, SourceMetaMap> = new Map();
   private static readonly IS_SOURCE = /(source)\([^)]*\)/;
   private static readonly GET_SOURCE_INFO = /(?!['"])(\w+)(?=['"])/g;
@@ -61,7 +64,7 @@ export class SourceDefinitionProvider implements DefinitionProvider, OnDBTManife
     });
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
+  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     this.sourceMetaMap.set(event.projectRoot.fsPath, event.sourceMetaMap);
   }
 

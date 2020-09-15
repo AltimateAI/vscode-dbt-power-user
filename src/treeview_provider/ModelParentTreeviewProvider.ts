@@ -6,23 +6,17 @@ import {
   window,
   EventEmitter,
 } from "vscode";
-import {
-  DBTManifestCacheChangedEvent,
-  Node,
-  Model,
-  GraphMetaMap,
-  Test,
-  Seed,
-  Analysis,
-  OnDBTManifestCacheChanged,
-} from "../dbtManifest";
+import { Node, Model, GraphMetaMap, Test, Seed, Analysis } from "../domain";
 import * as path from "path";
-import { getPackageName } from "../utils";
-import { manifestContainer } from "../manifestContainer";
+import { manifestContainer } from "../manifest/manifestContainer";
+import {
+  ManifestCacheChangedEvent,
+  OnManifestCacheChanged,
+} from "../manifest/manifestCacheChangedEvent";
 
 export class ModelTreeviewProvider
-  implements TreeDataProvider<NodeTreeItem>, OnDBTManifestCacheChanged {
-  private eventMap: Map<string, DBTManifestCacheChangedEvent> = new Map();
+  implements TreeDataProvider<NodeTreeItem>, OnManifestCacheChanged {
+  private eventMap: Map<string, ManifestCacheChangedEvent> = new Map();
   private treeType: keyof GraphMetaMap;
 
   constructor(treeType: keyof GraphMetaMap) {
@@ -38,7 +32,7 @@ export class ModelTreeviewProvider
   readonly onDidChangeTreeData: Event<ModelTreeItem | undefined | void> = this
     ._onDidChangeTreeData.event;
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
+  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     this.eventMap.set(event.projectRoot.fsPath, event);
     this._onDidChangeTreeData.fire();
   }
@@ -74,7 +68,7 @@ export class ModelTreeviewProvider
       window.activeTextEditor!.document.fileName,
       ".sql"
     );
-    const packageName = getPackageName(currentFilePath) || projectName;
+    const packageName = manifestContainer.getPackageName(currentFilePath) || projectName;
     return Promise.resolve(
       this.getTreeItems(`model.${packageName}.${fileName}`, event)
     );
@@ -82,7 +76,7 @@ export class ModelTreeviewProvider
 
   private getTreeItems(
     elementName: string,
-    event: DBTManifestCacheChangedEvent
+    event: ManifestCacheChangedEvent
   ): NodeTreeItem[] {
     const { graphMetaMap } = event;
     const parentModels = graphMetaMap[this.treeType].get(elementName);

@@ -1,5 +1,5 @@
-import { GraphMetaMap } from "../dbtManifest";
-import { manifestContainer } from "../manifestContainer";
+import { GraphMetaMap } from "../domain";
+import { manifestContainer } from "../manifest/manifestContainer";
 import { ModelTreeviewProvider } from "./ModelParentTreeviewProvider";
 
 export class TreeviewProviderFactory {

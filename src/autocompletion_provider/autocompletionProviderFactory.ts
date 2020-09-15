@@ -1,7 +1,7 @@
 import { MacroAutocompletionProvider } from "./macroAutocompletionProvider";
 import { ModelAutocompletionProvider } from "./modelAutocompletionProvider";
 import { SourceAutocompletionProvider } from "./sourceAutocompletionProvider";
-import { manifestContainer } from "../manifestContainer";
+import { manifestContainer } from "../manifest/manifestContainer";
 
 export class AutocompletionProviderFactory {
   static createMacroAutocompletionProvider() {

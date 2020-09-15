@@ -11,14 +11,14 @@ import {
   Range,
 } from "vscode";
 import {
-  DBTManifestCacheChangedEvent,
-  OnDBTManifestCacheChanged,
-} from "../dbtManifest";
+  ManifestCacheChangedEvent,
+  OnManifestCacheChanged,
+} from "../manifest/manifestCacheChangedEvent";
 import { NodeMetaMap } from "../domain";
-import { manifestContainer } from "../manifestContainer";
+import { manifestContainer } from "../manifest/manifestContainer";
 
 export class ModelDefinitionProvider
-  implements DefinitionProvider, OnDBTManifestCacheChanged {
+  implements DefinitionProvider, OnManifestCacheChanged {
   private modelToLocationMap: Map<string, NodeMetaMap> = new Map();
   private static readonly IS_REF = /(ref)\([^)]*\)/;
   private static readonly GET_DBT_MODEL = /(?!'|")([^(?!'|")]*)(?='|")/gi;
@@ -51,7 +51,7 @@ export class ModelDefinitionProvider
     });
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
+  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     this.modelToLocationMap.set(event.projectRoot.fsPath, event.nodeMetaMap);
   }
 

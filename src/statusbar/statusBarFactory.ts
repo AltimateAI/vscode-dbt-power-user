@@ -1,6 +1,6 @@
 import { RunResultStatusBar } from "./runResultStatusBarProvider";
 import { StatusBarItem } from "vscode";
-import { manifestContainer } from "../manifestContainer";
+import { manifestContainer } from "../manifest/manifestContainer";
 
 export class StatusBarFactory {
 

@@ -12,13 +12,13 @@ import {
   Uri,
 } from "vscode";
 import {
-  OnDBTManifestCacheChanged,
-  DBTManifestCacheChangedEvent,
-} from "../dbtManifest";
-import { manifestContainer } from "../manifestContainer";
+  ManifestCacheChangedEvent,
+  OnManifestCacheChanged,
+} from "../manifest/manifestCacheChangedEvent";
+import { manifestContainer } from "../manifest/manifestContainer";
 
 export class MacroAutocompletionProvider
-  implements CompletionItemProvider, OnDBTManifestCacheChanged {
+  implements CompletionItemProvider, OnManifestCacheChanged {
   private macrosAutocompleteMap: Map<string, CompletionItem[]> = new Map();
 
   provideCompletionItems(
@@ -34,7 +34,7 @@ export class MacroAutocompletionProvider
     return undefined;
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
+  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     this.macrosAutocompleteMap.set(
       event.projectRoot.fsPath,
       Array.from(event.macroMetaMap.keys()).map(

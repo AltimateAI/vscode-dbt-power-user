@@ -12,13 +12,13 @@ import {
 } from "vscode";
 import { isEnclosedWithinCodeBlock } from "../utils";
 import {
-  OnDBTManifestCacheChanged,
-  DBTManifestCacheChangedEvent,
-} from "../dbtManifest";
-import { manifestContainer } from "../manifestContainer";
+  ManifestCacheChangedEvent,
+  OnManifestCacheChanged,
+} from "../manifest/manifestCacheChangedEvent";
+import { manifestContainer } from "../manifest/manifestContainer";
 
 export class SourceAutocompletionProvider
-  implements CompletionItemProvider, OnDBTManifestCacheChanged {
+  implements CompletionItemProvider, OnManifestCacheChanged {
   private static readonly GET_SOURCE_NAME = /(?!['"])(\w+)(?=['"])/;
   private static readonly ENDS_WTTH_SOURCE = /source\(['|"]$/;
   private sourceAutocompleteNameItemsMap: Map<
@@ -60,7 +60,7 @@ export class SourceAutocompletionProvider
     return undefined;
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
+  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     this.sourceAutocompleteNameItemsMap.set(
       event.projectRoot.fsPath,
       Array.from(event.sourceMetaMap.keys()).map(
@@ -74,7 +74,10 @@ export class SourceAutocompletionProvider
       });
       sourceTableMap.set(key, autocompleteItems);
     });
-    this.sourceAutocompleteTableMap.set(event.projectRoot.fsPath, sourceTableMap);
+    this.sourceAutocompleteTableMap.set(
+      event.projectRoot.fsPath,
+      sourceTableMap
+    );
   }
 
   private showSourceNameAutocompletionItems(projectRootpath: Uri) {

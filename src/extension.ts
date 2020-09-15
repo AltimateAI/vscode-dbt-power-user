@@ -6,7 +6,7 @@ import navigateToFile from "./commands/navigateToFile";
 import { runModelOnNodeTreeItem, runModelOnActiveWindow, RunModelType } from "./commands/runModel";
 import { StatusBarFactory } from "./statusbar/statusBarFactory";
 import navigateToFileWithErrorMessage from "./commands/navigateToFileWithErrorMessage";
-import { manifestContainer } from "./manifestContainer";
+import { manifestContainer } from "./manifest/manifestContainer";
 
 export const DBT_MODE = { language: "jinja-sql", scheme: "file" };
 

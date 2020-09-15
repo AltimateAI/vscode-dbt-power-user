@@ -1,12 +1,15 @@
-import { DBTManifestCacheChangedEvent, OnDBTManifestCacheChanged } from "../dbtManifest";
+import {
+  ManifestCacheChangedEvent,
+  OnManifestCacheChanged,
+} from "../manifest/manifestCacheChangedEvent";
 import { window, StatusBarAlignment, StatusBarItem, ThemeColor } from "vscode";
 import * as dayjs from "dayjs";
 import * as relativeTime from "dayjs/plugin/relativeTime";
 import { RunResultMetaMap } from "../domain";
-import { manifestContainer } from "../manifestContainer";
+import { manifestContainer } from "../manifest/manifestContainer";
 dayjs.extend(relativeTime);
 
-export class RunResultStatusBar implements OnDBTManifestCacheChanged {
+export class RunResultStatusBar implements OnManifestCacheChanged {
   statusBar: StatusBarItem;
   private runResultMetaMap: Map<string, RunResultMetaMap> = new Map();
 
@@ -15,7 +18,7 @@ export class RunResultStatusBar implements OnDBTManifestCacheChanged {
     window.onDidChangeActiveTextEditor(() => this.showRunResult());
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
+  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     this.runResultMetaMap.set(event.projectRoot.fsPath, event.runResultMetaMap);
     this.showRunResult();
   }
