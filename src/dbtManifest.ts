@@ -240,7 +240,7 @@ export class DBTManifest {
 
   private readAndParseManifest(targetPath: string) {
     const manifestLocation = path.join(
-      this.projecRoot.path,
+      this.projecRoot.fsPath,
       targetPath,
       DBTManifest.MANIFEST_FILE
     );

@@ -32,7 +32,6 @@ const sleep: (timeout: number) => Promise<void> = async (timeout: number) => {
 };
 
 const runTerminal = async (modelName: string, type?: RunModelType) => {
-  const terminal = window.activeTerminal ? window.activeTerminal : window.createTerminal('DBT');
   if (window.activeTextEditor === undefined) {
     return;
   }
@@ -40,9 +39,12 @@ const runTerminal = async (modelName: string, type?: RunModelType) => {
   const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
   await sleep(500);
   if (modelName !== undefined && projectRootpath !== undefined) {
+    const terminal = window.createTerminal({
+      name: 'DBT',
+      cwd: projectRootpath,
+    });
     const plusOperatorLeft = type === RunModelType.PARENTS ? '+' : '';
     const plusOperatorRight = type === RunModelType.CHILDREN ? '+' : '';
-    terminal.sendText(`cd '${projectRootpath.fsPath.replace(/'/, "\\'")}'`);
     terminal.sendText(`dbt run --model ${plusOperatorLeft}${modelName}${plusOperatorRight}`);
     terminal.show(true);
   }
