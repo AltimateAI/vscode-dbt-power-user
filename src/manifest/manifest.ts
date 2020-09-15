@@ -167,7 +167,7 @@ export class Manifest {
 
   private readAndParseManifest(targetPath: string) {
     const manifestLocation = path.join(
-      this.projectRoot.path,
+      this.projectRoot.fsPath,
       targetPath,
       Manifest.MANIFEST_FILE
     );
