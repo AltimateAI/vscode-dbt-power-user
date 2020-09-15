@@ -54,8 +54,7 @@ export interface OnDBTManifestCacheChanged {
 }
 
 type OnDBTManifestCacheChangedHandler = (
-  event: DBTManifestCacheChangedEvent,
-  path: string
+  event: DBTManifestCacheChangedEvent
 ) => void;
 
 export class DBTManifestCacheChangedEvent {
@@ -65,6 +64,7 @@ export class DBTManifestCacheChangedEvent {
   sourceMetaMap: SourceMetaMap;
   graphMetaMap: GraphMetaMap;
   runResultMetaMap: RunResultMetaMap;
+  projectRoot: vscode.Uri;
 
   constructor(
     projectName: string,
@@ -72,7 +72,8 @@ export class DBTManifestCacheChangedEvent {
     macroMetaMap: MacroMetaMap,
     sourceMetaMap: SourceMetaMap,
     parentModelMap: GraphMetaMap,
-    runResultMetaMap: RunResultMetaMap
+    runResultMetaMap: RunResultMetaMap,
+    projectRoot: vscode.Uri
   ) {
     this.projectName = projectName;
     this.nodeMetaMap = nodeMetaMap;
@@ -80,6 +81,7 @@ export class DBTManifestCacheChangedEvent {
     this.sourceMetaMap = sourceMetaMap;
     this.graphMetaMap = parentModelMap;
     this.runResultMetaMap = runResultMetaMap;
+    this.projectRoot = projectRoot;
   }
 }
 
@@ -96,7 +98,7 @@ export class DBTManifest {
   private runResultsWatcher?: vscode.FileSystemWatcher;
   private targetFolderWatcher?: vscode.FileSystemWatcher;
   private currentTargetPath?: string;
-  private path: string;
+  private projecRoot: vscode.Uri;
 
   addOnDBTManifestCacheChangedHandler: (
     handler: OnDBTManifestCacheChangedHandler
@@ -104,8 +106,8 @@ export class DBTManifest {
     this.onDBTManifestCacheChangedHandlers.push(handler);
   };
 
-  constructor(path: string) {
-    this.path = path;
+  constructor(path: vscode.Uri) {
+    this.projecRoot = path;
   }
 
   async tryRefresh() {
@@ -125,7 +127,7 @@ export class DBTManifest {
   readAndParseProjectConfig() {
     const dbtProjectYamlFile = readFileSync(
       path.join(
-        this.path,
+        this.projecRoot.fsPath,
         DBT_PROJECT_FILE
       ),
       "utf8"
@@ -151,10 +153,11 @@ export class DBTManifest {
         new Map(),
         new Map(),
         { parents: new Map(), children: new Map() },
-        new Map()
+        new Map(),
+        this.projecRoot
       );
       this.onDBTManifestCacheChangedHandlers.forEach((handler) =>
-        handler(event, this.path)
+        handler(event)
       );
       return;
     }
@@ -178,16 +181,17 @@ export class DBTManifest {
       macroMetaMap,
       sourceMetaMap,
       graphMetaMap,
-      runResultMetaMap
+      runResultMetaMap,
+      this.projecRoot,
     );
-    this.onDBTManifestCacheChangedHandlers.forEach((handler) => handler(event, this.path));
+    this.onDBTManifestCacheChangedHandlers.forEach((handler) => handler(event));
   }
 
   private createProjectConfigWatcher() {
     if (this.dbtProjectWatcher === undefined) {
       this.dbtProjectWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
-          this.path,
+          this.projecRoot.path,
           DBT_PROJECT_FILE
         )
       );
@@ -202,7 +206,7 @@ export class DBTManifest {
     ) {
       this.manifestWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
-          this.path,
+          this.projecRoot.path,
           `${targetPath}/${DBTManifest.MANIFEST_FILE}`
         )
       );
@@ -210,7 +214,7 @@ export class DBTManifest {
 
       this.runResultsWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
-          this.path,
+          this.projecRoot.path,
           `${targetPath}/${DBTManifest.RUN_RESULTS_FILE}`
         )
       );
@@ -218,7 +222,7 @@ export class DBTManifest {
 
       this.targetFolderWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
-          this.path,
+          this.projecRoot.path,
           `${targetPath}`
         )
       );
@@ -236,7 +240,7 @@ export class DBTManifest {
 
   private readAndParseManifest(targetPath: string) {
     const manifestLocation = path.join(
-      this.path,
+      this.projecRoot.path,
       targetPath,
       DBTManifest.MANIFEST_FILE
     );
@@ -423,7 +427,7 @@ export class DBTManifest {
   private createRunResultMetaMap(targetPath: string): RunResultMetaMap {
     const runResultMetaMap: RunResultMetaMap = new Map();
     const runResultPath = path.join(
-      this.path,
+      this.projecRoot.fsPath,
       targetPath,
       DBTManifest.RUN_RESULTS_FILE
     );

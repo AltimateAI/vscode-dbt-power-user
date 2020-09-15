@@ -9,6 +9,7 @@ import {
   ProviderResult,
   CompletionList,
   CompletionItemKind,
+  Uri,
 } from "vscode";
 import {
   OnDBTManifestCacheChanged,
@@ -28,22 +29,27 @@ export class MacroAutocompletionProvider
   ): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
     const range = document.getWordRangeAtPosition(position);
     if (range && isEnclosedWithinCodeBlock(document, range)) {
-      return this.getAutoCompleteItems(document.uri.path);
+      return this.getAutoCompleteItems(document.uri);
     }
     return undefined;
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, rootpath: string): void {
-    this.macrosAutocompleteMap.set(rootpath, Array.from(
-      event.macroMetaMap.keys()
-    ).map((macro) => new CompletionItem(macro, CompletionItemKind.File)));
+  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
+    this.macrosAutocompleteMap.set(
+      event.projectRoot.fsPath,
+      Array.from(event.macroMetaMap.keys()).map(
+        (macro) => new CompletionItem(macro, CompletionItemKind.File)
+      )
+    );
   }
 
-  private getAutoCompleteItems = (currentFilePath: string) => {
-    const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
+  private getAutoCompleteItems = (currentFilePath: Uri) => {
+    const projectRootpath = manifestContainer.getProjectRootpath(
+      currentFilePath
+    );
     if (projectRootpath === undefined) {
       return;
     }
-    return this.macrosAutocompleteMap.get(projectRootpath);
+    return this.macrosAutocompleteMap.get(projectRootpath.fsPath);
   };
 }

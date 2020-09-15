@@ -36,13 +36,13 @@ const runTerminal = async (modelName: string, type?: RunModelType) => {
   if (window.activeTextEditor === undefined) {
     return;
   }
-  const currentFilePath = window.activeTextEditor.document.uri.path;
+  const currentFilePath = window.activeTextEditor.document.uri;
   const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
   await sleep(500);
-  if (modelName !== undefined) {
+  if (modelName !== undefined && projectRootpath !== undefined) {
     const plusOperatorLeft = type === RunModelType.PARENTS ? '+' : '';
     const plusOperatorRight = type === RunModelType.CHILDREN ? '+' : '';
-    terminal.sendText(`cd ${projectRootpath}`);
+    terminal.sendText(`cd '${projectRootpath.fsPath.replace(/'/, "\\'")}'`);
     terminal.sendText(`dbt run --model ${plusOperatorLeft}${modelName}${plusOperatorRight}`);
     terminal.show(true);
   }

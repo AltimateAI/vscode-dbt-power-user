@@ -5,7 +5,7 @@ import { DBT_PROJECT_FILE } from "./utils";
 type ManifestMetaMap = Map<Uri, DBTManifest>;
 
 class ManifestContainer {
-  manifestMetaMap: ManifestMetaMap = new Map();
+  private manifestMetaMap: ManifestMetaMap = new Map();
 
   constructor() {
     workspace.onDidChangeWorkspaceFolders(() => {
@@ -18,20 +18,20 @@ class ManifestContainer {
     if (folders === undefined) { return; }
 
     for (const folder of folders) {
-      const projects = await this.discoverDBTProject(folder);
-      if (projects === undefined) {
+      const projectUris = await this.discoverDBTProject(folder);
+      if (projectUris === undefined) {
         break;
       }
-      projects.forEach(project => {
-        this.manifestMetaMap.set(project, new DBTManifest(project.path));
+      projectUris.forEach(projectUri => {
+        this.manifestMetaMap.set(projectUri, new DBTManifest(projectUri));
       });
     }
   }
 
   addEventHandler(provider: OnDBTManifestCacheChanged): void {
-    this.manifestMetaMap.forEach((manifestInstance, uri) => {
+    this.manifestMetaMap.forEach((manifestInstance) => {
       manifestInstance.addOnDBTManifestCacheChangedHandler(
-        (event) => provider.onDBTManifestCacheChanged(event, uri.path)
+        (event) => provider.onDBTManifestCacheChanged(event)
       );
     });
   }
@@ -48,10 +48,10 @@ class ManifestContainer {
     });
   }
 
-  getProjectRootpath = (currentFilePath: string): string | undefined => {
+  getProjectRootpath = (currentFilePath: Uri): Uri | undefined => {
     for (const projectRootUri of Array.from(this.manifestMetaMap.keys())) {
-      if (currentFilePath.startsWith(projectRootUri.path + '/')) {
-        return projectRootUri.path;
+      if (currentFilePath.path.startsWith(projectRootUri.path + '/')) {
+        return projectRootUri;
       }
     }
     return undefined;

@@ -14,12 +14,14 @@ import {
   Test,
   Seed,
   Analysis,
+  OnDBTManifestCacheChanged,
 } from "../dbtManifest";
 import * as path from "path";
 import { getPackageName } from "../utils";
 import { manifestContainer } from "../manifestContainer";
 
-export class ModelTreeviewProvider implements TreeDataProvider<NodeTreeItem> {
+export class ModelTreeviewProvider
+  implements TreeDataProvider<NodeTreeItem>, OnDBTManifestCacheChanged {
   private eventMap: Map<string, DBTManifestCacheChangedEvent> = new Map();
   private treeType: keyof GraphMetaMap;
 
@@ -36,8 +38,8 @@ export class ModelTreeviewProvider implements TreeDataProvider<NodeTreeItem> {
   readonly onDidChangeTreeData: Event<ModelTreeItem | undefined | void> = this
     ._onDidChangeTreeData.event;
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, rootpath: string): void {
-    this.eventMap.set(rootpath, event);
+  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
+    this.eventMap.set(event.projectRoot.fsPath, event);
     this._onDidChangeTreeData.fire();
   }
 
@@ -50,13 +52,15 @@ export class ModelTreeviewProvider implements TreeDataProvider<NodeTreeItem> {
       return Promise.resolve([]);
     }
 
-    const currentFilePath = window.activeTextEditor!.document.uri.path;
-    const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
+    const currentFilePath = window.activeTextEditor!.document.uri;
+    const projectRootpath = manifestContainer.getProjectRootpath(
+      currentFilePath
+    );
     if (projectRootpath === undefined) {
       return Promise.resolve([]);
     }
 
-    const event = this.eventMap.get(projectRootpath);
+    const event = this.eventMap.get(projectRootpath.fsPath);
     if (event === undefined) {
       return Promise.resolve([]);
     }
@@ -76,23 +80,30 @@ export class ModelTreeviewProvider implements TreeDataProvider<NodeTreeItem> {
     );
   }
 
-  private getTreeItems(elementName: string, event: DBTManifestCacheChangedEvent): NodeTreeItem[] {
+  private getTreeItems(
+    elementName: string,
+    event: DBTManifestCacheChangedEvent
+  ): NodeTreeItem[] {
     const { graphMetaMap } = event;
     const parentModels = graphMetaMap[this.treeType].get(elementName);
     if (parentModels === undefined) {
       return [];
     }
     return parentModels.nodes
-      .filter((node) => !(node instanceof Test)
-        && !(node instanceof Seed)
-        && !(node instanceof Analysis))
+      .filter(
+        (node) =>
+          !(node instanceof Test) &&
+          !(node instanceof Seed) &&
+          !(node instanceof Analysis)
+      )
       .map((node) => {
         const childNodes = graphMetaMap[this.treeType]
           .get(node.key)
           ?.nodes.filter(
-            (node) => !(node instanceof Test)
-              && !(node instanceof Seed)
-              && !(node instanceof Analysis)
+            (node) =>
+              !(node instanceof Test) &&
+              !(node instanceof Seed) &&
+              !(node instanceof Analysis)
           );
 
         if (node instanceof Model && childNodes?.length === 0) {
@@ -139,10 +150,7 @@ class DashboardTreeItem extends NodeTreeItem {
   collapsibleState = TreeItemCollapsibleState.None;
 
   iconPath = {
-    light: path.join(
-      path.resolve(__dirname),
-      "../media/dashboard_light.svg"
-    ),
+    light: path.join(path.resolve(__dirname), "../media/dashboard_light.svg"),
     dark: path.join(path.resolve(__dirname), "../media/dashboard_dark.svg"),
   };
 

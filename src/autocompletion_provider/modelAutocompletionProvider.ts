@@ -7,7 +7,8 @@ import {
   CompletionContext,
   ProviderResult,
   CompletionList,
-  CompletionItemKind
+  CompletionItemKind,
+  Uri,
 } from "vscode";
 import { isEnclosedWithinCodeBlock } from "../utils";
 import {
@@ -18,7 +19,6 @@ import { manifestContainer } from "../manifestContainer";
 
 export class ModelAutocompletionProvider
   implements CompletionItemProvider, OnDBTManifestCacheChanged {
-
   private static readonly ENDS_WTTH_REF = /ref\(['|"]$/;
   private modelAutocompleteMap: Map<string, CompletionItem[]> = new Map();
 
@@ -35,23 +35,28 @@ export class ModelAutocompletionProvider
       linePrefix.match(ModelAutocompletionProvider.ENDS_WTTH_REF) &&
       isEnclosedWithinCodeBlock(document, position)
     ) {
-      return this.getAutoCompleteItems(document.uri.path);
+      return this.getAutoCompleteItems(document.uri);
     }
     return undefined;
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, rootpath: string): void {
+  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
     const models = event.nodeMetaMap.keys();
-    this.modelAutocompleteMap.set(rootpath, Array.from(models).map(
-      (model) => new CompletionItem(model, CompletionItemKind.File)
-    ));
+    this.modelAutocompleteMap.set(
+      event.projectRoot.fsPath,
+      Array.from(models).map(
+        (model) => new CompletionItem(model, CompletionItemKind.File)
+      )
+    );
   }
 
-  private getAutoCompleteItems = (currentFilePath: string) => {
-    const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
+  private getAutoCompleteItems = (currentFilePath: Uri) => {
+    const projectRootpath = manifestContainer.getProjectRootpath(
+      currentFilePath
+    );
     if (projectRootpath === undefined) {
       return;
     }
-    return this.modelAutocompleteMap.get(projectRootpath);
+    return this.modelAutocompleteMap.get(projectRootpath.fsPath);
   };
 }

@@ -1,4 +1,4 @@
-import { workspace, TextDocument, Range, Position } from "vscode";
+import { workspace, TextDocument, Range, Position, Uri } from "vscode";
 
 export const DBT_PROJECT_FILE = "dbt_project.yml";
 
@@ -61,15 +61,13 @@ export const isEnclosedWithinCodeBlock: (
   );
 };
 
-export const getPackageName = (currentPath: string): string | undefined => {
-  const documentPath = currentPath;
-  const projectPath = workspace.workspaceFolders![0].uri.path + '/';
-  const pathSegments = documentPath
-    .replace(projectPath, "")
-    .split('/');
+export const getPackageName = (currentPath: Uri): string | undefined => {
+  const documentPath = currentPath.path;
+  const projectPath = workspace.workspaceFolders![0].uri.path + "/";
+  const pathSegments = documentPath.replace(projectPath, "").split("/");
 
-  const insidePackage = pathSegments.length > 1 &&
-    pathSegments[0] === DBT_MODULES;
+  const insidePackage =
+    pathSegments.length > 1 && pathSegments[0] === DBT_MODULES;
 
   if (insidePackage) {
     return pathSegments[1];

@@ -37,11 +37,11 @@ export class MacroDefinitionProvider
         isEnclosedWithinCodeBlock(document, range)
       ) {
 
-        const packageName = getPackageName(document.uri.path);
+        const packageName = getPackageName(document.uri);
 
         const macroName = packageName !== undefined && !word.includes(".") ? `${packageName}.${word}` : word;
 
-        const definition = this.getMacroDefinition(macroName, document.uri.path);
+        const definition = this.getMacroDefinition(macroName, document.uri);
         if (definition !== undefined) {
           resolve(definition);
           return;
@@ -51,16 +51,16 @@ export class MacroDefinitionProvider
     });
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, rootpath: string): void {
-    this.macroToLocationMap.set(rootpath, event.macroMetaMap);
+  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
+    this.macroToLocationMap.set(event.projectRoot.fsPath, event.macroMetaMap);
   }
 
-  private getMacroDefinition(macroName: string, currentFilePath: string): Definition | undefined {
+  private getMacroDefinition(macroName: string, currentFilePath: Uri): Definition | undefined {
     const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
       return;
     }
-    const macroMap = this.macroToLocationMap.get(projectRootpath);
+    const macroMap = this.macroToLocationMap.get(projectRootpath.fsPath);
     if (macroMap === undefined) {
       return;
     }

@@ -1,4 +1,4 @@
-import { DBTManifestCacheChangedEvent } from "../dbtManifest";
+import { DBTManifestCacheChangedEvent, OnDBTManifestCacheChanged } from "../dbtManifest";
 import {
   DefinitionProvider,
   TextDocument,
@@ -16,7 +16,7 @@ import { isEnclosedWithinCodeBlock } from "../utils";
 import { SourceMetaMap } from "../domain";
 import { manifestContainer } from "../manifestContainer";
 
-export class SourceDefinitionProvider implements DefinitionProvider {
+export class SourceDefinitionProvider implements DefinitionProvider, OnDBTManifestCacheChanged  {
   private sourceMetaMap: Map<string, SourceMetaMap> = new Map();
   private static readonly IS_SOURCE = /(source)\([^)]*\)/;
   private static readonly GET_SOURCE_INFO = /(?!['"])(\w+)(?=['"])/g;
@@ -54,27 +54,27 @@ export class SourceDefinitionProvider implements DefinitionProvider {
       }
       const definition = this.getSourceDefinition(
         source[0],
-        document.uri.path,
+        document.uri,
         source.length > 1 && hover === source[1] ? source[1] : undefined,
       );
       resolve(definition);
     });
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, rootpath: string): void {
-    this.sourceMetaMap.set(rootpath, event.sourceMetaMap);
+  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
+    this.sourceMetaMap.set(event.projectRoot.fsPath, event.sourceMetaMap);
   }
 
   private getSourceDefinition(
     sourceName: string,
-    currentFilePath: string,
+    currentFilePath: Uri,
     tableName?: string,
   ): Definition | undefined {
     const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
       return;
     }
-    const sourceMap = this.sourceMetaMap.get(projectRootpath);
+    const sourceMap = this.sourceMetaMap.get(projectRootpath.fsPath);
     if (sourceMap === undefined) {
       return;
     }

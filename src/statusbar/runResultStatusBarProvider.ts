@@ -1,4 +1,4 @@
-import { DBTManifestCacheChangedEvent } from "../dbtManifest";
+import { DBTManifestCacheChangedEvent, OnDBTManifestCacheChanged } from "../dbtManifest";
 import { window, StatusBarAlignment, StatusBarItem, ThemeColor } from "vscode";
 import * as dayjs from "dayjs";
 import * as relativeTime from "dayjs/plugin/relativeTime";
@@ -6,7 +6,7 @@ import { RunResultMetaMap } from "../domain";
 import { manifestContainer } from "../manifestContainer";
 dayjs.extend(relativeTime);
 
-export class RunResultStatusBar {
+export class RunResultStatusBar implements OnDBTManifestCacheChanged {
   statusBar: StatusBarItem;
   private runResultMetaMap: Map<string, RunResultMetaMap> = new Map();
 
@@ -15,24 +15,24 @@ export class RunResultStatusBar {
     window.onDidChangeActiveTextEditor(() => this.showRunResult());
   }
 
-  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent, rootpath: string): void {
-    this.runResultMetaMap.set(rootpath, event.runResultMetaMap);
+  onDBTManifestCacheChanged(event: DBTManifestCacheChangedEvent): void {
+    this.runResultMetaMap.set(event.projectRoot.fsPath, event.runResultMetaMap);
     this.showRunResult();
   }
 
   showRunResult(): void {
     const activeTextEditor = window.activeTextEditor;
     if (activeTextEditor !== undefined) {
-      const currentFilePath = activeTextEditor.document.uri.path;
+      const currentFilePath = activeTextEditor.document.uri;
       const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
       if (projectRootpath === undefined) {
         return;
       }
-      const runResultMap = this.runResultMetaMap.get(projectRootpath);
+      const runResultMap = this.runResultMetaMap.get(projectRootpath.fsPath);
       if (runResultMap === undefined) {
         return;
       }
-      const runResult = runResultMap.get(currentFilePath);
+      const runResult = runResultMap.get(currentFilePath.fsPath);
       const statusBar = this.statusBar;
       if (runResult === undefined || runResult.compiledPath === undefined) {
         statusBar.hide();
