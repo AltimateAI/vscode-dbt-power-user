@@ -19,7 +19,7 @@ class ManifestContainer {
       return;
     }
 
-    const manifests: ManifestMetaMap = new Map()
+    const manifests: ManifestMetaMap = new Map();
 
     for (const folder of folders) {
       const projectUris = await this.discoverProjects(folder);
