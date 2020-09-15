@@ -37,12 +37,14 @@ const runTerminal = async (modelName: string, type?: RunModelType) => {
   }
   const currentFilePath = window.activeTextEditor.document.uri;
   const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
-  await sleep(500);
+  
   if (modelName !== undefined && projectRootpath !== undefined) {
     const terminal = window.createTerminal({
       name: 'DBT',
       cwd: projectRootpath,
     });
+    // should sleep after the terminal cration in order for the venv to be activated
+    await sleep(500);
     const plusOperatorLeft = type === RunModelType.PARENTS ? '+' : '';
     const plusOperatorRight = type === RunModelType.CHILDREN ? '+' : '';
     terminal.sendText(`dbt run --model ${plusOperatorLeft}${modelName}${plusOperatorRight}`);
