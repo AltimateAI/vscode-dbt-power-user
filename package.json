@@ -13,7 +13,7 @@
 	"bugs": {
 		"url": "https://github.com/innoverio/vscode-dbt-power-user/issues"
 	},
-	"version": "0.3.4",
+	"version": "0.3.5",
 	"engines": {
 		"vscode": "^1.47.0"
 	},
@@ -26,7 +26,7 @@
 		"jinja-sql"
 	],
 	"activationEvents": [
-		"workspaceContains:dbt_project.yml"
+		"workspaceContains:**/dbt_project.yml"
 	],
 	"main": "./dist/extension",
 	"contributes": {
