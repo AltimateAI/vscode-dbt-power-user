@@ -1,151 +1,171 @@
 {
-	"name": "vscode-dbt-power-user",
-	"displayName": "dbt Power User",
-	"description": "This extension makes vscode seamlessly work with dbt",
-	"icon": "media/dbt.png",
-	"publisher": "innoverio",
-	"license": "MIT",
-	"homepage": "https://github.com/innoverio/vscode-dbt-power-user",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/innoverio/vscode-dbt-power-user.git"
-	},
-	"bugs": {
-		"url": "https://github.com/innoverio/vscode-dbt-power-user/issues"
-	},
-	"version": "0.3.5",
-	"engines": {
-		"vscode": "^1.47.0"
-	},
-	"categories": [
-		"Other"
-	],
-	"keywords": [
-		"dbt",
-		"sql",
-		"jinja-sql"
-	],
-	"activationEvents": [
-		"workspaceContains:**/dbt_project.yml"
-	],
-	"main": "./dist/extension",
-	"contributes": {
-		"viewsContainers": {
-			"activitybar": [
-				{
-					"id": "dbt_view",
-					"title": "DBT Power User",
-					"icon": "./media/dbt_icon.svg",
-					"contextualTitle": "DBT Power User"
-				}
-			]
-		},
-		"views": {
-			"dbt_view": [
-				{
-					"id": "parent_model_treeview",
-					"name": "Parent Models"
-				},
-				{
-					"id": "children_model_treeview",
-					"name": "Children Models"
-				}
-			]
-		},
-		"commands": [
-			{
-				"command": "run.dbt.currentModel",
-				"title": "Run Current Model",
-				"icon": {
-					"light": "./media/run-light.svg",
-					"dark": "./media/run-dark.svg"
-				}
-			},
-			{
-				"command": "run.dbt.childrenModels",
-				"title": "Run Children Models",
-				"icon": {
-					"light": "./media/run-light.svg",
-					"dark": "./media/run-dark.svg"
-				}
-			},
-			{
-				"command": "run.dbt.parentModels",
-				"title": "Run Parent Models",
-				"icon": {
-					"light": "./media/run-light.svg",
-					"dark": "./media/run-dark.svg"
-				}
-			}
-		],
-		"menus": {
-			"editor/title": [
-				{
-					"command": "run.dbt.currentModel",
-					"when": "resourceLangId == jinja-sql",
-					"group": "1_run"
-				}
-			],
-			"view/title": [
-				{
-					"command": "run.dbt.childrenModels",
-					"when": "view == children_model_treeview",
-					"group": "navigation"
-				},
-				{
-					"command": "run.dbt.parentModels",
-					"when": "view == parent_model_treeview",
-					"group": "navigation"
-				}
-			],
-			"view/item/context": [
-				{
-					"command": "run.dbt.childrenModels",
-					"when": "view == children_model_treeview && viewItem != source",
-					"group": "inline"
-				},
-				{
-					"command": "run.dbt.parentModels",
-					"when": "view == parent_model_treeview && viewItem != source",
-					"group": "inline"
-				}
-			]
-		}
-	},
-	"scripts": {
-		"vscode:prepublish": "webpack --mode production",
-		"webpack": "webpack --mode development",
-		"webpack-dev": "webpack --mode development --watch",
-		"test-compile": "tsc -p ./",
-		"lint": "eslint src --ext ts",
-		"lint:fix": "eslint src --ext ts --fix",
-		"deploy": "vsce publish"
-	},
-	"devDependencies": {
-		"@types/glob": "^7.1.1",
-		"@types/js-yaml": "^3.12.5",
-		"@types/mocha": "^7.0.2",
-		"@types/node": "^13.13.15",
-		"@types/vscode": "^1.47.0",
-		"@typescript-eslint/eslint-plugin": "^2.30.0",
-		"@typescript-eslint/parser": "^2.30.0",
-		"eslint": "^6.8.0",
-		"file-loader": "^6.1.0",
-		"glob": "^7.1.6",
-		"mocha": "^7.1.2",
-		"ts-loader": "^8.0.3",
-		"typescript": "^3.8.3",
-		"vsce": "^1.77.0",
-		"vscode-test": "^1.3.0",
-		"webpack": "^4.44.1",
-		"webpack-cli": "^3.3.12"
-	},
-	"extensionDependencies": [
-		"samuelcolvin.jinjahtml",
-		"bastienboutonnet.vscode-dbt"
-	],
-	"dependencies": {
-		"dayjs": "^1.8.34",
-		"js-yaml": "^3.14.0"
-	}
+  "name": "vscode-dbt-power-user",
+  "displayName": "dbt Power User",
+  "description": "This extension makes vscode seamlessly work with dbt",
+  "icon": "media/dbt.png",
+  "publisher": "innoverio",
+  "license": "MIT",
+  "homepage": "https://github.com/innoverio/vscode-dbt-power-user",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/innoverio/vscode-dbt-power-user.git"
+  },
+  "bugs": {
+    "url": "https://github.com/innoverio/vscode-dbt-power-user/issues"
+  },
+  "version": "0.3.5",
+  "engines": {
+    "vscode": "^1.47.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "dbt",
+    "sql",
+    "jinja-sql"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/dbt_project.yml"
+  ],
+  "main": "./dist/extension",
+  "contributes": {
+    "configuration": [
+      {
+        "title": "DBT Power User",
+        "properties": {
+          "vscodeDbtPowerUser.useCurrentTerminal": {
+            "type": "boolean",
+            "default": false,
+            "description": "Use the current terminal to execute DBT commands."
+          },
+          "vscodeDbtPowerUser.dbtRunCommand": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": "dbt run",
+            "description": "Specifies the command for running dbt models."
+          }
+        }
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "dbt_view",
+          "title": "DBT Power User",
+          "icon": "./media/dbt_icon.svg",
+          "contextualTitle": "DBT Power User"
+        }
+      ]
+    },
+    "views": {
+      "dbt_view": [
+        {
+          "id": "parent_model_treeview",
+          "name": "Parent Models"
+        },
+        {
+          "id": "children_model_treeview",
+          "name": "Children Models"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "run.dbt.currentModel",
+        "title": "Run Current Model",
+        "icon": {
+          "light": "./media/run-light.svg",
+          "dark": "./media/run-dark.svg"
+        }
+      },
+      {
+        "command": "run.dbt.childrenModels",
+        "title": "Run Children Models",
+        "icon": {
+          "light": "./media/run-light.svg",
+          "dark": "./media/run-dark.svg"
+        }
+      },
+      {
+        "command": "run.dbt.parentModels",
+        "title": "Run Parent Models",
+        "icon": {
+          "light": "./media/run-light.svg",
+          "dark": "./media/run-dark.svg"
+        }
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "run.dbt.currentModel",
+          "when": "resourceLangId == jinja-sql",
+          "group": "1_run"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "run.dbt.childrenModels",
+          "when": "view == children_model_treeview",
+          "group": "navigation"
+        },
+        {
+          "command": "run.dbt.parentModels",
+          "when": "view == parent_model_treeview",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "run.dbt.childrenModels",
+          "when": "view == children_model_treeview && viewItem != source",
+          "group": "inline"
+        },
+        {
+          "command": "run.dbt.parentModels",
+          "when": "view == parent_model_treeview && viewItem != source",
+          "group": "inline"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "webpack --mode production",
+    "webpack": "webpack --mode development",
+    "webpack-dev": "webpack --mode development --watch",
+    "test-compile": "tsc -p ./",
+    "lint": "eslint src --ext ts",
+    "lint:fix": "eslint src --ext ts --fix",
+    "deploy": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/glob": "^7.1.1",
+    "@types/js-yaml": "^3.12.5",
+    "@types/mocha": "^7.0.2",
+    "@types/node": "^13.13.15",
+    "@types/vscode": "^1.47.0",
+    "@typescript-eslint/eslint-plugin": "^2.30.0",
+    "@typescript-eslint/parser": "^2.30.0",
+    "eslint": "^6.8.0",
+    "file-loader": "^6.1.0",
+    "glob": "^7.1.6",
+    "mocha": "^7.1.2",
+    "ts-loader": "^8.0.3",
+    "typescript": "^3.8.3",
+    "vsce": "^1.77.0",
+    "vscode-test": "^1.3.0",
+    "webpack": "^4.44.1",
+    "webpack-cli": "^3.3.12"
+  },
+  "extensionDependencies": [
+    "samuelcolvin.jinjahtml",
+    "bastienboutonnet.vscode-dbt"
+  ],
+  "dependencies": {
+    "dayjs": "^1.8.34",
+    "js-yaml": "^3.14.0"
+  }
 }
