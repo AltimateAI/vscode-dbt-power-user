@@ -1,5 +1,6 @@
 import * as path from "path";
 import { window } from "vscode";
+import { workspace } from "vscode";
 import { manifestContainer } from "../manifest/manifestContainer";
 import { NodeTreeItem } from "../treeview_provider/ModelParentTreeviewProvider";
 
@@ -39,15 +40,20 @@ const runTerminal = async (modelName: string, type?: RunModelType) => {
   const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
   
   if (modelName !== undefined && projectRootpath !== undefined) {
-    const terminal = window.createTerminal({
-      name: 'DBT',
-      cwd: projectRootpath,
-    });
+    const terminal = workspace.getConfiguration('innoverio-vscode-dbt-power-user.setting').get('current_terminal') && window.activeTerminal 
+      ? window.activeTerminal 
+      : window.createTerminal({
+        name: 'DBT',
+        cwd: projectRootpath,
+       });
     // should sleep after the terminal cration in order for the venv to be activated
     await sleep(500);
     const plusOperatorLeft = type === RunModelType.PARENTS ? '+' : '';
     const plusOperatorRight = type === RunModelType.CHILDREN ? '+' : '';
-    terminal.sendText(`dbt run --model ${plusOperatorLeft}${modelName}${plusOperatorRight}`);
+    const dbt_command =  workspace.getConfiguration('innoverio-vscode-dbt-power-user.setting').get('dbt_command') 
+      ? workspace.getConfiguration('innoverio-vscode-dbt-power-user.setting').get('dbt_command') 
+      : `dbt run`
+    terminal.sendText(dbt_command + ` --model ${plusOperatorLeft}${modelName}${plusOperatorRight}`);
     terminal.show(true);
   }
 };
