@@ -52,7 +52,7 @@ const runTerminal = async (modelName: string, type?: RunModelType) => {
             cwd: projectRootpath,
           });
     // should sleep after the terminal cration in order for the venv to be activated
-    await sleep(500);
+    await sleep(1000);
     const plusOperatorLeft = type === RunModelType.PARENTS ? "+" : "";
     const plusOperatorRight = type === RunModelType.CHILDREN ? "+" : "";
     const dbt_command = workspace
