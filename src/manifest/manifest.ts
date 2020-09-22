@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { existsSync, readFileSync } from "fs";
+import { closeSync, existsSync, openSync, readFileSync, readSync } from "fs";
 import { safeLoad } from "js-yaml";
 import * as path from "path";
 import { notEmpty } from "../utils";
@@ -18,13 +18,18 @@ import {
   Source,
   Test,
 } from "../domain";
-import { ManifestCacheChangedEvent, OnManifestCacheChangedHandler } from "./manifestCacheChangedEvent";
+import {
+  ManifestCacheChangedEvent,
+  OnManifestCacheChangedHandler,
+} from "./manifestCacheChangedEvent";
 
 export class Manifest {
   static DBT_PROJECT_FILE = "dbt_project.yml";
   static DBT_MODULES = "dbt_modules";
   private static MANIFEST_FILE = "manifest.json";
   private static TARGET_PATH_VAR = "target-path";
+  private static LOG_PATH = "logs";
+  private static LOG_FILE = "dbt.log";
   private static RESOURCE_TYPE_MODEL = "model";
   private static RESOURCE_TYPE_SOURCE = "source";
   private static RUN_RESULTS_FILE = "run_results.json";
@@ -36,6 +41,9 @@ export class Manifest {
   private targetFolderWatcher?: vscode.FileSystemWatcher;
   private currentTargetPath?: string;
   private projectRoot: vscode.Uri;
+  private outputChannel?: vscode.OutputChannel;
+  private logFileWatcher?: vscode.FileSystemWatcher;
+  private logPosition: number = 0;
 
   addOnManifestCacheChangedHandler: (
     handler: OnManifestCacheChangedHandler
@@ -75,7 +83,7 @@ export class Manifest {
     const projectConfig = this.readAndParseProjectConfig();
 
     const projectName = projectConfig.name;
-    const targetPath = projectConfig[Manifest.TARGET_PATH_VAR];
+    const targetPath = projectConfig[Manifest.TARGET_PATH_VAR] as string;
 
     this.createTargetWatchers(targetPath);
 
@@ -118,18 +126,82 @@ export class Manifest {
       this.projectRoot
     );
     this.onManifestCacheChangedHandlers.forEach((handler) => handler(event));
+
+    this.setupOutputChannel(projectName);
+  }
+
+  private readLogFileFromLastPosition(): void {
+    if (this.outputChannel) {
+      let fileHandle;
+      try {
+        fileHandle = openSync(
+          path.join(
+            this.projectRoot.fsPath,
+            Manifest.LOG_PATH,
+            Manifest.LOG_FILE
+          ),
+          "r"
+        );
+        const chunkSize = 1024 * 1024;
+        const buffer = Buffer.alloc(chunkSize);
+        while (true) {
+          const bytesRead = readSync(
+            fileHandle,
+            buffer,
+            0,
+            buffer.length,
+            this.logPosition
+          );
+          if (!bytesRead) {
+            break;
+          }
+          this.logPosition += bytesRead;
+          this.outputChannel.appendLine(buffer.toString("utf8", 0, bytesRead));
+          this.outputChannel.show();
+        }
+      } catch(error) {
+        console.log("Could not read log file", error);
+      } finally {
+        if(fileHandle) {
+          closeSync(fileHandle);
+        }
+      }
+    }
+  }
+
+  private setupOutputChannel(projectName: string): void {
+    if (this.outputChannel === undefined) {
+      this.outputChannel = vscode.window.createOutputChannel(
+        `${projectName} dbt logs`
+      );
+      this.readLogFileFromLastPosition();
+      
+      this.logFileWatcher = vscode.workspace.createFileSystemWatcher(
+        new vscode.RelativePattern(
+          this.projectRoot.path,
+          `${Manifest.LOG_PATH}/${Manifest.LOG_FILE}`
+        )
+      );
+
+      this.logFileWatcher.onDidChange(() => this.readLogFileFromLastPosition());
+      this.logFileWatcher.onDidCreate(() => this.readLogFileFromLastPosition());
+      this.logFileWatcher.onDidDelete(() => this.readLogFileFromLastPosition());
+    }
   }
 
   private createProjectConfigWatcher() {
     if (this.dbtProjectWatcher === undefined) {
       this.dbtProjectWatcher = vscode.workspace.createFileSystemWatcher(
-        new vscode.RelativePattern(this.projectRoot.path, Manifest.DBT_PROJECT_FILE)
+        new vscode.RelativePattern(
+          this.projectRoot.path,
+          Manifest.DBT_PROJECT_FILE
+        )
       );
       this.setupRefreshHandler(this.dbtProjectWatcher);
     }
   }
 
-  private createTargetWatchers(targetPath: any) {
+  private createTargetWatchers(targetPath: string) {
     if (
       this.currentTargetPath === undefined ||
       this.currentTargetPath !== targetPath
@@ -151,7 +223,7 @@ export class Manifest {
       this.setupRefreshHandler(this.runResultsWatcher);
 
       this.targetFolderWatcher = vscode.workspace.createFileSystemWatcher(
-        new vscode.RelativePattern(this.projectRoot.path, `${targetPath}`)
+        new vscode.RelativePattern(this.projectRoot.path, targetPath)
       );
       this.targetFolderWatcher.onDidDelete(() => this.tryRefresh());
 
