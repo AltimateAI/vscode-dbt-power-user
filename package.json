@@ -162,7 +162,8 @@
   },
   "extensionDependencies": [
     "samuelcolvin.jinjahtml",
-    "bastienboutonnet.vscode-dbt"
+    "bastienboutonnet.vscode-dbt",
+    "ms-python.python"
   ],
   "dependencies": {
     "dayjs": "^1.8.34",

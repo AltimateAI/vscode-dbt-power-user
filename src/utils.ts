@@ -1,4 +1,5 @@
-import { TextDocument, Range, Position } from "vscode";
+import { ChildProcess, spawn } from "child_process";
+import { TextDocument, Range, Position, OutputChannel, extensions, workspace, Event, Uri } from "vscode";
 
 export const isEnclosedWithinCodeBlock: (
   document: TextDocument,
@@ -60,3 +61,67 @@ export const isEnclosedWithinCodeBlock: (
 export const notEmpty = <T>(value: T | null | undefined): value is T => {
   return value !== null && value !== undefined;
 };
+
+export class CommandProcessExecution {
+  private readonly commandProcess: ChildProcess;
+  constructor(command: string, args?: string[]) {
+    this.commandProcess = spawn(
+      command,
+      args);
+  }
+
+  public async complete(): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      const stdoutBuffer: Buffer[] = [];
+      const stderrBuffer: Buffer[] = [];
+      this.commandProcess.stdout!.on('data', chunk => stdoutBuffer.push(chunk));
+      this.commandProcess.stderr!.on('data', chunk => stderrBuffer.push(chunk));
+
+      this.commandProcess.once('close', () => {
+        const stdout = stdoutBuffer.toString();
+        const stderr = stderrBuffer.toString();
+        if (!stdout) {
+          reject(`Process returned an error:${stderr}`);
+        }
+        resolve(stdout);
+      });
+
+      this.commandProcess.once('error', error => {
+        reject(`Error occurred during process execution: ${error}`);
+      });
+    })
+
+  }
+
+  public async completeWithOutputChannel(outputChannel: OutputChannel): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.commandProcess.stdout!.on('data', chunk => { outputChannel.append(chunk.toString()); outputChannel.show() });
+      this.commandProcess.stderr!.on('data', chunk => { outputChannel.append(chunk.toString()); outputChannel.show() });
+      this.commandProcess.once('close', () => {
+        resolve();
+      });
+
+      this.commandProcess.once('error', error => {
+        reject(`Error occurred during process execution: ${error}`);
+      });
+    })
+  }
+}
+
+interface PythonExecutionDetails {
+  pythonPath: string;
+  onDidChangeExecutionDetails: Event<Uri | undefined>;
+}
+
+export const getPythonPathFromExtention = async (): Promise<PythonExecutionDetails> => {
+  const extension = extensions.getExtension('ms-python.python')!;
+
+  if (!extension.isActive) {
+    await extension.activate();
+  }
+  await extension.exports.ready;
+
+  const settings = extension.exports.settings;
+
+  return { pythonPath: settings.getExecutionDetails(workspace.workspaceFile).execCommand[0], onDidChangeExecutionDetails: settings.onDidChangeExecutionDetails };
+}

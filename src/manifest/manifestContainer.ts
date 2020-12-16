@@ -31,7 +31,7 @@ class ManifestContainer {
   }
 
   addEventHandler(provider: OnManifestCacheChanged): void {
-    if(this.manifestMetaMap === undefined) {
+    if (this.manifestMetaMap === undefined) {
       console.error("Trying to add eventhandlers to an empty manifests map!");
       return;
     }
@@ -43,7 +43,7 @@ class ManifestContainer {
   }
 
   async tryRefreshAll(): Promise<void> {
-    if(this.manifestMetaMap === undefined) {
+    if (this.manifestMetaMap === undefined) {
       console.error("Trying to refresh an empty manifests map!");
       return;
     }
@@ -53,7 +53,7 @@ class ManifestContainer {
   }
 
   removeEventHandlers(): void {
-    if(this.manifestMetaMap === undefined) {
+    if (this.manifestMetaMap === undefined) {
       return;
     }
     this.manifestMetaMap.forEach((manifestInstance) => {
@@ -81,7 +81,7 @@ class ManifestContainer {
   };
 
   getProjectRootpath = (currentFilePath: Uri): Uri | undefined => {
-    if(this.manifestMetaMap === undefined) {
+    if (this.manifestMetaMap === undefined) {
       console.error("Trying to call getProjectRootpath an empty manifests map!");
       return;
     }
@@ -98,9 +98,11 @@ class ManifestContainer {
       new RelativePattern(folder, `**/${Manifest.DBT_PROJECT_FILE}`),
       new RelativePattern(folder, `**/${Manifest.DBT_MODULES}`)
     );
-    return dbtProjectFiles.map((uri) =>
-      Uri.file(uri.path.split("/")!.slice(0, -1).join("/"))
-    );
+    return dbtProjectFiles
+      .filter((uri) => !uri.path.includes('site-packages')) // TODO verify if this is really necessary, this is necessary for me because I put the venv in the DBT project 
+      .map((uri) =>
+        Uri.file(uri.path.split("/")!.slice(0, -1).join("/"))
+      );
   }
 }
 

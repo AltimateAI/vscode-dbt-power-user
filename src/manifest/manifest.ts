@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { closeSync, existsSync, openSync, readFileSync, readSync } from "fs";
 import { safeLoad } from "js-yaml";
 import * as path from "path";
-import { notEmpty } from "../utils";
+import { getPythonPathFromExtention, notEmpty } from "../utils";
 import {
   NodeMetaMap,
   MacroMetaMap,
@@ -22,6 +22,7 @@ import {
   ManifestCacheChangedEvent,
   OnManifestCacheChangedHandler,
 } from "./manifestCacheChangedEvent";
+import { DBTClient } from "./dbtInstaller";
 
 export class Manifest {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -44,6 +45,7 @@ export class Manifest {
   private outputChannel?: vscode.OutputChannel;
   private logFileWatcher?: vscode.FileSystemWatcher;
   private logPosition: number = 0;
+  private DBTClient?: DBTClient;
 
   addOnManifestCacheChangedHandler: (
     handler: OnManifestCacheChangedHandler
@@ -81,6 +83,11 @@ export class Manifest {
   private async refresh() {
     this.createProjectConfigWatcher();
     const projectConfig = this.readAndParseProjectConfig();
+
+    const { pythonPath, onDidChangeExecutionDetails } = await getPythonPathFromExtention();
+    onDidChangeExecutionDetails(() => this.tryRefresh());
+    this.DBTClient = new DBTClient(pythonPath);
+    await this.DBTClient.checkDBTInstalled();
 
     const projectName = projectConfig.name;
     const targetPath = projectConfig[Manifest.TARGET_PATH_VAR] as string;
@@ -159,10 +166,10 @@ export class Manifest {
           this.outputChannel.appendLine(buffer.toString("utf8", 0, bytesRead));
           this.outputChannel.show();
         }
-      } catch(error) {
+      } catch (error) {
         console.log("Could not read log file", error);
       } finally {
-        if(fileHandle) {
+        if (fileHandle) {
           closeSync(fileHandle);
         }
       }
@@ -175,7 +182,7 @@ export class Manifest {
         `${projectName} dbt logs`
       );
       this.readLogFileFromLastPosition();
-      
+
       this.logFileWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
           this.projectRoot.path,
