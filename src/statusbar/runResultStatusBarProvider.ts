@@ -6,7 +6,7 @@ import { window, StatusBarAlignment, StatusBarItem, ThemeColor } from "vscode";
 import * as dayjs from "dayjs";
 import * as relativeTime from "dayjs/plugin/relativeTime";
 import { RunResultMetaMap } from "../domain";
-import { manifestContainer } from "../manifest/manifestContainer";
+import { manifestContainer } from "../manifest/dbtProjectContainer";
 dayjs.extend(relativeTime);
 
 export class RunResultStatusBar implements OnManifestCacheChanged {

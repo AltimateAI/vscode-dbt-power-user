@@ -8,7 +8,7 @@ import {
 } from "vscode";
 import { Node, Model, GraphMetaMap, Test, Seed, Analysis } from "../domain";
 import * as path from "path";
-import { manifestContainer } from "../manifest/manifestContainer";
+import { manifestContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   OnManifestCacheChanged,

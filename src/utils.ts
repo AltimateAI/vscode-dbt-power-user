@@ -64,10 +64,11 @@ export const notEmpty = <T>(value: T | null | undefined): value is T => {
 
 export class CommandProcessExecution {
   private readonly commandProcess: ChildProcess;
-  constructor(command: string, args?: string[]) {
+  constructor(command: string, args?: string[], cwd?: string, ) {
     this.commandProcess = spawn(
       command,
-      args);
+      args,
+      {cwd: cwd});
   }
 
   public async complete(): Promise<string> {
@@ -124,4 +125,8 @@ export const getPythonPathFromExtention = async (): Promise<PythonExecutionDetai
   const settings = extension.exports.settings;
 
   return { pythonPath: settings.getExecutionDetails(workspace.workspaceFile).execCommand[0], onDidChangeExecutionDetails: settings.onDidChangeExecutionDetails };
+}
+
+export const arrayEquals = <T>(a: Array<T>, b: Array<T>): boolean => {
+  return a.sort().toString() === b.sort().toString();
 }

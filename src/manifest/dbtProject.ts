@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { closeSync, existsSync, openSync, readFileSync, readSync } from "fs";
 import { safeLoad } from "js-yaml";
 import * as path from "path";
-import { getPythonPathFromExtention, notEmpty } from "../utils";
+import { arrayEquals, notEmpty } from "../utils";
 import {
   NodeMetaMap,
   MacroMetaMap,
@@ -19,39 +19,35 @@ import {
   Test,
 } from "../domain";
 import {
-  ManifestCacheChangedEvent,
-  OnManifestCacheChangedHandler,
+  ManifestCacheChangedEvent
 } from "./manifestCacheChangedEvent";
-import { DBTClient } from "./dbtInstaller";
+import { manifestContainer } from "./dbtProjectContainer";
+import { SourceFileChangedEvent } from "./sourceFileChangedEvent";
+import { dbtClient } from "../dbt_client/dbtClient";
 
 export class Manifest {
   static DBT_PROJECT_FILE = "dbt_project.yml";
   static DBT_MODULES = "dbt_modules";
   private static MANIFEST_FILE = "manifest.json";
   private static TARGET_PATH_VAR = "target-path";
+  private static SOURCE_PATHS_VAR = "source-paths";
   private static LOG_PATH = "logs";
   private static LOG_FILE = "dbt.log";
   private static RESOURCE_TYPE_MODEL = "model";
   private static RESOURCE_TYPE_SOURCE = "source";
   private static RUN_RESULTS_FILE = "run_results.json";
 
-  private onManifestCacheChangedHandlers: OnManifestCacheChangedHandler[] = [];
   private dbtProjectWatcher?: vscode.FileSystemWatcher;
   private manifestWatcher?: vscode.FileSystemWatcher;
   private runResultsWatcher?: vscode.FileSystemWatcher;
   private targetFolderWatcher?: vscode.FileSystemWatcher;
+  private sourceFolderWatchers: vscode.FileSystemWatcher[] = [];
   private currentTargetPath?: string;
+  private currentSourcePaths?: string[];
   private projectRoot: vscode.Uri;
   private outputChannel?: vscode.OutputChannel;
   private logFileWatcher?: vscode.FileSystemWatcher;
   private logPosition: number = 0;
-  private DBTClient?: DBTClient;
-
-  addOnManifestCacheChangedHandler: (
-    handler: OnManifestCacheChangedHandler
-  ) => void = (handler) => {
-    this.onManifestCacheChangedHandlers.push(handler);
-  };
 
   constructor(path: vscode.Uri) {
     this.projectRoot = path;
@@ -68,10 +64,6 @@ export class Manifest {
     }
   }
 
-  removeEventHandlers: () => void = () => {
-    this.onManifestCacheChangedHandlers = [];
-  };
-
   readAndParseProjectConfig() {
     const dbtProjectYamlFile = readFileSync(
       path.join(this.projectRoot.fsPath, Manifest.DBT_PROJECT_FILE),
@@ -84,15 +76,12 @@ export class Manifest {
     this.createProjectConfigWatcher();
     const projectConfig = this.readAndParseProjectConfig();
 
-    const { pythonPath, onDidChangeExecutionDetails } = await getPythonPathFromExtention();
-    onDidChangeExecutionDetails(() => this.tryRefresh());
-    this.DBTClient = new DBTClient(pythonPath);
-    await this.DBTClient.checkDBTInstalled();
-
     const projectName = projectConfig.name;
     const targetPath = projectConfig[Manifest.TARGET_PATH_VAR] as string;
+    const sourcePaths = projectConfig[Manifest.SOURCE_PATHS_VAR] as string[];
 
     this.createTargetWatchers(targetPath);
+    this.createSourceWatchers(sourcePaths);
 
     const manifest = this.readAndParseManifest(targetPath);
 
@@ -106,7 +95,7 @@ export class Manifest {
         new Map(),
         this.projectRoot
       );
-      this.onManifestCacheChangedHandlers.forEach((handler) => handler(event));
+      manifestContainer.passEventToProviders(event);
       return;
     }
 
@@ -132,7 +121,7 @@ export class Manifest {
       runResultMetaMap,
       this.projectRoot
     );
-    this.onManifestCacheChangedHandlers.forEach((handler) => handler(event));
+    manifestContainer.passEventToProviders(event);
 
     this.setupOutputChannel(projectName);
   }
@@ -235,6 +224,24 @@ export class Manifest {
       this.targetFolderWatcher.onDidDelete(() => this.tryRefresh());
 
       this.currentTargetPath = targetPath;
+    }
+  }
+
+  private createSourceWatchers(sourcePaths: string[]) {
+    if (
+      this.currentSourcePaths === undefined ||
+      !arrayEquals(this.currentSourcePaths, sourcePaths)
+    ) {
+      this.sourceFolderWatchers = [];
+      sourcePaths.forEach(sourcePath => {
+        const sourceFolderWatcher = vscode.workspace.createFileSystemWatcher(
+          new vscode.RelativePattern(this.projectRoot.path, `${sourcePath}/**/*.sql`)
+        );
+        const event = new SourceFileChangedEvent(this.projectRoot);
+        sourceFolderWatcher.onDidChange(() => dbtClient.onSourceFileChanged(event));
+        this.sourceFolderWatchers.push(sourceFolderWatcher)
+      })
+      this.currentSourcePaths = sourcePaths;
     }
   }
 

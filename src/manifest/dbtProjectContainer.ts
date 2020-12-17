@@ -1,11 +1,12 @@
-import { Manifest } from "./manifest";
+import { Manifest } from "./dbtProject";
 import { workspace, RelativePattern, WorkspaceFolder, Uri } from "vscode";
-import { OnManifestCacheChanged } from "./manifestCacheChangedEvent";
+import { ManifestCacheChangedEvent, OnManifestCacheChanged } from "./manifestCacheChangedEvent";
 
 type ManifestMetaMap = Map<Uri, Manifest>;
 
-class ManifestContainer {
+export class ManifestContainer {
   private manifestMetaMap?: ManifestMetaMap;
+  private providers: OnManifestCacheChanged[] = [];
 
   constructor() {
     workspace.onDidChangeWorkspaceFolders(() => {
@@ -13,7 +14,7 @@ class ManifestContainer {
     });
   }
 
-  async createManifests(): Promise<void> {
+  public async createManifests(): Promise<void> {
     const folders = workspace.workspaceFolders;
     if (folders === undefined) {
       return;
@@ -30,19 +31,19 @@ class ManifestContainer {
     this.manifestMetaMap = manifests;
   }
 
-  addEventHandler(provider: OnManifestCacheChanged): void {
+  public addProvider(provider: OnManifestCacheChanged): void {
     if (this.manifestMetaMap === undefined) {
       console.error("Trying to add eventhandlers to an empty manifests map!");
       return;
     }
-    this.manifestMetaMap.forEach((manifestInstance) => {
-      manifestInstance.addOnManifestCacheChangedHandler((event) =>
-        provider.onManifestCacheChanged(event)
-      );
-    });
+    this.providers.push(provider);
   }
 
-  async tryRefreshAll(): Promise<void> {
+  public passEventToProviders(event: ManifestCacheChangedEvent) {
+    this.providers.forEach(provider => provider.onManifestCacheChanged(event));
+  }
+
+  public async tryRefreshAll(): Promise<void> {
     if (this.manifestMetaMap === undefined) {
       console.error("Trying to refresh an empty manifests map!");
       return;
@@ -52,16 +53,7 @@ class ManifestContainer {
     });
   }
 
-  removeEventHandlers(): void {
-    if (this.manifestMetaMap === undefined) {
-      return;
-    }
-    this.manifestMetaMap.forEach((manifestInstance) => {
-      manifestInstance.removeEventHandlers();
-    });
-  }
-
-  getPackageName = (currentPath: Uri): string | undefined => {
+  public getPackageName = (currentPath: Uri): string | undefined => {
     const projectPath = this.getProjectRootpath(currentPath);
     if (projectPath === undefined) {
       return undefined;
@@ -80,7 +72,7 @@ class ManifestContainer {
     return undefined;
   };
 
-  getProjectRootpath = (currentFilePath: Uri): Uri | undefined => {
+  public getProjectRootpath = (currentFilePath: Uri): Uri | undefined => {
     if (this.manifestMetaMap === undefined) {
       console.error("Trying to call getProjectRootpath an empty manifests map!");
       return;

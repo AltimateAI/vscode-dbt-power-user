@@ -13,7 +13,7 @@ import {
   OnManifestCacheChanged,
 } from "../manifest/manifestCacheChangedEvent";
 import { MacroMetaMap } from "../domain";
-import { manifestContainer } from "../manifest/manifestContainer";
+import { manifestContainer } from "../manifest/dbtProjectContainer";
 import { isEnclosedWithinCodeBlock } from "../utils";
 export class MacroDefinitionProvider
   implements DefinitionProvider, OnManifestCacheChanged {

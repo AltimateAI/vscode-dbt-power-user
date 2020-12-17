@@ -15,7 +15,7 @@ import {
   OnManifestCacheChanged,
 } from "../manifest/manifestCacheChangedEvent";
 import { NodeMetaMap } from "../domain";
-import { manifestContainer } from "../manifest/manifestContainer";
+import { manifestContainer } from "../manifest/dbtProjectContainer";
 
 export class ModelDefinitionProvider
   implements DefinitionProvider, OnManifestCacheChanged {

@@ -17,7 +17,7 @@ import { readFileSync } from "fs";
 import path = require("path");
 import { isEnclosedWithinCodeBlock } from "../utils";
 import { SourceMetaMap } from "../domain";
-import { manifestContainer } from "../manifest/manifestContainer";
+import { manifestContainer } from "../manifest/dbtProjectContainer";
 
 export class SourceDefinitionProvider implements DefinitionProvider, OnManifestCacheChanged  {
   private sourceMetaMap: Map<string, SourceMetaMap> = new Map();

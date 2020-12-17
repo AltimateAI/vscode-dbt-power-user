@@ -1,7 +1,7 @@
 import * as path from "path";
 import { window } from "vscode";
 import { workspace } from "vscode";
-import { manifestContainer } from "../manifest/manifestContainer";
+import { manifestContainer } from "../manifest/dbtProjectContainer";
 import { NodeTreeItem } from "../treeview_provider/ModelParentTreeviewProvider";
 
 export enum RunModelType {

@@ -15,7 +15,7 @@ import {
   ManifestCacheChangedEvent,
   OnManifestCacheChanged,
 } from "../manifest/manifestCacheChangedEvent";
-import { manifestContainer } from "../manifest/manifestContainer";
+import { manifestContainer } from "../manifest/dbtProjectContainer";
 
 export class SourceAutocompletionProvider
   implements CompletionItemProvider, OnManifestCacheChanged {
