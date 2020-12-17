@@ -235,7 +235,7 @@ export class Manifest {
       this.sourceFolderWatchers = [];
       sourcePaths.forEach(sourcePath => {
         const sourceFolderWatcher = vscode.workspace.createFileSystemWatcher(
-          new vscode.RelativePattern(this.projectRoot.path, `${sourcePath}/**/*.sql`)
+          new vscode.RelativePattern(this.projectRoot.path, `${sourcePath}/**/*.sql`) // TODO doesn't work on Windows
         );
         const event = new SourceFileChangedEvent(this.projectRoot);
         sourceFolderWatcher.onDidChange(() => dbtClient.onSourceFileChanged(event));
