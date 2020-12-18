@@ -21,9 +21,9 @@ import {
 import {
   ManifestCacheChangedEvent
 } from "./manifestCacheChangedEvent";
-import { manifestContainer } from "./dbtProjectContainer";
+import { dbtProjectContainer } from "./dbtProjectContainer";
 import { SourceFileChangedEvent } from "./sourceFileChangedEvent";
-import { dbtClient } from "../dbt_client/dbtClient";
+import { DBTClientFactory } from "../dbt_client/dbtClientFactory";
 
 export class Manifest {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -95,7 +95,7 @@ export class Manifest {
         new Map(),
         this.projectRoot
       );
-      manifestContainer.passEventToProviders(event);
+      dbtProjectContainer.passEventToProviders(event);
       return;
     }
 
@@ -121,7 +121,7 @@ export class Manifest {
       runResultMetaMap,
       this.projectRoot
     );
-    manifestContainer.passEventToProviders(event);
+    dbtProjectContainer.passEventToProviders(event);
 
     this.setupOutputChannel(projectName);
   }
@@ -234,11 +234,13 @@ export class Manifest {
     ) {
       this.sourceFolderWatchers = [];
       sourcePaths.forEach(sourcePath => {
+        const parsedSourcePath = vscode.Uri.parse(sourcePath);
+        const globPattern = vscode.Uri.joinPath(parsedSourcePath, '**/*.sql').path.substring(1);
         const sourceFolderWatcher = vscode.workspace.createFileSystemWatcher(
-          new vscode.RelativePattern(this.projectRoot.path, `${sourcePath}/**/*.sql`) // TODO doesn't work on Windows
+          new vscode.RelativePattern(this.projectRoot, globPattern)
         );
         const event = new SourceFileChangedEvent(this.projectRoot);
-        sourceFolderWatcher.onDidChange(() => dbtClient.onSourceFileChanged(event));
+        sourceFolderWatcher.onDidChange(() => DBTClientFactory.passEventToDBTClient(event));
         this.sourceFolderWatchers.push(sourceFolderWatcher)
       })
       this.currentSourcePaths = sourcePaths;

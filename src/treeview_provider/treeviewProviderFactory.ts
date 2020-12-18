@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { GraphMetaMap } from "../domain";
-import { manifestContainer } from "../manifest/dbtProjectContainer";
+import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { ModelTreeviewProvider } from "./ModelParentTreeviewProvider";
 
 export class TreeviewProviderFactory {
@@ -14,7 +14,7 @@ export class TreeviewProviderFactory {
   }
   static createModelTreeview(treeType: keyof GraphMetaMap) {
     const modelParentTreeviewProvider = new ModelTreeviewProvider(treeType);
-    manifestContainer.addProvider(modelParentTreeviewProvider);
+    dbtProjectContainer.addProvider(modelParentTreeviewProvider);
     return modelParentTreeviewProvider;
   }
 }

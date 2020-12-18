@@ -15,7 +15,7 @@ import {
   ManifestCacheChangedEvent,
   OnManifestCacheChanged,
 } from "../manifest/manifestCacheChangedEvent";
-import { manifestContainer } from "../manifest/dbtProjectContainer";
+import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 
 export class MacroAutocompletionProvider
   implements CompletionItemProvider, OnManifestCacheChanged {
@@ -44,7 +44,7 @@ export class MacroAutocompletionProvider
   }
 
   private getAutoCompleteItems = (currentFilePath: Uri) => {
-    const projectRootpath = manifestContainer.getProjectRootpath(
+    const projectRootpath = dbtProjectContainer.getProjectRootpath(
       currentFilePath
     );
     if (projectRootpath === undefined) {

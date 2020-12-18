@@ -15,7 +15,7 @@ import {
   OnManifestCacheChanged,
 } from "../manifest/manifestCacheChangedEvent";
 import { NodeMetaMap } from "../domain";
-import { manifestContainer } from "../manifest/dbtProjectContainer";
+import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 
 export class ModelDefinitionProvider
   implements DefinitionProvider, OnManifestCacheChanged {
@@ -59,7 +59,7 @@ export class ModelDefinitionProvider
     name: string,
     currentFilePath: Uri
   ): Definition | undefined {
-    const projectRootpath = manifestContainer.getProjectRootpath(
+    const projectRootpath = dbtProjectContainer.getProjectRootpath(
       currentFilePath
     );
     if (projectRootpath === undefined) {

@@ -1,4 +1,4 @@
-import { StatusBarAlignment, StatusBarItem, window } from 'vscode';
+import { OutputChannel, StatusBarAlignment, StatusBarItem, window } from 'vscode';
 import { OnSourceFileChanged, SourceFileChangedEvent } from '../manifest/sourceFileChangedEvent';
 import { CommandProcessExecution } from '../utils';
 
@@ -18,9 +18,14 @@ class DBTClient implements OnSourceFileChanged {
 	static readonly IS_LATEST_VERSION = /(?<=latest\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
 	static readonly IS_INSTALLED = /installed\sversion/g;
 	private statusBar?: StatusBarItem;
+	private outputChannel: OutputChannel;
+
+	constructor() {
+		this.outputChannel = window.createOutputChannel('DBT run');
+	}
 
 	async onSourceFileChanged (event: SourceFileChangedEvent): Promise<void> {
-		await this.DBTListCommandAndShowOutput(event.projectRoot.path);
+		await this.DBTListCommandAndShowOutput(event.projectRoot.fsPath);
 	}
 
 	public async checkDBTInstalled(): Promise<void> {
@@ -45,14 +50,14 @@ class DBTClient implements OnSourceFileChanged {
 	}
 
 	public async DBTListCommandAndShowOutput(cwd: string): Promise<void> {
-		const listcommandProcess = this.DBTListCommand(cwd);
-		const output = await listcommandProcess.complete();
 		if (this.statusBar == undefined) {
 			this.statusBar = window.createStatusBarItem(StatusBarAlignment.Left, 10);
 		}
-		this.statusBar.text = 'DBT list';
-		this.statusBar.tooltip = output; // TODO think about what the output should be
+		this.statusBar.text = 'Updating DBT';
 		this.statusBar.show();
+		const listcommandProcess = this.DBTListCommand(cwd);
+		await listcommandProcess.completeWithOutputChannel(this.outputChannel);
+		this.statusBar.hide();
 	}
 
 	private checkDBTInstalledCommand(): CommandProcessExecution {
@@ -86,14 +91,14 @@ class DBTClient implements OnSourceFileChanged {
 	private async showPrompt(action: DBT): Promise<string | undefined> {
 		if (action === DBT.Install) {
 			return window.showErrorMessage(
-				`DBT not found in this python environment (${this.pythonPath}). Install DBT?`,
+				`DBT not installed in this python environment (${this.pythonPath}). Do you want to install DBT?`,
 				PromptAnswer.Yes,
 				PromptAnswer.No
 			);
 		}
 		if (action === DBT.Update) {
 			return window.showErrorMessage(
-				'DBT is not up to date. Update DBT?',
+				'DBT is not up to date. Do you want to update DBT?',
 				PromptAnswer.Yes,
 				PromptAnswer.No
 			);

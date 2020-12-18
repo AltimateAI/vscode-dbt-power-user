@@ -13,7 +13,7 @@ import {
   OnManifestCacheChanged,
 } from "../manifest/manifestCacheChangedEvent";
 import { MacroMetaMap } from "../domain";
-import { manifestContainer } from "../manifest/dbtProjectContainer";
+import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { isEnclosedWithinCodeBlock } from "../utils";
 export class MacroDefinitionProvider
   implements DefinitionProvider, OnManifestCacheChanged {
@@ -37,7 +37,7 @@ export class MacroDefinitionProvider
         isEnclosedWithinCodeBlock(document, range)
       ) {
 
-        const packageName = manifestContainer.getPackageName(document.uri);
+        const packageName = dbtProjectContainer.getPackageName(document.uri);
 
         const macroName = packageName !== undefined && !word.includes(".") ? `${packageName}.${word}` : word;
 
@@ -56,7 +56,7 @@ export class MacroDefinitionProvider
   }
 
   private getMacroDefinition(macroName: string, currentFilePath: Uri): Definition | undefined {
-    const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
+    const projectRootpath = dbtProjectContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
       return;
     }

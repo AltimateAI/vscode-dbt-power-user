@@ -15,7 +15,7 @@ import {
   ManifestCacheChangedEvent,
   OnManifestCacheChanged,
 } from "../manifest/manifestCacheChangedEvent";
-import { manifestContainer } from "../manifest/dbtProjectContainer";
+import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 
 export class SourceAutocompletionProvider
   implements CompletionItemProvider, OnManifestCacheChanged {
@@ -42,7 +42,7 @@ export class SourceAutocompletionProvider
     if (!isEnclosedWithinCodeBlock(document, position)) {
       return undefined;
     }
-    const projectRootpath = manifestContainer.getProjectRootpath(document.uri);
+    const projectRootpath = dbtProjectContainer.getProjectRootpath(document.uri);
     if (projectRootpath === undefined) {
       return;
     }

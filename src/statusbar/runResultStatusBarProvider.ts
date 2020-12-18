@@ -6,7 +6,7 @@ import { window, StatusBarAlignment, StatusBarItem, ThemeColor } from "vscode";
 import * as dayjs from "dayjs";
 import * as relativeTime from "dayjs/plugin/relativeTime";
 import { RunResultMetaMap } from "../domain";
-import { manifestContainer } from "../manifest/dbtProjectContainer";
+import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 dayjs.extend(relativeTime);
 
 export class RunResultStatusBar implements OnManifestCacheChanged {
@@ -27,7 +27,7 @@ export class RunResultStatusBar implements OnManifestCacheChanged {
     const activeTextEditor = window.activeTextEditor;
     if (activeTextEditor !== undefined) {
       const currentFilePath = activeTextEditor.document.uri;
-      const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
+      const projectRootpath = dbtProjectContainer.getProjectRootpath(currentFilePath);
       if (projectRootpath === undefined) {
         return;
       }

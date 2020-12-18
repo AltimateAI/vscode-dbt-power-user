@@ -8,7 +8,7 @@ import {
 } from "vscode";
 import { Node, Model, GraphMetaMap, Test, Seed, Analysis } from "../domain";
 import * as path from "path";
-import { manifestContainer } from "../manifest/dbtProjectContainer";
+import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   OnManifestCacheChanged,
@@ -47,7 +47,7 @@ export class ModelTreeviewProvider
     }
 
     const currentFilePath = window.activeTextEditor!.document.uri;
-    const projectRootpath = manifestContainer.getProjectRootpath(
+    const projectRootpath = dbtProjectContainer.getProjectRootpath(
       currentFilePath
     );
     if (projectRootpath === undefined) {
@@ -68,7 +68,7 @@ export class ModelTreeviewProvider
       window.activeTextEditor!.document.fileName,
       ".sql"
     );
-    const packageName = manifestContainer.getPackageName(currentFilePath) || projectName;
+    const packageName = dbtProjectContainer.getPackageName(currentFilePath) || projectName;
     return Promise.resolve(
       this.getTreeItems(`model.${packageName}.${fileName}`, event)
     );

@@ -4,7 +4,7 @@ import { ManifestCacheChangedEvent, OnManifestCacheChanged } from "./manifestCac
 
 type ManifestMetaMap = Map<Uri, Manifest>;
 
-export class ManifestContainer {
+export class DbtProjectContainer {
   private manifestMetaMap?: ManifestMetaMap;
   private providers: OnManifestCacheChanged[] = [];
 
@@ -98,4 +98,4 @@ export class ManifestContainer {
   }
 }
 
-export const manifestContainer = new ManifestContainer();
+export const dbtProjectContainer = new DbtProjectContainer();

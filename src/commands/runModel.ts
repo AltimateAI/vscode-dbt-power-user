@@ -1,7 +1,7 @@
 import * as path from "path";
 import { window } from "vscode";
 import { workspace } from "vscode";
-import { manifestContainer } from "../manifest/dbtProjectContainer";
+import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { NodeTreeItem } from "../treeview_provider/ModelParentTreeviewProvider";
 
 export enum RunModelType {
@@ -39,7 +39,7 @@ const runTerminal = async (modelName: string, type?: RunModelType) => {
     return;
   }
   const currentFilePath = window.activeTextEditor.document.uri;
-  const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
+  const projectRootpath = dbtProjectContainer.getProjectRootpath(currentFilePath);
 
   if (modelName !== undefined && projectRootpath !== undefined) {
     const terminal =

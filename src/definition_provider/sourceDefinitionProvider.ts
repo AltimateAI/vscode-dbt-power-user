@@ -17,7 +17,7 @@ import { readFileSync } from "fs";
 import path = require("path");
 import { isEnclosedWithinCodeBlock } from "../utils";
 import { SourceMetaMap } from "../domain";
-import { manifestContainer } from "../manifest/dbtProjectContainer";
+import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 
 export class SourceDefinitionProvider implements DefinitionProvider, OnManifestCacheChanged  {
   private sourceMetaMap: Map<string, SourceMetaMap> = new Map();
@@ -73,7 +73,7 @@ export class SourceDefinitionProvider implements DefinitionProvider, OnManifestC
     currentFilePath: Uri,
     tableName?: string,
   ): Definition | undefined {
-    const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
+    const projectRootpath = dbtProjectContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
       return;
     }
