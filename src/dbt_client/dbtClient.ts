@@ -1,6 +1,7 @@
 import { OutputChannel, StatusBarAlignment, StatusBarItem, window } from 'vscode';
 import { OnSourceFileChanged, SourceFileChangedEvent } from '../manifest/sourceFileChangedEvent';
-import { CommandProcessExecution } from '../utils';
+import { CommandProcessExecution, debounce } from '../utils';
+import { dbtClientCommandQueue as dbtClientCommandQueue } from './dbtClientCommandQueue';
 
 enum DBT {
 	Install,
@@ -17,14 +18,13 @@ class DBTClient implements OnSourceFileChanged {
 	static readonly IS_INSTALLED_VERSION = /(?<=installed\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
 	static readonly IS_LATEST_VERSION = /(?<=latest\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
 	static readonly IS_INSTALLED = /installed\sversion/g;
-	private statusBar?: StatusBarItem;
-	private outputChannel: OutputChannel;
+	public outputChannel: OutputChannel;
 
 	constructor() {
-		this.outputChannel = window.createOutputChannel('DBT run');
+		this.outputChannel = window.createOutputChannel('DBT Client');
 	}
 
-	async onSourceFileChanged (event: SourceFileChangedEvent): Promise<void> {
+	async onSourceFileChanged(event: SourceFileChangedEvent): Promise<void> {
 		await this.DBTListCommandAndShowOutput(event.projectRoot.fsPath);
 	}
 
@@ -45,23 +45,24 @@ class DBTClient implements OnSourceFileChanged {
 		}
 	}
 
+	public DBTRunModelCommand(plusOperatorLeft: string, modelName: string, plusOperatorRight: string, cwd: string) {
+		return new CommandProcessExecution(this.pythonPath, ["-c", this.dbtCommand(["'run'", "'--model'", `"${plusOperatorLeft}"`, `"${modelName}"`, `"${plusOperatorRight}"`])], cwd);
+	}
+
 	private DBTListCommand(cwd: string): CommandProcessExecution {
-		return new CommandProcessExecution(this.pythonPath, ["-c", "import dbt.main; dbt.main.main(['list'])"], cwd);
+		return new CommandProcessExecution(this.pythonPath, ["-c", this.dbtCommand("'list'")], cwd);
 	}
 
 	public async DBTListCommandAndShowOutput(cwd: string): Promise<void> {
-		if (this.statusBar == undefined) {
-			this.statusBar = window.createStatusBarItem(StatusBarAlignment.Left, 10);
-		}
-		this.statusBar.text = 'Updating DBT';
-		this.statusBar.show();
-		const listcommandProcess = this.DBTListCommand(cwd);
-		await listcommandProcess.completeWithOutputChannel(this.outputChannel);
-		this.statusBar.hide();
+		dbtClientCommandQueue.addToQueue(() => this.DBTListCommand(cwd).completeWithOutputChannel(this.outputChannel));
 	}
 
 	private checkDBTInstalledCommand(): CommandProcessExecution {
-		return new CommandProcessExecution(this.pythonPath, ["-c", "import dbt.main; dbt.main.main(['--version'])"]);
+		return new CommandProcessExecution(this.pythonPath, ["-c", this.dbtCommand("'--version'")]);
+	}
+
+	private dbtCommand(cmd: string | string[]): string {
+		return `import dbt.main; dbt.main.main([${cmd}])`;
 	}
 
 	private checkDBTUpToDate(message: string): boolean | undefined {

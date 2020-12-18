@@ -64,11 +64,11 @@ export const notEmpty = <T>(value: T | null | undefined): value is T => {
 
 export class CommandProcessExecution {
   private readonly commandProcess: ChildProcess;
-  constructor(command: string, args?: string[], cwd?: string, ) {
+  constructor(command: string, args?: string[], cwd?: string) {
     this.commandProcess = spawn(
       command,
       args,
-      {cwd: cwd});
+      { cwd: cwd });
   }
 
   public async complete(): Promise<string> {
@@ -90,14 +90,14 @@ export class CommandProcessExecution {
       this.commandProcess.once('error', error => {
         reject(`Error occurred during process execution: ${error}`);
       });
-    })
+    });
 
   }
 
   public async completeWithOutputChannel(outputChannel: OutputChannel): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.commandProcess.stdout!.on('data', chunk => { outputChannel.append(chunk.toString()); outputChannel.show() });
-      this.commandProcess.stderr!.on('data', chunk => { outputChannel.append(chunk.toString()); outputChannel.show() });
+      this.commandProcess.stdout!.on('data', chunk => { outputChannel.append(chunk.toString()); outputChannel.show(); });
+      this.commandProcess.stderr!.on('data', chunk => { outputChannel.append(chunk.toString()); outputChannel.show(); });
       this.commandProcess.once('close', () => {
         resolve();
       });
@@ -105,7 +105,7 @@ export class CommandProcessExecution {
       this.commandProcess.once('error', error => {
         reject(`Error occurred during process execution: ${error}`);
       });
-    })
+    });
   }
 }
 
@@ -125,8 +125,8 @@ export const getPythonPathFromExtention = async (): Promise<PythonExecutionDetai
   const settings = extension.exports.settings;
 
   return { pythonPath: settings.getExecutionDetails(workspace.workspaceFile).execCommand[0], onDidChangeExecutionDetails: settings.onDidChangeExecutionDetails };
-}
+};
 
 export const arrayEquals = <T>(a: Array<T>, b: Array<T>): boolean => {
   return a.sort().toString() === b.sort().toString();
-}
+};
