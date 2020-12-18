@@ -1,6 +1,6 @@
-import { OutputChannel, StatusBarAlignment, StatusBarItem, window } from 'vscode';
+import { OutputChannel, window } from 'vscode';
 import { OnSourceFileChanged, SourceFileChangedEvent } from '../manifest/sourceFileChangedEvent';
-import { CommandProcessExecution, debounce } from '../utils';
+import { CommandProcessExecution } from '../utils';
 import { dbtClientCommandQueue as dbtClientCommandQueue } from './dbtClientCommandQueue';
 
 enum DBT {

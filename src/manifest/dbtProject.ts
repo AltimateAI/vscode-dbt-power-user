@@ -25,7 +25,7 @@ import { dbtProjectContainer } from "./dbtProjectContainer";
 import { SourceFileChangedEvent } from "./sourceFileChangedEvent";
 import { DBTClientFactory } from "../dbt_client/dbtClientFactory";
 
-export class Manifest {
+export class DBTProject {
   static DBT_PROJECT_FILE = "dbt_project.yml";
   static DBT_MODULES = "dbt_modules";
   private static MANIFEST_FILE = "manifest.json";
@@ -48,6 +48,7 @@ export class Manifest {
   private outputChannel?: vscode.OutputChannel;
   private logFileWatcher?: vscode.FileSystemWatcher;
   private logPosition: number = 0;
+  // TODO add the timeout / debounce for the sourcefilechange
 
   constructor(path: vscode.Uri) {
     this.projectRoot = path;
@@ -66,7 +67,7 @@ export class Manifest {
 
   readAndParseProjectConfig() {
     const dbtProjectYamlFile = readFileSync(
-      path.join(this.projectRoot.fsPath, Manifest.DBT_PROJECT_FILE),
+      path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE),
       "utf8"
     );
     return safeLoad(dbtProjectYamlFile) as any;
@@ -77,8 +78,8 @@ export class Manifest {
     const projectConfig = this.readAndParseProjectConfig();
 
     const projectName = projectConfig.name;
-    const targetPath = projectConfig[Manifest.TARGET_PATH_VAR] as string;
-    const sourcePaths = projectConfig[Manifest.SOURCE_PATHS_VAR] as string[];
+    const targetPath = projectConfig[DBTProject.TARGET_PATH_VAR] as string;
+    const sourcePaths = projectConfig[DBTProject.SOURCE_PATHS_VAR] as string[];
 
     this.createTargetWatchers(targetPath);
     this.createSourceWatchers(sourcePaths);
@@ -133,8 +134,8 @@ export class Manifest {
         fileHandle = openSync(
           path.join(
             this.projectRoot.fsPath,
-            Manifest.LOG_PATH,
-            Manifest.LOG_FILE
+            DBTProject.LOG_PATH,
+            DBTProject.LOG_FILE
           ),
           "r"
         );
@@ -175,7 +176,7 @@ export class Manifest {
       this.logFileWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
           this.projectRoot.path,
-          `${Manifest.LOG_PATH}/${Manifest.LOG_FILE}`
+          `${DBTProject.LOG_PATH}/${DBTProject.LOG_FILE}`
         )
       );
 
@@ -190,7 +191,7 @@ export class Manifest {
       this.dbtProjectWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
           this.projectRoot.path,
-          Manifest.DBT_PROJECT_FILE
+          DBTProject.DBT_PROJECT_FILE
         )
       );
       this.setupRefreshHandler(this.dbtProjectWatcher);
@@ -205,7 +206,7 @@ export class Manifest {
       this.manifestWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
           this.projectRoot.path,
-          `${targetPath}/${Manifest.MANIFEST_FILE}`
+          `${targetPath}/${DBTProject.MANIFEST_FILE}`
         )
       );
       this.setupRefreshHandler(this.manifestWatcher);
@@ -213,7 +214,7 @@ export class Manifest {
       this.runResultsWatcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(
           this.projectRoot.path,
-          `${targetPath}/${Manifest.RUN_RESULTS_FILE}`
+          `${targetPath}/${DBTProject.RUN_RESULTS_FILE}`
         )
       );
       this.setupRefreshHandler(this.runResultsWatcher);
@@ -241,8 +242,8 @@ export class Manifest {
         );
         const event = new SourceFileChangedEvent(this.projectRoot);
         sourceFolderWatcher.onDidChange(() => DBTClientFactory.passEventToDBTClient(event));
-        this.sourceFolderWatchers.push(sourceFolderWatcher)
-      })
+        this.sourceFolderWatchers.push(sourceFolderWatcher);
+      });
       this.currentSourcePaths = sourcePaths;
     }
   }
@@ -257,7 +258,7 @@ export class Manifest {
     const manifestLocation = path.join(
       this.projectRoot.fsPath,
       targetPath,
-      Manifest.MANIFEST_FILE
+      DBTProject.MANIFEST_FILE
     );
     try {
       const manifestFile = readFileSync(manifestLocation, "utf8");
@@ -280,7 +281,7 @@ export class Manifest {
     }
     Object.values(sourcesMap)
       .filter(
-        (source) => source.resource_type === Manifest.RESOURCE_TYPE_SOURCE
+        (source) => source.resource_type === DBTProject.RESOURCE_TYPE_SOURCE
       )
       .reduce(
         (
@@ -308,7 +309,7 @@ export class Manifest {
       return modelMetaMap;
     }
     Object.values(nodesMap)
-      .filter((model) => model.resource_type === Manifest.RESOURCE_TYPE_MODEL)
+      .filter((model) => model.resource_type === DBTProject.RESOURCE_TYPE_MODEL)
       .forEach(({ name, root_path, original_file_path }) => {
         const fullPath = path.join(root_path, original_file_path);
         modelMetaMap.set(name, { path: fullPath });
@@ -440,7 +441,7 @@ export class Manifest {
     const runResultPath = path.join(
       this.projectRoot.fsPath,
       targetPath,
-      Manifest.RUN_RESULTS_FILE
+      DBTProject.RUN_RESULTS_FILE
     );
     if (!existsSync(runResultPath)) {
       return runResultMetaMap;

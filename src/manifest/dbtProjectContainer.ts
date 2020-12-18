@@ -1,8 +1,8 @@
-import { Manifest } from "./dbtProject";
+import { DBTProject } from "./dbtProject";
 import { workspace, RelativePattern, WorkspaceFolder, Uri } from "vscode";
 import { ManifestCacheChangedEvent, OnManifestCacheChanged } from "./manifestCacheChangedEvent";
 
-type ManifestMetaMap = Map<Uri, Manifest>;
+type ManifestMetaMap = Map<Uri, DBTProject>;
 
 export class DbtProjectContainer {
   private manifestMetaMap?: ManifestMetaMap;
@@ -25,7 +25,7 @@ export class DbtProjectContainer {
     for (const folder of folders) {
       const projectUris = await this.discoverProjects(folder);
       projectUris.forEach((projectUri) => {
-        manifests.set(projectUri, new Manifest(projectUri));
+        manifests.set(projectUri, new DBTProject(projectUri));
       });
     }
     this.manifestMetaMap = manifests;
@@ -64,7 +64,7 @@ export class DbtProjectContainer {
 
     const insidePackage =
       pathSegments.length > 1 &&
-      pathSegments[0] === Manifest.DBT_MODULES;
+      pathSegments[0] === DBTProject.DBT_MODULES;
 
     if (insidePackage) {
       return pathSegments[1];
@@ -87,8 +87,8 @@ export class DbtProjectContainer {
 
   private async discoverProjects(folder: WorkspaceFolder): Promise<Uri[]> {
     const dbtProjectFiles = await workspace.findFiles(
-      new RelativePattern(folder, `**/${Manifest.DBT_PROJECT_FILE}`),
-      new RelativePattern(folder, `**/${Manifest.DBT_MODULES}`)
+      new RelativePattern(folder, `**/${DBTProject.DBT_PROJECT_FILE}`),
+      new RelativePattern(folder, `**/${DBTProject.DBT_MODULES}`)
     );
     return dbtProjectFiles
       .filter((uri) => !uri.path.includes('site-packages')) // TODO verify if this is really necessary, this is necessary for me because I put the venv in the DBT project 
