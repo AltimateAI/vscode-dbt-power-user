@@ -1,12 +1,16 @@
 import { DBTProject } from "./dbtProject";
 import { workspace, RelativePattern, WorkspaceFolder, Uri } from "vscode";
 import { ManifestCacheChangedEvent, OnManifestCacheChanged } from "./manifestCacheChangedEvent";
+import { DBTClient } from "../dbt_client/dbtClient";
+import { getPythonPathFromExtention } from "../utils";
+import { SourceFileChangedEvent } from "./sourceFileChangedEvent";
 
 type ManifestMetaMap = Map<Uri, DBTProject>;
 
 export class DbtProjectContainer {
   private manifestMetaMap?: ManifestMetaMap;
   private providers: OnManifestCacheChanged[] = [];
+  public dbtClient?: DBTClient;
 
   constructor() {
     workspace.onDidChangeWorkspaceFolders(() => {
@@ -31,6 +35,20 @@ export class DbtProjectContainer {
     this.manifestMetaMap = manifests;
   }
 
+  public async createDBTClient(): Promise<void> {
+    const { pythonPath, onDidChangeExecutionDetails } = await getPythonPathFromExtention();
+    if (pythonPath === undefined) {
+      return;
+    }
+    onDidChangeExecutionDetails(async () => {
+      const { pythonPath } = await getPythonPathFromExtention();
+      this.dbtClient = new DBTClient(pythonPath);
+      await this.dbtClient.checkDBTInstalled();
+    });
+    this.dbtClient = new DBTClient(pythonPath);
+    await this.dbtClient.checkDBTInstalled();
+  }
+
   public addProvider(provider: OnManifestCacheChanged): void {
     if (this.manifestMetaMap === undefined) {
       console.error("Trying to add eventhandlers to an empty manifests map!");
@@ -39,8 +57,14 @@ export class DbtProjectContainer {
     this.providers.push(provider);
   }
 
-  public passEventToProviders(event: ManifestCacheChangedEvent) {
+  public raiseManifestChangedEvent(event: ManifestCacheChangedEvent) {
     this.providers.forEach(provider => provider.onManifestCacheChanged(event));
+  }
+
+  public raiseSourceFileChangedEvent(event: SourceFileChangedEvent) {
+    if (this.dbtClient !== undefined) {
+      this.dbtClient.onSourceFileChanged(event);
+    }
   }
 
   public async tryRefreshAll(): Promise<void> {

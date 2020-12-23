@@ -1,35 +1,35 @@
-import { StatusBarAlignment, StatusBarItem, window } from "vscode";
+import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 
 type Command = () => Promise<any>;
 
+interface CommandItem {
+    command: Command;
+    text: string;
+}
 class DBTClientCommandQueue {
-    private queue: Command[] = [];
+    private queue: CommandItem[] = [];
     private currentPromise: any;
-    private statusBar: StatusBarItem;
 
-    constructor() {
-        this.statusBar = window.createStatusBarItem(StatusBarAlignment.Left, 10);
-    }
-
-    public addToQueue(command: Command) {
-        this.queue.push(command);
+    public addToQueue(command: Command, text: string) {
+        this.queue.push({ command, text });
         this.pickCommandToRun();
     }
 
     private async pickCommandToRun(): Promise<any> {
-        this.statusBar.text = 'Running DBT commands';
-        this.statusBar.show();
-        if (this.currentPromise === undefined && this.queue.length > 0) {
-            this.currentPromise = this.queue.shift()!;
+        if (this.currentPromise === undefined && this.queue.length > 0 && dbtProjectContainer.dbtClient !== undefined) {
+            const { dbtClient } = dbtProjectContainer;
+            const { command, text } = this.queue.shift()!;
+
+            this.currentPromise = command;
+            dbtClient.showMessageInStatusBar(text);
+
             await this.currentPromise();
+
             this.currentPromise = undefined;
+            dbtClient.showVersionInStatusBar();
             this.pickCommandToRun();
         }
-        if (this.queue.length === 0) {
-            this.statusBar.hide();
-        }
     }
-
 }
 
 export const dbtClientCommandQueue = new DBTClientCommandQueue();

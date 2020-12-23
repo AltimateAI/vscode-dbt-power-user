@@ -23,7 +23,6 @@ import {
 } from "./manifestCacheChangedEvent";
 import { dbtProjectContainer } from "./dbtProjectContainer";
 import { SourceFileChangedEvent } from "./sourceFileChangedEvent";
-import { DBTClientFactory } from "../dbt_client/dbtClientFactory";
 
 export class DBTProject {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -96,7 +95,7 @@ export class DBTProject {
         new Map(),
         this.projectRoot
       );
-      dbtProjectContainer.passEventToProviders(event);
+      dbtProjectContainer.raiseManifestChangedEvent(event);
       return;
     }
 
@@ -122,7 +121,7 @@ export class DBTProject {
       runResultMetaMap,
       this.projectRoot
     );
-    dbtProjectContainer.passEventToProviders(event);
+    dbtProjectContainer.raiseManifestChangedEvent(event);
 
     this.setupOutputChannel(projectName);
   }
@@ -241,7 +240,7 @@ export class DBTProject {
           new vscode.RelativePattern(this.projectRoot, globPattern)
         );
         const event = new SourceFileChangedEvent(this.projectRoot);
-        sourceFolderWatcher.onDidChange(() => DBTClientFactory.passEventToDBTClient(event));
+        sourceFolderWatcher.onDidChange(() => dbtProjectContainer.raiseSourceFileChangedEvent(event));
         this.sourceFolderWatchers.push(sourceFolderWatcher);
       });
       this.currentSourcePaths = sourcePaths;

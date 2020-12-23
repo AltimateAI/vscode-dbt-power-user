@@ -1,5 +1,5 @@
 import { ChildProcess, spawn } from "child_process";
-import { TextDocument, Range, Position, OutputChannel, extensions, workspace, Event, Uri } from "vscode";
+import { TextDocument, Range, Position, OutputChannel, extensions, workspace, Event, Uri, StatusBarItem } from "vscode";
 
 export const isEnclosedWithinCodeBlock: (
   document: TextDocument,

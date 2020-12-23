@@ -1,7 +1,5 @@
 import * as path from "path";
 import { window } from "vscode";
-import { dbtClient } from "../dbt_client/dbtClient";
-import { dbtClientCommandQueue } from "../dbt_client/dbtClientCommandQueue";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { NodeTreeItem } from "../treeview_provider/ModelParentTreeviewProvider";
 
@@ -37,9 +35,12 @@ const runDBTModel = async (modelName: string, type?: RunModelType) => {
   const projectRootpath = dbtProjectContainer.getProjectRootpath(currentFilePath);
 
   if (modelName !== undefined && projectRootpath !== undefined) {
+    if (dbtProjectContainer.dbtClient === undefined) {
+      return;
+    }
+    const dbtClient = dbtProjectContainer.dbtClient;
     const plusOperatorLeft = type === RunModelType.PARENTS ? "+" : "";
     const plusOperatorRight = type === RunModelType.CHILDREN ? "+" : "";
-    const runModelCommand = dbtClient.DBTRunModelCommand(plusOperatorLeft, modelName, plusOperatorRight, projectRootpath.fsPath);
-    dbtClientCommandQueue.addToQueue(() => runModelCommand.completeWithOutputChannel(dbtClient.outputChannel));
+    dbtClient.DBTRunCommandAndShow({ plusOperatorLeft, modelName, plusOperatorRight, cwd: projectRootpath.fsPath });
   }
 };
