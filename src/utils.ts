@@ -1,5 +1,5 @@
 import { ChildProcess, spawn } from "child_process";
-import { TextDocument, Range, Position, OutputChannel, extensions, workspace, Event, Uri, StatusBarItem } from "vscode";
+import { TextDocument, Range, Position, OutputChannel, extensions, workspace, Event, Uri } from "vscode";
 
 export const isEnclosedWithinCodeBlock: (
   document: TextDocument,
@@ -129,4 +129,13 @@ export const getPythonPathFromExtention = async (): Promise<PythonExecutionDetai
 
 export const arrayEquals = <T>(a: Array<T>, b: Array<T>): boolean => {
   return a.sort().toString() === b.sort().toString();
+};
+
+export const debounce = (fn: Function, wait: number) => {
+  let timeout: NodeJS.Timeout;
+
+  return function () {
+    clearTimeout(timeout);
+    timeout = setTimeout(fn(), wait);
+  };
 };

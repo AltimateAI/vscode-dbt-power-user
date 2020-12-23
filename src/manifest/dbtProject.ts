@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { closeSync, existsSync, openSync, readFileSync, readSync } from "fs";
 import { safeLoad } from "js-yaml";
 import * as path from "path";
-import { arrayEquals, notEmpty } from "../utils";
+import { arrayEquals, debounce, notEmpty } from "../utils";
 import {
   NodeMetaMap,
   MacroMetaMap,
@@ -47,7 +47,6 @@ export class DBTProject {
   private outputChannel?: vscode.OutputChannel;
   private logFileWatcher?: vscode.FileSystemWatcher;
   private logPosition: number = 0;
-  // TODO add the timeout / debounce for the sourcefilechange
 
   constructor(path: vscode.Uri) {
     this.projectRoot = path;
@@ -240,7 +239,7 @@ export class DBTProject {
           new vscode.RelativePattern(this.projectRoot, globPattern)
         );
         const event = new SourceFileChangedEvent(this.projectRoot);
-        sourceFolderWatcher.onDidChange(() => dbtProjectContainer.raiseSourceFileChangedEvent(event));
+        sourceFolderWatcher.onDidChange(() => debounce(() => dbtProjectContainer.raiseSourceFileChangedEvent(event), 1000)());
         this.sourceFolderWatchers.push(sourceFolderWatcher);
       });
       this.currentSourcePaths = sourcePaths;

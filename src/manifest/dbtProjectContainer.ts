@@ -42,11 +42,14 @@ export class DbtProjectContainer {
     }
     onDidChangeExecutionDetails(async () => {
       const { pythonPath } = await getPythonPathFromExtention();
+      if (this.dbtClient !== undefined) {
+        this.dbtClient.destroyOldStatusBar();
+      }
       this.dbtClient = new DBTClient(pythonPath);
-      await this.dbtClient.checkDBTInstalled();
+      await this.dbtClient.checkIfDBTIsInstalled();
     });
     this.dbtClient = new DBTClient(pythonPath);
-    await this.dbtClient.checkDBTInstalled();
+    await this.dbtClient.checkIfDBTIsInstalled();
   }
 
   public addProvider(provider: OnManifestCacheChanged): void {
