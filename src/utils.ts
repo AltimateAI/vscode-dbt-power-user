@@ -1,5 +1,5 @@
 import { ChildProcess, spawn } from "child_process";
-import { TextDocument, Range, Position, OutputChannel, extensions, workspace, Event, Uri } from "vscode";
+import { TextDocument, Range, Position, OutputChannel, extensions, workspace, Event, Uri, FileSystemWatcher } from "vscode";
 
 export const isEnclosedWithinCodeBlock: (
   document: TextDocument,
@@ -138,4 +138,10 @@ export const debounce = (fn: Function, wait: number) => {
     clearTimeout(timeout);
     timeout = setTimeout(fn(), wait);
   };
+};
+
+export const setupWatcherhHandler = (watcher: FileSystemWatcher, handler: Function): void => {
+  watcher.onDidChange(() => handler());
+  watcher.onDidCreate(() => handler());
+  watcher.onDidDelete(() => handler());
 };
