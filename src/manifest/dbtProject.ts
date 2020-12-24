@@ -60,7 +60,7 @@ export class DBTProject {
     this.createSourceWatchers(sourcePaths);
 
     this.manifestChangedHandler = new ManifestChangedHandler(this.projectRoot, projectName);
-    this.manifestChangedHandler.setupManifestHandler(targetPath);
+    this.manifestChangedHandler.parseManifest(targetPath);
   }
 
   private createProjectConfigWatcher() {

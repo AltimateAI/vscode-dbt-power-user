@@ -3,12 +3,12 @@ import path = require("path");
 import { FileSystemWatcher, OutputChannel, Uri, window, workspace, RelativePattern } from "vscode";
 import { DBTProject } from "./dbtProject";
 import { dbtProjectContainer } from "./dbtProjectContainer";
-import { GraphMapper } from "./graphMapper";
-import { MacroParser } from "./macroParser";
 import { ManifestCacheChangedEvent } from "./manifestCacheChangedEvent";
-import { NodeParser } from "./nodeParser";
-import { RunResultsParser } from "./runResultsParser";
-import { SourceParser } from "./sourceParser";
+import { GraphMapper } from "./parsers/graphMapper";
+import { MacroParser } from "./parsers/macroParser";
+import { NodeParser } from "./parsers/nodeParser";
+import { RunResultsParser } from "./parsers/runResultsParser";
+import { SourceParser } from "./parsers/sourceParser";
 
 export class ManifestChangedHandler {
     private projectRoot: Uri;
@@ -26,7 +26,7 @@ export class ManifestChangedHandler {
         this.projectName = projectName;
     }
 
-    public setupManifestHandler(targetPath: string) {
+    public async parseManifest(targetPath: string) {
         const manifest = this.readAndParseManifest(targetPath);
         if (manifest === undefined) {
             const event = new ManifestCacheChangedEvent(
@@ -44,16 +44,18 @@ export class ManifestChangedHandler {
 
         const { nodes, sources, macros, parent_map, child_map } = manifest;
 
-        const modelMetaMap = NodeParser.createModelMetaMap(nodes);
-        const macroMetaMap = MacroParser.createMacroMetaMap(this.projectName, macros);
-        const sourceMetaMap = SourceParser.createSourceMetaMap(sources);
+        const modelMetaMapPromise = NodeParser.createModelMetaMap(nodes);
+        const macroMetaMapPromise = MacroParser.createMacroMetaMap(this.projectName, macros);
+        const sourceMetaMapPromise = SourceParser.createSourceMetaMap(sources);
+        const runResultMetaMapPromise = RunResultsParser.createRunResultMetaMap(this.projectRoot, targetPath);
+
+        const [modelMetaMap, macroMetaMap, sourceMetaMap, runResultMetaMap] = await Promise.all([modelMetaMapPromise, macroMetaMapPromise, sourceMetaMapPromise, runResultMetaMapPromise]);
         const graphMetaMap = GraphMapper.createGraphMetaMap(
             parent_map,
             child_map,
             modelMetaMap,
             sourceMetaMap
         );
-        const runResultMetaMap = RunResultsParser.createRunResultMetaMap(this.projectRoot, targetPath);
 
         const event = new ManifestCacheChangedEvent(
             this.projectName,
@@ -67,7 +69,6 @@ export class ManifestChangedHandler {
         dbtProjectContainer.raiseManifestChangedEvent(event);
 
         this.setupOutputChannel(this.projectName);
-
     }
 
     private readAndParseManifest(targetPath: string) {

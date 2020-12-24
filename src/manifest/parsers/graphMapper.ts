@@ -1,5 +1,5 @@
-import { Analysis, DBTGraphType, GraphMetaMap, Model, NodeGraphMap, NodeMetaMap, Seed, Source, SourceMetaMap, Test, Node } from "../domain";
-import { notEmpty } from "../utils";
+import { Analysis, DBTGraphType, GraphMetaMap, Model, NodeGraphMap, NodeMetaMap, Seed, Source, SourceMetaMap, Test, Node } from "../../domain";
+import { notEmpty } from "../../utils";
 
 export class GraphMapper {
     static createGraphMetaMap(
