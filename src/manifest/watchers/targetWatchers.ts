@@ -2,39 +2,36 @@ import { FileSystemWatcher, RelativePattern, Uri, workspace } from "vscode";
 import { setupWatcherhHandler } from "../../utils";
 import { DBTProject } from "../dbtProject";
 import { ManifestChangedHandler } from "../manifestChangedHandler";
+import { OnProjectConfigChanged, ProjectConfigChangedEvent } from "../projectConfigChangedEvent";
 
-export class TargetWatchers {
-  private projectRoot: Uri;
+export class TargetWatchers implements OnProjectConfigChanged {
   private manifestWatcher?: FileSystemWatcher;
   private runResultsWatcher?: FileSystemWatcher;
   private targetFolderWatcher?: FileSystemWatcher;
   private currentTargetPath?: string;
   private currentProjectName?: string;
 
-  constructor(projectRoot: Uri) {
-    this.projectRoot = projectRoot;
-  }
-
-  public async createTargetWatchers(targetPath: string, projectName: string) {
+  public async onProjectConfigChanged(event: ProjectConfigChangedEvent) {
+    const { targetPath, projectName, projectRoot } = event;
     if (
       this.currentTargetPath === undefined ||
       this.currentTargetPath !== targetPath ||
       this.currentProjectName === undefined ||
       this.currentProjectName !== projectName
     ) {
-      const manifestChangedHandler = new ManifestChangedHandler(this.projectRoot, projectName);
+      const manifestChangedHandler = new ManifestChangedHandler(projectRoot, projectName);
 
       const handler = () => {
         manifestChangedHandler.parseManifest(targetPath);
       };
 
-      this.manifestWatcher = this.createManifestWatcher(targetPath);
+      this.manifestWatcher = this.createManifestWatcher(event);
       setupWatcherhHandler(this.manifestWatcher, () => handler());
 
-      this.runResultsWatcher = this.createRunResultsWatcher(targetPath);
+      this.runResultsWatcher = this.createRunResultsWatcher(event);
       setupWatcherhHandler(this.runResultsWatcher, () => handler());
 
-      this.targetFolderWatcher = this.createTargetFolderWatcher(targetPath);
+      this.targetFolderWatcher = this.createTargetFolderWatcher(event);
       this.targetFolderWatcher.onDidDelete(() => () => handler());
 
       this.currentTargetPath = targetPath;
@@ -44,29 +41,32 @@ export class TargetWatchers {
     }
   }
 
-  private createManifestWatcher(targetPath: string): FileSystemWatcher {
+  private createManifestWatcher(event: ProjectConfigChangedEvent): FileSystemWatcher {
+    const { targetPath, projectRoot } = event;
     const manifestWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(
-        this.projectRoot.path,
+        projectRoot.path,
         `${targetPath}/${DBTProject.MANIFEST_FILE}`
       )
     );
     return manifestWatcher;
   }
 
-  private createRunResultsWatcher(targetPath: string): FileSystemWatcher {
+  private createRunResultsWatcher(event: ProjectConfigChangedEvent): FileSystemWatcher {
+    const { targetPath, projectRoot } = event;
     const runResultsWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(
-        this.projectRoot.path,
+        projectRoot.path,
         `${targetPath}/${DBTProject.RUN_RESULTS_FILE}`
       )
     );
     return runResultsWatcher;
   }
 
-  private createTargetFolderWatcher(targetPath: string): FileSystemWatcher {
+  private createTargetFolderWatcher(event: ProjectConfigChangedEvent): FileSystemWatcher {
+    const { targetPath, projectRoot } = event;
     const targetFolderWatcher = workspace.createFileSystemWatcher(
-      new RelativePattern(this.projectRoot.path, targetPath)
+      new RelativePattern(projectRoot.path, targetPath)
     );
     return targetFolderWatcher;
   }

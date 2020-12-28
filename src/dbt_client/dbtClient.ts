@@ -35,8 +35,9 @@ export class DBTClient implements OnSourceFileChanged {
 		this.statusBar = window.createStatusBarItem(StatusBarAlignment.Left, 10);
 	}
 
-	public destroyOldStatusBar() {
+	public destroyOldDisplayItems() {
 		this.statusBar.dispose();
+		this.outputChannel.dispose();
 	}
 
 	public async onSourceFileChanged(event: SourceFileChangedEvent): Promise<void> {

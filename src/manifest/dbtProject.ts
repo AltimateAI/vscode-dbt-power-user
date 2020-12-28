@@ -6,26 +6,22 @@ import { ProjectConfigWatcherFactory } from "./watchers/projectConfigWatcherFact
 import { SourceFileWatchers } from "./watchers/sourceFileWatchers";
 import { TargetWatchers } from "./watchers/targetWatchers";
 import { DBTProjectLog } from "./dbtProjectLog";
+import { OnProjectConfigChanged, ProjectConfigChangedEvent } from "./projectConfigChangedEvent";
 
 export class DBTProject {
   static DBT_PROJECT_FILE = "dbt_project.yml";
   static DBT_MODULES = "dbt_modules";
   static MANIFEST_FILE = "manifest.json";
   static RUN_RESULTS_FILE = "run_results.json";
-  private static TARGET_PATH_VAR = "target-path";
-  private static SOURCE_PATHS_VAR = "source-paths";
+  static TARGET_PATH_VAR = "target-path";
+  static SOURCE_PATHS_VAR = "source-paths";
 
   private dbtProjectWatcher?: vscode.FileSystemWatcher;
   private projectRoot: vscode.Uri;
-  private targetWatchers: TargetWatchers;
-  private sourceFileWatchers: SourceFileWatchers;
-  private dbtProjectLog: DBTProjectLog;
+  private onProjectConfigChangedHandlers: OnProjectConfigChanged[] = [new TargetWatchers(), new SourceFileWatchers(), new DBTProjectLog()];
 
   constructor(path: vscode.Uri) {
     this.projectRoot = path;
-    this.targetWatchers = new TargetWatchers(path);
-    this.sourceFileWatchers = new SourceFileWatchers(path);
-    this.dbtProjectLog = new DBTProjectLog(path);
   }
 
   async tryRefresh() {
@@ -39,7 +35,7 @@ export class DBTProject {
     }
   }
 
-  readAndParseProjectConfig() {
+  private readAndParseProjectConfig() {
     const dbtProjectYamlFile = readFileSync(
       path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE),
       "utf8"
@@ -53,12 +49,7 @@ export class DBTProject {
     }
     const projectConfig = this.readAndParseProjectConfig();
 
-    const projectName = projectConfig.name;
-    const targetPath = projectConfig[DBTProject.TARGET_PATH_VAR] as string;
-    const sourcePaths = projectConfig[DBTProject.SOURCE_PATHS_VAR] as string[];
-
-    await this.targetWatchers.createTargetWatchers(targetPath, projectName);
-    this.sourceFileWatchers.createSourceFileWatchers(sourcePaths);
-    this.dbtProjectLog.setupDBTProjectLog(projectName);
+    const event = new ProjectConfigChangedEvent(this.projectRoot, projectConfig);
+    this.onProjectConfigChangedHandlers.forEach(handler => handler.onProjectConfigChanged(event));
   }
 }

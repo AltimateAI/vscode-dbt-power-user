@@ -2,34 +2,31 @@ import { closeSync, openSync, readSync } from "fs";
 import path = require("path");
 import { FileSystemWatcher, OutputChannel, RelativePattern, Uri, window, workspace } from "vscode";
 import { setupWatcherhHandler } from "../utils";
+import { OnProjectConfigChanged, OnProjectConfigChangedHandler, ProjectConfigChangedEvent } from "./projectConfigChangedEvent";
 
-export class DBTProjectLog {
+export class DBTProjectLog implements OnProjectConfigChanged {
   private outputChannel?: OutputChannel;
   private logFileWatcher?: FileSystemWatcher;
   private logPosition: number = 0;
   private static LOG_PATH = "logs";
   private static LOG_FILE = "dbt.log";
-  private projectRoot: Uri;
   private currentProjectName?: string;
 
-  constructor(projectRoot: Uri) {
-    this.projectRoot = projectRoot;
-  }
-
-  public setupDBTProjectLog(projectName: string): void {
+  public onProjectConfigChanged(event: ProjectConfigChangedEvent) {
+    const { projectName, projectRoot } = event;
     if (this.outputChannel === undefined) {
       this.outputChannel = window.createOutputChannel(
         `${projectName} dbt logs`
       );
-      this.readLogFileFromLastPosition();
+      this.readLogFileFromLastPosition(event);
 
       this.logFileWatcher = workspace.createFileSystemWatcher(
         new RelativePattern(
-          this.projectRoot.path,
+          projectRoot.path,
           `${DBTProjectLog.LOG_PATH}/${DBTProjectLog.LOG_FILE}`
         )
       );
-      setupWatcherhHandler(this.logFileWatcher, () => this.readLogFileFromLastPosition());
+      setupWatcherhHandler(this.logFileWatcher, () => this.readLogFileFromLastPosition(event));
       this.currentProjectName = projectName;
     }
     if (this.currentProjectName !== projectName) {
@@ -38,18 +35,19 @@ export class DBTProjectLog {
         `${projectName} dbt logs`
       );
       this.logPosition = 0;
-      this.readLogFileFromLastPosition();
+      this.readLogFileFromLastPosition(event);
       this.currentProjectName = projectName;
     }
-  }
+  };
 
-  private readLogFileFromLastPosition(): void {
+  private readLogFileFromLastPosition(event: ProjectConfigChangedEvent): void {
+    const { projectRoot } = event;
     if (this.outputChannel) {
       let fileHandle;
       try {
         fileHandle = openSync(
           path.join(
-            this.projectRoot.fsPath,
+            projectRoot.fsPath,
             DBTProjectLog.LOG_PATH,
             DBTProjectLog.LOG_FILE
           ),

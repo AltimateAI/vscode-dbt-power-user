@@ -8,12 +8,12 @@ import { SourceFileChangedEvent } from "./sourceFileChangedEvent";
 type ManifestMetaMap = Map<Uri, DBTProject>;
 
 export class DbtProjectContainer {
-  private manifestMetaMap?: ManifestMetaMap;
+  private manifestMetaMap?: ManifestMetaMap; // TODO update manifestMetaMap when a DBT project is created or deleted
   private providers: OnManifestCacheChanged[] = [];
   public dbtClient?: DBTClient;
 
   constructor() {
-    workspace.onDidChangeWorkspaceFolders(() => {
+    workspace.onDidChangeWorkspaceFolders(() => { // TODO add file watcher to detect DBT project creation/deletion 
       this.createManifests();
     });
   }
@@ -43,7 +43,7 @@ export class DbtProjectContainer {
     onDidChangeExecutionDetails(async () => {
       const { pythonPath } = await getPythonPathFromExtention();
       if (this.dbtClient !== undefined) {
-        this.dbtClient.destroyOldStatusBar();
+        this.dbtClient.destroyOldDisplayItems();
       }
       this.dbtClient = new DBTClient(pythonPath);
       await this.dbtClient.checkIfDBTIsInstalled();

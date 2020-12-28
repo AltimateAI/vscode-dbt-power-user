@@ -1,18 +1,15 @@
 import { FileSystemWatcher, RelativePattern, Uri, workspace } from "vscode";
 import { arrayEquals, debounce } from "../../utils";
 import { dbtProjectContainer } from "../dbtProjectContainer";
+import { OnProjectConfigChanged, ProjectConfigChangedEvent } from "../projectConfigChangedEvent";
 import { SourceFileChangedEvent } from "../sourceFileChangedEvent";
 
-export class SourceFileWatchers {
+export class SourceFileWatchers implements OnProjectConfigChanged {
   private currentSourcePaths?: string[];
-  private projectRoot: Uri;
   private sourceFolderWatchers: FileSystemWatcher[] = [];
 
-  constructor(projectRoot: Uri) {
-    this.projectRoot = projectRoot;
-  }
-
-  public createSourceFileWatchers(sourcePaths: string[]) {
+  public onProjectConfigChanged(event: ProjectConfigChangedEvent) {
+    const { sourcePaths, projectRoot } = event;
     if (
       this.currentSourcePaths === undefined ||
       !arrayEquals(this.currentSourcePaths, sourcePaths)
@@ -21,13 +18,13 @@ export class SourceFileWatchers {
         const parsedSourcePath = Uri.parse(sourcePath);
         const globPattern = Uri.joinPath(parsedSourcePath, '**/*.sql').path.substring(1);
         const sourceFolderWatcher = workspace.createFileSystemWatcher(
-          new RelativePattern(this.projectRoot, globPattern)
+          new RelativePattern(projectRoot, globPattern)
         );
-        const event = new SourceFileChangedEvent(this.projectRoot);
+        const event = new SourceFileChangedEvent(projectRoot);
         sourceFolderWatcher.onDidChange(() => debounce(() => dbtProjectContainer.raiseSourceFileChangedEvent(event), 2000)());
         this.sourceFolderWatchers.push(sourceFolderWatcher);
       });
       this.currentSourcePaths = sourcePaths;
     }
-  }
+  };
 }
