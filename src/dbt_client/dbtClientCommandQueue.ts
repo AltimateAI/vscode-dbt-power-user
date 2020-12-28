@@ -23,7 +23,7 @@ class DBTClientCommandQueue {
       this.currentPromise = command;
       dbtClient.showMessageInStatusBar(text);
 
-      await this.currentPromise();
+      await this.currentPromise(); // TODO if possible when error happens show error and link to its output
 
       this.currentPromise = undefined;
       dbtClient.showVersionInStatusBar();

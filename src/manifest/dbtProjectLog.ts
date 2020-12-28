@@ -12,6 +12,12 @@ export class DBTProjectLog implements OnProjectConfigChanged {
   private static LOG_FILE = "dbt.log";
   private currentProjectName?: string;
 
+  public cleanUp() {
+    if (this.outputChannel !== undefined) {
+      this.outputChannel.dispose();
+    }
+  }
+
   public onProjectConfigChanged(event: ProjectConfigChangedEvent) {
     const { projectName, projectRoot } = event;
     if (this.outputChannel === undefined) {

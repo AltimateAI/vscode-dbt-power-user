@@ -8,17 +8,28 @@ import { SourceFileChangedEvent } from "./sourceFileChangedEvent";
 type ManifestMetaMap = Map<Uri, DBTProject>;
 
 export class DbtProjectContainer {
-  private manifestMetaMap?: ManifestMetaMap; // TODO update manifestMetaMap when a DBT project is created or deleted
+  private manifestMetaMap?: ManifestMetaMap;
   private providers: OnManifestCacheChanged[] = [];
   public dbtClient?: DBTClient;
 
   constructor() {
-    workspace.onDidChangeWorkspaceFolders(() => { // TODO add file watcher to detect DBT project creation/deletion 
-      this.createManifests();
+    const dbtProjectFoldersWatcher = workspace.createFileSystemWatcher(
+      new RelativePattern(workspace.workspaceFolders![0].uri, '*'));
+    dbtProjectFoldersWatcher.onDidCreate(async () => {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      await this.createManifests();
+      await this.tryRefreshAll();
+    });
+    dbtProjectFoldersWatcher.onDidDelete(async () => {
+      await this.createManifests();
+      await this.tryRefreshAll();
     });
   }
 
   public async createManifests(): Promise<void> {
+    if (this.manifestMetaMap !== undefined) {
+      this.manifestMetaMap.forEach(dbtProject => dbtProject.cleanUp());
+    }
     const folders = workspace.workspaceFolders;
     if (folders === undefined) {
       return;

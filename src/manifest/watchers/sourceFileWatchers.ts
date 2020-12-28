@@ -8,6 +8,10 @@ export class SourceFileWatchers implements OnProjectConfigChanged {
   private currentSourcePaths?: string[];
   private sourceFolderWatchers: FileSystemWatcher[] = [];
 
+  public cleanUp() {
+    return;
+  }
+
   public onProjectConfigChanged(event: ProjectConfigChangedEvent) {
     const { sourcePaths, projectRoot } = event;
     if (

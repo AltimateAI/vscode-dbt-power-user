@@ -31,6 +31,10 @@ export class DBTProject {
     setupWatcherHandler(this.dbtProjectWatcher, () => this.tryRefresh());
   }
 
+  public cleanUp() {
+    this.onProjectConfigChangedHandlers.forEach(handler => handler.cleanUp());
+  }
+
   async tryRefresh() {
     try {
       await this.refresh();
