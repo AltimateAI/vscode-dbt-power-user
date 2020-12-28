@@ -7,20 +7,19 @@ export class DBTProjectLog {
   private outputChannel?: OutputChannel;
   private logFileWatcher?: FileSystemWatcher;
   private logPosition: number = 0;
-  private projectName: string;
   private static LOG_PATH = "logs";
   private static LOG_FILE = "dbt.log";
-  projectRoot: any;
+  private projectRoot: Uri;
+  private currentProjectName?: string;
 
-  constructor(projectRoot: Uri, projectName: string) {
+  constructor(projectRoot: Uri) {
     this.projectRoot = projectRoot;
-    this.projectName = projectName;
   }
 
-  public setupDBTProjectLog(): void {
+  public setupDBTProjectLog(projectName: string): void {
     if (this.outputChannel === undefined) {
       this.outputChannel = window.createOutputChannel(
-        `${this.projectName} dbt logs`
+        `${projectName} dbt logs`
       );
       this.readLogFileFromLastPosition();
 
@@ -31,6 +30,16 @@ export class DBTProjectLog {
         )
       );
       setupWatcherhHandler(this.logFileWatcher, () => this.readLogFileFromLastPosition());
+      this.currentProjectName = projectName;
+    }
+    if (this.currentProjectName !== projectName) {
+      this.outputChannel.dispose();
+      this.outputChannel = window.createOutputChannel(
+        `${projectName} dbt logs`
+      );
+      this.logPosition = 0;
+      this.readLogFileFromLastPosition();
+      this.currentProjectName = projectName;
     }
   }
 

@@ -4,22 +4,20 @@ import { dbtProjectContainer } from "../dbtProjectContainer";
 import { SourceFileChangedEvent } from "../sourceFileChangedEvent";
 
 export class SourceFileWatchers {
-  private sourcePaths: string[];
   private currentSourcePaths?: string[];
   private projectRoot: Uri;
   private sourceFolderWatchers: FileSystemWatcher[] = [];
 
-  constructor(projectRoot: Uri, sourcePaths: string[]) {
+  constructor(projectRoot: Uri) {
     this.projectRoot = projectRoot;
-    this.sourcePaths = sourcePaths;
   }
 
-  public createSourceFileWatchers() {
+  public createSourceFileWatchers(sourcePaths: string[]) {
     if (
       this.currentSourcePaths === undefined ||
-      !arrayEquals(this.currentSourcePaths, this.sourcePaths)
+      !arrayEquals(this.currentSourcePaths, sourcePaths)
     ) {
-      this.sourcePaths.forEach(sourcePath => {
+      sourcePaths.forEach(sourcePath => {
         const parsedSourcePath = Uri.parse(sourcePath);
         const globPattern = Uri.joinPath(parsedSourcePath, '**/*.sql').path.substring(1);
         const sourceFolderWatcher = workspace.createFileSystemWatcher(
@@ -29,7 +27,7 @@ export class SourceFileWatchers {
         sourceFolderWatcher.onDidChange(() => debounce(() => dbtProjectContainer.raiseSourceFileChangedEvent(event), 2000)());
         this.sourceFolderWatchers.push(sourceFolderWatcher);
       });
-      this.currentSourcePaths = this.sourcePaths;
+      this.currentSourcePaths = sourcePaths;
     }
   }
 }

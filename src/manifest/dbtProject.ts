@@ -17,9 +17,15 @@ export class DBTProject {
 
   private dbtProjectWatcher?: vscode.FileSystemWatcher;
   private projectRoot: vscode.Uri;
+  private targetWatchers: TargetWatchers;
+  private sourceFileWatchers: SourceFileWatchers;
+  private dbtProjectLog: DBTProjectLog;
 
   constructor(path: vscode.Uri) {
     this.projectRoot = path;
+    this.targetWatchers = new TargetWatchers(path);
+    this.sourceFileWatchers = new SourceFileWatchers(path);
+    this.dbtProjectLog = new DBTProjectLog(path);
   }
 
   async tryRefresh() {
@@ -51,8 +57,8 @@ export class DBTProject {
     const targetPath = projectConfig[DBTProject.TARGET_PATH_VAR] as string;
     const sourcePaths = projectConfig[DBTProject.SOURCE_PATHS_VAR] as string[];
 
-    await new TargetWatchers(this.projectRoot, targetPath, projectName).createTargetWatchers();
-    new SourceFileWatchers(this.projectRoot, sourcePaths).createSourceFileWatchers();
-    new DBTProjectLog(this.projectRoot, projectName).setupDBTProjectLog();
+    await this.targetWatchers.createTargetWatchers(targetPath, projectName);
+    this.sourceFileWatchers.createSourceFileWatchers(sourcePaths);
+    this.dbtProjectLog.setupDBTProjectLog(projectName);
   }
 }

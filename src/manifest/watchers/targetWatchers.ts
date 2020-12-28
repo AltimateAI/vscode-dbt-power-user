@@ -5,70 +5,68 @@ import { ManifestChangedHandler } from "../manifestChangedHandler";
 
 export class TargetWatchers {
   private projectRoot: Uri;
-  private targetPath: string;
-  private projectName: string;
   private manifestWatcher?: FileSystemWatcher;
   private runResultsWatcher?: FileSystemWatcher;
   private targetFolderWatcher?: FileSystemWatcher;
   private currentTargetPath?: string;
   private currentProjectName?: string;
 
-  constructor(projectRoot: Uri, targetPath: string, projectName: string) {
+  constructor(projectRoot: Uri) {
     this.projectRoot = projectRoot;
-    this.targetPath = targetPath;
-    this.projectName = projectName;
   }
 
-  public async createTargetWatchers() {
+  public async createTargetWatchers(targetPath: string, projectName: string) {
     if (
-      this.currentTargetPath === undefined || // TODO add same logic for projectName
-      this.currentTargetPath !== this.targetPath
+      this.currentTargetPath === undefined ||
+      this.currentTargetPath !== targetPath ||
+      this.currentProjectName === undefined ||
+      this.currentProjectName !== projectName
     ) {
-      const manifestChangedHandler = new ManifestChangedHandler(this.projectRoot, this.projectName);
-      manifestChangedHandler.parseManifest(this.targetPath);
+      const manifestChangedHandler = new ManifestChangedHandler(this.projectRoot, projectName);
 
       const handler = () => {
-        manifestChangedHandler.parseManifest(this.targetPath);
+        manifestChangedHandler.parseManifest(targetPath);
       };
 
-      this.manifestWatcher = this.createManifestWatcher();
+      this.manifestWatcher = this.createManifestWatcher(targetPath);
       setupWatcherhHandler(this.manifestWatcher, () => handler());
 
-      this.runResultsWatcher = this.createRunResultsWatcher();
+      this.runResultsWatcher = this.createRunResultsWatcher(targetPath);
       setupWatcherhHandler(this.runResultsWatcher, () => handler());
 
-      this.targetFolderWatcher = this.createTargetFolderWatcher();
+      this.targetFolderWatcher = this.createTargetFolderWatcher(targetPath);
       this.targetFolderWatcher.onDidDelete(() => () => handler());
 
-      this.currentTargetPath = this.targetPath;
+      this.currentTargetPath = targetPath;
+      this.currentProjectName = projectName;
 
-      await manifestChangedHandler.parseManifest(this.targetPath);
+      await manifestChangedHandler.parseManifest(targetPath);
     }
   }
 
-  private createManifestWatcher(): FileSystemWatcher {
+  private createManifestWatcher(targetPath: string): FileSystemWatcher {
     const manifestWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(
         this.projectRoot.path,
-        `${this.targetPath}/${DBTProject.MANIFEST_FILE}`
+        `${targetPath}/${DBTProject.MANIFEST_FILE}`
       )
     );
     return manifestWatcher;
   }
 
-  private createRunResultsWatcher(): FileSystemWatcher {
+  private createRunResultsWatcher(targetPath: string): FileSystemWatcher {
     const runResultsWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(
         this.projectRoot.path,
-        `${this.targetPath}/${DBTProject.RUN_RESULTS_FILE}`
+        `${targetPath}/${DBTProject.RUN_RESULTS_FILE}`
       )
     );
     return runResultsWatcher;
   }
 
-  private createTargetFolderWatcher(): FileSystemWatcher {
+  private createTargetFolderWatcher(targetPath: string): FileSystemWatcher {
     const targetFolderWatcher = workspace.createFileSystemWatcher(
-      new RelativePattern(this.projectRoot.path, this.targetPath)
+      new RelativePattern(this.projectRoot.path, targetPath)
     );
     return targetFolderWatcher;
   }
