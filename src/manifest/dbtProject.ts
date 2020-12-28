@@ -2,10 +2,10 @@ import * as vscode from "vscode";
 import { readFileSync } from "fs";
 import { safeLoad } from "js-yaml";
 import * as path from "path";
-import { arrayEquals } from "../utils";
 import { ProjectConfigWatcherFactory } from "./watchers/projectConfigWatcherFactory";
-import { SourceFileWatcherFactory } from "./watchers/sourceFileWatcherFactory";
+import { SourceFileWatchers } from "./watchers/sourceFileWatchers";
 import { TargetWatchers } from "./watchers/targetWatchers";
+import { DBTProjectLog } from "./dbtProjectLog";
 
 export class DBTProject {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -16,8 +16,6 @@ export class DBTProject {
   private static SOURCE_PATHS_VAR = "source-paths";
 
   private dbtProjectWatcher?: vscode.FileSystemWatcher;
-  private sourceFolderWatchers?: vscode.FileSystemWatcher[];
-  private currentSourcePaths?: string[];
   private projectRoot: vscode.Uri;
 
   constructor(path: vscode.Uri) {
@@ -54,16 +52,7 @@ export class DBTProject {
     const sourcePaths = projectConfig[DBTProject.SOURCE_PATHS_VAR] as string[];
 
     await new TargetWatchers(this.projectRoot, targetPath, projectName).createTargetWatchers();
-    this.createSourceWatchers(sourcePaths);
-  }
-
-  private createSourceWatchers(sourcePaths: string[]) { // TODO create separate class as well
-    if (
-      this.currentSourcePaths === undefined ||
-      !arrayEquals(this.currentSourcePaths, sourcePaths)
-    ) {
-      this.sourceFolderWatchers = SourceFileWatcherFactory.createSourceFileWatchers(this.projectRoot, sourcePaths);
-      this.currentSourcePaths = sourcePaths;
-    }
+    new SourceFileWatchers(this.projectRoot, sourcePaths).createSourceFileWatchers();
+    new DBTProjectLog(this.projectRoot, projectName).setupDBTProjectLog();
   }
 }

@@ -1,7 +1,6 @@
-import { closeSync, openSync, readFileSync, readSync } from "fs";
+import { readFileSync } from "fs";
 import path = require("path");
-import { FileSystemWatcher, OutputChannel, Uri, window, workspace, RelativePattern } from "vscode";
-import { setupWatcherhHandler } from "../utils";
+import { Uri } from "vscode";
 import { DBTProject } from "./dbtProject";
 import { dbtProjectContainer } from "./dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "./manifestCacheChangedEvent";
@@ -14,11 +13,6 @@ import { SourceParser } from "./parsers/sourceParser";
 export class ManifestChangedHandler {
   private projectRoot: Uri;
   private projectName: string;
-  private outputChannel?: OutputChannel;
-  private logFileWatcher?: FileSystemWatcher;
-  private logPosition: number = 0;
-  private static LOG_PATH = "logs";
-  private static LOG_FILE = "dbt.log";
   static RESOURCE_TYPE_MODEL = "model";
   static RESOURCE_TYPE_SOURCE = "source";
 
@@ -68,8 +62,6 @@ export class ManifestChangedHandler {
       this.projectRoot
     );
     dbtProjectContainer.raiseManifestChangedEvent(event);
-
-    this.setupOutputChannel(this.projectName); // TODO move the whole log to DBTProject
   }
 
   private readAndParseManifest(targetPath: string) {
@@ -86,62 +78,6 @@ export class ManifestChangedHandler {
         `File not found at '${manifestLocation}', probably not compiled!`,
         error
       );
-    }
-  }
-
-  private setupOutputChannel(projectName: string): void {
-    if (this.outputChannel === undefined) {
-      this.outputChannel = window.createOutputChannel(
-        `${projectName} dbt logs`
-      );
-      this.readLogFileFromLastPosition();
-
-      this.logFileWatcher = workspace.createFileSystemWatcher(
-        new RelativePattern(
-          this.projectRoot.path,
-          `${ManifestChangedHandler.LOG_PATH}/${ManifestChangedHandler.LOG_FILE}`
-        )
-      );
-      setupWatcherhHandler(this.logFileWatcher, () => this.readLogFileFromLastPosition());
-    }
-  }
-
-  private readLogFileFromLastPosition(): void {
-    if (this.outputChannel) {
-      let fileHandle;
-      try {
-        fileHandle = openSync(
-          path.join(
-            this.projectRoot.fsPath,
-            ManifestChangedHandler.LOG_PATH,
-            ManifestChangedHandler.LOG_FILE
-          ),
-          "r"
-        );
-        const chunkSize = 1024 * 1024;
-        const buffer = Buffer.alloc(chunkSize);
-        while (true) {
-          const bytesRead = readSync(
-            fileHandle,
-            buffer,
-            0,
-            buffer.length,
-            this.logPosition
-          );
-          if (!bytesRead) {
-            break;
-          }
-          this.logPosition += bytesRead;
-          this.outputChannel.appendLine(buffer.toString("utf8", 0, bytesRead));
-          this.outputChannel.show(true);
-        }
-      } catch (error) {
-        console.log("Could not read log file", error);
-      } finally {
-        if (fileHandle) {
-          closeSync(fileHandle);
-        }
-      }
     }
   }
 }

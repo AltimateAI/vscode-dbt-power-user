@@ -28,12 +28,17 @@ export class TargetWatchers {
       manifestChangedHandler.parseManifest(this.targetPath);
 
       const handler = () => {
-        manifestChangedHandler.parseManifest(this.targetPath); // TODO this seems to be triggered when source files are changed, which should not happend...
+        manifestChangedHandler.parseManifest(this.targetPath);
       };
 
-      this.manifestWatcher = this.createManifestWatcher(handler);
-      this.runResultsWatcher = this.createRunResultsWatcher(handler);
-      this.targetFolderWatcher = this.createTargetFolderWatcher(handler);
+      this.manifestWatcher = this.createManifestWatcher();
+      setupWatcherhHandler(this.manifestWatcher, () => handler());
+
+      this.runResultsWatcher = this.createRunResultsWatcher();
+      setupWatcherhHandler(this.runResultsWatcher, () => handler());
+
+      this.targetFolderWatcher = this.createTargetFolderWatcher();
+      this.targetFolderWatcher.onDidDelete(() => () => handler());
 
       this.currentTargetPath = this.targetPath;
 
@@ -41,33 +46,30 @@ export class TargetWatchers {
     }
   }
 
-  private createManifestWatcher(handler: Function): FileSystemWatcher {
+  private createManifestWatcher(): FileSystemWatcher {
     const manifestWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(
         this.projectRoot.path,
         `${this.targetPath}/${DBTProject.MANIFEST_FILE}`
       )
     );
-    setupWatcherhHandler(manifestWatcher, () => handler());
     return manifestWatcher;
   }
 
-  private createRunResultsWatcher(handler: Function): FileSystemWatcher {
+  private createRunResultsWatcher(): FileSystemWatcher {
     const runResultsWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(
         this.projectRoot.path,
         `${this.targetPath}/${DBTProject.RUN_RESULTS_FILE}`
       )
     );
-    setupWatcherhHandler(runResultsWatcher, () => handler());
     return runResultsWatcher;
   }
 
-  private createTargetFolderWatcher(handler: Function): FileSystemWatcher {
+  private createTargetFolderWatcher(): FileSystemWatcher {
     const targetFolderWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(this.projectRoot.path, this.targetPath)
     );
-    targetFolderWatcher.onDidDelete(() => handler());
     return targetFolderWatcher;
   }
 }
