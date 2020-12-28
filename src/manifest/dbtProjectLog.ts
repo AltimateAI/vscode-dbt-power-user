@@ -1,8 +1,8 @@
 import { closeSync, openSync, readSync } from "fs";
 import path = require("path");
-import { FileSystemWatcher, OutputChannel, RelativePattern, Uri, window, workspace } from "vscode";
-import { setupWatcherhHandler } from "../utils";
-import { OnProjectConfigChanged, OnProjectConfigChangedHandler, ProjectConfigChangedEvent } from "./projectConfigChangedEvent";
+import { FileSystemWatcher, OutputChannel, RelativePattern, window, workspace } from "vscode";
+import { setupWatcherHandler as setupWatcherHandler } from "../utils";
+import { OnProjectConfigChanged, ProjectConfigChangedEvent } from "./projectConfigChangedEvent";
 
 export class DBTProjectLog implements OnProjectConfigChanged {
   private outputChannel?: OutputChannel;
@@ -26,7 +26,7 @@ export class DBTProjectLog implements OnProjectConfigChanged {
           `${DBTProjectLog.LOG_PATH}/${DBTProjectLog.LOG_FILE}`
         )
       );
-      setupWatcherhHandler(this.logFileWatcher, () => this.readLogFileFromLastPosition(event));
+      setupWatcherHandler(this.logFileWatcher, () => this.readLogFileFromLastPosition(event));
       this.currentProjectName = projectName;
     }
     if (this.currentProjectName !== projectName) {
@@ -68,7 +68,6 @@ export class DBTProjectLog implements OnProjectConfigChanged {
           }
           this.logPosition += bytesRead;
           this.outputChannel.appendLine(buffer.toString("utf8", 0, bytesRead));
-          this.outputChannel.show(true);
         }
       } catch (error) {
         console.log("Could not read log file", error);

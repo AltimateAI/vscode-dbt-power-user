@@ -1,5 +1,5 @@
-import { FileSystemWatcher, RelativePattern, Uri, workspace } from "vscode";
-import { setupWatcherhHandler } from "../../utils";
+import { FileSystemWatcher, RelativePattern, workspace } from "vscode";
+import { setupWatcherHandler } from "../../utils";
 import { DBTProject } from "../dbtProject";
 import { ManifestChangedHandler } from "../manifestChangedHandler";
 import { OnProjectConfigChanged, ProjectConfigChangedEvent } from "../projectConfigChangedEvent";
@@ -26,10 +26,10 @@ export class TargetWatchers implements OnProjectConfigChanged {
       };
 
       this.manifestWatcher = this.createManifestWatcher(event);
-      setupWatcherhHandler(this.manifestWatcher, () => handler());
+      setupWatcherHandler(this.manifestWatcher, () => handler());
 
       this.runResultsWatcher = this.createRunResultsWatcher(event);
-      setupWatcherhHandler(this.runResultsWatcher, () => handler());
+      setupWatcherHandler(this.runResultsWatcher, () => handler());
 
       this.targetFolderWatcher = this.createTargetFolderWatcher(event);
       this.targetFolderWatcher.onDidDelete(() => () => handler());

@@ -1,12 +1,12 @@
-import * as vscode from "vscode";
 import { readFileSync } from "fs";
 import { safeLoad } from "js-yaml";
 import * as path from "path";
-import { ProjectConfigWatcherFactory } from "./watchers/projectConfigWatcherFactory";
 import { SourceFileWatchers } from "./watchers/sourceFileWatchers";
 import { TargetWatchers } from "./watchers/targetWatchers";
 import { DBTProjectLog } from "./dbtProjectLog";
 import { OnProjectConfigChanged, ProjectConfigChangedEvent } from "./projectConfigChangedEvent";
+import { setupWatcherHandler } from "../utils";
+import { FileSystemWatcher, RelativePattern, Uri, workspace } from "vscode";
 
 export class DBTProject {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -16,12 +16,19 @@ export class DBTProject {
   static TARGET_PATH_VAR = "target-path";
   static SOURCE_PATHS_VAR = "source-paths";
 
-  private dbtProjectWatcher?: vscode.FileSystemWatcher;
-  private projectRoot: vscode.Uri;
+  private dbtProjectWatcher?: FileSystemWatcher;
+  private projectRoot: Uri;
   private onProjectConfigChangedHandlers: OnProjectConfigChanged[] = [new TargetWatchers(), new SourceFileWatchers(), new DBTProjectLog()];
 
-  constructor(path: vscode.Uri) {
+  constructor(path: Uri) {
     this.projectRoot = path;
+    this.dbtProjectWatcher = workspace.createFileSystemWatcher(
+      new RelativePattern(
+        path,
+        DBTProject.DBT_PROJECT_FILE
+      )
+    );
+    setupWatcherHandler(this.dbtProjectWatcher, () => this.tryRefresh());
   }
 
   async tryRefresh() {
@@ -44,9 +51,6 @@ export class DBTProject {
   }
 
   private async refresh() {
-    if (this.dbtProjectWatcher === undefined) {
-      this.dbtProjectWatcher = ProjectConfigWatcherFactory.createProjectConfigWatcher(this.projectRoot, () => this.tryRefresh());
-    }
     const projectConfig = this.readAndParseProjectConfig();
 
     const event = new ProjectConfigChangedEvent(this.projectRoot, projectConfig);
