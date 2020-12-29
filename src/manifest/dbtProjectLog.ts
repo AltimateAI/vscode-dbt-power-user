@@ -1,22 +1,16 @@
 import { closeSync, openSync, readSync } from "fs";
 import path = require("path");
-import { FileSystemWatcher, OutputChannel, RelativePattern, window, workspace } from "vscode";
+import { Disposable, FileSystemWatcher, OutputChannel, RelativePattern, window, workspace } from "vscode";
 import { setupWatcherHandler as setupWatcherHandler } from "../utils";
 import { OnProjectConfigChanged, ProjectConfigChangedEvent } from "./projectConfigChangedEvent";
 
-export class DBTProjectLog implements OnProjectConfigChanged {
+export class DBTProjectLog implements OnProjectConfigChanged, Disposable {
   private outputChannel?: OutputChannel;
   private logFileWatcher?: FileSystemWatcher;
   private logPosition: number = 0;
   private static LOG_PATH = "logs";
   private static LOG_FILE = "dbt.log";
   private currentProjectName?: string;
-
-  public cleanUp() {
-    if (this.outputChannel !== undefined) {
-      this.outputChannel.dispose();
-    }
-  }
 
   public onProjectConfigChanged(event: ProjectConfigChangedEvent) {
     const { projectName, projectRoot } = event;
@@ -82,6 +76,12 @@ export class DBTProjectLog implements OnProjectConfigChanged {
           closeSync(fileHandle);
         }
       }
+    }
+  }
+
+  public dispose() {
+    if (this.outputChannel !== undefined) {
+      this.outputChannel.dispose();
     }
   }
 }

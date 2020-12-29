@@ -17,7 +17,7 @@ import {
 } from "../manifest/manifestCacheChangedEvent";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 
-export class ModelAutocompletionProvider
+export class ModelAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype
   implements CompletionItemProvider, OnManifestCacheChanged {
   private static readonly ENDS_WTTH_REF = /ref\(['|"]$/;
   private modelAutocompleteMap: Map<string, CompletionItem[]> = new Map();

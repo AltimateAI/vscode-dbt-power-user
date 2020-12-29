@@ -1,4 +1,4 @@
-import { OutputChannel, StatusBarAlignment, StatusBarItem, window } from 'vscode';
+import { Disposable, OutputChannel, StatusBarAlignment, StatusBarItem, window } from 'vscode';
 import { CommandProcessExecution } from '../commandProcessExecution';
 import { OnSourceFileChanged, SourceFileChangedEvent } from '../manifest/sourceFileChangedEvent';
 import { dbtClientCommandQueue } from './dbtClientCommandQueue';
@@ -15,7 +15,7 @@ interface RunCommandInfo {
   cwd: string;
 }
 
-export class DBTClient implements OnSourceFileChanged {
+export class DBTClient implements OnSourceFileChanged, Disposable {
   public pythonPath: string;
   static readonly IS_INSTALLED_VERSION = /(?<=installed\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
   static readonly IS_LATEST_VERSION = /(?<=latest\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
@@ -30,13 +30,13 @@ export class DBTClient implements OnSourceFileChanged {
     this.statusBar = window.createStatusBarItem(StatusBarAlignment.Left, 10);
   }
 
-  public destroyOldDisplayItems() {
+  public dispose() {
     this.statusBar.dispose();
     this.outputChannel.dispose();
   }
 
   public async onSourceFileChanged(event: SourceFileChangedEvent): Promise<void> {
-    await this.DBTListCommandAndShow(event.projectRoot.fsPath);
+    await this.runDBTListCommand(event.projectRoot.fsPath);
   }
 
   public async checkIfDBTIsInstalled(): Promise<void> {
@@ -56,12 +56,12 @@ export class DBTClient implements OnSourceFileChanged {
     }
   }
 
-  public async DBTRunCommandAndShow(runCommandInfo: RunCommandInfo): Promise<void> {
+  public async runDBTRunModelCommand(runCommandInfo: RunCommandInfo): Promise<void> {
     const runModelCommand = this.DBTRunModelCommand(runCommandInfo);
     dbtClientCommandQueue.addToQueue(() => runModelCommand.completeWithOutputChannel(this.outputChannel), "Running DBT models...");
   }
 
-  public async DBTListCommandAndShow(cwd: string): Promise<void> {
+  public async runDBTListCommand(cwd: string): Promise<void> {
     dbtClientCommandQueue.addToQueue(() => this.DBTListCommand(cwd).completeWithOutputChannel(this.outputChannel), "Listing DBT models...");
   }
 

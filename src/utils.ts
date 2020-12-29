@@ -66,7 +66,7 @@ interface PythonExecutionDetails {
   onDidChangeExecutionDetails: Event<Uri | undefined>;
 }
 
-export const getPythonPathFromExtention = async (): Promise<PythonExecutionDetails> => {
+export const getPythonPathFromExtension = async (): Promise<PythonExecutionDetails> => {
   const extension = extensions.getExtension('ms-python.python')!;
 
   if (!extension.isActive) {

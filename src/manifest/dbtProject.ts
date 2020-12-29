@@ -6,9 +6,9 @@ import { TargetWatchers } from "./watchers/targetWatchers";
 import { DBTProjectLog } from "./dbtProjectLog";
 import { OnProjectConfigChanged, ProjectConfigChangedEvent } from "./projectConfigChangedEvent";
 import { setupWatcherHandler } from "../utils";
-import { FileSystemWatcher, RelativePattern, Uri, workspace } from "vscode";
+import { Disposable, FileSystemWatcher, RelativePattern, Uri, workspace } from "vscode";
 
-export class DBTProject {
+export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
   static DBT_MODULES = "dbt_modules";
   static MANIFEST_FILE = "manifest.json";
@@ -16,9 +16,10 @@ export class DBTProject {
   static TARGET_PATH_VAR = "target-path";
   static SOURCE_PATHS_VAR = "source-paths";
 
+  public projectRoot: Uri;
   private dbtProjectWatcher?: FileSystemWatcher;
-  private projectRoot: Uri;
-  private onProjectConfigChangedHandlers: OnProjectConfigChanged[] = [new TargetWatchers(), new SourceFileWatchers(), new DBTProjectLog()];
+  private dbtProjectLog = new DBTProjectLog();
+  private onProjectConfigChangedHandlers: OnProjectConfigChanged[] = [new TargetWatchers(), new SourceFileWatchers(), this.dbtProjectLog];
 
   constructor(path: Uri) {
     this.projectRoot = path;
@@ -31,8 +32,8 @@ export class DBTProject {
     setupWatcherHandler(this.dbtProjectWatcher, () => this.tryRefresh());
   }
 
-  public cleanUp() {
-    this.onProjectConfigChangedHandlers.forEach(handler => handler.cleanUp());
+  public dispose() {
+    this.dbtProjectLog.dispose();
   }
 
   async tryRefresh() {

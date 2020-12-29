@@ -41,6 +41,6 @@ const runDBTModel = async (modelName: string, type?: RunModelType) => {
     const dbtClient = dbtProjectContainer.dbtClient;
     const plusOperatorLeft = type === RunModelType.PARENTS ? "+" : "";
     const plusOperatorRight = type === RunModelType.CHILDREN ? "+" : "";
-    dbtClient.DBTRunCommandAndShow({ plusOperatorLeft, modelName, plusOperatorRight, cwd: projectRootpath.fsPath });
+    dbtClient.runDBTRunModelCommand({ plusOperatorLeft, modelName, plusOperatorRight, cwd: projectRootpath.fsPath });
   }
 };

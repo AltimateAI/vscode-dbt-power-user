@@ -8,7 +8,7 @@ interface CommandItem {
 }
 class DBTClientCommandQueue {
   private queue: CommandItem[] = []; // TODO add WithProgress display
-  private currentPromise: any;
+  private currentPromise?: any;
 
   public addToQueue(command: Command, text: string) {
     this.queue.push({ command, text });

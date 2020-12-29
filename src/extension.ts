@@ -12,17 +12,14 @@ export async function activate(context: vscode.ExtensionContext) {
 
   await dbtProjectContainer.createDBTClient();
 
-  await dbtProjectContainer.createManifests();
-
   context.subscriptions.push(
     ...DefinitionProviderFactory.createDefinitionProviders(),
     ...AutocompletionProviderFactory.createAutoCompletionProviders(),
     ...TreeviewProviderFactory.createModelTreeViews(),
     ...CommandFactory.createCommands(),
     StatusBarFactory.createRunResultStatusBar(),
+    await dbtProjectContainer.createDBTProjects()
   );
-
-  dbtProjectContainer.tryRefreshAll();
 }
 
 export function deactivate() {

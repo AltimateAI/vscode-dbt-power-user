@@ -19,7 +19,7 @@ import { isEnclosedWithinCodeBlock } from "../utils";
 import { SourceMetaMap } from "../domain";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 
-export class SourceDefinitionProvider implements DefinitionProvider, OnManifestCacheChanged  {
+export class SourceDefinitionProvider implements DefinitionProvider, OnManifestCacheChanged {
   private sourceMetaMap: Map<string, SourceMetaMap> = new Map();
   private static readonly IS_SOURCE = /(source)\([^)]*\)/;
   private static readonly GET_SOURCE_INFO = /(?!['"])(\w+)(?=['"])/g;

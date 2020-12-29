@@ -11,10 +11,6 @@ export class TargetWatchers implements OnProjectConfigChanged {
   private currentTargetPath?: string;
   private currentProjectName?: string;
 
-  public cleanUp() {
-    return;
-  }
-
   public async onProjectConfigChanged(event: ProjectConfigChangedEvent) {
     const { targetPath, projectName, projectRoot } = event;
     if (

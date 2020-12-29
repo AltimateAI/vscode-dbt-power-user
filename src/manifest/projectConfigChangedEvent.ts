@@ -3,7 +3,6 @@ import { DBTProject } from "./dbtProject";
 
 export interface OnProjectConfigChanged {
   onProjectConfigChanged: OnProjectConfigChangedHandler;
-  cleanUp: () => void;
 }
 
 export type OnProjectConfigChangedHandler = (event: ProjectConfigChangedEvent) => void;

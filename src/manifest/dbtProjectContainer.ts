@@ -1,60 +1,99 @@
 import { DBTProject } from "./dbtProject";
-import { workspace, RelativePattern, WorkspaceFolder, Uri } from "vscode";
+import { workspace, RelativePattern, WorkspaceFolder, Uri, FileSystemWatcher, Disposable } from "vscode";
 import { ManifestCacheChangedEvent, OnManifestCacheChanged } from "./manifestCacheChangedEvent";
 import { DBTClient } from "../dbt_client/dbtClient";
-import { getPythonPathFromExtention } from "../utils";
+import { getPythonPathFromExtension } from "../utils";
 import { SourceFileChangedEvent } from "./sourceFileChangedEvent";
+import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
+import path = require("path");
 
-type ManifestMetaMap = Map<Uri, DBTProject>;
-
-export class DbtProjectContainer {
-  private manifestMetaMap?: ManifestMetaMap;
+export class DbtProjectContainer implements Disposable {
   private providers: OnManifestCacheChanged[] = [];
   public dbtClient?: DBTClient;
+  private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
 
   constructor() {
-    const dbtProjectFoldersWatcher = workspace.createFileSystemWatcher(
-      new RelativePattern(workspace.workspaceFolders![0].uri, '*'));
-    dbtProjectFoldersWatcher.onDidCreate(async () => {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      await this.createManifests();
-      await this.tryRefreshAll();
-    });
-    dbtProjectFoldersWatcher.onDidDelete(async () => {
-      await this.createManifests();
-      await this.tryRefreshAll();
+    workspace.onDidChangeWorkspaceFolders(async (event) => {
+      const { added, removed } = event;
+      for (const addedFolder of added) {
+        await this.registerWorkspaceFolder(addedFolder);
+      }
+      removed.forEach(removedWorkspaceFolder => this.unregisterWorkspaceFolder(removedWorkspaceFolder));
     });
   }
 
-  public async createManifests(): Promise<void> {
-    if (this.manifestMetaMap !== undefined) {
-      this.manifestMetaMap.forEach(dbtProject => dbtProject.cleanUp());
+  dispose() {
+    throw new Error("Method not implemented.");
+  }
+
+  private async registerWorkspaceFolder(workspaceFolder: WorkspaceFolder): Promise<void> {
+    const watcher = this.createConfigWatcher(workspaceFolder);
+    this.dbtWorkspaceFolders.push(new DBTWorkspaceFolder(workspaceFolder, watcher));
+    const projectUris = await this.discoverProjects(workspaceFolder);
+    for (const projectUri of projectUris) {
+      await this.registerDBTProject(projectUri);
     }
+  }
+
+  private unregisterWorkspaceFolder(workspaceFolder: WorkspaceFolder): void {
+    const folderToDelete = this.findDBTWorkspaceFolder(workspaceFolder.uri);
+    if (folderToDelete === undefined) { throw Error('dbtWorkspaceFolder not registered'); };
+    folderToDelete.dispose();
+    this.dbtWorkspaceFolders.splice(this.dbtWorkspaceFolders.indexOf(folderToDelete));
+  }
+
+  private async registerDBTProject(uri: Uri): Promise<void> {
+    const dbtWorkspaceFolder = this.findDBTWorkspaceFolder(uri);
+    if (dbtWorkspaceFolder === undefined) { throw Error('dbtWorkspaceFolder not registered'); };
+    const dbtProject = new DBTProject(uri);
+    await dbtProject.tryRefresh();
+    if (this.dbtClient === undefined) {
+      throw Error('registerDBTProject method called before creating dbtClient');
+    }
+    dbtWorkspaceFolder.addDBTProject(dbtProject);
+  }
+
+  private unregisterDBTProject(uri: Uri): void {
+    const workspaceFolderOfProject = this.findDBTWorkspaceFolder(uri);
+    if (workspaceFolderOfProject === undefined) {
+      throw Error('dbtWorkspaceFolder not registered');
+    };
+    workspaceFolderOfProject.unregisterDBTProject(uri);
+  }
+
+  private createConfigWatcher(folder: WorkspaceFolder): FileSystemWatcher {
+    const watcher = workspace.createFileSystemWatcher(new RelativePattern(folder, `**/${DBTProject.DBT_PROJECT_FILE}`));
+    watcher.onDidCreate(async (uri) => {
+      const projectRootUri = Uri.file(path.dirname(uri.path));
+      await this.registerDBTProject(projectRootUri);
+    });
+    watcher.onDidDelete(async (uri) => {
+      const projectRootUri = Uri.file(path.dirname(uri.path));
+      this.unregisterDBTProject(projectRootUri);
+    });
+    return watcher;
+  }
+
+  public async createDBTProjects(): Promise<this> {
     const folders = workspace.workspaceFolders;
     if (folders === undefined) {
-      return;
+      return this;
     }
-
-    const manifests: ManifestMetaMap = new Map();
-
     for (const folder of folders) {
-      const projectUris = await this.discoverProjects(folder);
-      projectUris.forEach((projectUri) => {
-        manifests.set(projectUri, new DBTProject(projectUri));
-      });
+      await this.registerWorkspaceFolder(folder);
     }
-    this.manifestMetaMap = manifests;
+    return this;
   }
 
   public async createDBTClient(): Promise<void> {
-    const { pythonPath, onDidChangeExecutionDetails } = await getPythonPathFromExtention();
+    const { pythonPath, onDidChangeExecutionDetails } = await getPythonPathFromExtension();
     if (pythonPath === undefined) {
       return;
     }
     onDidChangeExecutionDetails(async () => {
-      const { pythonPath } = await getPythonPathFromExtention();
+      const { pythonPath } = await getPythonPathFromExtension();
       if (this.dbtClient !== undefined) {
-        this.dbtClient.destroyOldDisplayItems();
+        this.dbtClient.dispose();
       }
       this.dbtClient = new DBTClient(pythonPath);
       await this.dbtClient.checkIfDBTIsInstalled();
@@ -64,10 +103,6 @@ export class DbtProjectContainer {
   }
 
   public addProvider(provider: OnManifestCacheChanged): void {
-    if (this.manifestMetaMap === undefined) {
-      console.error("Trying to add eventhandlers to an empty manifests map!");
-      return;
-    }
     this.providers.push(provider);
   }
 
@@ -81,16 +116,7 @@ export class DbtProjectContainer {
     }
   }
 
-  public async tryRefreshAll(): Promise<void> {
-    if (this.manifestMetaMap === undefined) {
-      console.error("Trying to refresh an empty manifests map!");
-      return;
-    }
-    this.manifestMetaMap.forEach((manifestInstance) => {
-      manifestInstance.tryRefresh();
-    });
-  }
-
+  // TODO move it to DBTProject and make it static
   public getPackageName = (currentPath: Uri): string | undefined => {
     const projectPath = this.getProjectRootpath(currentPath);
     if (projectPath === undefined) {
@@ -110,12 +136,9 @@ export class DbtProjectContainer {
     return undefined;
   };
 
+  // TODO move this method to utils
   public getProjectRootpath = (currentFilePath: Uri): Uri | undefined => {
-    if (this.manifestMetaMap === undefined) {
-      console.error("Trying to call getProjectRootpath an empty manifests map!");
-      return;
-    }
-    for (const projectRootUri of Array.from(this.manifestMetaMap.keys())) {
+    for (const projectRootUri of this.getAllDBTProjectUris()) {
       if (currentFilePath.path.startsWith(projectRootUri.path + "/")) {
         return projectRootUri;
       }
@@ -123,13 +146,33 @@ export class DbtProjectContainer {
     return undefined;
   };
 
+  private findDBTWorkspaceFolder(uri: Uri): DBTWorkspaceFolder | undefined {
+    for (const folder of this.dbtWorkspaceFolders) {
+      if (folder.checkIfPathIsWorkspaceFolder(uri)) {
+        return folder;
+      }
+    }
+    return undefined;
+  }
+
+  // TODO get rid of this method
+  private getAllDBTProjectUris(): Uri[] {
+    const uris: Uri[] = [];
+    this.dbtWorkspaceFolders.forEach(folder => {
+      folder.dbtProjects.forEach(dbtProject => {
+        uris.push(dbtProject.projectRoot);
+      });
+    });
+    return uris;
+  }
+
   private async discoverProjects(folder: WorkspaceFolder): Promise<Uri[]> {
     const dbtProjectFiles = await workspace.findFiles(
       new RelativePattern(folder, `**/${DBTProject.DBT_PROJECT_FILE}`),
       new RelativePattern(folder, `**/${DBTProject.DBT_MODULES}`)
     );
     return dbtProjectFiles
-      .filter((uri) => !uri.path.includes('site-packages')) // TODO verify if this is really necessary, this is necessary for me because I put the venv in the DBT project 
+      .filter((uri) => !uri.path.includes('site-packages'))
       .map((uri) =>
         Uri.file(uri.path.split("/")!.slice(0, -1).join("/"))
       );

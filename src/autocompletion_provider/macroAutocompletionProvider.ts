@@ -17,7 +17,7 @@ import {
 } from "../manifest/manifestCacheChangedEvent";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 
-export class MacroAutocompletionProvider
+export class MacroAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype
   implements CompletionItemProvider, OnManifestCacheChanged {
   private macrosAutocompleteMap: Map<string, CompletionItem[]> = new Map();
 

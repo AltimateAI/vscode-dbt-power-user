@@ -17,7 +17,7 @@ import {
 } from "../manifest/manifestCacheChangedEvent";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 
-export class SourceAutocompletionProvider
+export class SourceAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype
   implements CompletionItemProvider, OnManifestCacheChanged {
   private static readonly GET_SOURCE_NAME = /(?!['"])(\w+)(?=['"])/;
   private static readonly ENDS_WTTH_SOURCE = /source\(['|"]$/;
@@ -59,6 +59,8 @@ export class SourceAutocompletionProvider
     }
     return undefined;
   }
+
+  // TODO: what when a project is deleted
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     this.sourceAutocompleteNameItemsMap.set(
