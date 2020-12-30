@@ -1,7 +1,7 @@
 import { Disposable, OutputChannel, StatusBarAlignment, StatusBarItem, window } from 'vscode';
 import { CommandProcessExecution } from './commandProcessExecution';
-import { OnSourceFileChanged, SourceFileChangedEvent } from '../manifest/sourceFileChangedEvent';
-import { dbtClientCommandQueue } from './dbtClientCommandQueue';
+import { OnSourceFileChanged, SourceFileChangedEvent } from '../manifest/event/sourceFileChangedEvent';
+import { DBTClientCommandQueue } from './dbtClientCommandQueue';
 
 enum PromptAnswer {
   YES = "Yes",
@@ -16,30 +16,32 @@ interface RunCommandInfo {
 }
 
 export class DBTClient implements OnSourceFileChanged, Disposable {
-  public pythonPath: string;
+  pythonPath: string;
+  outputChannel: OutputChannel;
   static readonly IS_INSTALLED_VERSION = /(?<=installed\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
   static readonly IS_LATEST_VERSION = /(?<=latest\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
   static readonly IS_INSTALLED = /installed\sversion/g;
-  public outputChannel: OutputChannel;
   private statusBar: StatusBarItem;
   private installedVersion?: string;
+  private queue: DBTClientCommandQueue;
 
   constructor(pythonPath: string) {
     this.pythonPath = pythonPath;
+    this.queue = new DBTClientCommandQueue(this);
     this.outputChannel = window.createOutputChannel('DBT');
     this.statusBar = window.createStatusBarItem(StatusBarAlignment.Left, 10);
   }
 
-  public dispose() {
+  dispose() {
     this.statusBar.dispose();
     this.outputChannel.dispose();
   }
 
-  public async onSourceFileChanged(event: SourceFileChangedEvent): Promise<void> {
+  async onSourceFileChanged(event: SourceFileChangedEvent): Promise<void> {
     await this.runDBTListCommand(event.projectRoot.fsPath);
   }
 
-  public async checkIfDBTIsInstalled(): Promise<void> {
+  async checkIfDBTIsInstalled(): Promise<void> {
     const checkDBTInstalledProcess = this.createDBTVersionCommand();
     try {
       await checkDBTInstalledProcess.complete();
@@ -56,21 +58,21 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
     }
   }
 
-  public async runDBTRunModelCommand(runCommandInfo: RunCommandInfo): Promise<void> {
+  async runDBTRunModelCommand(runCommandInfo: RunCommandInfo): Promise<void> {
     const runModelCommand = this.DBTRunModelCommand(runCommandInfo);
-    dbtClientCommandQueue.addToQueue(() => runModelCommand.completeWithOutputChannel(this.outputChannel), "Running DBT models...");
+    this.queue.addToQueue(() => runModelCommand.completeWithOutputChannel(this.outputChannel), "Running DBT models...");
   }
 
-  public async runDBTListCommand(cwd: string): Promise<void> {
-    dbtClientCommandQueue.addToQueue(() => this.DBTListCommand(cwd).completeWithOutputChannel(this.outputChannel), "Listing DBT models...");
+  async runDBTListCommand(cwd: string): Promise<void> {
+    this.queue.addToQueue(() => this.DBTListCommand(cwd).completeWithOutputChannel(this.outputChannel), "Listing DBT models...");
   }
 
-  public showMessageInStatusBar(text: string) {
+  showMessageInStatusBar(text: string) {
     this.statusBar.text = text;
     this.statusBar.show();
   }
 
-  public showVersionInStatusBar() {
+  showVersionInStatusBar() {
     this.statusBar.text = `DBT version ${this.installedVersion}`;
     this.statusBar.show();
   }

@@ -1,6 +1,6 @@
 import path = require("path");
 import { SourceMetaMap } from "../../domain";
-import { ManifestChangedHandler } from "../manifestChangedHandler";
+import { ManifestChangedHandler } from "../event/manifestChangedHandler";
 
 export class SourceParser {
   static createSourceMetaMap(sourcesMap: any[]): Promise<SourceMetaMap> {

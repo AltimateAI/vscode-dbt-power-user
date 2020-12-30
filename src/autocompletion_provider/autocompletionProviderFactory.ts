@@ -27,19 +27,19 @@ export class AutocompletionProviderFactory {
   
   static createMacroAutocompletionProvider(): vscode.CompletionItemProvider {
     const macroAutocompletionProvider = new MacroAutocompletionProvider();
-    dbtProjectContainer.addProvider(macroAutocompletionProvider);
+    dbtProjectContainer.addOnManifestCacheChangedHandler(macroAutocompletionProvider);
     return macroAutocompletionProvider;
   }
 
   static createModelAutocompletionProvider(): vscode.CompletionItemProvider {
     const modelAutocompletionProvider = new ModelAutocompletionProvider();
-    dbtProjectContainer.addProvider(modelAutocompletionProvider);
+    dbtProjectContainer.addOnManifestCacheChangedHandler(modelAutocompletionProvider);
     return modelAutocompletionProvider;
   }
 
   static createSourceAutocompletionProvider(): vscode.CompletionItemProvider {
     const sourceAutocompletionProvider = new SourceAutocompletionProvider();
-    dbtProjectContainer.addProvider(sourceAutocompletionProvider);
+    dbtProjectContainer.addOnManifestCacheChangedHandler(sourceAutocompletionProvider);
     return sourceAutocompletionProvider;
   }
 }

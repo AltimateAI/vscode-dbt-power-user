@@ -1,8 +1,8 @@
 import { closeSync, openSync, readSync } from "fs";
 import path = require("path");
 import { Disposable, FileSystemWatcher, OutputChannel, RelativePattern, window, workspace } from "vscode";
-import { setupWatcherHandler as setupWatcherHandler } from "../utils";
-import { OnProjectConfigChanged, ProjectConfigChangedEvent } from "./projectConfigChangedEvent";
+import { setupWatcherHandler as setupWatcherHandler } from "../../utils";
+import { OnProjectConfigChanged, ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 
 export class DBTProjectLog implements OnProjectConfigChanged, Disposable {
   private outputChannel?: OutputChannel;

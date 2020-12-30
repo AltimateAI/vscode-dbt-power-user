@@ -9,10 +9,7 @@ import {
 import { Node, Model, GraphMetaMap, Test, Seed, Analysis } from "../domain";
 import * as path from "path";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
-import {
-  ManifestCacheChangedEvent,
-  OnManifestCacheChanged,
-} from "../manifest/manifestCacheChangedEvent";
+import { OnManifestCacheChanged, ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 
 export class ModelTreeviewProvider
   implements TreeDataProvider<NodeTreeItem>, OnManifestCacheChanged {

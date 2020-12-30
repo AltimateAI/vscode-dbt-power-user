@@ -1,6 +1,6 @@
 import path = require("path");
 import { NodeMetaMap } from "../../domain";
-import { ManifestChangedHandler } from "../manifestChangedHandler";
+import { ManifestChangedHandler } from "../event/manifestChangedHandler";
 
 export class NodeParser {
   static createModelMetaMap(nodesMap: any[]): Promise<NodeMetaMap> {

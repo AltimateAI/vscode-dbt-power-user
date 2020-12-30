@@ -5,7 +5,7 @@ import {
   SourceMetaMap,
   RunResultMetaMap,
   GraphMetaMap
-} from "../domain";
+} from "../../domain";
 
 export interface OnManifestCacheChanged {
   onManifestCacheChanged: OnManifestCacheChangedHandler;

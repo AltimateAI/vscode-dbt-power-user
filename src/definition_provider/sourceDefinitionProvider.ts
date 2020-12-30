@@ -1,8 +1,4 @@
 import {
-  ManifestCacheChangedEvent,
-  OnManifestCacheChanged,
-} from "../manifest/manifestCacheChangedEvent";
-import {
   DefinitionProvider,
   TextDocument,
   Position,
@@ -18,6 +14,7 @@ import path = require("path");
 import { isEnclosedWithinCodeBlock } from "../utils";
 import { SourceMetaMap } from "../domain";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { OnManifestCacheChanged, ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 
 export class SourceDefinitionProvider implements DefinitionProvider, OnManifestCacheChanged {
   private sourceMetaMap: Map<string, SourceMetaMap> = new Map();

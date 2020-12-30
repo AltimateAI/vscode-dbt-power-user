@@ -1,5 +1,5 @@
 import { Uri } from "vscode";
-import { DBTProject } from "./dbtProject";
+import { DBTProject } from "../dbtProject";
 
 export interface OnProjectConfigChanged {
   onProjectConfigChanged: OnProjectConfigChangedHandler;

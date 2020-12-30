@@ -1,14 +1,14 @@
 import { readFileSync } from "fs";
 import path = require("path");
 import { Uri } from "vscode";
-import { DBTProject } from "./dbtProject";
-import { dbtProjectContainer } from "./dbtProjectContainer";
+import { DBTProject } from "../dbtProject";
+import { dbtProjectContainer } from "../dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "./manifestCacheChangedEvent";
-import { GraphParser } from "./parsers/graphParser";
-import { MacroParser } from "./parsers/macroParser";
-import { NodeParser } from "./parsers/nodeParser";
-import { RunResultsParser } from "./parsers/runResultsParser";
-import { SourceParser } from "./parsers/sourceParser";
+import { GraphParser } from "../parsers/graphParser";
+import { MacroParser } from "../parsers/macroParser";
+import { NodeParser } from "../parsers/nodeParser";
+import { RunResultsParser } from "../parsers/runResultsParser";
+import { SourceParser } from "../parsers/sourceParser";
 
 export class ManifestChangedHandler {
   private projectRoot: Uri;

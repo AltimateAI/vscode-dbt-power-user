@@ -11,11 +11,8 @@ import {
   CompletionItemKind,
   Uri,
 } from "vscode";
-import {
-  ManifestCacheChangedEvent,
-  OnManifestCacheChanged,
-} from "../manifest/manifestCacheChangedEvent";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { OnManifestCacheChanged, ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 
 export class MacroAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype
   implements CompletionItemProvider, OnManifestCacheChanged {

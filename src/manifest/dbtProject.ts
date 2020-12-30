@@ -1,12 +1,12 @@
 import { readFileSync } from "fs";
 import { safeLoad } from "js-yaml";
 import * as path from "path";
-import { SourceFileWatchers } from "./watchers/sourceFileWatchers";
-import { TargetWatchers } from "./watchers/targetWatchers";
-import { DBTProjectLog } from "./dbtProjectLog";
-import { OnProjectConfigChanged, ProjectConfigChangedEvent } from "./projectConfigChangedEvent";
+import { SourceFileWatchers } from "./handlers/sourceFileWatchers";
+import { TargetWatchers } from "./handlers/targetWatchers";
+import { DBTProjectLog } from "./handlers/dbtProjectLog";
 import { setupWatcherHandler } from "../utils";
 import { Disposable, FileSystemWatcher, RelativePattern, Uri, workspace } from "vscode";
+import { OnProjectConfigChanged, ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -16,7 +16,7 @@ export class DBTProject implements Disposable {
   static TARGET_PATH_VAR = "target-path";
   static SOURCE_PATHS_VAR = "source-paths";
 
-  public projectRoot: Uri;
+  readonly projectRoot: Uri;
   private dbtProjectWatcher?: FileSystemWatcher;
   private dbtProjectLog = new DBTProjectLog();
   private onProjectConfigChangedHandlers: OnProjectConfigChanged[] = [new TargetWatchers(), new SourceFileWatchers(), this.dbtProjectLog];
@@ -32,10 +32,6 @@ export class DBTProject implements Disposable {
     setupWatcherHandler(this.dbtProjectWatcher, () => this.tryRefresh());
   }
 
-  public dispose() {
-    this.dbtProjectLog.dispose();
-  }
-
   async tryRefresh() {
     try {
       await this.refresh();
@@ -45,6 +41,27 @@ export class DBTProject implements Disposable {
         error
       );
     }
+  }
+
+  findPackageName(uri: Uri): string | undefined {
+    const documentPath = uri.path;
+    const pathSegments = documentPath.replace(this.projectRoot.path, "").split("/");
+
+    const insidePackage =
+      pathSegments.length > 1 && pathSegments[0] === DBTProject.DBT_MODULES;
+
+    if (insidePackage) {
+      return pathSegments[1];
+    }
+    return undefined;
+  }
+
+  contains(uri: Uri) {
+    return uri.path.startsWith(this.projectRoot.path);
+  }
+  
+  dispose() {
+    this.dbtProjectLog.dispose();
   }
 
   private readAndParseProjectConfig() {

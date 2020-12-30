@@ -1,4 +1,4 @@
-import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTClient } from "./dbtClient";
 
 type Command = () => Promise<any>;
 
@@ -6,31 +6,34 @@ interface CommandItem {
   command: Command;
   text: string;
 }
-class DBTClientCommandQueue {
+export class DBTClientCommandQueue {
   private queue: CommandItem[] = []; // TODO add WithProgress display
   private currentPromise?: any;
+  private dbtClient: DBTClient;
 
-  public addToQueue(command: Command, text: string) {
+  constructor(dbtClient: DBTClient) {
+    this.dbtClient = dbtClient;
+  }
+
+  addToQueue(command: Command, text: string) {
     this.queue.push({ command, text });
     this.pickCommandToRun();
   }
 
   private async pickCommandToRun(): Promise<any> {
-    if (this.currentPromise === undefined && this.queue.length > 0 && dbtProjectContainer.dbtClient !== undefined) {
-      const { dbtClient } = dbtProjectContainer;
+    if (this.currentPromise === undefined && this.queue.length > 0) {
       const { command, text } = this.queue.shift()!;
 
       this.currentPromise = command;
-      dbtClient.showMessageInStatusBar(text);
+      this.dbtClient.showMessageInStatusBar(text);
 
       await this.currentPromise(); // TODO if possible when error happens show error and link to its output
 
       this.currentPromise = undefined;
-      dbtClient.showVersionInStatusBar();
+      this.dbtClient.showVersionInStatusBar();
       this.pickCommandToRun();
     }
   }
 }
 
-export const dbtClientCommandQueue = new DBTClientCommandQueue();
 

@@ -1,8 +1,8 @@
 import { FileSystemWatcher, RelativePattern, Uri, workspace } from "vscode";
 import { arrayEquals, debounce } from "../../utils";
 import { dbtProjectContainer } from "../dbtProjectContainer";
-import { OnProjectConfigChanged, ProjectConfigChangedEvent } from "../projectConfigChangedEvent";
-import { SourceFileChangedEvent } from "../sourceFileChangedEvent";
+import { OnProjectConfigChanged, ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
+import { SourceFileChangedEvent } from "../event/sourceFileChangedEvent";
 
 export class SourceFileWatchers implements OnProjectConfigChanged {
   private currentSourcePaths?: string[];

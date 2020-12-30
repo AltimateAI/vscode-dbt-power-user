@@ -1,4 +1,4 @@
-import { TextDocument, Range, Position, extensions, workspace, Event, Uri, FileSystemWatcher } from "vscode";
+import { TextDocument, Range, Position, FileSystemWatcher } from "vscode";
 
 export const isEnclosedWithinCodeBlock: (
   document: TextDocument,
@@ -59,24 +59,6 @@ export const isEnclosedWithinCodeBlock: (
 
 export const notEmpty = <T>(value: T | null | undefined): value is T => {
   return value !== null && value !== undefined;
-};
-
-interface PythonExecutionDetails {
-  pythonPath: string;
-  onDidChangeExecutionDetails: Event<Uri | undefined>;
-}
-
-export const getPythonPathFromExtension = async (): Promise<PythonExecutionDetails> => {
-  const extension = extensions.getExtension('ms-python.python')!;
-
-  if (!extension.isActive) {
-    await extension.activate();
-  }
-  await extension.exports.ready;
-
-  const settings = extension.exports.settings;
-
-  return { pythonPath: settings.getExecutionDetails(workspace.workspaceFile).execCommand[0], onDidChangeExecutionDetails: settings.onDidChangeExecutionDetails };
 };
 
 export const arrayEquals = <T>(a: Array<T>, b: Array<T>): boolean => {

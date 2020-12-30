@@ -11,11 +11,8 @@ import {
   Uri,
 } from "vscode";
 import { isEnclosedWithinCodeBlock } from "../utils";
-import {
-  ManifestCacheChangedEvent,
-  OnManifestCacheChanged,
-} from "../manifest/manifestCacheChangedEvent";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { OnManifestCacheChanged, ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 
 // TODO models should also allow seeds to be referenced (not only models)
 export class ModelAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype

@@ -10,7 +10,7 @@ export class CommandProcessExecution {
       { cwd: cwd });
   }
 
-  public async complete(): Promise<string> {
+  async complete(): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       const stdoutBuffer: Buffer[] = [];
       const stderrBuffer: Buffer[] = [];
@@ -33,7 +33,7 @@ export class CommandProcessExecution {
 
   }
 
-  public async completeWithOutputChannel(outputChannel: OutputChannel): Promise<void> {
+  async completeWithOutputChannel(outputChannel: OutputChannel): Promise<void> {
     return new Promise((resolve, reject) => {
       this.commandProcess.stdout!.on('data', chunk => { outputChannel.append(chunk.toString()); });
       this.commandProcess.stderr!.on('data', chunk => { outputChannel.append(chunk.toString()); });

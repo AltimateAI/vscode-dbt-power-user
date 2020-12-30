@@ -1,4 +1,16 @@
-import { Analysis, DBTGraphType, GraphMetaMap, Model, NodeGraphMap, NodeMetaMap, Seed, Source, SourceMetaMap, Test, Node } from "../../domain";
+import {
+  Analysis,
+  DBTGraphType,
+  GraphMetaMap,
+  Model,
+  NodeGraphMap,
+  NodeMetaMap,
+  Seed,
+  Source,
+  SourceMetaMap,
+  Test,
+  Node,
+} from "../../domain";
 import { notEmpty } from "../../utils";
 
 export class GraphParser {
@@ -82,5 +94,4 @@ export class GraphParser {
       }
     };
   }
-
 }

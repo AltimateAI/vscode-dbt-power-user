@@ -8,12 +8,9 @@ import {
   ProviderResult,
   DefinitionLink,
 } from "vscode";
-import {
-  ManifestCacheChangedEvent,
-  OnManifestCacheChanged,
-} from "../manifest/manifestCacheChangedEvent";
 import { MacroMetaMap } from "../domain";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { OnManifestCacheChanged, ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { isEnclosedWithinCodeBlock } from "../utils";
 export class MacroDefinitionProvider
   implements DefinitionProvider, OnManifestCacheChanged {

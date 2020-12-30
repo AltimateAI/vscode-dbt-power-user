@@ -10,12 +10,9 @@ import {
   Position,
   Range,
 } from "vscode";
-import {
-  ManifestCacheChangedEvent,
-  OnManifestCacheChanged,
-} from "../manifest/manifestCacheChangedEvent";
 import { NodeMetaMap } from "../domain";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { OnManifestCacheChanged, ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 
 export class ModelDefinitionProvider
   implements DefinitionProvider, OnManifestCacheChanged {

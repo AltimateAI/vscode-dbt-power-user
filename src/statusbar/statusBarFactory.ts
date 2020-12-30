@@ -6,7 +6,7 @@ export class StatusBarFactory {
 
   static createRunResultStatusBar(): StatusBarItem {
     const runResultStatusBar = new RunResultStatusBar();
-    dbtProjectContainer.addProvider(runResultStatusBar);
+    dbtProjectContainer.addOnManifestCacheChangedHandler(runResultStatusBar);
     return runResultStatusBar.statusBar;
   }
 }

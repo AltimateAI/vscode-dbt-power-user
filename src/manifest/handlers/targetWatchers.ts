@@ -1,8 +1,8 @@
 import { FileSystemWatcher, RelativePattern, workspace } from "vscode";
 import { setupWatcherHandler } from "../../utils";
 import { DBTProject } from "../dbtProject";
-import { ManifestChangedHandler } from "../manifestChangedHandler";
-import { OnProjectConfigChanged, ProjectConfigChangedEvent } from "../projectConfigChangedEvent";
+import { ManifestChangedHandler } from "../event/manifestChangedHandler";
+import { OnProjectConfigChanged, ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 
 export class TargetWatchers implements OnProjectConfigChanged {
   private manifestWatcher?: FileSystemWatcher;
