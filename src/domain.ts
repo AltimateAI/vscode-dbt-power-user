@@ -1,4 +1,3 @@
-
 import * as path from "path";
 
 export type DBTGraphType = {

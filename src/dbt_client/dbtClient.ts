@@ -1,5 +1,5 @@
 import { Disposable, OutputChannel, StatusBarAlignment, StatusBarItem, window } from 'vscode';
-import { CommandProcessExecution } from '../commandProcessExecution';
+import { CommandProcessExecution } from './commandProcessExecution';
 import { OnSourceFileChanged, SourceFileChangedEvent } from '../manifest/sourceFileChangedEvent';
 import { dbtClientCommandQueue } from './dbtClientCommandQueue';
 

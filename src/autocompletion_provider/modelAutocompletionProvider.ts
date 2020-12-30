@@ -17,6 +17,7 @@ import {
 } from "../manifest/manifestCacheChangedEvent";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 
+// TODO models should also allow seeds to be referenced (not only models)
 export class ModelAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype
   implements CompletionItemProvider, OnManifestCacheChanged {
   private static readonly ENDS_WTTH_REF = /ref\(['|"]$/;
