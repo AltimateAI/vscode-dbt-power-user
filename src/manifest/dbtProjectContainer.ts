@@ -13,10 +13,11 @@ import {
   ManifestCacheChangedEvent,
 } from "./event/manifestCacheChangedEvent";
 import pythonExtension from "../dbt_client/pythonExtension";
+import { DBTCommand } from "../dbt_client/dbtCommandFactory";
 
 export class DbtProjectContainer implements Disposable {
   // TODO: can this be private?
-  dbtClient?: DBTClient;
+  private dbtClient?: DBTClient;
   private manifestCacheChangedHandlers: OnManifestCacheChanged[] = [];
   private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
 
@@ -89,6 +90,14 @@ export class DbtProjectContainer implements Disposable {
     await this.dbtClient.checkIfDBTIsInstalled();
   }
 
+  findDBTProject(uri: Uri): DBTProject | undefined {
+    return this.findDBTWorkspaceFolder(uri)?.findDBTProject(uri);
+  }
+
+  runDBTCommand(command: DBTCommand) {
+    this.dbtClient?.addCommandToQueue(command);
+  }
+
   dispose() {
     this.dbtWorkspaceFolders.forEach((workspaceFolder) =>
       workspaceFolder.dispose()
@@ -116,10 +125,6 @@ export class DbtProjectContainer implements Disposable {
 
   private findDBTWorkspaceFolder(uri: Uri): DBTWorkspaceFolder | undefined {
     return this.dbtWorkspaceFolders.find((folder) => folder.contains(uri));
-  }
-
-  private findDBTProject(uri: Uri): DBTProject | undefined {
-    return this.findDBTWorkspaceFolder(uri)?.findDBTProject(uri);
   }
 }
 

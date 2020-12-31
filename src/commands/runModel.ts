@@ -32,15 +32,7 @@ const runDBTModel = async (modelName: string, type?: RunModelType) => {
     return;
   }
   const currentFilePath = window.activeTextEditor.document.uri;
-  const projectRootpath = dbtProjectContainer.getProjectRootpath(currentFilePath);
-
-  if (modelName !== undefined && projectRootpath !== undefined) {
-    if (dbtProjectContainer.dbtClient === undefined) {
-      return;
-    }
-    const dbtClient = dbtProjectContainer.dbtClient;
-    const plusOperatorLeft = type === RunModelType.PARENTS ? "+" : "";
-    const plusOperatorRight = type === RunModelType.CHILDREN ? "+" : "";
-    dbtClient.runDBTRunModelCommand({ plusOperatorLeft, modelName, plusOperatorRight, cwd: projectRootpath.fsPath });
-  }
+  const plusOperatorLeft = type === RunModelType.PARENTS ? "+" : "";
+  const plusOperatorRight = type === RunModelType.CHILDREN ? "+" : "";
+  dbtProjectContainer.findDBTProject(currentFilePath)?.runModel({ plusOperatorLeft, modelName, plusOperatorRight});
 };

@@ -7,6 +7,8 @@ import { DBTProjectLog } from "./handlers/dbtProjectLog";
 import { setupWatcherHandler } from "../utils";
 import { Disposable, FileSystemWatcher, RelativePattern, Uri, workspace } from "vscode";
 import { OnProjectConfigChanged, ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
+import { dbtProjectContainer } from "./dbtProjectContainer";
+import { DBTCommandFactory, RunModelParams } from "../dbt_client/dbtCommandFactory";
 
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -58,6 +60,16 @@ export class DBTProject implements Disposable {
 
   contains(uri: Uri) {
     return uri.path.startsWith(this.projectRoot.path);
+  }
+
+  runList(){
+    const listCommand = DBTCommandFactory.createListCommand(this.projectRoot);
+    dbtProjectContainer.runDBTCommand(listCommand);
+  }
+
+  runModel(runModelParams: RunModelParams){
+    const runModelCommand = DBTCommandFactory.createRunModelCommand(this.projectRoot, runModelParams);
+    dbtProjectContainer.runDBTCommand(runModelCommand);
   }
   
   dispose() {

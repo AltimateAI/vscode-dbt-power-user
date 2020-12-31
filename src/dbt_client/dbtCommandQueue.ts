@@ -6,7 +6,7 @@ interface CommandItem {
   command: Command;
   text: string;
 }
-export class DBTClientCommandQueue {
+export class DBTCommandQueue {
   private queue: CommandItem[] = []; // TODO add WithProgress display
   private currentPromise?: any;
   private dbtClient: DBTClient;
@@ -35,5 +35,3 @@ export class DBTClientCommandQueue {
     }
   }
 }
-
-
