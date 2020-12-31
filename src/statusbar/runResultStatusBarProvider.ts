@@ -1,4 +1,4 @@
-import { window, StatusBarAlignment, StatusBarItem, ThemeColor } from "vscode";
+import { window, StatusBarAlignment, StatusBarItem } from "vscode";
 import * as dayjs from "dayjs";
 import * as relativeTime from "dayjs/plugin/relativeTime";
 import { RunResultMetaMap } from "../domain";
