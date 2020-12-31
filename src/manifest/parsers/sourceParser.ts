@@ -1,6 +1,6 @@
 import path = require("path");
 import { SourceMetaMap } from "../../domain";
-import { ManifestChangedHandler } from "../event/manifestChangedHandler";
+import { DBTProject } from "../dbtProject";
 
 export class SourceParser {
   static createSourceMetaMap(sourcesMap: any[]): Promise<SourceMetaMap> {
@@ -14,7 +14,7 @@ export class SourceParser {
       }
       Object.values(sourcesMap)
         .filter(
-          (source) => source.resource_type === ManifestChangedHandler.RESOURCE_TYPE_SOURCE
+          (source) => source.resource_type === DBTProject.RESOURCE_TYPE_SOURCE
         )
         .reduce(
           (

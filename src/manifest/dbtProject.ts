@@ -30,6 +30,10 @@ export class DBTProject implements Disposable {
   static TARGET_PATH_VAR = "target-path";
   static SOURCE_PATHS_VAR = "source-paths";
 
+  static RESOURCE_TYPE_MODEL = "model";
+  static RESOURCE_TYPE_SOURCE = "source";
+  static RESOURCE_TYPE_SEED = "seed";
+
   readonly projectRoot: Uri;
   private dbtProjectWatcher?: FileSystemWatcher;
   private dbtProjectLog = new DBTProjectLog();

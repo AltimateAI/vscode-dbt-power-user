@@ -1,6 +1,6 @@
 import path = require("path");
 import { NodeMetaMap } from "../../domain";
-import { ManifestChangedHandler } from "../event/manifestChangedHandler";
+import { DBTProject } from "../dbtProject";
 
 export class NodeParser {
   static createModelMetaMap(nodesMap: any[]): Promise<NodeMetaMap> {
@@ -11,7 +11,11 @@ export class NodeParser {
         resolve(modelMetaMap);
       }
       Object.values(nodesMap)
-        .filter((model) => model.resource_type === ManifestChangedHandler.RESOURCE_TYPE_MODEL)
+        .filter(
+          (model) =>
+            model.resource_type === DBTProject.RESOURCE_TYPE_MODEL ||
+            model.resource_type === DBTProject.RESOURCE_TYPE_SEED
+        )
         .forEach(({ name, root_path, original_file_path }) => {
           const fullPath = path.join(root_path, original_file_path);
           modelMetaMap.set(name, { path: fullPath });

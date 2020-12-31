@@ -13,8 +13,6 @@ import { SourceParser } from "../parsers/sourceParser";
 export class ManifestChangedHandler {
   private projectRoot: Uri;
   private projectName: string;
-  static RESOURCE_TYPE_MODEL = "model";
-  static RESOURCE_TYPE_SOURCE = "source";
 
   constructor(projectRoot: Uri, projectName: string) {
     this.projectRoot = projectRoot;
