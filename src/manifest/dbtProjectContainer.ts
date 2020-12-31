@@ -16,7 +16,6 @@ import pythonExtension from "../dbt_client/pythonExtension";
 import { DBTCommand } from "../dbt_client/dbtCommandFactory";
 
 export class DbtProjectContainer implements Disposable {
-  // TODO: can this be private?
   private dbtClient?: DBTClient;
   private manifestCacheChangedHandlers: OnManifestCacheChanged[] = [];
   private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];

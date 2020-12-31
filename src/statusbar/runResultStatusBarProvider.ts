@@ -16,8 +16,13 @@ export class RunResultStatusBar implements OnManifestCacheChanged {
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    this.runResultMetaMap.set(event.projectRoot.fsPath, event.runResultMetaMap);
-    this.showRunResult();
+    event.added?.forEach(added => {
+      this.runResultMetaMap.set(added.projectRoot.fsPath, added.runResultMetaMap);
+      this.showRunResult();
+    });
+    event.removed?.forEach(removed => {
+      this.runResultMetaMap.delete(removed.projectRoot.fsPath);
+    });
   }
 
   showRunResult(): void {

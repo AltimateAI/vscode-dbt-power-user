@@ -22,15 +22,19 @@ export class ManifestChangedHandler {
   public async parseManifest(targetPath: string) {
     const manifest = this.readAndParseManifest(targetPath);
     if (manifest === undefined) {
-      const event = new ManifestCacheChangedEvent(
-        this.projectName,
-        new Map(),
-        new Map(),
-        new Map(),
-        { parents: new Map(), children: new Map() },
-        new Map(),
-        this.projectRoot
-      );
+      const event: ManifestCacheChangedEvent = {
+        added: [
+          {
+            projectName: this.projectName,
+            projectRoot: this.projectRoot,
+            nodeMetaMap: new Map(),
+            macroMetaMap: new Map(),
+            sourceMetaMap: new Map(),
+            graphMetaMap: { parents: new Map(), children: new Map() },
+            runResultMetaMap: new Map(),
+          }
+        ]
+      };
       dbtProjectContainer.raiseManifestChangedEvent(event);
       return;
     }
@@ -50,15 +54,19 @@ export class ManifestChangedHandler {
       sourceMetaMap
     );
 
-    const event = new ManifestCacheChangedEvent(
-      this.projectName,
-      modelMetaMap,
-      macroMetaMap,
-      sourceMetaMap,
-      graphMetaMap,
-      runResultMetaMap,
-      this.projectRoot
-    );
+    const event: ManifestCacheChangedEvent = {
+      added: [
+        {
+          projectName: this.projectName,
+          projectRoot: this.projectRoot,
+          nodeMetaMap: modelMetaMap,
+          macroMetaMap: macroMetaMap,
+          sourceMetaMap: sourceMetaMap,
+          graphMetaMap: graphMetaMap,
+          runResultMetaMap: runResultMetaMap,
+        }
+      ]
+    };
     dbtProjectContainer.raiseManifestChangedEvent(event);
   }
 

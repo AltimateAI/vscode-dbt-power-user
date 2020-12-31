@@ -32,12 +32,17 @@ export class MacroAutocompletionProvider // TODO autocomplete doesn't work when 
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    this.macrosAutocompleteMap.set(
-      event.projectRoot.fsPath,
-      Array.from(event.macroMetaMap.keys()).map(
-        (macro) => new CompletionItem(macro, CompletionItemKind.File)
-      )
-    );
+    event.added?.forEach(added => {
+      this.macrosAutocompleteMap.set(
+        added.projectRoot.fsPath,
+        Array.from(added.macroMetaMap.keys()).map(
+          (macro) => new CompletionItem(macro, CompletionItemKind.File)
+        )
+      );
+    });
+    event.removed?.forEach(removed => {
+      this.macrosAutocompleteMap.delete(removed.projectRoot.fsPath);
+    });
   }
 
   private getAutoCompleteItems = (currentFilePath: Uri) => {

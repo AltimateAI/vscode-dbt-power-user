@@ -57,26 +57,30 @@ export class SourceAutocompletionProvider // TODO autocomplete doesn't work when
     return undefined;
   }
 
-  // TODO: what when a project is deleted
-
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    this.sourceAutocompleteNameItemsMap.set(
-      event.projectRoot.fsPath,
-      Array.from(event.sourceMetaMap.keys()).map(
-        (source) => new CompletionItem(source, CompletionItemKind.File)
-      )
-    );
-    const sourceTableMap: Map<string, CompletionItem[]> = new Map();
-    event.sourceMetaMap.forEach((value, key) => {
-      const autocompleteItems = value.tables.map((item) => {
-        return new CompletionItem(item.name, CompletionItemKind.File);
+    event.added?.forEach(added => {
+      this.sourceAutocompleteNameItemsMap.set(
+        added.projectRoot.fsPath,
+        Array.from(added.sourceMetaMap.keys()).map(
+          (source) => new CompletionItem(source, CompletionItemKind.File)
+        )
+      );
+      const sourceTableMap: Map<string, CompletionItem[]> = new Map();
+      added.sourceMetaMap.forEach((value, key) => {
+        const autocompleteItems = value.tables.map((item) => {
+          return new CompletionItem(item.name, CompletionItemKind.File);
+        });
+        sourceTableMap.set(key, autocompleteItems);
       });
-      sourceTableMap.set(key, autocompleteItems);
+      this.sourceAutocompleteTableMap.set(
+        added.projectRoot.fsPath,
+        sourceTableMap
+      );
     });
-    this.sourceAutocompleteTableMap.set(
-      event.projectRoot.fsPath,
-      sourceTableMap
-    );
+    event.removed?.forEach(removed => {
+      this.sourceAutocompleteNameItemsMap.delete(removed.projectRoot.fsPath);
+      this.sourceAutocompleteTableMap.delete(removed.projectRoot.fsPath);
+    });
   }
 
   private showSourceNameAutocompletionItems(projectRootpath: Uri) {

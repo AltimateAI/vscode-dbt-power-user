@@ -49,7 +49,12 @@ export class ModelDefinitionProvider
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    this.modelToLocationMap.set(event.projectRoot.fsPath, event.nodeMetaMap);
+    event.added?.forEach(added => {
+      this.modelToLocationMap.set(added.projectRoot.fsPath, added.nodeMetaMap);
+    });
+    event.removed?.forEach(removed => {
+      this.modelToLocationMap.delete(removed.projectRoot.fsPath);
+    });
   }
 
   private getDefinitionFor(

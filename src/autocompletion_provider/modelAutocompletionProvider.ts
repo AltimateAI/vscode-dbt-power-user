@@ -14,7 +14,6 @@ import { isEnclosedWithinCodeBlock } from "../utils";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { OnManifestCacheChanged, ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 
-// TODO models should also allow seeds to be referenced (not only models)
 export class ModelAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype
   implements CompletionItemProvider, OnManifestCacheChanged {
   private static readonly ENDS_WTTH_REF = /ref\(['|"]$/;
@@ -39,13 +38,18 @@ export class ModelAutocompletionProvider // TODO autocomplete doesn't work when 
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    const models = event.nodeMetaMap.keys();
-    this.modelAutocompleteMap.set(
-      event.projectRoot.fsPath,
-      Array.from(models).map(
-        (model) => new CompletionItem(model, CompletionItemKind.File)
-      )
-    );
+    event.added?.forEach(added => {
+      const models = added.nodeMetaMap.keys();
+      this.modelAutocompleteMap.set(
+        added.projectRoot.fsPath,
+        Array.from(models).map(
+          (model) => new CompletionItem(model, CompletionItemKind.File)
+        )
+      );
+    });
+    event.removed?.forEach(removed => {
+      this.modelAutocompleteMap.delete(removed.projectRoot.fsPath);
+    });
   }
 
   private getAutoCompleteItems = (currentFilePath: Uri) => {

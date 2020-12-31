@@ -49,7 +49,12 @@ export class MacroDefinitionProvider
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    this.macroToLocationMap.set(event.projectRoot.fsPath, event.macroMetaMap);
+    event.added?.forEach(added => {
+      this.macroToLocationMap.set(added.projectRoot.fsPath, added.macroMetaMap);
+    });
+    event.removed?.forEach(removed => {
+      this.macroToLocationMap.delete(removed.projectRoot.fsPath);
+    });
   }
 
   private getMacroDefinition(macroName: string, currentFilePath: Uri): Definition | undefined {

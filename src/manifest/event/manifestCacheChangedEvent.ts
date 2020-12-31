@@ -1,4 +1,4 @@
-import * as vscode from "vscode";
+import { Uri } from "vscode";
 import {
   NodeMetaMap,
   MacroMetaMap,
@@ -13,14 +13,14 @@ export interface OnManifestCacheChanged {
 
 export type OnManifestCacheChangedHandler = (event: ManifestCacheChangedEvent) => void;
 
-export class ManifestCacheChangedEvent {
+export class ManifestCacheProjectAddedEvent {
   projectName: string;
   nodeMetaMap: NodeMetaMap;
   macroMetaMap: MacroMetaMap;
   sourceMetaMap: SourceMetaMap;
   graphMetaMap: GraphMetaMap;
   runResultMetaMap: RunResultMetaMap;
-  projectRoot: vscode.Uri;
+  projectRoot: Uri;
 
   constructor(
     projectName: string,
@@ -29,7 +29,7 @@ export class ManifestCacheChangedEvent {
     sourceMetaMap: SourceMetaMap,
     parentModelMap: GraphMetaMap,
     runResultMetaMap: RunResultMetaMap,
-    projectRoot: vscode.Uri
+    projectRoot: Uri
   ) {
     this.projectName = projectName;
     this.nodeMetaMap = nodeMetaMap;
@@ -39,4 +39,19 @@ export class ManifestCacheChangedEvent {
     this.runResultMetaMap = runResultMetaMap;
     this.projectRoot = projectRoot;
   }
+}
+
+export class ManifestCacheProjectRemovedEvent {
+  projectRoot: Uri;
+
+  constructor(
+    projectRoot: Uri
+  ) {
+    this.projectRoot = projectRoot;
+  }
+}
+
+export interface ManifestCacheChangedEvent {
+  added?: ManifestCacheProjectAddedEvent[];
+  removed?: ManifestCacheProjectRemovedEvent[];
 }

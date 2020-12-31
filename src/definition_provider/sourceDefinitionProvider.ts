@@ -62,7 +62,12 @@ export class SourceDefinitionProvider implements DefinitionProvider, OnManifestC
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    this.sourceMetaMap.set(event.projectRoot.fsPath, event.sourceMetaMap);
+    event.added?.forEach(added => {
+      this.sourceMetaMap.set(added.projectRoot.fsPath, added.sourceMetaMap);
+    });
+    event.removed?.forEach(removed => {
+      this.sourceMetaMap.delete(removed.projectRoot.fsPath);
+    });
   }
 
   private getSourceDefinition(
