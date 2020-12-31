@@ -88,6 +88,9 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
 
   executeCommand(command: DBTCommand): CommandProcessExecution {
     const { args, cwd } = command.processExecutionParams;
+    if (command.focus) {
+      this.outputChannel.show(true);
+    }
     return new CommandProcessExecution(this.pythonPath, args, cwd);
   }
 

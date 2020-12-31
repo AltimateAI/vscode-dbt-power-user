@@ -14,6 +14,7 @@ export interface CommandProcessExecutionParams {
 export interface DBTCommand {
   statusMessage: string;
   processExecutionParams: CommandProcessExecutionParams;
+  focus?: boolean;
 }
 
 export class DBTCommandFactory {
@@ -53,6 +54,7 @@ export class DBTCommandFactory {
           ]),
         ],
       },
+      focus: true,
     };
   }
 
@@ -60,6 +62,7 @@ export class DBTCommandFactory {
     return {
       statusMessage: "Installing DBT...",
       processExecutionParams: { args: ["-m", "pip", "install", "dbt"] },
+      focus: true,
     };
   }
 
@@ -67,6 +70,7 @@ export class DBTCommandFactory {
     return {
       statusMessage: "Updating DBT...",
       processExecutionParams: { args: ["-m", "pip", "update", "dbt"] },
+      focus: true,
     };
   }
 

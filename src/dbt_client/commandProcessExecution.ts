@@ -37,10 +37,10 @@ export class CommandProcessExecution {
   async completeWithOutputChannel(outputChannel: OutputChannel): Promise<void> {
     return new Promise((resolve, reject) => {
       this.commandProcess.stdout!.on("data", (chunk) => {
-        outputChannel.append(chunk.toString());
+        outputChannel.append(this.removeANSIColors(chunk.toString()));
       });
       this.commandProcess.stderr!.on("data", (chunk) => {
-        outputChannel.append(chunk.toString());
+        outputChannel.append(this.removeANSIColors(chunk.toString()));
       });
       this.commandProcess.once("close", () => {
         resolve();
@@ -50,5 +50,9 @@ export class CommandProcessExecution {
         reject(`Error occurred during process execution: ${error}`);
       });
     });
+  }
+
+  private removeANSIColors(text: string) {
+    return text.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, "");
   }
 }
