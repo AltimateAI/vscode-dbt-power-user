@@ -27,8 +27,9 @@ export class DBTWorkspaceFolder implements Disposable {
       ),
       new RelativePattern(this.workspaceFolder, `**/${DBTProject.DBT_MODULES}`)
     );
+    // TODO: could potentially have issues with casing @camfrout
     return dbtProjectFiles
-      .filter((uri) => !uri.path.includes("site-packages")) // TODO: what's this?
+      .filter((uri) => !uri.path.includes("site-packages")) /// if users put the venv in their project folder!
       .map((uri) => Uri.file(uri.path.split("/")!.slice(0, -1).join("/")))
       .forEach((uri) => this.registerDBTProject(uri));
   }
@@ -41,7 +42,7 @@ export class DBTWorkspaceFolder implements Disposable {
 
   unregisterDBTProject(uri: Uri) {
     const projectToDelete = this.dbtProjects.find(
-      (dbtProject) => dbtProject.projectRoot.path === uri.path
+      (dbtProject) => dbtProject.projectRoot.fsPath === uri.fsPath
     );
     if (projectToDelete === undefined) {
       return;
@@ -55,7 +56,7 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   contains(uri: Uri) {
-    return uri.path.startsWith(this.workspaceFolder.uri.path);
+    return uri.fsPath.startsWith(this.workspaceFolder.uri.fsPath);
   }
 
   dispose() {

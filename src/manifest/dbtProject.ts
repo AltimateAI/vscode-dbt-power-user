@@ -5,10 +5,22 @@ import { SourceFileWatchers } from "./handlers/sourceFileWatchers";
 import { TargetWatchers } from "./handlers/targetWatchers";
 import { DBTProjectLog } from "./handlers/dbtProjectLog";
 import { setupWatcherHandler } from "../utils";
-import { Disposable, FileSystemWatcher, RelativePattern, Uri, workspace } from "vscode";
-import { OnProjectConfigChanged, ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
+import {
+  Disposable,
+  FileSystemWatcher,
+  RelativePattern,
+  Uri,
+  workspace,
+} from "vscode";
+import {
+  OnProjectConfigChanged,
+  ProjectConfigChangedEvent,
+} from "./event/projectConfigChangedEvent";
 import { dbtProjectContainer } from "./dbtProjectContainer";
-import { DBTCommandFactory, RunModelParams } from "../dbt_client/dbtCommandFactory";
+import {
+  DBTCommandFactory,
+  RunModelParams,
+} from "../dbt_client/dbtCommandFactory";
 
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -21,15 +33,16 @@ export class DBTProject implements Disposable {
   readonly projectRoot: Uri;
   private dbtProjectWatcher?: FileSystemWatcher;
   private dbtProjectLog = new DBTProjectLog();
-  private onProjectConfigChangedHandlers: OnProjectConfigChanged[] = [new TargetWatchers(), new SourceFileWatchers(), this.dbtProjectLog];
+  private onProjectConfigChangedHandlers: OnProjectConfigChanged[] = [
+    new TargetWatchers(),
+    new SourceFileWatchers(),
+    this.dbtProjectLog,
+  ];
 
   constructor(path: Uri) {
     this.projectRoot = path;
     this.dbtProjectWatcher = workspace.createFileSystemWatcher(
-      new RelativePattern(
-        path,
-        DBTProject.DBT_PROJECT_FILE
-      )
+      new RelativePattern(path, DBTProject.DBT_PROJECT_FILE)
     );
     setupWatcherHandler(this.dbtProjectWatcher, () => this.tryRefresh());
   }
@@ -47,7 +60,10 @@ export class DBTProject implements Disposable {
 
   findPackageName(uri: Uri): string | undefined {
     const documentPath = uri.path;
-    const pathSegments = documentPath.replace(this.projectRoot.path, "").split("/");
+    // TODO: could potentially have issues with casing @camfrout
+    const pathSegments = documentPath
+      .replace(new RegExp(this.projectRoot.path, "g"), "")
+      .split("/");
 
     const insidePackage =
       pathSegments.length > 1 && pathSegments[0] === DBTProject.DBT_MODULES;
@@ -59,19 +75,22 @@ export class DBTProject implements Disposable {
   }
 
   contains(uri: Uri) {
-    return uri.path.startsWith(this.projectRoot.path);
+    return uri.fsPath.startsWith(this.projectRoot.fsPath);
   }
 
-  runList(){
+  runList() {
     const listCommand = DBTCommandFactory.createListCommand(this.projectRoot);
     dbtProjectContainer.runDBTCommand(listCommand);
   }
 
-  runModel(runModelParams: RunModelParams){
-    const runModelCommand = DBTCommandFactory.createRunModelCommand(this.projectRoot, runModelParams);
+  runModel(runModelParams: RunModelParams) {
+    const runModelCommand = DBTCommandFactory.createRunModelCommand(
+      this.projectRoot,
+      runModelParams
+    );
     dbtProjectContainer.runDBTCommand(runModelCommand);
   }
-  
+
   dispose() {
     this.dbtProjectLog.dispose();
   }
@@ -87,7 +106,12 @@ export class DBTProject implements Disposable {
   private async refresh() {
     const projectConfig = this.readAndParseProjectConfig();
 
-    const event = new ProjectConfigChangedEvent(this.projectRoot, projectConfig);
-    this.onProjectConfigChangedHandlers.forEach(handler => handler.onProjectConfigChanged(event));
+    const event = new ProjectConfigChangedEvent(
+      this.projectRoot,
+      projectConfig
+    );
+    this.onProjectConfigChangedHandlers.forEach((handler) =>
+      handler.onProjectConfigChanged(event)
+    );
   }
 }
