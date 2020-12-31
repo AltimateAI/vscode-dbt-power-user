@@ -81,7 +81,8 @@ export class DBTProject implements Disposable {
   contains(uri: Uri) {
     return uri.fsPath.startsWith(this.projectRoot.fsPath);
   }
-
+  
+  // TODO: maybe we should have a DBTClient for each project, so they can run in parallel.
   runList() {
     const listCommand = DBTCommandFactory.createListCommand(this.projectRoot);
     dbtProjectContainer.runDBTCommand(listCommand);
