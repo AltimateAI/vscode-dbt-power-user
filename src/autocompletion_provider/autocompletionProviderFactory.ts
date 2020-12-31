@@ -15,31 +15,39 @@ export class AutocompletionProviderFactory {
       vscode.languages.registerCompletionItemProvider(
         DBT_MODE,
         AutocompletionProviderFactory.createModelAutocompletionProvider(),
-        '"', "'"
+        '"',
+        "'"
       ),
       vscode.languages.registerCompletionItemProvider(
         DBT_MODE,
         AutocompletionProviderFactory.createSourceAutocompletionProvider(),
-        '"', "'"
+        '"',
+        "'"
       ),
     ];
   }
-  
+
   static createMacroAutocompletionProvider(): vscode.CompletionItemProvider {
     const macroAutocompletionProvider = new MacroAutocompletionProvider();
-    dbtProjectContainer.addOnManifestCacheChangedHandler(macroAutocompletionProvider);
+    dbtProjectContainer.addOnManifestCacheChangedHandler(
+      macroAutocompletionProvider
+    );
     return macroAutocompletionProvider;
   }
 
   static createModelAutocompletionProvider(): vscode.CompletionItemProvider {
     const modelAutocompletionProvider = new ModelAutocompletionProvider();
-    dbtProjectContainer.addOnManifestCacheChangedHandler(modelAutocompletionProvider);
+    dbtProjectContainer.addOnManifestCacheChangedHandler(
+      modelAutocompletionProvider
+    );
     return modelAutocompletionProvider;
   }
 
   static createSourceAutocompletionProvider(): vscode.CompletionItemProvider {
     const sourceAutocompletionProvider = new SourceAutocompletionProvider();
-    dbtProjectContainer.addOnManifestCacheChangedHandler(sourceAutocompletionProvider);
+    dbtProjectContainer.addOnManifestCacheChangedHandler(
+      sourceAutocompletionProvider
+    );
     return sourceAutocompletionProvider;
   }
 }

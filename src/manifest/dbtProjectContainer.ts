@@ -1,10 +1,5 @@
 import { DBTProject } from "./dbtProject";
-import {
-  workspace,
-  WorkspaceFolder,
-  Uri,
-  Disposable,
-} from "vscode";
+import { workspace, WorkspaceFolder, Uri, Disposable } from "vscode";
 import { DBTClient } from "../dbt_client/dbtClient";
 import { SourceFileChangedEvent } from "./event/sourceFileChangedEvent";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
@@ -43,7 +38,6 @@ export class DbtProjectContainer implements Disposable {
       folders.map((folder) => this.registerWorkspaceFolder(folder))
     );
   }
-
 
   addOnManifestCacheChangedHandler(handler: OnManifestCacheChanged): void {
     this.manifestCacheChangedHandlers.push(handler);

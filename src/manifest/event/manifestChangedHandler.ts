@@ -32,8 +32,8 @@ export class ManifestChangedHandler {
             sourceMetaMap: new Map(),
             graphMetaMap: { parents: new Map(), children: new Map() },
             runResultMetaMap: new Map(),
-          }
-        ]
+          },
+        ],
       };
       dbtProjectContainer.raiseManifestChangedEvent(event);
       return;
@@ -42,11 +42,27 @@ export class ManifestChangedHandler {
     const { nodes, sources, macros, parent_map, child_map } = manifest;
 
     const modelMetaMapPromise = NodeParser.createModelMetaMap(nodes);
-    const macroMetaMapPromise = MacroParser.createMacroMetaMap(this.projectName, macros);
+    const macroMetaMapPromise = MacroParser.createMacroMetaMap(
+      this.projectName,
+      macros
+    );
     const sourceMetaMapPromise = SourceParser.createSourceMetaMap(sources);
-    const runResultMetaMapPromise = RunResultsParser.createRunResultMetaMap(this.projectRoot, targetPath);
+    const runResultMetaMapPromise = RunResultsParser.createRunResultMetaMap(
+      this.projectRoot,
+      targetPath
+    );
 
-    const [modelMetaMap, macroMetaMap, sourceMetaMap, runResultMetaMap] = await Promise.all([modelMetaMapPromise, macroMetaMapPromise, sourceMetaMapPromise, runResultMetaMapPromise]);
+    const [
+      modelMetaMap,
+      macroMetaMap,
+      sourceMetaMap,
+      runResultMetaMap,
+    ] = await Promise.all([
+      modelMetaMapPromise,
+      macroMetaMapPromise,
+      sourceMetaMapPromise,
+      runResultMetaMapPromise,
+    ]);
     const graphMetaMap = GraphParser.createGraphMetaMap(
       parent_map,
       child_map,
@@ -64,8 +80,8 @@ export class ManifestChangedHandler {
           sourceMetaMap: sourceMetaMap,
           graphMetaMap: graphMetaMap,
           runResultMetaMap: runResultMetaMap,
-        }
-      ]
+        },
+      ],
     };
     dbtProjectContainer.raiseManifestChangedEvent(event);
   }

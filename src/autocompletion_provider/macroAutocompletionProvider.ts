@@ -12,7 +12,10 @@ import {
   Uri,
 } from "vscode";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
-import { OnManifestCacheChanged, ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import {
+  OnManifestCacheChanged,
+  ManifestCacheChangedEvent,
+} from "../manifest/event/manifestCacheChangedEvent";
 
 export class MacroAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype
   implements CompletionItemProvider, OnManifestCacheChanged {
@@ -32,7 +35,7 @@ export class MacroAutocompletionProvider // TODO autocomplete doesn't work when 
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    event.added?.forEach(added => {
+    event.added?.forEach((added) => {
       this.macrosAutocompleteMap.set(
         added.projectRoot.fsPath,
         Array.from(added.macroMetaMap.keys()).map(
@@ -40,7 +43,7 @@ export class MacroAutocompletionProvider // TODO autocomplete doesn't work when 
         )
       );
     });
-    event.removed?.forEach(removed => {
+    event.removed?.forEach((removed) => {
       this.macrosAutocompleteMap.delete(removed.projectRoot.fsPath);
     });
   }

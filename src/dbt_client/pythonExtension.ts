@@ -1,9 +1,4 @@
-import {
-  extensions,
-  Event,
-  Uri,
-  workspace,
-} from "vscode";
+import { extensions, Event, Uri, workspace } from "vscode";
 
 interface PythonExecutionDetails {
   pythonPath: string;
@@ -11,7 +6,7 @@ interface PythonExecutionDetails {
 }
 
 export default async (): Promise<PythonExecutionDetails> => {
-  const extension = extensions.getExtension('ms-python.python')!;
+  const extension = extensions.getExtension("ms-python.python")!;
 
   if (!extension.isActive) {
     await extension.activate();
@@ -20,5 +15,9 @@ export default async (): Promise<PythonExecutionDetails> => {
 
   const settings = extension.exports.settings;
 
-  return { pythonPath: settings.getExecutionDetails(workspace.workspaceFile).execCommand[0], onDidChangeExecutionDetails: settings.onDidChangeExecutionDetails };
+  return {
+    pythonPath: settings.getExecutionDetails(workspace.workspaceFile)
+      .execCommand[0],
+    onDidChangeExecutionDetails: settings.onDidChangeExecutionDetails,
+  };
 };

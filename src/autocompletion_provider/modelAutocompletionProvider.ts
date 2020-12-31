@@ -12,7 +12,10 @@ import {
 } from "vscode";
 import { isEnclosedWithinCodeBlock } from "../utils";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
-import { OnManifestCacheChanged, ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import {
+  OnManifestCacheChanged,
+  ManifestCacheChangedEvent,
+} from "../manifest/event/manifestCacheChangedEvent";
 
 export class ModelAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype
   implements CompletionItemProvider, OnManifestCacheChanged {
@@ -38,7 +41,7 @@ export class ModelAutocompletionProvider // TODO autocomplete doesn't work when 
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    event.added?.forEach(added => {
+    event.added?.forEach((added) => {
       const models = added.nodeMetaMap.keys();
       this.modelAutocompleteMap.set(
         added.projectRoot.fsPath,
@@ -47,7 +50,7 @@ export class ModelAutocompletionProvider // TODO autocomplete doesn't work when 
         )
       );
     });
-    event.removed?.forEach(removed => {
+    event.removed?.forEach((removed) => {
       this.modelAutocompleteMap.delete(removed.projectRoot.fsPath);
     });
   }

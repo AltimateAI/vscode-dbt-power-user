@@ -34,5 +34,7 @@ const runDBTModel = async (modelName: string, type?: RunModelType) => {
   const currentFilePath = window.activeTextEditor.document.uri;
   const plusOperatorLeft = type === RunModelType.PARENTS ? "+" : "";
   const plusOperatorRight = type === RunModelType.CHILDREN ? "+" : "";
-  dbtProjectContainer.findDBTProject(currentFilePath)?.runModel({ plusOperatorLeft, modelName, plusOperatorRight});
+  dbtProjectContainer
+    .findDBTProject(currentFilePath)
+    ?.runModel({ plusOperatorLeft, modelName, plusOperatorRight });
 };

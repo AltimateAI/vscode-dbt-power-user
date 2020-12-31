@@ -3,7 +3,10 @@ import path = require("path");
 import { MacroMetaMap } from "../../domain";
 
 export class MacroParser {
-  static createMacroMetaMap(projectName: string, macros: any[]): Promise<MacroMetaMap> {
+  static createMacroMetaMap(
+    projectName: string,
+    macros: any[]
+  ): Promise<MacroMetaMap> {
     return new Promise((resolve) => {
       const macroMetaMap: MacroMetaMap = new Map();
       if (macros === null || macros === undefined) {

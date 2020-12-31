@@ -10,7 +10,10 @@ import {
 } from "vscode";
 import { MacroMetaMap } from "../domain";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
-import { OnManifestCacheChanged, ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import {
+  OnManifestCacheChanged,
+  ManifestCacheChangedEvent,
+} from "../manifest/event/manifestCacheChangedEvent";
 import { isEnclosedWithinCodeBlock } from "../utils";
 export class MacroDefinitionProvider
   implements DefinitionProvider, OnManifestCacheChanged {
@@ -33,10 +36,12 @@ export class MacroDefinitionProvider
         textLine[range.end.character] === "(" &&
         isEnclosedWithinCodeBlock(document, range)
       ) {
-
         const packageName = dbtProjectContainer.getPackageName(document.uri);
 
-        const macroName = packageName !== undefined && !word.includes(".") ? `${packageName}.${word}` : word;
+        const macroName =
+          packageName !== undefined && !word.includes(".")
+            ? `${packageName}.${word}`
+            : word;
 
         const definition = this.getMacroDefinition(macroName, document.uri);
         if (definition !== undefined) {
@@ -49,16 +54,21 @@ export class MacroDefinitionProvider
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    event.added?.forEach(added => {
+    event.added?.forEach((added) => {
       this.macroToLocationMap.set(added.projectRoot.fsPath, added.macroMetaMap);
     });
-    event.removed?.forEach(removed => {
+    event.removed?.forEach((removed) => {
       this.macroToLocationMap.delete(removed.projectRoot.fsPath);
     });
   }
 
-  private getMacroDefinition(macroName: string, currentFilePath: Uri): Definition | undefined {
-    const projectRootpath = dbtProjectContainer.getProjectRootpath(currentFilePath);
+  private getMacroDefinition(
+    macroName: string,
+    currentFilePath: Uri
+  ): Definition | undefined {
+    const projectRootpath = dbtProjectContainer.getProjectRootpath(
+      currentFilePath
+    );
     if (projectRootpath === undefined) {
       return;
     }

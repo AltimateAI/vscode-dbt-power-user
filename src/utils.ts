@@ -74,7 +74,10 @@ export const debounce = (fn: Function, wait: number) => {
   };
 };
 
-export const setupWatcherHandler = (watcher: FileSystemWatcher, handler: Function): void => {
+export const setupWatcherHandler = (
+  watcher: FileSystemWatcher,
+  handler: Function
+): void => {
   watcher.onDidChange(() => handler());
   watcher.onDidCreate(() => handler());
   watcher.onDidDelete(() => handler());

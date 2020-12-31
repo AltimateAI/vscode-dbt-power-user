@@ -5,7 +5,9 @@ export interface OnProjectConfigChanged {
   onProjectConfigChanged: OnProjectConfigChangedHandler;
 }
 
-export type OnProjectConfigChangedHandler = (event: ProjectConfigChangedEvent) => void;
+export type OnProjectConfigChangedHandler = (
+  event: ProjectConfigChangedEvent
+) => void;
 
 export class ProjectConfigChangedEvent {
   projectRoot: Uri;

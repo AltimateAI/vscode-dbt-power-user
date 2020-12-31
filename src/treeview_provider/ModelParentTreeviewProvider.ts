@@ -9,7 +9,11 @@ import {
 import { Node, Model, GraphMetaMap, Test, Seed, Analysis } from "../domain";
 import * as path from "path";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
-import { OnManifestCacheChanged, ManifestCacheChangedEvent, ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import {
+  OnManifestCacheChanged,
+  ManifestCacheChangedEvent,
+  ManifestCacheProjectAddedEvent,
+} from "../manifest/event/manifestCacheChangedEvent";
 
 export class ModelTreeviewProvider
   implements TreeDataProvider<NodeTreeItem>, OnManifestCacheChanged {
@@ -30,12 +34,12 @@ export class ModelTreeviewProvider
     ._onDidChangeTreeData.event;
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    event.added?.forEach(added => {
+    event.added?.forEach((added) => {
       this.eventMap.set(added.projectRoot.fsPath, added);
     });
-    event.removed?.forEach(removed => {
+    event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);
-    });    
+    });
     this._onDidChangeTreeData.fire();
   }
 
@@ -70,7 +74,8 @@ export class ModelTreeviewProvider
       window.activeTextEditor!.document.fileName,
       ".sql"
     );
-    const packageName = dbtProjectContainer.getPackageName(currentFilePath) || projectName;
+    const packageName =
+      dbtProjectContainer.getPackageName(currentFilePath) || projectName;
     return Promise.resolve(
       this.getTreeItems(`model.${packageName}.${fileName}`, event)
     );

@@ -12,7 +12,10 @@ import {
 } from "vscode";
 import { NodeMetaMap } from "../domain";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
-import { OnManifestCacheChanged, ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import {
+  OnManifestCacheChanged,
+  ManifestCacheChangedEvent,
+} from "../manifest/event/manifestCacheChangedEvent";
 
 export class ModelDefinitionProvider
   implements DefinitionProvider, OnManifestCacheChanged {
@@ -36,10 +39,7 @@ export class ModelDefinitionProvider
       if (word !== undefined && hover !== "ref") {
         const dbtModel = word.match(ModelDefinitionProvider.GET_DBT_MODEL);
         if (dbtModel && dbtModel.length === 1) {
-          const definition = this.getDefinitionFor(
-            dbtModel[0],
-            document.uri
-          );
+          const definition = this.getDefinitionFor(dbtModel[0], document.uri);
           resolve(definition);
           return;
         }
@@ -49,10 +49,10 @@ export class ModelDefinitionProvider
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    event.added?.forEach(added => {
+    event.added?.forEach((added) => {
       this.modelToLocationMap.set(added.projectRoot.fsPath, added.nodeMetaMap);
     });
-    event.removed?.forEach(removed => {
+    event.removed?.forEach((removed) => {
       this.modelToLocationMap.delete(removed.projectRoot.fsPath);
     });
   }

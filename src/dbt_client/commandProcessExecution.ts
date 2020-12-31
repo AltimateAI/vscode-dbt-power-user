@@ -3,7 +3,7 @@ import { OutputChannel } from "vscode";
 
 export class CommandProcessExecution {
   private readonly commandProcess: ChildProcess;
-  
+
   constructor(command: string, args?: string[], cwd?: string) {
     this.commandProcess = spawn(command, args, { cwd: cwd });
   }

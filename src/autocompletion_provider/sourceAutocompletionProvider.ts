@@ -12,7 +12,10 @@ import {
 } from "vscode";
 import { isEnclosedWithinCodeBlock } from "../utils";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
-import { OnManifestCacheChanged, ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import {
+  OnManifestCacheChanged,
+  ManifestCacheChangedEvent,
+} from "../manifest/event/manifestCacheChangedEvent";
 
 export class SourceAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype
   implements CompletionItemProvider, OnManifestCacheChanged {
@@ -39,7 +42,9 @@ export class SourceAutocompletionProvider // TODO autocomplete doesn't work when
     if (!isEnclosedWithinCodeBlock(document, position)) {
       return undefined;
     }
-    const projectRootpath = dbtProjectContainer.getProjectRootpath(document.uri);
+    const projectRootpath = dbtProjectContainer.getProjectRootpath(
+      document.uri
+    );
     if (projectRootpath === undefined) {
       return;
     }
@@ -58,7 +63,7 @@ export class SourceAutocompletionProvider // TODO autocomplete doesn't work when
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    event.added?.forEach(added => {
+    event.added?.forEach((added) => {
       this.sourceAutocompleteNameItemsMap.set(
         added.projectRoot.fsPath,
         Array.from(added.sourceMetaMap.keys()).map(
@@ -77,7 +82,7 @@ export class SourceAutocompletionProvider // TODO autocomplete doesn't work when
         sourceTableMap
       );
     });
-    event.removed?.forEach(removed => {
+    event.removed?.forEach((removed) => {
       this.sourceAutocompleteNameItemsMap.delete(removed.projectRoot.fsPath);
       this.sourceAutocompleteTableMap.delete(removed.projectRoot.fsPath);
     });

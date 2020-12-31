@@ -25,20 +25,25 @@ export class DefinitionProviderFactory {
 
   static createModelDefinitionProvider() {
     const modelDefinitionProvider = new ModelDefinitionProvider();
-    dbtProjectContainer.addOnManifestCacheChangedHandler(modelDefinitionProvider);
+    dbtProjectContainer.addOnManifestCacheChangedHandler(
+      modelDefinitionProvider
+    );
     return modelDefinitionProvider;
   }
 
   static createMacroDefinitionProvider() {
     const macroDefinitionProvider = new MacroDefinitionProvider();
-    dbtProjectContainer.addOnManifestCacheChangedHandler(macroDefinitionProvider);
+    dbtProjectContainer.addOnManifestCacheChangedHandler(
+      macroDefinitionProvider
+    );
     return macroDefinitionProvider;
   }
 
   static createSourceDefinitionProvider() {
     const sourceDefinitionProvider = new SourceDefinitionProvider();
-    dbtProjectContainer.addOnManifestCacheChangedHandler(sourceDefinitionProvider);
+    dbtProjectContainer.addOnManifestCacheChangedHandler(
+      sourceDefinitionProvider
+    );
     return sourceDefinitionProvider;
   }
-
 }

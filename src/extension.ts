@@ -17,11 +17,10 @@ export async function activate(context: vscode.ExtensionContext) {
     ...TreeviewProviderFactory.createModelTreeViews(),
     ...CommandFactory.createCommands(),
     StatusBarFactory.createRunResultStatusBar(),
-    dbtProjectContainer,
+    dbtProjectContainer
   );
 
   await dbtProjectContainer.initializeDBTProjects();
 }
 
-export function deactivate() {
-}
+export function deactivate() {}

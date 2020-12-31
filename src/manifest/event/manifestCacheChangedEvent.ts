@@ -4,14 +4,16 @@ import {
   MacroMetaMap,
   SourceMetaMap,
   RunResultMetaMap,
-  GraphMetaMap
+  GraphMetaMap,
 } from "../../domain";
 
 export interface OnManifestCacheChanged {
   onManifestCacheChanged: OnManifestCacheChangedHandler;
 }
 
-export type OnManifestCacheChangedHandler = (event: ManifestCacheChangedEvent) => void;
+export type OnManifestCacheChangedHandler = (
+  event: ManifestCacheChangedEvent
+) => void;
 
 export class ManifestCacheProjectAddedEvent {
   projectName: string;
@@ -44,9 +46,7 @@ export class ManifestCacheProjectAddedEvent {
 export class ManifestCacheProjectRemovedEvent {
   projectRoot: Uri;
 
-  constructor(
-    projectRoot: Uri
-  ) {
+  constructor(projectRoot: Uri) {
     this.projectRoot = projectRoot;
   }
 }
