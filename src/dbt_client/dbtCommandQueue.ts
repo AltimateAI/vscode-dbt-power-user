@@ -1,36 +1,34 @@
-import { DBTClient } from "./dbtClient";
+import { ProgressLocation, window } from "vscode";
 
 type Command = () => Promise<any>;
 
 interface CommandItem {
   command: Command;
-  text: string;
+  statusMessage: string;
 }
 export class DBTCommandQueue {
-  private queue: CommandItem[] = []; // TODO add WithProgress display
-  private currentPromise?: any;
-  private dbtClient: DBTClient;
-
-  constructor(dbtClient: DBTClient) {
-    this.dbtClient = dbtClient;
-  }
+  private queue: CommandItem[] = [];
+  private currentCommand?: any;
 
   addToQueue(command: Command, text: string) {
-    this.queue.push({ command, text });
+    this.queue.push({ command, statusMessage: text });
     this.pickCommandToRun();
   }
 
   private async pickCommandToRun(): Promise<any> {
-    if (this.currentPromise === undefined && this.queue.length > 0) {
-      const { command, text } = this.queue.shift()!;
+    if (this.currentCommand === undefined && this.queue.length > 0) {
+      const { command, statusMessage } = this.queue.shift()!;
+      this.currentCommand = command;
 
-      this.currentPromise = command;
-      this.dbtClient.showMessageInStatusBar(text);
+      await window.withProgress({
+          location: ProgressLocation.Window,
+          cancellable: false,
+          title: statusMessage,
+      }, async () => {
+          await this.currentCommand();
+      });
 
-      await this.currentPromise(); // TODO if possible when error happens show error and link to its output
-
-      this.currentPromise = undefined;
-      this.dbtClient.showVersionInStatusBar();
+      this.currentCommand = undefined;   
       this.pickCommandToRun();
     }
   }

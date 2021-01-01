@@ -30,7 +30,7 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
 
   constructor(pythonPath: string) {
     this.pythonPath = pythonPath;
-    this.queue = new DBTCommandQueue(this);
+    this.queue = new DBTCommandQueue();
     this.outputChannel = window.createOutputChannel("DBT");
     // TODO: status bar should be moved to the factory and being able to communicate with other components through events
     this.statusBar = window.createStatusBarItem(StatusBarAlignment.Left, 10);
@@ -76,22 +76,17 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
     );
   }
 
-  showMessageInStatusBar(text: string) {
-    this.statusBar.text = text;
-    this.statusBar.show();
-  }
-
-  showVersionInStatusBar() {
-    this.statusBar.text = `DBT version ${this.installedVersion}`;
-    this.statusBar.show();
-  }
-
   executeCommand(command: DBTCommand): CommandProcessExecution {
     const { args, cwd } = command.processExecutionParams;
     if (command.focus) {
       this.outputChannel.show(true);
     }
     return new CommandProcessExecution(this.pythonPath, args, cwd);
+  }
+
+  private showVersionInStatusBar() {
+    this.statusBar.text = `DBT ${this.installedVersion}`;
+    this.statusBar.show();
   }
 
   private checkIfDBTIsUpToDate(message: string): boolean {
