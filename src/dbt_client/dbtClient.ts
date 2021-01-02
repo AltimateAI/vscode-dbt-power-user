@@ -1,8 +1,6 @@
 import {
   Disposable,
   OutputChannel,
-  StatusBarAlignment,
-  StatusBarItem,
   window,
 } from "vscode";
 import {
@@ -12,32 +10,21 @@ import {
 import { DBTCommandQueue } from "./dbtCommandQueue";
 import { DBTCommand, DBTCommandFactory } from "./dbtCommandFactory";
 import { CommandProcessExecution } from "./commandProcessExecution";
-
-enum PromptAnswer {
-  YES = "Yes",
-  NO = "No",
-}
+import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 
 export class DBTClient implements OnSourceFileChanged, Disposable {
   static readonly IS_INSTALLED_VERSION = /(?<=installed\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
   static readonly IS_LATEST_VERSION = /(?<=latest\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
   static readonly IS_INSTALLED = /installed\sversion/g;
   private readonly pythonPath: string;
-  private readonly outputChannel: OutputChannel;
-  private readonly statusBar: StatusBarItem;
-  private installedVersion?: string;
-  private queue: DBTCommandQueue;
+  private readonly outputChannel: OutputChannel = window.createOutputChannel("DBT");
+  private readonly queue: DBTCommandQueue = new DBTCommandQueue();
 
   constructor(pythonPath: string) {
     this.pythonPath = pythonPath;
-    this.queue = new DBTCommandQueue();
-    this.outputChannel = window.createOutputChannel("DBT");
-    // TODO: status bar should be moved to the factory and being able to communicate with other components through events
-    this.statusBar = window.createStatusBarItem(StatusBarAlignment.Left, 10);
   }
 
   dispose() {
-    this.statusBar.dispose();
     this.outputChannel.dispose();
   }
 
@@ -52,17 +39,14 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
       DBTCommandFactory.createVersionCommand()
     );
     try {
+      this.raiseDBTInstallationCheckEvent();
       await checkDBTInstalledProcess.complete();
     } catch (err) {
       if (err.match(DBTClient.IS_INSTALLED)) {
-        const DBTUpToDate = this.checkIfDBTIsUpToDate(err);
-        if (DBTUpToDate === false) {
-          await this.askForDBTUpdate();
-          return;
-        }
+        this.checkIfDBTIsUpToDate(err);
         return;
       }
-      await this.askforDBTInstallation();
+      this.raiseDBTNotInstalledEvent();
     }
   }
 
@@ -84,12 +68,26 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
     return new CommandProcessExecution(this.pythonPath, args, cwd);
   }
 
-  private showVersionInStatusBar() {
-    this.statusBar.text = `DBT ${this.installedVersion}`;
-    this.statusBar.show();
+  private raiseDBTInstallationCheckEvent() {
+    dbtProjectContainer.raiseDBTVersionEvent({});
   }
 
-  private checkIfDBTIsUpToDate(message: string): boolean {
+  private raiseDBTNotInstalledEvent() {
+    dbtProjectContainer.raiseDBTVersionEvent({
+      installed: false,
+    });
+  }
+
+  private raiseDBTVersionEvent(installedVersion: string, latestVersion: string) {
+    dbtProjectContainer.raiseDBTVersionEvent({
+      installed: installedVersion !== undefined,
+      installedVersion,
+      latestVersion,
+      upToDate: installedVersion === latestVersion,
+    });
+  }
+
+  private checkIfDBTIsUpToDate(message: string): void {
     const installedVersionMatch = message.match(DBTClient.IS_INSTALLED_VERSION);
     if (installedVersionMatch === null) {
       throw Error(
@@ -97,9 +95,6 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
       );
     }
     const installedVersion = installedVersionMatch[0];
-    this.installedVersion = installedVersion;
-    this.showVersionInStatusBar();
-
     const latestVersionMatch = message.match(DBTClient.IS_LATEST_VERSION);
     if (latestVersionMatch === null) {
       throw Error(
@@ -107,32 +102,6 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
       );
     }
     const latestVersion = latestVersionMatch[0];
-    return installedVersion === latestVersion;
-  }
-
-  private async askforDBTInstallation(): Promise<void> {
-    const answer = await window.showErrorMessage(
-      `DBT not installed in this python environment (${this.pythonPath}). Do you want to install DBT?`,
-      PromptAnswer.YES,
-      PromptAnswer.NO
-    );
-    if (answer === PromptAnswer.YES) {
-      await this.executeCommand(
-        DBTCommandFactory.createInstallDBTCommand()
-      ).completeWithOutputChannel(this.outputChannel);
-    }
-  }
-
-  private async askForDBTUpdate(): Promise<void> {
-    const answer = await window.showErrorMessage(
-      "DBT is not up to date. Do you want to update DBT?",
-      PromptAnswer.YES,
-      PromptAnswer.NO
-    );
-    if (answer === PromptAnswer.YES) {
-      await this.executeCommand(
-        DBTCommandFactory.createUpdateDBTCommand()
-      ).completeWithOutputChannel(this.outputChannel);
-    }
+    this.raiseDBTVersionEvent(installedVersion, latestVersion);
   }
 }

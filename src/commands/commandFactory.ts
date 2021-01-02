@@ -6,6 +6,8 @@ import {
   RunModelType,
 } from "./runModel";
 import navigateToFileWithErrorMessage from "./navigateToFileWithErrorMessage";
+import installDBT from "./installDBT";
+import updateDBT from "./updateDBT";
 
 export class CommandFactory {
   static createCommands(): { dispose(): any }[] {
@@ -27,6 +29,8 @@ export class CommandFactory {
         "navigateToFileWithErrorMessage",
         navigateToFileWithErrorMessage
       ),
+      vscode.commands.registerCommand("installDBT", installDBT),
+      vscode.commands.registerCommand("updateDBT", updateDBT),
     ];
   }
 }

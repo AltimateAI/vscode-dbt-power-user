@@ -9,17 +9,17 @@ import { dbtProjectContainer } from "./manifest/dbtProjectContainer";
 export const DBT_MODE = { language: "jinja-sql", scheme: "file" };
 
 export async function activate(context: vscode.ExtensionContext) {
-  await dbtProjectContainer.detectDBT();
-
   context.subscriptions.push(
     ...DefinitionProviderFactory.createDefinitionProviders(),
     ...AutocompletionProviderFactory.createAutoCompletionProviders(),
     ...TreeviewProviderFactory.createModelTreeViews(),
     ...CommandFactory.createCommands(),
     StatusBarFactory.createRunResultStatusBar(),
+    StatusBarFactory.createDBTVersionStatusBar(),
     dbtProjectContainer
   );
 
+  await dbtProjectContainer.detectDBT();
   await dbtProjectContainer.initializeDBTProjects();
 }
 

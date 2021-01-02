@@ -9,10 +9,15 @@ import {
 } from "./event/manifestCacheChangedEvent";
 import pythonExtension from "../dbt_client/pythonExtension";
 import { DBTCommand } from "../dbt_client/dbtCommandFactory";
+import {
+  DBTInstallationFoundEvent,
+  OnDBTInstallationFound,
+} from "./event/dbtVersionEvent";
 
 export class DbtProjectContainer implements Disposable {
   private dbtClient?: DBTClient;
   private manifestCacheChangedHandlers: OnManifestCacheChanged[] = [];
+  private dbtInstallationFoundHandlers: OnDBTInstallationFound[] = [];
   private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
 
   constructor() {
@@ -43,9 +48,19 @@ export class DbtProjectContainer implements Disposable {
     this.manifestCacheChangedHandlers.push(handler);
   }
 
+  addOnDBTInstallationFoundHandler(handler: OnDBTInstallationFound): void {
+    this.dbtInstallationFoundHandlers.push(handler);
+  }
+
   raiseManifestChangedEvent(event: ManifestCacheChangedEvent) {
     this.manifestCacheChangedHandlers.forEach((handler) =>
       handler.onManifestCacheChanged(event)
+    );
+  }
+
+  raiseDBTVersionEvent(event: DBTInstallationFoundEvent) {
+    this.dbtInstallationFoundHandlers.forEach((handler) =>
+      handler.onDBTInstallationFound(event)
     );
   }
 
@@ -73,9 +88,6 @@ export class DbtProjectContainer implements Disposable {
     }
     onDidChangeExecutionDetails(async () => {
       const { pythonPath } = await pythonExtension();
-      if (this.dbtClient !== undefined) {
-        this.dbtClient.dispose();
-      }
       this.dbtClient = new DBTClient(pythonPath);
       await this.dbtClient.checkIfDBTIsInstalled();
     });

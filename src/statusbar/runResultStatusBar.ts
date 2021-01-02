@@ -7,11 +7,10 @@ import { OnManifestCacheChanged, ManifestCacheChangedEvent } from "../manifest/e
 dayjs.extend(relativeTime);
 
 export class RunResultStatusBar implements OnManifestCacheChanged {
-  statusBar: StatusBarItem;
+  readonly statusBar: StatusBarItem = window.createStatusBarItem(StatusBarAlignment.Left, 0);
   private runResultMetaMap: Map<string, RunResultMetaMap> = new Map();
 
   constructor() {
-    this.statusBar = window.createStatusBarItem(StatusBarAlignment.Left, 0);
     window.onDidChangeActiveTextEditor(() => this.showRunResult());
   }
 
