@@ -102,7 +102,7 @@ export class DbtProjectContainer implements Disposable {
   runDBTCommand(command: DBTCommand) {
     if (this.dbtClient === undefined) {
       window.showErrorMessage(
-        "Please ensure you have a selected a Python interpreter with DBT installed."
+        "Please ensure you have selected a Python interpreter with DBT installed."
       );
       return;
     }
