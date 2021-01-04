@@ -17,6 +17,8 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
     "DBT"
   );
   private readonly queue: DBTCommandQueue = new DBTCommandQueue();
+  private dbtInstalled?: boolean;
+  private notYetShownErrorMessage = true;
 
   constructor(pythonPath: string) {
     this.pythonPath = pythonPath;
@@ -49,6 +51,13 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
   }
 
   addCommandToQueue(command: DBTCommand) {
+    if (!this.dbtInstalled) {
+      this.notYetShownErrorMessage && window.showErrorMessage(
+        "Please ensure DBT is installed in your selected Python environment."
+      );
+      this.notYetShownErrorMessage = false;
+      return;
+    }
     this.queue.addToQueue({
       command: () =>
         this.executeCommand(command).completeWithOutputChannel(
@@ -67,10 +76,12 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
   }
 
   private raiseDBTInstallationCheckEvent() {
+    this.dbtInstalled = undefined;
     dbtProjectContainer.raiseDBTVersionEvent({});
   }
 
   private raiseDBTNotInstalledEvent() {
+    this.dbtInstalled = false;
     dbtProjectContainer.raiseDBTVersionEvent({
       installed: false,
     });
@@ -80,6 +91,7 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
     installedVersion: string,
     latestVersion: string
   ) {
+    this.dbtInstalled = true;
     dbtProjectContainer.raiseDBTVersionEvent({
       installed: installedVersion !== undefined,
       installedVersion,

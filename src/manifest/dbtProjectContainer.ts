@@ -19,6 +19,7 @@ export class DbtProjectContainer implements Disposable {
   private manifestCacheChangedHandlers: OnManifestCacheChanged[] = [];
   private dbtInstallationFoundHandlers: OnDBTInstallationFound[] = [];
   private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
+  private notYetShownDbtInstalledErrorMessage = true;
 
   constructor() {
     workspace.onDidChangeWorkspaceFolders(async (event) => {
@@ -83,16 +84,23 @@ export class DbtProjectContainer implements Disposable {
   // TODO: this seems a bit out of place in here
   async detectDBT(): Promise<void> {
     const { pythonPath, onDidChangeExecutionDetails } = await pythonExtension();
-    if (pythonPath === undefined) {
-      return;
-    }
-    onDidChangeExecutionDetails(async () => {
-      const { pythonPath } = await pythonExtension();
+
+    const handlePythonExtension = async (pythonPath: string) =>{
+      this.notYetShownDbtInstalledErrorMessage = true;
+
+      if (pythonPath === undefined) {
+        return;
+      }
       this.dbtClient = new DBTClient(pythonPath);
       await this.dbtClient.checkIfDBTIsInstalled();
+    };
+
+    onDidChangeExecutionDetails(async () => {
+      const { pythonPath } = await pythonExtension();
+      await handlePythonExtension(pythonPath);
     });
-    this.dbtClient = new DBTClient(pythonPath);
-    await this.dbtClient.checkIfDBTIsInstalled();
+
+    await handlePythonExtension(pythonPath);   
   }
 
   findDBTProject(uri: Uri): DBTProject | undefined {
@@ -101,9 +109,10 @@ export class DbtProjectContainer implements Disposable {
 
   runDBTCommand(command: DBTCommand) {
     if (this.dbtClient === undefined) {
-      window.showErrorMessage(
+      this.notYetShownDbtInstalledErrorMessage && window.showErrorMessage(
         "Please ensure you have selected a Python interpreter with DBT installed."
       );
+      this.notYetShownDbtInstalledErrorMessage = false;
       return;
     }
     this.dbtClient.addCommandToQueue(command);
