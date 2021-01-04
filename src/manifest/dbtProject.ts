@@ -85,7 +85,7 @@ export class DBTProject implements Disposable {
   // TODO: maybe we should have a DBTClient for each project, so they can run in parallel.
   runList() {
     const listCommand = DBTCommandFactory.createListCommand(this.projectRoot);
-    dbtProjectContainer.runDBTCommand(listCommand);
+    dbtProjectContainer.addCommandToQueue(listCommand);
   }
 
   runModel(runModelParams: RunModelParams) {
@@ -93,7 +93,7 @@ export class DBTProject implements Disposable {
       this.projectRoot,
       runModelParams
     );
-    dbtProjectContainer.runDBTCommand(runModelCommand);
+    dbtProjectContainer.addCommandToQueue(runModelCommand);
   }
 
   dispose() {

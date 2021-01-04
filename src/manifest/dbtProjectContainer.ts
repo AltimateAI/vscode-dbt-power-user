@@ -8,7 +8,7 @@ import {
   ManifestCacheChangedEvent,
 } from "./event/manifestCacheChangedEvent";
 import pythonExtension from "../dbt_client/pythonExtension";
-import { DBTCommand } from "../dbt_client/dbtCommandFactory";
+import { DBTCommand, DBTCommandFactory } from "../dbt_client/dbtCommandFactory";
 import {
   DBTInstallationFoundEvent,
   OnDBTInstallationFound,
@@ -107,7 +107,7 @@ export class DbtProjectContainer implements Disposable {
     return this.findDBTWorkspaceFolder(uri)?.findDBTProject(uri);
   }
 
-  runDBTCommand(command: DBTCommand) {
+  addCommandToQueue(command: DBTCommand) {
     if (this.dbtClient === undefined) {
       this.notYetShownDbtInstalledErrorMessage && window.showErrorMessage(
         "Please ensure you have selected a Python interpreter with DBT installed."
@@ -116,6 +116,26 @@ export class DbtProjectContainer implements Disposable {
       return;
     }
     this.dbtClient.addCommandToQueue(command);
+  }
+
+  installDBT() {
+    if (this.dbtClient === undefined) {
+      window.showErrorMessage(
+        "Please ensure you have selected a Python interpreter before installing DBT."
+      );
+      return;
+    }
+    this.dbtClient?.executeCommandImmediately(DBTCommandFactory.createInstallDBTCommand());
+  }
+
+  updateDBT() {
+    if (this.dbtClient === undefined) {
+      window.showErrorMessage(
+        "Please ensure you have selected a Python interpreter before updating DBT."
+      );
+      return;
+    }
+    this.dbtClient?.executeCommandImmediately(DBTCommandFactory.createUpdateDBTCommand());
   }
 
   dispose() {

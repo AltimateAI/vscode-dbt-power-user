@@ -59,16 +59,20 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
       this.notYetShownErrorMessage = false;
       return;
     }
+
     this.queue.addToQueue({
-      command: () =>
-        this.executeCommand(command).completeWithOutputChannel(
-          this.outputChannel
-        ),
+      command: () => this.executeCommandImmediately(command),
       statusMessage: command.statusMessage,
     });
   }
 
-  executeCommand(command: DBTCommand): CommandProcessExecution {
+  executeCommandImmediately(command: DBTCommand) {
+    return this.executeCommand(command).completeWithOutputChannel(
+      this.outputChannel
+    );
+  }
+
+  private executeCommand(command: DBTCommand): CommandProcessExecution {
     const { args, cwd } = command.processExecutionParams;
     if (command.focus) {
       this.outputChannel.show(true);

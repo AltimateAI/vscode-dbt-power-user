@@ -1,5 +1,4 @@
 import { window } from "vscode";
-import { DBTCommandFactory } from "../dbt_client/dbtCommandFactory";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 
 enum PromptAnswer {
@@ -14,7 +13,7 @@ const askForDBTUpdate = async () => {
     PromptAnswer.NO
   );
   if (answer === PromptAnswer.YES) {
-    dbtProjectContainer.runDBTCommand(DBTCommandFactory.createUpdateDBTCommand());
+    dbtProjectContainer.updateDBT();
   }
 };
 
