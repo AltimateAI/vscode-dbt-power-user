@@ -7,12 +7,12 @@ import {
   OnManifestCacheChanged,
   ManifestCacheChangedEvent,
 } from "./event/manifestCacheChangedEvent";
-import pythonExtension from "../dbt_client/pythonExtension";
 import { DBTCommand, DBTCommandFactory } from "../dbt_client/dbtCommandFactory";
 import {
   DBTInstallationFoundEvent,
   OnDBTInstallationFound,
 } from "./event/dbtVersionEvent";
+import { PythonEnvironment } from "./pythonEnvironment";
 
 export class DbtProjectContainer implements Disposable {
   private dbtClient?: DBTClient;
@@ -83,9 +83,10 @@ export class DbtProjectContainer implements Disposable {
 
   // TODO: this seems a bit out of place in here
   async detectDBT(): Promise<void> {
-    const { pythonPath, onDidChangeExecutionDetails } = await pythonExtension();
+    const pythonEnvironment = await PythonEnvironment.getEnvironment();
 
-    const handlePythonExtension = async (pythonPath: string) =>{
+    const handlePythonExtension = async () => {
+      const { pythonPath } = pythonEnvironment;
       this.notYetShownDbtInstalledErrorMessage = true;
 
       if (pythonPath === undefined) {
@@ -95,12 +96,8 @@ export class DbtProjectContainer implements Disposable {
       await this.dbtClient.checkIfDBTIsInstalled();
     };
 
-    onDidChangeExecutionDetails(async () => {
-      const { pythonPath } = await pythonExtension();
-      await handlePythonExtension(pythonPath);
-    });
-
-    await handlePythonExtension(pythonPath);   
+    pythonEnvironment.onDidChangeExecutionDetails(handlePythonExtension);
+    await handlePythonExtension();
   }
 
   findDBTProject(uri: Uri): DBTProject | undefined {
@@ -109,9 +106,10 @@ export class DbtProjectContainer implements Disposable {
 
   addCommandToQueue(command: DBTCommand) {
     if (this.dbtClient === undefined) {
-      this.notYetShownDbtInstalledErrorMessage && window.showErrorMessage(
-        "Please ensure you have selected a Python interpreter with DBT installed."
-      );
+      this.notYetShownDbtInstalledErrorMessage &&
+        window.showErrorMessage(
+          "Please ensure you have selected a Python interpreter with DBT installed."
+        );
       this.notYetShownDbtInstalledErrorMessage = false;
       return;
     }
@@ -125,7 +123,9 @@ export class DbtProjectContainer implements Disposable {
       );
       return;
     }
-    this.dbtClient?.executeCommandImmediately(DBTCommandFactory.createInstallDBTCommand());
+    this.dbtClient.executeCommandImmediately(
+      DBTCommandFactory.createInstallDBTCommand()
+    );
   }
 
   updateDBT() {
@@ -135,7 +135,9 @@ export class DbtProjectContainer implements Disposable {
       );
       return;
     }
-    this.dbtClient?.executeCommandImmediately(DBTCommandFactory.createUpdateDBTCommand());
+    this.dbtClient.executeCommandImmediately(
+      DBTCommandFactory.createUpdateDBTCommand()
+    );
   }
 
   dispose() {
