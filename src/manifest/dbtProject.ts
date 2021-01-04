@@ -66,7 +66,7 @@ export class DBTProject implements Disposable {
     const documentPath = uri.path;
     // TODO: could potentially have issues with casing @camfrout
     const pathSegments = documentPath
-      .replace(new RegExp(this.projectRoot.path, "g"), "")
+      .replace(new RegExp(this.projectRoot.path + "/", "g"), "")
       .split("/");
 
     const insidePackage =

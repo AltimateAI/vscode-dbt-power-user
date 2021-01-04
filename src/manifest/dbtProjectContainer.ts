@@ -1,5 +1,5 @@
 import { DBTProject } from "./dbtProject";
-import { workspace, WorkspaceFolder, Uri, Disposable } from "vscode";
+import { workspace, WorkspaceFolder, Uri, Disposable, window } from "vscode";
 import { DBTClient } from "../dbt_client/dbtClient";
 import { SourceFileChangedEvent } from "./event/sourceFileChangedEvent";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
@@ -100,7 +100,13 @@ export class DbtProjectContainer implements Disposable {
   }
 
   runDBTCommand(command: DBTCommand) {
-    this.dbtClient?.addCommandToQueue(command);
+    if (this.dbtClient === undefined) {
+      window.showErrorMessage(
+        "Please ensure you have a selected a Python interpreter with DBT installed."
+      );
+      return;
+    }
+    this.dbtClient.addCommandToQueue(command);
   }
 
   dispose() {

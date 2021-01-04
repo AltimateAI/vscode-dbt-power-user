@@ -1,34 +1,32 @@
 import { ProgressLocation, window } from "vscode";
 
-type Command = () => Promise<any>;
-
-interface CommandItem {
-  command: Command;
+interface Command{
+  command: () => Promise<void>;
   statusMessage: string;
 }
 export class DBTCommandQueue {
-  private queue: CommandItem[] = [];
-  private currentCommand?: any;
+  private queue: Command[] = [];
+  private running = false;
 
-  addToQueue(command: Command, text: string) {
-    this.queue.push({ command, statusMessage: text });
+  addToQueue(command: Command) {
+    this.queue.push(command);
     this.pickCommandToRun();
   }
 
-  private async pickCommandToRun(): Promise<any> {
-    if (this.currentCommand === undefined && this.queue.length > 0) {
+  private async pickCommandToRun(): Promise<void> {
+    if (!this.running && this.queue.length > 0) {
+      this.running = true;
       const { command, statusMessage } = this.queue.shift()!;
-      this.currentCommand = command;
 
       await window.withProgress({
           location: ProgressLocation.Window,
           cancellable: false,
           title: statusMessage,
       }, async () => {
-          await this.currentCommand();
+          await command();
       });
 
-      this.currentCommand = undefined;   
+      this.running = false;   
       this.pickCommandToRun();
     }
   }

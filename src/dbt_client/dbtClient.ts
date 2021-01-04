@@ -1,8 +1,4 @@
-import {
-  Disposable,
-  OutputChannel,
-  window,
-} from "vscode";
+import { Disposable, OutputChannel, window } from "vscode";
 import {
   OnSourceFileChanged,
   SourceFileChangedEvent,
@@ -13,11 +9,13 @@ import { CommandProcessExecution } from "./commandProcessExecution";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 
 export class DBTClient implements OnSourceFileChanged, Disposable {
-  static readonly IS_INSTALLED_VERSION = /(?<=installed\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
-  static readonly IS_LATEST_VERSION = /(?<=latest\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
+  static readonly INSTALLED_VERSION = /(?<=installed\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
+  static readonly LATEST_VERSION = /(?<=latest\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
   static readonly IS_INSTALLED = /installed\sversion/g;
   private readonly pythonPath: string;
-  private readonly outputChannel: OutputChannel = window.createOutputChannel("DBT");
+  private readonly outputChannel: OutputChannel = window.createOutputChannel(
+    "DBT"
+  );
   private readonly queue: DBTCommandQueue = new DBTCommandQueue();
 
   constructor(pythonPath: string) {
@@ -51,13 +49,13 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
   }
 
   addCommandToQueue(command: DBTCommand) {
-    this.queue.addToQueue(
-      () =>
+    this.queue.addToQueue({
+      command: () =>
         this.executeCommand(command).completeWithOutputChannel(
           this.outputChannel
         ),
-      command.statusMessage
-    );
+      statusMessage: command.statusMessage,
+    });
   }
 
   executeCommand(command: DBTCommand): CommandProcessExecution {
@@ -78,7 +76,10 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
     });
   }
 
-  private raiseDBTVersionEvent(installedVersion: string, latestVersion: string) {
+  private raiseDBTVersionEvent(
+    installedVersion: string,
+    latestVersion: string
+  ) {
     dbtProjectContainer.raiseDBTVersionEvent({
       installed: installedVersion !== undefined,
       installedVersion,
@@ -88,17 +89,17 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
   }
 
   private checkIfDBTIsUpToDate(message: string): void {
-    const installedVersionMatch = message.match(DBTClient.IS_INSTALLED_VERSION);
+    const installedVersionMatch = message.match(DBTClient.INSTALLED_VERSION);
     if (installedVersionMatch === null) {
       throw Error(
-        `The Regex IS_INSTALLED_VERSION ${DBTClient.IS_INSTALLED_VERSION} is not working ...`
+        `The Regex INSTALLED_VERSION ${DBTClient.INSTALLED_VERSION} is not working ...`
       );
     }
     const installedVersion = installedVersionMatch[0];
-    const latestVersionMatch = message.match(DBTClient.IS_LATEST_VERSION);
+    const latestVersionMatch = message.match(DBTClient.LATEST_VERSION);
     if (latestVersionMatch === null) {
       throw Error(
-        `The Regex IS_LATEST_VERSION ${DBTClient.IS_LATEST_VERSION} is not working ...`
+        `The Regex IS_LATEST_VERSION ${DBTClient.LATEST_VERSION} is not working ...`
       );
     }
     const latestVersion = latestVersionMatch[0];
