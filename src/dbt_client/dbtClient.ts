@@ -52,9 +52,10 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
 
   addCommandToQueue(command: DBTCommand) {
     if (!this.dbtInstalled) {
-      this.notYetShownErrorMessage && window.showErrorMessage(
-        "Please ensure DBT is installed in your selected Python environment."
-      );
+      this.notYetShownErrorMessage &&
+        window.showErrorMessage(
+          "Please ensure DBT is installed in your selected Python environment."
+        );
       this.notYetShownErrorMessage = false;
       return;
     }
