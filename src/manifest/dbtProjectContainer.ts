@@ -86,17 +86,25 @@ export class DbtProjectContainer implements Disposable {
     const pythonEnvironment = await PythonEnvironment.getEnvironment();
 
     const handlePythonExtension = async () => {
-      const { pythonPath } = pythonEnvironment;
+      const pythonEnvironment = await PythonEnvironment.getEnvironment();
+
+      const pythonPath = pythonEnvironment.getPythonPath();
       this.notYetShownDbtInstalledErrorMessage = true;
 
       if (pythonPath === undefined) {
+        this.dbtClient = undefined;
         return;
       }
       this.dbtClient = new DBTClient(pythonPath);
       await this.dbtClient.checkIfDBTIsInstalled();
     };
 
-    pythonEnvironment.onDidChangeExecutionDetails(handlePythonExtension);
+    pythonEnvironment.onDidChangeExecutionDetails(async () => {
+      if (this.dbtClient !== undefined) {
+        this.dbtClient.dispose();
+      }
+      await handlePythonExtension();
+    });
     await handlePythonExtension();
   }
 

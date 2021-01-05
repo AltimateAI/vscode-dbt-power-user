@@ -69,7 +69,7 @@ export class DBTCommandFactory {
   static createUpdateDBTCommand() {
     return {
       statusMessage: "Updating DBT...",
-      processExecutionParams: { args: ["-m", "pip", "update", "dbt"] },
+      processExecutionParams: { args: ["-m", "pip", "install", "dbt", "--upgrade"] },
       focus: true,
     };
   }
