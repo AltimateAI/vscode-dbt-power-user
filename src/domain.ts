@@ -1,4 +1,3 @@
-
 import * as path from "path";
 
 export type DBTGraphType = {
@@ -31,7 +30,6 @@ interface SourceMetaData {
   path: string;
   tables: SourceTable[];
 }
-
 
 interface SourceTable {
   name: string;
@@ -71,9 +69,9 @@ export class Model extends Node {
   };
 }
 
-export class Seed extends Node { }
-export class Test extends Node { }
-export class Analysis extends Node { }
+export class Seed extends Node {}
+export class Test extends Node {}
+export class Analysis extends Node {}
 export class Source extends Node {
   iconPath = {
     light: path.join(path.resolve(__dirname), "../media/source_light.svg"),

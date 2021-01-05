@@ -1,33 +1,34 @@
-import {
-  ManifestCacheChangedEvent,
-  OnManifestCacheChanged,
-} from "../manifest/manifestCacheChangedEvent";
-import { window, StatusBarAlignment, StatusBarItem, ThemeColor } from "vscode";
+import { window, StatusBarAlignment, StatusBarItem } from "vscode";
 import * as dayjs from "dayjs";
 import * as relativeTime from "dayjs/plugin/relativeTime";
 import { RunResultMetaMap } from "../domain";
-import { manifestContainer } from "../manifest/manifestContainer";
+import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { OnManifestCacheChanged, ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 dayjs.extend(relativeTime);
 
 export class RunResultStatusBar implements OnManifestCacheChanged {
-  statusBar: StatusBarItem;
+  readonly statusBar: StatusBarItem = window.createStatusBarItem(StatusBarAlignment.Left, 0);
   private runResultMetaMap: Map<string, RunResultMetaMap> = new Map();
 
   constructor() {
-    this.statusBar = window.createStatusBarItem(StatusBarAlignment.Left, 0);
     window.onDidChangeActiveTextEditor(() => this.showRunResult());
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    this.runResultMetaMap.set(event.projectRoot.fsPath, event.runResultMetaMap);
-    this.showRunResult();
+    event.added?.forEach(added => {
+      this.runResultMetaMap.set(added.projectRoot.fsPath, added.runResultMetaMap);
+      this.showRunResult();
+    });
+    event.removed?.forEach(removed => {
+      this.runResultMetaMap.delete(removed.projectRoot.fsPath);
+    });
   }
 
   showRunResult(): void {
     const activeTextEditor = window.activeTextEditor;
     if (activeTextEditor !== undefined) {
       const currentFilePath = activeTextEditor.document.uri;
-      const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
+      const projectRootpath = dbtProjectContainer.getProjectRootpath(currentFilePath);
       if (projectRootpath === undefined) {
         return;
       }

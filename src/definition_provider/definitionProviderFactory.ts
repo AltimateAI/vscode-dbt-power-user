@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { ModelDefinitionProvider } from "./modelDefinitionProvider";
 import { MacroDefinitionProvider } from "./macroDefinitionProvider";
 import { SourceDefinitionProvider } from "./sourceDefinitionProvider";
-import { manifestContainer } from "../manifest/manifestContainer";
+import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { DBT_MODE } from "../extension";
 
 export class DefinitionProviderFactory {
@@ -25,20 +25,25 @@ export class DefinitionProviderFactory {
 
   static createModelDefinitionProvider() {
     const modelDefinitionProvider = new ModelDefinitionProvider();
-    manifestContainer.addEventHandler(modelDefinitionProvider);
+    dbtProjectContainer.addOnManifestCacheChangedHandler(
+      modelDefinitionProvider
+    );
     return modelDefinitionProvider;
   }
 
   static createMacroDefinitionProvider() {
     const macroDefinitionProvider = new MacroDefinitionProvider();
-    manifestContainer.addEventHandler(macroDefinitionProvider);
+    dbtProjectContainer.addOnManifestCacheChangedHandler(
+      macroDefinitionProvider
+    );
     return macroDefinitionProvider;
   }
 
   static createSourceDefinitionProvider() {
     const sourceDefinitionProvider = new SourceDefinitionProvider();
-    manifestContainer.addEventHandler(sourceDefinitionProvider);
+    dbtProjectContainer.addOnManifestCacheChangedHandler(
+      sourceDefinitionProvider
+    );
     return sourceDefinitionProvider;
   }
-
 }

@@ -11,13 +11,13 @@ import {
   CompletionItemKind,
   Uri,
 } from "vscode";
+import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import {
-  ManifestCacheChangedEvent,
   OnManifestCacheChanged,
-} from "../manifest/manifestCacheChangedEvent";
-import { manifestContainer } from "../manifest/manifestContainer";
+  ManifestCacheChangedEvent,
+} from "../manifest/event/manifestCacheChangedEvent";
 
-export class MacroAutocompletionProvider
+export class MacroAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype
   implements CompletionItemProvider, OnManifestCacheChanged {
   private macrosAutocompleteMap: Map<string, CompletionItem[]> = new Map();
 
@@ -35,16 +35,21 @@ export class MacroAutocompletionProvider
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    this.macrosAutocompleteMap.set(
-      event.projectRoot.fsPath,
-      Array.from(event.macroMetaMap.keys()).map(
-        (macro) => new CompletionItem(macro, CompletionItemKind.File)
-      )
-    );
+    event.added?.forEach((added) => {
+      this.macrosAutocompleteMap.set(
+        added.projectRoot.fsPath,
+        Array.from(added.macroMetaMap.keys()).map(
+          (macro) => new CompletionItem(macro, CompletionItemKind.File)
+        )
+      );
+    });
+    event.removed?.forEach((removed) => {
+      this.macrosAutocompleteMap.delete(removed.projectRoot.fsPath);
+    });
   }
 
   private getAutoCompleteItems = (currentFilePath: Uri) => {
-    const projectRootpath = manifestContainer.getProjectRootpath(
+    const projectRootpath = dbtProjectContainer.getProjectRootpath(
       currentFilePath
     );
     if (projectRootpath === undefined) {

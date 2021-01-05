@@ -8,12 +8,12 @@ import {
   ProviderResult,
   DefinitionLink,
 } from "vscode";
-import {
-  ManifestCacheChangedEvent,
-  OnManifestCacheChanged,
-} from "../manifest/manifestCacheChangedEvent";
 import { MacroMetaMap } from "../domain";
-import { manifestContainer } from "../manifest/manifestContainer";
+import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
+import {
+  OnManifestCacheChanged,
+  ManifestCacheChangedEvent,
+} from "../manifest/event/manifestCacheChangedEvent";
 import { isEnclosedWithinCodeBlock } from "../utils";
 export class MacroDefinitionProvider
   implements DefinitionProvider, OnManifestCacheChanged {
@@ -36,10 +36,12 @@ export class MacroDefinitionProvider
         textLine[range.end.character] === "(" &&
         isEnclosedWithinCodeBlock(document, range)
       ) {
+        const packageName = dbtProjectContainer.getPackageName(document.uri);
 
-        const packageName = manifestContainer.getPackageName(document.uri);
-
-        const macroName = packageName !== undefined && !word.includes(".") ? `${packageName}.${word}` : word;
+        const macroName =
+          packageName !== undefined && !word.includes(".")
+            ? `${packageName}.${word}`
+            : word;
 
         const definition = this.getMacroDefinition(macroName, document.uri);
         if (definition !== undefined) {
@@ -52,11 +54,21 @@ export class MacroDefinitionProvider
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    this.macroToLocationMap.set(event.projectRoot.fsPath, event.macroMetaMap);
+    event.added?.forEach((added) => {
+      this.macroToLocationMap.set(added.projectRoot.fsPath, added.macroMetaMap);
+    });
+    event.removed?.forEach((removed) => {
+      this.macroToLocationMap.delete(removed.projectRoot.fsPath);
+    });
   }
 
-  private getMacroDefinition(macroName: string, currentFilePath: Uri): Definition | undefined {
-    const projectRootpath = manifestContainer.getProjectRootpath(currentFilePath);
+  private getMacroDefinition(
+    macroName: string,
+    currentFilePath: Uri
+  ): Definition | undefined {
+    const projectRootpath = dbtProjectContainer.getProjectRootpath(
+      currentFilePath
+    );
     if (projectRootpath === undefined) {
       return;
     }

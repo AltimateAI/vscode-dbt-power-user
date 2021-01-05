@@ -11,13 +11,13 @@ import {
   Uri,
 } from "vscode";
 import { isEnclosedWithinCodeBlock } from "../utils";
+import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import {
-  ManifestCacheChangedEvent,
   OnManifestCacheChanged,
-} from "../manifest/manifestCacheChangedEvent";
-import { manifestContainer } from "../manifest/manifestContainer";
+  ManifestCacheChangedEvent,
+} from "../manifest/event/manifestCacheChangedEvent";
 
-export class ModelAutocompletionProvider
+export class ModelAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype
   implements CompletionItemProvider, OnManifestCacheChanged {
   private static readonly ENDS_WTTH_REF = /ref\(['|"]$/;
   private modelAutocompleteMap: Map<string, CompletionItem[]> = new Map();
@@ -41,17 +41,22 @@ export class ModelAutocompletionProvider
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    const models = event.nodeMetaMap.keys();
-    this.modelAutocompleteMap.set(
-      event.projectRoot.fsPath,
-      Array.from(models).map(
-        (model) => new CompletionItem(model, CompletionItemKind.File)
-      )
-    );
+    event.added?.forEach((added) => {
+      const models = added.nodeMetaMap.keys();
+      this.modelAutocompleteMap.set(
+        added.projectRoot.fsPath,
+        Array.from(models).map(
+          (model) => new CompletionItem(model, CompletionItemKind.File)
+        )
+      );
+    });
+    event.removed?.forEach((removed) => {
+      this.modelAutocompleteMap.delete(removed.projectRoot.fsPath);
+    });
   }
 
   private getAutoCompleteItems = (currentFilePath: Uri) => {
-    const projectRootpath = manifestContainer.getProjectRootpath(
+    const projectRootpath = dbtProjectContainer.getProjectRootpath(
       currentFilePath
     );
     if (projectRootpath === undefined) {

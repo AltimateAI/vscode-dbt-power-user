@@ -1,4 +1,4 @@
-import { TextDocument, Range, Position } from "vscode";
+import { TextDocument, Range, Position, FileSystemWatcher } from "vscode";
 
 export const isEnclosedWithinCodeBlock: (
   document: TextDocument,
@@ -59,4 +59,26 @@ export const isEnclosedWithinCodeBlock: (
 
 export const notEmpty = <T>(value: T | null | undefined): value is T => {
   return value !== null && value !== undefined;
+};
+
+export const arrayEquals = <T>(a: Array<T>, b: Array<T>): boolean => {
+  return a.sort().toString() === b.sort().toString();
+};
+
+export const debounce = (fn: Function, wait: number) => {
+  let timeout: NodeJS.Timeout;
+
+  return function () {
+    clearTimeout(timeout);
+    timeout = setTimeout(fn(), wait);
+  };
+};
+
+export const setupWatcherHandler = (
+  watcher: FileSystemWatcher,
+  handler: Function
+): void => {
+  watcher.onDidChange(() => handler());
+  watcher.onDidCreate(() => handler());
+  watcher.onDidDelete(() => handler());
 };

@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { MacroAutocompletionProvider } from "./macroAutocompletionProvider";
 import { ModelAutocompletionProvider } from "./modelAutocompletionProvider";
 import { SourceAutocompletionProvider } from "./sourceAutocompletionProvider";
-import { manifestContainer } from "../manifest/manifestContainer";
+import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { DBT_MODE } from "../extension";
 
 export class AutocompletionProviderFactory {
@@ -15,31 +15,39 @@ export class AutocompletionProviderFactory {
       vscode.languages.registerCompletionItemProvider(
         DBT_MODE,
         AutocompletionProviderFactory.createModelAutocompletionProvider(),
-        '"', "'"
+        '"',
+        "'"
       ),
       vscode.languages.registerCompletionItemProvider(
         DBT_MODE,
         AutocompletionProviderFactory.createSourceAutocompletionProvider(),
-        '"', "'"
+        '"',
+        "'"
       ),
     ];
   }
-  
+
   static createMacroAutocompletionProvider(): vscode.CompletionItemProvider {
     const macroAutocompletionProvider = new MacroAutocompletionProvider();
-    manifestContainer.addEventHandler(macroAutocompletionProvider);
+    dbtProjectContainer.addOnManifestCacheChangedHandler(
+      macroAutocompletionProvider
+    );
     return macroAutocompletionProvider;
   }
 
   static createModelAutocompletionProvider(): vscode.CompletionItemProvider {
     const modelAutocompletionProvider = new ModelAutocompletionProvider();
-    manifestContainer.addEventHandler(modelAutocompletionProvider);
+    dbtProjectContainer.addOnManifestCacheChangedHandler(
+      modelAutocompletionProvider
+    );
     return modelAutocompletionProvider;
   }
 
   static createSourceAutocompletionProvider(): vscode.CompletionItemProvider {
     const sourceAutocompletionProvider = new SourceAutocompletionProvider();
-    manifestContainer.addEventHandler(sourceAutocompletionProvider);
+    dbtProjectContainer.addOnManifestCacheChangedHandler(
+      sourceAutocompletionProvider
+    );
     return sourceAutocompletionProvider;
   }
 }

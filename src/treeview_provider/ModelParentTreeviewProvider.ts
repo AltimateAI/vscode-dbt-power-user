@@ -8,15 +8,16 @@ import {
 } from "vscode";
 import { Node, Model, GraphMetaMap, Test, Seed, Analysis } from "../domain";
 import * as path from "path";
-import { manifestContainer } from "../manifest/manifestContainer";
+import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import {
-  ManifestCacheChangedEvent,
   OnManifestCacheChanged,
-} from "../manifest/manifestCacheChangedEvent";
+  ManifestCacheChangedEvent,
+  ManifestCacheProjectAddedEvent,
+} from "../manifest/event/manifestCacheChangedEvent";
 
 export class ModelTreeviewProvider
   implements TreeDataProvider<NodeTreeItem>, OnManifestCacheChanged {
-  private eventMap: Map<string, ManifestCacheChangedEvent> = new Map();
+  private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private treeType: keyof GraphMetaMap;
 
   constructor(treeType: keyof GraphMetaMap) {
@@ -33,7 +34,12 @@ export class ModelTreeviewProvider
     ._onDidChangeTreeData.event;
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    this.eventMap.set(event.projectRoot.fsPath, event);
+    event.added?.forEach((added) => {
+      this.eventMap.set(added.projectRoot.fsPath, added);
+    });
+    event.removed?.forEach((removed) => {
+      this.eventMap.delete(removed.projectRoot.fsPath);
+    });
     this._onDidChangeTreeData.fire();
   }
 
@@ -47,7 +53,7 @@ export class ModelTreeviewProvider
     }
 
     const currentFilePath = window.activeTextEditor!.document.uri;
-    const projectRootpath = manifestContainer.getProjectRootpath(
+    const projectRootpath = dbtProjectContainer.getProjectRootpath(
       currentFilePath
     );
     if (projectRootpath === undefined) {
@@ -68,7 +74,8 @@ export class ModelTreeviewProvider
       window.activeTextEditor!.document.fileName,
       ".sql"
     );
-    const packageName = manifestContainer.getPackageName(currentFilePath) || projectName;
+    const packageName =
+      dbtProjectContainer.getPackageName(currentFilePath) || projectName;
     return Promise.resolve(
       this.getTreeItems(`model.${packageName}.${fileName}`, event)
     );
@@ -76,7 +83,7 @@ export class ModelTreeviewProvider
 
   private getTreeItems(
     elementName: string,
-    event: ManifestCacheChangedEvent
+    event: ManifestCacheProjectAddedEvent
   ): NodeTreeItem[] {
     const { graphMetaMap } = event;
     const parentModels = graphMetaMap[this.treeType].get(elementName);

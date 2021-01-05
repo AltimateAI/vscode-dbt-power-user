@@ -11,13 +11,13 @@ import {
   Uri,
 } from "vscode";
 import { isEnclosedWithinCodeBlock } from "../utils";
+import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import {
-  ManifestCacheChangedEvent,
   OnManifestCacheChanged,
-} from "../manifest/manifestCacheChangedEvent";
-import { manifestContainer } from "../manifest/manifestContainer";
+  ManifestCacheChangedEvent,
+} from "../manifest/event/manifestCacheChangedEvent";
 
-export class SourceAutocompletionProvider
+export class SourceAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype
   implements CompletionItemProvider, OnManifestCacheChanged {
   private static readonly GET_SOURCE_NAME = /(?!['"])(\w+)(?=['"])/;
   private static readonly ENDS_WTTH_SOURCE = /source\(['|"]$/;
@@ -42,7 +42,9 @@ export class SourceAutocompletionProvider
     if (!isEnclosedWithinCodeBlock(document, position)) {
       return undefined;
     }
-    const projectRootpath = manifestContainer.getProjectRootpath(document.uri);
+    const projectRootpath = dbtProjectContainer.getProjectRootpath(
+      document.uri
+    );
     if (projectRootpath === undefined) {
       return;
     }
@@ -61,23 +63,29 @@ export class SourceAutocompletionProvider
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    this.sourceAutocompleteNameItemsMap.set(
-      event.projectRoot.fsPath,
-      Array.from(event.sourceMetaMap.keys()).map(
-        (source) => new CompletionItem(source, CompletionItemKind.File)
-      )
-    );
-    const sourceTableMap: Map<string, CompletionItem[]> = new Map();
-    event.sourceMetaMap.forEach((value, key) => {
-      const autocompleteItems = value.tables.map((item) => {
-        return new CompletionItem(item.name, CompletionItemKind.File);
+    event.added?.forEach((added) => {
+      this.sourceAutocompleteNameItemsMap.set(
+        added.projectRoot.fsPath,
+        Array.from(added.sourceMetaMap.keys()).map(
+          (source) => new CompletionItem(source, CompletionItemKind.File)
+        )
+      );
+      const sourceTableMap: Map<string, CompletionItem[]> = new Map();
+      added.sourceMetaMap.forEach((value, key) => {
+        const autocompleteItems = value.tables.map((item) => {
+          return new CompletionItem(item.name, CompletionItemKind.File);
+        });
+        sourceTableMap.set(key, autocompleteItems);
       });
-      sourceTableMap.set(key, autocompleteItems);
+      this.sourceAutocompleteTableMap.set(
+        added.projectRoot.fsPath,
+        sourceTableMap
+      );
     });
-    this.sourceAutocompleteTableMap.set(
-      event.projectRoot.fsPath,
-      sourceTableMap
-    );
+    event.removed?.forEach((removed) => {
+      this.sourceAutocompleteNameItemsMap.delete(removed.projectRoot.fsPath);
+      this.sourceAutocompleteTableMap.delete(removed.projectRoot.fsPath);
+    });
   }
 
   private showSourceNameAutocompletionItems(projectRootpath: Uri) {

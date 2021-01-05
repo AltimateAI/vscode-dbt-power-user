@@ -10,12 +10,12 @@ import {
   Position,
   Range,
 } from "vscode";
-import {
-  ManifestCacheChangedEvent,
-  OnManifestCacheChanged,
-} from "../manifest/manifestCacheChangedEvent";
 import { NodeMetaMap } from "../domain";
-import { manifestContainer } from "../manifest/manifestContainer";
+import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
+import {
+  OnManifestCacheChanged,
+  ManifestCacheChangedEvent,
+} from "../manifest/event/manifestCacheChangedEvent";
 
 export class ModelDefinitionProvider
   implements DefinitionProvider, OnManifestCacheChanged {
@@ -39,10 +39,7 @@ export class ModelDefinitionProvider
       if (word !== undefined && hover !== "ref") {
         const dbtModel = word.match(ModelDefinitionProvider.GET_DBT_MODEL);
         if (dbtModel && dbtModel.length === 1) {
-          const definition = this.getDefinitionFor(
-            dbtModel[0],
-            document.uri
-          );
+          const definition = this.getDefinitionFor(dbtModel[0], document.uri);
           resolve(definition);
           return;
         }
@@ -52,14 +49,19 @@ export class ModelDefinitionProvider
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    this.modelToLocationMap.set(event.projectRoot.fsPath, event.nodeMetaMap);
+    event.added?.forEach((added) => {
+      this.modelToLocationMap.set(added.projectRoot.fsPath, added.nodeMetaMap);
+    });
+    event.removed?.forEach((removed) => {
+      this.modelToLocationMap.delete(removed.projectRoot.fsPath);
+    });
   }
 
   private getDefinitionFor(
     name: string,
     currentFilePath: Uri
   ): Definition | undefined {
-    const projectRootpath = manifestContainer.getProjectRootpath(
+    const projectRootpath = dbtProjectContainer.getProjectRootpath(
       currentFilePath
     );
     if (projectRootpath === undefined) {
