@@ -8,6 +8,10 @@ Main features:
 - Go to the definition of any models, macro's and sources.
 - Autocompletion of models, macros and sources
 - Ability to run a model through the play button of the document
+- DBT install / update
+- DBT logs viewer (force tailing)
+
+This extension is fully compatible with the remote extension. See [Visual Studio Code Remote - Containers](https://code.visualstudio.com/docs/remote/containers) and [Visual Studio Code Remote - WSL](https://code.visualstudio.com/docs/remote/wsl).
 
 Please let us know about any bugs or feature requests through the github issues.
 
@@ -15,7 +19,7 @@ This extension is sponsored by [innover.io](https://innover.io/).
 
 ## Features at work
 
-### See the compiled SQL and the run status in the statusbar (new)
+### See the compiled SQL and the run status in the statusbar
 
 ![See compilation and run status](./media/run-status.gif)
 
@@ -39,6 +43,19 @@ This extension is sponsored by [innover.io](https://innover.io/).
 
 ![Autocomplete source](./media/autocomplete-source.gif)
 
+### DBT logs force tailing (new)
+
+![DBT logs](./media/dbt-log.gif)
+
+### Update DBT if DBT is outdated (new)
+
+![Update DBT](./media/update-dbt.gif)
+
+### Install DBT if DBT is not in the Python Environment (new)
+
+![Install DBT](./media/install-dbt.gif)
+
+
 
 ## How to use the extension
 
@@ -53,3 +70,4 @@ or add the following in settings.json:
         "*.sql": "jinja-sql"
     },
 ```
+

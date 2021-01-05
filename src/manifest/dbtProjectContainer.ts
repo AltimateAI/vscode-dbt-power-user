@@ -124,28 +124,30 @@ export class DbtProjectContainer implements Disposable {
     this.dbtClient.addCommandToQueue(command);
   }
 
-  installDBT() {
+  async installDBT() {
     if (this.dbtClient === undefined) {
       window.showErrorMessage(
         "Please ensure you have selected a Python interpreter before installing DBT."
       );
       return;
     }
-    this.dbtClient.executeCommandImmediately(
+    await this.dbtClient.executeCommandImmediately(
       DBTCommandFactory.createInstallDBTCommand()
     );
+    this.detectDBT();
   }
 
-  updateDBT() {
+  async updateDBT() {
     if (this.dbtClient === undefined) {
       window.showErrorMessage(
         "Please ensure you have selected a Python interpreter before updating DBT."
       );
       return;
     }
-    this.dbtClient.executeCommandImmediately(
+    await this.dbtClient.executeCommandImmediately(
       DBTCommandFactory.createUpdateDBTCommand()
     );
+    this.detectDBT();
   }
 
   dispose() {
