@@ -40,7 +40,7 @@ export class DBTCommandFactory {
   static createRunModelCommand(projectRoot: Uri, params: RunModelParams) {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     return {
-      statusMessage: "Listing DBT models...",
+      statusMessage: "Running DBT models...",
       processExecutionParams: {
         cwd: projectRoot.fsPath,
         args: [
