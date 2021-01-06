@@ -66,14 +66,14 @@ export const arrayEquals = <T>(a: Array<T>, b: Array<T>): boolean => {
 };
 
 export const debounce = (fn: Function, wait: number) => {
-  let timeout: NodeJS.Timeout;
-
-  return function () {
+  let timeout: number;
+  return () => {
     clearTimeout(timeout);
-    timeout = setTimeout(fn(), wait);
+    timeout = setTimeout(fn, wait);
   };
 };
 
+// TODO: potentially needs disposables
 export const setupWatcherHandler = (
   watcher: FileSystemWatcher,
   handler: Function
