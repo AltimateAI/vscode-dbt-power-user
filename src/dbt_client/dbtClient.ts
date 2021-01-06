@@ -87,6 +87,57 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
     this.pythonPath = pythonPath;
   }
 
+  async detectDBT(): Promise<void> {
+    // TODO after install, it discovers DBT projects in Python package
+    const pythonEnvironment = await PythonEnvironment.getEnvironment();
+
+    const handlePythonExtension = async () => {
+      const pythonEnvironment = await PythonEnvironment.getEnvironment();
+
+      const pythonPath = pythonEnvironment.getPythonPath();
+
+      if (pythonPath === undefined) {
+        this.pythonPath = undefined;
+        return;
+      }
+      this.pythonPath = pythonPath;
+      await this.checkIfDBTIsInstalled();
+    };
+
+    pythonEnvironment.onDidChangeExecutionDetails(handlePythonExtension);
+    await handlePythonExtension();
+  }
+
+  async installDBT() {
+    if (!this.pythonPath) {
+      window.showErrorMessage(
+        "Please ensure you have selected a Python interpreter before installing DBT."
+      );
+      return;
+    }
+    await this.executeCommandImmediately(
+      DBTCommandFactory.createInstallDBTCommand()
+    );
+    await this.detectDBT();
+  }
+
+  async updateDBT() {
+    if (!this.pythonPath) {
+      window.showErrorMessage(
+        "Please ensure you have selected a Python interpreter before updating DBT."
+      );
+      return;
+    }
+    await this.executeCommandImmediately(
+      DBTCommandFactory.createUpdateDBTCommand()
+    );
+    await this.detectDBT();
+  }
+
+  setPythonPath(pythonPath: string | undefined) {
+    this.pythonPath = pythonPath;
+  }
+
   async onSourceFileChanged(event: SourceFileChangedEvent): Promise<void> {
     this.addCommandToQueue(
       DBTCommandFactory.createListCommand(event.projectRoot)
