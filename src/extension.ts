@@ -5,6 +5,7 @@ import { StatusBarFactory } from "./statusbar/statusBarFactory";
 import { CommandFactory } from "./commands/commandFactory";
 import { DefinitionProviderFactory } from "./definition_provider/definitionProviderFactory";
 import { dbtProjectContainer } from "./manifest/dbtProjectContainer";
+import { DBTStatusBar } from "./statusbar/dbtStatusBar";
 
 export const DBT_MODE = { language: "jinja-sql", scheme: "file" };
 
@@ -15,7 +16,7 @@ export async function activate(context: vscode.ExtensionContext) {
     ...TreeviewProviderFactory.createModelTreeViews(),
     ...CommandFactory.createCommands(),
     StatusBarFactory.createRunResultStatusBar(),
-    StatusBarFactory.createDBTVersionStatusBar(),
+    new DBTStatusBar(),
     dbtProjectContainer
   );
 
@@ -23,4 +24,4 @@ export async function activate(context: vscode.ExtensionContext) {
   await dbtProjectContainer.initializeDBTProjects();
 }
 
-export function deactivate() {}
+export function deactivate() { }

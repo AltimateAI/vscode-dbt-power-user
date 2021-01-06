@@ -10,10 +10,4 @@ export class StatusBarFactory {
     dbtProjectContainer.addOnManifestCacheChangedHandler(runResultStatusBar);
     return runResultStatusBar.statusBar;
   }
-
-  static createDBTVersionStatusBar(): StatusBarItem {
-    const dbtVersionStatusBar = new DBTStatusBar();
-    dbtProjectContainer.addOnDBTInstallationFoundHandler(dbtVersionStatusBar);
-    return dbtVersionStatusBar.statusBar;
-  }
 }

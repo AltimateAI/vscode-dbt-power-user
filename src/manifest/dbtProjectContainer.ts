@@ -7,17 +7,12 @@ import {
   OnManifestCacheChanged,
   ManifestCacheChangedEvent,
 } from "./event/manifestCacheChangedEvent";
-import { DBTCommand, DBTCommandFactory } from "../dbt_client/dbtCommandFactory";
-import {
-  DBTInstallationFoundEvent,
-  OnDBTInstallationFound,
-} from "./event/dbtVersionEvent";
-import { PythonEnvironment } from "./pythonEnvironment";
+import { DBTCommand } from "../dbt_client/dbtCommandFactory";
 
 export class DbtProjectContainer implements Disposable {
-  private dbtClient?: DBTClient;
+  private dbtClient: DBTClient = new DBTClient();
+  public onDBTInstallationFound = this.dbtClient.onDBTInstallationFound;
   private manifestCacheChangedHandlers: OnManifestCacheChanged[] = [];
-  private dbtInstallationFoundHandlers: OnDBTInstallationFound[] = [];
   private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
 
   constructor() {
@@ -48,19 +43,9 @@ export class DbtProjectContainer implements Disposable {
     this.manifestCacheChangedHandlers.push(handler);
   }
 
-  addOnDBTInstallationFoundHandler(handler: OnDBTInstallationFound): void {
-    this.dbtInstallationFoundHandlers.push(handler);
-  }
-
   raiseManifestChangedEvent(event: ManifestCacheChangedEvent) {
     this.manifestCacheChangedHandlers.forEach((handler) =>
       handler.onManifestCacheChanged(event)
-    );
-  }
-
-  raiseDBTVersionEvent(event: DBTInstallationFoundEvent) {
-    this.dbtInstallationFoundHandlers.forEach((handler) =>
-      handler.onDBTInstallationFound(event)
     );
   }
 

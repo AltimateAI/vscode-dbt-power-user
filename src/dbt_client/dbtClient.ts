@@ -1,4 +1,10 @@
-import { CancellationToken, Disposable, EventEmitter, Terminal, window } from "vscode";
+import {
+  CancellationToken,
+  Disposable,
+  EventEmitter,
+  Terminal,
+  window,
+} from "vscode";
 import {
   OnSourceFileChanged,
   SourceFileChangedEvent,
@@ -6,9 +12,13 @@ import {
 import { DBTCommandQueue } from "./dbtCommandQueue";
 import { DBTCommand, DBTCommandFactory } from "./dbtCommandFactory";
 import { CommandProcessExecution } from "./commandProcessExecution";
-import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTInstallationFoundEvent } from "../manifest/event/dbtVersionEvent";
+import { PythonEnvironment } from "../manifest/pythonEnvironment";
 
 export class DBTClient implements OnSourceFileChanged, Disposable {
+  private _onDBTInstallationFound = new EventEmitter<DBTInstallationFoundEvent>();
+  public readonly onDBTInstallationFound: Event<DBTInstallationFoundEvent> = this
+    ._onDBTInstallationFound.event;
   static readonly INSTALLED_VERSION = /(?<=installed\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
   static readonly LATEST_VERSION = /(?<=latest\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
   static readonly IS_INSTALLED = /installed\sversion/g;
@@ -24,6 +34,57 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
 
   dispose() {
     this.writeEmitter.dispose();
+  }
+
+  async detectDBT(): Promise<void> {
+    // TODO after install, it discovers DBT projects in Python package
+    const pythonEnvironment = await PythonEnvironment.getEnvironment();
+
+    const handlePythonExtension = async () => {
+      const pythonEnvironment = await PythonEnvironment.getEnvironment();
+
+      const pythonPath = pythonEnvironment.getPythonPath();
+
+      if (pythonPath === undefined) {
+        this.pythonPath = undefined;
+        return;
+      }
+      this.pythonPath = pythonPath;
+      await this.checkIfDBTIsInstalled();
+    };
+
+    pythonEnvironment.onDidChangeExecutionDetails(handlePythonExtension);
+    await handlePythonExtension();
+  }
+
+  async installDBT() {
+    if (!this.pythonPath) {
+      window.showErrorMessage(
+        "Please ensure you have selected a Python interpreter before installing DBT."
+      );
+      return;
+    }
+    await this.executeCommandImmediately(
+      DBTCommandFactory.createInstallDBTCommand()
+    );
+    await this.detectDBT();
+  }
+
+  async updateDBT() {
+    if (!this.pythonPath) {
+      window.showErrorMessage(
+        "Please ensure you have selected a Python interpreter before updating DBT."
+      );
+      return;
+    }
+    await this.executeCommandImmediately(
+      DBTCommandFactory.createUpdateDBTCommand()
+    );
+    await this.detectDBT();
+  }
+
+  setPythonPath(pythonPath: string | undefined) {
+    this.pythonPath = pythonPath;
   }
 
   async onSourceFileChanged(event: SourceFileChangedEvent): Promise<void> {
@@ -62,19 +123,23 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
     this.queue.addToQueue({
       command: (token) => this.executeCommandImmediately(command, token),
       statusMessage: command.statusMessage,
-      focus: command.focus
+      focus: command.focus,
     });
   }
 
-  async executeCommandImmediately(command: DBTCommand, token?: CancellationToken) {
+  async executeCommandImmediately(
+    command: DBTCommand,
+    token?: CancellationToken
+  ) {
     const process = this.executeCommand(command, token);
-    await process.completeWithTerminalOutput(
-      this.writeEmitter
-    );
+    await process.completeWithTerminalOutput(this.writeEmitter);
     process.dispose();
   }
 
-  private executeCommand(command: DBTCommand, token?: CancellationToken): CommandProcessExecution {
+  private executeCommand(
+    command: DBTCommand,
+    token?: CancellationToken
+  ): CommandProcessExecution {
     const { args, cwd } = command.processExecutionParams;
     if (this.terminal === undefined) {
       this.terminal = window.createTerminal({
@@ -101,12 +166,12 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
 
   private raiseDBTInstallationCheckEvent() {
     this.dbtInstalled = undefined;
-    dbtProjectContainer.raiseDBTVersionEvent({});
+    this._onDBTInstallationFound.fire({});
   }
 
   private raiseDBTNotInstalledEvent() {
     this.dbtInstalled = false;
-    dbtProjectContainer.raiseDBTVersionEvent({
+    this._onDBTInstallationFound.fire({
       installed: false,
     });
   }
@@ -116,7 +181,7 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
     latestVersion: string
   ) {
     this.dbtInstalled = true;
-    dbtProjectContainer.raiseDBTVersionEvent({
+    this._onDBTInstallationFound.fire({
       installed: installedVersion !== undefined,
       installedVersion,
       latestVersion,
