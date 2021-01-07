@@ -1,11 +1,11 @@
 import {
+  EventEmitter,
   FileSystemWatcher,
   RelativePattern,
   Uri,
   workspace,
 } from "vscode";
 import { arrayEquals, debounce } from "../../utils";
-import { dbtProjectContainer } from "../dbtProjectContainer";
 import {
   OnProjectConfigChanged,
   ProjectConfigChangedEvent,
@@ -13,6 +13,8 @@ import {
 import { SourceFileChangedEvent } from "../event/sourceFileChangedEvent";
 
 export class SourceFileWatchers implements OnProjectConfigChanged {
+  private static _onSourceFileChanged = new EventEmitter<SourceFileChangedEvent>();
+  public static readonly onSourceFileChanged = SourceFileWatchers._onSourceFileChanged.event;
   private currentSourcePaths?: string[];
   private sourceFolderWatchers: FileSystemWatcher[] = [];
 
@@ -34,7 +36,7 @@ export class SourceFileWatchers implements OnProjectConfigChanged {
         const event = new SourceFileChangedEvent(projectRoot);
 
         const debouncedSourceFileChangedEvent = debounce(
-          () => dbtProjectContainer.raiseSourceFileChangedEvent(event),
+          () => SourceFileWatchers._onSourceFileChanged.fire(event),
           2000
         );
 

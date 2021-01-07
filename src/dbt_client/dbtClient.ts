@@ -14,6 +14,7 @@ import { DBTCommand, DBTCommandFactory } from "./dbtCommandFactory";
 import { CommandProcessExecution } from "./commandProcessExecution";
 import { DBTInstallationFoundEvent } from "./dbtVersionEvent";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
+import { SourceFileWatchers } from "../manifest/handlers/sourceFileWatchers";
 
 export class DBTClient implements OnSourceFileChanged, Disposable {
   private _onDBTInstallationFound = new EventEmitter<DBTInstallationFoundEvent>();
@@ -30,6 +31,10 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
 
   constructor(pythonPath: string) {
     this.pythonPath = pythonPath;
+  }
+
+  constructor() {
+    this.disposables.push(SourceFileWatchers.onSourceFileChanged(event => this.onSourceFileChanged(event)));
   }
 
   dispose() {

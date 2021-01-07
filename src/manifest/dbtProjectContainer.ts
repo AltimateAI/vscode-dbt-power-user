@@ -1,7 +1,6 @@
 import { DBTProject } from "./dbtProject";
 import { workspace, WorkspaceFolder, Uri, Disposable } from "vscode";
 import { DBTClient } from "../dbt_client/dbtClient";
-import { SourceFileChangedEvent } from "./event/sourceFileChangedEvent";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
 import { DBTCommand } from "../dbt_client/dbtCommandFactory";
 
@@ -32,12 +31,6 @@ export class DbtProjectContainer implements Disposable {
     await Promise.all(
       folders.map((folder) => this.registerWorkspaceFolder(folder))
     );
-  }
-
-  raiseSourceFileChangedEvent(event: SourceFileChangedEvent) {
-    if (this.dbtClient !== undefined) {
-      this.dbtClient.onSourceFileChanged(event);
-    }
   }
 
   // TODO: bypasses events and could be inconsistent
