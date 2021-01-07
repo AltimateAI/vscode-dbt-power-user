@@ -11,6 +11,8 @@ Main features:
 - DBT install / update
 - DBT logs viewer (force tailing)
 
+This extension is using the Python extension to detect Python interpreters that are installed in standard locations. See [Python Environments](https://code.visualstudio.com/docs/languages/python#_environments).
+
 This extension is fully compatible with the remote extension. See [Visual Studio Code Remote - Containers](https://code.visualstudio.com/docs/remote/containers) and [Visual Studio Code Remote - WSL](https://code.visualstudio.com/docs/remote/wsl).
 
 Please let us know about any bugs or feature requests through the github issues.
