@@ -1,8 +1,9 @@
-import { ProgressLocation, window } from "vscode";
+import { CancellationToken, ProgressLocation, window } from "vscode";
 
 interface Command{
-  command: () => Promise<void>;
+  command: (token: CancellationToken) => Promise<void>;
   statusMessage: string;
+  focus?: boolean;
 }
 export class DBTCommandQueue {
   private queue: Command[] = [];
@@ -16,14 +17,14 @@ export class DBTCommandQueue {
   private async pickCommandToRun(): Promise<void> {
     if (!this.running && this.queue.length > 0) {
       this.running = true;
-      const { command, statusMessage } = this.queue.shift()!;
+      const { command, statusMessage, focus } = this.queue.shift()!;
 
       await window.withProgress({
-          location: ProgressLocation.Window,
-          cancellable: false,
+          location: focus ? ProgressLocation.Notification : ProgressLocation.Window,
+          cancellable: true,
           title: statusMessage,
-      }, async () => {
-          await command();
+      }, async (_, token) => {
+          await command(token);
       });
 
       this.running = false;   

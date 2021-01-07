@@ -19,7 +19,6 @@ export class DbtProjectContainer implements Disposable {
   private manifestCacheChangedHandlers: OnManifestCacheChanged[] = [];
   private dbtInstallationFoundHandlers: OnDBTInstallationFound[] = [];
   private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
-  private notYetShownDbtInstalledErrorMessage = true;
 
   constructor() {
     workspace.onDidChangeWorkspaceFolders(async (event) => {
@@ -89,7 +88,6 @@ export class DbtProjectContainer implements Disposable {
       const pythonEnvironment = await PythonEnvironment.getEnvironment();
 
       const pythonPath = pythonEnvironment.getPythonPath();
-      this.notYetShownDbtInstalledErrorMessage = true;
 
       if (pythonPath === undefined) {
         this.dbtClient = undefined;
@@ -114,11 +112,11 @@ export class DbtProjectContainer implements Disposable {
 
   addCommandToQueue(command: DBTCommand) {
     if (this.dbtClient === undefined) {
-      this.notYetShownDbtInstalledErrorMessage &&
+      if (command.focus) {
         window.showErrorMessage(
-          "Please ensure you have selected a Python interpreter with DBT installed."
+          "Can't run the command. Please ensure you have selected a Python interpreter with DBT installed."
         );
-      this.notYetShownDbtInstalledErrorMessage = false;
+      }
       return;
     }
     this.dbtClient.addCommandToQueue(command);
@@ -127,7 +125,7 @@ export class DbtProjectContainer implements Disposable {
   async installDBT() {
     if (this.dbtClient === undefined) {
       window.showErrorMessage(
-        "Please ensure you have selected a Python interpreter before installing DBT."
+        "Can't install DBT. Please ensure you have selected a Python interpreter before installing DBT."
       );
       return;
     }
@@ -140,7 +138,7 @@ export class DbtProjectContainer implements Disposable {
   async updateDBT() {
     if (this.dbtClient === undefined) {
       window.showErrorMessage(
-        "Please ensure you have selected a Python interpreter before updating DBT."
+        "Can't update DBT. Please ensure you have selected a Python interpreter before updating DBT."
       );
       return;
     }

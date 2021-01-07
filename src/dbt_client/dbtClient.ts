@@ -1,4 +1,4 @@
-import { Disposable, EventEmitter, Terminal, window } from "vscode";
+import { CancellationToken, Disposable, EventEmitter, Terminal, window } from "vscode";
 import {
   OnSourceFileChanged,
   SourceFileChangedEvent,
@@ -16,7 +16,6 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
   private readonly writeEmitter = new EventEmitter<string>();
   private readonly queue: DBTCommandQueue = new DBTCommandQueue();
   private dbtInstalled?: boolean;
-  private notYetShownErrorMessage = true;
   private terminal?: Terminal;
 
   constructor(pythonPath: string) {
@@ -40,6 +39,7 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
     try {
       this.raiseDBTInstallationCheckEvent();
       await checkDBTInstalledProcess.complete();
+      checkDBTInstalledProcess.dispose();
     } catch (err) {
       if (err.match(DBTClient.IS_INSTALLED)) {
         this.checkIfDBTIsUpToDate(err);
@@ -51,47 +51,52 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
 
   addCommandToQueue(command: DBTCommand) {
     if (!this.dbtInstalled) {
-      this.notYetShownErrorMessage &&
+      if (command.focus) {
         window.showErrorMessage(
           "Please ensure DBT is installed in your selected Python environment."
         );
-      this.notYetShownErrorMessage = false;
+      }
       return;
     }
 
     this.queue.addToQueue({
-      command: () => this.executeCommandImmediately(command),
+      command: (token) => this.executeCommandImmediately(command, token),
       statusMessage: command.statusMessage,
+      focus: command.focus
     });
   }
 
-  executeCommandImmediately(command: DBTCommand) {
-    return this.executeCommand(command).completeWithTerminalOutput(
+  async executeCommandImmediately(command: DBTCommand, token?: CancellationToken) {
+    const process = this.executeCommand(command, token);
+    await process.completeWithTerminalOutput(
       this.writeEmitter
     );
+    process.dispose();
   }
 
-  private executeCommand(command: DBTCommand): CommandProcessExecution {
+  private executeCommand(command: DBTCommand, token?: CancellationToken): CommandProcessExecution {
     const { args, cwd } = command.processExecutionParams;
-    if(this.terminal === undefined) {
+    if (this.terminal === undefined) {
       this.terminal = window.createTerminal({
-        name: 'DBT',
+        name: "DBT",
         pty: {
           onDidWrite: this.writeEmitter.event,
-          open: () => this.writeEmitter.fire(''),
-          close: () =>  {
+          open: () => this.writeEmitter.fire(""),
+          close: () => {
             this.terminal?.dispose();
             this.terminal = undefined;
-          }
-        }
+          },
+        },
       });
     }
-    this.writeEmitter.fire(`\r> Executing task:  ${command.commandAsString}\n\r\n\r`);
-    
+    this.writeEmitter.fire(
+      `\r> Executing task:  ${command.commandAsString}\n\r\n\r`
+    );
+
     if (command.focus) {
       this.terminal.show(true);
     }
-    return new CommandProcessExecution(this.pythonPath, args, cwd);
+    return new CommandProcessExecution(this.pythonPath, args, cwd, token);
   }
 
   private raiseDBTInstallationCheckEvent() {
