@@ -65,7 +65,6 @@ export class DbtProjectContainer implements Disposable {
     return this.findDBTProject(uri)?.projectRoot;
   };
 
-  // TODO: this seems a bit out of place in here
   async detectDBT(): Promise<void> {
     const pythonEnvironment = await PythonEnvironment.getEnvironment();
 
