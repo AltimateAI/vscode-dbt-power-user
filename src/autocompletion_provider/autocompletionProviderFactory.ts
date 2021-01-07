@@ -6,48 +6,24 @@ import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { DBT_MODE } from "../extension";
 
 export class AutocompletionProviderFactory {
-  static createAutoCompletionProviders(): { dispose(): any }[] {
+  static createAutoCompletionProviders(): { dispose(): any; }[] {
     return [
       vscode.languages.registerCompletionItemProvider(
         DBT_MODE,
-        AutocompletionProviderFactory.createMacroAutocompletionProvider()
+        new MacroAutocompletionProvider()
       ),
       vscode.languages.registerCompletionItemProvider(
         DBT_MODE,
-        AutocompletionProviderFactory.createModelAutocompletionProvider(),
+        new ModelAutocompletionProvider(),
         '"',
         "'"
       ),
       vscode.languages.registerCompletionItemProvider(
         DBT_MODE,
-        AutocompletionProviderFactory.createSourceAutocompletionProvider(),
+        new SourceAutocompletionProvider(),
         '"',
         "'"
       ),
     ];
-  }
-
-  static createMacroAutocompletionProvider(): vscode.CompletionItemProvider {
-    const macroAutocompletionProvider = new MacroAutocompletionProvider();
-    dbtProjectContainer.addOnManifestCacheChangedHandler(
-      macroAutocompletionProvider
-    );
-    return macroAutocompletionProvider;
-  }
-
-  static createModelAutocompletionProvider(): vscode.CompletionItemProvider {
-    const modelAutocompletionProvider = new ModelAutocompletionProvider();
-    dbtProjectContainer.addOnManifestCacheChangedHandler(
-      modelAutocompletionProvider
-    );
-    return modelAutocompletionProvider;
-  }
-
-  static createSourceAutocompletionProvider(): vscode.CompletionItemProvider {
-    const sourceAutocompletionProvider = new SourceAutocompletionProvider();
-    dbtProjectContainer.addOnManifestCacheChangedHandler(
-      sourceAutocompletionProvider
-    );
-    return sourceAutocompletionProvider;
   }
 }

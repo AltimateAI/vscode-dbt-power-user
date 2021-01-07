@@ -6,44 +6,20 @@ import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { DBT_MODE } from "../extension";
 
 export class DefinitionProviderFactory {
-  static createDefinitionProviders(): { dispose(): any }[] {
+  static createDefinitionProviders(): { dispose(): any; }[] {
     return [
       vscode.languages.registerDefinitionProvider(
         DBT_MODE,
-        DefinitionProviderFactory.createModelDefinitionProvider()
+        new ModelDefinitionProvider()
       ),
       vscode.languages.registerDefinitionProvider(
         DBT_MODE,
-        DefinitionProviderFactory.createMacroDefinitionProvider()
+        new MacroDefinitionProvider()
       ),
       vscode.languages.registerDefinitionProvider(
         DBT_MODE,
-        DefinitionProviderFactory.createSourceDefinitionProvider()
+        new SourceDefinitionProvider()
       ),
     ];
-  }
-
-  static createModelDefinitionProvider() {
-    const modelDefinitionProvider = new ModelDefinitionProvider();
-    dbtProjectContainer.addOnManifestCacheChangedHandler(
-      modelDefinitionProvider
-    );
-    return modelDefinitionProvider;
-  }
-
-  static createMacroDefinitionProvider() {
-    const macroDefinitionProvider = new MacroDefinitionProvider();
-    dbtProjectContainer.addOnManifestCacheChangedHandler(
-      macroDefinitionProvider
-    );
-    return macroDefinitionProvider;
-  }
-
-  static createSourceDefinitionProvider() {
-    const sourceDefinitionProvider = new SourceDefinitionProvider();
-    dbtProjectContainer.addOnManifestCacheChangedHandler(
-      sourceDefinitionProvider
-    );
-    return sourceDefinitionProvider;
   }
 }

@@ -12,12 +12,12 @@ import {
 import { DBTCommandQueue } from "./dbtCommandQueue";
 import { DBTCommand, DBTCommandFactory } from "./dbtCommandFactory";
 import { CommandProcessExecution } from "./commandProcessExecution";
-import { DBTInstallationFoundEvent } from "../manifest/event/dbtVersionEvent";
+import { DBTInstallationFoundEvent } from "./dbtVersionEvent";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 
 export class DBTClient implements OnSourceFileChanged, Disposable {
   private _onDBTInstallationFound = new EventEmitter<DBTInstallationFoundEvent>();
-  public readonly onDBTInstallationFound: Event<DBTInstallationFoundEvent> = this
+  public readonly onDBTInstallationFound = this
     ._onDBTInstallationFound.event;
   static readonly INSTALLED_VERSION = /(?<=installed\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
   static readonly LATEST_VERSION = /(?<=latest\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;

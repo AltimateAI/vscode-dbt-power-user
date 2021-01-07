@@ -1,17 +1,24 @@
-import { window, StatusBarAlignment, StatusBarItem } from "vscode";
+import { window, StatusBarAlignment, StatusBarItem, Disposable } from "vscode";
 import * as dayjs from "dayjs";
 import * as relativeTime from "dayjs/plugin/relativeTime";
 import { RunResultMetaMap } from "../domain";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { OnManifestCacheChanged, ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { ManifestChangedHandler } from "../manifest/event/manifestChangedHandler";
 dayjs.extend(relativeTime);
 
-export class RunResultStatusBar implements OnManifestCacheChanged {
+export class RunResultStatusBar implements OnManifestCacheChanged, Disposable {
   readonly statusBar: StatusBarItem = window.createStatusBarItem(StatusBarAlignment.Left, 0);
   private runResultMetaMap: Map<string, RunResultMetaMap> = new Map();
+  private disposables: Disposable[] = [];
 
   constructor() {
     window.onDidChangeActiveTextEditor(() => this.showRunResult());
+    this.disposables.push(ManifestChangedHandler.onManifestChanged((event) => this.onManifestCacheChanged(event)));
+  }
+
+  dispose() {
+    this.disposables.forEach(disposable => disposable.dispose());
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {

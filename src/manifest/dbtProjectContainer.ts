@@ -1,18 +1,13 @@
 import { DBTProject } from "./dbtProject";
-import { workspace, WorkspaceFolder, Uri, Disposable, window } from "vscode";
+import { workspace, WorkspaceFolder, Uri, Disposable } from "vscode";
 import { DBTClient } from "../dbt_client/dbtClient";
 import { SourceFileChangedEvent } from "./event/sourceFileChangedEvent";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
-import {
-  OnManifestCacheChanged,
-  ManifestCacheChangedEvent,
-} from "./event/manifestCacheChangedEvent";
 import { DBTCommand } from "../dbt_client/dbtCommandFactory";
 
 export class DbtProjectContainer implements Disposable {
   private dbtClient: DBTClient = new DBTClient();
   public onDBTInstallationFound = this.dbtClient.onDBTInstallationFound;
-  private manifestCacheChangedHandlers: OnManifestCacheChanged[] = [];
   private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
 
   constructor() {
@@ -36,16 +31,6 @@ export class DbtProjectContainer implements Disposable {
     }
     await Promise.all(
       folders.map((folder) => this.registerWorkspaceFolder(folder))
-    );
-  }
-
-  addOnManifestCacheChangedHandler(handler: OnManifestCacheChanged): void {
-    this.manifestCacheChangedHandlers.push(handler);
-  }
-
-  raiseManifestChangedEvent(event: ManifestCacheChangedEvent) {
-    this.manifestCacheChangedHandlers.forEach((handler) =>
-      handler.onManifestCacheChanged(event)
     );
   }
 

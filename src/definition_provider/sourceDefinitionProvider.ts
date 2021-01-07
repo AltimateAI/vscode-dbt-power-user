@@ -8,6 +8,7 @@ import {
   DefinitionLink,
   Location,
   Uri,
+  Disposable,
 } from "vscode";
 import { readFileSync } from "fs";
 import path = require("path");
@@ -18,12 +19,22 @@ import {
   OnManifestCacheChanged,
   ManifestCacheChangedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
+import { ManifestChangedHandler } from "../manifest/event/manifestChangedHandler";
 
 export class SourceDefinitionProvider
-  implements DefinitionProvider, OnManifestCacheChanged {
+  implements DefinitionProvider, OnManifestCacheChanged, Disposable {
   private sourceMetaMap: Map<string, SourceMetaMap> = new Map();
   private static readonly IS_SOURCE = /(source)\([^)]*\)/;
   private static readonly GET_SOURCE_INFO = /(?!['"])(\w+)(?=['"])/g;
+  private disposables: Disposable[] = [];
+
+  constructor() {
+    this.disposables.push(ManifestChangedHandler.onManifestChanged((event) => this.onManifestCacheChanged(event)));
+  }
+
+  dispose() {
+    this.disposables.forEach(disposable => disposable.dispose());
+  }
 
   provideDefinition(
     document: TextDocument,

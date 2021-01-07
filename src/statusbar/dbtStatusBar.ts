@@ -1,6 +1,6 @@
 import { StatusBarItem, StatusBarAlignment, window, Command, Disposable } from "vscode";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
-import { DBTInstallationFoundEvent, OnDBTInstallationFound } from "../manifest/event/dbtVersionEvent";
+import { DBTInstallationFoundEvent, OnDBTInstallationFound } from "../dbt_client/dbtVersionEvent";
 
 export class DBTStatusBar implements OnDBTInstallationFound, Disposable {
   readonly statusBar: StatusBarItem = window.createStatusBarItem(StatusBarAlignment.Left, 10);

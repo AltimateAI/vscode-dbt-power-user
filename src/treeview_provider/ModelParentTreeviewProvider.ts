@@ -5,6 +5,7 @@ import {
   TreeItemCollapsibleState,
   window,
   EventEmitter,
+  Disposable,
 } from "vscode";
 import { Node, Model, GraphMetaMap, Test, Seed, Analysis } from "../domain";
 import * as path from "path";
@@ -14,17 +15,24 @@ import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
+import { ManifestChangedHandler } from "../manifest/event/manifestChangedHandler";
 
 export class ModelTreeviewProvider
-  implements TreeDataProvider<NodeTreeItem>, OnManifestCacheChanged {
+  implements TreeDataProvider<NodeTreeItem>, OnManifestCacheChanged, Disposable {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private treeType: keyof GraphMetaMap;
+  private disposables: Disposable[] = [];
 
   constructor(treeType: keyof GraphMetaMap) {
     this.treeType = treeType;
     window.onDidChangeActiveTextEditor(() => {
       this._onDidChangeTreeData.fire();
     });
+    this.disposables.push(ManifestChangedHandler.onManifestChanged((event) => this.onManifestCacheChanged(event)));
+  }
+
+  dispose() {
+    this.disposables.forEach(disposable => disposable.dispose());
   }
 
   private _onDidChangeTreeData: EventEmitter<

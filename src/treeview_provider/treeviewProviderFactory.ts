@@ -13,8 +13,6 @@ export class TreeviewProviderFactory {
     ];
   }
   static createModelTreeview(treeType: keyof GraphMetaMap) {
-    const modelParentTreeviewProvider = new ModelTreeviewProvider(treeType);
-    dbtProjectContainer.addOnManifestCacheChangedHandler(modelParentTreeviewProvider);
-    return modelParentTreeviewProvider;
+    return new ModelTreeviewProvider(treeType);
   }
 }
