@@ -35,11 +35,20 @@ export class DBTProject implements Disposable {
   static RESOURCE_TYPE_SEED = "seed";
 
   readonly projectRoot: Uri;
+  private sourceFileWatchers = new SourceFileWatchers();
+  public onSourceFileChanged = this.sourceFileWatchers.onSourceFileChanged;
   private dbtProjectWatcher?: FileSystemWatcher;
   private dbtProjectLog = new DBTProjectLog();
+  private targetWatchers = new TargetWatchers();
+  private disposables: Disposable[] = [
+    this.sourceFileWatchers,
+    this.dbtProjectLog,
+    this.targetWatchers,
+  ];
+
   private onProjectConfigChangedHandlers: OnProjectConfigChanged[] = [
-    new TargetWatchers(),
-    new SourceFileWatchers(),
+    this.targetWatchers,
+    this.sourceFileWatchers,
     this.dbtProjectLog,
   ];
 
@@ -47,6 +56,12 @@ export class DBTProject implements Disposable {
     this.projectRoot = path;
     this.dbtProjectWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(path, DBTProject.DBT_PROJECT_FILE)
+    );
+    this.disposables.push(
+      this.dbtProjectWatcher,
+      this.onSourceFileChanged(() =>
+        dbtProjectContainer.listModels(this.projectRoot)
+      )
     );
     setupWatcherHandler(this.dbtProjectWatcher, () => this.tryRefresh());
   }
@@ -81,7 +96,7 @@ export class DBTProject implements Disposable {
   contains(uri: Uri) {
     return uri.fsPath.startsWith(this.projectRoot.fsPath);
   }
-  
+
   // TODO: maybe we should have a DBTClient for each project, so they can run in parallel.
   runList() {
     const listCommand = DBTCommandFactory.createListCommand(this.projectRoot);
@@ -97,7 +112,7 @@ export class DBTProject implements Disposable {
   }
 
   dispose() {
-    this.dbtProjectLog.dispose();
+    this.disposables.forEach((disposable) => disposable.dispose());
   }
 
   private readAndParseProjectConfig() {

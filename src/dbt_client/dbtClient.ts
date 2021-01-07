@@ -6,20 +6,22 @@ import {
   window,
 } from "vscode";
 import {
-  OnSourceFileChanged,
-  SourceFileChangedEvent,
-} from "../manifest/event/sourceFileChangedEvent";
+  Disposable,
+  EventEmitter,
+  OutputChannel,
+  window,
+  Event,
+  Uri,
+} from "vscode";
 import { DBTCommandQueue } from "./dbtCommandQueue";
 import { DBTCommand, DBTCommandFactory } from "./dbtCommandFactory";
 import { CommandProcessExecution } from "./commandProcessExecution";
 import { DBTInstallationFoundEvent } from "./dbtVersionEvent";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { SourceFileWatchers } from "../manifest/handlers/sourceFileWatchers";
 
-export class DBTClient implements OnSourceFileChanged, Disposable {
+export class DBTClient implements Disposable {
   private _onDBTInstallationFound = new EventEmitter<DBTInstallationFoundEvent>();
-  public readonly onDBTInstallationFound = this
-    ._onDBTInstallationFound.event;
+  public readonly onDBTInstallationFound = this._onDBTInstallationFound.event;
   static readonly INSTALLED_VERSION = /(?<=installed\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
   static readonly LATEST_VERSION = /(?<=latest\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
   static readonly IS_INSTALLED = /installed\sversion/g;
@@ -31,10 +33,6 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
 
   constructor(pythonPath: string) {
     this.pythonPath = pythonPath;
-  }
-
-  constructor() {
-    this.disposables.push(SourceFileWatchers.onSourceFileChanged(event => this.onSourceFileChanged(event)));
   }
 
   dispose() {
@@ -129,10 +127,8 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
     await this.handlePythonExtension();
   }
 
-  async onSourceFileChanged(event: SourceFileChangedEvent): Promise<void> {
-    this.addCommandToQueue(
-      DBTCommandFactory.createListCommand(event.projectRoot)
-    );
+  async listModels(projectUri: Uri): Promise<void> {
+    this.addCommandToQueue(DBTCommandFactory.createListCommand(projectUri));
   }
 
   async checkIfDBTIsInstalled(): Promise<void> {

@@ -68,6 +68,10 @@ export class DbtProjectContainer implements Disposable {
     await handlePythonExtension();
   }
 
+  listModels(projectUri: Uri) {
+    this.dbtClient.listModels(projectUri);
+  }
+
   findDBTProject(uri: Uri): DBTProject | undefined {
     return this.findDBTWorkspaceFolder(uri)?.findDBTProject(uri);
   }

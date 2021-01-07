@@ -1,15 +1,20 @@
-import { FileSystemWatcher, RelativePattern, workspace } from "vscode";
+import { Disposable, FileSystemWatcher, RelativePattern, workspace } from "vscode";
 import { setupWatcherHandler } from "../../utils";
 import { DBTProject } from "../dbtProject";
 import { ManifestChangedHandler } from "../event/manifestChangedHandler";
 import { OnProjectConfigChanged, ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 
-export class TargetWatchers implements OnProjectConfigChanged {
+export class TargetWatchers implements OnProjectConfigChanged, Disposable {
   private manifestWatcher?: FileSystemWatcher;
   private runResultsWatcher?: FileSystemWatcher;
   private targetFolderWatcher?: FileSystemWatcher;
   private currentTargetPath?: string;
   private currentProjectName?: string;
+  private disposables: Disposable[] = [];
+
+  dispose() {
+    this.disposables.forEach(disposable => disposable.dispose());
+  }
 
   public async onProjectConfigChanged(event: ProjectConfigChangedEvent) {
     const { targetPath, projectName, projectRoot } = event;
@@ -19,6 +24,7 @@ export class TargetWatchers implements OnProjectConfigChanged {
       this.currentProjectName === undefined ||
       this.currentProjectName !== projectName
     ) {
+      this.dispose();
       const manifestChangedHandler = new ManifestChangedHandler(projectRoot, projectName);
 
       const handler = () => {
@@ -36,6 +42,8 @@ export class TargetWatchers implements OnProjectConfigChanged {
 
       this.currentTargetPath = targetPath;
       this.currentProjectName = projectName;
+
+      this.disposables.push(manifestChangedHandler, this.manifestWatcher, this.runResultsWatcher, this.targetFolderWatcher);
 
       await manifestChangedHandler.parseManifest(targetPath);
     }

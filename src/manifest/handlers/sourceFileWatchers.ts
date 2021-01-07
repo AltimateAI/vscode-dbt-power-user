@@ -1,4 +1,5 @@
 import {
+  Disposable,
   EventEmitter,
   FileSystemWatcher,
   RelativePattern,
@@ -10,13 +11,20 @@ import {
   OnProjectConfigChanged,
   ProjectConfigChangedEvent,
 } from "../event/projectConfigChangedEvent";
-import { SourceFileChangedEvent } from "../event/sourceFileChangedEvent";
 
-export class SourceFileWatchers implements OnProjectConfigChanged {
-  private static _onSourceFileChanged = new EventEmitter<SourceFileChangedEvent>();
-  public static readonly onSourceFileChanged = SourceFileWatchers._onSourceFileChanged.event;
+export class SourceFileWatchers implements OnProjectConfigChanged, Disposable {
+  private _onSourceFileChanged = new EventEmitter<void>();
+  public readonly onSourceFileChanged = this._onSourceFileChanged.event;
   private currentSourcePaths?: string[];
   private sourceFolderWatchers: FileSystemWatcher[] = [];
+  private disposables: Disposable[] = [
+    this._onSourceFileChanged,
+    ...this.sourceFolderWatchers,
+  ];
+
+  dispose() {
+    this.disposables.forEach((disposable) => disposable.dispose());
+  }
 
   onProjectConfigChanged(event: ProjectConfigChangedEvent) {
     const { sourcePaths, projectRoot } = event;
@@ -33,10 +41,9 @@ export class SourceFileWatchers implements OnProjectConfigChanged {
         const sourceFolderWatcher = workspace.createFileSystemWatcher(
           new RelativePattern(projectRoot, globPattern)
         );
-        const event = new SourceFileChangedEvent(projectRoot);
 
         const debouncedSourceFileChangedEvent = debounce(
-          () => SourceFileWatchers._onSourceFileChanged.fire(event),
+          () => this._onSourceFileChanged.fire(),
           2000
         );
 
