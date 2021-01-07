@@ -1,4 +1,4 @@
-import { Disposable, OutputChannel, window } from "vscode";
+import { Disposable, EventEmitter, Terminal, window } from "vscode";
 import {
   OnSourceFileChanged,
   SourceFileChangedEvent,
@@ -13,19 +13,18 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
   static readonly LATEST_VERSION = /(?<=latest\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
   static readonly IS_INSTALLED = /installed\sversion/g;
   private readonly pythonPath: string;
-  private readonly outputChannel: OutputChannel = window.createOutputChannel(
-    "DBT"
-  );
+  private readonly writeEmitter = new EventEmitter<string>();
   private readonly queue: DBTCommandQueue = new DBTCommandQueue();
   private dbtInstalled?: boolean;
   private notYetShownErrorMessage = true;
+  private terminal?: Terminal;
 
   constructor(pythonPath: string) {
     this.pythonPath = pythonPath;
   }
 
   dispose() {
-    this.outputChannel.dispose();
+    this.writeEmitter.dispose();
   }
 
   async onSourceFileChanged(event: SourceFileChangedEvent): Promise<void> {
@@ -67,15 +66,30 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
   }
 
   executeCommandImmediately(command: DBTCommand) {
-    return this.executeCommand(command).completeWithOutputChannel(
-      this.outputChannel
+    return this.executeCommand(command).completeWithTerminalOutput(
+      this.writeEmitter
     );
   }
 
   private executeCommand(command: DBTCommand): CommandProcessExecution {
     const { args, cwd } = command.processExecutionParams;
+    if(this.terminal === undefined) {
+      this.terminal = window.createTerminal({
+        name: 'DBT',
+        pty: {
+          onDidWrite: this.writeEmitter.event,
+          open: () => this.writeEmitter.fire(''),
+          close: () =>  {
+            this.terminal?.dispose();
+            this.terminal = undefined;
+          }
+        }
+      });
+    }
+    this.writeEmitter.fire(`\r> Executing task:  ${command.commandAsString}\n\r\n\r`);
+    
     if (command.focus) {
-      this.outputChannel.show(true);
+      this.terminal.show(true);
     }
     return new CommandProcessExecution(this.pythonPath, args, cwd);
   }

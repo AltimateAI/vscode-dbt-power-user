@@ -12,6 +12,7 @@ export interface CommandProcessExecutionParams {
 }
 
 export interface DBTCommand {
+  commandAsString: string;
   statusMessage: string;
   processExecutionParams: CommandProcessExecutionParams;
   focus?: boolean;
@@ -20,6 +21,7 @@ export interface DBTCommand {
 export class DBTCommandFactory {
   static createVersionCommand(): DBTCommand {
     return {
+      commandAsString: "dbt --version",
       statusMessage: "Detecting DBT version...",
       processExecutionParams: {
         args: ["-c", DBTCommandFactory.dbtCommand("'--version'")],
@@ -29,6 +31,7 @@ export class DBTCommandFactory {
 
   static createListCommand(projectRoot: Uri): DBTCommand {
     return {
+      commandAsString: "dbt list",
       statusMessage: "Listing DBT models...",
       processExecutionParams: {
         cwd: projectRoot.fsPath,
@@ -40,6 +43,7 @@ export class DBTCommandFactory {
   static createRunModelCommand(projectRoot: Uri, params: RunModelParams) {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     return {
+      commandAsString: `dbt run --model ${params.plusOperatorLeft}${params.modelName}${params.plusOperatorRight}`,
       statusMessage: "Running DBT models...",
       processExecutionParams: {
         cwd: projectRoot.fsPath,
@@ -48,9 +52,7 @@ export class DBTCommandFactory {
           this.dbtCommand([
             "'run'",
             "'--model'",
-            `"${plusOperatorLeft}"`,
-            `"${modelName}"`,
-            `"${plusOperatorRight}"`,
+            `'${plusOperatorLeft}${modelName}${plusOperatorRight}'`,
           ]),
         ],
       },
@@ -60,6 +62,7 @@ export class DBTCommandFactory {
 
   static createInstallDBTCommand() {
     return {
+      commandAsString: 'pip install dbt',
       statusMessage: "Installing DBT...",
       processExecutionParams: { args: ["-m", "pip", "install", "dbt"] },
       focus: true,
@@ -68,6 +71,7 @@ export class DBTCommandFactory {
 
   static createUpdateDBTCommand() {
     return {
+      commandAsString: 'pip install --upgrade dbt',
       statusMessage: "Updating DBT...",
       processExecutionParams: { args: ["-m", "pip", "install", "dbt", "--upgrade"] },
       focus: true,

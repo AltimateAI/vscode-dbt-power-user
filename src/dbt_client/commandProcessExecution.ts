@@ -1,5 +1,5 @@
 import { ChildProcess, spawn } from "child_process";
-import { OutputChannel } from "vscode";
+import { EventEmitter } from "vscode";
 
 export class CommandProcessExecution {
   private readonly commandProcess: ChildProcess;
@@ -34,15 +34,16 @@ export class CommandProcessExecution {
     });
   }
 
-  async completeWithOutputChannel(outputChannel: OutputChannel): Promise<void> {
+  async completeWithTerminalOutput(writeEmitter: EventEmitter<string>): Promise<void> {
     return new Promise((resolve, reject) => {
       this.commandProcess.stdout!.on("data", (chunk) => {
-        outputChannel.append(this.removeANSIColors(chunk.toString()));
+        writeEmitter.fire(`\r${this.formatText(chunk.toString())}`);
       });
       this.commandProcess.stderr!.on("data", (chunk) => {
-        outputChannel.append(this.removeANSIColors(chunk.toString()));
+        writeEmitter.fire(`\r${this.formatText(chunk.toString())}`);
       });
       this.commandProcess.once("close", () => {
+        writeEmitter.fire('\r\n\r\n');
         resolve();
       });
 
@@ -52,7 +53,7 @@ export class CommandProcessExecution {
     });
   }
 
-  private removeANSIColors(text: string) {
-    return text.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, "");
+  private formatText(text: string) {
+    return `\r${text.split(/(\r?\n)/g).join("\r")}\r`;
   }
 }
