@@ -90,13 +90,16 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
   async detectDBT(): Promise<void> {
     // TODO after install, it discovers DBT projects in Python package
     const pythonEnvironment = await PythonEnvironment.getEnvironment();
-    pythonEnvironment.onDidChangeExecutionDetails(this.handlePythonExtension);
-
+    this.disposables.push(
+      pythonEnvironment.onDidChangeExecutionDetails(() =>
+        this.handlePythonExtension()
+      )
+    );
     await this.handlePythonExtension();
   }
 
   async installDBT(): Promise<void> {
-    if (!this.pythonPath) {
+    if (this.pythonPath === undefined) {
       window.showErrorMessage(
         "Please ensure you have selected a Python interpreter before installing DBT."
       );
@@ -105,11 +108,11 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
     await this.executeCommandImmediately(
       DBTCommandFactory.createInstallDBTCommand()
     );
-    await this.detectDBT();
+    await this.handlePythonExtension();
   }
 
   async updateDBT(): Promise<void> {
-    if (!this.pythonPath) {
+    if (this.pythonPath === undefined) {
       window.showErrorMessage(
         "Please ensure you have selected a Python interpreter before updating DBT."
       );
@@ -118,7 +121,7 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
     await this.executeCommandImmediately(
       DBTCommandFactory.createUpdateDBTCommand()
     );
-    await this.detectDBT();
+    await this.handlePythonExtension();
   }
 
   async onSourceFileChanged(event: SourceFileChangedEvent): Promise<void> {
@@ -242,7 +245,7 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
   }
 
   private async checkIfDBTIsInstalled(): Promise<void> {
-    if (this.pythonPath !== undefined) {
+    if (this.pythonPath === undefined) {
       return;
     }
     const checkDBTInstalledProcess = this.executeCommand(
@@ -262,7 +265,6 @@ export class DBTClient implements OnSourceFileChanged, Disposable {
 
   private async handlePythonExtension(): Promise<void> {
     const pythonEnvironment = await PythonEnvironment.getEnvironment();
-
     this.pythonPath = pythonEnvironment.getPythonPath();
     await this.checkIfDBTIsInstalled();
   }
