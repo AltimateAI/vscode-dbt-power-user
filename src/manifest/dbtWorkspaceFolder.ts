@@ -29,7 +29,7 @@ export class DBTWorkspaceFolder implements Disposable {
     );
     // TODO: could potentially have issues with casing @camfrout
     return dbtProjectFiles
-      .filter((uri) => !uri.path.includes("site-packages")) /// if users put the venv in their project folder!
+      .filter((uri) => this.notInVenv(uri.path))
       .map((uri) => Uri.file(uri.path.split("/")!.slice(0, -1).join("/")))
       .forEach((uri) => this.registerDBTProject(uri));
   }
@@ -75,8 +75,16 @@ export class DBTWorkspaceFolder implements Disposable {
 
     const dirName = (uri: Uri) => Uri.file(path.dirname(uri.fsPath));
 
-    watcher.onDidCreate((uri) => this.registerDBTProject(dirName(uri)));
+    watcher.onDidCreate((uri) => {
+      if (this.notInVenv(uri.fsPath)) {
+        this.registerDBTProject(dirName(uri));
+      }
+    });
     watcher.onDidDelete((uri) => this.unregisterDBTProject(dirName(uri)));
     return watcher;
   }
+
+  private notInVenv(path: string): boolean {
+    return !path.includes("site-packages");
+  };
 }
