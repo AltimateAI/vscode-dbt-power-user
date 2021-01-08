@@ -1,27 +1,45 @@
 import {
+  Disposable,
+  EventEmitter,
   FileSystemWatcher,
   RelativePattern,
   Uri,
   workspace,
+  Event,
 } from "vscode";
 import { arrayEquals, debounce } from "../../utils";
-import { dbtProjectContainer } from "../dbtProjectContainer";
-import {
-  OnProjectConfigChanged,
-  ProjectConfigChangedEvent,
-} from "../event/projectConfigChangedEvent";
-import { SourceFileChangedEvent } from "../event/sourceFileChangedEvent";
+import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 
-export class SourceFileWatchers implements OnProjectConfigChanged {
+export class SourceFileWatchers implements Disposable {
+  private _onSourceFileChanged = new EventEmitter<void>();
+  public readonly onSourceFileChanged = this._onSourceFileChanged.event;
   private currentSourcePaths?: string[];
-  private sourceFolderWatchers: FileSystemWatcher[] = [];
+  private watchers: FileSystemWatcher[] = [];
+  private disposables: Disposable[] = [this._onSourceFileChanged];
 
-  onProjectConfigChanged(event: ProjectConfigChangedEvent) {
+  constructor(onProjectConfigChanged: Event<ProjectConfigChangedEvent>) {
+    this.disposables.push(
+      onProjectConfigChanged((event) => this.onProjectConfigChanged(event))
+    );
+  }
+
+  dispose() {
+    this.disposables.forEach((disposable) => disposable.dispose());
+    this.disposeWatchers();
+  }
+
+  private disposeWatchers() {
+    this.watchers.forEach((watcher) => watcher.dispose());
+  }
+
+  private onProjectConfigChanged(event: ProjectConfigChangedEvent) {
     const { sourcePaths, projectRoot } = event;
     if (
       this.currentSourcePaths === undefined ||
       !arrayEquals(this.currentSourcePaths, sourcePaths)
     ) {
+      this.disposeWatchers();
+      this.watchers = [];
       sourcePaths.forEach((sourcePath) => {
         const parsedSourcePath = Uri.parse(sourcePath);
         const globPattern = Uri.joinPath(
@@ -31,17 +49,16 @@ export class SourceFileWatchers implements OnProjectConfigChanged {
         const sourceFolderWatcher = workspace.createFileSystemWatcher(
           new RelativePattern(projectRoot, globPattern)
         );
-        const event = new SourceFileChangedEvent(projectRoot);
 
         const debouncedSourceFileChangedEvent = debounce(
-          () => dbtProjectContainer.raiseSourceFileChangedEvent(event),
+          () => this._onSourceFileChanged.fire(),
           2000
         );
 
         sourceFolderWatcher.onDidChange(() =>
           debouncedSourceFileChangedEvent()
         );
-        this.sourceFolderWatchers.push(sourceFolderWatcher);
+        this.watchers.push(sourceFolderWatcher);
       });
       this.currentSourcePaths = sourcePaths;
     }

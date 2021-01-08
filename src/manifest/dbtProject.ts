@@ -7,20 +7,19 @@ import { DBTProjectLog } from "./handlers/dbtProjectLog";
 import { setupWatcherHandler } from "../utils";
 import {
   Disposable,
+  EventEmitter,
   FileSystemWatcher,
   RelativePattern,
   Uri,
   workspace,
 } from "vscode";
-import {
-  OnProjectConfigChanged,
-  ProjectConfigChangedEvent,
-} from "./event/projectConfigChangedEvent";
+import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 import { dbtProjectContainer } from "./dbtProjectContainer";
 import {
   DBTCommandFactory,
   RunModelParams,
 } from "../dbt_client/dbtCommandFactory";
+import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -35,20 +34,41 @@ export class DBTProject implements Disposable {
   static RESOURCE_TYPE_SEED = "seed";
 
   readonly projectRoot: Uri;
+  private _onProjectConfigChanged = new EventEmitter<ProjectConfigChangedEvent>();
+  public onProjectConfigChanged = this._onProjectConfigChanged.event;
+  private sourceFileWatchers = new SourceFileWatchers(
+    this.onProjectConfigChanged
+  );
+  public onSourceFileChanged = this.sourceFileWatchers.onSourceFileChanged;
   private dbtProjectWatcher?: FileSystemWatcher;
-  private dbtProjectLog = new DBTProjectLog();
-  private onProjectConfigChangedHandlers: OnProjectConfigChanged[] = [
-    new TargetWatchers(),
-    new SourceFileWatchers(),
+  private dbtProjectLog = new DBTProjectLog(this.onProjectConfigChanged);
+  private targetWatchers: TargetWatchers;
+  private disposables: Disposable[] = [
+    this.sourceFileWatchers,
     this.dbtProjectLog,
+    this._onProjectConfigChanged,
   ];
 
-  constructor(path: Uri) {
+  constructor(
+    path: Uri,
+    _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
+  ) {
     this.projectRoot = path;
     this.dbtProjectWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(path, DBTProject.DBT_PROJECT_FILE)
     );
     setupWatcherHandler(this.dbtProjectWatcher, () => this.tryRefresh());
+    this.targetWatchers = new TargetWatchers(
+      _onManifestChanged,
+      this.onProjectConfigChanged
+    );
+    this.disposables.push(
+      this.targetWatchers,
+      this.dbtProjectWatcher,
+      this.onSourceFileChanged(() =>
+        dbtProjectContainer.listModels(this.projectRoot)
+      )
+    );
   }
 
   async tryRefresh() {
@@ -81,7 +101,7 @@ export class DBTProject implements Disposable {
   contains(uri: Uri) {
     return uri.fsPath.startsWith(this.projectRoot.fsPath);
   }
-  
+
   // TODO: maybe we should have a DBTClient for each project, so they can run in parallel.
   runList() {
     const listCommand = DBTCommandFactory.createListCommand(this.projectRoot);
@@ -97,7 +117,7 @@ export class DBTProject implements Disposable {
   }
 
   dispose() {
-    this.dbtProjectLog.dispose();
+    this.disposables.forEach((disposable) => disposable.dispose());
   }
 
   private readAndParseProjectConfig() {
@@ -115,8 +135,6 @@ export class DBTProject implements Disposable {
       this.projectRoot,
       projectConfig
     );
-    this.onProjectConfigChangedHandlers.forEach((handler) =>
-      handler.onProjectConfigChanged(event)
-    );
+    this._onProjectConfigChanged.fire(event);
   }
 }

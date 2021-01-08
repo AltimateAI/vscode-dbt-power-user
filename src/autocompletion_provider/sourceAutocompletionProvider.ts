@@ -9,16 +9,14 @@ import {
   CompletionList,
   CompletionItemKind,
   Uri,
+  Disposable,
 } from "vscode";
 import { isEnclosedWithinCodeBlock } from "../utils";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
-import {
-  OnManifestCacheChanged,
-  ManifestCacheChangedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
+import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 
 export class SourceAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype
-  implements CompletionItemProvider, OnManifestCacheChanged {
+  implements CompletionItemProvider, Disposable {
   private static readonly GET_SOURCE_NAME = /(?!['"])(\w+)(?=['"])/;
   private static readonly ENDS_WTTH_SOURCE = /source\(['|"]$/;
   private sourceAutocompleteNameItemsMap: Map<
@@ -29,6 +27,19 @@ export class SourceAutocompletionProvider // TODO autocomplete doesn't work when
     string,
     Map<string, CompletionItem[]>
   > = new Map();
+  private disposables: Disposable[] = [];
+
+  constructor() {
+    this.disposables.push(
+      dbtProjectContainer.onManifestChanged((event) =>
+        this.onManifestCacheChanged(event)
+      )
+    );
+  }
+
+  dispose() {
+    this.disposables.forEach((disposable) => disposable.dispose());
+  }
 
   provideCompletionItems(
     document: TextDocument,
@@ -62,7 +73,7 @@ export class SourceAutocompletionProvider // TODO autocomplete doesn't work when
     return undefined;
   }
 
-  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
       this.sourceAutocompleteNameItemsMap.set(
         added.projectRoot.fsPath,

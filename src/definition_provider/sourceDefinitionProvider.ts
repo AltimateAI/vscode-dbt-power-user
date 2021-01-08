@@ -8,22 +8,32 @@ import {
   DefinitionLink,
   Location,
   Uri,
+  Disposable,
 } from "vscode";
 import { readFileSync } from "fs";
-import path = require("path");
 import { isEnclosedWithinCodeBlock } from "../utils";
 import { SourceMetaMap } from "../domain";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
-import {
-  OnManifestCacheChanged,
-  ManifestCacheChangedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
+import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 
 export class SourceDefinitionProvider
-  implements DefinitionProvider, OnManifestCacheChanged {
+  implements DefinitionProvider, Disposable {
   private sourceMetaMap: Map<string, SourceMetaMap> = new Map();
   private static readonly IS_SOURCE = /(source)\([^)]*\)/;
   private static readonly GET_SOURCE_INFO = /(?!['"])(\w+)(?=['"])/g;
+  private disposables: Disposable[] = [];
+
+  constructor() {
+    this.disposables.push(
+      dbtProjectContainer.onManifestChanged((event) =>
+        this.onManifestCacheChanged(event)
+      )
+    );
+  }
+
+  dispose() {
+    this.disposables.forEach((disposable) => disposable.dispose());
+  }
 
   provideDefinition(
     document: TextDocument,
@@ -65,7 +75,7 @@ export class SourceDefinitionProvider
     });
   }
 
-  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
       this.sourceMetaMap.set(added.projectRoot.fsPath, added.sourceMetaMap);
     });

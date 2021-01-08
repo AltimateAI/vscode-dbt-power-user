@@ -1,37 +1,41 @@
 import { DBTProject } from "./dbtProject";
-import { workspace, WorkspaceFolder, Uri, Disposable, window } from "vscode";
+import {
+  workspace,
+  WorkspaceFolder,
+  Uri,
+  Disposable,
+  EventEmitter,
+  window,
+} from "vscode";
 import { DBTClient } from "../dbt_client/dbtClient";
-import { SourceFileChangedEvent } from "./event/sourceFileChangedEvent";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
-import {
-  OnManifestCacheChanged,
-  ManifestCacheChangedEvent,
-} from "./event/manifestCacheChangedEvent";
-import { DBTCommand, DBTCommandFactory } from "../dbt_client/dbtCommandFactory";
-import {
-  DBTInstallationFoundEvent,
-  OnDBTInstallationFound,
-} from "./event/dbtVersionEvent";
-import { PythonEnvironment } from "./pythonEnvironment";
+import { DBTCommand } from "../dbt_client/dbtCommandFactory";
+import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 
 export class DbtProjectContainer implements Disposable {
-  private dbtClient?: DBTClient;
-  private manifestCacheChangedHandlers: OnManifestCacheChanged[] = [];
-  private dbtInstallationFoundHandlers: OnDBTInstallationFound[] = [];
+  private dbtClient: DBTClient = new DBTClient();
+  public onDBTInstallationFound = this.dbtClient.onDBTInstallationFound;
   private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
+  private _onManifestChanged = new EventEmitter<ManifestCacheChangedEvent>();
+  public readonly onManifestChanged = this._onManifestChanged.event;
+  private disposables: Disposable[] = [this._onManifestChanged];
 
   constructor() {
-    workspace.onDidChangeWorkspaceFolders(async (event) => {
-      const { added, removed } = event;
+    this.disposables.push(
+      workspace.onDidChangeWorkspaceFolders(async (event) => {
+        const { added, removed } = event;
 
-      await Promise.all(
-        added.map(async (folder) => await this.registerWorkspaceFolder(folder))
-      );
+        await Promise.all(
+          added.map(
+            async (folder) => await this.registerWorkspaceFolder(folder)
+          )
+        );
 
-      removed.forEach((removedWorkspaceFolder) =>
-        this.unregisterWorkspaceFolder(removedWorkspaceFolder)
-      );
-    });
+        removed.forEach((removedWorkspaceFolder) =>
+          this.unregisterWorkspaceFolder(removedWorkspaceFolder)
+        );
+      })
+    );
   }
 
   async initializeDBTProjects(): Promise<void> {
@@ -44,32 +48,6 @@ export class DbtProjectContainer implements Disposable {
     );
   }
 
-  addOnManifestCacheChangedHandler(handler: OnManifestCacheChanged): void {
-    this.manifestCacheChangedHandlers.push(handler);
-  }
-
-  addOnDBTInstallationFoundHandler(handler: OnDBTInstallationFound): void {
-    this.dbtInstallationFoundHandlers.push(handler);
-  }
-
-  raiseManifestChangedEvent(event: ManifestCacheChangedEvent) {
-    this.manifestCacheChangedHandlers.forEach((handler) =>
-      handler.onManifestCacheChanged(event)
-    );
-  }
-
-  raiseDBTVersionEvent(event: DBTInstallationFoundEvent) {
-    this.dbtInstallationFoundHandlers.forEach((handler) =>
-      handler.onDBTInstallationFound(event)
-    );
-  }
-
-  raiseSourceFileChangedEvent(event: SourceFileChangedEvent) {
-    if (this.dbtClient !== undefined) {
-      this.dbtClient.onSourceFileChanged(event);
-    }
-  }
-
   // TODO: bypasses events and could be inconsistent
   getPackageName = (uri: Uri): string | undefined => {
     return this.findDBTProject(uri)?.findPackageName(uri);
@@ -80,30 +58,12 @@ export class DbtProjectContainer implements Disposable {
     return this.findDBTProject(uri)?.projectRoot;
   };
 
-  // TODO: this seems a bit out of place in here
   async detectDBT(): Promise<void> {
-    const pythonEnvironment = await PythonEnvironment.getEnvironment();
+    await this.dbtClient.detectDBT();
+  }
 
-    const handlePythonExtension = async () => {
-      const pythonEnvironment = await PythonEnvironment.getEnvironment();
-
-      const pythonPath = pythonEnvironment.getPythonPath();
-
-      if (pythonPath === undefined) {
-        this.dbtClient = undefined;
-        return;
-      }
-      this.dbtClient = new DBTClient(pythonPath);
-      await this.dbtClient.checkIfDBTIsInstalled();
-    };
-
-    pythonEnvironment.onDidChangeExecutionDetails(async () => {
-      if (this.dbtClient !== undefined) {
-        this.dbtClient.dispose();
-      }
-      await handlePythonExtension();
-    });
-    await handlePythonExtension();
+  listModels(projectUri: Uri) {
+    this.dbtClient.listModels(projectUri);
   }
 
   findDBTProject(uri: Uri): DBTProject | undefined {
@@ -122,42 +82,28 @@ export class DbtProjectContainer implements Disposable {
     this.dbtClient.addCommandToQueue(command);
   }
 
-  async installDBT() {
-    if (this.dbtClient === undefined) {
-      window.showErrorMessage(
-        "Can't install DBT. Please ensure you have selected a Python interpreter before installing DBT."
-      );
-      return;
-    }
-    await this.dbtClient.executeCommandImmediately(
-      DBTCommandFactory.createInstallDBTCommand()
-    );
-    this.detectDBT();
+  async installDBT(): Promise<void> {
+    await this.dbtClient.installDBT();
   }
 
-  async updateDBT() {
-    if (this.dbtClient === undefined) {
-      window.showErrorMessage(
-        "Can't update DBT. Please ensure you have selected a Python interpreter before updating DBT."
-      );
-      return;
-    }
-    await this.dbtClient.executeCommandImmediately(
-      DBTCommandFactory.createUpdateDBTCommand()
-    );
-    this.detectDBT();
+  async updateDBT(): Promise<void> {
+    await this.dbtClient.updateDBT();
   }
 
   dispose() {
     this.dbtWorkspaceFolders.forEach((workspaceFolder) =>
       workspaceFolder.dispose()
     );
+    this.disposables.forEach((disposable) => disposable.dispose());
   }
 
   private async registerWorkspaceFolder(
     workspaceFolder: WorkspaceFolder
   ): Promise<void> {
-    const dbtProjectWorkspaceFolder = new DBTWorkspaceFolder(workspaceFolder);
+    const dbtProjectWorkspaceFolder = new DBTWorkspaceFolder(
+      workspaceFolder,
+      this._onManifestChanged
+    );
     this.dbtWorkspaceFolders.push(dbtProjectWorkspaceFolder);
     await dbtProjectWorkspaceFolder.discoverProjects();
   }

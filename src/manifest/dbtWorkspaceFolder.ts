@@ -1,5 +1,6 @@
 import {
   Disposable,
+  EventEmitter,
   FileSystemWatcher,
   RelativePattern,
   Uri,
@@ -8,15 +9,23 @@ import {
 } from "vscode";
 import { DBTProject } from "./dbtProject";
 import * as path from "path";
+import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 
 export class DBTWorkspaceFolder implements Disposable {
   private workspaceFolder: WorkspaceFolder;
   private watcher: FileSystemWatcher;
   private dbtProjects: DBTProject[] = [];
+  private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>;
+  private disposables: Disposable[] = [];
 
-  constructor(workspaceFolder: WorkspaceFolder) {
+  constructor(
+    workspaceFolder: WorkspaceFolder,
+    _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
+  ) {
     this.workspaceFolder = workspaceFolder;
     this.watcher = this.createConfigWatcher();
+    this.disposables.push(this.watcher);
+    this._onManifestChanged = _onManifestChanged;
   }
 
   async discoverProjects() {
@@ -35,7 +44,7 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   async registerDBTProject(uri: Uri) {
-    const dbtProject = new DBTProject(uri);
+    const dbtProject = new DBTProject(uri, this._onManifestChanged);
     await dbtProject.runList();
     await dbtProject.tryRefresh();
     this.dbtProjects.push(dbtProject);
@@ -61,8 +70,8 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   dispose() {
-    this.watcher.dispose();
     this.dbtProjects.forEach((project) => project.dispose());
+    this.disposables.forEach((disposable) => disposable.dispose());
   }
 
   private createConfigWatcher(): FileSystemWatcher {
@@ -81,10 +90,11 @@ export class DBTWorkspaceFolder implements Disposable {
       }
     });
     watcher.onDidDelete((uri) => this.unregisterDBTProject(dirName(uri)));
+    this.disposables.push(watcher);
     return watcher;
   }
 
   private notInVenv(path: string): boolean {
     return !path.includes("site-packages");
-  };
+  }
 }

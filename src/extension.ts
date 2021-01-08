@@ -1,10 +1,11 @@
 import * as vscode from "vscode";
 import { AutocompletionProviderFactory } from "./autocompletion_provider/autocompletionProviderFactory";
 import { TreeviewProviderFactory } from "./treeview_provider/treeviewProviderFactory";
-import { StatusBarFactory } from "./statusbar/statusBarFactory";
 import { CommandFactory } from "./commands/commandFactory";
 import { DefinitionProviderFactory } from "./definition_provider/definitionProviderFactory";
 import { dbtProjectContainer } from "./manifest/dbtProjectContainer";
+import { DBTStatusBar } from "./statusbar/dbtStatusBar";
+import { RunResultStatusBar } from "./statusbar/runResultStatusBar";
 
 export const DBT_MODE = { language: "jinja-sql", scheme: "file" };
 
@@ -14,8 +15,8 @@ export async function activate(context: vscode.ExtensionContext) {
     ...AutocompletionProviderFactory.createAutoCompletionProviders(),
     ...TreeviewProviderFactory.createModelTreeViews(),
     ...CommandFactory.createCommands(),
-    StatusBarFactory.createRunResultStatusBar(),
-    StatusBarFactory.createDBTVersionStatusBar(),
+    new RunResultStatusBar(),
+    new DBTStatusBar(),
     dbtProjectContainer
   );
 

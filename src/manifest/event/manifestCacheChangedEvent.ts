@@ -7,14 +7,6 @@ import {
   GraphMetaMap,
 } from "../../domain";
 
-export interface OnManifestCacheChanged {
-  onManifestCacheChanged: OnManifestCacheChangedHandler;
-}
-
-export type OnManifestCacheChangedHandler = (
-  event: ManifestCacheChangedEvent
-) => void;
-
 export class ManifestCacheProjectAddedEvent {
   projectName: string;
   nodeMetaMap: NodeMetaMap;

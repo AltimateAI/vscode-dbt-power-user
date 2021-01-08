@@ -7,18 +7,28 @@ import {
   TextDocument,
   ProviderResult,
   DefinitionLink,
+  Disposable,
 } from "vscode";
 import { MacroMetaMap } from "../domain";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
-import {
-  OnManifestCacheChanged,
-  ManifestCacheChangedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
+import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { isEnclosedWithinCodeBlock } from "../utils";
-export class MacroDefinitionProvider
-  implements DefinitionProvider, OnManifestCacheChanged {
+export class MacroDefinitionProvider implements DefinitionProvider, Disposable {
   private macroToLocationMap: Map<string, MacroMetaMap> = new Map();
   private static readonly IS_MACRO = /\w+\.?\w+/;
+  private disposables: Disposable[] = [];
+
+  constructor() {
+    this.disposables.push(
+      dbtProjectContainer.onManifestChanged((event) =>
+        this.onManifestCacheChanged(event)
+      )
+    );
+  }
+
+  dispose() {
+    this.disposables.forEach((disposable) => disposable.dispose());
+  }
 
   provideDefinition(
     document: TextDocument,
@@ -53,7 +63,7 @@ export class MacroDefinitionProvider
     });
   }
 
-  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
       this.macroToLocationMap.set(added.projectRoot.fsPath, added.macroMetaMap);
     });

@@ -4,7 +4,3 @@ export interface DBTInstallationFoundEvent {
   installedVersion?: string;
   upToDate?: boolean;
 }
-
-export interface OnDBTInstallationFound {
-  onDBTInstallationFound: (event:DBTInstallationFoundEvent) => void;
-}
