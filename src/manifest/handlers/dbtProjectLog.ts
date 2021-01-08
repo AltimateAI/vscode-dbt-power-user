@@ -27,7 +27,7 @@ export class DBTProjectLog implements Disposable {
     );
   }
 
-  public onProjectConfigChanged(event: ProjectConfigChangedEvent) {
+  private onProjectConfigChanged(event: ProjectConfigChangedEvent) {
     const { projectName, projectRoot } = event;
     if (this.outputChannel === undefined) {
       this.outputChannel = window.createOutputChannel(

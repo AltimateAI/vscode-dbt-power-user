@@ -58,7 +58,7 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
     });
   }
 
-  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
       this.modelToLocationMap.set(added.projectRoot.fsPath, added.nodeMetaMap);
     });

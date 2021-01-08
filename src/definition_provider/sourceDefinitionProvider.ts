@@ -75,7 +75,7 @@ export class SourceDefinitionProvider
     });
   }
 
-  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
       this.sourceMetaMap.set(added.projectRoot.fsPath, added.sourceMetaMap);
     });

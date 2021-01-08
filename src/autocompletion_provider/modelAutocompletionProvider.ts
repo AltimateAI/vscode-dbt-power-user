@@ -51,7 +51,7 @@ export class ModelAutocompletionProvider // TODO autocomplete doesn't work when 
     return undefined;
   }
 
-  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
       const models = added.nodeMetaMap.keys();
       this.modelAutocompleteMap.set(

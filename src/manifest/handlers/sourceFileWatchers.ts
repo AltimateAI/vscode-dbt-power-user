@@ -28,11 +28,11 @@ export class SourceFileWatchers implements Disposable {
     this.disposeWatchers();
   }
 
-  disposeWatchers() {
+  private disposeWatchers() {
     this.watchers.forEach((watcher) => watcher.dispose());
   }
 
-  onProjectConfigChanged(event: ProjectConfigChangedEvent) {
+  private onProjectConfigChanged(event: ProjectConfigChangedEvent) {
     const { sourcePaths, projectRoot } = event;
     if (
       this.currentSourcePaths === undefined ||

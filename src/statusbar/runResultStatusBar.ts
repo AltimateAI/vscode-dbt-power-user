@@ -28,19 +28,6 @@ export class RunResultStatusBar implements Disposable {
     this.disposables.forEach((disposable) => disposable.dispose());
   }
 
-  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    event.added?.forEach((added) => {
-      this.runResultMetaMap.set(
-        added.projectRoot.fsPath,
-        added.runResultMetaMap
-      );
-      this.showRunResult();
-    });
-    event.removed?.forEach((removed) => {
-      this.runResultMetaMap.delete(removed.projectRoot.fsPath);
-    });
-  }
-
   showRunResult(): void {
     const activeTextEditor = window.activeTextEditor;
     if (activeTextEditor !== undefined) {
@@ -94,5 +81,18 @@ export class RunResultStatusBar implements Disposable {
       statusBar.tooltip = "Go to compiled SQL";
       statusBar.show();
     }
+  }
+
+  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+    event.added?.forEach((added) => {
+      this.runResultMetaMap.set(
+        added.projectRoot.fsPath,
+        added.runResultMetaMap
+      );
+      this.showRunResult();
+    });
+    event.removed?.forEach((removed) => {
+      this.runResultMetaMap.delete(removed.projectRoot.fsPath);
+    });
   }
 }

@@ -37,11 +37,11 @@ export class TargetWatchers implements Disposable {
     this.disposeWatchers();
   }
 
-  disposeWatchers() {
+  private disposeWatchers() {
     this.watchers.forEach((watcher) => watcher.dispose());
   }
 
-  public async onProjectConfigChanged(event: ProjectConfigChangedEvent) {
+  private async onProjectConfigChanged(event: ProjectConfigChangedEvent) {
     const { targetPath, projectName, projectRoot } = event;
     if (
       this.currentTargetPath === undefined ||

@@ -28,7 +28,7 @@ export class DBTStatusBar implements Disposable {
     this.statusBar.dispose();
   }
 
-  onDBTInstallationFound(event: DBTInstallationFoundEvent) {
+  private onDBTInstallationFound(event: DBTInstallationFoundEvent) {
     if (event.installed === undefined) {
       this.showTextInStatusBar("$(sync~spin) Checking DBT installation");
       return;

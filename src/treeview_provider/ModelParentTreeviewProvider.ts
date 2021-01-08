@@ -43,7 +43,7 @@ export class ModelTreeviewProvider
     ._onDidChangeTreeData.event;
   private disposables: Disposable[] = [this._onDidChangeTreeData];
 
-  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
       this.eventMap.set(added.projectRoot.fsPath, added);
     });

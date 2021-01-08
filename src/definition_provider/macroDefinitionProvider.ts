@@ -63,7 +63,7 @@ export class MacroDefinitionProvider implements DefinitionProvider, Disposable {
     });
   }
 
-  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
       this.macroToLocationMap.set(added.projectRoot.fsPath, added.macroMetaMap);
     });
