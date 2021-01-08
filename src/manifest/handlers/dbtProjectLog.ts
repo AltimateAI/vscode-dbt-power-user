@@ -1,16 +1,28 @@
 import { closeSync, openSync, readSync } from "fs";
 import path = require("path");
-import { Disposable, FileSystemWatcher, OutputChannel, RelativePattern, window, workspace } from "vscode";
+import {
+  Disposable,
+  FileSystemWatcher,
+  OutputChannel,
+  RelativePattern,
+  window,
+  workspace,
+  Event,
+} from "vscode";
 import { setupWatcherHandler as setupWatcherHandler } from "../../utils";
-import { OnProjectConfigChanged, ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
+import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 
-export class DBTProjectLog implements OnProjectConfigChanged, Disposable {
+export class DBTProjectLog implements Disposable {
   private outputChannel?: OutputChannel;
   private logFileWatcher?: FileSystemWatcher;
   private logPosition: number = 0;
   private static LOG_PATH = "logs";
   private static LOG_FILE = "dbt.log";
   private currentProjectName?: string;
+
+  constructor(onProjectConfigChanged: Event<ProjectConfigChangedEvent>) {
+    onProjectConfigChanged((event) => this.onProjectConfigChanged(event));
+  }
 
   public onProjectConfigChanged(event: ProjectConfigChangedEvent) {
     const { projectName, projectRoot } = event;
@@ -26,7 +38,9 @@ export class DBTProjectLog implements OnProjectConfigChanged, Disposable {
           `${DBTProjectLog.LOG_PATH}/${DBTProjectLog.LOG_FILE}`
         )
       );
-      setupWatcherHandler(this.logFileWatcher, () => this.readLogFileFromLastPosition(event));
+      setupWatcherHandler(this.logFileWatcher, () =>
+        this.readLogFileFromLastPosition(event)
+      );
       this.currentProjectName = projectName;
     }
     if (this.currentProjectName !== projectName) {
@@ -38,7 +52,7 @@ export class DBTProjectLog implements OnProjectConfigChanged, Disposable {
       this.readLogFileFromLastPosition(event);
       this.currentProjectName = projectName;
     }
-  };
+  }
 
   private readLogFileFromLastPosition(event: ProjectConfigChangedEvent): void {
     const { projectRoot } = event;

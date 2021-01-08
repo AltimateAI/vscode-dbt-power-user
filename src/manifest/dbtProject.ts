@@ -13,10 +13,7 @@ import {
   Uri,
   workspace,
 } from "vscode";
-import {
-  OnProjectConfigChanged,
-  ProjectConfigChangedEvent,
-} from "./event/projectConfigChangedEvent";
+import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 import { dbtProjectContainer } from "./dbtProjectContainer";
 import {
   DBTCommandFactory,
@@ -37,19 +34,19 @@ export class DBTProject implements Disposable {
   static RESOURCE_TYPE_SEED = "seed";
 
   readonly projectRoot: Uri;
-  private sourceFileWatchers = new SourceFileWatchers();
+  private _onProjectConfigChanged = new EventEmitter<ProjectConfigChangedEvent>();
+  public onProjectConfigChanged = this._onProjectConfigChanged.event;
+  private sourceFileWatchers = new SourceFileWatchers(
+    this.onProjectConfigChanged
+  );
   public onSourceFileChanged = this.sourceFileWatchers.onSourceFileChanged;
   private dbtProjectWatcher?: FileSystemWatcher;
-  private dbtProjectLog = new DBTProjectLog();
+  private dbtProjectLog = new DBTProjectLog(this.onProjectConfigChanged);
   private targetWatchers: TargetWatchers;
   private disposables: Disposable[] = [
     this.sourceFileWatchers,
     this.dbtProjectLog,
-  ];
-
-  private onProjectConfigChangedHandlers: OnProjectConfigChanged[] = [
-    this.sourceFileWatchers,
-    this.dbtProjectLog,
+    this._onProjectConfigChanged,
   ];
 
   constructor(
@@ -60,16 +57,18 @@ export class DBTProject implements Disposable {
     this.dbtProjectWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(path, DBTProject.DBT_PROJECT_FILE)
     );
+    setupWatcherHandler(this.dbtProjectWatcher, () => this.tryRefresh());
+    this.targetWatchers = new TargetWatchers(
+      _onManifestChanged,
+      this.onProjectConfigChanged
+    );
     this.disposables.push(
+      this.targetWatchers,
       this.dbtProjectWatcher,
       this.onSourceFileChanged(() =>
         dbtProjectContainer.listModels(this.projectRoot)
       )
     );
-    setupWatcherHandler(this.dbtProjectWatcher, () => this.tryRefresh());
-    this.targetWatchers = new TargetWatchers(_onManifestChanged);
-    this.onProjectConfigChangedHandlers.push(this.targetWatchers);
-    this.disposables.push(this.targetWatchers);
   }
 
   async tryRefresh() {
@@ -136,8 +135,6 @@ export class DBTProject implements Disposable {
       this.projectRoot,
       projectConfig
     );
-    this.onProjectConfigChangedHandlers.forEach((handler) =>
-      handler.onProjectConfigChanged(event)
-    );
+    this._onProjectConfigChanged.fire(event);
   }
 }

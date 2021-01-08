@@ -5,14 +5,12 @@ import {
   RelativePattern,
   Uri,
   workspace,
+  Event,
 } from "vscode";
 import { arrayEquals, debounce } from "../../utils";
-import {
-  OnProjectConfigChanged,
-  ProjectConfigChangedEvent,
-} from "../event/projectConfigChangedEvent";
+import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 
-export class SourceFileWatchers implements OnProjectConfigChanged, Disposable {
+export class SourceFileWatchers implements Disposable {
   private _onSourceFileChanged = new EventEmitter<void>();
   public readonly onSourceFileChanged = this._onSourceFileChanged.event;
   private currentSourcePaths?: string[];
@@ -21,6 +19,10 @@ export class SourceFileWatchers implements OnProjectConfigChanged, Disposable {
     this._onSourceFileChanged,
     ...this.sourceFolderWatchers,
   ];
+
+  constructor(onProjectConfigChanged: Event<ProjectConfigChangedEvent>) {
+    onProjectConfigChanged((event) => this.onProjectConfigChanged(event));
+  }
 
   dispose() {
     this.disposables.forEach((disposable) => disposable.dispose());

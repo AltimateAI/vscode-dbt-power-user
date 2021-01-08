@@ -1,14 +1,5 @@
 import { Uri } from "vscode";
 import { DBTProject } from "../dbtProject";
-
-export interface OnProjectConfigChanged {
-  onProjectConfigChanged: OnProjectConfigChangedHandler;
-}
-
-export type OnProjectConfigChangedHandler = (
-  event: ProjectConfigChangedEvent
-) => void;
-
 export class ProjectConfigChangedEvent {
   projectRoot: Uri;
   projectName: string;

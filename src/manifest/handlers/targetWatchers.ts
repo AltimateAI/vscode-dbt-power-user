@@ -4,17 +4,15 @@ import {
   FileSystemWatcher,
   RelativePattern,
   workspace,
+  Event,
 } from "vscode";
 import { setupWatcherHandler } from "../../utils";
 import { DBTProject } from "../dbtProject";
 import { ManifestCacheChangedEvent } from "../event/manifestCacheChangedEvent";
 import { ManifestChangedHandler } from "../event/manifestChangedHandler";
-import {
-  OnProjectConfigChanged,
-  ProjectConfigChangedEvent,
-} from "../event/projectConfigChangedEvent";
+import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 
-export class TargetWatchers implements OnProjectConfigChanged, Disposable {
+export class TargetWatchers implements Disposable {
   private manifestWatcher?: FileSystemWatcher;
   private runResultsWatcher?: FileSystemWatcher;
   private targetFolderWatcher?: FileSystemWatcher;
@@ -23,8 +21,12 @@ export class TargetWatchers implements OnProjectConfigChanged, Disposable {
   private disposables: Disposable[] = [];
   private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>;
 
-  constructor(_onManifestChanged: EventEmitter<ManifestCacheChangedEvent>) {
+  constructor(
+    _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+    onProjectConfigChanged: Event<ProjectConfigChangedEvent>
+  ) {
     this._onManifestChanged = _onManifestChanged;
+    onProjectConfigChanged((event) => this.onProjectConfigChanged(event));
   }
 
   dispose() {
