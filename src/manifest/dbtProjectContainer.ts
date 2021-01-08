@@ -9,7 +9,7 @@ import {
 } from "vscode";
 import { DBTClient } from "../dbt_client/dbtClient";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
-import { DBTCommand, DBTCommandFactory } from "../dbt_client/dbtCommandFactory";
+import { DBTCommand } from "../dbt_client/dbtCommandFactory";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 
 export class DbtProjectContainer implements Disposable {
@@ -54,7 +54,7 @@ export class DbtProjectContainer implements Disposable {
   };
 
   async detectDBT(): Promise<void> {
-    this.dbtClient.detectDBT();
+    await this.dbtClient.detectDBT();
   }
 
   listModels(projectUri: Uri) {
@@ -77,30 +77,12 @@ export class DbtProjectContainer implements Disposable {
     this.dbtClient.addCommandToQueue(command);
   }
 
-  async installDBT() {
-    if (this.dbtClient === undefined) {
-      window.showErrorMessage(
-        "Can't install DBT. Please ensure you have selected a Python interpreter before installing DBT."
-      );
-      return;
-    }
-    await this.dbtClient.executeCommandImmediately(
-      DBTCommandFactory.createInstallDBTCommand()
-    );
-    this.detectDBT();
+  async installDBT(): Promise<void> {
+    await this.dbtClient.installDBT();
   }
 
-  async updateDBT() {
-    if (this.dbtClient === undefined) {
-      window.showErrorMessage(
-        "Can't update DBT. Please ensure you have selected a Python interpreter before updating DBT."
-      );
-      return;
-    }
-    await this.dbtClient.executeCommandImmediately(
-      DBTCommandFactory.createUpdateDBTCommand()
-    );
-    this.detectDBT();
+  async updateDBT(): Promise<void> {
+    await this.dbtClient.updateDBT();
   }
 
   dispose() {
