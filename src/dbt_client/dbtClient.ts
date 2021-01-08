@@ -4,13 +4,6 @@ import {
   EventEmitter,
   Terminal,
   window,
-} from "vscode";
-import {
-  Disposable,
-  EventEmitter,
-  OutputChannel,
-  window,
-  Event,
   Uri,
 } from "vscode";
 import { DBTCommandQueue } from "./dbtCommandQueue";
@@ -25,69 +18,19 @@ export class DBTClient implements Disposable {
   static readonly INSTALLED_VERSION = /(?<=installed\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
   static readonly LATEST_VERSION = /(?<=latest\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
   static readonly IS_INSTALLED = /installed\sversion/g;
-  private readonly pythonPath: string;
+  private pythonPath?: string;
   private readonly writeEmitter = new EventEmitter<string>();
   private readonly queue: DBTCommandQueue = new DBTCommandQueue();
   private dbtInstalled?: boolean;
   private terminal?: Terminal;
+  private disposables: Disposable[] = [this.writeEmitter];
 
-  constructor(pythonPath: string) {
+  constructor(pythonPath?: string) {
     this.pythonPath = pythonPath;
   }
 
   dispose() {
-    this.writeEmitter.dispose();
-  }
-
-  async detectDBT(): Promise<void> {
-    // TODO after install, it discovers DBT projects in Python package
-    const pythonEnvironment = await PythonEnvironment.getEnvironment();
-
-    const handlePythonExtension = async () => {
-      const pythonEnvironment = await PythonEnvironment.getEnvironment();
-
-      const pythonPath = pythonEnvironment.getPythonPath();
-
-      if (pythonPath === undefined) {
-        this.pythonPath = undefined;
-        return;
-      }
-      this.pythonPath = pythonPath;
-      await this.checkIfDBTIsInstalled();
-    };
-
-    pythonEnvironment.onDidChangeExecutionDetails(handlePythonExtension);
-    await handlePythonExtension();
-  }
-
-  async installDBT() {
-    if (!this.pythonPath) {
-      window.showErrorMessage(
-        "Please ensure you have selected a Python interpreter before installing DBT."
-      );
-      return;
-    }
-    await this.executeCommandImmediately(
-      DBTCommandFactory.createInstallDBTCommand()
-    );
-    await this.detectDBT();
-  }
-
-  async updateDBT() {
-    if (!this.pythonPath) {
-      window.showErrorMessage(
-        "Please ensure you have selected a Python interpreter before updating DBT."
-      );
-      return;
-    }
-    await this.executeCommandImmediately(
-      DBTCommandFactory.createUpdateDBTCommand()
-    );
-    await this.detectDBT();
-  }
-
-  setPythonPath(pythonPath: string | undefined) {
-    this.pythonPath = pythonPath;
+    this.disposables.forEach((disposable) => disposable.dispose());
   }
 
   async detectDBT(): Promise<void> {
@@ -199,7 +142,7 @@ export class DBTClient implements Disposable {
     if (command.focus) {
       this.terminal.show(true);
     }
-    return new CommandProcessExecution(this.pythonPath, args, cwd, token);
+    return new CommandProcessExecution(this.pythonPath!, args, cwd, token);
   }
 
   private raiseDBTInstallationCheckEvent(): void {
@@ -243,25 +186,6 @@ export class DBTClient implements Disposable {
     }
     const latestVersion = latestVersionMatch[0];
     this.raiseDBTVersionEvent(installedVersion, latestVersion);
-  }
-
-  private async checkIfDBTIsInstalled(): Promise<void> {
-    if (this.pythonPath === undefined) {
-      return;
-    }
-    const checkDBTInstalledProcess = this.executeCommand(
-      DBTCommandFactory.createVersionCommand()
-    );
-    try {
-      this.raiseDBTInstallationCheckEvent();
-      await checkDBTInstalledProcess.complete();
-    } catch (err) {
-      if (err.match(DBTClient.IS_INSTALLED)) {
-        this.checkIfDBTIsUpToDate(err);
-        return;
-      }
-      this.raiseDBTNotInstalledEvent();
-    }
   }
 
   private async handlePythonExtension(): Promise<void> {

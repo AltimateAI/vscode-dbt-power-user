@@ -5,10 +5,11 @@ import {
   Uri,
   Disposable,
   EventEmitter,
+  window,
 } from "vscode";
 import { DBTClient } from "../dbt_client/dbtClient";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
-import { DBTCommand } from "../dbt_client/dbtCommandFactory";
+import { DBTCommand, DBTCommandFactory } from "../dbt_client/dbtCommandFactory";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 
 export class DbtProjectContainer implements Disposable {
@@ -53,28 +54,7 @@ export class DbtProjectContainer implements Disposable {
   };
 
   async detectDBT(): Promise<void> {
-    const pythonEnvironment = await PythonEnvironment.getEnvironment();
-
-    const handlePythonExtension = async () => {
-      const pythonEnvironment = await PythonEnvironment.getEnvironment();
-
-      const pythonPath = pythonEnvironment.getPythonPath();
-
-      if (pythonPath === undefined) {
-        this.dbtClient = undefined;
-        return;
-      }
-      this.dbtClient = new DBTClient(pythonPath);
-      await this.dbtClient.checkIfDBTIsInstalled();
-    };
-
-    pythonEnvironment.onDidChangeExecutionDetails(async () => {
-      if (this.dbtClient !== undefined) {
-        this.dbtClient.dispose();
-      }
-      await handlePythonExtension();
-    });
-    await handlePythonExtension();
+    this.dbtClient.detectDBT();
   }
 
   listModels(projectUri: Uri) {
