@@ -9,18 +9,13 @@ import {
   CompletionList,
   CompletionItemKind,
   Uri,
-  Disposable,
 } from "vscode";
 import { isEnclosedWithinCodeBlock } from "../utils";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
-import {
-  OnManifestCacheChanged,
-  ManifestCacheChangedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
-import { ManifestChangedHandler } from "../manifest/event/manifestChangedHandler";
+import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 
 export class SourceAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype
-  implements CompletionItemProvider, OnManifestCacheChanged, Disposable {
+  implements CompletionItemProvider {
   private static readonly GET_SOURCE_NAME = /(?!['"])(\w+)(?=['"])/;
   private static readonly ENDS_WTTH_SOURCE = /source\(['|"]$/;
   private sourceAutocompleteNameItemsMap: Map<
@@ -31,14 +26,11 @@ export class SourceAutocompletionProvider // TODO autocomplete doesn't work when
     string,
     Map<string, CompletionItem[]>
   > = new Map();
-  private disposables: Disposable[] = [];
 
   constructor() {
-    this.disposables.push(ManifestChangedHandler.onManifestChanged((event) => this.onManifestCacheChanged(event)));
-  }
-
-  dispose() {
-    this.disposables.forEach(disposable => disposable.dispose());
+    dbtProjectContainer.onManifestChanged((event) =>
+      this.onManifestCacheChanged(event)
+    );
   }
 
   provideCompletionItems(

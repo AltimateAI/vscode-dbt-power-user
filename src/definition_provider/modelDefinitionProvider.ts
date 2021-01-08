@@ -9,29 +9,20 @@ import {
   Location,
   Position,
   Range,
-  Disposable,
 } from "vscode";
 import { NodeMetaMap } from "../domain";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
-import {
-  OnManifestCacheChanged,
-  ManifestCacheChangedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
-import { ManifestChangedHandler } from "../manifest/event/manifestChangedHandler";
+import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 
-export class ModelDefinitionProvider
-  implements DefinitionProvider, OnManifestCacheChanged, Disposable {
+export class ModelDefinitionProvider implements DefinitionProvider {
   private modelToLocationMap: Map<string, NodeMetaMap> = new Map();
   private static readonly IS_REF = /(ref)\([^)]*\)/;
   private static readonly GET_DBT_MODEL = /(?!'|")([^(?!'|")]*)(?='|")/gi;
-  private disposables: Disposable[] = [];
 
   constructor() {
-    this.disposables.push(ManifestChangedHandler.onManifestChanged((event) => this.onManifestCacheChanged(event)));
-  }
-
-  dispose() {
-    this.disposables.forEach(disposable => disposable.dispose());
+    dbtProjectContainer.onManifestChanged((event) =>
+      this.onManifestCacheChanged(event)
+    );
   }
 
   provideDefinition(

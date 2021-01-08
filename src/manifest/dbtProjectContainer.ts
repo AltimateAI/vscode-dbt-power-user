@@ -1,13 +1,22 @@
 import { DBTProject } from "./dbtProject";
-import { workspace, WorkspaceFolder, Uri, Disposable } from "vscode";
+import {
+  workspace,
+  WorkspaceFolder,
+  Uri,
+  Disposable,
+  EventEmitter,
+} from "vscode";
 import { DBTClient } from "../dbt_client/dbtClient";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
 import { DBTCommand } from "../dbt_client/dbtCommandFactory";
+import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 
 export class DbtProjectContainer implements Disposable {
   private dbtClient: DBTClient = new DBTClient();
   public onDBTInstallationFound = this.dbtClient.onDBTInstallationFound;
   private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
+  private _onManifestChanged = new EventEmitter<ManifestCacheChangedEvent>();
+  public readonly onManifestChanged = this._onManifestChanged.event;
 
   constructor() {
     workspace.onDidChangeWorkspaceFolders(async (event) => {
@@ -118,12 +127,16 @@ export class DbtProjectContainer implements Disposable {
     this.dbtWorkspaceFolders.forEach((workspaceFolder) =>
       workspaceFolder.dispose()
     );
+    this._onManifestChanged.dispose();
   }
 
   private async registerWorkspaceFolder(
     workspaceFolder: WorkspaceFolder
   ): Promise<void> {
-    const dbtProjectWorkspaceFolder = new DBTWorkspaceFolder(workspaceFolder);
+    const dbtProjectWorkspaceFolder = new DBTWorkspaceFolder(
+      workspaceFolder,
+      this._onManifestChanged
+    );
     this.dbtWorkspaceFolders.push(dbtProjectWorkspaceFolder);
     await dbtProjectWorkspaceFolder.discoverProjects();
   }

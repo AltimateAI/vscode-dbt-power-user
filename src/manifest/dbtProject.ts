@@ -7,6 +7,7 @@ import { DBTProjectLog } from "./handlers/dbtProjectLog";
 import { setupWatcherHandler } from "../utils";
 import {
   Disposable,
+  EventEmitter,
   FileSystemWatcher,
   RelativePattern,
   Uri,
@@ -21,6 +22,7 @@ import {
   DBTCommandFactory,
   RunModelParams,
 } from "../dbt_client/dbtCommandFactory";
+import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -39,20 +41,21 @@ export class DBTProject implements Disposable {
   public onSourceFileChanged = this.sourceFileWatchers.onSourceFileChanged;
   private dbtProjectWatcher?: FileSystemWatcher;
   private dbtProjectLog = new DBTProjectLog();
-  private targetWatchers = new TargetWatchers();
+  private targetWatchers: TargetWatchers;
   private disposables: Disposable[] = [
     this.sourceFileWatchers,
     this.dbtProjectLog,
-    this.targetWatchers,
   ];
 
   private onProjectConfigChangedHandlers: OnProjectConfigChanged[] = [
-    this.targetWatchers,
     this.sourceFileWatchers,
     this.dbtProjectLog,
   ];
 
-  constructor(path: Uri) {
+  constructor(
+    path: Uri,
+    _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
+  ) {
     this.projectRoot = path;
     this.dbtProjectWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(path, DBTProject.DBT_PROJECT_FILE)
@@ -64,6 +67,9 @@ export class DBTProject implements Disposable {
       )
     );
     setupWatcherHandler(this.dbtProjectWatcher, () => this.tryRefresh());
+    this.targetWatchers = new TargetWatchers(_onManifestChanged);
+    this.onProjectConfigChangedHandlers.push(this.targetWatchers);
+    this.disposables.push(this.targetWatchers);
   }
 
   async tryRefresh() {

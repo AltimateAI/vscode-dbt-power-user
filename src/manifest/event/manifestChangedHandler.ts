@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
 import path = require("path");
-import { Disposable, EventEmitter, Uri } from "vscode";
+import { Uri, EventEmitter } from "vscode";
 import { DBTProject } from "../dbtProject";
 import { ManifestCacheChangedEvent } from "./manifestCacheChangedEvent";
 import { GraphParser } from "../parsers/graphParser";
@@ -9,20 +9,19 @@ import { NodeParser } from "../parsers/nodeParser";
 import { RunResultsParser } from "../parsers/runResultsParser";
 import { SourceParser } from "../parsers/sourceParser";
 
-export class ManifestChangedHandler implements Disposable {
-  private static _onManifestChanged = new EventEmitter<ManifestCacheChangedEvent>();
-  public static readonly onManifestChanged = ManifestChangedHandler._onManifestChanged.event;
+export class ManifestChangedHandler {
   private projectRoot: Uri;
   private projectName: string;
-  private disposables: Disposable[] = [ManifestChangedHandler._onManifestChanged];
+  private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>;
 
-  constructor(projectRoot: Uri, projectName: string) {
+  constructor(
+    projectRoot: Uri,
+    projectName: string,
+    _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
+  ) {
     this.projectRoot = projectRoot;
     this.projectName = projectName;
-  }
-
-  dispose() {
-    this.disposables.forEach(disposable => disposable.dispose());
+    this._onManifestChanged = _onManifestChanged;
   }
 
   public async parseManifest(targetPath: string) {
@@ -41,7 +40,7 @@ export class ManifestChangedHandler implements Disposable {
           },
         ],
       };
-      ManifestChangedHandler._onManifestChanged.fire(event);
+      this._onManifestChanged.fire(event);
       return;
     }
 
@@ -89,7 +88,7 @@ export class ManifestChangedHandler implements Disposable {
         },
       ],
     };
-    ManifestChangedHandler._onManifestChanged.fire(event);
+    this._onManifestChanged.fire(event);
   }
 
   private readAndParseManifest(targetPath: string) {

@@ -11,28 +11,27 @@ import { Node, Model, GraphMetaMap, Test, Seed, Analysis } from "../domain";
 import * as path from "path";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import {
-  OnManifestCacheChanged,
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
-import { ManifestChangedHandler } from "../manifest/event/manifestChangedHandler";
 
 export class ModelTreeviewProvider
-  implements TreeDataProvider<NodeTreeItem>, OnManifestCacheChanged, Disposable {
+  implements TreeDataProvider<NodeTreeItem>, Disposable {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private treeType: keyof GraphMetaMap;
-  private disposables: Disposable[] = [];
 
   constructor(treeType: keyof GraphMetaMap) {
     this.treeType = treeType;
     window.onDidChangeActiveTextEditor(() => {
       this._onDidChangeTreeData.fire();
     });
-    this.disposables.push(ManifestChangedHandler.onManifestChanged((event) => this.onManifestCacheChanged(event)));
+    dbtProjectContainer.onManifestChanged((event) =>
+      this.onManifestCacheChanged(event)
+    );
   }
 
   dispose() {
-    this.disposables.forEach(disposable => disposable.dispose());
+    this.disposables.forEach((disposable) => disposable.dispose());
   }
 
   private _onDidChangeTreeData: EventEmitter<
@@ -40,6 +39,7 @@ export class ModelTreeviewProvider
   > = new EventEmitter<ModelTreeItem | undefined | void>();
   readonly onDidChangeTreeData: Event<ModelTreeItem | undefined | void> = this
     ._onDidChangeTreeData.event;
+  private disposables: Disposable[] = [this._onDidChangeTreeData];
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
