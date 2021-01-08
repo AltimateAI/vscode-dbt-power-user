@@ -42,6 +42,8 @@ export class TargetWatchers implements Disposable {
       this.currentProjectName !== projectName
     ) {
       this.dispose();
+      this.disposables = [];
+
       const manifestChangedHandler = new ManifestChangedHandler(
         projectRoot,
         projectName,
