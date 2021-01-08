@@ -20,17 +20,25 @@ export class TargetWatchers implements Disposable {
   private currentProjectName?: string;
   private disposables: Disposable[] = [];
   private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>;
+  private watchers: FileSystemWatcher[] = [];
 
   constructor(
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
     onProjectConfigChanged: Event<ProjectConfigChangedEvent>
   ) {
     this._onManifestChanged = _onManifestChanged;
-    onProjectConfigChanged((event) => this.onProjectConfigChanged(event));
+    this.disposables.push(
+      onProjectConfigChanged((event) => this.onProjectConfigChanged(event))
+    );
   }
 
   dispose() {
     this.disposables.forEach((disposable) => disposable.dispose());
+    this.disposeWatchers();
+  }
+
+  disposeWatchers() {
+    this.watchers.forEach((watcher) => watcher.dispose());
   }
 
   public async onProjectConfigChanged(event: ProjectConfigChangedEvent) {
@@ -41,8 +49,8 @@ export class TargetWatchers implements Disposable {
       this.currentProjectName === undefined ||
       this.currentProjectName !== projectName
     ) {
-      this.dispose();
-      this.disposables = [];
+      this.disposeWatchers();
+      this.watchers = [];
 
       const manifestChangedHandler = new ManifestChangedHandler(
         projectRoot,
@@ -66,7 +74,7 @@ export class TargetWatchers implements Disposable {
       this.currentTargetPath = targetPath;
       this.currentProjectName = projectName;
 
-      this.disposables.push(
+      this.watchers.push(
         this.manifestWatcher,
         this.runResultsWatcher,
         this.targetFolderWatcher

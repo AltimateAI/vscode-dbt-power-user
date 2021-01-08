@@ -24,4 +24,4 @@ export async function activate(context: vscode.ExtensionContext) {
   await dbtProjectContainer.initializeDBTProjects();
 }
 
-export function deactivate() { }
+export function deactivate() {}

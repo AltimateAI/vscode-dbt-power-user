@@ -23,7 +23,10 @@ export class DBTClient implements Disposable {
   private readonly queue: DBTCommandQueue = new DBTCommandQueue();
   private dbtInstalled?: boolean;
   private terminal?: Terminal;
-  private disposables: Disposable[] = [this.writeEmitter];
+  private disposables: Disposable[] = [
+    this.writeEmitter,
+    this._onDBTInstallationFound,
+  ];
 
   constructor(pythonPath?: string) {
     this.pythonPath = pythonPath;
@@ -34,7 +37,6 @@ export class DBTClient implements Disposable {
   }
 
   async detectDBT(): Promise<void> {
-    // TODO after install, it discovers DBT projects in Python package
     const pythonEnvironment = await PythonEnvironment.getEnvironment();
     this.disposables.push(
       pythonEnvironment.onDidChangeExecutionDetails(() =>

@@ -14,18 +14,22 @@ export class SourceFileWatchers implements Disposable {
   private _onSourceFileChanged = new EventEmitter<void>();
   public readonly onSourceFileChanged = this._onSourceFileChanged.event;
   private currentSourcePaths?: string[];
-  private sourceFolderWatchers: FileSystemWatcher[] = [];
-  private disposables: Disposable[] = [
-    this._onSourceFileChanged,
-    ...this.sourceFolderWatchers,
-  ];
+  private watchers: FileSystemWatcher[] = [];
+  private disposables: Disposable[] = [this._onSourceFileChanged];
 
   constructor(onProjectConfigChanged: Event<ProjectConfigChangedEvent>) {
-    onProjectConfigChanged((event) => this.onProjectConfigChanged(event));
+    this.disposables.push(
+      onProjectConfigChanged((event) => this.onProjectConfigChanged(event))
+    );
   }
 
   dispose() {
     this.disposables.forEach((disposable) => disposable.dispose());
+    this.disposeWatchers();
+  }
+
+  disposeWatchers() {
+    this.watchers.forEach((watcher) => watcher.dispose());
   }
 
   onProjectConfigChanged(event: ProjectConfigChangedEvent) {
@@ -34,6 +38,8 @@ export class SourceFileWatchers implements Disposable {
       this.currentSourcePaths === undefined ||
       !arrayEquals(this.currentSourcePaths, sourcePaths)
     ) {
+      this.disposeWatchers();
+      this.watchers = [];
       sourcePaths.forEach((sourcePath) => {
         const parsedSourcePath = Uri.parse(sourcePath);
         const globPattern = Uri.joinPath(
@@ -52,7 +58,7 @@ export class SourceFileWatchers implements Disposable {
         sourceFolderWatcher.onDidChange(() =>
           debouncedSourceFileChangedEvent()
         );
-        this.sourceFolderWatchers.push(sourceFolderWatcher);
+        this.watchers.push(sourceFolderWatcher);
       });
       this.currentSourcePaths = sourcePaths;
     }

@@ -12,16 +12,20 @@ export class RunResultStatusBar implements Disposable {
     0
   );
   private runResultMetaMap: Map<string, RunResultMetaMap> = new Map();
+  private disposables: Disposable[] = [];
 
   constructor() {
-    window.onDidChangeActiveTextEditor(() => this.showRunResult());
-    dbtProjectContainer.onManifestChanged((event) =>
-      this.onManifestCacheChanged(event)
+    this.disposables.push(
+      window.onDidChangeActiveTextEditor(() => this.showRunResult()),
+      dbtProjectContainer.onManifestChanged((event) =>
+        this.onManifestCacheChanged(event)
+      )
     );
   }
 
   dispose() {
     this.statusBar.dispose();
+    this.disposables.forEach((disposable) => disposable.dispose());
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {

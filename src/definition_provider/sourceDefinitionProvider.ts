@@ -8,6 +8,7 @@ import {
   DefinitionLink,
   Location,
   Uri,
+  Disposable,
 } from "vscode";
 import { readFileSync } from "fs";
 import { isEnclosedWithinCodeBlock } from "../utils";
@@ -15,15 +16,23 @@ import { SourceMetaMap } from "../domain";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 
-export class SourceDefinitionProvider implements DefinitionProvider {
+export class SourceDefinitionProvider
+  implements DefinitionProvider, Disposable {
   private sourceMetaMap: Map<string, SourceMetaMap> = new Map();
   private static readonly IS_SOURCE = /(source)\([^)]*\)/;
   private static readonly GET_SOURCE_INFO = /(?!['"])(\w+)(?=['"])/g;
+  private disposables: Disposable[] = [];
 
   constructor() {
-    dbtProjectContainer.onManifestChanged((event) =>
-      this.onManifestCacheChanged(event)
+    this.disposables.push(
+      dbtProjectContainer.onManifestChanged((event) =>
+        this.onManifestCacheChanged(event)
+      )
     );
+  }
+
+  dispose() {
+    this.disposables.forEach((disposable) => disposable.dispose());
   }
 
   provideDefinition(

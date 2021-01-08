@@ -18,19 +18,24 @@ export class DbtProjectContainer implements Disposable {
   private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
   private _onManifestChanged = new EventEmitter<ManifestCacheChangedEvent>();
   public readonly onManifestChanged = this._onManifestChanged.event;
+  private disposables: Disposable[] = [this._onManifestChanged];
 
   constructor() {
-    workspace.onDidChangeWorkspaceFolders(async (event) => {
-      const { added, removed } = event;
+    this.disposables.push(
+      workspace.onDidChangeWorkspaceFolders(async (event) => {
+        const { added, removed } = event;
 
-      await Promise.all(
-        added.map(async (folder) => await this.registerWorkspaceFolder(folder))
-      );
+        await Promise.all(
+          added.map(
+            async (folder) => await this.registerWorkspaceFolder(folder)
+          )
+        );
 
-      removed.forEach((removedWorkspaceFolder) =>
-        this.unregisterWorkspaceFolder(removedWorkspaceFolder)
-      );
-    });
+        removed.forEach((removedWorkspaceFolder) =>
+          this.unregisterWorkspaceFolder(removedWorkspaceFolder)
+        );
+      })
+    );
   }
 
   async initializeDBTProjects(): Promise<void> {
@@ -89,7 +94,7 @@ export class DbtProjectContainer implements Disposable {
     this.dbtWorkspaceFolders.forEach((workspaceFolder) =>
       workspaceFolder.dispose()
     );
-    this._onManifestChanged.dispose();
+    this.disposables.forEach((disposable) => disposable.dispose());
   }
 
   private async registerWorkspaceFolder(

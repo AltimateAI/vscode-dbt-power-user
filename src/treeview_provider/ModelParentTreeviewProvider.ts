@@ -22,11 +22,13 @@ export class ModelTreeviewProvider
 
   constructor(treeType: keyof GraphMetaMap) {
     this.treeType = treeType;
-    window.onDidChangeActiveTextEditor(() => {
-      this._onDidChangeTreeData.fire();
-    });
-    dbtProjectContainer.onManifestChanged((event) =>
-      this.onManifestCacheChanged(event)
+    this.disposables.push(
+      window.onDidChangeActiveTextEditor(() => {
+        this._onDidChangeTreeData.fire();
+      }),
+      dbtProjectContainer.onManifestChanged((event) =>
+        this.onManifestCacheChanged(event)
+      )
     );
   }
 

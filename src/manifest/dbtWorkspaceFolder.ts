@@ -16,6 +16,7 @@ export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
   private dbtProjects: DBTProject[] = [];
   private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>;
+  private disposables: Disposable[] = [];
 
   constructor(
     workspaceFolder: WorkspaceFolder,
@@ -23,6 +24,7 @@ export class DBTWorkspaceFolder implements Disposable {
   ) {
     this.workspaceFolder = workspaceFolder;
     this.watcher = this.createConfigWatcher();
+    this.disposables.push(this.watcher);
     this._onManifestChanged = _onManifestChanged;
   }
 
@@ -68,8 +70,8 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   dispose() {
-    this.watcher.dispose();
     this.dbtProjects.forEach((project) => project.dispose());
+    this.disposables.forEach((disposable) => disposable.dispose());
   }
 
   private createConfigWatcher(): FileSystemWatcher {
@@ -88,6 +90,7 @@ export class DBTWorkspaceFolder implements Disposable {
       }
     });
     watcher.onDidDelete((uri) => this.unregisterDBTProject(dirName(uri)));
+    this.disposables.push(watcher);
     return watcher;
   }
 

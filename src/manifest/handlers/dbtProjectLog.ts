@@ -19,9 +19,12 @@ export class DBTProjectLog implements Disposable {
   private static LOG_PATH = "logs";
   private static LOG_FILE = "dbt.log";
   private currentProjectName?: string;
+  private disposables: Disposable[] = [];
 
   constructor(onProjectConfigChanged: Event<ProjectConfigChangedEvent>) {
-    onProjectConfigChanged((event) => this.onProjectConfigChanged(event));
+    this.disposables.push(
+      onProjectConfigChanged((event) => this.onProjectConfigChanged(event))
+    );
   }
 
   public onProjectConfigChanged(event: ProjectConfigChangedEvent) {
@@ -97,5 +100,6 @@ export class DBTProjectLog implements Disposable {
     if (this.outputChannel !== undefined) {
       this.outputChannel.dispose();
     }
+    this.disposables.forEach((disposable) => disposable.dispose());
   }
 }
