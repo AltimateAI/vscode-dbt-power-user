@@ -17,7 +17,7 @@ import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChange
 
 export class ModelAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype
   implements CompletionItemProvider, Disposable {
-  private static readonly ENDS_WTTH_REF = /ref\(['|"]$/;
+  private static readonly ENDS_WITH_REF = /ref\(['|"]/;
   private modelAutocompleteMap: Map<string, CompletionItem[]> = new Map();
   private disposables: Disposable[] = [];
 
@@ -43,11 +43,12 @@ export class ModelAutocompletionProvider // TODO autocomplete doesn't work when 
       .lineAt(position)
       .text.substr(0, position.character);
     if (
-      linePrefix.match(ModelAutocompletionProvider.ENDS_WTTH_REF) &&
+      linePrefix.match(ModelAutocompletionProvider.ENDS_WITH_REF) &&
       isEnclosedWithinCodeBlock(document, position)
     ) {
       return this.getAutoCompleteItems(document.uri);
     }
+
     return undefined;
   }
 

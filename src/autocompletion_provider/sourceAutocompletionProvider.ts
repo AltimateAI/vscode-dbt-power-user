@@ -18,7 +18,7 @@ import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChange
 export class SourceAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype
   implements CompletionItemProvider, Disposable {
   private static readonly GET_SOURCE_NAME = /(?!['"])(\w+)(?=['"])/;
-  private static readonly ENDS_WTTH_SOURCE = /source\(['|"]$/;
+  private static readonly ENDS_WITH_SOURCE = /source\(['|"]/;
   private sourceAutocompleteNameItemsMap: Map<
     string,
     CompletionItem[]
@@ -60,7 +60,10 @@ export class SourceAutocompletionProvider // TODO autocomplete doesn't work when
       return;
     }
 
-    if (linePrefix.match(SourceAutocompletionProvider.ENDS_WTTH_SOURCE)) {
+    if (
+      linePrefix.match(SourceAutocompletionProvider.ENDS_WITH_SOURCE) &&
+      !linePrefix.includes(",")
+    ) {
       return this.showSourceNameAutocompletionItems(projectRootpath);
     }
 

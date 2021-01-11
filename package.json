@@ -90,7 +90,7 @@
         }
       },
       {
-        "command": "dbtPowerUser.parentModels",
+        "command": "dbtPowerUser.runParentModels",
         "title": "Run parent models",
         "icon": {
           "light": "./media/run-light.svg",
