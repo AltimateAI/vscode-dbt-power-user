@@ -17,7 +17,7 @@ import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChange
 
 export class ModelAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype
   implements CompletionItemProvider, Disposable {
-  private static readonly ENDS_WITH_REF = /ref\(['|"]/;
+  private static readonly ENDS_WITH_REF = /ref\(['|"]$/;
   private modelAutocompleteMap: Map<string, CompletionItem[]> = new Map();
   private disposables: Disposable[] = [];
 
