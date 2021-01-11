@@ -8,7 +8,7 @@ enum PromptAnswer {
 
 const askforDBTInstallation = async () => {
   const answer = await window.showErrorMessage(
-    `DBT is not installed in this python environment. Do you want to install DBT?`,
+    `dbt is not installed in this python environment. Do you want to install dbt?`,
     PromptAnswer.YES,
     PromptAnswer.NO
   );

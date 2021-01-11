@@ -9,7 +9,7 @@ import {
   workspace,
   Event,
 } from "vscode";
-import { setupWatcherHandler as setupWatcherHandler } from "../../utils";
+import { setupWatcherHandler } from "../../utils";
 import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 
 export class DBTProjectLog implements Disposable {

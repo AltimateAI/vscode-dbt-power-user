@@ -22,7 +22,7 @@ export class DBTCommandFactory {
   static createVersionCommand(): DBTCommand {
     return {
       commandAsString: "dbt --version",
-      statusMessage: "Detecting DBT version...",
+      statusMessage: "Detecting dbt version...",
       processExecutionParams: {
         args: ["-c", DBTCommandFactory.dbtCommand("'--version'")],
       },
@@ -32,7 +32,7 @@ export class DBTCommandFactory {
   static createListCommand(projectRoot: Uri): DBTCommand {
     return {
       commandAsString: "dbt list",
-      statusMessage: "Listing DBT models...",
+      statusMessage: "Listing dbt models...",
       processExecutionParams: {
         cwd: projectRoot.fsPath,
         args: ["-c", this.dbtCommand("'list'")],
@@ -44,7 +44,7 @@ export class DBTCommandFactory {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     return {
       commandAsString: `dbt run --model ${params.plusOperatorLeft}${params.modelName}${params.plusOperatorRight}`,
-      statusMessage: "Running DBT models...",
+      statusMessage: "Running dbt models...",
       processExecutionParams: {
         cwd: projectRoot.fsPath,
         args: [
@@ -63,7 +63,7 @@ export class DBTCommandFactory {
   static createInstallDBTCommand() {
     return {
       commandAsString: 'pip install dbt',
-      statusMessage: "Installing DBT...",
+      statusMessage: "Installing dbt...",
       processExecutionParams: { args: ["-m", "pip", "install", "dbt"] },
       focus: true,
     };
@@ -72,7 +72,7 @@ export class DBTCommandFactory {
   static createUpdateDBTCommand() {
     return {
       commandAsString: 'pip install --upgrade dbt',
-      statusMessage: "Updating DBT...",
+      statusMessage: "Updating dbt...",
       processExecutionParams: { args: ["-m", "pip", "install", "dbt", "--upgrade"] },
       focus: true,
     };

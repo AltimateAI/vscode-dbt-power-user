@@ -8,8 +8,8 @@ Main features:
 - Go to the definition of any models, macro's and sources.
 - Autocompletion of models, macros and sources
 - Ability to run a model through the play button of the document
-- DBT install / update
-- DBT logs viewer (force tailing)
+- dbt install / update
+- dbt logs viewer (force tailing)
 
 This extension is using the Python extension to detect Python interpreters that are installed in standard locations. See [Python Environments](https://code.visualstudio.com/docs/languages/python#_environments).
 
@@ -45,17 +45,17 @@ This extension is sponsored by [innover.io](https://innover.io/).
 
 ![Autocomplete source](./media/autocomplete-source.gif)
 
-### DBT logs force tailing (new)
+### dbt logs force tailing (new)
 
-![DBT logs](./media/dbt-log.gif)
+![dbt logs](./media/dbt-log.gif)
 
-### Update DBT if DBT is outdated (new)
+### Update dbt if dbt is outdated (new)
 
-![Update DBT](./media/update-dbt.gif)
+![Update dbt](./media/update-dbt.gif)
 
-### Install DBT if DBT is not in the Python Environment (new)
+### Install dbt if dbt is not in the Python Environment (new)
 
-![Install DBT](./media/install-dbt.gif)
+![Install dbt](./media/install-dbt.gif)
 
 
 

@@ -45,7 +45,7 @@ export class DBTWorkspaceFolder implements Disposable {
 
   async registerDBTProject(uri: Uri) {
     const dbtProject = new DBTProject(uri, this._onManifestChanged);
-    await dbtProject.runList();
+    await dbtProject.listModels();
     await dbtProject.tryRefresh();
     this.dbtProjects.push(dbtProject);
   }

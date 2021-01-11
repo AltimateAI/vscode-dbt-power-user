@@ -53,7 +53,7 @@ export class RunResultStatusBar implements Disposable {
           dayjs(runResult.timestamp)
         )}`;
         statusBar.command = {
-          command: "navigateToFile",
+          command: "dbtPowerUser.navigateToFile",
           arguments: [runResult.compiledPath],
           title: "Go to compiled SQL",
         };
@@ -63,7 +63,7 @@ export class RunResultStatusBar implements Disposable {
             dayjs(runResult.timestamp)
           )}`;
           statusBar.command = {
-            command: "navigateToFile",
+            command: "dbtPowerUser.navigateToFile",
             arguments: [runResult.compiledPath],
             title: "Go to compiled SQL",
           };
@@ -72,7 +72,7 @@ export class RunResultStatusBar implements Disposable {
             dayjs(runResult.timestamp)
           )}`;
           statusBar.command = {
-            command: "navigateToFileWithErrorMessage",
+            command: "dbtPowerUser.navigateToFileWithErrorMessage",
             arguments: [runResult.compiledPath, runResult.error],
             title: "Go to compiled SQL",
           };

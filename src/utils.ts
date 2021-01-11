@@ -1,4 +1,4 @@
-import { TextDocument, Range, Position, FileSystemWatcher } from "vscode";
+import { TextDocument, Range, Position, FileSystemWatcher, Disposable } from "vscode";
 
 export const isEnclosedWithinCodeBlock: (
   document: TextDocument,
@@ -73,12 +73,12 @@ export const debounce = (fn: Function, wait: number) => {
   };
 };
 
-// TODO: potentially needs disposables
-export const setupWatcherHandler = (
+export const setupWatcherHandler: (
   watcher: FileSystemWatcher,
   handler: Function
-): void => {
-  watcher.onDidChange(() => handler());
-  watcher.onDidCreate(() => handler());
-  watcher.onDidDelete(() => handler());
-};
+) => Disposable[] = (watcher, handler) => ([
+    watcher.onDidChange(() => handler()),
+    watcher.onDidCreate(() => handler()),
+    watcher.onDidDelete(() => handler()),
+  ]);
+  

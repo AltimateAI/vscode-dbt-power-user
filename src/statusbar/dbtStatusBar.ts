@@ -30,24 +30,24 @@ export class DBTStatusBar implements Disposable {
 
   private onDBTInstallationFound(event: DBTInstallationFoundEvent) {
     if (event.installed === undefined) {
-      this.showTextInStatusBar("$(sync~spin) Checking DBT installation");
+      this.showTextInStatusBar("$(sync~spin) Detecting dbt");
       return;
     }
     if (!event.installed) {
-      this.showTextInStatusBar("$(error) DBT not installed", {
-        title: "Install DBT",
-        command: "installDBT",
+      this.showTextInStatusBar("$(error) dbt is not installed", {
+        title: "Install dbt",
+        command: "dbtPowerUser.installDBT",
       });
       return;
     }
     if (!event.upToDate) {
       this.showTextInStatusBar(
-        `$(error) DBT ${event.installedVersion!} is not up to date`,
-        { title: "Update DBT", command: "updateDBT" }
+        `$(error) dbt ${event.installedVersion!} is not up to date`,
+        { title: "Update dbt", command: "dbtPowerUser.updateDBT" }
       );
       return;
     }
-    this.showTextInStatusBar(`$(check) DBT ${event.installedVersion}`);
+    this.showTextInStatusBar(`$(check) dbt ${event.installedVersion}`);
   }
 
   private showTextInStatusBar(text: string, command?: Command) {

@@ -9,28 +9,31 @@ import navigateToFileWithErrorMessage from "./navigateToFileWithErrorMessage";
 import installDBT from "./installDBT";
 import updateDBT from "./updateDBT";
 
-export class CommandFactory {
+export class VSCodeCommandFactory {
   static createCommands(): { dispose(): any }[] {
     return [
       vscode.commands.registerCommand(
-        "run.dbt.currentModel",
+        "dbtPowerUser.runCurrentModel",
         runModelOnActiveWindow
       ),
       vscode.commands.registerCommand(
-        "run.dbt.childrenModels",
+        "dbtPowerUser.runChildrenModels",
         runModelOnNodeTreeItem(RunModelType.CHILDREN)
       ),
       vscode.commands.registerCommand(
-        "run.dbt.parentModels",
+        "dbtPowerUser.runParentModels",
         runModelOnNodeTreeItem(RunModelType.PARENTS)
       ),
-      vscode.commands.registerCommand("navigateToFile", navigateToFile),
       vscode.commands.registerCommand(
-        "navigateToFileWithErrorMessage",
+        "dbtPowerUser.navigateToFile",
+        navigateToFile
+      ),
+      vscode.commands.registerCommand(
+        "dbtPowerUser.navigateToFileWithErrorMessage",
         navigateToFileWithErrorMessage
       ),
-      vscode.commands.registerCommand("installDBT", installDBT),
-      vscode.commands.registerCommand("updateDBT", updateDBT),
+      vscode.commands.registerCommand("dbtPowerUser.installDBT", installDBT),
+      vscode.commands.registerCommand("dbtPowerUser.updateDBT", updateDBT),
     ];
   }
 }

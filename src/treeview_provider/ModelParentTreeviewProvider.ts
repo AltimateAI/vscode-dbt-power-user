@@ -140,7 +140,7 @@ export class NodeTreeItem extends TreeItem {
       this.iconPath = node.iconPath;
     }
     this.command = {
-      command: "navigateToFile",
+      command: "dbtPowerUser.navigateToFile",
       title: "Select Node",
       arguments: [node.url],
     };

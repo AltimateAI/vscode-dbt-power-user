@@ -126,7 +126,7 @@ export class DBTClient implements Disposable {
     const { args, cwd } = command.processExecutionParams;
     if (this.terminal === undefined) {
       this.terminal = window.createTerminal({
-        name: "DBT",
+        name: "Tasks - dbt",
         pty: {
           onDidWrite: this.writeEmitter.event,
           open: () => this.writeEmitter.fire(""),

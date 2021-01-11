@@ -32,12 +32,12 @@
   "contributes": {
     "configuration": [
       {
-        "title": "DBT Power User",
+        "title": "dbt Power User",
         "properties": {
           "vscodeDbtPowerUser.useCurrentTerminal": {
             "type": "boolean",
             "default": false,
-            "description": "Use the current terminal to execute DBT commands."
+            "description": "Use the current terminal to execute dbt commands."
           },
           "vscodeDbtPowerUser.dbtRunCommand": {
             "type": [
@@ -54,9 +54,9 @@
       "activitybar": [
         {
           "id": "dbt_view",
-          "title": "DBT Power User",
+          "title": "dbt Power User",
           "icon": "./media/dbt_icon.svg",
-          "contextualTitle": "DBT Power User"
+          "contextualTitle": "dbt Power User"
         }
       ]
     },
@@ -74,24 +74,24 @@
     },
     "commands": [
       {
-        "command": "run.dbt.currentModel",
-        "title": "Run Current Model",
+        "command": "dbtPowerUser.runCurrentModel",
+        "title": "Run current model",
         "icon": {
           "light": "./media/run-light.svg",
           "dark": "./media/run-dark.svg"
         }
       },
       {
-        "command": "run.dbt.childrenModels",
-        "title": "Run Children Models",
+        "command": "dbtPowerUser.runChildrenModels",
+        "title": "Run children models",
         "icon": {
           "light": "./media/run-light.svg",
           "dark": "./media/run-dark.svg"
         }
       },
       {
-        "command": "run.dbt.parentModels",
-        "title": "Run Parent Models",
+        "command": "dbtPowerUser.parentModels",
+        "title": "Run parent models",
         "icon": {
           "light": "./media/run-light.svg",
           "dark": "./media/run-dark.svg"
@@ -101,31 +101,31 @@
     "menus": {
       "editor/title": [
         {
-          "command": "run.dbt.currentModel",
+          "command": "dbtPowerUser.runCurrentModel",
           "when": "resourceLangId == jinja-sql",
           "group": "1_run"
         }
       ],
       "view/title": [
         {
-          "command": "run.dbt.childrenModels",
+          "command": "dbtPowerUser.runChildrenModels",
           "when": "view == children_model_treeview",
           "group": "navigation"
         },
         {
-          "command": "run.dbt.parentModels",
+          "command": "dbtPowerUser.runParentModels",
           "when": "view == parent_model_treeview",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
-          "command": "run.dbt.childrenModels",
+          "command": "dbtPowerUser.runChildrenModels",
           "when": "view == children_model_treeview && viewItem != source",
           "group": "inline"
         },
         {
-          "command": "run.dbt.parentModels",
+          "command": "dbtPowerUser.runParentModels",
           "when": "view == parent_model_treeview && viewItem != source",
           "group": "inline"
         }

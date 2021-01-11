@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { AutocompletionProviderFactory } from "./autocompletion_provider/autocompletionProviderFactory";
 import { TreeviewProviderFactory } from "./treeview_provider/treeviewProviderFactory";
-import { CommandFactory } from "./commands/commandFactory";
+import { VSCodeCommandFactory } from "./commands/vscodeCommandFactory";
 import { DefinitionProviderFactory } from "./definition_provider/definitionProviderFactory";
 import { dbtProjectContainer } from "./manifest/dbtProjectContainer";
 import { DBTStatusBar } from "./statusbar/dbtStatusBar";
@@ -14,7 +14,7 @@ export async function activate(context: vscode.ExtensionContext) {
     ...DefinitionProviderFactory.createDefinitionProviders(),
     ...AutocompletionProviderFactory.createAutoCompletionProviders(),
     ...TreeviewProviderFactory.createModelTreeViews(),
-    ...CommandFactory.createCommands(),
+    ...VSCodeCommandFactory.createCommands(),
     new RunResultStatusBar(),
     new DBTStatusBar(),
     dbtProjectContainer

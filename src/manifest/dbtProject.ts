@@ -8,7 +8,6 @@ import { setupWatcherHandler } from "../utils";
 import {
   Disposable,
   EventEmitter,
-  FileSystemWatcher,
   RelativePattern,
   Uri,
   workspace,
@@ -40,9 +39,7 @@ export class DBTProject implements Disposable {
     this.onProjectConfigChanged
   );
   public onSourceFileChanged = this.sourceFileWatchers.onSourceFileChanged;
-  private dbtProjectWatcher?: FileSystemWatcher;
   private dbtProjectLog = new DBTProjectLog(this.onProjectConfigChanged);
-  private targetWatchers: TargetWatchers;
   private disposables: Disposable[] = [
     this.sourceFileWatchers,
     this.dbtProjectLog,
@@ -54,17 +51,19 @@ export class DBTProject implements Disposable {
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
   ) {
     this.projectRoot = path;
-    this.dbtProjectWatcher = workspace.createFileSystemWatcher(
+
+    const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(path, DBTProject.DBT_PROJECT_FILE)
     );
-    setupWatcherHandler(this.dbtProjectWatcher, () => this.tryRefresh());
-    this.targetWatchers = new TargetWatchers(
-      _onManifestChanged,
-      this.onProjectConfigChanged
-    );
+
+    setupWatcherHandler(dbtProjectConfigWatcher, () => this.tryRefresh());
+
     this.disposables.push(
-      this.targetWatchers,
-      this.dbtProjectWatcher,
+      new TargetWatchers(
+        _onManifestChanged,
+        this.onProjectConfigChanged
+      ),
+      dbtProjectConfigWatcher,
       this.onSourceFileChanged(() =>
         dbtProjectContainer.listModels(this.projectRoot)
       )
@@ -103,9 +102,8 @@ export class DBTProject implements Disposable {
   }
 
   // TODO: maybe we should have a DBTClient for each project, so they can run in parallel.
-  runList() {
-    const listCommand = DBTCommandFactory.createListCommand(this.projectRoot);
-    dbtProjectContainer.addCommandToQueue(listCommand);
+  listModels() {
+    dbtProjectContainer.listModels(this.projectRoot);
   }
 
   runModel(runModelParams: RunModelParams) {
