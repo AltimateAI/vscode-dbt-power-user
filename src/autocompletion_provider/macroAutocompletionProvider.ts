@@ -14,8 +14,10 @@ import {
 } from "vscode";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { provide } from "inversify-binding-decorators";
 
-export class MacroAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype
+@provide(MacroAutocompletionProvider) // TODO autocomplete doesn't work when mistype, delete and retype
+export class MacroAutocompletionProvider
   implements CompletionItemProvider, Disposable {
   private macrosAutocompleteMap: Map<string, CompletionItem[]> = new Map();
   private disposables: Disposable[] = [];

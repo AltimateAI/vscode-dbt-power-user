@@ -14,8 +14,10 @@ import {
 import { isEnclosedWithinCodeBlock } from "../utils";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { provide } from "inversify-binding-decorators";
 
-export class ModelAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype
+@provide(ModelAutocompletionProvider) // TODO autocomplete doesn't work when mistype, delete and retype
+export class ModelAutocompletionProvider
   implements CompletionItemProvider, Disposable {
   private static readonly ENDS_WITH_REF = /ref\(['|"]$/;
   private modelAutocompleteMap: Map<string, CompletionItem[]> = new Map();

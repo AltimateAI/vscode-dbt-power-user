@@ -3,23 +3,33 @@ import { MacroAutocompletionProvider } from "./macroAutocompletionProvider";
 import { ModelAutocompletionProvider } from "./modelAutocompletionProvider";
 import { SourceAutocompletionProvider } from "./sourceAutocompletionProvider";
 import { DBT_MODE } from "../extension";
+import { provide } from "inversify-binding-decorators";
+import { inject } from "inversify";
 
+@provide(AutocompletionProviderFactory)
 export class AutocompletionProviderFactory {
-  static createAutoCompletionProviders(): { dispose(): any }[] {
+  @inject(MacroAutocompletionProvider)
+  macroAutocompletionProvider!: MacroAutocompletionProvider;
+  @inject(ModelAutocompletionProvider)
+  modelAutocompletionProvider!: ModelAutocompletionProvider;
+  @inject(SourceAutocompletionProvider)
+  sourceAutocompletionProvider!: SourceAutocompletionProvider;
+
+  createAutoCompletionProviders(): { dispose(): any }[] {
     return [
       vscode.languages.registerCompletionItemProvider(
         DBT_MODE,
-        new MacroAutocompletionProvider()
+        this.macroAutocompletionProvider
       ),
       vscode.languages.registerCompletionItemProvider(
         DBT_MODE,
-        new ModelAutocompletionProvider(),
+        this.modelAutocompletionProvider,
         "'",
         '"'
       ),
       vscode.languages.registerCompletionItemProvider(
         DBT_MODE,
-        new SourceAutocompletionProvider(),
+        this.sourceAutocompletionProvider,
         "'",
         '"'
       ),
