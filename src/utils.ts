@@ -1,4 +1,11 @@
-import { TextDocument, Range, Position, FileSystemWatcher, Disposable } from "vscode";
+import { fluentProvide } from "inversify-binding-decorators";
+import {
+  TextDocument,
+  Range,
+  Position,
+  FileSystemWatcher,
+  Disposable,
+} from "vscode";
 
 export const isEnclosedWithinCodeBlock: (
   document: TextDocument,
@@ -76,9 +83,12 @@ export const debounce = (fn: Function, wait: number) => {
 export const setupWatcherHandler: (
   watcher: FileSystemWatcher,
   handler: Function
-) => Disposable[] = (watcher, handler) => ([
-    watcher.onDidChange(() => handler()),
-    watcher.onDidCreate(() => handler()),
-    watcher.onDidDelete(() => handler()),
-  ]);
-  
+) => Disposable[] = (watcher, handler) => [
+  watcher.onDidChange(() => handler()),
+  watcher.onDidCreate(() => handler()),
+  watcher.onDidDelete(() => handler()),
+];
+
+export const provideSingleton = (identifier: any) => {
+  return fluentProvide(identifier).inSingletonScope().done();
+};

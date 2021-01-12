@@ -1,4 +1,4 @@
-import { isEnclosedWithinCodeBlock } from "../utils";
+import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 import {
   CompletionItemProvider,
   CompletionItem,
@@ -14,9 +14,8 @@ import {
 } from "vscode";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { provide } from "inversify-binding-decorators";
 
-@provide(MacroAutocompletionProvider) // TODO autocomplete doesn't work when mistype, delete and retype
+@provideSingleton(MacroAutocompletionProvider) // TODO autocomplete doesn't work when mistype, delete and retype
 export class MacroAutocompletionProvider
   implements CompletionItemProvider, Disposable {
   private macrosAutocompleteMap: Map<string, CompletionItem[]> = new Map();

@@ -1,8 +1,8 @@
 import { inject } from "inversify";
-import { provide } from "inversify-binding-decorators";
 import { AutocompletionProviderFactory } from "./autocompletion_provider/autocompletionProviderFactory";
+import { provideSingleton } from "./utils";
 
-@provide(DBTPowerUserExtension)
+@provideSingleton(DBTPowerUserExtension)
 export class DBTPowerUserExtension {
   @inject(AutocompletionProviderFactory)
   autocompletionProviderFactory!: AutocompletionProviderFactory;

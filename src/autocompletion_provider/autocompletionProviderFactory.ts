@@ -3,17 +3,14 @@ import { MacroAutocompletionProvider } from "./macroAutocompletionProvider";
 import { ModelAutocompletionProvider } from "./modelAutocompletionProvider";
 import { SourceAutocompletionProvider } from "./sourceAutocompletionProvider";
 import { DBT_MODE } from "../extension";
-import { provide } from "inversify-binding-decorators";
-import { inject } from "inversify";
-
-@provide(AutocompletionProviderFactory)
+import { provideSingleton } from "../utils";
+@provideSingleton(AutocompletionProviderFactory)
 export class AutocompletionProviderFactory {
-  @inject(MacroAutocompletionProvider)
-  macroAutocompletionProvider!: MacroAutocompletionProvider;
-  @inject(ModelAutocompletionProvider)
-  modelAutocompletionProvider!: ModelAutocompletionProvider;
-  @inject(SourceAutocompletionProvider)
-  sourceAutocompletionProvider!: SourceAutocompletionProvider;
+  constructor(
+    private macroAutocompletionProvider: MacroAutocompletionProvider,
+    private modelAutocompletionProvider: ModelAutocompletionProvider,
+    private sourceAutocompletionProvider: SourceAutocompletionProvider
+  ) {}
 
   createAutoCompletionProviders(): { dispose(): any }[] {
     return [
