@@ -3,7 +3,6 @@ import { buildProviderModule } from "inversify-binding-decorators";
 import "reflect-metadata";
 import * as vscode from "vscode";
 import { TreeviewProviderFactory } from "./treeview_provider/treeviewProviderFactory";
-import { VSCodeCommandFactory } from "./commands/vscodeCommandFactory";
 import { DefinitionProviderFactory } from "./definition_provider/definitionProviderFactory";
 import { dbtProjectContainer } from "./manifest/dbtProjectContainer";
 import { DBTStatusBar } from "./statusbar/dbtStatusBar";
@@ -16,13 +15,13 @@ const container = new Container();
 container.load(buildProviderModule());
 
 export async function activate(context: vscode.ExtensionContext) {
-  const dbtPowerUserExtension = container.resolve(DBTPowerUserExtension);
+  const dbtPowerUserExtension = container.get(DBTPowerUserExtension);
 
   context.subscriptions.push(
     ...DefinitionProviderFactory.createDefinitionProviders(),
     ...dbtPowerUserExtension.createAutoCompletionProviders(),
     ...TreeviewProviderFactory.createModelTreeViews(),
-    ...VSCodeCommandFactory.createCommands(),
+    ...dbtPowerUserExtension.createCommands(),
     new RunResultStatusBar(),
     new DBTStatusBar(),
     dbtProjectContainer

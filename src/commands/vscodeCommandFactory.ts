@@ -8,9 +8,11 @@ import {
 import navigateToFileWithErrorMessage from "./navigateToFileWithErrorMessage";
 import installDBT from "./installDBT";
 import updateDBT from "./updateDBT";
+import { provideSingleton } from "../utils";
 
+@provideSingleton(VSCodeCommandFactory)
 export class VSCodeCommandFactory {
-  static createCommands(): { dispose(): any }[] {
+  createCommands(): { dispose(): any }[] {
     return [
       vscode.commands.registerCommand(
         "dbtPowerUser.runCurrentModel",
