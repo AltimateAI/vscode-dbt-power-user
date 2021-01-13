@@ -1,4 +1,4 @@
-import { inject, interfaces } from "inversify";
+import { inject } from "inversify";
 import * as vscode from "vscode";
 import { GraphMetaMap } from "../domain";
 import { provideSingleton } from "../utils";
@@ -8,7 +8,9 @@ import { ModelTreeviewProvider } from "./ModelParentTreeviewProvider";
 export class TreeviewProviderFactory {
   constructor(
     @inject("ModelTreeviewProvider")
-    private ModelTreeviewProvider: interfaces.Factory<ModelTreeviewProvider>
+    private ModelTreeviewProvider: (
+      treeType: keyof GraphMetaMap
+    ) => ModelTreeviewProvider
   ) {}
   createModelTreeViews() {
     return [
@@ -23,6 +25,6 @@ export class TreeviewProviderFactory {
     ];
   }
   createModelTreeview(treeType: keyof GraphMetaMap) {
-    return this.ModelTreeviewProvider(treeType) as ModelTreeviewProvider;
+    return this.ModelTreeviewProvider(treeType);
   }
 }

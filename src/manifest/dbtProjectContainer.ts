@@ -12,7 +12,7 @@ import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
 import { DBTCommand } from "../dbt_client/dbtCommandFactory";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
-import { inject, interfaces } from "inversify";
+import { inject } from "inversify";
 
 @provideSingleton(DbtProjectContainer)
 export class DbtProjectContainer implements Disposable {
@@ -25,7 +25,10 @@ export class DbtProjectContainer implements Disposable {
   constructor(
     private dbtClient: DBTClient,
     @inject("DBTWorkspaceFolder")
-    private DBTWorkspaceFolder: interfaces.Factory<DBTWorkspaceFolder>
+    private DBTWorkspaceFolder: (
+      workspaceFolder: WorkspaceFolder,
+      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
+    ) => DBTWorkspaceFolder
   ) {
     this.disposables.push(
       workspace.onDidChangeWorkspaceFolders(async (event) => {
@@ -109,7 +112,7 @@ export class DbtProjectContainer implements Disposable {
     const dbtProjectWorkspaceFolder = this.DBTWorkspaceFolder(
       workspaceFolder,
       this._onManifestChanged
-    ) as DBTWorkspaceFolder;
+    );
     this.dbtWorkspaceFolders.push(dbtProjectWorkspaceFolder);
     await dbtProjectWorkspaceFolder.discoverProjects();
   }
