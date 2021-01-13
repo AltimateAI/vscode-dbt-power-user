@@ -16,6 +16,7 @@ import { ManifestCacheChangedEvent } from "./manifest/event/manifestCacheChanged
 import { ProjectConfigChangedEvent } from "./manifest/event/projectConfigChangedEvent";
 import { DBTProjectLog } from "./manifest/handlers/dbtProjectLog";
 import { SourceFileWatchers } from "./manifest/handlers/sourceFileWatchers";
+import { TargetWatchers } from "./manifest/handlers/targetWatchers";
 import { ModelTreeviewProvider } from "./treeview_provider/ModelParentTreeviewProvider";
 
 export const container = new Container();
@@ -34,24 +35,6 @@ container
   .toFactory<DBTProjectLog>((context: interfaces.Context) => {
     return (onProjectConfigChanged: Event<ProjectConfigChangedEvent>) => {
       return new DBTProjectLog(onProjectConfigChanged);
-    };
-  });
-
-container
-  .bind<interfaces.Factory<DBTProject>>("DBTProjectFactory")
-  .toFactory<DBTProject>((context: interfaces.Context) => {
-    return (
-      path: Uri,
-      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
-    ) => {
-      const { container } = context;
-      return new DBTProject(
-        container.get(DbtProjectContainer),
-        container.get("SourceFileWatchersFactory"),
-        container.get("DBTProjectLogFactory"),
-        path,
-        _onManifestChanged
-      );
     };
   });
 
@@ -97,5 +80,35 @@ container
       token?: CancellationToken
     ) => {
       return new CommandProcessExecution(command, args, cwd, token);
+    };
+  });
+
+container
+  .bind<interfaces.Factory<TargetWatchers>>("TargetWatchersFactory")
+  .toFactory<TargetWatchers>((context: interfaces.Context) => {
+    return (
+      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+      onProjectConfigChanged: Event<ProjectConfigChangedEvent>
+    ) => {
+      return new TargetWatchers(_onManifestChanged, onProjectConfigChanged);
+    };
+  });
+
+container
+  .bind<interfaces.Factory<DBTProject>>("DBTProjectFactory")
+  .toFactory<DBTProject>((context: interfaces.Context) => {
+    return (
+      path: Uri,
+      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
+    ) => {
+      const { container } = context;
+      return new DBTProject(
+        container.get(DbtProjectContainer),
+        container.get("SourceFileWatchersFactory"),
+        container.get("DBTProjectLogFactory"),
+        container.get("TargetWatchersFactory"),
+        path,
+        _onManifestChanged
+      );
     };
   });

@@ -52,6 +52,11 @@ export class DBTProject implements Disposable {
     private dbtProjectLogFactory: (
       onProjectConfigChanged: Event<ProjectConfigChangedEvent>
     ) => DBTProjectLog,
+    @inject("TargetWatchersFactory")
+    private targetWatchersFactory: (
+      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+      onProjectConfigChanged: Event<ProjectConfigChangedEvent>
+    ) => TargetWatchers,
     path: Uri,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
   ) {
@@ -71,7 +76,10 @@ export class DBTProject implements Disposable {
     this.dbtProjectLog = this.dbtProjectLogFactory(this.onProjectConfigChanged);
 
     this.disposables.push(
-      new TargetWatchers(_onManifestChanged, this.onProjectConfigChanged),
+      this.targetWatchersFactory(
+        _onManifestChanged,
+        this.onProjectConfigChanged
+      ),
       dbtProjectConfigWatcher,
       this.onSourceFileChanged(() =>
         dbtProjectContainer.listModels(this.projectRoot)
