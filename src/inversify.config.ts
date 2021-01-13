@@ -1,6 +1,13 @@
 import { Container, interfaces } from "inversify";
 import { buildProviderModule } from "inversify-binding-decorators";
-import { Uri, Event, EventEmitter, WorkspaceFolder } from "vscode";
+import {
+  Uri,
+  Event,
+  EventEmitter,
+  WorkspaceFolder,
+  CancellationToken,
+} from "vscode";
+import { CommandProcessExecution } from "./dbt_client/commandProcessExecution";
 import { GraphMetaMap } from "./domain";
 import { DBTProject } from "./manifest/dbtProject";
 import { DbtProjectContainer } from "./manifest/dbtProjectContainer";
@@ -75,5 +82,20 @@ container
         container.get(DbtProjectContainer),
         treeType
       );
+    };
+  });
+
+container
+  .bind<interfaces.Factory<CommandProcessExecution>>(
+    "CommandProcessExecutionFactory"
+  )
+  .toFactory<CommandProcessExecution>((context: interfaces.Context) => {
+    return (
+      command: string,
+      args?: string[],
+      cwd?: string,
+      token?: CancellationToken
+    ) => {
+      return new CommandProcessExecution(command, args, cwd, token);
     };
   });

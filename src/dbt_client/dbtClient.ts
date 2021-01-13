@@ -12,6 +12,7 @@ import { CommandProcessExecution } from "./commandProcessExecution";
 import { DBTInstallationFoundEvent } from "./dbtVersionEvent";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { provideSingleton } from "../utils";
+import { inject } from "inversify";
 
 @provideSingleton(DBTClient)
 export class DBTClient implements Disposable {
@@ -29,7 +30,16 @@ export class DBTClient implements Disposable {
     this._onDBTInstallationFound,
   ];
 
-  constructor(private queue: DBTCommandQueue) {}
+  constructor(
+    private queue: DBTCommandQueue,
+    @inject("CommandProcessExecutionFactory")
+    private commandProcessExecutionFactory: (
+      command: string,
+      args?: string[],
+      cwd?: string,
+      token?: CancellationToken
+    ) => CommandProcessExecution
+  ) {}
 
   dispose() {
     this.disposables.forEach((disposable) => disposable.dispose());
@@ -143,7 +153,12 @@ export class DBTClient implements Disposable {
     if (command.focus) {
       this.terminal.show(true);
     }
-    return new CommandProcessExecution(this.pythonPath!, args, cwd, token);
+    return this.commandProcessExecutionFactory(
+      this.pythonPath!,
+      args,
+      cwd,
+      token
+    );
   }
 
   private raiseDBTInstallationCheckEvent(): void {
