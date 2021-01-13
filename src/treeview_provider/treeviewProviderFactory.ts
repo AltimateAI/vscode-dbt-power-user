@@ -7,8 +7,8 @@ import { ModelTreeviewProvider } from "./ModelParentTreeviewProvider";
 @provideSingleton(TreeviewProviderFactory)
 export class TreeviewProviderFactory {
   constructor(
-    @inject("ModelTreeviewProvider")
-    private ModelTreeviewProvider: (
+    @inject("ModelTreeviewProviderFactory")
+    private ModelTreeviewProviderFactory: (
       treeType: keyof GraphMetaMap
     ) => ModelTreeviewProvider
   ) {}
@@ -25,6 +25,6 @@ export class TreeviewProviderFactory {
     ];
   }
   createModelTreeview(treeType: keyof GraphMetaMap) {
-    return this.ModelTreeviewProvider(treeType);
+    return this.ModelTreeviewProviderFactory(treeType);
   }
 }

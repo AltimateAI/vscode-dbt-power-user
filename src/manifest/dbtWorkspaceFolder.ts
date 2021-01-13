@@ -20,8 +20,8 @@ export class DBTWorkspaceFolder implements Disposable {
   private disposables: Disposable[] = [];
 
   constructor(
-    @inject("DBTProject")
-    private DBTProject: (
+    @inject("DBTProjectFactory")
+    private DBTProjectFactory: (
       path: Uri,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
     ) => DBTProject,
@@ -50,7 +50,7 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   async registerDBTProject(uri: Uri) {
-    const dbtProject = this.DBTProject(uri, this._onManifestChanged);
+    const dbtProject = this.DBTProjectFactory(uri, this._onManifestChanged);
     await dbtProject.listModels();
     await dbtProject.tryRefresh();
     this.dbtProjects.push(dbtProject);

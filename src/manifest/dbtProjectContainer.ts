@@ -24,8 +24,8 @@ export class DbtProjectContainer implements Disposable {
 
   constructor(
     private dbtClient: DBTClient,
-    @inject("DBTWorkspaceFolder")
-    private DBTWorkspaceFolder: (
+    @inject("DBTWorkspaceFolderFactory")
+    private DBTWorkspaceFolderFactory: (
       workspaceFolder: WorkspaceFolder,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
     ) => DBTWorkspaceFolder
@@ -109,7 +109,7 @@ export class DbtProjectContainer implements Disposable {
   private async registerWorkspaceFolder(
     workspaceFolder: WorkspaceFolder
   ): Promise<void> {
-    const dbtProjectWorkspaceFolder = this.DBTWorkspaceFolder(
+    const dbtProjectWorkspaceFolder = this.DBTWorkspaceFolderFactory(
       workspaceFolder,
       this._onManifestChanged
     );
