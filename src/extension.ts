@@ -18,7 +18,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const dbtPowerUserExtension = container.get(DBTPowerUserExtension);
 
   context.subscriptions.push(
-    ...DefinitionProviderFactory.createDefinitionProviders(),
+    ...dbtPowerUserExtension.createDefinitionProviders(),
     ...dbtPowerUserExtension.createAutoCompletionProviders(),
     ...TreeviewProviderFactory.createModelTreeViews(),
     ...dbtPowerUserExtension.createCommands(),

@@ -11,11 +11,12 @@ import {
   Disposable,
 } from "vscode";
 import { readFileSync } from "fs";
-import { isEnclosedWithinCodeBlock } from "../utils";
+import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 import { SourceMetaMap } from "../domain";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 
+@provideSingleton(SourceDefinitionProvider)
 export class SourceDefinitionProvider
   implements DefinitionProvider, Disposable {
   private sourceMetaMap: Map<string, SourceMetaMap> = new Map();

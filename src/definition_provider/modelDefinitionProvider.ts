@@ -14,7 +14,9 @@ import {
 import { NodeMetaMap } from "../domain";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { provideSingleton } from "../utils";
 
+@provideSingleton(ModelDefinitionProvider)
 export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
   private modelToLocationMap: Map<string, NodeMetaMap> = new Map();
   private static readonly IS_REF = /(ref)\([^)]*\)/;

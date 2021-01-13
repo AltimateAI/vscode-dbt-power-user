@@ -12,7 +12,8 @@ import {
 import { MacroMetaMap } from "../domain";
 import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { isEnclosedWithinCodeBlock } from "../utils";
+import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
+@provideSingleton(MacroDefinitionProvider)
 export class MacroDefinitionProvider implements DefinitionProvider, Disposable {
   private macroToLocationMap: Map<string, MacroMetaMap> = new Map();
   private static readonly IS_MACRO = /\w+\.?\w+/;
