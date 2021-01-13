@@ -1,40 +1,46 @@
 import * as path from "path";
 import { window } from "vscode";
-import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { NodeTreeItem } from "../treeview_provider/ModelParentTreeviewProvider";
+import { provideSingleton } from "../utils";
 
 export enum RunModelType {
   PARENTS,
   CHILDREN,
 }
 
-export const runModelOnActiveWindow = async (type?: RunModelType) => {
-  const fullPath = window.activeTextEditor?.document.fileName;
-  if (fullPath !== undefined) {
-    const fileName = path.basename(fullPath, ".sql");
-    runDBTModel(fileName, type);
-  }
-};
+@provideSingleton(RunModel)
+export class RunModel {
+  constructor(private dbtProjectContainer: DbtProjectContainer) {}
 
-export const runModelOnNodeTreeItem = (type: RunModelType) => async (
-  model?: NodeTreeItem
-) => {
-  if (model === undefined) {
-    runModelOnActiveWindow(type);
-    return;
+  runModelOnActiveWindow(type?: RunModelType) {
+    const fullPath = window.activeTextEditor?.document.fileName;
+    if (fullPath !== undefined) {
+      const fileName = path.basename(fullPath, ".sql");
+      this.runDBTModel(fileName, type);
+    }
   }
-  const fileName = path.basename(model.url, ".sql");
-  runDBTModel(fileName, type);
-};
 
-const runDBTModel = async (modelName: string, type?: RunModelType) => {
-  if (window.activeTextEditor === undefined) {
-    return;
+  runModelOnNodeTreeItem(type: RunModelType) {
+    return (model?: NodeTreeItem) => {
+      if (model === undefined) {
+        this.runModelOnActiveWindow(type);
+        return;
+      }
+      const fileName = path.basename(model.url, ".sql");
+      this.runDBTModel(fileName, type);
+    };
   }
-  const currentFilePath = window.activeTextEditor.document.uri;
-  const plusOperatorLeft = type === RunModelType.PARENTS ? "+" : "";
-  const plusOperatorRight = type === RunModelType.CHILDREN ? "+" : "";
-  dbtProjectContainer
-    .findDBTProject(currentFilePath)
-    ?.runModel({ plusOperatorLeft, modelName, plusOperatorRight });
-};
+
+  runDBTModel(modelName: string, type?: RunModelType) {
+    if (window.activeTextEditor === undefined) {
+      return;
+    }
+    const currentFilePath = window.activeTextEditor.document.uri;
+    const plusOperatorLeft = type === RunModelType.PARENTS ? "+" : "";
+    const plusOperatorRight = type === RunModelType.CHILDREN ? "+" : "";
+    this.dbtProjectContainer
+      .findDBTProject(currentFilePath)
+      ?.runModel({ plusOperatorLeft, modelName, plusOperatorRight });
+  }
+}

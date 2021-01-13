@@ -9,18 +9,21 @@ import {
 } from "vscode";
 import { Node, Model, GraphMetaMap, Test, Seed, Analysis } from "../domain";
 import * as path from "path";
-import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
+import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
 
 export class ModelTreeviewProvider
   implements TreeDataProvider<NodeTreeItem>, Disposable {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private treeType: keyof GraphMetaMap;
 
-  constructor(treeType: keyof GraphMetaMap) {
+  constructor(
+    private dbtProjectContainer: DbtProjectContainer,
+    treeType: keyof GraphMetaMap
+  ) {
     this.treeType = treeType;
     this.disposables.push(
       window.onDidChangeActiveTextEditor(() => {
@@ -63,7 +66,7 @@ export class ModelTreeviewProvider
     }
 
     const currentFilePath = window.activeTextEditor!.document.uri;
-    const projectRootpath = dbtProjectContainer.getProjectRootpath(
+    const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
       currentFilePath
     );
     if (projectRootpath === undefined) {
@@ -85,7 +88,7 @@ export class ModelTreeviewProvider
       ".sql"
     );
     const packageName =
-      dbtProjectContainer.getPackageName(currentFilePath) || projectName;
+      this.dbtProjectContainer.getPackageName(currentFilePath) || projectName;
     return Promise.resolve(
       this.getTreeItems(`model.${packageName}.${fileName}`, event)
     );

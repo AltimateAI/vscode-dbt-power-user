@@ -1,3 +1,4 @@
+import { inject } from "inversify";
 import {
   StatusBarItem,
   StatusBarAlignment,
@@ -5,9 +6,11 @@ import {
   Command,
   Disposable,
 } from "vscode";
-import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { DBTInstallationFoundEvent } from "../dbt_client/dbtVersionEvent";
+import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { provideSingleton } from "../utils";
 
+@provideSingleton(DBTStatusBar)
 export class DBTStatusBar implements Disposable {
   readonly statusBar: StatusBarItem = window.createStatusBarItem(
     StatusBarAlignment.Left,
@@ -15,9 +18,9 @@ export class DBTStatusBar implements Disposable {
   );
   private disposables: Disposable[] = [];
 
-  constructor() {
+  constructor(private dbtProjectContainer: DbtProjectContainer) {
     this.disposables.push(
-      dbtProjectContainer.onDBTInstallationFound((e) =>
+      this.dbtProjectContainer.onDBTInstallationFound((e) =>
         this.onDBTInstallationFound(e)
       )
     );

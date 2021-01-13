@@ -11,7 +11,9 @@ import { DBTCommand, DBTCommandFactory } from "./dbtCommandFactory";
 import { CommandProcessExecution } from "./commandProcessExecution";
 import { DBTInstallationFoundEvent } from "./dbtVersionEvent";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
+import { provideSingleton } from "../utils";
 
+@provideSingleton(DBTClient)
 export class DBTClient implements Disposable {
   private _onDBTInstallationFound = new EventEmitter<DBTInstallationFoundEvent>();
   public readonly onDBTInstallationFound = this._onDBTInstallationFound.event;
@@ -20,7 +22,6 @@ export class DBTClient implements Disposable {
   static readonly IS_INSTALLED = /installed\sversion/g;
   private pythonPath?: string;
   private readonly writeEmitter = new EventEmitter<string>();
-  private readonly queue: DBTCommandQueue = new DBTCommandQueue();
   private dbtInstalled?: boolean;
   private terminal?: Terminal;
   private disposables: Disposable[] = [
@@ -28,9 +29,7 @@ export class DBTClient implements Disposable {
     this._onDBTInstallationFound,
   ];
 
-  constructor(pythonPath?: string) {
-    this.pythonPath = pythonPath;
-  }
+  constructor(private queue: DBTCommandQueue) {}
 
   dispose() {
     this.disposables.forEach((disposable) => disposable.dispose());

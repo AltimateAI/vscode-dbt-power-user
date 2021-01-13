@@ -12,8 +12,8 @@ import {
   Disposable,
 } from "vscode";
 import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
-import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
 
 @provideSingleton(SourceAutocompletionProvider) // TODO autocomplete doesn't work when mistype, delete and retype
 export class SourceAutocompletionProvider
@@ -30,7 +30,7 @@ export class SourceAutocompletionProvider
   > = new Map();
   private disposables: Disposable[] = [];
 
-  constructor() {
+  constructor(private dbtProjectContainer: DbtProjectContainer) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event)
@@ -54,7 +54,7 @@ export class SourceAutocompletionProvider
     if (!isEnclosedWithinCodeBlock(document, position)) {
       return undefined;
     }
-    const projectRootpath = dbtProjectContainer.getProjectRootpath(
+    const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
       document.uri
     );
     if (projectRootpath === undefined) {

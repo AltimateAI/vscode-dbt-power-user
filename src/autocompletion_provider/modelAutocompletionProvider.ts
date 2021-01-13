@@ -12,8 +12,8 @@ import {
   Disposable,
 } from "vscode";
 import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
-import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
 
 @provideSingleton(ModelAutocompletionProvider) // TODO autocomplete doesn't work when mistype, delete and retype
 export class ModelAutocompletionProvider
@@ -22,7 +22,7 @@ export class ModelAutocompletionProvider
   private modelAutocompleteMap: Map<string, CompletionItem[]> = new Map();
   private disposables: Disposable[] = [];
 
-  constructor() {
+  constructor(private dbtProjectContainer: DbtProjectContainer) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event)
@@ -69,7 +69,7 @@ export class ModelAutocompletionProvider
   }
 
   private getAutoCompleteItems = (currentFilePath: Uri) => {
-    const projectRootpath = dbtProjectContainer.getProjectRootpath(
+    const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
       currentFilePath
     );
     if (projectRootpath === undefined) {

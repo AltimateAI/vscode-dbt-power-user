@@ -1,21 +1,28 @@
+import { inject, interfaces } from "inversify";
 import * as vscode from "vscode";
 import { GraphMetaMap } from "../domain";
+import { provideSingleton } from "../utils";
 import { ModelTreeviewProvider } from "./ModelParentTreeviewProvider";
 
+@provideSingleton(TreeviewProviderFactory)
 export class TreeviewProviderFactory {
-  static createModelTreeViews() {
+  constructor(
+    @inject("ModelTreeviewProvider")
+    private ModelTreeviewProvider: interfaces.Factory<ModelTreeviewProvider>
+  ) {}
+  createModelTreeViews() {
     return [
       vscode.window.registerTreeDataProvider(
         "parent_model_treeview",
-        TreeviewProviderFactory.createModelTreeview("parents")
+        this.createModelTreeview("parents")
       ),
       vscode.window.registerTreeDataProvider(
         "children_model_treeview",
-        TreeviewProviderFactory.createModelTreeview("children")
+        this.createModelTreeview("children")
       ),
     ];
   }
-  static createModelTreeview(treeType: keyof GraphMetaMap) {
-    return new ModelTreeviewProvider(treeType);
+  createModelTreeview(treeType: keyof GraphMetaMap) {
+    return this.ModelTreeviewProvider(treeType) as ModelTreeviewProvider;
   }
 }

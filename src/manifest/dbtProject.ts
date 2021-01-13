@@ -13,7 +13,7 @@ import {
   workspace,
 } from "vscode";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
-import { dbtProjectContainer } from "./dbtProjectContainer";
+import { DbtProjectContainer } from "./dbtProjectContainer";
 import {
   DBTCommandFactory,
   RunModelParams,
@@ -47,6 +47,7 @@ export class DBTProject implements Disposable {
   ];
 
   constructor(
+    private dbtProjectContainer: DbtProjectContainer,
     path: Uri,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
   ) {
@@ -59,10 +60,7 @@ export class DBTProject implements Disposable {
     setupWatcherHandler(dbtProjectConfigWatcher, () => this.tryRefresh());
 
     this.disposables.push(
-      new TargetWatchers(
-        _onManifestChanged,
-        this.onProjectConfigChanged
-      ),
+      new TargetWatchers(_onManifestChanged, this.onProjectConfigChanged),
       dbtProjectConfigWatcher,
       this.onSourceFileChanged(() =>
         dbtProjectContainer.listModels(this.projectRoot)
@@ -103,7 +101,7 @@ export class DBTProject implements Disposable {
 
   // TODO: maybe we should have a DBTClient for each project, so they can run in parallel.
   listModels() {
-    dbtProjectContainer.listModels(this.projectRoot);
+    this.dbtProjectContainer.listModels(this.projectRoot);
   }
 
   runModel(runModelParams: RunModelParams) {
@@ -111,7 +109,7 @@ export class DBTProject implements Disposable {
       this.projectRoot,
       runModelParams
     );
-    dbtProjectContainer.addCommandToQueue(runModelCommand);
+    this.dbtProjectContainer.addCommandToQueue(runModelCommand);
   }
 
   dispose() {

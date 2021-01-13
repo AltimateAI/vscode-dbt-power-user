@@ -10,7 +10,7 @@ import {
   Disposable,
 } from "vscode";
 import { MacroMetaMap } from "../domain";
-import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 @provideSingleton(MacroDefinitionProvider)
@@ -19,7 +19,7 @@ export class MacroDefinitionProvider implements DefinitionProvider, Disposable {
   private static readonly IS_MACRO = /\w+\.?\w+/;
   private disposables: Disposable[] = [];
 
-  constructor() {
+  constructor(private dbtProjectContainer: DbtProjectContainer) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event)
@@ -47,7 +47,9 @@ export class MacroDefinitionProvider implements DefinitionProvider, Disposable {
         textLine[range.end.character] === "(" &&
         isEnclosedWithinCodeBlock(document, range)
       ) {
-        const packageName = dbtProjectContainer.getPackageName(document.uri);
+        const packageName = this.dbtProjectContainer.getPackageName(
+          document.uri
+        );
 
         const macroName =
           packageName !== undefined && !word.includes(".")
@@ -77,7 +79,7 @@ export class MacroDefinitionProvider implements DefinitionProvider, Disposable {
     macroName: string,
     currentFilePath: Uri
   ): Definition | undefined {
-    const projectRootpath = dbtProjectContainer.getProjectRootpath(
+    const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
       currentFilePath
     );
     if (projectRootpath === undefined) {
