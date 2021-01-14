@@ -2,6 +2,7 @@ import { Container, interfaces } from "inversify";
 import { buildProviderModule } from "inversify-binding-decorators";
 import { Uri, EventEmitter, WorkspaceFolder } from "vscode";
 import { CommandProcessExecution } from "./dbt_client/commandProcessExecution";
+import { DBTCommandFactory } from "./dbt_client/dbtCommandFactory";
 import { DBTProject } from "./manifest/dbtProject";
 import { DbtProjectContainer } from "./manifest/dbtProjectContainer";
 import { DBTWorkspaceFolder } from "./manifest/dbtWorkspaceFolder";
@@ -60,6 +61,7 @@ container
         container.get("Newable<SourceFileWatchers>"),
         container.get("Newable<DBTProjectLog>"),
         container.get("Newable<TargetWatchers>"),
+        container.get(DBTCommandFactory),
         path,
         _onManifestChanged
       );

@@ -1,4 +1,5 @@
 import { Uri } from "vscode";
+import { provideSingleton } from "../utils";
 
 export interface RunModelParams {
   plusOperatorLeft: string;
@@ -18,18 +19,19 @@ export interface DBTCommand {
   focus?: boolean;
 }
 
+@provideSingleton(DBTCommandFactory)
 export class DBTCommandFactory {
-  static createVersionCommand(): DBTCommand {
+  createVersionCommand(): DBTCommand {
     return {
       commandAsString: "dbt --version",
       statusMessage: "Detecting dbt version...",
       processExecutionParams: {
-        args: ["-c", DBTCommandFactory.dbtCommand("'--version'")],
+        args: ["-c", this.dbtCommand("'--version'")],
       },
     };
   }
 
-  static createListCommand(projectRoot: Uri): DBTCommand {
+  createListCommand(projectRoot: Uri): DBTCommand {
     return {
       commandAsString: "dbt list",
       statusMessage: "Listing dbt models...",
@@ -40,7 +42,7 @@ export class DBTCommandFactory {
     };
   }
 
-  static createRunModelCommand(projectRoot: Uri, params: RunModelParams) {
+  createRunModelCommand(projectRoot: Uri, params: RunModelParams) {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     return {
       commandAsString: `dbt run --model ${params.plusOperatorLeft}${params.modelName}${params.plusOperatorRight}`,
@@ -60,25 +62,27 @@ export class DBTCommandFactory {
     };
   }
 
-  static createInstallDBTCommand() {
+  createInstallDBTCommand() {
     return {
-      commandAsString: 'pip install dbt',
+      commandAsString: "pip install dbt",
       statusMessage: "Installing dbt...",
       processExecutionParams: { args: ["-m", "pip", "install", "dbt"] },
       focus: true,
     };
   }
 
-  static createUpdateDBTCommand() {
+  createUpdateDBTCommand() {
     return {
-      commandAsString: 'pip install --upgrade dbt',
+      commandAsString: "pip install --upgrade dbt",
       statusMessage: "Updating dbt...",
-      processExecutionParams: { args: ["-m", "pip", "install", "dbt", "--upgrade"] },
+      processExecutionParams: {
+        args: ["-m", "pip", "install", "dbt", "--upgrade"],
+      },
       focus: true,
     };
   }
 
-  private static dbtCommand(cmd: string | string[]): string {
+  private dbtCommand(cmd: string | string[]): string {
     return `import dbt.main; dbt.main.main([${cmd}])`;
   }
 }

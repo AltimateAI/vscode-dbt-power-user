@@ -1,4 +1,3 @@
-import { inject } from "inversify";
 import {
   StatusBarItem,
   StatusBarAlignment,

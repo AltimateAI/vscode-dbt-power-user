@@ -1,22 +1,24 @@
 import { extensions, Event, Uri, workspace } from "vscode";
+import { provideSingleton } from "../utils";
 
 interface PythonExecutionDetails {
   getPythonPath: () => string;
   onDidChangeExecutionDetails: Event<Uri | undefined>;
 }
 
+@provideSingleton(PythonEnvironment)
 export class PythonEnvironment {
-  private static executionDetails?: PythonExecutionDetails;
+  private executionDetails?: PythonExecutionDetails;
 
-  static async getEnvironment(): Promise<PythonExecutionDetails> {
-    if (PythonEnvironment.executionDetails !== undefined) {
-      return PythonEnvironment.executionDetails;
+  async getEnvironment(): Promise<PythonExecutionDetails> {
+    if (this.executionDetails !== undefined) {
+      return this.executionDetails;
     }
 
-    return await PythonEnvironment.activatePythonExtension();
+    return await this.activatePythonExtension();
   }
 
-  private static async activatePythonExtension(): Promise<PythonExecutionDetails> {
+  private async activatePythonExtension(): Promise<PythonExecutionDetails> {
     const extension = extensions.getExtension("ms-python.python")!;
 
     if (!extension.isActive) {
@@ -26,10 +28,10 @@ export class PythonEnvironment {
 
     const settings = extension.exports.settings;
 
-    return PythonEnvironment.executionDetails = {
-      getPythonPath: () => (settings.getExecutionDetails(workspace.workspaceFile)
-        .execCommand[0]),
-      onDidChangeExecutionDetails: settings.onDidChangeExecutionDetails, // TODO this should be disposed when no longer needed
-    };
+    return (this.executionDetails = {
+      getPythonPath: () =>
+        settings.getExecutionDetails(workspace.workspaceFile).execCommand[0],
+      onDidChangeExecutionDetails: settings.onDidChangeExecutionDetails,
+    });
   }
 }

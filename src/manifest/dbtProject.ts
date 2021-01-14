@@ -50,6 +50,7 @@ export class DBTProject implements Disposable {
     private DBTProjectLog: interfaces.Newable<DBTProjectLog>,
     @inject("Newable<TargetWatchers>")
     private TargetWatchers: interfaces.Newable<TargetWatchers>,
+    private dbtCommandFactory: DBTCommandFactory,
     path: Uri,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
   ) {
@@ -116,7 +117,7 @@ export class DBTProject implements Disposable {
   }
 
   runModel(runModelParams: RunModelParams) {
-    const runModelCommand = DBTCommandFactory.createRunModelCommand(
+    const runModelCommand = this.dbtCommandFactory.createRunModelCommand(
       this.projectRoot,
       runModelParams
     );

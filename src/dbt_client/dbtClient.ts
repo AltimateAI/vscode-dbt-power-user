@@ -5,7 +5,6 @@ import {
   Terminal,
   window,
   Uri,
-  Command,
 } from "vscode";
 import { DBTCommandQueue } from "./dbtCommandQueue";
 import { DBTCommand, DBTCommandFactory } from "./dbtCommandFactory";
@@ -32,6 +31,8 @@ export class DBTClient implements Disposable {
   ];
 
   constructor(
+    private pythonEnvironment: PythonEnvironment,
+    private dbtCommandFactory: DBTCommandFactory,
     private queue: DBTCommandQueue,
     @inject("Newable<CommandProcessExecution>")
     private commandProcessExecution: interfaces.Newable<CommandProcessExecution>
@@ -42,7 +43,7 @@ export class DBTClient implements Disposable {
   }
 
   async detectDBT(): Promise<void> {
-    const pythonEnvironment = await PythonEnvironment.getEnvironment();
+    const pythonEnvironment = await this.pythonEnvironment.getEnvironment();
     this.disposables.push(
       pythonEnvironment.onDidChangeExecutionDetails(() =>
         this.handlePythonExtension()
@@ -59,7 +60,7 @@ export class DBTClient implements Disposable {
       return;
     }
     await this.executeCommandImmediately(
-      DBTCommandFactory.createInstallDBTCommand()
+      this.dbtCommandFactory.createInstallDBTCommand()
     );
     await this.handlePythonExtension();
   }
@@ -72,18 +73,20 @@ export class DBTClient implements Disposable {
       return;
     }
     await this.executeCommandImmediately(
-      DBTCommandFactory.createUpdateDBTCommand()
+      this.dbtCommandFactory.createUpdateDBTCommand()
     );
     await this.handlePythonExtension();
   }
 
   async listModels(projectUri: Uri): Promise<void> {
-    this.addCommandToQueue(DBTCommandFactory.createListCommand(projectUri));
+    this.addCommandToQueue(
+      this.dbtCommandFactory.createListCommand(projectUri)
+    );
   }
 
   async checkIfDBTIsInstalled(): Promise<void> {
     const checkDBTInstalledProcess = this.executeCommand(
-      DBTCommandFactory.createVersionCommand()
+      this.dbtCommandFactory.createVersionCommand()
     );
     try {
       this.raiseDBTInstallationCheckEvent();
@@ -196,7 +199,7 @@ export class DBTClient implements Disposable {
   }
 
   private async handlePythonExtension(): Promise<void> {
-    const pythonEnvironment = await PythonEnvironment.getEnvironment();
+    const pythonEnvironment = await this.pythonEnvironment.getEnvironment();
     this.pythonPath = pythonEnvironment.getPythonPath();
     await this.checkIfDBTIsInstalled();
   }
