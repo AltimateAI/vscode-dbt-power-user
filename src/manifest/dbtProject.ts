@@ -20,7 +20,7 @@ import {
   RunModelParams,
 } from "../dbt_client/dbtCommandFactory";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
-import { inject } from "inversify";
+import { inject, interfaces } from "inversify";
 
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -44,19 +44,12 @@ export class DBTProject implements Disposable {
 
   constructor(
     private dbtProjectContainer: DbtProjectContainer,
-    @inject("SourceFileWatchersFactory")
-    private sourceFileWatchersFactory: (
-      onProjectConfigChanged: Event<ProjectConfigChangedEvent>
-    ) => SourceFileWatchers,
-    @inject("DBTProjectLogFactory")
-    private dbtProjectLogFactory: (
-      onProjectConfigChanged: Event<ProjectConfigChangedEvent>
-    ) => DBTProjectLog,
-    @inject("TargetWatchersFactory")
-    private targetWatchersFactory: (
-      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
-      onProjectConfigChanged: Event<ProjectConfigChangedEvent>
-    ) => TargetWatchers,
+    @inject("Newable<SourceFileWatchers>")
+    private SourceFileWatchers: interfaces.Newable<SourceFileWatchers>,
+    @inject("Newable<DBTProjectLog>")
+    private DBTProjectLog: interfaces.Newable<DBTProjectLog>,
+    @inject("Newable<TargetWatchers>")
+    private TargetWatchers: interfaces.Newable<TargetWatchers>,
     path: Uri,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
   ) {
@@ -68,18 +61,15 @@ export class DBTProject implements Disposable {
 
     setupWatcherHandler(dbtProjectConfigWatcher, () => this.tryRefresh());
 
-    this.sourceFileWatchers = this.sourceFileWatchersFactory(
+    this.sourceFileWatchers = new this.SourceFileWatchers(
       this.onProjectConfigChanged
     );
     this.onSourceFileChanged = this.sourceFileWatchers.onSourceFileChanged;
 
-    this.dbtProjectLog = this.dbtProjectLogFactory(this.onProjectConfigChanged);
+    this.dbtProjectLog = new this.DBTProjectLog(this.onProjectConfigChanged);
 
     this.disposables.push(
-      this.targetWatchersFactory(
-        _onManifestChanged,
-        this.onProjectConfigChanged
-      ),
+      new this.TargetWatchers(_onManifestChanged, this.onProjectConfigChanged),
       dbtProjectConfigWatcher,
       this.onSourceFileChanged(() =>
         dbtProjectContainer.listModels(this.projectRoot)
