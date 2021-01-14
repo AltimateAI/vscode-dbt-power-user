@@ -1,12 +1,6 @@
 import { Container, interfaces } from "inversify";
 import { buildProviderModule } from "inversify-binding-decorators";
-import {
-  Uri,
-  Event,
-  EventEmitter,
-  WorkspaceFolder,
-  CancellationToken,
-} from "vscode";
+import { Uri, Event, EventEmitter, WorkspaceFolder } from "vscode";
 import { CommandProcessExecution } from "./dbt_client/commandProcessExecution";
 import { DBTProject } from "./manifest/dbtProject";
 import { DbtProjectContainer } from "./manifest/dbtProjectContainer";
@@ -19,6 +13,12 @@ import { TargetWatchers } from "./manifest/handlers/targetWatchers";
 
 export const container = new Container();
 container.load(buildProviderModule());
+
+container
+  .bind<interfaces.Newable<CommandProcessExecution>>(
+    "Newable<CommandProcessExecution>"
+  )
+  .toConstructor<CommandProcessExecution>(CommandProcessExecution);
 
 container
   .bind<interfaces.Factory<SourceFileWatchers>>("SourceFileWatchersFactory")
@@ -49,21 +49,6 @@ container
         workspaceFolder,
         _onManifestChanged
       );
-    };
-  });
-
-container
-  .bind<interfaces.Factory<CommandProcessExecution>>(
-    "CommandProcessExecutionFactory"
-  )
-  .toFactory<CommandProcessExecution>((context: interfaces.Context) => {
-    return (
-      command: string,
-      args?: string[],
-      cwd?: string,
-      token?: CancellationToken
-    ) => {
-      return new CommandProcessExecution(command, args, cwd, token);
     };
   });
 
