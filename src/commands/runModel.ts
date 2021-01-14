@@ -1,7 +1,7 @@
 import * as path from "path";
 import { window } from "vscode";
 import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
-import { NodeTreeItem } from "../treeview_provider/ModelParentTreeviewProvider";
+import { NodeTreeItem } from "../treeview_provider/ModelTreeviewProvider";
 import { provideSingleton } from "../utils";
 
 export enum RunModelType {

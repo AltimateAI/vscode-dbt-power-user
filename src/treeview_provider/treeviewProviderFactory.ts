@@ -1,30 +1,37 @@
-import { inject } from "inversify";
 import * as vscode from "vscode";
-import { GraphMetaMap } from "../domain";
+import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { provideSingleton } from "../utils";
-import { ModelTreeviewProvider } from "./ModelParentTreeviewProvider";
+import { ModelTreeviewProvider } from "./ModelTreeviewProvider";
 
+@provideSingleton(ParentModelTreeview)
+class ParentModelTreeview extends ModelTreeviewProvider {
+  constructor(dbtProjectContainer: DbtProjectContainer) {
+    super(dbtProjectContainer, "parents");
+  }
+}
+
+@provideSingleton(ChildrenModelTreeview)
+class ChildrenModelTreeview extends ModelTreeviewProvider {
+  constructor(dbtProjectContainer: DbtProjectContainer) {
+    super(dbtProjectContainer, "children");
+  }
+}
 @provideSingleton(TreeviewProviderFactory)
 export class TreeviewProviderFactory {
   constructor(
-    @inject("ModelTreeviewProviderFactory")
-    private ModelTreeviewProviderFactory: (
-      treeType: keyof GraphMetaMap
-    ) => ModelTreeviewProvider
+    private childrenModelTreeview: ChildrenModelTreeview,
+    private parentModelTreeview: ParentModelTreeview
   ) {}
   createModelTreeViews() {
     return [
       vscode.window.registerTreeDataProvider(
         "parent_model_treeview",
-        this.createModelTreeview("parents")
+        this.parentModelTreeview
       ),
       vscode.window.registerTreeDataProvider(
         "children_model_treeview",
-        this.createModelTreeview("children")
+        this.childrenModelTreeview
       ),
     ];
-  }
-  createModelTreeview(treeType: keyof GraphMetaMap) {
-    return this.ModelTreeviewProviderFactory(treeType);
   }
 }

@@ -8,7 +8,6 @@ import {
   CancellationToken,
 } from "vscode";
 import { CommandProcessExecution } from "./dbt_client/commandProcessExecution";
-import { GraphMetaMap } from "./domain";
 import { DBTProject } from "./manifest/dbtProject";
 import { DbtProjectContainer } from "./manifest/dbtProjectContainer";
 import { DBTWorkspaceFolder } from "./manifest/dbtWorkspaceFolder";
@@ -17,7 +16,6 @@ import { ProjectConfigChangedEvent } from "./manifest/event/projectConfigChanged
 import { DBTProjectLog } from "./manifest/handlers/dbtProjectLog";
 import { SourceFileWatchers } from "./manifest/handlers/sourceFileWatchers";
 import { TargetWatchers } from "./manifest/handlers/targetWatchers";
-import { ModelTreeviewProvider } from "./treeview_provider/ModelParentTreeviewProvider";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -50,20 +48,6 @@ container
         container.get("DBTProjectFactory"),
         workspaceFolder,
         _onManifestChanged
-      );
-    };
-  });
-
-container
-  .bind<interfaces.Factory<ModelTreeviewProvider>>(
-    "ModelTreeviewProviderFactory"
-  )
-  .toFactory<ModelTreeviewProvider>((context: interfaces.Context) => {
-    return (treeType: keyof GraphMetaMap) => {
-      const { container } = context;
-      return new ModelTreeviewProvider(
-        container.get(DbtProjectContainer),
-        treeType
       );
     };
   });

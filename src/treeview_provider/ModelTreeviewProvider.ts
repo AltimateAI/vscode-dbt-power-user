@@ -14,22 +14,26 @@ import {
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { injectable, unmanaged } from "inversify";
 
-export class ModelTreeviewProvider
+@injectable()
+export abstract class ModelTreeviewProvider
   implements TreeDataProvider<NodeTreeItem>, Disposable {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private treeType: keyof GraphMetaMap;
+  private dbtProjectContainer: DbtProjectContainer;
 
   constructor(
-    private dbtProjectContainer: DbtProjectContainer,
-    treeType: keyof GraphMetaMap
+    dbtProjectContainer: DbtProjectContainer,
+    @unmanaged() treeType: keyof GraphMetaMap
   ) {
     this.treeType = treeType;
+    this.dbtProjectContainer = dbtProjectContainer;
     this.disposables.push(
       window.onDidChangeActiveTextEditor(() => {
         this._onDidChangeTreeData.fire();
       }),
-      dbtProjectContainer.onManifestChanged((event) =>
+      this.dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event)
       )
     );
