@@ -12,16 +12,18 @@ import {
   Disposable,
 } from "vscode";
 import { NodeMetaMap } from "../domain";
-import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { provideSingleton } from "../utils";
 
+@provideSingleton(ModelDefinitionProvider)
 export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
   private modelToLocationMap: Map<string, NodeMetaMap> = new Map();
   private static readonly IS_REF = /(ref)\([^)]*\)/;
   private static readonly GET_DBT_MODEL = /(?!'|")([^(?!'|")]*)(?='|")/gi;
   private disposables: Disposable[] = [];
 
-  constructor() {
+  constructor(private dbtProjectContainer: DbtProjectContainer) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event)
@@ -71,7 +73,7 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
     name: string,
     currentFilePath: Uri
   ): Definition | undefined {
-    const projectRootpath = dbtProjectContainer.getProjectRootpath(
+    const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
       currentFilePath
     );
     if (projectRootpath === undefined) {

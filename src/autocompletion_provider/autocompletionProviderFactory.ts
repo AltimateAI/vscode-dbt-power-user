@@ -3,23 +3,30 @@ import { MacroAutocompletionProvider } from "./macroAutocompletionProvider";
 import { ModelAutocompletionProvider } from "./modelAutocompletionProvider";
 import { SourceAutocompletionProvider } from "./sourceAutocompletionProvider";
 import { DBT_MODE } from "../extension";
-
+import { provideSingleton } from "../utils";
+@provideSingleton(AutocompletionProviderFactory)
 export class AutocompletionProviderFactory {
-  static createAutoCompletionProviders(): { dispose(): any }[] {
+  constructor(
+    private macroAutocompletionProvider: MacroAutocompletionProvider,
+    private modelAutocompletionProvider: ModelAutocompletionProvider,
+    private sourceAutocompletionProvider: SourceAutocompletionProvider
+  ) {}
+
+  createAutoCompletionProviders(): { dispose(): any }[] {
     return [
       vscode.languages.registerCompletionItemProvider(
         DBT_MODE,
-        new MacroAutocompletionProvider()
+        this.macroAutocompletionProvider
       ),
       vscode.languages.registerCompletionItemProvider(
         DBT_MODE,
-        new ModelAutocompletionProvider(),
+        this.modelAutocompletionProvider,
         "'",
         '"'
       ),
       vscode.languages.registerCompletionItemProvider(
         DBT_MODE,
-        new SourceAutocompletionProvider(),
+        this.sourceAutocompletionProvider,
         "'",
         '"'
       ),

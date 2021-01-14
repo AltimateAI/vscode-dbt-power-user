@@ -9,24 +9,31 @@ import {
 } from "vscode";
 import { Node, Model, GraphMetaMap, Test, Seed, Analysis } from "../domain";
 import * as path from "path";
-import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
+import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { injectable, unmanaged } from "inversify";
 
-export class ModelTreeviewProvider
+@injectable()
+export abstract class ModelTreeviewProvider
   implements TreeDataProvider<NodeTreeItem>, Disposable {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private treeType: keyof GraphMetaMap;
+  private dbtProjectContainer: DbtProjectContainer;
 
-  constructor(treeType: keyof GraphMetaMap) {
+  constructor(
+    dbtProjectContainer: DbtProjectContainer,
+    @unmanaged() treeType: keyof GraphMetaMap
+  ) {
     this.treeType = treeType;
+    this.dbtProjectContainer = dbtProjectContainer;
     this.disposables.push(
       window.onDidChangeActiveTextEditor(() => {
         this._onDidChangeTreeData.fire();
       }),
-      dbtProjectContainer.onManifestChanged((event) =>
+      this.dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event)
       )
     );
@@ -63,7 +70,7 @@ export class ModelTreeviewProvider
     }
 
     const currentFilePath = window.activeTextEditor!.document.uri;
-    const projectRootpath = dbtProjectContainer.getProjectRootpath(
+    const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
       currentFilePath
     );
     if (projectRootpath === undefined) {
@@ -85,7 +92,7 @@ export class ModelTreeviewProvider
       ".sql"
     );
     const packageName =
-      dbtProjectContainer.getPackageName(currentFilePath) || projectName;
+      this.dbtProjectContainer.getPackageName(currentFilePath) || projectName;
     return Promise.resolve(
       this.getTreeItems(`model.${packageName}.${fileName}`, event)
     );

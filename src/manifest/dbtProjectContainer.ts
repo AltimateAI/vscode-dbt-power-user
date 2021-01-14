@@ -11,16 +11,25 @@ import { DBTClient } from "../dbt_client/dbtClient";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
 import { DBTCommand } from "../dbt_client/dbtCommandFactory";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
+import { provideSingleton } from "../utils";
+import { inject } from "inversify";
 
+@provideSingleton(DbtProjectContainer)
 export class DbtProjectContainer implements Disposable {
-  private dbtClient: DBTClient = new DBTClient();
   public onDBTInstallationFound = this.dbtClient.onDBTInstallationFound;
   private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
   private _onManifestChanged = new EventEmitter<ManifestCacheChangedEvent>();
   public readonly onManifestChanged = this._onManifestChanged.event;
   private disposables: Disposable[] = [this._onManifestChanged];
 
-  constructor() {
+  constructor(
+    private dbtClient: DBTClient,
+    @inject("DBTWorkspaceFolderFactory")
+    private DBTWorkspaceFolderFactory: (
+      workspaceFolder: WorkspaceFolder,
+      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
+    ) => DBTWorkspaceFolder
+  ) {
     this.disposables.push(
       workspace.onDidChangeWorkspaceFolders(async (event) => {
         const { added, removed } = event;
@@ -100,7 +109,7 @@ export class DbtProjectContainer implements Disposable {
   private async registerWorkspaceFolder(
     workspaceFolder: WorkspaceFolder
   ): Promise<void> {
-    const dbtProjectWorkspaceFolder = new DBTWorkspaceFolder(
+    const dbtProjectWorkspaceFolder = this.DBTWorkspaceFolderFactory(
       workspaceFolder,
       this._onManifestChanged
     );
@@ -123,5 +132,3 @@ export class DbtProjectContainer implements Disposable {
     return this.dbtWorkspaceFolders.find((folder) => folder.contains(uri));
   }
 }
-
-export const dbtProjectContainer = new DbtProjectContainer();

@@ -2,10 +2,12 @@ import { window, StatusBarAlignment, StatusBarItem, Disposable } from "vscode";
 import * as dayjs from "dayjs";
 import * as relativeTime from "dayjs/plugin/relativeTime";
 import { RunResultMetaMap } from "../domain";
-import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { provideSingleton } from "../utils";
 dayjs.extend(relativeTime);
 
+@provideSingleton(RunResultStatusBar)
 export class RunResultStatusBar implements Disposable {
   readonly statusBar: StatusBarItem = window.createStatusBarItem(
     StatusBarAlignment.Left,
@@ -14,7 +16,7 @@ export class RunResultStatusBar implements Disposable {
   private runResultMetaMap: Map<string, RunResultMetaMap> = new Map();
   private disposables: Disposable[] = [];
 
-  constructor() {
+  constructor(private dbtProjectContainer: DbtProjectContainer) {
     this.disposables.push(
       window.onDidChangeActiveTextEditor(() => this.showRunResult()),
       dbtProjectContainer.onManifestChanged((event) =>
@@ -32,7 +34,7 @@ export class RunResultStatusBar implements Disposable {
     const activeTextEditor = window.activeTextEditor;
     if (activeTextEditor !== undefined) {
       const currentFilePath = activeTextEditor.document.uri;
-      const projectRootpath = dbtProjectContainer.getProjectRootpath(
+      const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
         currentFilePath
       );
       if (projectRootpath === undefined) {

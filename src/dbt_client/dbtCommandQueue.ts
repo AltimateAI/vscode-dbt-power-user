@@ -1,10 +1,12 @@
 import { CancellationToken, ProgressLocation, window } from "vscode";
+import { provideSingleton } from "../utils";
 
-interface Command{
+interface Command {
   command: (token: CancellationToken) => Promise<void>;
   statusMessage: string;
   focus?: boolean;
 }
+@provideSingleton(DBTCommandQueue)
 export class DBTCommandQueue {
   private queue: Command[] = [];
   private running = false;
@@ -19,15 +21,20 @@ export class DBTCommandQueue {
       this.running = true;
       const { command, statusMessage, focus } = this.queue.shift()!;
 
-      await window.withProgress({
-          location: focus ? ProgressLocation.Notification : ProgressLocation.Window,
+      await window.withProgress(
+        {
+          location: focus
+            ? ProgressLocation.Notification
+            : ProgressLocation.Window,
           cancellable: true,
           title: statusMessage,
-      }, async (_, token) => {
+        },
+        async (_, token) => {
           await command(token);
-      });
+        }
+      );
 
-      this.running = false;   
+      this.running = false;
       this.pickCommandToRun();
     }
   }

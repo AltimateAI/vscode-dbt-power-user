@@ -11,11 +11,12 @@ import {
   Disposable,
 } from "vscode";
 import { readFileSync } from "fs";
-import { isEnclosedWithinCodeBlock } from "../utils";
+import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 import { SourceMetaMap } from "../domain";
-import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 
+@provideSingleton(SourceDefinitionProvider)
 export class SourceDefinitionProvider
   implements DefinitionProvider, Disposable {
   private sourceMetaMap: Map<string, SourceMetaMap> = new Map();
@@ -23,7 +24,7 @@ export class SourceDefinitionProvider
   private static readonly GET_SOURCE_INFO = /(?!['"])(\w+)(?=['"])/g;
   private disposables: Disposable[] = [];
 
-  constructor() {
+  constructor(private dbtProjectContainer: DbtProjectContainer) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event)
@@ -89,7 +90,7 @@ export class SourceDefinitionProvider
     currentFilePath: Uri,
     tableName?: string
   ): Definition | undefined {
-    const projectRootpath = dbtProjectContainer.getProjectRootpath(
+    const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
       currentFilePath
     );
     if (projectRootpath === undefined) {

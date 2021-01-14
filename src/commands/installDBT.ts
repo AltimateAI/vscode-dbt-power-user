@@ -1,24 +1,28 @@
 import { window } from "vscode";
-import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { provideSingleton } from "../utils";
 
 enum PromptAnswer {
   YES = "Yes",
   NO = "No",
 }
 
-const askforDBTInstallation = async () => {
-  const answer = await window.showErrorMessage(
-    `dbt is not installed in this python environment. Do you want to install dbt?`,
-    PromptAnswer.YES,
-    PromptAnswer.NO
-  );
-  if (answer === PromptAnswer.YES) {
-    dbtProjectContainer.installDBT();
+@provideSingleton(InstallDBT)
+export class InstallDBT {
+  constructor(private dbtProjectContainer: DbtProjectContainer) {}
+
+  async installDBTCommand() {
+    await this.askforDBTInstallation();
   }
-};
 
-const installDBT = async () => {
-  await askforDBTInstallation();
-};
-
-export default installDBT;
+  private async askforDBTInstallation() {
+    const answer = await window.showErrorMessage(
+      `dbt is not installed in this python environment. Do you want to install dbt?`,
+      PromptAnswer.YES,
+      PromptAnswer.NO
+    );
+    if (answer === PromptAnswer.YES) {
+      this.dbtProjectContainer.installDBT();
+    }
+  }
+}

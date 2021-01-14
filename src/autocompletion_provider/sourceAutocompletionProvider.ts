@@ -11,11 +11,12 @@ import {
   Uri,
   Disposable,
 } from "vscode";
-import { isEnclosedWithinCodeBlock } from "../utils";
-import { dbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
 
-export class SourceAutocompletionProvider // TODO autocomplete doesn't work when mistype, delete and retype
+@provideSingleton(SourceAutocompletionProvider) // TODO autocomplete doesn't work when mistype, delete and retype
+export class SourceAutocompletionProvider
   implements CompletionItemProvider, Disposable {
   private static readonly GET_SOURCE_NAME = /(?!['"])(\w+)(?=['"])/;
   private static readonly ENDS_WITH_SOURCE = /source\(['|"]$/;
@@ -29,7 +30,7 @@ export class SourceAutocompletionProvider // TODO autocomplete doesn't work when
   > = new Map();
   private disposables: Disposable[] = [];
 
-  constructor() {
+  constructor(private dbtProjectContainer: DbtProjectContainer) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event)
@@ -53,7 +54,7 @@ export class SourceAutocompletionProvider // TODO autocomplete doesn't work when
     if (!isEnclosedWithinCodeBlock(document, position)) {
       return undefined;
     }
-    const projectRootpath = dbtProjectContainer.getProjectRootpath(
+    const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
       document.uri
     );
     if (projectRootpath === undefined) {

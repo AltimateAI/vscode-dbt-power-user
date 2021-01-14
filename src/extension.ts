@@ -1,22 +1,26 @@
+import "reflect-metadata";
 import * as vscode from "vscode";
-import { AutocompletionProviderFactory } from "./autocompletion_provider/autocompletionProviderFactory";
-import { TreeviewProviderFactory } from "./treeview_provider/treeviewProviderFactory";
-import { VSCodeCommandFactory } from "./commands/vscodeCommandFactory";
-import { DefinitionProviderFactory } from "./definition_provider/definitionProviderFactory";
-import { dbtProjectContainer } from "./manifest/dbtProjectContainer";
 import { DBTStatusBar } from "./statusbar/dbtStatusBar";
 import { RunResultStatusBar } from "./statusbar/runResultStatusBar";
+import { DBTPowerUserExtension } from "./DBTPowerUserExtension";
+import { DbtProjectContainer } from "./manifest/dbtProjectContainer";
+import { container } from "./inversify.config";
 
 export const DBT_MODE = { language: "jinja-sql", scheme: "file" };
 
 export async function activate(context: vscode.ExtensionContext) {
+  const dbtPowerUserExtension = container.get(DBTPowerUserExtension);
+  const dbtProjectContainer = container.get(DbtProjectContainer);
+  const runResultStatusBar = container.get(RunResultStatusBar);
+  const dbtStatusBar = container.get(DBTStatusBar);
+
   context.subscriptions.push(
-    ...DefinitionProviderFactory.createDefinitionProviders(),
-    ...AutocompletionProviderFactory.createAutoCompletionProviders(),
-    ...TreeviewProviderFactory.createModelTreeViews(),
-    ...VSCodeCommandFactory.createCommands(),
-    new RunResultStatusBar(),
-    new DBTStatusBar(),
+    ...dbtPowerUserExtension.createDefinitionProviders(),
+    ...dbtPowerUserExtension.createAutoCompletionProviders(),
+    ...dbtPowerUserExtension.createModelTreeViews(),
+    ...dbtPowerUserExtension.createCommands(),
+    runResultStatusBar,
+    dbtStatusBar,
     dbtProjectContainer
   );
 

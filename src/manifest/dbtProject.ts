@@ -11,14 +11,16 @@ import {
   RelativePattern,
   Uri,
   workspace,
+  Event,
 } from "vscode";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
-import { dbtProjectContainer } from "./dbtProjectContainer";
+import { DbtProjectContainer } from "./dbtProjectContainer";
 import {
   DBTCommandFactory,
   RunModelParams,
 } from "../dbt_client/dbtCommandFactory";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
+import { inject, interfaces } from "inversify";
 
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -35,18 +37,20 @@ export class DBTProject implements Disposable {
   readonly projectRoot: Uri;
   private _onProjectConfigChanged = new EventEmitter<ProjectConfigChangedEvent>();
   public onProjectConfigChanged = this._onProjectConfigChanged.event;
-  private sourceFileWatchers = new SourceFileWatchers(
-    this.onProjectConfigChanged
-  );
-  public onSourceFileChanged = this.sourceFileWatchers.onSourceFileChanged;
-  private dbtProjectLog = new DBTProjectLog(this.onProjectConfigChanged);
-  private disposables: Disposable[] = [
-    this.sourceFileWatchers,
-    this.dbtProjectLog,
-    this._onProjectConfigChanged,
-  ];
+  private sourceFileWatchers: SourceFileWatchers;
+  public onSourceFileChanged: Event<void>;
+  private dbtProjectLog: DBTProjectLog;
+  private disposables: Disposable[] = [this._onProjectConfigChanged];
 
   constructor(
+    private dbtProjectContainer: DbtProjectContainer,
+    @inject("Newable<SourceFileWatchers>")
+    private SourceFileWatchers: interfaces.Newable<SourceFileWatchers>,
+    @inject("Newable<DBTProjectLog>")
+    private DBTProjectLog: interfaces.Newable<DBTProjectLog>,
+    @inject("Newable<TargetWatchers>")
+    private TargetWatchers: interfaces.Newable<TargetWatchers>,
+    private dbtCommandFactory: DBTCommandFactory,
     path: Uri,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
   ) {
@@ -58,15 +62,21 @@ export class DBTProject implements Disposable {
 
     setupWatcherHandler(dbtProjectConfigWatcher, () => this.tryRefresh());
 
+    this.sourceFileWatchers = new this.SourceFileWatchers(
+      this.onProjectConfigChanged
+    );
+    this.onSourceFileChanged = this.sourceFileWatchers.onSourceFileChanged;
+
+    this.dbtProjectLog = new this.DBTProjectLog(this.onProjectConfigChanged);
+
     this.disposables.push(
-      new TargetWatchers(
-        _onManifestChanged,
-        this.onProjectConfigChanged
-      ),
+      new this.TargetWatchers(_onManifestChanged, this.onProjectConfigChanged),
       dbtProjectConfigWatcher,
       this.onSourceFileChanged(() =>
         dbtProjectContainer.listModels(this.projectRoot)
-      )
+      ),
+      this.sourceFileWatchers,
+      this.dbtProjectLog
     );
   }
 
@@ -103,15 +113,15 @@ export class DBTProject implements Disposable {
 
   // TODO: maybe we should have a DBTClient for each project, so they can run in parallel.
   listModels() {
-    dbtProjectContainer.listModels(this.projectRoot);
+    this.dbtProjectContainer.listModels(this.projectRoot);
   }
 
   runModel(runModelParams: RunModelParams) {
-    const runModelCommand = DBTCommandFactory.createRunModelCommand(
+    const runModelCommand = this.dbtCommandFactory.createRunModelCommand(
       this.projectRoot,
       runModelParams
     );
-    dbtProjectContainer.addCommandToQueue(runModelCommand);
+    this.dbtProjectContainer.addCommandToQueue(runModelCommand);
   }
 
   dispose() {

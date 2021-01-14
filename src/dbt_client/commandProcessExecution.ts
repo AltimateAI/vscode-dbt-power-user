@@ -13,14 +13,16 @@ export class CommandProcessExecution implements Disposable {
   ) {
     this.commandProcess = spawn(command, args, { cwd: cwd });
     if (token !== undefined) {
-      this.disposables.push(token.onCancellationRequested(() => {
-        this.commandProcess.kill('SIGINT');
-      }));
+      this.disposables.push(
+        token.onCancellationRequested(() => {
+          this.commandProcess.kill("SIGINT");
+        })
+      );
     }
   }
-  
+
   dispose() {
-    this.disposables.forEach(disposable => disposable.dispose());
+    this.disposables.forEach((disposable) => disposable.dispose());
   }
 
   async complete(): Promise<string> {
