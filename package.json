@@ -34,18 +34,10 @@
       {
         "title": "dbt Power User",
         "properties": {
-          "vscodeDbtPowerUser.useCurrentTerminal": {
+          "dbt.listModelsDisabled": {
             "type": "boolean",
             "default": false,
-            "description": "Use the current terminal to execute dbt commands."
-          },
-          "vscodeDbtPowerUser.dbtRunCommand": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "default": "dbt run",
-            "description": "Specifies the command for running dbt models."
+            "description": "Disable automatic listing of models when files change."
           }
         }
       }

@@ -5,6 +5,7 @@ import {
   Terminal,
   window,
   Uri,
+  workspace,
 } from "vscode";
 import { DBTCommandQueue } from "./dbtCommandQueue";
 import { DBTCommand, DBTCommandFactory } from "./dbtCommandFactory";
@@ -80,6 +81,10 @@ export class DBTClient implements Disposable {
   }
 
   async listModels(projectUri: Uri): Promise<void> {
+    const listModelsDisabled = workspace.getConfiguration('dbt').get<boolean>('listModelsDisabled', false);
+    if (listModelsDisabled) {
+      return;
+    }
     this.addCommandToQueue(
       this.dbtCommandFactory.createListCommand(projectUri)
     );
