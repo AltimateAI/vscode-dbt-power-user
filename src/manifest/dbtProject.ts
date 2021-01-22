@@ -38,6 +38,7 @@ export class DBTProject implements Disposable {
   static RESOURCE_TYPE_MODEL = "model";
   static RESOURCE_TYPE_SOURCE = "source";
   static RESOURCE_TYPE_SEED = "seed";
+  static RESOURCE_TYPE_SNAPSHOT = "snapshot";
 
   readonly projectRoot: Uri;
   private _onProjectConfigChanged = new EventEmitter<ProjectConfigChangedEvent>();

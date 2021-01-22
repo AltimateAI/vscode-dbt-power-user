@@ -16,7 +16,8 @@ export class NodeParser {
         .filter(
           (model) =>
             model.resource_type === DBTProject.RESOURCE_TYPE_MODEL ||
-            model.resource_type === DBTProject.RESOURCE_TYPE_SEED
+            model.resource_type === DBTProject.RESOURCE_TYPE_SEED ||
+            model.resource_type === DBTProject.RESOURCE_TYPE_SNAPSHOT
         )
         .forEach(({ name, root_path, original_file_path }) => {
           const fullPath = path.join(root_path, original_file_path);
