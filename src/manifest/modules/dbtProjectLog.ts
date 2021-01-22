@@ -1,5 +1,5 @@
 import { closeSync, openSync, readSync } from "fs";
-import path = require("path");
+import * as path from "path";
 import {
   Disposable,
   FileSystemWatcher,
@@ -9,8 +9,20 @@ import {
   workspace,
   Event,
 } from "vscode";
-import { setupWatcherHandler } from "../../utils";
+import { Reporter } from "../../reporter";
+import { provideSingleton, setupWatcherHandler } from "../../utils";
 import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
+
+@provideSingleton(DBTProjectLogFactory)
+export class DBTProjectLogFactory {
+  constructor(private reporter: Reporter) {}
+
+  createDBTProjectLog(
+    onProjectConfigChanged: Event<ProjectConfigChangedEvent>
+  ) {
+    return new DBTProjectLog(onProjectConfigChanged, this.reporter);
+  }
+}
 
 export class DBTProjectLog implements Disposable {
   private outputChannel?: OutputChannel;
@@ -21,7 +33,10 @@ export class DBTProjectLog implements Disposable {
   private currentProjectName?: string;
   private disposables: Disposable[] = [];
 
-  constructor(onProjectConfigChanged: Event<ProjectConfigChangedEvent>) {
+  constructor(
+    onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
+    private reporter: Reporter
+  ) {
     this.disposables.push(
       onProjectConfigChanged((event) => this.onProjectConfigChanged(event))
     );
@@ -87,6 +102,7 @@ export class DBTProjectLog implements Disposable {
           this.outputChannel.appendLine(buffer.toString("utf8", 0, bytesRead));
         }
       } catch (error) {
+        this.reporter.sendException(error);
         console.log("Could not read log file", error);
       } finally {
         if (fileHandle) {

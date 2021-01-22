@@ -6,29 +6,35 @@ import {
   window,
   EventEmitter,
   Disposable,
+  Uri,
 } from "vscode";
-import { Node, Model, GraphMetaMap, Test, Seed, Analysis } from "../domain";
+import { Node, GraphMetaMap, Source, Model } from "../domain";
 import * as path from "path";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
-import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
-import { injectable, unmanaged } from "inversify";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { unmanaged } from "inversify";
+import { provideSingleton } from "../utils";
+import { provide } from "inversify-binding-decorators";
 
-@injectable()
-export abstract class ModelTreeviewProvider
+@provide(ModelTreeviewProvider)
+abstract class ModelTreeviewProvider
   implements TreeDataProvider<NodeTreeItem>, Disposable {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
-  private treeType: keyof GraphMetaMap;
-  private dbtProjectContainer: DbtProjectContainer;
+  private _onDidChangeTreeData: EventEmitter<
+    ModelTreeItem | undefined | void
+  > = new EventEmitter<ModelTreeItem | undefined | void>();
+  readonly onDidChangeTreeData: Event<ModelTreeItem | undefined | void> = this
+    ._onDidChangeTreeData.event;
+  private disposables: Disposable[] = [this._onDidChangeTreeData];
 
   constructor(
-    dbtProjectContainer: DbtProjectContainer,
-    @unmanaged() treeType: keyof GraphMetaMap
+    private dbtProjectContainer: DBTProjectContainer,
+    @unmanaged() private treeType: keyof GraphMetaMap
   ) {
     this.treeType = treeType;
-    this.dbtProjectContainer = dbtProjectContainer;
     this.disposables.push(
       window.onDidChangeActiveTextEditor(() => {
         this._onDidChangeTreeData.fire();
@@ -42,13 +48,6 @@ export abstract class ModelTreeviewProvider
   dispose() {
     this.disposables.forEach((disposable) => disposable.dispose());
   }
-
-  private _onDidChangeTreeData: EventEmitter<
-    ModelTreeItem | undefined | void
-  > = new EventEmitter<ModelTreeItem | undefined | void>();
-  readonly onDidChangeTreeData: Event<ModelTreeItem | undefined | void> = this
-    ._onDidChangeTreeData.event;
-  private disposables: Disposable[] = [this._onDidChangeTreeData];
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
@@ -108,28 +107,18 @@ export abstract class ModelTreeviewProvider
       return [];
     }
     return parentModels.nodes
-      .filter(
-        (node) =>
-          !(node instanceof Test) &&
-          !(node instanceof Seed) &&
-          !(node instanceof Analysis)
-      )
+      .filter((node) => node.displayInModelTree)
       .map((node) => {
         const childNodes = graphMetaMap[this.treeType]
           .get(node.key)
-          ?.nodes.filter(
-            (node) =>
-              !(node instanceof Test) &&
-              !(node instanceof Seed) &&
-              !(node instanceof Analysis)
-          );
+          ?.nodes.filter((node) => node.displayInModelTree);
 
         if (node instanceof Model && childNodes?.length === 0) {
           return new DashboardTreeItem(node);
         }
-        return node instanceof Model
-          ? new ModelTreeItem(node)
-          : new SourceTreeItem(node);
+        return node instanceof Source
+          ? new SourceTreeItem(node)
+          : new ModelTreeItem(node);
       });
   }
 }
@@ -147,9 +136,9 @@ export class NodeTreeItem extends TreeItem {
       this.iconPath = node.iconPath;
     }
     this.command = {
-      command: "dbtPowerUser.navigateToFile",
+      command: "vscode.open",
       title: "Select Node",
-      arguments: [node.url],
+      arguments: [Uri.file(node.url)],
     };
   }
 }
@@ -173,4 +162,18 @@ class DashboardTreeItem extends NodeTreeItem {
   };
 
   contextValue = "dashboard";
+}
+
+@provideSingleton(ParentModelTreeview)
+export class ParentModelTreeview extends ModelTreeviewProvider {
+  constructor(dbtProjectContainer: DBTProjectContainer) {
+    super(dbtProjectContainer, "parents");
+  }
+}
+
+@provideSingleton(ChildrenModelTreeview)
+export class ChildrenModelTreeview extends ModelTreeviewProvider {
+  constructor(dbtProjectContainer: DBTProjectContainer) {
+    super(dbtProjectContainer, "children");
+  }
 }

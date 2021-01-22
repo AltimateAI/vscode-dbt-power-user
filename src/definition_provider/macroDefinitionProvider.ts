@@ -10,7 +10,7 @@ import {
   Disposable,
 } from "vscode";
 import { MacroMetaMap } from "../domain";
-import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 @provideSingleton(MacroDefinitionProvider)
@@ -19,7 +19,7 @@ export class MacroDefinitionProvider implements DefinitionProvider, Disposable {
   private static readonly IS_MACRO = /\w+\.?\w+/;
   private disposables: Disposable[] = [];
 
-  constructor(private dbtProjectContainer: DbtProjectContainer) {
+  constructor(private dbtProjectContainer: DBTProjectContainer) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event)

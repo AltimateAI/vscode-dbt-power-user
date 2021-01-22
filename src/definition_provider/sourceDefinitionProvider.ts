@@ -13,7 +13,7 @@ import {
 import { readFileSync } from "fs";
 import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 import { SourceMetaMap } from "../domain";
-import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 
 @provideSingleton(SourceDefinitionProvider)
@@ -24,7 +24,7 @@ export class SourceDefinitionProvider
   private static readonly GET_SOURCE_INFO = /(?!['"])(\w+)(?=['"])/g;
   private disposables: Disposable[] = [];
 
-  constructor(private dbtProjectContainer: DbtProjectContainer) {
+  constructor(private dbtProjectContainer: DBTProjectContainer) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event)

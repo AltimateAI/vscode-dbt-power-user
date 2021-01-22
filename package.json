@@ -75,7 +75,7 @@
     "commands": [
       {
         "command": "dbtPowerUser.runCurrentModel",
-        "title": "Run current model",
+        "title": "dbt: Run current model",
         "icon": {
           "light": "./media/run-light.svg",
           "dark": "./media/run-dark.svg"
@@ -83,7 +83,7 @@
       },
       {
         "command": "dbtPowerUser.runChildrenModels",
-        "title": "Run children models",
+        "title": "dbt: Run children models",
         "icon": {
           "light": "./media/run-light.svg",
           "dark": "./media/run-dark.svg"
@@ -91,7 +91,7 @@
       },
       {
         "command": "dbtPowerUser.runParentModels",
-        "title": "Run parent models",
+        "title": "dbt: Run parent models",
         "icon": {
           "light": "./media/run-light.svg",
           "dark": "./media/run-dark.svg"
@@ -170,6 +170,7 @@
     "inversify": "^5.0.5",
     "inversify-binding-decorators": "^4.0.0",
     "js-yaml": "^3.14.0",
-    "reflect-metadata": "^0.1.13"
+    "reflect-metadata": "^0.1.13",
+    "vscode-extension-telemetry": "^0.1.6"
   }
 }

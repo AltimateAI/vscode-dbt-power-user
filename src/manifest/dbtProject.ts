@@ -1,10 +1,15 @@
 import { readFileSync } from "fs";
 import { safeLoad } from "js-yaml";
 import * as path from "path";
-import { SourceFileWatchers } from "./handlers/sourceFileWatchers";
-import { TargetWatchers } from "./handlers/targetWatchers";
-import { DBTProjectLog } from "./handlers/dbtProjectLog";
-import { setupWatcherHandler } from "../utils";
+import {
+  SourceFileWatchers,
+  SourceFileWatchersFactory,
+} from "./modules/sourceFileWatchers";
+import {
+  TargetWatchersFactory,
+} from "./modules/targetWatchers";
+import { DBTProjectLog, DBTProjectLogFactory } from "./modules/dbtProjectLog";
+import { provideSingleton, setupWatcherHandler } from "../utils";
 import {
   Disposable,
   EventEmitter,
@@ -14,13 +19,13 @@ import {
   Event,
 } from "vscode";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
-import { DbtProjectContainer } from "./dbtProjectContainer";
+import { DBTProjectContainer } from "./dbtProjectContainer";
 import {
   DBTCommandFactory,
   RunModelParams,
 } from "../dbt_client/dbtCommandFactory";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
-import { inject, interfaces } from "inversify";
+import { Reporter } from "../reporter";
 
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -43,14 +48,12 @@ export class DBTProject implements Disposable {
   private disposables: Disposable[] = [this._onProjectConfigChanged];
 
   constructor(
-    private dbtProjectContainer: DbtProjectContainer,
-    @inject("Newable<SourceFileWatchers>")
-    private SourceFileWatchers: interfaces.Newable<SourceFileWatchers>,
-    @inject("Newable<DBTProjectLog>")
-    private DBTProjectLog: interfaces.Newable<DBTProjectLog>,
-    @inject("Newable<TargetWatchers>")
-    private TargetWatchers: interfaces.Newable<TargetWatchers>,
+    private dbtProjectContainer: DBTProjectContainer,
+    private sourceFileWatchersFactory: SourceFileWatchersFactory,
+    private dbtProjectLogFactory: DBTProjectLogFactory,
+    private targetWatchersFactory: TargetWatchersFactory,
     private dbtCommandFactory: DBTCommandFactory,
+    private reporter: Reporter,
     path: Uri,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
   ) {
@@ -62,19 +65,22 @@ export class DBTProject implements Disposable {
 
     setupWatcherHandler(dbtProjectConfigWatcher, () => this.tryRefresh());
 
-    this.sourceFileWatchers = new this.SourceFileWatchers(
+    this.sourceFileWatchers = this.sourceFileWatchersFactory.createSourceFileWatchers(
       this.onProjectConfigChanged
     );
     this.onSourceFileChanged = this.sourceFileWatchers.onSourceFileChanged;
 
-    this.dbtProjectLog = new this.DBTProjectLog(this.onProjectConfigChanged);
+    this.dbtProjectLog = this.dbtProjectLogFactory.createDBTProjectLog(
+      this.onProjectConfigChanged
+    );
 
     this.disposables.push(
-      new this.TargetWatchers(_onManifestChanged, this.onProjectConfigChanged),
-      dbtProjectConfigWatcher,
-      this.onSourceFileChanged(() =>
-        dbtProjectContainer.listModels(this.projectRoot)
+      this.targetWatchersFactory.createTargetWatchers(
+        _onManifestChanged,
+        this.onProjectConfigChanged
       ),
+      dbtProjectConfigWatcher,
+      this.onSourceFileChanged(() => this.listModels()),
       this.sourceFileWatchers,
       this.dbtProjectLog
     );
@@ -84,10 +90,7 @@ export class DBTProject implements Disposable {
     try {
       await this.refresh();
     } catch (error) {
-      console.log(
-        "We should never come here, means that our exceptions are not handled!",
-        error
-      );
+      this.reporter.sendException(error);
     }
   }
 

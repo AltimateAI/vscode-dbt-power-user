@@ -1,9 +1,11 @@
-import path = require("path");
+import { provide } from "inversify-binding-decorators";
+import * as path from "path";
 import { NodeMetaMap } from "../../domain";
 import { DBTProject } from "../dbtProject";
 
+@provide(NodeParser)
 export class NodeParser {
-  static createModelMetaMap(nodesMap: any[]): Promise<NodeMetaMap> {
+  createModelMetaMap(nodesMap: any[]): Promise<NodeMetaMap> {
     return new Promise((resolve) => {
       const modelMetaMap: NodeMetaMap = new Map();
       if (nodesMap === null || nodesMap === undefined) {

@@ -1,5 +1,18 @@
 import { ChildProcess, spawn } from "child_process";
+import { provide } from "inversify-binding-decorators";
 import { CancellationToken, Disposable, EventEmitter } from "vscode";
+
+@provide(CommandProcessExecutionFactory)
+export class CommandProcessExecutionFactory {
+  createCommandProcessExecution(
+    command: string,
+    args?: string[],
+    cwd?: string,
+    token?: CancellationToken
+  ) {
+    return new CommandProcessExecution(command, args, cwd, token);
+  }
+}
 
 export class CommandProcessExecution implements Disposable {
   private readonly commandProcess: ChildProcess;

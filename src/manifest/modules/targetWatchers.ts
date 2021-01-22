@@ -6,11 +6,23 @@ import {
   workspace,
   Event,
 } from "vscode";
-import { setupWatcherHandler } from "../../utils";
+import { provideSingleton, setupWatcherHandler } from "../../utils";
 import { DBTProject } from "../dbtProject";
 import { ManifestCacheChangedEvent } from "../event/manifestCacheChangedEvent";
-import { ManifestChangedHandler } from "../event/manifestChangedHandler";
+import { ManifestParser } from "../parsers";
 import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
+
+@provideSingleton(TargetWatchersFactory)
+export class TargetWatchersFactory {
+  constructor(private manifestParser: ManifestParser) {}
+
+  createTargetWatchers(
+    _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+    onProjectConfigChanged: Event<ProjectConfigChangedEvent>
+  ) {
+    return new TargetWatchers(_onManifestChanged, onProjectConfigChanged, this.manifestParser);
+  }
+}
 
 export class TargetWatchers implements Disposable {
   private manifestWatcher?: FileSystemWatcher;
@@ -24,7 +36,8 @@ export class TargetWatchers implements Disposable {
 
   constructor(
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
-    onProjectConfigChanged: Event<ProjectConfigChangedEvent>
+    onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
+    private manifestParser: ManifestParser
   ) {
     this._onManifestChanged = _onManifestChanged;
     this.disposables.push(
@@ -52,14 +65,9 @@ export class TargetWatchers implements Disposable {
       this.disposeWatchers();
       this.watchers = [];
 
-      const manifestChangedHandler = new ManifestChangedHandler(
-        projectRoot,
-        projectName,
-        this._onManifestChanged
-      );
-
-      const handler = () => {
-        manifestChangedHandler.parseManifest(targetPath);
+      const handler = async () => {
+        const manifestCacheChangedEvent = await this.manifestParser.parseManifest(projectRoot, projectName, targetPath);
+        this._onManifestChanged.fire(manifestCacheChangedEvent);
       };
 
       this.manifestWatcher = this.createManifestWatcher(event);
@@ -80,7 +88,8 @@ export class TargetWatchers implements Disposable {
         this.targetFolderWatcher
       );
 
-      await manifestChangedHandler.parseManifest(targetPath);
+      const manifestCacheChangedEvent = await this.manifestParser.parseManifest(projectRoot, projectName, targetPath);
+      this._onManifestChanged.fire(manifestCacheChangedEvent);
     }
   }
 

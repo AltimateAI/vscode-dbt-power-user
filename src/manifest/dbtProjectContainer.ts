@@ -7,15 +7,17 @@ import {
   EventEmitter,
   window,
 } from "vscode";
-import { DBTClient } from "../dbt_client/dbtClient";
+import { DBTClient } from "../dbt_client";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
 import { DBTCommand } from "../dbt_client/dbtCommandFactory";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
-import { inject } from "inversify";
+import { Reporter } from "../reporter";
+import { ReporterEvents } from "../reporter/reporterEvents";
+import { inject, interfaces } from "inversify";
 
-@provideSingleton(DbtProjectContainer)
-export class DbtProjectContainer implements Disposable {
+@provideSingleton(DBTProjectContainer)
+export class DBTProjectContainer implements Disposable {
   public onDBTInstallationFound = this.dbtClient.onDBTInstallationFound;
   private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
   private _onManifestChanged = new EventEmitter<ManifestCacheChangedEvent>();
@@ -24,11 +26,12 @@ export class DbtProjectContainer implements Disposable {
 
   constructor(
     private dbtClient: DBTClient,
-    @inject("DBTWorkspaceFolderFactory")
-    private DBTWorkspaceFolderFactory: (
+    @inject("Factory<DBTWorkspaceFolder>")
+    private dbtWorkspaceFolderFactory: (
       workspaceFolder: WorkspaceFolder,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
-    ) => DBTWorkspaceFolder
+    ) => DBTWorkspaceFolder,
+    private reporter: Reporter
   ) {
     this.disposables.push(
       workspace.onDidChangeWorkspaceFolders(async (event) => {
@@ -109,10 +112,11 @@ export class DbtProjectContainer implements Disposable {
   private async registerWorkspaceFolder(
     workspaceFolder: WorkspaceFolder
   ): Promise<void> {
-    const dbtProjectWorkspaceFolder = this.DBTWorkspaceFolderFactory(
+    const dbtProjectWorkspaceFolder = this.dbtWorkspaceFolderFactory(
       workspaceFolder,
       this._onManifestChanged
     );
+    this.reporter.sendEvent(ReporterEvents.WORKSPACE_ADDED);
     this.dbtWorkspaceFolders.push(dbtProjectWorkspaceFolder);
     await dbtProjectWorkspaceFolder.discoverProjects();
   }

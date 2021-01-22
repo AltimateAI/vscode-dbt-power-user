@@ -1,6 +1,6 @@
+import { provide } from "inversify-binding-decorators";
 import {
   Analysis,
-  DBTGraphType,
   GraphMetaMap,
   Model,
   NodeGraphMap,
@@ -10,11 +10,21 @@ import {
   SourceMetaMap,
   Test,
   Node,
+  Snapshot,
+  Exposure,
 } from "../../domain";
+import { Reporter } from "../../reporter";
 import { notEmpty } from "../../utils";
 
+type DBTGraphType = {
+  [name: string]: string[];
+};
+
+@provide(GraphParser)
 export class GraphParser {
-  static createGraphMetaMap(
+  constructor(private reporter: Reporter) {}
+
+  createGraphMetaMap(
     parentMap: DBTGraphType,
     childrenMap: DBTGraphType,
     modelMetaMap: NodeMetaMap,
@@ -25,7 +35,7 @@ export class GraphParser {
     const parents: NodeGraphMap = Object.entries(parentMap).reduce(
       (map, [nodeName, nodes]) => {
         const currentNodes = unique(nodes)
-          .map(GraphParser.mapToNode(sourceMetaMap, modelMetaMap))
+          .map(this.mapToNode(sourceMetaMap, modelMetaMap))
           .filter(notEmpty);
         map.set(nodeName, { nodes: currentNodes });
         return map;
@@ -36,7 +46,7 @@ export class GraphParser {
     const children: NodeGraphMap = Object.entries(childrenMap).reduce(
       (map, [nodeName, nodes]) => {
         const currentNodes = unique(nodes)
-          .map(GraphParser.mapToNode(sourceMetaMap, modelMetaMap))
+          .map(this.mapToNode(sourceMetaMap, modelMetaMap))
           .filter(notEmpty);
         map.set(nodeName, { nodes: currentNodes });
         return map;
@@ -50,7 +60,7 @@ export class GraphParser {
     };
   }
 
-  static mapToNode(
+  mapToNode(
     sourceMetaMap: SourceMetaMap,
     nodeMetaMap: NodeMetaMap
   ): (parentNodeName: string) => Node | undefined {
@@ -88,8 +98,20 @@ export class GraphParser {
           const url = nodeMetaMap.get(modelName)?.path!;
           return new Analysis(modelName, parentNodeName, url);
         }
+        case "snapshot": {
+          const modelName = nodeSegment[2];
+          const url = nodeMetaMap.get(modelName)?.path!;
+          return new Snapshot(modelName, parentNodeName, url);
+        }
+        case "exposure": {
+          const modelName = nodeSegment[2];
+          const url = nodeMetaMap.get(modelName)?.path!;
+          return new Exposure(modelName, parentNodeName, url);
+        }
         default:
-          console.log(`Node Type '${nodeType}' not implemented!`);
+          this.reporter.sendException(
+            new Error(`Node Type '${nodeType}' not implemented!`)
+          );
           return undefined;
       }
     };

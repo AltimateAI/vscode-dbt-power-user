@@ -1,9 +1,11 @@
-import path = require("path");
+import { provide } from "inversify-binding-decorators";
+import * as path from "path";
 import { SourceMetaMap } from "../../domain";
 import { DBTProject } from "../dbtProject";
 
+@provide(SourceParser)
 export class SourceParser {
-  static createSourceMetaMap(sourcesMap: any[]): Promise<SourceMetaMap> {
+  createSourceMetaMap(sourcesMap: any[]): Promise<SourceMetaMap> {
     return new Promise((resolve) => {
       const sourceMetaMap: SourceMetaMap = new Map();
       if (sourcesMap === null || sourcesMap === undefined) {

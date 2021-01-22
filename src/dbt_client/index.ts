@@ -8,19 +8,21 @@ import {
 } from "vscode";
 import { DBTCommandQueue } from "./dbtCommandQueue";
 import { DBTCommand, DBTCommandFactory } from "./dbtCommandFactory";
-import { CommandProcessExecution } from "./commandProcessExecution";
+import {
+  CommandProcessExecution,
+  CommandProcessExecutionFactory,
+} from "../commandProcessExecution";
 import { DBTInstallationFoundEvent } from "./dbtVersionEvent";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { provideSingleton } from "../utils";
-import { inject, interfaces } from "inversify";
 
 @provideSingleton(DBTClient)
 export class DBTClient implements Disposable {
   private _onDBTInstallationFound = new EventEmitter<DBTInstallationFoundEvent>();
   public readonly onDBTInstallationFound = this._onDBTInstallationFound.event;
-  static readonly INSTALLED_VERSION = /(?<=installed\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
-  static readonly LATEST_VERSION = /(?<=latest\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
-  static readonly IS_INSTALLED = /installed\sversion/g;
+  private static readonly INSTALLED_VERSION = /(?<=installed\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
+  private static readonly LATEST_VERSION = /(?<=latest\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
+  private static readonly IS_INSTALLED = /installed\sversion/g;
   private pythonPath?: string;
   private readonly writeEmitter = new EventEmitter<string>();
   private dbtInstalled?: boolean;
@@ -34,8 +36,7 @@ export class DBTClient implements Disposable {
     private pythonEnvironment: PythonEnvironment,
     private dbtCommandFactory: DBTCommandFactory,
     private queue: DBTCommandQueue,
-    @inject("Newable<CommandProcessExecution>")
-    private commandProcessExecution: interfaces.Newable<CommandProcessExecution>
+    private commandProcessExecutionFactory: CommandProcessExecutionFactory
   ) {}
 
   dispose() {
@@ -152,7 +153,12 @@ export class DBTClient implements Disposable {
     if (command.focus) {
       this.terminal.show(true);
     }
-    return new this.commandProcessExecution(this.pythonPath!, args, cwd, token);
+    return this.commandProcessExecutionFactory.createCommandProcessExecution(
+      this.pythonPath!,
+      args,
+      cwd,
+      token
+    );
   }
 
   private raiseDBTInstallationCheckEvent(): void {

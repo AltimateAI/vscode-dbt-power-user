@@ -13,7 +13,7 @@ import {
 } from "vscode";
 import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 
 @provideSingleton(SourceAutocompletionProvider) // TODO autocomplete doesn't work when mistype, delete and retype
 export class SourceAutocompletionProvider
@@ -30,7 +30,7 @@ export class SourceAutocompletionProvider
   > = new Map();
   private disposables: Disposable[] = [];
 
-  constructor(private dbtProjectContainer: DbtProjectContainer) {
+  constructor(private dbtProjectContainer: DBTProjectContainer) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event)

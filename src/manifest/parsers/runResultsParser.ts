@@ -1,11 +1,13 @@
 import { existsSync, readFileSync } from "fs";
-import path = require("path");
+import { provide } from "inversify-binding-decorators";
+import * as path from "path";
 import { Uri } from "vscode";
 import { RunResultMetaMap } from "../../domain";
 import { DBTProject } from "../dbtProject";
 
+@provide(RunResultsParser)
 export class RunResultsParser {
-  static createRunResultMetaMap(projectRoot: Uri, targetPath: string): Promise<RunResultMetaMap> {
+  createRunResultMetaMap(projectRoot: Uri, targetPath: string): Promise<RunResultMetaMap> {
     return new Promise((resolve) => {
       const runResultMetaMap: RunResultMetaMap = new Map();
       const runResultPath = path.join(

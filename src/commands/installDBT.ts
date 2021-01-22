@@ -1,5 +1,5 @@
 import { window } from "vscode";
-import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { provideSingleton } from "../utils";
 
 enum PromptAnswer {
@@ -9,7 +9,7 @@ enum PromptAnswer {
 
 @provideSingleton(InstallDBT)
 export class InstallDBT {
-  constructor(private dbtProjectContainer: DbtProjectContainer) {}
+  constructor(private dbtProjectContainer: DBTProjectContainer) {}
 
   async installDBTCommand() {
     await this.askforDBTInstallation();

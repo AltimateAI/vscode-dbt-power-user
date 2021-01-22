@@ -12,7 +12,7 @@ import {
   Disposable,
 } from "vscode";
 import { NodeMetaMap } from "../domain";
-import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
 
@@ -23,7 +23,7 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
   private static readonly GET_DBT_MODEL = /(?!'|")([^(?!'|")]*)(?='|")/gi;
   private disposables: Disposable[] = [];
 
-  constructor(private dbtProjectContainer: DbtProjectContainer) {
+  constructor(private dbtProjectContainer: DBTProjectContainer) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event)

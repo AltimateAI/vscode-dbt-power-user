@@ -10,6 +10,8 @@ import {
 import { DBTProject } from "./dbtProject";
 import * as path from "path";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
+import { Reporter } from "../reporter";
+import { ReporterEvents } from "../reporter/reporterEvents";
 import { inject } from "inversify";
 
 export class DBTWorkspaceFolder implements Disposable {
@@ -21,12 +23,13 @@ export class DBTWorkspaceFolder implements Disposable {
 
   constructor(
     @inject("DBTProjectFactory")
-    private DBTProjectFactory: (
+    private dbtProjectFactory: (
       path: Uri,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
     ) => DBTProject,
     workspaceFolder: WorkspaceFolder,
-    _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
+    _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+    private reporter: Reporter
   ) {
     this.workspaceFolder = workspaceFolder;
     this.watcher = this.createConfigWatcher();
@@ -49,24 +52,6 @@ export class DBTWorkspaceFolder implements Disposable {
       .forEach((uri) => this.registerDBTProject(uri));
   }
 
-  async registerDBTProject(uri: Uri) {
-    const dbtProject = this.DBTProjectFactory(uri, this._onManifestChanged);
-    await dbtProject.listModels();
-    await dbtProject.tryRefresh();
-    this.dbtProjects.push(dbtProject);
-  }
-
-  unregisterDBTProject(uri: Uri) {
-    const projectToDelete = this.dbtProjects.find(
-      (dbtProject) => dbtProject.projectRoot.fsPath === uri.fsPath
-    );
-    if (projectToDelete === undefined) {
-      return;
-    }
-    projectToDelete.dispose();
-    this.dbtProjects.splice(this.dbtProjects.indexOf(projectToDelete));
-  }
-
   findDBTProject(uri: Uri): DBTProject | undefined {
     return this.dbtProjects.find((project) => project.contains(uri));
   }
@@ -78,6 +63,28 @@ export class DBTWorkspaceFolder implements Disposable {
   dispose() {
     this.dbtProjects.forEach((project) => project.dispose());
     this.disposables.forEach((disposable) => disposable.dispose());
+  }
+
+  private async registerDBTProject(uri: Uri) {
+    const dbtProject = this.dbtProjectFactory(
+      uri,
+      this._onManifestChanged
+    );
+    this.reporter.sendEvent(ReporterEvents.PROJECT_ADDED);
+    await dbtProject.listModels();
+    await dbtProject.tryRefresh();
+    this.dbtProjects.push(dbtProject);
+  }
+
+  private unregisterDBTProject(uri: Uri) {
+    const projectToDelete = this.dbtProjects.find(
+      (dbtProject) => dbtProject.projectRoot.fsPath === uri.fsPath
+    );
+    if (projectToDelete === undefined) {
+      return;
+    }
+    projectToDelete.dispose();
+    this.dbtProjects.splice(this.dbtProjects.indexOf(projectToDelete));
   }
 
   private createConfigWatcher(): FileSystemWatcher {

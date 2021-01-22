@@ -6,18 +6,18 @@ import {
   Disposable,
 } from "vscode";
 import { DBTInstallationFoundEvent } from "../dbt_client/dbtVersionEvent";
-import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { provideSingleton } from "../utils";
 
-@provideSingleton(DBTStatusBar)
-export class DBTStatusBar implements Disposable {
+@provideSingleton(VersionStatusBar)
+export class VersionStatusBar implements Disposable {
   readonly statusBar: StatusBarItem = window.createStatusBarItem(
     StatusBarAlignment.Left,
     10
   );
   private disposables: Disposable[] = [];
 
-  constructor(private dbtProjectContainer: DbtProjectContainer) {
+  constructor(private dbtProjectContainer: DBTProjectContainer) {
     this.disposables.push(
       this.dbtProjectContainer.onDBTInstallationFound((e) =>
         this.onDBTInstallationFound(e)

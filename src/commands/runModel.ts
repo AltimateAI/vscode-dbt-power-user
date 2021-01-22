@@ -1,6 +1,6 @@
 import * as path from "path";
 import { window } from "vscode";
-import { DbtProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { NodeTreeItem } from "../treeview_provider/ModelTreeviewProvider";
 import { provideSingleton } from "../utils";
 
@@ -11,7 +11,7 @@ export enum RunModelType {
 
 @provideSingleton(RunModel)
 export class RunModel {
-  constructor(private dbtProjectContainer: DbtProjectContainer) {}
+  constructor(private dbtProjectContainer: DBTProjectContainer) {}
 
   runModelOnActiveWindow(type?: RunModelType) {
     const fullPath = window.activeTextEditor?.document.fileName;

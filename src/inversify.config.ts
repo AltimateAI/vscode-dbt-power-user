@@ -1,39 +1,21 @@
 import { Container, interfaces } from "inversify";
 import { buildProviderModule } from "inversify-binding-decorators";
-import { Uri, EventEmitter, WorkspaceFolder } from "vscode";
-import { CommandProcessExecution } from "./dbt_client/commandProcessExecution";
+import { WorkspaceFolder, EventEmitter, Uri } from "vscode";
 import { DBTCommandFactory } from "./dbt_client/dbtCommandFactory";
 import { DBTProject } from "./manifest/dbtProject";
-import { DbtProjectContainer } from "./manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
 import { DBTWorkspaceFolder } from "./manifest/dbtWorkspaceFolder";
 import { ManifestCacheChangedEvent } from "./manifest/event/manifestCacheChangedEvent";
-import { DBTProjectLog } from "./manifest/handlers/dbtProjectLog";
-import { SourceFileWatchers } from "./manifest/handlers/sourceFileWatchers";
-import { TargetWatchers } from "./manifest/handlers/targetWatchers";
+import { DBTProjectLogFactory } from "./manifest/modules/dbtProjectLog";
+import { SourceFileWatchersFactory } from "./manifest/modules/sourceFileWatchers";
+import { TargetWatchersFactory } from "./manifest/modules/targetWatchers";
+import { Reporter } from "./reporter";
 
 export const container = new Container();
 container.load(buildProviderModule());
 
 container
-  .bind<interfaces.Newable<CommandProcessExecution>>(
-    "Newable<CommandProcessExecution>"
-  )
-  .toConstructor<CommandProcessExecution>(CommandProcessExecution);
-
-container
-  .bind<interfaces.Newable<SourceFileWatchers>>("Newable<SourceFileWatchers>")
-  .toConstructor<SourceFileWatchers>(SourceFileWatchers);
-
-container
-  .bind<interfaces.Newable<DBTProjectLog>>("Newable<DBTProjectLog>")
-  .toConstructor<DBTProjectLog>(DBTProjectLog);
-
-container
-  .bind<interfaces.Newable<TargetWatchers>>("Newable<TargetWatchers>")
-  .toConstructor<TargetWatchers>(TargetWatchers);
-
-container
-  .bind<interfaces.Factory<DBTWorkspaceFolder>>("DBTWorkspaceFolderFactory")
+  .bind<interfaces.Factory<DBTWorkspaceFolder>>("Factory<DBTWorkspaceFolder>")
   .toFactory<DBTWorkspaceFolder>((context: interfaces.Context) => {
     return (
       workspaceFolder: WorkspaceFolder,
@@ -41,15 +23,16 @@ container
     ) => {
       const { container } = context;
       return new DBTWorkspaceFolder(
-        container.get("DBTProjectFactory"),
+        container.get("Factory<DBTProject>"),
         workspaceFolder,
-        _onManifestChanged
+        _onManifestChanged,
+        container.get(Reporter)
       );
     };
   });
 
 container
-  .bind<interfaces.Factory<DBTProject>>("DBTProjectFactory")
+  .bind<interfaces.Factory<DBTProject>>("Factory<DBTProject>")
   .toFactory<DBTProject>((context: interfaces.Context) => {
     return (
       path: Uri,
@@ -57,11 +40,12 @@ container
     ) => {
       const { container } = context;
       return new DBTProject(
-        container.get(DbtProjectContainer),
-        container.get("Newable<SourceFileWatchers>"),
-        container.get("Newable<DBTProjectLog>"),
-        container.get("Newable<TargetWatchers>"),
+        container.get(DBTProjectContainer),
+        container.get(SourceFileWatchersFactory),
+        container.get(DBTProjectLogFactory),
+        container.get(TargetWatchersFactory),
         container.get(DBTCommandFactory),
+        container.get(Reporter),
         path,
         _onManifestChanged
       );
