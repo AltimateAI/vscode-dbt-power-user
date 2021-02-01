@@ -53,10 +53,13 @@ export class ManifestParser {
       macros
     );
     const sourceMetaMapPromise = this.sourceParser.createSourceMetaMap(sources);
+
     const runResultMetaMapPromise = this.runResultsParser.createRunResultMetaMap(
       projectRoot,
-      targetPath
+      targetPath,
+      nodes
     );
+
 
     const [
       modelMetaMap,

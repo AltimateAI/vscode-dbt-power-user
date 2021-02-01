@@ -68,7 +68,7 @@ abstract class ModelTreeviewProvider
       return Promise.resolve([]);
     }
 
-    const currentFilePath = window.activeTextEditor!.document.uri;
+    const currentFilePath = window.activeTextEditor.document.uri;
     const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
       currentFilePath
     );
