@@ -67,10 +67,14 @@ export class SourceDefinitionProvider
         reject();
         return;
       }
+      if (source.length < 2) {
+        reject();
+        return;
+      }
       const definition = this.getSourceDefinition(
         source[0],
         document.uri,
-        source.length > 1 && hover === source[1] ? source[1] : undefined
+        source[1],
       );
       resolve(definition);
     });
@@ -88,7 +92,7 @@ export class SourceDefinitionProvider
   private getSourceDefinition(
     sourceName: string,
     currentFilePath: Uri,
-    tableName?: string
+    tableName: string
   ): Definition | undefined {
     const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
       currentFilePath
@@ -100,18 +104,18 @@ export class SourceDefinitionProvider
     if (sourceMap === undefined) {
       return;
     }
-    const location = sourceMap.get(sourceName);
+    const location = sourceMap
+      .get(sourceName)
+      ?.tables.find((table) => table.name === tableName);
     if (location) {
       const sourceFile: string = readFileSync(location.path).toString("utf8");
       const sourceFileLines = sourceFile.split("\n");
-      const lookupItem = tableName || sourceName;
-
       for (let index = 0; index < sourceFileLines.length; index++) {
         const currentLine = sourceFileLines[index];
-        if (currentLine.includes(lookupItem)) {
+        if (currentLine.includes(tableName)) {
           return new Location(
             Uri.file(location.path),
-            new Position(index, currentLine.indexOf(lookupItem))
+            new Position(index, currentLine.indexOf(tableName))
           );
         }
       }

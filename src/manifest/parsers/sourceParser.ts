@@ -25,11 +25,11 @@ export class SourceParser {
           ) => {
             let source = previousValue.get(source_name);
             if (!source) {
-              const fullPath = path.join(root_path, original_file_path);
-              source = { path: fullPath, tables: [] };
+              source = { tables: [] };
               previousValue.set(source_name, source);
             }
-            source.tables.push({ name });
+            const fullPath = path.join(root_path, original_file_path);
+            source.tables.push({ name, path: fullPath });
             return previousValue;
           },
           sourceMetaMap

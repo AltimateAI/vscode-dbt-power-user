@@ -23,12 +23,12 @@ interface NodeMetaData {
 }
 
 interface SourceMetaData {
-  path: string;
   tables: SourceTable[];
 }
 
 interface SourceTable {
   name: string;
+  path: string;
 }
 
 interface NodeGraphMetaData {
