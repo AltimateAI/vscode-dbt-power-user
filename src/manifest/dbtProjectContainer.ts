@@ -88,8 +88,8 @@ export class DBTProjectContainer implements Disposable {
     this.findDBTProject(modelPath)?.compileModel(this.createModelParams(modelPath, type));
   }
 
-  showRanSQL(modelPath: Uri) {
-    this.findDBTProject(modelPath)?.showRanSQL(modelPath);
+  showRunSQL(modelPath: Uri) {
+    this.findDBTProject(modelPath)?.showRunSQL(modelPath);
   }
 
   showCompiledSQL(modelPath: Uri) {

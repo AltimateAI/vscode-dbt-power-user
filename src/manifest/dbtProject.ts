@@ -148,7 +148,7 @@ export class DBTProject implements Disposable {
     this.findModelInTargetfolder(modelPath, "compiled");
   }
 
-  showRanSQL(modelPath: Uri) {
+  showRunSQL(modelPath: Uri) {
     this.findModelInTargetfolder(modelPath, "run");
   }
 

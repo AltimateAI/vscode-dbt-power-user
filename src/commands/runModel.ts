@@ -39,10 +39,10 @@ export class RunModel {
     }
   }
 
-  showRanSQLOnActiveWindow() {
+  showRunSQLOnActiveWindow() {
     const fullPath = window.activeTextEditor?.document.uri;
     if (fullPath !== undefined) {
-      this.showRanSQL(fullPath);
+      this.showRunSQL(fullPath);
     }
   }
 
@@ -58,7 +58,7 @@ export class RunModel {
     this.dbtProjectContainer.showCompiledSQL(modelPath);
   }
 
-  showRanSQL(modelPath: Uri) {
-    this.dbtProjectContainer.showRanSQL(modelPath);
+  showRunSQL(modelPath: Uri) {
+    this.dbtProjectContainer.showRunSQL(modelPath);
   }
 }

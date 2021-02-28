@@ -27,8 +27,8 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.runParentModels", (model) =>
         this.runModel.runModelOnNodeTreeItem(RunModelType.PARENTS)(model)
       ),
-      commands.registerCommand("dbtPowerUser.showRanSQL", () =>
-        this.runModel.showRanSQLOnActiveWindow()
+      commands.registerCommand("dbtPowerUser.showRunSQL", () =>
+        this.runModel.showRunSQLOnActiveWindow()
       ),
       commands.registerCommand("dbtPowerUser.showCompiledSQL", () =>
         this.runModel.showCompiledSQLOnActiveWindow()
