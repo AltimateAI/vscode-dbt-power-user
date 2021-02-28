@@ -26,7 +26,6 @@ export class TargetWatchersFactory {
 
 export class TargetWatchers implements Disposable {
   private manifestWatcher?: FileSystemWatcher;
-  private runResultsWatcher?: FileSystemWatcher;
   private targetFolderWatcher?: FileSystemWatcher;
   private currentTargetPath?: string;
   private currentProjectName?: string;
@@ -73,9 +72,6 @@ export class TargetWatchers implements Disposable {
       this.manifestWatcher = this.createManifestWatcher(event);
       setupWatcherHandler(this.manifestWatcher, () => handler());
 
-      this.runResultsWatcher = this.createRunResultsWatcher(event);
-      setupWatcherHandler(this.runResultsWatcher, () => handler());
-
       this.targetFolderWatcher = this.createTargetFolderWatcher(event);
       this.targetFolderWatcher.onDidDelete(() => () => handler());
 
@@ -84,7 +80,6 @@ export class TargetWatchers implements Disposable {
 
       this.watchers.push(
         this.manifestWatcher,
-        this.runResultsWatcher,
         this.targetFolderWatcher
       );
 
@@ -104,19 +99,6 @@ export class TargetWatchers implements Disposable {
       )
     );
     return manifestWatcher;
-  }
-
-  private createRunResultsWatcher(
-    event: ProjectConfigChangedEvent
-  ): FileSystemWatcher {
-    const { targetPath, projectRoot } = event;
-    const runResultsWatcher = workspace.createFileSystemWatcher(
-      new RelativePattern(
-        projectRoot.path,
-        `${targetPath}/${DBTProject.RUN_RESULTS_FILE}`
-      )
-    );
-    return runResultsWatcher;
   }
 
   private createTargetFolderWatcher(

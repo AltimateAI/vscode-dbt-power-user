@@ -20,11 +20,6 @@ Please let us know about any bugs or feature requests through the github issues.
 This extension is sponsored by [innover.io](https://innover.io/).
 
 ## Features at work
-
-### See the compiled SQL and the run status in the statusbar
-
-![See compilation and run status](./media/run-status.gif)
-
 ### See the model graph
 
 ![See the graph and execute parent or children models](./media/graph.gif)

@@ -62,6 +62,26 @@ export class DBTCommandFactory {
     };
   }
 
+  createCompileModelCommand(projectRoot: Uri, params: RunModelParams) {
+    const { plusOperatorLeft, modelName, plusOperatorRight } = params;
+    return {
+      commandAsString: `dbt compile --model ${params.plusOperatorLeft}${params.modelName}${params.plusOperatorRight}`,
+      statusMessage: "compiling dbt models...",
+      processExecutionParams: {
+        cwd: projectRoot.fsPath,
+        args: [
+          "-c",
+          this.dbtCommand([
+            "'compile'",
+            "'--model'",
+            `'${plusOperatorLeft}${modelName}${plusOperatorRight}'`,
+          ]),
+        ],
+      },
+      focus: true,
+    };
+  }
+
   createInstallDBTCommand() {
     return {
       commandAsString: "pip install dbt",

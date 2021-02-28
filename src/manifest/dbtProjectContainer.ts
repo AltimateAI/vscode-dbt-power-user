@@ -14,7 +14,9 @@ import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
 import { Reporter } from "../reporter";
 import { ReporterEvents } from "../reporter/reporterEvents";
-import { inject, interfaces } from "inversify";
+import { inject } from "inversify";
+import * as path from "path";
+import { RunModelType } from "../domain";
 
 @provideSingleton(DBTProjectContainer)
 export class DBTProjectContainer implements Disposable {
@@ -78,6 +80,22 @@ export class DBTProjectContainer implements Disposable {
     this.dbtClient.listModels(projectUri);
   }
 
+  runModel(modelPath: Uri, type?: RunModelType) {
+    this.findDBTProject(modelPath)?.runModel(this.createModelParams(modelPath, type));
+  }
+
+  compileModel(modelPath: Uri, type?: RunModelType) {
+    this.findDBTProject(modelPath)?.compileModel(this.createModelParams(modelPath, type));
+  }
+
+  showRanSQL(modelPath: Uri) {
+    this.findDBTProject(modelPath)?.showRanSQL(modelPath);
+  }
+
+  showCompiledSQL(modelPath: Uri) {
+    this.findDBTProject(modelPath)?.showCompiledSql(modelPath);
+  }
+
   findDBTProject(uri: Uri): DBTProject | undefined {
     return this.findDBTWorkspaceFolder(uri)?.findDBTProject(uri);
   }
@@ -107,6 +125,13 @@ export class DBTProjectContainer implements Disposable {
       workspaceFolder.dispose()
     );
     this.disposables.forEach((disposable) => disposable.dispose());
+  }
+
+  private createModelParams(modelPath: Uri, type?: RunModelType) {
+    const modelName = path.basename(modelPath.fsPath, ".sql");
+    const plusOperatorLeft = type === RunModelType.PARENTS ? "+" : "";
+    const plusOperatorRight = type === RunModelType.CHILDREN ? "+" : "";
+    return { plusOperatorLeft, modelName, plusOperatorRight };
   }
 
   private async registerWorkspaceFolder(

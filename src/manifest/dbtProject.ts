@@ -5,11 +5,9 @@ import {
   SourceFileWatchers,
   SourceFileWatchersFactory,
 } from "./modules/sourceFileWatchers";
-import {
-  TargetWatchersFactory,
-} from "./modules/targetWatchers";
+import { TargetWatchersFactory } from "./modules/targetWatchers";
 import { DBTProjectLog, DBTProjectLogFactory } from "./modules/dbtProjectLog";
-import { provideSingleton, setupWatcherHandler } from "../utils";
+import { setupWatcherHandler } from "../utils";
 import {
   Disposable,
   EventEmitter,
@@ -17,6 +15,7 @@ import {
   Uri,
   workspace,
   Event,
+  commands,
 } from "vscode";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 import { DBTProjectContainer } from "./dbtProjectContainer";
@@ -41,6 +40,10 @@ export class DBTProject implements Disposable {
   static RESOURCE_TYPE_SNAPSHOT = "snapshot";
 
   readonly projectRoot: Uri;
+  private projectName: string;
+  private targetPath: string;
+  private sourcePaths: string[];
+
   private _onProjectConfigChanged = new EventEmitter<ProjectConfigChangedEvent>();
   public onProjectConfigChanged = this._onProjectConfigChanged.event;
   private sourceFileWatchers: SourceFileWatchers;
@@ -59,6 +62,12 @@ export class DBTProject implements Disposable {
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
   ) {
     this.projectRoot = path;
+
+    const projectConfig = this.readAndParseProjectConfig();
+
+    this.projectName = projectConfig.name;
+    this.targetPath = projectConfig[DBTProject.TARGET_PATH_VAR] as string;
+    this.sourcePaths = projectConfig[DBTProject.SOURCE_PATHS_VAR] as string[];
 
     const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(path, DBTProject.DBT_PROJECT_FILE)
@@ -115,7 +124,6 @@ export class DBTProject implements Disposable {
     return uri.fsPath.startsWith(this.projectRoot.fsPath);
   }
 
-  // TODO: maybe we should have a DBTClient for each project, so they can run in parallel.
   listModels() {
     this.dbtProjectContainer.listModels(this.projectRoot);
   }
@@ -128,24 +136,70 @@ export class DBTProject implements Disposable {
     this.dbtProjectContainer.addCommandToQueue(runModelCommand);
   }
 
+  compileModel(runModelParams: RunModelParams) {
+    const runModelCommand = this.dbtCommandFactory.createCompileModelCommand(
+      this.projectRoot,
+      runModelParams
+    );
+    this.dbtProjectContainer.addCommandToQueue(runModelCommand);
+  }
+
+  showCompiledSql(modelPath: Uri) {
+    this.findModelInTargetfolder(modelPath, "compiled");
+  }
+
+  showRanSQL(modelPath: Uri) {
+    this.findModelInTargetfolder(modelPath, "run");
+  }
+
   dispose() {
     this.disposables.forEach((disposable) => disposable.dispose());
   }
 
   private readAndParseProjectConfig() {
-    const dbtProjectYamlFile = readFileSync(
-      path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE),
-      "utf8"
+    try {
+      const dbtProjectYamlFile = readFileSync(
+        path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE),
+        "utf8"
+      );
+      return safeLoad(dbtProjectYamlFile) as any;
+    } catch (error) {
+      console.log(error);
+      return {
+        name: "",
+        targetPath: "target",
+        sourcePaths: ["models"],
+      };
+    }
+  }
+
+  private async findModelInTargetfolder(modelPath: Uri, type: string) {
+    const baseName = path.basename(modelPath.fsPath);
+    const targetModels = await workspace.findFiles(
+      new RelativePattern(
+        this.projectRoot,
+        `${this.targetPath}/${type}/**/${baseName}`
+      )
     );
-    return safeLoad(dbtProjectYamlFile) as any;
+    if (targetModels.length > 0) {
+      commands.executeCommand("vscode.open", targetModels[0], {
+        preview: false,
+      });
+    }
   }
 
   private async refresh() {
     const projectConfig = this.readAndParseProjectConfig();
 
+    this.projectName = projectConfig.name;
+    this.targetPath = projectConfig[DBTProject.TARGET_PATH_VAR] as string;
+    this.sourcePaths = projectConfig[DBTProject.SOURCE_PATHS_VAR] as string[];
+
     const event = new ProjectConfigChangedEvent(
       this.projectRoot,
-      projectConfig
+      this.projectName,
+      this.targetPath,
+      this.sourcePaths
     );
     this._onProjectConfigChanged.fire(event);
   }

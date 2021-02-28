@@ -3,7 +3,6 @@ import {
   NodeMetaMap,
   MacroMetaMap,
   SourceMetaMap,
-  RunResultMetaMap,
   GraphMetaMap,
 } from "../../domain";
 
@@ -13,7 +12,6 @@ export class ManifestCacheProjectAddedEvent {
   macroMetaMap: MacroMetaMap;
   sourceMetaMap: SourceMetaMap;
   graphMetaMap: GraphMetaMap;
-  runResultMetaMap: RunResultMetaMap;
   projectRoot: Uri;
 
   constructor(
@@ -22,7 +20,6 @@ export class ManifestCacheProjectAddedEvent {
     macroMetaMap: MacroMetaMap,
     sourceMetaMap: SourceMetaMap,
     parentModelMap: GraphMetaMap,
-    runResultMetaMap: RunResultMetaMap,
     projectRoot: Uri
   ) {
     this.projectName = projectName;
@@ -30,7 +27,6 @@ export class ManifestCacheProjectAddedEvent {
     this.macroMetaMap = macroMetaMap;
     this.sourceMetaMap = sourceMetaMap;
     this.graphMetaMap = parentModelMap;
-    this.runResultMetaMap = runResultMetaMap;
     this.projectRoot = projectRoot;
   }
 }

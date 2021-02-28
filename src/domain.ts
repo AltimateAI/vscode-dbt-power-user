@@ -3,14 +3,6 @@ import * as path from "path";
 export type NodeMetaMap = Map<string, NodeMetaData>;
 export type MacroMetaMap = Map<string, MacroMetaData>;
 export type SourceMetaMap = Map<string, SourceMetaData>;
-export type RunResultMetaMap = Map<string, RunResultMetaData>;
-
-interface RunResultMetaData {
-  compiledPath?: string;
-  error: string;
-  timestamp: string;
-  status: string;
-}
 
 interface MacroMetaData {
   path: string;
@@ -82,4 +74,9 @@ export class Source extends Node {
     light: path.join(path.resolve(__dirname), "../media/source_light.svg"),
     dark: path.join(path.resolve(__dirname), "../media/source_dark.svg"),
   };
+}
+
+export enum RunModelType {
+  PARENTS,
+  CHILDREN,
 }

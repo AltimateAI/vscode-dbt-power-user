@@ -6,7 +6,6 @@ import { ManifestCacheChangedEvent } from "../event/manifestCacheChangedEvent";
 import { GraphParser } from "./graphParser";
 import { MacroParser } from "./macroParser";
 import { NodeParser } from "./nodeParser";
-import { RunResultsParser } from "./runResultsParser";
 import { SourceParser } from "./sourceParser";
 import { Reporter } from "../../reporter";
 import { provide } from "inversify-binding-decorators";
@@ -17,7 +16,6 @@ export class ManifestParser {
     private nodeParser: NodeParser,
     private macroParser: MacroParser,
     private graphParser: GraphParser,
-    private runResultsParser: RunResultsParser,
     private sourceParser: SourceParser,
     private reporter: Reporter
   ) {}
@@ -38,7 +36,6 @@ export class ManifestParser {
             macroMetaMap: new Map(),
             sourceMetaMap: new Map(),
             graphMetaMap: { parents: new Map(), children: new Map() },
-            runResultMetaMap: new Map(),
           },
         ],
       };
@@ -54,23 +51,14 @@ export class ManifestParser {
     );
     const sourceMetaMapPromise = this.sourceParser.createSourceMetaMap(sources);
 
-    const runResultMetaMapPromise = this.runResultsParser.createRunResultMetaMap(
-      projectRoot,
-      targetPath,
-      nodes
-    );
-
-
     const [
       modelMetaMap,
       macroMetaMap,
       sourceMetaMap,
-      runResultMetaMap,
     ] = await Promise.all([
       modelMetaMapPromise,
       macroMetaMapPromise,
       sourceMetaMapPromise,
-      runResultMetaMapPromise,
     ]);
     const graphMetaMap = this.graphParser.createGraphMetaMap(
       parent_map,
@@ -88,7 +76,6 @@ export class ManifestParser {
           macroMetaMap: macroMetaMap,
           sourceMetaMap: sourceMetaMap,
           graphMetaMap: graphMetaMap,
-          runResultMetaMap: runResultMetaMap,
         },
       ],
     };
