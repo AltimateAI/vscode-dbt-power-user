@@ -21,11 +21,11 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.compileCurrentModel", () =>
         this.runModel.compileModelOnActiveWindow()
       ),
-      commands.registerCommand("dbtPowerUser.runChildrenModels", () =>
-        this.runModel.runModelOnNodeTreeItem(RunModelType.CHILDREN)()
+      commands.registerCommand("dbtPowerUser.runChildrenModels", (model) =>
+        this.runModel.runModelOnNodeTreeItem(RunModelType.CHILDREN)(model)
       ),
-      commands.registerCommand("dbtPowerUser.runParentModels", () =>
-        this.runModel.runModelOnNodeTreeItem(RunModelType.PARENTS)()
+      commands.registerCommand("dbtPowerUser.runParentModels", (model) =>
+        this.runModel.runModelOnNodeTreeItem(RunModelType.PARENTS)(model)
       ),
       commands.registerCommand("dbtPowerUser.showRanSQL", () =>
         this.runModel.showRanSQLOnActiveWindow()
