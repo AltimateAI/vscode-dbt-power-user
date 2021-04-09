@@ -68,8 +68,6 @@ export class GraphParser {
       // Support dots in model names
       const [nodeType, nodePackage, ...rest] = parentNodeName.split(".");
       const nodeName = rest.join('.');
-      //const nodeSegment = parentNodeName.split(".");
-      //const nodeType = nodeSegment[0];
       switch (nodeType) {
         case "source": {
           const [sourceName, tableName] = nodeName.split('.');
