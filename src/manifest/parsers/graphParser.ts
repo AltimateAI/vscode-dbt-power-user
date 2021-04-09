@@ -66,11 +66,11 @@ export class GraphParser {
   ): (parentNodeName: string) => Node | undefined {
     return (parentNodeName) => {
       // Support dots in model names
-      const [nodeType, nodePackage, ...rest] = parentNodeName.split(".");
-      const nodeName = rest.join('.');
+      const [nodeType, nodePackage, ...restNodeName] = parentNodeName.split(".");
+      const modelName = restNodeName.join('.');
       switch (nodeType) {
         case "source": {
-          const [sourceName, tableName] = nodeName.split('.');
+          const [sourceName, tableName] = modelName.split('.');
           const url = sourceMetaMap.get(sourceName)?.tables.find(table => table.name === tableName)?.path!;
           return new Source(
             `${tableName} (${sourceName})`,
@@ -79,28 +79,28 @@ export class GraphParser {
           );
         }
         case "model": {
-          const url = nodeMetaMap.get(nodeName)?.path!;
-          return new Model(nodeName, parentNodeName, url);
+          const url = nodeMetaMap.get(modelName)?.path!;
+          return new Model(modelName, parentNodeName, url);
         }
         case "seed": {
-          const url = nodeMetaMap.get(nodeName)?.path!;
-          return new Seed(nodeName, parentNodeName, url);
+          const url = nodeMetaMap.get(modelName)?.path!;
+          return new Seed(modelName, parentNodeName, url);
         }
         case "test": {
-          const url = nodeMetaMap.get(nodeName)?.path!;
-          return new Test(nodeName, parentNodeName, url);
+          const url = nodeMetaMap.get(modelName)?.path!;
+          return new Test(modelName, parentNodeName, url);
         }
         case "analysis": {
-          const url = nodeMetaMap.get(nodeName)?.path!;
-          return new Analysis(nodeName, parentNodeName, url);
+          const url = nodeMetaMap.get(modelName)?.path!;
+          return new Analysis(modelName, parentNodeName, url);
         }
         case "snapshot": {
-          const url = nodeMetaMap.get(nodeName)?.path!;
-          return new Snapshot(nodeName, parentNodeName, url);
+          const url = nodeMetaMap.get(modelName)?.path!;
+          return new Snapshot(modelName, parentNodeName, url);
         }
         case "exposure": {
-          const url = nodeMetaMap.get(nodeName)?.path!;
-          return new Exposure(nodeName, parentNodeName, url);
+          const url = nodeMetaMap.get(modelName)?.path!;
+          return new Exposure(modelName, parentNodeName, url);
         }
         default:
           this.reporter.sendException(
