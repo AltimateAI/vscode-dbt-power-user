@@ -57,7 +57,7 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   contains(uri: Uri) {
-    return uri.fsPath.startsWith(this.workspaceFolder.uri.fsPath);
+    return uri.fsPath.startsWith(this.workspaceFolder.uri.fsPath + path.sep);
   }
 
   dispose() {

@@ -121,7 +121,7 @@ export class DBTProject implements Disposable {
   }
 
   contains(uri: Uri) {
-    return uri.fsPath.startsWith(this.projectRoot.fsPath);
+    return uri.fsPath.startsWith(this.projectRoot.fsPath + path.sep);
   }
 
   listModels() {
