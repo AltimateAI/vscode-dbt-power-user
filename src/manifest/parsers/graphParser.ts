@@ -13,7 +13,6 @@ import {
   Snapshot,
   Exposure,
 } from "../../domain";
-import { Reporter } from "../../reporter";
 import { notEmpty } from "../../utils";
 
 type DBTGraphType = {
@@ -22,7 +21,6 @@ type DBTGraphType = {
 
 @provide(GraphParser)
 export class GraphParser {
-  constructor(private reporter: Reporter) {}
 
   createGraphMetaMap(
     parentMap: DBTGraphType,
@@ -103,9 +101,7 @@ export class GraphParser {
           return new Exposure(modelName, parentNodeName, url);
         }
         default:
-          this.reporter.sendException(
-            new Error(`Node Type '${nodeType}' not implemented!`)
-          );
+          console.log(`Node Type '${nodeType}' not implemented!`);
           return undefined;
       }
     };

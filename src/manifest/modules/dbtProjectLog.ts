@@ -9,18 +9,16 @@ import {
   workspace,
   Event,
 } from "vscode";
-import { Reporter } from "../../reporter";
 import { provideSingleton, setupWatcherHandler } from "../../utils";
 import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 
 @provideSingleton(DBTProjectLogFactory)
 export class DBTProjectLogFactory {
-  constructor(private reporter: Reporter) {}
 
   createDBTProjectLog(
     onProjectConfigChanged: Event<ProjectConfigChangedEvent>
   ) {
-    return new DBTProjectLog(onProjectConfigChanged, this.reporter);
+    return new DBTProjectLog(onProjectConfigChanged);
   }
 }
 
@@ -34,8 +32,7 @@ export class DBTProjectLog implements Disposable {
   private disposables: Disposable[] = [];
 
   constructor(
-    onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
-    private reporter: Reporter
+    onProjectConfigChanged: Event<ProjectConfigChangedEvent>
   ) {
     this.disposables.push(
       onProjectConfigChanged((event) => this.onProjectConfigChanged(event))
@@ -102,7 +99,6 @@ export class DBTProjectLog implements Disposable {
           this.outputChannel.appendLine(buffer.toString("utf8", 0, bytesRead));
         }
       } catch (error) {
-        this.reporter.sendException(error);
         console.log("Could not read log file", error);
       } finally {
         if (fileHandle) {

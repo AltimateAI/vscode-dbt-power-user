@@ -9,7 +9,6 @@ import { ManifestCacheChangedEvent } from "./manifest/event/manifestCacheChanged
 import { DBTProjectLogFactory } from "./manifest/modules/dbtProjectLog";
 import { SourceFileWatchersFactory } from "./manifest/modules/sourceFileWatchers";
 import { TargetWatchersFactory } from "./manifest/modules/targetWatchers";
-import { Reporter } from "./reporter";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -26,7 +25,6 @@ container
         container.get("Factory<DBTProject>"),
         workspaceFolder,
         _onManifestChanged,
-        container.get(Reporter)
       );
     };
   });
@@ -45,7 +43,6 @@ container
         container.get(DBTProjectLogFactory),
         container.get(TargetWatchersFactory),
         container.get(DBTCommandFactory),
-        container.get(Reporter),
         path,
         _onManifestChanged
       );

@@ -24,7 +24,6 @@ import {
   RunModelParams,
 } from "../dbt_client/dbtCommandFactory";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
-import { Reporter } from "../reporter";
 
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -57,7 +56,6 @@ export class DBTProject implements Disposable {
     private dbtProjectLogFactory: DBTProjectLogFactory,
     private targetWatchersFactory: TargetWatchersFactory,
     private dbtCommandFactory: DBTCommandFactory,
-    private reporter: Reporter,
     path: Uri,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
   ) {
@@ -100,7 +98,7 @@ export class DBTProject implements Disposable {
     try {
       await this.refresh();
     } catch (error) {
-      this.reporter.sendException(error);
+      console.log("An error occurred while trying to refresh the project", error);
     }
   }
 

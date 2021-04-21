@@ -12,8 +12,6 @@ import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
 import { DBTCommand } from "../dbt_client/dbtCommandFactory";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
-import { Reporter } from "../reporter";
-import { ReporterEvents } from "../reporter/reporterEvents";
 import { inject } from "inversify";
 import * as path from "path";
 import { RunModelType } from "../domain";
@@ -32,8 +30,7 @@ export class DBTProjectContainer implements Disposable {
     private dbtWorkspaceFolderFactory: (
       workspaceFolder: WorkspaceFolder,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
-    ) => DBTWorkspaceFolder,
-    private reporter: Reporter
+    ) => DBTWorkspaceFolder
   ) {
     this.disposables.push(
       workspace.onDidChangeWorkspaceFolders(async (event) => {
@@ -141,7 +138,6 @@ export class DBTProjectContainer implements Disposable {
       workspaceFolder,
       this._onManifestChanged
     );
-    this.reporter.sendEvent(ReporterEvents.WORKSPACE_ADDED);
     this.dbtWorkspaceFolders.push(dbtProjectWorkspaceFolder);
     await dbtProjectWorkspaceFolder.discoverProjects();
   }

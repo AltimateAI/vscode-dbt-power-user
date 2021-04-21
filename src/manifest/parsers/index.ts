@@ -7,7 +7,6 @@ import { GraphParser } from "./graphParser";
 import { MacroParser } from "./macroParser";
 import { NodeParser } from "./nodeParser";
 import { SourceParser } from "./sourceParser";
-import { Reporter } from "../../reporter";
 import { provide } from "inversify-binding-decorators";
 
 @provide(ManifestParser)
@@ -16,8 +15,7 @@ export class ManifestParser {
     private nodeParser: NodeParser,
     private macroParser: MacroParser,
     private graphParser: GraphParser,
-    private sourceParser: SourceParser,
-    private reporter: Reporter
+    private sourceParser: SourceParser
   ) {}
 
   public async parseManifest(
@@ -92,7 +90,7 @@ export class ManifestParser {
       const manifestFile = readFileSync(manifestLocation, "utf8");
       return JSON.parse(manifestFile);
     } catch (error) {
-      this.reporter.sendException(error);
+      console.log("could not read manifest!", error)
     }
   }
 }

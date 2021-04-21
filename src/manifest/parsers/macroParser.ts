@@ -2,11 +2,9 @@ import { readFileSync } from "fs";
 import { provide } from "inversify-binding-decorators";
 import * as path from "path";
 import { MacroMetaMap } from "../../domain";
-import { Reporter } from "../../reporter";
 
 @provide(MacroParser)
 export class MacroParser {
-  constructor(private reporter: Reporter) {}
 
   createMacroMetaMap(
     projectName: string,
@@ -40,7 +38,6 @@ export class MacroParser {
               }
             }
           } catch (error) {
-            this.reporter.sendException(error);
             console.log(
               `File not found at '${fullPath}', probably compiled is outdated!`,
               error

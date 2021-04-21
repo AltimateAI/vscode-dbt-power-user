@@ -191,7 +191,6 @@
     "inversify": "^5.0.5",
     "inversify-binding-decorators": "^4.0.0",
     "js-yaml": "^3.14.0",
-    "reflect-metadata": "^0.1.13",
-    "vscode-extension-telemetry": "^0.1.6"
+    "reflect-metadata": "^0.1.13"
   }
 }

@@ -10,8 +10,6 @@ import {
 import { DBTProject } from "./dbtProject";
 import * as path from "path";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
-import { Reporter } from "../reporter";
-import { ReporterEvents } from "../reporter/reporterEvents";
 import { inject } from "inversify";
 
 export class DBTWorkspaceFolder implements Disposable {
@@ -28,8 +26,7 @@ export class DBTWorkspaceFolder implements Disposable {
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
     ) => DBTProject,
     workspaceFolder: WorkspaceFolder,
-    _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
-    private reporter: Reporter
+    _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
   ) {
     this.workspaceFolder = workspaceFolder;
     this.watcher = this.createConfigWatcher();
@@ -70,7 +67,6 @@ export class DBTWorkspaceFolder implements Disposable {
       uri,
       this._onManifestChanged
     );
-    this.reporter.sendEvent(ReporterEvents.PROJECT_ADDED);
     await dbtProject.listModels();
     await dbtProject.tryRefresh();
     this.dbtProjects.push(dbtProject);

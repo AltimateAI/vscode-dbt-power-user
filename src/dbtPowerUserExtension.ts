@@ -3,8 +3,6 @@ import { AutocompletionProviders } from "./autocompletion_provider";
 import { VSCodeCommands } from "./commands";
 import { DefinitionProviders } from "./definition_provider";
 import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
-import { Reporter } from "./reporter";
-import { ReporterEvents } from './reporter/reporterEvents';
 import { StatusBars } from "./statusbar";
 import { TreeviewProviders } from "./treeview_provider";
 import { provideSingleton } from "./utils";
@@ -21,7 +19,6 @@ export class DBTPowerUserExtension implements Disposable {
     private vscodeCommands: VSCodeCommands,
     private treeviewProviders: TreeviewProviders,
     private statusBars: StatusBars,
-    private reporter: Reporter,
   ) {
     this.disposables.push(
       this.dbtProjectContainer,
@@ -29,7 +26,6 @@ export class DBTPowerUserExtension implements Disposable {
       this.autocompletionProviders,
       this.treeviewProviders,
       this.vscodeCommands,
-      this.reporter,
       this.statusBars,
     );
   }
@@ -39,7 +35,6 @@ export class DBTPowerUserExtension implements Disposable {
   }
 
   async activate(): Promise<void> {
-    this.reporter.sendEvent(ReporterEvents.ACTIVATE);
     await this.dbtProjectContainer.detectDBT();
     await this.dbtProjectContainer.initializeDBTProjects();
   }
