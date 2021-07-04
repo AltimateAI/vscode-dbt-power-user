@@ -13,7 +13,7 @@ export interface CommandProcessExecutionParams {
 }
 
 export interface DBTCommand {
-  commandAsString: string;
+  commandAsString?: string;
   statusMessage: string;
   processExecutionParams: CommandProcessExecutionParams;
   focus?: boolean;
@@ -21,9 +21,17 @@ export interface DBTCommand {
 
 @provideSingleton(DBTCommandFactory)
 export class DBTCommandFactory {
+  createImportDBTCommand(): DBTCommand {
+    return {
+      statusMessage: "Detecting dbt installation...",
+      processExecutionParams: {
+        args: ["-c", 'import dbt.main; print("dbt is installed")'],
+      },
+    };
+  }
+
   createVersionCommand(): DBTCommand {
     return {
-      commandAsString: "dbt --version",
       statusMessage: "Detecting dbt version...",
       processExecutionParams: {
         args: ["-c", this.dbtCommand("'--version'")],

@@ -92,19 +92,36 @@ export class DBTClient implements Disposable {
 
   async checkIfDBTIsInstalled(): Promise<void> {
     const checkDBTInstalledProcess = this.executeCommand(
+      this.dbtCommandFactory.createImportDBTCommand()
+    );
+
+    this.raiseDBTInstallationCheckEvent();
+    try {
+      await checkDBTInstalledProcess.complete();
+    }catch(_) {
+      this.raiseDBTNotInstalledEvent();
+      return;
+    }
+
+    const checkDBTVersionProcess = this.executeCommand(
       this.dbtCommandFactory.createVersionCommand()
     );
+    const timeoutCmd = new Promise((resolve, _) => {
+      setTimeout(resolve, 5000, 'Could not connect');
+    });
     try {
-      this.raiseDBTInstallationCheckEvent();
-      await checkDBTInstalledProcess.complete();
-      checkDBTInstalledProcess.dispose();
+      await Promise.race([
+        checkDBTVersionProcess.complete(),
+        timeoutCmd,
+      ]);
+      checkDBTVersionProcess.dispose();
     } catch (err) {
       if (err.match(DBTClient.IS_INSTALLED)) {
         this.checkIfDBTIsUpToDate(err);
         return;
       }
-      this.raiseDBTNotInstalledEvent();
     }
+    this.raiseDBTVersionCouldNotBeDeterminedEvent();
   }
 
   addCommandToQueue(command: DBTCommand) {
@@ -151,13 +168,17 @@ export class DBTClient implements Disposable {
         },
       });
     }
-    this.writeEmitter.fire(
-      `\r> Executing task:  ${command.commandAsString}\n\r\n\r`
-    );
 
-    if (command.focus) {
-      this.terminal.show(true);
+    if (command.commandAsString !== undefined) {
+      this.writeEmitter.fire(
+        `\r> Executing task:  ${command.commandAsString}\n\r\n\r`
+      );
+
+      if (command.focus) {
+        this.terminal.show(true);
+      }
     }
+    
     return this.commandProcessExecutionFactory.createCommandProcessExecution(
       this.pythonPath!,
       args,
@@ -175,6 +196,12 @@ export class DBTClient implements Disposable {
     this.dbtInstalled = false;
     this._onDBTInstallationFound.fire({
       installed: false,
+    });
+  }
+
+  private raiseDBTVersionCouldNotBeDeterminedEvent(): void {
+    this._onDBTInstallationFound.fire({
+      installed: true
     });
   }
 

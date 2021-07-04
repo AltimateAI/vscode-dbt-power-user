@@ -43,10 +43,16 @@ export class VersionStatusBar implements Disposable {
       return;
     }
     if (!event.upToDate) {
-      this.showTextInStatusBar(
-        `$(error) dbt ${event.installedVersion!} is not up to date`,
-        { title: "Update dbt", command: "dbtPowerUser.updateDBT" }
-      );
+      if(event.installedVersion !== undefined) {
+        this.showTextInStatusBar(
+          `$(error) dbt ${event.installedVersion} is not up to date`,
+          { title: "Update dbt", command: "dbtPowerUser.updateDBT" }
+        );
+      } else {
+        this.showTextInStatusBar(
+          `$(check) dbt`
+        );
+      }      
       return;
     }
     this.showTextInStatusBar(`$(check) dbt ${event.installedVersion}`);
