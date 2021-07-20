@@ -19,10 +19,13 @@ import { provideSingleton } from "../utils";
 
 @provideSingleton(DBTClient)
 export class DBTClient implements Disposable {
-  private _onDBTInstallationFound = new EventEmitter<DBTInstallationFoundEvent>();
+  private _onDBTInstallationFound =
+    new EventEmitter<DBTInstallationFoundEvent>();
   public readonly onDBTInstallationFound = this._onDBTInstallationFound.event;
-  private static readonly INSTALLED_VERSION = /(?<=installed\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
-  private static readonly LATEST_VERSION = /(?<=latest\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
+  private static readonly INSTALLED_VERSION =
+    /(?<=installed\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
+  private static readonly LATEST_VERSION =
+    /(?<=latest\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
   private static readonly IS_INSTALLED = /installed\sversion/g;
   private pythonPath?: string;
   private readonly writeEmitter = new EventEmitter<string>();
@@ -81,7 +84,9 @@ export class DBTClient implements Disposable {
   }
 
   async listModels(projectUri: Uri): Promise<void> {
-    const listModelsDisabled = workspace.getConfiguration('dbt').get<boolean>('listModelsDisabled', false);
+    const listModelsDisabled = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("listModelsDisabled", false);
     if (listModelsDisabled) {
       return;
     }
@@ -98,7 +103,7 @@ export class DBTClient implements Disposable {
     this.raiseDBTInstallationCheckEvent();
     try {
       await checkDBTInstalledProcess.complete();
-    }catch(_) {
+    } catch (_) {
       this.raiseDBTNotInstalledEvent();
       return;
     }
@@ -107,13 +112,10 @@ export class DBTClient implements Disposable {
       this.dbtCommandFactory.createVersionCommand()
     );
     const timeoutCmd = new Promise((resolve, _) => {
-      setTimeout(resolve, 5000, 'Could not connect');
+      setTimeout(resolve, 6000, "Could not connect");
     });
     try {
-      await Promise.race([
-        checkDBTVersionProcess.complete(),
-        timeoutCmd,
-      ]);
+      await Promise.race([checkDBTVersionProcess.complete(), timeoutCmd]);
       checkDBTVersionProcess.dispose();
     } catch (err) {
       if (err.match(DBTClient.IS_INSTALLED)) {
@@ -128,7 +130,7 @@ export class DBTClient implements Disposable {
     if (!this.dbtInstalled) {
       if (command.focus) {
         window.showErrorMessage(
-          "Please ensure DBT is installed in your selected Python environment."
+          "Please ensure dbt is installed in your selected Python environment."
         );
       }
       return;
@@ -178,7 +180,7 @@ export class DBTClient implements Disposable {
         this.terminal.show(true);
       }
     }
-    
+
     return this.commandProcessExecutionFactory.createCommandProcessExecution(
       this.pythonPath!,
       args,
@@ -193,28 +195,27 @@ export class DBTClient implements Disposable {
   }
 
   private raiseDBTNotInstalledEvent(): void {
-    this.dbtInstalled = false;
-    this._onDBTInstallationFound.fire({
-      installed: false,
-    });
+    this.raiseDBTVersionEvent(false);
   }
 
   private raiseDBTVersionCouldNotBeDeterminedEvent(): void {
-    this._onDBTInstallationFound.fire({
-      installed: true
-    });
+    this.raiseDBTVersionEvent(true);
   }
 
   private raiseDBTVersionEvent(
-    installedVersion: string,
-    latestVersion: string
+    dbtInstalled: boolean,
+    installedVersion: string | undefined = undefined,
+    latestVersion: string | undefined = undefined
   ): void {
-    this.dbtInstalled = true;
+    this.dbtInstalled = dbtInstalled;
     this._onDBTInstallationFound.fire({
-      installed: installedVersion !== undefined,
+      installed: this.dbtInstalled,
       installedVersion,
       latestVersion,
-      upToDate: installedVersion === latestVersion,
+      upToDate:
+        installedVersion !== undefined &&
+        latestVersion !== undefined &&
+        installedVersion === latestVersion,
     });
   }
 
@@ -233,7 +234,7 @@ export class DBTClient implements Disposable {
       );
     }
     const latestVersion = latestVersionMatch[0];
-    this.raiseDBTVersionEvent(installedVersion, latestVersion);
+    this.raiseDBTVersionEvent(true, installedVersion, latestVersion);
   }
 
   private async handlePythonExtension(): Promise<void> {
