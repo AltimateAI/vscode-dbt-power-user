@@ -112,7 +112,7 @@ export class DBTClient implements Disposable {
       this.dbtCommandFactory.createVersionCommand()
     );
     const timeoutCmd = new Promise((resolve, _) => {
-      setTimeout(resolve, 6000, "Could not connect");
+      setTimeout(resolve, 10000, "Could not connect");
     });
     try {
       await Promise.race([checkDBTVersionProcess.complete(), timeoutCmd]);
