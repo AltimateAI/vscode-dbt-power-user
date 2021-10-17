@@ -12,6 +12,7 @@ import { DBTCommand, DBTCommandFactory } from "./dbtCommandFactory";
 import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
+  EnvVars,
 } from "../commandProcessExecution";
 import { DBTInstallationFoundEvent } from "./dbtVersionEvent";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
@@ -96,7 +97,7 @@ export class DBTClient implements Disposable {
   }
 
   async checkIfDBTIsInstalled(): Promise<void> {
-    const checkDBTInstalledProcess = this.executeCommand(
+    const checkDBTInstalledProcess = await this.executeCommand(
       this.dbtCommandFactory.createImportDBTCommand()
     );
 
@@ -108,7 +109,7 @@ export class DBTClient implements Disposable {
       return;
     }
 
-    const checkDBTVersionProcess = this.executeCommand(
+    const checkDBTVersionProcess = await this.executeCommand(
       this.dbtCommandFactory.createVersionCommand()
     );
     const timeoutCmd = new Promise((resolve, _) => {
@@ -118,7 +119,7 @@ export class DBTClient implements Disposable {
       await Promise.race([checkDBTVersionProcess.complete(), timeoutCmd]);
       checkDBTVersionProcess.dispose();
     } catch (err) {
-      if (err.match(DBTClient.IS_INSTALLED)) {
+      if (typeof(err) === 'string' && err.match(DBTClient.IS_INSTALLED)) {
         this.checkIfDBTIsUpToDate(err);
         return;
       }
@@ -147,15 +148,15 @@ export class DBTClient implements Disposable {
     command: DBTCommand,
     token?: CancellationToken
   ) {
-    const process = this.executeCommand(command, token);
-    await process.completeWithTerminalOutput(this.writeEmitter);
-    process.dispose();
+    const completedProcess = await this.executeCommand(command, token);
+    completedProcess.completeWithTerminalOutput(this.writeEmitter);
+    completedProcess.dispose();
   }
 
-  private executeCommand(
+  private async executeCommand(
     command: DBTCommand,
     token?: CancellationToken
-  ): CommandProcessExecution {
+  ): Promise<CommandProcessExecution> {
     const { args, cwd } = command.processExecutionParams;
     if (this.terminal === undefined) {
       this.terminal = window.createTerminal({
@@ -170,7 +171,18 @@ export class DBTClient implements Disposable {
         },
       });
     }
-
+    const configText = await workspace.getConfiguration();
+    const config = JSON.parse(JSON.stringify(configText));
+    let envVars = {};
+    if (config.terminal !== undefined && config.terminal.integrated !== undefined && config.terminal.integrated.env !== undefined) {
+      const env =  config.terminal.integrated.env;
+      for (let prop in env) {
+        envVars = {
+          ...envVars,
+          ...env[prop],
+        };
+      }
+    }
     if (command.commandAsString !== undefined) {
       this.writeEmitter.fire(
         `\r> Executing task:  ${command.commandAsString}\n\r\n\r`
@@ -185,7 +197,8 @@ export class DBTClient implements Disposable {
       this.pythonPath!,
       args,
       cwd,
-      token
+      token,
+      envVars
     );
   }
 

@@ -2,15 +2,20 @@ import { ChildProcess, spawn } from "child_process";
 import { provide } from "inversify-binding-decorators";
 import { CancellationToken, Disposable, EventEmitter } from "vscode";
 
+export interface EnvVars {
+  [key: string]: string | undefined;
+}
+
 @provide(CommandProcessExecutionFactory)
 export class CommandProcessExecutionFactory {
   createCommandProcessExecution(
     command: string,
     args?: string[],
     cwd?: string,
-    token?: CancellationToken
+    token?: CancellationToken,
+    envVars?: EnvVars
   ) {
-    return new CommandProcessExecution(command, args, cwd, token);
+    return new CommandProcessExecution(command, args, cwd, token, envVars);
   }
 }
 
@@ -22,9 +27,10 @@ export class CommandProcessExecution implements Disposable {
     command: string,
     args?: string[],
     cwd?: string,
-    token?: CancellationToken
+    token?: CancellationToken,
+    envVars?: EnvVars
   ) {
-    this.commandProcess = spawn(command, args, { cwd: cwd });
+    this.commandProcess = spawn(command, args, { cwd: cwd, env: envVars });
     if (token !== undefined) {
       this.disposables.push(
         token.onCancellationRequested(() => {
