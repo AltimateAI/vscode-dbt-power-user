@@ -38,6 +38,14 @@
             "type": "boolean",
             "default": false,
             "description": "Disable automatic listing of models when files change."
+          },
+          "dbt.runModelCommandAdditionalParams": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "Add additonal params to the dbt run model command."
           }
         }
       }

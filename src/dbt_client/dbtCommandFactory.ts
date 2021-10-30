@@ -1,4 +1,4 @@
-import { Uri } from "vscode";
+import { Uri, workspace } from "vscode";
 import { provideSingleton } from "../utils";
 
 export interface RunModelParams {
@@ -52,8 +52,13 @@ export class DBTCommandFactory {
 
   createRunModelCommand(projectRoot: Uri, params: RunModelParams) {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
+
+    const runModelCommandAdditionalParams = workspace
+      .getConfiguration("dbt")
+      .get<string[]>("runModelCommandAdditionalParams", []);
+
     return {
-      commandAsString: `dbt run --model ${params.plusOperatorLeft}${params.modelName}${params.plusOperatorRight}`,
+      commandAsString: `dbt run --model ${params.plusOperatorLeft}${params.modelName}${params.plusOperatorRight}${runModelCommandAdditionalParams.length > 0 ? ' ' + runModelCommandAdditionalParams.join(' '): ''}`,
       statusMessage: "Running dbt models...",
       processExecutionParams: {
         cwd: projectRoot.fsPath,
@@ -63,6 +68,7 @@ export class DBTCommandFactory {
             "'run'",
             "'--model'",
             `'${plusOperatorLeft}${modelName}${plusOperatorRight}'`,
+            ...runModelCommandAdditionalParams.map(param => `'${param}'`),
           ]),
         ],
       },
