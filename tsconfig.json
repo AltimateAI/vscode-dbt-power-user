@@ -5,6 +5,8 @@
 		"outDir": "out",
 		"experimentalDecorators": true,
 		"emitDecoratorMetadata": true,
+    "forceConsistentCasingInFileNames": true,
+    "importHelpers": true,
 		"types": ["reflect-metadata"],
     "lib": [
       "es6",

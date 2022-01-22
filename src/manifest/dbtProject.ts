@@ -27,11 +27,11 @@ import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
-  static DBT_MODULES = "dbt_modules";
+  static DBT_MODULES = ["dbt_modules", "dbt_packages"];
   static MANIFEST_FILE = "manifest.json";
   static RUN_RESULTS_FILE = "run_results.json";
   static TARGET_PATH_VAR = "target-path";
-  static SOURCE_PATHS_VAR = "source-paths";
+  static SOURCE_PATHS_VAR = ["source-paths", "model-paths"];
 
   static RESOURCE_TYPE_MODEL = "model";
   static RESOURCE_TYPE_SOURCE = "source";
@@ -65,7 +65,7 @@ export class DBTProject implements Disposable {
 
     this.projectName = projectConfig.name;
     this.targetPath = projectConfig[DBTProject.TARGET_PATH_VAR] as string;
-    this.sourcePaths = projectConfig[DBTProject.SOURCE_PATHS_VAR] as string[];
+    this.sourcePaths = this.findSourcePaths(projectConfig);
 
     const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(path, DBTProject.DBT_PROJECT_FILE)
@@ -110,7 +110,7 @@ export class DBTProject implements Disposable {
       .split("/");
 
     const insidePackage =
-      pathSegments.length > 1 && pathSegments[0] === DBTProject.DBT_MODULES;
+      pathSegments.length > 1 && DBTProject.DBT_MODULES.includes(pathSegments[0]);
 
     if (insidePackage) {
       return pathSegments[1];
@@ -186,12 +186,22 @@ export class DBTProject implements Disposable {
     }
   }
 
+  private findSourcePaths(projectConfig: any): string[] {
+    return DBTProject.SOURCE_PATHS_VAR.reduce((prev: string[], current: string) => {
+      if(projectConfig[current] !== undefined) {
+        return projectConfig[current] as string[];
+      } else {
+        return prev;
+      }
+    }, ['models']);
+  }
+
   private async refresh() {
     const projectConfig = this.readAndParseProjectConfig();
 
     this.projectName = projectConfig.name;
     this.targetPath = projectConfig[DBTProject.TARGET_PATH_VAR] as string;
-    this.sourcePaths = projectConfig[DBTProject.SOURCE_PATHS_VAR] as string[];
+    this.sourcePaths = this.findSourcePaths(projectConfig);
 
     const event = new ProjectConfigChangedEvent(
       this.projectRoot,

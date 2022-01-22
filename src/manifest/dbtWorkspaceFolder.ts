@@ -40,7 +40,7 @@ export class DBTWorkspaceFolder implements Disposable {
         this.workspaceFolder,
         `**/${DBTProject.DBT_PROJECT_FILE}`
       ),
-      new RelativePattern(this.workspaceFolder, `**/${DBTProject.DBT_MODULES}`)
+      new RelativePattern(this.workspaceFolder, `**/{${DBTProject.DBT_MODULES.join(',')}}`)
     );
     // TODO: could potentially have issues with casing @camfrout
     return dbtProjectFiles

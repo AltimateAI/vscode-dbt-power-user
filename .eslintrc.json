@@ -9,7 +9,7 @@
         "@typescript-eslint"
     ],
     "rules": {
-        "@typescript-eslint/class-name-casing": "warn",
+        "@typescript-eslint/class-name-casing": "off", // TODO: why is this also triggered for namespaces and functions?
         "@typescript-eslint/semi": "warn",
         "curly": "warn",
         "eqeqeq": "warn",
