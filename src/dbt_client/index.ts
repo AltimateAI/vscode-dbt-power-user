@@ -24,9 +24,9 @@ export class DBTClient implements Disposable {
     new EventEmitter<DBTInstallationFoundEvent>();
   public readonly onDBTInstallationFound = this._onDBTInstallationFound.event;
   private static readonly INSTALLED_VERSION =
-    /(?<=installed\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
+    /installed version:\s(.*)/g;
   private static readonly LATEST_VERSION =
-    /(?<=latest\sversion:\s)(\d+.\d+.\d+)(?=\D+)/g;
+    /latest version:\s(.*)/g;
   private static readonly IS_INSTALLED = /installed\sversion/g;
   private pythonPath?: string;
   private readonly writeEmitter = new EventEmitter<string>();
@@ -233,20 +233,24 @@ export class DBTClient implements Disposable {
   }
 
   private checkIfDBTIsUpToDate(message: string): void {
-    const installedVersionMatch = message.match(DBTClient.INSTALLED_VERSION);
-    if (installedVersionMatch === null) {
+    const installedVersionMatch = DBTClient.INSTALLED_VERSION.exec(message);
+    if (installedVersionMatch === null || installedVersionMatch.length !== 2) {
       throw Error(
         `The Regex INSTALLED_VERSION ${DBTClient.INSTALLED_VERSION} is not working ...`
       );
     }
-    const installedVersion = installedVersionMatch[0];
-    const latestVersionMatch = message.match(DBTClient.LATEST_VERSION);
-    if (latestVersionMatch === null) {
+    const installedVersion = installedVersionMatch[1];
+    if (installedVersion === 'unknown') {
+      this.raiseDBTVersionCouldNotBeDeterminedEvent();
+      return;
+    }
+    const latestVersionMatch = DBTClient.LATEST_VERSION.exec(message);
+    if (latestVersionMatch === null || latestVersionMatch.length !== 2) {
       throw Error(
         `The Regex IS_LATEST_VERSION ${DBTClient.LATEST_VERSION} is not working ...`
       );
     }
-    const latestVersion = latestVersionMatch[0];
+    const latestVersion = latestVersionMatch[1];
     this.raiseDBTVersionEvent(true, installedVersion, latestVersion);
   }
 
