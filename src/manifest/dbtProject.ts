@@ -1,5 +1,5 @@
 import { readFileSync } from "fs";
-import { safeLoad } from "js-yaml";
+import { parse } from "yaml";
 import * as path from "path";
 import {
   SourceFileWatchers,
@@ -160,7 +160,7 @@ export class DBTProject implements Disposable {
         path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE),
         "utf8"
       );
-      return safeLoad(dbtProjectYamlFile) as any;
+      return parse(dbtProjectYamlFile, { uniqueKeys: false}) as any;
     } catch (error) {
       console.log(error);
       return {

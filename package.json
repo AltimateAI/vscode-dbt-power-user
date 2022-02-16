@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/innoverio/vscode-dbt-power-user/issues"
   },
-  "version": "0.5.12",
+  "version": "0.5.13",
   "engines": {
     "vscode": "^1.52.0"
   },
@@ -172,7 +172,6 @@
   },
   "devDependencies": {
     "@types/glob": "^7.1.1",
-    "@types/js-yaml": "^3.12.5",
     "@types/mocha": "^7.0.2",
     "@types/node": "^13.13.15",
     "@types/vscode": "^1.52.0",
@@ -198,7 +197,7 @@
     "dayjs": "^1.8.34",
     "inversify": "^5.0.5",
     "inversify-binding-decorators": "^4.0.0",
-    "js-yaml": "^3.14.0",
-    "reflect-metadata": "^0.1.13"
+    "reflect-metadata": "^0.1.13",
+    "yaml": "^2.0.0-10"
   }
 }
