@@ -178,6 +178,7 @@ export class DBTClient implements Disposable {
       const env =  config.terminal.integrated.env;
       for (let prop in env) {
         envVars = {
+          ...process.env, 
           ...envVars,
           ...env[prop],
         };
