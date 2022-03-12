@@ -8,6 +8,7 @@ import { MacroParser } from "./macroParser";
 import { NodeParser } from "./nodeParser";
 import { SourceParser } from "./sourceParser";
 import { provide } from "inversify-binding-decorators";
+import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 
 @provide(ManifestParser)
 export class ManifestParser {
@@ -15,7 +16,8 @@ export class ManifestParser {
     private nodeParser: NodeParser,
     private macroParser: MacroParser,
     private graphParser: GraphParser,
-    private sourceParser: SourceParser
+    private sourceParser: SourceParser,
+    private terminal: DBTTerminal
   ) {}
 
   public async parseManifest(
@@ -90,7 +92,8 @@ export class ManifestParser {
       const manifestFile = readFileSync(manifestLocation, "utf8");
       return JSON.parse(manifestFile);
     } catch (error) {
-      console.log("could not read manifest!", error)
+      this.terminal.log(`Could not read manifest file at ${manifestLocation}: ${error}`);
+      console.log("could not read manifest!", error);
     }
   }
 }
