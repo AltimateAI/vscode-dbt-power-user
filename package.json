@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/innoverio/vscode-dbt-power-user/issues"
   },
-  "version": "0.5.13",
+  "version": "0.5.14",
   "engines": {
     "vscode": "^1.52.0"
   },
