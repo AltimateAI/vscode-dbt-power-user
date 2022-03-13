@@ -81,18 +81,19 @@ export class DBTClient implements Disposable {
     await this.handlePythonExtension();
   }
 
-  async executeSQL(projectUri: Uri, sql: string) {
-    const sqlCommandProcess = this.executeCommand(
-      this.dbtCommandFactory.createSqlCommand(projectUri, sql)
-    );
+  async executeSQL(projectUri: Uri, sql: string): Promise<any> {
+    
     try {
+      const sqlCommandProcess = await this.executeCommand(
+        this.dbtCommandFactory.createSqlCommand(projectUri, sql)
+      );
       const output = await sqlCommandProcess.complete();
       sqlCommandProcess.dispose();
       const data = JSON.parse(output);
-      console.log(data);
-      // TODO: show in html window
+      return data;
     } catch (err) {
-      // TODO
+      console.log(`An error occured while executing query '${sql}'`, err);
+      this.terminal.log(`An error occured while executing query '${sql}': ${err}`);
     }
   }
 

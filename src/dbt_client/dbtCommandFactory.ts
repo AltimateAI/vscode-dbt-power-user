@@ -135,7 +135,7 @@ export class DBTCommandFactory {
   private customCommand(sql: string): string {
     return `
 from dbt.task.runnable import ManifestTask
-from dbt.main import parse_args, initialize_config_values, adapter_management
+from dbt.main import parse_args, adapter_management
 from dbt.adapters.factory import get_adapter
 
 class RunQuery(ManifestTask):
@@ -147,10 +147,8 @@ class RunQuery(ManifestTask):
 
 if __name__ == "__main__":
     parsed = parse_args(['run'])
-    initialize_config_values(parsed)
 
     with adapter_management():
-        RunQuery.pre_init_hook(parsed)
         task = RunQuery.from_args(args=parsed)
         results = task.run()
     `;

@@ -117,8 +117,8 @@ export class DBTProjectContainer implements Disposable {
     await this.dbtClient.updateDBT();
   }
 
-  async executeSQL(projectRoot: Uri, sql: string): Promise<void> {
-    this.dbtClient.executeSQL(projectRoot, sql);
+  async executeSQL(projectRoot: Uri, sql: string): Promise<any> {
+    return this.dbtClient.executeSQL(projectRoot, sql);
   }
 
   dispose() {

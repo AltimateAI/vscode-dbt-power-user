@@ -3,6 +3,7 @@ import { Disposable, window } from "vscode";
 import { NodeMetaMap } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { QueryView } from "../query_view";
 import { provideSingleton } from "../utils";
 
 @provideSingleton(ExecuteSQL)
@@ -10,7 +11,7 @@ export class ExecuteSQL {
   private disposables: Disposable[] = [];
   private modelToFQNMap: Map<string, NodeMetaMap> = new Map();
 
-  constructor(private dbtProjectContainer: DBTProjectContainer) {
+  constructor(private dbtProjectContainer: DBTProjectContainer, private queryView: QueryView) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event)
@@ -41,7 +42,10 @@ export class ExecuteSQL {
       }
       fqn += `${node.schema}.${node.alias}`;
 
-      this.dbtProjectContainer.executeSQL(dbtProject.projectRoot, `SELECT * FROM ${fqn} LIMIT 1000`);
+      const sql = `SELECT * FROM ${fqn} LIMIT 10`;
+      
+      const data = await this.dbtProjectContainer.executeSQL(dbtProject.projectRoot, sql);
+      this.queryView.createWebviewPanel(sql, data);
     }
   }
 
