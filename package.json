@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/innoverio/vscode-dbt-power-user/issues"
   },
-  "version": "0.5.14",
+  "version": "0.5.15",
   "engines": {
     "vscode": "^1.52.0"
   },
@@ -168,7 +168,8 @@
     "test-compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
-    "deploy": "vsce publish"
+    "deploy-vscode": "vsce publish",
+    "deploy-openvsx": "ovsx publish"
   },
   "devDependencies": {
     "@types/glob": "^7.1.1",
@@ -181,9 +182,10 @@
     "file-loader": "^6.1.0",
     "glob": "^7.1.6",
     "mocha": "^8.1.3",
+    "ovsx": "^0.3.0",
     "ts-loader": "^8.0.3",
     "typescript": "^3.8.3",
-    "vsce": "^1.25.1",
+    "vsce": "^1.103.1",
     "vscode-test": "^1.3.0",
     "webpack": "^5.67.0",
     "webpack-cli": "^4.9.1"

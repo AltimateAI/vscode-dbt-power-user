@@ -27,8 +27,13 @@ jobs:
       uses: GabrielBB/xvfb-action@v1.2
       with:
         run: npm test
-    - name: Publish
+    - name: Publish Visual Studio Marketplace
       if: success() && startsWith( github.ref, 'refs/tags/') && matrix.os == 'ubuntu-latest'
-      run: npm run deploy
+      run: npm run deploy-vscode
       env:
         VSCE_PAT: ${{ secrets.VSCE_PAT }}
+    - name: Publish OpenVSX Marketplace
+      if: success() && startsWith( github.ref, 'refs/tags/') && matrix.os == 'ubuntu-latest'
+      run: npm run deploy-openvsx
+      env:
+        OVSX_PAT: ${{ secrets.OVSX_PAT }}
