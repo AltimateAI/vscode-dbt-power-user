@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/innoverio/vscode-dbt-power-user/issues"
   },
-  "version": "0.5.15",
+  "version": "0.5.16",
   "engines": {
     "vscode": "^1.52.0"
   },
@@ -192,7 +192,6 @@
   },
   "extensionDependencies": [
     "samuelcolvin.jinjahtml",
-    "bastienboutonnet.vscode-dbt",
     "ms-python.python"
   ],
   "dependencies": {
