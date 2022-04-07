@@ -16,6 +16,7 @@ import {
   workspace,
   Event,
   commands,
+  window
 } from "vscode";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 import { DBTProjectContainer } from "./dbtProjectContainer";
@@ -148,6 +149,10 @@ export class DBTProject implements Disposable {
 
   showRunSQL(modelPath: Uri) {
     this.findModelInTargetfolder(modelPath, "run");
+  }
+
+  previewSQL(sql: string, title: string) {
+    this.dbtProjectContainer.previewSQL(sql, title);
   }
 
   dispose() {

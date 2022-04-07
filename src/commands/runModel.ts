@@ -1,3 +1,4 @@
+import path = require("path");
 import { Uri, window } from "vscode";
 import { RunModelType } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -19,6 +20,14 @@ export class RunModel {
     const fullPath = window.activeTextEditor?.document.uri;
     if (fullPath !== undefined) {
       this.compileDBTModel(fullPath, type);
+    }
+  }
+
+  previewModelOnActiveWindow() {
+    const sqlQuery = window.activeTextEditor?.document.getText();
+    const sqlTitle = path.basename(window.activeTextEditor?.document.uri.fsPath ?? "untitled.sql") + " " + new Date().toTimeString().split(" ")[0];
+    if (sqlQuery !== undefined) {
+      this.previewDBTModel(sqlQuery, sqlTitle);
     }
   }
 
@@ -52,6 +61,10 @@ export class RunModel {
 
   compileDBTModel(modelPath: Uri, type?: RunModelType) {
     this.dbtProjectContainer.compileModel(modelPath, type);
+  }
+
+  async previewDBTModel(sql: string, title: string) {
+    this.dbtProjectContainer.previewSQL(sql, title);
   }
 
   showCompiledSQL(modelPath: Uri) {

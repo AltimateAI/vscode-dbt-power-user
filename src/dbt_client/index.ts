@@ -7,6 +7,7 @@ import {
   Uri,
   workspace,
 } from "vscode";
+import fetch from 'node-fetch';
 import { DBTCommandQueue } from "./dbtCommandQueue";
 import { DBTCommand, DBTCommandFactory } from "./dbtCommandFactory";
 import {
@@ -18,15 +19,19 @@ import { DBTInstallationFoundEvent } from "./dbtVersionEvent";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { provideSingleton } from "../utils";
 
+interface OsmosisCompileResp {
+  error?: string,
+  result?: string 
+}
+
 @provideSingleton(DBTClient)
 export class DBTClient implements Disposable {
   private _onDBTInstallationFound =
     new EventEmitter<DBTInstallationFoundEvent>();
   public readonly onDBTInstallationFound = this._onDBTInstallationFound.event;
-  private static readonly INSTALLED_VERSION =
-    /installed version:\s(.*)/g;
-  private static readonly LATEST_VERSION =
-    /latest version:\s(.*)/g;
+  public static readonly OSMOSIS_PROXY_PORT = 8581;
+  private static readonly INSTALLED_VERSION = /installed version:\s(.*)/g;
+  private static readonly LATEST_VERSION = /latest version:\s(.*)/g;
   private static readonly IS_INSTALLED = /installed\sversion/g;
   private pythonPath?: string;
   private readonly writeEmitter = new EventEmitter<string>();
@@ -200,6 +205,28 @@ export class DBTClient implements Disposable {
       token,
       envVars
     );
+  }
+
+
+  async compileSql(sql: string): Promise<string> {
+    let data: OsmosisCompileResp;
+    const response = await fetch(`http://localhost:${DBTClient.OSMOSIS_PROXY_PORT}/compile`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        "sql": sql,
+      })
+    });
+    data = await response.json();
+    if (data.result !== undefined) {
+      window.showInformationMessage(data.result);
+      return data.result;
+    } else {
+      window.showErrorMessage("Failed compilation...");
+      return "";
+    }
   }
 
   private raiseDBTInstallationCheckEvent(): void {

@@ -6,6 +6,7 @@ import {
   Disposable,
   EventEmitter,
   window,
+  ExtensionContext
 } from "vscode";
 import { DBTClient } from "../dbt_client";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
@@ -15,6 +16,8 @@ import { provideSingleton } from "../utils";
 import { inject } from "inversify";
 import * as path from "path";
 import { RunModelType } from "../domain";
+import { QueryResultPanel } from "../webview_provider";
+
 
 @provideSingleton(DBTProjectContainer)
 export class DBTProjectContainer implements Disposable {
@@ -23,6 +26,8 @@ export class DBTProjectContainer implements Disposable {
   private _onManifestChanged = new EventEmitter<ManifestCacheChangedEvent>();
   public readonly onManifestChanged = this._onManifestChanged.event;
   private disposables: Disposable[] = [this._onManifestChanged];
+  private extensionUri: Uri = Uri.file("");
+  private queryResultViewer: QueryResultPanel | undefined = undefined;
 
   constructor(
     private dbtClient: DBTClient,
@@ -59,6 +64,16 @@ export class DBTProjectContainer implements Disposable {
     );
   }
 
+  // This is is ran during activation
+  resolveUri(context: ExtensionContext) {
+    this.extensionUri = context.extensionUri;
+  }
+
+  resolveQueryPanel(title: string) {
+    QueryResultPanel.createOrShow(this.extensionUri, title);
+    this.queryResultViewer = QueryResultPanel.currentPanel;
+  }
+
   // TODO: bypasses events and could be inconsistent
   getPackageName = (uri: Uri): string | undefined => {
     return this.findDBTProject(uri)?.findPackageName(uri);
@@ -71,6 +86,11 @@ export class DBTProjectContainer implements Disposable {
 
   async detectDBT(): Promise<void> {
     await this.dbtClient.detectDBT();
+  }
+
+  previewSQL<T>(sql: string, title: string): void {
+    this.resolveQueryPanel(title);
+    this.queryResultViewer?.doQuery(sql, 8581);
   }
 
   listModels(projectUri: Uri) {

@@ -10,7 +10,7 @@ export async function activate(context: ExtensionContext) {
     dbtPowerUserExtension,
   );
 
-  await dbtPowerUserExtension.activate();
+  await dbtPowerUserExtension.activate(context);
 }
 
 export function deactivate() {}

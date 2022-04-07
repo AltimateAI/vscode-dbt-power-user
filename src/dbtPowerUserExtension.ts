@@ -1,4 +1,4 @@
-import { Disposable } from "vscode";
+import { Disposable, ExtensionContext } from "vscode";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { VSCodeCommands } from "./commands";
 import { DefinitionProviders } from "./definition_provider";
@@ -6,6 +6,7 @@ import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
 import { StatusBars } from "./statusbar";
 import { TreeviewProviders } from "./treeview_provider";
 import { provideSingleton } from "./utils";
+import * as QueryViewer from "./webview_provider";
 
 @provideSingleton(DBTPowerUserExtension)
 export class DBTPowerUserExtension implements Disposable {
@@ -34,7 +35,9 @@ export class DBTPowerUserExtension implements Disposable {
     this.disposables.forEach(disposable => disposable.dispose());
   }
 
-  async activate(): Promise<void> {
+  async activate(context: ExtensionContext): Promise<void> {
+    QueryViewer.activate(context);
+    this.dbtProjectContainer.resolveUri(context);
     await this.dbtProjectContainer.detectDBT();
     await this.dbtProjectContainer.initializeDBTProjects();
   }
