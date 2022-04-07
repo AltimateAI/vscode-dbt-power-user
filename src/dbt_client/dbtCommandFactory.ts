@@ -119,4 +119,5 @@ export class DBTCommandFactory {
   private dbtCommand(cmd: string | string[]): string {
     return `import dbt.main; dbt.main.main([${cmd}])`;
   }
+
 }
