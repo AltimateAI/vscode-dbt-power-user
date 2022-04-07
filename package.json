@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/innoverio/vscode-dbt-power-user/issues"
   },
-  "version": "0.5.11",
+  "version": "0.5.2-datacoves",
   "engines": {
     "vscode": "^1.52.0"
   },
@@ -77,8 +77,8 @@
         "command": "dbtPowerUser.runCurrentModel",
         "title": "dbt Power User: Run current model",
         "icon": {
-          "light": "./media/run-light.svg",
-          "dark": "./media/run-dark.svg"
+          "light": "./media/database_light.svg",
+          "dark": "./media/database_dark.svg"
         }
       },
       {
@@ -120,6 +120,14 @@
           "light": "./media/file-code_light.svg",
           "dark": "./media/file-code_dark.svg"
         }
+      },
+      {
+        "command": "dbtPowerUser.previewSQL",
+        "title": "dbt Power User: Preview SQL query results",
+        "icon": {
+          "light": "./media/run-light.svg",
+          "dark": "./media/run-dark.svg"
+        }
       }
     ],
     "menus": {
@@ -133,6 +141,11 @@
           "command": "dbtPowerUser.compileCurrentModel",
           "when": "resourceLangId == jinja-sql",
           "group": "navigation@0"
+        },
+        {
+          "command": "dbtPowerUser.previewSQL",
+          "when": "resourceLangId == jinja-sql",
+          "group": "navigation@-1"
         }
       ],
       "view/title": [
@@ -175,6 +188,7 @@
     "@types/js-yaml": "^3.12.5",
     "@types/mocha": "^7.0.2",
     "@types/node": "^13.13.15",
+    "@types/node-fetch": "^2.6.1",
     "@types/vscode": "^1.52.0",
     "@typescript-eslint/eslint-plugin": "^5.10.0",
     "@typescript-eslint/parser": "^5.10.0",
@@ -199,6 +213,8 @@
     "inversify": "^5.0.5",
     "inversify-binding-decorators": "^4.0.0",
     "js-yaml": "^3.14.0",
+    "node-abort-controller": "^3.0.1",
+    "node-fetch": "^2.6.7",
     "reflect-metadata": "^0.1.13"
   }
 }
