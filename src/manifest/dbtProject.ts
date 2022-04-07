@@ -1,5 +1,5 @@
 import { readFileSync } from "fs";
-import { safeLoad } from "js-yaml";
+import { parse } from "yaml";
 import * as path from "path";
 import {
   SourceFileWatchers,
@@ -25,6 +25,7 @@ import {
   RunModelParams,
 } from "../dbt_client/dbtCommandFactory";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -40,9 +41,9 @@ export class DBTProject implements Disposable {
   static RESOURCE_TYPE_SNAPSHOT = "snapshot";
 
   readonly projectRoot: Uri;
-  private projectName: string;
-  private targetPath: string;
-  private sourcePaths: string[];
+  private projectName: string|undefined;
+  private targetPath: string|undefined;
+  private sourcePaths: string[]|undefined;
 
   private _onProjectConfigChanged = new EventEmitter<ProjectConfigChangedEvent>();
   public onProjectConfigChanged = this._onProjectConfigChanged.event;
@@ -57,16 +58,11 @@ export class DBTProject implements Disposable {
     private dbtProjectLogFactory: DBTProjectLogFactory,
     private targetWatchersFactory: TargetWatchersFactory,
     private dbtCommandFactory: DBTCommandFactory,
+    private terminal: DBTTerminal,
     path: Uri,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
   ) {
     this.projectRoot = path;
-
-    const projectConfig = this.readAndParseProjectConfig();
-
-    this.projectName = projectConfig.name;
-    this.targetPath = projectConfig[DBTProject.TARGET_PATH_VAR] as string;
-    this.sourcePaths = this.findSourcePaths(projectConfig);
 
     const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(path, DBTProject.DBT_PROJECT_FILE)
@@ -99,13 +95,13 @@ export class DBTProject implements Disposable {
     try {
       await this.refresh();
     } catch (error) {
-      console.log("An error occurred while trying to refresh the project", error);
+      console.log("An error occurred while trying to refresh the project configuration", error);
+      this.terminal.log(`An error occurred while trying to refresh the project configuration: ${error}`);
     }
   }
 
   findPackageName(uri: Uri): string | undefined {
     const documentPath = uri.path;
-    // TODO: could potentially have issues with casing @camfrout
     const pathSegments = documentPath
       .replace(new RegExp(this.projectRoot.path + "/", "g"), "")
       .split("/");
@@ -160,23 +156,17 @@ export class DBTProject implements Disposable {
   }
 
   private readAndParseProjectConfig() {
-    try {
-      const dbtProjectYamlFile = readFileSync(
-        path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE),
-        "utf8"
-      );
-      return safeLoad(dbtProjectYamlFile) as any;
-    } catch (error) {
-      console.log(error);
-      return {
-        name: "",
-        targetPath: "target",
-        sourcePaths: ["models"],
-      };
-    }
+    const dbtProjectYamlFile = readFileSync(
+      path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE),
+      "utf8"
+    );
+    return parse(dbtProjectYamlFile, { uniqueKeys: false}) as any;
   }
 
-  private async findModelInTargetfolder(modelPath: Uri, type: string) {
+  private async findModelInTargetfolder(modelPath: Uri, type: string) { 
+    if (this.targetPath === undefined) {
+      return;
+    }
     const baseName = path.basename(modelPath.fsPath);
     const targetModels = await workspace.findFiles(
       new RelativePattern(
@@ -198,19 +188,25 @@ export class DBTProject implements Disposable {
       } else {
         return prev;
       }
-    }, ['models']);
+    }, ["models"]);
+  }
+
+  private findTargetPath(projectConfig: any): string {
+    if (projectConfig[DBTProject.TARGET_PATH_VAR] !== undefined) {
+      return projectConfig[DBTProject.TARGET_PATH_VAR] as string;
+    }
+    return "target";
   }
 
   private async refresh() {
     const projectConfig = this.readAndParseProjectConfig();
-
     this.projectName = projectConfig.name;
-    this.targetPath = projectConfig[DBTProject.TARGET_PATH_VAR] as string;
+    this.targetPath = this.findTargetPath(projectConfig);
     this.sourcePaths = this.findSourcePaths(projectConfig);
 
     const event = new ProjectConfigChangedEvent(
       this.projectRoot,
-      this.projectName,
+      this.projectName as string,
       this.targetPath,
       this.sourcePaths
     );

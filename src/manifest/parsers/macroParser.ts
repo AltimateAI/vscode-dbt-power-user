@@ -1,10 +1,13 @@
 import { readFileSync } from "fs";
 import { provide } from "inversify-binding-decorators";
 import * as path from "path";
+import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { MacroMetaMap } from "../../domain";
 
 @provide(MacroParser)
 export class MacroParser {
+
+  constructor(private terminal: DBTTerminal) {}
 
   createMacroMetaMap(
     projectName: string,
@@ -42,6 +45,7 @@ export class MacroParser {
               `File not found at '${fullPath}', probably compiled is outdated!`,
               error
             );
+            this.terminal.log(`File not found at '${fullPath}', probably compiled is outdated. ${error}`);
           }
         }
       );

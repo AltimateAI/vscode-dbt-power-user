@@ -181,11 +181,11 @@
     "test-compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
-    "deploy": "vsce publish"
+    "deploy-vscode": "vsce publish",
+    "deploy-openvsx": "ovsx publish"
   },
   "devDependencies": {
     "@types/glob": "^7.1.1",
-    "@types/js-yaml": "^3.12.5",
     "@types/mocha": "^7.0.2",
     "@types/node": "^13.13.15",
     "@types/node-fetch": "^2.6.1",
@@ -196,25 +196,25 @@
     "file-loader": "^6.1.0",
     "glob": "^7.1.6",
     "mocha": "^8.1.3",
+    "ovsx": "^0.3.0",
     "ts-loader": "^8.0.3",
     "typescript": "^3.8.3",
-    "vsce": "^1.25.1",
+    "vsce": "^1.103.1",
     "vscode-test": "^1.3.0",
     "webpack": "^5.67.0",
     "webpack-cli": "^4.9.1"
   },
   "extensionDependencies": [
     "samuelcolvin.jinjahtml",
-    "bastienboutonnet.vscode-dbt",
     "ms-python.python"
   ],
   "dependencies": {
     "dayjs": "^1.8.34",
     "inversify": "^5.0.5",
     "inversify-binding-decorators": "^4.0.0",
-    "js-yaml": "^3.14.0",
     "node-abort-controller": "^3.0.1",
     "node-fetch": "^2.6.7",
-    "reflect-metadata": "^0.1.13"
+    "reflect-metadata": "^0.1.13",
+    "yaml": "^2.0.0-10"
   }
 }

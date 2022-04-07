@@ -2,7 +2,6 @@ import {
   CancellationToken,
   Disposable,
   EventEmitter,
-  Terminal,
   window,
   Uri,
   workspace,
@@ -13,11 +12,11 @@ import { DBTCommand, DBTCommandFactory } from "./dbtCommandFactory";
 import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
-  EnvVars,
 } from "../commandProcessExecution";
 import { DBTInstallationFoundEvent } from "./dbtVersionEvent";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { provideSingleton } from "../utils";
+import { DBTTerminal } from "./dbtTerminal";
 
 interface OsmosisCompileResp {
   error?: string,
@@ -34,11 +33,8 @@ export class DBTClient implements Disposable {
   private static readonly LATEST_VERSION = /latest version:\s(.*)/g;
   private static readonly IS_INSTALLED = /installed\sversion/g;
   private pythonPath?: string;
-  private readonly writeEmitter = new EventEmitter<string>();
   private dbtInstalled?: boolean;
-  private terminal?: Terminal;
   private disposables: Disposable[] = [
-    this.writeEmitter,
     this._onDBTInstallationFound,
   ];
 
@@ -46,7 +42,8 @@ export class DBTClient implements Disposable {
     private pythonEnvironment: PythonEnvironment,
     private dbtCommandFactory: DBTCommandFactory,
     private queue: DBTCommandQueue,
-    private commandProcessExecutionFactory: CommandProcessExecutionFactory
+    private commandProcessExecutionFactory: CommandProcessExecutionFactory,
+    private terminal: DBTTerminal
   ) {}
 
   dispose() {
@@ -154,7 +151,7 @@ export class DBTClient implements Disposable {
     token?: CancellationToken
   ) {
     const completedProcess = await this.executeCommand(command, token);
-    completedProcess.completeWithTerminalOutput(this.writeEmitter);
+    completedProcess.completeWithTerminalOutput(this.terminal);
     completedProcess.dispose();
   }
 
@@ -163,19 +160,6 @@ export class DBTClient implements Disposable {
     token?: CancellationToken
   ): Promise<CommandProcessExecution> {
     const { args, cwd } = command.processExecutionParams;
-    if (this.terminal === undefined) {
-      this.terminal = window.createTerminal({
-        name: "Tasks - dbt",
-        pty: {
-          onDidWrite: this.writeEmitter.event,
-          open: () => this.writeEmitter.fire(""),
-          close: () => {
-            this.terminal?.dispose();
-            this.terminal = undefined;
-          },
-        },
-      });
-    }
     const configText = await workspace.getConfiguration();
     const config = JSON.parse(JSON.stringify(configText));
     let envVars = {};
@@ -183,15 +167,14 @@ export class DBTClient implements Disposable {
       const env =  config.terminal.integrated.env;
       for (let prop in env) {
         envVars = {
+          ...process.env, 
           ...envVars,
           ...env[prop],
         };
       }
     }
     if (command.commandAsString !== undefined) {
-      this.writeEmitter.fire(
-        `\r> Executing task:  ${command.commandAsString}\n\r\n\r`
-      );
+      this.terminal.log(`> Executing task: ${command.commandAsString}\n\r`);
 
       if (command.focus) {
         this.terminal.show(true);
