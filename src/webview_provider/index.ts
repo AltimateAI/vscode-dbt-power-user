@@ -142,18 +142,19 @@ export class QueryResultPanel {
 			});
 		}, 15000);
 
-    let resp;
-    try {
-      resp = await fetch(`http://localhost:${proxyPort}/run`, {
-        method: 'POST',
-        headers: {
-          'content-type': 'text/plain',
-        },
-        body: sql,
-        timeout: 15000,
-        signal: controller.signal
-      });
-    } catch {
+    	let resp;
+		try {
+		resp = await fetch(`http://localhost:${proxyPort}/run`, {
+			method: 'POST',
+			headers: {
+			'content-type': 'text/plain',
+			},
+			body: sql,
+			timeout: 15000,
+			signal: controller.signal
+		});
+		} catch (e) {
+			console.log(e);
 			vscode.window.showErrorMessage("Query failed to reach dbt sync server");
 			QueryResultPanel.currentPanel?.transmitError({
 				code: -1,
@@ -163,9 +164,9 @@ export class QueryResultPanel {
 					"sql": sql,
 				},
 			});
-  		clearTimeout(timeoutControllerId);
-      return;
-    };
+			clearTimeout(timeoutControllerId);
+			return;
+		};
 
 		const data: DbtSyncRunResp = await resp.json();
 		
