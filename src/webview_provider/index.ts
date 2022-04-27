@@ -84,7 +84,7 @@ export class QueryResultPanel {
 			QueryResultPanel.viewType,
 			"Query Previewer",
 			// column || vscode.ViewColumn.One,
-			vscode.ViewColumn.Two,
+			{viewColumn: vscode.ViewColumn.Two, preserveFocus: true},
 			getWebviewOptions(extensionUri),
 		);
 
