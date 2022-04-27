@@ -140,7 +140,7 @@ export class QueryResultPanel {
 					"sql": sql,
 				},
 			});
-		}, 15000);
+		}, 25000);
 
     	let resp;
 		try {
@@ -150,7 +150,6 @@ export class QueryResultPanel {
 			'content-type': 'text/plain',
 			},
 			body: sql,
-			timeout: 15000,
 			signal: controller.signal
 		});
 		} catch (e) {
@@ -270,6 +269,9 @@ export class QueryResultPanel {
 				min-width:100px;
 				margin-left:auto;
 				padding-top:4px;
+			}
+			pre {
+				white-space: pre-wrap;
 			}
 			</style>
 			<title>Query Results</title>
