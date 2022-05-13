@@ -159,7 +159,16 @@
           "group": "inline"
         }
       ]
-    }
+    },
+    "languages": [
+      {
+        "id": "jinja-sql",
+        "icon": {
+          "light": "./media/dbt_file_icon.svg",
+          "dark": "./media/dbt_file_icon.svg"
+        }
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "webpack --mode production",
