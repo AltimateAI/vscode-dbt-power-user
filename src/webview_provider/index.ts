@@ -296,10 +296,11 @@ export class QueryResultPanel {
 			var table = new Tabulator("#results-panel", {
 				height: 455,
 				data: stateMessage.rows,
-				layout: "fitColumns",
+				layout: "fitDataFill",
 				columns: stateMessage.columns,
 				clipboard: true,
-				movableColumns: true
+				movableColumns: true,
+				minWidth: "180px",
 			});
 			document.getElementById("loader").style.display = 'none';
 			document.getElementById("status").textContent = "✅ " + stateMessage.rows.length + " rows loaded at " + ts;
