@@ -182,6 +182,7 @@
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
     "deploy-vscode": "vsce publish",
+    "build-vsix": "vsce package",
     "deploy-openvsx": "ovsx publish"
   },
   "devDependencies": {
