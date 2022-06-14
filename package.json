@@ -46,6 +46,10 @@
             },
             "default": [],
             "description": "Add additonal params to the dbt run model command."
+          },
+          "dbt.profilesDirOverride": {
+            "type": "string",
+            "description": "Override the profiles dir for every dbt command. Absolute path or relative to the dbt_project.yml"
           }
         }
       }

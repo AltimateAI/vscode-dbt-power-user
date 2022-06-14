@@ -21,6 +21,13 @@ export interface DBTCommand {
 
 @provideSingleton(DBTCommandFactory)
 export class DBTCommandFactory {
+  private profilesDirParams(): string[] {
+    const dbtProfilesDir = workspace
+      .getConfiguration("dbt")
+      .get<string>("profilesDirOverride");
+    return dbtProfilesDir ? ["'--profiles-dir'", `'${dbtProfilesDir}'`] : [];
+  }
+
   createImportDBTCommand(): DBTCommand {
     return {
       statusMessage: "Detecting dbt installation...",
@@ -40,25 +47,34 @@ export class DBTCommandFactory {
   }
 
   createListCommand(projectRoot: Uri): DBTCommand {
+    const profilesDirParams = this.profilesDirParams();
+
     return {
       commandAsString: "dbt list",
       statusMessage: "Listing dbt models...",
       processExecutionParams: {
         cwd: projectRoot.fsPath,
-        args: ["-c", this.dbtCommand("'list'")],
+        args: ["-c", this.dbtCommand(["'list'", ...profilesDirParams])],
       },
     };
   }
 
   createRunModelCommand(projectRoot: Uri, params: RunModelParams) {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
+    const profilesDirParams = this.profilesDirParams();
 
     const runModelCommandAdditionalParams = workspace
       .getConfiguration("dbt")
       .get<string[]>("runModelCommandAdditionalParams", []);
 
     return {
-      commandAsString: `dbt run --model ${params.plusOperatorLeft}${params.modelName}${params.plusOperatorRight}${runModelCommandAdditionalParams.length > 0 ? ' ' + runModelCommandAdditionalParams.join(' '): ''}`,
+      commandAsString: `dbt run --model ${params.plusOperatorLeft}${
+        params.modelName
+      }${params.plusOperatorRight}${
+        runModelCommandAdditionalParams.length > 0
+          ? " " + runModelCommandAdditionalParams.join(" ")
+          : ""
+      }`,
       statusMessage: "Running dbt models...",
       processExecutionParams: {
         cwd: projectRoot.fsPath,
@@ -68,7 +84,8 @@ export class DBTCommandFactory {
             "'run'",
             "'--model'",
             `'${plusOperatorLeft}${modelName}${plusOperatorRight}'`,
-            ...runModelCommandAdditionalParams.map(param => `'${param}'`),
+            ...runModelCommandAdditionalParams.map((param) => `'${param}'`),
+            ...profilesDirParams,
           ]),
         ],
       },
@@ -78,6 +95,8 @@ export class DBTCommandFactory {
 
   createCompileModelCommand(projectRoot: Uri, params: RunModelParams) {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
+    const profilesDirParams = this.profilesDirParams();
+
     return {
       commandAsString: `dbt compile --model ${params.plusOperatorLeft}${params.modelName}${params.plusOperatorRight}`,
       statusMessage: "compiling dbt models...",
@@ -89,6 +108,7 @@ export class DBTCommandFactory {
             "'compile'",
             "'--model'",
             `'${plusOperatorLeft}${modelName}${plusOperatorRight}'`,
+            ...profilesDirParams,
           ]),
         ],
       },
