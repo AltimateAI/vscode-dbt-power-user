@@ -109,14 +109,6 @@ export class DBTProjectContainer implements Disposable {
     this.dbtClient.addCommandToQueue(command);
   }
 
-  async installDBT(): Promise<void> {
-    await this.dbtClient.installDBT();
-  }
-
-  async updateDBT(): Promise<void> {
-    await this.dbtClient.updateDBT();
-  }
-
   dispose() {
     this.dbtWorkspaceFolders.forEach((workspaceFolder) =>
       workspaceFolder.dispose()
