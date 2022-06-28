@@ -116,26 +116,6 @@ export class DBTCommandFactory {
     };
   }
 
-  createInstallDBTCommand() {
-    return {
-      commandAsString: "pip install dbt",
-      statusMessage: "Installing dbt...",
-      processExecutionParams: { args: ["-m", "pip", "install", "dbt"] },
-      focus: true,
-    };
-  }
-
-  createUpdateDBTCommand() {
-    return {
-      commandAsString: "pip install --upgrade dbt",
-      statusMessage: "Updating dbt...",
-      processExecutionParams: {
-        args: ["-m", "pip", "install", "dbt", "--upgrade"],
-      },
-      focus: true,
-    };
-  }
-
   private dbtCommand(cmd: string | string[]): string {
     return `import dbt.main; dbt.main.main([${cmd}])`;
   }

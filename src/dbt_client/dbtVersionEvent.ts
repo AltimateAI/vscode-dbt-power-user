@@ -3,4 +3,5 @@ export interface DBTInstallationFoundEvent {
   latestVersion?: string;
   installedVersion?: string;
   upToDate?: boolean;
+  plugins?: string[]
 }

@@ -36,17 +36,13 @@ export class VersionStatusBar implements Disposable {
       return;
     }
     if (!event.installed) {
-      this.showTextInStatusBar("$(error) dbt is not installed", {
-        title: "Install dbt",
-        command: "dbtPowerUser.installDBT",
-      });
+      this.showTextInStatusBar("$(error) dbt is not installed");
       return;
     }
     if (!event.upToDate) {
       if(event.installedVersion !== undefined) {
         this.showTextInStatusBar(
-          `$(error) dbt ${event.installedVersion} is not up to date`,
-          { title: "Update dbt", command: "dbtPowerUser.updateDBT" }
+          `$(error) dbt ${event.installedVersion} is not up to date`
         );
       } else {
         this.showTextInStatusBar(
