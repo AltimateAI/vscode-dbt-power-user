@@ -23,9 +23,9 @@ export class DBTClient implements Disposable {
     new EventEmitter<DBTInstallationFoundEvent>();
   public readonly onDBTInstallationFound = this._onDBTInstallationFound.event;
   private static readonly INSTALLED_VERSION =
-    /installed.*:\s*(\d\.\d\.\d)/g;
+    /installed.*:\s*(\d{1,2}\.\d{1,2}\.\d{1,2})/g;
   private static readonly LATEST_VERSION =
-    /latest.*:\s*(\d\.\d\.\d)/g;
+    /latest.*:\s*(\d{1,2}\.\d{1,2}\.\d{1,2})/g;
   private static readonly IS_INSTALLED = /installed/g;
   private pythonPath?: string;
   private dbtInstalled?: boolean;
