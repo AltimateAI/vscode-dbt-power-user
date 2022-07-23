@@ -22,30 +22,19 @@ export class ExecuteSQL {
   async executeSQL() {
     const fullPath = window.activeTextEditor?.document.uri;
     if (fullPath !== undefined) {
-      // TODO: get sql qualified name from graph
+      const sqlQuery = window.activeTextEditor?.document.getText();
+      if (sqlQuery === undefined) {
+        return;
+      }
       const dbtProject = this.dbtProjectContainer.findDBTProject(fullPath);
       if (dbtProject === undefined) {
         return;
       }
-      const nodeMap = this.modelToFQNMap.get(dbtProject.projectRoot.fsPath);
-      if (nodeMap === undefined) {
-        return;
-      }
-      const name = path.basename(fullPath.fsPath).slice(0, -4);
-      const node = nodeMap.get(name);
-      if (node === undefined) {
-        return;
-      }
-      let fqn = "";
-      if(node.database) {
-        fqn += `${node.database}.`;
-      }
-      fqn += `${node.schema}.${node.alias}`;
-
-      const sql = `SELECT * FROM ${fqn} LIMIT 10`;
-      
-      const data = await this.dbtProjectContainer.executeSQL(dbtProject.projectRoot, sql);
-      this.queryView.createWebviewPanel(sql, data);
+      const sqlTitle = path.basename(window.activeTextEditor?.document.uri.fsPath ?? "Untitled.sql") + " " + new Date().toTimeString().split(" ")[0];
+      const sqlPreview = `select * from (${sqlQuery}) as __dbt_preview limit 500`;
+      const data = await this.dbtProjectContainer.executeSQL(dbtProject.projectRoot, sqlPreview);
+      // this.dbtProjectContainer.previewSQL(sqlPreview, sqlTitle);
+      this.queryView.createWebviewPanel(sqlPreview, data);
     }
   }
 
