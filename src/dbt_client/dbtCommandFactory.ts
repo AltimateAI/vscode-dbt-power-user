@@ -58,7 +58,7 @@ export class DBTCommandFactory {
       .get<string[]>("runModelCommandAdditionalParams", []);
 
     return {
-      commandAsString: `dbt run --model ${params.plusOperatorLeft}${params.modelName}${params.plusOperatorRight}${runModelCommandAdditionalParams.length > 0 ? ' ' + runModelCommandAdditionalParams.join(' '): ''}`,
+      commandAsString: `dbt run --model ${params.plusOperatorLeft}${params.modelName}${params.plusOperatorRight}${runModelCommandAdditionalParams.length > 0 ? ' ' + runModelCommandAdditionalParams.join(' ') : ''}`,
       statusMessage: "Running dbt models...",
       processExecutionParams: {
         cwd: projectRoot.fsPath,
@@ -116,8 +116,41 @@ export class DBTCommandFactory {
     };
   }
 
+  createSqlCommand(projectRoot: Uri, sql: string): DBTCommand {
+    return {
+      commandAsString: "Executing SQL",
+      statusMessage: "Executing SQL...",
+      processExecutionParams: {
+        cwd: projectRoot.fsPath,
+        args: ["-c", this.customCommand(sql)],
+      },
+      focus: true,
+    };
+  }
+
   private dbtCommand(cmd: string | string[]): string {
     return `import dbt.main; dbt.main.main([${cmd}])`;
   }
 
+  private customCommand(sql: string): string {
+    return `
+from dbt.task.runnable import ManifestTask
+from dbt.main import parse_args, adapter_management
+from dbt.adapters.factory import get_adapter
+
+class RunQuery(ManifestTask):
+    def run(self) -> None:
+        adapter = get_adapter(self.config)
+        with adapter.connection_named('master'):
+            (_, output) = adapter.execute("""${sql}""", fetch=True)
+            output.print_json()
+
+if __name__ == "__main__":
+    parsed = parse_args(['run'])
+
+    with adapter_management():
+        task = RunQuery.from_args(args=parsed)
+        results = task.run()
+    `;
+  }
 }

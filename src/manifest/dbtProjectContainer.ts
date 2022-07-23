@@ -137,6 +137,10 @@ export class DBTProjectContainer implements Disposable {
     await this.dbtClient.updateDBT();
   }
 
+  async executeSQL(projectRoot: Uri, sql: string): Promise<any> {
+    return this.dbtClient.executeSQL(projectRoot, sql);
+  }
+
   dispose() {
     this.dbtWorkspaceFolders.forEach((workspaceFolder) =>
       workspaceFolder.dispose()
