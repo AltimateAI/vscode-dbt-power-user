@@ -128,6 +128,14 @@
           "light": "./media/run-light.svg",
           "dark": "./media/run-dark.svg"
         }
+      },
+      {
+        "command": "dbtPowerUser.runSQL",
+        "title": "dbt Power User: Run SQL",
+        "icon": {
+          "light": "./media/file-code_light.svg",
+          "dark": "./media/file-code_dark.svg"
+        }
       }
     ],
     "menus": {
