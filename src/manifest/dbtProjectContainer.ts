@@ -129,14 +129,6 @@ export class DBTProjectContainer implements Disposable {
     this.dbtClient.addCommandToQueue(command);
   }
 
-  async installDBT(): Promise<void> {
-    await this.dbtClient.installDBT();
-  }
-
-  async updateDBT(): Promise<void> {
-    await this.dbtClient.updateDBT();
-  }
-
   async executeSQL(projectRoot: Uri, sql: string): Promise<any> {
     return this.dbtClient.executeSQL(projectRoot, sql);
   }

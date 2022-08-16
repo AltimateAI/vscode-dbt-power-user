@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/datacoves/vscode-dbt-power-user/issues"
   },
-  "version": "0.5.5-datacoves",
+  "version": "0.7.0-datacoves",
   "engines": {
     "vscode": "^1.52.0"
   },
@@ -46,6 +46,10 @@
             },
             "default": [],
             "description": "Add additonal params to the dbt run model command."
+          },
+          "dbt.profilesDirOverride": {
+            "type": "string",
+            "description": "Override the profiles dir for every dbt command. Absolute path or relative to the dbt_project.yml"
           }
         }
       }
@@ -180,7 +184,16 @@
           "group": "inline"
         }
       ]
-    }
+    },
+    "languages": [
+      {
+        "id": "jinja-sql",
+        "icon": {
+          "light": "./media/dbt_file_icon.svg",
+          "dark": "./media/dbt_file_icon.svg"
+        }
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "webpack --mode production",

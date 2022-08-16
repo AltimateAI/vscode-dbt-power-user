@@ -1,8 +1,6 @@
 import { commands, Disposable } from "vscode";
 import { RunModel } from "./runModel";
 import { provideSingleton } from "../utils";
-import { InstallDBT } from "./installDBT";
-import { UpdateDBT } from "./updateDBT";
 import { RunModelType } from "../domain";
 import { ExecuteSQL } from "./executeSQL";
 
@@ -11,8 +9,6 @@ export class VSCodeCommands implements Disposable {
   private disposables: Disposable[] = [];
 
   constructor(
-    private installDBT: InstallDBT,
-    private updateDBT: UpdateDBT,
     private runModel: RunModel,
     private executeSQL: ExecuteSQL,
   ) {
@@ -38,15 +34,9 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.previewSQL", () =>
         this.runModel.previewModelOnActiveWindow()
       ),
-      commands.registerCommand("dbtPowerUser.installDBT", () =>
-        this.installDBT.installDBTCommand()
-      ),
-      commands.registerCommand("dbtPowerUser.updateDBT", () =>
-        this.updateDBT.updateDBTCommand()
-      ),
       commands.registerCommand("dbtPowerUser.runSQL", () =>
         this.executeSQL.executeSQL()
-      ),
+      )
     );
   }
 

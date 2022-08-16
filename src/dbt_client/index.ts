@@ -20,7 +20,7 @@ import { DBTTerminal } from "./dbtTerminal";
 
 interface OsmosisCompileResp {
   error?: string,
-  result?: string 
+  result?: string
 }
 
 @provideSingleton(DBTClient)
@@ -29,9 +29,11 @@ export class DBTClient implements Disposable {
     new EventEmitter<DBTInstallationFoundEvent>();
   public readonly onDBTInstallationFound = this._onDBTInstallationFound.event;
   public static readonly OSMOSIS_PROXY_PORT = 8581;
-  private static readonly INSTALLED_VERSION = /installed version:\s(.*)/g;
-  private static readonly LATEST_VERSION = /latest version:\s(.*)/g;
-  private static readonly IS_INSTALLED = /installed\sversion/g;
+  private static readonly INSTALLED_VERSION =
+    /installed.*:\s*(\d{1,2}\.\d{1,2}\.\d{1,2})/g;
+  private static readonly LATEST_VERSION =
+    /latest.*:\s*(\d{1,2}\.\d{1,2}\.\d{1,2})/g;
+  private static readonly IS_INSTALLED = /installed/g;
   private pythonPath?: string;
   private dbtInstalled?: boolean;
   private disposables: Disposable[] = [
@@ -44,7 +46,7 @@ export class DBTClient implements Disposable {
     private queue: DBTCommandQueue,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
     private terminal: DBTTerminal
-  ) {}
+  ) { }
 
   dispose() {
     this.disposables.forEach((disposable) => disposable.dispose());
@@ -60,34 +62,7 @@ export class DBTClient implements Disposable {
     await this.handlePythonExtension();
   }
 
-  async installDBT(): Promise<void> {
-    if (this.pythonPath === undefined) {
-      window.showErrorMessage(
-        "Please ensure you have selected a Python interpreter before installing DBT."
-      );
-      return;
-    }
-    await this.executeCommandImmediately(
-      this.dbtCommandFactory.createInstallDBTCommand()
-    );
-    await this.handlePythonExtension();
-  }
-
-  async updateDBT(): Promise<void> {
-    if (this.pythonPath === undefined) {
-      window.showErrorMessage(
-        "Please ensure you have selected a Python interpreter before updating DBT."
-      );
-      return;
-    }
-    await this.executeCommandImmediately(
-      this.dbtCommandFactory.createUpdateDBTCommand()
-    );
-    await this.handlePythonExtension();
-  }
-
   async executeSQL(projectUri: Uri, sql: string): Promise<any> {
-    
     try {
       const sqlCommandProcess = await this.executeCommand(
         this.dbtCommandFactory.createSqlCommand(projectUri, sql)
@@ -137,8 +112,9 @@ export class DBTClient implements Disposable {
       await Promise.race([checkDBTVersionProcess.complete(), timeoutCmd]);
       checkDBTVersionProcess.dispose();
     } catch (err) {
-      if (typeof(err) === 'string' && err.match(DBTClient.IS_INSTALLED)) {
-        this.checkIfDBTIsUpToDate(err);
+      if (typeof (err) === 'string' && err.match(DBTClient.IS_INSTALLED)) {
+        const stripAnsi = require("strip-ansi");
+        this.checkIfDBTIsUpToDate(stripAnsi(err.replace("Process returned an error:", "")));
         return;
       }
     }
@@ -180,10 +156,10 @@ export class DBTClient implements Disposable {
     const config = JSON.parse(JSON.stringify(configText));
     let envVars = {};
     if (config.terminal !== undefined && config.terminal.integrated !== undefined && config.terminal.integrated.env !== undefined) {
-      const env =  config.terminal.integrated.env;
+      const env = config.terminal.integrated.env;
       for (let prop in env) {
         envVars = {
-          ...process.env, 
+          ...process.env,
           ...envVars,
           ...env[prop],
         };
@@ -244,17 +220,21 @@ export class DBTClient implements Disposable {
   private raiseDBTVersionEvent(
     dbtInstalled: boolean,
     installedVersion: string | undefined = undefined,
-    latestVersion: string | undefined = undefined
+    latestVersion: string | undefined = undefined,
+    message: string | undefined = undefined
   ): void {
     this.dbtInstalled = dbtInstalled;
+    const upToDate = installedVersion !== undefined &&
+      latestVersion !== undefined &&
+      installedVersion === latestVersion;
+    if (!upToDate && message) {
+      window.showErrorMessage(message);
+    };
     this._onDBTInstallationFound.fire({
       installed: this.dbtInstalled,
       installedVersion,
       latestVersion,
-      upToDate:
-        installedVersion !== undefined &&
-        latestVersion !== undefined &&
-        installedVersion === latestVersion,
+      upToDate
     });
   }
 
@@ -276,8 +256,8 @@ export class DBTClient implements Disposable {
         `The Regex IS_LATEST_VERSION ${DBTClient.LATEST_VERSION} is not working ...`
       );
     }
-    const latestVersion = latestVersionMatch[1];
-    this.raiseDBTVersionEvent(true, installedVersion, latestVersion);
+    const latestVersion = latestVersionMatch !== null ? latestVersionMatch[1] : undefined;
+    this.raiseDBTVersionEvent(true, installedVersion, latestVersion, message);
   }
 
   private async handlePythonExtension(): Promise<void> {
