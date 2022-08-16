@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/datacoves/vscode-dbt-power-user/issues"
   },
-  "version": "0.7.0-datacoves",
+  "version": "0.7.0",
   "engines": {
     "vscode": "^1.52.0"
   },
