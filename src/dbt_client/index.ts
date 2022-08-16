@@ -63,6 +63,7 @@ export class DBTClient implements Disposable {
   }
 
   async executeSQL(projectUri: Uri, sql: string): Promise<any> {
+    // WIP -- serverless execution
     try {
       const sqlCommandProcess = await this.executeCommand(
         this.dbtCommandFactory.createSqlCommand(projectUri, sql)
@@ -85,7 +86,7 @@ export class DBTClient implements Disposable {
       return;
     }
     this.addCommandToQueue(
-      this.dbtCommandFactory.createListCommand(projectUri)
+      this.dbtCommandFactory.createListCommand()
     );
   }
 
@@ -97,7 +98,8 @@ export class DBTClient implements Disposable {
     this.raiseDBTInstallationCheckEvent();
     try {
       await checkDBTInstalledProcess.complete();
-    } catch (_) {
+    } catch (err) {
+      window.showErrorMessage(err as string);
       this.raiseDBTNotInstalledEvent();
       return;
     }
@@ -174,7 +176,8 @@ export class DBTClient implements Disposable {
     }
 
     return this.commandProcessExecutionFactory.createCommandProcessExecution(
-      this.pythonPath!,
+      "dbt",
+      // this.pythonPath!,
       args,
       cwd,
       token,

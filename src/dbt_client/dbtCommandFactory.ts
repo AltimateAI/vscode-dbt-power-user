@@ -25,14 +25,15 @@ export class DBTCommandFactory {
     const dbtProfilesDir = workspace
       .getConfiguration("dbt")
       .get<string>("profilesDirOverride");
-    return dbtProfilesDir ? ["'--profiles-dir'", `'${dbtProfilesDir}'`] : [];
+    return dbtProfilesDir ? ["--profiles-dir", `${dbtProfilesDir}`] : [];
   }
 
   createImportDBTCommand(): DBTCommand {
     return {
       statusMessage: "Detecting dbt installation...",
       processExecutionParams: {
-        args: ["-c", 'import dbt.main; print("dbt is installed")'],
+        cwd: workspace.workspaceFolders?.values().next().value.uri.fsPath,
+        args: ["--help"],
       },
     };
   }
@@ -41,20 +42,21 @@ export class DBTCommandFactory {
     return {
       statusMessage: "Detecting dbt version...",
       processExecutionParams: {
-        args: ["-c", this.dbtCommand("'--version'")],
+        cwd: workspace.workspaceFolders?.values().next().value.uri.fsPath,
+        args: ["--version"],
       },
     };
   }
 
-  createListCommand(projectRoot: Uri): DBTCommand {
+  createListCommand(): DBTCommand {
     const profilesDirParams = this.profilesDirParams();
 
     return {
       commandAsString: "dbt list",
       statusMessage: "Listing dbt models...",
       processExecutionParams: {
-        cwd: projectRoot.fsPath,
-        args: ["-c", this.dbtCommand(["'list'", ...profilesDirParams])],
+        cwd: workspace.workspaceFolders?.values().next().value.uri.fsPath,
+        args: ["ls", ...profilesDirParams],
       },
     };
   }
@@ -77,14 +79,11 @@ export class DBTCommandFactory {
       processExecutionParams: {
         cwd: projectRoot.fsPath,
         args: [
-          "-c",
-          this.dbtCommand([
-            "'run'",
-            "'--model'",
-            `'${plusOperatorLeft}${modelName}${plusOperatorRight}'`,
-            ...runModelCommandAdditionalParams.map((param) => `'${param}'`),
-            ...profilesDirParams,
-          ]),
+          "run",
+          "--select",
+          `${plusOperatorLeft}${modelName}${plusOperatorRight}`,
+          ...runModelCommandAdditionalParams.map((param) => `${param}`),
+          ...profilesDirParams,
         ],
       },
       focus: true,
@@ -101,13 +100,10 @@ export class DBTCommandFactory {
       processExecutionParams: {
         cwd: projectRoot.fsPath,
         args: [
-          "-c",
-          this.dbtCommand([
-            "'compile'",
-            "'--model'",
-            `'${plusOperatorLeft}${modelName}${plusOperatorRight}'`,
-            ...profilesDirParams,
-          ]),
+          "compile",
+          "--select",
+          `${plusOperatorLeft}${modelName}${plusOperatorRight}`,
+          ...profilesDirParams,
         ],
       },
       focus: true,
@@ -115,6 +111,7 @@ export class DBTCommandFactory {
   }
 
   createSqlCommand(projectRoot: Uri, sql: string): DBTCommand {
+    // Replace this with macro?
     return {
       commandAsString: "Executing SQL",
       statusMessage: "Executing SQL...",

@@ -20,6 +20,7 @@ export class ExecuteSQL {
   }
 
   async executeSQL() {
+    // WIP -- serverless execution
     const fullPath = window.activeTextEditor?.document.uri;
     if (fullPath !== undefined) {
       const sqlQuery = window.activeTextEditor?.document.getText();
