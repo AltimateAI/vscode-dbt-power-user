@@ -72,19 +72,30 @@ export class QueryResultPanel {
 			? vscode.window.activeTextEditor.viewColumn
 			: undefined;
 
-		// If we already have a panel, we can show it here and return early
-		// NOTE: Lets only show new panels so the user can compare previews between changes
-			// if (QueryResultPanel.currentPanel) {
-			//  QueryResultPanel.currentPanel._panel.reveal(column);
-			//  return;
-		// }
+    const previewColumn: string = vscode.workspace
+      .getConfiguration("dbt.previewPanel")
+      .get<string>("displayColumn") || 'horizontal';
 
+    const reusePanel: boolean = vscode.workspace
+      .getConfiguration("dbt.previewPanel")
+      .get<boolean>("reusePanel") || false;
+
+    if (QueryResultPanel.currentPanel && reusePanel) {
+      QueryResultPanel.currentPanel._panel.title = title + " preview";
+      QueryResultPanel.currentPanel._panel.reveal(undefined, true);
+      return;
+		}
+
+    if (previewColumn === 'horizontal') {
 		vscode.commands.executeCommand('workbench.action.editorLayoutTwoRows');
+    }
+    const viewColumn = previewColumn === 'same' ? vscode.ViewColumn.Active : vscode.ViewColumn.Two;
+
 		const panel = vscode.window.createWebviewPanel(
 			QueryResultPanel.viewType,
 			"Query Previewer",
 			// column || vscode.ViewColumn.One,
-			{viewColumn: vscode.ViewColumn.Two, preserveFocus: true},
+			{viewColumn: viewColumn, preserveFocus: true},
 			getWebviewOptions(extensionUri),
 		);
 

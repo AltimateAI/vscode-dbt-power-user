@@ -50,6 +50,26 @@
           "dbt.profilesDirOverride": {
             "type": "string",
             "description": "Override the profiles dir for every dbt command. Absolute path or relative to the dbt_project.yml"
+          },
+          "dbt.previewPanel.displayColumn": {
+            "type": "string",
+            "enum": [
+              "horizontal",
+              "vertical",
+              "same"
+            ],
+            "default": "horizontal",
+            "enumDescriptions": [
+              "Show the preview panel horizontally below the current column.",
+              "Show the preview panel vertically next to the current column.",
+              "Show the preview panel in the same column."
+            ],
+            "description": "Show the preview column horizontally, vertically, or in the same panel."
+          },
+          "dbt.previewPanel.reusePanel": {
+            "type": "boolean",
+            "default": false,
+            "description": "Reuse the previously created preview panel instead of creating a new preview panel."
           }
         }
       }
