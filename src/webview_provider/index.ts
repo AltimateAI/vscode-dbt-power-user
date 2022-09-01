@@ -75,7 +75,7 @@ export class QueryResultPanel {
     const previewColumn: string = vscode.workspace
       .getConfiguration("dbt.previewPanel")
       .get<string>("displayColumn") || 'horizontal';
-
+    
     const reusePanel: boolean = vscode.workspace
       .getConfiguration("dbt.previewPanel")
       .get<boolean>("reusePanel") || false;
@@ -87,7 +87,7 @@ export class QueryResultPanel {
 		}
 
     if (previewColumn === 'horizontal') {
-		vscode.commands.executeCommand('workbench.action.editorLayoutTwoRows');
+		  vscode.commands.executeCommand('workbench.action.editorLayoutTwoRows');
     }
     const viewColumn = previewColumn === 'same' ? vscode.ViewColumn.Active : vscode.ViewColumn.Two;
 
@@ -127,9 +127,9 @@ export class QueryResultPanel {
 					case 'error':
 						vscode.window.showErrorMessage(message.text);
 						return;
-			case 'info':
-			vscode.window.showInformationMessage(message.text);
-			return;
+          case 'info':
+            vscode.window.showInformationMessage(message.text);
+          return;
 				}
 			},
 			null,
@@ -138,48 +138,49 @@ export class QueryResultPanel {
 	};
 
 	public async doQuery(sql: string, proxyPort: number) {
-
 		const controller = new AbortController();
 		const timeoutControllerId = setTimeout(() => {
 			controller.abort();
 			vscode.window.showErrorMessage("Failed query preview due to timeout");
-			QueryResultPanel.currentPanel?.transmitError({
-				code: -1,
+      const error = {
+        code: -1,
 				message: "Query timed out",
 				data: {
 					"error": `Is the server listening on http://localhost:${proxyPort} ?`,
 					"sql": sql,
 				},
-			});
+      };
+			QueryResultPanel.currentPanel?.transmitError(error, sql, sql);
 		}, 25000);
 
-    	let resp;
+    let resp;
 		try {
-		resp = await fetch(`http://localhost:${proxyPort}/run`, {
-			method: 'POST',
-			headers: {
-			'content-type': 'text/plain',
-			},
-			body: sql,
-			signal: controller.signal
-		});
+      resp = await fetch(`http://localhost:${proxyPort}/run`, {
+        method: 'POST',
+        headers: {
+        'content-type': 'text/plain',
+        },
+        body: sql,
+        signal: controller.signal
+      });
 		} catch (e) {
 			console.log(e);
 			vscode.window.showErrorMessage("Query failed to reach dbt sync server");
-			QueryResultPanel.currentPanel?.transmitError({
-				code: -1,
+      const error = {
+        code: -1,
 				message: "Query failed to reach dbt sync server",
 				data: {
 					"error": `Is the server listening on http://localhost:${proxyPort} ?`,
 					"sql": sql,
 				},
-			});
+      };
+			QueryResultPanel.currentPanel?.transmitError(error, sql, sql);
 			clearTimeout(timeoutControllerId);
 			return;
 		};
 
 		const data: DbtSyncRunResp = await resp.json();
-		
+
     if (!data.error && data.column_names && data.rows && data.compiled_sql) {
       let columnDefs: Dictionary<string | number>[] = [];
       let tableValues: Dictionary<string | number>[] = [];
@@ -196,21 +197,24 @@ export class QueryResultPanel {
     } else {
       if (data.error) {
         console.log(data.error);
-        vscode.window.showErrorMessage(`
-        Failed compilation... --
-        Code: ${data.error.code} --
-        Message: ${data.error.message} -- 
-        Data: ${data.error.data.message}
-        `);
-        QueryResultPanel.currentPanel?.transmitError(data.error);
+        vscode.window.showErrorMessage(data.error.message);
+        QueryResultPanel.currentPanel?.transmitError(data.error, sql, data.error?.data?.compiled_sql || sql);
       } else {
         // We can brainstorm more ways to handle this case but haven't seen it
-        vscode.window.showErrorMessage("Failed query preview... Unknown response");
+        vscode.window.showErrorMessage("Failed query preview...Unknown response");
+        const error = {
+          code: -1,
+          message: "Failed query preview...Unknown response",
+          data: {
+            "error": `Unknown Response`,
+            "sql": sql,
+          },
+        };
+        QueryResultPanel.currentPanel?.transmitError(error, sql, sql);
       }
     }
 
-		clearTimeout(timeoutControllerId);
-
+    clearTimeout(timeoutControllerId);
 	}
 
 	public transmitData(columns: Dictionary<string | number>[], rows: Dictionary<string | number>[], sql: string, compiled_sql: string) {
@@ -221,8 +225,8 @@ export class QueryResultPanel {
 		code: number,
 		message: string,
 		data: Dictionary<string>
-	}) {
-		this._panel.webview.postMessage({ action: "error", error: error });
+	}, sql: string, compiled_sql: string) {
+		this._panel.webview.postMessage({ action: "error", error: error, sql: sql, compiled_sql: compiled_sql });
 	}
 
 	public dispose() {
@@ -241,11 +245,15 @@ export class QueryResultPanel {
 
 	private _getHtmlForWebview(webview: vscode.Webview, title: string) {
 		const tabulatorScriptPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'media', 'js', 'tabulator.min.js');
+		const mainScriptPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'media', 'js', 'main.js');
 		const spinnerPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'media', 'animated_logo_no_bg_small_15fps.gif');
 		const tabulatorScriptUri = (tabulatorScriptPathOnDisk).with({ 'scheme': 'vscode-resource' });
+    const mainScriptUri = (mainScriptPathOnDisk).with({ 'scheme': 'vscode-resource' });
 		const spinnerUri = (spinnerPathOnDisk).with({ 'scheme': 'vscode-resource' });
-		const stylesPathMainPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'css', 'tabulator_site.min.css');
-		const stylesMainUri = webview.asWebviewUri(stylesPathMainPath);
+		const tabulatorStylesPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'css', 'tabulator_site.min.css');
+    const mainStylesPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'css', 'main.css');
+		const tabulatorStylesUri = webview.asWebviewUri(tabulatorStylesPath);
+		const mainStylesUri = webview.asWebviewUri(mainStylesPath);
 		const nonce = getNonce();
 		return `
 <!DOCTYPE html>
@@ -260,31 +268,9 @@ export class QueryResultPanel {
 				http-equiv="Content-Security-Policy" 
 				content="default-src 'none'; style-src ${webview.cspSource} 'nonce-${nonce}'; img-src ${webview.cspSource} https:; script-src 'nonce-${nonce}';">
 			<meta name="viewport" content="width=device-width, initial-scale=1.0">
-			<link href="${stylesMainUri}" rel="stylesheet">
-	        <script nonce="${nonce}" src="${tabulatorScriptUri}"></script>
-    	    <style nonce="${nonce}">
-			#loader{
-				display: block;
-				min-width: 100px;
-				margin-left: auto;
-				margin-right: auto;		
-			}
-			#header-container {
-				display: flex;
-			}
-			#header-container-title {
-			}
-			#status {
-				float: right;
-				text-align:right;
-				min-width:100px;
-				margin-left:auto;
-				padding-top:4px;
-			}
-			pre {
-				white-space: pre-wrap;
-			}
-			</style>
+			<link href="${tabulatorStylesUri}" rel="stylesheet">
+    	<link href="${mainStylesUri}" rel="stylesheet">
+      <script nonce="${nonce}" src="${tabulatorScriptUri}"></script>
 			<title>Query Results</title>
 		</head>
 		<body>
@@ -292,71 +278,29 @@ export class QueryResultPanel {
 				<h3 id="header-container-title">🔍 &nbsp; Query Preview Panel</h3>
 				<p id="status"></p>
 			</div>
+      <details>
+        <summary>View Dispatched SQL &nbsp; &nbsp; &nbsp;<button id="clipboard-sql">📝</button></summary>
+        <!-- Maybe we add a copy to clipbaord button at some point -->
+        <pre id="sql"></pre>
+      </details>
+      <br id="results-break" />
+      <div id="results-panel"></div>
+      <img id="loader" src="${spinnerUri}" height="200px" width="200px"></img>
+      <div id="error-container">
+        <h3 id="error-container-title">Error</h3>
+        <h4 id="error-container-type">Type</h4>
+        <p id="error-type"></p>
+        <h4 id="error-container-message">Message</h4>
+        <p id="error-message"></p>
         <details>
-          <summary>View Dispatched SQL 📝</summary>
-		  <!-- Maybe we add a copy to clipbaord button at some point -->
-          <pre id="sql"></pre>
-        </details>
-        <br />
-		<div id="results-panel">
-		</div>
-		<img id="loader" src="${spinnerUri}" height="200px" width="200px"></img>
-		<pre id="error"></pre>
-        <script nonce="${nonce}">
-		function showQuery(stateMessage, ts) {
-			var table = new Tabulator("#results-panel", {
-				height: 455,
-				data: stateMessage.rows,
-				layout: "fitDataFill",
-				columns: stateMessage.columns,
-				clipboard: true,
-				movableColumns: true,
-				minWidth: "180px",
-			});
-			document.getElementById("loader").style.display = 'none';
-			document.getElementById("status").textContent = "✅ " + stateMessage.rows.length + " rows loaded at " + ts;
-			document.getElementById("sql").textContent = stateMessage.compiled_sql;
-		};
-		function showError(stateMessage, ts) {
-			document.getElementById("status").textContent = "❌ query failed at " + ts;
-			document.getElementById("loader").style.display = 'none';
-			document.getElementById("error").textContent = JSON.stringify(stateMessage.error, null, 2);
-		};
-		function dispatchAction(stateMessage, ts) {
-			switch (stateMessage.action) {
-				case "queryResults":
-					showQuery(stateMessage, ts);
-					break;
-				case "error": 
-					showError(stateMessage, ts);
-					break;
-			}
-		};
-        // Restore State
-		const windowRenderTime = new Date();
-        const vscode = acquireVsCodeApi();
-        const previousState = vscode.getState();
-        const stateMessage = previousState ? previousState.message : undefined;
-        if (stateMessage) {
-			dispatchAction(stateMessage, previousState.timestamp);
-        };
-
-        // Listen For Data
-		window.addEventListener('message', event => {
-          const message = event.data; // The JSON data our extension sent
-          const timestamp = new Date();
-          vscode.setState({ message, timestamp, title: "${title}" });
-          dispatchAction(message, timestamp);
-		  if (!message.error) {
-			vscode.postMessage({
-				command: 'info',
-				text: "Query compiled and executed in " + (Math.abs(timestamp - windowRenderTime) / 1000) + "s"
-			})
-		  };
-		});
-		</script>
-	</body>
-</html>`;
+          <summary>View Detailed Error &nbsp; &nbsp; &nbsp;<button id="clipboard-error">📝</button></summary>
+          <pre id="error-details"></pre>
+      </details>
+      <br />
+      </div>
+    </body>
+    <script nonce="${nonce}" src="${mainScriptUri}"></script>
+  </html>`;
 	}
 }
 

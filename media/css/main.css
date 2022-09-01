@@ -1,0 +1,33 @@
+#loader{
+  display: block;
+  min-width: 100px;
+  margin-left: auto;
+  margin-right: auto;		
+}
+
+#header-container {
+  display: flex;
+}
+
+#header-container-title {
+}
+
+#error-container-title {
+  color: crimson;
+}
+
+#status {
+  float: right;
+  text-align:right;
+  min-width:100px;
+  margin-left:auto;
+  padding-top:4px;
+}
+
+pre {
+  white-space: pre-wrap;
+}
+
+button {
+  cursor: pointer;
+}
