@@ -175,9 +175,12 @@ export class DBTClient implements Disposable {
       }
     }
 
+    const dbtPath: string = workspace
+      .getConfiguration("dbt")
+      .get<string>("executablePath") || 'dbt';
+
     return this.commandProcessExecutionFactory.createCommandProcessExecution(
-      "dbt",
-      // this.pythonPath!,
+      dbtPath,
       args,
       cwd,
       token,
@@ -185,17 +188,14 @@ export class DBTClient implements Disposable {
     );
   }
 
-
   async compileSql(sql: string): Promise<string> {
     let data: OsmosisCompileResp;
     const response = await fetch(`http://localhost:${DBTClient.OSMOSIS_PROXY_PORT}/compile`, {
       method: 'POST',
       headers: {
-        'content-type': 'application/json',
+        'content-type': 'text/plain',
       },
-      body: JSON.stringify({
-        "sql": sql,
-      })
+      body: sql
     });
     data = await response.json();
     if (data.result !== undefined) {

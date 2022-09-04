@@ -51,6 +51,11 @@
             "type": "string",
             "description": "Override the profiles dir for every dbt command. Absolute path or relative to the dbt_project.yml"
           },
+          "dbt.executablePath": {
+            "type": "string",
+            "description": "Path to dbt executable.",
+            "default": "dbt"
+          },
           "dbt.previewPanel.displayColumn": {
             "type": "string",
             "enum": [
