@@ -28,7 +28,6 @@ export class DBTClient implements Disposable {
   private _onDBTInstallationFound =
     new EventEmitter<DBTInstallationFoundEvent>();
   public readonly onDBTInstallationFound = this._onDBTInstallationFound.event;
-  public static readonly OSMOSIS_PROXY_PORT = 8581;
   private static readonly INSTALLED_VERSION =
     /installed.*:\s*(\d{1,2}\.\d{1,2}\.\d{1,2})/g;
   private static readonly LATEST_VERSION =
@@ -189,8 +188,14 @@ export class DBTClient implements Disposable {
   }
 
   async compileSql(sql: string): Promise<string> {
+    const osmosisHost = workspace
+      .getConfiguration("dbt")
+      .get<string>("osmosisHost", "localhost");
+    const osmosisPort = workspace
+      .getConfiguration("dbt")
+      .get<number>("osmosisPort", 8581);
     let data: OsmosisCompileResp;
-    const response = await fetch(`http://localhost:${DBTClient.OSMOSIS_PROXY_PORT}/compile`, {
+    const response = await fetch(`http://${osmosisHost}:${osmosisPort}/compile`, {
       method: 'POST',
       headers: {
         'content-type': 'text/plain',

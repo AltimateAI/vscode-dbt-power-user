@@ -56,6 +56,16 @@
             "description": "Path to dbt executable.",
             "default": "dbt"
           },
+          "dbt.osmosisHost": {
+            "type": "string",
+            "description": "dbt-osmosis server host",
+            "default": "localhost"
+          },
+          "dbt.osmosisPort": {
+            "type": "integer",
+            "description": "dbt-osmosis server port",
+            "default": 8581
+          },
           "dbt.previewPanel.displayColumn": {
             "type": "string",
             "enum": [

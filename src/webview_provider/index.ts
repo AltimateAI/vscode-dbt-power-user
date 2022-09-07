@@ -3,24 +3,24 @@ import fetch from 'node-fetch';
 import { AbortController } from 'node-abort-controller';
 
 interface Dictionary<T> {
-    [Key: string]: T;
+	[Key: string]: T;
 }
 
 interface DbtSyncCompileResp {
-  error?: string,
-	result?: string 
+	error?: string,
+	result?: string
 }
 
 interface DbtSyncRunResp {
-  error?: {
-	  code: number,
-	  message: string,
-	  data: Dictionary<string>
-  },
-  column_names?: string[],
-  rows?: (string | number)[][],
-  compiled_sql?: string,
-  raw_sql?: string
+	error?: {
+		code: number,
+		message: string,
+		data: Dictionary<string>
+	},
+	column_names?: string[],
+	rows?: (string | number)[][],
+	compiled_sql?: string,
+	raw_sql?: string
 }
 
 // TODO: Move activation snippet
@@ -39,16 +39,19 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function getWebviewOptions(extensionUri: vscode.Uri): vscode.WebviewOptions {
+	const osmosisPort = vscode.workspace
+		.getConfiguration("dbt")
+		.get<number>("osmosisPort", 8581);
 	return {
 		// Enable javascript in the webview
 		enableScripts: true,
 		// And restrict the webview to only loading content from our extension's `media` directory.
 		localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
-    // Map ports
-    portMapping: [
-      { webviewPort: 8581, extensionHostPort: 8581}
-    ],
-    // Keep context
+		// Map ports
+		portMapping: [
+			{ webviewPort: osmosisPort, extensionHostPort: osmosisPort }
+		],
+		// Keep context
 	};
 }
 
@@ -72,30 +75,30 @@ export class QueryResultPanel {
 			? vscode.window.activeTextEditor.viewColumn
 			: undefined;
 
-    const previewColumn: string = vscode.workspace
-      .getConfiguration("dbt.previewPanel")
-      .get<string>("displayColumn") || 'horizontal';
-    
-    const reusePanel: boolean = vscode.workspace
-      .getConfiguration("dbt.previewPanel")
-      .get<boolean>("reusePanel") || false;
+		const previewColumn: string = vscode.workspace
+			.getConfiguration("dbt.previewPanel")
+			.get<string>("displayColumn") || 'horizontal';
 
-    if (QueryResultPanel.currentPanel && reusePanel) {
-      QueryResultPanel.currentPanel._panel.title = title + " preview";
-      QueryResultPanel.currentPanel._panel.reveal(undefined, true);
-      return;
+		const reusePanel: boolean = vscode.workspace
+			.getConfiguration("dbt.previewPanel")
+			.get<boolean>("reusePanel") || false;
+
+		if (QueryResultPanel.currentPanel && reusePanel) {
+			QueryResultPanel.currentPanel._panel.title = title + " preview";
+			QueryResultPanel.currentPanel._panel.reveal(undefined, true);
+			return;
 		}
 
-    if (previewColumn === 'horizontal') {
-		  vscode.commands.executeCommand('workbench.action.editorLayoutTwoRows');
-    }
-    const viewColumn = previewColumn === 'same' ? vscode.ViewColumn.Active : vscode.ViewColumn.Two;
+		if (previewColumn === 'horizontal') {
+			vscode.commands.executeCommand('workbench.action.editorLayoutTwoRows');
+		}
+		const viewColumn = previewColumn === 'same' ? vscode.ViewColumn.Active : vscode.ViewColumn.Two;
 
 		const panel = vscode.window.createWebviewPanel(
 			QueryResultPanel.viewType,
 			"Query Previewer",
 			// column || vscode.ViewColumn.One,
-			{viewColumn: viewColumn, preserveFocus: true},
+			{ viewColumn: viewColumn, preserveFocus: true },
 			getWebviewOptions(extensionUri),
 		);
 
@@ -109,7 +112,7 @@ export class QueryResultPanel {
 	public constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, title: string) {
 		this._panel = panel;
 		this._extensionUri = extensionUri;
-    	const webview = panel.webview;
+		const webview = panel.webview;
 		panel.title = title + " preview";
 		panel.webview.html = this._getHtmlForWebview(webview, title);
 
@@ -117,7 +120,7 @@ export class QueryResultPanel {
 			if (state.webviewPanel.visible) {
 				this._panel.webview.html = this._getHtmlForWebview(webview, title);
 			}
-    	});
+		});
 
 		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
@@ -127,9 +130,9 @@ export class QueryResultPanel {
 					case 'error':
 						vscode.window.showErrorMessage(message.text);
 						return;
-          case 'info':
-            vscode.window.showInformationMessage(message.text);
-          return;
+					case 'info':
+						vscode.window.showInformationMessage(message.text);
+						return;
 				}
 			},
 			null,
@@ -137,43 +140,43 @@ export class QueryResultPanel {
 		);
 	};
 
-	public async doQuery(sql: string, proxyPort: number) {
+	public async doQuery(sql: string, osmosisHost: string, osmosisPort: number) {
 		const controller = new AbortController();
 		const timeoutControllerId = setTimeout(() => {
 			controller.abort();
 			vscode.window.showErrorMessage("Failed query preview due to timeout");
-      const error = {
-        code: -1,
+			const error = {
+				code: -1,
 				message: "Query timed out",
 				data: {
-					"error": `Is the server listening on http://localhost:${proxyPort} ?`,
+					"error": `Is the server listening on http://${osmosisHost}:${osmosisPort} ?`,
 					"sql": sql,
 				},
-      };
+			};
 			QueryResultPanel.currentPanel?.transmitError(error, sql, sql);
 		}, 25000);
 
-    let resp;
+		let resp;
 		try {
-      resp = await fetch(`http://localhost:${proxyPort}/run`, {
-        method: 'POST',
-        headers: {
-        'content-type': 'text/plain',
-        },
-        body: sql,
-        signal: controller.signal
-      });
+			resp = await fetch(`http://${osmosisHost}:${osmosisPort}/run`, {
+				method: 'POST',
+				headers: {
+					'content-type': 'text/plain',
+				},
+				body: sql,
+				signal: controller.signal
+			});
 		} catch (e) {
 			console.log(e);
 			vscode.window.showErrorMessage("Query failed to reach dbt sync server");
-      const error = {
-        code: -1,
+			const error = {
+				code: -1,
 				message: "Query failed to reach dbt sync server",
 				data: {
-					"error": `Is the server listening on http://localhost:${proxyPort} ?`,
+					"error": `Is the server listening on http://${osmosisHost}:${osmosisPort} ?`,
 					"sql": sql,
 				},
-      };
+			};
 			QueryResultPanel.currentPanel?.transmitError(error, sql, sql);
 			clearTimeout(timeoutControllerId);
 			return;
@@ -181,40 +184,40 @@ export class QueryResultPanel {
 
 		const data: DbtSyncRunResp = await resp.json();
 
-    if (!data.error && data.column_names && data.rows && data.compiled_sql) {
-      let columnDefs: Dictionary<string | number>[] = [];
-      let tableValues: Dictionary<string | number>[] = [];
-      data.column_names.forEach(def => {
-        columnDefs = [...columnDefs, {"title": def.toUpperCase(), "field": def}];
-      });
-      for (let row = 0; row < data.rows.length; row++) {
-        data.rows[row].forEach((value, index) => {
-          let colName = columnDefs[index]["field"];
-          tableValues[row] = {...tableValues[row], [colName]: value};
-        });
-      }
-      QueryResultPanel.currentPanel?.transmitData(columnDefs, tableValues, sql, data.compiled_sql);
-    } else {
-      if (data.error) {
-        console.log(data.error);
-        vscode.window.showErrorMessage(data.error.message);
-        QueryResultPanel.currentPanel?.transmitError(data.error, sql, data.error?.data?.compiled_sql || sql);
-      } else {
-        // We can brainstorm more ways to handle this case but haven't seen it
-        vscode.window.showErrorMessage("Failed query preview...Unknown response");
-        const error = {
-          code: -1,
-          message: "Failed query preview...Unknown response",
-          data: {
-            "error": `Unknown Response`,
-            "sql": sql,
-          },
-        };
-        QueryResultPanel.currentPanel?.transmitError(error, sql, sql);
-      }
-    }
+		if (!data.error && data.column_names && data.rows && data.compiled_sql) {
+			let columnDefs: Dictionary<string | number>[] = [];
+			let tableValues: Dictionary<string | number>[] = [];
+			data.column_names.forEach(def => {
+				columnDefs = [...columnDefs, { "title": def.toUpperCase(), "field": def }];
+			});
+			for (let row = 0; row < data.rows.length; row++) {
+				data.rows[row].forEach((value, index) => {
+					let colName = columnDefs[index]["field"];
+					tableValues[row] = { ...tableValues[row], [colName]: value };
+				});
+			}
+			QueryResultPanel.currentPanel?.transmitData(columnDefs, tableValues, sql, data.compiled_sql);
+		} else {
+			if (data.error) {
+				console.log(data.error);
+				vscode.window.showErrorMessage(data.error.message);
+				QueryResultPanel.currentPanel?.transmitError(data.error, sql, data.error?.data?.compiled_sql || sql);
+			} else {
+				// We can brainstorm more ways to handle this case but haven't seen it
+				vscode.window.showErrorMessage("Failed query preview...Unknown response");
+				const error = {
+					code: -1,
+					message: "Failed query preview... Unknown response",
+					data: {
+						"error": `Unknown Response`,
+						"sql": sql,
+					},
+				};
+				QueryResultPanel.currentPanel?.transmitError(error, sql, sql);
+			}
+		}
 
-    clearTimeout(timeoutControllerId);
+		clearTimeout(timeoutControllerId);
 	}
 
 	public transmitData(columns: Dictionary<string | number>[], rows: Dictionary<string | number>[], sql: string, compiled_sql: string) {
@@ -248,10 +251,10 @@ export class QueryResultPanel {
 		const mainScriptPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'media', 'js', 'main.js');
 		const spinnerPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'media', 'animated_logo_no_bg_small_15fps.gif');
 		const tabulatorScriptUri = (tabulatorScriptPathOnDisk).with({ 'scheme': 'vscode-resource' });
-    const mainScriptUri = (mainScriptPathOnDisk).with({ 'scheme': 'vscode-resource' });
+		const mainScriptUri = (mainScriptPathOnDisk).with({ 'scheme': 'vscode-resource' });
 		const spinnerUri = (spinnerPathOnDisk).with({ 'scheme': 'vscode-resource' });
 		const tabulatorStylesPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'css', 'tabulator_site.min.css');
-    const mainStylesPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'css', 'main.css');
+		const mainStylesPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'css', 'main.css');
 		const tabulatorStylesUri = webview.asWebviewUri(tabulatorStylesPath);
 		const mainStylesUri = webview.asWebviewUri(mainStylesPath);
 		const nonce = getNonce();

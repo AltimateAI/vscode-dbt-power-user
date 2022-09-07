@@ -89,8 +89,14 @@ export class DBTProjectContainer implements Disposable {
   }
 
   previewSQL<T>(sql: string, title: string): void {
+    const osmosisHost = workspace
+      .getConfiguration("dbt")
+      .get<string>("osmosisHost", "localhost");
+    const osmosisPort = workspace
+      .getConfiguration("dbt")
+      .get<number>("osmosisPort", 8581);
     this.resolveQueryPanel(title);
-    this.queryResultViewer?.doQuery(sql, 8581);
+    this.queryResultViewer?.doQuery(sql, osmosisHost, osmosisPort);
   }
 
   listModels(projectUri: Uri) {
