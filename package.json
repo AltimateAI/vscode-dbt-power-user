@@ -66,7 +66,12 @@
             "description": "dbt-osmosis server port",
             "default": 8581
           },
-          "dbt.previewPanel.displayColumn": {
+          "dbt.queryLimit": {
+            "type": "integer",
+            "description": "The maximum number of rows the `Preview SQL Query` command returns.",
+            "default": 500
+          },
+          "dbt.previewPanel.displayLocation": {
             "type": "string",
             "enum": [
               "horizontal",
@@ -75,16 +80,33 @@
             ],
             "default": "horizontal",
             "enumDescriptions": [
-              "Show the preview panel horizontally below the current column.",
-              "Show the preview panel vertically next to the current column.",
-              "Show the preview panel in the same column."
+              "Show the preview panel horizontally below the active editor.",
+              "Show the preview panel vertically next to the active editor.",
+              "Show the preview panel in the same location as the active editor."
             ],
-            "description": "Show the preview column horizontally, vertically, or in the same panel."
+            "description": "Show the preview panel horizontally, vertically, or in the same location as the active editor."
           },
           "dbt.previewPanel.reusePanel": {
             "type": "boolean",
             "default": false,
             "description": "Reuse the previously created preview panel instead of creating a new preview panel."
+          },
+          "dbt.versionCheck": {
+            "type": "string",
+            "enum": [
+              "both",
+              "status bar",
+              "error message",
+              "neither"
+            ],
+            "default": "both",
+            "enumDescriptions": [
+              "Show the outdated version message both in the status bar and as an error message popup.",
+              "Show the outdated version message in the status bar, but not as an error message popup.",
+              "Show the outdated version message as an error message popup, but not in the status bar.",
+              "Do not show the outdated version message in the status bar or as an error message popup."
+            ],
+            "description": "This determines which messages will show when the dbt version is outdated."
           }
         }
       }
@@ -175,6 +197,14 @@
           "light": "./media/file-code_light.svg",
           "dark": "./media/file-code_dark.svg"
         }
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "dbtPowerUser.previewSQL",
+        "key": "ctrl+enter",
+        "mac": "cmd+enter",
+        "when": "resourceLangId == jinja-sql"
       }
     ],
     "menus": {

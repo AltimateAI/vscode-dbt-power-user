@@ -24,7 +24,10 @@ export class RunModel {
   }
 
   previewModelOnActiveWindow() {
-    const sqlQuery = window.activeTextEditor?.document.getText();
+    let sqlQuery = window.activeTextEditor?.document.getText(window.activeTextEditor.selection) ?? undefined;
+    if (!sqlQuery) {
+      sqlQuery = window.activeTextEditor?.document.getText();
+    }
     const sqlTitle = path.basename(window.activeTextEditor?.document.uri.fsPath ?? "untitled.sql") + " " + new Date().toTimeString().split(" ")[0];
     if (sqlQuery !== undefined) {
       this.previewDBTModel(sqlQuery, sqlTitle);

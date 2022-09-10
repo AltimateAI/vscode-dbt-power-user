@@ -95,8 +95,11 @@ export class DBTProjectContainer implements Disposable {
     const osmosisPort = workspace
       .getConfiguration("dbt")
       .get<number>("osmosisPort", 8581);
+    const limit = workspace
+      .getConfiguration("dbt")
+      .get<number>("queryLimit", 500);
     this.resolveQueryPanel(title);
-    this.queryResultViewer?.doQuery(sql, osmosisHost, osmosisPort);
+    this.queryResultViewer?.doQuery(sql, title, osmosisHost, osmosisPort, limit);
   }
 
   listModels(projectUri: Uri) {

@@ -51,7 +51,6 @@ export function getWebviewOptions(extensionUri: vscode.Uri): vscode.WebviewOptio
 		portMapping: [
 			{ webviewPort: osmosisPort, extensionHostPort: osmosisPort }
 		],
-		// Keep context
 	};
 }
 
@@ -77,11 +76,11 @@ export class QueryResultPanel {
 
 		const previewColumn: string = vscode.workspace
 			.getConfiguration("dbt.previewPanel")
-			.get<string>("displayColumn") || 'horizontal';
+			.get<string>("displayLocation", "horizontal");
 
 		const reusePanel: boolean = vscode.workspace
 			.getConfiguration("dbt.previewPanel")
-			.get<boolean>("reusePanel") || false;
+			.get<boolean>("reusePanel", false);
 
 		if (QueryResultPanel.currentPanel && reusePanel) {
 			QueryResultPanel.currentPanel._panel.title = title + " preview";
@@ -99,7 +98,7 @@ export class QueryResultPanel {
 			"Query Previewer",
 			// column || vscode.ViewColumn.One,
 			{ viewColumn: viewColumn, preserveFocus: true },
-			getWebviewOptions(extensionUri),
+			{ ...getWebviewOptions(extensionUri), retainContextWhenHidden: true },
 		);
 
 		QueryResultPanel.currentPanel = new QueryResultPanel(panel, extensionUri, title);
@@ -116,11 +115,7 @@ export class QueryResultPanel {
 		panel.title = title + " preview";
 		panel.webview.html = this._getHtmlForWebview(webview, title);
 
-		this._panel.onDidChangeViewState((state) => {
-			if (state.webviewPanel.visible) {
 				this._panel.webview.html = this._getHtmlForWebview(webview, title);
-			}
-		});
 
 		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
@@ -140,7 +135,8 @@ export class QueryResultPanel {
 		);
 	};
 
-	public async doQuery(sql: string, osmosisHost: string, osmosisPort: number) {
+	public async doQuery(sql: string, title: string, osmosisHost: string, osmosisPort: number, limit: number) {
+    QueryResultPanel.currentPanel?.transmitLoading(title);
 		const controller = new AbortController();
 		const timeoutControllerId = setTimeout(() => {
 			controller.abort();
@@ -158,7 +154,7 @@ export class QueryResultPanel {
 
 		let resp;
 		try {
-			resp = await fetch(`http://${osmosisHost}:${osmosisPort}/run`, {
+			resp = await fetch(`http://${osmosisHost}:${osmosisPort}/run?limit=${limit}`, {
 				method: 'POST',
 				headers: {
 					'content-type': 'text/plain',
@@ -200,7 +196,7 @@ export class QueryResultPanel {
 		} else {
 			if (data.error) {
 				console.log(data.error);
-				vscode.window.showErrorMessage(data.error.message);
+				// vscode.window.showErrorMessage(data.error.message);
 				QueryResultPanel.currentPanel?.transmitError(data.error, sql, data.error?.data?.compiled_sql || sql);
 			} else {
 				// We can brainstorm more ways to handle this case but haven't seen it
@@ -220,7 +216,16 @@ export class QueryResultPanel {
 		clearTimeout(timeoutControllerId);
 	}
 
-	public transmitData(columns: Dictionary<string | number>[], rows: Dictionary<string | number>[], sql: string, compiled_sql: string) {
+	public transmitLoading(title: string) {
+    const reusePanel: boolean = vscode.workspace
+			.getConfiguration("dbt.previewPanel")
+			.get<boolean>("reusePanel") || false;
+    if (reusePanel) {
+      this._panel.webview.postMessage({ action: "loading", loading: true, title: title });
+    }
+	}
+	
+  public transmitData(columns: Dictionary<string | number>[], rows: Dictionary<string | number>[], sql: string, compiled_sql: string) {
 		this._panel.webview.postMessage({ action: "queryResults", columns: columns, rows: rows, sql: sql, compiled_sql: compiled_sql });
 	}
 
@@ -247,15 +252,17 @@ export class QueryResultPanel {
 	}
 
 	private _getHtmlForWebview(webview: vscode.Webview, title: string) {
-		const tabulatorScriptPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'media', 'js', 'tabulator.min.js');
-		const mainScriptPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'media', 'js', 'main.js');
 		const spinnerPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'media', 'animated_logo_no_bg_small_15fps.gif');
-		const tabulatorScriptUri = (tabulatorScriptPathOnDisk).with({ 'scheme': 'vscode-resource' });
-		const mainScriptUri = (mainScriptPathOnDisk).with({ 'scheme': 'vscode-resource' });
 		const spinnerUri = (spinnerPathOnDisk).with({ 'scheme': 'vscode-resource' });
+    const copyImagePathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'media', 'copy-regular.svg');
+    const copyImageURI = (copyImagePathOnDisk).with({ 'scheme': 'vscode-resource' });
+		const tabulatorScriptPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'media', 'js', 'tabulator.min.js');
+		const tabulatorScriptUri = (tabulatorScriptPathOnDisk).with({ 'scheme': 'vscode-resource' });
 		const tabulatorStylesPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'css', 'tabulator_site.min.css');
-		const mainStylesPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'css', 'main.css');
 		const tabulatorStylesUri = webview.asWebviewUri(tabulatorStylesPath);
+		const mainScriptPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'media', 'js', 'main.js');
+		const mainScriptUri = (mainScriptPathOnDisk).with({ 'scheme': 'vscode-resource' });
+		const mainStylesPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'css', 'main.css');
 		const mainStylesUri = webview.asWebviewUri(mainStylesPath);
 		const nonce = getNonce();
 		return `
@@ -281,25 +288,35 @@ export class QueryResultPanel {
 				<h3 id="header-container-title">🔍 &nbsp; Query Preview Panel</h3>
 				<p id="status"></p>
 			</div>
-      <details>
-        <summary>View Dispatched SQL &nbsp; &nbsp; &nbsp;<button id="clipboard-sql">📝</button></summary>
-        <!-- Maybe we add a copy to clipbaord button at some point -->
-        <pre id="sql"></pre>
-      </details>
-      <br id="results-break" />
-      <div id="results-panel"></div>
       <img id="loader" src="${spinnerUri}" height="200px" width="200px"></img>
-      <div id="error-container">
-        <h3 id="error-container-title">Error</h3>
-        <h4 id="error-container-type">Type</h4>
-        <p id="error-type"></p>
-        <h4 id="error-container-message">Message</h4>
-        <p id="error-message"></p>
+      <div id="sql-container">
         <details>
-          <summary>View Detailed Error &nbsp; &nbsp; &nbsp;<button id="clipboard-error">📝</button></summary>
+          <summary>View Dispatched SQL &nbsp; &nbsp; &nbsp;
+            <button id="clipboard-sql" class="tooltip">
+              <img id="clipboard-image" class="clipboard-image" src="${copyImageURI}" height="15px" width="15px"></img>
+              <span class="tooltiptext">Click to copy SQL</span>
+            </button>
+          </summary>
+          <pre id="sql"></pre>
+        </details>
+      </div>
+      <div id="results-container">
+        <br id="results-break" />
+        <div id="results-panel"></div>
+      </div>
+      <div id="error-container">
+        <h3 id="error-title">Error</h3>
+        <h4 id="error-message">Message</h4>
+        <details>
+          <summary>View Detailed Error &nbsp; &nbsp; &nbsp;
+            <button id="clipboard-error" class="tooltip">
+              <img id="clipboard-image" class="clipboard-image" src="${copyImageURI}" height="15px" width="15px"></img>
+              <span class="tooltiptext">Click to copy error message</span>
+            </button>
+          </summary>
           <pre id="error-details"></pre>
-      </details>
-      <br />
+        </details>
+        <br />
       </div>
     </body>
     <script nonce="${nonce}" src="${mainScriptUri}"></script>

@@ -235,7 +235,12 @@ export class DBTClient implements Disposable {
     const upToDate = installedVersion !== undefined &&
       latestVersion !== undefined &&
       installedVersion === latestVersion;
-    if (!upToDate && message) {
+    
+    const versionCheck: string = workspace
+			.getConfiguration("dbt")
+			.get<string>("versionCheck") || "both";
+
+    if (!upToDate && message && (versionCheck === "both" || versionCheck === "error message")) {
       window.showErrorMessage(message);
     };
     this._onDBTInstallationFound.fire({
