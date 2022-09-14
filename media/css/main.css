@@ -9,6 +9,18 @@
   display: flex;
 }
 
+#sql-container {
+  display: none;
+}
+
+#results-container {
+  display: none;
+}
+
+#error-container {
+  display: none;
+}
+
 #error-title {
   color: crimson;
 }

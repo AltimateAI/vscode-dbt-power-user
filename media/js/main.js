@@ -34,10 +34,9 @@ function showLoader(stateMessage) {
 
 function showError(stateMessage, ts) {
   const fullErrorMessage = stateMessage.error?.data?.message || (stateMessage.error?.message || "No error message");
-  const splitErrorMessage = fullErrorMessage.split(":", 3);
-  const errorTitle = splitErrorMessage.length > 1 ? splitErrorMessage[1] : undefined;
-  const shortErrorTitle = (errorTitle !== undefined) ? `${errorTitle}` : "Error";
-  const errorMessage = splitErrorMessage.length > 2 ? splitErrorMessage[2] : undefined;
+  const [errorTitle, ...errorMessages] = fullErrorMessage.split(/\r?\n/);
+  const errorMessage = errorMessages.join(" ");
+  const shortErrorTitle = (errorTitle !== undefined) ? errorTitle : "Error";
   const shortErrorMessage = (errorTitle !== undefined) ? errorMessage : "";
 
   document.getElementById("loader").style.display = "none";

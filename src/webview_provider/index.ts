@@ -70,10 +70,6 @@ export class QueryResultPanel {
 	private _disposables: vscode.Disposable[] = [];
 
 	public static createOrShow(extensionUri: vscode.Uri, title: string) {
-		const column = vscode.window.activeTextEditor
-			? vscode.window.activeTextEditor.viewColumn
-			: undefined;
-
 		const previewColumn: string = vscode.workspace
 			.getConfiguration("dbt.previewPanel")
 			.get<string>("displayLocation", "horizontal");
@@ -115,7 +111,7 @@ export class QueryResultPanel {
 		panel.title = title + " preview";
 		panel.webview.html = this._getHtmlForWebview(webview, title);
 
-				this._panel.webview.html = this._getHtmlForWebview(webview, title);
+		this._panel.webview.html = this._getHtmlForWebview(webview, title);
 
 		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
@@ -203,7 +199,7 @@ export class QueryResultPanel {
 				vscode.window.showErrorMessage("Failed query preview...Unknown response");
 				const error = {
 					code: -1,
-					message: "Failed query preview... Unknown response",
+					message: "Failed query preview...Unknown response",
 					data: {
 						"error": `Unknown Response`,
 						"sql": sql,
