@@ -7,6 +7,7 @@ import { GraphParser } from "./graphParser";
 import { MacroParser } from "./macroParser";
 import { NodeParser } from "./nodeParser";
 import { SourceParser } from "./sourceParser";
+import { TestParser } from "./testParser";
 import { provide } from "inversify-binding-decorators";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 
@@ -17,8 +18,9 @@ export class ManifestParser {
     private macroParser: MacroParser,
     private graphParser: GraphParser,
     private sourceParser: SourceParser,
+    private testParser: TestParser,
     private terminal: DBTTerminal
-  ) {}
+  ) { }
 
   public async parseManifest(
     projectRoot: Uri,
@@ -35,7 +37,8 @@ export class ManifestParser {
             nodeMetaMap: new Map(),
             macroMetaMap: new Map(),
             sourceMetaMap: new Map(),
-            graphMetaMap: { parents: new Map(), children: new Map() },
+            testMetaMap: new Map(),
+            graphMetaMap: { parents: new Map(), children: new Map(), tests: new Map() },
           },
         ],
       };
@@ -44,27 +47,32 @@ export class ManifestParser {
 
     const { nodes, sources, macros, parent_map, child_map } = manifest;
 
-    const modelMetaMapPromise = this.nodeParser.createModelMetaMap(nodes);
+    const nodeMetaMapPromise = this.nodeParser.createNodeMetaMap(nodes);
     const macroMetaMapPromise = this.macroParser.createMacroMetaMap(
       projectName,
       macros
     );
     const sourceMetaMapPromise = this.sourceParser.createSourceMetaMap(sources);
+    const testMetaMapPromise = this.testParser.createTestMetaMap(nodes);
 
     const [
-      modelMetaMap,
+      nodeMetaMap,
       macroMetaMap,
       sourceMetaMap,
+      testMetaMap,
     ] = await Promise.all([
-      modelMetaMapPromise,
+      nodeMetaMapPromise,
       macroMetaMapPromise,
       sourceMetaMapPromise,
+      testMetaMapPromise,
     ]);
+
     const graphMetaMap = this.graphParser.createGraphMetaMap(
       parent_map,
       child_map,
-      modelMetaMap,
-      sourceMetaMap
+      nodeMetaMap,
+      sourceMetaMap,
+      testMetaMap,
     );
 
     const event: ManifestCacheChangedEvent = {
@@ -72,10 +80,11 @@ export class ManifestParser {
         {
           projectName: projectName,
           projectRoot: projectRoot,
-          nodeMetaMap: modelMetaMap,
+          nodeMetaMap: nodeMetaMap,
           macroMetaMap: macroMetaMap,
           sourceMetaMap: sourceMetaMap,
           graphMetaMap: graphMetaMap,
+          testMetaMap: testMetaMap
         },
       ],
     };

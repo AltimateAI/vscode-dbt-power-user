@@ -1,21 +1,15 @@
 import { provide } from "inversify-binding-decorators";
 import * as path from "path";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { SourceMetaMap } from "../../domain";
 import { DBTProject } from "../dbtProject";
 
 @provide(SourceParser)
 export class SourceParser {
-  constructor(private terminal: DBTTerminal) {}
 
   createSourceMetaMap(sourcesMap: any[]): Promise<SourceMetaMap> {
     return new Promise((resolve) => {
       const sourceMetaMap: SourceMetaMap = new Map();
       if (sourcesMap === null || sourcesMap === undefined) {
-        console.log(
-          "No sources found in manifest! Are we on an older dbt version?"
-        );
-        this.terminal.log("No sources found in manifest! Are we on an older dbt version?");
         resolve(sourceMetaMap);
       }
       Object.values(sourcesMap)

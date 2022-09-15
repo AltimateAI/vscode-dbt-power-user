@@ -51,7 +51,7 @@ export class SourceFileWatchers implements Disposable {
         const parsedSourcePath = Uri.parse(sourcePath);
         const globPattern = Uri.joinPath(
           parsedSourcePath,
-          "**/*.sql"
+          "**/*.{sql,yml,yaml}"
         ).path.substring(1);
         const sourceFolderWatcher = workspace.createFileSystemWatcher(
           new RelativePattern(projectRoot, globPattern)

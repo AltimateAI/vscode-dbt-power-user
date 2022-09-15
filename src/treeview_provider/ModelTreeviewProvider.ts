@@ -8,7 +8,7 @@ import {
   Disposable,
   Uri,
 } from "vscode";
-import { Node, GraphMetaMap, Source, Model } from "../domain";
+import { Node, GraphMetaMap, Source, Model, Test } from "../domain";
 import * as path from "path";
 import {
   ManifestCacheChangedEvent,
@@ -81,6 +81,10 @@ abstract class ModelTreeviewProvider
       return Promise.resolve([]);
     }
 
+    if (element?.key.startsWith("test.")) {
+      return Promise.resolve([]);
+    }
+
     if (element) {
       return Promise.resolve(this.getTreeItems(element.key, event));
     }
@@ -116,9 +120,13 @@ abstract class ModelTreeviewProvider
         if (node instanceof Model && childNodes?.length === 0) {
           return new DashboardTreeItem(node);
         }
-        return node instanceof Source
-          ? new SourceTreeItem(node)
-          : new ModelTreeItem(node);
+        if (node instanceof Test) {
+          return new TestTreeItem(node);
+        }
+        if (node instanceof Source) {
+          return new SourceTreeItem(node);
+        }
+        return new ModelTreeItem(node);
       });
   }
 }
@@ -149,19 +157,32 @@ class ModelTreeItem extends NodeTreeItem {
 
 class SourceTreeItem extends NodeTreeItem {
   collapsibleState = TreeItemCollapsibleState.None;
-
   contextValue = "source";
 }
 
-class DashboardTreeItem extends NodeTreeItem {
+class TestTreeItem extends NodeTreeItem {
   collapsibleState = TreeItemCollapsibleState.None;
-
   iconPath = {
     light: path.join(path.resolve(__dirname), "../media/dashboard_light.svg"),
     dark: path.join(path.resolve(__dirname), "../media/dashboard_dark.svg"),
   };
-
   contextValue = "dashboard";
+}
+
+class DashboardTreeItem extends NodeTreeItem {
+  collapsibleState = TreeItemCollapsibleState.None;
+  iconPath = {
+    light: path.join(path.resolve(__dirname), "../media/dashboard_light.svg"),
+    dark: path.join(path.resolve(__dirname), "../media/dashboard_dark.svg"),
+  };
+  contextValue = "dashboard";
+}
+
+@provideSingleton(ModelTestTreeview)
+export class ModelTestTreeview extends ModelTreeviewProvider {
+  constructor(dbtProjectContainer: DBTProjectContainer) {
+    super(dbtProjectContainer, "tests");
+  }
 }
 
 @provideSingleton(ParentModelTreeview)

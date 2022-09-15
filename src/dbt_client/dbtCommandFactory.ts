@@ -70,7 +70,7 @@ export class DBTCommandFactory {
       .get<string[]>("runModelCommandAdditionalParams", []);
 
     return {
-      commandAsString: `dbt run --model ${params.plusOperatorLeft}${params.modelName
+      commandAsString: `dbt run --select ${params.plusOperatorLeft}${params.modelName
         }${params.plusOperatorRight}${runModelCommandAdditionalParams.length > 0
           ? " " + runModelCommandAdditionalParams.join(" ")
           : ""
@@ -90,13 +90,41 @@ export class DBTCommandFactory {
     };
   }
 
+  createTestModelCommand(projectRoot: Uri, testName: string) {
+    const profilesDirParams = this.profilesDirParams();
+
+    // Lets pass through these params here too
+    const runModelCommandAdditionalParams = workspace
+      .getConfiguration("dbt")
+      .get<string[]>("runModelCommandAdditionalParams", []);
+
+    return {
+      commandAsString: `dbt test --select ${testName}${runModelCommandAdditionalParams.length > 0
+        ? " " + runModelCommandAdditionalParams.join(" ")
+        : ""
+        }`,
+      statusMessage: "Testing dbt model...",
+      processExecutionParams: {
+        cwd: projectRoot.fsPath,
+        args: [
+          "test",
+          "--select",
+          `${testName}`,
+          ...runModelCommandAdditionalParams.map((param) => `${param}`),
+          ...profilesDirParams,
+        ],
+      },
+      focus: true,
+    };
+  }
+
   createCompileModelCommand(projectRoot: Uri, params: RunModelParams) {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     const profilesDirParams = this.profilesDirParams();
 
     return {
       commandAsString: `dbt compile --model ${params.plusOperatorLeft}${params.modelName}${params.plusOperatorRight}`,
-      statusMessage: "compiling dbt models...",
+      statusMessage: "Compiling dbt models...",
       processExecutionParams: {
         cwd: projectRoot.fsPath,
         args: [
@@ -108,44 +136,5 @@ export class DBTCommandFactory {
       },
       focus: true,
     };
-  }
-
-  createSqlCommand(projectRoot: Uri, sql: string): DBTCommand {
-    // Replace this with macro?
-    return {
-      commandAsString: "Executing SQL",
-      statusMessage: "Executing SQL...",
-      processExecutionParams: {
-        cwd: projectRoot.fsPath,
-        args: ["-c", this.customCommand(sql)],
-      },
-      focus: true,
-    };
-  }
-
-  private dbtCommand(cmd: string | string[]): string {
-    return `import dbt.main; dbt.main.main([${cmd}])`;
-  }
-
-  private customCommand(sql: string): string {
-    return `
-from dbt.task.runnable import ManifestTask
-from dbt.main import parse_args, adapter_management
-from dbt.adapters.factory import get_adapter
-
-class RunQuery(ManifestTask):
-    def run(self) -> None:
-        adapter = get_adapter(self.config)
-        with adapter.connection_named('master'):
-            (_, output) = adapter.execute("""${sql}""", fetch=True)
-            output.print_json()
-
-if __name__ == "__main__":
-    parsed = parse_args(['run'])
-
-    with adapter_management():
-        task = RunQuery.from_args(args=parsed)
-        results = task.run()
-    `;
   }
 }

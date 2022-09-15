@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/datacoves/vscode-dbt-power-user/issues"
   },
-  "version": "0.7.2",
+  "version": "0.8.0",
   "engines": {
     "vscode": "^1.52.0"
   },
@@ -38,6 +38,11 @@
             "type": "boolean",
             "default": false,
             "description": "Disable automatic listing of models when files change."
+          },
+          "dbt.listModelsOsmosis": {
+            "type": "boolean",
+            "default": false,
+            "description": "Use Osmosis server to regenerate manifest when files change."
           },
           "dbt.runModelCommandAdditionalParams": {
             "type": "array",
@@ -102,6 +107,10 @@
     "views": {
       "dbt_view": [
         {
+          "id": "model_test_treeview",
+          "name": "Model Tests"
+        },
+        {
           "id": "parent_model_treeview",
           "name": "Parent Models"
         },
@@ -126,6 +135,30 @@
         "icon": {
           "light": "./media/build_light.svg",
           "dark": "./media/build_dark.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.showCompileWindow",
+        "title": "dbt Power User: Show compile window",
+        "icon": {
+          "light": "./media/build_light.svg",
+          "dark": "./media/build_dark.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.runTest",
+        "title": "dbt Power User: Run a specific test",
+        "icon": {
+          "light": "./media/build_light.svg",
+          "dark": "./media/build_dark.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.testCurrentModel",
+        "title": "dbt Power User: Run model tests",
+        "icon": {
+          "light": "./media/run-light.svg",
+          "dark": "./media/run-dark.svg"
         }
       },
       {
@@ -177,6 +210,12 @@
         }
       }
     ],
+    "keybindings": {
+      "key": "Ctrl+Enter",
+      "mac": "Cmd+Enter",
+      "command": "dbtPowerUser.previewSQL",
+      "when": "resourceLangId == jinja-sql"
+    },
     "menus": {
       "editor/title": [
         {
@@ -185,7 +224,7 @@
           "group": "navigation@-1"
         },
         {
-          "command": "dbtPowerUser.compileCurrentModel",
+          "command": "dbtPowerUser.showCompileWindow",
           "when": "resourceLangId == jinja-sql",
           "group": "navigation@0"
         },
@@ -195,7 +234,34 @@
           "group": "navigation@-1"
         }
       ],
+      "editor/context": [
+        {
+          "command": "dbtPowerUser.showCompiledSQL",
+          "group": "dbt",
+          "when": "resourceLangId == jinja-sql"
+        },
+        {
+          "command": "dbtPowerUser.showRunSQL",
+          "group": "dbt",
+          "when": "resourceLangId == jinja-sql"
+        },
+        {
+          "command": "dbtPowerUser.testCurrentModel",
+          "group": "dbt",
+          "when": "resourceLangId == jinja-sql"
+        },
+        {
+          "command": "dbtPowerUser.compileCurrentModel",
+          "group": "dbt",
+          "when": "resourceLangId == jinja-sql"
+        }
+      ],
       "view/title": [
+        {
+          "command": "dbtPowerUser.testCurrentModel",
+          "when": "view == model_test_treeview",
+          "group": "navigation"
+        },
         {
           "command": "dbtPowerUser.runChildrenModels",
           "when": "view == children_model_treeview",
@@ -208,6 +274,16 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "dbtPowerUser.runTest",
+          "when": "view == model_test_treeview && viewItem != source",
+          "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.runTest",
+          "when": "view == model_test_treeview && viewItem != source",
+          "group": "inline"
+        },
         {
           "command": "dbtPowerUser.runChildrenModels",
           "when": "view == children_model_treeview && viewItem != source",

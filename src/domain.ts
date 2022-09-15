@@ -3,6 +3,7 @@ import * as path from "path";
 export type NodeMetaMap = Map<string, NodeMetaData>;
 export type MacroMetaMap = Map<string, MacroMetaData>;
 export type SourceMetaMap = Map<string, SourceMetaData>;
+export type TestMetaMap = Map<string, TestMetaData>;
 
 interface MacroMetaData {
   path: string;
@@ -26,6 +27,15 @@ interface SourceTable {
   path: string;
 }
 
+interface TestMetaData {
+  path: string;
+  database: string;
+  schema: string;
+  alias: string;
+  raw_sql: string;
+  column_name?: string;
+}
+
 interface NodeGraphMetaData {
   nodes: Node[];
 }
@@ -35,6 +45,7 @@ export type NodeGraphMap = Map<string, NodeGraphMetaData>;
 export interface GraphMetaMap {
   parents: NodeGraphMap;
   children: NodeGraphMap;
+  tests: NodeGraphMap;
 }
 
 interface IconPath {
@@ -59,11 +70,15 @@ export abstract class Node {
   }
 }
 
-export class Model extends Node {}
+export class Model extends Node { }
 
-export class Seed extends Node {}
+export class Seed extends Node { }
 export class Test extends Node {
-  displayInModelTree = false;
+  // displayInModelTree = false;
+  iconPath = {
+    light: path.join(path.resolve(__dirname), "../media/source_light.svg"),
+    dark: path.join(path.resolve(__dirname), "../media/source_dark.svg"),
+  };
 }
 export class Analysis extends Node {
   displayInModelTree = false;
@@ -71,7 +86,7 @@ export class Analysis extends Node {
 export class Exposure extends Node {
   displayInModelTree = false;
 }
-export class Snapshot extends Node {}
+export class Snapshot extends Node { }
 export class Source extends Node {
   iconPath = {
     light: path.join(path.resolve(__dirname), "../media/source_light.svg"),
@@ -82,4 +97,5 @@ export class Source extends Node {
 export enum RunModelType {
   PARENTS,
   CHILDREN,
+  TEST
 }

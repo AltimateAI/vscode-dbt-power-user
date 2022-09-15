@@ -7,37 +7,73 @@ import { provideSingleton } from "../utils";
 
 @provideSingleton(RunModel)
 export class RunModel {
-  constructor(private dbtProjectContainer: DBTProjectContainer) {}
+  constructor(private dbtProjectContainer: DBTProjectContainer) { }
 
-  runModelOnActiveWindow(type?: RunModelType) {
+  runModelOnActiveWindow() {
+    // TODO: try catch with server
     const fullPath = window.activeTextEditor?.document.uri;
     if (fullPath !== undefined) {
-      this.runDBTModel(fullPath, type);
+      this.runDBTModel(fullPath);
     }
   }
 
-  compileModelOnActiveWindow(type?: RunModelType) {
+  runTestsOnActiveWindow() {
+    // TODO: try catch with server?
     const fullPath = window.activeTextEditor?.document.uri;
     if (fullPath !== undefined) {
-      this.compileDBTModel(fullPath, type);
+      this.runDBTModelTest(fullPath);
+    }
+  }
+
+  compileModelOnActiveWindow() {
+    const fullPath = window.activeTextEditor?.document.uri;
+    if (fullPath !== undefined) {
+      this.compileDBTModel(fullPath);
+    }
+  }
+
+  compileQueryOnActiveWindow() {
+    const fullPath = window.activeTextEditor?.document.uri;
+    if (fullPath !== undefined) {
+      const query = window.activeTextEditor?.document.getText();
+      if (query !== undefined) {
+        this.compileDBTQuery(fullPath, query);
+      }
     }
   }
 
   previewModelOnActiveWindow() {
-    const sqlQuery = window.activeTextEditor?.document.getText();
-    const sqlTitle = path.basename(window.activeTextEditor?.document.uri.fsPath ?? "untitled.sql") + " " + new Date().toTimeString().split(" ")[0];
-    if (sqlQuery !== undefined) {
-      this.previewDBTModel(sqlQuery, sqlTitle);
+    if (!window.activeTextEditor) {
+      return;
     }
+    const sqlSelected = window.activeTextEditor.selection;
+    const sqlQuery = window.activeTextEditor.document.getText(
+      sqlSelected.isEmpty ? undefined : sqlSelected);
+    const sqlTitle = path.basename(window.activeTextEditor?.document.uri.fsPath ?? "Untitled.sql")
+      + " "
+      + new Date().toTimeString().split(" ")[0];
+    this.previewDBTModel(sqlQuery, sqlTitle);
   }
 
   runModelOnNodeTreeItem(type: RunModelType) {
     return (model?: NodeTreeItem) => {
       if (model === undefined) {
-        this.runModelOnActiveWindow(type);
+        this.runModelOnActiveWindow();
         return;
       }
-      this.runDBTModel(Uri.file(model.url), type);
+      switch (type) {
+        case (RunModelType.TEST): {
+          if (model.label) {
+            this.runDBTTest(Uri.file(model.url), model.label.toString().split(".")[0]);
+          }
+          break;
+        }
+        default: {
+          // Catch Parents || Children RunTypes
+          this.runDBTModel(Uri.file(model.url), type);
+          break;
+        }
+      }
     };
   }
 
@@ -61,6 +97,19 @@ export class RunModel {
 
   compileDBTModel(modelPath: Uri, type?: RunModelType) {
     this.dbtProjectContainer.compileModel(modelPath, type);
+  }
+
+  compileDBTQuery(modelPath: Uri, query: string) {
+    this.dbtProjectContainer.compileQuery(modelPath, query);
+  }
+
+  runDBTTest(modelPath: Uri, testName: string) {
+    this.dbtProjectContainer.runTest(modelPath, testName);
+  }
+
+  runDBTModelTest(modelPath: Uri) {
+    const modelName = path.basename(modelPath.fsPath, ".sql");
+    this.dbtProjectContainer.runModelTest(modelPath, modelName);
   }
 
   async previewDBTModel(sql: string, title: string) {

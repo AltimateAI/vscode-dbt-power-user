@@ -1,13 +1,10 @@
 import { readFileSync } from "fs";
 import { provide } from "inversify-binding-decorators";
 import * as path from "path";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { MacroMetaMap } from "../../domain";
 
 @provide(MacroParser)
 export class MacroParser {
-
-  constructor(private terminal: DBTTerminal) {}
 
   createMacroMetaMap(
     projectName: string,
@@ -16,7 +13,6 @@ export class MacroParser {
     return new Promise((resolve) => {
       const macroMetaMap: MacroMetaMap = new Map();
       if (macros === null || macros === undefined) {
-        console.log("No macros found in manifest!");
         resolve(macroMetaMap);
       }
       Object.values(macros).forEach(
@@ -42,10 +38,9 @@ export class MacroParser {
             }
           } catch (error) {
             console.log(
-              `File not found at '${fullPath}', probably compiled is outdated!`,
+              `File not found at '${fullPath}', project may need to be recompiled.`,
               error
             );
-            this.terminal.log(`File not found at '${fullPath}', probably compiled is outdated. ${error}`);
           }
         }
       );

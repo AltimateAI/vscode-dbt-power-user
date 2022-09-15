@@ -16,6 +16,7 @@ import {
   workspace,
   Event,
   commands,
+  ViewColumn,
   window
 } from "vscode";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
@@ -26,6 +27,7 @@ import {
 } from "../dbt_client/dbtCommandFactory";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { compileQuery, isError } from "../osmosis_client";
 
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -39,11 +41,12 @@ export class DBTProject implements Disposable {
   static RESOURCE_TYPE_SOURCE = "source";
   static RESOURCE_TYPE_SEED = "seed";
   static RESOURCE_TYPE_SNAPSHOT = "snapshot";
+  static RESOURCE_TYPE_TEST = "test";
 
   readonly projectRoot: Uri;
-  private projectName: string|undefined;
-  private targetPath: string|undefined;
-  private sourcePaths: string[]|undefined;
+  private projectName: string | undefined;
+  private targetPath: string | undefined;
+  private sourcePaths: string[] | undefined;
 
   private _onProjectConfigChanged = new EventEmitter<ProjectConfigChangedEvent>();
   public onProjectConfigChanged = this._onProjectConfigChanged.event;
@@ -89,6 +92,7 @@ export class DBTProject implements Disposable {
       this.sourceFileWatchers,
       this.dbtProjectLog
     );
+    
   }
 
   async tryRefresh() {
@@ -131,12 +135,38 @@ export class DBTProject implements Disposable {
     this.dbtProjectContainer.addCommandToQueue(runModelCommand);
   }
 
+  runTest(testName: string) {
+    const testModelCommand = this.dbtCommandFactory.createTestModelCommand(
+      this.projectRoot,
+      testName
+    );
+    this.dbtProjectContainer.addCommandToQueue(testModelCommand);
+  }
+
+  runModelTest(modelName: string) {
+    const testModelCommand = this.dbtCommandFactory.createTestModelCommand(
+      this.projectRoot,
+      modelName
+    );
+    this.dbtProjectContainer.addCommandToQueue(testModelCommand);
+  }
+
   compileModel(runModelParams: RunModelParams) {
     const runModelCommand = this.dbtCommandFactory.createCompileModelCommand(
       this.projectRoot,
       runModelParams
     );
     this.dbtProjectContainer.addCommandToQueue(runModelCommand);
+  }
+
+  async compileQuery(query: string) {
+    // TODO: Send to new webview
+    const compiledSQL = await compileQuery(query);
+    if (isError(compiledSQL)) {
+      window.showErrorMessage(compiledSQL.error.message);
+    } else {
+      window.showInformationMessage(compiledSQL.result);
+    }
   }
 
   showCompiledSql(modelPath: Uri) {
@@ -160,30 +190,32 @@ export class DBTProject implements Disposable {
       path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE),
       "utf8"
     );
-    return parse(dbtProjectYamlFile, { uniqueKeys: false}) as any;
+    return parse(dbtProjectYamlFile, { uniqueKeys: false }) as any;
   }
 
-  private async findModelInTargetfolder(modelPath: Uri, type: string) { 
+  private async findModelInTargetfolder(modelPath: Uri, type: string) {
     if (this.targetPath === undefined) {
       return;
     }
     const baseName = path.basename(modelPath.fsPath);
     const targetModels = await workspace.findFiles(
       new RelativePattern(
-        this.projectRoot,
-        `${this.targetPath}/${type}/**/${baseName}`
+        path.join(this.projectRoot.fsPath, this.targetPath),
+        `${type}/**/${baseName}`
       )
     );
     if (targetModels.length > 0) {
       commands.executeCommand("vscode.open", targetModels[0], {
         preview: false,
+        preserveFocus: true,
+        viewColumn: ViewColumn.Beside
       });
     }
   }
 
   private findSourcePaths(projectConfig: any): string[] {
     return DBTProject.SOURCE_PATHS_VAR.reduce((prev: string[], current: string) => {
-      if(projectConfig[current] !== undefined) {
+      if (projectConfig[current] !== undefined) {
         return projectConfig[current] as string[];
       } else {
         return prev;

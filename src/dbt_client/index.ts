@@ -17,11 +17,7 @@ import { DBTInstallationFoundEvent } from "./dbtVersionEvent";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { provideSingleton } from "../utils";
 import { DBTTerminal } from "./dbtTerminal";
-
-interface OsmosisCompileResp {
-  error?: string,
-  result?: string
-}
+import { reparseProject } from "../osmosis_client";
 
 @provideSingleton(DBTClient)
 export class DBTClient implements Disposable {
@@ -61,22 +57,6 @@ export class DBTClient implements Disposable {
     await this.handlePythonExtension();
   }
 
-  async executeSQL(projectUri: Uri, sql: string): Promise<any> {
-    // WIP -- serverless execution
-    try {
-      const sqlCommandProcess = await this.executeCommand(
-        this.dbtCommandFactory.createSqlCommand(projectUri, sql)
-      );
-      const output = await sqlCommandProcess.complete();
-      sqlCommandProcess.dispose();
-      const data = JSON.parse(output);
-      return data;
-    } catch (err) {
-      console.log(`An error occured while executing query '${sql}'`, err);
-      this.terminal.log(`An error occured while executing query '${sql}': ${err}`);
-    }
-  }
-
   async listModels(projectUri: Uri): Promise<void> {
     const listModelsDisabled = workspace
       .getConfiguration("dbt")
@@ -84,9 +64,18 @@ export class DBTClient implements Disposable {
     if (listModelsDisabled) {
       return;
     }
-    this.addCommandToQueue(
-      this.dbtCommandFactory.createListCommand()
-    );
+    const listModelsOsmosis = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("listModelsOsmosis", false);
+    if (listModelsOsmosis) {
+      this.terminal.log(`> Rebuilding manifest\n\r`);
+      await reparseProject();
+      this.terminal.log(`> Manifest updated!\n\r`);
+    } else {
+      this.addCommandToQueue(
+        this.dbtCommandFactory.createListCommand()
+      );
+    }
   }
 
   async checkIfDBTIsInstalled(): Promise<void> {
@@ -185,31 +174,6 @@ export class DBTClient implements Disposable {
       token,
       envVars
     );
-  }
-
-  async compileSql(sql: string): Promise<string> {
-    const osmosisHost = workspace
-      .getConfiguration("dbt")
-      .get<string>("osmosisHost", "localhost");
-    const osmosisPort = workspace
-      .getConfiguration("dbt")
-      .get<number>("osmosisPort", 8581);
-    let data: OsmosisCompileResp;
-    const response = await fetch(`http://${osmosisHost}:${osmosisPort}/compile`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'text/plain',
-      },
-      body: sql
-    });
-    data = await response.json();
-    if (data.result !== undefined) {
-      window.showInformationMessage(data.result);
-      return data.result;
-    } else {
-      window.showErrorMessage("Failed compilation...");
-      return "";
-    }
   }
 
   private raiseDBTInstallationCheckEvent(): void {

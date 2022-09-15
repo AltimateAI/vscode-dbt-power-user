@@ -14,9 +14,9 @@ import { DBTCommand } from "../dbt_client/dbtCommandFactory";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
 import { inject } from "inversify";
-import * as path from "path";
+import { basename, sep } from "path";
 import { RunModelType } from "../domain";
-import { QueryResultPanel } from "../webview_provider";
+import { QueryResultPanel, CompileSqlPanel } from "../webview_provider";
 
 
 @provideSingleton(DBTProjectContainer)
@@ -37,21 +37,50 @@ export class DBTProjectContainer implements Disposable {
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
     ) => DBTWorkspaceFolder
   ) {
+    // Workspace Folder Registrar
     this.disposables.push(
       workspace.onDidChangeWorkspaceFolders(async (event) => {
         const { added, removed } = event;
-
         await Promise.all(
           added.map(
             async (folder) => await this.registerWorkspaceFolder(folder)
           )
         );
-
         removed.forEach((removedWorkspaceFolder) =>
           this.unregisterWorkspaceFolder(removedWorkspaceFolder)
         );
       })
     );
+
+    // Query View Sync
+    this.disposables.push(
+      workspace.onDidChangeTextDocument(async (event) => {
+        if (event.document.fileName.endsWith(".sql") || event.document.fileName.endsWith(".sql.jinja")) {
+          const query = event.document.getText();
+          const parts = event.document.fileName.split(sep);
+          const file = parts.slice(
+            parts.length >= 3 ? -3 : -parts.length
+          ).join(" > "); globalThis.currentSql = query;
+          globalThis.currentSqlFile = file;
+          await CompileSqlPanel.currentPanel?.getRenderedHTML();
+        }
+      })
+    );
+    this.disposables.push(
+      window.onDidChangeActiveTextEditor(async (event) => {
+        if (event?.document.fileName.endsWith(".sql") || event?.document.fileName.endsWith(".sql.jinja")) {
+          const query = event.document.getText();
+          const parts = event.document.fileName.split(sep);
+          const file = parts.slice(
+            parts.length >= 3 ? -3 : -parts.length
+          ).join(" > ");
+          globalThis.currentSql = query;
+          globalThis.currentSqlFile = file;
+          await CompileSqlPanel.currentPanel?.getRenderedHTML();
+        }
+      })
+    );
+
   }
 
   async initializeDBTProjects(): Promise<void> {
@@ -88,15 +117,9 @@ export class DBTProjectContainer implements Disposable {
     await this.dbtClient.detectDBT();
   }
 
-  previewSQL<T>(sql: string, title: string): void {
-    const osmosisHost = workspace
-      .getConfiguration("dbt")
-      .get<string>("osmosisHost", "localhost");
-    const osmosisPort = workspace
-      .getConfiguration("dbt")
-      .get<number>("osmosisPort", 8581);
+  previewSQL(query: string, title: string): void {
     this.resolveQueryPanel(title);
-    this.queryResultViewer?.doQuery(sql, osmosisHost, osmosisPort);
+    this.queryResultViewer?.previewQuery(query);
   }
 
   listModels(projectUri: Uri) {
@@ -107,8 +130,20 @@ export class DBTProjectContainer implements Disposable {
     this.findDBTProject(modelPath)?.runModel(this.createModelParams(modelPath, type));
   }
 
+  runTest(modelPath: Uri, testName: string) {
+    this.findDBTProject(modelPath)?.runTest(testName);
+  }
+
+  runModelTest(modelPath: Uri, modelName: string) {
+    this.findDBTProject(modelPath)?.runModelTest(modelName);
+  }
+
   compileModel(modelPath: Uri, type?: RunModelType) {
     this.findDBTProject(modelPath)?.compileModel(this.createModelParams(modelPath, type));
+  }
+
+  compileQuery(modelPath: Uri, query: string) {
+    this.findDBTProject(modelPath)?.compileQuery(query);
   }
 
   showRunSQL(modelPath: Uri) {
@@ -135,10 +170,6 @@ export class DBTProjectContainer implements Disposable {
     this.dbtClient.addCommandToQueue(command);
   }
 
-  async executeSQL(projectRoot: Uri, sql: string): Promise<any> {
-    return this.dbtClient.executeSQL(projectRoot, sql);
-  }
-
   dispose() {
     this.dbtWorkspaceFolders.forEach((workspaceFolder) =>
       workspaceFolder.dispose()
@@ -147,7 +178,7 @@ export class DBTProjectContainer implements Disposable {
   }
 
   private createModelParams(modelPath: Uri, type?: RunModelType) {
-    const modelName = path.basename(modelPath.fsPath, ".sql");
+    const modelName = basename(modelPath.fsPath, ".sql");
     const plusOperatorLeft = type === RunModelType.PARENTS ? "+" : "";
     const plusOperatorRight = type === RunModelType.CHILDREN ? "+" : "";
     return { plusOperatorLeft, modelName, plusOperatorRight };

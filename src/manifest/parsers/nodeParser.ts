@@ -5,11 +5,11 @@ import { DBTProject } from "../dbtProject";
 
 @provide(NodeParser)
 export class NodeParser {
-  createModelMetaMap(nodesMap: any[]): Promise<NodeMetaMap> {
+
+  createNodeMetaMap(nodesMap: any[]): Promise<NodeMetaMap> {
     return new Promise((resolve) => {
       const modelMetaMap: NodeMetaMap = new Map();
       if (nodesMap === null || nodesMap === undefined) {
-        console.log("No nodes found in manifest!");
         resolve(modelMetaMap);
       }
       Object.values(nodesMap)

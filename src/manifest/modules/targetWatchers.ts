@@ -6,6 +6,7 @@ import {
   workspace,
   Event,
 } from "vscode";
+import { join } from 'path';
 import { provideSingleton, setupWatcherHandler } from "../../utils";
 import { DBTProject } from "../dbtProject";
 import { ManifestCacheChangedEvent } from "../event/manifestCacheChangedEvent";
@@ -14,7 +15,7 @@ import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 
 @provideSingleton(TargetWatchersFactory)
 export class TargetWatchersFactory {
-  constructor(private manifestParser: ManifestParser) {}
+  constructor(private manifestParser: ManifestParser) { }
 
   createTargetWatchers(
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
@@ -94,8 +95,8 @@ export class TargetWatchers implements Disposable {
     const { targetPath, projectRoot } = event;
     const manifestWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(
-        projectRoot.path,
-        `${targetPath}/${DBTProject.MANIFEST_FILE}`
+        join(projectRoot.path, targetPath),
+        DBTProject.MANIFEST_FILE
       )
     );
     return manifestWatcher;
@@ -106,7 +107,7 @@ export class TargetWatchers implements Disposable {
   ): FileSystemWatcher {
     const { targetPath, projectRoot } = event;
     const targetFolderWatcher = workspace.createFileSystemWatcher(
-      new RelativePattern(projectRoot.path, targetPath)
+      new RelativePattern(join(projectRoot.path, targetPath), "*")
     );
     return targetFolderWatcher;
   }

@@ -6,13 +6,13 @@ import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
 import { StatusBars } from "./statusbar";
 import { TreeviewProviders } from "./treeview_provider";
 import { provideSingleton } from "./utils";
-import * as QueryViewer from "./webview_provider";
+import { activate as activateQueryViewer } from "./webview_provider";
 
 @provideSingleton(DBTPowerUserExtension)
 export class DBTPowerUserExtension implements Disposable {
   static DBT_MODE = { language: "jinja-sql", scheme: "file" };
   private disposables: Disposable[] = [];
-  
+
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private autocompletionProviders: AutocompletionProviders,
@@ -36,7 +36,7 @@ export class DBTPowerUserExtension implements Disposable {
   }
 
   async activate(context: ExtensionContext): Promise<void> {
-    QueryViewer.activate(context);
+    activateQueryViewer(context);
     this.dbtProjectContainer.resolveUri(context);
     await this.dbtProjectContainer.detectDBT();
     await this.dbtProjectContainer.initializeDBTProjects();

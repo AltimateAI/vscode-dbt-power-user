@@ -1,26 +1,14 @@
 import * as vscode from 'vscode';
-import fetch from 'node-fetch';
-import { AbortController } from 'node-abort-controller';
+import { getPort, runQuery, isError, OsmosisError, compileQuery } from '../osmosis_client';
+
 
 interface Dictionary<T> {
 	[Key: string]: T;
 }
 
-interface DbtSyncCompileResp {
-	error?: string,
-	result?: string
-}
-
-interface DbtSyncRunResp {
-	error?: {
-		code: number,
-		message: string,
-		data: Dictionary<string>
-	},
-	column_names?: string[],
-	rows?: (string | number)[][],
-	compiled_sql?: string,
-	raw_sql?: string
+declare global {
+	var currentSql: string;
+	var currentSqlFile: string;
 }
 
 // TODO: Move activation snippet
@@ -29,19 +17,15 @@ export function activate(context: vscode.ExtensionContext) {
 		// Make sure we register a serializer in activation event
 		vscode.window.registerWebviewPanelSerializer(QueryResultPanel.viewType, {
 			async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: any) {
-				console.log(`Got State: ${state}`);
 				// Reset the webview options so we use latest uri for `localResourceRoots`.
 				webviewPanel.webview.options = getWebviewOptions(context.extensionUri);
-				QueryResultPanel.revive(webviewPanel, context.extensionUri, state.title ?? "untitled.sql");
+				QueryResultPanel.revive(webviewPanel, context.extensionUri, state.title ?? "Untitled.sql");
 			}
 		});
 	}
 }
 
 export function getWebviewOptions(extensionUri: vscode.Uri): vscode.WebviewOptions {
-	const osmosisPort = vscode.workspace
-		.getConfiguration("dbt")
-		.get<number>("osmosisPort", 8581);
 	return {
 		// Enable javascript in the webview
 		enableScripts: true,
@@ -49,8 +33,8 @@ export function getWebviewOptions(extensionUri: vscode.Uri): vscode.WebviewOptio
 		localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
 		// Map ports
 		portMapping: [
-			{ webviewPort: osmosisPort, extensionHostPort: osmosisPort }
-		],
+			{ webviewPort: getPort(), extensionHostPort: getPort() }
+		]
 		// Keep context
 	};
 }
@@ -63,12 +47,41 @@ export class QueryResultPanel {
 	 * Track the currently panel. Only allow a single panel to exist at a time.
 	 */
 	public static currentPanel: QueryResultPanel | undefined;
-
 	public static readonly viewType = 'queryResult';
-
 	private readonly _panel: vscode.WebviewPanel;
 	private readonly _extensionUri: vscode.Uri;
 	private _disposables: vscode.Disposable[] = [];
+
+	public constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, title: string) {
+		this._panel = panel;
+		this._extensionUri = extensionUri;
+		// Render base view (data transmission is the mechanism for last mile rendering)
+		panel.title = title + " preview";
+		panel.webview.html = this._getHtmlForWebview(this._panel.webview, title);
+		// Rerender on focus
+		this._panel.onDidChangeViewState((state) => {
+			if (state.webviewPanel.visible) {
+				this._panel.webview.html = this._getHtmlForWebview(this._panel.webview, title);
+			}
+		});
+		// Dispose when removed
+		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+		// Permit bidirectional communication
+		this._panel.webview.onDidReceiveMessage(
+			message => {
+				switch (message.command) {
+					case 'error':
+						vscode.window.showErrorMessage(message.text);
+						return;
+					case 'info':
+						vscode.window.showInformationMessage(message.text);
+						return;
+				}
+			},
+			null,
+			this._disposables
+		);
+	};
 
 	public static createOrShow(extensionUri: vscode.Uri, title: string) {
 		const column = vscode.window.activeTextEditor
@@ -97,9 +110,8 @@ export class QueryResultPanel {
 		const panel = vscode.window.createWebviewPanel(
 			QueryResultPanel.viewType,
 			"Query Previewer",
-			// column || vscode.ViewColumn.One,
 			{ viewColumn: viewColumn, preserveFocus: true },
-			getWebviewOptions(extensionUri),
+			{ ...getWebviewOptions(extensionUri), retainContextWhenHidden: true },
 		);
 
 		QueryResultPanel.currentPanel = new QueryResultPanel(panel, extensionUri, title);
@@ -109,135 +121,56 @@ export class QueryResultPanel {
 		QueryResultPanel.currentPanel = new QueryResultPanel(panel, extensionUri, title);
 	}
 
-	public constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, title: string) {
-		this._panel = panel;
-		this._extensionUri = extensionUri;
-		const webview = panel.webview;
-		panel.title = title + " preview";
-		panel.webview.html = this._getHtmlForWebview(webview, title);
-
-		this._panel.onDidChangeViewState((state) => {
-			if (state.webviewPanel.visible) {
-				this._panel.webview.html = this._getHtmlForWebview(webview, title);
-			}
-		});
-
-		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
-
-		this._panel.webview.onDidReceiveMessage(
-			message => {
-				switch (message.command) {
-					case 'error':
-						vscode.window.showErrorMessage(message.text);
-						return;
-					case 'info':
-						vscode.window.showInformationMessage(message.text);
-						return;
-				}
-			},
-			null,
-			this._disposables
-		);
-	};
-
-	public async doQuery(sql: string, osmosisHost: string, osmosisPort: number) {
-		const controller = new AbortController();
-		const timeoutControllerId = setTimeout(() => {
-			controller.abort();
-			vscode.window.showErrorMessage("Failed query preview due to timeout");
-			const error = {
-				code: -1,
-				message: "Query timed out",
-				data: {
-					"error": `Is the server listening on http://${osmosisHost}:${osmosisPort} ?`,
-					"sql": sql,
-				},
-			};
-			QueryResultPanel.currentPanel?.transmitError(error, sql, sql);
-		}, 25000);
-
-		let resp;
-		try {
-			resp = await fetch(`http://${osmosisHost}:${osmosisPort}/run`, {
-				method: 'POST',
-				headers: {
-					'content-type': 'text/plain',
-				},
-				body: sql,
-				signal: controller.signal
-			});
-		} catch (e) {
-			console.log(e);
-			vscode.window.showErrorMessage("Query failed to reach dbt sync server");
-			const error = {
-				code: -1,
-				message: "Query failed to reach dbt sync server",
-				data: {
-					"error": `Is the server listening on http://${osmosisHost}:${osmosisPort} ?`,
-					"sql": sql,
-				},
-			};
-			QueryResultPanel.currentPanel?.transmitError(error, sql, sql);
-			clearTimeout(timeoutControllerId);
-			return;
-		};
-
-		const data: DbtSyncRunResp = await resp.json();
-
-		if (!data.error && data.column_names && data.rows && data.compiled_sql) {
-			let columnDefs: Dictionary<string | number>[] = [];
-			let tableValues: Dictionary<string | number>[] = [];
-			data.column_names.forEach(def => {
-				columnDefs = [...columnDefs, { "title": def.toUpperCase(), "field": def }];
-			});
-			for (let row = 0; row < data.rows.length; row++) {
-				data.rows[row].forEach((value, index) => {
-					let colName = columnDefs[index]["field"];
-					tableValues[row] = { ...tableValues[row], [colName]: value };
+	public async previewQuery(query: string) {
+		const result = await runQuery(query);
+		if (isError(result)) {
+			console.log(result.error);
+			vscode.window.showErrorMessage(result.error.message);
+			QueryResultPanel.currentPanel?.transmitError(result.error, query, query);
+		} else {
+			let columns: Dictionary<string | number>[] = [];
+			let rows: Dictionary<string | number>[] = [];
+			// Unpack rows to list of dicts
+			for (let i = 0; i < result.rows.length; i++) {
+				result.rows[i].forEach((value, j) => {
+					rows[i] = { ...rows[i], [result.column_names[j]]: value };
 				});
 			}
-			QueryResultPanel.currentPanel?.transmitData(columnDefs, tableValues, sql, data.compiled_sql);
-		} else {
-			if (data.error) {
-				console.log(data.error);
-				vscode.window.showErrorMessage(data.error.message);
-				QueryResultPanel.currentPanel?.transmitError(data.error, sql, data.error?.data?.compiled_sql || sql);
-			} else {
-				// We can brainstorm more ways to handle this case but haven't seen it
-				vscode.window.showErrorMessage("Failed query preview...Unknown response");
-				const error = {
-					code: -1,
-					message: "Failed query preview... Unknown response",
-					data: {
-						"error": `Unknown Response`,
-						"sql": sql,
-					},
-				};
-				QueryResultPanel.currentPanel?.transmitError(error, sql, sql);
-			}
+			// Create struct for tabulator table
+			result.column_names.forEach(def => {
+				columns = [...columns, { "title": def.toUpperCase(), "field": def }];
+			});
+			await QueryResultPanel.currentPanel?.transmitData(columns, rows, query, result.compiled_sql);
 		}
-
-		clearTimeout(timeoutControllerId);
 	}
 
-	public transmitData(columns: Dictionary<string | number>[], rows: Dictionary<string | number>[], sql: string, compiled_sql: string) {
-		this._panel.webview.postMessage({ action: "queryResults", columns: columns, rows: rows, sql: sql, compiled_sql: compiled_sql });
+	public async transmitData(
+		columns: Dictionary<string | number>[],
+		rows: Dictionary<string | number>[],
+		raw_sql: string,
+		compiled_sql: string,
+	) {
+		await this._panel.webview.postMessage({
+			action: "queryResults",
+			columns: columns,
+			rows: rows,
+			sql: raw_sql,
+			compiled_sql: compiled_sql
+		});
 	}
 
-	public transmitError(error: {
-		code: number,
-		message: string,
-		data: Dictionary<string>
-	}, sql: string, compiled_sql: string) {
-		this._panel.webview.postMessage({ action: "error", error: error, sql: sql, compiled_sql: compiled_sql });
+	public async transmitError(error: OsmosisError, raw_sql: string, compiled_sql: string) {
+		await this._panel.webview.postMessage({
+			action: "error",
+			error: error,
+			sql: raw_sql,
+			compiled_sql: compiled_sql
+		});
 	}
 
 	public dispose() {
 		QueryResultPanel.currentPanel = undefined;
-
-		// Clean up our resources
 		this._panel.dispose();
-
 		while (this._disposables.length) {
 			const x = this._disposables.pop();
 			if (x) {
@@ -314,4 +247,133 @@ function getNonce() {
 		text += possible.charAt(Math.floor(Math.random() * possible.length));
 	}
 	return text;
+}
+
+/**
+ * Manages real-time compiled sql webview panels
+ */
+export class CompileSqlPanel {
+	/**
+	 * Track the current panel. Only allow a single panel to exist at a time.
+	 */
+	public static currentPanel: CompileSqlPanel | undefined;
+	public static readonly viewType = 'compiledQuery';
+	private readonly _panel: vscode.WebviewPanel;
+	private _disposables: vscode.Disposable[] = [];
+
+	public constructor(panel: vscode.WebviewPanel) {
+		this._panel = panel;
+		panel.title = "Compiled SQL";
+		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+		this._panel.webview.onDidReceiveMessage(
+			(message) => vscode.window.showInformationMessage(message.text),
+			null,
+			this._disposables
+		);
+	};
+
+	public static createOrShow() {
+		const column = vscode.window.activeTextEditor
+			? vscode.window.activeTextEditor.viewColumn
+			: undefined;
+
+		if (CompileSqlPanel.currentPanel) {
+			CompileSqlPanel.currentPanel._panel.title = "Compiled SQL";
+			CompileSqlPanel.currentPanel._panel.reveal(undefined, true);
+			return;
+		}
+
+		const viewColumn = vscode.ViewColumn.Beside;
+		const panel = vscode.window.createWebviewPanel(
+			CompileSqlPanel.viewType,
+			"Compiled Query",
+			{ viewColumn: viewColumn, preserveFocus: true },
+			{ enableScripts: true },
+		);
+
+		CompileSqlPanel.currentPanel = new CompileSqlPanel(panel);
+	}
+
+	public static revive(panel: vscode.WebviewPanel) {
+		CompileSqlPanel.currentPanel = new CompileSqlPanel(panel);
+	}
+
+	private async _previewQuery() {
+		const result = await compileQuery(globalThis.currentSql);
+		if (isError(result)) {
+			console.log(result.error);
+			return result;
+		} else {
+			console.log(result.result);
+			return result;
+		}
+	}
+
+	public dispose() {
+		CompileSqlPanel.currentPanel = undefined;
+		this._panel.dispose();
+		while (this._disposables.length) {
+			const x = this._disposables.pop();
+			if (x) {
+				x.dispose();
+			}
+		}
+	}
+
+	public async getRenderedHTML() {
+		const webview = this._panel.webview;
+		const nonce = getNonce();
+		let compiledQuery = await this._previewQuery();
+		if (isError(compiledQuery)) {
+			webview.html = `
+			<!DOCTYPE html>
+			<html lang="en">
+				<head>
+					<meta charset="UTF-8">
+					<meta 
+						http-equiv="Content-Security-Policy" 
+						content="default-src 'none'; style-src ${webview.cspSource} 'nonce-${nonce}'; img-src ${webview.cspSource} https:; script-src 'nonce-${nonce}';">
+					<meta name="viewport" content="width=device-width, initial-scale=1.0">
+					<title>Compiled Query</title>
+				</head>
+				<body>
+					<sub>${globalThis.currentSqlFile}</sub>
+					<p>${compiledQuery.error.message}</p>
+				</body>
+			</html>`;
+		} else {
+			webview.html = `
+			<!DOCTYPE html>
+			<html lang="en">
+				<head>
+					<meta charset="UTF-8">
+					<meta name="viewport" content="width=device-width, initial-scale=1.0">
+					<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-/mZ1FHPkg6EKcxo0fKXF51ak6Cr2ocgDi5ytaTBjsQZIH/RNs6GF6+oId/vPe3eJB836T36nXwVh/WBl/cWT4w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+					<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" integrity="sha512-vswe+cgvic/XBoF1OcM/TeJ2FW0OofqAVdCZiEYkd6dwGXthvkSFWOoGGJgS2CW70VK5dQM5Oh+7ne47s74VTg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+					<title>Compiled Query</title>
+					<style>
+					sub { 
+						cursor: pointer;
+					}
+					</style>
+				</head>
+				<body>
+					<sub id="copy-sql">${globalThis.currentSqlFile} 📋</sub><br />
+					<pre class="language-sql"><code id="sql">${compiledQuery.result}</code></pre>
+					<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+					<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js" integrity="sha512-sijCOJblSCXYYmXdwvqV0tak8QJW5iy2yLB1wAbbLc3OOIueqymizRFWUS/mwKctnzPKpNdPJV3aK1zlDMJmXQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+				</body>
+				<script>
+				const vscode = acquireVsCodeApi();
+				document.getElementById("copy-sql").addEventListener("click", (e) => {
+					const copyText = document.getElementById("sql").textContent;
+					navigator.clipboard.writeText(copyText);
+					vscode.postMessage({
+						text: "Query copied to clipboard!",
+					});
+				});
+				</script>
+			</html>`;
+		}
+	}
 }
