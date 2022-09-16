@@ -88,11 +88,11 @@ export class DBTProject implements Disposable {
         this.onProjectConfigChanged
       ),
       dbtProjectConfigWatcher,
-      this.onSourceFileChanged(() => this.listModels()),
+      this.onSourceFileChanged(() => this.rebuildManifest()),
       this.sourceFileWatchers,
       this.dbtProjectLog
     );
-    
+
   }
 
   async tryRefresh() {
@@ -123,8 +123,8 @@ export class DBTProject implements Disposable {
     return uri.fsPath.startsWith(this.projectRoot.fsPath + path.sep);
   }
 
-  listModels() {
-    this.dbtProjectContainer.listModels(this.projectRoot);
+  rebuildManifest() {
+    this.dbtProjectContainer.rebuildManifest();
   }
 
   runModel(runModelParams: RunModelParams) {
@@ -177,8 +177,8 @@ export class DBTProject implements Disposable {
     this.findModelInTargetfolder(modelPath, "run");
   }
 
-  previewSQL(sql: string, title: string) {
-    this.dbtProjectContainer.previewSQL(sql, title);
+  executeSQL(sql: string, title: string) {
+    this.dbtProjectContainer.executeSQL(sql, title);
   }
 
   dispose() {

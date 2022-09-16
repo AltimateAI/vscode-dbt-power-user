@@ -10,49 +10,52 @@ export class RunModel {
   constructor(private dbtProjectContainer: DBTProjectContainer) { }
 
   runModelOnActiveWindow() {
-    // TODO: try catch with server
-    const fullPath = window.activeTextEditor?.document.uri;
-    if (fullPath !== undefined) {
-      this.runDBTModel(fullPath);
-    }
-  }
-
-  runTestsOnActiveWindow() {
-    // TODO: try catch with server?
-    const fullPath = window.activeTextEditor?.document.uri;
-    if (fullPath !== undefined) {
-      this.runDBTModelTest(fullPath);
-    }
-  }
-
-  compileModelOnActiveWindow() {
-    const fullPath = window.activeTextEditor?.document.uri;
-    if (fullPath !== undefined) {
-      this.compileDBTModel(fullPath);
-    }
-  }
-
-  compileQueryOnActiveWindow() {
-    const fullPath = window.activeTextEditor?.document.uri;
-    if (fullPath !== undefined) {
-      const query = window.activeTextEditor?.document.getText();
-      if (query !== undefined) {
-        this.compileDBTQuery(fullPath, query);
-      }
-    }
-  }
-
-  previewModelOnActiveWindow() {
     if (!window.activeTextEditor) {
       return;
     }
-    const sqlSelected = window.activeTextEditor.selection;
-    const sqlQuery = window.activeTextEditor.document.getText(
-      sqlSelected.isEmpty ? undefined : sqlSelected);
-    const sqlTitle = path.basename(window.activeTextEditor?.document.uri.fsPath ?? "Untitled.sql")
-      + " "
+    const fullPath = window.activeTextEditor.document.uri;
+    this.runDBTModel(fullPath);
+  }
+
+  runTestsOnActiveWindow() {
+    if (!window.activeTextEditor) {
+      return;
+    }
+    const fullPath = window.activeTextEditor.document.uri;
+    this.runDBTModelTest(fullPath);
+  }
+
+  compileModelOnActiveWindow() {
+    if (!window.activeTextEditor) {
+      return;
+    }
+    const fullPath = window.activeTextEditor.document.uri;
+    this.compileDBTModel(fullPath);
+  }
+
+  compileQueryOnActiveWindow() {
+    if (!window.activeTextEditor) {
+      return;
+    }
+    const fullPath = window.activeTextEditor.document.uri;
+    const query = window.activeTextEditor.document.getText();
+    if (query !== undefined) {
+      this.compileDBTQuery(fullPath, query);
+    }
+  }
+
+  executeQueryOnActiveWindow() {
+    if (!window.activeTextEditor) {
+      return;
+    }
+    const cursor = window.activeTextEditor.selection;
+    const query = window.activeTextEditor.document.getText(cursor.isEmpty ? undefined : cursor);
+    const queryName =
+      "Results: "
+      + path.basename(window.activeTextEditor.document.uri.fsPath ?? "Ad Hoc")
+      + " " + (cursor.isEmpty ? "" : "(Ad Hoc) ")
       + new Date().toTimeString().split(" ")[0];
-    this.previewDBTModel(sqlQuery, sqlTitle);
+    this.executeSQL(query, queryName);
   }
 
   runModelOnNodeTreeItem(type: RunModelType) {
@@ -112,8 +115,8 @@ export class RunModel {
     this.dbtProjectContainer.runModelTest(modelPath, modelName);
   }
 
-  async previewDBTModel(sql: string, title: string) {
-    this.dbtProjectContainer.previewSQL(sql, title);
+  async executeSQL(query: string, title: string) {
+    this.dbtProjectContainer.executeSQL(query, title);
   }
 
   showCompiledSQL(modelPath: Uri) {

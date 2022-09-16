@@ -37,12 +37,12 @@
           "dbt.listModelsDisabled": {
             "type": "boolean",
             "default": false,
-            "description": "Disable automatic listing of models when files change."
+            "description": "Disable `dbt ls` calls which are used when files change to rebuild the manifest.json."
           },
-          "dbt.listModelsOsmosis": {
+          "dbt.rebuildManifestOsmosis": {
             "type": "boolean",
             "default": false,
-            "description": "Use Osmosis server to regenerate manifest when files change."
+            "description": "Use Osmosis server to regenerate manifest when files change. Falls back to `dbt ls` if listModelsDisabled is false and server is unavailable. This is orders of magnitude faster than `dbt ls` alone."
           },
           "dbt.runModelCommandAdditionalParams": {
             "type": "array",
@@ -71,7 +71,12 @@
             "description": "dbt-osmosis server port",
             "default": 8581
           },
-          "dbt.previewPanel.displayColumn": {
+          "dbt.queryLimit": {
+            "type": "integer",
+            "description": "The maximum number of rows the `Preview SQL Query` command returns.",
+            "default": 500
+          },
+          "dbt.previewPanel.displayLocation": {
             "type": "string",
             "enum": [
               "horizontal",
@@ -80,16 +85,28 @@
             ],
             "default": "horizontal",
             "enumDescriptions": [
-              "Show the preview panel horizontally below the current column.",
-              "Show the preview panel vertically next to the current column.",
-              "Show the preview panel in the same column."
+              "Show the preview panel horizontally below the active editor.",
+              "Show the preview panel vertically next to the active editor.",
+              "Show the preview panel in the same location as the active editor."
             ],
-            "description": "Show the preview column horizontally, vertically, or in the same panel."
+            "description": "Show the preview panel horizontally, vertically, or in the same location as the active editor."
           },
-          "dbt.previewPanel.reusePanel": {
-            "type": "boolean",
-            "default": false,
-            "description": "Reuse the previously created preview panel instead of creating a new preview panel."
+          "dbt.versionCheck": {
+            "type": "string",
+            "enum": [
+              "both",
+              "status bar",
+              "error message",
+              "neither"
+            ],
+            "default": "both",
+            "enumDescriptions": [
+              "Show the outdated version message both in the status bar and as an error message popup.",
+              "Show the outdated version message in the status bar, but not as an error message popup.",
+              "Show the outdated version message as an error message popup, but not in the status bar.",
+              "Do not show the outdated version message in the status bar or as an error message popup."
+            ],
+            "description": "This determines which messages will show when the dbt version is outdated."
           }
         }
       }
@@ -194,7 +211,7 @@
         }
       },
       {
-        "command": "dbtPowerUser.previewSQL",
+        "command": "dbtPowerUser.executeSQL",
         "title": "dbt Power User: Preview SQL query results",
         "icon": {
           "light": "./media/run-light.svg",
@@ -213,7 +230,7 @@
     "keybindings": {
       "key": "Ctrl+Enter",
       "mac": "Cmd+Enter",
-      "command": "dbtPowerUser.previewSQL",
+      "command": "dbtPowerUser.executeSQL",
       "when": "resourceLangId == jinja-sql"
     },
     "menus": {
@@ -229,7 +246,7 @@
           "group": "navigation@0"
         },
         {
-          "command": "dbtPowerUser.previewSQL",
+          "command": "dbtPowerUser.executeSQL",
           "when": "resourceLangId == jinja-sql",
           "group": "navigation@-1"
         }

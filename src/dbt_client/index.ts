@@ -3,10 +3,8 @@ import {
   Disposable,
   EventEmitter,
   window,
-  Uri,
   workspace,
 } from "vscode";
-import fetch from 'node-fetch';
 import { DBTCommandQueue } from "./dbtCommandQueue";
 import { DBTCommand, DBTCommandFactory } from "./dbtCommandFactory";
 import {
@@ -14,7 +12,6 @@ import {
   CommandProcessExecutionFactory,
 } from "../commandProcessExecution";
 import { DBTInstallationFoundEvent } from "./dbtVersionEvent";
-import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { provideSingleton } from "../utils";
 import { DBTTerminal } from "./dbtTerminal";
 import { reparseProject } from "../osmosis_client";
@@ -29,14 +26,12 @@ export class DBTClient implements Disposable {
   private static readonly LATEST_VERSION =
     /latest.*:\s*(\d{1,2}\.\d{1,2}\.\d{1,2})/g;
   private static readonly IS_INSTALLED = /installed/g;
-  private pythonPath?: string;
   private dbtInstalled?: boolean;
   private disposables: Disposable[] = [
     this._onDBTInstallationFound,
   ];
 
   constructor(
-    private pythonEnvironment: PythonEnvironment,
     private dbtCommandFactory: DBTCommandFactory,
     private queue: DBTCommandQueue,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
@@ -48,41 +43,37 @@ export class DBTClient implements Disposable {
   }
 
   async detectDBT(): Promise<void> {
-    const pythonEnvironment = await this.pythonEnvironment.getEnvironment();
-    this.disposables.push(
-      pythonEnvironment.onDidChangeExecutionDetails(() =>
-        this.handlePythonExtension()
-      )
-    );
-    await this.handlePythonExtension();
+    await this.checkIfDBTIsInstalled();
   }
 
-  async listModels(projectUri: Uri): Promise<void> {
-    const listModelsDisabled = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("listModelsDisabled", false);
-    if (listModelsDisabled) {
-      return;
-    }
-    const listModelsOsmosis = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("listModelsOsmosis", false);
-    if (listModelsOsmosis) {
-      this.terminal.log(`> Rebuilding manifest\n\r`);
-      await reparseProject();
-      this.terminal.log(`> Manifest updated!\n\r`);
+  async rebuildManifest(): Promise<void> {
+    const rebuildManifestOsmosis = workspace.getConfiguration("dbt").get<boolean>("rebuildManifestOsmosis", false);
+    const listModelsEnabled = workspace.getConfiguration("dbt").get<boolean>("listModelsDisabled", false);
+    if (rebuildManifestOsmosis) {
+      try {
+        await reparseProject();
+      } catch {
+        if (listModelsEnabled) {
+          console.log("Err: Osmosis server is not available, falling back to dbt ls to trigger manifest regeneration");
+          this.addCommandToQueue(
+            this.dbtCommandFactory.createListCommand()
+          );
+        }
+      }
     } else {
-      this.addCommandToQueue(
-        this.dbtCommandFactory.createListCommand()
-      );
+      if (listModelsEnabled) {
+        this.addCommandToQueue(
+          this.dbtCommandFactory.createListCommand()
+        );
+      }
     }
+
   }
 
   async checkIfDBTIsInstalled(): Promise<void> {
     const checkDBTInstalledProcess = await this.executeCommand(
       this.dbtCommandFactory.createImportDBTCommand()
     );
-
     this.raiseDBTInstallationCheckEvent();
     try {
       await checkDBTInstalledProcess.complete();
@@ -115,7 +106,7 @@ export class DBTClient implements Disposable {
     if (!this.dbtInstalled) {
       if (command.focus) {
         window.showErrorMessage(
-          "Please ensure dbt is installed in your selected Python environment."
+          "Please ensure dbt is installed and on $PATH for the editor instance or configured in settings."
         );
       }
       return;
@@ -142,7 +133,7 @@ export class DBTClient implements Disposable {
     token?: CancellationToken
   ): Promise<CommandProcessExecution> {
     const { args, cwd } = command.processExecutionParams;
-    const configText = await workspace.getConfiguration();
+    const configText = workspace.getConfiguration();
     const config = JSON.parse(JSON.stringify(configText));
     let envVars = {};
     if (config.terminal !== undefined && config.terminal.integrated !== undefined && config.terminal.integrated.env !== undefined) {
@@ -199,7 +190,12 @@ export class DBTClient implements Disposable {
     const upToDate = installedVersion !== undefined &&
       latestVersion !== undefined &&
       installedVersion === latestVersion;
-    if (!upToDate && message) {
+
+    const versionCheck: string = workspace
+      .getConfiguration("dbt")
+      .get<string>("versionCheck") || "both";
+
+    if (!upToDate && message && (versionCheck === "both" || versionCheck === "error message")) {
       window.showErrorMessage(message);
     };
     this._onDBTInstallationFound.fire({
@@ -230,11 +226,5 @@ export class DBTClient implements Disposable {
     }
     const latestVersion = latestVersionMatch !== null ? latestVersionMatch[1] : undefined;
     this.raiseDBTVersionEvent(true, installedVersion, latestVersion, message);
-  }
-
-  private async handlePythonExtension(): Promise<void> {
-    const pythonEnvironment = await this.pythonEnvironment.getEnvironment();
-    this.pythonPath = pythonEnvironment.getPythonPath();
-    await this.checkIfDBTIsInstalled();
   }
 }

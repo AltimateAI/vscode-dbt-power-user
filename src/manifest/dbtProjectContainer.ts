@@ -16,7 +16,7 @@ import { provideSingleton } from "../utils";
 import { inject } from "inversify";
 import { basename, sep } from "path";
 import { RunModelType } from "../domain";
-import { QueryResultPanel, CompileSqlPanel } from "../webview_provider";
+import { QueryResultPanel, CompileSqlPanel } from "../webview";
 
 
 @provideSingleton(DBTProjectContainer)
@@ -80,7 +80,6 @@ export class DBTProjectContainer implements Disposable {
         }
       })
     );
-
   }
 
   async initializeDBTProjects(): Promise<void> {
@@ -98,11 +97,6 @@ export class DBTProjectContainer implements Disposable {
     this.extensionUri = context.extensionUri;
   }
 
-  resolveQueryPanel(title: string) {
-    QueryResultPanel.createOrShow(this.extensionUri, title);
-    this.queryResultViewer = QueryResultPanel.currentPanel;
-  }
-
   // TODO: bypasses events and could be inconsistent
   getPackageName = (uri: Uri): string | undefined => {
     return this.findDBTProject(uri)?.findPackageName(uri);
@@ -117,13 +111,16 @@ export class DBTProjectContainer implements Disposable {
     await this.dbtClient.detectDBT();
   }
 
-  previewSQL(query: string, title: string): void {
-    this.resolveQueryPanel(title);
-    this.queryResultViewer?.previewQuery(query);
+  executeSQL(query: string, title: string): void {
+    // const limit = workspace
+    //   .getConfiguration("dbt")
+    //   .get<number>("queryLimit", 500);
+    QueryResultPanel.createOrShow(this.extensionUri, title);
+    QueryResultPanel.currentPanel?.executeQuery(query);
   }
 
-  listModels(projectUri: Uri) {
-    this.dbtClient.listModels(projectUri);
+  rebuildManifest() {
+    this.dbtClient.rebuildManifest();
   }
 
   runModel(modelPath: Uri, type?: RunModelType) {

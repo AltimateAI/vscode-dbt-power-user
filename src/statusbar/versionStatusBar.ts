@@ -4,6 +4,7 @@ import {
   window,
   Command,
   Disposable,
+  workspace
 } from "vscode";
 import { DBTInstallationFoundEvent } from "../dbt_client/dbtVersionEvent";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -39,7 +40,12 @@ export class VersionStatusBar implements Disposable {
       this.showTextInStatusBar("$(error) dbt is not installed");
       return;
     }
-    if (!event.upToDate) {
+    
+    const versionCheck: string = workspace
+			.getConfiguration("dbt")
+			.get<string>("versionCheck") || "both";
+
+    if (!event.upToDate && (versionCheck === "both" || versionCheck === "status bar")) {
       if(event.installedVersion !== undefined) {
         this.showTextInStatusBar(
           `$(error) dbt ${event.installedVersion} is not up to date`

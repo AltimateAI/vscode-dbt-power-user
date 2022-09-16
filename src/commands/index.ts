@@ -3,7 +3,7 @@ import { sep } from "path";
 import { RunModel } from "./runModel";
 import { provideSingleton } from "../utils";
 import { RunModelType } from "../domain";
-import { CompileSqlPanel } from "../webview_provider";
+import { CompileSqlPanel } from "../webview";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -49,8 +49,8 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.showCompiledSQL", () =>
         this.runModel.showCompiledSQLOnActiveWindow()
       ),
-      commands.registerCommand("dbtPowerUser.previewSQL", () =>
-        this.runModel.previewModelOnActiveWindow()
+      commands.registerCommand("dbtPowerUser.executeSQL", () =>
+        this.runModel.executeQueryOnActiveWindow()
       ),
     );
   }
