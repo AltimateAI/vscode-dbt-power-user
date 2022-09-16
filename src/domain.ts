@@ -58,8 +58,8 @@ export abstract class Node {
   key: string;
   url: string;
   iconPath: IconPath = {
-    light: path.join(path.resolve(__dirname), "../media/model_light.svg"),
-    dark: path.join(path.resolve(__dirname), "../media/model_dark.svg"),
+    light: path.join(path.resolve(__dirname), "../media/images/model_light.svg"),
+    dark: path.join(path.resolve(__dirname), "../media/images/model_dark.svg"),
   };
   displayInModelTree: boolean = true;
 
@@ -76,8 +76,8 @@ export class Seed extends Node { }
 export class Test extends Node {
   // displayInModelTree = false;
   iconPath = {
-    light: path.join(path.resolve(__dirname), "../media/source_light.svg"),
-    dark: path.join(path.resolve(__dirname), "../media/source_dark.svg"),
+    light: path.join(path.resolve(__dirname), "../media/images/source_light.svg"),
+    dark: path.join(path.resolve(__dirname), "../media/images/source_dark.svg"),
   };
 }
 export class Analysis extends Node {
@@ -89,8 +89,8 @@ export class Exposure extends Node {
 export class Snapshot extends Node { }
 export class Source extends Node {
   iconPath = {
-    light: path.join(path.resolve(__dirname), "../media/source_light.svg"),
-    dark: path.join(path.resolve(__dirname), "../media/source_dark.svg"),
+    light: path.join(path.resolve(__dirname), "../media/images/source_light.svg"),
+    dark: path.join(path.resolve(__dirname), "../media/images/source_dark.svg"),
   };
 }
 

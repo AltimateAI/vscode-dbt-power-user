@@ -160,7 +160,7 @@ export class QueryResultPanel {
 	private _getHtmlForWebview(webview: vscode.Webview, title: string) {
 		const nonce = getNonce();
 		const spinnerUri = webview.asWebviewUri(
-			vscode.Uri.joinPath(this._extensionUri, 'media', 'animated_logo_no_bg_small_15fps.gif'));
+			vscode.Uri.joinPath(this._extensionUri, 'media', 'images', 'animated_logo_no_bg_small_15fps.gif'));
 		const copyImageURI = webview.asWebviewUri(
 			vscode.Uri.joinPath(this._extensionUri, 'media', 'copy-regular.svg'));
 		const tabulatorScriptUri = webview.asWebviewUri(

@@ -2,7 +2,7 @@
   "name": "vscode-dbt-power-user",
   "displayName": "dbt Power User",
   "description": "This extension makes vscode seamlessly work with dbt",
-  "icon": "media/dbt.png",
+  "icon": "media/images/dbt.png",
   "publisher": "datacoves",
   "license": "MIT",
   "homepage": "https://github.com/datacoves/vscode-dbt-power-user",
@@ -116,7 +116,7 @@
         {
           "id": "dbt_view",
           "title": "dbt Power User",
-          "icon": "./media/dbt_icon.svg",
+          "icon": "./media/images/dbt_icon.svg",
           "contextualTitle": "dbt Power User"
         }
       ]
@@ -142,88 +142,88 @@
         "command": "dbtPowerUser.runCurrentModel",
         "title": "dbt Power User: Run current model",
         "icon": {
-          "light": "./media/database_light.svg",
-          "dark": "./media/database_dark.svg"
+          "light": "./media/images/database_light.svg",
+          "dark": "./media/images/database_dark.svg"
         }
       },
       {
         "command": "dbtPowerUser.compileCurrentModel",
         "title": "dbt Power User: Compile current model",
         "icon": {
-          "light": "./media/build_light.svg",
-          "dark": "./media/build_dark.svg"
+          "light": "./media/images/build_light.svg",
+          "dark": "./media/images/build_dark.svg"
         }
       },
       {
         "command": "dbtPowerUser.showCompileWindow",
         "title": "dbt Power User: Show compile window",
         "icon": {
-          "light": "./media/build_light.svg",
-          "dark": "./media/build_dark.svg"
+          "light": "./media/images/build_light.svg",
+          "dark": "./media/images/build_dark.svg"
         }
       },
       {
         "command": "dbtPowerUser.runTest",
         "title": "dbt Power User: Run a specific test",
         "icon": {
-          "light": "./media/build_light.svg",
-          "dark": "./media/build_dark.svg"
+          "light": "./media/images/build_light.svg",
+          "dark": "./media/images/build_dark.svg"
         }
       },
       {
         "command": "dbtPowerUser.testCurrentModel",
         "title": "dbt Power User: Run model tests",
         "icon": {
-          "light": "./media/run-light.svg",
-          "dark": "./media/run-dark.svg"
+          "light": "./media/images/run-light.svg",
+          "dark": "./media/images/run-dark.svg"
         }
       },
       {
         "command": "dbtPowerUser.runChildrenModels",
         "title": "dbt Power User: Run children models",
         "icon": {
-          "light": "./media/run-light.svg",
-          "dark": "./media/run-dark.svg"
+          "light": "./media/images/run-light.svg",
+          "dark": "./media/images/run-dark.svg"
         }
       },
       {
         "command": "dbtPowerUser.runParentModels",
         "title": "dbt Power User: Run parent models",
         "icon": {
-          "light": "./media/run-light.svg",
-          "dark": "./media/run-dark.svg"
+          "light": "./media/images/run-light.svg",
+          "dark": "./media/images/run-dark.svg"
         }
       },
       {
         "command": "dbtPowerUser.showRunSQL",
         "title": "dbt Power User: Show run SQL",
         "icon": {
-          "light": "./media/file-code_light.svg",
-          "dark": "./media/file-code_dark.svg"
+          "light": "./media/images/file-code_light.svg",
+          "dark": "./media/images/file-code_dark.svg"
         }
       },
       {
         "command": "dbtPowerUser.showCompiledSQL",
         "title": "dbt Power User: Show compiled SQL",
         "icon": {
-          "light": "./media/file-code_light.svg",
-          "dark": "./media/file-code_dark.svg"
+          "light": "./media/images/file-code_light.svg",
+          "dark": "./media/images/file-code_dark.svg"
         }
       },
       {
         "command": "dbtPowerUser.executeSQL",
         "title": "dbt Power User: Preview SQL query results",
         "icon": {
-          "light": "./media/run-light.svg",
-          "dark": "./media/run-dark.svg"
+          "light": "./media/images/run-light.svg",
+          "dark": "./media/images/run-dark.svg"
         }
       },
       {
         "command": "dbtPowerUser.runSQL",
         "title": "dbt Power User: Run SQL",
         "icon": {
-          "light": "./media/file-code_light.svg",
-          "dark": "./media/file-code_dark.svg"
+          "light": "./media/images/file-code_light.svg",
+          "dark": "./media/images/file-code_dark.svg"
         }
       }
     ],
@@ -317,8 +317,8 @@
       {
         "id": "jinja-sql",
         "icon": {
-          "light": "./media/dbt_file_icon.svg",
-          "dark": "./media/dbt_file_icon.svg"
+          "light": "./media/images/dbt_file_icon.svg",
+          "dark": "./media/images/dbt_file_icon.svg"
         }
       }
     ]

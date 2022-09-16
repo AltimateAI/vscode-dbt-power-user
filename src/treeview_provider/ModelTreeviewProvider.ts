@@ -163,8 +163,8 @@ class SourceTreeItem extends NodeTreeItem {
 class TestTreeItem extends NodeTreeItem {
   collapsibleState = TreeItemCollapsibleState.None;
   iconPath = {
-    light: path.join(path.resolve(__dirname), "../media/dashboard_light.svg"),
-    dark: path.join(path.resolve(__dirname), "../media/dashboard_dark.svg"),
+    light: path.join(path.resolve(__dirname), "../media/images/dashboard_light.svg"),
+    dark: path.join(path.resolve(__dirname), "../media/images/dashboard_dark.svg"),
   };
   contextValue = "dashboard";
 }
@@ -172,8 +172,8 @@ class TestTreeItem extends NodeTreeItem {
 class DashboardTreeItem extends NodeTreeItem {
   collapsibleState = TreeItemCollapsibleState.None;
   iconPath = {
-    light: path.join(path.resolve(__dirname), "../media/dashboard_light.svg"),
-    dark: path.join(path.resolve(__dirname), "../media/dashboard_dark.svg"),
+    light: path.join(path.resolve(__dirname), "../media/images/dashboard_light.svg"),
+    dark: path.join(path.resolve(__dirname), "../media/images/dashboard_dark.svg"),
   };
   contextValue = "dashboard";
 }
