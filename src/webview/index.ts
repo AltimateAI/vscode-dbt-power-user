@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getPort, runQuery, isError, OsmosisError, compileQuery } from '../osmosis_client';
+import { getPort, runQuery, isError, OsmosisError } from '../osmosis_client';
 
 
 interface JsonObj {
@@ -55,7 +55,12 @@ export class QueryResultPanel {
 						vscode.window.showErrorMessage(message.text);
 						return;
 					case 'info':
-						vscode.window.showInformationMessage(message.text);
+						vscode.window.withProgress(
+							{ title: message.text, location: vscode.ProgressLocation.Notification, cancellable: false },
+							async () => {
+								await new Promise(f => setTimeout(f, 3000));
+							}
+						);
 						return;
 				}
 			},
@@ -162,7 +167,7 @@ export class QueryResultPanel {
 		const spinnerUri = webview.asWebviewUri(
 			vscode.Uri.joinPath(this._extensionUri, 'media', 'images', 'animated_logo_no_bg_small_15fps.gif'));
 		const copyImageURI = webview.asWebviewUri(
-			vscode.Uri.joinPath(this._extensionUri, 'media', 'copy-regular.svg'));
+			vscode.Uri.joinPath(this._extensionUri, 'media', 'images', 'copy-regular.svg'));
 		const tabulatorScriptUri = webview.asWebviewUri(
 			vscode.Uri.joinPath(this._extensionUri, 'media', 'js', 'tabulator.min.js'));
 		const tabulatorStylesUri = webview.asWebviewUri(
@@ -223,161 +228,6 @@ export class QueryResultPanel {
 		   </body>
 		   <script nonce="${nonce}" src="${mainScriptUri}"></script>
 		</html>`;
-	}
-}
-
-/**
- * Manages real-time compiled sql webview panels
- */
-export class CompileSqlPanel {
-	/**
-	 * Track the current panel. Only allow a single panel to exist at a time.
-	 */
-	public static currentPanel: CompileSqlPanel | undefined;
-	public static readonly viewType = 'compiledQuery';
-	private readonly _panel: vscode.WebviewPanel;
-	private _disposables: vscode.Disposable[] = [];
-
-	public constructor(panel: vscode.WebviewPanel) {
-		this._panel = panel;
-		panel.title = "Compiled Query";
-		this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
-		this._panel.webview.onDidReceiveMessage(
-			(message) => vscode.window.showInformationMessage(message.text),
-			null,
-			this._disposables
-		);
-	};
-
-	public static createOrShow() {
-		// Show
-		if (CompileSqlPanel.currentPanel) {
-			CompileSqlPanel.currentPanel._panel.title = "Compiled Query";
-			CompileSqlPanel.currentPanel._panel.reveal(undefined, true);
-			return;
-		}
-		// Create
-		const viewColumn = vscode.ViewColumn.Beside;
-		const panel = vscode.window.createWebviewPanel(
-			CompileSqlPanel.viewType,
-			"Compiled Query",
-			{ viewColumn: viewColumn, preserveFocus: true },
-			{ enableScripts: true },
-		);
-		CompileSqlPanel.currentPanel = new CompileSqlPanel(panel);
-	}
-
-	public static revive(panel: vscode.WebviewPanel) {
-		CompileSqlPanel.currentPanel = new CompileSqlPanel(panel);
-	}
-
-	private async _previewQuery() {
-		const result = await compileQuery(globalThis.currentSql);
-		if (isError(result)) {
-			console.log(result.error);
-			return result;
-		} else {
-			console.log(result.result);
-			return result;
-		}
-	}
-
-	public dispose() {
-		CompileSqlPanel.currentPanel = undefined;
-		this._panel.dispose();
-		while (this._disposables.length) {
-			const x = this._disposables.pop();
-			if (x) {
-				x.dispose();
-			}
-		}
-	}
-
-	public async getRenderedHTML() {
-		const nonce = getNonce();
-		const webview = this._panel.webview;
-		let compiledQuery = await this._previewQuery();
-		if (isError(compiledQuery)) {
-			webview.html = `
-			<!DOCTYPE html>
-			<html lang="en">
-				<head>
-					<meta charset="UTF-8">
-					<meta 
-						http-equiv="Content-Security-Policy" 
-						content="default-src 'none'; style-src ${webview.cspSource} 'nonce-${nonce}'; img-src ${webview.cspSource} https:; script-src 'nonce-${nonce}';">
-					<meta name="viewport" content="width=device-width, initial-scale=1.0">
-					<title>Compiled Query</title>
-				</head>
-				<body>
-					<sub>${globalThis.currentSqlFile}</sub>
-					<p>${compiledQuery.error.message}</p>
-				</body>
-			</html>`;
-		} else {
-			webview.html = `
-			<!DOCTYPE html>
-			<html lang="en">
-			   <head>
-				  <meta charset="UTF-8">
-				  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-				  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-/mZ1FHPkg6EKcxo0fKXF51ak6Cr2ocgDi5ytaTBjsQZIH/RNs6GF6+oId/vPe3eJB836T36nXwVh/WBl/cWT4w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-				  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" integrity="sha512-vswe+cgvic/XBoF1OcM/TeJ2FW0OofqAVdCZiEYkd6dwGXthvkSFWOoGGJgS2CW70VK5dQM5Oh+7ne47s74VTg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-				  <title>Compiled Query</title>
-				  <style>
-					 sub { 
-					 	cursor: pointer;
-					 }
-					.tooltiptext {
-						visibility: hidden;
-						width: 120px;
-						background-color: #323232;
-						color: #fff;
-						text-align: center;
-						border-radius: 6px;
-						padding: 5px 0;
-						
-						/* Position the tooltip */
-						position: absolute;
-						z-index: 1;
-						bottom: 150%;
-						left: 50%;
-						margin-left: -60px;
-					}
-					.tooltiptext::after {
-						content: "";
-						position: absolute;
-						top: 100%;
-						left: 50%;
-						margin-left: -5px;
-						border-width: 5px;
-						border-style: solid;
-						border-color: #323232 transparent transparent transparent;
-					}
-					.copy-sql:hover .tooltiptext {
-						visibility: visible;
-					}
-				  </style>
-			   </head>
-			   <body>
-				  <sub id="copy-sql">${globalThis.currentSqlFile} 📋</sub>
-				  <span class="tooltiptext">Click to copy SQL</span><br />
-				  <pre class="language-sql"><code id="sql">${compiledQuery.result}</code></pre>
-				  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-				  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js" integrity="sha512-sijCOJblSCXYYmXdwvqV0tak8QJW5iy2yLB1wAbbLc3OOIueqymizRFWUS/mwKctnzPKpNdPJV3aK1zlDMJmXQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-			   </body>
-			   <script>
-				  const vscode = acquireVsCodeApi();
-				  document.getElementById("copy-sql").addEventListener("click", (e) => {
-					  const copyText = document.getElementById("sql").textContent;
-					  navigator.clipboard.writeText(copyText);
-					  vscode.postMessage({
-						  text: "Query copied to clipboard!",
-					  });
-				  });
-			   </script>
-			</html>`;
-		}
 	}
 }
 

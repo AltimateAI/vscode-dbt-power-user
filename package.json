@@ -139,16 +139,17 @@
     },
     "commands": [
       {
+        "command": "dbtPowerUser.changeTarget",
+        "title": "Change dbt profile"
+      },
+      {
         "command": "dbtPowerUser.runCurrentModel",
-        "title": "dbt Power User: Run current model",
-        "icon": {
-          "light": "./media/images/database_light.svg",
-          "dark": "./media/images/database_dark.svg"
-        }
+        "title": "Run dbt Model",
+        "icon": "$(database)"
       },
       {
         "command": "dbtPowerUser.compileCurrentModel",
-        "title": "dbt Power User: Compile current model",
+        "title": "Compile dbt Model",
         "icon": {
           "light": "./media/images/build_light.svg",
           "dark": "./media/images/build_dark.svg"
@@ -156,31 +157,22 @@
       },
       {
         "command": "dbtPowerUser.showCompileWindow",
-        "title": "dbt Power User: Show compile window",
-        "icon": {
-          "light": "./media/images/build_light.svg",
-          "dark": "./media/images/build_dark.svg"
-        }
+        "title": "Compiled dbt Preview",
+        "icon": "$(diff)"
       },
       {
         "command": "dbtPowerUser.runTest",
-        "title": "dbt Power User: Run a specific test",
-        "icon": {
-          "light": "./media/images/build_light.svg",
-          "dark": "./media/images/build_dark.svg"
-        }
+        "title": "Run Test",
+        "icon": "$(zap)"
       },
       {
         "command": "dbtPowerUser.testCurrentModel",
-        "title": "dbt Power User: Run model tests",
-        "icon": {
-          "light": "./media/images/run-light.svg",
-          "dark": "./media/images/run-dark.svg"
-        }
+        "title": "Run dbt Tests",
+        "icon": "$(zap)"
       },
       {
         "command": "dbtPowerUser.runChildrenModels",
-        "title": "dbt Power User: Run children models",
+        "title": "Run Downstream Models",
         "icon": {
           "light": "./media/images/run-light.svg",
           "dark": "./media/images/run-dark.svg"
@@ -188,7 +180,7 @@
       },
       {
         "command": "dbtPowerUser.runParentModels",
-        "title": "dbt Power User: Run parent models",
+        "title": "Run Upstream Models",
         "icon": {
           "light": "./media/images/run-light.svg",
           "dark": "./media/images/run-dark.svg"
@@ -196,7 +188,7 @@
       },
       {
         "command": "dbtPowerUser.showRunSQL",
-        "title": "dbt Power User: Show run SQL",
+        "title": "Open dbt target folder run SQL",
         "icon": {
           "light": "./media/images/file-code_light.svg",
           "dark": "./media/images/file-code_dark.svg"
@@ -204,7 +196,7 @@
       },
       {
         "command": "dbtPowerUser.showCompiledSQL",
-        "title": "dbt Power User: Show compiled SQL",
+        "title": "Open dbt target folder compiled SQL",
         "icon": {
           "light": "./media/images/file-code_light.svg",
           "dark": "./media/images/file-code_dark.svg"
@@ -212,43 +204,48 @@
       },
       {
         "command": "dbtPowerUser.executeSQL",
-        "title": "dbt Power User: Preview SQL query results",
+        "title": "Execute dbt SQL",
         "icon": {
           "light": "./media/images/run-light.svg",
           "dark": "./media/images/run-dark.svg"
         }
-      },
-      {
-        "command": "dbtPowerUser.runSQL",
-        "title": "dbt Power User: Run SQL",
-        "icon": {
-          "light": "./media/images/file-code_light.svg",
-          "dark": "./media/images/file-code_dark.svg"
-        }
       }
     ],
-    "keybindings": {
-      "key": "Ctrl+Enter",
-      "mac": "Cmd+Enter",
-      "command": "dbtPowerUser.executeSQL",
-      "when": "resourceLangId == jinja-sql"
-    },
+    "keybindings": [
+      {
+        "key": "Ctrl+Enter",
+        "mac": "Cmd+Enter",
+        "command": "dbtPowerUser.executeSQL",
+        "when": "resourceLangId == jinja-sql"
+      },
+      {
+        "key": "Ctrl+'",
+        "mac": "Cmd+'",
+        "command": "dbtPowerUser.showCompileWindow",
+        "when": "resourceLangId == jinja-sql"
+      }
+    ],
     "menus": {
       "editor/title": [
         {
+          "command": "dbtPowerUser.executeSQL",
+          "when": "resourceLangId == jinja-sql",
+          "group": "navigation@1"
+        },
+        {
           "command": "dbtPowerUser.runCurrentModel",
           "when": "resourceLangId == jinja-sql",
-          "group": "navigation@-1"
+          "group": "navigation@2"
+        },
+        {
+          "command": "dbtPowerUser.testCurrentModel",
+          "when": "resourceLangId == jinja-sql",
+          "group": "navigation@3"
         },
         {
           "command": "dbtPowerUser.showCompileWindow",
           "when": "resourceLangId == jinja-sql",
-          "group": "navigation@0"
-        },
-        {
-          "command": "dbtPowerUser.executeSQL",
-          "when": "resourceLangId == jinja-sql",
-          "group": "navigation@-1"
+          "group": "navigation@4"
         }
       ],
       "editor/context": [
@@ -291,11 +288,6 @@
         }
       ],
       "view/item/context": [
-        {
-          "command": "dbtPowerUser.runTest",
-          "when": "view == model_test_treeview && viewItem != source",
-          "group": "inline"
-        },
         {
           "command": "dbtPowerUser.runTest",
           "when": "view == model_test_treeview && viewItem != source",

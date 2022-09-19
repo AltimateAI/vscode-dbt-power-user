@@ -4,6 +4,7 @@ import {
   EventEmitter,
   window,
   workspace,
+  ProgressLocation
 } from "vscode";
 import { DBTCommandQueue } from "./dbtCommandQueue";
 import { DBTCommand, DBTCommandFactory } from "./dbtCommandFactory";
@@ -51,7 +52,9 @@ export class DBTClient implements Disposable {
     const listModelsEnabled = workspace.getConfiguration("dbt").get<boolean>("listModelsDisabled", false);
     if (rebuildManifestOsmosis) {
       try {
-        await reparseProject();
+        await window.withProgress(
+          { title: "Syncing dbt manifest", location: ProgressLocation.Notification },
+          async () => await reparseProject());
       } catch {
         if (listModelsEnabled) {
           console.log("Err: Osmosis server is not available, falling back to dbt ls to trigger manifest regeneration");

@@ -48,13 +48,9 @@ export class SourceFileWatchers implements Disposable {
       this.disposeWatchers();
       this.watchers = [];
       sourcePaths.forEach((sourcePath) => {
-        const parsedSourcePath = Uri.parse(sourcePath);
-        const globPattern = Uri.joinPath(
-          parsedSourcePath,
-          "**/*.{sql,yml,yaml}"
-        ).path.substring(1);
+        const parsedSourcePath = Uri.joinPath(projectRoot, sourcePath);
         const sourceFolderWatcher = workspace.createFileSystemWatcher(
-          new RelativePattern(projectRoot, globPattern)
+          new RelativePattern(parsedSourcePath, "**/*.{sql,yml,yaml}")
         );
 
         const debouncedSourceFileChangedEvent = debounce(

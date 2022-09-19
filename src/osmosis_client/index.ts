@@ -108,9 +108,9 @@ export async function compileQuery(query: string) {
     );
 }
 
-export async function reparseProject(target: string | undefined = undefined, deps: boolean = false) {
-    let endpoint = "reset";
-    let params = new URLSearchParams({ deps: deps.toString() });
+export async function reparseProject(target: string | undefined = undefined, reset: boolean = false) {
+    let endpoint = "parse";
+    let params = new URLSearchParams({ reset: reset.toString() });
     if (target) {
         params.append("target", target);
     }

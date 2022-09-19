@@ -5,7 +5,7 @@ import { container } from "./inversify.config";
 
 export async function activate(context: ExtensionContext) {
   const dbtPowerUserExtension = container.get(DBTPowerUserExtension);
-  
+
   context.subscriptions.push(
     dbtPowerUserExtension,
   );
@@ -13,4 +13,4 @@ export async function activate(context: ExtensionContext) {
   await dbtPowerUserExtension.activate(context);
 }
 
-export function deactivate() {}
+export function deactivate() { }

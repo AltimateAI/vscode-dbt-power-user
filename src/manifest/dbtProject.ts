@@ -88,7 +88,7 @@ export class DBTProject implements Disposable {
         this.onProjectConfigChanged
       ),
       dbtProjectConfigWatcher,
-      this.onSourceFileChanged(() => this.rebuildManifest()),
+      this.onSourceFileChanged(async () => await this.rebuildManifest()),
       this.sourceFileWatchers,
       this.dbtProjectLog
     );
@@ -123,8 +123,8 @@ export class DBTProject implements Disposable {
     return uri.fsPath.startsWith(this.projectRoot.fsPath + path.sep);
   }
 
-  rebuildManifest() {
-    this.dbtProjectContainer.rebuildManifest();
+  async rebuildManifest() {
+    await this.dbtProjectContainer.rebuildManifest();
   }
 
   runModel(runModelParams: RunModelParams) {

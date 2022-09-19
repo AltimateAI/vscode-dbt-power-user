@@ -16,8 +16,8 @@ import { provideSingleton } from "../utils";
 import { inject } from "inversify";
 import { basename, sep } from "path";
 import { RunModelType } from "../domain";
-import { QueryResultPanel, CompileSqlPanel } from "../webview";
-
+import { QueryResultPanel } from "../webview";
+import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 
 @provideSingleton(DBTProjectContainer)
 export class DBTProjectContainer implements Disposable {
@@ -27,7 +27,6 @@ export class DBTProjectContainer implements Disposable {
   public readonly onManifestChanged = this._onManifestChanged.event;
   private disposables: Disposable[] = [this._onManifestChanged];
   private extensionUri: Uri = Uri.file("");
-  private queryResultViewer: QueryResultPanel | undefined = undefined;
 
   constructor(
     private dbtClient: DBTClient,
@@ -60,9 +59,13 @@ export class DBTProjectContainer implements Disposable {
           const parts = event.document.fileName.split(sep);
           const file = parts.slice(
             parts.length >= 3 ? -3 : -parts.length
-          ).join(" > "); globalThis.currentSql = query;
+          ).join(" > ");
+          globalThis.currentSql = query;
           globalThis.currentSqlFile = file;
-          await CompileSqlPanel.currentPanel?.getRenderedHTML();
+          if (window.visibleTextEditors.some(
+            (editor) => editor.document.uri.path === SqlPreviewContentProvider.URI.path)) {
+            SqlPreviewContentProvider.instance?.onDidChangeEmitter.fire(SqlPreviewContentProvider.URI);
+          }
         }
       })
     );
@@ -76,7 +79,10 @@ export class DBTProjectContainer implements Disposable {
           ).join(" > ");
           globalThis.currentSql = query;
           globalThis.currentSqlFile = file;
-          await CompileSqlPanel.currentPanel?.getRenderedHTML();
+          if (window.visibleTextEditors.some(
+            (editor) => editor.document.uri.path === SqlPreviewContentProvider.URI.path)) {
+            SqlPreviewContentProvider.instance?.onDidChangeEmitter.fire(SqlPreviewContentProvider.URI);
+          }
         }
       })
     );
@@ -112,15 +118,12 @@ export class DBTProjectContainer implements Disposable {
   }
 
   executeSQL(query: string, title: string): void {
-    // const limit = workspace
-    //   .getConfiguration("dbt")
-    //   .get<number>("queryLimit", 500);
     QueryResultPanel.createOrShow(this.extensionUri, title);
     QueryResultPanel.currentPanel?.executeQuery(query);
   }
 
-  rebuildManifest() {
-    this.dbtClient.rebuildManifest();
+  async rebuildManifest() {
+    await this.dbtClient.rebuildManifest();
   }
 
   runModel(modelPath: Uri, type?: RunModelType) {

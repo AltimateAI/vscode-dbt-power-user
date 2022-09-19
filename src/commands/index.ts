@@ -1,9 +1,9 @@
-import { commands, Disposable, window } from "vscode";
-import { sep } from "path";
+import { commands, Disposable, window, TextEditor, workspace, ViewColumn, languages, ProgressLocation } from "vscode";
 import { RunModel } from "./runModel";
 import { provideSingleton } from "../utils";
 import { RunModelType } from "../domain";
-import { CompileSqlPanel } from "../webview";
+import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
+import { reparseProject, isError } from "../osmosis_client";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -22,18 +22,39 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.compileCurrentModel", () =>
         this.runModel.compileModelOnActiveWindow()
       ),
-      commands.registerCommand("dbtPowerUser.showCompileWindow", async () => {
-        CompileSqlPanel.createOrShow();
-        globalThis.currentSql = window.activeTextEditor?.document.getText() ?? "";
-        const parts = window.activeTextEditor?.document.fileName.split(sep);
-        if (parts) {
-          globalThis.currentSqlFile = parts.slice(
-            parts.length >= 3 ? -3 : -parts.length
-          ).join(" > ");
+      commands.registerCommand("dbtPowerUser.changeTarget", async () => {
+        const target = await window.showInputBox({ placeHolder: "Target profile name" });
+        const status = await window.withProgress(
+          { title: "Parsing dbt project...", location: ProgressLocation.Notification },
+          async () => reparseProject(target, true));
+        if (isError(status)) {
+          console.log(status.error);
+          window.showErrorMessage(status.error.message);
+        } else {
+          window.showInformationMessage(status.result);
+          if (window.visibleTextEditors.some(
+            (editor) => editor.document.uri.path === SqlPreviewContentProvider.URI.path)) {
+            SqlPreviewContentProvider.instance?.onDidChangeEmitter.fire(SqlPreviewContentProvider.URI);
+          }
         }
-        await CompileSqlPanel.currentPanel?.getRenderedHTML();
-      }
-      ),
+      }),
+      commands.registerTextEditorCommand('dbtPowerUser.showCompileWindow', async (editor: TextEditor) => {
+        if (editor.document.uri.path === SqlPreviewContentProvider.URI.path) {
+          return;
+        }
+        const doc = await workspace.openTextDocument(SqlPreviewContentProvider.URI);
+        const isOpen = window.visibleTextEditors.some(e => e.document.uri.path === SqlPreviewContentProvider.URI.path);
+        await window.showTextDocument(doc, ViewColumn.Beside, false);
+        if (!isOpen) {
+          await commands.executeCommand('workbench.action.lockEditorGroup');
+          await commands.executeCommand('workbench.action.focusPreviousGroup');
+        } else {
+          await commands.executeCommand('workbench.action.closeActiveEditor');
+          return;
+        }
+        await languages.setTextDocumentLanguage(doc, 'sql');
+        SqlPreviewContentProvider.instance?.onDidChangeEmitter.fire(SqlPreviewContentProvider.URI);
+      }),
       commands.registerCommand("dbtPowerUser.runTest", (model) =>
         this.runModel.runModelOnNodeTreeItem(RunModelType.TEST)(model)
       ),
