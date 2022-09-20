@@ -251,22 +251,27 @@
       "editor/context": [
         {
           "command": "dbtPowerUser.showCompiledSQL",
-          "group": "dbt",
+          "group": "dbt@4",
           "when": "resourceLangId == jinja-sql"
         },
         {
           "command": "dbtPowerUser.showRunSQL",
-          "group": "dbt",
+          "group": "dbt@5",
           "when": "resourceLangId == jinja-sql"
         },
         {
           "command": "dbtPowerUser.testCurrentModel",
-          "group": "dbt",
+          "group": "dbt@2",
+          "when": "resourceLangId == jinja-sql"
+        },
+        {
+          "command": "dbtPowerUser.runCurrentModel",
+          "group": "dbt@1",
           "when": "resourceLangId == jinja-sql"
         },
         {
           "command": "dbtPowerUser.compileCurrentModel",
-          "group": "dbt",
+          "group": "dbt@3",
           "when": "resourceLangId == jinja-sql"
         }
       ],
