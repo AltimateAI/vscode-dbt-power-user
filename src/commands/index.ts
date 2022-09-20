@@ -46,6 +46,7 @@ export class VSCodeCommands implements Disposable {
         const doc = await workspace.openTextDocument(SqlPreviewContentProvider.URI);
         const isOpen = window.visibleTextEditors.some(e => e.document.uri.path === SqlPreviewContentProvider.URI.path);
         await window.showTextDocument(doc, ViewColumn.Beside, false);
+        await languages.setTextDocumentLanguage(doc, 'sql');
         if (!isOpen) {
           await commands.executeCommand('workbench.action.lockEditorGroup');
           await commands.executeCommand('workbench.action.focusPreviousGroup');
@@ -53,7 +54,6 @@ export class VSCodeCommands implements Disposable {
           await commands.executeCommand('workbench.action.closeActiveEditor');
           return;
         }
-        await languages.setTextDocumentLanguage(doc, 'sql');
         SqlPreviewContentProvider.instance?.onDidChangeEmitter.fire(SqlPreviewContentProvider.URI);
       }),
       commands.registerCommand("dbtPowerUser.runTest", (model) =>

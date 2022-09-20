@@ -98,7 +98,10 @@ export class QueryResultPanel {
 
 	public async executeQuery(query: string) {
 		QueryResultPanel.currentPanel?.transmitLoading();
-		const result = await runQuery(query);
+		const limit = vscode.workspace
+			.getConfiguration("dbt")
+			.get<number>("queryLimit", 200);
+		const result = await runQuery(query, limit);
 		if (isError(result)) {
 			console.log(result.error);
 			vscode.window.showErrorMessage(result.error.message);

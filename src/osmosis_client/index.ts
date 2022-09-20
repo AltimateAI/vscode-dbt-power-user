@@ -82,9 +82,9 @@ async function osmosisFetch<T>(endpoint: string, fetchArgs = {}, timeout: number
     return await response.json() as T;
 }
 
-export async function runQuery(query: string) {
+export async function runQuery(query: string, limit: number = 200) {
     return await osmosisFetch<OsmosisRunResult | OsmosisErrorContainer>(
-        "run",
+        "run" + new URLSearchParams({ limit: limit.toString() }),
         {
             method: "POST",
             headers: {
