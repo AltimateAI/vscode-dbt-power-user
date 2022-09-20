@@ -37,7 +37,7 @@ export class DBTProjectContainer implements Disposable {
     ) => DBTWorkspaceFolder
   ) {
     // Workspace Folder Registrar
-    const fireUpdate = debounce(() => SqlPreviewContentProvider.instance?.onDidChangeEmitter.fire(SqlPreviewContentProvider.URI), 1500);
+    const fireUpdate = debounce(() => SqlPreviewContentProvider.instance?.onDidChangeEmitter.fire(SqlPreviewContentProvider.URI), 500);
     this.disposables.push(
       workspace.onDidChangeWorkspaceFolders(async (event) => {
         const { added, removed } = event;
