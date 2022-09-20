@@ -7,7 +7,7 @@ import {
 } from "./modules/sourceFileWatchers";
 import { TargetWatchersFactory } from "./modules/targetWatchers";
 import { DBTProjectLog, DBTProjectLogFactory } from "./modules/dbtProjectLog";
-import { setupWatcherHandler } from "../utils";
+import { debounce, setupWatcherHandler } from "../utils";
 import {
   Disposable,
   EventEmitter,
@@ -71,6 +71,8 @@ export class DBTProject implements Disposable {
       new RelativePattern(path, DBTProject.DBT_PROJECT_FILE)
     );
 
+    const fireProjectChanged = debounce(async () => await this.rebuildManifest(), 2000);
+
     setupWatcherHandler(dbtProjectConfigWatcher, () => this.tryRefresh());
 
     this.sourceFileWatchers = this.sourceFileWatchersFactory.createSourceFileWatchers(
@@ -88,7 +90,7 @@ export class DBTProject implements Disposable {
         this.onProjectConfigChanged
       ),
       dbtProjectConfigWatcher,
-      this.onSourceFileChanged(async () => await this.rebuildManifest()),
+      this.onSourceFileChanged(fireProjectChanged),
       this.sourceFileWatchers,
       this.dbtProjectLog
     );

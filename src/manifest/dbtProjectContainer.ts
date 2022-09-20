@@ -12,7 +12,7 @@ import { DBTClient } from "../dbt_client";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
 import { DBTCommand } from "../dbt_client/dbtCommandFactory";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
-import { provideSingleton } from "../utils";
+import { provideSingleton, debounce } from "../utils";
 import { inject } from "inversify";
 import { basename } from "path";
 import { RunModelType } from "../domain";
@@ -37,6 +37,7 @@ export class DBTProjectContainer implements Disposable {
     ) => DBTWorkspaceFolder
   ) {
     // Workspace Folder Registrar
+    const fireUpdate = debounce(() => SqlPreviewContentProvider.instance?.onDidChangeEmitter.fire(SqlPreviewContentProvider.URI), 1500);
     this.disposables.push(
       workspace.onDidChangeWorkspaceFolders(async (event) => {
         const { added, removed } = event;
@@ -61,7 +62,7 @@ export class DBTProjectContainer implements Disposable {
           globalThis.currentSql = event.document.getText();
           if (window.visibleTextEditors.some(
             (editor) => editor.document.uri.path === SqlPreviewContentProvider.URI.path)) {
-            SqlPreviewContentProvider.instance?.onDidChangeEmitter.fire(SqlPreviewContentProvider.URI);
+            fireUpdate();
           }
         }
       })
@@ -75,7 +76,7 @@ export class DBTProjectContainer implements Disposable {
           globalThis.currentSql = event.document.getText();
           if (window.visibleTextEditors.some(
             (editor) => editor.document.uri.path === SqlPreviewContentProvider.URI.path)) {
-            SqlPreviewContentProvider.instance?.onDidChangeEmitter.fire(SqlPreviewContentProvider.URI);
+            fireUpdate();
           }
         }
       })
