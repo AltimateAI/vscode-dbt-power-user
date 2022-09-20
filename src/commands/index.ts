@@ -40,6 +40,7 @@ export class VSCodeCommands implements Disposable {
       }),
       commands.registerTextEditorCommand('dbtPowerUser.showCompileWindow', async (editor: TextEditor) => {
         if (editor.document.uri.path === SqlPreviewContentProvider.URI.path) {
+          await commands.executeCommand('workbench.action.closeActiveEditor');
           return;
         }
         const doc = await workspace.openTextDocument(SqlPreviewContentProvider.URI);

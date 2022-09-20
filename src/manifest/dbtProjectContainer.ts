@@ -14,7 +14,7 @@ import { DBTCommand } from "../dbt_client/dbtCommandFactory";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
 import { inject } from "inversify";
-import { basename, sep } from "path";
+import { basename } from "path";
 import { RunModelType } from "../domain";
 import { QueryResultPanel } from "../webview";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
@@ -54,14 +54,11 @@ export class DBTProjectContainer implements Disposable {
     // Query View Sync
     this.disposables.push(
       workspace.onDidChangeTextDocument(async (event) => {
-        if (event.document.fileName.endsWith(".sql") || event.document.fileName.endsWith(".sql.jinja")) {
-          const query = event.document.getText();
-          const parts = event.document.fileName.split(sep);
-          const file = parts.slice(
-            parts.length >= 3 ? -3 : -parts.length
-          ).join(" > ");
-          globalThis.currentSql = query;
-          globalThis.currentSqlFile = file;
+        if (event.document.uri.path === SqlPreviewContentProvider.URI.path) {
+          return;
+        }
+        if (event.document.languageId === "jinja-sql") {
+          globalThis.currentSql = event.document.getText();
           if (window.visibleTextEditors.some(
             (editor) => editor.document.uri.path === SqlPreviewContentProvider.URI.path)) {
             SqlPreviewContentProvider.instance?.onDidChangeEmitter.fire(SqlPreviewContentProvider.URI);
@@ -71,14 +68,11 @@ export class DBTProjectContainer implements Disposable {
     );
     this.disposables.push(
       window.onDidChangeActiveTextEditor(async (event) => {
-        if (event?.document.fileName.endsWith(".sql") || event?.document.fileName.endsWith(".sql.jinja")) {
-          const query = event.document.getText();
-          const parts = event.document.fileName.split(sep);
-          const file = parts.slice(
-            parts.length >= 3 ? -3 : -parts.length
-          ).join(" > ");
-          globalThis.currentSql = query;
-          globalThis.currentSqlFile = file;
+        if (event?.document.uri.path === SqlPreviewContentProvider.URI.path) {
+          return;
+        }
+        if (event?.document.languageId === "jinja-sql") {
+          globalThis.currentSql = event.document.getText();
           if (window.visibleTextEditors.some(
             (editor) => editor.document.uri.path === SqlPreviewContentProvider.URI.path)) {
             SqlPreviewContentProvider.instance?.onDidChangeEmitter.fire(SqlPreviewContentProvider.URI);

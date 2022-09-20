@@ -8,7 +8,6 @@ interface JsonObj {
 
 declare global {
 	var currentSql: string;
-	var currentSqlFile: string;
 }
 
 export function getWebviewOptions(extensionUri: vscode.Uri): (vscode.WebviewPanelOptions & vscode.WebviewOptions) {

@@ -221,8 +221,7 @@
       {
         "key": "Ctrl+'",
         "mac": "Cmd+'",
-        "command": "dbtPowerUser.showCompileWindow",
-        "when": "resourceLangId == jinja-sql"
+        "command": "dbtPowerUser.showCompileWindow"
       }
     ],
     "menus": {
