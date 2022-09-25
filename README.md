@@ -5,6 +5,8 @@
 This extension makes vscode seamlessly work with [dbt](https://www.getdbt.com/).
 
 Main features:
+- Query result set visualization
+- Execute all or individual model tests
 - Go to the definition of any models, macro's and sources.
 - Autocompletion of models, macros and sources
 - Ability to run a model through the play button of the document
@@ -19,7 +21,22 @@ Please let us know about any bugs or feature requests through the github issues.
 
 This extension is sponsored by [innover.io](https://innover.io/).
 
+Query visualization and compilation is powered by [dbt-osmosis](https://pypi.org/project/dbt-osmosis/).
+
 ## Features at work
+
+### Visualize the result set of your model (new)
+
+![Use ctrl+enter or cmd+enter to retrieve the result set of your model](./media/images/visualize-result-set.gif)
+
+### See the compiled query of your model (new)
+
+![Use ctrl+' or cmd+' to see the compiled sql of your model](./media/images/compile.gif)
+
+### Execute model tests (new)
+
+![Test your model](./media/images/tests.gif)
+
 ### See the model graph
 
 ![See the graph and execute parent or children models](./media/images/graph.gif)
