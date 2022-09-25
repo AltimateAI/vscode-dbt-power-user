@@ -8,7 +8,7 @@ import {
   Disposable,
   Uri,
 } from "vscode";
-import { Node, GraphMetaMap, Source, Model } from "../domain";
+import { Node, GraphMetaMap, Source, Model, Test, Snapshot, Exposure } from "../domain";
 import * as path from "path";
 import {
   ManifestCacheChangedEvent,
@@ -21,7 +21,7 @@ import { provide } from "inversify-binding-decorators";
 
 @provide(ModelTreeviewProvider)
 abstract class ModelTreeviewProvider
-  implements TreeDataProvider<NodeTreeItem>, Disposable {
+implements TreeDataProvider<NodeTreeItem>, Disposable {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private _onDidChangeTreeData: EventEmitter<
     ModelTreeItem | undefined | void
@@ -46,7 +46,12 @@ abstract class ModelTreeviewProvider
   }
 
   dispose() {
-    this.disposables.forEach((disposable) => disposable.dispose());
+    while (this.disposables.length) {
+      const x = this.disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
   }
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
@@ -78,6 +83,10 @@ abstract class ModelTreeviewProvider
 
     const event = this.eventMap.get(projectRootpath.fsPath);
     if (event === undefined) {
+      return Promise.resolve([]);
+    }
+
+    if (element?.key.startsWith("test.")) {
       return Promise.resolve([]);
     }
 
@@ -113,12 +122,17 @@ abstract class ModelTreeviewProvider
           .get(node.key)
           ?.nodes.filter((node) => node.displayInModelTree);
 
-        if (node instanceof Model && childNodes?.length === 0) {
+        if ((node instanceof Model || node instanceof Snapshot)
+          && childNodes?.filter(node => (node instanceof Model || node instanceof Snapshot)).length === 0) {
           return new DashboardTreeItem(node);
         }
-        return node instanceof Source
-          ? new SourceTreeItem(node)
-          : new ModelTreeItem(node);
+        if (node instanceof Test) {
+          return new TestTreeItem(node);
+        }
+        if (node instanceof Source) {
+          return new SourceTreeItem(node);
+        }
+        return new ModelTreeItem(node);
       });
   }
 }
@@ -149,19 +163,32 @@ class ModelTreeItem extends NodeTreeItem {
 
 class SourceTreeItem extends NodeTreeItem {
   collapsibleState = TreeItemCollapsibleState.None;
-
   contextValue = "source";
+}
+
+class TestTreeItem extends NodeTreeItem {
+  collapsibleState = TreeItemCollapsibleState.None;
+  iconPath = {
+    light: path.join(path.resolve(__dirname), "../media/images/dashboard_light.svg"),
+    dark: path.join(path.resolve(__dirname), "../media/images/dashboard_dark.svg"),
+  };
+  contextValue = "dashboard";
 }
 
 class DashboardTreeItem extends NodeTreeItem {
   collapsibleState = TreeItemCollapsibleState.None;
-
   iconPath = {
-    light: path.join(path.resolve(__dirname), "../media/dashboard_light.svg"),
-    dark: path.join(path.resolve(__dirname), "../media/dashboard_dark.svg"),
+    light: path.join(path.resolve(__dirname), "../media/images/dashboard_light.svg"),
+    dark: path.join(path.resolve(__dirname), "../media/images/dashboard_dark.svg"),
   };
-
   contextValue = "dashboard";
+}
+
+@provideSingleton(ModelTestTreeview)
+export class ModelTestTreeview extends ModelTreeviewProvider {
+  constructor(dbtProjectContainer: DBTProjectContainer) {
+    super(dbtProjectContainer, "tests");
+  }
 }
 
 @provideSingleton(ParentModelTreeview)

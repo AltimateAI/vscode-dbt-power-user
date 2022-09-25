@@ -1,13 +1,14 @@
 import { readFileSync } from "fs";
 import { parse } from "yaml";
 import * as path from "path";
+import * as os from "os";
 import {
   SourceFileWatchers,
   SourceFileWatchersFactory,
 } from "./modules/sourceFileWatchers";
 import { TargetWatchersFactory } from "./modules/targetWatchers";
 import { DBTProjectLog, DBTProjectLogFactory } from "./modules/dbtProjectLog";
-import { setupWatcherHandler } from "../utils";
+import { debounce, setupWatcherHandler } from "../utils";
 import {
   Disposable,
   EventEmitter,
@@ -16,6 +17,8 @@ import {
   workspace,
   Event,
   commands,
+  ViewColumn,
+  window
 } from "vscode";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 import { DBTProjectContainer } from "./dbtProjectContainer";
@@ -25,6 +28,9 @@ import {
 } from "../dbt_client/dbtCommandFactory";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { ProfilesMetaData } from "../domain";
+import { join } from "path";
+import { QueryResultPanelLoader } from "../webview";
 
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -38,11 +44,13 @@ export class DBTProject implements Disposable {
   static RESOURCE_TYPE_SOURCE = "source";
   static RESOURCE_TYPE_SEED = "seed";
   static RESOURCE_TYPE_SNAPSHOT = "snapshot";
+  static RESOURCE_TYPE_TEST = "test";
 
   readonly projectRoot: Uri;
-  private projectName: string|undefined;
-  private targetPath: string|undefined;
-  private sourcePaths: string[]|undefined;
+  private projectName?: string;
+  private targetPath?: string;
+  private sourcePaths?: string[];
+  private profilesMetaData?: ProfilesMetaData;
 
   private _onProjectConfigChanged = new EventEmitter<ProjectConfigChangedEvent>();
   public onProjectConfigChanged = this._onProjectConfigChanged.event;
@@ -58,6 +66,7 @@ export class DBTProject implements Disposable {
     private targetWatchersFactory: TargetWatchersFactory,
     private dbtCommandFactory: DBTCommandFactory,
     private terminal: DBTTerminal,
+    private queryResultPanelLoader: QueryResultPanelLoader,
     path: Uri,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
   ) {
@@ -66,6 +75,8 @@ export class DBTProject implements Disposable {
     const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(path, DBTProject.DBT_PROJECT_FILE)
     );
+
+    const fireProjectChanged = debounce(async () => await this.rebuildManifest(), 2000);
 
     setupWatcherHandler(dbtProjectConfigWatcher, () => this.tryRefresh());
 
@@ -84,7 +95,7 @@ export class DBTProject implements Disposable {
         this.onProjectConfigChanged
       ),
       dbtProjectConfigWatcher,
-      this.onSourceFileChanged(() => this.listModels()),
+      this.onSourceFileChanged(fireProjectChanged),
       this.sourceFileWatchers,
       this.dbtProjectLog
     );
@@ -118,8 +129,8 @@ export class DBTProject implements Disposable {
     return uri.fsPath.startsWith(this.projectRoot.fsPath + path.sep);
   }
 
-  listModels() {
-    this.dbtProjectContainer.listModels(this.projectRoot);
+  async rebuildManifest() {
+    await this.dbtProjectContainer.rebuildManifest(this.projectRoot);
   }
 
   runModel(runModelParams: RunModelParams) {
@@ -130,12 +141,44 @@ export class DBTProject implements Disposable {
     this.dbtProjectContainer.addCommandToQueue(runModelCommand);
   }
 
+  runTest(testName: string) {
+    const testModelCommand = this.dbtCommandFactory.createTestModelCommand(
+      this.projectRoot,
+      testName
+    );
+    this.dbtProjectContainer.addCommandToQueue(testModelCommand);
+  }
+
+  runModelTest(modelName: string) {
+    const testModelCommand = this.dbtCommandFactory.createTestModelCommand(
+      this.projectRoot,
+      modelName
+    );
+    this.dbtProjectContainer.addCommandToQueue(testModelCommand);
+  }
+
   compileModel(runModelParams: RunModelParams) {
     const runModelCommand = this.dbtCommandFactory.createCompileModelCommand(
       this.projectRoot,
       runModelParams
     );
     this.dbtProjectContainer.addCommandToQueue(runModelCommand);
+  }
+
+  async compileQuery(query: string): Promise<string> {
+    const command = this.dbtCommandFactory.createQueryPreviewCommand(query, this.projectRoot, this.profilesMetaData!.defaultTarget);
+
+    const process = await this.dbtProjectContainer.executeCommand(command);
+    try {
+      const response = await process.complete();
+      const result: any = JSON.parse(response);
+      return result.compiled_sql;
+    } catch (error: any) {
+      console.log(error);
+      window.showErrorMessage(error.message);
+    }
+    // TODO: we have to return string here for the contentProvider...
+    return "";
   }
 
   showCompiledSql(modelPath: Uri) {
@@ -146,8 +189,19 @@ export class DBTProject implements Disposable {
     this.findModelInTargetfolder(modelPath, "run");
   }
 
+  executeSQL(query: string, title: string) {
+    this.queryResultPanelLoader
+      .showWebview(title)
+      .executeQuery(query, this.projectRoot!, this.profilesMetaData!.defaultTarget);
+  }
+
   dispose() {
-    this.disposables.forEach((disposable) => disposable.dispose());
+    while (this.disposables.length) {
+      const x = this.disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
   }
 
   private readAndParseProjectConfig() {
@@ -155,30 +209,32 @@ export class DBTProject implements Disposable {
       path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE),
       "utf8"
     );
-    return parse(dbtProjectYamlFile, { uniqueKeys: false}) as any;
+    return parse(dbtProjectYamlFile, { uniqueKeys: false }) as any;
   }
 
-  private async findModelInTargetfolder(modelPath: Uri, type: string) { 
+  private async findModelInTargetfolder(modelPath: Uri, type: string) {
     if (this.targetPath === undefined) {
       return;
     }
     const baseName = path.basename(modelPath.fsPath);
     const targetModels = await workspace.findFiles(
       new RelativePattern(
-        this.projectRoot,
-        `${this.targetPath}/${type}/**/${baseName}`
+        path.join(this.projectRoot.fsPath, this.targetPath),
+        `${type}/**/${baseName}`
       )
     );
     if (targetModels.length > 0) {
       commands.executeCommand("vscode.open", targetModels[0], {
         preview: false,
+        preserveFocus: true,
+        viewColumn: ViewColumn.Beside
       });
     }
   }
 
   private findSourcePaths(projectConfig: any): string[] {
     return DBTProject.SOURCE_PATHS_VAR.reduce((prev: string[], current: string) => {
-      if(projectConfig[current] !== undefined) {
+      if (projectConfig[current] !== undefined) {
         return projectConfig[current] as string[];
       } else {
         return prev;
@@ -198,13 +254,38 @@ export class DBTProject implements Disposable {
     this.projectName = projectConfig.name;
     this.targetPath = this.findTargetPath(projectConfig);
     this.sourcePaths = this.findSourcePaths(projectConfig);
+    this.profilesMetaData = this.readDbtProfile(this.projectName!);
 
     const event = new ProjectConfigChangedEvent(
       this.projectRoot,
       this.projectName as string,
+      this.profilesMetaData,
       this.targetPath,
       this.sourcePaths
     );
     this._onProjectConfigChanged.fire(event);
+  }
+
+  private readDbtProfile(projectName: string): ProfilesMetaData {
+    const dbtProfilesDir = workspace
+      .getConfiguration("dbt")
+      .get<string>("profilesDirOverride") || join( os.homedir(), ".dbt");
+
+    let profiles: any;
+    try {
+      profiles = parse(readFileSync(join(dbtProfilesDir, "profiles.yml"), "utf8"));
+    } catch(error) {
+      window.showErrorMessage(`Could not read profiles.yml from ${dbtProfilesDir}`);
+      throw error;
+    }
+
+    if (profiles[projectName] === undefined) {
+      window.showErrorMessage(`Could not find profile '${projectName}' in ${dbtProfilesDir}. Did you create a profile?`);
+    }
+
+    return {
+      targets: Object.keys(profiles[projectName].outputs),
+      defaultTarget: profiles[projectName].target
+    };
   }
 }

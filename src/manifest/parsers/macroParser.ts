@@ -16,7 +16,6 @@ export class MacroParser {
     return new Promise((resolve) => {
       const macroMetaMap: MacroMetaMap = new Map();
       if (macros === null || macros === undefined) {
-        console.log("No macros found in manifest!");
         resolve(macroMetaMap);
       }
       Object.values(macros).forEach(
@@ -42,7 +41,7 @@ export class MacroParser {
             }
           } catch (error) {
             console.log(
-              `File not found at '${fullPath}', probably compiled is outdated!`,
+              `File not found at '${fullPath}', project may need to be recompiled.`,
               error
             );
             this.terminal.log(`File not found at '${fullPath}', probably compiled is outdated. ${error}`);

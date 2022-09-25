@@ -5,14 +5,14 @@
 		"outDir": "out",
 		"experimentalDecorators": true,
 		"emitDecoratorMetadata": true,
-    "forceConsistentCasingInFileNames": true,
-    "importHelpers": true,
-		"types": ["reflect-metadata"],
-    "lib": [
-      "es6",
-      "es2018",
-      "dom"
-  ],
+		"forceConsistentCasingInFileNames": true,
+		"importHelpers": true,
+		"types": ["reflect-metadata", "node"],
+		"lib": [
+			"es6",
+			"es2018",
+			"dom"
+		],
 		"sourceMap": true,
 		"rootDir": "src",
 		"strict": true   /* enable all strict type-checking options */

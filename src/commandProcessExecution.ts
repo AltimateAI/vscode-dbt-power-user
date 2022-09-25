@@ -42,27 +42,30 @@ export class CommandProcessExecution implements Disposable {
   }
 
   dispose() {
-    this.disposables.forEach((disposable) => disposable.dispose());
+    while (this.disposables.length) {
+      const x = this.disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
   }
 
   async complete(): Promise<string> {
     return new Promise<string>((resolve, reject) => {
-      const stdoutBuffer: Buffer[] = [];
-      const stderrBuffer: Buffer[] = [];
+      let stdoutBuffer = '';
+      let stderrBuffer = '';
       this.commandProcess.stdout!.on("data", (chunk) =>
-        stdoutBuffer.push(chunk)
+        stdoutBuffer += chunk.toString()
       );
       this.commandProcess.stderr!.on("data", (chunk) =>
-        stderrBuffer.push(chunk)
+        stderrBuffer += chunk.toString()
       );
 
       this.commandProcess.once("close", () => {
-        const stdout = stdoutBuffer.toString();
-        const stderr = stderrBuffer.toString();
-        if (!stdout) {
-          reject(`Process returned an error:${stderr}`);
+        if (!stdoutBuffer) {
+          reject(`Process returned an error: ${stderrBuffer}`);
         }
-        resolve(stdout);
+        resolve(stdoutBuffer);
       });
 
       this.commandProcess.once("error", (error) => {

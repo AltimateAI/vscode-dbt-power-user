@@ -22,27 +22,27 @@ This extension is sponsored by [innover.io](https://innover.io/).
 ## Features at work
 ### See the model graph
 
-![See the graph and execute parent or children models](./media/graph.gif)
+![See the graph and execute parent or children models](./media/images/graph.gif)
 
 ### Go to definition
 
-![Go to model definition](./media/definition-model.gif)
+![Go to model definition](./media/images/definition-model.gif)
 
-![Go to macro definition](./media/definition-macro.gif)
+![Go to macro definition](./media/images/definition-macro.gif)
 
-![Go to source definition](./media/definition-source.gif)
+![Go to source definition](./media/images/definition-source.gif)
 
 ### Autocompletion
 
-![Autocomplete model](./media/autocomplete-model.gif)
+![Autocomplete model](./media/images/autocomplete-model.gif)
 
-![Autocomplete macro](./media/autocomplete-macro.gif)
+![Autocomplete macro](./media/images/autocomplete-macro.gif)
 
-![Autocomplete source](./media/autocomplete-source.gif)
+![Autocomplete source](./media/images/autocomplete-source.gif)
 
 ### dbt logs force tailing
 
-![dbt logs](./media/dbt-log.gif)
+![dbt logs](./media/images/dbt-log.gif)
 
 
 
@@ -50,7 +50,7 @@ This extension is sponsored by [innover.io](https://innover.io/).
 
 You should associate your .sql files with the jinja-sql language by configuring in Preferences > Settings
 
-![Associations](./media/associations.png)
+![Associations](./media/images/associations.png)
 
 or add the following in settings.json:
 
@@ -59,4 +59,3 @@ or add the following in settings.json:
         "*.sql": "jinja-sql"
     },
 ```
-

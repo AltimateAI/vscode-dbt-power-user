@@ -112,6 +112,11 @@ export class DBTProjectLog implements Disposable {
     if (this.outputChannel !== undefined) {
       this.outputChannel.dispose();
     }
-    this.disposables.forEach((disposable) => disposable.dispose());
+    while (this.disposables.length) {
+      const x = this.disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
   }
 }

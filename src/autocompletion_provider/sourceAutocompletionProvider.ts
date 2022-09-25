@@ -17,7 +17,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 
 @provideSingleton(SourceAutocompletionProvider) // TODO autocomplete doesn't work when mistype, delete and retype
 export class SourceAutocompletionProvider
-  implements CompletionItemProvider, Disposable {
+implements CompletionItemProvider, Disposable {
   private static readonly GET_SOURCE_NAME = /(?!['"])(\w+)(?=['"])/;
   private static readonly ENDS_WITH_SOURCE = /source\(['|"]$/;
   private sourceAutocompleteNameItemsMap: Map<
@@ -39,7 +39,12 @@ export class SourceAutocompletionProvider
   }
 
   dispose() {
-    this.disposables.forEach((disposable) => disposable.dispose());
+    while (this.disposables.length) {
+      const x = this.disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
   }
 
   provideCompletionItems(

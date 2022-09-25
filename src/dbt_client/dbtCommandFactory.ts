@@ -28,11 +28,126 @@ export class DBTCommandFactory {
     return dbtProfilesDir ? ["'--profiles-dir'", `'${dbtProfilesDir}'`] : [];
   }
 
-  createImportDBTCommand(): DBTCommand {
+  createVerifyDbtInstalledCommand(): DBTCommand {
     return {
       statusMessage: "Detecting dbt installation...",
       processExecutionParams: {
         args: ["-c", 'import dbt.main; print("dbt is installed")'],
+      },
+    };
+  }
+
+  createVerifyDbtOsmosisInstalledCommand(): DBTCommand {
+    return {
+      statusMessage: "Detecting dbt osmosis installation...",
+      processExecutionParams: {
+        args: ["-c", 'import dbt_osmosis.core.osmosis; print("dbt osmosis is installed")'],
+      },
+    };
+  }
+
+  createDbtOsmosisInstallCommand() {
+    return {
+      commandAsString: "pip install dbt_osmosis",
+      statusMessage: "Installing dbt_osmosis...",
+      processExecutionParams: { args: ["-m", "pip", "install", "--upgrade", "dbt_osmosis==0.7.16"] },
+      focus: true,
+    };
+  }
+
+  createRunQueryCommand(sql: string, projectRoot: Uri, target: string): DBTCommand {
+    const limit = workspace
+      .getConfiguration("dbt")
+      .get<number>("queryLimit", 200);
+
+    const code = `\
+import decimal
+import json
+import re
+import sys
+
+import orjson
+from dbt_osmosis.core.osmosis import DbtOsmosis
+
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+def default(obj):
+    if isinstance(obj, decimal.Decimal):
+        return float(obj)
+    raise TypeError
+
+def json_dumps(body):
+    return orjson.dumps(body, default=default).decode("utf-8")
+
+runner = DbtOsmosis(
+    project_dir="""${projectRoot.fsPath.replace(/"/g, '\\"')}""",
+    target="""${target.replace(/"/g, '\\"')}""",
+)
+try:
+    query = """${sql.replace(/"/g, '\\"')}"""
+    query_with_limit = f"select * from ({query}) as osmosis_query limit ${limit}"
+    result = runner.execute_sql(query_with_limit)
+except Exception as exc:
+    eprint(json_dumps({"error": str(exc), "data": exc.__dict__}))
+    sys.exit(-1)
+
+print(json_dumps({
+    "rows": [list(row) for row in result.table.rows],
+    "column_names": result.table.column_names,
+    "compiled_sql": re.search(r"select \\* from \\(([\\w\\W]+)\\) as osmosis_query", result.compiled_sql).groups()[0]
+}))
+sys.exit(0)`;
+
+    return {
+      statusMessage: "Running query...",
+      processExecutionParams: {
+        cwd: projectRoot.fsPath,
+        args: ["-c", code],
+      },
+    };
+  }
+
+  createQueryPreviewCommand(sql: string, projectRoot: Uri, target: string): DBTCommand {
+    const code = `\
+import decimal
+import json
+import re
+import sys
+
+import orjson
+from dbt_osmosis.core.osmosis import DbtOsmosis
+
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+def default(obj):
+    if isinstance(obj, decimal.Decimal):
+        return float(obj)
+    raise TypeError
+
+def json_dumps(body):
+    return orjson.dumps(body, default=default).decode("utf-8")
+
+runner = DbtOsmosis(
+    project_dir="""${projectRoot.fsPath.replace(/"/g, '\\"')}""",
+    target="""${target.replace(/"/g, '\\"')}""",
+)
+try:
+    result = runner.compile_sql("""${sql.replace(/"/g, '\\"')}""")
+except Exception as exc:
+    eprint(json_dumps({"error": str(exc), "data": exc.__dict__}))
+    sys.exit(-1)
+
+print(json_dumps({
+    "compiled_sql": result,
+}))
+sys.exit(0)`;
+    return {
+      statusMessage: "Running query...",
+      processExecutionParams: {
+        cwd: projectRoot.fsPath,
+        args: ["-c", code],
       },
     };
   }
@@ -68,7 +183,7 @@ export class DBTCommandFactory {
       .get<string[]>("runModelCommandAdditionalParams", []);
 
     return {
-      commandAsString: `dbt run --model ${params.plusOperatorLeft}${
+      commandAsString: `dbt run --select ${params.plusOperatorLeft}${
         params.modelName
       }${params.plusOperatorRight}${
         runModelCommandAdditionalParams.length > 0
@@ -82,8 +197,39 @@ export class DBTCommandFactory {
           "-c",
           this.dbtCommand([
             "'run'",
-            "'--model'",
+            "'--select'",
             `'${plusOperatorLeft}${modelName}${plusOperatorRight}'`,
+            ...runModelCommandAdditionalParams.map((param) => `'${param}'`),
+            ...profilesDirParams,
+          ]),
+        ],
+      },
+      focus: true,
+    };
+  }
+
+  createTestModelCommand(projectRoot: Uri, testName: string) {
+    const profilesDirParams = this.profilesDirParams();
+
+    // Lets pass through these params here too
+    const runModelCommandAdditionalParams = workspace
+      .getConfiguration("dbt")
+      .get<string[]>("runModelCommandAdditionalParams", []);
+
+    return {
+      commandAsString: `dbt test --select ${testName}${runModelCommandAdditionalParams.length > 0
+        ? " " + runModelCommandAdditionalParams.join(" ")
+        : ""
+      }`,
+      statusMessage: "Testing dbt model...",
+      processExecutionParams: {
+        cwd: projectRoot.fsPath,
+        args: [
+          "-c",
+          this.dbtCommand([
+            "'test'",
+            "'--select'",
+            `'${testName}'`,
             ...runModelCommandAdditionalParams.map((param) => `'${param}'`),
             ...profilesDirParams,
           ]),
@@ -99,14 +245,14 @@ export class DBTCommandFactory {
 
     return {
       commandAsString: `dbt compile --model ${params.plusOperatorLeft}${params.modelName}${params.plusOperatorRight}`,
-      statusMessage: "compiling dbt models...",
+      statusMessage: "Compiling dbt models...",
       processExecutionParams: {
         cwd: projectRoot.fsPath,
         args: [
           "-c",
           this.dbtCommand([
             "'compile'",
-            "'--model'",
+            "'--select'",
             `'${plusOperatorLeft}${modelName}${plusOperatorRight}'`,
             ...profilesDirParams,
           ]),

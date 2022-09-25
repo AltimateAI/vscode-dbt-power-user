@@ -6,18 +6,23 @@ import { provideSingleton } from "../utils";
 export class DBTTerminal {
   private terminal?: Terminal;
   private readonly writeEmitter = new EventEmitter<string>();
+  private outputChannel = window.createOutputChannel(`Log - dbt`);
 
   show(status: boolean) {
-    this.requireTerminal();
-    this.terminal!.show(status);
+    if (status) {
+      this.requireTerminal();
+      this.terminal!.show(!status);
+    }
   }
 
   log(message: string) {
-    this.requireTerminal();
-    this.writeEmitter.fire(message + "\n\r");
+    this.outputChannel.append(message + "\n\r");
+    if (this.terminal !== undefined) {
+      this.writeEmitter.fire(message + "\n\r");
+    }
   }
 
-  requireTerminal() {
+  private requireTerminal() {
     if (this.terminal === undefined) {
       this.terminal = window.createTerminal({
         name: "Tasks - dbt",

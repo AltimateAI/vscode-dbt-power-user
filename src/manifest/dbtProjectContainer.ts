@@ -6,6 +6,7 @@ import {
   Disposable,
   EventEmitter,
   window,
+  ExtensionContext
 } from "vscode";
 import { DBTClient } from "../dbt_client";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
@@ -13,16 +14,19 @@ import { DBTCommand } from "../dbt_client/dbtCommandFactory";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
 import { inject } from "inversify";
-import * as path from "path";
+import { basename } from "path";
 import { RunModelType } from "../domain";
 
 @provideSingleton(DBTProjectContainer)
 export class DBTProjectContainer implements Disposable {
-  public onDBTInstallationFound = this.dbtClient.onDBTInstallationFound;
+  public onDBTInstallationVerification = this.dbtClient.onDBTInstallationVerification;
   private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
   private _onManifestChanged = new EventEmitter<ManifestCacheChangedEvent>();
   public readonly onManifestChanged = this._onManifestChanged.event;
+  public currentSql?:string;
   private disposables: Disposable[] = [this._onManifestChanged];
+  // TODO: handle with factory and convert to readonly
+  public extensionUri: Uri = Uri.file("");
 
   constructor(
     private dbtClient: DBTClient,
@@ -30,18 +34,18 @@ export class DBTProjectContainer implements Disposable {
     private dbtWorkspaceFolderFactory: (
       workspaceFolder: WorkspaceFolder,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
-    ) => DBTWorkspaceFolder
+    ) => DBTWorkspaceFolder,
   ) {
+    // Workspace Folder Registrar
+    // const fireUpdate = debounce(() => sqlPreviewContentProvider.onDidChangeEmitter.fire(SqlPreviewContentProvider.URI), 500);
     this.disposables.push(
       workspace.onDidChangeWorkspaceFolders(async (event) => {
         const { added, removed } = event;
-
         await Promise.all(
           added.map(
             async (folder) => await this.registerWorkspaceFolder(folder)
           )
         );
-
         removed.forEach((removedWorkspaceFolder) =>
           this.unregisterWorkspaceFolder(removedWorkspaceFolder)
         );
@@ -59,6 +63,12 @@ export class DBTProjectContainer implements Disposable {
     );
   }
 
+  // This is is ran during activation
+  // should be constructor parameter instead.
+  resolveUri(context: ExtensionContext) {
+    this.extensionUri = context.extensionUri;
+  }
+
   // TODO: bypasses events and could be inconsistent
   getPackageName = (uri: Uri): string | undefined => {
     return this.findDBTProject(uri)?.findPackageName(uri);
@@ -73,16 +83,32 @@ export class DBTProjectContainer implements Disposable {
     await this.dbtClient.detectDBT();
   }
 
-  listModels(projectUri: Uri) {
-    this.dbtClient.listModels(projectUri);
+  executeSQL(uri: Uri, query: string, title: string): void {
+    this.findDBTProject(uri)?.executeSQL(query, title);
+  }
+
+  async rebuildManifest(projectUri: Uri) {
+    await this.dbtClient.rebuildManifest(projectUri);
   }
 
   runModel(modelPath: Uri, type?: RunModelType) {
     this.findDBTProject(modelPath)?.runModel(this.createModelParams(modelPath, type));
   }
 
+  runTest(modelPath: Uri, testName: string) {
+    this.findDBTProject(modelPath)?.runTest(testName);
+  }
+
+  runModelTest(modelPath: Uri, modelName: string) {
+    this.findDBTProject(modelPath)?.runModelTest(modelName);
+  }
+
   compileModel(modelPath: Uri, type?: RunModelType) {
     this.findDBTProject(modelPath)?.compileModel(this.createModelParams(modelPath, type));
+  }
+
+  compileQuery(modelPath: Uri, query: string) {
+    this.findDBTProject(modelPath)?.compileQuery(query);
   }
 
   showRunSQL(modelPath: Uri) {
@@ -109,15 +135,29 @@ export class DBTProjectContainer implements Disposable {
     this.dbtClient.addCommandToQueue(command);
   }
 
+  // TODO: we should not execute commands directly on dbtProjectContainer
+  executeCommand(command: DBTCommand) {
+    return this.dbtClient.executeCommand(command);
+  }
+
+  installDbtOsmosis(){
+    this.dbtClient.installDbtOsmosis();
+  }
+
   dispose() {
     this.dbtWorkspaceFolders.forEach((workspaceFolder) =>
       workspaceFolder.dispose()
     );
-    this.disposables.forEach((disposable) => disposable.dispose());
+    while (this.disposables.length) {
+      const x = this.disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
   }
 
   private createModelParams(modelPath: Uri, type?: RunModelType) {
-    const modelName = path.basename(modelPath.fsPath, ".sql");
+    const modelName = basename(modelPath.fsPath, ".sql");
     const plusOperatorLeft = type === RunModelType.PARENTS ? "+" : "";
     const plusOperatorRight = type === RunModelType.CHILDREN ? "+" : "";
     return { plusOperatorLeft, modelName, plusOperatorRight };

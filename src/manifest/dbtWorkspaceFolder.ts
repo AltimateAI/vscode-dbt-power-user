@@ -59,7 +59,12 @@ export class DBTWorkspaceFolder implements Disposable {
 
   dispose() {
     this.dbtProjects.forEach((project) => project.dispose());
-    this.disposables.forEach((disposable) => disposable.dispose());
+    while (this.disposables.length) {
+      const x = this.disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
   }
 
   private async registerDBTProject(uri: Uri) {
@@ -67,7 +72,7 @@ export class DBTWorkspaceFolder implements Disposable {
       uri,
       this._onManifestChanged
     );
-    await dbtProject.listModels();
+    await dbtProject.rebuildManifest();
     await dbtProject.tryRefresh();
     this.dbtProjects.push(dbtProject);
   }

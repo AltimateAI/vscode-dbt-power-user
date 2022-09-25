@@ -18,7 +18,7 @@ import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChange
 
 @provideSingleton(SourceDefinitionProvider)
 export class SourceDefinitionProvider
-  implements DefinitionProvider, Disposable {
+implements DefinitionProvider, Disposable {
   private sourceMetaMap: Map<string, SourceMetaMap> = new Map();
   private static readonly IS_SOURCE = /(source)\([^)]*\)/;
   private static readonly GET_SOURCE_INFO = /(?!['"])(\w+)(?=['"])/g;
@@ -33,7 +33,12 @@ export class SourceDefinitionProvider
   }
 
   dispose() {
-    this.disposables.forEach((disposable) => disposable.dispose());
+    while (this.disposables.length) {
+      const x = this.disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
   }
 
   provideDefinition(
