@@ -2,7 +2,7 @@
   "name": "vscode-dbt-power-user",
   "displayName": "dbt Power User",
   "description": "This extension makes vscode seamlessly work with dbt",
-  "icon": "media/dbt.png",
+  "icon": "media/images/dbt.png",
   "publisher": "innoverio",
   "license": "MIT",
   "homepage": "https://github.com/innoverio/vscode-dbt-power-user",
