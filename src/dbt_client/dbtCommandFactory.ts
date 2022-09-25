@@ -49,8 +49,8 @@ export class DBTCommandFactory {
   createDbtOsmosisInstallCommand() {
     return {
       commandAsString: "pip install dbt_osmosis",
-      statusMessage: "Installing dbt_osmosis...",
-      processExecutionParams: { args: ["-m", "pip", "install", "--upgrade", "dbt_osmosis==0.7.16"] },
+      statusMessage: "Installing dbt-osmosis...",
+      processExecutionParams: { args: ["-m", "pip", "install", "--upgrade", "dbt-osmosis==0.7.16"] },
       focus: true,
     };
   }
@@ -65,6 +65,7 @@ import decimal
 import json
 import re
 import sys
+import traceback
 
 import orjson
 from dbt_osmosis.core.osmosis import DbtOsmosis
@@ -80,16 +81,16 @@ def default(obj):
 def json_dumps(body):
     return orjson.dumps(body, default=default).decode("utf-8")
 
-runner = DbtOsmosis(
-    project_dir="""${projectRoot.fsPath.replace(/"/g, '\\"')}""",
-    target="""${target.replace(/"/g, '\\"')}""",
-)
 try:
+    runner = DbtOsmosis(
+        project_dir="""${projectRoot.fsPath.replace(/"/g, '\\"')}""",
+        target="""${target.replace(/"/g, '\\"')}""",
+    )
     query = """${sql.replace(/"/g, '\\"')}"""
     query_with_limit = f"select * from ({query}) as osmosis_query limit ${limit}"
     result = runner.execute_sql(query_with_limit)
 except Exception as exc:
-    eprint(json_dumps({"error": str(exc), "data": exc.__dict__}))
+    eprint(json_dumps({"message": str(exc), "data": traceback.format_exc()}))
     sys.exit(-1)
 
 print(json_dumps({
@@ -114,6 +115,7 @@ import decimal
 import json
 import re
 import sys
+import traceback
 
 import orjson
 from dbt_osmosis.core.osmosis import DbtOsmosis
@@ -129,14 +131,14 @@ def default(obj):
 def json_dumps(body):
     return orjson.dumps(body, default=default).decode("utf-8")
 
-runner = DbtOsmosis(
-    project_dir="""${projectRoot.fsPath.replace(/"/g, '\\"')}""",
-    target="""${target.replace(/"/g, '\\"')}""",
-)
 try:
+    runner = DbtOsmosis(
+        project_dir="""${projectRoot.fsPath.replace(/"/g, '\\"')}""",
+        target="""${target.replace(/"/g, '\\"')}""",
+    )
     result = runner.compile_sql("""${sql.replace(/"/g, '\\"')}""")
 except Exception as exc:
-    eprint(json_dumps({"error": str(exc), "data": exc.__dict__}))
+    eprint(json_dumps({"message": str(exc), "data": traceback.format_exc()}))
     sys.exit(-1)
 
 print(json_dumps({

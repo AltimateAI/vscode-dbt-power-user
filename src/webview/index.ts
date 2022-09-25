@@ -154,9 +154,10 @@ class QueryResultPanel implements Disposable {
       });
       await this.transmitData(columns, rows, query, result.compiled_sql);
     } catch (error: any) {
-      console.log(error);
-      window.showErrorMessage(error.message);
-      this.transmitError(error, query, query);
+      if (error.includes("No module named 'dbt_osmosis")) {
+        commands.executeCommand("dbtPowerUser.installDbtOsmosis");
+      }
+      this.transmitError(JSON.parse(error), query, query);
     }
   }
 

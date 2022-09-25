@@ -17,7 +17,7 @@ export class InstallDbtOsmosis {
 
   private async askForInstall() {
     const answer = await window.showInformationMessage(
-      "dbt Power User can now execute and visualize the result set of your models using an auxilliary package `dbt_osmosis`. Do you want to install `dbt_osmosis` now?",
+      "dbt Power User can now execute and visualize the result set of your models using an auxilliary package `dbt-osmosis`. Do you want to install `dbt-osmosis` now?",
       PromptAnswer.YES,
       PromptAnswer.NO
     );
