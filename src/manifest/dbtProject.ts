@@ -207,11 +207,14 @@ export class DBTProject implements Disposable {
   }
 
   private readAndParseProjectConfig() {
-    const dbtProjectYamlFile = readFileSync(
-      path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE),
-      "utf8"
-    );
-    return parse(dbtProjectYamlFile, { uniqueKeys: false }) as any;
+    const dbtProjectConfigLocation = path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE);
+    const dbtProjectYamlFile = readFileSync(dbtProjectConfigLocation, "utf8");
+    try {
+      return parse(dbtProjectYamlFile, { uniqueKeys: false });
+    } catch (error: any) {
+      window.showErrorMessage(`Could not parse dbt_project_config.yml at '${dbtProjectConfigLocation}': ${error}`);
+      throw error;
+    }
   }
 
   private async findModelInTargetfolder(modelPath: Uri, type: string) {
@@ -276,14 +279,17 @@ export class DBTProject implements Disposable {
 
     let profiles: any;
     try {
-      profiles = parse(readFileSync(join(dbtProfilesDir, "profiles.yml"), "utf8"));
+      profiles = parse(readFileSync(join(dbtProfilesDir, "profiles.yml"), "utf8"), {uniqueKeys: false });
     } catch(error) {
-      window.showErrorMessage(`Could not read profiles.yml from ${dbtProfilesDir}`);
+      window.showErrorMessage(`Could not read profiles.yml from ${dbtProfilesDir}: ${error}`);
       throw error;
     }
 
-    if (profiles[projectName] === undefined) {
-      window.showErrorMessage(`Could not find profile '${projectName}' in ${dbtProfilesDir}. Did you create a profile?`);
+    if (profiles[projectName] === undefined 
+      || profiles[projectName]["outputs"] === undefined 
+      || typeof(profiles[projectName]["outputs"]) !== "object") {
+      window.showErrorMessage(`Could not find dbt profile for '${projectName}' in ${dbtProfilesDir}. Did you create a dbt profile?`);
+      throw new Error("No dbt profile has been created!");
     }
 
     return {

@@ -83,8 +83,8 @@ try:
     from dbt_osmosis.core.osmosis import DbtOsmosis
 
     runner = DbtOsmosis(
-        project_dir="""${projectRoot.fsPath.replace(/"/g, '\\"')}""",
-        target="""${target.replace(/"/g, '\\"')}""",
+        project_dir=r"${projectRoot.fsPath.replace(/"/g, '\\"')}",
+        target=r"${target.replace(/"/g, '\\"')}",
     )
     query = """${sql.replace(/"/g, '\\"')}"""
     query_with_limit = f"select * from ({query}) as osmosis_query limit ${limit}"
@@ -132,8 +132,8 @@ try:
     import orjson
     from dbt_osmosis.core.osmosis import DbtOsmosis
     runner = DbtOsmosis(
-        project_dir="""${projectRoot.fsPath.replace(/"/g, '\\"')}""",
-        target="""${target.replace(/"/g, '\\"')}""",
+        project_dir=r"${projectRoot.fsPath.replace(/"/g, '\\"')}",
+        target=r"${target.replace(/"/g, '\\"')}",
     )
     result = runner.compile_sql("""${sql.replace(/"/g, '\\"')}""")
 except Exception as exc:

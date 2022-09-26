@@ -13,7 +13,6 @@ import { provideSingleton } from '../utils';
 @provideSingleton(SqlPreviewContentProvider)
 export class SqlPreviewContentProvider implements TextDocumentContentProvider, Disposable {
   static readonly SCHEME = 'query-preview';
-  static readonly URI = Uri.parse(`${SqlPreviewContentProvider.SCHEME}:compile`, true);
 
   public onDidChangeEmitter = new EventEmitter<Uri>();
   
