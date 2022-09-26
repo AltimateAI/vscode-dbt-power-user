@@ -256,7 +256,8 @@ export class DBTProject implements Disposable {
     this.projectName = projectConfig.name;
     this.targetPath = this.findTargetPath(projectConfig);
     this.sourcePaths = this.findSourcePaths(projectConfig);
-    this.profilesMetaData = this.readDbtProfile(this.projectName!);
+    const profileName = projectConfig["profile"] !== undefined ? projectConfig.profile : this.projectName!;
+    this.profilesMetaData = this.readDbtProfile(profileName);
 
     const event = new ProjectConfigChangedEvent(
       this.projectRoot,
