@@ -60,6 +60,17 @@ export class DBTCommandFactory {
       .getConfiguration("dbt")
       .get<number>("queryLimit", 200);
 
+    const queryTemplate = workspace
+      .getConfiguration("dbt")
+      .get<string>("queryTemplate", "select * from ({query}) limit {limit}");
+
+    const queryRegex = queryTemplate
+      .replace(/\(/g, "\\(")
+      .replace(/\)/g, "\\)")
+      .replace(/\*/g, "\\*")
+      .replace("{query}", "([\\w\\W]+)")
+      .replace("{limit}", limit.toString());
+
     const code = `\
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -86,19 +97,19 @@ try:
         project_dir=r"${projectRoot.fsPath.replace(/"/g, '\\"')}",
         target=r"${target.replace(/"/g, '\\"')}",
     )
+    limit = ${limit}
     query = """${sql.replace(/"/g, '\\"')}"""
-    query_with_limit = f"select * from ({query}) as osmosis_query limit ${limit}"
+    query_with_limit = f"${queryTemplate}"
     result = runner.execute_sql(query_with_limit)
+    print(json_dumps({
+        "rows": [list(row) for row in result.table.rows],
+        "column_names": result.table.column_names,
+        "compiled_sql": re.search(r"${queryRegex}", result.compiled_sql).groups()[0]
+    }))
+    sys.exit(0)
 except Exception as exc:
     eprint(json_dumps({"message": str(exc), "data": traceback.format_exc()}))
-    sys.exit(-1)
-
-print(json_dumps({
-    "rows": [list(row) for row in result.table.rows],
-    "column_names": result.table.column_names,
-    "compiled_sql": re.search(r"select \\* from \\(([\\w\\W]+)\\) as osmosis_query", result.compiled_sql).groups()[0]
-}))
-sys.exit(0)`;
+    sys.exit(-1)`;
 
     return {
       statusMessage: "Running query...",
@@ -136,14 +147,13 @@ try:
         target=r"${target.replace(/"/g, '\\"')}",
     )
     result = runner.compile_sql("""${sql.replace(/"/g, '\\"')}""")
+    print(json_dumps({
+        "compiled_sql": result,
+    }))
+    sys.exit(0)
 except Exception as exc:
     eprint(json_dumps({"message": str(exc), "data": traceback.format_exc()}))
-    sys.exit(-1)
-
-print(json_dumps({
-    "compiled_sql": result,
-}))
-sys.exit(0)`;
+    sys.exit(-1)`;
     return {
       statusMessage: "Running query...",
       processExecutionParams: {
