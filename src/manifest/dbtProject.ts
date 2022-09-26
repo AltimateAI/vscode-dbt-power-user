@@ -174,13 +174,13 @@ export class DBTProject implements Disposable {
       const result: any = JSON.parse(response);
       return result.compiled_sql;
     } catch (error: any) {
-      if (error.includes("No module named 'dbt_osmosis")) {
+      const errorObj = JSON.parse(error);
+      if (errorObj.message.includes("No module named 'dbt_osmosis")) {
         commands.executeCommand("dbtPowerUser.installDbtOsmosis");
       }
-      window.showErrorMessage(error.message);
+      window.showErrorMessage(errorObj.message);
+      return errorObj.message + "\n\n" + "Detailed error information:\n" + JSON.stringify(errorObj, null, 2).replace(/\\n/g, "\n");
     }
-    // TODO: we have to return string here for the contentProvider...
-    return "";
   }
 
   showCompiledSql(modelPath: Uri) {

@@ -61,15 +61,6 @@ export class DBTCommandFactory {
       .get<number>("queryLimit", 200);
 
     const code = `\
-import decimal
-import json
-import re
-import sys
-import traceback
-
-import orjson
-from dbt_osmosis.core.osmosis import DbtOsmosis
-
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
@@ -82,6 +73,15 @@ def json_dumps(body):
     return orjson.dumps(body, default=default).decode("utf-8")
 
 try:
+    import decimal
+    import json
+    import re
+    import sys
+    import traceback
+
+    import orjson
+    from dbt_osmosis.core.osmosis import DbtOsmosis
+
     runner = DbtOsmosis(
         project_dir="""${projectRoot.fsPath.replace(/"/g, '\\"')}""",
         target="""${target.replace(/"/g, '\\"')}""",
@@ -111,15 +111,6 @@ sys.exit(0)`;
 
   createQueryPreviewCommand(sql: string, projectRoot: Uri, target: string): DBTCommand {
     const code = `\
-import decimal
-import json
-import re
-import sys
-import traceback
-
-import orjson
-from dbt_osmosis.core.osmosis import DbtOsmosis
-
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
@@ -132,6 +123,14 @@ def json_dumps(body):
     return orjson.dumps(body, default=default).decode("utf-8")
 
 try:
+    import decimal
+    import json
+    import re
+    import sys
+    import traceback
+
+    import orjson
+    from dbt_osmosis.core.osmosis import DbtOsmosis
     runner = DbtOsmosis(
         project_dir="""${projectRoot.fsPath.replace(/"/g, '\\"')}""",
         target="""${target.replace(/"/g, '\\"')}""",
