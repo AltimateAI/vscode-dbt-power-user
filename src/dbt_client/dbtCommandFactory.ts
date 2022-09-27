@@ -62,7 +62,7 @@ export class DBTCommandFactory {
 
     const queryTemplate = workspace
       .getConfiguration("dbt")
-      .get<string>("queryTemplate", "select * from ({query}) limit {limit}");
+      .get<string>("queryTemplate", "select * from ({query}) as osmosis_query limit {limit}");
 
     const queryRegex = queryTemplate
       .replace(/\(/g, "\\(")

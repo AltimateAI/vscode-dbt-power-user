@@ -59,7 +59,7 @@
           "dbt.queryTemplate": {
             "type": "string",
             "description": "Override the default query template that is used by the `Preview SQL Query` command. Use this if your database has special syntax to limit query results",
-            "default": "select * from ({query}) limit {limit}"
+            "default": "select * from ({query}) as osmosis_query limit {limit}"
           },
           "dbt.previewPanel.displayLocation": {
             "type": "string",
