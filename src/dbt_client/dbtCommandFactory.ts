@@ -1,3 +1,5 @@
+import { join } from "path";
+import * as os from "os";
 import { Uri, workspace } from "vscode";
 import { provideSingleton } from "../utils";
 
@@ -21,6 +23,12 @@ export interface DBTCommand {
 
 @provideSingleton(DBTCommandFactory)
 export class DBTCommandFactory {
+  private profilesDir() {
+    return workspace
+      .getConfiguration("dbt")
+      .get<string>("profilesDirOverride") || join( os.homedir(), ".dbt");
+  }
+
   private profilesDirParams(): string[] {
     const dbtProfilesDir = workspace
       .getConfiguration("dbt")
@@ -94,6 +102,7 @@ try:
     from dbt_osmosis.core.osmosis import DbtOsmosis
 
     runner = DbtOsmosis(
+        profiles_dir=r"${this.profilesDir()}",
         project_dir=r"${projectRoot.fsPath.replace(/"/g, '\\"')}",
         target=r"${target.replace(/"/g, '\\"')}",
     )
@@ -143,6 +152,7 @@ try:
     import orjson
     from dbt_osmosis.core.osmosis import DbtOsmosis
     runner = DbtOsmosis(
+        profiles_dir=r"${this.profilesDir()}",
         project_dir=r"${projectRoot.fsPath.replace(/"/g, '\\"')}",
         target=r"${target.replace(/"/g, '\\"')}",
     )
