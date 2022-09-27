@@ -47,6 +47,7 @@ export class DBTProject implements Disposable {
   static RESOURCE_TYPE_TEST = "test";
 
   readonly projectRoot: Uri;
+  readonly dbtProfilesDir: Uri;
   private projectName?: string;
   private targetPath?: string;
   private sourcePaths?: string[];
@@ -71,6 +72,10 @@ export class DBTProject implements Disposable {
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
   ) {
     this.projectRoot = path;
+    const profilesDir =  workspace.getConfiguration("dbt").get<string>("profilesDirOverride")
+      || process.env.DBT_PROFILES_DIR 
+      || join(os.homedir(), ".dbt");
+    this.dbtProfilesDir = Uri.parse("file://" + profilesDir, true);
 
     const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(path, DBTProject.DBT_PROJECT_FILE)
@@ -130,12 +135,13 @@ export class DBTProject implements Disposable {
   }
 
   async rebuildManifest() {
-    await this.dbtProjectContainer.rebuildManifest(this.projectRoot);
+    await this.dbtProjectContainer.rebuildManifest(this.projectRoot, this.dbtProfilesDir);
   }
 
   runModel(runModelParams: RunModelParams) {
     const runModelCommand = this.dbtCommandFactory.createRunModelCommand(
       this.projectRoot,
+      this.dbtProfilesDir,
       runModelParams
     );
     this.dbtProjectContainer.addCommandToQueue(runModelCommand);
@@ -144,6 +150,7 @@ export class DBTProject implements Disposable {
   runTest(testName: string) {
     const testModelCommand = this.dbtCommandFactory.createTestModelCommand(
       this.projectRoot,
+      this.dbtProfilesDir,
       testName
     );
     this.dbtProjectContainer.addCommandToQueue(testModelCommand);
@@ -152,6 +159,7 @@ export class DBTProject implements Disposable {
   runModelTest(modelName: string) {
     const testModelCommand = this.dbtCommandFactory.createTestModelCommand(
       this.projectRoot,
+      this.dbtProfilesDir,
       modelName
     );
     this.dbtProjectContainer.addCommandToQueue(testModelCommand);
@@ -160,13 +168,19 @@ export class DBTProject implements Disposable {
   compileModel(runModelParams: RunModelParams) {
     const runModelCommand = this.dbtCommandFactory.createCompileModelCommand(
       this.projectRoot,
+      this.dbtProfilesDir,
       runModelParams
     );
     this.dbtProjectContainer.addCommandToQueue(runModelCommand);
   }
 
   async compileQuery(query: string): Promise<string> {
-    const command = this.dbtCommandFactory.createQueryPreviewCommand(query, this.projectRoot, this.profilesMetaData!.defaultTarget);
+    const command = this.dbtCommandFactory.createQueryPreviewCommand(
+      query, 
+      this.projectRoot, 
+      this.dbtProfilesDir, 
+      this.profilesMetaData!.defaultTarget
+    );
 
     const process = await this.dbtProjectContainer.executeCommand(command);
     try {
@@ -192,9 +206,12 @@ export class DBTProject implements Disposable {
   }
 
   executeSQL(query: string, title: string) {
-    this.queryResultPanelLoader
-      .showWebview(title)
-      .executeQuery(query, this.projectRoot!, this.profilesMetaData!.defaultTarget);
+    this.queryResultPanelLoader.showWebview(title).executeQuery(
+      query, 
+      this.projectRoot, 
+      this.dbtProfilesDir, 
+      this.profilesMetaData!.defaultTarget
+    );
   }
 
   dispose() {
@@ -273,22 +290,18 @@ export class DBTProject implements Disposable {
   }
 
   private readDbtProfile(projectName: string): ProfilesMetaData {
-    const dbtProfilesDir = workspace
-      .getConfiguration("dbt")
-      .get<string>("profilesDirOverride") || join( os.homedir(), ".dbt");
-
     let profiles: any;
     try {
-      profiles = parse(readFileSync(join(dbtProfilesDir, "profiles.yml"), "utf8"), {uniqueKeys: false });
+      profiles = parse(readFileSync(join(this.dbtProfilesDir.fsPath, "profiles.yml"), "utf8"), {uniqueKeys: false });
     } catch(error) {
-      window.showErrorMessage(`Could not read profiles.yml from ${dbtProfilesDir}: ${error}`);
+      window.showErrorMessage(`Could not read profiles.yml from ${this.dbtProfilesDir}: ${error}`);
       throw error;
     }
 
     if (profiles[projectName] === undefined 
       || profiles[projectName]["outputs"] === undefined 
       || typeof(profiles[projectName]["outputs"]) !== "object") {
-      window.showErrorMessage(`Could not find dbt profile for '${projectName}' in ${dbtProfilesDir}. Did you create a dbt profile?`);
+      window.showErrorMessage(`Could not find dbt profile for '${projectName}' in ${this.dbtProfilesDir}. Did you create a dbt profile?`);
       throw new Error("No dbt profile has been created!");
     }
 

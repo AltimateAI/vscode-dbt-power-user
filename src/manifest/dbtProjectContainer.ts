@@ -87,8 +87,8 @@ export class DBTProjectContainer implements Disposable {
     this.findDBTProject(uri)?.executeSQL(query, title);
   }
 
-  async rebuildManifest(projectUri: Uri) {
-    await this.dbtClient.rebuildManifest(projectUri);
+  async rebuildManifest(projectUri: Uri, profilesDir: Uri) {
+    await this.dbtClient.rebuildManifest(projectUri, profilesDir);
   }
 
   runModel(modelPath: Uri, type?: RunModelType) {

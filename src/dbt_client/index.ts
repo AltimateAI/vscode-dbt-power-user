@@ -65,7 +65,7 @@ export class DBTClient implements Disposable {
     return this.dbtCommandFactory;
   }
 
-  async rebuildManifest(projectUri: Uri): Promise<void> {
+  async rebuildManifest(projectUri: Uri, profilesDir: Uri): Promise<void> {
     const listModelsDisabled = workspace
       .getConfiguration("dbt")
       .get<boolean>("listModelsDisabled", false);
@@ -73,7 +73,7 @@ export class DBTClient implements Disposable {
       return;
     }
     this.addCommandToQueue(
-      this.dbtCommandFactory.createListCommand(projectUri)
+      this.dbtCommandFactory.createListCommand(projectUri, profilesDir)
     );
   }
 
@@ -87,8 +87,6 @@ export class DBTClient implements Disposable {
       this.dbtCommandFactory.createVerifyDbtInstalledCommand()
     );
 
-    // TODO: run checks in parallel
-    
     // check for dbt installed
     try {
       await checkDBTInstalledProcess.complete();

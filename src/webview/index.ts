@@ -131,10 +131,10 @@ class QueryResultPanel implements Disposable {
     this.panel?.dispose();
   }
 
-  public async executeQuery(query: string, projectRootUri: Uri, target: string) {
+  public async executeQuery(query: string, projectRootUri: Uri, profilesDir: Uri, target: string) {
     this.transmitLoading();
 
-    const command = this.commandFactory.createRunQueryCommand(query, projectRootUri, target);
+    const command = this.commandFactory.createRunQueryCommand(query, projectRootUri, profilesDir, target);
 
     const process = await this.dbtClient.executeCommand(command);
     try {

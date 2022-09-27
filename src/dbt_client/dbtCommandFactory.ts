@@ -23,17 +23,8 @@ export interface DBTCommand {
 
 @provideSingleton(DBTCommandFactory)
 export class DBTCommandFactory {
-  private profilesDir() {
-    return workspace
-      .getConfiguration("dbt")
-      .get<string>("profilesDirOverride") || join( os.homedir(), ".dbt");
-  }
-
-  private profilesDirParams(): string[] {
-    const dbtProfilesDir = workspace
-      .getConfiguration("dbt")
-      .get<string>("profilesDirOverride");
-    return dbtProfilesDir ? ["'--profiles-dir'", `'${dbtProfilesDir}'`] : [];
+  private profilesDirParams(dbtProfilesDir: Uri): string[] {
+    return dbtProfilesDir ? ["'--profiles-dir'", `'${dbtProfilesDir.fsPath}'`] : [];
   }
 
   createVerifyDbtInstalledCommand(): DBTCommand {
@@ -63,7 +54,7 @@ export class DBTCommandFactory {
     };
   }
 
-  createRunQueryCommand(sql: string, projectRoot: Uri, target: string): DBTCommand {
+  createRunQueryCommand(sql: string, projectRoot: Uri, profilesDir: Uri, target: string): DBTCommand {
     const limit = workspace
       .getConfiguration("dbt")
       .get<number>("queryLimit", 200);
@@ -102,7 +93,7 @@ try:
     from dbt_osmosis.core.osmosis import DbtOsmosis
 
     runner = DbtOsmosis(
-        profiles_dir=r"${this.profilesDir()}",
+        profiles_dir=r"${profilesDir.fsPath}",
         project_dir=r"${projectRoot.fsPath.replace(/"/g, '\\"')}",
         target=r"${target.replace(/"/g, '\\"')}",
     )
@@ -129,7 +120,7 @@ except Exception as exc:
     };
   }
 
-  createQueryPreviewCommand(sql: string, projectRoot: Uri, target: string): DBTCommand {
+  createQueryPreviewCommand(sql: string, projectRoot: Uri, profilesDir: Uri, target: string): DBTCommand {
     const code = `\
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -152,7 +143,7 @@ try:
     import orjson
     from dbt_osmosis.core.osmosis import DbtOsmosis
     runner = DbtOsmosis(
-        profiles_dir=r"${this.profilesDir()}",
+        profiles_dir=r"${profilesDir.fsPath}",
         project_dir=r"${projectRoot.fsPath.replace(/"/g, '\\"')}",
         target=r"${target.replace(/"/g, '\\"')}",
     )
@@ -182,9 +173,8 @@ except Exception as exc:
     };
   }
 
-  createListCommand(projectRoot: Uri): DBTCommand {
-    const profilesDirParams = this.profilesDirParams();
-
+  createListCommand(projectRoot: Uri, profilesDir: Uri): DBTCommand {
+    const profilesDirParams = this.profilesDirParams(profilesDir);
     return {
       commandAsString: "dbt list",
       statusMessage: "Listing dbt models...",
@@ -195,9 +185,9 @@ except Exception as exc:
     };
   }
 
-  createRunModelCommand(projectRoot: Uri, params: RunModelParams) {
+  createRunModelCommand(projectRoot: Uri, profilesDir: Uri, params: RunModelParams) {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
-    const profilesDirParams = this.profilesDirParams();
+    const profilesDirParams = this.profilesDirParams(profilesDir);
 
     const runModelCommandAdditionalParams = workspace
       .getConfiguration("dbt")
@@ -229,8 +219,8 @@ except Exception as exc:
     };
   }
 
-  createTestModelCommand(projectRoot: Uri, testName: string) {
-    const profilesDirParams = this.profilesDirParams();
+  createTestModelCommand(projectRoot: Uri, profilesDir: Uri, testName: string) {
+    const profilesDirParams = this.profilesDirParams(profilesDir);
 
     // Lets pass through these params here too
     const runModelCommandAdditionalParams = workspace
@@ -260,9 +250,9 @@ except Exception as exc:
     };
   }
 
-  createCompileModelCommand(projectRoot: Uri, params: RunModelParams) {
+  createCompileModelCommand(projectRoot: Uri, profilesDir: Uri, params: RunModelParams) {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
-    const profilesDirParams = this.profilesDirParams();
+    const profilesDirParams = this.profilesDirParams(profilesDir);
 
     return {
       commandAsString: `dbt compile --model ${params.plusOperatorLeft}${params.modelName}${params.plusOperatorRight}`,
