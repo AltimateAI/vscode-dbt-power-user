@@ -4,7 +4,6 @@ import {
   TextDocumentContentProvider,
   Disposable,
   Uri,
-  window
 } from 'vscode';
 import { readFileSync } from "fs";
 import { DBTProjectContainer } from '../manifest/dbtProjectContainer';
@@ -29,9 +28,13 @@ export class SqlPreviewContentProvider implements TextDocumentContentProvider, D
   }
 
   provideTextDocumentContent(uri: Uri): string | Thenable<string> {
+    // TODO: implement recompilation when file is changed.
     const fsPath = decodeURI(uri.path);
-    const query = readFileSync(fsPath).toString("utf8");
-    // TODO: probably needs better error checking
-    return this.dbtProjectContainer.findDBTProject(Uri.parse(fsPath))!.compileQuery(query);
+    try {
+      const query = readFileSync(fsPath, "utf8");
+      return this.dbtProjectContainer.findDBTProject(Uri.parse("file://" + fsPath))!.compileQuery(query);
+    } catch(error: any) {
+      return error;
+    }
   }
 }
