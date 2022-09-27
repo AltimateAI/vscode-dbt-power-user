@@ -32,7 +32,11 @@ export class SqlPreviewContentProvider implements TextDocumentContentProvider, D
     const fsPath = decodeURI(uri.path);
     try {
       const query = readFileSync(fsPath, "utf8");
-      return this.dbtProjectContainer.findDBTProject(Uri.parse("file://" + fsPath))!.compileQuery(query);
+      const project = this.dbtProjectContainer.findDBTProject(Uri.file(fsPath));
+      if (project === undefined) {
+        return `Project can't be located for ${fsPath}...`;
+      }
+      return project.compileQuery(query);
     } catch(error: any) {
       return error;
     }

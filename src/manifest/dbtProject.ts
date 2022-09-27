@@ -75,7 +75,7 @@ export class DBTProject implements Disposable {
     const profilesDir =  workspace.getConfiguration("dbt").get<string>("profilesDirOverride")
       || process.env.DBT_PROFILES_DIR 
       || join(os.homedir(), ".dbt");
-    this.dbtProfilesDir = Uri.parse("file://" + profilesDir, true);
+    this.dbtProfilesDir = Uri.file(profilesDir);
 
     const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(path, DBTProject.DBT_PROJECT_FILE)
