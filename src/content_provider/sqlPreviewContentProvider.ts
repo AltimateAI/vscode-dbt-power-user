@@ -59,7 +59,7 @@ export class SqlPreviewContentProvider implements TextDocumentContentProvider, D
       const query = readFileSync(fsPath, "utf8");
       const project = this.dbtProjectContainer.findDBTProject(Uri.file(fsPath));
       if (project === undefined) {
-        return `Project can't be located for ${fsPath}...`;
+        return `Still loading dbt project, please try again later...`;
       }
       return project.compileQuery(query);
     } catch(error: any) {
