@@ -24,7 +24,7 @@ export interface DBTCommand {
 @provideSingleton(DBTCommandFactory)
 export class DBTCommandFactory {
   private profilesDirParams(dbtProfilesDir: Uri): string[] {
-    return dbtProfilesDir ? ["'--profiles-dir'", `'${dbtProfilesDir.fsPath}'`] : [];
+    return dbtProfilesDir ? ["'--profiles-dir'", `r'${dbtProfilesDir.fsPath}'`] : [];
   }
 
   createVerifyDbtInstalledCommand(): DBTCommand {
