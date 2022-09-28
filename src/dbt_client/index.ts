@@ -16,6 +16,7 @@ import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { provideSingleton } from "../utils";
 import { DBTTerminal } from "./dbtTerminal";
+import { join } from "path";
 
 @provideSingleton(DBTClient)
 export class DBTClient implements Disposable {
@@ -77,40 +78,44 @@ export class DBTClient implements Disposable {
     );
   }
 
-  async checkIfDBTIsInstalled(): Promise<void> {
+  async checkAllInstalled(): Promise<void> {
     this._onDBTInstallationVerificationEvent.fire({
       inProgress: true
     });
     this.dbtInstalled = undefined;
     this.dbtOsmosisInstalled = undefined;
+
+    // check for dbt installed
     const checkDBTInstalledProcess = await this.executeCommand(
       this.dbtCommandFactory.createVerifyDbtInstalledCommand()
     );
-
-    // check for dbt installed
-    try {
-      await checkDBTInstalledProcess.complete();
-    } catch (err) {
-      this.dbtInstalled = false;
-      this.raiseDBTNotInstalledEvent();
-      return;
-    }
-    this.dbtInstalled = true;
 
     // check for dbt osmosis installed
     const checkDBTOsmosisInstalledProcess = await this.executeCommand(
       this.dbtCommandFactory.createVerifyDbtOsmosisInstalledCommand()
     );
-    try {
-      await checkDBTOsmosisInstalledProcess.complete();
-    } catch (err) {
+    const results = await Promise.allSettled([checkDBTInstalledProcess.complete(), checkDBTOsmosisInstalledProcess.complete()]);
+    
+    if (results[0].status === "fulfilled") {
+      this.dbtInstalled = true;
+    } else {
+      this.dbtInstalled = false;
+      this.raiseDBTNotInstalledEvent();
+      return;
+    }
+    
+    // Don't block on version check
+    this.checkDBTVersion(results[1]);
+  }
+
+  async checkDBTVersion(osmosisPromisResult : PromiseSettledResult<string>) {
+    if (osmosisPromisResult.status === "fulfilled") {
+      this.dbtOsmosisInstalled = true;
+    } else {
       this.dbtOsmosisInstalled = false;
       this.raiseDBTOsmosisNotInstalledEvent();
     }
-    this.dbtOsmosisInstalled = true;
 
-    // TODO: this shouldn't block the UI
-    // version check
     const checkDBTVersionProcess = await this.executeCommand(
       this.dbtCommandFactory.createVersionCommand()
     );
@@ -272,6 +277,6 @@ export class DBTClient implements Disposable {
   private async handlePythonExtension(): Promise<void> {
     const pythonEnvironment = await this.pythonEnvironment.getEnvironment();
     this.pythonPath = pythonEnvironment.getPythonPath();
-    await this.checkIfDBTIsInstalled();
+    await this.checkAllInstalled();
   }
 }

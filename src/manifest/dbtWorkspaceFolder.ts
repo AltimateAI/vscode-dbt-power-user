@@ -72,8 +72,8 @@ export class DBTWorkspaceFolder implements Disposable {
       uri,
       this._onManifestChanged
     );
-    await dbtProject.rebuildManifest();
-    await dbtProject.tryRefresh();
+    dbtProject.rebuildManifest();
+    dbtProject.tryRefresh();
     this.dbtProjects.push(dbtProject);
   }
 
