@@ -201,7 +201,7 @@
         "key": "Ctrl+Enter",
         "mac": "Cmd+Enter",
         "command": "dbtPowerUser.executeSQL",
-        "when": "editorTextFocus && resourceLangId == 'jinja-sql'"
+        "when": "editorFocus && resourceLangId == 'jinja-sql'"
       },
       {
         "key": "Ctrl+'",
