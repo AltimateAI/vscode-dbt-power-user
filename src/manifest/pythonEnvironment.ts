@@ -1,4 +1,4 @@
-import { extensions, Event, Uri, workspace } from "vscode";
+import { Event, extensions, Uri, workspace } from "vscode";
 import { provideSingleton } from "../utils";
 
 interface PythonExecutionDetails {

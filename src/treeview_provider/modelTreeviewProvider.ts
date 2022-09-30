@@ -1,33 +1,33 @@
+import { unmanaged } from "inversify";
+import { provide } from "inversify-binding-decorators";
+import * as path from "path";
 import {
+  Disposable,
+  Event,
+  EventEmitter,
   TreeDataProvider,
   TreeItem,
-  Event,
   TreeItemCollapsibleState,
-  window,
-  EventEmitter,
-  Disposable,
   Uri,
+  window,
 } from "vscode";
-import { Node, GraphMetaMap, Source, Model, Test, Snapshot, Exposure } from "../domain";
-import * as path from "path";
+import { GraphMetaMap, Model, Node, Snapshot, Source, Test } from "../domain";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { unmanaged } from "inversify";
 import { provideSingleton } from "../utils";
-import { provide } from "inversify-binding-decorators";
 
 @provide(ModelTreeviewProvider)
 abstract class ModelTreeviewProvider
-implements TreeDataProvider<NodeTreeItem>, Disposable {
+  implements TreeDataProvider<NodeTreeItem>, Disposable
+{
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
-  private _onDidChangeTreeData: EventEmitter<
-    ModelTreeItem | undefined | void
-  > = new EventEmitter<ModelTreeItem | undefined | void>();
-  readonly onDidChangeTreeData: Event<ModelTreeItem | undefined | void> = this
-    ._onDidChangeTreeData.event;
+  private _onDidChangeTreeData: EventEmitter<ModelTreeItem | undefined | void> =
+    new EventEmitter<ModelTreeItem | undefined | void>();
+  readonly onDidChangeTreeData: Event<ModelTreeItem | undefined | void> =
+    this._onDidChangeTreeData.event;
   private disposables: Disposable[] = [this._onDidChangeTreeData];
 
   constructor(
@@ -74,9 +74,8 @@ implements TreeDataProvider<NodeTreeItem>, Disposable {
     }
 
     const currentFilePath = window.activeTextEditor.document.uri;
-    const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
-      currentFilePath
-    );
+    const projectRootpath =
+      this.dbtProjectContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
       return Promise.resolve([]);
     }
@@ -122,8 +121,12 @@ implements TreeDataProvider<NodeTreeItem>, Disposable {
           .get(node.key)
           ?.nodes.filter((node) => node.displayInModelTree);
 
-        if ((node instanceof Model || node instanceof Snapshot)
-          && childNodes?.filter(node => (node instanceof Model || node instanceof Snapshot)).length === 0) {
+        if (
+          (node instanceof Model || node instanceof Snapshot) &&
+          childNodes?.filter(
+            (node) => node instanceof Model || node instanceof Snapshot
+          ).length === 0
+        ) {
           return new DashboardTreeItem(node);
         }
         if (node instanceof Test) {
@@ -169,8 +172,14 @@ class SourceTreeItem extends NodeTreeItem {
 class TestTreeItem extends NodeTreeItem {
   collapsibleState = TreeItemCollapsibleState.None;
   iconPath = {
-    light: path.join(path.resolve(__dirname), "../media/images/dashboard_light.svg"),
-    dark: path.join(path.resolve(__dirname), "../media/images/dashboard_dark.svg"),
+    light: path.join(
+      path.resolve(__dirname),
+      "../media/images/dashboard_light.svg"
+    ),
+    dark: path.join(
+      path.resolve(__dirname),
+      "../media/images/dashboard_dark.svg"
+    ),
   };
   contextValue = "dashboard";
 }
@@ -178,8 +187,14 @@ class TestTreeItem extends NodeTreeItem {
 class DashboardTreeItem extends NodeTreeItem {
   collapsibleState = TreeItemCollapsibleState.None;
   iconPath = {
-    light: path.join(path.resolve(__dirname), "../media/images/dashboard_light.svg"),
-    dark: path.join(path.resolve(__dirname), "../media/images/dashboard_dark.svg"),
+    light: path.join(
+      path.resolve(__dirname),
+      "../media/images/dashboard_light.svg"
+    ),
+    dark: path.join(
+      path.resolve(__dirname),
+      "../media/images/dashboard_dark.svg"
+    ),
   };
   contextValue = "dashboard";
 }

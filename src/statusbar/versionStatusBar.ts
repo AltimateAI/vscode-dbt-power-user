@@ -1,11 +1,11 @@
 import {
-  StatusBarItem,
-  StatusBarAlignment,
-  window,
   Command,
+  commands,
   Disposable,
+  StatusBarAlignment,
+  StatusBarItem,
+  window,
   workspace,
-  commands
 } from "vscode";
 import { DBTInstallationVerificationEvent } from "../dbt_client/dbtVersionEvent";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -32,7 +32,9 @@ export class VersionStatusBar implements Disposable {
     this.statusBar.dispose();
   }
 
-  private onDBTInstallationVerification(event: DBTInstallationVerificationEvent) {
+  private onDBTInstallationVerification(
+    event: DBTInstallationVerificationEvent
+  ) {
     if (event.inProgress === true) {
       this.showTextInStatusBar("$(sync~spin) Detecting dbt");
       return;
@@ -46,23 +48,27 @@ export class VersionStatusBar implements Disposable {
       commands.executeCommand("dbtPowerUser.installDbtOsmosis");
     }
 
-    const versionCheck: string = workspace
-      .getConfiguration("dbt")
-      .get<string>("versionCheck") || "both";
+    const versionCheck: string =
+      workspace.getConfiguration("dbt").get<string>("versionCheck") || "both";
 
-    if (!event.dbtInstallationFound!.upToDate && (versionCheck === "both" || versionCheck === "status bar")) {
-      if(event.dbtInstallationFound!.installedVersion !== undefined) {
+    if (
+      !event.dbtInstallationFound!.upToDate &&
+      (versionCheck === "both" || versionCheck === "status bar")
+    ) {
+      if (event.dbtInstallationFound!.installedVersion !== undefined) {
         this.showTextInStatusBar(
-          `$(error) dbt ${event.dbtInstallationFound!.installedVersion} is not up to date`
+          `$(error) dbt ${
+            event.dbtInstallationFound!.installedVersion
+          } is not up to date`
         );
       } else {
-        this.showTextInStatusBar(
-          `$(check) dbt`
-        );
-      }      
+        this.showTextInStatusBar(`$(check) dbt`);
+      }
       return;
     }
-    this.showTextInStatusBar(`$(check) dbt ${event.dbtInstallationFound!.installedVersion}`);
+    this.showTextInStatusBar(
+      `$(check) dbt ${event.dbtInstallationFound!.installedVersion}`
+    );
   }
 
   private showTextInStatusBar(text: string, command?: Command) {

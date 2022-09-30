@@ -1,36 +1,36 @@
 import { readFileSync } from "fs";
-import { parse } from "yaml";
-import * as path from "path";
 import * as os from "os";
+import * as path from "path";
+import { join } from "path";
+import {
+  commands,
+  Disposable,
+  Event,
+  EventEmitter,
+  RelativePattern,
+  Uri,
+  ViewColumn,
+  window,
+  workspace,
+} from "vscode";
+import { parse } from "yaml";
+import {
+  DBTCommandFactory,
+  RunModelParams,
+} from "../dbt_client/dbtCommandFactory";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { ProfilesMetaData } from "../domain";
+import { debounce, setupWatcherHandler } from "../utils";
+import { QueryResultPanelLoader } from "../webview";
+import { DBTProjectContainer } from "./dbtProjectContainer";
+import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
+import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
+import { DBTProjectLog, DBTProjectLogFactory } from "./modules/dbtProjectLog";
 import {
   SourceFileWatchers,
   SourceFileWatchersFactory,
 } from "./modules/sourceFileWatchers";
 import { TargetWatchersFactory } from "./modules/targetWatchers";
-import { DBTProjectLog, DBTProjectLogFactory } from "./modules/dbtProjectLog";
-import { debounce, setupWatcherHandler } from "../utils";
-import {
-  Disposable,
-  EventEmitter,
-  RelativePattern,
-  Uri,
-  workspace,
-  Event,
-  commands,
-  ViewColumn,
-  window
-} from "vscode";
-import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
-import { DBTProjectContainer } from "./dbtProjectContainer";
-import {
-  DBTCommandFactory,
-  RunModelParams,
-} from "../dbt_client/dbtCommandFactory";
-import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { ProfilesMetaData } from "../domain";
-import { join } from "path";
-import { QueryResultPanelLoader } from "../webview";
 
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -53,7 +53,8 @@ export class DBTProject implements Disposable {
   private sourcePaths?: string[];
   private profilesMetaData?: ProfilesMetaData;
 
-  private _onProjectConfigChanged = new EventEmitter<ProjectConfigChangedEvent>();
+  private _onProjectConfigChanged =
+    new EventEmitter<ProjectConfigChangedEvent>();
   public onProjectConfigChanged = this._onProjectConfigChanged.event;
   private sourceFileWatchers: SourceFileWatchers;
   public onSourceFileChanged: Event<void>;
@@ -72,22 +73,27 @@ export class DBTProject implements Disposable {
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
   ) {
     this.projectRoot = path;
-    const profilesDir =  workspace.getConfiguration("dbt").get<string>("profilesDirOverride")
-      || process.env.DBT_PROFILES_DIR 
-      || join(os.homedir(), ".dbt");
+    const profilesDir =
+      workspace.getConfiguration("dbt").get<string>("profilesDirOverride") ||
+      process.env.DBT_PROFILES_DIR ||
+      join(os.homedir(), ".dbt");
     this.dbtProfilesDir = Uri.file(profilesDir);
 
     const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(path, DBTProject.DBT_PROJECT_FILE)
     );
 
-    const fireProjectChanged = debounce(async () => await this.rebuildManifest(), 2000);
+    const fireProjectChanged = debounce(
+      async () => await this.rebuildManifest(),
+      2000
+    );
 
     setupWatcherHandler(dbtProjectConfigWatcher, () => this.tryRefresh());
 
-    this.sourceFileWatchers = this.sourceFileWatchersFactory.createSourceFileWatchers(
-      this.onProjectConfigChanged
-    );
+    this.sourceFileWatchers =
+      this.sourceFileWatchersFactory.createSourceFileWatchers(
+        this.onProjectConfigChanged
+      );
     this.onSourceFileChanged = this.sourceFileWatchers.onSourceFileChanged;
 
     this.dbtProjectLog = this.dbtProjectLogFactory.createDBTProjectLog(
@@ -110,8 +116,13 @@ export class DBTProject implements Disposable {
     try {
       await this.refresh();
     } catch (error) {
-      console.log("An error occurred while trying to refresh the project configuration", error);
-      this.terminal.log(`An error occurred while trying to refresh the project configuration: ${error}`);
+      console.log(
+        "An error occurred while trying to refresh the project configuration",
+        error
+      );
+      this.terminal.log(
+        `An error occurred while trying to refresh the project configuration: ${error}`
+      );
     }
   }
 
@@ -122,7 +133,8 @@ export class DBTProject implements Disposable {
       .split("/");
 
     const insidePackage =
-      pathSegments.length > 1 && DBTProject.DBT_MODULES.includes(pathSegments[0]);
+      pathSegments.length > 1 &&
+      DBTProject.DBT_MODULES.includes(pathSegments[0]);
 
     if (insidePackage) {
       return pathSegments[1];
@@ -135,7 +147,10 @@ export class DBTProject implements Disposable {
   }
 
   async rebuildManifest() {
-    await this.dbtProjectContainer.rebuildManifest(this.projectRoot, this.dbtProfilesDir);
+    await this.dbtProjectContainer.rebuildManifest(
+      this.projectRoot,
+      this.dbtProfilesDir
+    );
   }
 
   runModel(runModelParams: RunModelParams) {
@@ -176,9 +191,9 @@ export class DBTProject implements Disposable {
 
   async compileQuery(query: string): Promise<string> {
     const command = this.dbtCommandFactory.createQueryPreviewCommand(
-      query, 
-      this.projectRoot, 
-      this.dbtProfilesDir, 
+      query,
+      this.projectRoot,
+      this.dbtProfilesDir,
       this.profilesMetaData!.defaultTarget
     );
 
@@ -193,7 +208,12 @@ export class DBTProject implements Disposable {
         commands.executeCommand("dbtPowerUser.installDbtOsmosis");
       }
       window.showErrorMessage(errorObj.message);
-      return errorObj.message + "\n\n" + "Detailed error information:\n" + JSON.stringify(errorObj, null, 2).replace(/\\n/g, "\n");
+      return (
+        errorObj.message +
+        "\n\n" +
+        "Detailed error information:\n" +
+        JSON.stringify(errorObj, null, 2).replace(/\\n/g, "\n")
+      );
     }
   }
 
@@ -206,12 +226,14 @@ export class DBTProject implements Disposable {
   }
 
   executeSQL(query: string, title: string) {
-    this.queryResultPanelLoader.showWebview(title).executeQuery(
-      query, 
-      this.projectRoot, 
-      this.dbtProfilesDir, 
-      this.profilesMetaData!.defaultTarget
-    );
+    this.queryResultPanelLoader
+      .showWebview(title)
+      .executeQuery(
+        query,
+        this.projectRoot,
+        this.dbtProfilesDir,
+        this.profilesMetaData!.defaultTarget
+      );
   }
 
   dispose() {
@@ -224,12 +246,17 @@ export class DBTProject implements Disposable {
   }
 
   private readAndParseProjectConfig() {
-    const dbtProjectConfigLocation = path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE);
+    const dbtProjectConfigLocation = path.join(
+      this.projectRoot.fsPath,
+      DBTProject.DBT_PROJECT_FILE
+    );
     const dbtProjectYamlFile = readFileSync(dbtProjectConfigLocation, "utf8");
     try {
       return parse(dbtProjectYamlFile, { uniqueKeys: false });
     } catch (error: any) {
-      window.showErrorMessage(`Could not parse dbt_project_config.yml at '${dbtProjectConfigLocation}': ${error}`);
+      window.showErrorMessage(
+        `Could not parse dbt_project_config.yml at '${dbtProjectConfigLocation}': ${error}`
+      );
       throw error;
     }
   }
@@ -249,19 +276,22 @@ export class DBTProject implements Disposable {
       commands.executeCommand("vscode.open", targetModels[0], {
         preview: false,
         preserveFocus: true,
-        viewColumn: ViewColumn.Beside
+        viewColumn: ViewColumn.Beside,
       });
     }
   }
 
   private findSourcePaths(projectConfig: any): string[] {
-    return DBTProject.SOURCE_PATHS_VAR.reduce((prev: string[], current: string) => {
-      if (projectConfig[current] !== undefined) {
-        return projectConfig[current] as string[];
-      } else {
-        return prev;
-      }
-    }, ["models"]);
+    return DBTProject.SOURCE_PATHS_VAR.reduce(
+      (prev: string[], current: string) => {
+        if (projectConfig[current] !== undefined) {
+          return projectConfig[current] as string[];
+        } else {
+          return prev;
+        }
+      },
+      ["models"]
+    );
   }
 
   private findTargetPath(projectConfig: any): string {
@@ -276,7 +306,10 @@ export class DBTProject implements Disposable {
     this.projectName = projectConfig.name;
     this.targetPath = this.findTargetPath(projectConfig);
     this.sourcePaths = this.findSourcePaths(projectConfig);
-    const profileName = projectConfig["profile"] !== undefined ? projectConfig.profile : this.projectName!;
+    const profileName =
+      projectConfig["profile"] !== undefined
+        ? projectConfig.profile
+        : this.projectName!;
     this.profilesMetaData = this.readDbtProfile(profileName);
 
     const event = new ProjectConfigChangedEvent(
@@ -292,22 +325,31 @@ export class DBTProject implements Disposable {
   private readDbtProfile(projectName: string): ProfilesMetaData {
     let profiles: any;
     try {
-      profiles = parse(readFileSync(join(this.dbtProfilesDir.fsPath, "profiles.yml"), "utf8"), {uniqueKeys: false });
-    } catch(error) {
-      window.showErrorMessage(`Could not read profiles.yml from ${this.dbtProfilesDir}: ${error}`);
+      profiles = parse(
+        readFileSync(join(this.dbtProfilesDir.fsPath, "profiles.yml"), "utf8"),
+        { uniqueKeys: false }
+      );
+    } catch (error) {
+      window.showErrorMessage(
+        `Could not read profiles.yml from ${this.dbtProfilesDir}: ${error}`
+      );
       throw error;
     }
 
-    if (profiles[projectName] === undefined 
-      || profiles[projectName]["outputs"] === undefined 
-      || typeof(profiles[projectName]["outputs"]) !== "object") {
-      window.showErrorMessage(`Could not find dbt profile for '${projectName}' in ${this.dbtProfilesDir}. Did you create a dbt profile?`);
+    if (
+      profiles[projectName] === undefined ||
+      profiles[projectName]["outputs"] === undefined ||
+      typeof profiles[projectName]["outputs"] !== "object"
+    ) {
+      window.showErrorMessage(
+        `Could not find dbt profile for '${projectName}' in ${this.dbtProfilesDir}. Did you create a dbt profile?`
+      );
       throw new Error("No dbt profile has been created!");
     }
 
     return {
       targets: Object.keys(profiles[projectName].outputs),
-      defaultTarget: profiles[projectName].target
+      defaultTarget: profiles[projectName].target,
     };
   }
 }

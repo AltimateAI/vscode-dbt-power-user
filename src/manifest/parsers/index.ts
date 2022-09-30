@@ -1,7 +1,8 @@
 import { readFileSync } from "fs";
+import { provide } from "inversify-binding-decorators";
 import * as path from "path";
-import * as os from "os";
-import { Uri, workspace, window } from "vscode";
+import { Uri } from "vscode";
+import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { DBTProject } from "../dbtProject";
 import { ManifestCacheChangedEvent } from "../event/manifestCacheChangedEvent";
 import { GraphParser } from "./graphParser";
@@ -9,8 +10,6 @@ import { MacroParser } from "./macroParser";
 import { NodeParser } from "./nodeParser";
 import { SourceParser } from "./sourceParser";
 import { TestParser } from "./testParser";
-import { provide } from "inversify-binding-decorators";
-import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 
 @provide(ManifestParser)
 export class ManifestParser {
@@ -39,7 +38,11 @@ export class ManifestParser {
             macroMetaMap: new Map(),
             sourceMetaMap: new Map(),
             testMetaMap: new Map(),
-            graphMetaMap: { parents: new Map(), children: new Map(), tests: new Map() },
+            graphMetaMap: {
+              parents: new Map(),
+              children: new Map(),
+              tests: new Map(),
+            },
           },
         ],
       };
@@ -56,24 +59,20 @@ export class ManifestParser {
     const sourceMetaMapPromise = this.sourceParser.createSourceMetaMap(sources);
     const testMetaMapPromise = this.testParser.createTestMetaMap(nodes);
 
-    const [
-      nodeMetaMap,
-      macroMetaMap,
-      sourceMetaMap,
-      testMetaMap,
-    ] = await Promise.all([
-      nodeMetaMapPromise,
-      macroMetaMapPromise,
-      sourceMetaMapPromise,
-      testMetaMapPromise,
-    ]);
+    const [nodeMetaMap, macroMetaMap, sourceMetaMap, testMetaMap] =
+      await Promise.all([
+        nodeMetaMapPromise,
+        macroMetaMapPromise,
+        sourceMetaMapPromise,
+        testMetaMapPromise,
+      ]);
 
     const graphMetaMap = this.graphParser.createGraphMetaMap(
       parent_map,
       child_map,
       nodeMetaMap,
       sourceMetaMap,
-      testMetaMap,
+      testMetaMap
     );
 
     const event: ManifestCacheChangedEvent = {
@@ -85,7 +84,7 @@ export class ManifestParser {
           macroMetaMap: macroMetaMap,
           sourceMetaMap: sourceMetaMap,
           graphMetaMap: graphMetaMap,
-          testMetaMap: testMetaMap
+          testMetaMap: testMetaMap,
         },
       ],
     };
@@ -102,7 +101,9 @@ export class ManifestParser {
       const manifestFile = readFileSync(manifestLocation, "utf8");
       return JSON.parse(manifestFile);
     } catch (error) {
-      this.terminal.log(`Could not read manifest file at ${manifestLocation}: ${error}`);
+      this.terminal.log(
+        `Could not read manifest file at ${manifestLocation}: ${error}`
+      );
     }
   }
 }

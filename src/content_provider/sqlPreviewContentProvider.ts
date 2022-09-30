@@ -1,30 +1,32 @@
+import { readFileSync } from "fs";
 import {
+  Disposable,
   Event,
   EventEmitter,
   FileSystemWatcher,
+  RelativePattern,
   TextDocumentContentProvider,
-  Disposable,
   Uri,
   workspace,
-  RelativePattern
-} from 'vscode';
-import { readFileSync } from "fs";
-import { DBTProjectContainer } from '../manifest/dbtProjectContainer';
-import { debounce, provideSingleton } from '../utils';
+} from "vscode";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { debounce, provideSingleton } from "../utils";
 
 @provideSingleton(SqlPreviewContentProvider)
-export class SqlPreviewContentProvider implements TextDocumentContentProvider, Disposable {
-  static readonly SCHEME = 'query-preview';
+export class SqlPreviewContentProvider
+  implements TextDocumentContentProvider, Disposable
+{
+  static readonly SCHEME = "query-preview";
 
   private _onDidChange = new EventEmitter<Uri>();
   private compilationDocs = new Map<string, Uri>();
   private subscriptions: Disposable;
   private watchers: FileSystemWatcher[] = [];
-  
-  constructor(
-    private dbtProjectContainer: DBTProjectContainer
-  ) {
-    this.subscriptions = workspace.onDidCloseTextDocument(compilationDoc => this.compilationDocs.delete(compilationDoc.uri.toString()));
+
+  constructor(private dbtProjectContainer: DBTProjectContainer) {
+    this.subscriptions = workspace.onDidCloseTextDocument((compilationDoc) =>
+      this.compilationDocs.delete(compilationDoc.uri.toString())
+    );
   }
 
   dispose(): void {
@@ -45,7 +47,9 @@ export class SqlPreviewContentProvider implements TextDocumentContentProvider, D
   provideTextDocumentContent(uri: Uri): string | Thenable<string> {
     if (this.compilationDocs.get(uri.toString()) === undefined) {
       this.compilationDocs.set(uri.toString(), uri);
-      const watcher = workspace.createFileSystemWatcher(new RelativePattern(uri, '*'));
+      const watcher = workspace.createFileSystemWatcher(
+        new RelativePattern(uri, "*")
+      );
       this.watchers.push(watcher);
       watcher.onDidChange(debounce(() => this._onDidChange.fire(uri), 300));
       // TODO: onDelete? onCreate?
@@ -62,7 +66,7 @@ export class SqlPreviewContentProvider implements TextDocumentContentProvider, D
         return `Still loading dbt project, please try again later...`;
       }
       return project.compileQuery(query);
-    } catch(error: any) {
+    } catch (error: any) {
       return error;
     }
   }

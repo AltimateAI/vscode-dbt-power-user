@@ -1,18 +1,20 @@
 import {
   Disposable,
+  Event,
   EventEmitter,
   FileSystemWatcher,
   RelativePattern,
   Uri,
   workspace,
-  Event,
 } from "vscode";
 import { arrayEquals, debounce, provideSingleton } from "../../utils";
 import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 
 @provideSingleton(SourceFileWatchersFactory)
 export class SourceFileWatchersFactory {
-  createSourceFileWatchers(onProjectConfigChanged: Event<ProjectConfigChangedEvent>) {
+  createSourceFileWatchers(
+    onProjectConfigChanged: Event<ProjectConfigChangedEvent>
+  ) {
     return new SourceFileWatchers(onProjectConfigChanged);
   }
 }

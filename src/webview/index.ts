@@ -1,22 +1,34 @@
+import {
+  commands,
+  Disposable,
+  ProgressLocation,
+  Uri,
+  ViewColumn,
+  WebviewOptions,
+  WebviewPanel,
+  WebviewPanelOptions,
+  window,
+  workspace,
+} from "vscode";
 import { DBTClient } from "../dbt_client";
 import { DBTCommandFactory } from "../dbt_client/dbtCommandFactory";
-import { commands, Disposable, ProgressLocation, Uri, ViewColumn, Webview, WebviewOptions, WebviewPanel, WebviewPanelOptions, workspace, window } from "vscode";
-import { provideSingleton } from '../utils';
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-
+import { provideSingleton } from "../utils";
 
 interface JsonObj {
-	[key: string]: string | number | undefined;
+  [key: string]: string | number | undefined;
 }
 
-export function getWebviewOptions(extensionUri: Uri): (WebviewPanelOptions & WebviewOptions) {
+export function getWebviewOptions(
+  extensionUri: Uri
+): WebviewPanelOptions & WebviewOptions {
   return {
     // Enable javascript in the webview
     enableScripts: true,
     // And restrict the webview to only loading content from our extension's `media` directory.
-    localResourceRoots: [Uri.joinPath(extensionUri, 'media')],
+    localResourceRoots: [Uri.joinPath(extensionUri, "media")],
     // Keep context
-    retainContextWhenHidden: true
+    retainContextWhenHidden: true,
   };
 }
 
@@ -27,13 +39,13 @@ export function getWebviewOptions(extensionUri: Uri): (WebviewPanelOptions & Web
 export class QueryResultPanelLoader implements Disposable {
   private disposables: Disposable[] = [];
   private panels: QueryResultPanel[] = [];
-  public static VIEW_TYPE: string = "query-result";
+  public static VIEW_TYPE = "query-result";
 
   // TODO: clean up dependencies
   constructor(
-		private dbtClient: DBTClient,
-		private commandFactory: DBTCommandFactory,
-    private dbtProjectContainer: DBTProjectContainer,
+    private dbtClient: DBTClient,
+    private commandFactory: DBTCommandFactory,
+    private dbtProjectContainer: DBTProjectContainer
   ) {
     this.dbtClient = dbtClient;
     this.commandFactory = commandFactory;
@@ -48,17 +60,18 @@ export class QueryResultPanelLoader implements Disposable {
     const previewColumn: string = workspace
       .getConfiguration("dbt.previewPanel")
       .get<string>("displayLocation", "horizontal");
-    if (previewColumn === 'horizontal') {
-      commands.executeCommand('workbench.action.editorLayoutTwoRows');
+    if (previewColumn === "horizontal") {
+      commands.executeCommand("workbench.action.editorLayoutTwoRows");
     }
 
-    const viewColumn = previewColumn === 'same' ? ViewColumn.Active : ViewColumn.Two;
+    const viewColumn =
+      previewColumn === "same" ? ViewColumn.Active : ViewColumn.Two;
 
     const panel = window.createWebviewPanel(
       QueryResultPanelLoader.VIEW_TYPE,
       title,
       { viewColumn: viewColumn, preserveFocus: true },
-      getWebviewOptions(this.dbtProjectContainer.extensionUri),
+      getWebviewOptions(this.dbtProjectContainer.extensionUri)
     );
     const queryResultPanel = this.createQueryResultPanel(panel);
     this.panels.push(queryResultPanel);
@@ -72,10 +85,10 @@ export class QueryResultPanelLoader implements Disposable {
 
   public createQueryResultPanel(panel: WebviewPanel) {
     return new QueryResultPanel(
-      this.dbtClient, 
-      this.commandFactory, 
-      this.dbtProjectContainer.extensionUri, 
-      panel,
+      this.dbtClient,
+      this.commandFactory,
+      this.dbtProjectContainer.extensionUri,
+      panel
     );
   }
 }
@@ -84,7 +97,7 @@ class QueryResultPanel implements Disposable {
 
   constructor(
     private dbtClient: DBTClient,
-		private commandFactory: DBTCommandFactory,
+    private commandFactory: DBTCommandFactory,
     private extensionUri: Uri,
     private panel: WebviewPanel
   ) {
@@ -93,19 +106,23 @@ class QueryResultPanel implements Disposable {
 
     // Permit bidirectional communication
     this.panel.webview.onDidReceiveMessage(
-      message => {
+      (message) => {
         switch (message.command) {
-        case 'error':
-          window.showErrorMessage(message.text);
-          return;
-        case 'info':
-          window.withProgress(
-            { title: message.text, location: ProgressLocation.Notification, cancellable: false },
-            async () => {
-              await new Promise(f => setTimeout(f, 3000));
-            }
-          );
-          return;
+          case "error":
+            window.showErrorMessage(message.text);
+            return;
+          case "info":
+            window.withProgress(
+              {
+                title: message.text,
+                location: ProgressLocation.Notification,
+                cancellable: false,
+              },
+              async () => {
+                await new Promise((f) => setTimeout(f, 3000));
+              }
+            );
+            return;
         }
       },
       null,
@@ -131,17 +148,27 @@ class QueryResultPanel implements Disposable {
     this.panel?.dispose();
   }
 
-  public async executeQuery(query: string, projectRootUri: Uri, profilesDir: Uri, target: string) {
+  public async executeQuery(
+    query: string,
+    projectRootUri: Uri,
+    profilesDir: Uri,
+    target: string
+  ) {
     this.transmitLoading();
 
-    const command = this.commandFactory.createRunQueryCommand(query, projectRootUri, profilesDir, target);
+    const command = this.commandFactory.createRunQueryCommand(
+      query,
+      projectRootUri,
+      profilesDir,
+      target
+    );
 
     const process = await this.dbtClient.executeCommand(command);
     try {
       const response = await process.complete();
       const result: any = JSON.parse(response);
       let columns: JsonObj[] = [];
-      let rows: JsonObj[] = [];
+      const rows: JsonObj[] = [];
       // Convert compressed array format to dict[]
       for (let i = 0; i < result.rows.length; i++) {
         result.rows[i].forEach((value: any, j: any) => {
@@ -150,7 +177,7 @@ class QueryResultPanel implements Disposable {
       }
       // Define column spec for Tabulator
       result.column_names.forEach((def: any) => {
-        columns = [...columns, { "title": def.toUpperCase(), "field": def }];
+        columns = [...columns, { title: def.toUpperCase(), field: def }];
       });
       await this.transmitData(columns, rows, query, result.compiled_sql);
     } catch (error: any) {
@@ -173,29 +200,33 @@ class QueryResultPanel implements Disposable {
     columns: JsonObj[],
     rows: JsonObj[],
     raw_sql: string,
-    compiled_sql: string,
+    compiled_sql: string
   ) {
     await this.panel!.webview.postMessage({
       action: "queryResults",
       columns: columns,
       rows: rows,
       sql: raw_sql,
-      compiled_sql: compiled_sql
+      compiled_sql: compiled_sql,
     });
   }
 
-  private async transmitError(error: any, raw_sql: string, compiled_sql: string) {
+  private async transmitError(
+    error: any,
+    raw_sql: string,
+    compiled_sql: string
+  ) {
     await this.panel!.webview.postMessage({
       action: "error",
       error: error,
       sql: raw_sql,
-      compiled_sql: compiled_sql
+      compiled_sql: compiled_sql,
     });
   }
 
   private async transmitLoading() {
     await this.panel!.webview.postMessage({
-      action: "loading"
+      action: "loading",
     });
   }
 
@@ -203,17 +234,28 @@ class QueryResultPanel implements Disposable {
     const webview = this.panel?.webview!;
     const nonce = this.getNonce();
     const spinnerUri = webview.asWebviewUri(
-      Uri.joinPath(this.extensionUri, 'media', 'images', 'animated_logo_no_bg_small_15fps.gif'));
+      Uri.joinPath(
+        this.extensionUri,
+        "media",
+        "images",
+        "animated_logo_no_bg_small_15fps.gif"
+      )
+    );
     const copyImageURI = webview.asWebviewUri(
-      Uri.joinPath(this.extensionUri, 'media', 'images', 'copy-regular.svg'));
+      Uri.joinPath(this.extensionUri, "media", "images", "copy-regular.svg")
+    );
     const tabulatorScriptUri = webview.asWebviewUri(
-      Uri.joinPath(this.extensionUri, 'media', 'js', 'tabulator.min.js'));
+      Uri.joinPath(this.extensionUri, "media", "js", "tabulator.min.js")
+    );
     const tabulatorStylesUri = webview.asWebviewUri(
-      Uri.joinPath(this.extensionUri, 'media', 'css', 'tabulator_site.min.css'));
+      Uri.joinPath(this.extensionUri, "media", "css", "tabulator_site.min.css")
+    );
     const mainScriptUri = webview.asWebviewUri(
-      Uri.joinPath(this.extensionUri, 'media', 'js', 'main.js'));
+      Uri.joinPath(this.extensionUri, "media", "js", "main.js")
+    );
     const mainStylesUri = webview.asWebviewUri(
-      Uri.joinPath(this.extensionUri, 'media', 'css', 'main.css'));
+      Uri.joinPath(this.extensionUri, "media", "css", "main.css")
+    );
     return `
 		<!DOCTYPE html>
 		<html lang="en">
@@ -268,8 +310,9 @@ class QueryResultPanel implements Disposable {
   }
 
   private getNonce() {
-    let text = '';
-    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let text = "";
+    const possible =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     for (let i = 0; i < 32; i++) {
       text += possible.charAt(Math.floor(Math.random() * possible.length));
     }

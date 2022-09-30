@@ -1,3 +1,5 @@
+import { inject } from "inversify";
+import * as path from "path";
 import {
   Disposable,
   EventEmitter,
@@ -8,9 +10,7 @@ import {
   WorkspaceFolder,
 } from "vscode";
 import { DBTProject } from "./dbtProject";
-import * as path from "path";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
-import { inject } from "inversify";
 
 export class DBTWorkspaceFolder implements Disposable {
   private workspaceFolder: WorkspaceFolder;
@@ -40,7 +40,10 @@ export class DBTWorkspaceFolder implements Disposable {
         this.workspaceFolder,
         `**/${DBTProject.DBT_PROJECT_FILE}`
       ),
-      new RelativePattern(this.workspaceFolder, `**/{${DBTProject.DBT_MODULES.join(',')}}`)
+      new RelativePattern(
+        this.workspaceFolder,
+        `**/{${DBTProject.DBT_MODULES.join(",")}}`
+      )
     );
     // TODO: could potentially have issues with casing @camfrout
     return dbtProjectFiles
@@ -68,10 +71,7 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   private async registerDBTProject(uri: Uri) {
-    const dbtProject = this.dbtProjectFactory(
-      uri,
-      this._onManifestChanged
-    );
+    const dbtProject = this.dbtProjectFactory(uri, this._onManifestChanged);
     dbtProject.rebuildManifest();
     dbtProject.tryRefresh();
     this.dbtProjects.push(dbtProject);

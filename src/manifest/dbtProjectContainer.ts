@@ -1,29 +1,30 @@
-import { DBTProject } from "./dbtProject";
-import {
-  workspace,
-  WorkspaceFolder,
-  Uri,
-  Disposable,
-  EventEmitter,
-  window,
-  ExtensionContext
-} from "vscode";
-import { DBTClient } from "../dbt_client";
-import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
-import { DBTCommand } from "../dbt_client/dbtCommandFactory";
-import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
-import { provideSingleton } from "../utils";
 import { inject } from "inversify";
 import { basename } from "path";
+import {
+  Disposable,
+  EventEmitter,
+  ExtensionContext,
+  Uri,
+  window,
+  workspace,
+  WorkspaceFolder,
+} from "vscode";
+import { DBTClient } from "../dbt_client";
+import { DBTCommand } from "../dbt_client/dbtCommandFactory";
 import { RunModelType } from "../domain";
+import { provideSingleton } from "../utils";
+import { DBTProject } from "./dbtProject";
+import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
+import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 
 @provideSingleton(DBTProjectContainer)
 export class DBTProjectContainer implements Disposable {
-  public onDBTInstallationVerification = this.dbtClient.onDBTInstallationVerification;
+  public onDBTInstallationVerification =
+    this.dbtClient.onDBTInstallationVerification;
   private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
   private _onManifestChanged = new EventEmitter<ManifestCacheChangedEvent>();
   public readonly onManifestChanged = this._onManifestChanged.event;
-  public currentSql?:string;
+  public currentSql?: string;
   private disposables: Disposable[] = [this._onManifestChanged];
   // TODO: handle with factory and convert to readonly
   public extensionUri: Uri = Uri.file("");
@@ -34,7 +35,7 @@ export class DBTProjectContainer implements Disposable {
     private dbtWorkspaceFolderFactory: (
       workspaceFolder: WorkspaceFolder,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
-    ) => DBTWorkspaceFolder,
+    ) => DBTWorkspaceFolder
   ) {
     // Workspace Folder Registrar
     // const fireUpdate = debounce(() => sqlPreviewContentProvider.onDidChangeEmitter.fire(SqlPreviewContentProvider.URI), 500);
@@ -92,7 +93,9 @@ export class DBTProjectContainer implements Disposable {
   }
 
   runModel(modelPath: Uri, type?: RunModelType) {
-    this.findDBTProject(modelPath)?.runModel(this.createModelParams(modelPath, type));
+    this.findDBTProject(modelPath)?.runModel(
+      this.createModelParams(modelPath, type)
+    );
   }
 
   runTest(modelPath: Uri, testName: string) {
@@ -104,7 +107,9 @@ export class DBTProjectContainer implements Disposable {
   }
 
   compileModel(modelPath: Uri, type?: RunModelType) {
-    this.findDBTProject(modelPath)?.compileModel(this.createModelParams(modelPath, type));
+    this.findDBTProject(modelPath)?.compileModel(
+      this.createModelParams(modelPath, type)
+    );
   }
 
   compileQuery(modelPath: Uri, query: string) {
@@ -140,7 +145,7 @@ export class DBTProjectContainer implements Disposable {
     return this.dbtClient.executeCommand(command);
   }
 
-  installDbtOsmosis(){
+  installDbtOsmosis() {
     this.dbtClient.installDbtOsmosis();
   }
 

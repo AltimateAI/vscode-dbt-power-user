@@ -1,23 +1,24 @@
-import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 import {
-  CompletionItemProvider,
-  CompletionItem,
-  TextDocument,
-  Position,
   CancellationToken,
   CompletionContext,
-  ProviderResult,
-  CompletionList,
+  CompletionItem,
   CompletionItemKind,
-  Uri,
+  CompletionItemProvider,
+  CompletionList,
   Disposable,
+  Position,
+  ProviderResult,
+  TextDocument,
+  Uri,
 } from "vscode";
-import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 
 @provideSingleton(MacroAutocompletionProvider) // TODO autocomplete doesn't work when mistype, delete and retype
 export class MacroAutocompletionProvider
-implements CompletionItemProvider, Disposable {
+  implements CompletionItemProvider, Disposable
+{
   private macrosAutocompleteMap: Map<string, CompletionItem[]> = new Map();
   private disposables: Disposable[] = [];
 
@@ -66,9 +67,8 @@ implements CompletionItemProvider, Disposable {
   }
 
   private getAutoCompleteItems = (currentFilePath: Uri) => {
-    const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
-      currentFilePath
-    );
+    const projectRootpath =
+      this.dbtProjectContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
       return;
     }

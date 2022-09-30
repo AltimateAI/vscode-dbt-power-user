@@ -1,5 +1,3 @@
-import { join } from "path";
-import * as os from "os";
 import { Uri, workspace } from "vscode";
 import { provideSingleton } from "../utils";
 
@@ -24,7 +22,9 @@ export interface DBTCommand {
 @provideSingleton(DBTCommandFactory)
 export class DBTCommandFactory {
   private profilesDirParams(dbtProfilesDir: Uri): string[] {
-    return dbtProfilesDir ? ["'--profiles-dir'", `r'${dbtProfilesDir.fsPath}'`] : [];
+    return dbtProfilesDir
+      ? ["'--profiles-dir'", `r'${dbtProfilesDir.fsPath}'`]
+      : [];
   }
 
   createVerifyDbtInstalledCommand(): DBTCommand {
@@ -40,7 +40,10 @@ export class DBTCommandFactory {
     return {
       statusMessage: "Detecting dbt osmosis installation...",
       processExecutionParams: {
-        args: ["-c", 'import dbt_osmosis.core.osmosis; print("dbt osmosis is installed")'],
+        args: [
+          "-c",
+          'import dbt_osmosis.core.osmosis; print("dbt osmosis is installed")',
+        ],
       },
     };
   }
@@ -49,19 +52,29 @@ export class DBTCommandFactory {
     return {
       commandAsString: "pip install dbt_osmosis",
       statusMessage: "Installing dbt-osmosis...",
-      processExecutionParams: { args: ["-m", "pip", "install", "--upgrade", "dbt-osmosis==0.7.16"] },
+      processExecutionParams: {
+        args: ["-m", "pip", "install", "--upgrade", "dbt-osmosis==0.7.16"],
+      },
       focus: true,
     };
   }
 
-  createRunQueryCommand(sql: string, projectRoot: Uri, profilesDir: Uri, target: string): DBTCommand {
+  createRunQueryCommand(
+    sql: string,
+    projectRoot: Uri,
+    profilesDir: Uri,
+    target: string
+  ): DBTCommand {
     const limit = workspace
       .getConfiguration("dbt")
       .get<number>("queryLimit", 200);
 
     const queryTemplate = workspace
       .getConfiguration("dbt")
-      .get<string>("queryTemplate", "select * from ({query}) as osmosis_query limit {limit}");
+      .get<string>(
+        "queryTemplate",
+        "select * from ({query}) as osmosis_query limit {limit}"
+      );
 
     const queryRegex = queryTemplate
       .replace(/\(/g, "\\(")
@@ -120,7 +133,12 @@ except Exception as exc:
     };
   }
 
-  createQueryPreviewCommand(sql: string, projectRoot: Uri, profilesDir: Uri, target: string): DBTCommand {
+  createQueryPreviewCommand(
+    sql: string,
+    projectRoot: Uri,
+    profilesDir: Uri,
+    target: string
+  ): DBTCommand {
     const code = `\
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -185,7 +203,11 @@ except Exception as exc:
     };
   }
 
-  createRunModelCommand(projectRoot: Uri, profilesDir: Uri, params: RunModelParams) {
+  createRunModelCommand(
+    projectRoot: Uri,
+    profilesDir: Uri,
+    params: RunModelParams
+  ) {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     const profilesDirParams = this.profilesDirParams(profilesDir);
 
@@ -228,9 +250,10 @@ except Exception as exc:
       .get<string[]>("runModelCommandAdditionalParams", []);
 
     return {
-      commandAsString: `dbt test --select ${testName}${runModelCommandAdditionalParams.length > 0
-        ? " " + runModelCommandAdditionalParams.join(" ")
-        : ""
+      commandAsString: `dbt test --select ${testName}${
+        runModelCommandAdditionalParams.length > 0
+          ? " " + runModelCommandAdditionalParams.join(" ")
+          : ""
       }`,
       statusMessage: "Testing dbt model...",
       processExecutionParams: {
@@ -250,7 +273,11 @@ except Exception as exc:
     };
   }
 
-  createCompileModelCommand(projectRoot: Uri, profilesDir: Uri, params: RunModelParams) {
+  createCompileModelCommand(
+    projectRoot: Uri,
+    profilesDir: Uri,
+    params: RunModelParams
+  ) {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     const profilesDirParams = this.profilesDirParams(profilesDir);
 

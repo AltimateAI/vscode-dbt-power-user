@@ -1,14 +1,12 @@
 import { Disposable, workspace } from "vscode";
-import { SqlPreviewContentProvider } from "./sqlPreviewContentProvider";
 import { provideSingleton } from "../utils";
+import { SqlPreviewContentProvider } from "./sqlPreviewContentProvider";
 
 @provideSingleton(ContentProviders)
 export class ContentProviders implements Disposable {
   private disposables: Disposable[] = [];
 
-  constructor(
-        private sqlPreviewContentProvider: SqlPreviewContentProvider,
-  ) {
+  constructor(private sqlPreviewContentProvider: SqlPreviewContentProvider) {
     this.disposables.push(
       workspace.registerTextDocumentContentProvider(
         SqlPreviewContentProvider.SCHEME,

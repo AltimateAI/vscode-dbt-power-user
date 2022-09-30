@@ -305,6 +305,7 @@
     ]
   },
   "scripts": {
+    "prepare": "husky install",
     "vscode:prepublish": "webpack --mode production",
     "webpack": "webpack --mode development",
     "webpack-dev": "webpack --mode development --watch",
@@ -324,10 +325,17 @@
     "@typescript-eslint/parser": "^5.10.0",
     "@vscode/test-electron": "^1.3.0",
     "eslint": "^8.7.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.2.1",
     "file-loader": "^6.1.0",
     "glob": "^7.1.6",
+    "husky": "^8.0.1",
+    "lint-staged": "^13.0.3",
     "mocha": "^8.1.3",
     "ovsx": "^0.3.0",
+    "prettier": "^2.7.1",
+    "prettier-eslint": "^15.0.1",
+    "prettier-plugin-organize-imports": "^3.1.1",
     "terser-webpack-plugin": "^5.3.1",
     "ts-loader": "^8.0.3",
     "typescript": "^4.7.4",
@@ -345,5 +353,9 @@
     "inversify-binding-decorators": "^4.0.0",
     "reflect-metadata": "^0.1.13",
     "yaml": "^2.0.0-10"
+  },
+  "lint-staged": {
+    "*.ts": "eslint --max-warnings=0",
+    "*.{js,css,md,html,json}": "prettier --cache --write"
   }
 }

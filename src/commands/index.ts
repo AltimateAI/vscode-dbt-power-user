@@ -1,10 +1,18 @@
-import { commands, Disposable, window, TextEditor, workspace, ViewColumn, languages, ProgressLocation, Uri } from "vscode";
-import { RunModel } from "./runModel";
-import { provideSingleton } from "../utils";
-import { RunModelType } from "../domain";
+import {
+  commands,
+  Disposable,
+  languages,
+  TextEditor,
+  Uri,
+  ViewColumn,
+  window,
+  workspace,
+} from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
+import { RunModelType } from "../domain";
+import { provideSingleton } from "../utils";
 import { InstallDbtOsmosis } from "./installDbtOsmosis";
-
+import { RunModel } from "./runModel";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -12,7 +20,7 @@ export class VSCodeCommands implements Disposable {
 
   constructor(
     private runModel: RunModel,
-    private installDbtOsmois: InstallDbtOsmosis,
+    private installDbtOsmois: InstallDbtOsmosis
   ) {
     this.disposables.push(
       commands.registerCommand("dbtPowerUser.runCurrentModel", () =>
@@ -24,20 +32,32 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.compileCurrentModel", () =>
         this.runModel.compileModelOnActiveWindow()
       ),
-      commands.registerTextEditorCommand('dbtPowerUser.sqlPreview', async (editor: TextEditor) => {
-        const uri = Uri.parse(`${SqlPreviewContentProvider.SCHEME}:${encodeURI(editor.document.uri.fsPath)}`, true);
-        const doc = await workspace.openTextDocument(uri);
-        const isOpen = window.visibleTextEditors.some(e => e.document.uri === uri);
-        await window.showTextDocument(doc, ViewColumn.Beside, false);
-        await languages.setTextDocumentLanguage(doc, 'sql');
-        if (!isOpen) {
-          await commands.executeCommand('workbench.action.lockEditorGroup');
-          await commands.executeCommand('workbench.action.focusPreviousGroup');
-        } else {
-          await commands.executeCommand('workbench.action.closeActiveEditor');
-          return;
+      commands.registerTextEditorCommand(
+        "dbtPowerUser.sqlPreview",
+        async (editor: TextEditor) => {
+          const uri = Uri.parse(
+            `${SqlPreviewContentProvider.SCHEME}:${encodeURI(
+              editor.document.uri.fsPath
+            )}`,
+            true
+          );
+          const doc = await workspace.openTextDocument(uri);
+          const isOpen = window.visibleTextEditors.some(
+            (e) => e.document.uri === uri
+          );
+          await window.showTextDocument(doc, ViewColumn.Beside, false);
+          await languages.setTextDocumentLanguage(doc, "sql");
+          if (!isOpen) {
+            await commands.executeCommand("workbench.action.lockEditorGroup");
+            await commands.executeCommand(
+              "workbench.action.focusPreviousGroup"
+            );
+          } else {
+            await commands.executeCommand("workbench.action.closeActiveEditor");
+            return;
+          }
         }
-      }),
+      ),
       commands.registerCommand("dbtPowerUser.runTest", (model) =>
         this.runModel.runModelOnNodeTreeItem(RunModelType.TEST)(model)
       ),

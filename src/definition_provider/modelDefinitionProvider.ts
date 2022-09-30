@@ -1,15 +1,15 @@
 import {
-  DefinitionProvider,
-  Definition,
-  Uri,
-  TextDocument,
   CancellationToken,
-  ProviderResult,
+  Definition,
   DefinitionLink,
+  DefinitionProvider,
+  Disposable,
   Location,
   Position,
+  ProviderResult,
   Range,
-  Disposable,
+  TextDocument,
+  Uri,
 } from "vscode";
 import { NodeMetaMap } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -78,9 +78,8 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
     name: string,
     currentFilePath: Uri
   ): Definition | undefined {
-    const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
-      currentFilePath
-    );
+    const projectRootpath =
+      this.dbtProjectContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
       return;
     }

@@ -6,7 +6,6 @@ import { MacroMetaMap } from "../../domain";
 
 @provide(MacroParser)
 export class MacroParser {
-
   constructor(private terminal: DBTTerminal) {}
 
   createMacroMetaMap(
@@ -44,7 +43,9 @@ export class MacroParser {
               `File not found at '${fullPath}', project may need to be recompiled.`,
               error
             );
-            this.terminal.log(`File not found at '${fullPath}', probably compiled is outdated. ${error}`);
+            this.terminal.log(
+              `File not found at '${fullPath}', probably compiled is outdated. ${error}`
+            );
           }
         }
       );

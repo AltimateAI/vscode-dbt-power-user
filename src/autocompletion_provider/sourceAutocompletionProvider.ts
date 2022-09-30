@@ -1,29 +1,28 @@
 import {
-  CompletionItemProvider,
-  CompletionItem,
-  TextDocument,
-  Position,
   CancellationToken,
   CompletionContext,
-  ProviderResult,
-  CompletionList,
+  CompletionItem,
   CompletionItemKind,
-  Uri,
+  CompletionItemProvider,
+  CompletionList,
   Disposable,
+  Position,
+  ProviderResult,
+  TextDocument,
+  Uri,
 } from "vscode";
-import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
-import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 
 @provideSingleton(SourceAutocompletionProvider) // TODO autocomplete doesn't work when mistype, delete and retype
 export class SourceAutocompletionProvider
-implements CompletionItemProvider, Disposable {
+  implements CompletionItemProvider, Disposable
+{
   private static readonly GET_SOURCE_NAME = /(?!['"])(\w+)(?=['"])/;
   private static readonly ENDS_WITH_SOURCE = /source\(['|"]$/;
-  private sourceAutocompleteNameItemsMap: Map<
-    string,
-    CompletionItem[]
-  > = new Map();
+  private sourceAutocompleteNameItemsMap: Map<string, CompletionItem[]> =
+    new Map();
   private sourceAutocompleteTableMap: Map<
     string,
     Map<string, CompletionItem[]>

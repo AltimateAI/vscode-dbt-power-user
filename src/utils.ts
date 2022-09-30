@@ -1,10 +1,10 @@
 import { fluentProvide } from "inversify-binding-decorators";
 import {
-  TextDocument,
-  Range,
-  Position,
-  FileSystemWatcher,
   Disposable,
+  FileSystemWatcher,
+  Position,
+  Range,
+  TextDocument,
 } from "vscode";
 
 export const isEnclosedWithinCodeBlock: (
@@ -72,8 +72,8 @@ export const arrayEquals = <T>(a: Array<T>, b: Array<T>): boolean => {
   return a.sort().toString() === b.sort().toString();
 };
 
-export const debounce = (fn: Function, wait: number) => {
-  let timeout: number;
+export const debounce = (fn: () => void, wait: number) => {
+  let timeout: NodeJS.Timeout;
   return () => {
     clearTimeout(timeout);
     timeout = setTimeout(fn, wait);
@@ -82,7 +82,7 @@ export const debounce = (fn: Function, wait: number) => {
 
 export const setupWatcherHandler: (
   watcher: FileSystemWatcher,
-  handler: Function
+  handler: () => void
 ) => Disposable[] = (watcher, handler) => [
   watcher.onDidChange(() => handler()),
   watcher.onDidCreate(() => handler()),

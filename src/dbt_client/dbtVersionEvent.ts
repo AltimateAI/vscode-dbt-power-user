@@ -5,7 +5,7 @@ export interface DBTInstallationVerificationEvent {
     latestVersion?: string;
     installedVersion?: string;
     upToDate?: boolean;
-    plugins?: string[]
-  }
-  dbtOsmosisInstallationFound?: boolean
+    plugins?: string[];
+  };
+  dbtOsmosisInstallationFound?: boolean;
 }

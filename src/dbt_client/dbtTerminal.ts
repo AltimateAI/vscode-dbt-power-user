@@ -1,7 +1,6 @@
 import { EventEmitter, Terminal, window } from "vscode";
 import { provideSingleton } from "../utils";
 
-
 @provideSingleton(DBTTerminal)
 export class DBTTerminal {
   private terminal?: Terminal;
