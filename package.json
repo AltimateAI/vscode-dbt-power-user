@@ -34,6 +34,10 @@
       {
         "title": "dbt Power User",
         "properties": {
+          "dbt.dbtPythonPath": {
+            "type": "string",
+            "description": "Path to python executable with dbt installed. If undefined, we will use the Python extension configured environment"
+          },
           "dbt.listModelsDisabled": {
             "type": "boolean",
             "default": false,
@@ -49,7 +53,7 @@
           },
           "dbt.profilesDirOverride": {
             "type": "string",
-            "description": "Override the profiles dir for every dbt command. Absolute path or relative to the dbt_project.yml"
+            "description": "Override the profiles dir for every dbt command. Absolute path or relative to the profiles.yml"
           },
           "dbt.queryLimit": {
             "type": "integer",
@@ -60,21 +64,6 @@
             "type": "string",
             "description": "Override the default query template that is used by the `Preview SQL Query` command. Use this if your database has special syntax to limit query results",
             "default": "select * from ({query}) as osmosis_query limit {limit}"
-          },
-          "dbt.previewPanel.displayLocation": {
-            "type": "string",
-            "enum": [
-              "horizontal",
-              "vertical",
-              "same"
-            ],
-            "default": "horizontal",
-            "enumDescriptions": [
-              "Show the preview panel horizontally below the active editor.",
-              "Show the preview panel vertically next to the active editor.",
-              "Show the preview panel in the same location as the active editor."
-            ],
-            "description": "Show the preview panel horizontally, vertically, or in the same location as the active editor."
           },
           "dbt.versionCheck": {
             "type": "string",
@@ -104,6 +93,13 @@
           "icon": "./media/images/dbt_icon.svg",
           "contextualTitle": "dbt Power User"
         }
+      ],
+      "panel": [
+        {
+          "id": "dbt_preview_results",
+          "title": "dbt Preview Results",
+          "icon": "./media/images/dbt_icon.svg"
+        }
       ]
     },
     "views": {
@@ -119,6 +115,13 @@
         {
           "id": "children_model_treeview",
           "name": "Children Models"
+        }
+      ],
+      "dbt_preview_results": [
+        {
+          "id": "dbtPowerUser.PreviewResults",
+          "name": "",
+          "type": "webview"
         }
       ]
     },
@@ -340,9 +343,12 @@
     "ms-python.python"
   ],
   "dependencies": {
+    "@vscode/webview-ui-toolkit": "^1.1.0",
     "dayjs": "^1.8.34",
     "inversify": "^5.0.5",
     "inversify-binding-decorators": "^4.0.0",
+    "node-abort-controller": "^3.0.1",
+    "node-fetch": "^3.2.10",
     "reflect-metadata": "^0.1.13",
     "yaml": "^2.0.0-10"
   }

@@ -27,10 +27,24 @@ export class DBTCommandFactory {
     return dbtProfilesDir ? ["'--profiles-dir'", `r'${dbtProfilesDir.fsPath}'`] : [];
   }
 
+  private getFirstWorkspacePath(): string {
+    // If we are executing python via a wrapper like Meltano, 
+    // we need to execute it from a (any) project directory
+    // By default, Command execution is in an ext dir context
+    const folders = workspace.workspaceFolders;
+    if (folders) {
+      return folders[0].uri.fsPath;
+    } else {
+      // TODO: this shouldn't happen but we should make sure this is valid fallback
+      return Uri.file("./").fsPath;
+    }
+  }
+
   createVerifyDbtInstalledCommand(): DBTCommand {
     return {
       statusMessage: "Detecting dbt installation...",
       processExecutionParams: {
+        cwd: this.getFirstWorkspacePath(),
         args: ["-c", 'import dbt.main; print("dbt is installed")'],
       },
     };
@@ -40,6 +54,7 @@ export class DBTCommandFactory {
     return {
       statusMessage: "Detecting dbt osmosis installation...",
       processExecutionParams: {
+        cwd: this.getFirstWorkspacePath(),
         args: ["-c", 'import dbt_osmosis.core.osmosis; print("dbt osmosis is installed")'],
       },
     };
@@ -49,7 +64,10 @@ export class DBTCommandFactory {
     return {
       commandAsString: "pip install dbt_osmosis",
       statusMessage: "Installing dbt-osmosis...",
-      processExecutionParams: { args: ["-m", "pip", "install", "--upgrade", "dbt-osmosis==0.7.16"] },
+      processExecutionParams: {
+        cwd: this.getFirstWorkspacePath(),
+        args: ["-m", "pip", "install", "--upgrade", "dbt-osmosis==0.7.16"]
+      },
       focus: true,
     };
   }
@@ -104,7 +122,8 @@ try:
     print(json_dumps({
         "rows": [list(row) for row in result.table.rows],
         "column_names": result.table.column_names,
-        "compiled_sql": re.search(r"${queryRegex}", result.compiled_sql).groups()[0]
+        "compiled_sql": re.search(r"${queryRegex}", result.compiled_sql).groups()[0],
+        "raw_sql": query
     }))
     sys.exit(0)
 except Exception as exc:
@@ -194,13 +213,11 @@ except Exception as exc:
       .get<string[]>("runModelCommandAdditionalParams", []);
 
     return {
-      commandAsString: `dbt run --select ${params.plusOperatorLeft}${
-        params.modelName
-      }${params.plusOperatorRight}${
-        runModelCommandAdditionalParams.length > 0
+      commandAsString: `dbt run --select ${params.plusOperatorLeft}${params.modelName
+        }${params.plusOperatorRight}${runModelCommandAdditionalParams.length > 0
           ? " " + runModelCommandAdditionalParams.join(" ")
           : ""
-      }`,
+        }`,
       statusMessage: "Running dbt models...",
       processExecutionParams: {
         cwd: projectRoot.fsPath,
@@ -231,7 +248,7 @@ except Exception as exc:
       commandAsString: `dbt test --select ${testName}${runModelCommandAdditionalParams.length > 0
         ? " " + runModelCommandAdditionalParams.join(" ")
         : ""
-      }`,
+        }`,
       statusMessage: "Testing dbt model...",
       processExecutionParams: {
         cwd: projectRoot.fsPath,

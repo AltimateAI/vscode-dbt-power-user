@@ -20,7 +20,7 @@ export class SqlPreviewContentProvider implements TextDocumentContentProvider, D
   private compilationDocs = new Map<string, Uri>();
   private subscriptions: Disposable;
   private watchers: FileSystemWatcher[] = [];
-  
+
   constructor(
     private dbtProjectContainer: DBTProjectContainer
   ) {
@@ -59,10 +59,10 @@ export class SqlPreviewContentProvider implements TextDocumentContentProvider, D
       const query = readFileSync(fsPath, "utf8");
       const project = this.dbtProjectContainer.findDBTProject(Uri.file(fsPath));
       if (project === undefined) {
-        return `Still loading dbt project, please try again later...`;
+        return "Still loading dbt project, please try again later...";
       }
       return project.compileQuery(query);
-    } catch(error: any) {
+    } catch (error: any) {
       return error;
     }
   }

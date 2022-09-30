@@ -10,7 +10,7 @@ import { ManifestCacheChangedEvent } from "./manifest/event/manifestCacheChanged
 import { DBTProjectLogFactory } from "./manifest/modules/dbtProjectLog";
 import { SourceFileWatchersFactory } from "./manifest/modules/sourceFileWatchers";
 import { TargetWatchersFactory } from "./manifest/modules/targetWatchers";
-import { QueryResultPanelLoader } from "./webview";
+import { QueryResultPanel } from "./webview_view/queryResultPanel";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -46,7 +46,7 @@ container
         container.get(TargetWatchersFactory),
         container.get(DBTCommandFactory),
         container.get(DBTTerminal),
-        container.get(QueryResultPanelLoader),
+        container.get(QueryResultPanel),
         path,
         _onManifestChanged
       );
