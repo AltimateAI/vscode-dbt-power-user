@@ -174,7 +174,7 @@ export class QueryResultPanel implements WebviewViewProvider {
 function getHtml(webview: Webview, extensionUri: Uri) {
     const nonce = getNonce();
     // Vscode
-    const toolkitUri = getUri(webview, extensionUri, ["node_modules", "@vscode", "webview-ui-toolkit", "dist", "toolkit.js"]);
+    const toolkitUri = getUri(webview, extensionUri, ["media", "js", "toolkit.min.js"]);
     // Tabulator.js
     const tabulatorScriptUri = getUri(webview, extensionUri, ["media", "js", "tabulator.min.js"]);
     const tabulatorStylesUri = getUri(webview, extensionUri, ["media", "css", "tabulator_site.min.css"]);

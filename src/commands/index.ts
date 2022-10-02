@@ -25,7 +25,7 @@ export class VSCodeCommands implements Disposable {
         this.runModel.compileModelOnActiveWindow()
       ),
       commands.registerTextEditorCommand('dbtPowerUser.sqlPreview', async (editor: TextEditor) => {
-        const uri = Uri.parse(`${SqlPreviewContentProvider.SCHEME}:${encodeURI(editor.document.uri.fsPath)}`, true);
+        const uri = editor.document.uri.with({ scheme: SqlPreviewContentProvider.SCHEME });
         const doc = await workspace.openTextDocument(uri);
         const isOpen = window.visibleTextEditors.some(e => e.document.uri === uri);
         await window.showTextDocument(doc, ViewColumn.Beside, false);
