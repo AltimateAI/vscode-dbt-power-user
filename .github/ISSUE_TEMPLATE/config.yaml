@@ -1,0 +1,5 @@
+---
+contact_links:
+  - name: Ask a question or get help right here
+    url: https://github.com/innoverio/vscode-dbt-power-user/discussions
+    about: Ask a question or get help here on Github Discussions
