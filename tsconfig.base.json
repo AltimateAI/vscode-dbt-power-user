@@ -1,0 +1,32 @@
+{
+	"compilerOptions": {
+		"module": "commonjs",
+		"target": "es6",
+		"outDir": "out",
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+		"forceConsistentCasingInFileNames": true,
+		"importHelpers": true,
+		"types": [
+			"reflect-metadata",
+			"node"
+		],
+		"lib": [
+			"es6",
+			"es2020"
+		],
+		"sourceMap": true,
+		"rootDirs": [
+			"src",
+			"webviews"
+		],
+		"strict": true,
+	},
+	"include": [
+		"src",
+		"webviews"
+	],
+	"exclude": [
+		"node_modules"
+	]
+}

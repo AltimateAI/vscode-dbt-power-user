@@ -55,12 +55,12 @@
             "type": "string",
             "description": "Override the profiles dir for every dbt command. Absolute path or relative to the profiles.yml"
           },
-          "dbt.queryLimit": {
+          "dbt.queryPreview.queryLimit": {
             "type": "integer",
             "description": "The maximum number of rows the `Preview SQL Query` command returns.",
             "default": 500
           },
-          "dbt.queryTemplate": {
+          "dbt.queryPreview.queryTemplate": {
             "type": "string",
             "description": "Override the default query template that is used by the `Preview SQL Query` command. Use this if your database has special syntax to limit query results",
             "default": "select * from ({query}) as osmosis_query limit {limit}"
@@ -81,6 +81,14 @@
               "Do not show the outdated version message in the status bar or as an error message popup."
             ],
             "description": "This determines which messages will show when the dbt version is outdated."
+          },
+          "dbt.server.osmosisHost": {
+            "type": "string",
+            "default": "localhost"
+          },
+          "dbt.server.osmosisPort": {
+            "type": "number",
+            "default": 8581
           }
         }
       }

@@ -72,8 +72,8 @@ export const arrayEquals = <T>(a: Array<T>, b: Array<T>): boolean => {
   return a.sort().toString() === b.sort().toString();
 };
 
-export const debounce = (fn: Function, wait: number) => {
-  let timeout: number;
+export const debounce = (fn: (...args: any[]) => void, wait: number) => {
+  let timeout: NodeJS.Timeout;
   return () => {
     clearTimeout(timeout);
     timeout = setTimeout(fn, wait);

@@ -1,4 +1,4 @@
-import { window, workspace } from 'vscode';
+import { workspace } from 'vscode';
 import fetch from 'node-fetch';
 import { AbortController } from 'node-abort-controller';
 
@@ -49,13 +49,13 @@ const failedToReachServerError: OsmosisErrorContainer = {
 
 export function getHost(): string {
     return workspace
-        .getConfiguration("dbt")
+        .getConfiguration("dbt.server")
         .get<string>("osmosisHost", "localhost");
 }
 
 export function getPort(): number {
     return workspace
-        .getConfiguration("dbt")
+        .getConfiguration("dbt.server")
         .get<number>("osmosisPort", 8581);
 }
 
@@ -84,7 +84,7 @@ async function osmosisFetch<T>(endpoint: string, fetchArgs = {}, timeout: number
 
 export async function runQuery(query: string, limit: number = 200) {
     return await osmosisFetch<OsmosisRunResult | OsmosisErrorContainer>(
-        "run" + "?" + new URLSearchParams({ limit: limit.toString() }),
+        `run?limit=${limit}`,
         {
             method: "POST",
             headers: {
@@ -112,12 +112,10 @@ export async function reparseProject(
     target: string | undefined = undefined,
     reset: OsmosisFullReparse = OsmosisFullReparse.False
 ) {
-    let endpoint = "parse";
-    let params = new URLSearchParams({ reset });
+    let endpoint = `parse?reset=${reset}`;
     if (target) {
-        params.append("target", target);
+        endpoint += `&target=${target}`;
     }
-    endpoint += "?" + params;
     return await osmosisFetch<OsmosisResetResult | OsmosisErrorContainer>(
         endpoint
     );

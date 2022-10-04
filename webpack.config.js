@@ -6,7 +6,7 @@ const TerserPlugin = require("terser-webpack-plugin");
 const path = require('path');
 
 /**@type {import('webpack').Configuration}*/
-const config = {
+const extensionConfig = {
   target: 'node',
   entry: path.resolve(__dirname, "src/extension.ts"),
   output: {
@@ -60,4 +60,61 @@ const config = {
   }
 };
 
-module.exports = config;
+/**@type {import('webpack').Configuration}*/
+const webviewConfig = {
+  name: 'webviews',
+  target: 'web',
+  entry: {
+    'webview-query-panel': path.resolve(__dirname, "webviews/query_panel/index.ts"),
+  },
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: '[name].js',
+  },
+  externals: {
+    vscode: 'commonjs vscode',
+  },
+  resolve: {
+    extensions: ['.ts', '.js'],
+  },
+  module: {
+    rules: [
+      {
+        exclude: /node_modules/,
+        include: [path.join(__dirname, 'webviews'), path.join(__dirname, 'src')],
+        test: /\.tsx?$/,
+        use: {
+          loader: 'ts-loader',
+          options: {
+            configFile: path.join(__dirname, 'tsconfig.webviews.json'),
+            experimentalWatchApi: true,
+            transpileOnly: true,
+          },
+        },
+      },
+      {
+        test: /\.css/,
+        use: ['style-loader', 'css-loader'],
+      },
+      {
+        test: /\.svg/,
+        use: ['svg-inline-loader'],
+      },
+    ],
+  },
+  optimization: {
+    minimizer: [
+      new TerserPlugin({
+        parallel: true,
+        extractComments: false,
+        terserOptions: {
+          ecma: 2019,
+          keep_classnames: /^AbortSignal$/,
+          module: true,
+        }
+      }),
+    ],
+  }
+};
+
+module.exports = [extensionConfig, webviewConfig];

@@ -1,4 +1,16 @@
 const vscode = acquireVsCodeApi();
+const initState = vscode.getState();
+
+// Listen For Data
+window.addEventListener("message", (event) => {
+  dispatchAction(event.data);
+});
+
+// Actions from VS Code
+const DO_LOADING = "loading";
+const DO_QUERY = "queryResults";
+const DO_ERROR = "error";
+const DO_CONFIG = "renderConfig";
 
 /** Compiled SQL container housing SQL dispatched to data warehouse */
 const compiledSqlContainer = document.getElementById("sql-container");
@@ -20,34 +32,23 @@ const sqlCodeBlock = document.getElementById("sql");
 /** Loading spinner */
 const spinnerImage = document.getElementById("loader");
 
+/** Text field for adjusting the limit for query view */
+const limitControl = document.getElementById("limit-ctrl");
+limitControl.onchange = (e) => { vscode.postMessage({ command: "updateConfig", limit: e.target.value }); };
+if (initState.limit) {
+  limitControl.value = initState.limit;
+}
+
+/** Webview ui toolkit tab container */
+const panelManager = document.getElementById("panel-manager");
+
 // Init Globals & hide spinner
 const initRenderTime = new Date();
 queryErrorCopyButton.addEventListener("click", () => clipboardCopyAction("error-details"));
 spinnerImage.style.display = "none";
-let queryTime = 0;
-
-// Listen For Data
-window.addEventListener("message", (event) => {
-  // Update state message & timestamp
-  const timestamp = new Date();
-  const previousState = vscode.getState();
-  vscode.setState({
-    ...previousState,
-    message: event.data,
-    timestamp: timestamp
-  });
-
-  // Actions based on event.data.action
-  dispatchAction(event.data, timestamp);
-
-  // Update query time when we receive new data
-  if (event.data.rows) {
-    queryTime = Math.abs(new Date().getTime() - previousState.startQueryTime) / 1000;
-  }
-});
 
 /** Shows query output in dbt query view panel */
-function showQuery(event, time) {
+function showQuery(event, time, state) {
   // Update table
   let tableHeightDyn = event.rows.length * 65;
   new Tabulator("#results-panel", {
@@ -69,24 +70,21 @@ function showQuery(event, time) {
   queryResultsContainer.style.display = "block";
 
   // Update view
-  const previousState = vscode.getState();
-  queryTime = Math.abs(time.getTime() - previousState.startQueryTime) / 1000;
-  rowsLoadedBadge.textContent = `${event.rows.length} rows in ${queryTime}s`;
+  panelManager.activeid = "tab-1";
   sqlCodeBlock.textContent = event.compiled_sql;
   Prism.highlightAll(); // Prism is imported in HTML
+
+  // Update var
+  rowsLoadedBadge.textContent = `${event.rows.length} rows in ${state.queryTime || 0.0}s`;
 }
 
 /** Shows loading spinner in dbt query view panel and logs load init
  * time for query run time calculation
  */
-function showLoader(event, time) {
-  // Grab state and update windowRenderTime + title
-  const previousState = vscode.getState();
-  vscode.setState({
-    ...previousState,
-    startQueryTime: time.getTime(),
-    title: event.title ?? "Ad Hoc Query"
-  });
+function showLoader(event, time, state) {
+  delete state.queryTime;
+  state.startQueryTime = time;
+  state.queryTitle = event.title ?? "Ad Hoc Query";
 
   // Hide
   compiledSqlContainer.style.display = "none";
@@ -95,12 +93,13 @@ function showLoader(event, time) {
 
   // Show
   spinnerImage.style.display = "block";
+  panelManager.activeid = "tab-1";
 }
 
 /** Shows error result on error message received. This can be errors from 
  * data warehouse or jinja wither of which help user during development
  */
-function showError(event, time) {
+function showError(event, time, state) {
   const fullErrorMessage = event.error?.data?.message || (event.error?.message || "No error message");
   const [errorTitle, ...errorMessages] = fullErrorMessage.split(/\r?\n/);
   const errorMessage = errorMessages.join(" ");
@@ -118,31 +117,44 @@ function showError(event, time) {
   errorDetails.textContent = JSON.stringify(event.error, null, 2);
 }
 
-/** Used to copy dispatch SQL to clipboard */
-function clipboardCopyAction(elementId) {
-  const copyText = document.getElementById(elementId).textContent;
-  navigator.clipboard.writeText(copyText);
-}
-
 /** Dispatcher which uses the action key of the input */
-function dispatchAction(input, time) {
-  switch (input.action) {
-    case "queryResults":
-      showQuery(input, time);
+function dispatchAction(eventData) {
+  let t1 = new Date().getTime();
+  let state = vscode.getState();
+  state.message = eventData;
+  if (eventData.rows && state.startQueryTime && !state.queryTime) {
+    state.queryTime = Math.abs((Number(t1) - Number(state.startQueryTime))) / 1000;
+  }
+  switch (eventData.action) {
+    case DO_QUERY:
+      showQuery(eventData, t1, state);
+      vscode.setState(state);
       break;
-    case "loading":
-      showLoader(input, time);
+    case DO_LOADING:
+      showLoader(eventData, t1, state);
+      vscode.setState(state);
       break;
-    case "error":
-      showError(input, time);
+    case DO_ERROR:
+      showError(eventData, t1, state);
+      vscode.setState(state);
+      break;
+    case DO_CONFIG:
+      if (eventData.limit) {
+        state.limit = eventData.limit;
+        limitControl.value = eventData.limit;
+      };
+      vscode.setState(state);
       break;
   }
 }
 
 // Restore State
-const previousState = vscode.getState();
-const stateMessage = previousState ? previousState.message : undefined;
+if (initState) {
+  dispatchAction(initState.message);
+}
 
-// if (stateMessage) {
-//   dispatchAction(stateMessage, previousState.timestamp);
-// }
+/** Used to copy dispatch SQL to clipboard */
+function clipboardCopyAction(elementId) {
+  const copyText = document.getElementById(elementId).textContent;
+  navigator.clipboard.writeText(copyText);
+}
