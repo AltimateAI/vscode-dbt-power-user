@@ -50,19 +50,23 @@ export class VersionStatusBar implements Disposable {
       .getConfiguration("dbt")
       .get<string>("versionCheck") || "both";
 
-    if (!event.dbtInstallationFound!.upToDate && (versionCheck === "both" || versionCheck === "status bar")) {
-      if(event.dbtInstallationFound!.installedVersion !== undefined) {
-        this.showTextInStatusBar(
-          `$(error) dbt ${event.dbtInstallationFound!.installedVersion} is not up to date`
-        );
-      } else {
-        this.showTextInStatusBar(
-          `$(check) dbt`
-        );
-      }      
-      return;
+    if (event.dbtInstallationFound) {
+      if (!event.dbtInstallationFound.upToDate && (versionCheck === "both" || versionCheck === "status bar")) {
+        if (event.dbtInstallationFound.installedVersion !== undefined) {
+          this.showTextInStatusBar(
+            `$(error) dbt ${event.dbtInstallationFound.installedVersion} is not up to date`
+          );
+        } else {
+          this.showTextInStatusBar(
+            `$(check) dbt`
+          );
+        }
+        return;
+      }
+      this.showTextInStatusBar(
+        `$(check) dbt`
+      );
     }
-    this.showTextInStatusBar(`$(check) dbt ${event.dbtInstallationFound!.installedVersion}`);
   }
 
   private showTextInStatusBar(text: string, command?: Command) {

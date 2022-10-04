@@ -158,6 +158,7 @@ export class QueryResultPanel implements WebviewViewProvider {
 
     public async executeQuery(query: string, projectRootUri: Uri, profilesDir: Uri, target: string, title?: string) {
         // if (title) { this._panel!.title = title; }
+        commands.executeCommand("workbench.view.extension.dbt_preview_results");
         this.transmitLoading();
         let result = await runQuery(query, workspace.getConfiguration("dbt.queryPreview").get<number>("queryLimit"));
         if (isError(result)) {
@@ -270,12 +271,14 @@ function getHtml(webview: Webview, extensionUri: Uri) {
                 <div>
                     <vscode-text-field id="limit-ctrl" type="number">Query Limit</vscode-text-field>
                 </div>
-                <br /><br /><br /><br />
-                <div>
-                    <br /><br /><br /><br />
-                    <p>Press Cmd+Enter (Mac) or Control+Enter (Windows/Linux) to run a query. 
-                    If nothing is highlighted by the cursor, the whole statement is ran with an injected limit.
-                    If you highlight a part of the query such as a CTE, you can execute that snippet.</p>
+                <div style="margin-left:20px;">
+                    <h2 id="previewing-query">Previewing Query</h2>
+                    <p>Press Cmd+Enter (Mac) or Control+Enter (Windows/Linux) to run a query.
+                    Highlight part of a query to preview only selection</p>
+                    <h2 id="default-query-limit">Default Query Limit</h2>
+                    <p>Query preview is limited to 500 rows by default, this can be configured in Settings -&gt; dbt Power User or via the input to the left</p>
+                    <h2 id="dispatch-sql">Dispatched SQL</h2>
+                    <p>This tab displays the compiled query sent to the database. You can copy to run directly in your database.</p>                    
                 </div>
             </vscode-panel-view>
         </vscode-panels>

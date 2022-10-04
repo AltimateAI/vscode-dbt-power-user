@@ -47,7 +47,7 @@ export class SqlPreviewContentProvider implements TextDocumentContentProvider, D
       this.compilationDocs.set(uri.toString(), uri);
       const watcher = workspace.createFileSystemWatcher(new RelativePattern(uri, '*'));
       this.watchers.push(watcher);
-      watcher.onDidChange(debounce(() => this._onDidChange.fire(uri), 300));
+      watcher.onDidChange(debounce(() => this._onDidChange.fire(uri), 500));
       // TODO: onDelete? onCreate?
     }
     return this.requestCompilation(uri);
