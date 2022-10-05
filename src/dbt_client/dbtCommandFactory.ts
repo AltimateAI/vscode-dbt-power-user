@@ -108,9 +108,9 @@ try:
     import traceback
 
     import orjson
-    from dbt_osmosis.core.osmosis import DbtOsmosis
+    from dbt_osmosis.core.osmosis import DbtProject
 
-    runner = DbtOsmosis(
+    runner = DbtProject(
         profiles_dir=r"${profilesDir.fsPath}",
         project_dir=r"${projectRoot.fsPath.replace(/"/g, '\\"')}",
         target=r"${target.replace(/"/g, '\\"')}",
@@ -160,8 +160,8 @@ try:
     import traceback
 
     import orjson
-    from dbt_osmosis.core.osmosis import DbtOsmosis
-    runner = DbtOsmosis(
+    from dbt_osmosis.core.osmosis import DbtProject
+    runner = DbtProject(
         profiles_dir=r"${profilesDir.fsPath}",
         project_dir=r"${projectRoot.fsPath.replace(/"/g, '\\"')}",
         target=r"${target.replace(/"/g, '\\"')}",

@@ -224,14 +224,14 @@ function getHtml(webview: Webview, extensionUri: Uri) {
         <link href="${mainStylesUri}" rel="stylesheet">
         <script nonce="${nonce}" src="${tabulatorScriptUri}"></script>
         <script type="module" nonce="${nonce}" src="${toolkitUri}"></script>
-        <title>Query Results</title>
+        <title>Preview</title>
     </head>
 
     <body>
         <!-- Main Container -->
-        <vscode-panels id="panel-manager" activeid="tab-3" aria-label="dbt Query Results">
+        <vscode-panels id="panel-manager" activeid="tab-3" aria-label="dbt Preview">
             <vscode-panel-tab id="tab-1">
-                Query Results
+                Preview
                 <vscode-badge id="row-badge" appearance="secondary">0</vscode-badge>
             </vscode-panel-tab>
             <vscode-panel-tab id="tab-2">Dispatched SQL</vscode-panel-tab>

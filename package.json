@@ -105,7 +105,7 @@
       "panel": [
         {
           "id": "dbt_preview_results",
-          "title": "dbt Preview Results",
+          "title": "Query Results",
           "icon": "./media/images/dbt_icon.svg"
         }
       ]

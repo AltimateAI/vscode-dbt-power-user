@@ -94,22 +94,25 @@ function showLoader(event, time, state) {
   // Show
   spinnerImage.style.display = "block";
   panelManager.activeid = "tab-1";
+  rowsLoadedBadge.textContent = "0";
 }
 
 /** Shows error result on error message received. This can be errors from 
  * data warehouse or jinja wither of which help user during development
  */
 function showError(event, time, state) {
-  const fullErrorMessage = event.error?.data?.message || (event.error?.message || "No error message");
-  const [errorTitle, ...errorMessages] = fullErrorMessage.split(/\r?\n/);
-  const errorMessage = errorMessages.join(" ");
-  const shortErrorTitle = (errorTitle !== undefined) ? errorTitle : "Error";
-  const shortErrorMessage = (errorTitle !== undefined) ? errorMessage : "";
+  const fullErrorMessage = event.error?.message ?? "No error message";
+  const [errorTitleText, ...errorMessages] = fullErrorMessage.split(/\r?\n/);
+
+  const errorMessageText = errorMessages.join(" ");
+  const shortErrorTitle = errorTitleText ?? "Error";
+  const shortErrorMessage = errorMessageText ?? "";
 
   spinnerImage.style.display = "none";
   compiledSqlContainer.style.display = "block";
   queryResultsContainer.style.display = "none";
   errorContainer.style.display = "block";
+  panelManager.activeid = "tab-1";
 
   sqlCodeBlock.textContent = event.compiled_sql;
   errorTitle.textContent = shortErrorTitle;
