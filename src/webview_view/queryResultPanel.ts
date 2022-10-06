@@ -41,7 +41,7 @@ export class QueryResultPanel implements WebviewViewProvider {
         this._extensionUri = this.dbtProjectContainer.extensionUri;
         window.onDidChangeActiveColorTheme(async (e) => {
             if (this._panel) {
-                this._panel.webview.html = getHtml(this._panel.webview, this.dbtProjectContainer.extensionUri);
+                this._panel.webview.html = getHtmlV2(this._panel.webview, this.dbtProjectContainer.extensionUri);
                 await this.transmitConfig();
             }
         }, null, this._disposables);
@@ -99,12 +99,12 @@ export class QueryResultPanel implements WebviewViewProvider {
 
     private async renderWebviewView(context: WebviewViewResolveContext) {
         const webview = this._panel!.webview!;
-        this._panel!.webview.html = getHtml(webview, this.dbtProjectContainer.extensionUri);
+        this._panel!.webview.html = getHtmlV2(webview, this.dbtProjectContainer.extensionUri);
     }
 
     private async transmitData(
-        columns: JsonObj[],
-        rows: JsonObj[],
+        columns: any[],
+        rows: any[],
         raw_sql: string,
         compiled_sql: string,
     ) {
@@ -145,7 +145,7 @@ export class QueryResultPanel implements WebviewViewProvider {
         result.column_names.forEach((def: any) => {
             columns = [...columns, { "title": def.toUpperCase(), "field": def }];
         });
-        await this.transmitData(columns, rows, query, result.compiled_sql);
+        await this.transmitData(result.column_names, result.rows, query, result.compiled_sql);
     };
 
     private async transmitConfig() {
@@ -199,7 +199,6 @@ function getHtml(webview: Webview, extensionUri: Uri) {
     const tabulatorStylesUri = getUri(webview, extensionUri, ["media", "css", "tabulator_site.min.css"]);
     // Prism.js
     const prismJsUri = getUri(webview, extensionUri, ["media", "js", "prism.js"]);
-    window.activeColorTheme.kind in [ColorThemeKind.Light, ColorThemeKind.HighContrastLight]
     const prismCssUri = getUri(webview, extensionUri, ["media", "css",
         [ColorThemeKind.Light, ColorThemeKind.HighContrastLight].includes(window.activeColorTheme.kind)
             ? "prism-light.css" : "prism-dark.css"
@@ -307,7 +306,7 @@ function getUri(webview: Webview, extensionUri: Uri, pathList: string[]) {
 /** React based webview */
 function getHtmlV2(webview: Webview, extensionUri: Uri) {
     const nonce = getNonce();
-    const uri = Uri.joinPath(extensionUri, 'dist', 'webview-create-pr-view.js');
+    const uri = Uri.joinPath(extensionUri, 'dist', 'webview-query-panel.js');
     return `
     <!DOCTYPE html>
     <html lang="en">
@@ -315,13 +314,13 @@ function getHtmlV2(webview: Webview, extensionUri: Uri) {
     <head>
         <meta charset="UTF-8">
         <meta http-equiv="Content-Security-Policy"
-            content="default-src 'none'; img-src vscode-resource: https:; script-src 'nonce-${nonce}'; style-src vscode-resource: 'unsafe-inline' http: https: data:;">
+            content="default-src 'none'; img-src vscode-resource: https:; script-src 'nonce-${nonce}' 'unsafe-eval'; style-src vscode-resource: 'unsafe-inline' http: https: data:;">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Query Preview</title>
     </head>
     
     <body>
-        <div id="app"></div>
+        <div id="root"></div>
         <script nonce="${nonce}" src="${webview.asWebviewUri(uri).toString()}"></script>
     </body>
     

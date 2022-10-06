@@ -75,7 +75,10 @@ const webviewConfig = {
     vscode: 'commonjs vscode',
   },
   resolve: {
-    extensions: ['.ts', '.js'],
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.json', '.svg'],
+    fallback: {
+      path: require.resolve('path-browserify'),
+    },
   },
   module: {
     rules: [

@@ -1,1 +1,4 @@
-console.log("I am an app");
+import './index.css';
+import { main } from './app';
+
+addEventListener('load', main);
