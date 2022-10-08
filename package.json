@@ -53,7 +53,7 @@
           },
           "dbt.profilesDirOverride": {
             "type": "string",
-            "description": "Override the profiles dir for every dbt command. Absolute path or relative to the profiles.yml"
+            "description": "Override the profiles dir for every dbt command. Absolute path or relative to the directory containing profiles.yml"
           },
           "dbt.osmosisCheck": {
             "type": "boolean",
