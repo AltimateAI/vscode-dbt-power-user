@@ -40,7 +40,7 @@ export class DBTClient implements Disposable {
     private queue: DBTCommandQueue,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
     private terminal: DBTTerminal
-  ) { }
+  ) {}
 
   dispose() {
     while (this.disposables.length) {

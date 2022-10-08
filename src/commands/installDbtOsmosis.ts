@@ -9,7 +9,7 @@ enum PromptAnswer {
 
 @provideSingleton(InstallDbtOsmosis)
 export class InstallDbtOsmosis {
-  constructor(private dbtProjectContainer: DBTProjectContainer) { }
+  constructor(private dbtProjectContainer: DBTProjectContainer) {}
 
   async installDbtOsmosis() {
     const osmosisCheck: boolean = workspace

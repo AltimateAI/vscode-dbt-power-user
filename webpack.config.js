@@ -6,7 +6,7 @@ const TerserPlugin = require("terser-webpack-plugin");
 const path = require('path');
 
 /**@type {import('webpack').Configuration}*/
-const extensionConfig = {
+const config = {
   target: 'node',
   entry: path.resolve(__dirname, "src/extension.ts"),
   output: {
@@ -60,4 +60,4 @@ const extensionConfig = {
   }
 };
 
-module.exports = [extensionConfig];
+module.exports = config;

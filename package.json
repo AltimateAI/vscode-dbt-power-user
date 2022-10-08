@@ -48,7 +48,7 @@
             "items": {
               "type": "string"
             },
-            "default": [],
+            "default": [ ],
             "description": "Add additonal params to the dbt run model command."
           },
           "dbt.profilesDirOverride": {
