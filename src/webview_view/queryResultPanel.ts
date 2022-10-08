@@ -111,7 +111,7 @@ export class QueryResultPanel implements WebviewViewProvider {
         this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
     }
 
-    /** Primary interface for WebviewView outbound communication */
+    /** Primary interface for WebviewView inbound communication */
     private setupWebviewHooks(context: WebviewViewResolveContext) {
         this._panel!.webview.onDidReceiveMessage(
             message => {

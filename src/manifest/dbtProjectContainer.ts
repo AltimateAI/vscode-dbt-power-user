@@ -23,7 +23,6 @@ export class DBTProjectContainer implements Disposable {
   private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
   private _onManifestChanged = new EventEmitter<ManifestCacheChangedEvent>();
   public readonly onManifestChanged = this._onManifestChanged.event;
-  public currentSql?: string;
   private disposables: Disposable[] = [this._onManifestChanged];
   // TODO: handle with factory and convert to readonly
   public extensionUri: Uri = Uri.file("");
