@@ -21,18 +21,18 @@
     <script nonce="__NONCE__" type="importmap">
         {
           "imports": {
-            "vue": "__ROOT__/js/vue.esm-browser.prod.js",
-            "tabulator": "__ROOT__/js/tabulator.min.js",
-            "prism": "__ROOT__/js/prism.js"
+            "vue": "__ROOT__/assets/vue.esm-browser.prod.js",
+            "tabulator": "__ROOT__/assets/tabulator.min.js",
+            "prism": "__ROOT__/assets/prism.js"
           }
         }
     </script>
 
-    <script nonce="__NONCE__" type="module" src="__ROOT__/js/toolkit.min.js"></script>
+    <script nonce="__NONCE__" type="module" src="__ROOT__/assets/toolkit.min.js"></script>
 
-    <link nonce="__NONCE__" rel="stylesheet" href="__ROOT__/css/tabulator.min.css" />
-    <link nonce="__NONCE__" rel="stylesheet" href="__ROOT__/css/prism-__THEME__.css" />
-    <link nonce="__NONCE__" rel="stylesheet" href="__ROOT__/css/style.css" />
+    <link nonce="__NONCE__" rel="stylesheet" href="__ROOT__/assets/tabulator.min.css" />
+    <link nonce="__NONCE__" rel="stylesheet" href="__ROOT__/assets/prism-__THEME__.css" />
+    <link nonce="__NONCE__" rel="stylesheet" href="__ROOT__/style.css" />
 </head>
 
 <body>
@@ -52,7 +52,7 @@
             </vscode-panel-tab>
 
             <vscode-panel-view v-show="(hasData || hasError || isLoading)" id="view-1">
-                <img v-if="isLoading" id="spinner" src="__ROOT__/images/spinner.gif" /></img>
+                <img v-if="isLoading" id="spinner" src="__ROOT__/assets/spinner.gif" /></img>
 
                 <div v-show="hasData">
                     <div id="query-results"></div>
@@ -99,7 +99,7 @@
             </vscode-panel-view>
         </vscode-panels>
     </div>
-    <script nonce="__NONCE__" type="module" src="__ROOT__/js/main.js"></script>
+    <script nonce="__NONCE__" type="module" src="__ROOT__/main.js"></script>
 </body>
 
 </html>
