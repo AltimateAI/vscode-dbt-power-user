@@ -16,7 +16,6 @@ import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { provideSingleton } from "../utils";
 import { DBTTerminal } from "./dbtTerminal";
-import { join } from "path";
 
 @provideSingleton(DBTClient)
 export class DBTClient implements Disposable {
@@ -256,7 +255,7 @@ export class DBTClient implements Disposable {
 
     const versionCheck: string = workspace
       .getConfiguration("dbt")
-      .get<string>("versionCheck") || "both";
+      .get<string>("versionCheck", "both");
 
     if (!upToDate && message && (versionCheck === "both" || versionCheck === "error message")) {
       window.showErrorMessage(message);

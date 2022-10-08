@@ -17,14 +17,12 @@
 		],
 		"sourceMap": true,
 		"rootDirs": [
-			"src",
-			"webviews"
+			"src"
 		],
 		"strict": true,
 	},
 	"include": [
-		"src",
-		"webviews"
+		"src"
 	],
 	"exclude": [
 		"node_modules"

@@ -141,7 +141,7 @@ export class DBTProjectContainer implements Disposable {
   }
 
   installDbtOsmosis() {
-    this.dbtClient.installDbtOsmosis();
+    return this.dbtClient.installDbtOsmosis();
   }
 
   dispose() {

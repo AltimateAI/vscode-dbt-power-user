@@ -1,4 +1,4 @@
-import { window, commands } from "vscode";
+import { window, workspace, commands } from "vscode";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { provideSingleton } from "../utils";
 
@@ -12,7 +12,12 @@ export class InstallDbtOsmosis {
   constructor(private dbtProjectContainer: DBTProjectContainer) { }
 
   async installDbtOsmosis() {
-    await this.askForInstall();
+    const osmosisCheck: boolean = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("osmosisCheck", true);
+    if (osmosisCheck) {
+      await this.askForInstall();
+    }
   }
 
   private async askForInstall() {
@@ -22,7 +27,7 @@ export class InstallDbtOsmosis {
       PromptAnswer.NO
     );
     if (answer === PromptAnswer.YES) {
-      this.dbtProjectContainer.installDbtOsmosis();
+      await this.dbtProjectContainer.installDbtOsmosis();
       commands.executeCommand("workbench.action.reloadWindow");
     }
   }

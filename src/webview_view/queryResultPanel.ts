@@ -7,13 +7,14 @@ import {
     WebviewViewProvider,
     WebviewViewResolveContext,
     WebviewOptions,
-    WebviewPanelOptions,
     CancellationToken,
     window,
     Webview,
     ColorThemeKind,
     workspace
 } from "vscode";
+
+import { readFileSync } from "fs";
 
 import { DBTClient } from "../dbt_client";
 import { DBTCommandFactory } from "../dbt_client/dbtCommandFactory";
@@ -25,11 +26,53 @@ interface JsonObj {
     [key: string]: string | number | undefined;
 }
 
+enum OutboundCommand {
+    RenderQuery = "renderQuery",
+    RenderLoading = "renderLoading",
+    RenderError = "renderError",
+    InjectConfig = "injectConfig",
+    ResetState = "resetState",
+}
+
+interface RenderQuery {
+    columns: JsonObj[],
+    rows: JsonObj[],
+    raw_sql: string,
+    compiled_sql: string
+}
+
+interface RenderError {
+    error: any,
+    raw_sql: string,
+    compiled_sql: string
+}
+
+interface InjectConfig {
+    limit?: number
+}
+
+enum InboundCommand {
+    Info = "info",
+    Error = "error",
+    UpdateConfig = "updateConfig",
+}
+
+interface RecInfo {
+    text: string
+}
+
+interface RecError {
+    text: string
+}
+
+interface RecConfig {
+    limit?: number
+}
+
 @provideSingleton(QueryResultPanel)
 export class QueryResultPanel implements WebviewViewProvider {
     public static readonly viewType = 'dbtPowerUser.PreviewResults';
 
-    private readonly _extensionUri: Uri;
     private _disposables: Disposable[] = [];
     private _panel: WebviewView | undefined;
 
@@ -38,7 +81,6 @@ export class QueryResultPanel implements WebviewViewProvider {
         private commandFactory: DBTCommandFactory,
         private dbtProjectContainer: DBTProjectContainer,
     ) {
-        this._extensionUri = this.dbtProjectContainer.extensionUri;
         window.onDidChangeActiveColorTheme(async (e) => {
             if (this._panel) {
                 this._panel.webview.html = getHtml(this._panel.webview, this.dbtProjectContainer.extensionUri);
@@ -57,51 +99,55 @@ export class QueryResultPanel implements WebviewViewProvider {
         this.renderWebviewView(context);
         this.setupWebviewHooks(context);
         await this.transmitConfig();
+        _token.onCancellationRequested(async () => {
+            await this.transmitReset();
+        });
     }
 
+    /** Sets options, note that retainContextWhen hidden is set on registration */
     private setupWebviewOptions(context: WebviewViewResolveContext) {
-        this._panel!.title = ""; // ?
+        this._panel!.title = "Query Results";
         this._panel!.description = "Preview dbt SQL Results";
-        this._panel!.webview.options = {
-            enableScripts: true,
-            // retainContextWhenHidden: true
-        } as WebviewOptions & WebviewPanelOptions;
+        this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
     }
 
+    /** Primary interface for WebviewView outbound communication */
     private setupWebviewHooks(context: WebviewViewResolveContext) {
         this._panel!.webview.onDidReceiveMessage(
             message => {
                 switch (message.command) {
-                    case 'error':
-                        // Errors should be acknowledged
-                        window.showErrorMessage(message.text);
-                        return;
-                    case 'info':
-                        // Info commands are transient notifications
+                    case InboundCommand.Error:
+                        let error = message as RecError;
+                        window.showErrorMessage(error.text);
+                        break;
+                    case InboundCommand.Info:
+                        let info = message as RecInfo;
                         window.withProgress(
-                            { title: message.text, location: ProgressLocation.Notification, cancellable: false },
+                            { title: info.text, location: ProgressLocation.Notification, cancellable: false },
                             async () => {
                                 await new Promise(timer => setTimeout(timer, 3000));
                             }
                         );
-                        return;
-                    case 'updateConfig':
-                        // Limit prop asks us to update dbt.queryPreview.queryLimit
-                        if (message.limit) {
+                        break;
+                    case InboundCommand.UpdateConfig:
+                        let config = message as RecConfig;
+                        if (config.limit) {
                             workspace.getConfiguration("dbt.queryPreview")
-                                .update("queryLimit", message.limit);
+                                .update("queryLimit", config.limit);
                         }
-                        return;
+                        break;
                 }
             }, null, this._disposables
         );
     }
 
+    /** Renders webview content */
     private async renderWebviewView(context: WebviewViewResolveContext) {
         const webview = this._panel!.webview!;
         this._panel!.webview.html = getHtml(webview, this.dbtProjectContainer.extensionUri);
     }
 
+    /** Sends query result data to webview */
     private async transmitData(
         columns: JsonObj[],
         rows: JsonObj[],
@@ -109,29 +155,48 @@ export class QueryResultPanel implements WebviewViewProvider {
         compiled_sql: string,
     ) {
         await this._panel!.webview.postMessage({
-            action: "queryResults",
-            columns: columns,
-            rows: rows,
-            sql: raw_sql,
-            compiled_sql: compiled_sql
+            command: OutboundCommand.RenderQuery,
+            ...<RenderQuery>{ columns, rows, raw_sql, compiled_sql }
         });
     }
 
-    private async transmitError(error: any, raw_sql: string, compiled_sql: string) {
+    /** Sends error result data to webview */
+    private async transmitError(
+        error: any,
+        raw_sql: string,
+        compiled_sql: string
+    ) {
         await this._panel!.webview.postMessage({
-            action: "error",
-            error: error,
-            sql: raw_sql,
-            compiled_sql: compiled_sql
+            command: OutboundCommand.RenderError,
+            ...<RenderError>{ error, raw_sql, compiled_sql }
         });
     }
 
+    /** Sends VSCode config data to webview */
+    private async transmitConfig(extraConfig = {}) {
+        const limit = workspace.getConfiguration("dbt.queryPreview").get<number>("queryLimit");
+        await this._panel!.webview.postMessage({
+            command: OutboundCommand.InjectConfig,
+            ...<InjectConfig>{ limit, ...extraConfig }
+        });
+    }
+
+    /** Sends VSCode render loading command to webview */
     private async transmitLoading() {
         await this._panel!.webview.postMessage({
-            action: "loading"
+            command: OutboundCommand.RenderLoading
         });
     }
 
+    /** Sends VSCode clear state command */
+    private async transmitReset() {
+        await this._panel!.webview.postMessage({
+            command: OutboundCommand.ResetState
+        });
+    }
+
+    /** A wrapper for {@link transmitData} which converts server 
+     * results interface ({@link OsmosisRunResult}) to what the webview expects */
     private async transmitDataWrapper(result: OsmosisRunResult, query: string) {
         let columns: JsonObj[] = [];
         let rows: JsonObj[] = [];
@@ -148,19 +213,21 @@ export class QueryResultPanel implements WebviewViewProvider {
         await this.transmitData(columns, rows, query, result.compiled_sql);
     };
 
-    private async transmitConfig() {
-        // dbt.queryPreview.queryLimit
-        await this._panel!.webview.postMessage({
-            action: "renderConfig",
-            limit: workspace.getConfiguration("dbt.queryPreview").get<number>("queryLimit")
-        });
+    /** In the same vein as dbt cloud, get the query limit based 
+     * on an explicitly set limit in ther users query or via settings */
+    private getQueryLimit(query: string): number {
+        const queryLimit = workspace.getConfiguration("dbt.queryPreview").get<number>("queryLimit", 200);
+        const result = query.match(/limit (\d+)[^\w]*$/i) ?? [];
+        const setLimit = result.length > 1 ? Number(result[1]) : queryLimit;
+        return isNaN(setLimit) ? queryLimit : setLimit;
     }
 
+    /** Runs a query transmitting appropriate notifications to webview */
     public async executeQuery(query: string, projectRootUri: Uri, profilesDir: Uri, target: string, title?: string) {
         // if (title) { this._panel!.title = title; }
         commands.executeCommand("workbench.view.extension.dbt_preview_results");
         this.transmitLoading();
-        let result = await runQuery(query, workspace.getConfiguration("dbt.queryPreview").get<number>("queryLimit"));
+        let result = await runQuery(query, this.getQueryLimit(query));
         if (isError(result)) {
             if (result.error.code !== OsmosisErrorCode.FailedToReachServer) {
                 // Query hit live server but we have a legitimate error, return it
@@ -186,111 +253,22 @@ export class QueryResultPanel implements WebviewViewProvider {
             await this.transmitDataWrapper(result, query);
         }
     }
-
 }
 
-/** Inline javascript / HTML based webview */
+/** Gets webview HTML */
 function getHtml(webview: Webview, extensionUri: Uri) {
-    const nonce = getNonce();
-    // Vscode
-    const toolkitUri = getUri(webview, extensionUri, ["media", "js", "toolkit.min.js"]);
-    // Tabulator.js
-    const tabulatorScriptUri = getUri(webview, extensionUri, ["media", "js", "tabulator.min.js"]);
-    const tabulatorStylesUri = getUri(webview, extensionUri, ["media", "css", "tabulator_site.min.css"]);
-    // Prism.js
-    const prismJsUri = getUri(webview, extensionUri, ["media", "js", "prism.js"]);
-    window.activeColorTheme.kind in [ColorThemeKind.Light, ColorThemeKind.HighContrastLight]
-    const prismCssUri = getUri(webview, extensionUri, ["media", "css",
-        [ColorThemeKind.Light, ColorThemeKind.HighContrastLight].includes(window.activeColorTheme.kind)
-            ? "prism-light.css" : "prism-dark.css"
-    ]);
-    // Power User
-    const spinnerUri = getUri(webview, extensionUri, ["media", "images", "animated_logo_no_bg_small_15fps.gif"]);
-    const copyImageURI = getUri(webview, extensionUri, ["media", "images", "copy-regular.svg"]);
-    const mainScriptUri = getUri(webview, extensionUri, ["media", "js", "main.js"]);
-    const mainStylesUri = getUri(webview, extensionUri, ["media", "css", "main.css"]);
-    return `
-    <!DOCTYPE html>
-    <html lang="en">
-
-    <head>
-        <meta charset="UTF-8">
-        <!-- Relax posture for now
-    <meta http-equiv="Content-Security-Policy"
-        content="default-src 'none'; style-src ${webview.cspSource} 'nonce-${nonce}'; img-src ${webview.cspSource} https:; script-src 'nonce-${nonce}';"> -->
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link href="${tabulatorStylesUri}" rel="stylesheet">
-        <link href="${prismCssUri}" rel="stylesheet">
-        <link href="${mainStylesUri}" rel="stylesheet">
-        <script nonce="${nonce}" src="${tabulatorScriptUri}"></script>
-        <script type="module" nonce="${nonce}" src="${toolkitUri}"></script>
-        <title>Preview</title>
-    </head>
-
-    <body>
-        <!-- Main Container -->
-        <vscode-panels id="panel-manager" activeid="tab-3" aria-label="dbt Preview">
-            <vscode-panel-tab id="tab-1">
-                Preview
-                <vscode-badge id="row-badge" appearance="secondary">0</vscode-badge>
-            </vscode-panel-tab>
-            <vscode-panel-tab id="tab-2">Dispatched SQL</vscode-panel-tab>
-            <vscode-panel-tab id="tab-3">Help</vscode-panel-tab>
-            <vscode-panel-view id="view-1">
-                <!-- Result container shown on success -->
-                <div id="results-container">
-                    <br id="results-break" />
-                    <!-- Tabulator table is rendered here -->
-                    <div id="results-panel"></div>
-                </div>
-                <!-- Error container shown on failure -->
-                <div id="error-container">
-                    <h3 id="error-title">Error</h3>
-                    <h4 id="error-message">Message</h4>
-                    <details>
-                        <summary>View Detailed Error &nbsp; &nbsp; &nbsp;
-                            <button id="clipboard-error" class="tooltip">
-                                <img id="clipboard-image" class="clipboard-image" src="${copyImageURI}"
-                                    height="15px" width="15px"></img>
-                                <span class="tooltiptext">Click to copy error message</span>
-                            </button>
-                        </summary>
-                        <pre id="error-details"></pre>
-                    </details>
-                    <br />
-                </div>
-            </vscode-panel-view>
-            <vscode-panel-view id="view-2">
-                <!-- Introspectable Dispatch SQL -->
-                <div id="sql-container">
-                    <pre><code id="sql" class="language-sql line-numbers" data-prismjs-copy="Copy SQL"></code></pre>
-                </div>
-            </vscode-panel-view>
-            <vscode-panel-view id="view-3">
-                <!-- Config Settings -->
-                <div>
-                    <vscode-text-field id="limit-ctrl" type="number">Query Limit</vscode-text-field>
-                </div>
-                <div style="margin-left:20px;">
-                    <h2 id="previewing-query">Previewing Query</h2>
-                    <p>Press Cmd+Enter (Mac) or Control+Enter (Windows/Linux) to run a query.
-                    Highlight part of a query to preview only selection</p>
-                    <h2 id="default-query-limit">Default Query Limit</h2>
-                    <p>Query preview is limited to 500 rows by default, this can be configured in Settings -&gt; dbt Power User or via the input to the left</p>
-                    <h2 id="dispatch-sql">Dispatched SQL</h2>
-                    <p>This tab displays the compiled query sent to the database. You can copy to run directly in your database.</p>                    
-                </div>
-            </vscode-panel-view>
-        </vscode-panels>
-        <!-- Loader -->
-        <img id="loader" src="${spinnerUri}" height="200px" width="200px"></img>
-    </body>
-    <script nonce="${nonce}" src="${prismJsUri}"></script>
-    <script nonce="${nonce}" src="${mainScriptUri}"></script>
-
-    </html>`;
+    let indexPath = getUri(webview, extensionUri, ['query_panel', 'index.html']);
+    let resourceDir = getUri(webview, extensionUri, ['query_panel']);
+    let theme = [ColorThemeKind.Light, ColorThemeKind.HighContrastLight].includes(window.activeColorTheme.kind)
+        ? "light" : "dark";
+    return readFileSync(indexPath.path).toString()
+        .replace(/__ROOT__/g, resourceDir.toString())
+        .replace(/__THEME__/g, theme)
+        .replace(/__NONCE__/g, getNonce())
+        .replace(/__CSPSOURCE__/g, webview.cspSource);
 }
 
+/** Used to enforce a secure CSP */
 function getNonce() {
     let text = '';
     const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -300,31 +278,7 @@ function getNonce() {
     return text;
 }
 
+/** Utility method for generating webview Uris for resources */
 function getUri(webview: Webview, extensionUri: Uri, pathList: string[]) {
     return webview.asWebviewUri(Uri.joinPath(extensionUri, ...pathList));
-}
-
-/** React based webview */
-function getHtmlV2(webview: Webview, extensionUri: Uri) {
-    const nonce = getNonce();
-    const uri = Uri.joinPath(extensionUri, 'dist', 'webview-create-pr-view.js');
-    return `
-    <!DOCTYPE html>
-    <html lang="en">
-    
-    <head>
-        <meta charset="UTF-8">
-        <meta http-equiv="Content-Security-Policy"
-            content="default-src 'none'; img-src vscode-resource: https:; script-src 'nonce-${nonce}'; style-src vscode-resource: 'unsafe-inline' http: https: data:;">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Query Preview</title>
-    </head>
-    
-    <body>
-        <div id="app"></div>
-        <script nonce="${nonce}" src="${webview.asWebviewUri(uri).toString()}"></script>
-    </body>
-    
-    </html>
-`;
 }
