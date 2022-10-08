@@ -1,5 +1,3 @@
-/* eslint-disable indent */
-
 import { createApp } from 'vue';
 import 'tabulator'; // Exposes Tabulator class
 import 'prism'; // Exposes Prism object
