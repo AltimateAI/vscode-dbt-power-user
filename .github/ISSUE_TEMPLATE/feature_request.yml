@@ -1,0 +1,36 @@
+---
+name: Feature request
+description: Suggest an idea for dbt Power User
+labels: enhancement
+body:
+  - type: textarea
+    attributes:
+      label: Describe the feature
+      description: What would you like to happen?
+      placeholder: >
+        A clear and concise description of what you want to happen
+        and what problem it would solve.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Describe alternatives you've considered
+      description: What did you try to make it happen?
+      placeholder: >
+        A clear and concise description of any alternative solutions or features you've considered.
+  - type: textarea
+    attributes:
+      label: Who will benefit?
+      placeholder: >
+        What kind of use case will this feature be useful for? Please be specific and provide examples, this will help us prioritize properly.
+  - type: checkboxes
+    attributes:
+      label: Are you willing to submit PR?
+      description: >
+        This is absolutely not required, but we are happy to guide you in the contribution process
+        especially if you already have a good understanding of how to implement the feature.
+      options:
+        - label: Yes I am willing to submit a PR!
+  - type: markdown
+    attributes:
+      value: "Thanks for completing our form!"

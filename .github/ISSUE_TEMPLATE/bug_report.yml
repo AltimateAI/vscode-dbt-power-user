@@ -1,0 +1,73 @@
+---
+name: Bug report
+description: Report a bug or an issue you've found with dbt Power User
+labels: bug
+body:
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: What do you think should have happened
+      placeholder: >
+        A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Actual behavior
+      description: Describe what actually happened
+      placeholder: >
+        A clear and concise description of what actually happened.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Steps To Reproduce
+      description: This will help us reproduce your issue
+      placeholder: >
+        In as much detail as possible, please provide steps to reproduce the issue.
+        Sample code that triggers the issue, relevant server settings, etc is all very helpful here.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Log output/Screenshots
+      description: What do you think went wrong?
+      placeholder: >
+        If applicable, add log output and/or screenshots to help explain your problem.
+  - type: input
+    attributes:
+      label: Operating System
+      description: What Operating System are you using?
+      placeholder: "You can get it via `cat /etc/os-release` for example"
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: dbt version
+      description: "Execute `dbt --version`"
+      placeholder: Which version of dbt are you using?
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: dbt Adapter
+      description: "Which adapter are you using?"
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: dbt Power User version
+      description: "What dbt Power User version are you using?"
+    validations:
+      required: true
+  - type: checkboxes
+    attributes:
+      label: Are you willing to submit PR?
+      description: >
+        This is absolutely not required, but we are happy to guide you in the contribution process
+        especially if you already have a good understanding of how to implement the feature.
+      options:
+        - label: Yes I am willing to submit a PR!
+  - type: markdown
+    attributes:
+      value: "Thanks for completing our form!"
