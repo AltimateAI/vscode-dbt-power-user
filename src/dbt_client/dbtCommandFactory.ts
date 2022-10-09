@@ -105,6 +105,7 @@ export class DBTCommandFactory {
     return {
       statusMessage: "Detecting dbt version...",
       processExecutionParams: {
+        cwd: this.getFirstWorkspacePath(),
         args: ["-c", this.dbtCommand("'--version'")],
       },
     };

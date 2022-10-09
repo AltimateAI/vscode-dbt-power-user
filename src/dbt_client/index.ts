@@ -302,5 +302,5 @@ export class DBTClient implements Disposable {
 }
 
 function getPythonPathFromConfig(): string | undefined {
-  return workspace.getConfiguration("dbt").get<string>("dbtPythonPath");
+  return workspace.getConfiguration("dbt").get<string>("dbtPythonPathOverride");
 }

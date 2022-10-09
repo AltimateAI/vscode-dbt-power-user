@@ -34,9 +34,9 @@
       {
         "title": "dbt Power User",
         "properties": {
-          "dbt.dbtPythonPath": {
+          "dbt.dbtPythonPathOverride": {
             "type": "string",
-            "description": "Path to python executable with dbt installed. If undefined, we will use the Python extension configured environment"
+            "description": "Path to a python executable or entrypoint. If undefined, we will use the Python extension configured environment. Most users will not need to change this setting without specific reasoning such as custom wrappers."
           },
           "dbt.listModelsDisabled": {
             "type": "boolean",
