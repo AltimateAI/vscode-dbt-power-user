@@ -36,7 +36,7 @@
         "properties": {
           "dbt.dbtPythonPathOverride": {
             "type": "string",
-            "description": "Path to a python executable or entrypoint. If undefined, we will use the Python extension configured environment. Most users will not need to change this setting without specific reasoning such as custom wrappers."
+            "description": "Path to a python executable or entrypoint. If undefined, we will use the Python extension's configured environment. Most users will not need to change this setting without specific reasoning such as custom wrappers and should instead modify the Python extensions selected interpreter."
           },
           "dbt.listModelsDisabled": {
             "type": "boolean",
