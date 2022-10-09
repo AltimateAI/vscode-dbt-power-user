@@ -100,7 +100,7 @@ const app = createApp({
       switch (event.data.command) {
         case 'renderQuery':
           this.updateTable(event.data);
-          this.updateDispatchedCode(event.data.sql, event.data.compiled_sql);
+          this.updateDispatchedCode(event.data.raw_sql, event.data.compiled_sql);
           this.focusPreviewPane();
           this.loading = false;
           this.endTimer();

@@ -31,7 +31,7 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { ProfilesMetaData } from "../domain";
 import { join } from "path";
 import { QueryResultPanel } from "../webview_view/queryResultPanel";
-import { compileQuery, isError, OsmosisErrorCode } from "../osmosis_client";
+import { isError, OsmosisCompileResult, OsmosisErrorContainer } from "../osmosis_client";
 
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -176,33 +176,29 @@ export class DBTProject implements Disposable {
   }
 
   async compileQuery(query: string): Promise<string> {
-    const data = await compileQuery(query);
-    if (isError(data)) {
-      if (data.error.code !== OsmosisErrorCode.FailedToReachServer) {
-        // Query hit server but we have a legitimate error, return it
-        return data.error.message;
-      }
-      const command = this.dbtCommandFactory.createQueryPreviewCommand(
-        query,
-        this.projectRoot,
-        this.dbtProfilesDir,
-        this.profilesMetaData!.defaultTarget
-      );
-      const process = await this.dbtProjectContainer.executeCommand(command);
-      try {
-        const response = await process.complete();
-        const result: any = JSON.parse(response);
-        return result.compiled_sql;
-      } catch (error: any) {
-        const errorObj = JSON.parse(error);
-        if (errorObj.message.includes("No module named 'dbt-osmosis")) {
+    const command = this.dbtCommandFactory.createQueryPreviewCommand(
+      query,
+      this.projectRoot,
+      this.dbtProfilesDir,
+      this.profilesMetaData!.defaultTarget
+    );
+    const process = await this.dbtProjectContainer.executeCommand(command);
+    try {
+      const response = await process.complete();
+      const output = JSON.parse(response);
+      if (isError(output)) {
+        if (output.error.message.includes("No module named 'dbt-osmosis")) {
           commands.executeCommand("dbtPowerUser.installDbtOsmosis");
         }
-        window.showErrorMessage(errorObj.message);
-        return errorObj.message + "\n\n" + "Detailed error information:\n" + JSON.stringify(errorObj, null, 2).replace(/\\n/g, "\n");
+        window.showErrorMessage(output.error.message);
+        return output.error.message + "\n\n" + "Detailed error information:\n" + JSON.stringify(output, null, 2).replace(/\\n/g, "\n");
+      } else {
+        return output.result;
       }
-    } else {
-      return data.result;
+    } catch (error: any) {
+      // Unknown error, not JSON
+      window.showErrorMessage(error);
+      return "Detailed error information:\n" + error;
     }
   }
 

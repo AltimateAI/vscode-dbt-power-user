@@ -84,44 +84,44 @@ export class GraphParser {
       const [nodeType, nodePackage, ...restNodeName] = parentNodeName.split(".");
       const nodeName = restNodeName.join('.');
       switch (nodeType) {
-      case "source": {
-        const [sourceName, tableName] = nodeName.split('.');
-        const url = sourceMetaMap.get(sourceName)?.tables.find(table => table.name === tableName)?.path!;
-        return new Source(
-          `${tableName} (${sourceName})`,
-          parentNodeName,
-          url
-        );
-      }
-      case "model": {
-        const url = nodeMetaMap.get(nodeName)?.path!;
-        return new Model(nodeName, parentNodeName, url);
-      }
-      case "seed": {
-        const url = nodeMetaMap.get(nodeName)?.path!;
-        return new Seed(nodeName, parentNodeName, url);
-      }
-      case "test": {
-        // nodeName => more interesting label possibilities?
-        // console.log(`${nodeName} => (parent: ${parentNodeName})`);
-        const url = testMetaMap.get(nodeName.split(".")[0])?.path;
-        return new Test(nodeName, parentNodeName, url ?? "");
-      }
-      case "analysis": {
-        const url = nodeMetaMap.get(nodeName)?.path!;
-        return new Analysis(nodeName, parentNodeName, url);
-      }
-      case "snapshot": {
-        const url = nodeMetaMap.get(nodeName)?.path!;
-        return new Snapshot(nodeName, parentNodeName, url);
-      }
-      case "exposure": {
-        const url = nodeMetaMap.get(nodeName)?.path!;
-        return new Exposure(nodeName, parentNodeName, url);
-      }
-      default:
-        console.log(`Node Type '${nodeType}' not implemented!`);
-        return undefined;
+        case "source": {
+          const [sourceName, tableName] = nodeName.split('.');
+          const url = sourceMetaMap.get(sourceName)?.tables.find(table => table.name === tableName)?.path!;
+          return new Source(
+            `${tableName} (${sourceName})`,
+            parentNodeName,
+            url
+          );
+        }
+        case "model": {
+          const url = nodeMetaMap.get(nodeName)?.path!;
+          return new Model(nodeName, parentNodeName, url);
+        }
+        case "seed": {
+          const url = nodeMetaMap.get(nodeName)?.path!;
+          return new Seed(nodeName, parentNodeName, url);
+        }
+        case "test": {
+          // nodeName => more interesting label possibilities?
+          // console.log(`${nodeName} => (parent: ${parentNodeName})`);
+          const url = testMetaMap.get(nodeName.split(".")[0])?.path;
+          return new Test(nodeName, parentNodeName, url ?? "");
+        }
+        case "analysis": {
+          const url = nodeMetaMap.get(nodeName)?.path!;
+          return new Analysis(nodeName, parentNodeName, url);
+        }
+        case "snapshot": {
+          const url = nodeMetaMap.get(nodeName)?.path!;
+          return new Snapshot(nodeName, parentNodeName, url);
+        }
+        case "exposure": {
+          const url = nodeMetaMap.get(nodeName)?.path!;
+          return new Exposure(nodeName, parentNodeName, url);
+        }
+        default:
+          console.log(`Node Type '${nodeType}' not implemented!`);
+          return undefined;
       }
     };
   }
