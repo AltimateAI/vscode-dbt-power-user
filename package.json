@@ -86,14 +86,6 @@
               "Do not show the outdated version message in the status bar or as an error message popup."
             ],
             "description": "This determines which messages will show when the dbt version is outdated."
-          },
-          "dbt.server.osmosisHost": {
-            "type": "string",
-            "default": "localhost"
-          },
-          "dbt.server.osmosisPort": {
-            "type": "number",
-            "default": 8581
           }
         }
       }
