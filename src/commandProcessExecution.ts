@@ -63,12 +63,14 @@ export class CommandProcessExecution implements Disposable {
 
       this.commandProcess.once("close", () => {
         if (!stdoutBuffer) {
+          console.warn(stderrBuffer);
           reject(`${stderrBuffer}`);
         }
         resolve(stdoutBuffer);
       });
 
       this.commandProcess.once("error", (error) => {
+        console.warn(error);
         reject(`${error}`);
       });
     });

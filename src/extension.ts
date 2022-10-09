@@ -6,8 +6,6 @@ import { container } from "./inversify.config";
 export async function activate(context: ExtensionContext) {
   const dbtPowerUserExtension = container.get(DBTPowerUserExtension);
 
-  
-
   context.subscriptions.push(
     dbtPowerUserExtension,
   );

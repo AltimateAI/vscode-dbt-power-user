@@ -16,7 +16,6 @@ import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { provideSingleton } from "../utils";
 import { DBTTerminal } from "./dbtTerminal";
-import { join } from "path";
 
 @provideSingleton(DBTClient)
 export class DBTClient implements Disposable {
@@ -95,7 +94,7 @@ export class DBTClient implements Disposable {
       this.dbtCommandFactory.createVerifyDbtOsmosisInstalledCommand()
     );
     const results = await Promise.allSettled([checkDBTInstalledProcess.complete(), checkDBTOsmosisInstalledProcess.complete()]);
-    
+
     if (results[0].status === "fulfilled") {
       this.dbtInstalled = true;
     } else {
@@ -103,12 +102,12 @@ export class DBTClient implements Disposable {
       this.raiseDBTNotInstalledEvent();
       return;
     }
-    
+
     // Don't block on version check
     this.checkDBTVersion(results[1]);
   }
 
-  async checkDBTVersion(osmosisPromisResult : PromiseSettledResult<string>) {
+  async checkDBTVersion(osmosisPromisResult: PromiseSettledResult<string>) {
     if (osmosisPromisResult.status === "fulfilled") {
       this.dbtOsmosisInstalled = true;
     } else {
@@ -135,7 +134,7 @@ export class DBTClient implements Disposable {
     this.raiseDBTVersionCouldNotBeDeterminedEvent();
   }
 
-  async installDbtOsmosis(){
+  async installDbtOsmosis() {
     if (this.pythonPath === undefined) {
       window.showErrorMessage(
         "Please ensure you have selected a Python interpreter before updating DBT."
@@ -211,9 +210,9 @@ export class DBTClient implements Disposable {
     );
   }
 
-  private parseEnvVarsFromUserSettings(vsCodeEnv: {[k: string]: string}, regexVsCodeEnv: RegExp) {
+  private parseEnvVarsFromUserSettings(vsCodeEnv: { [k: string]: string }, regexVsCodeEnv: RegExp) {
     // TODO: add any other relevant variables, maybe workspacefolder?
-    return Object.keys(vsCodeEnv).reduce((prev:{[k: string]: string}, key: string) => {
+    return Object.keys(vsCodeEnv).reduce((prev: { [k: string]: string }, key: string) => {
       const value = vsCodeEnv[key];
       let matchResult;
       while ((matchResult = regexVsCodeEnv.exec(value)) !== null) {
@@ -256,7 +255,7 @@ export class DBTClient implements Disposable {
 
     const versionCheck: string = workspace
       .getConfiguration("dbt")
-      .get<string>("versionCheck") || "both";
+      .get<string>("versionCheck", "both");
 
     if (!upToDate && message && (versionCheck === "both" || versionCheck === "error message")) {
       window.showErrorMessage(message);
@@ -297,7 +296,11 @@ export class DBTClient implements Disposable {
 
   private async handlePythonExtension(): Promise<void> {
     const pythonEnvironment = await this.pythonEnvironment.getEnvironment();
-    this.pythonPath = pythonEnvironment.getPythonPath();
+    this.pythonPath = getPythonPathFromConfig() || pythonEnvironment.getPythonPath();
     await this.checkAllInstalled();
   }
+}
+
+function getPythonPathFromConfig(): string | undefined {
+  return workspace.getConfiguration("dbt").get<string>("dbtPythonPathOverride");
 }

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- These are injected at HTML render time
+    __ROOT__            [path to resource directory]
+    __THEME__           ["light" | "dark"]
+    __NONCE__           [security]
+    __CSPSOURCE__       [webview Content Secure Policy source]
+ -->
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; img-src __CSPSOURCE__ https:; style-src __CSPSOURCE__ 'unsafe-inline'; script-src 'strict-dynamic' 'unsafe-eval' 'nonce-__NONCE__';" />
+
+    <title>Query Runner</title>
+
+    <!-- These are made available for main.js -->
+    <script nonce="__NONCE__" type="importmap">
+        {
+          "imports": {
+            "vue": "__ROOT__/assets/vue.esm-browser.prod.js",
+            "tabulator": "__ROOT__/assets/tabulator.min.js",
+            "prism": "__ROOT__/assets/prism.js"
+          }
+        }
+    </script>
+
+    <script nonce="__NONCE__" type="module" src="__ROOT__/assets/toolkit.min.js"></script>
+
+    <link nonce="__NONCE__" rel="stylesheet" href="__ROOT__/assets/tabulator.min.css" />
+    <link nonce="__NONCE__" rel="stylesheet" href="__ROOT__/assets/prism-__THEME__.css" />
+    <link nonce="__NONCE__" rel="stylesheet" href="__ROOT__/style.css" />
+</head>
+
+<body>
+    <div id="app">
+        <vscode-panels id="panel-manager" activeid="tab-3" aria-label="dbt Preview">
+            <vscode-panel-tab v-show="(hasData || hasError || isLoading)" id="tab-1">
+                Preview
+                <vscode-badge appearance="secondary">{{ queryExecutionInfo }}</vscode-badge>
+            </vscode-panel-tab>
+
+            <vscode-panel-tab v-show="hasCode" id="tab-2">
+                Dispatched SQL
+            </vscode-panel-tab>
+
+            <vscode-panel-tab id="tab-3">
+                {{ (hasData || hasError || isLoading) ? "Help" : "Welcome 🚀" }}
+            </vscode-panel-tab>
+
+            <vscode-panel-view v-show="(hasData || hasError || isLoading)" id="view-1">
+                <img v-if="isLoading" id="spinner" src="__ROOT__/assets/spinner.gif" /></img>
+
+                <div v-show="hasData">
+                    <div id="query-results"></div>
+                </div>
+
+                <div v-show="hasError">
+                    <h3 class="error-title">{{ errorTitle }}</h3>
+                    <h4>{{ errorMessage }}</h4>
+                    <br />
+                    <details>
+                        <summary>View Detailed Error 🚨</summary>
+                        <pre><code class="language-javascript" data-prismjs-copy="Copy Error" v-html="errorDataMarkup"></code></pre>
+                    </details>
+                    <br />
+                </div>
+            </vscode-panel-view>
+
+            <vscode-panel-view v-show="hasCode" id="view-2">
+                <div>
+                    <pre><code class="language-sql line-numbers" data-prismjs-copy="Copy SQL" v-html="compiledCodeMarkup"></code></pre>
+                </div>
+            </vscode-panel-view>
+
+            <vscode-panel-view id="view-3">
+                <div>
+                    <br />
+                    <vscode-text-field v-model.number="limit" type="number">Query Limit</vscode-text-field>
+                    <br /><br />
+                    <vscode-button @click="clearData" v-if="(hasData || hasError)">Clear Results</vscode-button>
+                </div>
+
+                <div class="help-body">
+                    <h2>Previewing Query</h2>
+                    <p>Press Cmd+Enter (Mac) or Control+Enter (Windows/Linux) to run a query.
+                        Highlight part of a query to preview only selection</p>
+                    <h2>Default Query Limit</h2>
+                    <p>Query preview is limited to 500 rows by default, this can be configured in Settings -&gt; dbt
+                        Power User or via changing the input to the left which is synchronized with the VS Code
+                        setting</p>
+                    <h2>Dispatched SQL</h2>
+                    <p>This tab displays the compiled query sent to the database. You can copy to run directly in your
+                        database.</p>
+                </div>
+            </vscode-panel-view>
+        </vscode-panels>
+    </div>
+    <script nonce="__NONCE__" type="module" src="__ROOT__/main.js"></script>
+</body>
+
+</html>

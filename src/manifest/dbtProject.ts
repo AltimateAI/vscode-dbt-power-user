@@ -30,7 +30,8 @@ import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { ProfilesMetaData } from "../domain";
 import { join } from "path";
-import { QueryResultPanelLoader } from "../webview";
+import { QueryResultPanel } from "../webview_view/queryResultPanel";
+import { isError, OsmosisCompileResult, OsmosisErrorContainer } from "../osmosis_client";
 
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -67,13 +68,13 @@ export class DBTProject implements Disposable {
     private targetWatchersFactory: TargetWatchersFactory,
     private dbtCommandFactory: DBTCommandFactory,
     private terminal: DBTTerminal,
-    private queryResultPanelLoader: QueryResultPanelLoader,
+    private queryResultPanel: QueryResultPanel,
     path: Uri,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
   ) {
     this.projectRoot = path;
-    const profilesDir =  workspace.getConfiguration("dbt").get<string>("profilesDirOverride")
-      || process.env.DBT_PROFILES_DIR 
+    const profilesDir = workspace.getConfiguration("dbt").get<string>("profilesDirOverride")
+      || process.env.DBT_PROFILES_DIR
       || join(os.homedir(), ".dbt");
     this.dbtProfilesDir = Uri.file(profilesDir);
 
@@ -176,24 +177,28 @@ export class DBTProject implements Disposable {
 
   async compileQuery(query: string): Promise<string> {
     const command = this.dbtCommandFactory.createQueryPreviewCommand(
-      query, 
-      this.projectRoot, 
-      this.dbtProfilesDir, 
+      query,
+      this.projectRoot,
+      this.dbtProfilesDir,
       this.profilesMetaData!.defaultTarget
     );
-
     const process = await this.dbtProjectContainer.executeCommand(command);
     try {
       const response = await process.complete();
-      const result: any = JSON.parse(response);
-      return result.compiled_sql;
-    } catch (error: any) {
-      const errorObj = JSON.parse(error);
-      if (errorObj.message.includes("No module named 'dbt_osmosis")) {
-        commands.executeCommand("dbtPowerUser.installDbtOsmosis");
+      const output = JSON.parse(response);
+      if (isError(output)) {
+        if (output.error.message.includes("No module named 'dbt-osmosis")) {
+          commands.executeCommand("dbtPowerUser.installDbtOsmosis");
+        }
+        window.showErrorMessage(output.error.message);
+        return output.error.message + "\n\n" + "Detailed error information:\n" + JSON.stringify(output, null, 2).replace(/\\n/g, "\n");
+      } else {
+        return output.result;
       }
-      window.showErrorMessage(errorObj.message);
-      return errorObj.message + "\n\n" + "Detailed error information:\n" + JSON.stringify(errorObj, null, 2).replace(/\\n/g, "\n");
+    } catch (error: any) {
+      // Unknown error, not JSON
+      window.showErrorMessage(error);
+      return "Detailed error information:\n" + error;
     }
   }
 
@@ -206,11 +211,12 @@ export class DBTProject implements Disposable {
   }
 
   executeSQL(query: string, title: string) {
-    this.queryResultPanelLoader.showWebview(title).executeQuery(
-      query, 
-      this.projectRoot, 
-      this.dbtProfilesDir, 
-      this.profilesMetaData!.defaultTarget
+    this.queryResultPanel.executeQuery(
+      query,
+      this.projectRoot,
+      this.dbtProfilesDir,
+      this.profilesMetaData!.defaultTarget,
+      title
     );
   }
 
@@ -292,14 +298,14 @@ export class DBTProject implements Disposable {
   private readDbtProfile(projectName: string): ProfilesMetaData {
     let profiles: any;
     try {
-      profiles = parse(readFileSync(join(this.dbtProfilesDir.fsPath, "profiles.yml"), "utf8"), {uniqueKeys: false });
+      profiles = parse(readFileSync(join(this.dbtProfilesDir.fsPath, "profiles.yml"), "utf8"), {uniqueKeys: false});
     } catch(error) {
       window.showErrorMessage(`Could not read profiles.yml from ${this.dbtProfilesDir}: ${error}`);
       throw error;
     }
 
-    if (profiles[projectName] === undefined 
-      || profiles[projectName]["outputs"] === undefined 
+    if (profiles[projectName] === undefined
+      || profiles[projectName]["outputs"] === undefined
       || typeof(profiles[projectName]["outputs"]) !== "object") {
       window.showErrorMessage(`Could not find dbt profile for '${projectName}' in ${this.dbtProfilesDir}. Did you create a dbt profile?`);
       throw new Error("No dbt profile has been created!");

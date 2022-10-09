@@ -34,6 +34,10 @@
       {
         "title": "dbt Power User",
         "properties": {
+          "dbt.dbtPythonPathOverride": {
+            "type": "string",
+            "description": "Path to a python executable or entrypoint. If undefined, we will use the Python extension's configured environment. Most users will not need to change this setting without specific reasoning such as custom wrappers and should instead modify the Python extensions selected interpreter."
+          },
           "dbt.listModelsDisabled": {
             "type": "boolean",
             "default": false,
@@ -49,32 +53,22 @@
           },
           "dbt.profilesDirOverride": {
             "type": "string",
-            "description": "Override the profiles dir for every dbt command. Absolute path or relative to the dbt_project.yml"
+            "description": "Override the profiles dir for every dbt command. Absolute path or relative to the directory containing profiles.yml"
           },
-          "dbt.queryLimit": {
+          "dbt.osmosisCheck": {
+            "type": "boolean",
+            "description": "Enable dbt-osmosis installation prompt.",
+            "default": true
+          },
+          "dbt.queryPreview.queryLimit": {
             "type": "integer",
             "description": "The maximum number of rows the `Preview SQL Query` command returns.",
             "default": 500
           },
-          "dbt.queryTemplate": {
+          "dbt.queryPreview.queryTemplate": {
             "type": "string",
             "description": "Override the default query template that is used by the `Preview SQL Query` command. Use this if your database has special syntax to limit query results",
             "default": "select * from ({query}) as osmosis_query limit {limit}"
-          },
-          "dbt.previewPanel.displayLocation": {
-            "type": "string",
-            "enum": [
-              "horizontal",
-              "vertical",
-              "same"
-            ],
-            "default": "horizontal",
-            "enumDescriptions": [
-              "Show the preview panel horizontally below the active editor.",
-              "Show the preview panel vertically next to the active editor.",
-              "Show the preview panel in the same location as the active editor."
-            ],
-            "description": "Show the preview panel horizontally, vertically, or in the same location as the active editor."
           },
           "dbt.versionCheck": {
             "type": "string",
@@ -104,6 +98,13 @@
           "icon": "./media/images/dbt_icon.svg",
           "contextualTitle": "dbt Power User"
         }
+      ],
+      "panel": [
+        {
+          "id": "dbt_preview_results",
+          "title": "Query Results",
+          "icon": "./media/images/dbt_icon.svg"
+        }
       ]
     },
     "views": {
@@ -119,6 +120,13 @@
         {
           "id": "children_model_treeview",
           "name": "Children Models"
+        }
+      ],
+      "dbt_preview_results": [
+        {
+          "id": "dbtPowerUser.PreviewResults",
+          "name": "",
+          "type": "webview"
         }
       ]
     },
@@ -340,6 +348,7 @@
     "ms-python.python"
   ],
   "dependencies": {
+    "@vscode/webview-ui-toolkit": "^1.1.0",
     "dayjs": "^1.8.34",
     "inversify": "^5.0.5",
     "inversify-binding-decorators": "^4.0.0",
