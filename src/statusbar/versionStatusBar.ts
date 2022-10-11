@@ -42,10 +42,6 @@ export class VersionStatusBar implements Disposable {
       return;
     }
 
-    if (!event.dbtOsmosisInstallationFound) {
-      commands.executeCommand("dbtPowerUser.installDbtOsmosis");
-    }
-
     const versionCheck: string = workspace
       .getConfiguration("dbt")
       .get<string>("versionCheck") || "both";

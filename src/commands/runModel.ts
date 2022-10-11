@@ -65,17 +65,17 @@ export class RunModel {
         return;
       }
       switch (type) {
-      case (RunModelType.TEST): {
-        if (model.label) {
-          this.runDBTTest(Uri.file(model.url), model.label.toString().split(".")[0]);
+        case (RunModelType.TEST): {
+          if (model.label) {
+            this.runDBTTest(Uri.file(model.url), model.label.toString().split(".")[0]);
+          }
+          break;
         }
-        break;
-      }
-      default: {
-        // Catch Parents || Children RunTypes
-        this.runDBTModel(Uri.file(model.url), type);
-        break;
-      }
+        default: {
+          // Catch Parents || Children RunTypes
+          this.runDBTModel(Uri.file(model.url), type);
+          break;
+        }
       }
     };
   }
@@ -116,7 +116,7 @@ export class RunModel {
   }
 
   async executeSQL(uri: Uri, query: string, title: string) {
-    this.dbtProjectContainer.executeSQL(uri, query, title);
+    this.dbtProjectContainer.executeSQL(uri, query);
   }
 
   showCompiledSQL(modelPath: Uri) {

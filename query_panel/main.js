@@ -21,7 +21,8 @@ const app = createApp({
       compiledCode: "",
       error: {},
       loading: false,
-      limit: 500,
+      limit: undefined,
+      queryTemplate: undefined,
       queryStart: Date.now(),
       queryEnd: undefined,
       timer: undefined
@@ -44,10 +45,27 @@ const app = createApp({
       if (data.limit) {
         this.limit = data.limit;
       }
+      if (data.queryTemplate) {
+        this.queryTemplate = data.queryTemplate;
+      }
     },
     updateDispatchedCode(raw_stmt, compiled_stmt) {
       this.rawCode = raw_stmt;
-      this.compiledCode = compiled_stmt;
+
+      const queryRegex = new RegExp(this.queryTemplate
+        .replace(/\(/g, "\\(")
+        .replace(/\)/g, "\\)")
+        .replace(/\*/g, "\\*")
+        .replace("{query}", "([\\w\\W]+)")
+        .replace("{limit}", this.limit.toString()), 'gm');
+      
+      try {
+        const result = queryRegex.exec(compiled_stmt);
+        console.log()
+        this.compiledCode = result[1];
+        return;
+      } catch (err) {}
+      this.compiledCode = compiled_stmt;      
     },
     clearData() {
       this.count = 0;
@@ -77,7 +95,10 @@ const app = createApp({
     hasError() { return this.error?.data; },
     hasCode() { return this.compiledCode !== ""; },
     isLoading() { return this.loading === true; },
-    elapsedTime() { return Math.round((this.queryEnd - this.queryStart) / 100) / 10; },
+    elapsedTime() { 
+      const elapsedTime = Math.round((this.queryEnd - this.queryStart) / 100) / 10
+      return isNaN(elapsedTime) ? 0 : elapsedTime; 
+    },
     queryExecutionInfo() {
       if (this.hasData || this.hasError || this.elapsedTime) {
         return `${this.count} rows in ${this.elapsedTime}s`;
@@ -97,6 +118,7 @@ const app = createApp({
   },
   mounted() {
     window.addEventListener('message', (event) => {
+      console.log(event);
       switch (event.data.command) {
         case 'renderQuery':
           this.updateTable(event.data);

@@ -5,11 +5,6 @@ export type MacroMetaMap = Map<string, MacroMetaData>;
 export type SourceMetaMap = Map<string, SourceMetaData>;
 export type TestMetaMap = Map<string, TestMetaData>;
 
-export interface ProfilesMetaData {
-  targets: string[];
-  defaultTarget: string;
-}
-
 interface MacroMetaData {
   path: string;
   line: number;

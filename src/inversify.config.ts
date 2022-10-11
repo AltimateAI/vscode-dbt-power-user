@@ -20,13 +20,15 @@ container
   .toFactory<DBTWorkspaceFolder>((context: interfaces.Context) => {
     return (
       workspaceFolder: WorkspaceFolder,
-      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
+      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+      pythonPath: string
     ) => {
       const { container } = context;
       return new DBTWorkspaceFolder(
         container.get("Factory<DBTProject>"),
         workspaceFolder,
         _onManifestChanged,
+        pythonPath,
       );
     };
   });
@@ -36,7 +38,8 @@ container
   .toFactory<DBTProject>((context: interfaces.Context) => {
     return (
       path: Uri,
-      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
+      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+      pythonPath: string
     ) => {
       const { container } = context;
       return new DBTProject(
@@ -48,7 +51,8 @@ container
         container.get(DBTTerminal),
         container.get(QueryResultPanel),
         path,
-        _onManifestChanged
+        _onManifestChanged,
+        pythonPath,
       );
     };
   });

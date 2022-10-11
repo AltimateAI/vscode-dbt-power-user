@@ -7,5 +7,4 @@ export interface DBTInstallationVerificationEvent {
     upToDate?: boolean;
     plugins?: string[]
   }
-  dbtOsmosisInstallationFound?: boolean
 }

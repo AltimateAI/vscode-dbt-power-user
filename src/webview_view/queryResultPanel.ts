@@ -15,12 +15,10 @@ import {
 } from "vscode";
 
 import { readFileSync } from "fs";
-
-import { DBTClient } from "../dbt_client";
-import { DBTCommandFactory } from "../dbt_client/dbtCommandFactory";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { provideSingleton } from '../utils';
-import { isError, OsmosisRunResult, OsmosisErrorContainer } from "../osmosis_client";
+import { PythonException } from "python-bridge";
+import { ExecuteSQLResult } from "../manifest/dbtProject";
 
 interface JsonObj {
   [key: string]: string | number | undefined;
@@ -77,8 +75,6 @@ export class QueryResultPanel implements WebviewViewProvider {
   private _panel: WebviewView | undefined;
 
   public constructor(
-    private dbtClient: DBTClient,
-    private commandFactory: DBTCommandFactory,
     private dbtProjectContainer: DBTProjectContainer,
   ) {
     window.onDidChangeActiveColorTheme(async (e) => {
@@ -132,7 +128,7 @@ export class QueryResultPanel implements WebviewViewProvider {
           case InboundCommand.UpdateConfig:
             let config = message as RecConfig;
             if (config.limit) {
-              workspace.getConfiguration("dbt.queryPreview")
+              workspace.getConfiguration("dbt")
                 .update("queryLimit", config.limit);
             }
             break;
@@ -168,16 +164,19 @@ export class QueryResultPanel implements WebviewViewProvider {
   ) {
     await this._panel!.webview.postMessage({
       command: OutboundCommand.RenderError,
-      ...<RenderError>{ error, raw_sql, compiled_sql }
+      ...<RenderError>{ ...error, raw_sql, compiled_sql }
     });
   }
 
   /** Sends VSCode config data to webview */
-  private async transmitConfig(extraConfig = {}) {
-    const limit = workspace.getConfiguration("dbt.queryPreview").get<number>("queryLimit");
+  private async transmitConfig() {
+    const limit = workspace.getConfiguration("dbt").get<number>("queryLimit");
+    const queryTemplate = workspace
+      .getConfiguration("dbt")
+      .get<string>("queryTemplate", "select * from ({query}) as query limit {limit}");
     await this._panel!.webview.postMessage({
       command: OutboundCommand.InjectConfig,
-      ...<InjectConfig>{ limit, ...extraConfig }
+      ...<InjectConfig>{ limit, queryTemplate }
     });
   }
 
@@ -196,52 +195,43 @@ export class QueryResultPanel implements WebviewViewProvider {
   }
 
   /** A wrapper for {@link transmitData} which converts server 
-   * results interface ({@link OsmosisRunResult}) to what the webview expects */
-  private async transmitDataWrapper(result: OsmosisRunResult, query: string) {
+   * results interface ({@link ExecuteSQLResult}) to what the webview expects */
+  private async transmitDataWrapper(result: ExecuteSQLResult, query: string) {
     let columns: JsonObj[] = [];
     let rows: JsonObj[] = [];
     // Convert compressed array format to dict[]
-    for (let i = 0; i < result.rows.length; i++) {
-      result.rows[i].forEach((value: any, j: any) => {
-        rows[i] = { ...rows[i], [result.column_names[j]]: value };
+    for (let i = 0; i < result.table.rows.length; i++) {
+      result.table.rows[i].forEach((value: any, j: any) => {
+        rows[i] = { ...rows[i], [result.table.column_names[j]]: value };
       });
     }
     // Define column spec for Tabulator
-    result.column_names.forEach((def: any) => {
+    result.table.column_names.forEach((def: any) => {
       columns = [...columns, { "title": def.toUpperCase(), "field": def }];
     });
     await this.transmitData(columns, rows, query, result.compiled_sql);
   };
 
-  /** In the same vein as dbt cloud, get the query limit based 
-   * on an explicitly set limit in ther users query or via settings */
-  private getQueryLimit(query: string): number {
-    const queryLimit = workspace.getConfiguration("dbt.queryPreview").get<number>("queryLimit", 200);
-    const result = query.match(/limit (\d+)[^\w]*$/i) ?? [];
-    const setLimit = result.length > 1 ? Number(result[1]) : queryLimit;
-    return isNaN(setLimit) ? queryLimit : setLimit;
-  }
-
   /** Runs a query transmitting appropriate notifications to webview */
-  public async executeQuery(query: string, projectRootUri: Uri, profilesDir: Uri, target: string, title?: string) {
-    // if (title) { this._panel!.title = title; }
-    commands.executeCommand("workbench.view.extension.dbt_preview_results");
+  public async executeQuery(query: string, queryExecution: Promise<ExecuteSQLResult>) {
+    await commands.executeCommand("workbench.view.extension.dbt_preview_results");
     this.transmitLoading();
-    const command = this.commandFactory.createRunQueryCommand(query, projectRootUri, profilesDir, target);
-    const process = await this.dbtClient.executeCommand(command);
     try {
-      const response = await process.complete();
-      const output: OsmosisRunResult | OsmosisErrorContainer = JSON.parse(response);
-      if (isError(output)) {
-        await this.transmitError(output.error, query, query);
-      } else {
-        await this.transmitDataWrapper(output, query);
+      const output = await queryExecution;
+      await this.transmitDataWrapper(output, query);
+    } catch (exc: any) {
+      if (exc instanceof PythonException) {
+        window.showErrorMessage(
+          "An error occured while trying to execute your query: " + exc.exception.message
+        );
+        await this.transmitError({
+          error: { code: -1, message: exc.exception.message, data: JSON.stringify(exc.stack, null, 2) }
+        }, query, query);
+        return;
       }
-    } catch (error: any) {
-      // Unknown error, not JSON
-      window.showErrorMessage(error);
+      window.showErrorMessage(exc.message);
       await this.transmitError({
-        error: { code: -1, message: error, data: {} }
+        error: { code: -1, message: exc.message, data: {} }
       }, query, query);
     }
   }
