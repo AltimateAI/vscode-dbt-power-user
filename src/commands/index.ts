@@ -1,9 +1,8 @@
-import { commands, Disposable, window, TextEditor, workspace, ViewColumn, languages, ProgressLocation, Uri } from "vscode";
+import { commands, Disposable, window, TextEditor, workspace, ViewColumn, languages, Uri } from "vscode";
 import { RunModel } from "./runModel";
 import { provideSingleton } from "../utils";
 import { RunModelType } from "../domain";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
-import { InstallDbtOsmosis } from "./installDbtOsmosis";
 
 
 @provideSingleton(VSCodeCommands)
@@ -12,7 +11,6 @@ export class VSCodeCommands implements Disposable {
 
   constructor(
     private runModel: RunModel,
-    private installDbtOsmois: InstallDbtOsmosis,
   ) {
     this.disposables.push(
       commands.registerCommand("dbtPowerUser.runCurrentModel", () =>
@@ -56,9 +54,6 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.executeSQL", () =>
         this.runModel.executeQueryOnActiveWindow()
       ),
-      commands.registerCommand("dbtPowerUser.installDbtOsmosis", () =>
-        this.installDbtOsmois.installDbtOsmosis()
-      )
     );
   }
 

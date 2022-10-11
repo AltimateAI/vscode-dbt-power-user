@@ -28,10 +28,23 @@ import {
 } from "../dbt_client/dbtCommandFactory";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { ProfilesMetaData } from "../domain";
 import { join } from "path";
 import { QueryResultPanel } from "../webview_view/queryResultPanel";
-import { isError, OsmosisCompileResult, OsmosisErrorContainer } from "../osmosis_client";
+import { PythonEnvironmentChangedEvent } from "../dbt_client/pythonEnvironmentChangedEvent";
+import { PythonBridge, pythonBridge, PythonException } from "python-bridge";
+
+export interface ExecuteSQLResult {
+  table: {
+    column_names: string[],
+    rows: any[][],
+  }
+  raw_sql: string,
+  compiled_sql: string,
+}
+
+interface CompilationResult {
+  compiled_sql: string
+}
 
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
@@ -52,7 +65,8 @@ export class DBTProject implements Disposable {
   private projectName?: string;
   private targetPath?: string;
   private sourcePaths?: string[];
-  private profilesMetaData?: ProfilesMetaData;
+  private python?: PythonBridge;
+  private pythonBridgeInitialized = false;
 
   private _onProjectConfigChanged = new EventEmitter<ProjectConfigChangedEvent>();
   public onProjectConfigChanged = this._onProjectConfigChanged.event;
@@ -70,7 +84,8 @@ export class DBTProject implements Disposable {
     private terminal: DBTTerminal,
     private queryResultPanel: QueryResultPanel,
     path: Uri,
-    _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
+    _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+    pythonPath: string,
   ) {
     this.projectRoot = path;
     const profilesDir = workspace.getConfiguration("dbt").get<string>("profilesDirOverride")
@@ -95,6 +110,8 @@ export class DBTProject implements Disposable {
       this.onProjectConfigChanged
     );
 
+    dbtProjectContainer.onPythonEnvironmentChanged((event) => this.onPythonEnvironmentChanged(event));
+
     this.disposables.push(
       this.targetWatchersFactory.createTargetWatchers(
         _onManifestChanged,
@@ -103,15 +120,53 @@ export class DBTProject implements Disposable {
       dbtProjectConfigWatcher,
       this.onSourceFileChanged(fireProjectChanged),
       this.sourceFileWatchers,
-      this.dbtProjectLog
+      this.dbtProjectLog,
     );
+    this.initializePythonBridge(pythonPath);
   }
 
-  async tryRefresh() {
+  private async initializePythonBridge(pythonPath: string) {
+    if (this.python !== undefined) {
+      // Python env has changed
+      this.pythonBridgeInitialized = false;
+      this.python.end();
+    }
+    this.python = pythonBridge({
+      python: pythonPath,
+      env: {PYTHONPATH: __dirname}
+    });
+    try {
+      await this.python.ex`from dbt_integration import *`;
+      await this.python.ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir.fsPath})`;
+      // now we can accept project method invocations on the python env.
+      this.pythonBridgeInitialized = true;
+    }catch (exc: any) {
+      if (exc instanceof PythonException) {
+        window.showErrorMessage(
+          "An error occured while initializing the dbt project: " + exc.exception.message
+        );
+        return;
+      }
+      window.showErrorMessage(
+        "An unexpected error occured while initializing the dbt project: " + exc
+      );
+      return;
+
+    }
+    // this methods already handle exceptions
+    await this.rebuildManifest();
+    await this.tryRefresh();
+  }
+
+  private async onPythonEnvironmentChanged(event: PythonEnvironmentChangedEvent) {
+    this.initializePythonBridge(event.pythonPath);
+  }
+
+  private async tryRefresh() {
     try {
       await this.refresh();
     } catch (error) {
-      console.log("An error occurred while trying to refresh the project configuration", error);
+      console.warn("An error occurred while trying to refresh the project configuration", error);
       this.terminal.log(`An error occurred while trying to refresh the project configuration: ${error}`);
     }
   }
@@ -135,8 +190,20 @@ export class DBTProject implements Disposable {
     return uri.fsPath.startsWith(this.projectRoot.fsPath + path.sep);
   }
 
-  async rebuildManifest() {
-    await this.dbtProjectContainer.rebuildManifest(this.projectRoot, this.dbtProfilesDir);
+  private async rebuildManifest() {
+    if (!this.pythonBridgeInitialized) {
+      window.showErrorMessage(
+        "The dbt manifest can't be rebuild right now as the Python envirnoment has not yet been initialized, please try again later."
+      );
+      return;
+    }
+    try {
+      await this.python?.lock(python => python!`to_dict(project.safe_parse_project())`);
+    } catch(exc) {
+      window.showErrorMessage(
+        "An error occured while rebuilding the dbt manifest: " + exc
+      );
+    }
   }
 
   runModel(runModelParams: RunModelParams) {
@@ -176,29 +243,25 @@ export class DBTProject implements Disposable {
   }
 
   async compileQuery(query: string): Promise<string> {
-    const command = this.dbtCommandFactory.createQueryPreviewCommand(
-      query,
-      this.projectRoot,
-      this.dbtProfilesDir,
-      this.profilesMetaData!.defaultTarget
-    );
-    const process = await this.dbtProjectContainer.executeCommand(command);
+    await this.blockUntilPythonBridgeIsInitalized();
+
+    if(!this.pythonBridgeInitialized) {
+      window.showErrorMessage("Could not compile query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue.");
+      throw Error("Could not initialize Python bridge");
+    }
     try {
-      const response = await process.complete();
-      const output = JSON.parse(response);
-      if (isError(output)) {
-        if (output.error.message.includes("No module named 'dbt-osmosis")) {
-          commands.executeCommand("dbtPowerUser.installDbtOsmosis");
-        }
-        window.showErrorMessage(output.error.message);
-        return output.error.message + "\n\n" + "Detailed error information:\n" + JSON.stringify(output, null, 2).replace(/\\n/g, "\n");
-      } else {
-        return output.result;
+      const output = await this.python?.lock(python => python!`to_dict(project.compile_sql(${query}))`) as CompilationResult;
+      return output.compiled_sql;
+    } catch (exc: any) {
+      if (exc instanceof PythonException) {
+        window.showErrorMessage(
+          "An error occured while trying to compile your query: " + exc.exception.message
+        );
+        return "Exception: " + exc.exception.message + "\n\n" + "Detailed error information:\n" + exc;
       }
-    } catch (error: any) {
-      // Unknown error, not JSON
-      window.showErrorMessage(error);
-      return "Detailed error information:\n" + error;
+      // Unknown error
+      window.showErrorMessage(exc);
+      return "Detailed error information:\n" + exc;
     }
   }
 
@@ -210,14 +273,25 @@ export class DBTProject implements Disposable {
     this.findModelInTargetfolder(modelPath, "run");
   }
 
-  executeSQL(query: string, title: string) {
-    this.queryResultPanel.executeQuery(
-      query,
-      this.projectRoot,
-      this.dbtProfilesDir,
-      this.profilesMetaData!.defaultTarget,
-      title
-    );
+  async executeSQL(query: string) {
+    await this.blockUntilPythonBridgeIsInitalized();
+    if(!this.pythonBridgeInitialized) {
+      window.showErrorMessage("Could not execute query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue.");
+      throw Error("Could not initialize Python bridge");
+    }
+    const limit = workspace
+      .getConfiguration("dbt")
+      .get<number>("queryLimit", 200);
+
+    const queryTemplate = workspace
+      .getConfiguration("dbt")
+      .get<string>("queryTemplate", "select * from ({query}) as query limit {limit}");
+
+    const limitQuery = queryTemplate
+      .replace("{query}", query)
+      .replace("{limit}", limit.toString());
+
+    this.queryResultPanel.executeQuery(query, this.python?.lock(python => python!`to_dict(project.execute_sql(${limitQuery}))`) as Promise<ExecuteSQLResult>);
   }
 
   dispose() {
@@ -226,6 +300,9 @@ export class DBTProject implements Disposable {
       if (x) {
         x.dispose();
       }
+    }
+    if (this.python !== undefined) {
+      this.python.end();
     }
   }
 
@@ -237,6 +314,14 @@ export class DBTProject implements Disposable {
     } catch (error: any) {
       window.showErrorMessage(`Could not parse dbt_project_config.yml at '${dbtProjectConfigLocation}': ${error}`);
       throw error;
+    }
+  }
+
+  private async blockUntilPythonBridgeIsInitalized() {
+    let i = 0;
+    while (!this.pythonBridgeInitialized && i < 10) {
+      await new Promise(r => setTimeout(r, 1000));
+      i++;
     }
   }
 
@@ -282,38 +367,12 @@ export class DBTProject implements Disposable {
     this.projectName = projectConfig.name;
     this.targetPath = this.findTargetPath(projectConfig);
     this.sourcePaths = this.findSourcePaths(projectConfig);
-    const profileName = projectConfig["profile"] !== undefined ? projectConfig.profile : this.projectName!;
-    this.profilesMetaData = this.readDbtProfile(profileName);
-
     const event = new ProjectConfigChangedEvent(
       this.projectRoot,
       this.projectName as string,
-      this.profilesMetaData,
       this.targetPath,
       this.sourcePaths
     );
     this._onProjectConfigChanged.fire(event);
-  }
-
-  private readDbtProfile(projectName: string): ProfilesMetaData {
-    let profiles: any;
-    try {
-      profiles = parse(readFileSync(join(this.dbtProfilesDir.fsPath, "profiles.yml"), "utf8"), {uniqueKeys: false});
-    } catch(error) {
-      window.showErrorMessage(`Could not read profiles.yml from ${this.dbtProfilesDir}: ${error}`);
-      throw error;
-    }
-
-    if (profiles[projectName] === undefined
-      || profiles[projectName]["outputs"] === undefined
-      || typeof(profiles[projectName]["outputs"]) !== "object") {
-      window.showErrorMessage(`Could not find dbt profile for '${projectName}' in ${this.dbtProfilesDir}. Did you create a dbt profile?`);
-      throw new Error("No dbt profile has been created!");
-    }
-
-    return {
-      targets: Object.keys(profiles[projectName].outputs),
-      defaultTarget: profiles[projectName].target
-    };
   }
 }

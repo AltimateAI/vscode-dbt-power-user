@@ -3,7 +3,6 @@ import {
   Disposable,
   EventEmitter,
   window,
-  Uri,
   workspace,
 } from "vscode";
 import { DBTCommandQueue } from "./dbtCommandQueue";
@@ -16,22 +15,25 @@ import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { provideSingleton } from "../utils";
 import { DBTTerminal } from "./dbtTerminal";
+import { PythonEnvironmentChangedEvent } from "./pythonEnvironmentChangedEvent";
 
 @provideSingleton(DBTClient)
 export class DBTClient implements Disposable {
   private _onDBTInstallationVerificationEvent =
     new EventEmitter<DBTInstallationVerificationEvent>();
   public readonly onDBTInstallationVerification = this._onDBTInstallationVerificationEvent.event;
+  private _onPythonEnvironbmentChangedEvent = new EventEmitter<PythonEnvironmentChangedEvent>();
+  public readonly onPythonEnvironbmentChanged = this._onPythonEnvironbmentChangedEvent.event;
   private static readonly INSTALLED_VERSION =
     /installed.*:\s*(\d{1,2}\.\d{1,2}\.\d{1,2})/g;
   private static readonly LATEST_VERSION =
     /latest.*:\s*(\d{1,2}\.\d{1,2}\.\d{1,2})/g;
   private static readonly IS_INSTALLED = /installed/g;
-  private pythonPath?: string;
+  public pythonPath?: string;
   private dbtInstalled?: boolean;
-  private dbtOsmosisInstalled?: boolean;
   private disposables: Disposable[] = [
     this._onDBTInstallationVerificationEvent,
+    this._onPythonEnvironbmentChangedEvent,
   ];
 
   constructor(
@@ -61,60 +63,27 @@ export class DBTClient implements Disposable {
     await this.handlePythonExtension();
   }
 
-  getDBTCommandFactory() {
-    return this.dbtCommandFactory;
-  }
-
-  async rebuildManifest(projectUri: Uri, profilesDir: Uri): Promise<void> {
-    const listModelsDisabled = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("listModelsDisabled", false);
-    if (listModelsDisabled) {
-      return;
-    }
-    this.addCommandToQueue(
-      this.dbtCommandFactory.createListCommand(projectUri, profilesDir)
-    );
-  }
-
-  async checkAllInstalled(): Promise<void> {
+  private async checkAllInstalled(): Promise<void> {
     this._onDBTInstallationVerificationEvent.fire({
       inProgress: true
     });
     this.dbtInstalled = undefined;
-    this.dbtOsmosisInstalled = undefined;
 
     // check for dbt installed
     const checkDBTInstalledProcess = await this.executeCommand(
       this.dbtCommandFactory.createVerifyDbtInstalledCommand()
     );
 
-    // check for dbt osmosis installed
-    const checkDBTOsmosisInstalledProcess = await this.executeCommand(
-      this.dbtCommandFactory.createVerifyDbtOsmosisInstalledCommand()
-    );
-    const results = await Promise.allSettled([checkDBTInstalledProcess.complete(), checkDBTOsmosisInstalledProcess.complete()]);
-
-    if (results[0].status === "fulfilled") {
+    try {
+      await checkDBTInstalledProcess.complete();
       this.dbtInstalled = true;
-    } else {
+    } catch(error) {
       this.dbtInstalled = false;
       this.raiseDBTNotInstalledEvent();
       return;
     }
 
     // Don't block on version check
-    this.checkDBTVersion(results[1]);
-  }
-
-  async checkDBTVersion(osmosisPromisResult: PromiseSettledResult<string>) {
-    if (osmosisPromisResult.status === "fulfilled") {
-      this.dbtOsmosisInstalled = true;
-    } else {
-      this.dbtOsmosisInstalled = false;
-      this.raiseDBTOsmosisNotInstalledEvent();
-    }
-
     const checkDBTVersionProcess = await this.executeCommand(
       this.dbtCommandFactory.createVersionCommand()
     );
@@ -134,18 +103,6 @@ export class DBTClient implements Disposable {
     this.raiseDBTVersionCouldNotBeDeterminedEvent();
   }
 
-  async installDbtOsmosis() {
-    if (this.pythonPath === undefined) {
-      window.showErrorMessage(
-        "Please ensure you have selected a Python interpreter before updating DBT."
-      );
-      return;
-    }
-    await this.executeCommandImmediately(
-      this.dbtCommandFactory.createDbtOsmosisInstallCommand()
-    );
-  }
-
   addCommandToQueue(command: DBTCommand) {
     if (!this.dbtInstalled) {
       if (command.focus) {
@@ -163,7 +120,7 @@ export class DBTClient implements Disposable {
     });
   }
 
-  async executeCommandImmediately(
+  private async executeCommandImmediately(
     command: DBTCommand,
     token?: CancellationToken
   ) {
@@ -176,7 +133,6 @@ export class DBTClient implements Disposable {
     command: DBTCommand,
     token?: CancellationToken
   ): Promise<CommandProcessExecution> {
-    const { args, cwd } = command.processExecutionParams;
     const configText = workspace.getConfiguration();
     const config = JSON.parse(JSON.stringify(configText));
     let envVars = {};
@@ -201,6 +157,7 @@ export class DBTClient implements Disposable {
       }
     }
 
+    const { args, cwd } = command.processExecutionParams!;
     return this.commandProcessExecutionFactory.createCommandProcessExecution(
       this.pythonPath!,
       args,
@@ -229,26 +186,20 @@ export class DBTClient implements Disposable {
   }
 
   private raiseDBTNotInstalledEvent(): void {
-    this.raiseDBTVersionEvent(false, false);
-  }
-
-  private raiseDBTOsmosisNotInstalledEvent(): void {
-    this.raiseDBTVersionEvent(true, false);
+    this.raiseDBTVersionEvent(false);
   }
 
   private raiseDBTVersionCouldNotBeDeterminedEvent(): void {
-    this.raiseDBTVersionEvent(true, true);
+    this.raiseDBTVersionEvent(true);
   }
 
   private raiseDBTVersionEvent(
     dbtInstalled: boolean,
-    dbtOsmosisInstalled: boolean,
     installedVersion: string | undefined = undefined,
     latestVersion: string | undefined = undefined,
     message: string | undefined = undefined
   ): void {
     this.dbtInstalled = dbtInstalled;
-    this.dbtOsmosisInstalled = dbtOsmosisInstalled;
     const upToDate = installedVersion !== undefined &&
       latestVersion !== undefined &&
       installedVersion === latestVersion;
@@ -268,7 +219,6 @@ export class DBTClient implements Disposable {
         latestVersion,
         upToDate
       },
-      dbtOsmosisInstallationFound: this.dbtOsmosisInstalled,
     });
   }
 
@@ -291,12 +241,15 @@ export class DBTClient implements Disposable {
       );
     }
     const latestVersion = latestVersionMatch !== null ? latestVersionMatch[1] : undefined;
-    this.raiseDBTVersionEvent(true, this.dbtOsmosisInstalled!, installedVersion, latestVersion, message);
+    this.raiseDBTVersionEvent(true, installedVersion, latestVersion, message);
   }
 
   private async handlePythonExtension(): Promise<void> {
     const pythonEnvironment = await this.pythonEnvironment.getEnvironment();
     this.pythonPath = getPythonPathFromConfig() || pythonEnvironment.getPythonPath();
+    this._onPythonEnvironbmentChangedEvent.fire({
+      pythonPath: this.pythonPath
+    });
     await this.checkAllInstalled();
   }
 }

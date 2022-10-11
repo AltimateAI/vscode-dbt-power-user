@@ -13,25 +13,23 @@ import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { inject } from "inversify";
 
 export class DBTWorkspaceFolder implements Disposable {
-  private workspaceFolder: WorkspaceFolder;
   private watcher: FileSystemWatcher;
   private dbtProjects: DBTProject[] = [];
-  private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>;
   private disposables: Disposable[] = [];
 
   constructor(
     @inject("DBTProjectFactory")
     private dbtProjectFactory: (
       path: Uri,
-      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
+      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+      pythonPath: string,
     ) => DBTProject,
-    workspaceFolder: WorkspaceFolder,
-    _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
+    private workspaceFolder: WorkspaceFolder,
+    private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+    private pythonPath: string
   ) {
-    this.workspaceFolder = workspaceFolder;
     this.watcher = this.createConfigWatcher();
     this.disposables.push(this.watcher);
-    this._onManifestChanged = _onManifestChanged;
   }
 
   async discoverProjects() {
@@ -70,10 +68,9 @@ export class DBTWorkspaceFolder implements Disposable {
   private async registerDBTProject(uri: Uri) {
     const dbtProject = this.dbtProjectFactory(
       uri,
-      this._onManifestChanged
+      this._onManifestChanged,
+      this.pythonPath,
     );
-    dbtProject.rebuildManifest();
-    dbtProject.tryRefresh();
     this.dbtProjects.push(dbtProject);
   }
 

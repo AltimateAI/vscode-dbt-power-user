@@ -20,6 +20,7 @@ import { RunModelType } from "../domain";
 @provideSingleton(DBTProjectContainer)
 export class DBTProjectContainer implements Disposable {
   public onDBTInstallationVerification = this.dbtClient.onDBTInstallationVerification;
+  public onPythonEnvironmentChanged = this.dbtClient.onPythonEnvironbmentChanged;
   private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
   private _onManifestChanged = new EventEmitter<ManifestCacheChangedEvent>();
   public readonly onManifestChanged = this._onManifestChanged.event;
@@ -32,7 +33,8 @@ export class DBTProjectContainer implements Disposable {
     @inject("Factory<DBTWorkspaceFolder>")
     private dbtWorkspaceFolderFactory: (
       workspaceFolder: WorkspaceFolder,
-      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
+      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+      pythonPath: string,
     ) => DBTWorkspaceFolder,
   ) {
     // Workspace Folder Registrar
@@ -82,12 +84,8 @@ export class DBTProjectContainer implements Disposable {
     await this.dbtClient.detectDBT();
   }
 
-  executeSQL(uri: Uri, query: string, title: string): void {
-    this.findDBTProject(uri)?.executeSQL(query, title);
-  }
-
-  async rebuildManifest(projectUri: Uri, profilesDir: Uri) {
-    await this.dbtClient.rebuildManifest(projectUri, profilesDir);
+  executeSQL(uri: Uri, query: string): void {
+    this.findDBTProject(uri)?.executeSQL(query);
   }
 
   runModel(modelPath: Uri, type?: RunModelType) {
@@ -139,10 +137,6 @@ export class DBTProjectContainer implements Disposable {
     return this.dbtClient.executeCommand(command);
   }
 
-  installDbtOsmosis() {
-    return this.dbtClient.installDbtOsmosis();
-  }
-
   dispose() {
     this.dbtWorkspaceFolders.forEach((workspaceFolder) =>
       workspaceFolder.dispose()
@@ -167,7 +161,8 @@ export class DBTProjectContainer implements Disposable {
   ): Promise<void> {
     const dbtProjectWorkspaceFolder = this.dbtWorkspaceFolderFactory(
       workspaceFolder,
-      this._onManifestChanged
+      this._onManifestChanged,
+      this.dbtClient.pythonPath!, // TODO: better error resolving
     );
     this.dbtWorkspaceFolders.push(dbtProjectWorkspaceFolder);
     await dbtProjectWorkspaceFolder.discoverProjects();

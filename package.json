@@ -55,20 +55,15 @@
             "type": "string",
             "description": "Override the profiles dir for every dbt command. Absolute path or relative to the directory containing profiles.yml"
           },
-          "dbt.osmosisCheck": {
-            "type": "boolean",
-            "description": "Enable dbt-osmosis installation prompt.",
-            "default": true
-          },
-          "dbt.queryPreview.queryLimit": {
+          "dbt.queryLimit": {
             "type": "integer",
             "description": "The maximum number of rows the `Preview SQL Query` command returns.",
             "default": 500
           },
-          "dbt.queryPreview.queryTemplate": {
+          "dbt.queryTemplate": {
             "type": "string",
             "description": "Override the default query template that is used by the `Preview SQL Query` command. Use this if your database has special syntax to limit query results",
-            "default": "select * from ({query}) as osmosis_query limit {limit}"
+            "default": "select * from ({query}) as query limit {limit}"
           },
           "dbt.versionCheck": {
             "type": "string",
@@ -331,6 +326,7 @@
     "@typescript-eslint/eslint-plugin": "^5.39.0",
     "@typescript-eslint/parser": "^5.39.0",
     "@vscode/test-electron": "^1.3.0",
+    "copy-webpack-plugin": "^11.0.0",
     "eslint": "^8.24.0",
     "file-loader": "^6.1.0",
     "glob": "^7.1.6",
@@ -352,6 +348,7 @@
     "dayjs": "^1.8.34",
     "inversify": "^5.0.5",
     "inversify-binding-decorators": "^4.0.0",
+    "python-bridge": "^1.1.0",
     "reflect-metadata": "^0.1.13",
     "yaml": "^2.0.0-10"
   }

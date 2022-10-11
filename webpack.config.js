@@ -3,6 +3,7 @@
 'use strict';
 
 const TerserPlugin = require("terser-webpack-plugin");
+const CopyPlugin = require("copy-webpack-plugin");
 const path = require('path');
 
 /**@type {import('webpack').Configuration}*/
@@ -39,6 +40,14 @@ const config = {
       }
     ]
   },
+  plugins: [
+    new CopyPlugin({
+      patterns: [
+        { from: path.resolve(__dirname, "dbt_integration.py"), to: "dbt_integration.py" },
+        { from: path.resolve(__dirname, "node_modules/python-bridge/node_python_bridge.py"), to: "node_python_bridge.py" },
+      ],
+    }),
+  ],
   optimization: {
     minimizer: [
       new TerserPlugin({

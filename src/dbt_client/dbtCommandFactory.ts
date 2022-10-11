@@ -7,15 +7,20 @@ export interface RunModelParams {
   plusOperatorRight: string;
 }
 
-export interface CommandProcessExecutionParams {
+export interface SubProcessExecutionParams {
   cwd?: string;
   args: string[];
+}
+
+export interface PythonExecutionParams {
+  code: TemplateStringsArray | string;
+  params: any[]
 }
 
 export interface DBTCommand {
   commandAsString?: string;
   statusMessage: string;
-  processExecutionParams: CommandProcessExecutionParams;
+  processExecutionParams: SubProcessExecutionParams;
   focus?: boolean;
 }
 
@@ -48,59 +53,6 @@ export class DBTCommandFactory {
     };
   }
 
-  createVerifyDbtOsmosisInstalledCommand(): DBTCommand {
-    return {
-      statusMessage: "Detecting dbt osmosis installation...",
-      processExecutionParams: {
-        cwd: this.getFirstWorkspacePath(),
-        args: ["-c", 'import dbt_osmosis.core.osmosis; print("dbt osmosis is installed")'],
-      },
-    };
-  }
-
-  createDbtOsmosisInstallCommand() {
-    return {
-      commandAsString: "pip install dbt_osmosis",
-      statusMessage: "Installing dbt-osmosis...",
-      processExecutionParams: {
-        cwd: this.getFirstWorkspacePath(),
-        args: ["-m", "pip", "install", "--upgrade", "dbt-osmosis==0.9.0"]
-      },
-      focus: true,
-    };
-  }
-
-  createRunQueryCommand(sql: string, projectRoot: Uri, profilesDir: Uri, target: string): DBTCommand {
-    const limit = workspace
-      .getConfiguration("dbt.queryPreview")
-      .get<number>("queryLimit", 200);
-    const queryTemplate = workspace
-      .getConfiguration("dbt.queryPreview")
-      .get<string>("queryTemplate", "select * from ({query}) as osmosis_query limit {limit}");
-    const query = queryTemplate.replace("{query}", sql).replace("{limit}", String(limit));
-    return {
-      commandAsString: "python -m dbt_osmosis sql run",
-      statusMessage: "Running query...",
-      processExecutionParams: {
-        cwd: projectRoot.fsPath,
-        args: ["-m", "dbt_osmosis", "sql", "run", query, "--project-dir", projectRoot.fsPath, "--profiles-dir", profilesDir.fsPath]
-      },
-      focus: false,
-    };
-  }
-
-  createQueryPreviewCommand(sql: string, projectRoot: Uri, profilesDir: Uri, target: string): DBTCommand {
-    return {
-      commandAsString: "python -m dbt_osmosis sql compile",
-      statusMessage: "Compiling query...",
-      processExecutionParams: {
-        cwd: projectRoot.fsPath,
-        args: ["-m", "dbt_osmosis", "sql", "compile", sql, "--project-dir", projectRoot.fsPath, "--profiles-dir", profilesDir.fsPath]
-      },
-      focus: false,
-    };
-  }
-
   createVersionCommand(): DBTCommand {
     return {
       statusMessage: "Detecting dbt version...",
@@ -111,19 +63,7 @@ export class DBTCommandFactory {
     };
   }
 
-  createListCommand(projectRoot: Uri, profilesDir: Uri): DBTCommand {
-    const profilesDirParams = this.profilesDirParams(profilesDir);
-    return {
-      commandAsString: "dbt list",
-      statusMessage: "Listing dbt models...",
-      processExecutionParams: {
-        cwd: projectRoot.fsPath,
-        args: ["-c", this.dbtCommand(["'list'", ...profilesDirParams])],
-      },
-    };
-  }
-
-  createRunModelCommand(projectRoot: Uri, profilesDir: Uri, params: RunModelParams) {
+  createRunModelCommand(projectRoot: Uri, profilesDir: Uri, params: RunModelParams): DBTCommand {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     const profilesDirParams = this.profilesDirParams(profilesDir);
 
@@ -153,7 +93,7 @@ export class DBTCommandFactory {
     };
   }
 
-  createTestModelCommand(projectRoot: Uri, profilesDir: Uri, testName: string) {
+  createTestModelCommand(projectRoot: Uri, profilesDir: Uri, testName: string): DBTCommand {
     const profilesDirParams = this.profilesDirParams(profilesDir);
 
     // Lets pass through these params here too
@@ -183,7 +123,7 @@ export class DBTCommandFactory {
     };
   }
 
-  createCompileModelCommand(projectRoot: Uri, profilesDir: Uri, params: RunModelParams) {
+  createCompileModelCommand(projectRoot: Uri, profilesDir: Uri, params: RunModelParams): DBTCommand {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     const profilesDirParams = this.profilesDirParams(profilesDir);
 
