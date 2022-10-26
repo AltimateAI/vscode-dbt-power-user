@@ -90,7 +90,7 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
     }
     const location = nodeMap.get(name);
     if (location) {
-      return new Location(Uri.file(location.path), new Range(0, 0, 0, 0));
+      return new Location(Uri.file(location.path), new Range(0, 0, 999, 999));
     }
     return undefined;
   }
