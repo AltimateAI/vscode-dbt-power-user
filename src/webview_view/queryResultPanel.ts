@@ -243,7 +243,7 @@ function getHtml(webview: Webview, extensionUri: Uri) {
   let resourceDir = getUri(webview, extensionUri, ['query_panel']);
   let theme = [ColorThemeKind.Light, ColorThemeKind.HighContrastLight].includes(window.activeColorTheme.kind)
     ? "light" : "dark";
-  return readFileSync(indexPath.path).toString()
+  return readFileSync(indexPath.fsPath).toString()
     .replace(/__ROOT__/g, resourceDir.toString())
     .replace(/__THEME__/g, theme)
     .replace(/__NONCE__/g, getNonce())
