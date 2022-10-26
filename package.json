@@ -348,7 +348,7 @@
     "dayjs": "^1.8.34",
     "inversify": "^5.0.5",
     "inversify-binding-decorators": "^4.0.0",
-    "python-bridge": "^1.1.0",
+    "python-bridge": "github:mdesmet/node-python-bridge#feat/detached",
     "reflect-metadata": "^0.1.13",
     "yaml": "^2.0.0-10"
   }

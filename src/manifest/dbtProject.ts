@@ -138,7 +138,8 @@ export class DBTProject implements Disposable {
       env: {
         ...vscodeEnvVars(),
         PYTHONPATH: __dirname,
-      }
+      },
+      detached: true,
     });
     try {
       await this.python.ex`from dbt_integration import *`;
