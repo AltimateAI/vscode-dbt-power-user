@@ -133,22 +133,6 @@ export class DBTClient implements Disposable {
     command: DBTCommand,
     token?: CancellationToken
   ): Promise<CommandProcessExecution> {
-    const configText = workspace.getConfiguration();
-    const config = JSON.parse(JSON.stringify(configText));
-    let envVars = {};
-    if (config.terminal !== undefined && config.terminal.integrated !== undefined && config.terminal.integrated.env !== undefined) {
-      const env = config.terminal.integrated.env;
-      // parse vs code environment variables
-      const regexVsCodeEnv = /\$\{env\:(.*?)\}/gm;
-      for (let prop in env) {
-        const vsCodeEnv = env[prop];
-        envVars = {
-          ...process.env,
-          ...envVars,
-          ...this.parseEnvVarsFromUserSettings(vsCodeEnv, regexVsCodeEnv)
-        };
-      }
-    }
     if (command.commandAsString !== undefined) {
       this.terminal.log(`> Executing task: ${command.commandAsString}\n\r`);
 
@@ -163,26 +147,8 @@ export class DBTClient implements Disposable {
       args,
       cwd,
       token,
-      envVars
+      vscodeEnvVars()
     );
-  }
-
-  private parseEnvVarsFromUserSettings(vsCodeEnv: { [k: string]: string }, regexVsCodeEnv: RegExp) {
-    // TODO: add any other relevant variables, maybe workspacefolder?
-    return Object.keys(vsCodeEnv).reduce((prev: { [k: string]: string }, key: string) => {
-      const value = vsCodeEnv[key];
-      let matchResult;
-      while ((matchResult = regexVsCodeEnv.exec(value)) !== null) {
-        // This is necessary to avoid infinite loops with zero-width matches
-        if (matchResult.index === regexVsCodeEnv.lastIndex) {
-          regexVsCodeEnv.lastIndex++;
-        }
-        if (process.env[matchResult[1]] !== undefined) {
-          prev[key] = prev[key].replace(new RegExp(`\\\$\\\{env\\\:${matchResult[1]}\\\}`, "gm"), process.env[matchResult[1]]!);
-        }
-      }
-      return prev;
-    }, vsCodeEnv);
   }
 
   private raiseDBTNotInstalledEvent(): void {
@@ -257,3 +223,41 @@ export class DBTClient implements Disposable {
 function getPythonPathFromConfig(): string | undefined {
   return workspace.getConfiguration("dbt").get<string>("dbtPythonPathOverride");
 }
+
+const parseEnvVarsFromUserSettings = (vsCodeEnv: { [k: string]: string }, regexVsCodeEnv: RegExp) => {
+  // TODO: add any other relevant variables, maybe workspacefolder?
+  return Object.keys(vsCodeEnv).reduce((prev: { [k: string]: string }, key: string) => {
+    const value = vsCodeEnv[key];
+    let matchResult;
+    while ((matchResult = regexVsCodeEnv.exec(value)) !== null) {
+      // This is necessary to avoid infinite loops with zero-width matches
+      if (matchResult.index === regexVsCodeEnv.lastIndex) {
+        regexVsCodeEnv.lastIndex++;
+      }
+      if (process.env[matchResult[1]] !== undefined) {
+        prev[key] = prev[key].replace(new RegExp(`\\\$\\\{env\\\:${matchResult[1]}\\\}`, "gm"), process.env[matchResult[1]]!);
+      }
+    }
+    return prev;
+  }, vsCodeEnv);
+};
+
+export const vscodeEnvVars = () => {
+  const configText = workspace.getConfiguration();
+  const config = JSON.parse(JSON.stringify(configText));
+  let envVars = {};
+  if (config.terminal !== undefined && config.terminal.integrated !== undefined && config.terminal.integrated.env !== undefined) {
+    const env = config.terminal.integrated.env;
+    // parse vs code environment variables
+    const regexVsCodeEnv = /\$\{env\:(.*?)\}/gm;
+    for (let prop in env) {
+      const vsCodeEnv = env[prop];
+      envVars = {
+        ...process.env,
+        ...envVars,
+        ...parseEnvVarsFromUserSettings(vsCodeEnv, regexVsCodeEnv)
+      };
+    }
+  }
+  return envVars;
+};

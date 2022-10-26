@@ -32,6 +32,7 @@ import { join } from "path";
 import { QueryResultPanel } from "../webview_view/queryResultPanel";
 import { PythonEnvironmentChangedEvent } from "../dbt_client/pythonEnvironmentChangedEvent";
 import { PythonBridge, pythonBridge, PythonException } from "python-bridge";
+import { vscodeEnvVars } from "../dbt_client";
 
 export interface ExecuteSQLResult {
   table: {
@@ -133,7 +134,11 @@ export class DBTProject implements Disposable {
     }
     this.python = pythonBridge({
       python: pythonPath,
-      env: {PYTHONPATH: __dirname}
+      cwd: this.projectRoot.fsPath,
+      env: {
+        ...vscodeEnvVars(),
+        PYTHONPATH: __dirname,
+      }
     });
     try {
       await this.python.ex`from dbt_integration import *`;
