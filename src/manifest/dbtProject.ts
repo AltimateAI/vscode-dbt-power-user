@@ -62,7 +62,7 @@ export class DBTProject implements Disposable {
   static RESOURCE_TYPE_TEST = "test";
 
   readonly projectRoot: Uri;
-  readonly dbtProfilesDir: Uri;
+  readonly dbtProfilesDir: string; // vscode.Uri doesn't support relative urls
   private projectName?: string;
   private targetPath?: string;
   private sourcePaths?: string[];
@@ -89,10 +89,9 @@ export class DBTProject implements Disposable {
     pythonPath: string,
   ) {
     this.projectRoot = path;
-    const profilesDir = workspace.getConfiguration("dbt").get<string>("profilesDirOverride")
-      || process.env.DBT_PROFILES_DIR
-      || join(os.homedir(), ".dbt");
-    this.dbtProfilesDir = Uri.file(profilesDir);
+    this.dbtProfilesDir = workspace.getConfiguration("dbt").get<string>("profilesDirOverride")
+    || process.env.DBT_PROFILES_DIR
+    || join(os.homedir(), ".dbt");
 
     const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(path, DBTProject.DBT_PROJECT_FILE)
@@ -143,7 +142,7 @@ export class DBTProject implements Disposable {
     });
     try {
       await this.python.ex`from dbt_integration import *`;
-      await this.python.ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir.fsPath})`;
+      await this.python.ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir})`;
       // now we can accept project method invocations on the python env.
       this.pythonBridgeInitialized = true;
     }catch (exc: any) {

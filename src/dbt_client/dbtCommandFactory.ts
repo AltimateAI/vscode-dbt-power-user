@@ -26,8 +26,8 @@ export interface DBTCommand {
 
 @provideSingleton(DBTCommandFactory)
 export class DBTCommandFactory {
-  private profilesDirParams(dbtProfilesDir: Uri): string[] {
-    return dbtProfilesDir ? ["'--profiles-dir'", `r'${dbtProfilesDir.fsPath}'`] : [];
+  private profilesDirParams(dbtProfilesDir: string): string[] {
+    return dbtProfilesDir ? ["'--profiles-dir'", `r'${dbtProfilesDir}'`] : [];
   }
 
   private getFirstWorkspacePath(): string {
@@ -63,7 +63,7 @@ export class DBTCommandFactory {
     };
   }
 
-  createRunModelCommand(projectRoot: Uri, profilesDir: Uri, params: RunModelParams): DBTCommand {
+  createRunModelCommand(projectRoot: Uri, profilesDir: string, params: RunModelParams): DBTCommand {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     const profilesDirParams = this.profilesDirParams(profilesDir);
 
@@ -93,7 +93,7 @@ export class DBTCommandFactory {
     };
   }
 
-  createTestModelCommand(projectRoot: Uri, profilesDir: Uri, testName: string): DBTCommand {
+  createTestModelCommand(projectRoot: Uri, profilesDir: string, testName: string): DBTCommand {
     const profilesDirParams = this.profilesDirParams(profilesDir);
 
     // Lets pass through these params here too
@@ -123,7 +123,7 @@ export class DBTCommandFactory {
     };
   }
 
-  createCompileModelCommand(projectRoot: Uri, profilesDir: Uri, params: RunModelParams): DBTCommand {
+  createCompileModelCommand(projectRoot: Uri, profilesDir: string, params: RunModelParams): DBTCommand {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     const profilesDirParams = this.profilesDirParams(profilesDir);
 
