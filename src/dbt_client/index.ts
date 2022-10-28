@@ -191,9 +191,9 @@ export class DBTClient implements Disposable {
   private checkIfDBTIsUpToDate(message: string): void {
     const installedVersionMatch = DBTClient.INSTALLED_VERSION.exec(message);
     if (installedVersionMatch === null || installedVersionMatch.length !== 2) {
-      throw Error(
-        `The Regex INSTALLED_VERSION ${DBTClient.INSTALLED_VERSION} is not working ...`
-      );
+      console.warn(`The Regex INSTALLED_VERSION ${DBTClient.INSTALLED_VERSION} is not working ...`);
+      this.raiseDBTVersionCouldNotBeDeterminedEvent();
+      return;
     }
     const installedVersion = installedVersionMatch[1];
     if (installedVersion === 'unknown') {
@@ -202,9 +202,7 @@ export class DBTClient implements Disposable {
     }
     const latestVersionMatch = DBTClient.LATEST_VERSION.exec(message);
     if (latestVersionMatch === null || latestVersionMatch.length !== 2) {
-      throw Error(
-        `The Regex IS_LATEST_VERSION ${DBTClient.LATEST_VERSION} is not working ...`
-      );
+      console.warn(`The Regex IS_LATEST_VERSION ${DBTClient.LATEST_VERSION} is not working ...`);
     }
     const latestVersion = latestVersionMatch !== null ? latestVersionMatch[1] : undefined;
     this.raiseDBTVersionEvent(true, installedVersion, latestVersion, message);
