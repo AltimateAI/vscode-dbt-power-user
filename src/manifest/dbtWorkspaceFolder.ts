@@ -11,6 +11,7 @@ import { DBTProject } from "./dbtProject";
 import * as path from "path";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { inject } from "inversify";
+import { statSync } from "fs";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
@@ -40,9 +41,9 @@ export class DBTWorkspaceFolder implements Disposable {
       ),
       new RelativePattern(this.workspaceFolder, `**/{${DBTProject.DBT_MODULES.join(',')}}`)
     );
-    // TODO: could potentially have issues with casing @camfrout
     return dbtProjectFiles
-      .filter((uri) => this.notInVenv(uri.path))
+      .filter((uri)  => statSync(uri.fsPath).isFile())
+      .filter((uri) => this.notInVenv(uri.fsPath))
       .map((uri) => Uri.file(uri.path.split("/")!.slice(0, -1).join("/")))
       .forEach((uri) => this.registerDBTProject(uri));
   }
