@@ -45,14 +45,15 @@ export class SourceFileWatchers implements Disposable {
   }
 
   private onProjectConfigChanged(event: ProjectConfigChangedEvent) {
-    const { sourcePaths, projectRoot } = event;
+    const { sourcePaths, macroPaths, projectRoot } = event;
+    const paths = sourcePaths.concat(macroPaths);
     if (
       this.currentSourcePaths === undefined ||
       !arrayEquals(this.currentSourcePaths, sourcePaths)
     ) {
       this.disposeWatchers();
       this.watchers = [];
-      sourcePaths.forEach((sourcePath) => {
+      paths.forEach((sourcePath) => {
         const parsedSourcePath = Uri.joinPath(projectRoot, sourcePath);
         const sourceFolderWatcher = workspace.createFileSystemWatcher(
           new RelativePattern(parsedSourcePath, "**/*.{sql,yml,yaml}")
@@ -70,5 +71,5 @@ export class SourceFileWatchers implements Disposable {
       });
       this.currentSourcePaths = sourcePaths;
     }
-  }
+  } 
 }

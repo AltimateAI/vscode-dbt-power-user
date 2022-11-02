@@ -4,6 +4,7 @@ export class ProjectConfigChangedEvent {
     public projectRoot: Uri,
     public projectName: string,
     public targetPath: string,
-    public sourcePaths: string[]
+    public sourcePaths: string[],
+    public macroPaths: string[],
   ) {}
 }

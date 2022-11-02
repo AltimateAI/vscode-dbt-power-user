@@ -54,6 +54,7 @@ export class DBTProject implements Disposable {
   static RUN_RESULTS_FILE = "run_results.json";
   static TARGET_PATH_VAR = "target-path";
   static SOURCE_PATHS_VAR = ["source-paths", "model-paths"];
+  static MACRO_PATH_VAR = "macro-paths";
 
   static RESOURCE_TYPE_MODEL = "model";
   static RESOURCE_TYPE_SOURCE = "source";
@@ -66,6 +67,7 @@ export class DBTProject implements Disposable {
   private projectName?: string;
   private targetPath?: string;
   private sourcePaths?: string[];
+  private macroPaths?: string[];
   private python?: PythonBridge;
   private pythonBridgeInitialized = false;
 
@@ -360,6 +362,13 @@ export class DBTProject implements Disposable {
     }, ["models"]);
   }
 
+  private findMacroPaths(projectConfig: any): string[] {
+    if (projectConfig[DBTProject.MACRO_PATH_VAR] !== undefined) {
+      return projectConfig[DBTProject.MACRO_PATH_VAR] as string[];
+    }
+    return ["macros"];
+  }
+
   private findTargetPath(projectConfig: any): string {
     if (projectConfig[DBTProject.TARGET_PATH_VAR] !== undefined) {
       return projectConfig[DBTProject.TARGET_PATH_VAR] as string;
@@ -372,11 +381,13 @@ export class DBTProject implements Disposable {
     this.projectName = projectConfig.name;
     this.targetPath = this.findTargetPath(projectConfig);
     this.sourcePaths = this.findSourcePaths(projectConfig);
+    this.macroPaths = this.findMacroPaths(projectConfig);
     const event = new ProjectConfigChangedEvent(
       this.projectRoot,
       this.projectName as string,
       this.targetPath,
-      this.sourcePaths
+      this.sourcePaths,
+      this.macroPaths,
     );
     this._onProjectConfigChanged.fire(event);
   }
