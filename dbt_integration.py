@@ -438,7 +438,7 @@ class DbtProject:
     def compile_sql(self, raw_sql: str) -> DbtAdapterCompilationResult:
         """Creates a node with a `dbt.parser.sql` class. Compile generated node."""
         try:
-            temp_node_id = str(uuid.uuid4())
+            temp_node_id = str("t_" + uuid.uuid4().hex)
             node = self.compile_node(self.get_server_node(raw_sql, temp_node_id))
             self._clear_node(temp_node_id)
             return node
