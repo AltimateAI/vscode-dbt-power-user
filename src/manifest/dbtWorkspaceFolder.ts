@@ -4,6 +4,7 @@ import {
   FileSystemWatcher,
   RelativePattern,
   Uri,
+  window,
   workspace,
   WorkspaceFolder,
 } from "vscode";
@@ -12,6 +13,7 @@ import * as path from "path";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { inject } from "inversify";
 import { statSync } from "fs";
+import { vscodeEnvVars } from "../dbt_client";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
@@ -41,11 +43,14 @@ export class DBTWorkspaceFolder implements Disposable {
       ),
       new RelativePattern(this.workspaceFolder, `**/{${DBTProject.DBT_MODULES.join(',')}}`)
     );
-    return dbtProjectFiles
+    const projectFiles = dbtProjectFiles
       .filter((uri)  => statSync(uri.fsPath).isFile())
       .filter((uri) => this.notInVenv(uri.fsPath))
-      .map((uri) => Uri.file(uri.path.split("/")!.slice(0, -1).join("/")))
-      .forEach((uri) => this.registerDBTProject(uri));
+      .map((uri) => Uri.file(uri.path.split("/")!.slice(0, -1).join("/")));
+    if (projectFiles.length > 10) {
+      window.showWarningMessage(`dbt Power User detected ${projectFiles.length} projects in your work space, this will negatively affect performance.`);
+    }
+    return projectFiles.forEach((uri) => this.registerDBTProject(uri));
   }
 
   findDBTProject(uri: Uri): DBTProject | undefined {
