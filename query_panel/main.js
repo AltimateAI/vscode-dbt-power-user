@@ -36,6 +36,17 @@ const app = createApp({
         data: data.rows,
         columns: data.columns,
         layout: "fitDataFill",
+        headerSortElement: function(column, dir){
+          //dir - current sort direction ("asc", "desc", "none")
+          switch(dir){
+            case "asc":
+              return "<p>&#9660;</p>";
+            case "desc":
+              return "<p>&#9650;</p>";
+            default:
+              return "<p>&#9661;</p>";
+          }
+        },
       });
     },
     updateError(data) {
