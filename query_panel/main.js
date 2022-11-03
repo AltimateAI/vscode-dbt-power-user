@@ -63,16 +63,14 @@ const app = createApp({
     updateDispatchedCode(raw_stmt, compiled_stmt) {
       this.rawCode = raw_stmt;
 
-      const queryRegex = new RegExp(this.queryTemplate
-        .replace(/\(/g, "\\(")
-        .replace(/\)/g, "\\)")
-        .replace(/\*/g, "\\*")
-        .replace("{query}", "([\\w\\W]+)")
-        .replace("{limit}", this.limit.toString()), 'gm');
-      
       try {
+        const queryRegex = new RegExp(this.queryTemplate
+          .replace(/\(/g, "\\(")
+          .replace(/\)/g, "\\)")
+          .replace(/\*/g, "\\*")
+          .replace("{query}", "([\\w\\W]+)")
+          .replace("{limit}", this.limit.toString()), 'gm');
         const result = queryRegex.exec(compiled_stmt);
-        console.log()
         this.compiledCode = result[1];
         return;
       } catch (err) {}
