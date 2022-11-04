@@ -386,7 +386,7 @@ class DbtProject:
         return partial(self.adapter.execute_macro, macro_name=macro_name, manifest=self.dbt)
 
     def adapter_execute(
-        self, sql: str, auto_begin: bool = False, fetch: bool = False
+        self, sql: str, auto_begin: bool = True, fetch: bool = False
     ) -> Tuple[AdapterResponse, agate.Table]:
         """Wraps adapter.execute. Execute SQL against database"""
         return self.adapter.execute(sql, auto_begin, fetch)
