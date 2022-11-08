@@ -38,11 +38,6 @@
             "type": "string",
             "description": "Path to a python executable or entrypoint. If undefined, we will use the Python extension's configured environment. Most users will not need to change this setting without specific reasoning such as custom wrappers and should instead modify the Python extensions selected interpreter."
           },
-          "dbt.listModelsDisabled": {
-            "type": "boolean",
-            "default": false,
-            "description": "Disable `dbt ls` calls which are used when files change to rebuild the manifest.json."
-          },
           "dbt.runModelCommandAdditionalParams": {
             "type": "array",
             "items": {
