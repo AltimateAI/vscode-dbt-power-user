@@ -295,8 +295,8 @@ export class DBTProject implements Disposable {
       .get<string>("queryTemplate", "select * from ({query}) as query limit {limit}");
 
     const limitQuery = queryTemplate
-      .replace("{query}", query)
-      .replace("{limit}", limit.toString());
+      .replace("{query}", () => query)
+      .replace("{limit}", () => limit.toString());
 
     this.queryResultPanel.executeQuery(query, this.python?.lock(python => python!`to_dict(project.execute_sql(${limitQuery}))`) as Promise<ExecuteSQLResult>);
   }
