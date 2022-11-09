@@ -53,9 +53,9 @@ export class SqlPreviewContentProvider implements TextDocumentContentProvider, D
     return this.requestCompilation(uri);
   }
 
-  private requestCompilation(uri: Uri) {
-    const fsPath = decodeURI(uri.path);
+  private requestCompilation(uri: Uri) { 
     try {
+      const fsPath = decodeURI(uri.fsPath);
       const query = readFileSync(fsPath, "utf8");
       const project = this.dbtProjectContainer.findDBTProject(Uri.file(fsPath));
       if (project === undefined) {
