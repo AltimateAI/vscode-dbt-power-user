@@ -11,7 +11,7 @@ import { provideSingleton } from "./utils";
 
 @provideSingleton(DBTPowerUserExtension)
 export class DBTPowerUserExtension implements Disposable {
-  static DBT_MODE = { language: "jinja-sql", scheme: "file" };
+  static DBT_MODE = [{ language: "jinja-sql", scheme: "file" }, { language: "sql", scheme: "file"}];
   private disposables: Disposable[] = [];
 
   constructor(
