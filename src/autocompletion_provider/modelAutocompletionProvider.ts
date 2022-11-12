@@ -1,25 +1,27 @@
 import {
-  CompletionItemProvider,
-  CompletionItem,
-  TextDocument,
-  Position,
   CancellationToken,
   CompletionContext,
-  ProviderResult,
-  CompletionList,
+  CompletionItem,
   CompletionItemKind,
-  Uri,
+  CompletionItemProvider,
+  CompletionList,
   Disposable,
+  Position,
+  ProviderResult,
+  TextDocument,
+  Uri,
 } from "vscode";
-import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
-import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 
 @provideSingleton(ModelAutocompletionProvider) // TODO autocomplete doesn't work when mistype, delete and retype
 export class ModelAutocompletionProvider
-implements CompletionItemProvider, Disposable {
+  implements CompletionItemProvider, Disposable
+{
   private static readonly MODEL_PATTERN = /ref\s*\(\s*(['|"])?\s*\w*$/;
-  private static readonly PACKAGE_PATTERN = /ref\s*\(\s*('[^)']*'|"[^)"]*")\s*,\s*('|")\s*\w*$/;
+  private static readonly PACKAGE_PATTERN =
+    /ref\s*\(\s*('[^)']*'|"[^)"]*")\s*,\s*('|")\s*\w*$/;
   private modelAutocompleteMap: Map<string, CompletionItem[]> = new Map();
   private disposables: Disposable[] = [];
 
@@ -50,32 +52,40 @@ implements CompletionItemProvider, Disposable {
       .lineAt(position)
       .text.substr(0, position.character);
     if (
-      (
-        linePrefix.match(ModelAutocompletionProvider.MODEL_PATTERN) ||
-        linePrefix.match(ModelAutocompletionProvider.PACKAGE_PATTERN) 
-      ) &&
+      (linePrefix.match(ModelAutocompletionProvider.MODEL_PATTERN) ||
+        linePrefix.match(ModelAutocompletionProvider.PACKAGE_PATTERN)) &&
       isEnclosedWithinCodeBlock(document, position)
     ) {
       let quoteFound = false;
-      let quote = '';
+      let quote = "";
       if (linePrefix.endsWith("'")) {
         quoteFound = true;
         quote = "'";
-      }else if (linePrefix.endsWith('"')) {
+      } else if (linePrefix.endsWith('"')) {
         quoteFound = true;
         quote = '"';
       }
-      const autoCompleteItems = this.getAutoCompleteItems(document.uri)?.map(completionItem => ({ 
-        ...completionItem,
-        insertText: this.encloseWithQuotes(completionItem.insertText as string, quoteFound, quote)
-      }));
+      const autoCompleteItems = this.getAutoCompleteItems(document.uri)?.map(
+        (completionItem) => ({
+          ...completionItem,
+          insertText: this.encloseWithQuotes(
+            completionItem.insertText as string,
+            quoteFound,
+            quote
+          ),
+        })
+      );
       return autoCompleteItems;
     }
 
     return undefined;
   }
 
-  private encloseWithQuotes(insertText: string, quoteFound: boolean, quote: string) {
+  private encloseWithQuotes(
+    insertText: string,
+    quoteFound: boolean,
+    quote: string
+  ) {
     let enclosing = "";
     if (!quoteFound) {
       enclosing = '"';
@@ -86,23 +96,29 @@ implements CompletionItemProvider, Disposable {
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
       const projectRoot = added.projectRoot.fsPath;
-      const project = this.dbtProjectContainer.findDBTProject(Uri.file(projectRoot));
+      const project = this.dbtProjectContainer.findDBTProject(
+        Uri.file(projectRoot)
+      );
       if (!project) {
-        console.error("Could not load autocompletes, project not found in container for " + projectRoot);
+        console.error(
+          "Could not load autocompletes, project not found in container for " +
+            projectRoot
+        );
         return;
       }
       const projectName = project.getProjectName();
       const models = added.nodeMetaMap.entries();
       this.modelAutocompleteMap.set(
         added.projectRoot.fsPath,
-        Array.from(models).map(
-          ([key, model]) => ({
-            label: `(${model.package_name}) ${key}`,
-            insertText: model.package_name === projectName ? key : `${model.package_name}, ${key}`,
-            kind: CompletionItemKind.Value,
-            detail: 'Model',
-          })
-        )
+        Array.from(models).map(([key, model]) => ({
+          label: `(${model.package_name}) ${key}`,
+          insertText:
+            model.package_name === projectName
+              ? key
+              : `${model.package_name}, ${key}`,
+          kind: CompletionItemKind.Value,
+          detail: "Model",
+        }))
       );
     });
     event.removed?.forEach((removed) => {
@@ -111,9 +127,8 @@ implements CompletionItemProvider, Disposable {
   }
 
   private getAutoCompleteItems = (currentFilePath: Uri) => {
-    const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
-      currentFilePath
-    );
+    const projectRootpath =
+      this.dbtProjectContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
       return;
     }

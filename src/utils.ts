@@ -1,10 +1,10 @@
 import { fluentProvide } from "inversify-binding-decorators";
 import {
-  TextDocument,
-  Range,
-  Position,
-  FileSystemWatcher,
   Disposable,
+  FileSystemWatcher,
+  Position,
+  Range,
+  TextDocument,
 } from "vscode";
 
 export const isEnclosedWithinCodeBlock: (

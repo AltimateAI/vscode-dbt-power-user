@@ -14,7 +14,7 @@ export interface SubProcessExecutionParams {
 
 export interface PythonExecutionParams {
   code: TemplateStringsArray | string;
-  params: any[]
+  params: any[];
 }
 
 export interface DBTCommand {
@@ -31,7 +31,7 @@ export class DBTCommandFactory {
   }
 
   private getFirstWorkspacePath(): string {
-    // If we are executing python via a wrapper like Meltano, 
+    // If we are executing python via a wrapper like Meltano,
     // we need to execute it from a (any) project directory
     // By default, Command execution is in an ext dir context
     const folders = workspace.workspaceFolders;
@@ -63,7 +63,11 @@ export class DBTCommandFactory {
     };
   }
 
-  createRunModelCommand(projectRoot: Uri, profilesDir: string, params: RunModelParams): DBTCommand {
+  createRunModelCommand(
+    projectRoot: Uri,
+    profilesDir: string,
+    params: RunModelParams
+  ): DBTCommand {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     const profilesDirParams = this.profilesDirParams(profilesDir);
 
@@ -72,9 +76,13 @@ export class DBTCommandFactory {
       .get<string[]>("runModelCommandAdditionalParams", []);
 
     return {
-      commandAsString: `dbt run --select ${params.plusOperatorLeft}${params.modelName}${params.plusOperatorRight}${runModelCommandAdditionalParams.length > 0
-        ? " " + runModelCommandAdditionalParams.join(" ")
-        : ""}`,
+      commandAsString: `dbt run --select ${params.plusOperatorLeft}${
+        params.modelName
+      }${params.plusOperatorRight}${
+        runModelCommandAdditionalParams.length > 0
+          ? " " + runModelCommandAdditionalParams.join(" ")
+          : ""
+      }`,
       statusMessage: "Running dbt models...",
       processExecutionParams: {
         cwd: projectRoot.fsPath,
@@ -93,7 +101,11 @@ export class DBTCommandFactory {
     };
   }
 
-  createTestModelCommand(projectRoot: Uri, profilesDir: string, testName: string): DBTCommand {
+  createTestModelCommand(
+    projectRoot: Uri,
+    profilesDir: string,
+    testName: string
+  ): DBTCommand {
     const profilesDirParams = this.profilesDirParams(profilesDir);
 
     // Lets pass through these params here too
@@ -102,9 +114,11 @@ export class DBTCommandFactory {
       .get<string[]>("runModelCommandAdditionalParams", []);
 
     return {
-      commandAsString: `dbt test --select ${testName}${runModelCommandAdditionalParams.length > 0
-        ? " " + runModelCommandAdditionalParams.join(" ")
-        : ""}`,
+      commandAsString: `dbt test --select ${testName}${
+        runModelCommandAdditionalParams.length > 0
+          ? " " + runModelCommandAdditionalParams.join(" ")
+          : ""
+      }`,
       statusMessage: "Testing dbt model...",
       processExecutionParams: {
         cwd: projectRoot.fsPath,
@@ -123,7 +137,11 @@ export class DBTCommandFactory {
     };
   }
 
-  createCompileModelCommand(projectRoot: Uri, profilesDir: string, params: RunModelParams): DBTCommand {
+  createCompileModelCommand(
+    projectRoot: Uri,
+    profilesDir: string,
+    params: RunModelParams
+  ): DBTCommand {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     const profilesDirParams = this.profilesDirParams(profilesDir);
 

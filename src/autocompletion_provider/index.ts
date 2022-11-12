@@ -1,9 +1,9 @@
 import { Disposable, languages } from "vscode";
+import { DBTPowerUserExtension } from "../dbtPowerUserExtension";
+import { provideSingleton } from "../utils";
 import { MacroAutocompletionProvider } from "./macroAutocompletionProvider";
 import { ModelAutocompletionProvider } from "./modelAutocompletionProvider";
 import { SourceAutocompletionProvider } from "./sourceAutocompletionProvider";
-import { provideSingleton } from "../utils";
-import { DBTPowerUserExtension } from "../dbtPowerUserExtension";
 
 @provideSingleton(AutocompletionProviders)
 export class AutocompletionProviders implements Disposable {
@@ -21,17 +21,23 @@ export class AutocompletionProviders implements Disposable {
       languages.registerCompletionItemProvider(
         DBTPowerUserExtension.DBT_MODE,
         this.modelAutocompletionProvider,
-        '.', '(', '"', "'"
+        ".",
+        "(",
+        '"',
+        "'"
       ),
       languages.registerCompletionItemProvider(
         DBTPowerUserExtension.DBT_MODE,
         this.sourceAutocompletionProvider,
-        '.', '(', '"', "'"
-      ),
+        ".",
+        "(",
+        '"',
+        "'"
+      )
     );
   }
 
   dispose() {
-    this.disposables.forEach(disposable => disposable.dispose());
+    this.disposables.forEach((disposable) => disposable.dispose());
   }
 }

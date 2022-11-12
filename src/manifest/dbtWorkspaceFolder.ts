@@ -1,3 +1,6 @@
+import { statSync } from "fs";
+import { inject } from "inversify";
+import * as path from "path";
 import {
   Disposable,
   EventEmitter,
@@ -9,10 +12,7 @@ import {
   WorkspaceFolder,
 } from "vscode";
 import { DBTProject } from "./dbtProject";
-import * as path from "path";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
-import { inject } from "inversify";
-import { statSync } from "fs";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
@@ -47,14 +47,19 @@ export class DBTWorkspaceFolder implements Disposable {
         this.workspaceFolder,
         `**/${DBTProject.DBT_PROJECT_FILE}`
       ),
-      new RelativePattern(this.workspaceFolder, `**/{${DBTProject.DBT_MODULES.join(',')}}`)
+      new RelativePattern(
+        this.workspaceFolder,
+        `**/{${DBTProject.DBT_MODULES.join(",")}}`
+      )
     );
     const projectFiles = dbtProjectFiles
-      .filter((uri)  => statSync(uri.fsPath).isFile())
+      .filter((uri) => statSync(uri.fsPath).isFile())
       .filter((uri) => this.notInVenv(uri.fsPath))
       .map((uri) => Uri.file(uri.path.split("/")!.slice(0, -1).join("/")));
     if (projectFiles.length > 10) {
-      window.showWarningMessage(`dbt Power User detected ${projectFiles.length} projects in your work space, this will negatively affect performance.`);
+      window.showWarningMessage(
+        `dbt Power User detected ${projectFiles.length} projects in your work space, this will negatively affect performance.`
+      );
     }
     return projectFiles.forEach((uri) => this.registerDBTProject(uri));
   }
@@ -64,7 +69,10 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   contains(uri: Uri) {
-    return uri.fsPath === this.workspaceFolder.uri.fsPath || uri.fsPath.startsWith(this.workspaceFolder.uri.fsPath + path.sep);
+    return (
+      uri.fsPath === this.workspaceFolder.uri.fsPath ||
+      uri.fsPath.startsWith(this.workspaceFolder.uri.fsPath + path.sep)
+    );
   }
 
   dispose() {
@@ -83,7 +91,7 @@ export class DBTWorkspaceFolder implements Disposable {
       DBTProject.readAndParseProjectConfig(uri),
       this._onManifestChanged,
       this.pythonPath,
-      this.envVars,
+      this.envVars
     );
     this.dbtProjects.push(dbtProject);
   }

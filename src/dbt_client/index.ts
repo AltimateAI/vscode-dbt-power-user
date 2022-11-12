@@ -5,25 +5,28 @@ import {
   window,
   workspace,
 } from "vscode";
-import { DBTCommandQueue } from "./dbtCommandQueue";
-import { DBTCommand, DBTCommandFactory } from "./dbtCommandFactory";
 import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
 } from "../commandProcessExecution";
-import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { provideSingleton } from "../utils";
+import { DBTCommand, DBTCommandFactory } from "./dbtCommandFactory";
+import { DBTCommandQueue } from "./dbtCommandQueue";
 import { DBTTerminal } from "./dbtTerminal";
+import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
 import { PythonEnvironmentChangedEvent } from "./pythonEnvironmentChangedEvent";
 
 @provideSingleton(DBTClient)
 export class DBTClient implements Disposable {
   private _onDBTInstallationVerificationEvent =
     new EventEmitter<DBTInstallationVerificationEvent>();
-  public readonly onDBTInstallationVerification = this._onDBTInstallationVerificationEvent.event;
-  private _onPythonEnvironbmentChangedEvent = new EventEmitter<PythonEnvironmentChangedEvent>();
-  public readonly onPythonEnvironbmentChanged = this._onPythonEnvironbmentChangedEvent.event;
+  public readonly onDBTInstallationVerification =
+    this._onDBTInstallationVerificationEvent.event;
+  private _onPythonEnvironbmentChangedEvent =
+    new EventEmitter<PythonEnvironmentChangedEvent>();
+  public readonly onPythonEnvironbmentChanged =
+    this._onPythonEnvironbmentChangedEvent.event;
   private static readonly INSTALLED_VERSION =
     /installed.*:\s*(\d{1,2}\.\d{1,2}\.\d{1,2})/g;
   private static readonly LATEST_VERSION =
@@ -68,7 +71,7 @@ export class DBTClient implements Disposable {
 
   private async checkAllInstalled(): Promise<void> {
     this._onDBTInstallationVerificationEvent.fire({
-      inProgress: true
+      inProgress: true,
     });
     this.dbtInstalled = undefined;
 
@@ -80,7 +83,7 @@ export class DBTClient implements Disposable {
     try {
       await checkDBTInstalledProcess.complete();
       this.dbtInstalled = true;
-    } catch(error) {
+    } catch (error) {
       this.dbtInstalled = false;
       this.raiseDBTNotInstalledEvent();
       return;
@@ -97,9 +100,11 @@ export class DBTClient implements Disposable {
       await Promise.race([checkDBTVersionProcess.complete(), timeoutCmd]);
       checkDBTVersionProcess.dispose();
     } catch (err) {
-      if (typeof (err) === 'string' && err.match(DBTClient.IS_INSTALLED)) {
+      if (typeof err === "string" && err.match(DBTClient.IS_INSTALLED)) {
         const stripAnsi = require("strip-ansi");
-        this.checkIfDBTIsUpToDate(stripAnsi(err.replace("Process returned an error:", "")));
+        this.checkIfDBTIsUpToDate(
+          stripAnsi(err.replace("Process returned an error:", ""))
+        );
         return;
       }
     }
@@ -146,7 +151,9 @@ export class DBTClient implements Disposable {
 
     const { args, cwd } = command.processExecutionParams!;
     if (!this.pythonPath || !this.envVars) {
-      console.error("Could not launch command as python environment is not available");
+      console.error(
+        "Could not launch command as python environment is not available"
+      );
       return Promise.reject();
     }
 
@@ -155,7 +162,7 @@ export class DBTClient implements Disposable {
       args,
       cwd,
       token,
-      this.envVars,
+      this.envVars
     );
   }
 
@@ -174,7 +181,8 @@ export class DBTClient implements Disposable {
     message: string | undefined = undefined
   ): void {
     this.dbtInstalled = dbtInstalled;
-    const upToDate = installedVersion !== undefined &&
+    const upToDate =
+      installedVersion !== undefined &&
       latestVersion !== undefined &&
       installedVersion === latestVersion;
 
@@ -182,16 +190,20 @@ export class DBTClient implements Disposable {
       .getConfiguration("dbt")
       .get<string>("versionCheck", "both");
 
-    if (!upToDate && message && (versionCheck === "both" || versionCheck === "error message")) {
+    if (
+      !upToDate &&
+      message &&
+      (versionCheck === "both" || versionCheck === "error message")
+    ) {
       window.showErrorMessage(message);
-    };
+    }
     this._onDBTInstallationVerificationEvent.fire({
       inProgress: false,
       dbtInstallationFound: {
         installed: this.dbtInstalled,
         installedVersion,
         latestVersion,
-        upToDate
+        upToDate,
       },
     });
   }
@@ -199,26 +211,32 @@ export class DBTClient implements Disposable {
   private checkIfDBTIsUpToDate(message: string): void {
     const installedVersionMatch = DBTClient.INSTALLED_VERSION.exec(message);
     if (installedVersionMatch === null || installedVersionMatch.length !== 2) {
-      console.warn(`The Regex INSTALLED_VERSION ${DBTClient.INSTALLED_VERSION} is not working ...`);
+      console.warn(
+        `The Regex INSTALLED_VERSION ${DBTClient.INSTALLED_VERSION} is not working ...`
+      );
       this.raiseDBTVersionCouldNotBeDeterminedEvent();
       return;
     }
     const installedVersion = installedVersionMatch[1];
-    if (installedVersion === 'unknown') {
+    if (installedVersion === "unknown") {
       this.raiseDBTVersionCouldNotBeDeterminedEvent();
       return;
     }
     const latestVersionMatch = DBTClient.LATEST_VERSION.exec(message);
     if (latestVersionMatch === null || latestVersionMatch.length !== 2) {
-      console.warn(`The Regex IS_LATEST_VERSION ${DBTClient.LATEST_VERSION} is not working ...`);
+      console.warn(
+        `The Regex IS_LATEST_VERSION ${DBTClient.LATEST_VERSION} is not working ...`
+      );
     }
-    const latestVersion = latestVersionMatch !== null ? latestVersionMatch[1] : undefined;
+    const latestVersion =
+      latestVersionMatch !== null ? latestVersionMatch[1] : undefined;
     this.raiseDBTVersionEvent(true, installedVersion, latestVersion, message);
   }
 
   private async handlePythonExtension(): Promise<void> {
     const pythonEnvironment = await this.pythonEnvironment.getEnvironment();
-    this.pythonPath = getPythonPathFromConfig() || pythonEnvironment.getPythonPath();
+    this.pythonPath =
+      getPythonPathFromConfig() || pythonEnvironment.getPythonPath();
     this.envVars = pythonEnvironment.getEnvVars();
     this._onPythonEnvironbmentChangedEvent.fire({
       pythonPath: this.pythonPath,

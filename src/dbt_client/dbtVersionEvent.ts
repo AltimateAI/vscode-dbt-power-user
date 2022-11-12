@@ -5,6 +5,6 @@ export interface DBTInstallationVerificationEvent {
     latestVersion?: string;
     installedVersion?: string;
     upToDate?: boolean;
-    plugins?: string[]
-  }
+    plugins?: string[];
+  };
 }

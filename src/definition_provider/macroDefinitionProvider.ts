@@ -1,13 +1,13 @@
 import {
-  DefinitionProvider,
   Definition,
-  Location,
-  Uri,
-  Position,
-  TextDocument,
-  ProviderResult,
   DefinitionLink,
+  DefinitionProvider,
   Disposable,
+  Location,
+  Position,
+  ProviderResult,
+  TextDocument,
+  Uri,
 } from "vscode";
 import { MacroMetaMap } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -84,9 +84,8 @@ export class MacroDefinitionProvider implements DefinitionProvider, Disposable {
     macroName: string,
     currentFilePath: Uri
   ): Definition | undefined {
-    const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
-      currentFilePath
-    );
+    const projectRootpath =
+      this.dbtProjectContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
       return;
     }

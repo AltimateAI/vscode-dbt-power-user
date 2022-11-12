@@ -1,17 +1,17 @@
+import { join } from "path";
 import {
   Disposable,
+  Event,
   EventEmitter,
   FileSystemWatcher,
   RelativePattern,
   workspace,
-  Event,
 } from "vscode";
-import { join } from 'path';
 import { provideSingleton, setupWatcherHandler } from "../../utils";
 import { DBTProject } from "../dbtProject";
 import { ManifestCacheChangedEvent } from "../event/manifestCacheChangedEvent";
-import { ManifestParser } from "../parsers";
 import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
+import { ManifestParser } from "../parsers";
 
 @provideSingleton(TargetWatchersFactory)
 export class TargetWatchersFactory {
@@ -21,7 +21,11 @@ export class TargetWatchersFactory {
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
     onProjectConfigChanged: Event<ProjectConfigChangedEvent>
   ) {
-    return new TargetWatchers(_onManifestChanged, onProjectConfigChanged, this.manifestParser);
+    return new TargetWatchers(
+      _onManifestChanged,
+      onProjectConfigChanged,
+      this.manifestParser
+    );
   }
 }
 
@@ -71,7 +75,12 @@ export class TargetWatchers implements Disposable {
       this.watchers = [];
 
       const handler = async () => {
-        const manifestCacheChangedEvent = await this.manifestParser.parseManifest(projectRoot, projectName, targetPath);
+        const manifestCacheChangedEvent =
+          await this.manifestParser.parseManifest(
+            projectRoot,
+            projectName,
+            targetPath
+          );
         this._onManifestChanged.fire(manifestCacheChangedEvent);
       };
 
@@ -84,12 +93,13 @@ export class TargetWatchers implements Disposable {
       this.currentTargetPath = targetPath;
       this.currentProjectName = projectName;
 
-      this.watchers.push(
-        this.manifestWatcher,
-        this.targetFolderWatcher
-      );
+      this.watchers.push(this.manifestWatcher, this.targetFolderWatcher);
 
-      const manifestCacheChangedEvent = await this.manifestParser.parseManifest(projectRoot, projectName, targetPath);
+      const manifestCacheChangedEvent = await this.manifestParser.parseManifest(
+        projectRoot,
+        projectName,
+        targetPath
+      );
       this._onManifestChanged.fire(manifestCacheChangedEvent);
     }
   }

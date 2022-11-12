@@ -1,9 +1,9 @@
 import { Disposable, languages } from "vscode";
-import { ModelDefinitionProvider } from "./modelDefinitionProvider";
-import { MacroDefinitionProvider } from "./macroDefinitionProvider";
-import { SourceDefinitionProvider } from "./sourceDefinitionProvider";
-import { provideSingleton } from "../utils";
 import { DBTPowerUserExtension } from "../dbtPowerUserExtension";
+import { provideSingleton } from "../utils";
+import { MacroDefinitionProvider } from "./macroDefinitionProvider";
+import { ModelDefinitionProvider } from "./modelDefinitionProvider";
+import { SourceDefinitionProvider } from "./sourceDefinitionProvider";
 
 @provideSingleton(DefinitionProviders)
 export class DefinitionProviders implements Disposable {

@@ -32,18 +32,19 @@
   "contributes": {
     "snippets": [
       {
-          "language": "jinja-sql",
-          "path": "./snippets/snippets_sql.json"
+        "language": "jinja-sql",
+        "path": "./snippets/snippets_sql.json"
       },
       {
-          "language": "jinja-yaml",
-          "path": "./snippets/snippets_yaml.json"
+        "language": "jinja-yaml",
+        "path": "./snippets/snippets_yaml.json"
       },
       {
-          "language": "jinja-md",
-          "path": "./snippets/snippets_markdown.json"
+        "language": "jinja-md",
+        "path": "./snippets/snippets_markdown.json"
       }
-    ], "configuration": [
+    ],
+    "configuration": [
       {
         "title": "dbt Power User",
         "properties": {
@@ -317,6 +318,7 @@
     ]
   },
   "scripts": {
+    "prepare": "husky install",
     "vscode:prepublish": "webpack --mode production",
     "webpack": "webpack --mode development",
     "webpack-dev": "webpack --mode development --watch",
@@ -337,10 +339,17 @@
     "@vscode/test-electron": "^1.3.0",
     "copy-webpack-plugin": "^11.0.0",
     "eslint": "^8.24.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.2.1",
     "file-loader": "^6.1.0",
     "glob": "^7.1.6",
-    "mocha": "^10.0.0",
+    "husky": "^8.0.1",
+    "lint-staged": "^13.0.3",
+    "mocha": "^8.1.3",
     "ovsx": "^0.3.0",
+    "prettier": "^2.7.1",
+    "prettier-eslint": "^15.0.1",
+    "prettier-plugin-organize-imports": "^3.1.1",
     "terser-webpack-plugin": "^5.3.1",
     "ts-loader": "^8.0.3",
     "typescript": "^4.8.4",
@@ -360,5 +369,12 @@
     "python-bridge": "github:mdesmet/node-python-bridge#feat/detached",
     "reflect-metadata": "^0.1.13",
     "yaml": "^2.0.0-10"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint src --ext ts --fix",
+      "eslint --max-warnings=0"
+    ],
+    "*.{js,css,md,html,json}": "prettier --cache --write"
   }
 }

@@ -1,15 +1,15 @@
 import {
-  DefinitionProvider,
-  Definition,
-  Uri,
-  TextDocument,
   CancellationToken,
-  ProviderResult,
+  Definition,
   DefinitionLink,
+  DefinitionProvider,
+  Disposable,
   Location,
   Position,
+  ProviderResult,
   Range,
-  Disposable,
+  TextDocument,
+  Uri,
 } from "vscode";
 import { NodeMetaMap } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -55,18 +55,29 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
       );
       const project = this.dbtProjectContainer.findDBTProject(document.uri);
       if (!project) {
-        console.error("Could not load definition provider, project not found in container for " + document.uri.fsPath);
+        console.error(
+          "Could not load definition provider, project not found in container for " +
+            document.uri.fsPath
+        );
         return;
       }
       if (word !== undefined && hover !== "ref") {
         const dbtModel = word.match(ModelDefinitionProvider.GET_DBT_MODEL);
         if (dbtModel && dbtModel.length === 1) {
-          const definition = this.getDefinitionFor(project.getProjectName(), dbtModel[0], document.uri);
+          const definition = this.getDefinitionFor(
+            project.getProjectName(),
+            dbtModel[0],
+            document.uri
+          );
           resolve(definition);
           return;
         }
         if (dbtModel && dbtModel.length === 3) {
-          const definition = this.getDefinitionFor(dbtModel[0], dbtModel[2], document.uri);
+          const definition = this.getDefinitionFor(
+            dbtModel[0],
+            dbtModel[2],
+            document.uri
+          );
           resolve(definition);
           return;
         }
@@ -89,9 +100,8 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
     modelName: string,
     currentFilePath: Uri
   ): Definition | undefined {
-    const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
-      currentFilePath
-    );
+    const projectRootpath =
+      this.dbtProjectContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
       return;
     }

@@ -1,6 +1,6 @@
 import { Container, interfaces } from "inversify";
 import { buildProviderModule } from "inversify-binding-decorators";
-import { WorkspaceFolder, EventEmitter, Uri } from "vscode";
+import { EventEmitter, Uri, WorkspaceFolder } from "vscode";
 import { DBTCommandFactory } from "./dbt_client/dbtCommandFactory";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
 import { DBTProject } from "./manifest/dbtProject";

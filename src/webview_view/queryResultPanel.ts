@@ -1,24 +1,24 @@
 import {
+  CancellationToken,
+  ColorThemeKind,
   commands,
   Disposable,
   ProgressLocation,
   Uri,
+  Webview,
+  WebviewOptions,
   WebviewView,
   WebviewViewProvider,
   WebviewViewResolveContext,
-  WebviewOptions,
-  CancellationToken,
   window,
-  Webview,
-  ColorThemeKind,
-  workspace
+  workspace,
 } from "vscode";
 
 import { readFileSync } from "fs";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { provideSingleton } from '../utils';
 import { PythonException } from "python-bridge";
 import { ExecuteSQLResult } from "../manifest/dbtProject";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { provideSingleton } from "../utils";
 
 interface JsonObj {
   [key: string]: string | number | undefined;
@@ -33,20 +33,20 @@ enum OutboundCommand {
 }
 
 interface RenderQuery {
-  columns: JsonObj[],
-  rows: JsonObj[],
-  raw_sql: string,
-  compiled_sql: string
+  columns: JsonObj[];
+  rows: JsonObj[];
+  raw_sql: string;
+  compiled_sql: string;
 }
 
 interface RenderError {
-  error: any,
-  raw_sql: string,
-  compiled_sql: string
+  error: any;
+  raw_sql: string;
+  compiled_sql: string;
 }
 
 interface InjectConfig {
-  limit?: number
+  limit?: number;
 }
 
 enum InboundCommand {
@@ -56,33 +56,38 @@ enum InboundCommand {
 }
 
 interface RecInfo {
-  text: string
+  text: string;
 }
 
 interface RecError {
-  text: string
+  text: string;
 }
 
 interface RecConfig {
-  limit?: number
+  limit?: number;
 }
 
 @provideSingleton(QueryResultPanel)
 export class QueryResultPanel implements WebviewViewProvider {
-  public static readonly viewType = 'dbtPowerUser.PreviewResults';
+  public static readonly viewType = "dbtPowerUser.PreviewResults";
 
   private _disposables: Disposable[] = [];
   private _panel: WebviewView | undefined;
 
-  public constructor(
-    private dbtProjectContainer: DBTProjectContainer,
-  ) {
-    window.onDidChangeActiveColorTheme(async (e) => {
-      if (this._panel) {
-        this._panel.webview.html = getHtml(this._panel.webview, this.dbtProjectContainer.extensionUri);
-        await this.transmitConfig();
-      }
-    }, null, this._disposables);
+  public constructor(private dbtProjectContainer: DBTProjectContainer) {
+    window.onDidChangeActiveColorTheme(
+      async (e) => {
+        if (this._panel) {
+          this._panel.webview.html = getHtml(
+            this._panel.webview,
+            this.dbtProjectContainer.extensionUri
+          );
+          await this.transmitConfig();
+        }
+      },
+      null,
+      this._disposables
+    );
   }
 
   public async resolveWebviewView(
@@ -110,37 +115,47 @@ export class QueryResultPanel implements WebviewViewProvider {
   /** Primary interface for WebviewView inbound communication */
   private setupWebviewHooks(context: WebviewViewResolveContext) {
     this._panel!.webview.onDidReceiveMessage(
-      message => {
+      (message) => {
         switch (message.command) {
           case InboundCommand.Error:
-            let error = message as RecError;
+            const error = message as RecError;
             window.showErrorMessage(error.text);
             break;
           case InboundCommand.Info:
-            let info = message as RecInfo;
+            const info = message as RecInfo;
             window.withProgress(
-              { title: info.text, location: ProgressLocation.Notification, cancellable: false },
+              {
+                title: info.text,
+                location: ProgressLocation.Notification,
+                cancellable: false,
+              },
               async () => {
-                await new Promise(timer => setTimeout(timer, 3000));
+                await new Promise((timer) => setTimeout(timer, 3000));
               }
             );
             break;
           case InboundCommand.UpdateConfig:
-            let config = message as RecConfig;
+            const config = message as RecConfig;
             if (config.limit) {
-              workspace.getConfiguration("dbt")
+              workspace
+                .getConfiguration("dbt")
                 .update("queryLimit", config.limit);
             }
             break;
         }
-      }, null, this._disposables
+      },
+      null,
+      this._disposables
     );
   }
 
   /** Renders webview content */
   private async renderWebviewView(context: WebviewViewResolveContext) {
     const webview = this._panel!.webview!;
-    this._panel!.webview.html = getHtml(webview, this.dbtProjectContainer.extensionUri);
+    this._panel!.webview.html = getHtml(
+      webview,
+      this.dbtProjectContainer.extensionUri
+    );
   }
 
   /** Sends query result data to webview */
@@ -148,11 +163,11 @@ export class QueryResultPanel implements WebviewViewProvider {
     columns: JsonObj[],
     rows: JsonObj[],
     raw_sql: string,
-    compiled_sql: string,
+    compiled_sql: string
   ) {
     await this._panel!.webview.postMessage({
       command: OutboundCommand.RenderQuery,
-      ...<RenderQuery>{ columns, rows, raw_sql, compiled_sql }
+      ...(<RenderQuery>{ columns, rows, raw_sql, compiled_sql }),
     });
   }
 
@@ -164,7 +179,7 @@ export class QueryResultPanel implements WebviewViewProvider {
   ) {
     await this._panel!.webview.postMessage({
       command: OutboundCommand.RenderError,
-      ...<RenderError>{ ...error, raw_sql, compiled_sql }
+      ...(<RenderError>{ ...error, raw_sql, compiled_sql }),
     });
   }
 
@@ -173,32 +188,35 @@ export class QueryResultPanel implements WebviewViewProvider {
     const limit = workspace.getConfiguration("dbt").get<number>("queryLimit");
     const queryTemplate = workspace
       .getConfiguration("dbt")
-      .get<string>("queryTemplate", "select * from ({query}) as query limit {limit}");
+      .get<string>(
+        "queryTemplate",
+        "select * from ({query}) as query limit {limit}"
+      );
     await this._panel!.webview.postMessage({
       command: OutboundCommand.InjectConfig,
-      ...<InjectConfig>{ limit, queryTemplate }
+      ...(<InjectConfig>{ limit, queryTemplate }),
     });
   }
 
   /** Sends VSCode render loading command to webview */
   private async transmitLoading() {
     await this._panel!.webview.postMessage({
-      command: OutboundCommand.RenderLoading
+      command: OutboundCommand.RenderLoading,
     });
   }
 
   /** Sends VSCode clear state command */
   private async transmitReset() {
     await this._panel!.webview.postMessage({
-      command: OutboundCommand.ResetState
+      command: OutboundCommand.ResetState,
     });
   }
 
-  /** A wrapper for {@link transmitData} which converts server 
+  /** A wrapper for {@link transmitData} which converts server
    * results interface ({@link ExecuteSQLResult}) to what the webview expects */
   private async transmitDataWrapper(result: ExecuteSQLResult, query: string) {
     let columns: JsonObj[] = [];
-    let rows: JsonObj[] = [];
+    const rows: JsonObj[] = [];
     // Convert compressed array format to dict[]
     for (let i = 0; i < result.table.rows.length; i++) {
       result.table.rows[i].forEach((value: any, j: any) => {
@@ -207,14 +225,19 @@ export class QueryResultPanel implements WebviewViewProvider {
     }
     // Define column spec for Tabulator
     result.table.column_names.forEach((def: any) => {
-      columns = [...columns, { "title": def.toUpperCase(), "field": def }];
+      columns = [...columns, { title: def.toUpperCase(), field: def }];
     });
     await this.transmitData(columns, rows, query, result.compiled_sql);
-  };
+  }
 
   /** Runs a query transmitting appropriate notifications to webview */
-  public async executeQuery(query: string, queryExecution: Promise<ExecuteSQLResult>) {
-    await commands.executeCommand("workbench.view.extension.dbt_preview_results");
+  public async executeQuery(
+    query: string,
+    queryExecution: Promise<ExecuteSQLResult>
+  ) {
+    await commands.executeCommand(
+      "workbench.view.extension.dbt_preview_results"
+    );
     this.transmitLoading();
     try {
       const output = await queryExecution;
@@ -222,28 +245,49 @@ export class QueryResultPanel implements WebviewViewProvider {
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
-          "An error occured while trying to execute your query: " + exc.exception.message
+          "An error occured while trying to execute your query: " +
+            exc.exception.message
         );
-        await this.transmitError({
-          error: { code: -1, message: exc.exception.message, data: JSON.stringify(exc.stack, null, 2) }
-        }, query, query);
+        await this.transmitError(
+          {
+            error: {
+              code: -1,
+              message: exc.exception.message,
+              data: JSON.stringify(exc.stack, null, 2),
+            },
+          },
+          query,
+          query
+        );
         return;
       }
       window.showErrorMessage(exc.message);
-      await this.transmitError({
-        error: { code: -1, message: exc.message, data: {} }
-      }, query, query);
+      await this.transmitError(
+        {
+          error: { code: -1, message: exc.message, data: {} },
+        },
+        query,
+        query
+      );
     }
   }
 }
 
 /** Gets webview HTML */
 function getHtml(webview: Webview, extensionUri: Uri) {
-  let indexPath = getUri(webview, extensionUri, ['query_panel', 'index.html']);
-  let resourceDir = getUri(webview, extensionUri, ['query_panel']);
-  let theme = [ColorThemeKind.Light, ColorThemeKind.HighContrastLight].includes(window.activeColorTheme.kind)
-    ? "light" : "dark";
-  return readFileSync(indexPath.fsPath).toString()
+  const indexPath = getUri(webview, extensionUri, [
+    "query_panel",
+    "index.html",
+  ]);
+  const resourceDir = getUri(webview, extensionUri, ["query_panel"]);
+  const theme = [
+    ColorThemeKind.Light,
+    ColorThemeKind.HighContrastLight,
+  ].includes(window.activeColorTheme.kind)
+    ? "light"
+    : "dark";
+  return readFileSync(indexPath.fsPath)
+    .toString()
     .replace(/__ROOT__/g, resourceDir.toString())
     .replace(/__THEME__/g, theme)
     .replace(/__NONCE__/g, getNonce())
@@ -252,8 +296,9 @@ function getHtml(webview: Webview, extensionUri: Uri) {
 
 /** Used to enforce a secure CSP */
 function getNonce() {
-  let text = '';
-  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let text = "";
+  const possible =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   for (let i = 0; i < 32; i++) {
     text += possible.charAt(Math.floor(Math.random() * possible.length));
   }

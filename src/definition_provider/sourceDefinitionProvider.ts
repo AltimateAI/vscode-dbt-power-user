@@ -1,24 +1,25 @@
+import { readFileSync } from "fs";
 import {
-  DefinitionProvider,
-  TextDocument,
-  Position,
   CancellationToken,
-  ProviderResult,
   Definition,
   DefinitionLink,
-  Location,
-  Uri,
+  DefinitionProvider,
   Disposable,
+  Location,
+  Position,
+  ProviderResult,
+  TextDocument,
+  Uri,
 } from "vscode";
-import { readFileSync } from "fs";
-import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 import { SourceMetaMap } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 
 @provideSingleton(SourceDefinitionProvider)
 export class SourceDefinitionProvider
-implements DefinitionProvider, Disposable {
+  implements DefinitionProvider, Disposable
+{
   private sourceMetaMap: Map<string, SourceMetaMap> = new Map();
   private static readonly IS_SOURCE = /(source)\([^)]*\)/;
   private static readonly GET_SOURCE_INFO = /(?!['"])(\w+)(?=['"])/g;
@@ -79,7 +80,7 @@ implements DefinitionProvider, Disposable {
       const definition = this.getSourceDefinition(
         source[0],
         document.uri,
-        source[1],
+        source[1]
       );
       resolve(definition);
     });
@@ -99,9 +100,8 @@ implements DefinitionProvider, Disposable {
     currentFilePath: Uri,
     tableName: string
   ): Definition | undefined {
-    const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
-      currentFilePath
-    );
+    const projectRootpath =
+      this.dbtProjectContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
       return;
     }

@@ -1,6 +1,6 @@
 export interface PythonEnvironmentChangedEvent {
   pythonPath: string;
-  environmentVariables:  {
+  environmentVariables: {
     [key: string]: string | undefined;
-};
+  };
 }

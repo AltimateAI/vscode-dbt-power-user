@@ -1,18 +1,18 @@
 import { provide } from "inversify-binding-decorators";
 import {
   Analysis,
+  Exposure,
   GraphMetaMap,
   Model,
+  Node,
   NodeGraphMap,
   NodeMetaMap,
-  TestMetaMap,
   Seed,
+  Snapshot,
   Source,
   SourceMetaMap,
   Test,
-  Node,
-  Snapshot,
-  Exposure,
+  TestMetaMap,
 } from "../../domain";
 import { notEmpty } from "../../utils";
 
@@ -22,13 +22,12 @@ type DBTGraphType = {
 
 @provide(GraphParser)
 export class GraphParser {
-
   createGraphMetaMap(
     parentMap: DBTGraphType,
     childrenMap: DBTGraphType,
     nodeMetaMap: NodeMetaMap,
     sourceMetaMap: SourceMetaMap,
-    testMetaMap: TestMetaMap,
+    testMetaMap: TestMetaMap
   ): GraphMetaMap {
     const unique = (nodes: any[]) => Array.from(new Set(nodes));
 
@@ -59,7 +58,7 @@ export class GraphParser {
       (map, [nodeName, nodes]) => {
         const currentNodes = unique(nodes)
           .map(this.mapToNode(sourceMetaMap, nodeMetaMap, testMetaMap))
-          .filter((n) => (n instanceof Test))
+          .filter((n) => n instanceof Test)
           .filter(notEmpty);
         map.set(nodeName, { nodes: currentNodes });
         return map;
@@ -77,16 +76,19 @@ export class GraphParser {
   mapToNode(
     sourceMetaMap: SourceMetaMap,
     nodeMetaMap: NodeMetaMap,
-    testMetaMap: TestMetaMap,
+    testMetaMap: TestMetaMap
   ): (parentNodeName: string) => Node | undefined {
     return (parentNodeName) => {
       // Support dots in model names
-      const [nodeType, nodePackage, ...restNodeName] = parentNodeName.split(".");
-      const nodeName = restNodeName.join('.');
+      const [nodeType, nodePackage, ...restNodeName] =
+        parentNodeName.split(".");
+      const nodeName = restNodeName.join(".");
       switch (nodeType) {
         case "source": {
-          const [sourceName, tableName] = nodeName.split('.');
-          const url = sourceMetaMap.get(sourceName)?.tables.find(table => table.name === tableName)?.path!;
+          const [sourceName, tableName] = nodeName.split(".");
+          const url = sourceMetaMap
+            .get(sourceName)
+            ?.tables.find((table) => table.name === tableName)?.path!;
           return new Source(
             `${tableName} (${sourceName})`,
             parentNodeName,

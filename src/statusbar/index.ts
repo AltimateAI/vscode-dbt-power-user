@@ -1,14 +1,12 @@
 import { Disposable } from "vscode";
-import { VersionStatusBar } from "./versionStatusBar";
 import { provideSingleton } from "../utils";
+import { VersionStatusBar } from "./versionStatusBar";
 
 @provideSingleton(StatusBars)
 export class StatusBars implements Disposable {
   private disposables: Disposable[] = [];
 
-  constructor(
-    private dbtStatusBar: VersionStatusBar
-  ) {
+  constructor(private dbtStatusBar: VersionStatusBar) {
     this.disposables.push(this.dbtStatusBar);
   }
 

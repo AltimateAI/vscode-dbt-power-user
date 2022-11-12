@@ -1,9 +1,9 @@
 import { Uri } from "vscode";
 import {
-  NodeMetaMap,
-  MacroMetaMap,
-  SourceMetaMap,
   GraphMetaMap,
+  MacroMetaMap,
+  NodeMetaMap,
+  SourceMetaMap,
   TestMetaMap,
 } from "../../domain";
 

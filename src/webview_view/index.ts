@@ -6,9 +6,7 @@ import { QueryResultPanel } from "./queryResultPanel";
 export class WebviewViewProviders implements Disposable {
   private disposables: Disposable[] = [];
 
-  constructor(
-    private queryResultPanel: QueryResultPanel,
-  ) {
+  constructor(private queryResultPanel: QueryResultPanel) {
     this.disposables.push(
       window.registerWebviewViewProvider(
         QueryResultPanel.viewType,

@@ -2,19 +2,18 @@ import { closeSync, openSync, readSync } from "fs";
 import * as path from "path";
 import {
   Disposable,
+  Event,
   FileSystemWatcher,
   OutputChannel,
   RelativePattern,
   window,
   workspace,
-  Event,
 } from "vscode";
 import { provideSingleton, setupWatcherHandler } from "../../utils";
 import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 
 @provideSingleton(DBTProjectLogFactory)
 export class DBTProjectLogFactory {
-
   createDBTProjectLog(
     onProjectConfigChanged: Event<ProjectConfigChangedEvent>
   ) {
@@ -31,9 +30,7 @@ export class DBTProjectLog implements Disposable {
   private currentProjectName?: string;
   private disposables: Disposable[] = [];
 
-  constructor(
-    onProjectConfigChanged: Event<ProjectConfigChangedEvent>
-  ) {
+  constructor(onProjectConfigChanged: Event<ProjectConfigChangedEvent>) {
     this.disposables.push(
       onProjectConfigChanged((event) => this.onProjectConfigChanged(event))
     );

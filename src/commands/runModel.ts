@@ -49,12 +49,15 @@ export class RunModel {
       return;
     }
     const cursor = window.activeTextEditor.selection;
-    const query = window.activeTextEditor.document.getText(cursor.isEmpty ? undefined : cursor);
+    const query = window.activeTextEditor.document.getText(
+      cursor.isEmpty ? undefined : cursor
+    );
     const queryName =
-      "Results: "
-      + path.basename(window.activeTextEditor.document.uri.fsPath ?? "Ad Hoc")
-      + " " + (cursor.isEmpty ? "" : "(Ad Hoc) ")
-      + new Date().toTimeString().split(" ")[0];
+      "Results: " +
+      path.basename(window.activeTextEditor.document.uri.fsPath ?? "Ad Hoc") +
+      " " +
+      (cursor.isEmpty ? "" : "(Ad Hoc) ") +
+      new Date().toTimeString().split(" ")[0];
     this.executeSQL(window.activeTextEditor.document.uri, query, queryName);
   }
 
@@ -65,9 +68,12 @@ export class RunModel {
         return;
       }
       switch (type) {
-        case (RunModelType.TEST): {
+        case RunModelType.TEST: {
           if (model.label) {
-            this.runDBTTest(Uri.file(model.url), model.label.toString().split(".")[0]);
+            this.runDBTTest(
+              Uri.file(model.url),
+              model.label.toString().split(".")[0]
+            );
           }
           break;
         }
