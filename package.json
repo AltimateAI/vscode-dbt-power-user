@@ -122,10 +122,6 @@
     },
     "commands": [
       {
-        "command": "dbtPowerUser.changeTarget",
-        "title": "Change dbt profile"
-      },
-      {
         "command": "dbtPowerUser.runCurrentModel",
         "title": "Run dbt Model",
         "icon": "$(database)"
@@ -205,6 +201,11 @@
         "key": "Ctrl+'",
         "mac": "Cmd+'",
         "command": "dbtPowerUser.sqlPreview"
+      },
+      {
+        "key": "Ctrl+t",
+        "mac": "Cmd+t",
+        "command": "dbtPowerUser.testCurrentModel"
       }
     ],
     "menus": {
