@@ -53,10 +53,20 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
           ModelDefinitionProvider.IS_REF
         )
       );
+      const project = this.dbtProjectContainer.findDBTProject(document.uri);
+      if (!project) {
+        console.error("Could not load definition provider, project not found in container for " + document.uri.fsPath);
+        return;
+      }
       if (word !== undefined && hover !== "ref") {
         const dbtModel = word.match(ModelDefinitionProvider.GET_DBT_MODEL);
         if (dbtModel && dbtModel.length === 1) {
-          const definition = this.getDefinitionFor(dbtModel[0], document.uri);
+          const definition = this.getDefinitionFor(project.getProjectName(), dbtModel[0], document.uri);
+          resolve(definition);
+          return;
+        }
+        if (dbtModel && dbtModel.length === 3) {
+          const definition = this.getDefinitionFor(dbtModel[0], dbtModel[2], document.uri);
           resolve(definition);
           return;
         }
@@ -75,7 +85,8 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
   }
 
   private getDefinitionFor(
-    name: string,
+    projectName: string,
+    modelName: string,
     currentFilePath: Uri
   ): Definition | undefined {
     const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
@@ -88,7 +99,7 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
     if (nodeMap === undefined) {
       return;
     }
-    const location = nodeMap.get(name);
+    const location = nodeMap.get(modelName);
     if (location) {
       return new Location(Uri.file(location.path), new Range(0, 0, 999, 999));
     }
