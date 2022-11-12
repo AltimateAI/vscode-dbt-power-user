@@ -21,8 +21,6 @@ Please let us know about any bugs or feature requests through the github issues.
 
 This extension is sponsored by [innover.io](https://innover.io/).
 
-Query visualization and compilation is powered by [dbt-osmosis](https://pypi.org/project/dbt-osmosis/).
-
 ## Features at work
 
 ### Visualize the result set of your model (new)
