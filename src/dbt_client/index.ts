@@ -30,6 +30,9 @@ export class DBTClient implements Disposable {
     /latest.*:\s*(\d{1,2}\.\d{1,2}\.\d{1,2})/g;
   private static readonly IS_INSTALLED = /installed/g;
   public pythonPath?: string;
+  public envVars?: {
+    [key: string]: string | undefined;
+  };
   private dbtInstalled?: boolean;
   private disposables: Disposable[] = [
     this._onDBTInstallationVerificationEvent,
@@ -142,12 +145,17 @@ export class DBTClient implements Disposable {
     }
 
     const { args, cwd } = command.processExecutionParams!;
+    if (!this.pythonPath || !this.envVars) {
+      console.error("Could not launch command as python environment is not available");
+      return Promise.reject();
+    }
+
     return this.commandProcessExecutionFactory.createCommandProcessExecution(
-      this.pythonPath!,
+      this.pythonPath,
       args,
       cwd,
       token,
-      vscodeEnvVars()
+      this.envVars,
     );
   }
 
@@ -211,8 +219,10 @@ export class DBTClient implements Disposable {
   private async handlePythonExtension(): Promise<void> {
     const pythonEnvironment = await this.pythonEnvironment.getEnvironment();
     this.pythonPath = getPythonPathFromConfig() || pythonEnvironment.getPythonPath();
+    this.envVars = pythonEnvironment.getEnvVars();
     this._onPythonEnvironbmentChangedEvent.fire({
-      pythonPath: this.pythonPath
+      pythonPath: this.pythonPath,
+      environmentVariables: pythonEnvironment.getEnvVars(),
     });
     await this.checkAllInstalled();
   }
@@ -221,41 +231,3 @@ export class DBTClient implements Disposable {
 function getPythonPathFromConfig(): string | undefined {
   return workspace.getConfiguration("dbt").get<string>("dbtPythonPathOverride");
 }
-
-const parseEnvVarsFromUserSettings = (vsCodeEnv: { [k: string]: string }, regexVsCodeEnv: RegExp) => {
-  // TODO: add any other relevant variables, maybe workspacefolder?
-  return Object.keys(vsCodeEnv).reduce((prev: { [k: string]: string }, key: string) => {
-    const value = vsCodeEnv[key];
-    let matchResult;
-    while ((matchResult = regexVsCodeEnv.exec(value)) !== null) {
-      // This is necessary to avoid infinite loops with zero-width matches
-      if (matchResult.index === regexVsCodeEnv.lastIndex) {
-        regexVsCodeEnv.lastIndex++;
-      }
-      if (process.env[matchResult[1]] !== undefined) {
-        prev[key] = prev[key].replace(new RegExp(`\\\$\\\{env\\\:${matchResult[1]}\\\}`, "gm"), process.env[matchResult[1]]!);
-      }
-    }
-    return prev;
-  }, vsCodeEnv);
-};
-
-export const vscodeEnvVars = () => {
-  const configText = workspace.getConfiguration();
-  const config = JSON.parse(JSON.stringify(configText));
-  let envVars = {};
-  if (config.terminal !== undefined && config.terminal.integrated !== undefined && config.terminal.integrated.env !== undefined) {
-    const env = config.terminal.integrated.env;
-    // parse vs code environment variables
-    const regexVsCodeEnv = /\$\{env\:(.*?)\}/gm;
-    for (let prop in env) {
-      const vsCodeEnv = env[prop];
-      envVars = {
-        ...process.env,
-        ...envVars,
-        ...parseEnvVarsFromUserSettings(vsCodeEnv, regexVsCodeEnv)
-      };
-    }
-  }
-  return envVars;
-};

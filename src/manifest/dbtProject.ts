@@ -32,7 +32,6 @@ import { join } from "path";
 import { QueryResultPanel } from "../webview_view/queryResultPanel";
 import { PythonEnvironmentChangedEvent } from "../dbt_client/pythonEnvironmentChangedEvent";
 import { PythonBridge, pythonBridge, PythonException } from "python-bridge";
-import { vscodeEnvVars } from "../dbt_client";
 
 export interface ExecuteSQLResult {
   table: {
@@ -89,7 +88,10 @@ export class DBTProject implements Disposable {
     path: Uri,
     projectConfig: any,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
-    pythonPath: string,
+    private pythonPath: string,
+    private envVars: {
+      [key: string]: string | undefined;
+    }
   ) {
     this.projectRoot = path;
     this.dbtProfilesDir = workspace.getConfiguration("dbt").get<string>("profilesDirOverride")
@@ -130,14 +132,16 @@ export class DBTProject implements Disposable {
       this.sourceFileWatchers,
       this.dbtProjectLog,
     );
-    this.initializePythonBridge(pythonPath);
+    this.initializePythonBridge(this.pythonPath, this.envVars);
   }
 
   public getProjectName() {
     return this.projectName;
   }
 
-  private async initializePythonBridge(pythonPath: string) {
+  private async initializePythonBridge(pythonPath: string, envVars: {
+    [key: string]: string | undefined;
+  }) {
     if (this.python !== undefined) {
       // Python env has changed
       this.pythonBridgeInitialized = false;
@@ -147,7 +151,7 @@ export class DBTProject implements Disposable {
       python: pythonPath,
       cwd: this.projectRoot.fsPath,
       env: {
-        ...vscodeEnvVars(),
+        ...envVars,
         PYTHONPATH: __dirname,
       },
       detached: true,
@@ -176,7 +180,7 @@ export class DBTProject implements Disposable {
   }
 
   private async onPythonEnvironmentChanged(event: PythonEnvironmentChangedEvent) {
-    this.initializePythonBridge(event.pythonPath);
+    this.initializePythonBridge(event.pythonPath, event.environmentVariables);
   }
 
   private async tryRefresh() {

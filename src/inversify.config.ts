@@ -21,7 +21,10 @@ container
     return (
       workspaceFolder: WorkspaceFolder,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
-      pythonPath: string
+      pythonPath: string,
+      envVars: {
+        [key: string]: string | undefined;
+      }
     ) => {
       const { container } = context;
       return new DBTWorkspaceFolder(
@@ -29,6 +32,7 @@ container
         workspaceFolder,
         _onManifestChanged,
         pythonPath,
+        envVars
       );
     };
   });
@@ -40,7 +44,10 @@ container
       path: Uri,
       projectConfig: any,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
-      pythonPath: string
+      pythonPath: string,
+      envVars: {
+        [key: string]: string | undefined;
+      }
     ) => {
       const { container } = context;
       return new DBTProject(
@@ -55,6 +62,7 @@ container
         projectConfig,
         _onManifestChanged,
         pythonPath,
+        envVars
       );
     };
   });

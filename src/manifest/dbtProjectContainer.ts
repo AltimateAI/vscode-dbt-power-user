@@ -34,7 +34,10 @@ export class DBTProjectContainer implements Disposable {
     private dbtWorkspaceFolderFactory: (
       workspaceFolder: WorkspaceFolder,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
-      pythonPath: string,
+      pythonPath?: string,
+      envVars?: {
+        [key: string]: string | undefined;
+      }
     ) => DBTWorkspaceFolder,
   ) {
     // Workspace Folder Registrar
@@ -162,7 +165,8 @@ export class DBTProjectContainer implements Disposable {
     const dbtProjectWorkspaceFolder = this.dbtWorkspaceFolderFactory(
       workspaceFolder,
       this._onManifestChanged,
-      this.dbtClient.pythonPath!, // TODO: better error resolving
+      this.dbtClient.pythonPath!,
+      this.dbtClient.envVars!,
     );
     this.dbtWorkspaceFolders.push(dbtProjectWorkspaceFolder);
     await dbtProjectWorkspaceFolder.discoverProjects();

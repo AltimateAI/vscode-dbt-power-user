@@ -13,7 +13,6 @@ import * as path from "path";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { inject } from "inversify";
 import { statSync } from "fs";
-import { vscodeEnvVars } from "../dbt_client";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
@@ -27,10 +26,16 @@ export class DBTWorkspaceFolder implements Disposable {
       projectConfig: any,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
       pythonPath: string,
+      envVars: {
+        [key: string]: string | undefined;
+      }
     ) => DBTProject,
     private workspaceFolder: WorkspaceFolder,
     private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
-    private pythonPath: string
+    private pythonPath: string,
+    private envVars: {
+      [key: string]: string | undefined;
+    }
   ) {
     this.watcher = this.createConfigWatcher();
     this.disposables.push(this.watcher);
@@ -78,6 +83,7 @@ export class DBTWorkspaceFolder implements Disposable {
       DBTProject.readAndParseProjectConfig(uri),
       this._onManifestChanged,
       this.pythonPath,
+      this.envVars,
     );
     this.dbtProjects.push(dbtProject);
   }
