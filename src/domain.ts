@@ -16,6 +16,7 @@ interface NodeMetaData {
   database: string;
   schema: string;
   alias: string;
+  package_name: string;
 }
 
 interface SourceMetaData {

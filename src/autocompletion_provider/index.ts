@@ -21,14 +21,12 @@ export class AutocompletionProviders implements Disposable {
       languages.registerCompletionItemProvider(
         DBTPowerUserExtension.DBT_MODE,
         this.modelAutocompletionProvider,
-        "'",
-        '"'
+        '.', '(', '"', "'"
       ),
       languages.registerCompletionItemProvider(
         DBTPowerUserExtension.DBT_MODE,
         this.sourceAutocompletionProvider,
-        "'",
-        '"'
+        '.', '(', '"', "'"
       ),
     );
   }

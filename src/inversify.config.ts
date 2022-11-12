@@ -38,6 +38,7 @@ container
   .toFactory<DBTProject>((context: interfaces.Context) => {
     return (
       path: Uri,
+      projectConfig: any,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
       pythonPath: string
     ) => {
@@ -51,6 +52,7 @@ container
         container.get(DBTTerminal),
         container.get(QueryResultPanel),
         path,
+        projectConfig,
         _onManifestChanged,
         pythonPath,
       );

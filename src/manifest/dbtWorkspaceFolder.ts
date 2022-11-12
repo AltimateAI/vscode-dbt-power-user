@@ -24,6 +24,7 @@ export class DBTWorkspaceFolder implements Disposable {
     @inject("DBTProjectFactory")
     private dbtProjectFactory: (
       path: Uri,
+      projectConfig: any,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
       pythonPath: string,
     ) => DBTProject,
@@ -58,7 +59,7 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   contains(uri: Uri) {
-    return uri.fsPath.startsWith(this.workspaceFolder.uri.fsPath + path.sep);
+    return uri.fsPath === this.workspaceFolder.uri.fsPath || uri.fsPath.startsWith(this.workspaceFolder.uri.fsPath + path.sep);
   }
 
   dispose() {
@@ -74,6 +75,7 @@ export class DBTWorkspaceFolder implements Disposable {
   private async registerDBTProject(uri: Uri) {
     const dbtProject = this.dbtProjectFactory(
       uri,
+      DBTProject.readAndParseProjectConfig(uri),
       this._onManifestChanged,
       this.pythonPath,
     );

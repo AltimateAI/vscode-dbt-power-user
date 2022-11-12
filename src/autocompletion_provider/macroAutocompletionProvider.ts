@@ -56,7 +56,12 @@ implements CompletionItemProvider, Disposable {
       this.macrosAutocompleteMap.set(
         added.projectRoot.fsPath,
         Array.from(added.macroMetaMap.keys()).map(
-          (macro) => new CompletionItem(macro, CompletionItemKind.File)
+          (macro) => ({
+            label: macro,
+            insertText: macro,
+            kind: CompletionItemKind.Value,
+            detail: 'Macro',
+          })
         )
       );
     });

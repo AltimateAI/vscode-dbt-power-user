@@ -74,7 +74,8 @@ implements CompletionItemProvider, Disposable {
       linePrefix.match(SourceAutocompletionProvider.GET_SOURCE_NAME) &&
       linePrefix.includes("source")
     ) {
-      return this.showTableNameAutocompletionItems(linePrefix, projectRootpath);
+      const autoCompleteItems = this.showTableNameAutocompletionItems(linePrefix, projectRootpath);
+      return autoCompleteItems;
     }
     return undefined;
   }

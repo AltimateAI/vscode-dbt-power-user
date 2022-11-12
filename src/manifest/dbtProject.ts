@@ -64,10 +64,10 @@ export class DBTProject implements Disposable {
 
   readonly projectRoot: Uri;
   readonly dbtProfilesDir: string; // vscode.Uri doesn't support relative urls
-  private projectName?: string;
-  private targetPath?: string;
-  private sourcePaths?: string[];
-  private macroPaths?: string[];
+  private projectName: string;
+  private targetPath: string;
+  private sourcePaths: string[];
+  private macroPaths: string[];
   private python?: PythonBridge;
   private pythonBridgeInitialized = false;
 
@@ -87,6 +87,7 @@ export class DBTProject implements Disposable {
     private terminal: DBTTerminal,
     private queryResultPanel: QueryResultPanel,
     path: Uri,
+    projectConfig: any,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
     pythonPath: string,
   ) {
@@ -95,6 +96,10 @@ export class DBTProject implements Disposable {
     || process.env.DBT_PROFILES_DIR
     || join(os.homedir(), ".dbt");
     this.dbtProfilesDir = this.dbtProfilesDir.replace('\~', os.homedir());
+    this.projectName = projectConfig.name;
+    this.targetPath = this.findTargetPath(projectConfig);
+    this.sourcePaths = this.findSourcePaths(projectConfig);
+    this.macroPaths = this.findMacroPaths(projectConfig);
 
     const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(path, DBTProject.DBT_PROJECT_FILE)
@@ -126,6 +131,10 @@ export class DBTProject implements Disposable {
       this.dbtProjectLog,
     );
     this.initializePythonBridge(pythonPath);
+  }
+
+  public getProjectName() {
+    return this.projectName;
   }
 
   private async initializePythonBridge(pythonPath: string) {
@@ -195,7 +204,7 @@ export class DBTProject implements Disposable {
   }
 
   contains(uri: Uri) {
-    return uri.fsPath.startsWith(this.projectRoot.fsPath + path.sep);
+    return uri.fsPath === uri.fsPath || uri.fsPath.startsWith(this.projectRoot.fsPath + path.sep);
   }
 
   private async rebuildManifest() {
@@ -314,13 +323,14 @@ export class DBTProject implements Disposable {
     }
   }
 
-  private readAndParseProjectConfig() {
-    const dbtProjectConfigLocation = path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE);
+  static readAndParseProjectConfig(projectRoot: Uri) {
+    const dbtProjectConfigLocation = path.join(projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE);
     const dbtProjectYamlFile = readFileSync(dbtProjectConfigLocation, "utf8");
     try {
       return parse(dbtProjectYamlFile, { uniqueKeys: false });
+      // TODO: any validation logic could go here to skip a project
     } catch (error: any) {
-      window.showErrorMessage(`Could not parse dbt_project_config.yml at '${dbtProjectConfigLocation}': ${error}`);
+      window.showErrorMessage(`Skipping project: could not parse dbt_project_config.yml at '${dbtProjectConfigLocation}': ${error}`);
       throw error;
     }
   }
@@ -378,7 +388,7 @@ export class DBTProject implements Disposable {
   }
 
   private async refresh() {
-    const projectConfig = this.readAndParseProjectConfig();
+    const projectConfig = DBTProject.readAndParseProjectConfig(this.projectRoot);
     this.projectName = projectConfig.name;
     this.targetPath = this.findTargetPath(projectConfig);
     this.sourcePaths = this.findSourcePaths(projectConfig);
