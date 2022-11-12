@@ -1,0 +1,241 @@
+{
+  "block": {
+      "prefix": "block",
+      "body": [
+          "{% block ${1:name} %}",
+          "  $2",
+          "{% endblock %}"
+      ],
+      "description": "Block"
+  },
+  "inline block": {
+      "prefix": "inblock",
+      "body": [
+          "{% $1 %}"
+      ],
+      "description": "Inline Block"
+  },
+  "Comment": {
+      "prefix": "comment",
+      "body": [
+          "{#- $1 -#}"
+      ],
+      "description": "Inline Comment"
+  },
+  "Complete Variable": {
+      "prefix": "cvar",
+      "body": [
+          "{{ $1 }}"
+      ],
+      "description": "Complete Variable"
+  },
+  "Do": {
+      "prefix": "do",
+      "body": [
+          "{% do $1 %}"
+      ],
+      "description": "Jinja Do"
+  },
+  "Filter": {
+      "prefix": "filter",
+      "body": [
+          "{% filter ${1:filter} %}",
+          "  $2",
+          "{% endfilter %}"
+      ],
+      "description": "Jinja Filter"
+  },
+  "For": {
+      "prefix": "for",
+      "body": [
+          "{% for ${1:item} in ${2:sequence} %}",
+          "  $3",
+          "{% endfor %}"
+      ],
+      "description": "Jinja For"
+  },
+  "For (Dict)": {
+      "prefix": "for dict",
+      "body": [
+          "{% for ${1:key}, ${2:value} in ${3:dict}.items() %}",
+          "  $4",
+          "{% endfor %}"
+      ],
+      "description": "Jinja For (Dict)"
+  },
+  "For (List)": {
+      "prefix": "for list",
+      "body": [
+          "{% for ${1:item} in [${2:list}] %}",
+          "  $3",
+          "{% endfor %}"
+      ],
+      "description": "Jinja For (List)"
+  },
+  "If": {
+      "prefix": "if",
+      "body": [
+          "{% if ${1:expr} %}",
+          "  $2",
+          "{% endif %}"
+      ],
+      "description": "Jinja If"
+  },
+  "Macro": {
+      "prefix": "macro",
+      "body": [
+          "{% macro ${1:name}(${2:args}) %}",
+          "  $3",
+          "{% endmacro %}"
+      ],
+      "description": "Jinja macro"
+  },
+  "Set": {
+      "prefix": "set",
+      "body": "{% set ${1:var} = ${2:value} %}",
+      "description": "Jinja set variable"
+  },
+  "Set Block": {
+      "prefix": "set_block",
+      "body": [
+          "{% set ${1:name} %}",
+          "  $2",
+          "{% endset %}"
+      ]
+  },
+  "Snapshot": {
+      "prefix": [
+          "snapshot",
+          "snap"
+      ],
+      "body": [
+          "{% snapshot ${1:snapshot_name} %}",
+          "",
+          "{{",
+          "   config(",
+          "       target_database='${2:target_database}',",
+          "       target_schema='${3:target_schema}',",
+          "       unique_key='${4:unique_key}',",
+          "",
+          "       strategy='${5:strategy}',",
+          "       updated_at='${6:updated_at}',",
+          "   )",
+          "}}",
+          "",
+          "",
+          "{% endsnapshot %}"
+      ],
+      "description": "Dbt snapshot"
+  },
+  "Dbt Config Block": {
+      "prefix": "config",
+      "body": [
+          "{{",
+          "  config(",
+          "    materialized = '${1:table}',",
+          "    )",
+          "}}"
+      ],
+      "description": "Dbt Config Block"
+  },
+  "Dbt Incremental Config Block": {
+      "prefix": "config_incremental",
+      "body": [
+          "{{",
+          "  config(",
+          "    materialized = 'incremental',",
+          "    unique_key = '${1:id}',",
+          "    )",
+          "}}"
+      ],
+      "description": "Dbt Incremental Config Block"
+  },
+  "Env Var": {
+      "prefix": "env_var",
+      "body": [
+          "{{ env_var(\"${1:env_var_name}\") }}"
+      ],
+      "description": "Env Var"
+  },
+  "Model Overview": {
+      "prefix": "model_overview",
+      "body": [
+          "{#-",
+          "Goal: ${1:high-level objective of the model}",
+          "Granularity: ${2:level of detail of the model}",
+          "Assumptions/Caveats:",
+          "   ${3:- assumptions/caveats if any}",
+          "-#}"
+      ],
+      "description": "Model Overview"
+  },
+  "Load Result": {
+      "prefix": "load_result",
+      "body": [
+          "load_result('${1:statement_name}')"
+      ],
+      "description": "Load Result"
+  },
+  "Log": {
+      "prefix": "log",
+      "body": [
+          "{{ log(${1:var}, info=${2|True,False|}) }}"
+      ],
+      "description": "Log"
+  },
+  "Log a variable": {
+      "prefix": "log_var",
+      "body": [
+          "{{ log('${1:var}: ' ~ ${1:var}, info=${2|True,False|}) }}"
+      ],
+      "description": "Log a single variable's name and value"
+  },
+  "Statement": {
+      "prefix": "statement",
+      "body": [
+          "{% call statement(${1:name}, fetch_result=${2|True,False|}) %}",
+          "  ${3:select 1}",
+          "{% endcall %}"
+      ],
+      "description": "Statement"
+  },
+  "Ref": {
+      "prefix": "ref",
+      "body": [
+          "{{ ref('${1:model_name}') }}"
+      ],
+      "description": "Ref"
+  },
+  "Return": {
+      "prefix": "return",
+      "body": [
+          "{{ return(${1}) }}"
+      ],
+      "description": "Return"
+  },
+  "Var": {
+      "prefix": "var",
+      "body": [
+          "{{ var('${1:var_name}') }}"
+      ],
+      "description": "Var"
+  },
+  "Source": {
+      "prefix": "source",
+      "body": [
+          "{{ source('${1:source}', '${2:table_name}') }}"
+      ],
+      "description": "Source"
+  },
+  "Incremental DBT block": {
+      "prefix": "is_incremental",
+      "body": [
+          "{% if is_incremental() %}",
+          "  and ${1:prefix}.${2:date_col} >= coalesce((select max(${2:date_col}) from {{ this }}), '1900-01-01')",
+          "{% else %}",
+          "  ${3:optional_cond}",
+          "{% endif %}"
+      ],
+      "description": "Incremental DBT Block"
+  }
+}

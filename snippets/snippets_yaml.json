@@ -1,0 +1,37 @@
+{
+  "Doc": {
+      "prefix": "doc",
+      "body": [
+          "{{ doc('${1:docs_name}') }}"
+      ],
+      "description": "Doc"
+  },
+  "Env Var": {
+      "prefix": "env_var",
+      "body": [
+          "{{ env_var('${1:env_var_name}') }}"
+      ],
+      "description": "Env Var"
+  },
+  "Ref": {
+      "prefix": "ref",
+      "body": [
+          "ref('${1:model_name}')"
+      ],
+      "description": "Ref"
+  },
+  "Source": {
+      "prefix": "source",
+      "body": [
+          "source('${1:source}', '${2:table_name}')"
+      ],
+      "description": "Source"
+  },
+  "Var": {
+      "prefix": "var",
+      "body": [
+          "{{ var('${1:var_name}') }}"
+      ],
+      "description": "Var"
+  }
+}
