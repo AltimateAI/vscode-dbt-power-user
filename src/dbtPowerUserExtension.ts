@@ -1,5 +1,6 @@
 import { Disposable, ExtensionContext } from "vscode";
 import { AutocompletionProviders } from "./autocompletion_provider";
+import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";
 import { ContentProviders } from "./content_provider";
 import { DefinitionProviders } from "./definition_provider";
@@ -11,10 +12,12 @@ import { WebviewViewProviders } from "./webview_view";
 
 @provideSingleton(DBTPowerUserExtension)
 export class DBTPowerUserExtension implements Disposable {
-  static DBT_MODE = [
+  static DBT_SQL_SELECTOR = [
     { language: "jinja-sql", scheme: "file" },
     { language: "sql", scheme: "file" },
   ];
+  static DBT_YAML_SELECTOR = { language: "yaml", scheme: "file" };
+
   private disposables: Disposable[] = [];
 
   constructor(
@@ -25,6 +28,7 @@ export class DBTPowerUserExtension implements Disposable {
     private vscodeCommands: VSCodeCommands,
     private treeviewProviders: TreeviewProviders,
     private contentProviders: ContentProviders,
+    private codeLensProviders: CodeLensProviders,
     private statusBars: StatusBars
   ) {
     this.disposables.push(
@@ -34,13 +38,19 @@ export class DBTPowerUserExtension implements Disposable {
       this.autocompletionProviders,
       this.treeviewProviders,
       this.contentProviders,
+      this.codeLensProviders,
       this.vscodeCommands,
       this.statusBars
     );
   }
 
   dispose() {
-    this.disposables.forEach((disposable) => disposable.dispose());
+    while (this.disposables.length) {
+      const x = this.disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
   }
 
   async activate(context: ExtensionContext): Promise<void> {

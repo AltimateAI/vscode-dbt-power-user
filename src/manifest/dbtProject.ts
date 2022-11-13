@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync } from "fs";
 import * as os from "os";
 import * as path from "path";
 import { join } from "path";
@@ -328,6 +328,60 @@ export class DBTProject implements Disposable {
 
   showRunSQL(modelPath: Uri) {
     this.findModelInTargetfolder(modelPath, "run");
+  }
+
+  async generateModel(
+    sourceName: string,
+    database: string,
+    schema: string,
+    tableName: string
+  ) {
+    await this.blockUntilPythonBridgeIsInitalized();
+    if (!this.pythonBridgeInitialized) {
+      window.showErrorMessage(
+        "Could not execute query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue."
+      );
+      throw Error("Could not initialize Python bridge");
+    }
+    try {
+      const modelPath = path.join(this.projectRoot.fsPath, this.sourcePaths[0]);
+      const location = path.join(modelPath, tableName + ".sql");
+      if (!existsSync(location)) {
+        const columnsInRelation = (await this.python?.lock(
+          (python) =>
+            python!`to_dict(project.get_columns_in_relation(project.create_relation(${database}, ${schema}, ${tableName})))`
+        )) as any[];
+        console.log(columnsInRelation);
+
+        const fileContents = `with source as (
+      select * from {{ source('${sourceName}', '${tableName}') }}
+),
+renamed as (
+    select
+        ${columnsInRelation.map((column) => column.column).join(",\n        ")}
+
+    from source
+)
+select * from renamed
+  `;
+        writeFileSync(location, fileContents);
+        const doc = await workspace.openTextDocument(Uri.file(location));
+        window.showTextDocument(doc);
+      } else {
+        window.showErrorMessage(
+          `A model called ${tableName} already exists in ${modelPath}. If you want to generate the model, please rename the other model or delete it if you want to generate the model again.`
+        );
+      }
+    } catch (exc: any) {
+      if (exc instanceof PythonException) {
+        window.showErrorMessage(
+          "An error occured while trying to generate the model " +
+            exc.exception.message
+        );
+      }
+      // Unknown error
+      window.showErrorMessage(exc);
+    }
   }
 
   async executeSQL(query: string) {

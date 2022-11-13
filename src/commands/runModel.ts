@@ -1,5 +1,6 @@
 import path = require("path");
 import { Uri, window } from "vscode";
+import { GenerateModelFromSourceParams } from "../code_lens_provider/sourceModelCreationCodeLensProvider";
 import { RunModelType } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { NodeTreeItem } from "../treeview_provider/modelTreeviewProvider";
@@ -131,5 +132,21 @@ export class RunModel {
 
   showRunSQL(modelPath: Uri) {
     this.dbtProjectContainer.showRunSQL(modelPath);
+  }
+
+  createModelBasedonSourceConfig(params: GenerateModelFromSourceParams) {
+    const project = this.dbtProjectContainer.findDBTProject(params.currentDoc);
+    if (project) {
+      project.generateModel(
+        params.sourceName,
+        params.database,
+        params.schema,
+        params.tableName
+      );
+    } else {
+      window.showErrorMessage(
+        "Could not generate model! If error persists please create a Github issue."
+      );
+    }
   }
 }

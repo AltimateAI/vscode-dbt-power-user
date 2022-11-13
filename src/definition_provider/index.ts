@@ -16,15 +16,15 @@ export class DefinitionProviders implements Disposable {
   ) {
     this.disposables.push(
       languages.registerDefinitionProvider(
-        DBTPowerUserExtension.DBT_MODE,
+        DBTPowerUserExtension.DBT_SQL_SELECTOR,
         this.modelDefinitionProvider
       ),
       languages.registerDefinitionProvider(
-        DBTPowerUserExtension.DBT_MODE,
+        DBTPowerUserExtension.DBT_SQL_SELECTOR,
         this.macroDefinitionProvider
       ),
       languages.registerDefinitionProvider(
-        DBTPowerUserExtension.DBT_MODE,
+        DBTPowerUserExtension.DBT_SQL_SELECTOR,
         this.sourceDefinitionProvider
       )
     );

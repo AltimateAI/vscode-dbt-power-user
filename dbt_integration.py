@@ -476,9 +476,9 @@ class DbtProject:
         """Wrapper for `adapter.Relation.create_from`"""
         return self.adapter.Relation.create_from(self.config, node)
 
-    def get_columns_in_relation(self, node: ManifestNode) -> List[str]:
+    def get_columns_in_relation(self, relation: BaseRelation) -> List[str]:
         """Wrapper for `adapter.get_columns_in_relation`"""
-        return self.adapter.get_columns_in_relation(self.create_relation_from_node(node))
+        return self.adapter.get_columns_in_relation(relation)
 
     @lru_cache(maxsize=5)
     def get_columns(self, node: ManifestNode) -> List[ColumnInfo]:
