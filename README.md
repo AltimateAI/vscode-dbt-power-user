@@ -1,10 +1,11 @@
 # vscode-dbt-power-user
 
-![Last updated](https://img.shields.io/visual-studio-marketplace/last-updated/innoverio.vscode-dbt-power-user) ![Version](https://img.shields.io/visual-studio-marketplace/v/innoverio.vscode-dbt-power-user) ![Installs](https://img.shields.io/visual-studio-marketplace/i/innoverio.vscode-dbt-power-user) ![Build passing](https://github.com/innoverio/vscode-dbt-power-user/workflows/.github/workflows/ci.yml/badge.svg) 
+![Last updated](https://img.shields.io/visual-studio-marketplace/last-updated/innoverio.vscode-dbt-power-user) ![Version](https://img.shields.io/visual-studio-marketplace/v/innoverio.vscode-dbt-power-user) ![Installs](https://img.shields.io/visual-studio-marketplace/i/innoverio.vscode-dbt-power-user) ![Build passing](https://github.com/innoverio/vscode-dbt-power-user/workflows/.github/workflows/ci.yml/badge.svg)
 
 This extension makes vscode seamlessly work with [dbt](https://www.getdbt.com/).
 
 Main features:
+
 - Query result set visualization
 - Execute all or individual model tests
 - Go to the definition of any models, macro's and sources.
@@ -21,13 +22,45 @@ Please let us know about any bugs or feature requests through the github issues.
 
 This extension is sponsored by [innover.io](https://innover.io/).
 
+## How to setup the extension
+
+### Associate your .sql files the jinja-sql language
+
+You should associate your .sql files with the jinja-sql language by configuring in Preferences > Settings
+
+![Associations](./media/images/associations.png)
+
+or add the following in settings.json:
+
+```
+    "files.associations": {
+        "*.sql": "jinja-sql"
+    },
+```
+
+### Select the Python interpreter that has dbt installed
+
+Ensure that the Python interpreter selection is always visible for ease of use:
+
+![Enable python interpreter selection](./media/images/enable-python-interpreter-visibility.gif)
+
+Make sure that you select the interpreter that has dbt installed. In my case it is virtual environment in the project itself.
+
+![Select the right python interpreter](./media/images/select-python-interpreter.gif)
+
+Avoid using the setting `dbt.dbtPythonPathOverride` unless using Meltano, the extension depends on the Python interpreter for visual code compatible environment variable parsing.
+
 ## Features at work
 
-### Visualize the result set of your model (new)
+### Generate a model from your source defintion (new)
+
+![Generate a model from your source definition](./media/images/generate-model-from-source.gif)
+
+### Visualize the result set of your model
 
 ![Use ctrl+enter or cmd+enter to retrieve the result set of your model](./media/images/visualize-result-set.gif)
 
-### See the compiled query of your model (new)
+### See the compiled query of your model
 
 ![Use ctrl+' or cmd+' to see the compiled sql of your model](./media/images/compile.gif)
 
@@ -58,19 +91,3 @@ This extension is sponsored by [innover.io](https://innover.io/).
 ### dbt logs force tailing
 
 ![dbt logs](./media/images/dbt-log.gif)
-
-
-
-## How to use the extension
-
-You should associate your .sql files with the jinja-sql language by configuring in Preferences > Settings
-
-![Associations](./media/images/associations.png)
-
-or add the following in settings.json:
-
-```
-    "files.associations": {
-        "*.sql": "jinja-sql"
-    },
-```
