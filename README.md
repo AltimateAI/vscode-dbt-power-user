@@ -6,6 +6,7 @@ This extension makes vscode seamlessly work with [dbt](https://www.getdbt.com/).
 
 Main features:
 
+- Generate models from your source definitions
 - Query result set visualization
 - Execute all or individual model tests
 - Go to the definition of any models, macro's and sources.
@@ -21,6 +22,8 @@ This extension is fully compatible with the remote extension. See [Visual Studio
 Please let us know about any bugs or feature requests through the github issues.
 
 This extension is sponsored by [innover.io](https://innover.io/).
+
+If you want to contribute to the extension, let us know and we will help set you up.
 
 ## How to setup the extension
 
@@ -49,6 +52,8 @@ Make sure that you select the interpreter that has dbt installed. In my case it 
 ![Select the right python interpreter](./media/images/select-python-interpreter.gif)
 
 Avoid using the setting `dbt.dbtPythonPathOverride` unless using Meltano, the extension depends on the Python interpreter for visual code compatible environment variable parsing.
+
+When you set the Python interpreter, the extension will try to detect dbt and you should be able to make use of the features listed below.
 
 ## Features at work
 
