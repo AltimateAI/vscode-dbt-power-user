@@ -55,12 +55,6 @@ Avoid using the setting `dbt.dbtPythonPathOverride` unless using Meltano, the ex
 
 When you set the Python interpreter, the extension will try to detect dbt and you should be able to make use of the features listed below.
 
-#### Windows specific when using virtual environments
-
-There is a difference between python.exe and pythonw.exe. It is important to select pythonw.exe.
-
-![Use pythonw.exe on Windows](./media/images/pythonw.png)
-
 ## Features at work
 
 ### Generate a model from your source defintion (new)
