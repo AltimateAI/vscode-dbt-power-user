@@ -163,6 +163,13 @@ export class DBTProject implements Disposable {
       this.pythonBridgeInitialized = false;
       this.python.end();
     }
+    if (pythonPath.endsWith("python.exe")) {
+      // replace python.exe with pythonw.exe if path exists
+      const pythonwPath = pythonPath.replace("python.exe", "pythonw.exe");
+      if (existsSync(pythonwPath)) {
+        pythonPath = pythonwPath;
+      }
+    }
     this.python = pythonBridge({
       python: pythonPath,
       cwd: this.projectRoot.fsPath,
