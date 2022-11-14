@@ -61,6 +61,17 @@ export class DBTWorkspaceFolder implements Disposable {
         `dbt Power User detected ${projectFiles.length} projects in your work space, this will negatively affect performance.`
       );
     }
+    for (let i = 0; i < projectFiles.length; i++) {
+      for (let j = 0; j < projectFiles.length; j++) {
+        if (j !== i) {
+          if (projectFiles[i].fsPath.startsWith(projectFiles[j].fsPath)) {
+            window.showWarningMessage(
+              `dbt Power User detected a project located in ${projectFiles[j]} that is contained inside another project ${projectFiles[j]}. This is an unsupported configuration. If you believe this is a valid configuration, please open a github issue.`
+            );
+          }
+        }
+      }
+    }
     return projectFiles.forEach((uri) => this.registerDBTProject(uri));
   }
 

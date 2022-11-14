@@ -100,10 +100,15 @@ export class DBTProject implements Disposable {
       process.env.DBT_PROFILES_DIR ||
       join(os.homedir(), ".dbt");
     this.dbtProfilesDir = this.dbtProfilesDir.replace("~", os.homedir());
+    console.log("Using profile directory " + this.dbtProfilesDir);
     this.projectName = projectConfig.name;
     this.targetPath = this.findTargetPath(projectConfig);
     this.sourcePaths = this.findSourcePaths(projectConfig);
     this.macroPaths = this.findMacroPaths(projectConfig);
+
+    console.log(
+      `Registering project ${this.projectName} at ${this.projectRoot}`
+    );
 
     const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(path, DBTProject.DBT_PROJECT_FILE)
