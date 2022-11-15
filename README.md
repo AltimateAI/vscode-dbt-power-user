@@ -61,15 +61,15 @@ When you set the Python interpreter, the extension will try to detect dbt and yo
 
 ![Generate a model from your source definition](./media/images/generate-model-from-source.gif)
 
-### Visualize the result set of your model
+### Visualize the result set of your model (Use CMD+ENTER (mac) or CTRL+ENTER (win))
 
 ![Use ctrl+enter or cmd+enter to retrieve the result set of your model](./media/images/visualize-result-set.gif)
 
-### See the compiled query of your model
+### See the compiled query of your model (Use CMD+' (mac) or CTRL+' (win))
 
 ![Use ctrl+' or cmd+' to see the compiled sql of your model](./media/images/compile.gif)
 
-### Execute model tests (new)
+### Execute model tests
 
 ![Test your model](./media/images/tests.gif)
 

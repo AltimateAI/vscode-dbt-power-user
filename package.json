@@ -215,11 +215,6 @@
         "key": "Ctrl+'",
         "mac": "Cmd+'",
         "command": "dbtPowerUser.sqlPreview"
-      },
-      {
-        "key": "Ctrl+t",
-        "mac": "Cmd+t",
-        "command": "dbtPowerUser.testCurrentModel"
       }
     ],
     "menus": {
