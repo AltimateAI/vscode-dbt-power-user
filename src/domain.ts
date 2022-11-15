@@ -110,3 +110,7 @@ export enum RunModelType {
   TEST,
   SNAPSHOT,
 }
+
+export interface EnvironmentVariables {
+  [key: string]: string | undefined;
+}

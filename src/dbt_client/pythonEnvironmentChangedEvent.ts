@@ -1,6 +1,6 @@
+import { EnvironmentVariables } from "../domain";
+
 export interface PythonEnvironmentChangedEvent {
   pythonPath: string;
-  environmentVariables: {
-    [key: string]: string | undefined;
-  };
+  environmentVariables: EnvironmentVariables;
 }

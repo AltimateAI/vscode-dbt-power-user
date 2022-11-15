@@ -3,6 +3,7 @@ import { buildProviderModule } from "inversify-binding-decorators";
 import { EventEmitter, Uri, WorkspaceFolder } from "vscode";
 import { DBTCommandFactory } from "./dbt_client/dbtCommandFactory";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
+import { EnvironmentVariables } from "./domain";
 import { DBTProject } from "./manifest/dbtProject";
 import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
 import { DBTWorkspaceFolder } from "./manifest/dbtWorkspaceFolder";
@@ -22,9 +23,7 @@ container
       workspaceFolder: WorkspaceFolder,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
       pythonPath: string,
-      envVars: {
-        [key: string]: string | undefined;
-      }
+      envVars: EnvironmentVariables
     ) => {
       const { container } = context;
       return new DBTWorkspaceFolder(
@@ -45,9 +44,7 @@ container
       projectConfig: any,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
       pythonPath: string,
-      envVars: {
-        [key: string]: string | undefined;
-      }
+      envVars: EnvironmentVariables
     ) => {
       const { container } = context;
       return new DBTProject(

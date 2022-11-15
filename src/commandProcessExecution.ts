@@ -2,10 +2,7 @@ import { ChildProcess, spawn } from "child_process";
 import { provide } from "inversify-binding-decorators";
 import { CancellationToken, Disposable } from "vscode";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
-
-export interface EnvVars {
-  [key: string]: string | undefined;
-}
+import { EnvironmentVariables } from "./domain";
 
 @provide(CommandProcessExecutionFactory)
 export class CommandProcessExecutionFactory {
@@ -14,7 +11,7 @@ export class CommandProcessExecutionFactory {
     args?: string[],
     cwd?: string,
     token?: CancellationToken,
-    envVars?: EnvVars
+    envVars?: EnvironmentVariables
   ) {
     return new CommandProcessExecution(command, args, cwd, token, envVars);
   }
@@ -29,7 +26,7 @@ export class CommandProcessExecution implements Disposable {
     args?: string[],
     cwd?: string,
     token?: CancellationToken,
-    envVars?: EnvVars
+    envVars?: EnvironmentVariables
   ) {
     this.commandProcess = spawn(command, args, { cwd: cwd, env: envVars });
     if (token !== undefined) {

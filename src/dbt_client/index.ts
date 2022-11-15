@@ -9,6 +9,7 @@ import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
 } from "../commandProcessExecution";
+import { EnvironmentVariables } from "../domain";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { provideSingleton } from "../utils";
 import { DBTCommand, DBTCommandFactory } from "./dbtCommandFactory";
@@ -33,9 +34,7 @@ export class DBTClient implements Disposable {
     /latest.*:\s*(\d{1,2}\.\d{1,2}\.\d{1,2})/g;
   private static readonly IS_INSTALLED = /installed/g;
   public pythonPath?: string;
-  public envVars?: {
-    [key: string]: string | undefined;
-  };
+  public envVars?: EnvironmentVariables;
   private dbtInstalled?: boolean;
   private disposables: Disposable[] = [
     this._onDBTInstallationVerificationEvent,

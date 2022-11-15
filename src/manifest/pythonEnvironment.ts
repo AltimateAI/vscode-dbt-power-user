@@ -1,12 +1,11 @@
 import { Event, extensions, Uri, workspace } from "vscode";
+import { EnvironmentVariables } from "../domain";
 import { provideSingleton } from "../utils";
 
 interface PythonExecutionDetails {
   getPythonPath: () => string;
   onDidChangeExecutionDetails: Event<Uri | undefined>;
-  getEnvVars: () => {
-    [key: string]: string | undefined;
-  };
+  getEnvVars: () => EnvironmentVariables;
 }
 
 @provideSingleton(PythonEnvironment)

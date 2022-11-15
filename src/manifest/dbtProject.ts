@@ -21,6 +21,7 @@ import {
 } from "../dbt_client/dbtCommandFactory";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { PythonEnvironmentChangedEvent } from "../dbt_client/pythonEnvironmentChangedEvent";
+import { EnvironmentVariables } from "../domain";
 import { debounce, setupWatcherHandler } from "../utils";
 import { QueryResultPanel } from "../webview_view/queryResultPanel";
 import { DBTProjectContainer } from "./dbtProjectContainer";
@@ -90,9 +91,7 @@ export class DBTProject implements Disposable {
     projectConfig: any,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
     private pythonPath: string,
-    private envVars: {
-      [key: string]: string | undefined;
-    }
+    private envVars: EnvironmentVariables
   ) {
     this.projectRoot = path;
     this.dbtProfilesDir =
@@ -154,9 +153,7 @@ export class DBTProject implements Disposable {
 
   private async initializePythonBridge(
     pythonPath: string,
-    envVars: {
-      [key: string]: string | undefined;
-    }
+    envVars: EnvironmentVariables
   ) {
     if (this.python !== undefined) {
       // Python env has changed

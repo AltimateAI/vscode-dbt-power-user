@@ -11,7 +11,7 @@ import {
 } from "vscode";
 import { DBTClient } from "../dbt_client";
 import { DBTCommand } from "../dbt_client/dbtCommandFactory";
-import { RunModelType } from "../domain";
+import { EnvironmentVariables, RunModelType } from "../domain";
 import { provideSingleton } from "../utils";
 import { DBTProject } from "./dbtProject";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
@@ -37,9 +37,7 @@ export class DBTProjectContainer implements Disposable {
       workspaceFolder: WorkspaceFolder,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
       pythonPath?: string,
-      envVars?: {
-        [key: string]: string | undefined;
-      }
+      envVars?: EnvironmentVariables
     ) => DBTWorkspaceFolder
   ) {
     // Workspace Folder Registrar
