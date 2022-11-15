@@ -238,7 +238,7 @@ export class DBTProject implements Disposable {
 
   contains(uri: Uri) {
     return (
-      uri.fsPath === uri.fsPath ||
+      uri.fsPath === this.projectRoot.fsPath ||
       uri.fsPath.startsWith(this.projectRoot.fsPath + path.sep)
     );
   }
