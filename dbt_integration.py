@@ -194,7 +194,6 @@ class DbtProject:
         project_dir: Optional[str] = None,
         threads: Optional[int] = 1,
     ):
-        os.chdir(project_dir)
         self.args = ConfigInterface(
             threads=threads,
             target=target,
@@ -402,6 +401,7 @@ class DbtProject:
     def execute_sql(self, raw_sql: str) -> DbtAdapterExecutionResult:
         """Execute dbt SQL statement against database"""
         try:
+            self.adapter.acquire_connection()
             # if no jinja chars then these are synonymous
             compiled_sql = raw_sql
             if has_jinja(raw_sql):
@@ -416,6 +416,11 @@ class DbtProject:
             )
         except Exception as e:
             raise RuntimeException(str(e))
+        finally:
+            try:
+                self.adapter.release_connection()
+            except Exception:
+                pass
 
     def execute_node(self, node: ManifestNode) -> DbtAdapterExecutionResult:
         """Execute dbt SQL statement against database from a ManifestNode"""
