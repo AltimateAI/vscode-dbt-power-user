@@ -293,18 +293,6 @@ class DbtProject:
             )
         return self._sql_compiler
 
-    def fn_threaded_conn(self, fn: Callable[..., T], *args, **kwargs) -> Callable[..., T]:
-        """Used for jobs which are intended to be submitted to a thread pool,
-        the 'master' thread should always have an available connection for the duration of
-        typical program runtime by virtue of the `_verify_connection` method.
-        Threads however require singleton seeding"""
-
-        def _with_conn() -> T:
-            self.adapter.connections.set_connection_name()
-            return fn(*args, **kwargs)
-
-        return _with_conn
-
     @property
     def project_name(self) -> str:
         """dbt project name"""
@@ -401,26 +389,21 @@ class DbtProject:
     def execute_sql(self, raw_sql: str) -> DbtAdapterExecutionResult:
         """Execute dbt SQL statement against database"""
         try:
-            self.adapter.acquire_connection()
-            # if no jinja chars then these are synonymous
-            compiled_sql = raw_sql
-            if has_jinja(raw_sql):
-                # jinja found, compile it
-                compilation_result = self.compile_sql(raw_sql)
-                compiled_sql = compilation_result.compiled_sql
-            
-            return DbtAdapterExecutionResult(
-                *self.adapter_execute(compiled_sql, fetch=True),
-                raw_sql,
-                compiled_sql,
-            )
+            with self.adapter.connection_named("master"):
+                # if no jinja chars then these are synonymous
+                compiled_sql = raw_sql
+                if has_jinja(raw_sql):
+                    # jinja found, compile it
+                    compilation_result = self.compile_sql(raw_sql)
+                    compiled_sql = compilation_result.compiled_sql
+                
+                return DbtAdapterExecutionResult(
+                    *self.adapter_execute(compiled_sql, fetch=True),
+                    raw_sql,
+                    compiled_sql,
+                )
         except Exception as e:
             raise RuntimeException(str(e))
-        finally:
-            try:
-                self.adapter.release_connection()
-            except Exception:
-                pass
 
     def execute_node(self, node: ManifestNode) -> DbtAdapterExecutionResult:
         """Execute dbt SQL statement against database from a ManifestNode"""
