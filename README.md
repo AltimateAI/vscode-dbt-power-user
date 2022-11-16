@@ -57,7 +57,7 @@ When you set the Python interpreter, the extension will try to detect dbt and yo
 
 ## Features at work
 
-### Generate a model from your source defintion (new)
+### Generate a model from your source definition (new)
 
 ![Generate a model from your source definition](./media/images/generate-model-from-source.gif)
 
