@@ -55,6 +55,18 @@ Avoid using the setting `dbt.dbtPythonPathOverride` unless using Meltano, the ex
 
 When you set the Python interpreter, the extension will try to detect dbt and you should be able to make use of the features listed below.
 
+### Query results visualization
+
+Your database may not support standard SQL LIMIT statements like `SELECT * from table LIMIT 10`.
+
+You can override this default behaviour through `dbt.queryTemplate`.
+
+Please make a PR if you find that you need to change `dbt.queryTemplate` for your favourite adapter and help the community.
+
+#### `dbt.queryTemplate` for Oracle
+
+Change to `select * from ({query}) where ROWNUM <= {limit}`
+
 ## Features at work
 
 ### Generate a model from your source definition (new)
