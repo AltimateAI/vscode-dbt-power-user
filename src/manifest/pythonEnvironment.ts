@@ -63,20 +63,6 @@ export class PythonEnvironment {
           .execCommand[0],
       onDidChangeExecutionDetails: api.settings.onDidChangeExecutionDetails,
       getEnvVars: () => {
-        try {
-          if (api.environment) {
-            return api.environments.getEnvironmentVariables(
-              workspace.workspaceFolders![0]
-            );
-          }
-        } catch (e) {
-          console.error(
-            "Could not call environment api, maybe python version is outdated",
-            e
-          );
-        }
-
-        // fallback for users that set python path by themselves (Meltano), we better get rid of this as it will be always a source of complaint
         const configText = workspace.getConfiguration();
         const config = JSON.parse(JSON.stringify(configText));
         let envVars = {};
@@ -97,6 +83,19 @@ export class PythonEnvironment {
             };
           }
         }
+        try {
+          if (api.environment) {
+            envVars = {
+              ...envVars,
+              ...api.environments.getEnvironmentVariables(
+                workspace.workspaceFolders![0]
+              ),
+            };
+          }
+        } catch (e) {
+          console.error("Could not call environment api", e);
+        }
+
         return envVars;
       },
     });

@@ -54,7 +54,7 @@ export class DBTPowerUserExtension implements Disposable {
   }
 
   async activate(context: ExtensionContext): Promise<void> {
-    this.dbtProjectContainer.resolveUri(context);
+    this.dbtProjectContainer.setContext(context);
     await this.dbtProjectContainer.detectDBT();
     await this.dbtProjectContainer.initializeDBTProjects();
   }

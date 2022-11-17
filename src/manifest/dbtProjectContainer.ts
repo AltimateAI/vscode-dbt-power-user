@@ -27,8 +27,7 @@ export class DBTProjectContainer implements Disposable {
   private _onManifestChanged = new EventEmitter<ManifestCacheChangedEvent>();
   public readonly onManifestChanged = this._onManifestChanged.event;
   private disposables: Disposable[] = [this._onManifestChanged];
-  // TODO: handle with factory and convert to readonly
-  public extensionUri: Uri = Uri.file("");
+  private context?: ExtensionContext;
 
   constructor(
     private dbtClient: DBTClient,
@@ -40,8 +39,6 @@ export class DBTProjectContainer implements Disposable {
       envVars?: EnvironmentVariables
     ) => DBTWorkspaceFolder
   ) {
-    // Workspace Folder Registrar
-    // const fireUpdate = debounce(() => sqlPreviewContentProvider.onDidChangeEmitter.fire(SqlPreviewContentProvider.URI), 500);
     this.disposables.push(
       workspace.onDidChangeWorkspaceFolders(async (event) => {
         const { added, removed } = event;
@@ -57,6 +54,10 @@ export class DBTProjectContainer implements Disposable {
     );
   }
 
+  setContext(context: ExtensionContext) {
+    this.context = context;
+  }
+
   async initializeDBTProjects(): Promise<void> {
     const folders = workspace.workspaceFolders;
     if (folders === undefined) {
@@ -67,10 +68,8 @@ export class DBTProjectContainer implements Disposable {
     );
   }
 
-  // This is is ran during activation
-  // should be constructor parameter instead.
-  resolveUri(context: ExtensionContext) {
-    this.extensionUri = context.extensionUri;
+  get extensionUri() {
+    return this.context!.extensionUri;
   }
 
   // TODO: bypasses events and could be inconsistent
@@ -137,11 +136,6 @@ export class DBTProjectContainer implements Disposable {
       return;
     }
     this.dbtClient.addCommandToQueue(command);
-  }
-
-  // TODO: we should not execute commands directly on dbtProjectContainer
-  executeCommand(command: DBTCommand) {
-    return this.dbtClient.executeCommand(command);
   }
 
   dispose() {
