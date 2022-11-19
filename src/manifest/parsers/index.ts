@@ -5,6 +5,7 @@ import { Uri } from "vscode";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { DBTProject } from "../dbtProject";
 import { ManifestCacheChangedEvent } from "../event/manifestCacheChangedEvent";
+import { DocParser } from "./docParser";
 import { GraphParser } from "./graphParser";
 import { MacroParser } from "./macroParser";
 import { NodeParser } from "./nodeParser";
@@ -19,6 +20,7 @@ export class ManifestParser {
     private graphParser: GraphParser,
     private sourceParser: SourceParser,
     private testParser: TestParser,
+    private docParser: DocParser,
     private terminal: DBTTerminal
   ) {}
 
@@ -43,13 +45,14 @@ export class ManifestParser {
               children: new Map(),
               tests: new Map(),
             },
+            docMetaMap: new Map(),
           },
         ],
       };
       return event;
     }
 
-    const { nodes, sources, macros, parent_map, child_map } = manifest;
+    const { nodes, sources, macros, parent_map, child_map, docs } = manifest;
 
     const nodeMetaMapPromise = this.nodeParser.createNodeMetaMap(nodes);
     const macroMetaMapPromise = this.macroParser.createMacroMetaMap(
@@ -58,13 +61,18 @@ export class ManifestParser {
     );
     const sourceMetaMapPromise = this.sourceParser.createSourceMetaMap(sources);
     const testMetaMapPromise = this.testParser.createTestMetaMap(nodes);
+    const docMetaMapPromise = this.docParser.createDocMetaMap(
+      docs,
+      projectName
+    );
 
-    const [nodeMetaMap, macroMetaMap, sourceMetaMap, testMetaMap] =
+    const [nodeMetaMap, macroMetaMap, sourceMetaMap, testMetaMap, docMetaMap] =
       await Promise.all([
         nodeMetaMapPromise,
         macroMetaMapPromise,
         sourceMetaMapPromise,
         testMetaMapPromise,
+        docMetaMapPromise,
       ]);
 
     const graphMetaMap = this.graphParser.createGraphMetaMap(
@@ -85,6 +93,7 @@ export class ManifestParser {
           sourceMetaMap: sourceMetaMap,
           graphMetaMap: graphMetaMap,
           testMetaMap: testMetaMap,
+          docMetaMap: docMetaMap,
         },
       ],
     };

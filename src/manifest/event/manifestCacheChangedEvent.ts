@@ -1,5 +1,6 @@
 import { Uri } from "vscode";
 import {
+  DocMetaMap,
   GraphMetaMap,
   MacroMetaMap,
   NodeMetaMap,
@@ -14,6 +15,7 @@ export interface ManifestCacheProjectAddedEvent {
   sourceMetaMap: SourceMetaMap;
   graphMetaMap: GraphMetaMap;
   testMetaMap: TestMetaMap;
+  docMetaMap: DocMetaMap;
   projectRoot: Uri;
 }
 

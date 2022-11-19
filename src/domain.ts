@@ -4,6 +4,7 @@ export type NodeMetaMap = Map<string, NodeMetaData>;
 export type MacroMetaMap = Map<string, MacroMetaData>;
 export type SourceMetaMap = Map<string, SourceMetaData>;
 export type TestMetaMap = Map<string, TestMetaData>;
+export type DocMetaMap = Map<string, DocMetaData>;
 
 interface MacroMetaData {
   path: string;
@@ -26,6 +27,12 @@ interface SourceMetaData {
 interface SourceTable {
   name: string;
   path: string;
+}
+
+interface DocMetaData {
+  path: string;
+  line: number;
+  character: number;
 }
 
 interface TestMetaData {

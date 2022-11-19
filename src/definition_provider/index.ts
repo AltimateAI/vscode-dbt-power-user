@@ -1,6 +1,7 @@
 import { Disposable, languages } from "vscode";
 import { DBTPowerUserExtension } from "../dbtPowerUserExtension";
 import { provideSingleton } from "../utils";
+import { DocDefinitionProvider } from "./docDefinitionProvider";
 import { MacroDefinitionProvider } from "./macroDefinitionProvider";
 import { ModelDefinitionProvider } from "./modelDefinitionProvider";
 import { SourceDefinitionProvider } from "./sourceDefinitionProvider";
@@ -12,7 +13,8 @@ export class DefinitionProviders implements Disposable {
   constructor(
     private modelDefinitionProvider: ModelDefinitionProvider,
     private macroDefinitionProvider: MacroDefinitionProvider,
-    private sourceDefinitionProvider: SourceDefinitionProvider
+    private sourceDefinitionProvider: SourceDefinitionProvider,
+    private docDefinitionsProvider: DocDefinitionProvider
   ) {
     this.disposables.push(
       languages.registerDefinitionProvider(
@@ -26,6 +28,10 @@ export class DefinitionProviders implements Disposable {
       languages.registerDefinitionProvider(
         DBTPowerUserExtension.DBT_SQL_SELECTOR,
         this.sourceDefinitionProvider
+      ),
+      languages.registerDefinitionProvider(
+        DBTPowerUserExtension.DBT_YAML_SELECTOR,
+        this.docDefinitionsProvider
       )
     );
   }
