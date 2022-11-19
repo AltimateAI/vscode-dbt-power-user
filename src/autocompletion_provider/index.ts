@@ -1,6 +1,7 @@
 import { Disposable, languages } from "vscode";
 import { DBTPowerUserExtension } from "../dbtPowerUserExtension";
 import { provideSingleton } from "../utils";
+import { DocAutocompletionProvider } from "./docAutocompletionProvider";
 import { MacroAutocompletionProvider } from "./macroAutocompletionProvider";
 import { ModelAutocompletionProvider } from "./modelAutocompletionProvider";
 import { SourceAutocompletionProvider } from "./sourceAutocompletionProvider";
@@ -11,7 +12,8 @@ export class AutocompletionProviders implements Disposable {
   constructor(
     private macroAutocompletionProvider: MacroAutocompletionProvider,
     private modelAutocompletionProvider: ModelAutocompletionProvider,
-    private sourceAutocompletionProvider: SourceAutocompletionProvider
+    private sourceAutocompletionProvider: SourceAutocompletionProvider,
+    private docAutocompletionProvider: DocAutocompletionProvider
   ) {
     this.disposables.push(
       languages.registerCompletionItemProvider(
@@ -29,6 +31,14 @@ export class AutocompletionProviders implements Disposable {
       languages.registerCompletionItemProvider(
         DBTPowerUserExtension.DBT_SQL_SELECTOR,
         this.sourceAutocompletionProvider,
+        ".",
+        "(",
+        '"',
+        "'"
+      ),
+      languages.registerCompletionItemProvider(
+        DBTPowerUserExtension.DBT_YAML_SELECTOR,
+        this.docAutocompletionProvider,
         ".",
         "(",
         '"',
