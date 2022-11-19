@@ -9,8 +9,8 @@ Main features:
 - Generate models from your source definitions
 - Query result set visualization
 - Execute all or individual model tests
-- Go to the definition of any models, macro's and sources.
-- Autocompletion of models, macros and sources
+- Go to the definition of any models, macros, sources and docs.
+- Autocompletion of models, macros, sources and docs
 - Ability to run a model through the play button of the document
 - dbt update notifications
 - dbt logs viewer (force tailing)
@@ -95,7 +95,7 @@ Change to `select * from ({query}) where ROWNUM <= {limit}`
 
 ## Features at work
 
-### Generate a model from your source definition (new)
+### Generate a model from your source definition
 
 ![Generate a model from your source definition](./media/images/generate-model-from-source.gif)
 
@@ -123,6 +123,8 @@ Change to `select * from ({query}) where ROWNUM <= {limit}`
 
 ![Go to source definition](./media/images/definition-source.gif)
 
+![Go to doc definition](./media/images/definition-doc.gif)
+
 ### Autocompletion
 
 ![Autocomplete model](./media/images/autocomplete-model.gif)
@@ -130,6 +132,8 @@ Change to `select * from ({query}) where ROWNUM <= {limit}`
 ![Autocomplete macro](./media/images/autocomplete-macro.gif)
 
 ![Autocomplete source](./media/images/autocomplete-source.gif)
+
+![Autocomplete source](./media/images/autocomplete-doc.gif)
 
 ### dbt logs force tailing
 
