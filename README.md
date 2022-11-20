@@ -93,6 +93,33 @@ Please make a PR if you find that you need to change `dbt.queryTemplate` for you
 
 Change to `select * from ({query}) where ROWNUM <= {limit}`
 
+### Format your dbt SQL with `sqlfmt`
+
+#### Install `sqlfmt`
+
+Install sqlfmt through running `pip install 'shandy-sqlfmt[jinjafmt]'`. Find more about sqlfmt in their [docs](https://sqlfmt.com/).
+
+#### Usage
+
+Please select "dbt Power User" (extension id:`innoverio.vscode-dbt-power-user`) as the default formatter. You can do this either by using the context menu (right click on a open dbt model in the editor) and select "Format Document With...", or you can add the following to your settings:
+
+```json
+  "[jinja-sql]": {
+    "editor.defaultFormatter": "innoverio.vscode-dbt-power-user"
+  }
+```
+
+#### Format on save
+
+You can enable format on save for python by having the following values in your settings:
+
+```json
+  "[jinja-sql]": {
+    "editor.defaultFormatter": "innoverio.vscode-dbt-power-user",
+    "editor.formatOnSave": true
+  }
+```
+
 ## Features at work
 
 ### Generate a model from your source definition

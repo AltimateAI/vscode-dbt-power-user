@@ -329,6 +329,7 @@
     "@types/mocha": "^10.0.0",
     "@types/node": "^18.11.9",
     "@types/vscode": "^1.52.0",
+    "@types/which": "^2.0.1",
     "@typescript-eslint/eslint-plugin": "^5.39.0",
     "@typescript-eslint/parser": "^5.39.0",
     "@vscode/test-electron": "^2.2.0",
@@ -361,8 +362,10 @@
     "dayjs": "^1.8.34",
     "inversify": "^6.0.1",
     "inversify-binding-decorators": "^4.0.0",
+    "parse-diff": "^0.10.0",
     "python-bridge": "github:mdesmet/node-python-bridge#feat/detached",
     "reflect-metadata": "^0.1.13",
+    "which": "^3.0.0",
     "yaml": "^2.0.0-10"
   },
   "lint-staged": {
