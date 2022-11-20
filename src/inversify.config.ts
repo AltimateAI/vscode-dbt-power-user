@@ -18,7 +18,15 @@ container.load(buildProviderModule());
 
 container
   .bind<interfaces.Factory<DBTWorkspaceFolder>>("Factory<DBTWorkspaceFolder>")
-  .toFactory<DBTWorkspaceFolder>((context: interfaces.Context) => {
+  .toFactory<
+    DBTWorkspaceFolder,
+    [
+      WorkspaceFolder,
+      EventEmitter<ManifestCacheChangedEvent>,
+      string,
+      EnvironmentVariables
+    ]
+  >((context: interfaces.Context) => {
     return (
       workspaceFolder: WorkspaceFolder,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
@@ -38,7 +46,16 @@ container
 
 container
   .bind<interfaces.Factory<DBTProject>>("Factory<DBTProject>")
-  .toFactory<DBTProject>((context: interfaces.Context) => {
+  .toFactory<
+    DBTProject,
+    [
+      Uri,
+      any,
+      EventEmitter<ManifestCacheChangedEvent>,
+      string,
+      EnvironmentVariables
+    ]
+  >((context: interfaces.Context) => {
     return (
       path: Uri,
       projectConfig: any,

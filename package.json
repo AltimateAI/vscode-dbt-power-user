@@ -359,7 +359,7 @@
   "dependencies": {
     "@vscode/webview-ui-toolkit": "^1.1.0",
     "dayjs": "^1.8.34",
-    "inversify": "^5.0.5",
+    "inversify": "^6.0.1",
     "inversify-binding-decorators": "^4.0.0",
     "python-bridge": "github:mdesmet/node-python-bridge#feat/detached",
     "reflect-metadata": "^0.1.13",
