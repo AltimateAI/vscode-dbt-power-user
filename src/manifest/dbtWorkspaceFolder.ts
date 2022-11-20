@@ -11,7 +11,6 @@ import {
   workspace,
   WorkspaceFolder,
 } from "vscode";
-import { EnvironmentVariables } from "../domain";
 import { DBTProject } from "./dbtProject";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 
@@ -25,14 +24,10 @@ export class DBTWorkspaceFolder implements Disposable {
     private dbtProjectFactory: (
       path: Uri,
       projectConfig: any,
-      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
-      pythonPath: string,
-      envVars: EnvironmentVariables
+      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
     ) => DBTProject,
     private workspaceFolder: WorkspaceFolder,
-    private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
-    private pythonPath: string,
-    private envVars: EnvironmentVariables
+    private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
   ) {
     this.watcher = this.createConfigWatcher();
     this.disposables.push(this.watcher);
@@ -97,9 +92,7 @@ export class DBTWorkspaceFolder implements Disposable {
     const dbtProject = this.dbtProjectFactory(
       uri,
       DBTProject.readAndParseProjectConfig(uri),
-      this._onManifestChanged,
-      this.pythonPath,
-      this.envVars
+      this._onManifestChanged
     );
     this.dbtProjects.push(dbtProject);
   }

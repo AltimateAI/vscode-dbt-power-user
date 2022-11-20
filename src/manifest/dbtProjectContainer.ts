@@ -21,8 +21,6 @@ import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 export class DBTProjectContainer implements Disposable {
   public onDBTInstallationVerification =
     this.dbtClient.onDBTInstallationVerification;
-  public onPythonEnvironmentChanged =
-    this.dbtClient.onPythonEnvironbmentChanged;
   private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
   private _onManifestChanged = new EventEmitter<ManifestCacheChangedEvent>();
   public readonly onManifestChanged = this._onManifestChanged.event;
@@ -162,9 +160,7 @@ export class DBTProjectContainer implements Disposable {
   ): Promise<void> {
     const dbtProjectWorkspaceFolder = this.dbtWorkspaceFolderFactory(
       workspaceFolder,
-      this._onManifestChanged,
-      this.dbtClient.pythonPath!,
-      this.dbtClient.envVars!
+      this._onManifestChanged
     );
     this.dbtWorkspaceFolders.push(dbtProjectWorkspaceFolder);
     await dbtProjectWorkspaceFolder.discoverProjects();

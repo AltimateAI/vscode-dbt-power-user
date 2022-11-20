@@ -9,14 +9,12 @@ import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
 } from "../commandProcessExecution";
-import { EnvironmentVariables } from "../domain";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { provideSingleton } from "../utils";
 import { DBTCommand, DBTCommandFactory } from "./dbtCommandFactory";
 import { DBTCommandQueue } from "./dbtCommandQueue";
 import { DBTTerminal } from "./dbtTerminal";
 import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
-import { PythonEnvironmentChangedEvent } from "./pythonEnvironmentChangedEvent";
 
 @provideSingleton(DBTClient)
 export class DBTClient implements Disposable {
@@ -24,21 +22,15 @@ export class DBTClient implements Disposable {
     new EventEmitter<DBTInstallationVerificationEvent>();
   public readonly onDBTInstallationVerification =
     this._onDBTInstallationVerificationEvent.event;
-  private _onPythonEnvironbmentChangedEvent =
-    new EventEmitter<PythonEnvironmentChangedEvent>();
-  public readonly onPythonEnvironbmentChanged =
-    this._onPythonEnvironbmentChangedEvent.event;
+
   private static readonly INSTALLED_VERSION =
     /installed.*:\s*(\d{1,2}\.\d{1,2}\.\d{1,2})/g;
   private static readonly LATEST_VERSION =
     /latest.*:\s*(\d{1,2}\.\d{1,2}\.\d{1,2})/g;
   private static readonly IS_INSTALLED = /installed/g;
-  public pythonPath?: string;
-  public envVars?: EnvironmentVariables;
   private dbtInstalled?: boolean;
   private disposables: Disposable[] = [
     this._onDBTInstallationVerificationEvent,
-    this._onPythonEnvironbmentChangedEvent,
   ];
 
   constructor(
@@ -59,13 +51,13 @@ export class DBTClient implements Disposable {
   }
 
   async detectDBT(): Promise<void> {
-    const pythonEnvironment = await this.pythonEnvironment.getEnvironment();
+    await this.pythonEnvironment.initialize();
     this.disposables.push(
-      pythonEnvironment.onDidChangeExecutionDetails(() =>
-        this.handlePythonExtension()
-      )
+      this.pythonEnvironment.onPythonEnvironmentChanged(() => {
+        this.checkAllInstalled();
+      })
     );
-    await this.handlePythonExtension();
+    await this.checkAllInstalled();
   }
 
   private async checkAllInstalled(): Promise<void> {
@@ -149,7 +141,10 @@ export class DBTClient implements Disposable {
     }
 
     const { args, cwd } = command.processExecutionParams!;
-    if (!this.pythonPath || !this.envVars) {
+    if (
+      !this.pythonEnvironment.pythonPath ||
+      !this.pythonEnvironment.environmentVariables
+    ) {
       console.error(
         "Could not launch command as python environment is not available"
       );
@@ -157,11 +152,11 @@ export class DBTClient implements Disposable {
     }
 
     return this.commandProcessExecutionFactory.createCommandProcessExecution(
-      this.pythonPath,
+      this.pythonEnvironment.pythonPath,
       args,
       cwd,
       token,
-      this.envVars
+      this.pythonEnvironment.environmentVariables
     );
   }
 
@@ -231,20 +226,4 @@ export class DBTClient implements Disposable {
       latestVersionMatch !== null ? latestVersionMatch[1] : undefined;
     this.raiseDBTVersionEvent(true, installedVersion, latestVersion, message);
   }
-
-  private async handlePythonExtension(): Promise<void> {
-    const pythonEnvironment = await this.pythonEnvironment.getEnvironment();
-    this.pythonPath =
-      getPythonPathFromConfig() || pythonEnvironment.getPythonPath();
-    this.envVars = pythonEnvironment.getEnvVars();
-    this._onPythonEnvironbmentChangedEvent.fire({
-      pythonPath: this.pythonPath,
-      environmentVariables: pythonEnvironment.getEnvVars(),
-    });
-    await this.checkAllInstalled();
-  }
-}
-
-function getPythonPathFromConfig(): string | undefined {
-  return workspace.getConfiguration("dbt").get<string>("dbtPythonPathOverride");
 }

@@ -1,4 +1,4 @@
-import { Event, extensions, Uri, workspace } from "vscode";
+import { Disposable, Event, extensions, Uri, workspace } from "vscode";
 import { EnvironmentVariables } from "../domain";
 import { provideSingleton } from "../utils";
 
@@ -9,15 +9,45 @@ interface PythonExecutionDetails {
 }
 
 @provideSingleton(PythonEnvironment)
-export class PythonEnvironment {
+export class PythonEnvironment implements Disposable {
   private executionDetails?: PythonExecutionDetails;
+  private disposables: Disposable[] = [];
 
-  async getEnvironment(): Promise<PythonExecutionDetails> {
+  dispose() {
+    while (this.disposables.length) {
+      const x = this.disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
+  }
+
+  public get pythonPath() {
+    return (
+      this.getPythonPathFromConfig() || this.executionDetails!.getPythonPath()
+    );
+  }
+
+  public get environmentVariables() {
+    return this.executionDetails!.getEnvVars();
+  }
+
+  public get onPythonEnvironmentChanged() {
+    return this.executionDetails!.onDidChangeExecutionDetails;
+  }
+
+  async initialize(): Promise<void> {
     if (this.executionDetails !== undefined) {
-      return this.executionDetails;
+      return;
     }
 
-    return await this.activatePythonExtension();
+    this.executionDetails = await this.activatePythonExtension();
+  }
+
+  private getPythonPathFromConfig(): string | undefined {
+    return workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtPythonPathOverride");
   }
 
   private parseEnvVarsFromUserSettings = (

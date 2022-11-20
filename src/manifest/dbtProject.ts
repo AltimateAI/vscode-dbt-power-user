@@ -20,7 +20,6 @@ import {
   RunModelParams,
 } from "../dbt_client/dbtCommandFactory";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { PythonEnvironmentChangedEvent } from "../dbt_client/pythonEnvironmentChangedEvent";
 import { EnvironmentVariables } from "../domain";
 import { debounce, setupWatcherHandler } from "../utils";
 import { QueryResultPanel } from "../webview_view/queryResultPanel";
@@ -33,6 +32,7 @@ import {
   SourceFileWatchersFactory,
 } from "./modules/sourceFileWatchers";
 import { TargetWatchersFactory } from "./modules/targetWatchers";
+import { PythonEnvironment } from "./pythonEnvironment";
 
 export interface ExecuteSQLResult {
   table: {
@@ -81,6 +81,7 @@ export class DBTProject implements Disposable {
 
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
+    private PythonEnvironment: PythonEnvironment,
     private sourceFileWatchersFactory: SourceFileWatchersFactory,
     private dbtProjectLogFactory: DBTProjectLogFactory,
     private targetWatchersFactory: TargetWatchersFactory,
@@ -89,9 +90,7 @@ export class DBTProject implements Disposable {
     private queryResultPanel: QueryResultPanel,
     path: Uri,
     projectConfig: any,
-    _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
-    private pythonPath: string,
-    private envVars: EnvironmentVariables
+    _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
   ) {
     this.projectRoot = path;
     this.dbtProfilesDir =
@@ -130,8 +129,8 @@ export class DBTProject implements Disposable {
       this.onProjectConfigChanged
     );
 
-    dbtProjectContainer.onPythonEnvironmentChanged((event) =>
-      this.onPythonEnvironmentChanged(event)
+    this.PythonEnvironment.onPythonEnvironmentChanged(() =>
+      this.onPythonEnvironmentChanged()
     );
 
     this.disposables.push(
@@ -144,7 +143,10 @@ export class DBTProject implements Disposable {
       this.sourceFileWatchers,
       this.dbtProjectLog
     );
-    this.initializePythonBridge(this.pythonPath, this.envVars);
+    this.initializePythonBridge(
+      this.PythonEnvironment.pythonPath,
+      this.PythonEnvironment.environmentVariables
+    );
   }
 
   public getProjectName() {
@@ -200,10 +202,11 @@ export class DBTProject implements Disposable {
     await this.tryRefresh();
   }
 
-  private async onPythonEnvironmentChanged(
-    event: PythonEnvironmentChangedEvent
-  ) {
-    this.initializePythonBridge(event.pythonPath, event.environmentVariables);
+  private async onPythonEnvironmentChanged() {
+    this.initializePythonBridge(
+      this.PythonEnvironment.pythonPath,
+      this.PythonEnvironment.environmentVariables
+    );
   }
 
   private async tryRefresh() {

@@ -11,6 +11,7 @@ import { ManifestCacheChangedEvent } from "./manifest/event/manifestCacheChanged
 import { DBTProjectLogFactory } from "./manifest/modules/dbtProjectLog";
 import { SourceFileWatchersFactory } from "./manifest/modules/sourceFileWatchers";
 import { TargetWatchersFactory } from "./manifest/modules/targetWatchers";
+import { PythonEnvironment } from "./manifest/pythonEnvironment";
 import { QueryResultPanel } from "./webview_view/queryResultPanel";
 
 export const container = new Container();
@@ -29,54 +30,40 @@ container
   >((context: interfaces.Context) => {
     return (
       workspaceFolder: WorkspaceFolder,
-      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
-      pythonPath: string,
-      envVars: EnvironmentVariables
+      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
     ) => {
       const { container } = context;
       return new DBTWorkspaceFolder(
         container.get("Factory<DBTProject>"),
         workspaceFolder,
-        _onManifestChanged,
-        pythonPath,
-        envVars
+        _onManifestChanged
       );
     };
   });
 
 container
   .bind<interfaces.Factory<DBTProject>>("Factory<DBTProject>")
-  .toFactory<
-    DBTProject,
-    [
-      Uri,
-      any,
-      EventEmitter<ManifestCacheChangedEvent>,
-      string,
-      EnvironmentVariables
-    ]
-  >((context: interfaces.Context) => {
-    return (
-      path: Uri,
-      projectConfig: any,
-      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
-      pythonPath: string,
-      envVars: EnvironmentVariables
-    ) => {
-      const { container } = context;
-      return new DBTProject(
-        container.get(DBTProjectContainer),
-        container.get(SourceFileWatchersFactory),
-        container.get(DBTProjectLogFactory),
-        container.get(TargetWatchersFactory),
-        container.get(DBTCommandFactory),
-        container.get(DBTTerminal),
-        container.get(QueryResultPanel),
-        path,
-        projectConfig,
-        _onManifestChanged,
-        pythonPath,
-        envVars
-      );
-    };
-  });
+  .toFactory<DBTProject, [Uri, any, EventEmitter<ManifestCacheChangedEvent>]>(
+    (context: interfaces.Context) => {
+      return (
+        path: Uri,
+        projectConfig: any,
+        _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
+      ) => {
+        const { container } = context;
+        return new DBTProject(
+          container.get(DBTProjectContainer),
+          container.get(PythonEnvironment),
+          container.get(SourceFileWatchersFactory),
+          container.get(DBTProjectLogFactory),
+          container.get(TargetWatchersFactory),
+          container.get(DBTCommandFactory),
+          container.get(DBTTerminal),
+          container.get(QueryResultPanel),
+          path,
+          projectConfig,
+          _onManifestChanged
+        );
+      };
+    }
+  );
