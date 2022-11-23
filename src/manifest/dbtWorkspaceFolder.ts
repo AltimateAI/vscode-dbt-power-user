@@ -58,7 +58,7 @@ export class DBTWorkspaceFolder implements Disposable {
         if (j !== i) {
           if (projectFiles[i].fsPath.startsWith(projectFiles[j].fsPath)) {
             window.showWarningMessage(
-              `dbt Power User detected a project located in ${projectFiles[j]} that is contained inside another project ${projectFiles[j]}. This is an unsupported configuration. If you believe this is a valid configuration, please open a github issue.`
+              `dbt Power User detected a project located in ${projectFiles[i].fsPath} that is contained inside another project ${projectFiles[j].fsPath}. This is an unsupported configuration. If you believe this is a valid configuration, please open a github issue.`
             );
           }
         }
