@@ -93,8 +93,12 @@ export class DBTProject implements Disposable {
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
   ) {
     this.projectRoot = path;
+    const profileExistsInProjectRoot = existsSync(
+      join(this.projectRoot.fsPath, "profiles.yml")
+    );
     this.dbtProfilesDir =
       workspace.getConfiguration("dbt").get<string>("profilesDirOverride") ||
+      (profileExistsInProjectRoot ? this.projectRoot.fsPath : false) ||
       process.env.DBT_PROFILES_DIR ||
       join(os.homedir(), ".dbt");
     this.dbtProfilesDir = this.dbtProfilesDir.replace("~", os.homedir());
