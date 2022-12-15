@@ -79,7 +79,7 @@ The extension will read any vscode configurations in `.vscode/settings.json` and
 }
 ```
 
-Note that Visual Code variable substitution is not supported except the environment variable pattern `${env:*}`.
+Note that Visual Code variable substitution is not supported except the environment variable pattern `${env:*}` and `${workspaceFolder}`.
 
 ### Query results visualization
 

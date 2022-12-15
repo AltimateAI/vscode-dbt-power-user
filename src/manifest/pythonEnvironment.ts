@@ -71,6 +71,10 @@ export class PythonEnvironment implements Disposable {
             );
           }
         }
+        prev[key] = prev[key].replace(
+          "${workspaceFolder}",
+          workspace.workspaceFolders![0].uri.fsPath
+        );
         return prev;
       },
       vsCodeEnv
