@@ -359,7 +359,7 @@
   "dependencies": {
     "@vscode/vsce": "^2.15.0",
     "@vscode/webview-ui-toolkit": "^1.2.0",
-    "dayjs": "^1.8.34",
+    "dayjs": "^1.11.7",
     "inversify": "^6.0.1",
     "inversify-binding-decorators": "^4.0.0",
     "parse-diff": "^0.10.0",
