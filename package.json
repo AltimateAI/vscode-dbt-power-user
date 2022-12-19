@@ -334,7 +334,7 @@
     "@typescript-eslint/parser": "^5.46.0",
     "@vscode/test-electron": "^2.2.0",
     "copy-webpack-plugin": "^11.0.0",
-    "eslint": "^8.29.0",
+    "eslint": "^8.30.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-prettier": "^4.2.1",
     "file-loader": "^6.1.0",
