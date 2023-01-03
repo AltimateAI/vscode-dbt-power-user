@@ -335,7 +335,7 @@
     "@vscode/test-electron": "^2.2.1",
     "copy-webpack-plugin": "^11.0.0",
     "eslint": "^8.31.0",
-    "eslint-config-prettier": "^8.5.0",
+    "eslint-config-prettier": "^8.6.0",
     "eslint-plugin-prettier": "^4.2.1",
     "file-loader": "^6.1.0",
     "glob": "^8.0.3",
