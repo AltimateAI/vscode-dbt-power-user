@@ -12,6 +12,8 @@ async function updateConfig(config) {
   return await executeCommand("updateConfig", config);
 }
 
+const DEFAULT_HEIGHT = 455;
+
 const app = createApp({
   data() {
     return {
@@ -25,7 +27,9 @@ const app = createApp({
       queryTemplate: undefined,
       queryStart: Date.now(),
       queryEnd: undefined,
-      timer: undefined
+      timer: undefined,
+      resizeTimer: undefined,
+      windowHeight: DEFAULT_HEIGHT,
     };
   },
   methods: {
@@ -96,10 +100,28 @@ const app = createApp({
     },
     endTimer() {
       clearTimeout(this.timer);
-    }
+    },
+    setTableHeight() {
+      this.table.setHeight(this.windowHeight);
+    },
+    handleResize(event) {
+      const currentHeight = window.innerHeight;
+      if (this.windowHeight !== currentHeight) {
+        this.windowHeight = currentHeight;
+        if (currentHeight < DEFAULT_HEIGHT) {
+          this.windowHeight = DEFAULT_HEIGHT;
+        }
+        cancelAnimationFrame(this.resizeTimer);
+        this.resizeTimer = requestAnimationFrame(this.setTableHeight);
+      }
+    },
   },
   computed: {
-    tableHeight() { return this.count * 65 < 455 ? this.count * 65 : 455; },
+    tableHeight() {
+      return this.count * 65 < this.windowHeight
+        ? this.count * 65
+        : this.windowHeight;
+    },
     hasData() { return this.count > 0; },
     hasError() { return this.error?.data; },
     hasCode() { return this.compiledCode !== ""; },
@@ -156,6 +178,10 @@ const app = createApp({
           break;
       }
     });
+    window.addEventListener("resize", this.handleResize);
+  },
+  unmounted() {
+    window.removeEventListener("resize", this.handleResize);
   },
   beforeDestroy() {
     clearInterval(this.timer);
