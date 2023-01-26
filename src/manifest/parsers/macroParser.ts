@@ -10,7 +10,8 @@ export class MacroParser {
 
   createMacroMetaMap(
     projectName: string,
-    macros: any[]
+    macros: any[],
+    rootPath: string
   ): Promise<MacroMetaMap> {
     return new Promise((resolve) => {
       const macroMetaMap: MacroMetaMap = new Map();
@@ -18,11 +19,11 @@ export class MacroParser {
         resolve(macroMetaMap);
       }
       Object.values(macros).forEach(
-        ({ package_name, name, root_path, original_file_path }) => {
+        ({ package_name, name, original_file_path }) => {
           const packageName = package_name;
           const macroName =
             packageName === projectName ? name : `${packageName}.${name}`;
-          const fullPath = path.join(root_path, original_file_path);
+          const fullPath = path.join(rootPath, original_file_path);
           try {
             const macroFile: string = readFileSync(fullPath).toString("utf8");
             const macroFileLines = macroFile.split("\n");

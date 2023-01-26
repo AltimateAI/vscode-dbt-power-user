@@ -53,17 +53,29 @@ export class ManifestParser {
     }
 
     const { nodes, sources, macros, parent_map, child_map, docs } = manifest;
+    const { path: rootPath } = projectRoot;
 
-    const nodeMetaMapPromise = this.nodeParser.createNodeMetaMap(nodes);
+    const nodeMetaMapPromise = this.nodeParser.createNodeMetaMap(
+      nodes,
+      rootPath
+    );
     const macroMetaMapPromise = this.macroParser.createMacroMetaMap(
       projectName,
-      macros
+      macros,
+      rootPath
     );
-    const sourceMetaMapPromise = this.sourceParser.createSourceMetaMap(sources);
-    const testMetaMapPromise = this.testParser.createTestMetaMap(nodes);
+    const sourceMetaMapPromise = this.sourceParser.createSourceMetaMap(
+      sources,
+      rootPath
+    );
+    const testMetaMapPromise = this.testParser.createTestMetaMap(
+      nodes,
+      rootPath
+    );
     const docMetaMapPromise = this.docParser.createDocMetaMap(
       docs,
-      projectName
+      projectName,
+      rootPath
     );
 
     const [nodeMetaMap, macroMetaMap, sourceMetaMap, testMetaMap, docMetaMap] =

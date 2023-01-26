@@ -5,7 +5,7 @@ import { DBTProject } from "../dbtProject";
 
 @provide(TestParser)
 export class TestParser {
-  createTestMetaMap(testsMap: any[]): Promise<TestMetaMap> {
+  createTestMetaMap(testsMap: any[], rootPath: string): Promise<TestMetaMap> {
     return new Promise((resolve) => {
       const testMetaMap: TestMetaMap = new Map();
       if (testsMap === null || testsMap === undefined) {
@@ -17,14 +17,13 @@ export class TestParser {
           ({
             name,
             raw_sql,
-            root_path,
             original_file_path,
             database,
             schema,
             alias,
             column_name,
           }) => {
-            const fullPath = path.join(root_path, original_file_path);
+            const fullPath = path.join(rootPath, original_file_path);
             testMetaMap.set(name, {
               path: fullPath,
               raw_sql,

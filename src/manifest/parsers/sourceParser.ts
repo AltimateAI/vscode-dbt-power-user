@@ -8,7 +8,10 @@ import { DBTProject } from "../dbtProject";
 export class SourceParser {
   constructor(private terminal: DBTTerminal) {}
 
-  createSourceMetaMap(sourcesMap: any[]): Promise<SourceMetaMap> {
+  createSourceMetaMap(
+    sourcesMap: any[],
+    rootPath: string
+  ): Promise<SourceMetaMap> {
     return new Promise((resolve) => {
       const sourceMetaMap: SourceMetaMap = new Map();
       if (sourcesMap === null || sourcesMap === undefined) {
@@ -21,14 +24,14 @@ export class SourceParser {
         .reduce(
           (
             previousValue: SourceMetaMap,
-            { source_name, name, root_path, original_file_path }
+            { source_name, name, original_file_path }
           ) => {
             let source = previousValue.get(source_name);
             if (!source) {
               source = { tables: [] };
               previousValue.set(source_name, source);
             }
-            const fullPath = path.join(root_path, original_file_path);
+            const fullPath = path.join(rootPath, original_file_path);
             source.tables.push({ name, path: fullPath });
             return previousValue;
           },
