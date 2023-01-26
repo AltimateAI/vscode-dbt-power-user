@@ -22,6 +22,7 @@ from copy import copy
 from functools import lru_cache, partial
 from hashlib import md5
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -32,14 +33,10 @@ from typing import (
 )
 
 import agate
-from dbt.adapters.base import BaseRelation
-from dbt.adapters.factory import Adapter, get_adapter_class_by_name
+from dbt.adapters.factory import get_adapter_class_by_name
 from dbt.config.runtime import RuntimeConfig
-from dbt.contracts.connection import AdapterResponse
-from dbt.contracts.graph.manifest import ManifestNode, MaybeNonSource, MaybeParsedSource, NodeType
-from dbt.contracts.graph.parsed import ColumnInfo
+from dbt.contracts.graph.manifest import NodeType
 from dbt.events.functions import fire_event  # monkey-patched for perf
-from dbt.exceptions import CompilationException, RuntimeException
 from dbt.flags import DEFAULT_PROFILES_DIR, set_from_args
 from dbt.node_types import NodeType
 from dbt.parser.manifest import ManifestLoader, process_node
@@ -47,6 +44,18 @@ from dbt.parser.sql import SqlBlockParser, SqlMacroParser
 from dbt.task.sql import SqlCompileRunner, SqlExecuteRunner
 from dbt.tracking import disable_tracking
 from dbt.version import __version__ as dbt_version
+
+
+if TYPE_CHECKING:
+    # These imports are only used for type checking
+    from dbt.adapters.base import BaseRelation  # type: ignore
+    from dbt.contracts.connection import AdapterResponse
+    from dbt.contracts.graph.manifest import (  # type: ignore
+        ManifestNode,
+        MaybeNonSource,
+        MaybeParsedSource,
+    )
+    from dbt.contracts.graph.parsed import ColumnInfo
 
 
 CACHE = {}
@@ -96,7 +105,7 @@ def memoize_get_rendered(function):
     def wrapper(
         string: str,
         ctx: Dict[str, Any],
-        node: ManifestNode = None,
+        node: "ManifestNode" = None,
         capture_macros: bool = False,
         native: bool = False,
     ):
@@ -166,7 +175,7 @@ class DbtAdapterExecutionResult:
     """Interface for execution results, this keeps us 1 layer removed from dbt interfaces which may change"""
 
     def __init__(
-        self, adapter_response: AdapterResponse, table: agate.Table, raw_sql: str, compiled_sql: str
+        self, adapter_response: "AdapterResponse", table: agate.Table, raw_sql: str, compiled_sql: str
     ) -> None:
         self.adapter_response = adapter_response
         self.table = table
@@ -177,7 +186,7 @@ class DbtAdapterExecutionResult:
 class DbtAdapterCompilationResult:
     """Interface for compilation results, this keeps us 1 layer removed from dbt interfaces which may change"""
 
-    def __init__(self, raw_sql: str, compiled_sql: str, node: ManifestNode) -> None:
+    def __init__(self, raw_sql: str, compiled_sql: str, node: "ManifestNode") -> None:
         self.raw_sql = raw_sql
         self.compiled_sql = compiled_sql
         self.node = node
@@ -336,8 +345,8 @@ class DbtProject:
         self.compile_sql.cache_clear()
 
     @lru_cache(maxsize=10)
-    def get_ref_node(self, target_model_name: str) -> MaybeNonSource:
-        """Get a `ManifestNode` from a dbt project model name"""
+    def get_ref_node(self, target_model_name: str) -> "MaybeNonSource":
+        """Get a `"ManifestNode"` from a dbt project model name"""
         return self.dbt.resolve_ref(
             target_model_name=target_model_name,
             target_model_package=None,
@@ -346,8 +355,8 @@ class DbtProject:
         )
 
     @lru_cache(maxsize=10)
-    def get_source_node(self, target_source_name: str, target_table_name: str) -> MaybeParsedSource:
-        """Get a `ManifestNode` from a dbt project source name and table name"""
+    def get_source_node(self, target_source_name: str, target_table_name: str) -> "MaybeParsedSource":
+        """Get a `"ManifestNode"` from a dbt project source name and table name"""
         return self.dbt.resolve_source(
             target_source_name=target_source_name,
             target_table_name=target_table_name,
@@ -374,7 +383,7 @@ class DbtProject:
 
     def adapter_execute(
         self, sql: str, auto_begin: bool = True, fetch: bool = False
-    ) -> Tuple[AdapterResponse, agate.Table]:
+    ) -> Tuple["AdapterResponse", agate.Table]:
         """Wraps adapter.execute. Execute SQL against database"""
         return self.adapter.execute(sql, auto_begin, fetch)
 
@@ -388,25 +397,22 @@ class DbtProject:
 
     def execute_sql(self, raw_sql: str) -> DbtAdapterExecutionResult:
         """Execute dbt SQL statement against database"""
-        try:
-            with self.adapter.connection_named("master"):
-                # if no jinja chars then these are synonymous
-                compiled_sql = raw_sql
-                if has_jinja(raw_sql):
-                    # jinja found, compile it
-                    compilation_result = self.compile_sql(raw_sql)
-                    compiled_sql = compilation_result.compiled_sql
-                
-                return DbtAdapterExecutionResult(
-                    *self.adapter_execute(compiled_sql, fetch=True),
-                    raw_sql,
-                    compiled_sql,
-                )
-        except Exception as e:
-            raise RuntimeException(str(e))
+        with self.adapter.connection_named("master"):
+            # if no jinja chars then these are synonymous
+            compiled_sql = raw_sql
+            if has_jinja(raw_sql):
+                # jinja found, compile it
+                compilation_result = self.compile_sql(raw_sql)
+                compiled_sql = compilation_result.compiled_sql
+            
+            return DbtAdapterExecutionResult(
+                *self.adapter_execute(compiled_sql, fetch=True),
+                raw_sql,
+                compiled_sql,
+            )
 
-    def execute_node(self, node: ManifestNode) -> DbtAdapterExecutionResult:
-        """Execute dbt SQL statement against database from a ManifestNode"""
+    def execute_node(self, node: "ManifestNode") -> DbtAdapterExecutionResult:
+        """Execute dbt SQL statement against database from a"ManifestNode"""
         try:
             raw_sql: str = getattr(node, RAW_CODE)
             compiled_sql: Optional[str] = getattr(node, COMPILED_CODE, None)
@@ -433,7 +439,7 @@ class DbtProject:
         except Exception as e:
             raise RuntimeException(str(e))
 
-    def compile_node(self, node: ManifestNode) -> Optional[DbtAdapterCompilationResult]:
+    def compile_node(self, node: "ManifestNode") -> Optional[DbtAdapterCompilationResult]:
         """Compiles existing node."""
         try:
             self.sql_compiler.node = node
@@ -452,31 +458,31 @@ class DbtProject:
         if self.dbt is not None:
             self.dbt.nodes.pop(f"{NodeType.SqlOperation}.{self.project_name}.{name}", None)
 
-    def get_relation(self, database: str, schema: str, name: str) -> Optional[BaseRelation]:
+    def get_relation(self, database: str, schema: str, name: str) -> Optional["BaseRelation"]:
         """Wrapper for `adapter.get_relation`"""
         return self.adapter.get_relation(database, schema, name)
 
-    def create_relation(self, database: str, schema: str, name: str) -> BaseRelation:
+    def create_relation(self, database: str, schema: str, name: str) -> "BaseRelation":
         """Wrapper for `adapter.Relation.create`"""
         return self.adapter.Relation.create(database, schema, name)
 
-    def create_relation_from_node(self, node: ManifestNode) -> BaseRelation:
+    def create_relation_from_node(self, node: "ManifestNode") -> "BaseRelation":
         """Wrapper for `adapter.Relation.create_from`"""
         return self.adapter.Relation.create_from(self.config, node)
 
-    def get_columns_in_relation(self, relation: BaseRelation) -> List[str]:
+    def get_columns_in_relation(self, relation: "BaseRelation") -> List[str]:
         """Wrapper for `adapter.get_columns_in_relation`"""
         return self.adapter.get_columns_in_relation(relation)
 
     @lru_cache(maxsize=5)
-    def get_columns(self, node: ManifestNode) -> List[ColumnInfo]:
+    def get_columns(self, node: "ManifestNode") -> List["ColumnInfo"]:
         """Get a list of columns from a compiled node"""
         columns = []
         try:
             columns.extend(
                 [c.name for c in self.get_columns_in_relation(self.create_relation_from_node(node))]
             )
-        except CompilationException:
+        except Exception:
             original_sql = str(getattr(node, RAW_CODE))
             # TODO: account for `TOP` syntax
             setattr(node, RAW_CODE, f"select * from ({original_sql}) limit 0")
@@ -488,13 +494,13 @@ class DbtProject:
 
     def get_or_create_relation(
         self, database: str, schema: str, name: str
-    ) -> Tuple[BaseRelation, bool]:
+    ) -> Tuple["BaseRelation", bool]:
         """Get relation or create if not exists. Returns tuple of relation and
         boolean result of whether it existed ie: (relation, did_exist)"""
         ref = self.get_relation(database, schema, name)
         return (ref, True) if ref else (self.create_relation(database, schema, name), False)
 
-    def create_schema(self, node: ManifestNode):
+    def create_schema(self, node: "ManifestNode"):
         """Create a schema in the database"""
         return self.execute_macro(
             "create_schema",
@@ -502,8 +508,8 @@ class DbtProject:
         )
 
     def materialize(
-        self, node: ManifestNode, temporary: bool = True
-    ) -> Tuple[AdapterResponse, None]:
+        self, node: "ManifestNode", temporary: bool = True
+    ) -> Tuple["AdapterResponse", None]:
         """Materialize a table in the database"""
         return self.adapter_execute(
             # Returns CTAS string so send to adapter.execute
