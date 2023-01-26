@@ -5,7 +5,7 @@ import { DBTProject } from "../dbtProject";
 
 @provide(NodeParser)
 export class NodeParser {
-  createNodeMetaMap(nodesMap: any[]): Promise<NodeMetaMap> {
+  createNodeMetaMap(nodesMap: any[], rootPath: string): Promise<NodeMetaMap> {
     return new Promise((resolve) => {
       const modelMetaMap: NodeMetaMap = new Map();
       if (nodesMap === null || nodesMap === undefined) {
@@ -21,14 +21,13 @@ export class NodeParser {
         .forEach(
           ({
             name,
-            root_path,
             original_file_path,
             database,
             schema,
             alias,
             package_name,
           }) => {
-            const fullPath = path.join(root_path, original_file_path);
+            const fullPath = path.join(rootPath, original_file_path);
             modelMetaMap.set(name, {
               path: fullPath,
               database,

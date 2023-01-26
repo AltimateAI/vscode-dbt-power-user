@@ -8,18 +8,22 @@ import { DocMetaMap } from "../../domain";
 export class DocParser {
   constructor(private terminal: DBTTerminal) {}
 
-  createDocMetaMap(docs: any[], projectName: string): Promise<DocMetaMap> {
+  createDocMetaMap(
+    docs: any[],
+    projectName: string,
+    rootPath: string
+  ): Promise<DocMetaMap> {
     return new Promise((resolve) => {
       const docMetaMap: DocMetaMap = new Map();
       if (docs === null || docs === undefined) {
         resolve(docMetaMap);
       }
       Object.values(docs).forEach(
-        ({ package_name, name, root_path, original_file_path }) => {
+        ({ package_name, name, original_file_path }) => {
           const packageName = package_name;
           const docName =
             packageName === projectName ? name : `${packageName}.${name}`;
-          const fullPath = path.join(root_path, original_file_path);
+          const fullPath = path.join(rootPath, original_file_path);
           try {
             const docFile: string = readFileSync(fullPath).toString("utf8");
             const macroFileLines = docFile.split("\n");
