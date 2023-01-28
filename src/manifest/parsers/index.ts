@@ -53,7 +53,7 @@ export class ManifestParser {
     }
 
     const { nodes, sources, macros, parent_map, child_map, docs } = manifest;
-    const { path: rootPath } = projectRoot;
+    const rootPath = projectRoot.fsPath;
 
     const nodeMetaMapPromise = this.nodeParser.createNodeMetaMap(
       nodes,
