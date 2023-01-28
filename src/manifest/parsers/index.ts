@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { provide } from "inversify-binding-decorators";
 import * as path from "path";
 import { Uri } from "vscode";
@@ -56,6 +56,7 @@ export class ManifestParser {
     const rootPath = projectRoot.fsPath;
 
     const nodeMetaMapPromise = this.nodeParser.createNodeMetaMap(
+      projectName,
       nodes,
       rootPath
     );
@@ -128,3 +129,31 @@ export class ManifestParser {
     }
   }
 }
+
+export const createFullPathForNode: (
+  projectName: string,
+  rootPath: string,
+  packageName: string,
+  relativeFilePath: string
+) => string | undefined = (
+  projectName,
+  rootPath,
+  packageName,
+  relativeFilePath
+) => {
+  if (packageName !== projectName) {
+    for (const modulePathVariant of DBTProject.DBT_MODULES) {
+      const rootPathWithPackage = path.join(
+        rootPath,
+        modulePathVariant,
+        packageName,
+        relativeFilePath
+      );
+      if (existsSync(rootPathWithPackage)) {
+        return rootPathWithPackage;
+      }
+    }
+    return undefined;
+  }
+  return path.join(rootPath, relativeFilePath);
+};

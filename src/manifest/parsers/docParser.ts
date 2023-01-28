@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
 import { provide } from "inversify-binding-decorators";
-import * as path from "path";
+import { createFullPathForNode } from ".";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { DocMetaMap } from "../../domain";
 
@@ -23,7 +23,15 @@ export class DocParser {
           const packageName = package_name;
           const docName =
             packageName === projectName ? name : `${packageName}.${name}`;
-          const fullPath = path.join(rootPath, original_file_path);
+          const fullPath = createFullPathForNode(
+            projectName,
+            rootPath,
+            packageName,
+            original_file_path
+          );
+          if (!fullPath) {
+            return;
+          }
           try {
             const docFile: string = readFileSync(fullPath).toString("utf8");
             const macroFileLines = docFile.split("\n");

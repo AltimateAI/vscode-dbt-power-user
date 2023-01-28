@@ -1,11 +1,15 @@
 import { provide } from "inversify-binding-decorators";
-import * as path from "path";
+import { createFullPathForNode } from ".";
 import { NodeMetaMap } from "../../domain";
 import { DBTProject } from "../dbtProject";
 
 @provide(NodeParser)
 export class NodeParser {
-  createNodeMetaMap(nodesMap: any[], rootPath: string): Promise<NodeMetaMap> {
+  createNodeMetaMap(
+    projectName: string,
+    nodesMap: any[],
+    rootPath: string
+  ): Promise<NodeMetaMap> {
     return new Promise((resolve) => {
       const modelMetaMap: NodeMetaMap = new Map();
       if (nodesMap === null || nodesMap === undefined) {
@@ -27,7 +31,15 @@ export class NodeParser {
             alias,
             package_name,
           }) => {
-            const fullPath = path.join(rootPath, original_file_path);
+            const fullPath = createFullPathForNode(
+              projectName,
+              rootPath,
+              package_name,
+              original_file_path
+            );
+            if (!fullPath) {
+              return;
+            }
             modelMetaMap.set(name, {
               path: fullPath,
               database,
