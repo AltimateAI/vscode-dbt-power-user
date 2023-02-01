@@ -426,7 +426,7 @@ class DbtProject:
             # execute the SQL
             return self.execute_sql(compiled_sql or raw_sql)
         except Exception as e:
-            raise RuntimeException(str(e))
+            raise Exception(str(e))
 
     @lru_cache(maxsize=SQL_CACHE_SIZE)
     def compile_sql(self, raw_sql: str) -> DbtAdapterCompilationResult:
@@ -437,7 +437,7 @@ class DbtProject:
             self._clear_node(temp_node_id)
             return node
         except Exception as e:
-            raise RuntimeException(str(e))
+            raise Exception(str(e))
 
     def compile_node(self, node: "ManifestNode") -> Optional[DbtAdapterCompilationResult]:
         """Compiles existing node."""
@@ -451,7 +451,7 @@ class DbtProject:
                 compiled_node,
             )
         except Exception as e:
-            raise RuntimeException(str(e))
+            raise Exception(str(e))
 
     def _clear_node(self, name="name"):
         """Removes the statically named node created by `execute_sql` and `compile_sql` in `dbt.lib`"""
