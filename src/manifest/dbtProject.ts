@@ -277,6 +277,15 @@ export class DBTProject implements Disposable {
     this.dbtProjectContainer.addCommandToQueue(runModelCommand);
   }
 
+  buildModel(runModelParams: RunModelParams) {
+    const buildModelCommand = this.dbtCommandFactory.createBuildModelCommand(
+      this.projectRoot,
+      this.dbtProfilesDir,
+      runModelParams
+    );
+    this.dbtProjectContainer.addCommandToQueue(buildModelCommand);
+  }
+
   runTest(testName: string) {
     const testModelCommand = this.dbtCommandFactory.createTestModelCommand(
       this.projectRoot,

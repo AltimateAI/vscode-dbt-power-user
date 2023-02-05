@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/innoverio/vscode-dbt-power-user/issues"
   },
-  "version": "0.11.2",
+  "version": "0.11.3",
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -202,6 +202,14 @@
           "light": "./media/images/run-light.svg",
           "dark": "./media/images/run-dark.svg"
         }
+      },
+      {
+        "command": "dbtPowerUser.buildCurrentModel",
+        "title": "Build dbt Model",
+        "icon": {
+          "light": "./media/images/build-model_light.svg",
+          "dark": "./media/images/build-model_dark.svg"
+        }
       }
     ],
     "keybindings": [
@@ -225,19 +233,24 @@
           "group": "navigation@1"
         },
         {
-          "command": "dbtPowerUser.runCurrentModel",
+          "command": "dbtPowerUser.buildCurrentModel",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
           "group": "navigation@2"
         },
         {
-          "command": "dbtPowerUser.testCurrentModel",
+          "command": "dbtPowerUser.runCurrentModel",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
           "group": "navigation@3"
         },
         {
-          "command": "dbtPowerUser.sqlPreview",
+          "command": "dbtPowerUser.testCurrentModel",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
           "group": "navigation@4"
+        },
+        {
+          "command": "dbtPowerUser.sqlPreview",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "group": "navigation@5"
         }
       ],
       "editor/context": [

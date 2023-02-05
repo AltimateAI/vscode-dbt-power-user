@@ -18,6 +18,14 @@ export class RunModel {
     this.runDBTModel(fullPath, type);
   }
 
+  buildModelOnActiveWindow(type?: RunModelType) {
+    if (!window.activeTextEditor) {
+      return;
+    }
+    const fullPath = window.activeTextEditor.document.uri;
+    this.buildDBTModel(fullPath, type);
+  }
+
   runTestsOnActiveWindow() {
     if (!window.activeTextEditor) {
       return;
@@ -103,6 +111,10 @@ export class RunModel {
 
   runDBTModel(modelPath: Uri, type?: RunModelType) {
     this.dbtProjectContainer.runModel(modelPath, type);
+  }
+
+  buildDBTModel(modelPath: Uri, type?: RunModelType) {
+    this.dbtProjectContainer.buildModel(modelPath, type);
   }
 
   compileDBTModel(modelPath: Uri, type?: RunModelType) {
