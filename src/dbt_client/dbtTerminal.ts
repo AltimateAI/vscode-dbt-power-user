@@ -15,9 +15,9 @@ export class DBTTerminal {
   }
 
   log(message: string) {
-    this.outputChannel.append(message + "\n\r");
+    this.outputChannel.append(message);
     if (this.terminal !== undefined) {
-      this.writeEmitter.fire(message + "\n\r");
+      this.writeEmitter.fire(message);
     }
   }
 
