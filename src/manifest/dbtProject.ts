@@ -253,7 +253,7 @@ export class DBTProject implements Disposable {
   private async rebuildManifest() {
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
-        "The dbt manifest can't be rebuild right now as the Python envirnoment has not yet been initialized, please try again later."
+        "The dbt manifest can't be rebuild right now as the Python environment has not yet been initialized, please try again later."
       );
       return;
     }
