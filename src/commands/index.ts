@@ -76,7 +76,10 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand("dbtPowerUser.buildCurrentModel", () =>
         this.runModel.buildModelOnActiveWindow()
-      )
+      ),
+      commands.registerCommand("showModelGraph", (params) => {
+        this.runModel.createModelGraphView(params);
+      })
     );
   }
 

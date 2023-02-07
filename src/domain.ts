@@ -45,10 +45,12 @@ interface TestMetaData {
 }
 
 interface NodeGraphMetaData {
+  currentNode: Node;
   nodes: Node[];
 }
 
 export type NodeGraphMap = Map<string, NodeGraphMetaData>;
+export type ModelGraphMetaMap = Map<string, NodeGraphMetaData>;
 
 export interface GraphMetaMap {
   parents: NodeGraphMap;
