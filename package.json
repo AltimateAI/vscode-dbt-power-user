@@ -330,7 +330,7 @@
     "@types/node": "^18.11.18",
     "@types/vscode": "^1.74.0",
     "@types/which": "^2.0.1",
-    "@typescript-eslint/eslint-plugin": "^5.48.0",
+    "@typescript-eslint/eslint-plugin": "^5.51.0",
     "@typescript-eslint/parser": "^5.48.2",
     "@vscode/test-electron": "^2.2.2",
     "copy-webpack-plugin": "^11.0.0",
