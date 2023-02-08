@@ -116,6 +116,11 @@
           "id": "dbt_preview_results",
           "title": "Query Results",
           "icon": "./media/images/dbt_icon.svg"
+        },
+        {
+          "id": "dbt_lineage_view",
+          "title": "Lineage View",
+          "icon": "./media/images/dbt_icon.svg"
         }
       ]
     },
@@ -137,6 +142,13 @@
       "dbt_preview_results": [
         {
           "id": "dbtPowerUser.PreviewResults",
+          "name": "",
+          "type": "webview"
+        }
+      ],
+      "dbt_lineage_view": [
+        {
+          "id": "dbtPowerUser.ModelViewGraph",
           "name": "",
           "type": "webview"
         }

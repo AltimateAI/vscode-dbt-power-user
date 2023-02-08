@@ -30,6 +30,7 @@ export class NodeParser {
             schema,
             alias,
             package_name,
+            unique_id,
           }) => {
             const fullPath = createFullPathForNode(
               projectName,
@@ -46,6 +47,7 @@ export class NodeParser {
               schema,
               alias,
               package_name,
+              uniqueId: unique_id,
             });
           }
         );

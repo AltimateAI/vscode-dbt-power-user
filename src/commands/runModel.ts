@@ -146,10 +146,6 @@ export class RunModel {
     this.dbtProjectContainer.showRunSQL(modelPath);
   }
 
-  createModelGraphView(modelPath: Uri) {
-    this.dbtProjectContainer.createModelGraphView(modelPath);
-  }
-
   createModelBasedonSourceConfig(params: GenerateModelFromSourceParams) {
     const project = this.dbtProjectContainer.findDBTProject(params.currentDoc);
     if (project) {

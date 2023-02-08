@@ -13,6 +13,7 @@ interface MacroMetaData {
 }
 
 interface NodeMetaData {
+  uniqueId: string;
   path: string;
   database: string;
   schema: string;
@@ -21,6 +22,7 @@ interface NodeMetaData {
 }
 
 interface SourceMetaData {
+  uniqueId: string;
   tables: SourceTable[];
 }
 
@@ -49,8 +51,14 @@ interface NodeGraphMetaData {
   nodes: Node[];
 }
 
+interface ModelGraphMetaData {
+  uniqueId: string;
+  name: string;
+  dependencies?: string[];
+}
+
 export type NodeGraphMap = Map<string, NodeGraphMetaData>;
-export type ModelGraphMetaMap = Map<string, NodeGraphMetaData>;
+export type ModelGraphMetaMap = Map<string, ModelGraphMetaData>;
 
 export interface GraphMetaMap {
   parents: NodeGraphMap;
