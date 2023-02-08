@@ -10,6 +10,7 @@ import { StatusBars } from "./statusbar";
 import { TreeviewProviders } from "./treeview_provider";
 import { provideSingleton } from "./utils";
 import { WebviewViewProviders } from "./webview_view";
+import { ModelGraphWebviewViewProviders } from "./lineage_provider";
 
 @provideSingleton(DBTPowerUserExtension)
 export class DBTPowerUserExtension implements Disposable {
@@ -31,6 +32,7 @@ export class DBTPowerUserExtension implements Disposable {
     private contentProviders: ContentProviders,
     private codeLensProviders: CodeLensProviders,
     private documentFormattingEditProviders: DocumentFormattingEditProviders,
+    private modelGraphWebviewViewProviders: ModelGraphWebviewViewProviders,
     private statusBars: StatusBars
   ) {
     this.disposables.push(
@@ -43,6 +45,7 @@ export class DBTPowerUserExtension implements Disposable {
       this.codeLensProviders,
       this.vscodeCommands,
       this.documentFormattingEditProviders,
+      this.modelGraphWebviewViewProviders,
       this.statusBars
     );
   }

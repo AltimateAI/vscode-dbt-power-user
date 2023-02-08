@@ -1,14 +1,17 @@
 import {
-  WebviewPanel,
-  ViewColumn,
   window,
-  ExtensionContext,
   Uri,
+  WebviewViewProvider,
+  WebviewView,
+  Disposable,
+  CancellationToken,
+  WebviewViewResolveContext,
+  WebviewOptions,
 } from "vscode";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { GraphMetaMap } from "../domain";
-import navigateToFile from "../commands/navigateToFile";
 import { provideSingleton } from "../utils";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 
 interface G6DataModel {
   nodes: {
@@ -20,19 +23,49 @@ interface G6DataModel {
     target: string;
   }[];
 }
-@provideSingleton(ModelGraphView)
-export class ModelGraphView {
-  private currentPanel: WebviewPanel | undefined = undefined;
-  private g6Data?: G6DataModel;
-  private context: ExtensionContext;
-  private childrenMap?: GraphMetaMap["children"];
 
-  constructor(context: ExtensionContext) {
-    this.context = context;
+@provideSingleton(ModelGraphViewPanel)
+export class ModelGraphViewPanel implements WebviewViewProvider {
+  public static readonly viewType = "dbtPowerUser.ModelViewGraph";
+  private _panel: WebviewView | undefined = undefined;
+  private g6Data?: G6DataModel;
+  private childrenMap?: GraphMetaMap["children"];
+  private _disposables: Disposable[] = [];
+
+  public constructor(private dbtProjectContainer: DBTProjectContainer) {
+    window.onDidChangeActiveColorTheme(
+      async (e) => {
+        if (this._panel) {
+          this._panel.webview.html = this.getWebviewContent();
+        }
+      },
+      null,
+      this._disposables
+    );
+  }
+
+  public async resolveWebviewView(
+    panel: WebviewView,
+    context: WebviewViewResolveContext,
+    _token: CancellationToken
+  ) {
+    this._panel = panel;
+    this.setupWebviewOptions(context);
+    this.renderWebviewView(context);
+  }
+
+  private async renderWebviewView(context: WebviewViewResolveContext) {
+    const webview = this._panel!.webview!;
+    this._panel!.webview.html = this.getWebviewContent();
+  }
+
+  private setupWebviewOptions(context: WebviewViewResolveContext) {
+    this._panel!.title = "Lineage graph";
+    this._panel!.description = "Preview project lineage";
+    this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
   }
 
   onDBTManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    // interesa el graph meta map que es el que tiene los children
     // this.childrenMap = event.GraphMetaMap.added;
     // cambiar por algo mas parecido a esto:
     // event.added?.forEach((added) => {
@@ -46,49 +79,8 @@ export class ModelGraphView {
     //   event.removed?.forEach((removed) => {
     //     this.docAutocompleteNameItemsMap.delete(removed.projectRoot.fsPath);
     //   });
-    if (this.currentPanel !== undefined) {
-      this.show();
-    }
-  }
-
-  show(): void {
-    if (this.childrenMap !== undefined) {
-      this.currentPanel = window.createWebviewPanel(
-        "modelGraphView",
-        "Model Graph View",
-        ViewColumn.One,
-        {
-          enableScripts: true,
-          localResourceRoots: [
-            Uri.joinPath(this.context.extensionUri, "media"),
-          ],
-        }
-      );
-
-      this.g6Data = this.mapToG6DataModel();
-
-      this.currentPanel.webview.html = this.getWebviewContent();
-      this.currentPanel.onDidDispose(
-        () => {
-          this.currentPanel = undefined;
-        },
-        null,
-        this.context.subscriptions
-      );
-      this.currentPanel.webview.onDidReceiveMessage(
-        (message) => {
-          //   if (this.childrenMap === undefined) {
-          //     return;
-          //   }
-          //   const nodeInfo = this.childrenMap.get(message.nodeName);
-          //   if (nodeInfo === undefined) {
-          //     return;
-          //   }
-          //   navigateToFile(nodeInfo.currentNode.url);
-        },
-        null,
-        this.context.subscriptions
-      );
+    if (this._panel !== undefined) {
+      // this.show();
     }
   }
 
@@ -169,7 +161,7 @@ export class ModelGraphView {
     }
 
     const mapToWebviewURI = (uri: string) => {
-      return this.currentPanel?.webview.asWebviewUri(Uri.file(uri));
+      return this._panel?.webview.asWebviewUri(Uri.file(uri));
     };
 
     const nodes: any[] = [];
