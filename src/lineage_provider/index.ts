@@ -1,6 +1,6 @@
-import { ModelGraphViewPanel } from "./modelGraphViewPanel";
 import { Disposable, window } from "vscode";
 import { provideSingleton } from "../utils";
+import { ModelGraphViewPanel } from "./modelGraphViewPanel";
 
 @provideSingleton(ModelGraphWebviewViewProviders)
 export class ModelGraphWebviewViewProviders implements Disposable {

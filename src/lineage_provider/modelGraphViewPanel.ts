@@ -1,17 +1,17 @@
 import {
-  window,
-  Uri,
-  WebviewViewProvider,
-  WebviewView,
-  Disposable,
   CancellationToken,
-  WebviewViewResolveContext,
+  Disposable,
+  Uri,
   WebviewOptions,
+  WebviewView,
+  WebviewViewProvider,
+  WebviewViewResolveContext,
+  window,
 } from "vscode";
-import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { GraphMetaMap } from "../domain";
-import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import { provideSingleton } from "../utils";
 
 interface G6DataModel {
   nodes: {

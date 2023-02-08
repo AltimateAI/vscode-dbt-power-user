@@ -1,6 +1,4 @@
-import { readFileSync } from "fs";
 import { provide } from "inversify-binding-decorators";
-import { createFullPathForNode } from ".";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { ModelGraphMetaMap } from "../../domain";
 import { DBTProject } from "../dbtProject";
