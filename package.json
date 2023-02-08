@@ -58,7 +58,15 @@
               "type": "string"
             },
             "default": [],
-            "description": "Add additonal params to the dbt run model command."
+            "description": "Add additional params to the dbt run model command."
+          },
+          "dbt.buildModelCommandAdditionalParams": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "Add additional params to the dbt build model command."
           },
           "dbt.profilesDirOverride": {
             "type": "string",
