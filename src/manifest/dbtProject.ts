@@ -374,7 +374,7 @@ export class DBTProject implements Disposable {
 ),
 renamed as (
     select
-        ${columnsInRelation.map((column) => "\"" + column.column + "\"").join(",\n        ")}
+        ${columnsInRelation.map((column) => `"${column.column}"`).join(",\n        ")}
 
     from source
 )
