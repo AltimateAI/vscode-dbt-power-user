@@ -459,7 +459,10 @@ select * from renamed
     );
     const dbtProjectYamlFile = readFileSync(dbtProjectConfigLocation, "utf8");
     try {
-      return parse(dbtProjectYamlFile, { uniqueKeys: false });
+      return parse(dbtProjectYamlFile, {
+        uniqueKeys: false,
+        maxAliasCount: -1,
+      });
       // TODO: any validation logic could go here to skip a project
     } catch (error: any) {
       window.showErrorMessage(
