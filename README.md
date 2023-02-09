@@ -12,6 +12,7 @@ Main features:
 - Go to the definition of any models, macros, sources and docs.
 - Autocompletion of models, macros, sources and docs
 - Ability to run a model through the play button of the document
+- Ability to build a model through the paper plane button (next to the play button)
 - dbt update notifications
 - dbt logs viewer (force tailing)
 

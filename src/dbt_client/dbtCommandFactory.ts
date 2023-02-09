@@ -101,6 +101,44 @@ export class DBTCommandFactory {
     };
   }
 
+  createBuildModelCommand(
+    projectRoot: Uri,
+    profilesDir: string,
+    params: RunModelParams
+  ): DBTCommand {
+    const { plusOperatorLeft, modelName, plusOperatorRight } = params;
+    const profilesDirParams = this.profilesDirParams(profilesDir);
+
+    const buildModelCommandAdditionalParams = workspace
+      .getConfiguration("dbt")
+      .get<string[]>("buildModelCommandAdditionalParams", []);
+
+    return {
+      commandAsString: `dbt build --select ${params.plusOperatorLeft}${
+        params.modelName
+      }${params.plusOperatorRight}${
+        buildModelCommandAdditionalParams.length > 0
+          ? " " + buildModelCommandAdditionalParams.join(" ")
+          : ""
+      }`,
+      statusMessage: "Building dbt models...",
+      processExecutionParams: {
+        cwd: projectRoot.fsPath,
+        args: [
+          "-c",
+          this.dbtCommand([
+            "'build'",
+            "'--select'",
+            `'${plusOperatorLeft}${modelName}${plusOperatorRight}'`,
+            ...buildModelCommandAdditionalParams.map((param) => `'${param}'`),
+            ...profilesDirParams,
+          ]),
+        ],
+      },
+      focus: true,
+    };
+  }
+
   createTestModelCommand(
     projectRoot: Uri,
     profilesDir: string,
