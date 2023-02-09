@@ -325,7 +325,7 @@
     "deploy-openvsx": "ovsx publish"
   },
   "devDependencies": {
-    "@types/glob": "^8.0.0",
+    "@types/glob": "^8.0.1",
     "@types/mocha": "^10.0.1",
     "@types/node": "^18.11.18",
     "@types/vscode": "^1.74.0",
@@ -338,7 +338,7 @@
     "eslint-config-prettier": "^8.6.0",
     "eslint-plugin-prettier": "^4.2.1",
     "file-loader": "^6.1.0",
-    "glob": "^8.0.3",
+    "glob": "^8.1.0",
     "husky": "^8.0.3",
     "lint-staged": "^13.1.0",
     "mocha": "^10.2.0",
