@@ -4,7 +4,6 @@ import {
   DocumentFormattingEditProvider,
   FormattingOptions,
   ProviderResult,
-  Range,
   TextDocument,
   TextEdit,
   window,
@@ -73,12 +72,20 @@ export class DbtDocumentFormattingEditProvider
             );
           }
           if (this.isNormalChange(change)) {
-            TextEdit.replace(
-              new Range(
-                document.lineAt(change.ln1 - 1).range.start,
-                document.lineAt(change.ln2).rangeIncludingLineBreak.end
-              ),
-              change.content.slice(1)
+            // Reflect "replace" edits as delete & insert
+            // First, delete line
+            textEdits.push(
+              TextEdit.delete(
+                document.lineAt(change.ln1 - 1).rangeIncludingLineBreak
+              )
+            );
+
+            // Add line
+            textEdits.push(
+              TextEdit.insert(
+                document.lineAt(change.ln2 - 1).range.start,
+                change.content.slice(1) + "\n"
+              )
             );
           }
           if (this.isDeleteChange(change)) {
