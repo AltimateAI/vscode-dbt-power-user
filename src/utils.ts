@@ -5,6 +5,7 @@ import {
   Position,
   Range,
   TextDocument,
+  workspace,
 } from "vscode";
 
 export const isEnclosedWithinCodeBlock: (
@@ -92,3 +93,25 @@ export const setupWatcherHandler: (
 export const provideSingleton = (identifier: any) => {
   return fluentProvide(identifier).inSingletonScope().done();
 };
+
+export function substituteSettingsVariables(value: string): string {
+  const regexVsCodeEnv = /\$\{env\:(.*?)\}/gm;
+  let matchResult;
+  while ((matchResult = regexVsCodeEnv.exec(value)) !== null) {
+    // This is necessary to avoid infinite loops with zero-width matches
+    if (matchResult.index === regexVsCodeEnv.lastIndex) {
+      regexVsCodeEnv.lastIndex++;
+    }
+    if (process.env[matchResult[1]] !== undefined) {
+      value = value.replace(
+        new RegExp(`\\\$\\\{env\\\:${matchResult[1]}\\\}`, "gm"),
+        process.env[matchResult[1]]!
+      );
+    }
+  }
+  value = value.replace(
+    "${workspaceFolder}",
+    workspace.workspaceFolders![0].uri.fsPath
+  );
+  return value;
+}
