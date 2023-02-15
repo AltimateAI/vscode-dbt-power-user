@@ -1,6 +1,6 @@
 import { Disposable, Event, extensions, Uri, workspace } from "vscode";
 import { EnvironmentVariables } from "../domain";
-import { provideSingleton } from "../utils";
+import { provideSingleton, substituteSettingsVariables } from "../utils";
 
 interface PythonExecutionDetails {
   getPythonPath: () => string;
@@ -45,36 +45,19 @@ export class PythonEnvironment implements Disposable {
   }
 
   private getPythonPathFromConfig(): string | undefined {
-    return workspace
+    const value = workspace
       .getConfiguration("dbt")
       .get<string>("dbtPythonPathOverride");
+    return value ? substituteSettingsVariables(value) : undefined;
   }
 
-  private parseEnvVarsFromUserSettings = (
-    vsCodeEnv: { [k: string]: string },
-    regexVsCodeEnv: RegExp
-  ) => {
+  private parseEnvVarsFromUserSettings = (vsCodeEnv: {
+    [k: string]: string;
+  }) => {
     // TODO: add any other relevant variables, maybe workspacefolder?
     return Object.keys(vsCodeEnv).reduce(
       (prev: { [k: string]: string }, key: string) => {
-        const value = vsCodeEnv[key];
-        let matchResult;
-        while ((matchResult = regexVsCodeEnv.exec(value)) !== null) {
-          // This is necessary to avoid infinite loops with zero-width matches
-          if (matchResult.index === regexVsCodeEnv.lastIndex) {
-            regexVsCodeEnv.lastIndex++;
-          }
-          if (process.env[matchResult[1]] !== undefined) {
-            prev[key] = prev[key].replace(
-              new RegExp(`\\\$\\\{env\\\:${matchResult[1]}\\\}`, "gm"),
-              process.env[matchResult[1]]!
-            );
-          }
-        }
-        prev[key] = prev[key].replace(
-          "${workspaceFolder}",
-          workspace.workspaceFolders![0].uri.fsPath
-        );
+        prev[key] = substituteSettingsVariables(vsCodeEnv[key]);
         return prev;
       },
       vsCodeEnv
@@ -107,13 +90,12 @@ export class PythonEnvironment implements Disposable {
         ) {
           const env = config.terminal.integrated.env;
           // parse vs code environment variables
-          const regexVsCodeEnv = /\$\{env\:(.*?)\}/gm;
           for (const prop in env) {
             const vsCodeEnv = env[prop];
             envVars = {
               ...process.env,
               ...envVars,
-              ...this.parseEnvVarsFromUserSettings(vsCodeEnv, regexVsCodeEnv),
+              ...this.parseEnvVarsFromUserSettings(vsCodeEnv),
             };
           }
         }
