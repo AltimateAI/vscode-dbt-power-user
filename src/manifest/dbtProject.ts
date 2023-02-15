@@ -21,7 +21,11 @@ import {
 } from "../dbt_client/dbtCommandFactory";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { EnvironmentVariables } from "../domain";
-import { debounce, setupWatcherHandler } from "../utils";
+import {
+  debounce,
+  setupWatcherHandler,
+  substituteSettingsVariables,
+} from "../utils";
 import { QueryResultPanel } from "../webview_view/queryResultPanel";
 import { DBTProjectContainer } from "./dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
@@ -96,8 +100,13 @@ export class DBTProject implements Disposable {
     const profileExistsInProjectRoot = existsSync(
       join(this.projectRoot.fsPath, "profiles.yml")
     );
+    const profilesDirOverrideSetting = workspace
+      .getConfiguration("dbt")
+      .get<string>("profilesDirOverride");
     this.dbtProfilesDir =
-      workspace.getConfiguration("dbt").get<string>("profilesDirOverride") ||
+      (profilesDirOverrideSetting
+        ? substituteSettingsVariables(profilesDirOverrideSetting)
+        : false) ||
       (profileExistsInProjectRoot ? this.projectRoot.fsPath : false) ||
       process.env.DBT_PROFILES_DIR ||
       join(os.homedir(), ".dbt");
@@ -383,7 +392,9 @@ export class DBTProject implements Disposable {
 ),
 renamed as (
     select
-        ${columnsInRelation.map((column) => `{{ adapter.quote("${column.column}") }}`).join(",\n        ")}
+        ${columnsInRelation
+          .map((column) => `{{ adapter.quote("${column.column}") }}`)
+          .join(",\n        ")}
 
     from source
 )
