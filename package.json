@@ -346,7 +346,7 @@
     "deploy-openvsx": "ovsx publish"
   },
   "devDependencies": {
-    "@types/glob": "^8.0.1",
+    "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.1",
     "@types/node": "^18.14.0",
     "@types/vscode": "^1.75.1",
