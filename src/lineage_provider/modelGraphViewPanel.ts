@@ -50,11 +50,16 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
       if (event === undefined) {
         return;
       }
-      this.g6Data = this.mapToG6DataModel();
-      this.g6Data = this.updateVisualizationDataModel(
-        event.document.uri.fsPath
-      );
-      this._panel!.webview.html = this.getWebviewContent();
+      const fileRoute = event.document.uri.fsPath;
+      this.g6Data = this.mapToG6DataModel(fileRoute);
+      this.transmitData(this.g6Data);
+    });
+  }
+
+  private async transmitData(graphInfo: G6DataModel | undefined) {
+    await this._panel!.webview.postMessage({
+      command: "renderGraph",
+      graph: graphInfo,
     });
   }
 
@@ -77,13 +82,13 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
 
   private async renderWebviewView(context: WebviewViewResolveContext) {
     const webview = this._panel!.webview!;
-    this.g6Data = this.mapToG6DataModel();
+    this.g6Data = this.mapToG6DataModel("");
     this._panel!.webview.html = this.getWebviewContent();
   }
 
   private setupWebviewOptions(context: WebviewViewResolveContext) {
     this._panel!.title = "Lineage graph";
-    this._panel!.description = "Preview project lineage";
+    this._panel!.description = "";
     this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
   }
 
@@ -171,12 +176,20 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
         nodeName
       })
     });
+    window.addEventListener('message', (event) => {
+      switch (event.data.command) {
+        case 'renderGraph':
+          graph.data(event.data.graph);
+          graph.render();
+          break;
+      }
+    });
     </script>
 </body>
 </html>`;
   }
 
-  private mapToG6DataModel = () => {
+  private mapToG6DataModel = (fileRoute: string) => {
     if (this.childrenMap === undefined) {
       return;
     }
@@ -185,65 +198,75 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
       return this._panel?.webview.asWebviewUri(Uri.file(uri));
     };
 
-    const nodes: any[] = [];
-
     const firstMap = this.childrenMap.entries().next().value;
-
     if (firstMap === undefined) {
       return {
         nodes: [
           {
-            id: "node1",
-            label: "Circle1",
+            id: "model.jaffle_shop.customers",
+            label: "model.jaffle_shop.customers",
             x: 150,
             y: 150,
           },
           {
-            id: "node2",
-            label: "Circle2",
-            x: 400,
+            id: "model.jaffle_shop.payments",
+            label: "model.jaffle_shop.payments",
+            x: 150,
             y: 150,
           },
         ],
         edges: [
           {
-            source: "node1",
-            target: "node2",
+            source: "model.jaffle_shop.customers",
+            target: "model.jaffle_shop.payments",
           },
         ],
       };
     }
     const firstProjectMap = firstMap[1];
-    Array.from(firstProjectMap.keys()).forEach((key) => {
-      const childNode = firstProjectMap!.get(key)!;
-      const currentNode = childNode;
-      const image =
-        currentNode?.iconPath !== undefined
-          ? {
-              show: true,
-              img: mapToWebviewURI(currentNode.iconPath.dark)!.toString(),
-            }
-          : {
-              show: false,
-            };
-      nodes.push({
-        id: key,
-        label: currentNode.label,
-        logoIcon: image,
-        style: {
-          fill: "#ffffff",
-        },
-      });
+    const nodes: any[] = [];
+    const modelName = fileRoute.match(/\/(\w*).sql/)?.[1];
+    Array.from(firstProjectMap.keys()).forEach((key: any) => {
+      if (key.endsWith(`.${modelName}`)) {
+        if (key.startsWith("model.")) {
+          const childNode = firstProjectMap!.get(key)!;
+          const currentNode = childNode;
+          const image =
+            currentNode?.iconPath !== undefined
+              ? {
+                  show: true,
+                  img: mapToWebviewURI(currentNode.iconPath.dark)!.toString(),
+                }
+              : {
+                  show: false,
+                };
+          nodes.push({
+            id: key,
+            label: key,
+            x: 150,
+            y: 150,
+            logoIcon: image,
+            style: {
+              fill: "#ffffff",
+            },
+          });
+        }
+      }
     });
 
     const edges: any[] = [];
 
-    Array.from(firstProjectMap.keys()).forEach((key) => {
+    Array.from(firstProjectMap.keys()).forEach((key: any) => {
       const childrenNodes = firstProjectMap!.get(key);
-      if (childrenNodes !== undefined) {
-        childrenNodes.nodes.map((childrenNode: { key: "string" }) => {
-          edges.push({ target: childrenNode.key, source: key });
-        });
+      if (key.endsWith(`.${modelName}`)) {
+        if (key.startsWith("model.")) {
+          if (childrenNodes !== undefined) {
+            childrenNodes.nodes.map((childrenNode: { key: "string" }) => {
+              edges.push({ target: childrenNode.key, source: key });
+              nodes.push({ id: childrenNode.key, label: childrenNode.key });
+            });
+          }
+        }
       }
     });
 
