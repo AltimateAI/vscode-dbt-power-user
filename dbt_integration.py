@@ -143,16 +143,17 @@ class ConfigInterface:
         profiles_dir: Optional[str] = None,
         project_dir: Optional[str] = None,
         vars: Optional[str] = "{}",
+        profile: Optional[str] = None
     ):
         self.threads = threads
-        if target:
-            self.target = target  # We don't want target in args context if it is None
+        self.target = target
         self.profiles_dir = profiles_dir or DEFAULT_PROFILES_DIR
         self.project_dir = project_dir
         self.vars = vars  # json.dumps str
         self.dependencies = []
         self.single_threaded = threads == 1
         self.quiet = True
+        self.profile = profile
 
 
 class ManifestProxy(UserDict):
@@ -202,12 +203,15 @@ class DbtProject:
         profiles_dir: Optional[str] = None,
         project_dir: Optional[str] = None,
         threads: Optional[int] = 1,
+        profile: Optional[str] = None,
     ):
+        
         self.args = ConfigInterface(
             threads=threads,
             target=target,
             profiles_dir=profiles_dir,
             project_dir=project_dir,
+            profile=profile,
         )
 
         self.init_project()
@@ -264,6 +268,7 @@ class DbtProject:
             profiles_dir=args.profiles_dir,
             project_dir=args.project_dir,
             threads=args.threads,
+            profile=args.profile,
         )
 
     @property
