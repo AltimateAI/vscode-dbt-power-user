@@ -75,7 +75,7 @@ This way supports all Visual Code variable substitution patterns and is best pra
 The extension will read any vscode configurations in `.vscode/settings.json` and pass them to all operations of the extension:
 
 ```
-"terminal.integrated.env.[osx|windows|linux]: {
+"terminal.integrated.env.[osx|windows|linux]": {
     "DBT_PROFILES_DIR": "."
 }
 ```
