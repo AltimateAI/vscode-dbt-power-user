@@ -11,8 +11,12 @@ import {
 } from "vscode";
 import { GraphMetaMap } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import {
+  ManifestCacheChangedEvent,
+  ManifestCacheProjectAddedEvent,
+} from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
+import * as path from "path";
 
 interface G6DataModel {
   nodes: {
@@ -31,6 +35,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
   private _panel: WebviewView | undefined = undefined;
   private g6Data?: G6DataModel;
   private childrenMap?: Map<string, GraphMetaMap["children"]> = new Map();
+  private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private _disposables: Disposable[] = [];
 
   public constructor(private dbtProjectContainer: DBTProjectContainer) {
@@ -51,7 +56,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
         return;
       }
       const fileRoute = event.document.uri.fsPath;
-      this.g6Data = this.mapToG6DataModel(fileRoute);
+      this.g6Data = this.parseGraphData();
       this.transmitData(this.g6Data);
     });
   }
@@ -94,19 +99,10 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
-      if (!this.childrenMap) {
-        this.childrenMap = new Map();
-      }
-      this.childrenMap.set(
-        added.projectRoot.fsPath,
-        added.graphMetaMap.children
-      );
+      this.eventMap.set(added.projectRoot.fsPath, added);
     });
     event.removed?.forEach((removed) => {
-      if (!this.childrenMap) {
-        this.childrenMap = new Map();
-      }
-      this.childrenMap.delete(removed.projectRoot.fsPath);
+      this.eventMap.delete(removed.projectRoot.fsPath);
     });
   }
 
@@ -189,48 +185,47 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
 </html>`;
   }
 
-  private mapToG6DataModel = (fileRoute: string) => {
-    if (this.childrenMap === undefined) {
+  private parseGraphData = () => {
+    if (window.activeTextEditor === undefined || this.eventMap === undefined) {
       return;
     }
 
+    const currentFilePath = window.activeTextEditor.document.uri;
+    const projectRootpath =
+      this.dbtProjectContainer.getProjectRootpath(currentFilePath);
+    if (projectRootpath === undefined) {
+      return;
+    }
+
+    const event = this.eventMap.get(projectRootpath.fsPath);
+    if (event === undefined) {
+      return;
+    }
+
+    const { projectName, graphMetaMap } = event;
+    const fileName = path.basename(
+      window.activeTextEditor!.document.fileName,
+      ".sql"
+    );
+    const packageName =
+      this.dbtProjectContainer.getPackageName(currentFilePath) || projectName;
+    return this.mapParentsAndChildren(graphMetaMap, fileName);
+  };
+
+  private mapParentsAndChildren = (graphMetaMap: any, fileName: string) => {
     const mapToWebviewURI = (uri: string) => {
       return this._panel?.webview.asWebviewUri(Uri.file(uri));
     };
 
-    const firstMap = this.childrenMap.entries().next().value;
-    if (firstMap === undefined) {
-      return {
-        nodes: [
-          {
-            id: "model.jaffle_shop.customers",
-            label: "model.jaffle_shop.customers",
-            x: 150,
-            y: 150,
-          },
-          {
-            id: "model.jaffle_shop.payments",
-            label: "model.jaffle_shop.payments",
-            x: 150,
-            y: 150,
-          },
-        ],
-        edges: [
-          {
-            source: "model.jaffle_shop.customers",
-            target: "model.jaffle_shop.payments",
-          },
-        ],
-      };
-    }
-    const firstProjectMap = firstMap[1];
+    const dependencyTypes = ["children", "parents", "tests"];
     const nodes: any[] = [];
-    const modelName = fileRoute.match(/\/(\w*).sql/)?.[1];
-    Array.from(firstProjectMap.keys()).forEach((key: any) => {
-      if (key.endsWith(`.${modelName}`)) {
-        if (key.startsWith("model.")) {
-          const childNode = firstProjectMap!.get(key)!;
-          const currentNode = childNode;
+    const edges: any[] = [];
+    dependencyTypes.forEach((type) => {
+      const dependencyNodes = graphMetaMap[type];
+      Array.from(dependencyNodes.keys()).forEach((key: any) => {
+        if (key.endsWith(`.${fileName}`) && key.startsWith("model.")) {
+          const node = dependencyNodes!.get(key)!;
+          const currentNode = node;
           const image =
             currentNode?.iconPath !== undefined
               ? {
@@ -250,26 +245,16 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
               fill: "#ffffff",
             },
           });
-        }
-      }
-    });
 
-    const edges: any[] = [];
-
-    Array.from(firstProjectMap.keys()).forEach((key: any) => {
-      const childrenNodes = firstProjectMap!.get(key);
-      if (key.endsWith(`.${modelName}`)) {
-        if (key.startsWith("model.")) {
-          if (childrenNodes !== undefined) {
-            childrenNodes.nodes.map((childrenNode: { key: "string" }) => {
+          if (currentNode !== undefined) {
+            currentNode.nodes.map((childrenNode: { key: "string" }) => {
               edges.push({ target: childrenNode.key, source: key });
               nodes.push({ id: childrenNode.key, label: childrenNode.key });
             });
           }
         }
-      }
+      });
     });
-
     return { nodes, edges };
   };
 }
