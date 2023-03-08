@@ -87,7 +87,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
 
   private async renderWebviewView(context: WebviewViewResolveContext) {
     const webview = this._panel!.webview!;
-    this.g6Data = this.mapToG6DataModel("");
+    this.g6Data = this.parseGraphData();
     this._panel!.webview.html = this.getWebviewContent();
   }
 
