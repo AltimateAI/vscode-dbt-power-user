@@ -78,13 +78,6 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     this.renderWebviewView(context);
   }
 
-  private updateVisualizationDataModel(path: string): G6DataModel {
-    return {
-      nodes: [],
-      edges: [],
-    };
-  }
-
   private async renderWebviewView(context: WebviewViewResolveContext) {
     const webview = this._panel!.webview!;
     this.g6Data = this.parseGraphData();
@@ -107,6 +100,12 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
   }
 
   private getWebviewContent(): string {
+    if (!this.g6Data) {
+      this.g6Data = {
+        nodes: [],
+        edges: [],
+      };
+    }
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -216,11 +215,15 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     const mapToWebviewURI = (uri: string) => {
       return this._panel?.webview.asWebviewUri(Uri.file(uri));
     };
+    const nodeConfigurations: Record<string, any> = {
+      children: { style: { fill: "#EFB27B" } },
+      parents: { style: { fill: "#8DAAE8" } },
+      tests: { style: { fill: "#8DE88E" } },
+    };
 
-    const dependencyTypes = ["children", "parents", "tests"];
     const nodes: any[] = [];
     const edges: any[] = [];
-    dependencyTypes.forEach((type) => {
+    Object.keys(nodeConfigurations).forEach((type) => {
       const dependencyNodes = graphMetaMap[type];
       Array.from(dependencyNodes.keys()).forEach((key: any) => {
         if (key.endsWith(`.${fileName}`) && key.startsWith("model.")) {
@@ -245,11 +248,18 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
               fill: "#ffffff",
             },
           });
-
           if (currentNode !== undefined) {
             currentNode.nodes.map((childrenNode: { key: "string" }) => {
-              edges.push({ target: childrenNode.key, source: key });
-              nodes.push({ id: childrenNode.key, label: childrenNode.key });
+              let edge = { target: childrenNode.key, source: key };
+              if (type === "parents") {
+                edge = { target: key, source: childrenNode.key };
+              }
+              edges.push(edge);
+              nodes.push({
+                id: childrenNode.key,
+                label: childrenNode.key,
+                style: nodeConfigurations[type].style,
+              });
             });
           }
         }
