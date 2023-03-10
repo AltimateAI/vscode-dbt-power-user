@@ -1,5 +1,6 @@
 import {
   CancellationToken,
+  commands,
   Disposable,
   TextEditor,
   Uri,
@@ -76,6 +77,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     this._panel = panel;
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
+    this.setupWebviewHooks(context);
   }
 
   private async renderWebviewView(context: WebviewViewResolveContext) {
@@ -88,6 +90,26 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     this._panel!.title = "Lineage graph";
     this._panel!.description = "";
     this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
+  }
+
+  private setupWebviewHooks(context: WebviewViewResolveContext) {
+    this._panel!.webview.onDidReceiveMessage(
+      async (message) => {
+        switch (message.command) {
+          case "openFile":
+            const { url } = message;
+            if (!url) {
+              return;
+            }
+            await commands.executeCommand("vscode.open", Uri.file(url), {
+              preview: false,
+              preserveFocus: true,
+            });
+        }
+      },
+      null,
+      this._disposables
+    );
   }
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
@@ -120,10 +142,6 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     const vscode = acquireVsCodeApi();
     const width = document.getElementById('container').scrollWidth;
     const height = document.getElementById('container').scrollHeight || 500;
-    const miniMap = new G6.Minimap({
-      size: [200, 100],
-      className: 'minimap',
-    });
     const graph = new G6.Graph({
       container: 'container',
       width,
@@ -144,32 +162,54 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
         size: [250, 40],
         type: 'modelRect',
         style: {
-          lineWidth: 2,
-          stroke: '#5B8FF9',
+          lineWidth: 3,
+          stroke: '#FFFFFF',
           fill: '#C6E5FF',
+          fontSize: 14,
         },
         stateIcon: {
           show: false,
         }
+      },
+      nodeStateStyles: {
+        hover: {
+          opacity: 0.75,
+          cursor: 'pointer',
+        },
       },
       defaultEdge: {
         type: 'polyline',
         size: 1,
         color: '#e2e2e2',
         style: {
+          lineWidth: 3,
           endArrow: true,
         }
       },
     });
     
-    graph.addPlugin(miniMap);
     graph.data(${JSON.stringify(this.g6Data)});
     graph.render();
     graph.on('nodeselectchange', (e) => {
-      const nodeName = e.target._cfg.model.id;
+      if (!e.target) {
+        return;
+      }
+      const nodeUrl = e.target._cfg.model.url;
       vscode.postMessage({
-        nodeName
+        command: "openFile",
+        url: nodeUrl,
       })
+    });
+    // Mouse enter a node
+    graph.on("node:mouseenter", (e) => {
+      const nodeItem = e.item; // Get the target item
+      graph.setItemState(nodeItem, "hover", true);
+    });
+
+    // Mouse exit a node
+    graph.on("node:mouseleave", (e) => {
+      const nodeItem = e.item; // Get the target item
+      graph.setItemState(nodeItem, "hover", false);
     });
     window.addEventListener('message', (event) => {
       switch (event.data.command) {
@@ -221,6 +261,15 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
       tests: { style: { fill: "#8DE88E" } },
     };
 
+    const calculateLabelWidth = (label: string): number => {
+      const defaultLength = 250;
+      const bigLabelLength = 750;
+      if (label.length > 35) {
+        return bigLabelLength;
+      }
+      return defaultLength;
+    };
+
     const nodes: any[] = [];
     const edges: any[] = [];
     Object.keys(nodeConfigurations).forEach((type) => {
@@ -240,27 +289,37 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
                 };
           nodes.push({
             id: key,
+            size: [calculateLabelWidth(key), 40],
             label: key,
             x: 150,
             y: 150,
             logoIcon: image,
             style: {
-              fill: "#ffffff",
+              fill: "#88447D",
             },
+            labelCfg: { style: { fill: "#FFFFFF", stroke: "#24292F" } },
           });
           if (currentNode !== undefined) {
-            currentNode.nodes.map((childrenNode: { key: "string" }) => {
-              let edge = { target: childrenNode.key, source: key };
-              if (type === "parents") {
-                edge = { target: key, source: childrenNode.key };
+            currentNode.nodes.map(
+              (childrenNode: {
+                key: "string";
+                label: "string";
+                url: "string";
+              }) => {
+                let edge = { target: childrenNode.key, source: key };
+                if (type === "parents") {
+                  edge = { target: key, source: childrenNode.key };
+                }
+                edges.push(edge);
+                nodes.push({
+                  id: childrenNode.key,
+                  size: [calculateLabelWidth(childrenNode.label), 40],
+                  label: childrenNode.label,
+                  style: nodeConfigurations[type].style,
+                  url: childrenNode.url,
+                });
               }
-              edges.push(edge);
-              nodes.push({
-                id: childrenNode.key,
-                label: childrenNode.key,
-                style: nodeConfigurations[type].style,
-              });
-            });
+            );
           }
         }
       });
