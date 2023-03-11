@@ -80,8 +80,11 @@ export class ManifestParser {
       projectName,
       rootPath
     );
-    const modelGraphMetaMapPromise =
-      this.modelGraphParser.createModelGraphMetaMap(nodes, sources, rootPath);
+    const modelGraphMetaMap = this.modelGraphParser.createModelGraphMetaMap(
+      nodes,
+      sources,
+      rootPath
+    );
 
     const [nodeMetaMap, macroMetaMap, sourceMetaMap, testMetaMap, docMetaMap] =
       await Promise.all([

@@ -1,9 +1,13 @@
+import { readFileSync } from "fs";
+import * as path from "path";
 import {
   CancellationToken,
+  ColorThemeKind,
   commands,
   Disposable,
   TextEditor,
   Uri,
+  Webview,
   WebviewOptions,
   WebviewView,
   WebviewViewProvider,
@@ -17,7 +21,6 @@ import {
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
-import * as path from "path";
 
 interface G6DataModel {
   nodes: {
@@ -46,7 +49,11 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     window.onDidChangeActiveColorTheme(
       async (e) => {
         if (this._panel) {
-          this._panel.webview.html = this.getWebviewContent();
+          const webview = this._panel!.webview!;
+          this._panel.webview.html = getHtml(
+            webview,
+            this.dbtProjectContainer.extensionUri
+          );
         }
       },
       null,
@@ -83,12 +90,12 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
   private async renderWebviewView(context: WebviewViewResolveContext) {
     const webview = this._panel!.webview!;
     this.g6Data = this.parseGraphData();
-    this._panel!.webview.html = this.getWebviewContent();
+    webview.html = getHtml(webview, this.dbtProjectContainer.extensionUri);
   }
 
   private setupWebviewOptions(context: WebviewViewResolveContext) {
     this._panel!.title = "Lineage graph";
-    this._panel!.description = "";
+    this._panel!.description = "View dbt graph";
     this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
   }
 
@@ -121,109 +128,6 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     });
   }
 
-  private getWebviewContent(): string {
-    if (!this.g6Data) {
-      this.g6Data = {
-        nodes: [],
-        edges: [],
-      };
-    }
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Model Node View</title>
-</head>
-<body>
-    <div id="container"></div>
-    <script src="https://gw.alipayobjects.com/os/antv/pkg/_antv.g6-3.7.1/dist/g6.min.js"></script>
-    <script>
-    const vscode = acquireVsCodeApi();
-    const width = document.getElementById('container').scrollWidth;
-    const height = document.getElementById('container').scrollHeight || 500;
-    const graph = new G6.Graph({
-      container: 'container',
-      width,
-      height,
-      fitView: true,
-      modes: {
-        default: ['zoom-canvas', 'click-select', 'drag-canvas'],
-      },
-      layout: {
-        type: 'dagre',
-        rankdir: 'LR',
-        align: 'UL',
-        controlPoints: true,
-        nodesepFunc: () => 1,
-        ranksepFunc: () => 1,
-      },
-      defaultNode: {
-        size: [250, 40],
-        type: 'modelRect',
-        style: {
-          lineWidth: 3,
-          stroke: '#FFFFFF',
-          fill: '#C6E5FF',
-          fontSize: 14,
-        },
-        stateIcon: {
-          show: false,
-        }
-      },
-      nodeStateStyles: {
-        hover: {
-          opacity: 0.75,
-          cursor: 'pointer',
-        },
-      },
-      defaultEdge: {
-        type: 'polyline',
-        size: 1,
-        color: '#e2e2e2',
-        style: {
-          lineWidth: 3,
-          endArrow: true,
-        }
-      },
-    });
-    
-    graph.data(${JSON.stringify(this.g6Data)});
-    graph.render();
-    graph.on('nodeselectchange', (e) => {
-      if (!e.target) {
-        return;
-      }
-      const nodeUrl = e.target._cfg.model.url;
-      vscode.postMessage({
-        command: "openFile",
-        url: nodeUrl,
-      })
-    });
-    // Mouse enter a node
-    graph.on("node:mouseenter", (e) => {
-      const nodeItem = e.item; // Get the target item
-      graph.setItemState(nodeItem, "hover", true);
-    });
-
-    // Mouse exit a node
-    graph.on("node:mouseleave", (e) => {
-      const nodeItem = e.item; // Get the target item
-      graph.setItemState(nodeItem, "hover", false);
-    });
-    window.addEventListener('message', (event) => {
-      switch (event.data.command) {
-        case 'renderGraph':
-          graph.data(event.data.graph);
-          graph.render();
-          break;
-      }
-    });
-    </script>
-</body>
-</html>`;
-  }
-
   private parseGraphData = () => {
     if (window.activeTextEditor === undefined || this.eventMap === undefined) {
       return;
@@ -241,13 +145,11 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
       return;
     }
 
-    const { projectName, graphMetaMap } = event;
+    const { graphMetaMap } = event;
     const fileName = path.basename(
       window.activeTextEditor!.document.fileName,
       ".sql"
     );
-    const packageName =
-      this.dbtProjectContainer.getPackageName(currentFilePath) || projectName;
     return this.mapParentsAndChildren(graphMetaMap, fileName);
   };
 
@@ -326,4 +228,38 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     });
     return { nodes, edges };
   };
+}
+
+function getHtml(webview: Webview, extensionUri: Uri) {
+  const indexPath = getUri(webview, extensionUri, [
+    "lineage_panel",
+    "index.html",
+  ]);
+  const resourceDir = getUri(webview, extensionUri, ["lineage_panel"]);
+  const theme = [
+    ColorThemeKind.Light,
+    ColorThemeKind.HighContrastLight,
+  ].includes(window.activeColorTheme.kind)
+    ? "light"
+    : "dark";
+  return readFileSync(indexPath.fsPath)
+    .toString()
+    .replace(/__ROOT__/g, resourceDir.toString())
+    .replace(/__THEME__/g, theme)
+    .replace(/__NONCE__/g, getNonce())
+    .replace(/__CSPSOURCE__/g, webview.cspSource);
+}
+
+function getNonce() {
+  let text = "";
+  const possible =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  for (let i = 0; i < 32; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  return text;
+}
+
+function getUri(webview: Webview, extensionUri: Uri, pathList: string[]) {
+  return webview.asWebviewUri(Uri.joinPath(extensionUri, ...pathList));
 }
