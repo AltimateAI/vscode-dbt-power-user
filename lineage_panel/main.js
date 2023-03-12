@@ -1,6 +1,7 @@
 const vscode = acquireVsCodeApi();
 const width = document.getElementById("container").scrollWidth;
 const height = document.getElementById("container").scrollHeight || 500;
+const container = document.getElementById("container");
 const graph = new G6.Graph({
   container: "container",
   width,
@@ -22,7 +23,6 @@ const graph = new G6.Graph({
     type: "modelRect",
     style: {
       lineWidth: 3,
-      stroke: "#FFFFFF",
       fill: "#C6E5FF",
       fontSize: 14,
     },
@@ -57,17 +57,17 @@ graph.on("nodeselectchange", (e) => {
     url: nodeUrl,
   });
 });
-// Mouse enter a node
+
 graph.on("node:mouseenter", (e) => {
   const nodeItem = e.item; // Get the target item
   graph.setItemState(nodeItem, "hover", true);
 });
 
-// Mouse exit a node
 graph.on("node:mouseleave", (e) => {
   const nodeItem = e.item; // Get the target item
   graph.setItemState(nodeItem, "hover", false);
 });
+
 window.addEventListener("message", (event) => {
   switch (event.data.command) {
     case "renderGraph":

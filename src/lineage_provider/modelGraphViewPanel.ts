@@ -14,7 +14,6 @@ import {
   WebviewViewResolveContext,
   window,
 } from "vscode";
-import { GraphMetaMap } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
@@ -38,7 +37,6 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
   public static readonly viewType = "dbtPowerUser.ModelViewGraph";
   private _panel: WebviewView | undefined = undefined;
   private g6Data?: G6DataModel;
-  private childrenMap?: Map<string, GraphMetaMap["children"]> = new Map();
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private _disposables: Disposable[] = [];
 
@@ -63,7 +61,6 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
       if (event === undefined) {
         return;
       }
-      const fileRoute = event.document.uri.fsPath;
       this.g6Data = this.parseGraphData();
       this.transmitData(this.g6Data);
     });
@@ -94,7 +91,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
   }
 
   private setupWebviewOptions(context: WebviewViewResolveContext) {
-    this._panel!.title = "Lineage graph";
+    this._panel!.title = "";
     this._panel!.description = "View dbt graph";
     this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
   }
@@ -126,6 +123,8 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);
     });
+    this.g6Data = this.parseGraphData();
+    this.transmitData(this.g6Data);
   }
 
   private parseGraphData = () => {
@@ -158,9 +157,9 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
       return this._panel?.webview.asWebviewUri(Uri.file(uri));
     };
     const nodeConfigurations: Record<string, any> = {
-      children: { style: { fill: "#EFB27B" } },
-      parents: { style: { fill: "#8DAAE8" } },
-      tests: { style: { fill: "#8DE88E" } },
+      children: { style: { fill: "#EFB27B", stroke: "#000" } },
+      parents: { style: { fill: "#8DAAE8", stroke: "#000" } },
+      tests: { style: { fill: "#8DE88E", stroke: "#000" } },
     };
 
     const calculateLabelWidth = (label: string): number => {
@@ -198,8 +197,9 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
             logoIcon: image,
             style: {
               fill: "#88447D",
+              stroke: "black",
             },
-            labelCfg: { style: { fill: "#FFFFFF", stroke: "#24292F" } },
+            labelCfg: { style: { fill: "#FFFFFF" } },
           });
           if (currentNode !== undefined) {
             currentNode.nodes.map(
