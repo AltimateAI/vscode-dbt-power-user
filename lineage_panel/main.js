@@ -19,7 +19,7 @@ const graph = new G6.Graph({
     ranksepFunc: () => 1,
   },
   defaultNode: {
-    size: [250, 40],
+    size: [280, 40],
     type: "modelRect",
     style: {
       lineWidth: 3,

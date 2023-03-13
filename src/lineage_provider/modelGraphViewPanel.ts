@@ -14,6 +14,7 @@ import {
   WebviewViewResolveContext,
   window,
 } from "vscode";
+import { Node } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
@@ -31,6 +32,24 @@ interface G6DataModel {
     target: string;
   }[];
 }
+
+const labelMaxWidth = 280;
+const fontSize = 14;
+
+const colors = {
+  orange: "#EFB27B",
+  blue: "#8DAAE8",
+  green: "#8DE88E",
+  black: "#000",
+  purple: "#88447D",
+  white: "#FFFFFF",
+};
+
+const nodeConfigurations: Record<string, any> = {
+  children: { style: { fill: colors.orange, stroke: colors.black } },
+  parents: { style: { fill: colors.blue, stroke: colors.black } },
+  tests: { style: { fill: colors.green, stroke: colors.black } },
+};
 
 @provideSingleton(ModelGraphViewPanel)
 export class ModelGraphViewPanel implements WebviewViewProvider {
@@ -153,45 +172,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
   };
 
   private mapParentsAndChildren = (graphMetaMap: any, fileName: string) => {
-    const mapToWebviewURI = (uri: string) => {
-      return this._panel?.webview.asWebviewUri(Uri.file(uri));
-    };
-    const nodeConfigurations: Record<string, any> = {
-      children: { style: { fill: "#EFB27B", stroke: "#000" } },
-      parents: { style: { fill: "#8DAAE8", stroke: "#000" } },
-      tests: { style: { fill: "#8DE88E", stroke: "#000" } },
-    };
-
-    const calcStrLen = (label: string) => {
-      let len = 0;
-      for (let i = 0; i < label.length; i++) {
-        if (label.charCodeAt(i) > 0 && label.charCodeAt(i) < 128) {
-          len++;
-        } else {
-          len += 2;
-        }
-      }
-      return len;
-    };
-
-    const fitLabelToNodeWidth = (
-      label: string,
-      maxWidth: number,
-      fontSize: number
-    ) => {
-      const fontWidth = fontSize * 1.3;
-      maxWidth = maxWidth * 2;
-      const width = calcStrLen(label) * fontWidth;
-      const ellipsis = "…";
-      if (width > maxWidth) {
-        const actualLen = Math.floor((maxWidth - 10) / fontWidth);
-        const result = label.substring(0, actualLen) + ellipsis;
-        return result;
-      }
-      return label;
-    };
-
-    const nodes: any[] = [];
+    let nodes: any[] = [];
     const edges: any[] = [];
     Object.keys(nodeConfigurations).forEach((type) => {
       const dependencyNodes = graphMetaMap[type];
@@ -199,27 +180,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
         if (key.endsWith(`.${fileName}`) && key.startsWith("model.")) {
           const node = dependencyNodes!.get(key)!;
           const currentNode = node;
-          const image =
-            currentNode?.iconPath !== undefined
-              ? {
-                  show: true,
-                  img: mapToWebviewURI(currentNode.iconPath.dark)!.toString(),
-                }
-              : {
-                  show: false,
-                };
-          nodes.push({
-            id: key,
-            label: fitLabelToNodeWidth(key, 250, 14),
-            x: 150,
-            y: 150,
-            logoIcon: image,
-            style: {
-              fill: "#88447D",
-              stroke: "black",
-            },
-            labelCfg: { style: { fill: "#FFFFFF" } },
-          });
+          nodes = this.addCurrentNode(key, currentNode, nodes);
           if (currentNode !== undefined) {
             currentNode.nodes.map(
               (childrenNode: {
@@ -234,7 +195,11 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
                 edges.push(edge);
                 nodes.push({
                   id: childrenNode.key,
-                  label: fitLabelToNodeWidth(childrenNode.label, 250, 14),
+                  label: fitLabelToNodeWidth(
+                    childrenNode.label,
+                    labelMaxWidth,
+                    fontSize
+                  ),
                   style: nodeConfigurations[type].style,
                   url: childrenNode.url,
                 });
@@ -246,7 +211,64 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     });
     return { nodes, edges };
   };
+
+  private addCurrentNode(nodeKey: string, currentNode: Node, nodes: any[]) {
+    const mapToWebviewURI = (uri: string) => {
+      return this._panel?.webview.asWebviewUri(Uri.file(uri));
+    };
+    const image =
+      currentNode?.iconPath !== undefined
+        ? {
+            show: true,
+            img: mapToWebviewURI(currentNode.iconPath.dark)!.toString(),
+          }
+        : {
+            show: false,
+          };
+    return [
+      ...nodes,
+      {
+        id: nodeKey,
+        label: fitLabelToNodeWidth(nodeKey, labelMaxWidth, fontSize),
+        logoIcon: image,
+        labelCfg: { style: { fill: colors.white } },
+        style: {
+          fill: colors.purple,
+          stroke: "black",
+        },
+      },
+    ];
+  }
 }
+
+const calcStrLen = (label: string) => {
+  let len = 0;
+  for (let i = 0; i < label.length; i++) {
+    if (label.charCodeAt(i) > 0 && label.charCodeAt(i) < 128) {
+      len++;
+    } else {
+      len += 2;
+    }
+  }
+  return len;
+};
+
+const fitLabelToNodeWidth = (
+  label: string,
+  maxWidth: number,
+  fontSize: number
+) => {
+  const fontWidth = fontSize * 1.3;
+  maxWidth = maxWidth * 2;
+  const width = calcStrLen(label) * fontWidth;
+  const ellipsis = "…";
+  if (width > maxWidth) {
+    const actualLen = Math.floor((maxWidth - 10) / fontWidth);
+    const result = label.substring(0, actualLen) + ellipsis;
+    return result;
+  }
+  return label;
+};
 
 function getHtml(webview: Webview, extensionUri: Uri) {
   const indexPath = getUri(webview, extensionUri, [
