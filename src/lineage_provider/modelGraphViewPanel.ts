@@ -162,13 +162,33 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
       tests: { style: { fill: "#8DE88E", stroke: "#000" } },
     };
 
-    const calculateLabelWidth = (label: string): number => {
-      const defaultLength = 250;
-      const bigLabelLength = 750;
-      if (label.length > 35) {
-        return bigLabelLength;
+    const calcStrLen = (label: string) => {
+      let len = 0;
+      for (let i = 0; i < label.length; i++) {
+        if (label.charCodeAt(i) > 0 && label.charCodeAt(i) < 128) {
+          len++;
+        } else {
+          len += 2;
+        }
       }
-      return defaultLength;
+      return len;
+    };
+
+    const fitLabelToNodeWidth = (
+      label: string,
+      maxWidth: number,
+      fontSize: number
+    ) => {
+      const fontWidth = fontSize * 1.3;
+      maxWidth = maxWidth * 2;
+      const width = calcStrLen(label) * fontWidth;
+      const ellipsis = "…";
+      if (width > maxWidth) {
+        const actualLen = Math.floor((maxWidth - 10) / fontWidth);
+        const result = label.substring(0, actualLen) + ellipsis;
+        return result;
+      }
+      return label;
     };
 
     const nodes: any[] = [];
@@ -190,8 +210,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
                 };
           nodes.push({
             id: key,
-            size: [calculateLabelWidth(key), 40],
-            label: key,
+            label: fitLabelToNodeWidth(key, 250, 14),
             x: 150,
             y: 150,
             logoIcon: image,
@@ -215,8 +234,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
                 edges.push(edge);
                 nodes.push({
                   id: childrenNode.key,
-                  size: [calculateLabelWidth(childrenNode.label), 40],
-                  label: childrenNode.label,
+                  label: fitLabelToNodeWidth(childrenNode.label, 250, 14),
                   style: nodeConfigurations[type].style,
                   url: childrenNode.url,
                 });
