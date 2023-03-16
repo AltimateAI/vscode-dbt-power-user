@@ -21,6 +21,7 @@ export interface GenerateModelFromSourceParams {
   database: string;
   schema: string;
   tableName: string;
+  tableIdentifier?: string;
 }
 
 @provideSingleton(SourceModelCreationCodeLensProvider)
@@ -41,6 +42,7 @@ export class SourceModelCreationCodeLensProvider implements CodeLensProvider {
     let currentSchema: string | undefined = undefined;
     let currentTables: {
       tableName: string;
+      tableIdentifier?: string;
       pos: Position;
     }[];
 
@@ -85,6 +87,7 @@ export class SourceModelCreationCodeLensProvider implements CodeLensProvider {
                   ) {
                     // inside tables
                     let tableName: string | undefined = undefined;
+                    let tableIdentifier: string | undefined = undefined;
                     let position: Position | undefined = undefined;
                     for (const l in sourceProperty.value.items) {
                       const table = sourceProperty.value.items[l];
@@ -98,7 +101,9 @@ export class SourceModelCreationCodeLensProvider implements CodeLensProvider {
                           ) {
                             if (tableProperty.key.source === "name") {
                               tableName = tableProperty.value.source;
-                              break;
+                            }
+                            if (tableProperty.key.source === "identifier") {
+                              tableIdentifier = tableProperty.value.source;
                             }
                           }
                         }
@@ -106,9 +111,11 @@ export class SourceModelCreationCodeLensProvider implements CodeLensProvider {
                       if (tableName !== undefined && position !== undefined) {
                         currentTables.push({
                           tableName: tableName,
+                          tableIdentifier: tableIdentifier,
                           pos: position,
                         });
                         tableName = undefined;
+                        tableIdentifier = undefined;
                         position = undefined;
                       }
                     }
@@ -125,6 +132,7 @@ export class SourceModelCreationCodeLensProvider implements CodeLensProvider {
                   database: currentDatabase!,
                   schema: currentSchema!,
                   tableName: table.tableName,
+                  tableIdentifier: table.tableIdentifier,
                 };
                 this.codeLenses.push(
                   new CodeLens(
