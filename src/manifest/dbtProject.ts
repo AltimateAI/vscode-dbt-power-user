@@ -368,7 +368,8 @@ export class DBTProject implements Disposable {
     sourceName: string,
     database: string,
     schema: string,
-    tableName: string
+    tableName: string,
+    tableIdentifier?: string
   ) {
     await this.blockUntilPythonBridgeIsInitalized();
     if (!this.pythonBridgeInitialized) {
@@ -381,9 +382,10 @@ export class DBTProject implements Disposable {
       const modelPath = path.join(this.projectRoot.fsPath, this.sourcePaths[0]);
       const location = path.join(modelPath, tableName + ".sql");
       if (!existsSync(location)) {
+        const _tableIdentifier = tableIdentifier ? tableIdentifier : tableName;
         const columnsInRelation = (await this.python?.lock(
           (python) =>
-            python!`to_dict(project.get_columns_in_relation(project.create_relation(${database}, ${schema}, ${tableName})))`
+            python!`to_dict(project.get_columns_in_relation(project.create_relation(${database}, ${schema}, ${_tableIdentifier})))`
         )) as any[];
         console.log(columnsInRelation);
 
