@@ -70,10 +70,12 @@ export class DbtDocumentFormattingEditProvider
     const lineCount = document.lineCount;
     diffs.forEach((diff) => {
       diff.chunks.forEach((chunk) => {
+        const lastLineChunk = chunk.newLines
         chunk.changes.forEach((change) => {
           if (this.isAddChange(change)) {
+            console.log(change)
             // Ensure lines addded are not out of bounds
-            const targetLine = Math.min(change.ln, lineCount);
+            var targetLine = Math.min(change.ln, lineCount);
             textEdits.push(
               TextEdit.insert(
                 document.lineAt(targetLine - 1).range.start,
@@ -84,6 +86,8 @@ export class DbtDocumentFormattingEditProvider
           if (this.isNormalChange(change)) {
             // Reflect "replace" edits as delete & insert
             // First, delete line
+            console.log(change)
+            
             textEdits.push(
               TextEdit.delete(
                 document.lineAt(change.ln1 - 1).rangeIncludingLineBreak
@@ -92,7 +96,11 @@ export class DbtDocumentFormattingEditProvider
 
             // Add line
             // Ensure lines addded are not out of bounds
-            const targetLine = Math.min(change.ln2, lineCount);
+            let targetLine = Math.min(change.ln2, lineCount);
+            // Prevent interference at end of chunk
+            if (targetLine == lastLineChunk) {
+              targetLine--
+            }
             textEdits.push(
               TextEdit.insert(
                 document.lineAt(targetLine - 1).range.start,
@@ -101,6 +109,7 @@ export class DbtDocumentFormattingEditProvider
             );
           }
           if (this.isDeleteChange(change)) {
+            console.log(change)
             textEdits.push(
               TextEdit.delete(
                 document.lineAt(change.ln - 1).rangeIncludingLineBreak
