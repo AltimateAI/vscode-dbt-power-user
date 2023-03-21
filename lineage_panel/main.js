@@ -7,6 +7,8 @@ const graph = new G6.Graph({
   width,
   height,
   fitView: true,
+  pixelRatio: 2.0,
+  fitViewPadding: 20,
   modes: {
     default: ["zoom-canvas", "click-select", "drag-canvas"],
   },
@@ -20,10 +22,10 @@ const graph = new G6.Graph({
   },
   defaultNode: {
     size: [280, 40],
-    type: "modelRect",
+    type: "rect",
+    labelCfg: { style: { fill: "#232b2b" } },
     style: {
       lineWidth: 3,
-      fill: "#C6E5FF",
       fontSize: 14,
     },
     stateIcon: {
@@ -39,9 +41,9 @@ const graph = new G6.Graph({
   defaultEdge: {
     type: "polyline",
     size: 1,
-    color: "#e2e2e2",
+    color: "#232b2b",
     style: {
-      lineWidth: 3,
+      lineWidth: 2,
       endArrow: true,
     },
   },
@@ -64,7 +66,7 @@ graph.on("node:mouseenter", (e) => {
 });
 
 graph.on("node:mouseleave", (e) => {
-  const nodeItem = e.item; // Get the target item
+  const nodeItem = e.item;
   graph.setItemState(nodeItem, "hover", false);
 });
 

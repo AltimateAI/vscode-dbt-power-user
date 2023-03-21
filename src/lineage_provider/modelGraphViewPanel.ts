@@ -14,7 +14,6 @@ import {
   WebviewViewResolveContext,
   window,
 } from "vscode";
-import { Node } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
@@ -43,12 +42,13 @@ const colors = {
   black: "#000",
   purple: "#88447D",
   white: "#FFFFFF",
+  softBlack: "#232b2b",
 };
 
 const nodeConfigurations: Record<string, any> = {
-  children: { style: { fill: colors.orange, stroke: colors.black } },
-  parents: { style: { fill: colors.blue, stroke: colors.black } },
-  tests: { style: { fill: colors.green, stroke: colors.black } },
+  children: { style: { fill: colors.orange, stroke: colors.black, radius: 8 } },
+  parents: { style: { fill: colors.blue, stroke: colors.black, radius: 8 } },
+  tests: { style: { fill: colors.green, stroke: colors.black, radius: 8 } },
 };
 
 @provideSingleton(ModelGraphViewPanel)
@@ -180,7 +180,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
         if (key.endsWith(`.${fileName}`) && key.startsWith("model.")) {
           const node = dependencyNodes!.get(key)!;
           const currentNode = node;
-          nodes = this.addCurrentNode(key, currentNode, nodes);
+          nodes = this.addCurrentNode(key, nodes);
           if (currentNode !== undefined) {
             currentNode.nodes.map(
               (childrenNode: {
@@ -212,29 +212,18 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     return { nodes, edges };
   };
 
-  private addCurrentNode(nodeKey: string, currentNode: Node, nodes: any[]) {
-    const mapToWebviewURI = (uri: string) => {
-      return this._panel?.webview.asWebviewUri(Uri.file(uri));
-    };
-    const image =
-      currentNode?.iconPath !== undefined
-        ? {
-            show: true,
-            img: mapToWebviewURI(currentNode.iconPath.dark)!.toString(),
-          }
-        : {
-            show: false,
-          };
+  private addCurrentNode(nodeKey: string, nodes: any[]) {
+    const nodeLabel: string = nodeKey.split(".").pop() || "";
     return [
       ...nodes,
       {
         id: nodeKey,
-        label: fitLabelToNodeWidth(nodeKey, labelMaxWidth, fontSize),
-        logoIcon: image,
+        label: fitLabelToNodeWidth(nodeLabel, labelMaxWidth, fontSize),
         labelCfg: { style: { fill: colors.white } },
         style: {
           fill: colors.purple,
           stroke: "black",
+          radius: 8,
         },
       },
     ];
