@@ -1,3 +1,8 @@
+const themeStyles = {
+  dark: { style: { stroke: "#C5C5C5" } },
+  light: { style: { stroke: "#232b2b" } },
+};
+
 const vscode = acquireVsCodeApi();
 const width = document.getElementById("container").scrollWidth;
 const height = document.getElementById("container").scrollHeight || 500;
@@ -25,8 +30,8 @@ const graph = new G6.Graph({
     type: "rect",
     labelCfg: { style: { fill: "#232b2b" } },
     style: {
+      fontSize: 16,
       lineWidth: 3,
-      fontSize: 14,
     },
     stateIcon: {
       show: false,
@@ -70,11 +75,20 @@ graph.on("node:mouseleave", (e) => {
   graph.setItemState(nodeItem, "hover", false);
 });
 
+const updateStyles = (theme) => {
+  graph.getEdges().forEach((edge) => {
+    graph.updateItem(edge, {
+      ...themeStyles[theme],
+    });
+  });
+};
+
 window.addEventListener("message", (event) => {
-  switch (event.data.command) {
-    case "renderGraph":
-      graph.data(event.data.graph);
-      graph.render();
-      break;
+  const { command } = event?.data;
+  if (command === "renderGraph") {
+    graph.data(event.data.graph);
+    graph.render();
+  } else if (command === "setStylesByTheme") {
+    updateStyles(event.data.theme);
   }
 });

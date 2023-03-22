@@ -8,7 +8,6 @@ import { ManifestCacheChangedEvent } from "../event/manifestCacheChangedEvent";
 import { DocParser } from "./docParser";
 import { GraphParser } from "./graphParser";
 import { MacroParser } from "./macroParser";
-import { ModelGraphParser } from "./modelGraphParser";
 import { NodeParser } from "./nodeParser";
 import { SourceParser } from "./sourceParser";
 import { TestParser } from "./testParser";
@@ -22,7 +21,6 @@ export class ManifestParser {
     private sourceParser: SourceParser,
     private testParser: TestParser,
     private docParser: DocParser,
-    private modelGraphParser: ModelGraphParser,
     private terminal: DBTTerminal
   ) {}
 
@@ -78,11 +76,6 @@ export class ManifestParser {
     const docMetaMapPromise = this.docParser.createDocMetaMap(
       docs,
       projectName,
-      rootPath
-    );
-    const modelGraphMetaMap = this.modelGraphParser.createModelGraphMetaMap(
-      nodes,
-      sources,
       rootPath
     );
 

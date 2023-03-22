@@ -46,9 +46,25 @@ const colors = {
 };
 
 const nodeConfigurations: Record<string, any> = {
-  children: { style: { fill: colors.orange, stroke: colors.black, radius: 8 } },
-  parents: { style: { fill: colors.blue, stroke: colors.black, radius: 8 } },
-  tests: { style: { fill: colors.green, stroke: colors.black, radius: 8 } },
+  children: {
+    style: {
+      lineWidth: 2,
+      fill: colors.orange,
+      stroke: colors.black,
+      radius: 6,
+    },
+  },
+  parents: {
+    style: { lineWidth: 2, fill: colors.blue, stroke: colors.black, radius: 6 },
+  },
+  tests: {
+    style: {
+      lineWidth: 2,
+      fill: colors.green,
+      stroke: colors.black,
+      radius: 6,
+    },
+  },
 };
 
 @provideSingleton(ModelGraphViewPanel)
@@ -66,11 +82,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     window.onDidChangeActiveColorTheme(
       async (e) => {
         if (this._panel) {
-          const webview = this._panel!.webview!;
-          this._panel.webview.html = getHtml(
-            webview,
-            this.dbtProjectContainer.extensionUri
-          );
+          this.updateGraphStyle();
         }
       },
       null,
@@ -82,6 +94,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
       }
       this.g6Data = this.parseGraphData();
       this.transmitData(this.g6Data);
+      this.updateGraphStyle();
     });
   }
 
@@ -89,6 +102,19 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     await this._panel!.webview.postMessage({
       command: "renderGraph",
       graph: graphInfo,
+    });
+  }
+
+  private async updateGraphStyle() {
+    const theme = [
+      ColorThemeKind.Light,
+      ColorThemeKind.HighContrastLight,
+    ].includes(window.activeColorTheme.kind)
+      ? "light"
+      : "dark";
+    await this._panel!.webview.postMessage({
+      command: "setStylesByTheme",
+      theme: theme,
     });
   }
 
@@ -144,6 +170,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     });
     this.g6Data = this.parseGraphData();
     this.transmitData(this.g6Data);
+    this.updateGraphStyle();
   }
 
   private parseGraphData = () => {
@@ -223,7 +250,8 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
         style: {
           fill: colors.purple,
           stroke: "black",
-          radius: 8,
+          radius: 6,
+          lineWidth: 2,
         },
       },
     ];
