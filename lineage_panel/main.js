@@ -7,13 +7,36 @@ const vscode = acquireVsCodeApi();
 const width = document.getElementById("container").scrollWidth;
 const height = document.getElementById("container").scrollHeight || 500;
 const container = document.getElementById("container");
+const legendData = {
+  nodes: [
+    { id: "current", label: "current node", style: { fill: "#88447D" } },
+    { id: "parents", label: "parents", style: { fill: "#8DAAE8" } },
+    { id: "children", label: "children", style: { fill: "#EFB27B" } },
+    { id: "tests", label: "tests", style: { fill: "#8DE88E" } },
+  ],
+};
+const legend = new G6.Legend({
+  data: legendData,
+  align: "center",
+  layout: "vertical",
+  position: "top-left",
+  vertiSep: 12,
+  horiSep: 24,
+  padding: [8],
+  containerStyle: {
+    fill: "white",
+    lineWidth: 1,
+    radius: 5,
+  },
+});
+
 const graph = new G6.Graph({
   container: "container",
   width,
   height,
   fitView: true,
   pixelRatio: 2.0,
-  fitViewPadding: 20,
+  fitViewPadding: [20, 20, 20, 140],
   modes: {
     default: ["zoom-canvas", "click-select", "drag-canvas"],
   },
@@ -52,6 +75,7 @@ const graph = new G6.Graph({
       endArrow: true,
     },
   },
+  plugins: [legend],
 });
 
 graph.on("nodeselectchange", (e) => {
