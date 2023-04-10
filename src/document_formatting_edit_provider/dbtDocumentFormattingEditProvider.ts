@@ -46,12 +46,12 @@ export class DbtDocumentFormattingEditProvider
       } catch (diffOutput) {
         try {
           return this.processDiffOutput(document, diffOutput as string);
+        } catch (error) {
+          window.showErrorMessage(
+            "Could not process difference output from sqlfmt. Detailed error: " +
+              error
+          );
         }
-          catch (error) {
-            window.showErrorMessage(
-              "Could not process difference output from sqlfmt. Detailed error: " + error
-            );
-          }
       }
     } catch (error) {
       window.showErrorMessage(
@@ -60,25 +60,23 @@ export class DbtDocumentFormattingEditProvider
     }
     return [];
   }
- 
+
   private processDiffOutput(
     document: TextDocument,
     diffOutput: string
   ): TextEdit[] {
     const textEdits: TextEdit[] = [];
     const diffs = parseDiff(diffOutput);
-    const lineCount = document.lineCount;
     diffs.forEach((diff) => {
       diff.chunks.forEach((chunk) => {
-        const lastLineChunk = chunk.newLines
+        // Ensure lines added are not out of bounds of chunk
+        const oldBoundChunk = chunk.oldLines + chunk.oldStart - 1;
         chunk.changes.forEach((change) => {
           if (this.isAddChange(change)) {
-            console.log(change)
-            // Ensure lines addded are not out of bounds
-            var targetLine = Math.min(change.ln, lineCount);
             textEdits.push(
               TextEdit.insert(
-                document.lineAt(targetLine - 1).range.start,
+                document.lineAt(Math.min(change.ln, oldBoundChunk) - 1).range
+                  .start,
                 change.content.slice(1) + "\n"
               )
             );
@@ -86,30 +84,21 @@ export class DbtDocumentFormattingEditProvider
           if (this.isNormalChange(change)) {
             // Reflect "replace" edits as delete & insert
             // First, delete line
-            console.log(change)
-            
             textEdits.push(
               TextEdit.delete(
                 document.lineAt(change.ln1 - 1).rangeIncludingLineBreak
               )
             );
-
             // Add line
-            // Ensure lines addded are not out of bounds
-            let targetLine = Math.min(change.ln2, lineCount);
-            // Prevent interference at end of chunk
-            if (targetLine == lastLineChunk) {
-              targetLine--
-            }
             textEdits.push(
               TextEdit.insert(
-                document.lineAt(targetLine - 1).range.start,
+                document.lineAt(Math.min(change.ln2, oldBoundChunk) - 1).range
+                  .start,
                 change.content.slice(1) + "\n"
               )
             );
           }
           if (this.isDeleteChange(change)) {
-            console.log(change)
             textEdits.push(
               TextEdit.delete(
                 document.lineAt(change.ln - 1).rangeIncludingLineBreak
