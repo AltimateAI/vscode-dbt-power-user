@@ -116,6 +116,11 @@
           "id": "dbt_preview_results",
           "title": "Query Results",
           "icon": "./media/images/dbt_icon.svg"
+        },
+        {
+          "id": "dbt_lineage_view",
+          "title": "Lineage View",
+          "icon": "./media/images/dbt_icon.svg"
         }
       ]
     },
@@ -137,6 +142,13 @@
       "dbt_preview_results": [
         {
           "id": "dbtPowerUser.PreviewResults",
+          "name": "",
+          "type": "webview"
+        }
+      ],
+      "dbt_lineage_view": [
+        {
+          "id": "dbtPowerUser.ModelViewGraph",
           "name": "",
           "type": "webview"
         }
@@ -218,6 +230,10 @@
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
         }
+      },
+      {
+        "command": "showModelGraph",
+        "title": "Show Model Graph"
       }
     ],
     "keybindings": [
@@ -259,6 +275,11 @@
           "command": "dbtPowerUser.sqlPreview",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
           "group": "navigation@5"
+        },
+        {
+          "command": "showModelGraph",
+          "when": "resourceLangId == jinja-sql",
+          "group": "1_run"
         }
       ],
       "editor/context": [

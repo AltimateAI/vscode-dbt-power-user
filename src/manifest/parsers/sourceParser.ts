@@ -24,11 +24,11 @@ export class SourceParser {
         .reduce(
           (
             previousValue: SourceMetaMap,
-            { source_name, name, original_file_path }
+            { source_name, name, original_file_path, unique_id }
           ) => {
             let source = previousValue.get(source_name);
             if (!source) {
-              source = { tables: [] };
+              source = { tables: [], uniqueId: unique_id };
               previousValue.set(source_name, source);
             }
             const fullPath = path.join(rootPath, original_file_path);
