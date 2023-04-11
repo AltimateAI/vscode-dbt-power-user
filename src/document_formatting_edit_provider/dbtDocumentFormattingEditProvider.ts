@@ -44,7 +44,14 @@ export class DbtDocumentFormattingEditProvider
           .complete();
         return [];
       } catch (diffOutput) {
-        return this.processDiffOutput(document, diffOutput as string);
+        try {
+          return this.processDiffOutput(document, diffOutput as string);
+        } catch (error) {
+          window.showErrorMessage(
+            "Could not process difference output from sqlfmt. Detailed error: " +
+              error
+          );
+        }
       }
     } catch (error) {
       window.showErrorMessage(
@@ -62,11 +69,14 @@ export class DbtDocumentFormattingEditProvider
     const diffs = parseDiff(diffOutput);
     diffs.forEach((diff) => {
       diff.chunks.forEach((chunk) => {
+        // Ensure lines added are not out of bounds of chunk
+        const oldBoundChunk = chunk.oldLines + chunk.oldStart - 1;
         chunk.changes.forEach((change) => {
           if (this.isAddChange(change)) {
             textEdits.push(
               TextEdit.insert(
-                document.lineAt(change.ln - 1).range.start,
+                document.lineAt(Math.min(change.ln, oldBoundChunk) - 1).range
+                  .start,
                 change.content.slice(1) + "\n"
               )
             );
@@ -79,11 +89,11 @@ export class DbtDocumentFormattingEditProvider
                 document.lineAt(change.ln1 - 1).rangeIncludingLineBreak
               )
             );
-
             // Add line
             textEdits.push(
               TextEdit.insert(
-                document.lineAt(change.ln2 - 1).range.start,
+                document.lineAt(Math.min(change.ln2, oldBoundChunk) - 1).range
+                  .start,
                 change.content.slice(1) + "\n"
               )
             );
