@@ -323,10 +323,7 @@ class DbtProject:
         return ManifestProxy(self.dbt.flat_graph)
 
     def safe_parse_project(self, reinit: bool = False) -> None:
-        """This is used to reseed the DbtProject safely post-init. This is
-        intended for use by the osmosis server"""
-        if reinit:
-            self.clear_caches()
+        self.clear_caches()
         _config_pointer = copy(self.config)
         try:
             self.parse_project(init=reinit)
