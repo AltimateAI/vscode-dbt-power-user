@@ -8,6 +8,7 @@ Main features:
 
 - Generate models from your source definitions
 - Query result set visualization
+- Lineage of current model
 - Execute all or individual model tests
 - Go to the definition of any models, macros, sources and docs.
 - Autocompletion of models, macros, sources and docs
@@ -128,6 +129,10 @@ You can enable format on save for python by having the following values in your 
 ```
 
 ## Features at work
+
+### Lineage of current model
+
+![See the parents and children of your model](./media/images/lineage.png)
 
 ### Generate a model from your source definition
 
