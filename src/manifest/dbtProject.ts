@@ -438,7 +438,7 @@ select * from renamed
       .getConfiguration("dbt")
       .get<string>(
         "queryTemplate",
-        "select * from ({query}) as query limit {limit}"
+        "select * from ({query}\n) as query limit {limit}"
       );
 
     const limitQuery = queryTemplate
