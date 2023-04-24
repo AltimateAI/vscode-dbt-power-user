@@ -51,6 +51,10 @@ interface CompilationResult {
   compiled_sql: string;
 }
 
+interface FileNameTemplateMap {
+  [key: string]: string;
+}
+
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
   static DBT_MODULES = ["dbt_modules", "dbt_packages"];
@@ -369,6 +373,7 @@ export class DBTProject implements Disposable {
     database: string,
     schema: string,
     tableName: string,
+    sourcePath: string,
     tableIdentifier?: string
   ) {
     await this.blockUntilPythonBridgeIsInitalized();
@@ -379,8 +384,34 @@ export class DBTProject implements Disposable {
       throw Error("Could not initialize Python bridge");
     }
     try {
-      const modelPath = path.join(this.projectRoot.fsPath, this.sourcePaths[0]);
-      const location = path.join(modelPath, tableName + ".sql");
+      const prefix = workspace
+        .getConfiguration("dbt")
+        .get<string>("prefixGenerateModel", "base");
+
+      // Map setting to fileName
+      const fileNameTemplateMap: FileNameTemplateMap = {
+        "{prefix}_{sourceName}_{tableName}": `${prefix}_${sourceName}_${tableName}`,
+        "{prefix}_{sourceName}__{tableName}": `${prefix}_${sourceName}__${tableName}`,
+        "{prefix}_{tableName}": `${prefix}_${tableName}`,
+        "{tableName}": `${tableName}`,
+      };
+
+      // Default filename template
+      let fileName = `${prefix}_${sourceName}_${tableName}`;
+
+      const fileNameTemplate = workspace
+        .getConfiguration("dbt")
+        .get<string>(
+          "fileNameTemplateGenerateModel",
+          "{prefix}_{sourceName}_{tableName}"
+        );
+
+      // Parse setting to fileName
+      if (fileNameTemplate in fileNameTemplateMap) {
+        fileName = fileNameTemplateMap[fileNameTemplate];
+      }
+      // Create filePath based on source.yml location
+      const location = path.join(sourcePath, fileName + ".sql");
       if (!existsSync(location)) {
         const _tableIdentifier = tableIdentifier ? tableIdentifier : tableName;
         const columnsInRelation = (await this.python?.lock(
@@ -407,7 +438,7 @@ select * from renamed
         window.showTextDocument(doc);
       } else {
         window.showErrorMessage(
-          `A model called ${tableName} already exists in ${modelPath}. If you want to generate the model, please rename the other model or delete it if you want to generate the model again.`
+          `A model called ${tableName} already exists in ${sourcePath}. If you want to generate the model, please rename the other model or delete it if you want to generate the model again.`
         );
       }
     } catch (exc: any) {

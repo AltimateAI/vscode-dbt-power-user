@@ -148,12 +148,14 @@ export class RunModel {
 
   createModelBasedonSourceConfig(params: GenerateModelFromSourceParams) {
     const project = this.dbtProjectContainer.findDBTProject(params.currentDoc);
+    const sourcePath = path.dirname(params.currentDoc.fsPath);
     if (project) {
       project.generateModel(
         params.sourceName,
         params.database,
         params.schema,
-        params.tableName
+        params.tableName,
+        sourcePath
       );
     } else {
       window.showErrorMessage(
