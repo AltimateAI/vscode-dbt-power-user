@@ -82,6 +82,25 @@
             "description": "Override the default query template that is used by the `Preview SQL Query` command. Use this if your database has special syntax to limit query results",
             "default": "select * from ({query}) as query limit {limit}"
           },
+
+          "dbt.fileNameTemplateGenerateModel": {
+            "type": "string",
+            "enum": [
+              "{prefix}_{sourceName}_{tableName}",
+              "{prefix}_{sourceName}__{tableName}",
+              "{prefix}_{tableName}",
+              "{tableName}"
+            ],
+            "default": "{prefix}_{sourceName}_{tableName}",
+            "description": "Set the naming template that is used when generating a model from a source yml file."
+          },
+
+          "dbt.prefixGenerateModel": {
+            "type": "string",
+            "default": "base",
+            "description": "Set the prefix that is used when generating a model from a source yml file."
+          },
+
           "dbt.versionCheck": {
             "type": "string",
             "enum": [
