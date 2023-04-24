@@ -133,6 +133,8 @@ You can enable format on save for python by having the following values in your 
 
 ![Generate a model from your source definition](./media/images/generate-model-from-source.gif)
 
+You can select a file name template and prefix in the settings.
+
 ### Visualize the result set of your model (Use CMD+ENTER (mac) or CTRL+ENTER (win))
 
 ![Use ctrl+enter or cmd+enter to retrieve the result set of your model](./media/images/visualize-result-set.gif)
