@@ -427,7 +427,7 @@
     "python-bridge": "github:mdesmet/node-python-bridge#feat/detached",
     "reflect-metadata": "^0.1.13",
     "which": "^3.0.0",
-    "yaml": "^2.2.1"
+    "yaml": "^2.2.2"
   },
   "lint-staged": {
     "*.ts": [
