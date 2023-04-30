@@ -224,6 +224,14 @@
         }
       },
       {
+        "command": "dbtPowerUser.generateSchemaYML",
+        "title": "Generate Documentation YML",
+        "icon": {
+          "light": "./media/images/file-code_light.svg",
+          "dark": "./media/images/file-code_dark.svg"
+        }
+      },
+      {
         "command": "dbtPowerUser.showCompiledSQL",
         "title": "Open dbt target folder compiled SQL",
         "icon": {
@@ -307,6 +315,11 @@
         {
           "command": "dbtPowerUser.showRunSQL",
           "group": "dbt@5",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        },
+        {
+          "command": "dbtPowerUser.generateSchemaYML",
+          "group": "dbt@6",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
         },
         {

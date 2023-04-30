@@ -140,6 +140,9 @@ You can enable format on save for python by having the following values in your 
 
 You can select a file name template and prefix in the settings.
 
+### Generate a schema yml file from your model file
+
+![Generate a schema yml file from your model file](./media/images/generate-schema-yml.gif)
 ### Visualize the result set of your model (Use CMD+ENTER (mac) or CTRL+ENTER (win))
 
 ![Use ctrl+enter or cmd+enter to retrieve the result set of your model](./media/images/visualize-result-set.gif)
