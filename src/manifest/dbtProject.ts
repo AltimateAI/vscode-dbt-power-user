@@ -395,10 +395,8 @@ export class DBTProject implements Disposable {
     }
     try {
       // Create filePath based on model location
-      const location = path.join(
-        path.dirname(modelPath.fsPath),
-        modelName + "_schema.yml"
-      );
+      const currentDir = path.dirname(modelPath.fsPath);
+      const location = path.join(currentDir, modelName + "_schema.yml");
       if (!existsSync(location)) {
         // Get database and schema
         const refNode = (await this.python?.lock(
@@ -419,7 +417,7 @@ export class DBTProject implements Disposable {
         window.showTextDocument(doc);
       } else {
         window.showErrorMessage(
-          `A model called ${modelName}_schema.yml already exists in ${location}. If you want to generate the model, please rename the other model or delete it if you want to generate the model again.`
+          `A file called ${modelName}_schema.yml already exists in ${currentDir}. If you want to generate the schema yml, please rename the other file or delete it if you want to generate the yml again.`
         );
       }
     } catch (exc: any) {
@@ -504,7 +502,7 @@ select * from renamed
         window.showTextDocument(doc);
       } else {
         window.showErrorMessage(
-          `A model called ${tableName} already exists in ${sourcePath}. If you want to generate the model, please rename the other model or delete it if you want to generate the model again.`
+          `A model called ${fileName} already exists in ${sourcePath}. If you want to generate the model, please rename the other model or delete it if you want to generate the model again.`
         );
       }
     } catch (exc: any) {
