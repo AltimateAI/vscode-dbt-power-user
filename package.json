@@ -15,7 +15,7 @@
   },
   "version": "0.12.2",
   "engines": {
-    "vscode": "^1.76.1"
+    "vscode": "^1.77.0"
   },
   "categories": [
     "Other"
@@ -82,7 +82,6 @@
             "description": "Override the default query template that is used by the `Preview SQL Query` command. Use this if your database has special syntax to limit query results",
             "default": "select * from ({query}\n) as query limit {limit}"
           },
-
           "dbt.fileNameTemplateGenerateModel": {
             "type": "string",
             "enum": [
@@ -94,13 +93,11 @@
             "default": "{prefix}_{sourceName}_{tableName}",
             "description": "Set the naming template that is used when generating a model from a source yml file."
           },
-
           "dbt.prefixGenerateModel": {
             "type": "string",
             "default": "base",
             "description": "Set the prefix that is used when generating a model from a source yml file."
           },
-
           "dbt.versionCheck": {
             "type": "string",
             "enum": [
