@@ -87,17 +87,25 @@ export class DBTClient implements Disposable {
     const timeoutCmd = new Promise((resolve, _) => {
       setTimeout(resolve, 10000, "Could not connect");
     });
+    let output;
     try {
-      await Promise.race([checkDBTVersionProcess.complete(), timeoutCmd]);
-      checkDBTVersionProcess.dispose();
+      output = (await Promise.race([
+        checkDBTVersionProcess.complete(),
+        timeoutCmd,
+      ])) as string;
     } catch (err) {
       if (typeof err === "string" && err.match(DBTClient.IS_INSTALLED)) {
-        const stripAnsi = require("strip-ansi");
-        this.checkIfDBTIsUpToDate(
-          stripAnsi(err.replace("Process returned an error:", ""))
-        );
-        return;
+        output = err as string;
       }
+    } finally {
+      checkDBTVersionProcess.dispose();
+    }
+    if (output !== undefined) {
+      const stripAnsi = require("strip-ansi");
+      this.checkIfDBTIsUpToDate(
+        stripAnsi(output.replace("Process returned an error:", ""))
+      );
+      return;
     }
     this.raiseDBTVersionCouldNotBeDeterminedEvent();
   }

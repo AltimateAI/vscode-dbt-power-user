@@ -48,7 +48,7 @@ export class DBTCommandFactory {
       statusMessage: "Detecting dbt installation...",
       processExecutionParams: {
         cwd: this.getFirstWorkspacePath(),
-        args: ["-c", 'import dbt.main; print("dbt is installed")'],
+        args: ["-c", 'import dbt; print("dbt is installed")'],
       },
     };
   }
@@ -203,6 +203,16 @@ export class DBTCommandFactory {
   }
 
   private dbtCommand(cmd: string | string[]): string {
-    return `import dbt.main; dbt.main.main([${cmd}])`;
+    return `has_dbt_runner = True
+try: 
+    from dbt.cli.main import dbtRunner
+except:
+    has_dbt_runner = False
+if has_dbt_runner:
+    dbt_cli = dbtRunner()
+    dbt_cli.invoke([${cmd}])
+else:
+    import dbt.main
+    dbt.main.main([${cmd}])`;
   }
 }

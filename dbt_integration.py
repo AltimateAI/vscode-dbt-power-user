@@ -1,4 +1,5 @@
 from decimal import Decimal
+from pathlib import Path
 import dbt.adapters.factory
 
 # This is critical because `get_adapter` is all over dbt-core
@@ -37,7 +38,7 @@ from dbt.adapters.factory import get_adapter_class_by_name
 from dbt.config.runtime import RuntimeConfig
 from dbt.contracts.graph.manifest import NodeType
 from dbt.events.functions import fire_event  # monkey-patched for perf
-from dbt.flags import DEFAULT_PROFILES_DIR, set_from_args
+from dbt.flags import set_from_args
 from dbt.node_types import NodeType
 from dbt.parser.manifest import ManifestLoader, process_node
 from dbt.parser.sql import SqlBlockParser, SqlMacroParser
@@ -45,17 +46,19 @@ from dbt.task.sql import SqlCompileRunner, SqlExecuteRunner
 from dbt.tracking import disable_tracking
 from dbt.version import __version__ as dbt_version
 
+try:
+    # dbt <= 1.3
+    from dbt.contracts.graph.compiled import ManifestNode  # type: ignore
+    from dbt.contracts.graph.parsed import ColumnInfo  # type: ignore
+except Exception:
+    # dbt > 1.3
+    from dbt.contracts.graph.nodes import ColumnInfo, ManifestNode  # type: ignore
+
 
 if TYPE_CHECKING:
     # These imports are only used for type checking
     from dbt.adapters.base import BaseRelation  # type: ignore
     from dbt.contracts.connection import AdapterResponse
-    from dbt.contracts.graph.manifest import (  # type: ignore
-        ManifestNode,
-        MaybeNonSource,
-        MaybeParsedSource,
-    )
-    from dbt.contracts.graph.parsed import ColumnInfo
 
 
 CACHE = {}
@@ -142,14 +145,12 @@ class ConfigInterface:
         target: Optional[str] = None,
         profiles_dir: Optional[str] = None,
         project_dir: Optional[str] = None,
-        vars: Optional[str] = "{}",
         profile: Optional[str] = None
     ):
         self.threads = threads
         self.target = target
-        self.profiles_dir = profiles_dir or DEFAULT_PROFILES_DIR
+        self.profiles_dir = profiles_dir
         self.project_dir = project_dir
-        self.vars = vars  # json.dumps str
         self.dependencies = []
         self.single_threaded = threads == 1
         self.quiet = True
@@ -347,7 +348,7 @@ class DbtProject:
         self.compile_sql.cache_clear()
 
     @lru_cache(maxsize=10)
-    def get_ref_node(self, target_model_name: str) -> "MaybeNonSource":
+    def get_ref_node(self, target_model_name: str) -> "ManifestNode":
         """Get a `"ManifestNode"` from a dbt project model name"""
         return self.dbt.resolve_ref(
             target_model_name=target_model_name,
@@ -357,7 +358,7 @@ class DbtProject:
         )
 
     @lru_cache(maxsize=10)
-    def get_source_node(self, target_source_name: str, target_table_name: str) -> "MaybeParsedSource":
+    def get_source_node(self, target_source_name: str, target_table_name: str) -> "ManifestNode":
         """Get a `"ManifestNode"` from a dbt project source name and table name"""
         return self.dbt.resolve_source(
             target_source_name=target_source_name,
