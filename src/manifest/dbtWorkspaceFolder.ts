@@ -48,23 +48,10 @@ export class DBTWorkspaceFolder implements Disposable {
       .filter((uri) => statSync(uri.fsPath).isFile())
       .filter((uri) => this.notInVenv(uri.fsPath))
       .map((uri) => Uri.file(uri.path.split("/")!.slice(0, -1).join("/")));
-    if (projectFiles.length > 10) {
+    if (projectFiles.length > 20) {
       window.showWarningMessage(
         `dbt Power User detected ${projectFiles.length} projects in your work space, this will negatively affect performance.`
       );
-    }
-    for (let i = 0; i < projectFiles.length; i++) {
-      for (let j = 0; j < projectFiles.length; j++) {
-        if (j !== i) {
-          if (
-            projectFiles[i].fsPath.startsWith(projectFiles[j].fsPath + path.sep)
-          ) {
-            window.showWarningMessage(
-              `dbt Power User detected a project located in ${projectFiles[i].fsPath} that is contained inside another project ${projectFiles[j].fsPath}. This is an unsupported configuration. If you believe this is a valid configuration, please open a github issue.`
-            );
-          }
-        }
-      }
     }
     return projectFiles.forEach((uri) => this.registerDBTProject(uri));
   }
@@ -97,6 +84,10 @@ export class DBTWorkspaceFolder implements Disposable {
       this._onManifestChanged
     );
     this.dbtProjects.push(dbtProject);
+    // sorting the dbt projects descending by path ensures that we find the deepest path first
+    this.dbtProjects.sort(
+      (a, b) => -a.projectRoot.fsPath.localeCompare(b.projectRoot.fsPath)
+    );
   }
 
   private unregisterDBTProject(uri: Uri) {
