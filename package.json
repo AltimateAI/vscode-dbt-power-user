@@ -174,7 +174,10 @@
       {
         "command": "dbtPowerUser.runCurrentModel",
         "title": "Run dbt Model",
-        "icon": "$(database)"
+        "icon": {
+          "light": "./media/images/run-light.svg",
+          "dark": "./media/images/run-dark.svg"
+        }
       },
       {
         "command": "dbtPowerUser.compileCurrentModel",
@@ -192,28 +195,22 @@
       {
         "command": "dbtPowerUser.runTest",
         "title": "Run Test",
-        "icon": "$(zap)"
+        "icon": "$(pass)"
       },
       {
         "command": "dbtPowerUser.testCurrentModel",
-        "title": "Run dbt Tests",
-        "icon": "$(zap)"
+        "title": "Test dbt Model",
+        "icon": "$(pass)"
       },
       {
         "command": "dbtPowerUser.runChildrenModels",
         "title": "Run Downstream Models",
-        "icon": {
-          "light": "./media/images/run-light.svg",
-          "dark": "./media/images/run-dark.svg"
-        }
+        "icon": "$(run-below)"
       },
       {
         "command": "dbtPowerUser.runParentModels",
         "title": "Run Upstream Models",
-        "icon": {
-          "light": "./media/images/run-light.svg",
-          "dark": "./media/images/run-dark.svg"
-        }
+        "icon": "$(run-above)"
       },
       {
         "command": "dbtPowerUser.showRunSQL",
@@ -242,10 +239,7 @@
       {
         "command": "dbtPowerUser.executeSQL",
         "title": "Execute dbt SQL",
-        "icon": {
-          "light": "./media/images/run-light.svg",
-          "dark": "./media/images/run-dark.svg"
-        }
+        "icon": "$(play)"
       },
       {
         "command": "dbtPowerUser.buildCurrentModel",
