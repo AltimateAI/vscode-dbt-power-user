@@ -248,10 +248,6 @@
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
         }
-      },
-      {
-        "command": "showModelGraph",
-        "title": "Show Model Graph"
       }
     ],
     "keybindings": [
