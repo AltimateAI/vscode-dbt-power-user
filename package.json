@@ -153,7 +153,12 @@
         {
           "id": "children_model_treeview",
           "name": "Children Models"
+        },
+        {
+          "id": "documentation_treeview",
+          "name": "Documentation"
         }
+        
       ],
       "dbt_preview_results": [
         {
@@ -226,6 +231,14 @@
         "icon": {
           "light": "./media/images/file-code_light.svg",
           "dark": "./media/images/file-code_dark.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.generateDBTDocs",
+        "title": "Run Dbt Docs Generate",
+        "icon": {
+          "light": "./media/images/run-light.svg",
+          "dark": "./media/images/run-dark.svg"
         }
       },
       {
@@ -343,6 +356,11 @@
           "command": "dbtPowerUser.runParentModels",
           "when": "view == parent_model_treeview",
           "group": "navigation"
+        },
+        {
+          "command": "dbtPowerUser.generateDBTDocs",
+          "when": "view == documentation_treeview",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -359,6 +377,11 @@
         {
           "command": "dbtPowerUser.runParentModels",
           "when": "view == parent_model_treeview && viewItem != source",
+          "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.generateSchemaYML",
+          "when": "view == documentation_treeview",
           "group": "inline"
         }
       ]

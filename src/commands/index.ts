@@ -68,6 +68,9 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.generateSchemaYML", () =>
         this.runModel.generateSchemaYMLOnActiveWindow()
       ),
+      commands.registerCommand("dbtPowerUser.generateDBTDocs", () =>
+        this.runModel.generateDBTDocsOnActiveWindow()
+      ),
       commands.registerCommand("dbtPowerUser.executeSQL", () =>
         this.runModel.executeQueryOnActiveWindow()
       ),

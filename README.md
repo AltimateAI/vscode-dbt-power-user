@@ -11,6 +11,8 @@ Main features:
 - Lineage of current model
 - Execute all or individual model tests
 - Go to the definition of any models, macros, sources and docs.
+- Generate documentation YML based on your model
+- View column details, go to documentation YML and run dbt docs generate.
 - Autocompletion of models, macros, sources and docs
 - Ability to run a model through the play button of the document
 - Ability to build a model through the paper plane button (next to the play button)
@@ -143,6 +145,14 @@ You can select a file name template and prefix in the settings.
 ### Generate a schema yml file from your model file
 
 ![Generate a schema yml file from your model file](./media/images/generate-schema-yml.gif)
+
+### View Column details of current model
+
+![Tree view of of columns in model documentation](./media/images/demo-doc-treeview.mov.gif)
+
+You can run Generate Documentation Schema or Trigger `dbt docs generate` from the documentation tab.
+This feature relies on a defined schema in a YML file. It extracts data from both the catalog.json, and the manifest.json.
+
 ### Visualize the result set of your model (Use CMD+ENTER (mac) or CTRL+ENTER (win))
 
 ![Use ctrl+enter or cmd+enter to retrieve the result set of your model](./media/images/visualize-result-set.gif)

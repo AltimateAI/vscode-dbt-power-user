@@ -331,6 +331,15 @@ export class DBTProject implements Disposable {
     this.dbtProjectContainer.addCommandToQueue(runModelCommand);
   }
 
+  generateDocs() {
+    const docsGenerateCommand =
+      this.dbtCommandFactory.createDocsGenerateCommand(
+        this.projectRoot,
+        this.dbtProfilesDir
+      );
+    this.dbtProjectContainer.addCommandToQueue(docsGenerateCommand);
+  }
+
   async compileQuery(query: string): Promise<string> {
     await this.blockUntilPythonBridgeIsInitalized();
 
