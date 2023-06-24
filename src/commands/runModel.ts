@@ -114,6 +114,13 @@ export class RunModel {
     }
   }
 
+  generateDBTDocsOnActiveWindow() {
+    const fullPath = window.activeTextEditor?.document.uri;
+    if (fullPath !== undefined) {
+      this.generateDBTDocs(fullPath);
+    }
+  }
+
   runDBTModel(modelPath: Uri, type?: RunModelType) {
     this.dbtProjectContainer.runModel(modelPath, type);
   }
@@ -124,6 +131,10 @@ export class RunModel {
 
   compileDBTModel(modelPath: Uri, type?: RunModelType) {
     this.dbtProjectContainer.compileModel(modelPath, type);
+  }
+
+  generateDBTDocs(modelPath: Uri, type?: RunModelType) {
+    this.dbtProjectContainer.generateDocs(modelPath);
   }
 
   compileDBTQuery(modelPath: Uri, query: string) {

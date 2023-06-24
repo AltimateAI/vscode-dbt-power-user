@@ -202,6 +202,22 @@ export class DBTCommandFactory {
     };
   }
 
+  createDocsGenerateCommand(projectRoot: Uri, profilesDir: string): DBTCommand {
+    const profilesDirParams = this.profilesDirParams(profilesDir);
+    return {
+      commandAsString: `dbt docs generate`,
+      statusMessage: "Generating dbt Docs...",
+      processExecutionParams: {
+        cwd: projectRoot.fsPath,
+        args: [
+          "-c",
+          this.dbtCommand(["'docs'", "'generate'", ...profilesDirParams]),
+        ],
+      },
+      focus: true,
+    };
+  }
+
   private dbtCommand(cmd: string | string[]): string {
     return `has_dbt_runner = True
 try: 

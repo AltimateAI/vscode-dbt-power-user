@@ -1,10 +1,13 @@
+import { readFileSync } from "fs";
 import { unmanaged } from "inversify";
 import { provide } from "inversify-binding-decorators";
 import * as path from "path";
 import {
+  Command,
   Disposable,
   Event,
   EventEmitter,
+  ProviderResult,
   TreeDataProvider,
   TreeItem,
   TreeItemCollapsibleState,
@@ -140,6 +143,161 @@ abstract class ModelTreeviewProvider
   }
 }
 
+@provide(DocumentationTreeviewProvider)
+class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
+  private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
+  private _onDidChangeTreeData: EventEmitter<DocTreeItem | undefined | void> =
+    new EventEmitter<DocTreeItem | undefined | void>();
+  readonly onDidChangeTreeData: Event<DocTreeItem | undefined | void> =
+    this._onDidChangeTreeData.event;
+  private treeData: DocTreeItem[] = [];
+  private disposables: Disposable[] = [this._onDidChangeTreeData];
+
+  constructor(private dbtProjectContainer: DBTProjectContainer) {
+    this.disposables.push(
+      window.onDidChangeActiveTextEditor(() => {
+        this._onDidChangeTreeData.fire();
+      }),
+      this.dbtProjectContainer.onManifestChanged((event) =>
+        this.onManifestCacheChanged(event)
+      )
+    );
+  }
+
+  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+    event.added?.forEach((added) => {
+      this.eventMap.set(added.projectRoot.fsPath, added);
+    });
+    event.removed?.forEach((removed) => {
+      this.eventMap.delete(removed.projectRoot.fsPath);
+    });
+    this._onDidChangeTreeData.fire();
+  }
+
+  getTreeItem(element: DocTreeItem): TreeItem {
+    return {
+      label: element.label,
+      description: element.description,
+      command: element.command,
+      collapsibleState: element.children
+        ? TreeItemCollapsibleState.Expanded
+        : TreeItemCollapsibleState.None,
+    };
+  }
+
+  getChildren(element?: DocTreeItem): ProviderResult<DocTreeItem[]> {
+    if (window.activeTextEditor === undefined || this.eventMap === undefined) {
+      return Promise.resolve([]);
+    }
+    const currentFilePath = window.activeTextEditor.document.uri;
+    const projectRootpath =
+      this.dbtProjectContainer.getProjectRootpath(currentFilePath);
+    if (!projectRootpath) {
+      return Promise.resolve([]);
+    }
+    const manifestLocation = path.join(
+      projectRootpath.path,
+      "target",
+      "manifest.json"
+    );
+    const catalogLocation = path.join(
+      projectRootpath.path,
+      "target",
+      "catalog.json"
+    );
+
+    const manifest = JSON.parse(readFileSync(manifestLocation, "utf8"));
+    const catalog = JSON.parse(readFileSync(catalogLocation, "utf8"));
+
+    if (!element) {
+      const manifestNodes = Object.values(manifest.nodes);
+      const catalogNodes = catalog.nodes;
+      const filteredNodes = manifestNodes.filter((node: any) => {
+        return (
+          path.join(projectRootpath.path, node.original_file_path) ===
+          currentFilePath.fsPath
+        );
+      });
+      const modelName = path.basename(
+        window.activeTextEditor!.document.fileName,
+        ".sql"
+      );
+      this.treeData = filteredNodes.map((node: any) => {
+        let children = [];
+        if (Object.keys(node.columns).length !== 0) {
+          const columns = Object.keys(node.columns);
+          children = columns.map((column: any) => {
+            const uniqueId = `${node.unique_id}.${column}`;
+            const type = catalogNodes[node.unique_id]?.columns[column].type;
+            const child: any = { label: column, uniqueId, type };
+            child.description = `[ ${type} ]  -  ${
+              manifest.nodes[node.unique_id].columns[column]?.description ??
+              "no description"
+            }`;
+
+            return child;
+          });
+        }
+        const url =
+          node.patch_path !== null
+            ? path.join(projectRootpath.path, node.patch_path.split("://")[1])
+            : " ";
+
+        if (Object.keys(node.columns).length === 0) {
+          window.showWarningMessage(
+            `Documentation View Warning: No columns found in manifest.json for ${modelName}, define the schema for this model in a YML file (e.g. by right clicking in the sql file --> Generate Documentation YML) and run dbt docs generate`
+          );
+        }
+        const key = node.unique_id;
+        const label = node.name;
+        const description = `[ ${node.config.materialized.toUpperCase()} ]  -  schema : ${
+          node.schema
+        }`;
+        const nodeItem = new DocNode(label, key, url, description);
+        const treeItem = new DocTreeItem(nodeItem);
+        treeItem.children = children;
+        return treeItem;
+      });
+      return this.treeData;
+    }
+    return element.children;
+  }
+
+  refresh(): void {
+    this._onDidChangeTreeData.fire();
+  }
+}
+
+class DocTreeItem extends TreeItem {
+  collapsibleState: TreeItemCollapsibleState =
+    TreeItemCollapsibleState.Collapsed;
+  description: string;
+  children?: DocTreeItem[];
+  command?: Command;
+  constructor(node: DocNode) {
+    super(node.label, TreeItemCollapsibleState.Collapsed);
+    this.description = node.description !== undefined ? node.description : " ";
+    // this. tooltip = "test tooltip" // node.description !== undefined ? node.description : " ";
+    this.command = {
+      command: "vscode.open",
+      title: "Open YML",
+      arguments: [Uri.file(node.url)],
+    };
+
+    if (node.iconPath !== undefined) {
+      this.iconPath = node.iconPath;
+    }
+  }
+}
+
+export class DocNode extends Node {
+  description: string;
+
+  constructor(label: string, key: string, url: string, description: string) {
+    super(label, key, url);
+    this.description = description;
+  }
+}
 export class NodeTreeItem extends TreeItem {
   collapsibleState = TreeItemCollapsibleState.Collapsed;
   key: string;
@@ -217,5 +375,12 @@ export class ParentModelTreeview extends ModelTreeviewProvider {
 export class ChildrenModelTreeview extends ModelTreeviewProvider {
   constructor(dbtProjectContainer: DBTProjectContainer) {
     super(dbtProjectContainer, "children");
+  }
+}
+
+@provideSingleton(DocumentationTreeview)
+export class DocumentationTreeview extends DocumentationTreeviewProvider {
+  constructor(dbtProjectContainer: DBTProjectContainer) {
+    super(dbtProjectContainer);
   }
 }
