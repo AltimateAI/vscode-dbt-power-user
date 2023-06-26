@@ -407,6 +407,7 @@
     ]
   },
   "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
     "prepare": "husky install",
     "vscode:prepublish": "webpack --mode production",
     "webpack": "webpack --mode development",
