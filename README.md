@@ -148,7 +148,11 @@ You can select a file name template and prefix in the settings.
 
 ### View Column details of current model
 
-![Tree view of of columns in model documentation](./media/images/demo-doc-treeview.mov.gif)
+![Tree view of of columns in model documentation](./media/images/demo-doc-treeview.gif)
+
+Clicking the table name will route you to the YML schema file if it exists: 
+
+![Tree view of of columns in model documentation](./media/images/demo-doc-view-clickable.gif)
 
 You can run Generate Documentation Schema or Trigger `dbt docs generate` from the documentation tab.
 This feature relies on a defined schema in a YML file. It extracts data from both the catalog.json, and the manifest.json.

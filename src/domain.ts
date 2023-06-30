@@ -19,6 +19,20 @@ interface NodeMetaData {
   schema: string;
   alias: string;
   package_name: string;
+  description: string;
+  patch_path: string;
+  columns: { [columnName: string]: ColumnMetaData };
+  config: Config;
+}
+
+interface ColumnMetaData {
+  name: string;
+  description: string;
+  data_type: string;
+}
+
+interface Config {
+  materialized: string;
 }
 
 interface SourceMetaData {

@@ -185,7 +185,7 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
     };
   }
 
-  getChildren(element?: DocTreeItem): ProviderResult<DocTreeItem[]> {
+  getChildren(element: DocTreeItem): ProviderResult<DocTreeItem[]> {
     if (window.activeTextEditor === undefined || this.eventMap === undefined) {
       return Promise.resolve([]);
     }
@@ -195,69 +195,59 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
     if (!projectRootpath) {
       return Promise.resolve([]);
     }
-    const manifestLocation = path.join(
-      projectRootpath.path,
-      "target",
-      "manifest.json"
-    );
-    const catalogLocation = path.join(
-      projectRootpath.path,
-      "target",
-      "catalog.json"
-    );
+    const event = this.eventMap.get(projectRootpath.fsPath);
 
-    const manifest = JSON.parse(readFileSync(manifestLocation, "utf8"));
-    const catalog = JSON.parse(readFileSync(catalogLocation, "utf8"));
+    if (event === undefined) {
+      return Promise.resolve([]);
+    }
+    const { nodeMetaMap } = event;
 
     if (!element) {
-      const manifestNodes = Object.values(manifest.nodes);
-      const catalogNodes = catalog.nodes;
-      const filteredNodes = manifestNodes.filter((node: any) => {
-        return (
-          path.join(projectRootpath.path, node.original_file_path) ===
-          currentFilePath.fsPath
-        );
-      });
       const modelName = path.basename(
         window.activeTextEditor!.document.fileName,
         ".sql"
       );
-      this.treeData = filteredNodes.map((node: any) => {
-        let children = [];
-        if (Object.keys(node.columns).length !== 0) {
-          const columns = Object.keys(node.columns);
-          children = columns.map((column: any) => {
-            const uniqueId = `${node.unique_id}.${column}`;
-            const type = catalogNodes[node.unique_id]?.columns[column].type;
-            const child: any = { label: column, uniqueId, type };
-            child.description = `[ ${type} ]  -  ${
-              manifest.nodes[node.unique_id].columns[column]?.description ??
-              "no description"
-            }`;
+      const currentNode = nodeMetaMap.get(modelName);
+      if (currentNode === undefined) {
+        return Promise.resolve([]);
+      }
+      const children = [];
 
-            return child;
-          });
+      if (Object.keys(currentNode.columns).length !== 0) {
+        for (const columnName in currentNode.columns) {
+          if (currentNode.columns.hasOwnProperty(columnName)) {
+            const column = currentNode.columns[columnName];
+            const { description } = column;
+            const child: any = {
+              label: columnName,
+              description,
+            };
+            children.push(child);
+          }
         }
         const url =
-          node.patch_path !== null
-            ? path.join(projectRootpath.path, node.patch_path.split("://")[1])
+          currentNode.patch_path !== null
+            ? path.join(
+                projectRootpath.path,
+                currentNode.patch_path.split("://")[1]
+              )
             : " ";
 
-        if (Object.keys(node.columns).length === 0) {
+        if (Object.keys(currentNode.columns).length === 0) {
           window.showWarningMessage(
             `Documentation View Warning: No columns found in manifest.json for ${modelName}, define the schema for this model in a YML file (e.g. by right clicking in the sql file --> Generate Documentation YML) and run dbt docs generate`
           );
         }
-        const key = node.unique_id;
-        const label = node.name;
-        const description = `[ ${node.config.materialized.toUpperCase()} ]  -  schema : ${
-          node.schema
+        const key = currentNode.uniqueId;
+        const label = currentNode.alias;
+        const description = `[ ${currentNode.config.materialized.toUpperCase()} ]  -  schema : ${
+          currentNode.schema
         }`;
         const nodeItem = new DocNode(label, key, url, description);
         const treeItem = new DocTreeItem(nodeItem);
         treeItem.children = children;
-        return treeItem;
-      });
+        this.treeData = [treeItem];
+      }
       return this.treeData;
     }
     return element.children;
