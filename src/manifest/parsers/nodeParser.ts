@@ -31,6 +31,10 @@ export class NodeParser {
             alias,
             package_name,
             unique_id,
+            columns,
+            description,
+            patch_path,
+            config,
           }) => {
             const fullPath = createFullPathForNode(
               projectName,
@@ -48,6 +52,10 @@ export class NodeParser {
               alias,
               package_name,
               uniqueId: unique_id,
+              columns,
+              description,
+              patch_path,
+              config,
             });
           }
         );
