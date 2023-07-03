@@ -401,7 +401,7 @@
     "file-loader": "^6.1.0",
     "glob": "^8.1.0",
     "husky": "^8.0.3",
-    "lint-staged": "^13.2.2",
+    "lint-staged": "^13.2.3",
     "mocha": "^10.2.0",
     "ovsx": "^0.8.1",
     "prettier": "^2.8.4",
