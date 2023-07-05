@@ -7,6 +7,7 @@ import {
   TextDocument,
   TextEdit,
   window,
+  workspace,
 } from "vscode";
 import * as which from "which";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
@@ -29,15 +30,25 @@ export class DbtDocumentFormattingEditProvider
   }
 
   private async executeSqlFmt(document: TextDocument) {
+    const sqlFmtPathSetting = workspace
+      .getConfiguration("dbt")
+      .get<string>("sqlFmtPath", "");
+    const sqlFmtAdditionalParamsSetting = workspace
+      .getConfiguration("dbt")
+      .get<string[]>("sqlFmtAdditionalParams", [])
+      .join(" ")
+      .split(" ");
+
     const sqlFmtArgs = [
       "--diff",
       "--no-progressbar",
       "--quiet",
+      ...sqlFmtAdditionalParamsSetting,
       document.uri.fsPath,
     ];
     try {
-      // try to find sqlfmt on PATH
-      const sqlFmtPath = await which("sqlfmt");
+      // try to find sqlfmt on PATH if not set
+      const sqlFmtPath = sqlFmtPathSetting || (await which("sqlfmt"));
       try {
         await this.commandProcessExecutionFactory
           .createCommandProcessExecution(sqlFmtPath, sqlFmtArgs)

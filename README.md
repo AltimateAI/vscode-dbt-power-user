@@ -109,6 +109,10 @@ Note that your query can't have an order by clause.
 
 Install sqlfmt through running `pip install 'shandy-sqlfmt[jinjafmt]'`. Find more about sqlfmt in their [docs](https://sqlfmt.com/).
 
+#### Configure `dbt.sqlFmtPath` or `dbt.sqlFmtAdditionalParams`
+
+You can configure the path to sqlfmt through `dbt.sqlFmtPath` and you can configure additional parameters through `dbt.sqlFmtAdditionalParams`.
+
 #### Usage
 
 Please select "dbt Power User" (extension id:`innoverio.vscode-dbt-power-user`) as the default formatter. You can do this either by using the context menu (right click on a open dbt model in the editor) and select "Format Document With...", or you can add the following to your settings:
@@ -150,7 +154,7 @@ You can select a file name template and prefix in the settings.
 
 ![Tree view of of columns in model documentation](./media/images/demo-doc-treeview.gif)
 
-Clicking the table name will route you to the YML schema file if it exists: 
+Clicking the table name will route you to the YML schema file if it exists:
 
 ![Tree view of of columns in model documentation](./media/images/demo-doc-view-clickable.gif)
 

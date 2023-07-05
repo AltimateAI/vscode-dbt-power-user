@@ -114,6 +114,18 @@
               "Do not show the outdated version message in the status bar or as an error message popup."
             ],
             "description": "This determines which messages will show when the dbt version is outdated."
+          },
+          "dbt.sqlFmtPath": {
+            "type": "string",
+            "description": "Path to `sqlfmt`. If not set, it will look on your PATH"
+          },
+          "dbt.sqlFmtAdditionalParams": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "Add additional params to `sqlfmt`"
           }
         }
       }
