@@ -433,7 +433,7 @@
     "lint-staged": "^13.2.3",
     "mocha": "^10.2.0",
     "ovsx": "^0.8.1",
-    "prettier": "^2.8.4",
+    "prettier": "^3.0.0",
     "prettier-eslint": "^15.0.1",
     "prettier-plugin-organize-imports": "^3.2.2",
     "terser-webpack-plugin": "^5.3.7",
