@@ -170,7 +170,6 @@
           "id": "documentation_treeview",
           "name": "Documentation"
         }
-        
       ],
       "dbt_preview_results": [
         {
@@ -314,11 +313,6 @@
           "command": "dbtPowerUser.sqlPreview",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
           "group": "navigation@5"
-        },
-        {
-          "command": "showModelGraph",
-          "when": "resourceLangId == jinja-sql",
-          "group": "1_run"
         }
       ],
       "editor/context": [
