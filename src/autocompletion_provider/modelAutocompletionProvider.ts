@@ -58,10 +58,10 @@ export class ModelAutocompletionProvider
     ) {
       let quoteFound = false;
       let quote = "";
-      if (linePrefix.endsWith("'")) {
+      if (linePrefix.startsWith("'")) {
         quoteFound = true;
         quote = "'";
-      } else if (linePrefix.endsWith('"')) {
+      } else if (linePrefix.startsWith('"')) {
         quoteFound = true;
         quote = '"';
       }
