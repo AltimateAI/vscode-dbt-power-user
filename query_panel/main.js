@@ -30,6 +30,7 @@ const app = createApp({
       timer: undefined,
       resizeTimer: undefined,
       windowHeight: DEFAULT_HEIGHT,
+      scale: 1,
     };
   },
   methods: {
@@ -115,6 +116,12 @@ const app = createApp({
         this.resizeTimer = requestAnimationFrame(this.setTableHeight);
       }
     },
+    getTableStyles() {
+      return {
+        fontSize: `${this.scale}em`, 
+        lineHeight: `${this.scale}`,
+      };
+    },  
   },
   computed: {
     tableHeight() {
@@ -145,7 +152,12 @@ const app = createApp({
   watch: {
     async limit(limit) {
       await updateConfig({ limit });
-    }
+    },
+    scale(newVal) {
+      this.$nextTick(() => {
+        this.scale = newVal;
+      });
+    },
   },
   mounted() {
     window.addEventListener('message', (event) => {

@@ -55,7 +55,7 @@
                 <img v-if="isLoading" id="spinner" src="__ROOT__/assets/spinner.gif" /></img>
 
                 <div v-show="hasData">
-                    <div id="query-results"></div>
+                    <div id="query-results" :style="getTableStyles()"></div>
                 </div>
 
                 <div v-show="hasError">
@@ -80,6 +80,9 @@
                 <div>
                     <br />
                     <vscode-text-field v-model.number="limit" type="number">Query Limit</vscode-text-field>
+                    <br /><br />
+                    <label>Table Scale: {{ scale }}</label><br />
+                    <input v-model.number="scale" type="range" step="0.01" min="0.1" max="2">
                     <br /><br />
                     <vscode-button @click="clearData" v-if="(hasData || hasError)">Clear Results</vscode-button>
                 </div>
