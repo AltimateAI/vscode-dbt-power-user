@@ -48,9 +48,9 @@ export class ModelAutocompletionProvider
     token: CancellationToken,
     context: CompletionContext
   ): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
-    const linePrefix = document
+    let linePrefix = document
       .lineAt(position)
-      .text.substr(0, position.character);
+      .text.substring(0, position.character);
     if (
       (linePrefix.match(ModelAutocompletionProvider.MODEL_PATTERN) ||
         linePrefix.match(ModelAutocompletionProvider.PACKAGE_PATTERN)) &&
@@ -58,10 +58,18 @@ export class ModelAutocompletionProvider
     ) {
       let quoteFound = false;
       let quote = "";
-      if (linePrefix.startsWith("'")) {
+      const refString = "ref(";
+      const refStringPosition = linePrefix.indexOf(refString);
+      if (refStringPosition !== -1) {
+        linePrefix = linePrefix.substring(
+          0,
+          refStringPosition + refString.length + 1
+        );
+      }
+      if (linePrefix.endsWith("'")) {
         quoteFound = true;
         quote = "'";
-      } else if (linePrefix.startsWith('"')) {
+      } else if (linePrefix.endsWith('"')) {
         quoteFound = true;
         quote = '"';
       }
