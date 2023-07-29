@@ -66,7 +66,7 @@ CACHE_VERSION = 1
 SQL_CACHE_SIZE = 1024
 
 MANIFEST_ARTIFACT = "manifest.json"
-DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER = (int(v) for v in dbt_version.split("."))
+DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER = (int(v) if v.isnumeric() else v for v in dbt_version.split("."))
 RAW_CODE = "raw_code" if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 3 else "raw_sql"
 COMPILED_CODE = "compiled_code" if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 3 else "compiled_sql"
 
