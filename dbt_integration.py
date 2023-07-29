@@ -350,6 +350,23 @@ class DbtProject:
     @lru_cache(maxsize=10)
     def get_ref_node(self, target_model_name: str) -> "ManifestNode":
         """Get a `"ManifestNode"` from a dbt project model name"""
+        if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 6:
+            return self.dbt.resolve_ref(
+                source_node=None,
+                target_model_name=target_model_name,
+                target_model_version=None,
+                target_model_package=None,
+                current_project=self.config.project_name,
+                node_package=self.config.project_name,
+            )
+        if DBT_MAJOR_VER == 1 and DBT_MINOR_VER >= 5:
+            return self.dbt.resolve_ref(
+                target_model_name=target_model_name,
+                target_model_version=None,
+                target_model_package=None,
+                current_project=self.config.project_name,
+                node_package=self.config.project_name,
+            )
         return self.dbt.resolve_ref(
             target_model_name=target_model_name,
             target_model_package=None,
