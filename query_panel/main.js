@@ -1,6 +1,6 @@
-import { createApp } from 'vue';
-import 'tabulator'; // Exposes Tabulator class
-import 'prism'; // Exposes Prism object
+import { createApp } from "vue";
+import "tabulator"; // Exposes Tabulator class
+import "prism"; // Exposes Prism object
 
 const vscode = acquireVsCodeApi();
 
@@ -41,9 +41,9 @@ const app = createApp({
         data: data.rows,
         columns: data.columns,
         layout: "fitDataFill",
-        headerSortElement: function(column, dir){
+        headerSortElement: function (column, dir) {
           //dir - current sort direction ("asc", "desc", "none")
-          switch(dir){
+          switch (dir) {
             case "asc":
               return "<p>&#9660;</p>";
             case "desc":
@@ -64,22 +64,28 @@ const app = createApp({
       if (data.queryTemplate) {
         this.queryTemplate = data.queryTemplate;
       }
+      if (data.scale) {
+        this.scale = data.scale;
+      }
     },
     updateDispatchedCode(raw_stmt, compiled_stmt) {
       this.rawCode = raw_stmt;
 
       try {
-        const queryRegex = new RegExp(this.queryTemplate
-          .replace(/\(/g, "\\(")
-          .replace(/\)/g, "\\)")
-          .replace(/\*/g, "\\*")
-          .replace("{query}", "([\\w\\W]+)")
-          .replace("{limit}", this.limit.toString()), 'gm');
+        const queryRegex = new RegExp(
+          this.queryTemplate
+            .replace(/\(/g, "\\(")
+            .replace(/\)/g, "\\)")
+            .replace(/\*/g, "\\*")
+            .replace("{query}", "([\\w\\W]+)")
+            .replace("{limit}", this.limit.toString()),
+          "gm",
+        );
         const result = queryRegex.exec(compiled_stmt);
         this.compiledCode = result[1];
         return;
       } catch (err) {}
-      this.compiledCode = compiled_stmt;      
+      this.compiledCode = compiled_stmt;
     },
     clearData() {
       this.count = 0;
@@ -118,10 +124,10 @@ const app = createApp({
     },
     getTableStyles() {
       return {
-        fontSize: `${this.scale}em`, 
+        fontSize: `${this.scale}em`,
         lineHeight: `${this.scale}`,
       };
-    },  
+    },
   },
   computed: {
     tableHeight() {
@@ -129,13 +135,22 @@ const app = createApp({
         ? this.count * 65
         : this.windowHeight;
     },
-    hasData() { return this.count > 0; },
-    hasError() { return this.error?.data; },
-    hasCode() { return this.compiledCode !== ""; },
-    isLoading() { return this.loading === true; },
-    elapsedTime() { 
-      const elapsedTime = Math.round((this.queryEnd - this.queryStart) / 100) / 10
-      return isNaN(elapsedTime) ? 0 : elapsedTime; 
+    hasData() {
+      return this.count > 0;
+    },
+    hasError() {
+      return this.error?.data;
+    },
+    hasCode() {
+      return this.compiledCode !== "";
+    },
+    isLoading() {
+      return this.loading === true;
+    },
+    elapsedTime() {
+      const elapsedTime =
+        Math.round((this.queryEnd - this.queryStart) / 100) / 10;
+      return isNaN(elapsedTime) ? 0 : elapsedTime;
     },
     queryExecutionInfo() {
       if (this.hasData || this.hasError || this.elapsedTime) {
@@ -143,49 +158,64 @@ const app = createApp({
       }
       return "...";
     },
-    compiledCodeMarkup() { return Prism.highlight(this.compiledCode, Prism.languages.sql, 'sql'); },
-    errorTitle() { return this.error.message?.split(/\r?\n/)[0] ?? "Error"; },
-    errorMessage() { return this.error.message?.split(/\r?\n/).slice(1).join(" ") ?? ""; },
-    errorData() { return JSON.stringify(this.error, null, 2); },
-    errorDataMarkup() { return Prism.highlight(this.errorData, Prism.languages.javascript, 'javascript'); }
+    compiledCodeMarkup() {
+      return Prism.highlight(this.compiledCode, Prism.languages.sql, "sql");
+    },
+    errorTitle() {
+      return this.error.message?.split(/\r?\n/)[0] ?? "Error";
+    },
+    errorMessage() {
+      return this.error.message?.split(/\r?\n/).slice(1).join(" ") ?? "";
+    },
+    errorData() {
+      return JSON.stringify(this.error, null, 2);
+    },
+    errorDataMarkup() {
+      return Prism.highlight(
+        this.errorData,
+        Prism.languages.javascript,
+        "javascript",
+      );
+    },
   },
   watch: {
     async limit(limit) {
       await updateConfig({ limit });
     },
-    scale(newVal) {
-      this.$nextTick(() => {
-        this.scale = newVal;
-      });
+    async scale(scale) {
+      await updateConfig({ scale });
     },
   },
   mounted() {
-    window.addEventListener('message', (event) => {
+    window.addEventListener("message", (event) => {
       console.log(event);
       switch (event.data.command) {
-        case 'renderQuery':
+        case "renderQuery":
           this.updateTable(event.data);
-          this.updateDispatchedCode(event.data.raw_sql, event.data.compiled_sql);
+          this.updateDispatchedCode(
+            event.data.raw_sql,
+            event.data.compiled_sql,
+          );
           this.focusPreviewPane();
           this.loading = false;
           this.endTimer();
           break;
-        case 'renderLoading':
+        case "renderLoading":
           this.clearData();
           this.focusPreviewPane();
           this.loading = true;
           this.timeExecution();
           break;
-        case 'renderError':
+        case "renderError":
           this.updateError(event.data);
           this.focusPreviewPane();
           this.loading = false;
           this.endTimer();
           break;
-        case 'injectConfig':
+        case "injectConfig":
           this.updateConfig(event.data);
           break;
-        case 'resetState':
+        case "resetState":
           this.clearData();
           break;
       }
@@ -197,11 +227,11 @@ const app = createApp({
   },
   beforeDestroy() {
     clearInterval(this.timer);
-  }
+  },
 });
 
 app.config.errorHandler = (err) => {
   console.log(err);
 };
 
-app.mount('#app');
+app.mount("#app");

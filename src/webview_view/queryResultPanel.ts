@@ -65,6 +65,7 @@ interface RecError {
 
 interface RecConfig {
   limit?: number;
+  scale?: number;
 }
 
 @provideSingleton(QueryResultPanel)
@@ -80,20 +81,20 @@ export class QueryResultPanel implements WebviewViewProvider {
         if (this._panel) {
           this._panel.webview.html = getHtml(
             this._panel.webview,
-            this.dbtProjectContainer.extensionUri
+            this.dbtProjectContainer.extensionUri,
           );
           await this.transmitConfig();
         }
       },
       null,
-      this._disposables
+      this._disposables,
     );
   }
 
   public async resolveWebviewView(
     panel: WebviewView,
     context: WebviewViewResolveContext,
-    _token: CancellationToken
+    _token: CancellationToken,
   ) {
     this._panel = panel;
     this.setupWebviewOptions(context);
@@ -131,7 +132,7 @@ export class QueryResultPanel implements WebviewViewProvider {
               },
               async () => {
                 await new Promise((timer) => setTimeout(timer, 3000));
-              }
+              },
             );
             break;
           case InboundCommand.UpdateConfig:
@@ -141,11 +142,16 @@ export class QueryResultPanel implements WebviewViewProvider {
                 .getConfiguration("dbt")
                 .update("queryLimit", config.limit);
             }
+            if (config.scale) {
+              workspace
+                .getConfiguration("dbt")
+                .update("queryScale", config.scale);
+            }
             break;
         }
       },
       null,
-      this._disposables
+      this._disposables,
     );
   }
 
@@ -154,7 +160,7 @@ export class QueryResultPanel implements WebviewViewProvider {
     const webview = this._panel!.webview!;
     this._panel!.webview.html = getHtml(
       webview,
-      this.dbtProjectContainer.extensionUri
+      this.dbtProjectContainer.extensionUri,
     );
   }
 
@@ -163,7 +169,7 @@ export class QueryResultPanel implements WebviewViewProvider {
     columns: JsonObj[],
     rows: JsonObj[],
     raw_sql: string,
-    compiled_sql: string
+    compiled_sql: string,
   ) {
     await this._panel!.webview.postMessage({
       command: OutboundCommand.RenderQuery,
@@ -175,7 +181,7 @@ export class QueryResultPanel implements WebviewViewProvider {
   private async transmitError(
     error: any,
     raw_sql: string,
-    compiled_sql: string
+    compiled_sql: string,
   ) {
     await this._panel!.webview.postMessage({
       command: OutboundCommand.RenderError,
@@ -190,7 +196,7 @@ export class QueryResultPanel implements WebviewViewProvider {
       .getConfiguration("dbt")
       .get<string>(
         "queryTemplate",
-        "select * from ({query}) as query limit {limit}"
+        "select * from ({query}) as query limit {limit}",
       );
     await this._panel!.webview.postMessage({
       command: OutboundCommand.InjectConfig,
@@ -233,10 +239,10 @@ export class QueryResultPanel implements WebviewViewProvider {
   /** Runs a query transmitting appropriate notifications to webview */
   public async executeQuery(
     query: string,
-    queryExecution: Promise<ExecuteSQLResult>
+    queryExecution: Promise<ExecuteSQLResult>,
   ) {
     await commands.executeCommand(
-      "workbench.view.extension.dbt_preview_results"
+      "workbench.view.extension.dbt_preview_results",
     );
     this.transmitLoading();
     try {
@@ -246,7 +252,7 @@ export class QueryResultPanel implements WebviewViewProvider {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
           "An error occured while trying to execute your query: " +
-            exc.exception.message
+            exc.exception.message,
         );
         await this.transmitError(
           {
@@ -257,7 +263,7 @@ export class QueryResultPanel implements WebviewViewProvider {
             },
           },
           query,
-          query
+          query,
         );
         return;
       }
@@ -267,7 +273,7 @@ export class QueryResultPanel implements WebviewViewProvider {
           error: { code: -1, message: exc.message, data: {} },
         },
         query,
-        query
+        query,
       );
     }
   }

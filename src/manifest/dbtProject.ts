@@ -103,11 +103,11 @@ export class DBTProject implements Disposable {
     private queryResultPanel: QueryResultPanel,
     path: Uri,
     projectConfig: any,
-    _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
+    _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
   ) {
     this.projectRoot = path;
     const profileExistsInProjectRoot = existsSync(
-      join(this.projectRoot.fsPath, "profiles.yml")
+      join(this.projectRoot.fsPath, "profiles.yml"),
     );
     const profilesDirOverrideSetting = workspace
       .getConfiguration("dbt")
@@ -127,47 +127,47 @@ export class DBTProject implements Disposable {
     this.macroPaths = this.findMacroPaths(projectConfig);
 
     console.log(
-      `Registering project ${this.projectName} at ${this.projectRoot}`
+      `Registering project ${this.projectName} at ${this.projectRoot}`,
     );
 
     const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
-      new RelativePattern(path, DBTProject.DBT_PROJECT_FILE)
+      new RelativePattern(path, DBTProject.DBT_PROJECT_FILE),
     );
 
     const fireProjectChanged = debounce(
       async () => await this.rebuildManifest(),
-      2000
+      2000,
     );
 
     setupWatcherHandler(dbtProjectConfigWatcher, () => this.tryRefresh());
 
     this.sourceFileWatchers =
       this.sourceFileWatchersFactory.createSourceFileWatchers(
-        this.onProjectConfigChanged
+        this.onProjectConfigChanged,
       );
     this.onSourceFileChanged = this.sourceFileWatchers.onSourceFileChanged;
 
     this.dbtProjectLog = this.dbtProjectLogFactory.createDBTProjectLog(
-      this.onProjectConfigChanged
+      this.onProjectConfigChanged,
     );
 
     this.PythonEnvironment.onPythonEnvironmentChanged(() =>
-      this.onPythonEnvironmentChanged()
+      this.onPythonEnvironmentChanged(),
     );
 
     this.disposables.push(
       this.targetWatchersFactory.createTargetWatchers(
         _onManifestChanged,
-        this.onProjectConfigChanged
+        this.onProjectConfigChanged,
       ),
       dbtProjectConfigWatcher,
       this.onSourceFileChanged(fireProjectChanged),
       this.sourceFileWatchers,
-      this.dbtProjectLog
+      this.dbtProjectLog,
     );
     this.initializePythonBridge(
       this.PythonEnvironment.pythonPath,
-      this.PythonEnvironment.environmentVariables
+      this.PythonEnvironment.environmentVariables,
     );
   }
 
@@ -177,7 +177,7 @@ export class DBTProject implements Disposable {
 
   private async initializePythonBridge(
     pythonPath: string,
-    envVars: EnvironmentVariables
+    envVars: EnvironmentVariables,
   ) {
     if (this.python !== undefined) {
       // Python env has changed
@@ -210,12 +210,13 @@ export class DBTProject implements Disposable {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
           "An error occured while initializing the dbt project: " +
-            exc.exception.message
+            exc.exception.message,
         );
         return;
       }
       window.showErrorMessage(
-        "An unexpected error occured while initializing the dbt project: " + exc
+        "An unexpected error occured while initializing the dbt project: " +
+          exc,
       );
       return;
     }
@@ -227,7 +228,7 @@ export class DBTProject implements Disposable {
   private async onPythonEnvironmentChanged() {
     this.initializePythonBridge(
       this.PythonEnvironment.pythonPath,
-      this.PythonEnvironment.environmentVariables
+      this.PythonEnvironment.environmentVariables,
     );
   }
 
@@ -237,10 +238,10 @@ export class DBTProject implements Disposable {
     } catch (error) {
       console.warn(
         "An error occurred while trying to refresh the project configuration",
-        error
+        error,
       );
       this.terminal.log(
-        `An error occurred while trying to refresh the project configuration: ${error}`
+        `An error occurred while trying to refresh the project configuration: ${error}`,
       );
     }
   }
@@ -271,17 +272,17 @@ export class DBTProject implements Disposable {
   private async rebuildManifest() {
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
-        "The dbt manifest can't be rebuilt right now as the Python environment has not yet been initialized, please try again later."
+        "The dbt manifest can't be rebuilt right now as the Python environment has not yet been initialized, please try again later.",
       );
       return;
     }
     try {
       await this.python?.lock(
-        (python) => python!`to_dict(project.safe_parse_project())`
+        (python) => python!`to_dict(project.safe_parse_project())`,
       );
     } catch (exc) {
       window.showErrorMessage(
-        "An error occured while rebuilding the dbt manifest: " + exc
+        "An error occured while rebuilding the dbt manifest: " + exc,
       );
     }
   }
@@ -290,7 +291,7 @@ export class DBTProject implements Disposable {
     const runModelCommand = this.dbtCommandFactory.createRunModelCommand(
       this.projectRoot,
       this.dbtProfilesDir,
-      runModelParams
+      runModelParams,
     );
     this.dbtProjectContainer.addCommandToQueue(runModelCommand);
   }
@@ -299,7 +300,7 @@ export class DBTProject implements Disposable {
     const buildModelCommand = this.dbtCommandFactory.createBuildModelCommand(
       this.projectRoot,
       this.dbtProfilesDir,
-      runModelParams
+      runModelParams,
     );
     this.dbtProjectContainer.addCommandToQueue(buildModelCommand);
   }
@@ -308,7 +309,7 @@ export class DBTProject implements Disposable {
     const testModelCommand = this.dbtCommandFactory.createTestModelCommand(
       this.projectRoot,
       this.dbtProfilesDir,
-      testName
+      testName,
     );
     this.dbtProjectContainer.addCommandToQueue(testModelCommand);
   }
@@ -317,7 +318,7 @@ export class DBTProject implements Disposable {
     const testModelCommand = this.dbtCommandFactory.createTestModelCommand(
       this.projectRoot,
       this.dbtProfilesDir,
-      modelName
+      modelName,
     );
     this.dbtProjectContainer.addCommandToQueue(testModelCommand);
   }
@@ -326,7 +327,7 @@ export class DBTProject implements Disposable {
     const runModelCommand = this.dbtCommandFactory.createCompileModelCommand(
       this.projectRoot,
       this.dbtProfilesDir,
-      runModelParams
+      runModelParams,
     );
     this.dbtProjectContainer.addCommandToQueue(runModelCommand);
   }
@@ -335,7 +336,7 @@ export class DBTProject implements Disposable {
     const docsGenerateCommand =
       this.dbtCommandFactory.createDocsGenerateCommand(
         this.projectRoot,
-        this.dbtProfilesDir
+        this.dbtProfilesDir,
       );
     this.dbtProjectContainer.addCommandToQueue(docsGenerateCommand);
   }
@@ -345,20 +346,20 @@ export class DBTProject implements Disposable {
 
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
-        "Could not compile query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue."
+        "Could not compile query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue.",
       );
       throw Error("Could not initialize Python bridge");
     }
     try {
       const output = (await this.python?.lock(
-        (python) => python!`to_dict(project.compile_sql(${query}))`
+        (python) => python!`to_dict(project.compile_sql(${query}))`,
       )) as CompilationResult;
       return output.compiled_sql;
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
           "An error occured while trying to compile your query: " +
-            exc.exception.message
+            exc.exception.message,
         );
         return (
           "Exception: " +
@@ -384,7 +385,7 @@ export class DBTProject implements Disposable {
 
   createYMLContent(
     columnsInRelation: { [key: string]: string }[],
-    modelName: string
+    modelName: string,
   ): string {
     let yamlString = "version: 2\n\nmodels:\n";
     yamlString += `  - name: ${modelName}\n    description: ""\n    columns:\n`;
@@ -398,7 +399,7 @@ export class DBTProject implements Disposable {
     await this.blockUntilPythonBridgeIsInitalized();
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
-        "Could not execute query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue."
+        "Could not execute query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue.",
       );
       throw Error("Could not initialize Python bridge");
     }
@@ -409,31 +410,31 @@ export class DBTProject implements Disposable {
       if (!existsSync(location)) {
         // Get database and schema
         const refNode = (await this.python?.lock(
-          (python) => python!`to_dict(project.get_ref_node(${modelName}))`
+          (python) => python!`to_dict(project.get_ref_node(${modelName}))`,
         )) as ResolveReferenceResult;
         // Get columns
         const columnsInRelation = (await this.python?.lock(
           (python) =>
-            python!`to_dict(project.get_columns_in_relation(project.create_relation(${refNode.database}, ${refNode.schema}, ${modelName})))`
+            python!`to_dict(project.get_columns_in_relation(project.create_relation(${refNode.database}, ${refNode.schema}, ${modelName})))`,
         )) as any[];
         // Generate yml file content
         const fileContents = this.createYMLContent(
           columnsInRelation,
-          modelName
+          modelName,
         );
         writeFileSync(location, fileContents);
         const doc = await workspace.openTextDocument(Uri.file(location));
         window.showTextDocument(doc);
       } else {
         window.showErrorMessage(
-          `A file called ${modelName}_schema.yml already exists in ${currentDir}. If you want to generate the schema yml, please rename the other file or delete it if you want to generate the yml again.`
+          `A file called ${modelName}_schema.yml already exists in ${currentDir}. If you want to generate the schema yml, please rename the other file or delete it if you want to generate the yml again.`,
         );
       }
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
           "An error occured while trying to generate the schema yml " +
-            exc.exception.message
+            exc.exception.message,
         );
       }
       // Unknown error
@@ -447,12 +448,12 @@ export class DBTProject implements Disposable {
     schema: string,
     tableName: string,
     sourcePath: string,
-    tableIdentifier?: string
+    tableIdentifier?: string,
   ) {
     await this.blockUntilPythonBridgeIsInitalized();
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
-        "Could not execute query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue."
+        "Could not execute query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue.",
       );
       throw Error("Could not initialize Python bridge");
     }
@@ -476,7 +477,7 @@ export class DBTProject implements Disposable {
         .getConfiguration("dbt")
         .get<string>(
           "fileNameTemplateGenerateModel",
-          "{prefix}_{sourceName}_{tableName}"
+          "{prefix}_{sourceName}_{tableName}",
         );
 
       // Parse setting to fileName
@@ -489,7 +490,7 @@ export class DBTProject implements Disposable {
         const _tableIdentifier = tableIdentifier ? tableIdentifier : tableName;
         const columnsInRelation = (await this.python?.lock(
           (python) =>
-            python!`to_dict(project.get_columns_in_relation(project.create_relation(${database}, ${schema}, ${_tableIdentifier})))`
+            python!`to_dict(project.get_columns_in_relation(project.create_relation(${database}, ${schema}, ${_tableIdentifier})))`,
         )) as any[];
         console.log(columnsInRelation);
 
@@ -511,14 +512,14 @@ select * from renamed
         window.showTextDocument(doc);
       } else {
         window.showErrorMessage(
-          `A model called ${fileName} already exists in ${sourcePath}. If you want to generate the model, please rename the other model or delete it if you want to generate the model again.`
+          `A model called ${fileName} already exists in ${sourcePath}. If you want to generate the model, please rename the other model or delete it if you want to generate the model again.`,
         );
       }
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
           "An error occured while trying to generate the model " +
-            exc.exception.message
+            exc.exception.message,
         );
       }
       // Unknown error
@@ -530,19 +531,19 @@ select * from renamed
     await this.blockUntilPythonBridgeIsInitalized();
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
-        "Could not execute query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue."
+        "Could not execute query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue.",
       );
       throw Error("Could not initialize Python bridge");
     }
     const limit = workspace
       .getConfiguration("dbt")
-      .get<number>("queryLimit", 200);
+      .get<number>("queryLimit", 500);
 
     const queryTemplate = workspace
       .getConfiguration("dbt")
       .get<string>(
         "queryTemplate",
-        "select * from ({query}\n) as query limit {limit}"
+        "select * from ({query}\n) as query limit {limit}",
       );
 
     const limitQuery = queryTemplate
@@ -552,8 +553,8 @@ select * from renamed
     this.queryResultPanel.executeQuery(
       query,
       this.python?.lock(
-        (python) => python!`to_dict(project.execute_sql(${limitQuery}))`
-      ) as Promise<ExecuteSQLResult>
+        (python) => python!`to_dict(project.execute_sql(${limitQuery}))`,
+      ) as Promise<ExecuteSQLResult>,
     );
   }
 
@@ -572,7 +573,7 @@ select * from renamed
   static readAndParseProjectConfig(projectRoot: Uri) {
     const dbtProjectConfigLocation = path.join(
       projectRoot.fsPath,
-      DBTProject.DBT_PROJECT_FILE
+      DBTProject.DBT_PROJECT_FILE,
     );
     const dbtProjectYamlFile = readFileSync(dbtProjectConfigLocation, "utf8");
     try {
@@ -583,7 +584,7 @@ select * from renamed
       // TODO: any validation logic could go here to skip a project
     } catch (error: any) {
       window.showErrorMessage(
-        `Skipping project: could not parse dbt_project_config.yml at '${dbtProjectConfigLocation}': ${error}`
+        `Skipping project: could not parse dbt_project_config.yml at '${dbtProjectConfigLocation}': ${error}`,
       );
       throw error;
     }
@@ -605,8 +606,8 @@ select * from renamed
     const targetModels = await workspace.findFiles(
       new RelativePattern(
         path.join(this.projectRoot.fsPath, this.targetPath),
-        `${type}/**/${baseName}`
-      )
+        `${type}/**/${baseName}`,
+      ),
     );
     if (targetModels.length > 0) {
       commands.executeCommand("vscode.open", targetModels[0], {
@@ -626,7 +627,7 @@ select * from renamed
           return prev;
         }
       },
-      ["models"]
+      ["models"],
     );
   }
 
@@ -646,7 +647,7 @@ select * from renamed
 
   private async refresh() {
     const projectConfig = DBTProject.readAndParseProjectConfig(
-      this.projectRoot
+      this.projectRoot,
     );
     this.projectName = projectConfig.name;
     this.targetPath = this.findTargetPath(projectConfig);
@@ -657,7 +658,7 @@ select * from renamed
       this.projectName as string,
       this.targetPath,
       this.sourcePaths,
-      this.macroPaths
+      this.macroPaths,
     );
     this._onProjectConfigChanged.fire(event);
   }
