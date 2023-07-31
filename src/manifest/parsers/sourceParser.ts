@@ -10,7 +10,7 @@ export class SourceParser {
 
   createSourceMetaMap(
     sourcesMap: any[],
-    rootPath: string
+    rootPath: string,
   ): Promise<SourceMetaMap> {
     return new Promise((resolve) => {
       const sourceMetaMap: SourceMetaMap = new Map();
@@ -19,12 +19,12 @@ export class SourceParser {
       }
       Object.values(sourcesMap)
         .filter(
-          (source) => source.resource_type === DBTProject.RESOURCE_TYPE_SOURCE
+          (source) => source.resource_type === DBTProject.RESOURCE_TYPE_SOURCE,
         )
         .reduce(
           (
             previousValue: SourceMetaMap,
-            { source_name, name, original_file_path, unique_id }
+            { source_name, name, original_file_path, unique_id },
           ) => {
             let source = previousValue.get(source_name);
             if (!source) {
@@ -35,7 +35,7 @@ export class SourceParser {
             source.tables.push({ name, path: fullPath });
             return previousValue;
           },
-          sourceMetaMap
+          sourceMetaMap,
         );
       resolve(sourceMetaMap);
     });

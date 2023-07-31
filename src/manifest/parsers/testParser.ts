@@ -32,7 +32,7 @@ export class TestParser {
               alias,
               column_name,
             });
-          }
+          },
         );
       resolve(testMetaMap);
     });

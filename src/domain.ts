@@ -92,7 +92,7 @@ export abstract class Node {
   iconPath: IconPath = {
     light: path.join(
       path.resolve(__dirname),
-      "../media/images/model_light.svg"
+      "../media/images/model_light.svg",
     ),
     dark: path.join(path.resolve(__dirname), "../media/images/model_dark.svg"),
   };
@@ -113,7 +113,7 @@ export class Test extends Node {
   iconPath = {
     light: path.join(
       path.resolve(__dirname),
-      "../media/images/source_light.svg"
+      "../media/images/source_light.svg",
     ),
     dark: path.join(path.resolve(__dirname), "../media/images/source_dark.svg"),
   };
@@ -129,7 +129,7 @@ export class Source extends Node {
   iconPath = {
     light: path.join(
       path.resolve(__dirname),
-      "../media/images/source_light.svg"
+      "../media/images/source_light.svg",
     ),
     dark: path.join(path.resolve(__dirname), "../media/images/source_dark.svg"),
   };

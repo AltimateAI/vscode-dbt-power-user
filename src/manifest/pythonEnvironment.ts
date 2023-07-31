@@ -60,7 +60,7 @@ export class PythonEnvironment implements Disposable {
         prev[key] = substituteSettingsVariables(vsCodeEnv[key]);
         return prev;
       },
-      vsCodeEnv
+      vsCodeEnv,
     );
   };
 
@@ -104,7 +104,7 @@ export class PythonEnvironment implements Disposable {
             envVars = {
               ...envVars,
               ...api.environments.getEnvironmentVariables(
-                workspace.workspaceFolders![0]
+                workspace.workspaceFolders![0],
               ),
             };
           }

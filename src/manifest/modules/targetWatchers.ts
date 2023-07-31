@@ -19,12 +19,12 @@ export class TargetWatchersFactory {
 
   createTargetWatchers(
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
-    onProjectConfigChanged: Event<ProjectConfigChangedEvent>
+    onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
   ) {
     return new TargetWatchers(
       _onManifestChanged,
       onProjectConfigChanged,
-      this.manifestParser
+      this.manifestParser,
     );
   }
 }
@@ -41,11 +41,11 @@ export class TargetWatchers implements Disposable {
   constructor(
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
     onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
-    private manifestParser: ManifestParser
+    private manifestParser: ManifestParser,
   ) {
     this._onManifestChanged = _onManifestChanged;
     this.disposables.push(
-      onProjectConfigChanged((event) => this.onProjectConfigChanged(event))
+      onProjectConfigChanged((event) => this.onProjectConfigChanged(event)),
     );
   }
 
@@ -79,7 +79,7 @@ export class TargetWatchers implements Disposable {
           await this.manifestParser.parseManifest(
             projectRoot,
             projectName,
-            targetPath
+            targetPath,
           );
         this._onManifestChanged.fire(manifestCacheChangedEvent);
       };
@@ -98,31 +98,31 @@ export class TargetWatchers implements Disposable {
       const manifestCacheChangedEvent = await this.manifestParser.parseManifest(
         projectRoot,
         projectName,
-        targetPath
+        targetPath,
       );
       this._onManifestChanged.fire(manifestCacheChangedEvent);
     }
   }
 
   private createManifestWatcher(
-    event: ProjectConfigChangedEvent
+    event: ProjectConfigChangedEvent,
   ): FileSystemWatcher {
     const { targetPath, projectRoot } = event;
     const manifestWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(
         join(projectRoot.path, targetPath),
-        DBTProject.MANIFEST_FILE
-      )
+        DBTProject.MANIFEST_FILE,
+      ),
     );
     return manifestWatcher;
   }
 
   private createTargetFolderWatcher(
-    event: ProjectConfigChangedEvent
+    event: ProjectConfigChangedEvent,
   ): FileSystemWatcher {
     const { targetPath, projectRoot } = event;
     const targetFolderWatcher = workspace.createFileSystemWatcher(
-      new RelativePattern(join(projectRoot.path, targetPath), "*")
+      new RelativePattern(join(projectRoot.path, targetPath), "*"),
     );
     return targetFolderWatcher;
   }

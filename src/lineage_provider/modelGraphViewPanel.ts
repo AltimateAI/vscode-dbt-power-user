@@ -77,7 +77,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
 
   public constructor(private dbtProjectContainer: DBTProjectContainer) {
     dbtProjectContainer.onManifestChanged((event) =>
-      this.onManifestCacheChanged(event)
+      this.onManifestCacheChanged(event),
     );
     window.onDidChangeActiveColorTheme(
       async (e) => {
@@ -86,7 +86,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
         }
       },
       null,
-      this._disposables
+      this._disposables,
     );
     window.onDidChangeActiveTextEditor((event: TextEditor | undefined) => {
       if (event === undefined) {
@@ -121,7 +121,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
   public async resolveWebviewView(
     panel: WebviewView,
     context: WebviewViewResolveContext,
-    _token: CancellationToken
+    _token: CancellationToken,
   ) {
     this._panel = panel;
     this.setupWebviewOptions(context);
@@ -160,7 +160,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
         }
       },
       null,
-      this._disposables
+      this._disposables,
     );
   }
 
@@ -196,7 +196,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     const { graphMetaMap } = event;
     const fileName = path.basename(
       window.activeTextEditor!.document.fileName,
-      ".sql"
+      ".sql",
     );
     return this.mapParentsAndChildren(graphMetaMap, fileName);
   };
@@ -228,12 +228,12 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
                   label: fitLabelToNodeWidth(
                     childrenNode.label,
                     labelMaxWidth,
-                    fontSize
+                    fontSize,
                   ),
                   style: nodeConfigurations[type].style,
                   url: childrenNode.url,
                 });
-              }
+              },
             );
           }
         }
@@ -276,7 +276,7 @@ const calcStrLen = (label: string) => {
 const fitLabelToNodeWidth = (
   label: string,
   maxWidth: number,
-  fontSize: number
+  fontSize: number,
 ) => {
   const fontWidth = fontSize * 1.3;
   maxWidth = maxWidth * 2;

@@ -66,7 +66,7 @@ export class DBTCommandFactory {
   createRunModelCommand(
     projectRoot: Uri,
     profilesDir: string,
-    params: RunModelParams
+    params: RunModelParams,
   ): DBTCommand {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     const profilesDirParams = this.profilesDirParams(profilesDir);
@@ -104,7 +104,7 @@ export class DBTCommandFactory {
   createBuildModelCommand(
     projectRoot: Uri,
     profilesDir: string,
-    params: RunModelParams
+    params: RunModelParams,
   ): DBTCommand {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     const profilesDirParams = this.profilesDirParams(profilesDir);
@@ -142,7 +142,7 @@ export class DBTCommandFactory {
   createTestModelCommand(
     projectRoot: Uri,
     profilesDir: string,
-    testName: string
+    testName: string,
   ): DBTCommand {
     const profilesDirParams = this.profilesDirParams(profilesDir);
 
@@ -178,7 +178,7 @@ export class DBTCommandFactory {
   createCompileModelCommand(
     projectRoot: Uri,
     profilesDir: string,
-    params: RunModelParams
+    params: RunModelParams,
   ): DBTCommand {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     const profilesDirParams = this.profilesDirParams(profilesDir);

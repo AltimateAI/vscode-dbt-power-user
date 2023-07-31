@@ -8,13 +8,13 @@ export class DocumentFormattingEditProviders implements Disposable {
   private disposables: Disposable[] = [];
 
   constructor(
-    private dbtDocumentFormattingProvider: DbtDocumentFormattingEditProvider
+    private dbtDocumentFormattingProvider: DbtDocumentFormattingEditProvider,
   ) {
     this.disposables.push(
       languages.registerDocumentFormattingEditProvider(
         DBTPowerUserExtension.DBT_SQL_SELECTOR,
-        this.dbtDocumentFormattingProvider
-      )
+        this.dbtDocumentFormattingProvider,
+      ),
     );
   }
 

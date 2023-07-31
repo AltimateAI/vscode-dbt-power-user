@@ -11,8 +11,8 @@ export class WebviewViewProviders implements Disposable {
       window.registerWebviewViewProvider(
         QueryResultPanel.viewType,
         this.queryResultPanel,
-        { webviewOptions: { retainContextWhenHidden: true } }
-      )
+        { webviewOptions: { retainContextWhenHidden: true } },
+      ),
     );
   }
 

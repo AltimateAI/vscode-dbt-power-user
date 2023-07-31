@@ -28,8 +28,8 @@ export class ModelAutocompletionProvider
   constructor(private dbtProjectContainer: DBTProjectContainer) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
-        this.onManifestCacheChanged(event)
-      )
+        this.onManifestCacheChanged(event),
+      ),
     );
   }
 
@@ -46,7 +46,7 @@ export class ModelAutocompletionProvider
     document: TextDocument,
     position: Position,
     token: CancellationToken,
-    context: CompletionContext
+    context: CompletionContext,
   ): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
     const linePrefix = document
       .lineAt(position)
@@ -71,9 +71,9 @@ export class ModelAutocompletionProvider
           insertText: this.encloseWithQuotes(
             completionItem.insertText as string,
             quoteFound,
-            quote
+            quote,
           ),
-        })
+        }),
       );
       return autoCompleteItems;
     }
@@ -84,7 +84,7 @@ export class ModelAutocompletionProvider
   private encloseWithQuotes(
     insertText: string,
     quoteFound: boolean,
-    quote: string
+    quote: string,
   ) {
     let enclosing = "";
     if (!quoteFound) {
@@ -97,12 +97,12 @@ export class ModelAutocompletionProvider
     event.added?.forEach((added) => {
       const projectRoot = added.projectRoot.fsPath;
       const project = this.dbtProjectContainer.findDBTProject(
-        Uri.file(projectRoot)
+        Uri.file(projectRoot),
       );
       if (!project) {
         console.error(
           "Could not load autocompletes, project not found in container for " +
-            projectRoot
+            projectRoot,
         );
         return;
       }
@@ -118,7 +118,7 @@ export class ModelAutocompletionProvider
               : `${model.package_name}, ${key}`,
           kind: CompletionItemKind.Value,
           detail: "Model",
-        }))
+        })),
       );
     });
     event.removed?.forEach((removed) => {

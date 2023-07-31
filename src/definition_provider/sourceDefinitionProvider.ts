@@ -28,8 +28,8 @@ export class SourceDefinitionProvider
   constructor(private dbtProjectContainer: DBTProjectContainer) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
-        this.onManifestCacheChanged(event)
-      )
+        this.onManifestCacheChanged(event),
+      ),
     );
   }
 
@@ -45,13 +45,13 @@ export class SourceDefinitionProvider
   provideDefinition(
     document: TextDocument,
     position: Position,
-    token: CancellationToken
+    token: CancellationToken,
   ): ProviderResult<Definition | DefinitionLink[]> {
     return new Promise((resolve, reject) => {
       const hover = document.getText(document.getWordRangeAtPosition(position));
       const range = document.getWordRangeAtPosition(
         position,
-        SourceDefinitionProvider.IS_SOURCE
+        SourceDefinitionProvider.IS_SOURCE,
       );
       const word = document.getText(range);
 
@@ -80,7 +80,7 @@ export class SourceDefinitionProvider
       const definition = this.getSourceDefinition(
         source[0],
         document.uri,
-        source[1]
+        source[1],
       );
       resolve(definition);
     });
@@ -98,7 +98,7 @@ export class SourceDefinitionProvider
   private getSourceDefinition(
     sourceName: string,
     currentFilePath: Uri,
-    tableName: string
+    tableName: string,
   ): Definition | undefined {
     const projectRootpath =
       this.dbtProjectContainer.getProjectRootpath(currentFilePath);
@@ -120,7 +120,7 @@ export class SourceDefinitionProvider
         if (currentLine.includes(tableName)) {
           return new Location(
             Uri.file(location.path),
-            new Position(index, currentLine.indexOf(tableName))
+            new Position(index, currentLine.indexOf(tableName)),
           );
         }
       }

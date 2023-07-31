@@ -21,13 +21,13 @@ export class ManifestParser {
     private sourceParser: SourceParser,
     private testParser: TestParser,
     private docParser: DocParser,
-    private terminal: DBTTerminal
+    private terminal: DBTTerminal,
   ) {}
 
   public async parseManifest(
     projectRoot: Uri,
     projectName: string,
-    targetPath: string
+    targetPath: string,
   ) {
     const manifest = this.readAndParseManifest(projectRoot, targetPath);
     if (manifest === undefined) {
@@ -58,25 +58,25 @@ export class ManifestParser {
     const nodeMetaMapPromise = this.nodeParser.createNodeMetaMap(
       projectName,
       nodes,
-      rootPath
+      rootPath,
     );
     const macroMetaMapPromise = this.macroParser.createMacroMetaMap(
       projectName,
       macros,
-      rootPath
+      rootPath,
     );
     const sourceMetaMapPromise = this.sourceParser.createSourceMetaMap(
       sources,
-      rootPath
+      rootPath,
     );
     const testMetaMapPromise = this.testParser.createTestMetaMap(
       nodes,
-      rootPath
+      rootPath,
     );
     const docMetaMapPromise = this.docParser.createDocMetaMap(
       docs,
       projectName,
-      rootPath
+      rootPath,
     );
 
     const [nodeMetaMap, macroMetaMap, sourceMetaMap, testMetaMap, docMetaMap] =
@@ -93,7 +93,7 @@ export class ManifestParser {
       child_map,
       nodeMetaMap,
       sourceMetaMap,
-      testMetaMap
+      testMetaMap,
     );
 
     const event: ManifestCacheChangedEvent = {
@@ -117,14 +117,14 @@ export class ManifestParser {
     const manifestLocation = path.join(
       projectRoot.fsPath,
       targetPath,
-      DBTProject.MANIFEST_FILE
+      DBTProject.MANIFEST_FILE,
     );
     try {
       const manifestFile = readFileSync(manifestLocation, "utf8");
       return JSON.parse(manifestFile);
     } catch (error) {
       this.terminal.log(
-        `Could not read manifest file at ${manifestLocation}: ${error}`
+        `Could not read manifest file at ${manifestLocation}: ${error}`,
       );
     }
   }
@@ -134,12 +134,12 @@ export const createFullPathForNode: (
   projectName: string,
   rootPath: string,
   packageName: string,
-  relativeFilePath: string
+  relativeFilePath: string,
 ) => string | undefined = (
   projectName,
   rootPath,
   packageName,
-  relativeFilePath
+  relativeFilePath,
 ) => {
   if (packageName !== projectName) {
     for (const modulePathVariant of DBTProject.DBT_MODULES) {
@@ -147,7 +147,7 @@ export const createFullPathForNode: (
         rootPath,
         modulePathVariant,
         packageName,
-        relativeFilePath
+        relativeFilePath,
       );
       if (existsSync(rootPathWithPackage)) {
         return rootPathWithPackage;

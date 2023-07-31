@@ -11,7 +11,7 @@ export class CommandProcessExecutionFactory {
     args?: string[],
     cwd?: string,
     token?: CancellationToken,
-    envVars?: EnvironmentVariables
+    envVars?: EnvironmentVariables,
   ) {
     return new CommandProcessExecution(command, args, cwd, token, envVars);
   }
@@ -26,14 +26,14 @@ export class CommandProcessExecution implements Disposable {
     args?: string[],
     cwd?: string,
     token?: CancellationToken,
-    envVars?: EnvironmentVariables
+    envVars?: EnvironmentVariables,
   ) {
     this.commandProcess = spawn(command, args, { cwd: cwd, env: envVars });
     if (token !== undefined) {
       this.disposables.push(
         token.onCancellationRequested(() => {
           this.commandProcess.kill("SIGINT");
-        })
+        }),
       );
     }
   }
@@ -53,11 +53,11 @@ export class CommandProcessExecution implements Disposable {
       let stderrBuffer = "";
       this.commandProcess.stdout!.on(
         "data",
-        (chunk) => (stdoutBuffer += chunk.toString())
+        (chunk) => (stdoutBuffer += chunk.toString()),
       );
       this.commandProcess.stderr!.on(
         "data",
-        (chunk) => (stderrBuffer += chunk.toString())
+        (chunk) => (stderrBuffer += chunk.toString()),
       );
 
       this.commandProcess.once("close", () => {

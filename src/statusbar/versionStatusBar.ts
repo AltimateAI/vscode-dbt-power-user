@@ -14,15 +14,15 @@ import { provideSingleton } from "../utils";
 export class VersionStatusBar implements Disposable {
   readonly statusBar: StatusBarItem = window.createStatusBarItem(
     StatusBarAlignment.Left,
-    10
+    10,
   );
   private disposables: Disposable[] = [];
 
   constructor(private dbtProjectContainer: DBTProjectContainer) {
     this.disposables.push(
       this.dbtProjectContainer.onDBTInstallationVerification((e) =>
-        this.onDBTInstallationVerification(e)
-      )
+        this.onDBTInstallationVerification(e),
+      ),
     );
   }
 
@@ -37,7 +37,7 @@ export class VersionStatusBar implements Disposable {
   }
 
   private onDBTInstallationVerification(
-    event: DBTInstallationVerificationEvent
+    event: DBTInstallationVerificationEvent,
   ) {
     if (event.inProgress === true) {
       this.showTextInStatusBar("$(sync~spin) Detecting dbt");
@@ -58,7 +58,7 @@ export class VersionStatusBar implements Disposable {
       ) {
         if (event.dbtInstallationFound.installedVersion !== undefined) {
           this.showTextInStatusBar(
-            `$(error) dbt ${event.dbtInstallationFound.installedVersion} is not up to date`
+            `$(error) dbt ${event.dbtInstallationFound.installedVersion} is not up to date`,
           );
         } else {
           this.showTextInStatusBar(`$(check) dbt`);

@@ -15,7 +15,7 @@ import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 @provideSingleton(DBTProjectLogFactory)
 export class DBTProjectLogFactory {
   createDBTProjectLog(
-    onProjectConfigChanged: Event<ProjectConfigChangedEvent>
+    onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
   ) {
     return new DBTProjectLog(onProjectConfigChanged);
   }
@@ -32,7 +32,7 @@ export class DBTProjectLog implements Disposable {
 
   constructor(onProjectConfigChanged: Event<ProjectConfigChangedEvent>) {
     this.disposables.push(
-      onProjectConfigChanged((event) => this.onProjectConfigChanged(event))
+      onProjectConfigChanged((event) => this.onProjectConfigChanged(event)),
     );
   }
 
@@ -40,25 +40,25 @@ export class DBTProjectLog implements Disposable {
     const { projectName, projectRoot } = event;
     if (this.outputChannel === undefined) {
       this.outputChannel = window.createOutputChannel(
-        `${projectName} dbt logs`
+        `${projectName} dbt logs`,
       );
       this.readLogFileFromLastPosition(event);
 
       this.logFileWatcher = workspace.createFileSystemWatcher(
         new RelativePattern(
           projectRoot.path,
-          `${DBTProjectLog.LOG_PATH}/${DBTProjectLog.LOG_FILE}`
-        )
+          `${DBTProjectLog.LOG_PATH}/${DBTProjectLog.LOG_FILE}`,
+        ),
       );
       setupWatcherHandler(this.logFileWatcher, () =>
-        this.readLogFileFromLastPosition(event)
+        this.readLogFileFromLastPosition(event),
       );
       this.currentProjectName = projectName;
     }
     if (this.currentProjectName !== projectName) {
       this.outputChannel.dispose();
       this.outputChannel = window.createOutputChannel(
-        `${projectName} dbt logs`
+        `${projectName} dbt logs`,
       );
       this.logPosition = 0;
       this.readLogFileFromLastPosition(event);
@@ -75,9 +75,9 @@ export class DBTProjectLog implements Disposable {
           path.join(
             projectRoot.fsPath,
             DBTProjectLog.LOG_PATH,
-            DBTProjectLog.LOG_FILE
+            DBTProjectLog.LOG_FILE,
           ),
-          "r"
+          "r",
         );
         const chunkSize = 1024 * 1024;
         const buffer = Buffer.alloc(chunkSize);
@@ -87,7 +87,7 @@ export class DBTProjectLog implements Disposable {
             buffer,
             0,
             buffer.length,
-            this.logPosition
+            this.logPosition,
           );
           if (!bytesRead) {
             break;

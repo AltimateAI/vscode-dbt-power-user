@@ -24,10 +24,10 @@ export class DBTWorkspaceFolder implements Disposable {
     private dbtProjectFactory: (
       path: Uri,
       projectConfig: any,
-      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
+      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
     ) => DBTProject,
     private workspaceFolder: WorkspaceFolder,
-    private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
+    private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
   ) {
     this.watcher = this.createConfigWatcher();
     this.disposables.push(this.watcher);
@@ -37,12 +37,12 @@ export class DBTWorkspaceFolder implements Disposable {
     const dbtProjectFiles = await workspace.findFiles(
       new RelativePattern(
         this.workspaceFolder,
-        `**/${DBTProject.DBT_PROJECT_FILE}`
+        `**/${DBTProject.DBT_PROJECT_FILE}`,
       ),
       new RelativePattern(
         this.workspaceFolder,
-        `**/{${DBTProject.DBT_MODULES.join(",")}}`
-      )
+        `**/{${DBTProject.DBT_MODULES.join(",")}}`,
+      ),
     );
     const projectFiles = dbtProjectFiles
       .filter((uri) => statSync(uri.fsPath).isFile())
@@ -50,7 +50,7 @@ export class DBTWorkspaceFolder implements Disposable {
       .map((uri) => Uri.file(uri.path.split("/")!.slice(0, -1).join("/")));
     if (projectFiles.length > 20) {
       window.showWarningMessage(
-        `dbt Power User detected ${projectFiles.length} projects in your work space, this will negatively affect performance.`
+        `dbt Power User detected ${projectFiles.length} projects in your work space, this will negatively affect performance.`,
       );
     }
     return projectFiles.forEach((uri) => this.registerDBTProject(uri));
@@ -81,18 +81,18 @@ export class DBTWorkspaceFolder implements Disposable {
     const dbtProject = this.dbtProjectFactory(
       uri,
       DBTProject.readAndParseProjectConfig(uri),
-      this._onManifestChanged
+      this._onManifestChanged,
     );
     this.dbtProjects.push(dbtProject);
     // sorting the dbt projects descending by path ensures that we find the deepest path first
     this.dbtProjects.sort(
-      (a, b) => -a.projectRoot.fsPath.localeCompare(b.projectRoot.fsPath)
+      (a, b) => -a.projectRoot.fsPath.localeCompare(b.projectRoot.fsPath),
     );
   }
 
   private unregisterDBTProject(uri: Uri) {
     const projectToDelete = this.dbtProjects.find(
-      (dbtProject) => dbtProject.projectRoot.fsPath === uri.fsPath
+      (dbtProject) => dbtProject.projectRoot.fsPath === uri.fsPath,
     );
     if (projectToDelete === undefined) {
       return;
@@ -105,8 +105,8 @@ export class DBTWorkspaceFolder implements Disposable {
     const watcher = workspace.createFileSystemWatcher(
       new RelativePattern(
         this.workspaceFolder,
-        `**/${DBTProject.DBT_PROJECT_FILE}`
-      )
+        `**/${DBTProject.DBT_PROJECT_FILE}`,
+      ),
     );
 
     const dirName = (uri: Uri) => Uri.file(path.dirname(uri.fsPath));

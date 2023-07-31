@@ -7,13 +7,13 @@ import { SourceModelCreationCodeLensProvider } from "./sourceModelCreationCodeLe
 export class CodeLensProviders implements Disposable {
   private disposables: Disposable[] = [];
   constructor(
-    private sourceModelCreationCodeLensProvider: SourceModelCreationCodeLensProvider
+    private sourceModelCreationCodeLensProvider: SourceModelCreationCodeLensProvider,
   ) {
     this.disposables.push(
       languages.registerCodeLensProvider(
         DBTPowerUserExtension.DBT_YAML_SELECTOR,
-        this.sourceModelCreationCodeLensProvider
-      )
+        this.sourceModelCreationCodeLensProvider,
+      ),
     );
   }
 

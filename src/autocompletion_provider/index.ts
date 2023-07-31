@@ -13,12 +13,12 @@ export class AutocompletionProviders implements Disposable {
     private macroAutocompletionProvider: MacroAutocompletionProvider,
     private modelAutocompletionProvider: ModelAutocompletionProvider,
     private sourceAutocompletionProvider: SourceAutocompletionProvider,
-    private docAutocompletionProvider: DocAutocompletionProvider
+    private docAutocompletionProvider: DocAutocompletionProvider,
   ) {
     this.disposables.push(
       languages.registerCompletionItemProvider(
         DBTPowerUserExtension.DBT_SQL_SELECTOR,
-        this.macroAutocompletionProvider
+        this.macroAutocompletionProvider,
       ),
       languages.registerCompletionItemProvider(
         DBTPowerUserExtension.DBT_SQL_SELECTOR,
@@ -26,7 +26,7 @@ export class AutocompletionProviders implements Disposable {
         ".",
         "(",
         '"',
-        "'"
+        "'",
       ),
       languages.registerCompletionItemProvider(
         DBTPowerUserExtension.DBT_SQL_SELECTOR,
@@ -34,7 +34,7 @@ export class AutocompletionProviders implements Disposable {
         ".",
         "(",
         '"',
-        "'"
+        "'",
       ),
       languages.registerCompletionItemProvider(
         DBTPowerUserExtension.DBT_YAML_SELECTOR,
@@ -42,8 +42,8 @@ export class AutocompletionProviders implements Disposable {
         ".",
         "(",
         '"',
-        "'"
-      )
+        "'",
+      ),
     );
   }
 

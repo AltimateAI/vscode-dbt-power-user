@@ -22,8 +22,8 @@ export class MacroDefinitionProvider implements DefinitionProvider, Disposable {
   constructor(private dbtProjectContainer: DBTProjectContainer) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
-        this.onManifestCacheChanged(event)
-      )
+        this.onManifestCacheChanged(event),
+      ),
     );
   }
 
@@ -38,13 +38,13 @@ export class MacroDefinitionProvider implements DefinitionProvider, Disposable {
 
   provideDefinition(
     document: TextDocument,
-    position: Position
+    position: Position,
   ): ProviderResult<Definition | DefinitionLink[]> {
     return new Promise((resolve, reject) => {
       const textLine = document.lineAt(position).text;
       const range = document.getWordRangeAtPosition(
         position,
-        MacroDefinitionProvider.IS_MACRO
+        MacroDefinitionProvider.IS_MACRO,
       );
       const word = document.getText(range);
       if (
@@ -53,7 +53,7 @@ export class MacroDefinitionProvider implements DefinitionProvider, Disposable {
         isEnclosedWithinCodeBlock(document, range)
       ) {
         const packageName = this.dbtProjectContainer.getPackageName(
-          document.uri
+          document.uri,
         );
 
         const macroName =
@@ -82,7 +82,7 @@ export class MacroDefinitionProvider implements DefinitionProvider, Disposable {
 
   private getMacroDefinition(
     macroName: string,
-    currentFilePath: Uri
+    currentFilePath: Uri,
   ): Definition | undefined {
     const projectRootpath =
       this.dbtProjectContainer.getProjectRootpath(currentFilePath);
@@ -97,7 +97,7 @@ export class MacroDefinitionProvider implements DefinitionProvider, Disposable {
     if (location) {
       return new Location(
         Uri.file(location.path),
-        new Position(location.line, location.character)
+        new Position(location.line, location.character),
       );
     }
     return undefined;

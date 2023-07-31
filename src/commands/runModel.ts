@@ -59,7 +59,7 @@ export class RunModel {
     }
     const cursor = window.activeTextEditor.selection;
     const query = window.activeTextEditor.document.getText(
-      cursor.isEmpty ? undefined : cursor
+      cursor.isEmpty ? undefined : cursor,
     );
     const queryName =
       "Results: " +
@@ -81,7 +81,7 @@ export class RunModel {
           if (model.label) {
             this.runDBTTest(
               Uri.file(model.url),
-              model.label.toString().split(".")[0]
+              model.label.toString().split(".")[0],
             );
           }
           break;
@@ -176,11 +176,11 @@ export class RunModel {
         params.database,
         params.schema,
         params.tableName,
-        sourcePath
+        sourcePath,
       );
     } else {
       window.showErrorMessage(
-        "Could not generate model! If error persists please create a Github issue."
+        "Could not generate model! If error persists please create a Github issue.",
       );
     }
   }

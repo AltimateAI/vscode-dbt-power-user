@@ -38,7 +38,7 @@ export class DBTClient implements Disposable {
     private dbtCommandFactory: DBTCommandFactory,
     private queue: DBTCommandQueue,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
-    private terminal: DBTTerminal
+    private terminal: DBTTerminal,
   ) {}
 
   dispose() {
@@ -55,7 +55,7 @@ export class DBTClient implements Disposable {
     this.disposables.push(
       this.pythonEnvironment.onPythonEnvironmentChanged(() => {
         this.checkAllInstalled();
-      })
+      }),
     );
     await this.checkAllInstalled();
   }
@@ -68,7 +68,7 @@ export class DBTClient implements Disposable {
 
     // check for dbt installed
     const checkDBTInstalledProcess = await this.executeCommand(
-      this.dbtCommandFactory.createVerifyDbtInstalledCommand()
+      this.dbtCommandFactory.createVerifyDbtInstalledCommand(),
     );
 
     try {
@@ -82,7 +82,7 @@ export class DBTClient implements Disposable {
 
     // Don't block on version check
     const checkDBTVersionProcess = await this.executeCommand(
-      this.dbtCommandFactory.createVersionCommand()
+      this.dbtCommandFactory.createVersionCommand(),
     );
     const timeoutCmd = new Promise((resolve, _) => {
       setTimeout(resolve, 10000, "Could not connect");
@@ -103,7 +103,7 @@ export class DBTClient implements Disposable {
     if (output !== undefined) {
       const stripAnsi = require("strip-ansi");
       this.checkIfDBTIsUpToDate(
-        stripAnsi(output.replace("Process returned an error:", ""))
+        stripAnsi(output.replace("Process returned an error:", "")),
       );
       return;
     }
@@ -114,7 +114,7 @@ export class DBTClient implements Disposable {
     if (!this.dbtInstalled) {
       if (command.focus) {
         window.showErrorMessage(
-          "Please ensure dbt is installed in your selected Python environment."
+          "Please ensure dbt is installed in your selected Python environment.",
         );
       }
       return;
@@ -129,7 +129,7 @@ export class DBTClient implements Disposable {
 
   private async executeCommandImmediately(
     command: DBTCommand,
-    token?: CancellationToken
+    token?: CancellationToken,
   ) {
     const completedProcess = await this.executeCommand(command, token);
     completedProcess.completeWithTerminalOutput(this.terminal);
@@ -138,7 +138,7 @@ export class DBTClient implements Disposable {
 
   public async executeCommand(
     command: DBTCommand,
-    token?: CancellationToken
+    token?: CancellationToken,
   ): Promise<CommandProcessExecution> {
     if (command.commandAsString !== undefined) {
       this.terminal.log(`> Executing task: ${command.commandAsString}\n\r`);
@@ -154,7 +154,7 @@ export class DBTClient implements Disposable {
       !this.pythonEnvironment.environmentVariables
     ) {
       console.error(
-        "Could not launch command as python environment is not available"
+        "Could not launch command as python environment is not available",
       );
       return Promise.reject();
     }
@@ -164,7 +164,7 @@ export class DBTClient implements Disposable {
       args,
       cwd,
       token,
-      this.pythonEnvironment.environmentVariables
+      this.pythonEnvironment.environmentVariables,
     );
   }
 
@@ -180,7 +180,7 @@ export class DBTClient implements Disposable {
     dbtInstalled: boolean,
     installedVersion: string | undefined = undefined,
     latestVersion: string | undefined = undefined,
-    message: string | undefined = undefined
+    message: string | undefined = undefined,
   ): void {
     this.dbtInstalled = dbtInstalled;
     const upToDate =
@@ -214,7 +214,7 @@ export class DBTClient implements Disposable {
     const installedVersionMatch = DBTClient.INSTALLED_VERSION.exec(message);
     if (installedVersionMatch === null || installedVersionMatch.length !== 2) {
       console.warn(
-        `The Regex INSTALLED_VERSION ${DBTClient.INSTALLED_VERSION} is not working ...`
+        `The Regex INSTALLED_VERSION ${DBTClient.INSTALLED_VERSION} is not working ...`,
       );
       this.raiseDBTVersionCouldNotBeDeterminedEvent();
       return;
@@ -227,7 +227,7 @@ export class DBTClient implements Disposable {
     const latestVersionMatch = DBTClient.LATEST_VERSION.exec(message);
     if (latestVersionMatch === null || latestVersionMatch.length !== 2) {
       console.warn(
-        `The Regex IS_LATEST_VERSION ${DBTClient.LATEST_VERSION} is not working ...`
+        `The Regex IS_LATEST_VERSION ${DBTClient.LATEST_VERSION} is not working ...`,
       );
     }
     const latestVersion =

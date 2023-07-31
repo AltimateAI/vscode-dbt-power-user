@@ -34,7 +34,7 @@ abstract class ModelTreeviewProvider
 
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
-    @unmanaged() private treeType: keyof GraphMetaMap
+    @unmanaged() private treeType: keyof GraphMetaMap,
   ) {
     this.treeType = treeType;
     this.disposables.push(
@@ -42,8 +42,8 @@ abstract class ModelTreeviewProvider
         this._onDidChangeTreeData.fire();
       }),
       this.dbtProjectContainer.onManifestChanged((event) =>
-        this.onManifestCacheChanged(event)
-      )
+        this.onManifestCacheChanged(event),
+      ),
     );
   }
 
@@ -98,18 +98,18 @@ abstract class ModelTreeviewProvider
     const { projectName } = event;
     const fileName = path.basename(
       window.activeTextEditor!.document.fileName,
-      ".sql"
+      ".sql",
     );
     const packageName =
       this.dbtProjectContainer.getPackageName(currentFilePath) || projectName;
     return Promise.resolve(
-      this.getTreeItems(`model.${packageName}.${fileName}`, event)
+      this.getTreeItems(`model.${packageName}.${fileName}`, event),
     );
   }
 
   private getTreeItems(
     elementName: string,
-    event: ManifestCacheProjectAddedEvent
+    event: ManifestCacheProjectAddedEvent,
   ): NodeTreeItem[] {
     const { graphMetaMap } = event;
     const parentModels = graphMetaMap[this.treeType].get(elementName);
@@ -126,7 +126,7 @@ abstract class ModelTreeviewProvider
         if (
           (node instanceof Model || node instanceof Snapshot) &&
           childNodes?.filter(
-            (node) => node instanceof Model || node instanceof Snapshot
+            (node) => node instanceof Model || node instanceof Snapshot,
           ).length === 0
         ) {
           return new DashboardTreeItem(node);
@@ -158,8 +158,8 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
         this._onDidChangeTreeData.fire();
       }),
       this.dbtProjectContainer.onManifestChanged((event) =>
-        this.onManifestCacheChanged(event)
-      )
+        this.onManifestCacheChanged(event),
+      ),
     );
   }
 
@@ -204,7 +204,7 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
     if (!element) {
       const modelName = path.basename(
         window.activeTextEditor!.document.fileName,
-        ".sql"
+        ".sql",
       );
       const currentNode = nodeMetaMap.get(modelName);
       if (currentNode === undefined) {
@@ -228,13 +228,13 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
           currentNode.patch_path !== null
             ? path.join(
                 projectRootpath.path,
-                currentNode.patch_path.split("://")[1]
+                currentNode.patch_path.split("://")[1],
               )
             : " ";
 
         if (Object.keys(currentNode.columns).length === 0) {
           window.showWarningMessage(
-            `Documentation View Warning: No columns found in manifest.json for ${modelName}, define the schema for this model in a YML file (e.g. by right clicking in the sql file --> Generate Documentation YML) and run dbt docs generate`
+            `Documentation View Warning: No columns found in manifest.json for ${modelName}, define the schema for this model in a YML file (e.g. by right clicking in the sql file --> Generate Documentation YML) and run dbt docs generate`,
           );
         }
         const key = currentNode.uniqueId;
@@ -321,11 +321,11 @@ class TestTreeItem extends NodeTreeItem {
   iconPath = {
     light: path.join(
       path.resolve(__dirname),
-      "../media/images/dashboard_light.svg"
+      "../media/images/dashboard_light.svg",
     ),
     dark: path.join(
       path.resolve(__dirname),
-      "../media/images/dashboard_dark.svg"
+      "../media/images/dashboard_dark.svg",
     ),
   };
   contextValue = "dashboard";
@@ -336,11 +336,11 @@ class DashboardTreeItem extends NodeTreeItem {
   iconPath = {
     light: path.join(
       path.resolve(__dirname),
-      "../media/images/dashboard_light.svg"
+      "../media/images/dashboard_light.svg",
     ),
     dark: path.join(
       path.resolve(__dirname),
-      "../media/images/dashboard_dark.svg"
+      "../media/images/dashboard_dark.svg",
     ),
   };
   contextValue = "dashboard";

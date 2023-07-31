@@ -34,21 +34,21 @@ export class DBTProjectContainer implements Disposable {
       workspaceFolder: WorkspaceFolder,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
       pythonPath?: string,
-      envVars?: EnvironmentVariables
-    ) => DBTWorkspaceFolder
+      envVars?: EnvironmentVariables,
+    ) => DBTWorkspaceFolder,
   ) {
     this.disposables.push(
       workspace.onDidChangeWorkspaceFolders(async (event) => {
         const { added, removed } = event;
         await Promise.all(
           added.map(
-            async (folder) => await this.registerWorkspaceFolder(folder)
-          )
+            async (folder) => await this.registerWorkspaceFolder(folder),
+          ),
         );
         removed.forEach((removedWorkspaceFolder) =>
-          this.unregisterWorkspaceFolder(removedWorkspaceFolder)
+          this.unregisterWorkspaceFolder(removedWorkspaceFolder),
         );
-      })
+      }),
     );
   }
 
@@ -62,7 +62,7 @@ export class DBTProjectContainer implements Disposable {
       return;
     }
     await Promise.all(
-      folders.map((folder) => this.registerWorkspaceFolder(folder))
+      folders.map((folder) => this.registerWorkspaceFolder(folder)),
     );
   }
 
@@ -90,13 +90,13 @@ export class DBTProjectContainer implements Disposable {
 
   runModel(modelPath: Uri, type?: RunModelType) {
     this.findDBTProject(modelPath)?.runModel(
-      this.createModelParams(modelPath, type)
+      this.createModelParams(modelPath, type),
     );
   }
 
   buildModel(modelPath: Uri, type?: RunModelType) {
     this.findDBTProject(modelPath)?.buildModel(
-      this.createModelParams(modelPath, type)
+      this.createModelParams(modelPath, type),
     );
   }
 
@@ -110,7 +110,7 @@ export class DBTProjectContainer implements Disposable {
 
   compileModel(modelPath: Uri, type?: RunModelType) {
     this.findDBTProject(modelPath)?.compileModel(
-      this.createModelParams(modelPath, type)
+      this.createModelParams(modelPath, type),
     );
   }
 
@@ -142,7 +142,7 @@ export class DBTProjectContainer implements Disposable {
     if (this.dbtClient === undefined) {
       if (command.focus) {
         window.showErrorMessage(
-          "Can't run the command. Please ensure you have selected a Python interpreter with DBT installed."
+          "Can't run the command. Please ensure you have selected a Python interpreter with DBT installed.",
         );
       }
       return;
@@ -152,7 +152,7 @@ export class DBTProjectContainer implements Disposable {
 
   dispose() {
     this.dbtWorkspaceFolders.forEach((workspaceFolder) =>
-      workspaceFolder.dispose()
+      workspaceFolder.dispose(),
     );
     while (this.disposables.length) {
       const x = this.disposables.pop();
@@ -170,11 +170,11 @@ export class DBTProjectContainer implements Disposable {
   }
 
   private async registerWorkspaceFolder(
-    workspaceFolder: WorkspaceFolder
+    workspaceFolder: WorkspaceFolder,
   ): Promise<void> {
     const dbtProjectWorkspaceFolder = this.dbtWorkspaceFolderFactory(
       workspaceFolder,
-      this._onManifestChanged
+      this._onManifestChanged,
     );
     this.dbtWorkspaceFolders.push(dbtProjectWorkspaceFolder);
     await dbtProjectWorkspaceFolder.discoverProjects();
@@ -186,7 +186,7 @@ export class DBTProjectContainer implements Disposable {
       throw Error("dbtWorkspaceFolder not registered");
     }
     this.dbtWorkspaceFolders.splice(
-      this.dbtWorkspaceFolders.indexOf(folderToDelete)
+      this.dbtWorkspaceFolders.indexOf(folderToDelete),
     );
     folderToDelete.dispose();
   }

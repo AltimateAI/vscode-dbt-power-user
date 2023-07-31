@@ -13,7 +13,7 @@ import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 @provideSingleton(SourceFileWatchersFactory)
 export class SourceFileWatchersFactory {
   createSourceFileWatchers(
-    onProjectConfigChanged: Event<ProjectConfigChangedEvent>
+    onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
   ) {
     return new SourceFileWatchers(onProjectConfigChanged);
   }
@@ -28,7 +28,7 @@ export class SourceFileWatchers implements Disposable {
 
   constructor(onProjectConfigChanged: Event<ProjectConfigChangedEvent>) {
     this.disposables.push(
-      onProjectConfigChanged((event) => this.onProjectConfigChanged(event))
+      onProjectConfigChanged((event) => this.onProjectConfigChanged(event)),
     );
   }
 
@@ -58,16 +58,16 @@ export class SourceFileWatchers implements Disposable {
       paths.forEach((sourcePath) => {
         const parsedSourcePath = Uri.joinPath(projectRoot, sourcePath);
         const sourceFolderWatcher = workspace.createFileSystemWatcher(
-          new RelativePattern(parsedSourcePath, "**/*.{sql,yml,yaml}")
+          new RelativePattern(parsedSourcePath, "**/*.{sql,yml,yaml}"),
         );
 
         const debouncedSourceFileChangedEvent = debounce(
           () => this._onSourceFileChanged.fire(),
-          2000
+          2000,
         );
 
         sourceFolderWatcher.onDidChange(() =>
-          debouncedSourceFileChangedEvent()
+          debouncedSourceFileChangedEvent(),
         );
         this.watchers.push(sourceFolderWatcher);
       });

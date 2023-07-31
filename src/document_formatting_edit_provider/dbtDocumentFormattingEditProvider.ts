@@ -18,13 +18,13 @@ export class DbtDocumentFormattingEditProvider
   implements DocumentFormattingEditProvider
 {
   constructor(
-    private commandProcessExecutionFactory: CommandProcessExecutionFactory
+    private commandProcessExecutionFactory: CommandProcessExecutionFactory,
   ) {}
 
   provideDocumentFormattingEdits(
     document: TextDocument,
     options: FormattingOptions,
-    token: CancellationToken
+    token: CancellationToken,
   ): ProviderResult<TextEdit[]> {
     return this.executeSqlFmt(document);
   }
@@ -60,13 +60,14 @@ export class DbtDocumentFormattingEditProvider
         } catch (error) {
           window.showErrorMessage(
             "Could not process difference output from sqlfmt. Detailed error: " +
-              error
+              error,
           );
         }
       }
     } catch (error) {
       window.showErrorMessage(
-        "Could not run sqlfmt. Did you install sqlfmt? Detailed error: " + error
+        "Could not run sqlfmt. Did you install sqlfmt? Detailed error: " +
+          error,
       );
     }
     return [];
@@ -74,7 +75,7 @@ export class DbtDocumentFormattingEditProvider
 
   private processDiffOutput(
     document: TextDocument,
-    diffOutput: string
+    diffOutput: string,
   ): TextEdit[] {
     const textEdits: TextEdit[] = [];
     const diffs = parseDiff(diffOutput);
@@ -88,8 +89,8 @@ export class DbtDocumentFormattingEditProvider
               TextEdit.insert(
                 document.lineAt(Math.min(change.ln, oldBoundChunk) - 1).range
                   .start,
-                change.content.slice(1) + "\n"
-              )
+                change.content.slice(1) + "\n",
+              ),
             );
           }
           if (this.isNormalChange(change)) {
@@ -97,23 +98,23 @@ export class DbtDocumentFormattingEditProvider
             // First, delete line
             textEdits.push(
               TextEdit.delete(
-                document.lineAt(change.ln1 - 1).rangeIncludingLineBreak
-              )
+                document.lineAt(change.ln1 - 1).rangeIncludingLineBreak,
+              ),
             );
             // Add line
             textEdits.push(
               TextEdit.insert(
                 document.lineAt(Math.min(change.ln2, oldBoundChunk) - 1).range
                   .start,
-                change.content.slice(1) + "\n"
-              )
+                change.content.slice(1) + "\n",
+              ),
             );
           }
           if (this.isDeleteChange(change)) {
             textEdits.push(
               TextEdit.delete(
-                document.lineAt(change.ln - 1).rangeIncludingLineBreak
-              )
+                document.lineAt(change.ln - 1).rangeIncludingLineBreak,
+              ),
             );
           }
         });
@@ -127,13 +128,13 @@ export class DbtDocumentFormattingEditProvider
   }
 
   private isNormalChange(
-    change: parseDiff.Change
+    change: parseDiff.Change,
   ): change is parseDiff.NormalChange {
     return change.type === "normal";
   }
 
   private isDeleteChange(
-    change: parseDiff.Change
+    change: parseDiff.Change,
   ): change is parseDiff.DeleteChange {
     return (
       /*  

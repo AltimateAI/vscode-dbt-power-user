@@ -24,8 +24,8 @@ export class DocDefinitionProvider implements DefinitionProvider, Disposable {
   constructor(private dbtProjectContainer: DBTProjectContainer) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
-        this.onManifestCacheChanged(event)
-      )
+        this.onManifestCacheChanged(event),
+      ),
     );
   }
 
@@ -40,17 +40,17 @@ export class DocDefinitionProvider implements DefinitionProvider, Disposable {
 
   provideDefinition(
     document: TextDocument,
-    position: Position
+    position: Position,
   ): ProviderResult<Definition | DefinitionLink[]> {
     return new Promise((resolve, reject) => {
       const range = document.getWordRangeAtPosition(
         position,
-        DocDefinitionProvider.IS_DOC
+        DocDefinitionProvider.IS_DOC,
       );
       const word = document.getText(range);
       if (word) {
         const packageName = this.dbtProjectContainer.getPackageName(
-          document.uri
+          document.uri,
         );
 
         const docName = word.match(DocDefinitionProvider.GET_DOC_INFO);
@@ -85,7 +85,7 @@ export class DocDefinitionProvider implements DefinitionProvider, Disposable {
 
   private getDocDefinition(
     docName: string,
-    currentFilePath: Uri
+    currentFilePath: Uri,
   ): Definition | undefined {
     const projectRootpath =
       this.dbtProjectContainer.getProjectRootpath(currentFilePath);
@@ -100,7 +100,7 @@ export class DocDefinitionProvider implements DefinitionProvider, Disposable {
     if (location) {
       return new Location(
         Uri.file(location.path),
-        new Position(location.line, location.character)
+        new Position(location.line, location.character),
       );
     }
     return undefined;

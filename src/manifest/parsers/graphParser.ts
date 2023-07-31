@@ -27,7 +27,7 @@ export class GraphParser {
     childrenMap: DBTGraphType,
     nodeMetaMap: NodeMetaMap,
     sourceMetaMap: SourceMetaMap,
-    testMetaMap: TestMetaMap
+    testMetaMap: TestMetaMap,
   ): GraphMetaMap {
     const unique = (nodes: any[]) => Array.from(new Set(nodes));
 
@@ -39,7 +39,7 @@ export class GraphParser {
         map.set(nodeName, { nodes: currentNodes });
         return map;
       },
-      new Map()
+      new Map(),
     );
 
     const children: NodeGraphMap = Object.entries(childrenMap).reduce(
@@ -51,7 +51,7 @@ export class GraphParser {
         map.set(nodeName, { nodes: currentNodes });
         return map;
       },
-      new Map()
+      new Map(),
     );
 
     const tests: NodeGraphMap = Object.entries(childrenMap).reduce(
@@ -63,7 +63,7 @@ export class GraphParser {
         map.set(nodeName, { nodes: currentNodes });
         return map;
       },
-      new Map()
+      new Map(),
     );
 
     return {
@@ -76,7 +76,7 @@ export class GraphParser {
   mapToNode(
     sourceMetaMap: SourceMetaMap,
     nodeMetaMap: NodeMetaMap,
-    testMetaMap: TestMetaMap
+    testMetaMap: TestMetaMap,
   ): (parentNodeName: string) => Node | undefined {
     return (parentNodeName) => {
       // Support dots in model names
@@ -92,7 +92,7 @@ export class GraphParser {
           return new Source(
             `${tableName} (${sourceName})`,
             parentNodeName,
-            url
+            url,
           );
         }
         case "model": {

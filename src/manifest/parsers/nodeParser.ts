@@ -8,7 +8,7 @@ export class NodeParser {
   createNodeMetaMap(
     projectName: string,
     nodesMap: any[],
-    rootPath: string
+    rootPath: string,
   ): Promise<NodeMetaMap> {
     return new Promise((resolve) => {
       const modelMetaMap: NodeMetaMap = new Map();
@@ -20,7 +20,7 @@ export class NodeParser {
           (model) =>
             model.resource_type === DBTProject.RESOURCE_TYPE_MODEL ||
             model.resource_type === DBTProject.RESOURCE_TYPE_SEED ||
-            model.resource_type === DBTProject.RESOURCE_TYPE_SNAPSHOT
+            model.resource_type === DBTProject.RESOURCE_TYPE_SNAPSHOT,
         )
         .forEach(
           ({
@@ -40,7 +40,7 @@ export class NodeParser {
               projectName,
               rootPath,
               package_name,
-              original_file_path
+              original_file_path,
             );
             if (!fullPath) {
               return;
@@ -57,7 +57,7 @@ export class NodeParser {
               patch_path,
               config,
             });
-          }
+          },
         );
       resolve(modelMetaMap);
     });

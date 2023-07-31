@@ -25,8 +25,8 @@ export class MacroAutocompletionProvider
   constructor(private dbtProjectContainer: DBTProjectContainer) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
-        this.onManifestCacheChanged(event)
-      )
+        this.onManifestCacheChanged(event),
+      ),
     );
   }
 
@@ -43,7 +43,7 @@ export class MacroAutocompletionProvider
     document: TextDocument,
     position: Position,
     token: CancellationToken,
-    context: CompletionContext
+    context: CompletionContext,
   ): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
     const range = document.getWordRangeAtPosition(position);
     if (range && isEnclosedWithinCodeBlock(document, range)) {
@@ -61,7 +61,7 @@ export class MacroAutocompletionProvider
           insertText: macro,
           kind: CompletionItemKind.Value,
           detail: "Macro",
-        }))
+        })),
       );
     });
     event.removed?.forEach((removed) => {

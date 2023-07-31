@@ -14,25 +14,25 @@ export class DefinitionProviders implements Disposable {
     private modelDefinitionProvider: ModelDefinitionProvider,
     private macroDefinitionProvider: MacroDefinitionProvider,
     private sourceDefinitionProvider: SourceDefinitionProvider,
-    private docDefinitionsProvider: DocDefinitionProvider
+    private docDefinitionsProvider: DocDefinitionProvider,
   ) {
     this.disposables.push(
       languages.registerDefinitionProvider(
         DBTPowerUserExtension.DBT_SQL_SELECTOR,
-        this.modelDefinitionProvider
+        this.modelDefinitionProvider,
       ),
       languages.registerDefinitionProvider(
         DBTPowerUserExtension.DBT_SQL_SELECTOR,
-        this.macroDefinitionProvider
+        this.macroDefinitionProvider,
       ),
       languages.registerDefinitionProvider(
         DBTPowerUserExtension.DBT_SQL_SELECTOR,
-        this.sourceDefinitionProvider
+        this.sourceDefinitionProvider,
       ),
       languages.registerDefinitionProvider(
         DBTPowerUserExtension.DBT_YAML_SELECTOR,
-        this.docDefinitionsProvider
-      )
+        this.docDefinitionsProvider,
+      ),
     );
   }
 

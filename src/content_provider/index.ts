@@ -10,8 +10,8 @@ export class ContentProviders implements Disposable {
     this.disposables.push(
       workspace.registerTextDocumentContentProvider(
         SqlPreviewContentProvider.SCHEME,
-        this.sqlPreviewContentProvider
-      )
+        this.sqlPreviewContentProvider,
+      ),
     );
   }
 

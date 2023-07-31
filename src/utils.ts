@@ -10,13 +10,13 @@ import {
 
 export const isEnclosedWithinCodeBlock: (
   document: TextDocument,
-  rangeOrPosition: Range | Position
+  rangeOrPosition: Range | Position,
 ) => boolean = (document, rangeOrPosition) => {
   const isWithinCodeBlock: (
     startPosition: Position,
     direction: "asc" | "desc",
     lookupChar: "{" | "}",
-    stopChar: "{" | "}"
+    stopChar: "{" | "}",
   ) => boolean = (startPosition, direction, lookupChar, stopChar) => {
     const increment = direction === "desc" ? -1 : 1;
     let characterPosition: number | undefined = startPosition.character;
@@ -83,7 +83,7 @@ export const debounce = (fn: Function, wait: number) => {
 
 export const setupWatcherHandler: (
   watcher: FileSystemWatcher,
-  handler: Function
+  handler: Function,
 ) => Disposable[] = (watcher, handler) => [
   watcher.onDidChange(() => handler()),
   watcher.onDidCreate(() => handler()),
@@ -105,13 +105,13 @@ export function substituteSettingsVariables(value: string): string {
     if (process.env[matchResult[1]] !== undefined) {
       value = value.replace(
         new RegExp(`\\\$\\\{env\\\:${matchResult[1]}\\\}`, "gm"),
-        process.env[matchResult[1]]!
+        process.env[matchResult[1]]!,
       );
     }
   }
   value = value.replace(
     "${workspaceFolder}",
-    workspace.workspaceFolders![0].uri.fsPath
+    workspace.workspaceFolders![0].uri.fsPath,
   );
   return value;
 }

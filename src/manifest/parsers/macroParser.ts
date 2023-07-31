@@ -11,7 +11,7 @@ export class MacroParser {
   createMacroMetaMap(
     projectName: string,
     macros: any[],
-    rootPath: string
+    rootPath: string,
   ): Promise<MacroMetaMap> {
     return new Promise((resolve) => {
       const macroMetaMap: MacroMetaMap = new Map();
@@ -27,7 +27,7 @@ export class MacroParser {
             projectName,
             rootPath,
             packageName,
-            original_file_path
+            original_file_path,
           );
           if (!fullPath) {
             return;
@@ -50,13 +50,13 @@ export class MacroParser {
           } catch (error) {
             console.log(
               `File not found at '${fullPath}', project may need to be recompiled.`,
-              error
+              error,
             );
             this.terminal.log(
-              `File not found at '${fullPath}', probably compiled is outdated. ${error}`
+              `File not found at '${fullPath}', probably compiled is outdated. ${error}`,
             );
           }
-        }
+        },
       );
       resolve(macroMetaMap);
     });

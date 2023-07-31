@@ -26,8 +26,8 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
   constructor(private dbtProjectContainer: DBTProjectContainer) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
-        this.onManifestCacheChanged(event)
-      )
+        this.onManifestCacheChanged(event),
+      ),
     );
   }
 
@@ -43,21 +43,21 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
   provideDefinition(
     document: TextDocument,
     position: Position,
-    token: CancellationToken
+    token: CancellationToken,
   ): ProviderResult<Definition | DefinitionLink[]> {
     return new Promise((resolve, reject) => {
       const hover = document.getText(document.getWordRangeAtPosition(position));
       const word = document.getText(
         document.getWordRangeAtPosition(
           position,
-          ModelDefinitionProvider.IS_REF
-        )
+          ModelDefinitionProvider.IS_REF,
+        ),
       );
       const project = this.dbtProjectContainer.findDBTProject(document.uri);
       if (!project) {
         console.error(
           "Could not load definition provider, project not found in container for " +
-            document.uri.fsPath
+            document.uri.fsPath,
         );
         return;
       }
@@ -67,7 +67,7 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
           const definition = this.getDefinitionFor(
             project.getProjectName(),
             dbtModel[0],
-            document.uri
+            document.uri,
           );
           resolve(definition);
           return;
@@ -76,7 +76,7 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
           const definition = this.getDefinitionFor(
             dbtModel[0],
             dbtModel[2],
-            document.uri
+            document.uri,
           );
           resolve(definition);
           return;
@@ -98,7 +98,7 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
   private getDefinitionFor(
     projectName: string,
     modelName: string,
-    currentFilePath: Uri
+    currentFilePath: Uri,
   ): Definition | undefined {
     const projectRootpath =
       this.dbtProjectContainer.getProjectRootpath(currentFilePath);

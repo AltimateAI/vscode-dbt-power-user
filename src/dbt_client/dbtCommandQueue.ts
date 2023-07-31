@@ -31,7 +31,7 @@ export class DBTCommandQueue {
         },
         async (_, token) => {
           await command(token);
-        }
+        },
       );
 
       this.running = false;

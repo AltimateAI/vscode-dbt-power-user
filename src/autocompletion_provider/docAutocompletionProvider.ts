@@ -27,8 +27,8 @@ export class DocAutocompletionProvider
   constructor(private dbtProjectContainer: DBTProjectContainer) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
-        this.onManifestCacheChanged(event)
-      )
+        this.onManifestCacheChanged(event),
+      ),
     );
   }
 
@@ -45,7 +45,7 @@ export class DocAutocompletionProvider
     document: TextDocument,
     position: Position,
     token: CancellationToken,
-    context: CompletionContext
+    context: CompletionContext,
   ): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
     const linePrefix = document
       .lineAt(position)
@@ -54,7 +54,7 @@ export class DocAutocompletionProvider
       return undefined;
     }
     const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
-      document.uri
+      document.uri,
     );
     if (projectRootpath === undefined) {
       return;
@@ -71,8 +71,8 @@ export class DocAutocompletionProvider
       this.docAutocompleteNameItemsMap.set(
         added.projectRoot.fsPath,
         Array.from(added.docMetaMap.keys()).map(
-          (docName) => new CompletionItem(docName, CompletionItemKind.File)
-        )
+          (docName) => new CompletionItem(docName, CompletionItemKind.File),
+        ),
       );
     });
     event.removed?.forEach((removed) => {

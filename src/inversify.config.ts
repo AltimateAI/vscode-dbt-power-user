@@ -25,18 +25,18 @@ container
       WorkspaceFolder,
       EventEmitter<ManifestCacheChangedEvent>,
       string,
-      EnvironmentVariables
+      EnvironmentVariables,
     ]
   >((context: interfaces.Context) => {
     return (
       workspaceFolder: WorkspaceFolder,
-      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
+      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
     ) => {
       const { container } = context;
       return new DBTWorkspaceFolder(
         container.get("Factory<DBTProject>"),
         workspaceFolder,
-        _onManifestChanged
+        _onManifestChanged,
       );
     };
   });
@@ -48,7 +48,7 @@ container
       return (
         path: Uri,
         projectConfig: any,
-        _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>
+        _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
       ) => {
         const { container } = context;
         return new DBTProject(
@@ -62,8 +62,8 @@ container
           container.get(QueryResultPanel),
           path,
           projectConfig,
-          _onManifestChanged
+          _onManifestChanged,
         );
       };
-    }
+    },
   );

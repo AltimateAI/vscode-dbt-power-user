@@ -15,25 +15,25 @@ export class TreeviewProviders implements Disposable {
     private childrenModelTreeview: ChildrenModelTreeview,
     private parentModelTreeview: ParentModelTreeview,
     private testModelTreeview: ModelTestTreeview,
-    private documentationTreeView: DocumentationTreeview
+    private documentationTreeView: DocumentationTreeview,
   ) {
     this.disposables.push(
       window.registerTreeDataProvider(
         "model_test_treeview",
-        this.testModelTreeview
+        this.testModelTreeview,
       ),
       window.registerTreeDataProvider(
         "parent_model_treeview",
-        this.parentModelTreeview
+        this.parentModelTreeview,
       ),
       window.registerTreeDataProvider(
         "children_model_treeview",
-        this.childrenModelTreeview
+        this.childrenModelTreeview,
       ),
       window.registerTreeDataProvider(
         "documentation_treeview",
-        this.documentationTreeView
-      )
+        this.documentationTreeView,
+      ),
     );
   }
 

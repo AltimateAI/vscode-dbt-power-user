@@ -11,7 +11,7 @@ export class DocParser {
   createDocMetaMap(
     docs: any[],
     projectName: string,
-    rootPath: string
+    rootPath: string,
   ): Promise<DocMetaMap> {
     return new Promise((resolve) => {
       const docMetaMap: DocMetaMap = new Map();
@@ -27,7 +27,7 @@ export class DocParser {
             projectName,
             rootPath,
             packageName,
-            original_file_path
+            original_file_path,
           );
           if (!fullPath) {
             return;
@@ -49,13 +49,13 @@ export class DocParser {
           } catch (error) {
             console.log(
               `File not found at '${fullPath}', project may need to be recompiled.`,
-              error
+              error,
             );
             this.terminal.log(
-              `File not found at '${fullPath}', probably compiled is outdated. ${error}`
+              `File not found at '${fullPath}', probably compiled is outdated. ${error}`,
             );
           }
-        }
+        },
       );
       resolve(docMetaMap);
     });

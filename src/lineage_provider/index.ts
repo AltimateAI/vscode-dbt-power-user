@@ -11,8 +11,8 @@ export class ModelGraphWebviewViewProviders implements Disposable {
       window.registerWebviewViewProvider(
         ModelGraphViewPanel.viewType,
         this.graphViewPanel,
-        { webviewOptions: { retainContextWhenHidden: true } }
-      )
+        { webviewOptions: { retainContextWhenHidden: true } },
+      ),
     );
   }
 

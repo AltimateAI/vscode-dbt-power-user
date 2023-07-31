@@ -33,7 +33,7 @@ export class SourceModelCreationCodeLensProvider implements CodeLensProvider {
 
   public provideCodeLenses(
     document: TextDocument,
-    token: CancellationToken
+    token: CancellationToken,
   ): CodeLens[] | Thenable<CodeLens[]> {
     this.codeLenses = [];
     const lineCounter = new LineCounter();
@@ -47,7 +47,7 @@ export class SourceModelCreationCodeLensProvider implements CodeLensProvider {
     }[];
 
     for (const token of new Parser(lineCounter.addNewLine).parse(
-      document.getText()
+      document.getText(),
     )) {
       if (token.type === "document" && CST.isCollection(token.value)) {
         for (const i in token.value.items) {
@@ -140,15 +140,15 @@ export class SourceModelCreationCodeLensProvider implements CodeLensProvider {
                       table.pos.line - 1,
                       table.pos.col,
                       table.pos.line - 1,
-                      table.pos.col
+                      table.pos.col,
                     ),
                     {
                       title: "Generate model",
                       tooltip: "Generate model based on source configuration",
                       command: "dbtPowerUser.createModelBasedonSourceConfig",
                       arguments: [params],
-                    }
-                  )
+                    },
+                  ),
                 );
               }
               currentDatabase = undefined;

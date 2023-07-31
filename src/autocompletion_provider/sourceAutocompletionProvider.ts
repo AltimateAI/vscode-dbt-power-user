@@ -32,8 +32,8 @@ export class SourceAutocompletionProvider
   constructor(private dbtProjectContainer: DBTProjectContainer) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
-        this.onManifestCacheChanged(event)
-      )
+        this.onManifestCacheChanged(event),
+      ),
     );
   }
 
@@ -50,7 +50,7 @@ export class SourceAutocompletionProvider
     document: TextDocument,
     position: Position,
     token: CancellationToken,
-    context: CompletionContext
+    context: CompletionContext,
   ): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
     const linePrefix = document
       .lineAt(position)
@@ -59,7 +59,7 @@ export class SourceAutocompletionProvider
       return undefined;
     }
     const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
-      document.uri
+      document.uri,
     );
     if (projectRootpath === undefined) {
       return;
@@ -75,7 +75,7 @@ export class SourceAutocompletionProvider
     ) {
       const autoCompleteItems = this.showTableNameAutocompletionItems(
         linePrefix,
-        projectRootpath
+        projectRootpath,
       );
       return autoCompleteItems;
     }
@@ -87,8 +87,8 @@ export class SourceAutocompletionProvider
       this.sourceAutocompleteNameItemsMap.set(
         added.projectRoot.fsPath,
         Array.from(added.sourceMetaMap.keys()).map(
-          (source) => new CompletionItem(source, CompletionItemKind.File)
-        )
+          (source) => new CompletionItem(source, CompletionItemKind.File),
+        ),
       );
       const sourceTableMap: Map<string, CompletionItem[]> = new Map();
       added.sourceMetaMap.forEach((value, key) => {
@@ -99,7 +99,7 @@ export class SourceAutocompletionProvider
       });
       this.sourceAutocompleteTableMap.set(
         added.projectRoot.fsPath,
-        sourceTableMap
+        sourceTableMap,
       );
     });
     event.removed?.forEach((removed) => {
@@ -114,14 +114,14 @@ export class SourceAutocompletionProvider
 
   private showTableNameAutocompletionItems(
     linePrefix: string,
-    projectRootpath: Uri
+    projectRootpath: Uri,
   ) {
     const sourceNameMatch = linePrefix.match(
-      SourceAutocompletionProvider.GET_SOURCE_NAME
+      SourceAutocompletionProvider.GET_SOURCE_NAME,
     );
     if (sourceNameMatch !== null) {
       const sourceTableMap = this.sourceAutocompleteTableMap.get(
-        projectRootpath.fsPath
+        projectRootpath.fsPath,
       );
       if (sourceTableMap === undefined) {
         return;

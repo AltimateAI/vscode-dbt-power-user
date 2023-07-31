@@ -19,13 +19,13 @@ export class VSCodeCommands implements Disposable {
   constructor(private runModel: RunModel) {
     this.disposables.push(
       commands.registerCommand("dbtPowerUser.runCurrentModel", () =>
-        this.runModel.runModelOnActiveWindow()
+        this.runModel.runModelOnActiveWindow(),
       ),
       commands.registerCommand("dbtPowerUser.testCurrentModel", () =>
-        this.runModel.runTestsOnActiveWindow()
+        this.runModel.runTestsOnActiveWindow(),
       ),
       commands.registerCommand("dbtPowerUser.compileCurrentModel", () =>
-        this.runModel.compileModelOnActiveWindow()
+        this.runModel.compileModelOnActiveWindow(),
       ),
       commands.registerTextEditorCommand(
         "dbtPowerUser.sqlPreview",
@@ -35,54 +35,54 @@ export class VSCodeCommands implements Disposable {
           });
           const doc = await workspace.openTextDocument(uri);
           const isOpen = window.visibleTextEditors.some(
-            (e) => e.document.uri === uri
+            (e) => e.document.uri === uri,
           );
           await window.showTextDocument(doc, ViewColumn.Beside, false);
           await languages.setTextDocumentLanguage(doc, "sql");
           if (!isOpen) {
             await commands.executeCommand("workbench.action.lockEditorGroup");
             await commands.executeCommand(
-              "workbench.action.focusPreviousGroup"
+              "workbench.action.focusPreviousGroup",
             );
           } else {
             await commands.executeCommand("workbench.action.closeActiveEditor");
             return;
           }
-        }
+        },
       ),
       commands.registerCommand("dbtPowerUser.runTest", (model) =>
-        this.runModel.runModelOnNodeTreeItem(RunModelType.TEST)(model)
+        this.runModel.runModelOnNodeTreeItem(RunModelType.TEST)(model),
       ),
       commands.registerCommand("dbtPowerUser.runChildrenModels", (model) =>
-        this.runModel.runModelOnNodeTreeItem(RunModelType.CHILDREN)(model)
+        this.runModel.runModelOnNodeTreeItem(RunModelType.CHILDREN)(model),
       ),
       commands.registerCommand("dbtPowerUser.runParentModels", (model) =>
-        this.runModel.runModelOnNodeTreeItem(RunModelType.PARENTS)(model)
+        this.runModel.runModelOnNodeTreeItem(RunModelType.PARENTS)(model),
       ),
       commands.registerCommand("dbtPowerUser.showRunSQL", () =>
-        this.runModel.showRunSQLOnActiveWindow()
+        this.runModel.showRunSQLOnActiveWindow(),
       ),
       commands.registerCommand("dbtPowerUser.showCompiledSQL", () =>
-        this.runModel.showCompiledSQLOnActiveWindow()
+        this.runModel.showCompiledSQLOnActiveWindow(),
       ),
       commands.registerCommand("dbtPowerUser.generateSchemaYML", () =>
-        this.runModel.generateSchemaYMLOnActiveWindow()
+        this.runModel.generateSchemaYMLOnActiveWindow(),
       ),
       commands.registerCommand("dbtPowerUser.generateDBTDocs", () =>
-        this.runModel.generateDBTDocsOnActiveWindow()
+        this.runModel.generateDBTDocsOnActiveWindow(),
       ),
       commands.registerCommand("dbtPowerUser.executeSQL", () =>
-        this.runModel.executeQueryOnActiveWindow()
+        this.runModel.executeQueryOnActiveWindow(),
       ),
       commands.registerCommand(
         "dbtPowerUser.createModelBasedonSourceConfig",
         (params) => {
           this.runModel.createModelBasedonSourceConfig(params);
-        }
+        },
       ),
       commands.registerCommand("dbtPowerUser.buildCurrentModel", () =>
-        this.runModel.buildModelOnActiveWindow()
-      )
+        this.runModel.buildModelOnActiveWindow(),
+      ),
     );
   }
 

@@ -33,7 +33,7 @@ export class DBTPowerUserExtension implements Disposable {
     private codeLensProviders: CodeLensProviders,
     private documentFormattingEditProviders: DocumentFormattingEditProviders,
     private modelGraphWebviewViewProviders: ModelGraphWebviewViewProviders,
-    private statusBars: StatusBars
+    private statusBars: StatusBars,
   ) {
     this.disposables.push(
       this.dbtProjectContainer,
@@ -46,7 +46,7 @@ export class DBTPowerUserExtension implements Disposable {
       this.vscodeCommands,
       this.documentFormattingEditProviders,
       this.modelGraphWebviewViewProviders,
-      this.statusBars
+      this.statusBars,
     );
   }
 
