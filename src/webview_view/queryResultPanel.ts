@@ -103,8 +103,7 @@ export class QueryResultPanel implements WebviewViewProvider {
     _token.onCancellationRequested(async () => {
       await this.transmitReset();
     });
-    // per the doc of postMessage, "Messages are only delivered if the webview is live (either visible or in the
-    // background with `retainContextWhenHidden`)." Moving it after cancelation request
+    // Moving it after cancelation request
     // seems to give us just enough time to make sure the webview becomes live
     this.transmitConfig();
   }
