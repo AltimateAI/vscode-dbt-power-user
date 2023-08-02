@@ -247,7 +247,9 @@ export class QueryResultPanel implements WebviewViewProvider {
     await commands.executeCommand(
       "workbench.view.extension.dbt_preview_results",
     );
-    this.transmitLoading();
+    if (this._panel) {
+      this.transmitLoading();
+    }
     try {
       const output = await queryExecution;
       await this.transmitDataWrapper(output, query);
