@@ -452,7 +452,7 @@
     "ms-python.python"
   ],
   "dependencies": {
-    "@vscode/vsce": "^2.19.0",
+    "@vscode/vsce": "^2.20.0",
     "@vscode/webview-ui-toolkit": "^1.2.2",
     "dayjs": "^1.11.7",
     "inversify": "^6.0.1",
