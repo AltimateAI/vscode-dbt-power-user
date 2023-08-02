@@ -76,7 +76,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
   private _disposables: Disposable[] = [];
 
   public constructor(private dbtProjectContainer: DBTProjectContainer) {
-    dbtProjectContainer.onManifestChanged((event) =>
+    this.dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
     );
     window.onDidChangeActiveColorTheme(
@@ -125,7 +125,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
   ) {
     this._panel = panel;
     this.setupWebviewOptions(context);
-    this.renderWebviewView(context);
+    await this.renderWebviewView(context);
     this.setupWebviewHooks(context);
     this.g6Data = this.parseGraphData();
     this.transmitData(this.g6Data);
@@ -172,8 +172,10 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
       this.eventMap.delete(removed.projectRoot.fsPath);
     });
     this.g6Data = this.parseGraphData();
-    this.transmitData(this.g6Data);
-    this.updateGraphStyle();
+    if (this._panel) {
+      this.transmitData(this.g6Data);
+      this.updateGraphStyle();
+    }
   }
 
   private parseGraphData = () => {

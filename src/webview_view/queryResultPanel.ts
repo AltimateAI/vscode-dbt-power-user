@@ -98,12 +98,15 @@ export class QueryResultPanel implements WebviewViewProvider {
   ) {
     this._panel = panel;
     this.setupWebviewOptions(context);
-    this.renderWebviewView(context);
+    await this.renderWebviewView(context);
     this.setupWebviewHooks(context);
-    await this.transmitConfig();
     _token.onCancellationRequested(async () => {
       await this.transmitReset();
     });
+    // per the doc of postMessage, "Messages are only delivered if the webview is live (either visible or in the
+    // background with `retainContextWhenHidden`)." Moving it after cancelation request
+    // seems to give us just enough time to make sure the webview becomes live
+    this.transmitConfig();
   }
 
   /** Sets options, note that retainContextWhen hidden is set on registration */
@@ -116,7 +119,7 @@ export class QueryResultPanel implements WebviewViewProvider {
   /** Primary interface for WebviewView inbound communication */
   private setupWebviewHooks(context: WebviewViewResolveContext) {
     this._panel!.webview.onDidReceiveMessage(
-      (message) => {
+      async (message) => {
         switch (message.command) {
           case InboundCommand.Error:
             const error = message as RecError;
