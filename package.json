@@ -454,7 +454,7 @@
   "dependencies": {
     "@vscode/vsce": "^2.20.0",
     "@vscode/webview-ui-toolkit": "^1.2.2",
-    "dayjs": "^1.11.7",
+    "dayjs": "^1.11.9",
     "inversify": "^6.0.1",
     "inversify-binding-decorators": "^4.0.0",
     "parse-diff": "^0.11.1",
