@@ -98,7 +98,7 @@ export class QueryResultPanel implements WebviewViewProvider {
   ) {
     this._panel = panel;
     this.setupWebviewOptions(context);
-    await this.renderWebviewView(context);
+    this.renderWebviewView(context);
     this.setupWebviewHooks(context);
     _token.onCancellationRequested(async () => {
       await this.transmitReset();
@@ -158,7 +158,7 @@ export class QueryResultPanel implements WebviewViewProvider {
   }
 
   /** Renders webview content */
-  private async renderWebviewView(context: WebviewViewResolveContext) {
+  private renderWebviewView(context: WebviewViewResolveContext) {
     const webview = this._panel!.webview!;
     this._panel!.webview.html = getHtml(
       webview,
