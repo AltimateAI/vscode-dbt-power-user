@@ -437,7 +437,7 @@
     "husky": "^8.0.3",
     "lint-staged": "^13.2.3",
     "mocha": "^10.2.0",
-    "ovsx": "^0.8.2",
+    "ovsx": "^0.8.3",
     "prettier": "^3.0.1",
     "prettier-eslint": "^15.0.1",
     "prettier-plugin-organize-imports": "^3.2.2",
