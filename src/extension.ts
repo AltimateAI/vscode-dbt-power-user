@@ -2,6 +2,11 @@ import "reflect-metadata";
 import { ExtensionContext } from "vscode";
 import { DBTPowerUserExtension } from "./dbtPowerUserExtension";
 import { container } from "./inversify.config";
+import {
+  initializeTelemetry,
+  disposeTelemetry,
+  sendTelemetryEvent,
+} from "./telemetry";
 
 export async function activate(context: ExtensionContext) {
   const dbtPowerUserExtension = container.get(DBTPowerUserExtension);
@@ -9,6 +14,13 @@ export async function activate(context: ExtensionContext) {
   context.subscriptions.push(dbtPowerUserExtension);
 
   await dbtPowerUserExtension.activate(context);
+
+  // Initialize telemetry
+  initializeTelemetry("50598369-dd83-4f9a-9a65-ca1fa6f1785c");
+
+  sendTelemetryEvent("extensionActivated");
 }
 
-export function deactivate() {}
+export function deactivate() {
+  disposeTelemetry();
+}
