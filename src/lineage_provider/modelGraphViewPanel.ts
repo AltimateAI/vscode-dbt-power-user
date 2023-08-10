@@ -93,8 +93,10 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
         return;
       }
       this.g6Data = this.parseGraphData();
-      this.transmitData(this.g6Data);
-      this.updateGraphStyle();
+      if (this._panel) {
+        this.transmitData(this.g6Data);
+        this.updateGraphStyle();
+      }
     });
   }
 
@@ -132,7 +134,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     this.updateGraphStyle();
   }
 
-  private async renderWebviewView(context: WebviewViewResolveContext) {
+  private renderWebviewView(context: WebviewViewResolveContext) {
     const webview = this._panel!.webview!;
     this.g6Data = this.parseGraphData();
     webview.html = getHtml(webview, this.dbtProjectContainer.extensionUri);
@@ -172,8 +174,10 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
       this.eventMap.delete(removed.projectRoot.fsPath);
     });
     this.g6Data = this.parseGraphData();
-    this.transmitData(this.g6Data);
-    this.updateGraphStyle();
+    if (this._panel) {
+      this.transmitData(this.g6Data);
+      this.updateGraphStyle();
+    }
   }
 
   private parseGraphData = () => {
