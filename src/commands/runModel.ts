@@ -5,12 +5,14 @@ import { RunModelType } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { NodeTreeItem } from "../treeview_provider/modelTreeviewProvider";
 import { provideSingleton } from "../utils";
-import { withTelemetry } from "../telemetry";
+import TelemetryService from "../telemetry";
+
+const telemetryService = TelemetryService.getInstance();
 @provideSingleton(RunModel)
 export class RunModel {
   constructor(private dbtProjectContainer: DBTProjectContainer) {}
 
-  @withTelemetry("runModelOnActiveWindow")
+  @telemetryService.withTelemetry("runModelOnActiveWindow")
   runModelOnActiveWindow(type?: RunModelType) {
     if (!window.activeTextEditor) {
       return;
@@ -19,7 +21,7 @@ export class RunModel {
     this.runDBTModel(fullPath, type);
   }
 
-  @withTelemetry("buildModelOnActiveWindow")
+  @telemetryService.withTelemetry("buildModelOnActiveWindow")
   buildModelOnActiveWindow(type?: RunModelType) {
     if (!window.activeTextEditor) {
       return;
@@ -28,7 +30,7 @@ export class RunModel {
     this.buildDBTModel(fullPath, type);
   }
 
-  @withTelemetry("runTestsOnActiveWindow")
+  @telemetryService.withTelemetry("runTestsOnActiveWindow")
   runTestsOnActiveWindow() {
     if (!window.activeTextEditor) {
       return;
@@ -37,7 +39,7 @@ export class RunModel {
     this.runDBTModelTest(fullPath);
   }
 
-  @withTelemetry("compileModelOnActiveWindow")
+  @telemetryService.withTelemetry("compileModelOnActiveWindow")
   compileModelOnActiveWindow() {
     if (!window.activeTextEditor) {
       return;
@@ -46,7 +48,7 @@ export class RunModel {
     this.compileDBTModel(fullPath);
   }
 
-  @withTelemetry("compileQueryOnActiveWindow")
+  @telemetryService.withTelemetry("compileQueryOnActiveWindow")
   compileQueryOnActiveWindow() {
     if (!window.activeTextEditor) {
       return;
@@ -58,7 +60,7 @@ export class RunModel {
     }
   }
 
-  @withTelemetry("executeQueryOnActiveWindow")
+  @telemetryService.withTelemetry("executeQueryOnActiveWindow")
   executeQueryOnActiveWindow() {
     if (!window.activeTextEditor) {
       return;
@@ -101,21 +103,21 @@ export class RunModel {
     };
   }
 
-  @withTelemetry("showCompiledSQLOnActiveWindow")
+  @telemetryService.withTelemetry("showCompiledSQLOnActiveWindow")
   showCompiledSQLOnActiveWindow() {
     const fullPath = window.activeTextEditor?.document.uri;
     if (fullPath !== undefined) {
       this.showCompiledSQL(fullPath);
     }
   }
-  @withTelemetry("generateSchemaYMLOnActiveWindow")
+  @telemetryService.withTelemetry("generateSchemaYMLOnActiveWindow")
   generateSchemaYMLOnActiveWindow() {
     const fullPath = window.activeTextEditor?.document.uri;
     if (fullPath !== undefined) {
       this.generateSchemaYML(fullPath);
     }
   }
-  @withTelemetry("showRunSQLOnActiveWindow")
+  @telemetryService.withTelemetry("showRunSQLOnActiveWindow")
   showRunSQLOnActiveWindow() {
     const fullPath = window.activeTextEditor?.document.uri;
     if (fullPath !== undefined) {
@@ -123,7 +125,7 @@ export class RunModel {
     }
   }
 
-  @withTelemetry("generateDBTDocsOnActiveWindow")
+  @telemetryService.withTelemetry("generateDBTDocsOnActiveWindow")
   generateDBTDocsOnActiveWindow() {
     const fullPath = window.activeTextEditor?.document.uri;
     if (fullPath !== undefined) {
@@ -131,7 +133,7 @@ export class RunModel {
     }
   }
 
-  @withTelemetry("runDBTModel")
+  @telemetryService.withTelemetry("runDBTModel")
   runDBTModel(modelPath: Uri, type?: RunModelType) {
     this.dbtProjectContainer.runModel(modelPath, type);
   }
@@ -144,7 +146,7 @@ export class RunModel {
     this.dbtProjectContainer.compileModel(modelPath, type);
   }
 
-  @withTelemetry("generateDBTDocs")
+  @telemetryService.withTelemetry("generateDBTDocs")
   generateDBTDocs(modelPath: Uri, type?: RunModelType) {
     this.dbtProjectContainer.generateDocs(modelPath);
   }
@@ -153,30 +155,30 @@ export class RunModel {
     this.dbtProjectContainer.compileQuery(modelPath, query);
   }
 
-  @withTelemetry("runDBTTest")
+  @telemetryService.withTelemetry("runDBTTest")
   runDBTTest(modelPath: Uri, testName: string) {
     this.dbtProjectContainer.runTest(modelPath, testName);
   }
-  @withTelemetry("runDBTModelTest")
+  @telemetryService.withTelemetry("runDBTModelTest")
   runDBTModelTest(modelPath: Uri) {
     const modelName = path.basename(modelPath.fsPath, ".sql");
     this.dbtProjectContainer.runModelTest(modelPath, modelName);
   }
-  @withTelemetry("executeSQL")
+  @telemetryService.withTelemetry("executeSQL")
   async executeSQL(uri: Uri, query: string, title: string) {
     this.dbtProjectContainer.executeSQL(uri, query);
   }
 
-  @withTelemetry("showCompiledSQL")
+  @telemetryService.withTelemetry("showCompiledSQL")
   showCompiledSQL(modelPath: Uri) {
     this.dbtProjectContainer.showCompiledSQL(modelPath);
   }
-  @withTelemetry("generateSchemaYML")
+  @telemetryService.withTelemetry("generateSchemaYML")
   generateSchemaYML(modelPath: Uri) {
     const modelName = path.basename(modelPath.fsPath, ".sql");
     this.dbtProjectContainer.generateSchemaYML(modelPath, modelName);
   }
-  @withTelemetry("showRunSQL")
+  @telemetryService.withTelemetry("showRunSQL")
   showRunSQL(modelPath: Uri) {
     this.dbtProjectContainer.showRunSQL(modelPath);
   }
