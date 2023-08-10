@@ -4,10 +4,31 @@ import * as path from "path";
 import * as fs from "fs";
 import { ExtensionContext } from "vscode";
 
-let telemetryReporter: TelemetryReporter | undefined;
+export let telemetryReporter: TelemetryReporter | undefined;
 
-export function initializeTelemetry(key: string): void {
+export function initializeTelemetry(key: string): TelemetryReporter {
   telemetryReporter = new TelemetryReporter(key);
+  return telemetryReporter;
+}
+
+export function withTelemetry(telemetryEventName: string) {
+  return function (
+    target: any,
+    propertyName: string,
+    descriptor: PropertyDescriptor,
+  ) {
+    const originalMethod = descriptor.value;
+
+    descriptor.value = function (...args: any[]) {
+      const result = originalMethod.apply(this, args);
+      if (telemetryReporter) {
+        telemetryReporter.sendTelemetryEvent(telemetryEventName);
+      }
+      return result;
+    };
+
+    return descriptor;
+  };
 }
 
 export function sendTelemetryEvent(

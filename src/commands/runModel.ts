@@ -5,11 +5,12 @@ import { RunModelType } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { NodeTreeItem } from "../treeview_provider/modelTreeviewProvider";
 import { provideSingleton } from "../utils";
-
+import { withTelemetry } from "../telemetry";
 @provideSingleton(RunModel)
 export class RunModel {
   constructor(private dbtProjectContainer: DBTProjectContainer) {}
 
+  @withTelemetry("runModelOnActiveWindow")
   runModelOnActiveWindow(type?: RunModelType) {
     if (!window.activeTextEditor) {
       return;
@@ -18,6 +19,7 @@ export class RunModel {
     this.runDBTModel(fullPath, type);
   }
 
+  @withTelemetry("buildModelOnActiveWindow")
   buildModelOnActiveWindow(type?: RunModelType) {
     if (!window.activeTextEditor) {
       return;
@@ -26,6 +28,7 @@ export class RunModel {
     this.buildDBTModel(fullPath, type);
   }
 
+  @withTelemetry("runTestsOnActiveWindow")
   runTestsOnActiveWindow() {
     if (!window.activeTextEditor) {
       return;
@@ -34,6 +37,7 @@ export class RunModel {
     this.runDBTModelTest(fullPath);
   }
 
+  @withTelemetry("compileModelOnActiveWindow")
   compileModelOnActiveWindow() {
     if (!window.activeTextEditor) {
       return;
@@ -42,6 +46,7 @@ export class RunModel {
     this.compileDBTModel(fullPath);
   }
 
+  @withTelemetry("compileQueryOnActiveWindow")
   compileQueryOnActiveWindow() {
     if (!window.activeTextEditor) {
       return;
@@ -53,6 +58,7 @@ export class RunModel {
     }
   }
 
+  @withTelemetry("executeQueryOnActiveWindow")
   executeQueryOnActiveWindow() {
     if (!window.activeTextEditor) {
       return;
@@ -95,18 +101,21 @@ export class RunModel {
     };
   }
 
+  @withTelemetry("showCompiledSQLOnActiveWindow")
   showCompiledSQLOnActiveWindow() {
     const fullPath = window.activeTextEditor?.document.uri;
     if (fullPath !== undefined) {
       this.showCompiledSQL(fullPath);
     }
   }
+  @withTelemetry("generateSchemaYMLOnActiveWindow")
   generateSchemaYMLOnActiveWindow() {
     const fullPath = window.activeTextEditor?.document.uri;
     if (fullPath !== undefined) {
       this.generateSchemaYML(fullPath);
     }
   }
+  @withTelemetry("showRunSQLOnActiveWindow")
   showRunSQLOnActiveWindow() {
     const fullPath = window.activeTextEditor?.document.uri;
     if (fullPath !== undefined) {
@@ -114,6 +123,7 @@ export class RunModel {
     }
   }
 
+  @withTelemetry("generateDBTDocsOnActiveWindow")
   generateDBTDocsOnActiveWindow() {
     const fullPath = window.activeTextEditor?.document.uri;
     if (fullPath !== undefined) {
@@ -121,6 +131,7 @@ export class RunModel {
     }
   }
 
+  @withTelemetry("runDBTModel")
   runDBTModel(modelPath: Uri, type?: RunModelType) {
     this.dbtProjectContainer.runModel(modelPath, type);
   }
@@ -133,6 +144,7 @@ export class RunModel {
     this.dbtProjectContainer.compileModel(modelPath, type);
   }
 
+  @withTelemetry("generateDBTDocs")
   generateDBTDocs(modelPath: Uri, type?: RunModelType) {
     this.dbtProjectContainer.generateDocs(modelPath);
   }
@@ -141,28 +153,30 @@ export class RunModel {
     this.dbtProjectContainer.compileQuery(modelPath, query);
   }
 
+  @withTelemetry("runDBTTest")
   runDBTTest(modelPath: Uri, testName: string) {
     this.dbtProjectContainer.runTest(modelPath, testName);
   }
-
+  @withTelemetry("runDBTModelTest")
   runDBTModelTest(modelPath: Uri) {
     const modelName = path.basename(modelPath.fsPath, ".sql");
     this.dbtProjectContainer.runModelTest(modelPath, modelName);
   }
-
+  @withTelemetry("executeSQL")
   async executeSQL(uri: Uri, query: string, title: string) {
     this.dbtProjectContainer.executeSQL(uri, query);
   }
 
+  @withTelemetry("showCompiledSQL")
   showCompiledSQL(modelPath: Uri) {
     this.dbtProjectContainer.showCompiledSQL(modelPath);
   }
-
+  @withTelemetry("generateSchemaYML")
   generateSchemaYML(modelPath: Uri) {
     const modelName = path.basename(modelPath.fsPath, ".sql");
     this.dbtProjectContainer.generateSchemaYML(modelPath, modelName);
   }
-
+  @withTelemetry("showRunSQL")
   showRunSQL(modelPath: Uri) {
     this.dbtProjectContainer.showRunSQL(modelPath);
   }
