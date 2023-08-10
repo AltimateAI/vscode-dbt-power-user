@@ -270,6 +270,17 @@ export class DBTProject implements Disposable {
   }
 
   private async rebuildManifest() {
+    const skipParsing = workspace
+      .getConfiguration("dbt")
+      .get<boolean>(
+        "skipParsing",
+        false,
+      );
+    if (skipParsing) {
+      console.log("opting out of rebuilding the manifest");
+      return;
+    }
+
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
         "The dbt manifest can't be rebuilt right now as the Python environment has not yet been initialized, please try again later.",
