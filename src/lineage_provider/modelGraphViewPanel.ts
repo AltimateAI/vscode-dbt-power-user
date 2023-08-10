@@ -93,8 +93,10 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
         return;
       }
       this.g6Data = this.parseGraphData();
-      this.transmitData(this.g6Data);
-      this.updateGraphStyle();
+      if (this._panel) {
+        this.transmitData(this.g6Data);
+        this.updateGraphStyle();
+      }
     });
   }
 
