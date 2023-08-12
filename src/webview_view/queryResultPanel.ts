@@ -77,13 +77,13 @@ export class QueryResultPanel implements WebviewViewProvider {
 
   public constructor(private dbtProjectContainer: DBTProjectContainer) {
     window.onDidChangeActiveColorTheme(
-      async (e) => {
+      (e) => {
         if (this._panel) {
           this._panel.webview.html = getHtml(
             this._panel.webview,
             this.dbtProjectContainer.extensionUri,
           );
-          await this.transmitConfig();
+          this.transmitConfig();
         }
       },
       null,
@@ -100,7 +100,7 @@ export class QueryResultPanel implements WebviewViewProvider {
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
     this.setupWebviewHooks(context);
-    await this.transmitConfig();
+    this.transmitConfig();
     _token.onCancellationRequested(async () => {
       await this.transmitReset();
     });
@@ -116,7 +116,7 @@ export class QueryResultPanel implements WebviewViewProvider {
   /** Primary interface for WebviewView inbound communication */
   private setupWebviewHooks(context: WebviewViewResolveContext) {
     this._panel!.webview.onDidReceiveMessage(
-      (message) => {
+      async (message) => {
         switch (message.command) {
           case InboundCommand.Error:
             const error = message as RecError;
@@ -156,7 +156,7 @@ export class QueryResultPanel implements WebviewViewProvider {
   }
 
   /** Renders webview content */
-  private async renderWebviewView(context: WebviewViewResolveContext) {
+  private renderWebviewView(context: WebviewViewResolveContext) {
     const webview = this._panel!.webview!;
     this._panel!.webview.html = getHtml(
       webview,
@@ -190,7 +190,7 @@ export class QueryResultPanel implements WebviewViewProvider {
   }
 
   /** Sends VSCode config data to webview */
-  private async transmitConfig() {
+  private transmitConfig() {
     const limit = workspace.getConfiguration("dbt").get<number>("queryLimit");
     const queryTemplate = workspace
       .getConfiguration("dbt")
@@ -198,7 +198,7 @@ export class QueryResultPanel implements WebviewViewProvider {
         "queryTemplate",
         "select * from ({query}) as query limit {limit}",
       );
-    await this._panel!.webview.postMessage({
+    this._panel!.webview.postMessage({
       command: OutboundCommand.InjectConfig,
       ...(<InjectConfig>{ limit, queryTemplate }),
     });
@@ -244,7 +244,9 @@ export class QueryResultPanel implements WebviewViewProvider {
     await commands.executeCommand(
       "workbench.view.extension.dbt_preview_results",
     );
-    this.transmitLoading();
+    if (this._panel) {
+      this.transmitLoading();
+    }
     try {
       const output = await queryExecution;
       await this.transmitDataWrapper(output, query);
