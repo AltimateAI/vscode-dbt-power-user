@@ -114,14 +114,9 @@ export class ManifestParser {
   }
 
   private readAndParseManifest(projectRoot: Uri, targetPath: string) {
-    let manifestLocation = path.join(
-      projectRoot.fsPath,
-      targetPath,
-      DBTProject.MANIFEST_FILE,
-    );
-    // Check to see if the target path includes the project root already
-    if (targetPath.startsWith(projectRoot.fsPath)) {
-      manifestLocation = path.join(targetPath, DBTProject.MANIFEST_FILE);
+    let manifestLocation = path.join(targetPath, DBTProject.MANIFEST_FILE);
+    if (!path.isAbsolute(targetPath)) {
+      manifestLocation = path.join(projectRoot.fsPath, manifestLocation);
     }
 
     try {
