@@ -648,7 +648,7 @@ select * from renamed
       (targetPathOverride
         ? substituteSettingsVariables(targetPathOverride)
         : false) ||
-      process.env.DBT_TARGET_PATH ||
+      this.PythonEnvironment.environmentVariables.DBT_TARGET_PATH ||
       (projectConfig[DBTProject.TARGET_PATH_VAR]
         ? (projectConfig[DBTProject.TARGET_PATH_VAR] as string)
         : false) ||
