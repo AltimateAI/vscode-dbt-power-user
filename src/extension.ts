@@ -2,12 +2,6 @@ import "reflect-metadata";
 import { ExtensionContext } from "vscode";
 import { DBTPowerUserExtension } from "./dbtPowerUserExtension";
 import { container } from "./inversify.config";
-// import {
-//   initializeTelemetry,
-//   disposeTelemetry,
-//   sendTelemetryEvent,
-// } from "./telemetry";
-
 import TelemetryService from "./telemetry";
 
 // Initialize telemetry
