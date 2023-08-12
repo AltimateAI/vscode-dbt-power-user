@@ -4,6 +4,9 @@ import * as path from "path";
 import * as fs from "fs";
 import { ExtensionContext } from "vscode";
 
+const telemetryEnabled: string = vscode.workspace
+  .getConfiguration("dbt")
+  .get<string>("telemetryEnabled", "True");
 class TelemetryService {
   private static instance: TelemetryService;
   private telemetryReporter?: TelemetryReporter;
@@ -28,12 +31,7 @@ class TelemetryService {
     eventName: string,
     properties?: { [key: string]: string },
   ): void {
-    if (
-      this.telemetryReporter &&
-      vscode.workspace
-        .getConfiguration()
-        .get<boolean>("telemetry.enableTelemetry") !== false
-    ) {
+    if (this.telemetryReporter && telemetryEnabled !== "False") {
       this.telemetryReporter.sendTelemetryEvent(eventName, properties);
     }
   }
