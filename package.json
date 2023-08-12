@@ -74,7 +74,7 @@
           },
           "dbt.targetPathOverride": {
             "type": "string",
-            "description": "Override the target-path value for dbt processes run by the extension."
+            "description": "Override the target-path dir for every dbt command. Absolute path or relative to the directory containing manifest.json."
           },
           "dbt.queryLimit": {
             "type": "integer",
