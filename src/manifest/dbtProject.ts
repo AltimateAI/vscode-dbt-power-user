@@ -643,13 +643,17 @@ select * from renamed
     const targetPathOverride = workspace
       .getConfiguration("dbt")
       .get<string>("targetPathOverride");
-    if (targetPathOverride !== undefined) {
-      return substituteSettingsVariables(targetPathOverride);
-    }
-    if (projectConfig[DBTProject.TARGET_PATH_VAR] !== undefined) {
-      return projectConfig[DBTProject.TARGET_PATH_VAR] as string;
-    }
-    return "target";
+
+    return (
+      (targetPathOverride
+        ? substituteSettingsVariables(targetPathOverride)
+        : false) ||
+      process.env.DBT_TARGET_PATH ||
+      (projectConfig[DBTProject.TARGET_PATH_VAR]
+        ? (projectConfig[DBTProject.TARGET_PATH_VAR] as string)
+        : false) ||
+      "target"
+    );
   }
 
   private async refresh() {
