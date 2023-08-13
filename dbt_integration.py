@@ -145,7 +145,8 @@ class ConfigInterface:
         target: Optional[str] = None,
         profiles_dir: Optional[str] = None,
         project_dir: Optional[str] = None,
-        profile: Optional[str] = None
+        profile: Optional[str] = None,
+        target_path: Optional[str] = None,
     ):
         self.threads = threads
         self.target = target
@@ -155,6 +156,7 @@ class ConfigInterface:
         self.single_threaded = threads == 1
         self.quiet = True
         self.profile = profile
+        self.target_path = target_path
 
 
 class ManifestProxy(UserDict):
@@ -205,6 +207,7 @@ class DbtProject:
         project_dir: Optional[str] = None,
         threads: Optional[int] = 1,
         profile: Optional[str] = None,
+        target_path: Optional[str] = None,
     ):
         
         self.args = ConfigInterface(
@@ -213,6 +216,7 @@ class DbtProject:
             profiles_dir=profiles_dir,
             project_dir=project_dir,
             profile=profile,
+            target_path = target_path,
         )
 
         self.init_project()

@@ -114,11 +114,12 @@ export class ManifestParser {
   }
 
   private readAndParseManifest(projectRoot: Uri, targetPath: string) {
-    const manifestLocation = path.join(
-      projectRoot.fsPath,
-      targetPath,
-      DBTProject.MANIFEST_FILE,
-    );
+    const pathParts = [targetPath];
+    if (!path.isAbsolute(targetPath)) {
+      pathParts.unshift(projectRoot.fsPath);
+    }
+    const manifestLocation = path.join(...pathParts, DBTProject.MANIFEST_FILE);
+
     try {
       const manifestFile = readFileSync(manifestLocation, "utf8");
       return JSON.parse(manifestFile);

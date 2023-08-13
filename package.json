@@ -72,6 +72,10 @@
             "type": "string",
             "description": "Override the profiles dir for every dbt command. Absolute path or relative to the directory containing profiles.yml"
           },
+          "dbt.targetPathOverride": {
+            "type": "string",
+            "description": "Override the target-path dir for every dbt command. Absolute path or relative to the directory containing manifest.json."
+          },
           "dbt.queryLimit": {
             "type": "integer",
             "description": "The maximum number of rows the `Preview SQL Query` command returns.",

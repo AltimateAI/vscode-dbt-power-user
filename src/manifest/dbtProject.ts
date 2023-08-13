@@ -123,6 +123,7 @@ export class DBTProject implements Disposable {
     console.log("Using profile directory " + this.dbtProfilesDir);
     this.projectName = projectConfig.name;
     this.targetPath = this.findTargetPath(projectConfig);
+    console.log("Using target path " + this.targetPath);
     this.sourcePaths = this.findSourcePaths(projectConfig);
     this.macroPaths = this.findMacroPaths(projectConfig);
 
@@ -203,7 +204,7 @@ export class DBTProject implements Disposable {
     try {
       await this.python.ex`from dbt_integration import *`;
       await this.python
-        .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir})`;
+        .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir}, target_path=${this.targetPath})`;
       // now we can accept project method invocations on the python env.
       this.pythonBridgeInitialized = true;
     } catch (exc: any) {
@@ -639,10 +640,20 @@ select * from renamed
   }
 
   private findTargetPath(projectConfig: any): string {
-    if (projectConfig[DBTProject.TARGET_PATH_VAR] !== undefined) {
-      return projectConfig[DBTProject.TARGET_PATH_VAR] as string;
-    }
-    return "target";
+    const targetPathOverride = workspace
+      .getConfiguration("dbt")
+      .get<string>("targetPathOverride");
+
+    return (
+      (targetPathOverride
+        ? substituteSettingsVariables(targetPathOverride)
+        : false) ||
+      this.PythonEnvironment.environmentVariables.DBT_TARGET_PATH ||
+      (projectConfig[DBTProject.TARGET_PATH_VAR]
+        ? (projectConfig[DBTProject.TARGET_PATH_VAR] as string)
+        : false) ||
+      "target"
+    );
   }
 
   private async refresh() {
