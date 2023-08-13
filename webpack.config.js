@@ -1,31 +1,38 @@
 //@ts-check
 
-'use strict';
+"use strict";
 
 const TerserPlugin = require("terser-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
-const path = require('path');
+const path = require("path");
 
 /**@type {import('webpack').Configuration}*/
 const config = {
-  target: 'node',
+  target: "node",
   entry: path.resolve(__dirname, "src/extension.ts"),
   output: {
-    path: path.resolve(__dirname, 'dist'),
-    filename: 'extension.js',
-    libraryTarget: 'commonjs2',
-    devtoolModuleFilenameTemplate: '../[resource-path]'
+    path: path.resolve(__dirname, "dist"),
+    filename: "extension.js",
+    libraryTarget: "commonjs2",
+    devtoolModuleFilenameTemplate: "../[resource-path]",
   },
   node: {
-    __dirname: false
+    __dirname: false,
   },
-  devtool: 'source-map',
-  externals: {
-    vscode: 'commonjs vscode',
-    'applicationinsights-native-metrics': 'commonjs applicationinsights-native-metrics' // ignored because we don't ship native module
-  },
+  devtool: "source-map",
+  externals: [
+    "vscode",
+    "commonjs",
+    // These dependencies are ignored because we don't use them, and App Insights has try-catch protecting their loading if they don't exist
+    // See: https://github.com/microsoft/vscode-extension-telemetry/issues/41#issuecomment-598852991
+    "applicationinsights-native-metrics",
+    "@opentelemetry/tracing",
+    "@azure/opentelemetry-instrumentation-azure-sdk",
+    "@opentelemetry/instrumentation",
+    "@azure/functions-core",
+  ],
   resolve: {
-    extensions: ['.ts', '.js'],
+    extensions: [".ts", ".js"],
   },
   module: {
     rules: [
@@ -34,17 +41,26 @@ const config = {
         exclude: /node_modules/,
         use: [
           {
-            loader: 'ts-loader'
-          }
-        ]
-      }
-    ]
+            loader: "ts-loader",
+          },
+        ],
+      },
+    ],
   },
   plugins: [
     new CopyPlugin({
       patterns: [
-        { from: path.resolve(__dirname, "dbt_integration.py"), to: "dbt_integration.py" },
-        { from: path.resolve(__dirname, "node_modules/python-bridge/node_python_bridge.py"), to: "node_python_bridge.py" },
+        {
+          from: path.resolve(__dirname, "dbt_integration.py"),
+          to: "dbt_integration.py",
+        },
+        {
+          from: path.resolve(
+            __dirname,
+            "node_modules/python-bridge/node_python_bridge.py",
+          ),
+          to: "node_python_bridge.py",
+        },
       ],
     }),
   ],
@@ -61,12 +77,12 @@ const config = {
           keep_fnames: /AbortSignal/,
           output: {
             beautify: true,
-            indent_level: 1
-          }
-        }
+            indent_level: 1,
+          },
+        },
       }),
     ],
-  }
+  },
 };
 
 module.exports = config;

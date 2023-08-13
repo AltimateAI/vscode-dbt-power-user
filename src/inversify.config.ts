@@ -13,6 +13,7 @@ import { SourceFileWatchersFactory } from "./manifest/modules/sourceFileWatchers
 import { TargetWatchersFactory } from "./manifest/modules/targetWatchers";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
 import { QueryResultPanel } from "./webview_view/queryResultPanel";
+import { TelemetryService } from "./telemetry";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -35,6 +36,7 @@ container
       const { container } = context;
       return new DBTWorkspaceFolder(
         container.get("Factory<DBTProject>"),
+        container.get(TelemetryService),
         workspaceFolder,
         _onManifestChanged,
       );
@@ -60,6 +62,7 @@ container
           container.get(DBTCommandFactory),
           container.get(DBTTerminal),
           container.get(QueryResultPanel),
+          container.get(TelemetryService),
           path,
           projectConfig,
           _onManifestChanged,

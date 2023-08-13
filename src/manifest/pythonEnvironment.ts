@@ -1,6 +1,7 @@
 import { Disposable, Event, extensions, Uri, workspace } from "vscode";
 import { EnvironmentVariables } from "../domain";
 import { provideSingleton, substituteSettingsVariables } from "../utils";
+import { TelemetryService } from "../telemetry";
 
 interface PythonExecutionDetails {
   getPythonPath: () => string;
@@ -12,6 +13,8 @@ interface PythonExecutionDetails {
 export class PythonEnvironment implements Disposable {
   private executionDetails?: PythonExecutionDetails;
   private disposables: Disposable[] = [];
+
+  constructor(private telemetry: TelemetryService) {}
 
   dispose() {
     while (this.disposables.length) {
@@ -109,6 +112,10 @@ export class PythonEnvironment implements Disposable {
             };
           }
         } catch (e) {
+          this.telemetry.sendTelemetryError(
+            "vsCodeApiEnvironmentVariablesNotLoading",
+            e,
+          );
           console.error("Could not call environment api", e);
         }
 

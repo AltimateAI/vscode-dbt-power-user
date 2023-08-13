@@ -134,6 +134,12 @@ You can enable format on save for python by having the following values in your 
   }
 ```
 
+### Telemetry
+
+Telemetry is used for error and usage reporting in order to make the extension better.
+
+[Find out how to disable telemetry in visual code docs](https://code.visualstudio.com/docs/getstarted/telemetry#_disable-telemetry-reporting).
+
 ## Features at work
 
 ### Lineage of current model

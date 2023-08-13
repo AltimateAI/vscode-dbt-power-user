@@ -12,6 +12,7 @@ import {
 import * as which from "which";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { provideSingleton } from "../utils";
+import { TelemetryService } from "../telemetry";
 
 @provideSingleton(DbtDocumentFormattingEditProvider)
 export class DbtDocumentFormattingEditProvider
@@ -19,6 +20,7 @@ export class DbtDocumentFormattingEditProvider
 {
   constructor(
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
+    private telemetry: TelemetryService,
   ) {}
 
   provideDocumentFormattingEdits(
@@ -49,6 +51,9 @@ export class DbtDocumentFormattingEditProvider
     try {
       // try to find sqlfmt on PATH if not set
       const sqlFmtPath = sqlFmtPathSetting || (await which("sqlfmt"));
+      this.telemetry.sendTelemetryEvent("formatDbtModel", {
+        sqlFmtPath: sqlFmtPathSetting ? "setting" : "path",
+      });
       try {
         await this.commandProcessExecutionFactory
           .createCommandProcessExecution(sqlFmtPath, sqlFmtArgs)
@@ -58,6 +63,10 @@ export class DbtDocumentFormattingEditProvider
         try {
           return this.processDiffOutput(document, diffOutput as string);
         } catch (error) {
+          this.telemetry.sendTelemetryError(
+            "formatDbtModelApplyDiffFailed",
+            error,
+          );
           window.showErrorMessage(
             "Could not process difference output from sqlfmt. Detailed error: " +
               error,
@@ -65,6 +74,7 @@ export class DbtDocumentFormattingEditProvider
         }
       }
     } catch (error) {
+      this.telemetry.sendTelemetryError("formatDbtModelApplyDiffFailed", error);
       window.showErrorMessage(
         "Could not run sqlfmt. Did you install sqlfmt? Detailed error: " +
           error,

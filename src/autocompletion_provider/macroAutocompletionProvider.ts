@@ -14,6 +14,7 @@ import {
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
+import { TelemetryService } from "../telemetry";
 
 @provideSingleton(MacroAutocompletionProvider) // TODO autocomplete doesn't work when mistype, delete and retype
 export class MacroAutocompletionProvider
@@ -22,7 +23,10 @@ export class MacroAutocompletionProvider
   private macrosAutocompleteMap: Map<string, CompletionItem[]> = new Map();
   private disposables: Disposable[] = [];
 
-  constructor(private dbtProjectContainer: DBTProjectContainer) {
+  constructor(
+    private dbtProjectContainer: DBTProjectContainer,
+    private telemetry: TelemetryService,
+  ) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event),
@@ -75,6 +79,7 @@ export class MacroAutocompletionProvider
     if (projectRootpath === undefined) {
       return;
     }
+    this.telemetry.sendTelemetryEvent("provideMacroAutocompletion");
     return this.macrosAutocompleteMap.get(projectRootpath.fsPath);
   };
 }

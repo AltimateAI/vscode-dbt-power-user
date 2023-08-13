@@ -13,6 +13,7 @@ import {
 } from "vscode";
 import { DBTProject } from "./dbtProject";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
+import { TelemetryService } from "../telemetry";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
@@ -26,6 +27,7 @@ export class DBTWorkspaceFolder implements Disposable {
       projectConfig: any,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
     ) => DBTProject,
+    private telemetry: TelemetryService,
     private workspaceFolder: WorkspaceFolder,
     private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
   ) {
@@ -53,6 +55,11 @@ export class DBTWorkspaceFolder implements Disposable {
         `dbt Power User detected ${projectFiles.length} projects in your work space, this will negatively affect performance.`,
       );
     }
+    this.telemetry.sendTelemetryEvent(
+      "discoverProjects",
+      {},
+      { numProjects: projectFiles.length },
+    );
     return projectFiles.forEach((uri) => this.registerDBTProject(uri));
   }
 

@@ -13,6 +13,7 @@ import { DocMetaMap } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
+import { TelemetryService } from "../telemetry";
 
 @provideSingleton(DocDefinitionProvider)
 export class DocDefinitionProvider implements DefinitionProvider, Disposable {
@@ -21,7 +22,10 @@ export class DocDefinitionProvider implements DefinitionProvider, Disposable {
   private static readonly GET_DOC_INFO = /(?!['"])(\w+)(?=['"])/g;
   private disposables: Disposable[] = [];
 
-  constructor(private dbtProjectContainer: DBTProjectContainer) {
+  constructor(
+    private dbtProjectContainer: DBTProjectContainer,
+    private telemetry: TelemetryService,
+  ) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event),
@@ -67,6 +71,7 @@ export class DocDefinitionProvider implements DefinitionProvider, Disposable {
         const definition = this.getDocDefinition(docName[0], document.uri);
         if (definition !== undefined) {
           resolve(definition);
+          this.telemetry.sendTelemetryEvent("provideDocDefinition");
           return;
         }
       }

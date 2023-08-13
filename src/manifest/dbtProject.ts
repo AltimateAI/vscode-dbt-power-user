@@ -37,6 +37,8 @@ import {
 } from "./modules/sourceFileWatchers";
 import { TargetWatchersFactory } from "./modules/targetWatchers";
 import { PythonEnvironment } from "./pythonEnvironment";
+import { TelemetryService } from "../telemetry";
+import * as crypto from "crypto";
 
 export interface ExecuteSQLResult {
   table: {
@@ -78,6 +80,7 @@ export class DBTProject implements Disposable {
   readonly projectRoot: Uri;
   readonly dbtProfilesDir: string; // vscode.Uri doesn't support relative urls
   private projectName: string;
+  private adapterType: string = "unknown";
   private targetPath: string;
   private sourcePaths: string[];
   private macroPaths: string[];
@@ -101,6 +104,7 @@ export class DBTProject implements Disposable {
     private dbtCommandFactory: DBTCommandFactory,
     private terminal: DBTTerminal,
     private queryResultPanel: QueryResultPanel,
+    private telemetry: TelemetryService,
     path: Uri,
     projectConfig: any,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
@@ -205,8 +209,17 @@ export class DBTProject implements Disposable {
       await this.python.ex`from dbt_integration import *`;
       await this.python
         .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir}, target_path=${this.targetPath})`;
+
+      // get adapter
+      this.adapterType = (await this.python?.lock(
+        (python) => python!`project.config.credentials.type`,
+      )) as string;
       // now we can accept project method invocations on the python env.
       this.pythonBridgeInitialized = true;
+      this.telemetry.sendTelemetryEvent("dbtProject", {
+        adapter: this.adapterType,
+        project: DBTProject.hashProjectRoot(this.projectRoot.fsPath),
+      });
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
@@ -219,6 +232,7 @@ export class DBTProject implements Disposable {
         "An unexpected error occured while initializing the dbt project: " +
           exc,
       );
+      this.telemetry.sendTelemetryError("pythonBridgeInitError", exc);
       return;
     }
     // this methods already handle exceptions
@@ -244,6 +258,7 @@ export class DBTProject implements Disposable {
       this.terminal.log(
         `An error occurred while trying to refresh the project configuration: ${error}`,
       );
+      this.telemetry.sendTelemetryError("projectConfigRefreshError", error);
     }
   }
 
@@ -275,6 +290,9 @@ export class DBTProject implements Disposable {
       window.showErrorMessage(
         "The dbt manifest can't be rebuilt right now as the Python environment has not yet been initialized, please try again later.",
       );
+      this.telemetry.sendTelemetryError("pythonBridgeNotYetInitializedError", {
+        adapter: this.adapterType,
+      });
       return;
     }
     try {
@@ -282,6 +300,9 @@ export class DBTProject implements Disposable {
         (python) => python!`to_dict(project.safe_parse_project())`,
       );
     } catch (exc) {
+      this.telemetry.sendTelemetryError("pythonBridgeCannotParseProject", exc, {
+        adapter: this.adapterType,
+      });
       window.showErrorMessage(
         "An error occured while rebuilding the dbt manifest: " + exc,
       );
@@ -294,6 +315,7 @@ export class DBTProject implements Disposable {
       this.dbtProfilesDir,
       runModelParams,
     );
+    this.telemetry.sendTelemetryEvent("runModel");
     this.dbtProjectContainer.addCommandToQueue(runModelCommand);
   }
 
@@ -303,6 +325,7 @@ export class DBTProject implements Disposable {
       this.dbtProfilesDir,
       runModelParams,
     );
+    this.telemetry.sendTelemetryEvent("buildModel");
     this.dbtProjectContainer.addCommandToQueue(buildModelCommand);
   }
 
@@ -312,6 +335,7 @@ export class DBTProject implements Disposable {
       this.dbtProfilesDir,
       testName,
     );
+    this.telemetry.sendTelemetryEvent("runTest");
     this.dbtProjectContainer.addCommandToQueue(testModelCommand);
   }
 
@@ -321,6 +345,7 @@ export class DBTProject implements Disposable {
       this.dbtProfilesDir,
       modelName,
     );
+    this.telemetry.sendTelemetryEvent("runModelTest");
     this.dbtProjectContainer.addCommandToQueue(testModelCommand);
   }
 
@@ -330,6 +355,7 @@ export class DBTProject implements Disposable {
       this.dbtProfilesDir,
       runModelParams,
     );
+    this.telemetry.sendTelemetryEvent("compileModel");
     this.dbtProjectContainer.addCommandToQueue(runModelCommand);
   }
 
@@ -339,6 +365,7 @@ export class DBTProject implements Disposable {
         this.projectRoot,
         this.dbtProfilesDir,
       );
+    this.telemetry.sendTelemetryEvent("generateDocs");
     this.dbtProjectContainer.addCommandToQueue(docsGenerateCommand);
   }
 
@@ -351,6 +378,7 @@ export class DBTProject implements Disposable {
       );
       throw Error("Could not initialize Python bridge");
     }
+    this.telemetry.sendTelemetryEvent("compileQuery");
     try {
       const output = (await this.python?.lock(
         (python) => python!`to_dict(project.compile_sql(${query}))`,
@@ -362,6 +390,7 @@ export class DBTProject implements Disposable {
           "An error occured while trying to compile your query: " +
             exc.exception.message,
         );
+        this.telemetry.sendTelemetryError("compileQueryPythonError", exc);
         return (
           "Exception: " +
           exc.exception.message +
@@ -370,6 +399,7 @@ export class DBTProject implements Disposable {
           exc
         );
       }
+      this.telemetry.sendTelemetryError("compileQueryUnknownError", exc);
       // Unknown error
       window.showErrorMessage(exc);
       return "Detailed error information:\n" + exc;
@@ -409,6 +439,10 @@ export class DBTProject implements Disposable {
       const currentDir = path.dirname(modelPath.fsPath);
       const location = path.join(currentDir, modelName + "_schema.yml");
       if (!existsSync(location)) {
+        this.telemetry.sendTelemetryEvent("generateSchemaYML", {
+          adapter: this.adapterType,
+        });
+
         // Get database and schema
         const refNode = (await this.python?.lock(
           (python) => python!`to_dict(project.get_ref_node(${modelName}))`,
@@ -433,12 +467,18 @@ export class DBTProject implements Disposable {
       }
     } catch (exc: any) {
       if (exc instanceof PythonException) {
+        this.telemetry.sendTelemetryError("generateSchemaYMLPythonError", exc, {
+          adapter: this.adapterType,
+        });
         window.showErrorMessage(
           "An error occured while trying to generate the schema yml " +
             exc.exception.message,
         );
       }
       // Unknown error
+      this.telemetry.sendTelemetryError("generateSchemaYMLUnknownError", exc, {
+        adapter: this.adapterType,
+      });
       window.showErrorMessage(exc);
     }
   }
@@ -481,6 +521,12 @@ export class DBTProject implements Disposable {
           "{prefix}_{sourceName}_{tableName}",
         );
 
+      this.telemetry.sendTelemetryEvent("generateModel", {
+        prefix: prefix,
+        filenametemplate: fileNameTemplate,
+        adapter: this.adapterType,
+      });
+
       // Parse setting to fileName
       if (fileNameTemplate in fileNameTemplateMap) {
         fileName = fileNameTemplateMap[fileNameTemplate];
@@ -518,12 +564,18 @@ select * from renamed
       }
     } catch (exc: any) {
       if (exc instanceof PythonException) {
+        this.telemetry.sendTelemetryError("generateModelPythonError", exc, {
+          adapter: this.adapterType,
+        });
         window.showErrorMessage(
           "An error occured while trying to generate the model " +
             exc.exception.message,
         );
       }
       // Unknown error
+      this.telemetry.sendTelemetryError("generateModelUnknownError", exc, {
+        adapter: this.adapterType,
+      });
       window.showErrorMessage(exc);
     }
   }
@@ -534,7 +586,12 @@ select * from renamed
       window.showErrorMessage(
         "Could not execute query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue.",
       );
-      throw Error("Could not initialize Python bridge");
+      this.telemetry.sendTelemetryError(
+        "executeSQLPythonBridgeNotInitialized",
+        undefined,
+        { adapter: this.adapterType },
+      );
+      return;
     }
     const limit = workspace
       .getConfiguration("dbt")
@@ -550,6 +607,17 @@ select * from renamed
     const limitQuery = queryTemplate
       .replace("{query}", () => query)
       .replace("{limit}", () => limit.toString());
+
+    this.telemetry.sendTelemetryEvent(
+      "executeSQL",
+      {
+        queryTemplate: queryTemplate,
+        adapter: this.adapterType,
+      },
+      {
+        limit: limit,
+      },
+    );
 
     this.queryResultPanel.executeQuery(
       query,
@@ -583,12 +651,16 @@ select * from renamed
         maxAliasCount: -1,
       });
       // TODO: any validation logic could go here to skip a project
-    } catch (error: any) {
+    } catch (error) {
       window.showErrorMessage(
         `Skipping project: could not parse dbt_project_config.yml at '${dbtProjectConfigLocation}': ${error}`,
       );
       throw error;
     }
+  }
+
+  static hashProjectRoot(projectRoot: string) {
+    return crypto.createHash("md5").update(projectRoot).digest("hex");
   }
 
   private async blockUntilPythonBridgeIsInitalized() {

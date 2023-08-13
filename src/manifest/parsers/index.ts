@@ -11,9 +11,12 @@ import { MacroParser } from "./macroParser";
 import { NodeParser } from "./nodeParser";
 import { SourceParser } from "./sourceParser";
 import { TestParser } from "./testParser";
+import { TelemetryService } from "../../telemetry";
 
 @provide(ManifestParser)
 export class ManifestParser {
+  private lastSentParseManifestProps: any;
+
   constructor(
     private nodeParser: NodeParser,
     private macroParser: MacroParser,
@@ -22,6 +25,7 @@ export class ManifestParser {
     private testParser: TestParser,
     private docParser: DocParser,
     private terminal: DBTTerminal,
+    private telemetry: TelemetryService,
   ) {}
 
   public async parseManifest(
@@ -95,6 +99,35 @@ export class ManifestParser {
       sourceMetaMap,
       testMetaMap,
     );
+
+    const nodeCounts = Object.values(nodes as any[]).reduce((map, node) => {
+      const key = node.resource_type + "_count";
+      if (!map.has(key)) {
+        map.set(key, 0);
+      }
+      map.set(key, map.get(key) + 1);
+      return map;
+    }, new Map());
+    const parseManifestProps = {
+      ...Object.fromEntries(nodeCounts.entries()),
+      sources_count: sourceMetaMap.size,
+      macros_count: macroMetaMap.size,
+    };
+    if (
+      this.lastSentParseManifestProps === undefined ||
+      Object.entries(this.lastSentParseManifestProps).toString() !==
+        Object.entries(parseManifestProps).toString()
+    ) {
+      // we only sent this event if there is a change in the monitored values
+      this.telemetry.sendTelemetryEvent(
+        "parseManifest",
+        {
+          project: DBTProject.hashProjectRoot(projectRoot.fsPath),
+        },
+        parseManifestProps,
+      );
+      this.lastSentParseManifestProps = parseManifestProps;
+    }
 
     const event: ManifestCacheChangedEvent = {
       added: [
