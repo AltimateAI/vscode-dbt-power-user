@@ -15,6 +15,7 @@ import { SourceMetaMap } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
+import { TelemetryService } from "../telemetry";
 
 @provideSingleton(SourceDefinitionProvider)
 export class SourceDefinitionProvider
@@ -25,7 +26,10 @@ export class SourceDefinitionProvider
   private static readonly GET_SOURCE_INFO = /(?!['"])(\w+)(?=['"])/g;
   private disposables: Disposable[] = [];
 
-  constructor(private dbtProjectContainer: DBTProjectContainer) {
+  constructor(
+    private dbtProjectContainer: DBTProjectContainer,
+    private telemetry: TelemetryService,
+  ) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event),
@@ -82,6 +86,7 @@ export class SourceDefinitionProvider
         document.uri,
         source[1],
       );
+      this.telemetry.sendTelemetryEvent("provideSourceDefinition");
       resolve(definition);
     });
   }

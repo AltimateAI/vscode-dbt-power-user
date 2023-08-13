@@ -14,6 +14,7 @@ import {
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
+import { TelemetryService } from "../telemetry";
 
 @provideSingleton(SourceAutocompletionProvider) // TODO autocomplete doesn't work when mistype, delete and retype
 export class SourceAutocompletionProvider
@@ -29,7 +30,10 @@ export class SourceAutocompletionProvider
   > = new Map();
   private disposables: Disposable[] = [];
 
-  constructor(private dbtProjectContainer: DBTProjectContainer) {
+  constructor(
+    private dbtProjectContainer: DBTProjectContainer,
+    private telemetry: TelemetryService,
+  ) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event),
@@ -126,6 +130,7 @@ export class SourceAutocompletionProvider
       if (sourceTableMap === undefined) {
         return;
       }
+      this.telemetry.sendTelemetryEvent("provideSourceAutocompletion");
       return sourceTableMap.get(sourceNameMatch[0]);
     }
   }

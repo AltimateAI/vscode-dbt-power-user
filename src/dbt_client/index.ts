@@ -15,6 +15,7 @@ import { DBTCommand, DBTCommandFactory } from "./dbtCommandFactory";
 import { DBTCommandQueue } from "./dbtCommandQueue";
 import { DBTTerminal } from "./dbtTerminal";
 import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
+import { TelemetryService } from "../telemetry";
 
 @provideSingleton(DBTClient)
 export class DBTClient implements Disposable {
@@ -39,6 +40,7 @@ export class DBTClient implements Disposable {
     private queue: DBTCommandQueue,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
     private terminal: DBTTerminal,
+    private telemetry: TelemetryService,
   ) {}
 
   dispose() {
@@ -142,7 +144,9 @@ export class DBTClient implements Disposable {
   ): Promise<CommandProcessExecution> {
     if (command.commandAsString !== undefined) {
       this.terminal.log(`> Executing task: ${command.commandAsString}\n\r`);
-
+      this.telemetry.sendTelemetryEvent("dbtCommand", {
+        command: command.commandAsString,
+      });
       if (command.focus) {
         this.terminal.show(true);
       }
@@ -199,6 +203,12 @@ export class DBTClient implements Disposable {
     ) {
       window.showErrorMessage(message);
     }
+    this.telemetry.sendTelemetryEvent("dbtVersionCheck", {
+      installed: `${this.dbtInstalled}`,
+      installedVersion: `${installedVersion}`,
+      latestVersion: `${latestVersion}`,
+      upToDate: `${upToDate}`,
+    });
     this._onDBTInstallationVerificationEvent.fire({
       inProgress: false,
       dbtInstallationFound: {
@@ -217,6 +227,9 @@ export class DBTClient implements Disposable {
         `The Regex INSTALLED_VERSION ${DBTClient.INSTALLED_VERSION} is not working ...`,
       );
       this.raiseDBTVersionCouldNotBeDeterminedEvent();
+      this.telemetry.sendTelemetryError("versionCannotBeDetermined", {
+        message,
+      });
       return;
     }
     const installedVersion = installedVersionMatch[1];
@@ -229,6 +242,9 @@ export class DBTClient implements Disposable {
       console.warn(
         `The Regex IS_LATEST_VERSION ${DBTClient.LATEST_VERSION} is not working ...`,
       );
+      this.telemetry.sendTelemetryError("latestVersionCannotBeDetermined", {
+        message,
+      });
     }
     const latestVersion =
       latestVersionMatch !== null ? latestVersionMatch[1] : undefined;

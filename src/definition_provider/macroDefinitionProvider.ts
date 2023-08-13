@@ -13,13 +13,17 @@ import { MacroMetaMap } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
+import { TelemetryService } from "../telemetry";
 @provideSingleton(MacroDefinitionProvider)
 export class MacroDefinitionProvider implements DefinitionProvider, Disposable {
   private macroToLocationMap: Map<string, MacroMetaMap> = new Map();
   private static readonly IS_MACRO = /\w+\.?\w+/;
   private disposables: Disposable[] = [];
 
-  constructor(private dbtProjectContainer: DBTProjectContainer) {
+  constructor(
+    private dbtProjectContainer: DBTProjectContainer,
+    private telemetry: TelemetryService,
+  ) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event),
@@ -64,6 +68,7 @@ export class MacroDefinitionProvider implements DefinitionProvider, Disposable {
         const definition = this.getMacroDefinition(macroName, document.uri);
         if (definition !== undefined) {
           resolve(definition);
+          this.telemetry.sendTelemetryEvent("provideMacroDefinition");
           return;
         }
       }

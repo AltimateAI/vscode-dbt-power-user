@@ -183,6 +183,7 @@ export class QueryResultPanel implements WebviewViewProvider {
     raw_sql: string,
     compiled_sql: string,
   ) {
+    // TODO: telemetry
     await this._panel!.webview.postMessage({
       command: OutboundCommand.RenderError,
       ...(<RenderError>{ ...error, raw_sql, compiled_sql }),

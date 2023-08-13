@@ -11,6 +11,7 @@ import {
 } from "vscode";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { debounce, provideSingleton } from "../utils";
+import { TelemetryService } from "../telemetry";
 
 @provideSingleton(SqlPreviewContentProvider)
 export class SqlPreviewContentProvider
@@ -23,7 +24,10 @@ export class SqlPreviewContentProvider
   private subscriptions: Disposable;
   private watchers: FileSystemWatcher[] = [];
 
-  constructor(private dbtProjectContainer: DBTProjectContainer) {
+  constructor(
+    private dbtProjectContainer: DBTProjectContainer,
+    private telemetry: TelemetryService,
+  ) {
     this.subscriptions = workspace.onDidCloseTextDocument((compilationDoc) =>
       this.compilationDocs.delete(compilationDoc.uri.toString()),
     );
@@ -63,8 +67,10 @@ export class SqlPreviewContentProvider
       const query = readFileSync(fsPath, "utf8");
       const project = this.dbtProjectContainer.findDBTProject(Uri.file(fsPath));
       if (project === undefined) {
+        this.telemetry.sendTelemetryError("sqlPreviewNotLoadingError");
         return "Still loading dbt project, please try again later...";
       }
+      this.telemetry.sendTelemetryEvent("requestCompilation");
       return project.compileQuery(query);
     } catch (error: any) {
       return error;

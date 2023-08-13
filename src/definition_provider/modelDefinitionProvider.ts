@@ -15,6 +15,7 @@ import { NodeMetaMap } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
+import { TelemetryService } from "../telemetry";
 
 @provideSingleton(ModelDefinitionProvider)
 export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
@@ -23,7 +24,10 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
   private static readonly GET_DBT_MODEL = /(?!'|")([^(?!'|")]*)(?='|")/gi;
   private disposables: Disposable[] = [];
 
-  constructor(private dbtProjectContainer: DBTProjectContainer) {
+  constructor(
+    private dbtProjectContainer: DBTProjectContainer,
+    private telemetry: TelemetryService,
+  ) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event),
@@ -70,6 +74,9 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
             document.uri,
           );
           resolve(definition);
+          this.telemetry.sendTelemetryEvent("provideModelDefinition", {
+            type: "single",
+          });
           return;
         }
         if (dbtModel && dbtModel.length === 3) {
@@ -78,6 +85,9 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
             dbtModel[2],
             document.uri,
           );
+          this.telemetry.sendTelemetryEvent("provideModelDefinition", {
+            type: "dual",
+          });
           resolve(definition);
           return;
         }

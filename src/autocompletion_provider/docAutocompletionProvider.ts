@@ -14,6 +14,7 @@ import {
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
+import { TelemetryService } from "../telemetry";
 
 @provideSingleton(DocAutocompletionProvider)
 export class DocAutocompletionProvider
@@ -24,7 +25,10 @@ export class DocAutocompletionProvider
     new Map();
   private disposables: Disposable[] = [];
 
-  constructor(private dbtProjectContainer: DBTProjectContainer) {
+  constructor(
+    private dbtProjectContainer: DBTProjectContainer,
+    private telemetry: TelemetryService,
+  ) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
         this.onManifestCacheChanged(event),
@@ -81,6 +85,7 @@ export class DocAutocompletionProvider
   }
 
   private showDocNameAutocompletionItems(projectRootpath: Uri) {
+    this.telemetry.sendTelemetryEvent("provideDocAutocompletion");
     return this.docAutocompleteNameItemsMap.get(projectRootpath.fsPath);
   }
 }
