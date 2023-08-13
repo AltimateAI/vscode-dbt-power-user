@@ -117,7 +117,7 @@ export class DBTProject implements Disposable {
         ? substituteSettingsVariables(profilesDirOverrideSetting)
         : false) ||
       (profileExistsInProjectRoot ? this.projectRoot.fsPath : false) ||
-      process.env.DBT_PROFILES_DIR ||
+      this.PythonEnvironment.environmentVariables.DBT_PROFILES_DIR ||
       join(os.homedir(), ".dbt");
     this.dbtProfilesDir = this.dbtProfilesDir.replace("~", os.homedir());
     console.log("Using profile directory " + this.dbtProfilesDir);
