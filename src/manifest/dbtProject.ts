@@ -369,14 +369,17 @@ export class DBTProject implements Disposable {
     this.dbtProjectContainer.addCommandToQueue(docsGenerateCommand);
   }
 
-  async compileQuery(query: string): Promise<string> {
+  async compileQuery(query: string): Promise<string | undefined> {
     await this.blockUntilPythonBridgeIsInitalized();
 
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
         "Could not compile query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue.",
       );
-      throw Error("Could not initialize Python bridge");
+      this.telemetry.sendTelemetryError(
+        "compileQueryPythonBridgeNotInitializedError",
+      );
+      return;
     }
     this.telemetry.sendTelemetryEvent("compileQuery");
     try {
@@ -432,7 +435,10 @@ export class DBTProject implements Disposable {
       window.showErrorMessage(
         "Could not execute query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue.",
       );
-      throw Error("Could not initialize Python bridge");
+      this.telemetry.sendTelemetryError(
+        "generateSchemaYMLPythonBridgeNotInitializedError",
+      );
+      return;
     }
     try {
       // Create filePath based on model location
@@ -496,7 +502,9 @@ export class DBTProject implements Disposable {
       window.showErrorMessage(
         "Could not execute query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue.",
       );
-      throw Error("Could not initialize Python bridge");
+      this.telemetry.sendTelemetryError(
+        "generateModelPythonBridgeNotInitializedError",
+      );
     }
     try {
       const prefix = workspace
@@ -655,7 +663,6 @@ select * from renamed
       window.showErrorMessage(
         `Skipping project: could not parse dbt_project_config.yml at '${dbtProjectConfigLocation}': ${error}`,
       );
-      throw error;
     }
   }
 

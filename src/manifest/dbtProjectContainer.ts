@@ -183,7 +183,7 @@ export class DBTProjectContainer implements Disposable {
   private unregisterWorkspaceFolder(workspaceFolder: WorkspaceFolder): void {
     const folderToDelete = this.findDBTWorkspaceFolder(workspaceFolder.uri);
     if (folderToDelete === undefined) {
-      throw Error("dbtWorkspaceFolder not registered");
+      return;
     }
     this.dbtWorkspaceFolders.splice(
       this.dbtWorkspaceFolders.indexOf(folderToDelete),
