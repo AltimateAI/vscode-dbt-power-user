@@ -49,7 +49,7 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
     position: Position,
     token: CancellationToken,
   ): ProviderResult<Definition | DefinitionLink[]> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const hover = document.getText(document.getWordRangeAtPosition(position));
       const word = document.getText(
         document.getWordRangeAtPosition(
@@ -92,7 +92,7 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
           return;
         }
       }
-      reject();
+      resolve(undefined);
     });
   }
 

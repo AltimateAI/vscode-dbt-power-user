@@ -51,7 +51,7 @@ export class SourceDefinitionProvider
     position: Position,
     token: CancellationToken,
   ): ProviderResult<Definition | DefinitionLink[]> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const hover = document.getText(document.getWordRangeAtPosition(position));
       const range = document.getWordRangeAtPosition(
         position,
@@ -68,17 +68,17 @@ export class SourceDefinitionProvider
         !linePrefix.includes("source") ||
         hover === "source"
       ) {
-        reject();
+        resolve(undefined);
         return;
       }
 
       const source = word.match(SourceDefinitionProvider.GET_SOURCE_INFO);
       if (source === null || source === undefined) {
-        reject();
+        resolve(undefined);
         return;
       }
       if (source.length < 2) {
-        reject();
+        resolve(undefined);
         return;
       }
       const definition = this.getSourceDefinition(

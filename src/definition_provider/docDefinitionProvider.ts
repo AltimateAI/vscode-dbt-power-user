@@ -46,7 +46,7 @@ export class DocDefinitionProvider implements DefinitionProvider, Disposable {
     document: TextDocument,
     position: Position,
   ): ProviderResult<Definition | DefinitionLink[]> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const range = document.getWordRangeAtPosition(
         position,
         DocDefinitionProvider.IS_DOC,
@@ -59,7 +59,7 @@ export class DocDefinitionProvider implements DefinitionProvider, Disposable {
 
         const docName = word.match(DocDefinitionProvider.GET_DOC_INFO);
         if (docName === null || docName === undefined) {
-          reject();
+          resolve(undefined);
           return;
         }
 
@@ -75,7 +75,7 @@ export class DocDefinitionProvider implements DefinitionProvider, Disposable {
           return;
         }
       }
-      reject();
+      resolve(undefined);
     });
   }
 
