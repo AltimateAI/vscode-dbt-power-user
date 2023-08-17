@@ -67,40 +67,39 @@ export class DBTClient implements Disposable {
       inProgress: true,
     });
     this.dbtInstalled = undefined;
-
-    // check for dbt installed
-    const checkDBTInstalledProcess = await this.executeCommand(
-      this.dbtCommandFactory.createVerifyDbtInstalledCommand(),
-    );
-
     try {
+      // check for dbt installed
+      const checkDBTInstalledProcess = await this.executeCommand(
+        this.dbtCommandFactory.createVerifyDbtInstalledCommand(),
+      );
       await checkDBTInstalledProcess.complete();
       this.dbtInstalled = true;
     } catch (error) {
+      this.telemetry.sendTelemetryError("dbtInstalledCheckError", error);
       this.dbtInstalled = false;
       this.raiseDBTNotInstalledEvent();
       return;
     }
 
-    // Don't block on version check
-    const checkDBTVersionProcess = await this.executeCommand(
-      this.dbtCommandFactory.createVersionCommand(),
-    );
-    const timeoutCmd = new Promise((resolve, _) => {
-      setTimeout(resolve, 10000, "Could not connect");
-    });
     let output;
     try {
+      // Don't block on version check
+      const checkDBTVersionProcess = await this.executeCommand(
+        this.dbtCommandFactory.createVersionCommand(),
+      );
+      const timeoutCmd = new Promise((resolve, _) => {
+        setTimeout(resolve, 10000, "Could not connect");
+      });
       output = (await Promise.race([
         checkDBTVersionProcess.complete(),
         timeoutCmd,
       ])) as string;
-    } catch (err) {
-      if (typeof err === "string" && err.match(DBTClient.IS_INSTALLED)) {
-        output = err as string;
+    } catch (error) {
+      if (typeof error === "string" && error.match(DBTClient.IS_INSTALLED)) {
+        output = error as string;
+      } else {
+        this.telemetry.sendTelemetryError("dbtVersionCheckError", error);
       }
-    } finally {
-      checkDBTVersionProcess.dispose();
     }
     if (output !== undefined) {
       const stripAnsi = require("strip-ansi");
@@ -135,7 +134,6 @@ export class DBTClient implements Disposable {
   ) {
     const completedProcess = await this.executeCommand(command, token);
     completedProcess.completeWithTerminalOutput(this.terminal);
-    completedProcess.dispose();
   }
 
   public async executeCommand(
@@ -157,10 +155,9 @@ export class DBTClient implements Disposable {
       !this.pythonEnvironment.pythonPath ||
       !this.pythonEnvironment.environmentVariables
     ) {
-      console.error(
+      throw Error(
         "Could not launch command as python environment is not available",
       );
-      return Promise.reject();
     }
 
     return this.commandProcessExecutionFactory.createCommandProcessExecution(

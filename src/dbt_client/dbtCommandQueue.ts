@@ -1,5 +1,6 @@
 import { CancellationToken, ProgressLocation, window } from "vscode";
 import { provideSingleton } from "../utils";
+import { TelemetryService } from "../telemetry";
 
 interface Command {
   command: (token: CancellationToken) => Promise<void>;
@@ -10,6 +11,8 @@ interface Command {
 export class DBTCommandQueue {
   private queue: Command[] = [];
   private running = false;
+
+  constructor(private telemetry: TelemetryService) {}
 
   addToQueue(command: Command) {
     this.queue.push(command);
@@ -30,7 +33,16 @@ export class DBTCommandQueue {
           title: statusMessage,
         },
         async (_, token) => {
-          await command(token);
+          try {
+            await command(token);
+          } catch (error) {
+            window.showErrorMessage(
+              `Could not run command '${statusMessage}': ` + error,
+            );
+            this.telemetry.sendTelemetryError("queueRunCommandError", error, {
+              command: statusMessage,
+            });
+          }
         },
       );
 

@@ -17,28 +17,33 @@ export class CommandProcessExecutionFactory {
   }
 }
 
-export class CommandProcessExecution implements Disposable {
-  private readonly commandProcess: ChildProcess;
+export class CommandProcessExecution {
   private disposables: Disposable[] = [];
 
   constructor(
-    command: string,
-    args?: string[],
-    cwd?: string,
-    token?: CancellationToken,
-    envVars?: EnvironmentVariables,
-  ) {
-    this.commandProcess = spawn(command, args, { cwd: cwd, env: envVars });
-    if (token !== undefined) {
+    private command: string,
+    private args?: string[],
+    private cwd?: string,
+    private token?: CancellationToken,
+    private envVars?: EnvironmentVariables,
+  ) {}
+
+  private spawn() {
+    const proc = spawn(this.command, this.args, {
+      cwd: this.cwd,
+      env: this.envVars,
+    });
+    if (this.token !== undefined) {
       this.disposables.push(
-        token.onCancellationRequested(() => {
-          this.commandProcess.kill("SIGINT");
+        this.token.onCancellationRequested(() => {
+          proc.kill("SIGINT");
         }),
       );
     }
+    return proc;
   }
 
-  dispose() {
+  private dispose() {
     while (this.disposables.length) {
       const x = this.disposables.pop();
       if (x) {
@@ -49,18 +54,19 @@ export class CommandProcessExecution implements Disposable {
 
   async complete(): Promise<string> {
     return new Promise<string>((resolve, reject) => {
+      const commandProcess = this.spawn();
       let stdoutBuffer = "";
       let stderrBuffer = "";
-      this.commandProcess.stdout!.on(
+      commandProcess.stdout!.on(
         "data",
         (chunk) => (stdoutBuffer += chunk.toString()),
       );
-      this.commandProcess.stderr!.on(
+      commandProcess.stderr!.on(
         "data",
         (chunk) => (stderrBuffer += chunk.toString()),
       );
 
-      this.commandProcess.once("close", () => {
+      commandProcess.once("close", () => {
         if (!stdoutBuffer) {
           console.warn(stderrBuffer);
           reject(`${stderrBuffer}`);
@@ -68,7 +74,7 @@ export class CommandProcessExecution implements Disposable {
         resolve(stdoutBuffer);
       });
 
-      this.commandProcess.once("error", (error) => {
+      commandProcess.once("error", (error) => {
         console.warn(error);
         reject(`${error}`);
       });
@@ -77,18 +83,20 @@ export class CommandProcessExecution implements Disposable {
 
   async completeWithTerminalOutput(terminal: DBTTerminal): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.commandProcess.stdout!.on("data", (chunk) => {
+      const commandProcess = this.spawn();
+      commandProcess.stdout!.on("data", (chunk) => {
         terminal.log(`${this.formatText(chunk.toString())}`);
       });
-      this.commandProcess.stderr!.on("data", (chunk) => {
+      commandProcess.stderr!.on("data", (chunk) => {
         terminal.log(`${this.formatText(chunk.toString())}`);
       });
-      this.commandProcess.once("close", () => {
+      commandProcess.once("close", () => {
         terminal.log("");
         resolve();
+        this.dispose();
       });
 
-      this.commandProcess.once("error", (error) => {
+      commandProcess.once("error", (error) => {
         reject(`Error occurred during process execution: ${error}`);
       });
     });
