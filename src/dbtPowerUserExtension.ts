@@ -5,12 +5,11 @@ import { VSCodeCommands } from "./commands";
 import { ContentProviders } from "./content_provider";
 import { DefinitionProviders } from "./definition_provider";
 import { DocumentFormattingEditProviders } from "./document_formatting_edit_provider";
-import { ModelGraphWebviewViewProviders } from "./lineage_provider";
 import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
 import { StatusBars } from "./statusbar";
 import { TreeviewProviders } from "./treeview_provider";
 import { provideSingleton } from "./utils";
-import { WebviewViewProviders } from "./webview_view";
+import { WebviewViewProviders } from "./webview_provider";
 import { TelemetryService } from "./telemetry";
 
 @provideSingleton(DBTPowerUserExtension)
@@ -33,7 +32,6 @@ export class DBTPowerUserExtension implements Disposable {
     private contentProviders: ContentProviders,
     private codeLensProviders: CodeLensProviders,
     private documentFormattingEditProviders: DocumentFormattingEditProviders,
-    private modelGraphWebviewViewProviders: ModelGraphWebviewViewProviders,
     private statusBars: StatusBars,
     private telemetry: TelemetryService,
   ) {
@@ -47,7 +45,6 @@ export class DBTPowerUserExtension implements Disposable {
       this.codeLensProviders,
       this.vscodeCommands,
       this.documentFormattingEditProviders,
-      this.modelGraphWebviewViewProviders,
       this.statusBars,
       this.telemetry,
     );

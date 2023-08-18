@@ -12,7 +12,7 @@ import { DBTProjectLogFactory } from "./manifest/modules/dbtProjectLog";
 import { SourceFileWatchersFactory } from "./manifest/modules/sourceFileWatchers";
 import { TargetWatchersFactory } from "./manifest/modules/targetWatchers";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
-import { QueryResultPanel } from "./webview_view/queryResultPanel";
+import { QueryResultPanel } from "./webview_provider/queryResultPanel";
 import { TelemetryService } from "./telemetry";
 
 export const container = new Container();

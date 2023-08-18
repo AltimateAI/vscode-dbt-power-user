@@ -26,7 +26,7 @@ import {
   setupWatcherHandler,
   substituteSettingsVariables,
 } from "../utils";
-import { QueryResultPanel } from "../webview_view/queryResultPanel";
+import { QueryResultPanel } from "../webview_provider/queryResultPanel";
 import { DBTProjectContainer } from "./dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
