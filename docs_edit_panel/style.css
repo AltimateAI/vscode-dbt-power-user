@@ -1,0 +1,28 @@
+#app {
+  display: flex;
+  flex-direction: column;
+}
+
+#docs-form {
+  display: grid;
+  grid-auto-flow: row;
+  grid-row-gap: 1.5rem;
+}
+
+#columns-form {
+  display: grid;
+  grid-auto-flow: row;
+  grid-row-gap: 1.5rem;
+}
+
+#submit-button {
+  width: fit-content;
+}
+
+@media screen and (min-width: 1024px) {
+  #app {
+    padding: 0 8rem;
+    max-width: 1024px;
+    margin: 0 auto;
+  }
+}

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <!-- These are injected at HTML render time
+    __ROOT__            [path to resource directory]
+    __THEME__           ["light" | "dark"]
+    __NONCE__           [security]
+    __CSPSOURCE__       [webview Content Secure Policy source]
+ -->
+
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; img-src __CSPSOURCE__ https:; style-src __CSPSOURCE__ 'unsafe-inline'; script-src 'strict-dynamic' 'unsafe-eval' 'nonce-__NONCE__';"
+    />
+
+    <title>Documentation Editor</title>
+
+    <!-- These are made available for main.js -->
+    <script nonce="__NONCE__" type="importmap">
+      {
+        "imports": {
+          "vue": "__ROOT__/assets/vue.esm-browser.prod.js"
+        }
+      }
+    </script>
+
+    <script
+      nonce="__NONCE__"
+      type="module"
+      src="__ROOT__/assets/toolkit.min.js"
+    ></script>
+    <link nonce="__NONCE__" rel="stylesheet" href="__ROOT__/style.css" />
+  </head>
+  <body id="app">
+    <section id="docs-form">
+      <vscode-text-area
+        v-model="modelDocumentation"
+        placeholder="Describe your model"
+        resize="vertical"
+        rows="5"
+        ><h2>Documentation for {{ modelName }}</h2></vscode-text-area
+      >
+      <vscode-button appearance="secondary" @click="generateDocsForModel()"
+        >Use AI to generate documentation</vscode-button
+      >
+      <h2>Columns</h2>
+      <section id="columns-form" v-for="column in columns">
+        <vscode-text-area
+          v-model="column.description"
+          placeholder="Describe {{ column.name }}"
+          resize="vertical"
+          rows="5"
+          ><h3>{{ column.name }} ({{ column.type }})</h3></vscode-text-area
+        >
+        <vscode-button
+          appearance="secondary"
+          @click="generateDocsForColumn(column.name)"
+          >Use AI to generate documentation</vscode-button
+        >
+      </section>
+
+      <vscode-button id="submit-button">Save</vscode-button>
+    </section>
+    <script nonce="__NONCE__" type="module" src="__ROOT__/main.js"></script>
+  </body>
+</html>

@@ -482,11 +482,11 @@ class DbtProject:
         if self.dbt is not None:
             self.dbt.nodes.pop(f"{NodeType.SqlOperation}.{self.project_name}.{name}", None)
 
-    def get_relation(self, database: str, schema: str, name: str) -> Optional["BaseRelation"]:
+    def get_relation(self, database:  Optional[str], schema:  Optional[str], name: Optional[str]) -> Optional["BaseRelation"]:
         """Wrapper for `adapter.get_relation`"""
         return self.adapter.get_relation(database, schema, name)
 
-    def create_relation(self, database: str, schema: str, name: str) -> "BaseRelation":
+    def create_relation(self, database: Optional[str], schema: Optional[str], name: Optional[str]) -> "BaseRelation":
         """Wrapper for `adapter.Relation.create`"""
         return self.adapter.Relation.create(database, schema, name)
 

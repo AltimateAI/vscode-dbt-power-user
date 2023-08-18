@@ -449,6 +449,31 @@ export class DBTProject implements Disposable {
     return yamlString;
   }
 
+  async getColumnsInRelation(
+    modelName: string,
+  ): Promise<{ [key: string]: string }[]> {
+    await this.blockUntilPythonBridgeIsInitalized();
+    if (!this.pythonBridgeInitialized) {
+      window.showErrorMessage(
+        "Could not execute query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue.",
+      );
+      this.telemetry.sendTelemetryError(
+        "getColumnsInRelationPythonBridgeNotInitializedError",
+      );
+      // TODO: improve this, the errors should be captured at a higher level
+      return [];
+    }
+    // Get database and schema
+    const refNode = (await this.python?.lock(
+      (python) => python!`to_dict(project.get_ref_node(${modelName}))`,
+    )) as ResolveReferenceResult;
+    // Get columns
+    return await this.python?.lock(
+      (python) =>
+        python!`to_dict(project.get_columns_in_relation(project.create_relation(${refNode.database}, ${refNode.schema}, ${modelName})))`,
+    );
+  }
+
   async generateSchemaYML(modelPath: Uri, modelName: string) {
     await this.blockUntilPythonBridgeIsInitalized();
     if (!this.pythonBridgeInitialized) {
@@ -470,16 +495,7 @@ export class DBTProject implements Disposable {
         this.telemetry.sendTelemetryEvent("generateSchemaYML", {
           adapter: this.adapterType,
         });
-
-        // Get database and schema
-        const refNode = (await this.python?.lock(
-          (python) => python!`to_dict(project.get_ref_node(${modelName}))`,
-        )) as ResolveReferenceResult;
-        // Get columns
-        const columnsInRelation = (await this.python?.lock(
-          (python) =>
-            python!`to_dict(project.get_columns_in_relation(project.create_relation(${refNode.database}, ${refNode.schema}, ${modelName})))`,
-        )) as any[];
+        const columnsInRelation = await this.getColumnsInRelation(modelName);
         // Generate yml file content
         const fileContents = this.createYMLContent(
           columnsInRelation,
