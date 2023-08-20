@@ -2,7 +2,6 @@ import { readFileSync } from "fs";
 import {
   CancellationToken,
   ColorThemeKind,
-  commands,
   Disposable,
   ProgressLocation,
   TextEditor,
@@ -23,11 +22,24 @@ import { provideSingleton } from "../utils";
 import path = require("path");
 import { PythonException } from "python-bridge";
 import { TelemetryService } from "../telemetry";
+import { AltimateRequest } from "../altimate";
 
 interface DBTDocumentation {
+  compiledSql: string;
   modelName: string;
   modelDocumentation: string;
-  columns: any[];
+  columns: {
+    name: string;
+    type: string;
+    description: string;
+  }[];
+}
+
+interface AltimateDocsGenerateResponse {
+  column_descriptions: {
+    column_name: string;
+    column_description: string;
+  }[];
 }
 
 @provideSingleton(DocsEditViewPanel)
@@ -40,6 +52,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
+    private altimateRequest: AltimateRequest,
     private telemetry: TelemetryService,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
@@ -93,9 +106,17 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       }
       const docColumns = currentNode.columns;
       // merge metadata and manifest
+      const compiledSql = await project.compileQuery(
+        window.activeTextEditor.document.getText(),
+      );
+      if (compiledSql === undefined) {
+        window.showErrorMessage("Could not compile query, aborting generation");
+        return;
+      }
       return {
         modelName,
         modelDocumentation: currentNode.description,
+        compiledSql: compiledSql,
         columns: columnsInRelation.map((column) => {
           return {
             name: column.column,
@@ -163,13 +184,14 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
   private setupWebviewOptions(context: WebviewViewResolveContext) {
     this._panel!.title = "";
-    this._panel!.description = "View dbt graph";
+    this._panel!.description = "Edit model documentation";
     this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
   }
 
   private setupWebviewHooks(context: WebviewViewResolveContext) {
     this._panel!.webview.onDidReceiveMessage(
       async (message) => {
+        console.log(message);
         switch (message.command) {
           case "generateDocsForModel":
             window.withProgress(
@@ -191,7 +213,35 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 cancellable: false,
               },
               async () => {
-                await new Promise((timer) => setTimeout(timer, 3000));
+                const generateDocsForColumn =
+                  await this.altimateRequest.fetch<AltimateDocsGenerateResponse>(
+                    "dbt/v1",
+                    {
+                      method: "POST",
+                      body: {
+                        columns: [message.columnName],
+                        dbt_model: {
+                          model_name: this.documentation?.modelName,
+                          model_description:
+                            this.documentation?.modelDocumentation,
+                          compiled_sql: this.documentation?.compiledSql,
+                          schedule: null,
+                          columns: this.documentation?.columns.map(
+                            (column) => ({
+                              column_name: column.name,
+                              description: column.description,
+                              data_type: column.type,
+                              modelName: this.documentation?.modelName,
+                            }),
+                          ),
+                          dependencies: [],
+                        },
+                        gen_model_description: false,
+                      },
+                    },
+                    120000, // TODO: this should be a more realistic timeout
+                  );
+                console.log(generateDocsForColumn);
               },
             );
             break;
