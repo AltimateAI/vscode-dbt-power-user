@@ -46,6 +46,19 @@
     ],
     "configuration": [
       {
+        "title": "Altimate AI",
+        "properties": {
+          "dbt.altimateInstanceName": {
+            "type": "string",
+            "description": "Sign up for an altimate account to unlock ai features. Add the Altimate Instance Name here to enable the features."
+          },
+          "dbt.altimateAiKey": {
+            "type": "string",
+            "description": "Sign up for an altimate account to unlock ai features. Add the Altimate AI Key here to enable the features."
+          }
+        }
+      },
+      {
         "title": "dbt Power User",
         "properties": {
           "dbt.dbtPythonPathOverride": {
@@ -474,6 +487,8 @@
     "dayjs": "^1.11.9",
     "inversify": "^6.0.1",
     "inversify-binding-decorators": "^4.0.0",
+    "node-abort-controller": "^3.1.1",
+    "node-fetch": "^3.3.2",
     "parse-diff": "^0.11.1",
     "python-bridge": "github:mdesmet/node-python-bridge#feat/detached",
     "reflect-metadata": "^0.1.13",
