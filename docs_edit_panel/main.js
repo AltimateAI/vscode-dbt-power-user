@@ -11,6 +11,7 @@ const app = createApp({
       modelName: "",
       modelDocumentation: "",
       columns: [],
+      columnsFromDatabase: [],
     };
   },
   methods: {
@@ -25,6 +26,9 @@ const app = createApp({
     async generateDocsForColumn(columnName) {
       await executeCommand("generateDocsForColumn", { columnName });
     },
+    async fetchMetadataFromDatabase() {
+      await executeCommand("fetchMetadataFromDatabase");
+    },
   },
   mounted() {
     window.addEventListener("message", (event) => {
@@ -34,10 +38,6 @@ const app = createApp({
         this.updateDocs(event.data.docs);
       }
     });
-    window.addEventListener("resize", this.handleResize);
-  },
-  unmounted() {
-    window.removeEventListener("resize", this.handleResize);
   },
 });
 

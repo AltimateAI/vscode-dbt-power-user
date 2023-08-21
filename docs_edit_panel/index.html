@@ -46,11 +46,11 @@
       <vscode-button appearance="secondary" @click="generateDocsForModel()"
         >Use AI to generate documentation</vscode-button
       >
-      <h2>Columns</h2>
+      <h2>Documented columns</h2>
       <section id="columns-form" v-for="column in columns">
         <vscode-text-area
           v-model="column.description"
-          placeholder="Describe {{ column.name }}"
+          :placeholder="'Describe ' + column.name"
           resize="vertical"
           rows="5"
           ><h3>{{ column.name }} ({{ column.type }})</h3></vscode-text-area
@@ -61,7 +61,21 @@
           >Use AI to generate documentation</vscode-button
         >
       </section>
-
+      <h2>Undocumented columns from database</h2>
+      <section id="columns-form" v-for="column in columnsFromDatabase">
+        <vscode-text-area
+          v-model="column.description"
+          :placeholder="'Describe ' + column.name"
+          resize="vertical"
+          rows="5"
+          ><h3>{{ column.name }} ({{ column.type }})</h3></vscode-text-area
+        >
+        <vscode-button
+          appearance="secondary"
+          @click="generateDocsForColumn(column.name)"
+          >Use AI to generate documentation</vscode-button
+        >
+      </section>
       <vscode-button id="submit-button">Save</vscode-button>
     </section>
     <script nonce="__NONCE__" type="module" src="__ROOT__/main.js"></script>
