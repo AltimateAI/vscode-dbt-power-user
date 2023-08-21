@@ -213,37 +213,45 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 cancellable: false,
               },
               async () => {
-                const generateDocsForColumn =
-                  await this.altimateRequest.fetch<AltimateDocsGenerateResponse>(
-                    "dbt/v1",
-                    {
-                      method: "POST",
-                      body: {
-                        columns: [message.columnName],
-                        dbt_model: {
-                          model_name: this.documentation?.modelName,
-                          model_description:
-                            this.documentation?.modelDocumentation,
-                          compiled_sql: this.documentation?.compiledSql,
-                          schedule: null,
-                          columns: this.documentation?.columns.map(
-                            (column) => ({
-                              column_name: column.name,
-                              description: column.description,
-                              data_type: column.type,
-                              modelName: this.documentation?.modelName,
-                            }),
-                          ),
-                          dependencies: [],
+                try {
+                  const generateDocsForColumn =
+                    await this.altimateRequest.fetch<AltimateDocsGenerateResponse>(
+                      "dbt/v1",
+                      {
+                        method: "POST",
+                        body: {
+                          columns: [message.columnName],
+                          dbt_model: {
+                            model_name: this.documentation?.modelName,
+                            model_description:
+                              this.documentation?.modelDocumentation,
+                            compiled_sql: this.documentation?.compiledSql,
+                            schedule: null,
+                            columns: this.documentation?.columns.map(
+                              (column) => ({
+                                column_name: column.name,
+                                description: column.description,
+                                data_type: column.type,
+                                modelName: this.documentation?.modelName,
+                              }),
+                            ),
+                            dependencies: [],
+                          },
+                          gen_model_description: false,
                         },
-                        gen_model_description: false,
                       },
-                    },
-                    120000, // TODO: this should be a more realistic timeout
+                      120000, // TODO: this should be a more realistic timeout
+                    );
+                  console.log(generateDocsForColumn);
+                } catch (error) {
+                  window.showErrorMessage(
+                    "An unexpected error occurred while generating documentation: " +
+                      error,
                   );
-                console.log(generateDocsForColumn);
+                }
               },
             );
+
             break;
         }
       },

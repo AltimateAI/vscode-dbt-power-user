@@ -1,8 +1,8 @@
 import { createApp } from "vue";
 const vscode = acquireVsCodeApi();
 
-async function executeCommand(command, config) {
-  return await vscode.postMessage({ command, ...config });
+async function executeCommand(command, args) {
+  return await vscode.postMessage({ command, ...args });
 }
 
 const app = createApp({
@@ -23,7 +23,7 @@ const app = createApp({
       await executeCommand("generateDocsForModel");
     },
     async generateDocsForColumn(columnName) {
-      await executeCommand("generateDocsForColumn", columnName);
+      await executeCommand("generateDocsForColumn", { columnName });
     },
   },
   mounted() {
