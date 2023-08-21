@@ -29,7 +29,9 @@ class AltimateRequestTimeoutError extends AltimateRequestError {
 
 @provideSingleton(AltimateRequest)
 export class AltimateRequest {
-  private static ALTIMATE_URL = "https://api.tryaltimate.com";
+  private static ALTIMATE_URL = workspace
+    .getConfiguration("dbt")
+    .get<string>("altimateUrl", "https://api.tryaltimate.com");
 
   private getConfig(): AltimateConfig | undefined {
     const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
@@ -59,7 +61,8 @@ export class AltimateRequest {
 
     let response;
     try {
-      response = await fetch(`${AltimateRequest.ALTIMATE_URL}/${endpoint}`, {
+      const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
+      response = await fetch(url, {
         method: "GET",
         ...fetchArgs,
         signal: abortController.signal,
