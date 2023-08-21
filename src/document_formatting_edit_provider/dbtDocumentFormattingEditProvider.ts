@@ -39,7 +39,8 @@ export class DbtDocumentFormattingEditProvider
       .getConfiguration("dbt")
       .get<string[]>("sqlFmtAdditionalParams", [])
       .join(" ")
-      .split(" ");
+      .split(" ")
+      .filter((s) => s !== "");
 
     const sqlFmtArgs = [
       "--diff",
