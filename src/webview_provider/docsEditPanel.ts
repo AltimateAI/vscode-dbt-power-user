@@ -24,15 +24,17 @@ import { PythonException } from "python-bridge";
 import { TelemetryService } from "../telemetry";
 import { AltimateRequest } from "../altimate";
 
+interface DBTDocumentationColumn {
+  name: string;
+  type: string;
+  description: string;
+}
+
 interface DBTDocumentation {
   compiledSql: string;
   modelName: string;
   modelDocumentation: string;
-  columns: {
-    name: string;
-    type: string;
-    description: string;
-  }[];
+  columns: DBTDocumentationColumn[];
 }
 
 interface AltimateDocsGenerateResponse {
@@ -219,7 +221,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       "dbt/v1",
                       {
                         method: "POST",
-                        body: {
+                        body: JSON.stringify({
                           columns: [message.columnName],
                           dbt_model: {
                             model_name: this.documentation?.modelName,
@@ -238,11 +240,32 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                             dependencies: [],
                           },
                           gen_model_description: false,
-                        },
+                        }),
                       },
                       120000, // TODO: this should be a more realistic timeout
                     );
-                  console.log(generateDocsForColumn);
+
+                  const columns: DBTDocumentationColumn[] =
+                    this.documentation!.columns.reduce((agg, current) => {
+                      const match =
+                        generateDocsForColumn!.column_descriptions.find(
+                          (col) => col.column_name === current.name,
+                        );
+                      if (match === undefined) {
+                        throw Error("TODO");
+                      }
+                      agg.push({
+                        ...current,
+                        description: match?.column_description,
+                      });
+                      return agg;
+                    }, [] as DBTDocumentationColumn[]);
+
+                  this.documentation = {
+                    ...this.documentation!,
+                    columns: columns,
+                  };
+                  this.transmitData();
                 } catch (error) {
                   window.showErrorMessage(
                     "An unexpected error occurred while generating documentation: " +

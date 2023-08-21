@@ -69,6 +69,7 @@ export class AltimateRequest {
         headers: {
           "x-tenant": config.instance,
           Authorization: "Bearer " + config.key,
+          "Content-Type": "application/json",
         },
       });
       if (response.status === 401) {
