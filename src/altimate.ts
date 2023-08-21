@@ -76,7 +76,7 @@ export class AltimateRequest {
       }
     } catch (e) {
       clearTimeout(timeoutHandler);
-      throw new AltimateRequestTimeoutError();
+      throw e;
     }
     clearTimeout(timeoutHandler);
     return (await response.json()) as T;
