@@ -251,12 +251,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                         generateDocsForColumn!.column_descriptions.find(
                           (col) => col.column_name === current.name,
                         );
-                      if (match === undefined) {
-                        throw Error("TODO");
-                      }
                       agg.push({
                         ...current,
-                        description: match?.column_description,
+                        description: match!.column_description,
                       });
                       return agg;
                     }, [] as DBTDocumentationColumn[]);
