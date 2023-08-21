@@ -245,15 +245,27 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       120000, // TODO: this should be a more realistic timeout
                     );
 
+                  if (
+                    !generateDocsForColumn ||
+                    !generateDocsForColumn.column_descriptions
+                  ) {
+                    // nothing to do if nothing happened
+                    return;
+                  }
+                  //doing this so we dont have to loop over the dict every time
+                  const col_desc_dict = Object.fromEntries(
+                    generateDocsForColumn!.column_descriptions!.map((d) => [
+                      d.column_name,
+                      d.column_description,
+                    ]),
+                  );
+
                   const columns: DBTDocumentationColumn[] =
                     this.documentation!.columns.reduce((agg, current) => {
-                      const match =
-                        generateDocsForColumn!.column_descriptions.find(
-                          (col) => col.column_name === current.name,
-                        );
                       agg.push({
                         ...current,
-                        description: match!.column_description,
+                        description:
+                          col_desc_dict[current.name] || current.description,
                       });
                       return agg;
                     }, [] as DBTDocumentationColumn[]);
