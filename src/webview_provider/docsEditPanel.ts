@@ -113,6 +113,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         window.activeTextEditor.document.getText(),
       );
       if (compiledSql === undefined) {
+        this.transmitError();
         window.showErrorMessage("Could not compile query, aborting generation");
         return;
       }
@@ -132,18 +133,26 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       };
     } catch (exc) {
       if (exc instanceof PythonException) {
+        this.transmitError();
         window.showErrorMessage(
           `An error occured while fetching metadata for ${modelName} from the database: ` +
             exc.exception.message,
         );
         return;
       }
+      this.transmitError();
       window.showErrorMessage(
         `An error occured while fetching metadata for ${modelName} from the database: ` +
           exc,
       );
       this.telemetry.sendTelemetryError("docsEditPanelLoadError", exc);
     }
+  }
+
+  private async transmitError() {
+    await this._panel!.webview.postMessage({
+      command: "renderError",
+    });
   }
 
   private async transmitData() {
@@ -247,6 +256,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   };
                   this.transmitData();
                 } catch (error) {
+                  this.transmitError();
                   window.showErrorMessage(
                     "An unexpected error occurred while generating documentation: " +
                       error,

@@ -19,6 +19,17 @@
   width: fit-content;
 }
 
+#spinner {
+  display: block;
+  position: fixed;
+  min-width: 25px;
+  width: 25px;
+  height: 25px;
+  top: 50%;
+  left: 50%;
+  z-index: 99;
+}
+
 @media screen and (min-width: 1024px) {
   #app {
     padding: 0 8rem;
