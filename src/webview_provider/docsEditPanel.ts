@@ -38,10 +38,11 @@ interface DBTDocumentation {
 }
 
 interface AltimateDocsGenerateResponse {
-  column_descriptions: {
+  column_descriptions?: {
     column_name: string;
     column_description: string;
   }[];
+  model_description?: string;
 }
 
 @provideSingleton(DocsEditViewPanel)
@@ -203,7 +204,54 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 cancellable: false,
               },
               async () => {
-                await new Promise((timer) => setTimeout(timer, 3000));
+                try {
+                  const generateDocsForModel =
+                    await this.altimateRequest.fetch<AltimateDocsGenerateResponse>(
+                      "dbt/v1",
+                      {
+                        method: "POST",
+                        body: JSON.stringify({
+                          columns: [],
+                          dbt_model: {
+                            model_name: this.documentation?.modelName,
+                            model_description:
+                              this.documentation?.modelDocumentation,
+                            compiled_sql: this.documentation?.compiledSql,
+                            schedule: null,
+                            columns: this.documentation?.columns.map(
+                              (column) => ({
+                                column_name: column.name,
+                                description: column.description,
+                                data_type: column.type,
+                                modelName: this.documentation?.modelName,
+                              }),
+                            ),
+                            dependencies: [],
+                          },
+                          gen_model_description: true,
+                        }),
+                      },
+                      120000, // TODO: this should be a more realistic timeout
+                    );
+
+                  if (
+                    !generateDocsForModel ||
+                    !generateDocsForModel.model_description
+                  ) {
+                    // nothing to do if nothing happened
+                    return;
+                  }
+                  this.documentation = {
+                    ...this.documentation!,
+                    modelDocumentation: generateDocsForModel.model_description,
+                  };
+                  this.transmitData();
+                } catch (error) {
+                  window.showErrorMessage(
+                    "An unexpected error occurred while generating documentation: " +
+                      error,
+                  );
+                }
               },
             );
             break;
