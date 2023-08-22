@@ -21,6 +21,9 @@ const app = createApp({
       this.modelDocumentation = docs.modelDocumentation;
       this.columns = docs.columns;
     },
+    showRating(columName) {
+      this.$refs["rating_" + columName][0].style.display = "grid";
+    },
     async generateDocsForModel() {
       this.pending_req += 1;
       await executeCommand("generateDocsForModel");

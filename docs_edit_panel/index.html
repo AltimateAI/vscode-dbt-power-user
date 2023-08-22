@@ -13,7 +13,7 @@
 
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; img-src __CSPSOURCE__ https:; style-src __CSPSOURCE__ 'unsafe-inline'; script-src 'strict-dynamic' 'unsafe-eval' 'nonce-__NONCE__';"
+      content="default-src 'none'; font-src __CSPSOURCE__; img-src __CSPSOURCE__ https:; style-src __CSPSOURCE__ 'unsafe-inline'; script-src 'strict-dynamic' 'unsafe-eval' 'nonce-__NONCE__';"
     />
 
     <title>Documentation Editor</title>
@@ -33,6 +33,7 @@
       src="__ROOT__/assets/toolkit.min.js"
     ></script>
     <link nonce="__NONCE__" rel="stylesheet" href="__ROOT__/style.css" />
+    <link nonce="__NONCE__" rel="stylesheet" href="__ROOT__/codicon.css" />
   </head>
   <body id="app">
     <img v-show="isLoading" id="spinner" src="__ROOT__/assets/spinner.gif" />
@@ -44,38 +45,67 @@
         rows="5"
         ><h2>Documentation for {{ modelName }}</h2></vscode-text-area
       >
-      <vscode-button appearance="secondary" @click="generateDocsForModel()"
-        >Use AI to generate documentation</vscode-button
-      >
-      <h2>Documented columns</h2>
+      <div class="column-actions">
+        <vscode-button @click="generateDocsForModel()"
+          >Generate documentation<span
+            slot="start"
+            class="codicon codicon-wand"
+          ></span
+        ></vscode-button>
+      </div>
+      <vscode-divider></vscode-divider>
+      <h2>Columns</h2>
+      <vscode-button @click="fetchMetadataFromDatabase()"
+        >Synchronize columns with database<span
+          slot="start"
+          class="codicon codicon-sync"
+        ></span>
+      </vscode-button>
       <section id="columns-form" v-for="column in columns">
         <vscode-text-area
           v-model="column.description"
           :placeholder="'Describe ' + column.name"
           resize="vertical"
           rows="5"
-          ><h3>{{ column.name }} ({{ column.type }})</h3></vscode-text-area
+          ><h3>
+            {{ column.name }}<span v-if="column.type"
+              >&nbsp;({{ column.type }})</span
+            >&nbsp;<vscode-tag v-show="column.generated"
+              >AI generated</vscode-tag
+            >
+          </h3></vscode-text-area
         >
-        <vscode-button
-          appearance="secondary"
-          @click="generateDocsForColumn(column.name)"
-          >Use AI to generate documentation</vscode-button
-        >
-      </section>
-      <h2>Undocumented columns from database</h2>
-      <section id="columns-form" v-for="column in columnsFromDatabase">
-        <vscode-text-area
-          v-model="column.description"
-          :placeholder="'Describe ' + column.name"
-          resize="vertical"
-          rows="5"
-          ><h3>{{ column.name }} ({{ column.type }})</h3></vscode-text-area
-        >
-        <vscode-button
-          appearance="secondary"
-          @click="generateDocsForColumn(column.name)"
-          >Use AI to generate documentation</vscode-button
-        >
+        <div class="column-actions">
+          <vscode-button @click="generateDocsForColumn(column.name)"
+            >Generate documentation<span
+              slot="start"
+              class="codicon codicon-wand"
+            ></span>
+          </vscode-button>
+          <vscode-button appearance="secondary" v-show="column.generated">
+            <span slot="start" class="codicon codicon-thumbsup"></span>
+          </vscode-button>
+          <vscode-button appearance="secondary" v-show="column.generated">
+            <span slot="start" class="codicon codicon-thumbsdown"></span>
+          </vscode-button>
+          <vscode-button
+            appearance="secondary"
+            v-show="column.generated"
+            @click="showRating(column.name)"
+            >Add comment
+            <span slot="start" class="codicon codicon-comment"></span>
+          </vscode-button>
+        </div>
+
+        <div class="rating" :ref="'rating_' + column.name">
+          <vscode-text-area
+            :placeholder="'Tell us what you think about the AI generated documentation for ' + column.name"
+            resize="vertical"
+            rows="5"
+            ><h3>Rate the generated documentation</h3></vscode-text-area
+          >
+          <vscode-button id="submit-button">Comment</vscode-button>
+        </div>
       </section>
       <vscode-button id="submit-button">Save</vscode-button>
     </section>

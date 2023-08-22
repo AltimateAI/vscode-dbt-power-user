@@ -37,3 +37,9 @@
     margin: 0 auto;
   }
 }
+
+.rating {
+  display: none;
+  grid-auto-flow: row;
+  grid-row-gap: 1.5rem;
+}

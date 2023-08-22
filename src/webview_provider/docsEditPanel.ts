@@ -24,10 +24,17 @@ import { PythonException } from "python-bridge";
 import { TelemetryService } from "../telemetry";
 import { AltimateRequest } from "../altimate";
 
+enum Source {
+  YAML = "YAML",
+  DATABASE = "DATABASE",
+}
+
 interface DBTDocumentationColumn {
   name: string;
-  type: string;
-  description: string;
+  type?: string;
+  description?: string;
+  generated: boolean;
+  source: Source;
 }
 
 interface DBTDocumentation {
@@ -35,6 +42,7 @@ interface DBTDocumentation {
   modelName: string;
   modelDocumentation: string;
   columns: DBTDocumentationColumn[];
+  generated: boolean;
 }
 
 interface AltimateDocsGenerateResponse {
@@ -84,7 +92,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     );
   }
 
-  private async getDocumentation() {
+  private async getDocumentation(): Promise<DBTDocumentation | undefined> {
     if (window.activeTextEditor === undefined || this.eventMap === undefined) {
       return undefined;
     }
@@ -94,59 +102,38 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     if (project === undefined) {
       return undefined;
     }
-    const modelName = path.basename(currentFilePath.fsPath, ".sql");
-    // get metadata from db
-    try {
-      const columnsInRelation = await project.getColumnsInRelation(modelName);
-      // get documentation from manifest
-      const event = this.eventMap.get(project.projectRoot.fsPath);
-      if (event === undefined) {
-        return undefined;
-      }
-      const currentNode = event.nodeMetaMap.get(modelName);
-      if (currentNode === undefined) {
-        return undefined;
-      }
-      const docColumns = currentNode.columns;
-      // merge metadata and manifest
-      const compiledSql = await project.compileQuery(
-        window.activeTextEditor.document.getText(),
-      );
-      if (compiledSql === undefined) {
-        this.transmitError();
-        window.showErrorMessage("Could not compile query, aborting generation");
-        return;
-      }
-      return {
-        modelName,
-        modelDocumentation: currentNode.description,
-        compiledSql: compiledSql,
-        columns: columnsInRelation.map((column) => {
-          return {
-            name: column.column,
-            type: column.dtype,
-            description: docColumns.hasOwnProperty(column.column)
-              ? docColumns[column.column]?.description
-              : "",
-          };
-        }),
-      };
-    } catch (exc) {
-      if (exc instanceof PythonException) {
-        this.transmitError();
-        window.showErrorMessage(
-          `An error occured while fetching metadata for ${modelName} from the database: ` +
-            exc.exception.message,
-        );
-        return;
-      }
-      this.transmitError();
-      window.showErrorMessage(
-        `An error occured while fetching metadata for ${modelName} from the database: ` +
-          exc,
-      );
-      this.telemetry.sendTelemetryError("docsEditPanelLoadError", exc);
+    const event = this.eventMap.get(project.projectRoot.fsPath);
+    if (event === undefined) {
+      return undefined;
     }
+    const modelName = path.basename(currentFilePath.fsPath, ".sql");
+    const currentNode = event.nodeMetaMap.get(modelName);
+    if (currentNode === undefined) {
+      return undefined;
+    }
+    const docColumns = currentNode.columns;
+    // merge metadata and manifest
+    const compiledSql = await project.compileQuery(
+      window.activeTextEditor.document.getText(),
+    );
+    if (compiledSql === undefined) {
+      window.showErrorMessage("Could not compile query, aborting generation");
+      return;
+    }
+    return {
+      modelName,
+      modelDocumentation: currentNode.description,
+      compiledSql: compiledSql,
+      generated: false,
+      columns: Object.values(docColumns).map((column) => {
+        return {
+          name: column.name,
+          description: column.description,
+          generated: false,
+          source: Source.YAML,
+        };
+      }),
+    } as DBTDocumentation;
   }
 
   private async transmitError() {
@@ -205,6 +192,56 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       async (message) => {
         console.log(message);
         switch (message.command) {
+          case "fetchMetadataFromDatabase":
+            if (
+              window.activeTextEditor === undefined ||
+              this.eventMap === undefined
+            ) {
+              return undefined;
+            }
+            const currentFilePath = window.activeTextEditor.document.uri;
+            const project =
+              this.dbtProjectContainer.findDBTProject(currentFilePath);
+            if (project === undefined) {
+              return undefined;
+            }
+
+            const modelName = path.basename(currentFilePath.fsPath, ".sql");
+            try {
+              const columnsInRelation =
+                await project.getColumnsInRelation(modelName);
+              this.documentation!.columns = columnsInRelation.map((column) => {
+                const existingColumn = this.documentation?.columns.find(
+                  (existingColumn) => column.column === existingColumn.name,
+                );
+                return {
+                  name: column.column,
+                  type: column.dtype,
+                  description: existingColumn?.description || "",
+                  generated: existingColumn?.generated || false,
+                  source:
+                    existingColumn !== undefined
+                      ? Source.YAML
+                      : Source.DATABASE,
+                };
+              });
+              this.transmitData();
+            } catch (exc) {
+              this.transmitError();
+              if (exc instanceof PythonException) {
+                window.showErrorMessage(
+                  `An error occured while fetching metadata for ${modelName} from the database: ` +
+                    exc.exception.message,
+                );
+                return;
+              }
+              window.showErrorMessage(
+                `An error occured while fetching metadata for ${modelName} from the database: ` +
+                  exc,
+              );
+              this.telemetry.sendTelemetryError("docsEditPanelLoadError", exc);
+            }
+            break;
           case "generateDocsForModel":
             window.withProgress(
               {
@@ -253,6 +290,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   this.documentation = {
                     ...this.documentation!,
                     modelDocumentation: generateDocsForModel.model_description,
+                    generated: true,
                   };
                   this.transmitData();
                 } catch (error) {
@@ -311,8 +349,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     return;
                   }
                   //doing this so we dont have to loop over the dict every time
-                  const col_desc_dict = Object.fromEntries(
-                    generateDocsForColumn!.column_descriptions!.map((d) => [
+                  const generatedColumns = Object.fromEntries(
+                    generateDocsForColumn.column_descriptions!.map((d) => [
                       d.column_name,
                       d.column_description,
                     ]),
@@ -323,7 +361,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       agg.push({
                         ...current,
                         description:
-                          col_desc_dict[current.name] || current.description,
+                          generatedColumns[current.name] || current.description,
+                        generated: generatedColumns[current.name] !== undefined,
                       });
                       return agg;
                     }, [] as DBTDocumentationColumn[]);
@@ -334,6 +373,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   };
                   this.transmitData();
                 } catch (error) {
+                  this.transmitError();
                   window.showErrorMessage(
                     "An unexpected error occurred while generating documentation: " +
                       error,
@@ -341,7 +381,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 }
               },
             );
-
             break;
         }
       },
