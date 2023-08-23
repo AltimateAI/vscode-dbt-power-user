@@ -43,6 +43,7 @@ interface DBTDocumentation {
   description: string;
   columns: DBTDocumentationColumn[];
   generated: boolean;
+  ai_enabled: boolean;
 }
 
 @provideSingleton(DocsEditViewPanel)
@@ -113,6 +114,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       return;
     }
     return {
+      ai_enabled: this.altimateRequest.enabled(),
       name: modelName,
       description: currentNode.description,
       compiledSql: compiledSql,
@@ -182,7 +184,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   private setupWebviewHooks(context: WebviewViewResolveContext) {
     this._panel!.webview.onDidReceiveMessage(
       async (message) => {
-        console.log(message);
         switch (message.command) {
           case "fetchMetadataFromDatabase":
             if (

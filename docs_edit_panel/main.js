@@ -12,6 +12,7 @@ const app = createApp({
       description: "",
       generated: false,
       columns: [],
+      ai_enabled: false,
     };
   },
   methods: {
@@ -20,6 +21,7 @@ const app = createApp({
       this.description = docs?.description || "";
       this.generated = docs?.generated || "";
       this.columns = docs?.columns || [];
+      this.ai_enabled = docs.ai_enabled;
     },
     toggleRating(ref) {
       this.$refs[ref][0].toggle();

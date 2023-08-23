@@ -45,11 +45,11 @@
           resize="vertical"
           rows="5"
           ><h2>Documentation for {{ name }}</h2>
-          &nbsp;<vscode-tag v-show="generated"
+          &nbsp;<vscode-tag v-show="generated && ai_enabled"
             >AI generated</vscode-tag
           ></vscode-text-area
         >
-        <div class="column-actions">
+        <div v-if="ai_enabled" class="column-actions">
           <vscode-button @click="generateDocsForModel()"
             >Generate documentation<span
               slot="start"
@@ -81,12 +81,12 @@
             ><h3>
               {{ column.name }}<span v-if="column.type"
                 >&nbsp;({{ column.type }})</span
-              >&nbsp;<vscode-tag v-show="column.generated"
+              >&nbsp;<vscode-tag v-show="column.generated && ai_enabled"
                 >AI generated</vscode-tag
               >
             </h3></vscode-text-area
           >
-          <div class="column-actions">
+          <div v-if="ai_enabled" class="column-actions">
             <vscode-button @click="generateDocsForColumn(column.name)"
               >Generate documentation<span
                 slot="start"
