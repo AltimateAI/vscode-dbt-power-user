@@ -19,6 +19,7 @@ import { PythonException } from "python-bridge";
 import { ExecuteSQLResult } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
+import { TelemetryService } from "../telemetry";
 
 interface JsonObj {
   [key: string]: string | number | undefined;
@@ -75,7 +76,10 @@ export class QueryResultPanel implements WebviewViewProvider {
   private _disposables: Disposable[] = [];
   private _panel: WebviewView | undefined;
 
-  public constructor(private dbtProjectContainer: DBTProjectContainer) {
+  public constructor(
+    private dbtProjectContainer: DBTProjectContainer,
+    private telemetry: TelemetryService,
+  ) {
     window.onDidChangeActiveColorTheme(
       (e) => {
         if (this._panel) {
@@ -153,6 +157,13 @@ export class QueryResultPanel implements WebviewViewProvider {
       null,
       this._disposables,
     );
+    const sendQueryPanelViewEvent = () => {
+      if (this._panel!.visible) {
+        this.telemetry.sendTelemetryEvent("QueryPanelActive");
+      }
+    };
+    sendQueryPanelViewEvent();
+    this._panel!.onDidChangeVisibility(sendQueryPanelViewEvent);
   }
 
   /** Renders webview content */

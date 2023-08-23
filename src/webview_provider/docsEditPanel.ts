@@ -576,6 +576,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       null,
       this._disposables,
     );
+    const sendDocPanelViewEvent = () => {
+      if (this._panel!.visible) {
+        this.telemetry.sendTelemetryEvent("DocsPanelActive");
+      }
+    };
+    sendDocPanelViewEvent();
+    this._panel!.onDidChangeVisibility(sendDocPanelViewEvent);
   }
 
   private async onManifestCacheChanged(event: ManifestCacheChangedEvent) {
