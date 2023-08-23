@@ -27,6 +27,19 @@ class AltimateRequestTimeoutError extends AltimateRequestError {
   }
 }
 
+interface modelFBInfo {
+  modelName: string;
+  modelProject: string;
+  columnName?: string;
+}
+
+interface OnewayFeedback {
+  feedback_value: "good" | "bad";
+  feedback_text: string;
+  feedback_src: "extension";
+  data: modelFBInfo;
+}
+
 @provideSingleton(AltimateRequest)
 export class AltimateRequest {
   private static ALTIMATE_URL = workspace
@@ -95,5 +108,12 @@ export class AltimateRequest {
       return false;
     }
     return true;
+  }
+
+  async sendFeedback(feedback: OnewayFeedback) {
+    await this.fetch<void>("feedbacks/ai/fb", {
+      method: "POST",
+      body: JSON.stringify({ feedback }),
+    });
   }
 }
