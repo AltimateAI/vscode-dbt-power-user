@@ -243,6 +243,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             }
             break;
           case "generateDocsForModel":
+            this.telemetry.sendTelemetryEvent("generateDocsForModel");
             window.withProgress(
               {
                 title: message,
@@ -304,6 +305,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             );
             break;
           case "generateDocsForColumn":
+            this.telemetry.sendTelemetryEvent("generateDocsForColumn");
             window.withProgress(
               {
                 title: message,
