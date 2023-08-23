@@ -41,6 +41,9 @@ const app = createApp({
     isLoading() {
       return this.pending_req > 0;
     },
+    hasData() {
+      return this.modelName !== "";
+    },
   },
   mounted() {
     window.addEventListener("message", (event) => {
