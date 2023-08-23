@@ -39,18 +39,10 @@ interface DBTDocumentationColumn {
 
 interface DBTDocumentation {
   compiledSql: string;
-  modelName: string;
-  modelDocumentation: string;
+  name: string;
+  description: string;
   columns: DBTDocumentationColumn[];
   generated: boolean;
-}
-
-interface AltimateDocsGenerateResponse {
-  column_descriptions?: {
-    column_name: string;
-    column_description: string;
-  }[];
-  model_description?: string;
 }
 
 @provideSingleton(DocsEditViewPanel)
@@ -121,8 +113,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       return;
     }
     return {
-      modelName,
-      modelDocumentation: currentNode.description,
+      name: modelName,
+      description: currentNode.description,
       compiledSql: compiledSql,
       generated: false,
       columns: Object.values(docColumns).map((column) => {
@@ -226,6 +218,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 };
               });
               this.transmitData();
+              this.telemetry.sendTelemetryEvent(
+                "syncColumnsFromDatabaseForDocs",
+              );
             } catch (exc) {
               this.transmitError();
               if (exc instanceof PythonException) {
@@ -246,40 +241,31 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             this.telemetry.sendTelemetryEvent("generateDocsForModel");
             window.withProgress(
               {
-                title: message,
+                title: "Generating model documentation",
                 location: ProgressLocation.Notification,
                 cancellable: false,
               },
               async () => {
+                if (this.documentation === undefined) {
+                  return;
+                }
                 try {
                   const generateDocsForModel =
-                    await this.altimateRequest.fetch<AltimateDocsGenerateResponse>(
-                      "dbt/v1",
-                      {
-                        method: "POST",
-                        body: JSON.stringify({
-                          columns: [],
-                          dbt_model: {
-                            model_name: this.documentation?.modelName,
-                            model_description:
-                              this.documentation?.modelDocumentation,
-                            compiled_sql: this.documentation?.compiledSql,
-                            schedule: null,
-                            columns: this.documentation?.columns.map(
-                              (column) => ({
-                                column_name: column.name,
-                                description: column.description,
-                                data_type: column.type,
-                                modelName: this.documentation?.modelName,
-                              }),
-                            ),
-                            dependencies: [],
-                          },
-                          gen_model_description: true,
-                        }),
+                    await this.altimateRequest.generateModelDocs({
+                      columns: [],
+                      dbt_model: {
+                        model_name: this.documentation?.name,
+                        model_description: this.documentation?.description,
+                        compiled_sql: this.documentation?.compiledSql,
+                        columns: this.documentation?.columns.map((column) => ({
+                          column_name: column.name,
+                          description: column.description,
+                          data_type: column.type,
+                          modelName: this.documentation?.name,
+                        })),
                       },
-                      120000, // TODO: this should be a more realistic timeout
-                    );
+                      gen_model_description: true,
+                    });
 
                   if (
                     !generateDocsForModel ||
@@ -290,7 +276,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   }
                   this.documentation = {
                     ...this.documentation!,
-                    modelDocumentation: generateDocsForModel.model_description,
+                    description: generateDocsForModel.model_description,
                     generated: true,
                   };
                   this.transmitData();
@@ -300,6 +286,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     "An unexpected error occurred while generating documentation: " +
                       error,
                   );
+                  this.telemetry.sendTelemetryError(
+                    "generateDocsForModelError",
+                    error,
+                  );
                 }
               },
             );
@@ -308,40 +298,30 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             this.telemetry.sendTelemetryEvent("generateDocsForColumn");
             window.withProgress(
               {
-                title: message,
+                title: "Generating column documentation",
                 location: ProgressLocation.Notification,
                 cancellable: false,
               },
               async () => {
+                if (this.documentation === undefined) {
+                  return;
+                }
                 try {
                   const generateDocsForColumn =
-                    await this.altimateRequest.fetch<AltimateDocsGenerateResponse>(
-                      "dbt/v1",
-                      {
-                        method: "POST",
-                        body: JSON.stringify({
-                          columns: [message.columnName],
-                          dbt_model: {
-                            model_name: this.documentation?.modelName,
-                            model_description:
-                              this.documentation?.modelDocumentation,
-                            compiled_sql: this.documentation?.compiledSql,
-                            schedule: null,
-                            columns: this.documentation?.columns.map(
-                              (column) => ({
-                                column_name: column.name,
-                                description: column.description,
-                                data_type: column.type,
-                                modelName: this.documentation?.modelName,
-                              }),
-                            ),
-                            dependencies: [],
-                          },
-                          gen_model_description: false,
-                        }),
+                    await this.altimateRequest.generateModelDocs({
+                      columns: [message.columnName],
+                      dbt_model: {
+                        model_name: this.documentation.name,
+                        model_description: this.documentation?.description,
+                        compiled_sql: this.documentation?.compiledSql,
+                        columns: this.documentation?.columns.map((column) => ({
+                          column_name: column.name,
+                          description: column.description,
+                          data_type: column.type,
+                        })),
                       },
-                      120000, // TODO: this should be a more realistic timeout
-                    );
+                      gen_model_description: false,
+                    });
 
                   if (
                     !generateDocsForColumn ||
@@ -380,10 +360,42 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     "An unexpected error occurred while generating documentation: " +
                       error,
                   );
+                  this.telemetry.sendTelemetryError(
+                    "generateDocsForColumnError",
+                    error,
+                  );
                 }
               },
             );
             break;
+          case "sendFeedback":
+            window.withProgress(
+              {
+                title: "Sending feedback",
+                location: ProgressLocation.Notification,
+                cancellable: false,
+              },
+              async () => {
+                try {
+                  await this.altimateRequest.sendFeedback({
+                    data: message.data,
+                    feedback_src: "extension",
+                    feedback_text: message.comment,
+                    feedback_value: message.rating,
+                  });
+                } catch (error) {
+                  this.transmitError();
+                  window.showErrorMessage(
+                    "An unexpected error occurred while sending feedback: " +
+                      error,
+                  );
+                  this.telemetry.sendTelemetryError(
+                    "generateDocsSendFeedbackError",
+                    error,
+                  );
+                }
+              },
+            );
         }
       },
       null,

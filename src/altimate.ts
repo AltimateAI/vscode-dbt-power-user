@@ -7,37 +7,34 @@ interface AltimateConfig {
   instance: string;
 }
 
-class AltimateRequestError extends Error {}
-
-class AltimateRequestUnauthenticatedError extends AltimateRequestError {
-  constructor() {
-    super("Unauthenticated");
-  }
-}
-
-class AltimateRequestUnsuccesfullError extends AltimateRequestError {
-  constructor(errorCode: number) {
-    super(`Request is unsuccesfull : ${errorCode}`);
-  }
-}
-
-class AltimateRequestTimeoutError extends AltimateRequestError {
-  constructor() {
-    super("Request timed out");
-  }
-}
-
-interface modelFBInfo {
-  modelName: string;
-  modelProject: string;
-  columnName?: string;
-}
-
 interface OnewayFeedback {
   feedback_value: "good" | "bad";
   feedback_text: string;
   feedback_src: "extension";
-  data: modelFBInfo;
+  data: any;
+}
+
+interface DocsGenerateModelRequest {
+  columns: string[];
+  dbt_model: {
+    model_name: string;
+    model_description?: string;
+    compiled_sql?: string;
+    columns: {
+      column_name: string;
+      description?: string;
+      data_type?: string;
+    }[];
+  };
+  gen_model_description: boolean;
+}
+
+interface DocsGenerateResponse {
+  column_descriptions?: {
+    column_name: string;
+    column_description: string;
+  }[];
+  model_description?: string;
 }
 
 @provideSingleton(AltimateRequest)
@@ -85,12 +82,6 @@ export class AltimateRequest {
           "Content-Type": "application/json",
         },
       });
-      if (response.status === 401) {
-        throw new AltimateRequestUnauthenticatedError();
-      }
-      if (response.status !== 200) {
-        throw new AltimateRequestUnsuccesfullError(response.status);
-      }
     } catch (e) {
       clearTimeout(timeoutHandler);
       throw e;
@@ -110,10 +101,17 @@ export class AltimateRequest {
     return true;
   }
 
+  async generateModelDocs(docsGenerate: DocsGenerateModelRequest) {
+    return this.fetch<DocsGenerateResponse>("dbt/v1", {
+      method: "POST",
+      body: JSON.stringify(docsGenerate),
+    });
+  }
+
   async sendFeedback(feedback: OnewayFeedback) {
     await this.fetch<void>("feedbacks/ai/fb", {
       method: "POST",
-      body: JSON.stringify({ feedback }),
+      body: JSON.stringify(feedback),
     });
   }
 }

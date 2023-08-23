@@ -40,13 +40,15 @@
       <img v-show="isLoading" id="spinner" src="__ROOT__/assets/spinner.gif" />
       <section id="docs-form">
         <vscode-text-area
-          v-model="modelDocumentation"
+          v-model="description"
           placeholder="Describe your model"
           resize="vertical"
           rows="5"
+          ><h2>Documentation for {{ name }}</h2>
+          &nbsp;<vscode-tag v-show="generated"
+            >AI generated</vscode-tag
+          ></vscode-text-area
         >
-          <h2>Documentation for {{ modelName }}</h2>
-        </vscode-text-area>
         <div class="column-actions">
           <vscode-button @click="generateDocsForModel()"
             >Generate documentation<span
@@ -54,6 +56,13 @@
               class="codicon codicon-wand"
             ></span
           ></vscode-button>
+          <vscode-button
+            appearance="secondary"
+            v-show="generated"
+            @click="toggleRating('model_rating')"
+            >Add comment
+            <span slot="start" class="codicon codicon-comment"></span>
+          </vscode-button>
         </div>
         <vscode-divider></vscode-divider>
         <h2>Columns</h2>
@@ -69,15 +78,14 @@
             :placeholder="'Describe ' + column.name"
             resize="vertical"
             rows="5"
-          >
-            <h3>
+            ><h3>
               {{ column.name }}<span v-if="column.type"
                 >&nbsp;({{ column.type }})</span
               >&nbsp;<vscode-tag v-show="column.generated"
                 >AI generated</vscode-tag
               >
-            </h3>
-          </vscode-text-area>
+            </h3></vscode-text-area
+          >
           <div class="column-actions">
             <vscode-button @click="generateDocsForColumn(column.name)"
               >Generate documentation<span
@@ -85,31 +93,15 @@
                 class="codicon codicon-wand"
               ></span>
             </vscode-button>
-            <vscode-button appearance="secondary" v-show="column.generated">
-              <span slot="start" class="codicon codicon-thumbsup"></span>
-            </vscode-button>
-            <vscode-button appearance="secondary" v-show="column.generated">
-              <span slot="start" class="codicon codicon-thumbsdown"></span>
-            </vscode-button>
             <vscode-button
               appearance="secondary"
               v-show="column.generated"
-              @click="showRating(column.name)"
+              @click="toggleRating('rating_' + column.name)"
               >Add comment
               <span slot="start" class="codicon codicon-comment"></span>
             </vscode-button>
           </div>
-
-          <div class="rating" :ref="'rating_' + column.name">
-            <vscode-text-area
-              :placeholder="'Tell us what you think about the AI generated documentation for ' + column.name"
-              resize="vertical"
-              rows="5"
-            >
-              <h3>Rate the generated documentation</h3>
-            </vscode-text-area>
-            <vscode-button id="submit-button">Comment</vscode-button>
-          </div>
+          <Comment :data="column" :ref="'rating_' + column.name" />
         </section>
         <vscode-button id="submit-button">Save</vscode-button>
       </section>

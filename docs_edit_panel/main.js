@@ -8,32 +8,29 @@ async function executeCommand(command, args) {
 const app = createApp({
   data() {
     return {
-      pending_req: 1,
-      modelName: "",
-      modelDocumentation: "",
+      name: "",
+      description: "",
+      generated: false,
       columns: [],
-      columnsFromDatabase: [],
     };
   },
   methods: {
     updateDocs(docs) {
-      this.modelName = docs.modelName;
-      this.modelDocumentation = docs.modelDocumentation;
-      this.columns = docs.columns;
+      this.name = docs?.name || "";
+      this.description = docs?.description || "";
+      this.generated = docs?.generated || "";
+      this.columns = docs?.columns || [];
     },
-    showRating(columName) {
-      this.$refs["rating_" + columName][0].style.display = "grid";
+    toggleRating(ref) {
+      this.$refs[ref][0].toggle();
     },
     async generateDocsForModel() {
-      this.pending_req += 1;
       await executeCommand("generateDocsForModel");
     },
     async generateDocsForColumn(columnName) {
-      this.pending_req += 1;
       await executeCommand("generateDocsForColumn", { columnName });
     },
     async fetchMetadataFromDatabase() {
-      this.pending_req += 1;
       await executeCommand("fetchMetadataFromDatabase");
     },
   },
@@ -64,6 +61,53 @@ const app = createApp({
     });
   },
 });
+
+Comment = {
+  props: ["data"],
+  data() {
+    return {
+      isActive: false,
+      comment: "",
+    };
+  },
+  methods: {
+    toggle() {
+      this.isActive = !this.isActive;
+    },
+    async sendFeedback(rating) {
+      await executeCommand("sendFeedback", {
+        data: {
+          column: this.data.hasOwnProperty("column")
+            ? this.data.column
+            : undefined,
+          description: this.data.description,
+        },
+        rating,
+        comment: this.comment,
+      });
+    },
+  },
+  template: `
+    <div class="rating" v-show="isActive">
+      <vscode-text-area
+        v-model="comment"
+        placeholder="Tell us what you think about the AI generated documentation"
+        resize="vertical"
+        rows="5">
+        <h3>Rate the generated documentation</h3>
+      </vscode-text-area>
+      <div class="column-actions">
+        <vscode-button @click="sendFeedback('good')">
+          <span slot="start" class="codicon codicon-thumbsup"></span>
+        </vscode-button>
+        <vscode-button @click="sendFeedback('bad')">
+          <span slot="start" class="codicon codicon-thumbsdown"></span>
+        </vscode-button>
+      </div>
+    </div>`,
+};
+
+app.component("Comment", Comment);
 
 app.config.errorHandler = (err) => {
   console.log(err);

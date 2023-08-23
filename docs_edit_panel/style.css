@@ -39,7 +39,7 @@
 }
 
 .rating {
-  display: none;
+  display: grid;
   grid-auto-flow: row;
   grid-row-gap: 1.5rem;
 }
