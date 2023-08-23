@@ -196,6 +196,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     _token: CancellationToken,
   ) {
     this._panel = panel;
+    this.setupWebviewEvents();
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
     this.setupWebviewHooks(context);
@@ -203,6 +204,15 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     this.documentation = await this.getDocumentation();
     this.transmitData();
     this.updateGraphStyle();
+  }
+
+  private setupWebviewEvents() {
+    this._panel!.onDidChangeVisibility(() => {
+      if (this._panel!.visible) {
+        this.telemetry.sendTelemetryEvent("DocsPanelActive");
+        console.log("Docs panel is visible");
+      }
+    });
   }
 
   private renderWebviewView(context: WebviewViewResolveContext) {

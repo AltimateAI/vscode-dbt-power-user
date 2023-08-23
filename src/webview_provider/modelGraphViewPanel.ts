@@ -20,6 +20,7 @@ import {
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
+import { TelemetryService } from "../telemetry";
 
 interface G6DataModel {
   nodes: {
@@ -75,7 +76,10 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private _disposables: Disposable[] = [];
 
-  public constructor(private dbtProjectContainer: DBTProjectContainer) {
+  public constructor(
+    private dbtProjectContainer: DBTProjectContainer,
+    private telemetry: TelemetryService,
+  ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
     );
@@ -126,12 +130,22 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     _token: CancellationToken,
   ) {
     this._panel = panel;
+    this.setupWebviewEvents();
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
     this.setupWebviewHooks(context);
     this.g6Data = this.parseGraphData();
     this.transmitData(this.g6Data);
     this.updateGraphStyle();
+  }
+
+  private setupWebviewEvents() {
+    this._panel!.onDidChangeVisibility(() => {
+      if (this._panel!.visible) {
+        this.telemetry.sendTelemetryEvent("LineagePanelActive");
+        console.log("Lineage panel is visible");
+      }
+    });
   }
 
   private renderWebviewView(context: WebviewViewResolveContext) {
