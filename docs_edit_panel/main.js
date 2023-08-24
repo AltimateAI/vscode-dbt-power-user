@@ -12,7 +12,10 @@ const app = createApp({
       description: "",
       generated: false,
       columns: [],
-      ai_enabled: false,
+      aiEnabled: false,
+      patchPath: "",
+      pathPathExists: false,
+      patchPaths: [],
     };
   },
   methods: {
@@ -21,7 +24,10 @@ const app = createApp({
       this.description = docs?.description || "";
       this.generated = docs?.generated || false;
       this.columns = docs?.columns || [];
-      this.ai_enabled = docs?.ai_enabled || false;
+      this.aiEnabled = docs?.aiEnabled || false;
+      this.patchPath = docs?.patchPath || "";
+      this.pathPathExists = docs?.pathPathExists || false;
+      this.patchPaths = docs?.patchPaths || [];
     },
     toggleRating(ref) {
       this.$refs[ref][0].toggle();
@@ -34,6 +40,19 @@ const app = createApp({
     },
     async fetchMetadataFromDatabase() {
       await executeCommand("fetchMetadataFromDatabase");
+    },
+    async saveDocumentation() {
+      await executeCommand(
+        "saveDocumentation",
+        JSON.parse(
+          JSON.stringify({
+            patchPath: this.patchPath,
+            name: this.name,
+            description: this.description,
+            columns: this.columns,
+          }),
+        ),
+      );
     },
   },
   computed: {

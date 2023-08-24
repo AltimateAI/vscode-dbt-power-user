@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { readFileSync, writeFileSync } from "fs";
 import {
   CancellationToken,
   ColorThemeKind,
@@ -23,6 +23,7 @@ import path = require("path");
 import { PythonException } from "python-bridge";
 import { TelemetryService } from "../telemetry";
 import { AltimateRequest } from "../altimate";
+import { stringify, parse } from "yaml";
 
 enum Source {
   YAML = "YAML",
@@ -44,6 +45,8 @@ interface DBTDocumentation {
   columns: DBTDocumentationColumn[];
   generated: boolean;
   ai_enabled: boolean;
+  patchPath?: string;
+  patchPathExists: boolean;
 }
 
 @provideSingleton(DocsEditViewPanel)
@@ -104,6 +107,15 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     if (currentNode === undefined) {
       return undefined;
     }
+    let patchPaths: string[] = [];
+    if (currentNode.patch_path === undefined) {
+      patchPaths = Array.from(
+        new Set(
+          Array.from(event.nodeMetaMap.values()).map((node) => node.patch_path),
+        ),
+      );
+    }
+
     const docColumns = currentNode.columns;
     // merge metadata and manifest
     const compiledSql = await project.compileQuery(
@@ -116,6 +128,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     return {
       ai_enabled: this.altimateRequest.enabled(),
       name: modelName,
+      patchPath: currentNode.patch_path,
+      patchPathExists: currentNode.patch_path !== undefined,
+      patchPaths: patchPaths,
       description: currentNode.description,
       compiledSql: compiledSql,
       generated: false,
@@ -184,21 +199,21 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   private setupWebviewHooks(context: WebviewViewResolveContext) {
     this._panel!.webview.onDidReceiveMessage(
       async (message) => {
+        console.log(message);
+        if (
+          window.activeTextEditor === undefined ||
+          this.eventMap === undefined
+        ) {
+          return undefined;
+        }
+        const currentFilePath = window.activeTextEditor.document.uri;
+        const project =
+          this.dbtProjectContainer.findDBTProject(currentFilePath);
+        if (project === undefined) {
+          return undefined;
+        }
         switch (message.command) {
           case "fetchMetadataFromDatabase":
-            if (
-              window.activeTextEditor === undefined ||
-              this.eventMap === undefined
-            ) {
-              return undefined;
-            }
-            const currentFilePath = window.activeTextEditor.document.uri;
-            const project =
-              this.dbtProjectContainer.findDBTProject(currentFilePath);
-            if (project === undefined) {
-              return undefined;
-            }
-
             const modelName = path.basename(currentFilePath.fsPath, ".sql");
             try {
               const columnsInRelation =
@@ -239,7 +254,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             }
             break;
           case "generateDocsForModel":
-            this.telemetry.sendTelemetryEvent("generateDocsForModel");
+            this.telemetry.sendTelemetryEvent("altimateGenerateDocsForModel");
             window.withProgress(
               {
                 title: "Generating model documentation",
@@ -275,6 +290,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     // nothing to do if nothing happened
                     return;
                   }
+
                   this.documentation = {
                     ...this.documentation!,
                     description: generateDocsForModel.model_description,
@@ -296,7 +312,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             );
             break;
           case "generateDocsForColumn":
-            this.telemetry.sendTelemetryEvent("generateDocsForColumn");
+            this.telemetry.sendTelemetryEvent("altimateGenerateDocsForColumn");
             window.withProgress(
               {
                 title: "Generating column documentation",
@@ -370,6 +386,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             );
             break;
           case "sendFeedback":
+            this.telemetry.sendTelemetryEvent(
+              "altimateGenerateDocsSendFeedback",
+            );
             window.withProgress(
               {
                 title: "Sending feedback",
@@ -403,12 +422,55 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       error,
                   );
                   this.telemetry.sendTelemetryError(
-                    "generateDocsSendFeedbackError",
+                    "altimateGenerateDocsSendFeedbackError",
                     error,
                   );
                 }
               },
             );
+          case "saveDocumentation":
+            const docs = {};
+            const url = path.join(
+              project.projectRoot.path,
+              message.patchPath.split("://")[1],
+            );
+            try {
+              const docFile: string = readFileSync(url).toString("utf8");
+              const parsedDocFile = parse(docFile, {
+                uniqueKeys: false,
+                maxAliasCount: -1,
+              });
+              // TODO: should also support sources
+
+              parsedDocFile.models = parsedDocFile.models.map((model: any) => {
+                if (model.name === message.name) {
+                  model.description = message.description;
+                  model.columns = message.columns.map((column: any) => {
+                    const existingColumn = model.columns.find(
+                      (yamlColumn: any) => yamlColumn.name === column.name,
+                    );
+                    if (existingColumn !== undefined) {
+                      return {
+                        ...existingColumn,
+                        description: column.description,
+                      };
+                    } else {
+                      return {
+                        name: column.name,
+                        description: column.description,
+                      };
+                    }
+                  });
+                }
+                return model;
+              });
+
+              writeFileSync(url, stringify(parsedDocFile));
+              // TODO: any validation logic could go here to skip a project
+            } catch (error) {
+              window.showErrorMessage(`Could not read ${url}: ${error}`);
+            }
+            break;
         }
       },
       null,
