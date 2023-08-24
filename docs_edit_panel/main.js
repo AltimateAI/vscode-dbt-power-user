@@ -19,9 +19,9 @@ const app = createApp({
     updateDocs(docs) {
       this.name = docs?.name || "";
       this.description = docs?.description || "";
-      this.generated = docs?.generated || "";
+      this.generated = docs?.generated || false;
       this.columns = docs?.columns || [];
-      this.ai_enabled = docs.ai_enabled;
+      this.ai_enabled = docs?.ai_enabled || false;
     },
     toggleRating(ref) {
       this.$refs[ref][0].toggle();
@@ -41,7 +41,7 @@ const app = createApp({
       return this.pending_req > 0;
     },
     hasData() {
-      return this.modelName !== "";
+      return this.name !== "";
     },
   },
   mounted() {
