@@ -65,7 +65,7 @@ const app = createApp({
 });
 
 Comment = {
-  props: ["pdata", "modelname"],
+  props: ["data"],
   data() {
     return {
       isActive: false,
@@ -79,10 +79,8 @@ Comment = {
     async sendFeedback(rating) {
       await executeCommand("sendFeedback", {
         data: {
-          column: this.pdata.hasOwnProperty("name")
-            ? this.pdata.name
-            : undefined,
-          description: this.pdata.description,
+          column: this.data.hasOwnProperty("name") ? this.data.name : undefined,
+          description: this.data.description,
           model: this.modelname,
         },
         rating,

@@ -378,8 +378,20 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               },
               async () => {
                 try {
+                  const data_to_send = message.data;
+                  data_to_send["feedback_text"] = message.comment;
+                  data_to_send["additional_prompt_inputs"] = {
+                    model_name: this.documentation?.name,
+                    model_description: this.documentation?.description,
+                    compiled_sql: this.documentation?.compiledSql,
+                    columns: this.documentation?.columns.map((column) => ({
+                      column_name: column.name,
+                      description: column.description,
+                      data_type: column.type,
+                    })),
+                  };
                   await this.altimateRequest.sendFeedback({
-                    data: message.data,
+                    data: data_to_send,
                     feedback_src: "extension",
                     feedback_text: message.comment,
                     feedback_value: message.rating,
