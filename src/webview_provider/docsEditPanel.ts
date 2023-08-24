@@ -44,7 +44,7 @@ interface DBTDocumentation {
   description: string;
   columns: DBTDocumentationColumn[];
   generated: boolean;
-  ai_enabled: boolean;
+  aiEnabled: boolean;
   patchPath?: string;
   patchPathExists: boolean;
 }
@@ -126,7 +126,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       return;
     }
     return {
-      ai_enabled: this.altimateRequest.enabled(),
+      aiEnabled: this.altimateRequest.enabled(),
       name: modelName,
       patchPath: currentNode.patch_path,
       patchPathExists: currentNode.patch_path !== undefined,
@@ -428,6 +428,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 }
               },
             );
+            break;
           case "saveDocumentation":
             const docs = {};
             const url = path.join(

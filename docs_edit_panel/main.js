@@ -30,7 +30,11 @@ const app = createApp({
       this.patchPaths = docs?.patchPaths || [];
     },
     toggleRating(ref) {
-      this.$refs[ref][0].toggle();
+      let element = this.$refs[ref];
+      if (typeof element === "array") {
+        element = element[0];
+      }
+      element.toggle();
     },
     async generateDocsForModel() {
       await executeCommand("generateDocsForModel");
