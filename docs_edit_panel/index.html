@@ -101,7 +101,11 @@
               <span slot="start" class="codicon codicon-comment"></span>
             </vscode-button>
           </div>
-          <Comment :data="column" :ref="'rating_' + column.name" />
+          <Comment
+            :pdata="column"
+            :modelname="name"
+            :ref="'rating_' + column.name"
+          />
         </section>
         <vscode-button id="submit-button">Save</vscode-button>
       </section>
