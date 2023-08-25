@@ -113,7 +113,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     if (currentNode.patch_path === undefined) {
       patchPaths = Array.from(
         new Set(
-          Array.from(event.nodeMetaMap.values()).map((node) => node.patch_path),
+          Array.from(event.nodeMetaMap.values())
+            .map((node) => node.patch_path)
+            .filter((patchPath) => patchPath !== null),
         ),
       );
     }
@@ -216,44 +218,58 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         }
         switch (message.command) {
           case "fetchMetadataFromDatabase":
-            const modelName = path.basename(currentFilePath.fsPath, ".sql");
-            try {
-              const columnsInRelation =
-                await project.getColumnsInRelation(modelName);
-              this.documentation!.columns = columnsInRelation.map((column) => {
-                const existingColumn = this.documentation?.columns.find(
-                  (existingColumn) => column.column === existingColumn.name,
-                );
-                return {
-                  name: column.column,
-                  type: column.dtype,
-                  description: existingColumn?.description || "",
-                  generated: existingColumn?.generated || false,
-                  source:
-                    existingColumn !== undefined
-                      ? Source.YAML
-                      : Source.DATABASE,
-                };
-              });
-              this.transmitData();
-              this.telemetry.sendTelemetryEvent(
-                "syncColumnsFromDatabaseForDocs",
-              );
-            } catch (exc) {
-              this.transmitError();
-              if (exc instanceof PythonException) {
-                window.showErrorMessage(
-                  `An error occured while fetching metadata for ${modelName} from the database: ` +
-                    exc.exception.message,
-                );
-                return;
-              }
-              window.showErrorMessage(
-                `An error occured while fetching metadata for ${modelName} from the database: ` +
-                  exc,
-              );
-              this.telemetry.sendTelemetryError("docsEditPanelLoadError", exc);
-            }
+            this.telemetry.sendTelemetryEvent("syncColumnsFromDatabaseForDocs");
+            window.withProgress(
+              {
+                title: "Syncing columns with metadata from database",
+                location: ProgressLocation.Notification,
+                cancellable: false,
+              },
+              async () => {
+                const modelName = path.basename(currentFilePath.fsPath, ".sql");
+                try {
+                  const columnsInRelation =
+                    await project.getColumnsInRelation(modelName);
+                  this.documentation!.columns = columnsInRelation.map(
+                    (column) => {
+                      const existingColumn = this.documentation?.columns.find(
+                        (existingColumn) =>
+                          column.column === existingColumn.name,
+                      );
+                      return {
+                        name: column.column,
+                        type: column.dtype,
+                        description: existingColumn?.description || "",
+                        generated: existingColumn?.generated || false,
+                        source:
+                          existingColumn !== undefined
+                            ? Source.YAML
+                            : Source.DATABASE,
+                      };
+                    },
+                  );
+                  this.transmitData();
+                } catch (exc) {
+                  this.transmitError();
+                  if (exc instanceof PythonException) {
+                    window.showErrorMessage(
+                      `An error occured while fetching metadata for ${modelName} from the database: ` +
+                        exc.exception.message,
+                    );
+                    return;
+                  }
+                  window.showErrorMessage(
+                    `An error occured while fetching metadata for ${modelName} from the database: ` +
+                      exc,
+                  );
+                  this.telemetry.sendTelemetryError(
+                    "docsEditPanelLoadError",
+                    exc,
+                  );
+                }
+              },
+            );
+
             break;
           case "generateDocsForModel":
             this.telemetry.sendTelemetryEvent("altimateGenerateDocsForModel");
