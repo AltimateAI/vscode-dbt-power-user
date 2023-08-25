@@ -490,6 +490,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);
     });
+    if (this.documentation !== undefined) {
+      // don't reload doc panel if documentation is already set, otherwise the
+      //  documentation will be overwritten by the one coming from the manifest
+      return;
+    }
     this.documentation = await this.getDocumentation();
     if (this._panel) {
       this.transmitData();
