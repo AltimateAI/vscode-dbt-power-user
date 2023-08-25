@@ -456,7 +456,7 @@
     "ms-python.python"
   ],
   "dependencies": {
-    "@vscode/extension-telemetry": "^0.8.3",
+    "@vscode/extension-telemetry": "^0.8.4",
     "@vscode/vsce": "^2.20.1",
     "@vscode/webview-ui-toolkit": "^1.2.2",
     "dayjs": "^1.11.9",
