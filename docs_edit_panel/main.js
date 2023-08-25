@@ -31,7 +31,7 @@ const app = createApp({
     },
     toggleRating(ref) {
       let element = this.$refs[ref];
-      if (typeof element === "array") {
+      if (Array.isArray(element)) {
         element = element[0];
       }
       element.toggle();

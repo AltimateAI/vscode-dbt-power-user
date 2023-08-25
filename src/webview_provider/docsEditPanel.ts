@@ -76,6 +76,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     );
     window.onDidChangeActiveTextEditor(
       async (event: TextEditor | undefined) => {
+        this.documentation = undefined;
+        this.transmitData();
         if (event === undefined) {
           return;
         }
@@ -361,7 +363,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                         ...current,
                         description:
                           generatedColumns[current.name] || current.description,
-                        generated: generatedColumns[current.name] !== undefined,
+                        generated:
+                          generatedColumns[current.name] !== undefined ||
+                          current.generated,
                       });
                       return agg;
                     }, [] as DBTDocumentationColumn[]);
