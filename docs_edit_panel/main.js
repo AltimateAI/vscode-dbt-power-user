@@ -14,8 +14,7 @@ const app = createApp({
       columns: [],
       aiEnabled: false,
       patchPath: "",
-      pathPathExists: false,
-      patchPaths: [],
+      dialogType: "Existing file",
     };
   },
   methods: {
@@ -26,8 +25,6 @@ const app = createApp({
       this.columns = docs?.columns || [];
       this.aiEnabled = docs?.aiEnabled || false;
       this.patchPath = docs?.patchPath || "";
-      this.pathPathExists = docs?.pathPathExists || false;
-      this.patchPaths = docs?.patchPaths || [];
     },
     toggleRating(ref) {
       let element = this.$refs[ref];
@@ -54,6 +51,7 @@ const app = createApp({
             name: this.name,
             description: this.description,
             columns: this.columns,
+            dialogType: this.dialogType,
           }),
         ),
       );

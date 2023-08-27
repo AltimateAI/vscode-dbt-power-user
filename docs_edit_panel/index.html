@@ -73,6 +73,9 @@
             class="codicon codicon-sync"
           ></span>
         </vscode-button>
+        <p v-if="columns.length == 0">
+          No columns found in the dbt manifest for {{ name }}.
+        </p>
         <section id="columns-form" v-for="column in columns">
           <vscode-text-area
             v-model="column.description"
@@ -105,33 +108,22 @@
           </div>
           <Comment :data="column" :ref="'rating_' + column.name"></Comment>
         </section>
-        <vscode-radio-group disabled v-if="patchPath === undefined">
-          <label slot="label">Store documentation</label>
-          <vscode-radio>In existing yaml file</vscode-radio>
-          <vscode-radio>New yaml file</vscode-radio>
-        </vscode-radio-group>
-        <div
-          class="dropdown-container"
-          v-if="patchPath === undefined && patchPaths.length > 0"
-        >
-          <label for="patch-path-selector">Choose an existing yaml file:</label>
-          <vscode-dropdown id="patch-path-selector">
-            <vscode-option v-for="patchPath in patchPaths"
-              >{{ patchPath }}</vscode-option
-            >
+        <p v-if="patchPath">Documentation will be saved to {{ patchPath }}</p>
+
+        <div class="dropdown-container" v-if="!patchPath">
+          <label for="dialog-type"><h3>Save documentation to</h3></label>
+          <vscode-dropdown id="dialog-type" v-model="dialogType">
+            <vscode-option>Existing file</vscode-option>
+            <vscode-option>New file</vscode-option>
           </vscode-dropdown>
         </div>
-        <vscode-text-field v-model="patchPath" readonly="!!patchpath">
-          <h3>Documentation yaml path</h3>
-          <span slot="start" class="codicon codicon-file"></span>
-        </vscode-text-field>
         <vscode-button id="submit-button" @click="saveDocumentation()"
-          >Save</vscode-button
+          >Save documentation</vscode-button
         >
       </section>
     </div>
     <div v-else="hasData">
-      <h2>Select a model file to show documentation editor</h2>
+      <h2>Select a dbt model to show the documentation editor</h2>
     </div>
     <script nonce="__NONCE__" type="module" src="__ROOT__/main.js"></script>
   </body>

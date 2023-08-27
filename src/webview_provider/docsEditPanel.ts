@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync } from "fs";
 import {
   CancellationToken,
   ColorThemeKind,
@@ -46,7 +46,6 @@ interface DBTDocumentation {
   generated: boolean;
   aiEnabled: boolean;
   patchPath?: string;
-  patchPathExists: boolean;
 }
 
 @provideSingleton(DocsEditViewPanel)
@@ -109,16 +108,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     if (currentNode === undefined) {
       return undefined;
     }
-    let patchPaths: string[] = [];
-    if (currentNode.patch_path === undefined) {
-      patchPaths = Array.from(
-        new Set(
-          Array.from(event.nodeMetaMap.values())
-            .map((node) => node.patch_path)
-            .filter((patchPath) => patchPath !== null),
-        ),
-      );
-    }
 
     const docColumns = currentNode.columns;
     // merge metadata and manifest
@@ -133,8 +122,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       aiEnabled: this.altimateRequest.enabled(),
       name: modelName,
       patchPath: currentNode.patch_path,
-      patchPathExists: currentNode.patch_path !== undefined,
-      patchPaths: patchPaths,
       description: currentNode.description,
       compiledSql: compiledSql,
       generated: false,
@@ -450,47 +437,120 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             );
             break;
           case "saveDocumentation":
-            const docs = {};
-            const url = path.join(
-              project.projectRoot.path,
-              message.patchPath.split("://")[1],
-            );
-            try {
-              const docFile: string = readFileSync(url).toString("utf8");
-              const parsedDocFile = parse(docFile, {
-                uniqueKeys: false,
-                maxAliasCount: -1,
-              });
-              // TODO: should also support sources
-
-              parsedDocFile.models = parsedDocFile.models.map((model: any) => {
-                if (model.name === message.name) {
-                  model.description = message.description;
-                  model.columns = message.columns.map((column: any) => {
-                    const existingColumn = model.columns.find(
-                      (yamlColumn: any) => yamlColumn.name === column.name,
+            this.telemetry.sendTelemetryEvent("saveDocumentation");
+            let patchPath = message.patchPath;
+            window.withProgress(
+              {
+                title: "Saving documentation",
+                location: ProgressLocation.Notification,
+                cancellable: false,
+              },
+              async () => {
+                try {
+                  if (!patchPath) {
+                    switch (message.dialogType) {
+                      case "Existing file":
+                        const openDialog = await window.showOpenDialog({
+                          filters: { Yaml: ["yml"] },
+                          canSelectMany: false,
+                        });
+                        if (
+                          openDialog === undefined ||
+                          openDialog.length === 0
+                        ) {
+                          return;
+                        }
+                        patchPath = openDialog[0].fsPath;
+                        break;
+                      case "New file":
+                        const saveDialog = await window.showSaveDialog({
+                          filters: { Yaml: ["yml"] },
+                        });
+                        if (!saveDialog) {
+                          return;
+                        }
+                        patchPath = saveDialog.fsPath;
+                        break;
+                    }
+                  } else {
+                    // the location comes from the manifest, parse it
+                    patchPath = path.join(
+                      project.projectRoot.path,
+                      patchPath.split("://")[1],
                     );
-                    if (existingColumn !== undefined) {
-                      return {
-                        ...existingColumn,
-                        description: column.description,
-                      };
-                    } else {
-                      return {
+                  }
+                  // check if file exists, if not create an empty file
+                  if (!existsSync(patchPath)) {
+                    writeFileSync(patchPath, "");
+                  }
+
+                  const docFile: string =
+                    readFileSync(patchPath).toString("utf8");
+                  const parsedDocFile =
+                    parse(docFile, {
+                      uniqueKeys: false,
+                      maxAliasCount: -1,
+                    }) || {};
+                  if (parsedDocFile.models === undefined) {
+                    // this is a fresh file or one without models, so init the models
+                    parsedDocFile.models = [];
+                  }
+                  if (
+                    parsedDocFile.models.find(
+                      (model: any) => model === message.name,
+                    ) === undefined
+                  ) {
+                    // there is a models section but the model does not exist yet.
+                    parsedDocFile.models.push({
+                      name: message.name,
+                      description: message.description,
+                      columns: message.columns.map((column: any) => ({
                         name: column.name,
                         description: column.description,
-                      };
-                    }
-                  });
-                }
-                return model;
-              });
+                      })),
+                    });
+                  } else {
+                    // The model already exists
+                    parsedDocFile.models = parsedDocFile.models.map(
+                      (model: any) => {
+                        if (model.name === message.name) {
+                          model.description = message.description;
+                          model.columns = message.columns.map((column: any) => {
+                            const existingColumn = model.columns.find(
+                              (yamlColumn: any) =>
+                                yamlColumn.name === column.name,
+                            );
+                            if (existingColumn !== undefined) {
+                              return {
+                                ...existingColumn,
+                                description: column.description,
+                              };
+                            } else {
+                              return {
+                                name: column.name,
+                                description: column.description,
+                              };
+                            }
+                          });
+                        }
+                        return model;
+                      },
+                    );
+                  }
 
-              writeFileSync(url, stringify(parsedDocFile));
-              // TODO: any validation logic could go here to skip a project
-            } catch (error) {
-              window.showErrorMessage(`Could not read ${url}: ${error}`);
-            }
+                  writeFileSync(patchPath, stringify(parsedDocFile));
+                } catch (error) {
+                  this.transmitError();
+                  window.showErrorMessage(
+                    `Could not save documentation to ${patchPath}: ${error}`,
+                  );
+                  this.telemetry.sendTelemetryError(
+                    "saveDocumentationError",
+                    error,
+                  );
+                }
+              },
+            );
             break;
         }
       },
