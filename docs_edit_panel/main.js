@@ -8,23 +8,13 @@ async function executeCommand(command, args) {
 const app = createApp({
   data() {
     return {
-      name: "",
-      description: "",
-      generated: false,
-      columns: [],
-      aiEnabled: false,
-      patchPath: "",
+      docs: undefined,
       dialogType: "Existing file",
     };
   },
   methods: {
     updateDocs(docs) {
-      this.name = docs?.name || "";
-      this.description = docs?.description || "";
-      this.generated = docs?.generated || false;
-      this.columns = docs?.columns || [];
-      this.aiEnabled = docs?.aiEnabled || false;
-      this.patchPath = docs?.patchPath || "";
+      this.docs = docs;
     },
     toggleRating(ref) {
       let element = this.$refs[ref];
@@ -58,11 +48,26 @@ const app = createApp({
     },
   },
   computed: {
-    isLoading() {
-      return this.pending_req > 0;
-    },
     hasData() {
-      return this.name !== "";
+      return this.docs;
+    },
+    name() {
+      return this.docs ? this.docs.name : "";
+    },
+    description() {
+      return this.docs ? this.docs.description : "";
+    },
+    generated() {
+      return this.docs ? this.docs.generated : false;
+    },
+    columns() {
+      return this.docs ? this.docs.columns : [];
+    },
+    aiEnabled() {
+      return this.docs ? this.docs.aiEnabled : false;
+    },
+    patchPath() {
+      return this.docs ? this.docs.patchPath : "";
     },
   },
   mounted() {
@@ -72,14 +77,6 @@ const app = createApp({
       switch (command) {
         case "renderDocumentation":
           this.updateDocs(event.data.docs);
-        case "renderError":
-          // do whatever needs to be done in case of something going wrong
-          if (this.pending_req > 0) {
-            this.pending_req -= 1;
-          }
-          break;
-        default:
-          break;
       }
     });
   },

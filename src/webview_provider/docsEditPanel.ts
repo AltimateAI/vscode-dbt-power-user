@@ -53,6 +53,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   public static readonly viewType = "dbtPowerUser.DocsEdit";
   private _panel: WebviewView | undefined = undefined;
   private documentation?: DBTDocumentation;
+  private loadedFromManifest = false;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private _disposables: Disposable[] = [];
 
@@ -76,7 +77,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     window.onDidChangeActiveTextEditor(
       async (event: TextEditor | undefined) => {
         this.documentation = undefined;
-        this.transmitData();
         if (event === undefined) {
           return;
         }
@@ -537,8 +537,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       },
                     );
                   }
-
+                  // Force reload from manifest after manifest refresh
+                  this.loadedFromManifest = false;
                   writeFileSync(patchPath, stringify(parsedDocFile));
+                  this.documentation = await this.getDocumentation();
                 } catch (error) {
                   this.transmitError();
                   window.showErrorMessage(
@@ -566,12 +568,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);
     });
-    if (this.documentation !== undefined) {
+    if (this.documentation !== undefined && this.loadedFromManifest) {
       // don't reload doc panel if documentation is already set, otherwise the
       //  documentation will be overwritten by the one coming from the manifest
       return;
     }
     this.documentation = await this.getDocumentation();
+    this.loadedFromManifest = true;
     if (this._panel) {
       this.transmitData();
       this.updateGraphStyle();
