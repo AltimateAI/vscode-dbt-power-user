@@ -271,8 +271,8 @@
         }
       },
       {
-        "command": "dbtPowerUser.generateSchemaYML",
-        "title": "Generate Documentation YML",
+        "command": "dbtPowerUser.goToDocumentationEditor",
+        "title": "Edit documentation",
         "icon": {
           "light": "./media/images/file-code_light.svg",
           "dark": "./media/images/file-code_dark.svg"
@@ -420,7 +420,7 @@
           "group": "inline"
         },
         {
-          "command": "dbtPowerUser.generateSchemaYML",
+          "command": "dbtPowerUser.goToDocumentationEditor",
           "when": "view == documentation_treeview",
           "group": "inline"
         }
