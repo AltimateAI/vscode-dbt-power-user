@@ -418,7 +418,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   };
                   await this.altimateRequest.sendFeedback({
                     data: data_to_send,
-                    feedback_src: "extension",
+                    feedback_src: "dbtpu-extension",
                     feedback_text: message.comment,
                     feedback_value: message.rating,
                   });
