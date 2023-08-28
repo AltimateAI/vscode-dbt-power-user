@@ -10,7 +10,7 @@ interface AltimateConfig {
 interface OnewayFeedback {
   feedback_value: "good" | "bad";
   feedback_text: string;
-  feedback_src: "extension";
+  feedback_src: "dbtpu-extension";
   data: any;
 }
 
