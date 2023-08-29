@@ -104,6 +104,8 @@ Comment = {
         rating,
         comment: this.comment,
       });
+      this.comment = "";
+      this.toggle();
     },
   },
   template: `
