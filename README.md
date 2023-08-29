@@ -25,7 +25,7 @@ This extension is fully compatible with the remote extension. See [Visual Studio
 
 Please let us know about any bugs or feature requests through the github issues.
 
-If you require additional support, feel free to reach out on the DBT Community Slack Channel [#tools-dbt-power-user](https://bit.ly/dpuslack)
+If you require additional support, feel free to reach out on the dbt Community Slack Channel [#tools-dbt-power-user](https://bit.ly/dpuslack)
 
 If you want to contribute to the extension, let us know and we will help set you up.
 
