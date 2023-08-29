@@ -41,7 +41,7 @@ interface DocsGenerateResponse {
 export class AltimateRequest {
   private static ALTIMATE_URL = workspace
     .getConfiguration("dbt")
-    .get<string>("altimateUrl", "https://api.tryaltimate.com");
+    .get<string>("altimateUrl", "https://api.myaltimate.com");
 
   private getConfig(): AltimateConfig | undefined {
     const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
