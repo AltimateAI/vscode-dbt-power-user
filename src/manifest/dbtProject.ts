@@ -234,7 +234,8 @@ export class DBTProject implements Disposable {
       window.showErrorMessage(
         extendErrorWithSupportLinks(
           "An unexpected error occured while initializing the dbt project: " +
-            exc,
+            exc +
+            ".",
         ),
       );
       this.telemetry.sendTelemetryError("pythonBridgeInitError", exc);
@@ -312,7 +313,7 @@ export class DBTProject implements Disposable {
       });
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "An error occured while rebuilding the dbt manifest: " + exc,
+          "An error occured while rebuilding the dbt manifest: " + exc + ".",
         ),
       );
     }
@@ -499,7 +500,8 @@ export class DBTProject implements Disposable {
         window.showErrorMessage(
           extendErrorWithSupportLinks(
             "An error occured while trying to generate the schema yml " +
-              exc.exception.message,
+              exc.exception.message +
+              ".",
           ),
         );
       }
@@ -508,7 +510,9 @@ export class DBTProject implements Disposable {
         adapter: this.adapterType,
       });
       window.showErrorMessage(
-        extendErrorWithSupportLinks("Encountered an unknown issue:" + exc),
+        extendErrorWithSupportLinks(
+          "Encountered an unknown issue:" + exc + ".",
+        ),
       );
     }
   }
@@ -611,7 +615,9 @@ select * from renamed
         adapter: this.adapterType,
       });
       window.showErrorMessage(
-        extendErrorWithSupportLinks("Encountered an unknown issue:" + exc),
+        extendErrorWithSupportLinks(
+          "Encountered an unknown issue:" + exc + ".",
+        ),
       );
     }
   }

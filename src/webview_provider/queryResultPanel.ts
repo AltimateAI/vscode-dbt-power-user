@@ -272,7 +272,7 @@ export class QueryResultPanel implements WebviewViewProvider {
       }
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Encountered an unknown issue: " + exc.message,
+          "Encountered an unknown issue: " + exc.message + ".",
         ),
       );
       await this.transmitError(

@@ -82,7 +82,8 @@ export class DbtDocumentFormattingEditProvider
       window.showErrorMessage(
         extendErrorWithSupportLinks(
           "Could not run sqlfmt. Did you install sqlfmt? Detailed error: " +
-            error,
+            error +
+            ".",
         ),
       );
     }
