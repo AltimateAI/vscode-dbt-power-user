@@ -454,7 +454,7 @@ export class DBTProject implements Disposable {
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Could not execute query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue.",
+          "Could not execute query, because the Python bridge has not been initalized.",
         ),
       );
       this.telemetry.sendTelemetryError(
