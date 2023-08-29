@@ -168,31 +168,33 @@
         </li>
       </ol>
 
-      <p><em>If AI is enabled</em>, you have some additional capabilities:</p>
-      <ol start="4">
-        <li>
-          <strong>Auto-generate Documentation:</strong>
-          <p>
-            Want a starting point or need some inspiration? Use the
-            <strong>"Generate Documentation"</strong> button to auto-populate
-            documentation for a model or its columns.
-          </p>
-        </li>
-        <li>
-          <strong>Leave Feedback on AI-Generated Documentation:</strong>
-          <ul>
-            <li>
-              Click on the <strong>"Add Comment"</strong> button after any
-              AI-generated documentation.
-            </li>
-            <li>This opens a text area where you can provide feedback.</li>
-            <li>
-              Once done, use the thumbsup (👍) or thumbsdown (👎) icon to submit
-              your feedback.
-            </li>
-          </ul>
-        </li>
-      </ol>
+      <div v-show="aiEnabled">
+        <p><em>If AI is enabled</em>, you have some additional capabilities:</p>
+        <ol start="4">
+          <li>
+            <strong>Auto-generate Documentation:</strong>
+            <p>
+              Want a starting point or need some inspiration? Use the
+              <strong>"Generate Documentation"</strong> button to auto-populate
+              documentation for a model or its columns.
+            </p>
+          </li>
+          <li>
+            <strong>Leave Feedback on AI-Generated Documentation:</strong>
+            <ul>
+              <li>
+                Click on the <strong>"Add Comment"</strong> button after any
+                AI-generated documentation.
+              </li>
+              <li>This opens a text area where you can provide feedback.</li>
+              <li>
+                Once done, use the thumbsup (👍) or thumbsdown (👎) icon to
+                submit your feedback.
+              </li>
+            </ul>
+          </li>
+        </ol>
+      </div>
 
       <h3>Help Us Improve:</h3>
       <p>

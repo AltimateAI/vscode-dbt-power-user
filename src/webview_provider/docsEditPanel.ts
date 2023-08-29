@@ -149,6 +149,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     });
   }
 
+  private async transmitConfig() {
+    await this._panel!.webview.postMessage({
+      command: "updateConfig",
+      config: { aiEnabled: this.altimateRequest.enabled() },
+    });
+  }
+
   private async updateGraphStyle() {
     const theme = [
       ColorThemeKind.Light,
@@ -171,6 +178,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
     this.setupWebviewHooks(context);
+    this.transmitConfig();
     this.documentation = await this.getDocumentation();
     this.transmitData();
     this.updateGraphStyle();

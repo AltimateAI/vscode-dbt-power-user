@@ -9,12 +9,17 @@ const app = createApp({
   data() {
     return {
       docs: undefined,
+      aiEnabled: false,
       dialogType: "Existing file",
     };
   },
   methods: {
     updateDocs(docs) {
       this.docs = docs;
+      this.aiEnabled = docs.aiEnabled;
+    },
+    aiEnabledChanged(config) {
+      this.aiEnabled = config.aiEnabled;
     },
     toggleRating(ref) {
       let element = this.$refs[ref];
@@ -64,7 +69,7 @@ const app = createApp({
       return this.docs ? this.docs.columns : [];
     },
     aiEnabled() {
-      return this.docs ? this.docs.aiEnabled : false;
+      return this.aiEnabled || false;
     },
     patchPath() {
       return this.docs ? this.docs.patchPath : "";
@@ -77,6 +82,8 @@ const app = createApp({
       switch (command) {
         case "renderDocumentation":
           this.updateDocs(event.data.docs);
+        case "updateConfig":
+          this.aiEnabledChanged(event.data.config);
       }
     });
   },
