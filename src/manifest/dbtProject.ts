@@ -226,7 +226,8 @@ export class DBTProject implements Disposable {
         window.showErrorMessage(
           extendErrorWithSupportLinks(
             "An error occured while initializing the dbt project: " +
-              exc.exception.message,
+              exc.exception.message +
+              ".",
           ),
         );
         return;

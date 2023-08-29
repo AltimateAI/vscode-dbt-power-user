@@ -198,7 +198,7 @@ export class DBTClient implements Disposable {
       message &&
       (versionCheck === "both" || versionCheck === "error message")
     ) {
-      window.showErrorMessage(extendErrorWithSupportLinks(message));
+      window.showErrorMessage(extendErrorWithSupportLinks(message + "."));
     }
     this.telemetry.sendTelemetryEvent("dbtVersionCheck", {
       installed: `${this.dbtInstalled}`,
