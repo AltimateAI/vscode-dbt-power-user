@@ -403,7 +403,8 @@ export class DBTProject implements Disposable {
         window.showErrorMessage(
           extendErrorWithSupportLinks(
             "An error occured while trying to compile your query: " +
-              exc.exception.message,
+              exc.exception.message +
+              ".",
           ),
         );
         this.telemetry.sendTelemetryError("compileQueryPythonError", exc);
@@ -418,7 +419,9 @@ export class DBTProject implements Disposable {
       this.telemetry.sendTelemetryError("compileQueryUnknownError", exc);
       // Unknown error
       window.showErrorMessage(
-        extendErrorWithSupportLinks("Encountered an unknown issue: " + exc),
+        extendErrorWithSupportLinks(
+          "Encountered an unknown issue: " + exc + ".",
+        ),
       );
       return "Detailed error information:\n" + exc;
     }

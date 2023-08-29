@@ -69,9 +69,11 @@ export class DbtDocumentFormattingEditProvider
             error,
           );
           window.showErrorMessage(
-            "Could not process difference output from sqlfmt. Detailed error: " +
-              error +
-              " If the issue persists, please report it on GitHub (https://bit.ly/dpuissue) or seek help in our dbt Community Slack channel #tools-dbt-power-user (https://bit.ly/dpuslack)",
+            extendErrorWithSupportLinks(
+              "Could not process difference output from sqlfmt. Detailed error: " +
+                error +
+                ".",
+            ),
           );
         }
       }
