@@ -1,9 +1,11 @@
 #app {
   display: flex;
   flex-direction: column;
+  margin: 0;
 }
 
 #docs-form {
+  width: 100%;
   display: grid;
   grid-auto-flow: row;
   grid-row-gap: 1.5rem;
@@ -21,9 +23,7 @@
 
 @media screen and (min-width: 1024px) {
   #app {
-    padding: 0 8rem;
     max-width: 1024px;
-    margin: 0 auto;
   }
 }
 
