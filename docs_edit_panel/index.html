@@ -122,7 +122,92 @@
       </section>
     </div>
     <div v-else="hasData">
-      <h2>Select a dbt model to show the documentation editor</h2>
+      <h2>DBT Model Documentation Help</h2>
+      <p>
+        Welcome to the dbt model documentation interface! Here you can write,
+        edit, and save comprehensive documentation for your dbt models and their
+        columns.
+      </p>
+
+      <h3>Actions You Can Take:</h3>
+      <ol>
+        <li>
+          <strong>Writing Documentation:</strong>
+          <ul>
+            <li>
+              Click inside any text area corresponding to the model or
+              individual columns.
+            </li>
+            <li>Start typing your documentation.</li>
+          </ul>
+        </li>
+        <li>
+          <strong>Saving Documentation:</strong>
+          <p>
+            Once you've added or edited the documentation for your model or
+            columns, hit the <strong>"Save Documentation"</strong> button to
+            save everything.
+          </p>
+        </li>
+        <li>
+          <strong>Sync Model with Database:</strong>
+          <ul>
+            <li>
+              Sometimes, the dbt models might not list all the rows or might be
+              out-of-date.
+            </li>
+            <li>
+              Use the sync action to synchronize the model with your database
+              and fetch the accurate columns and their types.
+            </li>
+            <li>
+              Note: If the model is saved after syncing, stale columns are not
+              removed.
+            </li>
+          </ul>
+        </li>
+      </ol>
+
+      <p><em>If AI is enabled</em>, you have some additional capabilities:</p>
+      <ol start="4">
+        <li>
+          <strong>Auto-generate Documentation:</strong>
+          <p>
+            Want a starting point or need some inspiration? Use the
+            <strong>"Generate Documentation"</strong> button to auto-populate
+            documentation for a model or its columns.
+          </p>
+        </li>
+        <li>
+          <strong>Leave Feedback on AI-Generated Documentation:</strong>
+          <ul>
+            <li>
+              Click on the <strong>"Add Comment"</strong> button after any
+              AI-generated documentation.
+            </li>
+            <li>This opens a text area where you can provide feedback.</li>
+            <li>
+              Once done, use the thumbsup (👍) or thumbsdown (👎) icon to submit
+              your feedback.
+            </li>
+          </ul>
+        </li>
+      </ol>
+
+      <h3>Help Us Improve:</h3>
+      <p>
+        We're eager to hear from you! If you've tried the AI-generated
+        documentation, let us know how it worked for you. Your feedback helps us
+        improve and ensures we offer a valuable tool for the community.
+      </p>
+      <p>
+        For any issues or concerns, please reach out to the extension
+        maintainers or join our conversation at the dbt community
+        <a href="https://getdbt.slack.com/archives/C05KPDGRMDW" target="_blank"
+          >Slack channel</a
+        >.
+      </p>
+      <p>Happy documenting!</p>
     </div>
     <script nonce="__NONCE__" type="module" src="__ROOT__/main.js"></script>
   </body>
