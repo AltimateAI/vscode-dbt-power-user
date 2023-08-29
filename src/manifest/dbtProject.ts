@@ -23,6 +23,7 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { EnvironmentVariables } from "../domain";
 import {
   debounce,
+  extendErrorWithSupportLinks,
   setupWatcherHandler,
   substituteSettingsVariables,
 } from "../utils";
@@ -223,14 +224,18 @@ export class DBTProject implements Disposable {
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
-          "An error occured while initializing the dbt project: " +
-            exc.exception.message,
+          extendErrorWithSupportLinks(
+            "An error occured while initializing the dbt project: " +
+              exc.exception.message,
+          ),
         );
         return;
       }
       window.showErrorMessage(
-        "An unexpected error occured while initializing the dbt project: " +
-          exc,
+        extendErrorWithSupportLinks(
+          "An unexpected error occured while initializing the dbt project: " +
+            exc,
+        ),
       );
       this.telemetry.sendTelemetryError("pythonBridgeInitError", exc);
       return;
@@ -288,7 +293,9 @@ export class DBTProject implements Disposable {
   private async rebuildManifest() {
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
-        "The dbt manifest can't be rebuilt right now as the Python environment has not yet been initialized, please try again later.",
+        extendErrorWithSupportLinks(
+          "The dbt manifest can't be rebuilt right now as the Python environment has not yet been initialized, please try again later.",
+        ),
       );
       this.telemetry.sendTelemetryError("pythonBridgeNotYetInitializedError", {
         adapter: this.adapterType,
@@ -304,7 +311,9 @@ export class DBTProject implements Disposable {
         adapter: this.adapterType,
       });
       window.showErrorMessage(
-        "An error occured while rebuilding the dbt manifest: " + exc,
+        extendErrorWithSupportLinks(
+          "An error occured while rebuilding the dbt manifest: " + exc,
+        ),
       );
     }
   }
@@ -374,7 +383,9 @@ export class DBTProject implements Disposable {
 
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
-        "Could not compile query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue.",
+        extendErrorWithSupportLinks(
+          "Could not compile query, because the Python bridge has not been initalized.",
+        ),
       );
       this.telemetry.sendTelemetryError(
         "compileQueryPythonBridgeNotInitializedError",
@@ -390,8 +401,10 @@ export class DBTProject implements Disposable {
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
-          "An error occured while trying to compile your query: " +
-            exc.exception.message,
+          extendErrorWithSupportLinks(
+            "An error occured while trying to compile your query: " +
+              exc.exception.message,
+          ),
         );
         this.telemetry.sendTelemetryError("compileQueryPythonError", exc);
         return (
@@ -404,7 +417,9 @@ export class DBTProject implements Disposable {
       }
       this.telemetry.sendTelemetryError("compileQueryUnknownError", exc);
       // Unknown error
-      window.showErrorMessage(exc);
+      window.showErrorMessage(
+        extendErrorWithSupportLinks("Encountered an unknown issue: " + exc),
+      );
       return "Detailed error information:\n" + exc;
     }
   }
@@ -433,7 +448,9 @@ export class DBTProject implements Disposable {
     await this.blockUntilPythonBridgeIsInitalized();
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
-        "Could not execute query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue.",
+        extendErrorWithSupportLinks(
+          "Could not execute query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue.",
+        ),
       );
       this.telemetry.sendTelemetryError(
         "generateSchemaYMLPythonBridgeNotInitializedError",
@@ -477,15 +494,19 @@ export class DBTProject implements Disposable {
           adapter: this.adapterType,
         });
         window.showErrorMessage(
-          "An error occured while trying to generate the schema yml " +
-            exc.exception.message,
+          extendErrorWithSupportLinks(
+            "An error occured while trying to generate the schema yml " +
+              exc.exception.message,
+          ),
         );
       }
       // Unknown error
       this.telemetry.sendTelemetryError("generateSchemaYMLUnknownError", exc, {
         adapter: this.adapterType,
       });
-      window.showErrorMessage(exc);
+      window.showErrorMessage(
+        extendErrorWithSupportLinks("Encountered an unknown issue:" + exc),
+      );
     }
   }
 
@@ -500,7 +521,9 @@ export class DBTProject implements Disposable {
     await this.blockUntilPythonBridgeIsInitalized();
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
-        "Could not execute query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue.",
+        extendErrorWithSupportLinks(
+          "Could not execute query, because the Python bridge has not been initalized.",
+        ),
       );
       this.telemetry.sendTelemetryError(
         "generateModelPythonBridgeNotInitializedError",
@@ -584,7 +607,9 @@ select * from renamed
       this.telemetry.sendTelemetryError("generateModelUnknownError", exc, {
         adapter: this.adapterType,
       });
-      window.showErrorMessage(exc);
+      window.showErrorMessage(
+        extendErrorWithSupportLinks("Encountered an unknown issue:" + exc),
+      );
     }
   }
 
@@ -592,7 +617,9 @@ select * from renamed
     await this.blockUntilPythonBridgeIsInitalized();
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
-        "Could not execute query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue.",
+        extendErrorWithSupportLinks(
+          "Could not execute query, because the Python bridge has not been initalized.",
+        ),
       );
       this.telemetry.sendTelemetryError(
         "executeSQLPythonBridgeNotInitialized",

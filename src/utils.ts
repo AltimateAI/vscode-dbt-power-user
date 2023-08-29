@@ -115,3 +115,10 @@ export function substituteSettingsVariables(value: string): string {
   );
   return value;
 }
+
+export function extendErrorWithSupportLinks(error: string): string {
+  return (
+    error +
+    " If the issue persists, please report it on GitHub (https://bit.ly/dpuissue) or seek help in our dbt Community Slack channel #tools-dbt-power-user (https://bit.ly/dpuslack)"
+  );
+}
