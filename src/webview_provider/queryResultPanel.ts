@@ -232,7 +232,7 @@ export class QueryResultPanel implements WebviewViewProvider {
     }
     // Define column spec for Tabulator
     result.table.column_names.forEach((def: any) => {
-      columns = [...columns, { title: def.toUpperCase(), field: def }];
+      columns = [...columns, { title: def, field: def }];
     });
     await this.transmitData(columns, rows, query, result.compiled_sql);
   }
