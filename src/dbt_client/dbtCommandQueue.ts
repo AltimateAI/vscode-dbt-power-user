@@ -1,5 +1,5 @@
 import { CancellationToken, ProgressLocation, window } from "vscode";
-import { provideSingleton } from "../utils";
+import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 
 interface Command {
@@ -37,7 +37,9 @@ export class DBTCommandQueue {
             await command(token);
           } catch (error) {
             window.showErrorMessage(
-              `Could not run command '${statusMessage}': ` + error,
+              extendErrorWithSupportLinks(
+                `Could not run command '${statusMessage}': ` + error + ".",
+              ),
             );
             this.telemetry.sendTelemetryError("queueRunCommandError", error, {
               command: statusMessage,

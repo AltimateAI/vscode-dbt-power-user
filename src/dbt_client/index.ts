@@ -10,7 +10,7 @@ import {
   CommandProcessExecutionFactory,
 } from "../commandProcessExecution";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { provideSingleton } from "../utils";
+import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { DBTCommand, DBTCommandFactory } from "./dbtCommandFactory";
 import { DBTCommandQueue } from "./dbtCommandQueue";
 import { DBTTerminal } from "./dbtTerminal";
@@ -198,7 +198,7 @@ export class DBTClient implements Disposable {
       message &&
       (versionCheck === "both" || versionCheck === "error message")
     ) {
-      window.showErrorMessage(message);
+      window.showErrorMessage(extendErrorWithSupportLinks(message + "."));
     }
     this.telemetry.sendTelemetryEvent("dbtVersionCheck", {
       installed: `${this.dbtInstalled}`,

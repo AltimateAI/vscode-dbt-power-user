@@ -4,7 +4,7 @@ import { GenerateModelFromSourceParams } from "../code_lens_provider/sourceModel
 import { RunModelType } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { NodeTreeItem } from "../treeview_provider/modelTreeviewProvider";
-import { provideSingleton } from "../utils";
+import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 
 @provideSingleton(RunModel)
 export class RunModel {
@@ -180,7 +180,7 @@ export class RunModel {
       );
     } else {
       window.showErrorMessage(
-        "Could not generate model! If error persists please create a Github issue.",
+        extendErrorWithSupportLinks("Could not generate model!"),
       );
     }
   }

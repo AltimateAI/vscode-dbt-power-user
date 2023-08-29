@@ -18,7 +18,7 @@ import { readFileSync } from "fs";
 import { PythonException } from "python-bridge";
 import { ExecuteSQLResult } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { provideSingleton } from "../utils";
+import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 
 interface JsonObj {
   [key: string]: string | number | undefined;
@@ -270,7 +270,11 @@ export class QueryResultPanel implements WebviewViewProvider {
         );
         return;
       }
-      window.showErrorMessage(exc.message);
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Encountered an unknown issue: " + exc.message + ".",
+        ),
+      );
       await this.transmitError(
         {
           error: { code: -1, message: exc.message, data: {} },

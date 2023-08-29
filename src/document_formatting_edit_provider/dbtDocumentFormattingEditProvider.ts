@@ -11,7 +11,7 @@ import {
 } from "vscode";
 import * as which from "which";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
-import { provideSingleton } from "../utils";
+import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 
 @provideSingleton(DbtDocumentFormattingEditProvider)
@@ -69,16 +69,22 @@ export class DbtDocumentFormattingEditProvider
             error,
           );
           window.showErrorMessage(
-            "Could not process difference output from sqlfmt. Detailed error: " +
-              error,
+            extendErrorWithSupportLinks(
+              "Could not process difference output from sqlfmt. Detailed error: " +
+                error +
+                ".",
+            ),
           );
         }
       }
     } catch (error) {
       this.telemetry.sendTelemetryError("formatDbtModelApplyDiffFailed", error);
       window.showErrorMessage(
-        "Could not run sqlfmt. Did you install sqlfmt? Detailed error: " +
-          error,
+        extendErrorWithSupportLinks(
+          "Could not run sqlfmt. Did you install sqlfmt? Detailed error: " +
+            error +
+            ".",
+        ),
       );
     }
     return [];
