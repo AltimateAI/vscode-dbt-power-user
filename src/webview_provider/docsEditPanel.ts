@@ -505,7 +505,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   }
                   if (
                     parsedDocFile.models.find(
-                      (model: any) => model === message.name,
+                      (model: any) => model.name === message.name,
                     ) === undefined
                   ) {
                     // there is a models section but the model does not exist yet.
