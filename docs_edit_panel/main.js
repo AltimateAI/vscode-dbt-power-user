@@ -82,8 +82,10 @@ const app = createApp({
       switch (command) {
         case "renderDocumentation":
           this.updateDocs(event.data.docs);
+          break;
         case "updateConfig":
           this.aiEnabledChanged(event.data.config);
+          break;
       }
     });
   },
