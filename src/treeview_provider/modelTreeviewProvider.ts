@@ -149,7 +149,6 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
     new EventEmitter<DocTreeItem | undefined | void>();
   readonly onDidChangeTreeData: Event<DocTreeItem | undefined | void> =
     this._onDidChangeTreeData.event;
-  private treeData: DocTreeItem[] = [];
   private disposables: Disposable[] = [this._onDidChangeTreeData];
 
   constructor(private dbtProjectContainer: DBTProjectContainer) {
@@ -234,7 +233,7 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
 
         if (Object.keys(currentNode.columns).length === 0) {
           window.showWarningMessage(
-            `Documentation View Warning: No columns found in manifest.json for ${modelName}, define the schema for this model in a YML file (e.g. by right clicking in the sql file --> Generate Documentation YML) and run dbt docs generate`,
+            `Documentation View Warning: No columns found in manifest.json for ${modelName}, go edit the documentation in the documentation editor panel and run dbt docs generate`,
           );
         }
         const key = currentNode.uniqueId;
@@ -245,9 +244,9 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
         const nodeItem = new DocNode(label, key, url, description);
         const treeItem = new DocTreeItem(nodeItem);
         treeItem.children = children;
-        this.treeData = [treeItem];
+        return [treeItem];
       }
-      return this.treeData;
+      return [];
     }
     return element.children;
   }

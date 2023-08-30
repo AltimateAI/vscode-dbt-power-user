@@ -50,6 +50,14 @@ export class VSCodeCommands implements Disposable {
           }
         },
       ),
+      commands.registerCommand(
+        "dbtPowerUser.goToDocumentationEditor",
+        async () => {
+          await commands.executeCommand(
+            "workbench.view.extension.docs_edit_view",
+          );
+        },
+      ),
       commands.registerCommand("dbtPowerUser.runTest", (model) =>
         this.runModel.runModelOnNodeTreeItem(RunModelType.TEST)(model),
       ),
