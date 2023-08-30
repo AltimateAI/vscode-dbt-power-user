@@ -4,21 +4,22 @@
 
 This extension makes vscode seamlessly work with [dbt](https://www.getdbt.com/).
 
+If you need help with setting up or any other functionality, message us in the dbt community slack channel [#tools-dbt-power-user](https://getdbt.slack.com/archives/C05KPDGRMDW).
+
 Main features:
 
-- Generate models from your source definitions
-- Query result set visualization
-- Lineage of current model
-- Execute all or individual model tests
-- Go to the definition of any models, macros, sources and docs.
-- Edit documentation of your model and its columns in a dedicated panel
-- Generate documentation YML based on your model
-- View column details, go to documentation YML and run dbt docs generate.
-- Autocompletion of models, macros, sources and docs
-- Ability to run a model through the play button of the document
-- Ability to build a model through the paper plane button (next to the play button)
+- [Generate models from your source definitions](#sourcegen)
+- [Query result set visualization](#sqlrunner)
+- [Lineage of dbt models](#lineage)
+- [Execute all or individual model tests](#modeltester)
+- [Go to the definition of any models, macros, sources and docs.](#gotodef)
+- [Edit documentation of your model and its columns in a dedicated panel](#doceditor)
+- [View column details, go to documentation editor and run dbt docs generate.](#doctreeview)
+- [Autocompletion of models, macros, sources and docs](#autocomplet)
+- Run a model through the play button of the document
+- Build a model through the paper plane button (next to the play button)
 - dbt update notifications
-- dbt logs viewer (force tailing)
+- [dbt logs viewer (force tailing)](#logtailer)
 
 This extension is using the Python extension to detect Python interpreters that are installed in standard locations. See [Python Environments](https://code.visualstudio.com/docs/languages/python#_environments).
 
@@ -143,21 +144,21 @@ Telemetry is used for error and usage reporting in order to make the extension b
 
 ## Features at work
 
-### Lineage of current model
+### <a name="lineage">Lineage of current model</a>
 
 ![See the parents and children of your model](./media/images/lineage.png)
 
-### Generate a model from your source definition
+### <a name="sourcegen">Generate a model from your source definition</a>
 
 ![Generate a model from your source definition](./media/images/generate-model-from-source.gif)
 
 You can select a file name template and prefix in the settings.
 
-### Edit the documentation from your model
+### <a name="doceditor">Edit the documentation from your model</a>
 
 ![Edit the documentation from your model](./media/images/documentation-editor.png)
 
-### View Column details of current model
+### <a name="doctreeview">View Column details of current model</a>
 
 ![Tree view of of columns in model documentation](./media/images/demo-doc-treeview.gif)
 
@@ -168,23 +169,23 @@ Clicking the table name will route you to the YML schema file if it exists:
 You can run Generate Documentation Schema or Trigger `dbt docs generate` from the documentation tab.
 This feature relies on a defined schema in a YML file. It extracts data from both the catalog.json, and the manifest.json.
 
-### Visualize the result set of your model (Use CMD+ENTER (mac) or CTRL+ENTER (win))
+### <a name="sqlrunner">Visualize the result set of your model (Use CMD+ENTER (mac) or CTRL+ENTER (win))</a>
 
 ![Use ctrl+enter or cmd+enter to retrieve the result set of your model](./media/images/visualize-result-set.gif)
 
-### See the compiled query of your model (Use CMD+' (mac) or CTRL+' (win))
+### <a name="compiler">See the compiled query of your model (Use CMD+' (mac) or CTRL+' (win))</a>
 
 ![Use ctrl+' or cmd+' to see the compiled sql of your model](./media/images/compile.gif)
 
-### Execute model tests
+### <a name="modeltester">Execute model tests</a>
 
 ![Test your model](./media/images/tests.gif)
 
-### See the model graph
+### <a name="modelgraph">See the model graph</a>
 
 ![See the graph and execute parent or children models](./media/images/graph.gif)
 
-### Go to definition
+### <a name="gotodef">Go to definition</a>
 
 ![Go to model definition](./media/images/definition-model.gif)
 
@@ -194,7 +195,7 @@ This feature relies on a defined schema in a YML file. It extracts data from bot
 
 ![Go to doc definition](./media/images/definition-doc.gif)
 
-### Autocompletion
+### <a name="autocomplete">Autocompletion</a>
 
 ![Autocomplete model](./media/images/autocomplete-model.gif)
 
@@ -204,6 +205,6 @@ This feature relies on a defined schema in a YML file. It extracts data from bot
 
 ![Autocomplete source](./media/images/autocomplete-doc.gif)
 
-### dbt logs force tailing
+### <a name="logtailer">dbt logs force tailing</a>
 
 ![dbt logs](./media/images/dbt-log.gif)

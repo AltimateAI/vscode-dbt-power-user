@@ -18,7 +18,12 @@
     "vscode": "^1.81.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Programming Languages",
+    "Snippets",
+    "Data Science",
+    "Formatters",
+    "Testing"
   ],
   "keywords": [
     "dbt",
