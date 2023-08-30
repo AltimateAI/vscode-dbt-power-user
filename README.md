@@ -11,6 +11,7 @@ Main features:
 - Lineage of current model
 - Execute all or individual model tests
 - Go to the definition of any models, macros, sources and docs.
+- Edit documentation of your model and its columns in a dedicated panel
 - Generate documentation YML based on your model
 - View column details, go to documentation YML and run dbt docs generate.
 - Autocompletion of models, macros, sources and docs
@@ -152,9 +153,9 @@ Telemetry is used for error and usage reporting in order to make the extension b
 
 You can select a file name template and prefix in the settings.
 
-### Generate a schema yml file from your model file
+### Edit the documentation from your model
 
-![Generate a schema yml file from your model file](./media/images/generate-schema-yml.gif)
+![Edit the documentation from your model](./media/images/documentation-editor.png)
 
 ### View Column details of current model
 
