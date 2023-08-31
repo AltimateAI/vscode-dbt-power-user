@@ -380,6 +380,13 @@ export class DBTProject implements Disposable {
     this.dbtProjectContainer.addCommandToQueue(docsGenerateCommand);
   }
 
+  async unsafeCompileQuery(query: string): Promise<string | undefined> {
+    const output = (await this.python?.lock(
+      (python) => python!`to_dict(project.compile_sql(${query}))`,
+    )) as CompilationResult;
+    return output.compiled_sql;
+  }
+
   async compileQuery(query: string): Promise<string | undefined> {
     await this.blockUntilPythonBridgeIsInitalized();
 
@@ -396,10 +403,7 @@ export class DBTProject implements Disposable {
     }
     this.telemetry.sendTelemetryEvent("compileQuery");
     try {
-      const output = (await this.python?.lock(
-        (python) => python!`to_dict(project.compile_sql(${query}))`,
-      )) as CompilationResult;
-      return output.compiled_sql;
+      return this.unsafeCompileQuery(query);
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(

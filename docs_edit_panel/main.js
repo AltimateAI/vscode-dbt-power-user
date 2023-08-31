@@ -16,7 +16,21 @@ const app = createApp({
   methods: {
     updateDocs(docs) {
       this.docs = docs;
-      this.aiEnabled = docs.aiEnabled;
+      this.aiEnabled = docs?.aiEnabled;
+    },
+    updateColumns(columns) {
+      this.docs.columns = columns.map((column) => {
+        const existingColumn = this.documentation?.columns.find(
+          (existingColumn) => column.column === existingColumn.name,
+        );
+        return {
+          name: column.name,
+          type: column.type,
+          description: existingColumn?.description || "",
+          generated: existingColumn?.generated || false,
+          source: existingColumn !== undefined ? "YAML" : "DATABASE",
+        };
+      });
     },
     aiEnabledChanged(config) {
       this.aiEnabled = config.aiEnabled;
@@ -44,8 +58,8 @@ const app = createApp({
           JSON.stringify({
             patchPath: this.patchPath,
             name: this.name,
-            description: this.description,
-            columns: this.columns,
+            description: this.docs?.description,
+            columns: this.docs?.columns,
             dialogType: this.dialogType,
           }),
         ),
@@ -59,14 +73,8 @@ const app = createApp({
     name() {
       return this.docs ? this.docs.name : "";
     },
-    description() {
-      return this.docs ? this.docs.description : "";
-    },
     generated() {
       return this.docs ? this.docs.generated : false;
-    },
-    columns() {
-      return this.docs ? this.docs.columns : [];
     },
     aiEnabled() {
       return this.aiEnabled || false;
@@ -82,6 +90,9 @@ const app = createApp({
       switch (command) {
         case "renderDocumentation":
           this.updateDocs(event.data.docs);
+          break;
+        case "renderColumnsFromMetadataFetch":
+          this.updateColumns(event.data.columns);
           break;
         case "updateConfig":
           this.aiEnabledChanged(event.data.config);
