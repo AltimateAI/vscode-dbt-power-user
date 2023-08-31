@@ -30,16 +30,18 @@ enum Source {
   DATABASE = "DATABASE",
 }
 
-interface DBTDocumentationColumn {
+interface MetadataColumn {
   name: string;
   type?: string;
+}
+
+interface DBTDocumentationColumn extends MetadataColumn {
   description?: string;
   generated: boolean;
   source: Source;
 }
 
 interface DBTDocumentation {
-  compiledSql: string;
   name: string;
   description: string;
   columns: DBTDocumentationColumn[];
@@ -110,20 +112,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     }
 
     const docColumns = currentNode.columns;
-    // merge metadata and manifest
-    const compiledSql = await project.compileQuery(
-      window.activeTextEditor.document.getText(),
-    );
-    if (compiledSql === undefined) {
-      window.showErrorMessage("Could not compile query, aborting generation");
-      return;
-    }
     return {
       aiEnabled: this.altimateRequest.enabled(),
       name: modelName,
       patchPath: currentNode.patch_path,
       description: currentNode.description,
-      compiledSql: compiledSql,
       generated: false,
       columns: Object.values(docColumns).map((column) => {
         return {
@@ -146,6 +139,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     await this._panel!.webview.postMessage({
       command: "renderDocumentation",
       docs: this.documentation,
+    });
+  }
+
+  private async transmitColumns(columns: MetadataColumn[]) {
+    await this._panel!.webview.postMessage({
+      command: "renderColumnsFromMetadataFetch",
+      columns,
     });
   }
 
@@ -205,6 +205,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         ) {
           return undefined;
         }
+        const queryText = window.activeTextEditor.document.getText();
         const currentFilePath = window.activeTextEditor.document.uri;
         const project =
           this.dbtProjectContainer.findDBTProject(currentFilePath);
@@ -225,25 +226,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 try {
                   const columnsInRelation =
                     await project.getColumnsInRelation(modelName);
-                  this.documentation!.columns = columnsInRelation.map(
-                    (column) => {
-                      const existingColumn = this.documentation?.columns.find(
-                        (existingColumn) =>
-                          column.column === existingColumn.name,
-                      );
-                      return {
-                        name: column.column,
-                        type: column.dtype,
-                        description: existingColumn?.description || "",
-                        generated: existingColumn?.generated || false,
-                        source:
-                          existingColumn !== undefined
-                            ? Source.YAML
-                            : Source.DATABASE,
-                      };
-                    },
-                  );
-                  this.transmitData();
+                  const columns = columnsInRelation.map((column) => {
+                    return {
+                      name: column.column,
+                      type: column.dtype,
+                    };
+                  });
+                  this.transmitColumns(columns);
                 } catch (exc) {
                   this.transmitError();
                   if (exc instanceof PythonException) {
@@ -279,13 +268,15 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   return;
                 }
                 try {
+                  const compiledSql =
+                    await project.unsafeCompileQuery(queryText);
                   const generateDocsForModel =
                     await this.altimateRequest.generateModelDocs({
                       columns: [],
                       dbt_model: {
                         model_name: this.documentation?.name,
                         model_description: this.documentation?.description,
-                        compiled_sql: this.documentation?.compiledSql,
+                        compiled_sql: compiledSql,
                         columns: this.documentation?.columns.map((column) => ({
                           column_name: column.name,
                           description: column.description,
@@ -337,13 +328,15 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   return;
                 }
                 try {
+                  const compiledSql =
+                    await project.unsafeCompileQuery(queryText);
                   const generateDocsForColumn =
                     await this.altimateRequest.generateModelDocs({
                       columns: [message.columnName],
                       dbt_model: {
                         model_name: this.documentation.name,
                         model_description: this.documentation?.description,
-                        compiled_sql: this.documentation?.compiledSql,
+                        compiled_sql: compiledSql,
                         columns: this.documentation?.columns.map((column) => ({
                           column_name: column.name,
                           description: column.description,
@@ -412,12 +405,14 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               },
               async () => {
                 try {
-                  const data_to_send = message.data;
-                  data_to_send["feedback_text"] = message.comment;
-                  data_to_send["additional_prompt_inputs"] = {
+                  const compiledSql =
+                    await project.unsafeCompileQuery(queryText);
+                  const request = message.data;
+                  request["feedback_text"] = message.comment;
+                  request["additional_prompt_inputs"] = {
                     model_name: this.documentation?.name,
                     model_description: this.documentation?.description,
-                    compiled_sql: this.documentation?.compiledSql,
+                    compiled_sql: compiledSql,
                     columns: this.documentation?.columns.map((column) => ({
                       column_name: column.name,
                       description: column.description,
@@ -425,7 +420,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     })),
                   };
                   await this.altimateRequest.sendFeedback({
-                    data: data_to_send,
+                    data: request,
                     feedback_src: "dbtpu-extension",
                     feedback_text: message.comment,
                     feedback_value: message.rating,
