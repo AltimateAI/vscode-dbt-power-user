@@ -14,6 +14,7 @@ import { TargetWatchersFactory } from "./manifest/modules/targetWatchers";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
 import { QueryResultPanel } from "./webview_provider/queryResultPanel";
 import { TelemetryService } from "./telemetry";
+import { DbtPowerUserDiagnostics } from "./diagnostics";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -63,6 +64,7 @@ container
           container.get(DBTTerminal),
           container.get(QueryResultPanel),
           container.get(TelemetryService),
+          container.get(DbtPowerUserDiagnostics),
           path,
           projectConfig,
           _onManifestChanged,

@@ -333,8 +333,9 @@ class DbtProject:
         try:
             self.parse_project(init=reinit)
             self.write_manifest_artifact()
-        except Exception:
+        except Exception as e:
             self.config = _config_pointer
+            raise Exception(str(e))
 
     def write_manifest_artifact(self) -> None:
         """Write a manifest.json to disk"""

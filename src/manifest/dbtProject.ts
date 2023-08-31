@@ -5,9 +5,11 @@ import { join } from "path";
 import { PythonBridge, pythonBridge, PythonException } from "python-bridge";
 import {
   commands,
+  Diagnostic,
   Disposable,
   Event,
   EventEmitter,
+  Range,
   RelativePattern,
   Uri,
   ViewColumn,
@@ -40,6 +42,7 @@ import { TargetWatchersFactory } from "./modules/targetWatchers";
 import { PythonEnvironment } from "./pythonEnvironment";
 import { TelemetryService } from "../telemetry";
 import * as crypto from "crypto";
+import { DbtPowerUserDiagnostics } from "../diagnostics";
 
 export interface ExecuteSQLResult {
   table: {
@@ -106,6 +109,7 @@ export class DBTProject implements Disposable {
     private terminal: DBTTerminal,
     private queryResultPanel: QueryResultPanel,
     private telemetry: TelemetryService,
+    private diagnostics: DbtPowerUserDiagnostics,
     path: Uri,
     projectConfig: any,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
@@ -308,10 +312,32 @@ export class DBTProject implements Disposable {
       await this.python?.lock(
         (python) => python!`to_dict(project.safe_parse_project())`,
       );
+      this.diagnostics.rebuildManifestDiagnostics.clear();
     } catch (exc) {
-      this.telemetry.sendTelemetryError("pythonBridgeCannotParseProject", exc, {
-        adapter: this.adapterType,
-      });
+      if (exc instanceof PythonException) {
+        // dbt errors can be about anything, so we just associate the error with the project file
+        //  with a fixed range
+        this.diagnostics.rebuildManifestDiagnostics.set(
+          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+          [new Diagnostic(new Range(0, 0, 999, 999), exc.exception.message)],
+        );
+        this.telemetry.sendTelemetryEvent(
+          "pythonBridgeCannotParseProjectUserError",
+          {
+            error: exc.exception.message,
+            adapter: this.adapterType,
+          },
+        );
+        return;
+      }
+      // if we get here, it is not a dbt error but an extension error.
+      this.telemetry.sendTelemetryError(
+        "pythonBridgeCannotParseProjectUnknownError",
+        exc,
+        {
+          adapter: this.adapterType,
+        },
+      );
       window.showErrorMessage(
         extendErrorWithSupportLinks(
           "An error occured while rebuilding the dbt manifest: " + exc + ".",
