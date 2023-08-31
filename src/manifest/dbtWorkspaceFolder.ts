@@ -14,6 +14,7 @@ import {
 import { DBTProject } from "./dbtProject";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
+import { DbtPowerUserDiagnostics } from "../diagnostics";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
