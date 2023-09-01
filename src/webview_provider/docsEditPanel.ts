@@ -478,7 +478,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   } else {
                     // the location comes from the manifest, parse it
                     patchPath = path.join(
-                      project.projectRoot.path,
+                      project.projectRoot.fsPath,
                       patchPath.split("://")[1],
                     );
                   }
