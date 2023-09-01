@@ -296,9 +296,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       columns: [],
                       dbt_model: {
                         model_name: this.documentation?.name,
-                        model_description: this.documentation?.description,
+                        model_description: message.description,
                         compiled_sql: compiledSql,
-                        columns: this.documentation?.columns.map((column) => ({
+                        columns: message.columns.map((column: any) => ({
                           column_name: column.name,
                           description: column.description,
                           data_type: column.type,
@@ -352,7 +352,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       columns: [message.columnName],
                       dbt_model: {
                         model_name: this.documentation.name,
-                        model_description: this.documentation?.description,
+                        model_description: message.description,
                         compiled_sql: compiledSql,
                         columns: message.columns.map((column: any) => ({
                           column_name: column.name,

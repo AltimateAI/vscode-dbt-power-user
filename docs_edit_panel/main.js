@@ -66,10 +66,18 @@ const app = createApp({
       element.toggle();
     },
     async generateDocsForModel() {
-      await executeCommand("generateDocsForModel");
+      await executeCommand("generateDocsForModel", {
+        description: this.docs?.description,
+        columns: this.docs?.columns.map((col) => ({
+          name: col.name,
+          type: col.type,
+          description: col.description,
+        })),
+      });
     },
     async generateDocsForColumn(columnName) {
       await executeCommand("generateDocsForColumn", {
+        description: this.docs?.description,
         columnName,
         columns: this.docs?.columns.map((col) => ({
           name: col.name,
