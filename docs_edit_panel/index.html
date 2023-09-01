@@ -57,7 +57,7 @@
           </vscode-text-area>
           <div v-if="aiEnabled" class="column-actions">
             <vscode-button @click="generateDocsForModel()"
-              >Generate documentation<span
+              >Generate Documentation<span
                 slot="start"
                 class="codicon codicon-hubot"
               ></span
@@ -66,7 +66,7 @@
               appearance="secondary"
               v-show="generated"
               @click="toggleRating('model_rating')"
-              >Add comment
+              >Give Feedback
               <span slot="start" class="codicon codicon-comment"></span>
             </vscode-button>
           </div>
@@ -99,7 +99,7 @@
             </vscode-text-area>
             <div v-if="aiEnabled" class="column-actions">
               <vscode-button @click="generateDocsForColumn(column.name)"
-                >Generate documentation<span
+                >Generate Documentation<span
                   slot="start"
                   class="codicon codicon-hubot"
                 ></span>
@@ -108,7 +108,7 @@
                 appearance="secondary"
                 v-show="column.generated"
                 @click="toggleRating('rating_' + column.name)"
-                >Add comment
+                >Give Feedback
                 <span slot="start" class="codicon codicon-comment"></span>
               </vscode-button>
             </div>

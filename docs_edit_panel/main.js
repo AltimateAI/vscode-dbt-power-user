@@ -20,8 +20,8 @@ const app = createApp({
     },
     updateColumns(columns) {
       this.docs.columns = columns.map((column) => {
-        const existingColumn = this.documentation?.columns.find(
-          (existingColumn) => column.column === existingColumn.name,
+        const existingColumn = this.docs?.columns.find(
+          (existingColumn) => column.name === existingColumn.name,
         );
         return {
           name: column.name,
@@ -31,6 +31,29 @@ const app = createApp({
           source: existingColumn !== undefined ? "YAML" : "DATABASE",
         };
       });
+    },
+    updateAIGeneratedModelDocs(description) {
+      this.docs.description = description;
+      this.docs.generated = true;
+    },
+    updateAIGeneratedColumnDocs(generatedColumnDescriptions) {
+      const generatedColumns = Object.fromEntries(
+        generatedColumnDescriptions.map((d) => [d.name, d.description]),
+      );
+      const columns = this.docs.columns.reduce((agg, current) => {
+        agg.push({
+          ...current,
+          description: generatedColumns[current.name] || current.description,
+          generated:
+            generatedColumns[current.name] !== undefined || current.generated,
+        });
+        return agg;
+      }, []);
+
+      this.docs = {
+        ...this.docs,
+        columns: columns,
+      };
     },
     aiEnabledChanged(config) {
       this.aiEnabled = config.aiEnabled;
@@ -43,10 +66,25 @@ const app = createApp({
       element.toggle();
     },
     async generateDocsForModel() {
-      await executeCommand("generateDocsForModel");
+      await executeCommand("generateDocsForModel", {
+        description: this.docs?.description,
+        columns: this.docs?.columns.map((col) => ({
+          name: col.name,
+          type: col.type,
+          description: col.description,
+        })),
+      });
     },
     async generateDocsForColumn(columnName) {
-      await executeCommand("generateDocsForColumn", { columnName });
+      await executeCommand("generateDocsForColumn", {
+        description: this.docs?.description,
+        columnName,
+        columns: this.docs?.columns.map((col) => ({
+          name: col.name,
+          type: col.type,
+          description: col.description,
+        })),
+      });
     },
     async fetchMetadataFromDatabase() {
       await executeCommand("fetchMetadataFromDatabase");
@@ -93,6 +131,12 @@ const app = createApp({
           break;
         case "renderColumnsFromMetadataFetch":
           this.updateColumns(event.data.columns);
+          break;
+        case "renderAIGeneratedModelDocs":
+          this.updateAIGeneratedModelDocs(event.data.description);
+          break;
+        case "renderAIGeneratedColumnDocs":
+          this.updateAIGeneratedColumnDocs(event.data.columns);
           break;
         case "updateConfig":
           this.aiEnabledChanged(event.data.config);

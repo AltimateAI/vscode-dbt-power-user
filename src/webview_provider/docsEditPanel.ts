@@ -50,6 +50,11 @@ interface DBTDocumentation {
   patchPath?: string;
 }
 
+interface AIColumnDescription {
+  name: string;
+  description: string;
+}
+
 @provideSingleton(DocsEditViewPanel)
 export class DocsEditViewPanel implements WebviewViewProvider {
   public static readonly viewType = "dbtPowerUser.DocsEdit";
@@ -146,6 +151,22 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     await this._panel!.webview.postMessage({
       command: "renderColumnsFromMetadataFetch",
       columns,
+    });
+  }
+
+  private async transmitAIGeneratedModelDocs(description: string) {
+    await this._panel!.webview.postMessage({
+      command: "renderAIGeneratedModelDocs",
+      description,
+    });
+  }
+
+  private async transmitAIGeneratedColumnDocs(
+    generatedColumnDescriptions: AIColumnDescription[],
+  ) {
+    await this._panel!.webview.postMessage({
+      command: "renderAIGeneratedColumnDocs",
+      columns: generatedColumnDescriptions,
     });
   }
 
@@ -275,9 +296,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       columns: [],
                       dbt_model: {
                         model_name: this.documentation?.name,
-                        model_description: this.documentation?.description,
+                        model_description: message.description,
                         compiled_sql: compiledSql,
-                        columns: this.documentation?.columns.map((column) => ({
+                        columns: message.columns.map((column: any) => ({
                           column_name: column.name,
                           description: column.description,
                           data_type: column.type,
@@ -294,13 +315,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     // nothing to do if nothing happened
                     return;
                   }
-
-                  this.documentation = {
-                    ...this.documentation!,
-                    description: generateDocsForModel.model_description,
-                    generated: true,
-                  };
-                  this.transmitData();
+                  this.transmitAIGeneratedModelDocs(
+                    generateDocsForModel.model_description,
+                  );
                 } catch (error) {
                   this.transmitError();
                   window.showErrorMessage(
@@ -335,9 +352,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       columns: [message.columnName],
                       dbt_model: {
                         model_name: this.documentation.name,
-                        model_description: this.documentation?.description,
+                        model_description: message.description,
                         compiled_sql: compiledSql,
-                        columns: this.documentation?.columns.map((column) => ({
+                        columns: message.columns.map((column: any) => ({
                           column_name: column.name,
                           description: column.description,
                           data_type: column.type,
@@ -353,32 +370,12 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     // nothing to do if nothing happened
                     return;
                   }
-                  //doing this so we dont have to loop over the dict every time
-                  const generatedColumns = Object.fromEntries(
-                    generateDocsForColumn.column_descriptions!.map((d) => [
-                      d.column_name,
-                      d.column_description,
-                    ]),
+                  this.transmitAIGeneratedColumnDocs(
+                    generateDocsForColumn.column_descriptions.map((entry) => ({
+                      name: entry.column_name,
+                      description: entry.column_description,
+                    })),
                   );
-
-                  const columns: DBTDocumentationColumn[] =
-                    this.documentation!.columns.reduce((agg, current) => {
-                      agg.push({
-                        ...current,
-                        description:
-                          generatedColumns[current.name] || current.description,
-                        generated:
-                          generatedColumns[current.name] !== undefined ||
-                          current.generated,
-                      });
-                      return agg;
-                    }, [] as DBTDocumentationColumn[]);
-
-                  this.documentation = {
-                    ...this.documentation!,
-                    columns: columns,
-                  };
-                  this.transmitData();
                 } catch (error) {
                   this.transmitError();
                   window.showErrorMessage(
