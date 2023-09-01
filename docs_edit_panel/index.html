@@ -66,7 +66,7 @@
               appearance="secondary"
               v-show="generated"
               @click="toggleRating('model_rating')"
-              >Add comment
+              >Give Feedback
               <span slot="start" class="codicon codicon-comment"></span>
             </vscode-button>
           </div>
@@ -108,7 +108,7 @@
                 appearance="secondary"
                 v-show="column.generated"
                 @click="toggleRating('rating_' + column.name)"
-                >Add comment
+                >Give Feedback
                 <span slot="start" class="codicon codicon-comment"></span>
               </vscode-button>
             </div>
