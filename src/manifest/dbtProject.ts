@@ -225,15 +225,22 @@ export class DBTProject implements Disposable {
         adapter: this.adapterType,
         project: DBTProject.hashProjectRoot(this.projectRoot.fsPath),
       });
+      this.diagnostics.pythonBridgeDiagnostics.clear();
     } catch (exc: any) {
       if (exc instanceof PythonException) {
-        window.showErrorMessage(
-          extendErrorWithSupportLinks(
-            "An error occured while initializing the dbt project: " +
-              exc.exception.message +
-              ".",
-          ),
+        // python errors can be about anything, so we just associate the error with the project file
+        //  with a fixed range
+        this.diagnostics.rebuildManifestDiagnostics.set(
+          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+          [
+            new Diagnostic(
+              new Range(0, 0, 999, 999),
+              "An error occured while initializing the dbt project, probably the Python interpreter is not correctly setup: " +
+                exc.exception.message,
+            ),
+          ],
         );
+        this.telemetry.sendTelemetryError("pythonBridgeInitPythonError", exc);
         return;
       }
       window.showErrorMessage(
@@ -300,7 +307,7 @@ export class DBTProject implements Disposable {
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "The dbt manifest can't be rebuilt right now as the Python environment has not yet been initialized, please try again later.",
+          "The dbt manifest can't be rebuilt right now as the Python environment has not yet been initialized, check the problems panel for any detected problems.",
         ),
       );
       this.telemetry.sendTelemetryError("pythonBridgeNotYetInitializedError", {
