@@ -304,6 +304,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                           data_type: column.type,
                           modelName: this.documentation?.name,
                         })),
+                        adapter: project.getAdapterType(),
                       },
                       gen_model_description: true,
                     });
@@ -359,6 +360,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                           description: column.description,
                           data_type: column.type,
                         })),
+                        adapter: project.getAdapterType(),
                       },
                       gen_model_description: false,
                     });

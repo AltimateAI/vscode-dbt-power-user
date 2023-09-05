@@ -83,8 +83,8 @@ export class DBTProject implements Disposable {
 
   readonly projectRoot: Uri;
   readonly dbtProfilesDir: string; // vscode.Uri doesn't support relative urls
-  private projectName: string;
   private adapterType: string = "unknown";
+  private projectName: string;
   private targetPath: string;
   private sourcePaths: string[];
   private macroPaths: string[];
@@ -271,6 +271,10 @@ export class DBTProject implements Disposable {
       );
       this.telemetry.sendTelemetryError("projectConfigRefreshError", error);
     }
+  }
+
+  getAdapterType() {
+    return this.adapterType;
   }
 
   findPackageName(uri: Uri): string | undefined {

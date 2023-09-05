@@ -25,6 +25,7 @@ interface DocsGenerateModelRequest {
       description?: string;
       data_type?: string;
     }[];
+    adapter?: string;
   };
   gen_model_description: boolean;
 }
