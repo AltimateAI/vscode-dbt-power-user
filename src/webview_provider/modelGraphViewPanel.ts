@@ -140,12 +140,14 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
   }
 
   private setupWebviewEvents() {
-    this._panel!.onDidChangeVisibility(() => {
+    const activeFn = () => {
       if (this._panel!.visible) {
         this.telemetry.sendTelemetryEvent("LineagePanelActive");
         console.log("Lineage panel is visible");
       }
-    });
+    };
+    activeFn();
+    this._panel!.onDidChangeVisibility(activeFn);
   }
 
   private renderWebviewView(context: WebviewViewResolveContext) {

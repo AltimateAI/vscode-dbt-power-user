@@ -112,12 +112,14 @@ export class QueryResultPanel implements WebviewViewProvider {
   }
 
   private setupWebviewEvents() {
-    this._panel!.onDidChangeVisibility(() => {
+    const activeFn = () => {
       if (this._panel!.visible) {
         this.telemetry.sendTelemetryEvent("QueryPanelActive");
         console.log("Query panel is visible");
       }
-    });
+    };
+    activeFn();
+    this._panel!.onDidChangeVisibility(activeFn);
   }
 
   /** Sets options, note that retainContextWhen hidden is set on registration */

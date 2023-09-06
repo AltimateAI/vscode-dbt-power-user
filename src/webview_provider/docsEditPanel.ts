@@ -207,12 +207,14 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   }
 
   private setupWebviewEvents() {
-    this._panel!.onDidChangeVisibility(() => {
+    const activeFn = () => {
       if (this._panel!.visible) {
         this.telemetry.sendTelemetryEvent("DocsPanelActive");
         console.log("Docs panel is visible");
       }
-    });
+    };
+    activeFn();
+    this._panel!.onDidChangeVisibility(activeFn);
   }
 
   private renderWebviewView(context: WebviewViewResolveContext) {
