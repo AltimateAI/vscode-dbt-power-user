@@ -38,6 +38,10 @@ interface DocsGenerateResponse {
   model_description?: string;
 }
 
+interface ExplainQueryRequest {
+  compiled_sql: string;
+}
+
 @provideSingleton(AltimateRequest)
 export class AltimateRequest {
   private static ALTIMATE_URL = workspace
@@ -117,6 +121,13 @@ export class AltimateRequest {
     await this.fetch<void>("feedbacks/ai/fb", {
       method: "POST",
       body: JSON.stringify(feedback),
+    });
+  }
+
+  async explainQuery(query: ExplainQueryRequest) {
+    return await this.fetch<any>("dbt/v1/query-explain", {
+      method: "POST",
+      body: JSON.stringify(query),
     });
   }
 }

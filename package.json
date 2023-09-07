@@ -181,6 +181,11 @@
           "id": "docs_edit_view",
           "title": "Documentation Editor",
           "icon": "./media/images/dbt_icon.svg"
+        },
+        {
+          "id": "altimate_actions",
+          "title": "Altimate actions",
+          "icon": "./media/images/dbt_icon.svg"
         }
       ]
     },
@@ -222,6 +227,14 @@
           "id": "dbtPowerUser.DocsEdit",
           "name": "",
           "type": "webview"
+        }
+      ],
+      "altimate_actions": [
+        {
+          "id": "dbtPowerUser.AltimateActions",
+          "name": "",
+          "type": "webview",
+          "when": "config.dbt.altimateAiKey && config.dbt.altimateInstanceName"
         }
       ]
     },
