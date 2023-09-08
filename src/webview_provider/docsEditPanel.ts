@@ -196,7 +196,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     _token: CancellationToken,
   ) {
     this._panel = panel;
-    this.setupWebviewEvents();
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
     this.setupWebviewHooks(context);
@@ -204,17 +203,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     this.documentation = await this.getDocumentation();
     this.transmitData();
     this.updateGraphStyle();
-  }
-
-  private setupWebviewEvents() {
-    const activeFn = () => {
-      if (this._panel!.visible) {
-        this.telemetry.sendTelemetryEvent("DocsPanelActive");
-        console.log("Docs panel is visible");
-      }
-    };
-    activeFn();
-    this._panel!.onDidChangeVisibility(activeFn);
   }
 
   private renderWebviewView(context: WebviewViewResolveContext) {
@@ -573,6 +561,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       null,
       this._disposables,
     );
+    const sendDocPanelViewEvent = () => {
+      if (this._panel!.visible) {
+        this.telemetry.sendTelemetryEvent("DocsPanelActive");
+      }
+    };
+    sendDocPanelViewEvent();
+    this._panel!.onDidChangeVisibility(sendDocPanelViewEvent);
   }
 
   private async onManifestCacheChanged(event: ManifestCacheChangedEvent) {

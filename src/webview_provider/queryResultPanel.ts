@@ -101,7 +101,6 @@ export class QueryResultPanel implements WebviewViewProvider {
     _token: CancellationToken,
   ) {
     this._panel = panel;
-    this.setupWebviewEvents();
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
     this.setupWebviewHooks(context);
@@ -109,17 +108,6 @@ export class QueryResultPanel implements WebviewViewProvider {
     _token.onCancellationRequested(async () => {
       await this.transmitReset();
     });
-  }
-
-  private setupWebviewEvents() {
-    const activeFn = () => {
-      if (this._panel!.visible) {
-        this.telemetry.sendTelemetryEvent("QueryPanelActive");
-        console.log("Query panel is visible");
-      }
-    };
-    activeFn();
-    this._panel!.onDidChangeVisibility(activeFn);
   }
 
   /** Sets options, note that retainContextWhen hidden is set on registration */
@@ -169,6 +157,13 @@ export class QueryResultPanel implements WebviewViewProvider {
       null,
       this._disposables,
     );
+    const sendQueryPanelViewEvent = () => {
+      if (this._panel!.visible) {
+        this.telemetry.sendTelemetryEvent("QueryPanelActive");
+      }
+    };
+    sendQueryPanelViewEvent();
+    this._panel!.onDidChangeVisibility(sendQueryPanelViewEvent);
   }
 
   /** Renders webview content */

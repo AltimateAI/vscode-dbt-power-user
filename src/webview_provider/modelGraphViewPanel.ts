@@ -130,24 +130,12 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     _token: CancellationToken,
   ) {
     this._panel = panel;
-    this.setupWebviewEvents();
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
     this.setupWebviewHooks(context);
     this.g6Data = this.parseGraphData();
     this.transmitData(this.g6Data);
     this.updateGraphStyle();
-  }
-
-  private setupWebviewEvents() {
-    const activeFn = () => {
-      if (this._panel!.visible) {
-        this.telemetry.sendTelemetryEvent("LineagePanelActive");
-        console.log("Lineage panel is visible");
-      }
-    };
-    activeFn();
-    this._panel!.onDidChangeVisibility(activeFn);
   }
 
   private renderWebviewView(context: WebviewViewResolveContext) {
@@ -180,6 +168,13 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
       null,
       this._disposables,
     );
+    const sendLineageViewEvent = () => {
+      if (this._panel!.visible) {
+        this.telemetry.sendTelemetryEvent("LineagePanelActive");
+      }
+    };
+    sendLineageViewEvent();
+    this._panel!.onDidChangeVisibility(sendLineageViewEvent);
   }
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
