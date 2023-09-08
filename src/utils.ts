@@ -21,7 +21,7 @@ export const isEnclosedWithinCodeBlock: (
     const increment = direction === "desc" ? -1 : 1;
     let characterPosition: number | undefined = startPosition.character;
     let lineNumber = startPosition.line;
-    while (lineNumber >= 0) {
+    while (lineNumber >= 0 && lineNumber < document.lineCount) {
       const line = document.lineAt(lineNumber).text;
       if (characterPosition === undefined) {
         characterPosition = direction === "desc" ? line.length - 1 : 0;
