@@ -746,19 +746,11 @@ select * from renamed
       projectRoot.fsPath,
       DBTProject.DBT_PROJECT_FILE,
     );
-    try {
-      const dbtProjectYamlFile = readFileSync(dbtProjectConfigLocation, "utf8");
-      return parse(dbtProjectYamlFile, {
-        uniqueKeys: false,
-        maxAliasCount: -1,
-      });
-      // TODO: any validation logic could go here to skip a project
-    } catch (error) {
-      window.showErrorMessage(
-        `Skipping project: could not parse dbt_project_config.yml at '${dbtProjectConfigLocation}': ${error}`,
-      );
-      // TODO: add telemetry
-    }
+    const dbtProjectYamlFile = readFileSync(dbtProjectConfigLocation, "utf8");
+    return parse(dbtProjectYamlFile, {
+      uniqueKeys: false,
+      maxAliasCount: -1,
+    });
   }
 
   static hashProjectRoot(projectRoot: string) {

@@ -33,7 +33,7 @@ export class TelemetryService implements vscode.Disposable {
         stack:
           error !== undefined && error instanceof Error
             ? error.stack
-            : undefined,
+            : JSON.stringify(error),
       },
       measurements,
     );

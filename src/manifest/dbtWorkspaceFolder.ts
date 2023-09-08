@@ -86,16 +86,24 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   private async registerDBTProject(uri: Uri) {
-    const dbtProject = this.dbtProjectFactory(
-      uri,
-      DBTProject.readAndParseProjectConfig(uri),
-      this._onManifestChanged,
-    );
-    this.dbtProjects.push(dbtProject);
-    // sorting the dbt projects descending by path ensures that we find the deepest path first
-    this.dbtProjects.sort(
-      (a, b) => -a.projectRoot.fsPath.localeCompare(b.projectRoot.fsPath),
-    );
+    try {
+      const projectConfig = DBTProject.readAndParseProjectConfig(uri);
+      const dbtProject = this.dbtProjectFactory(
+        uri,
+        projectConfig,
+        this._onManifestChanged,
+      );
+      this.dbtProjects.push(dbtProject);
+      // sorting the dbt projects descending by path ensures that we find the deepest path first
+      this.dbtProjects.sort(
+        (a, b) => -a.projectRoot.fsPath.localeCompare(b.projectRoot.fsPath),
+      );
+    } catch (error) {
+      window.showErrorMessage(
+        `Skipping project: could not parse dbt_project_config.yml at '${uri}': ${error}`,
+      );
+      this.telemetry.sendTelemetryError("registerDBTProjectError", error);
+    }
   }
 
   private unregisterDBTProject(uri: Uri) {
