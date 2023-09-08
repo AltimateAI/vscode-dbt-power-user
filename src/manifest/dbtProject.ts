@@ -746,8 +746,8 @@ select * from renamed
       projectRoot.fsPath,
       DBTProject.DBT_PROJECT_FILE,
     );
-    const dbtProjectYamlFile = readFileSync(dbtProjectConfigLocation, "utf8");
     try {
+      const dbtProjectYamlFile = readFileSync(dbtProjectConfigLocation, "utf8");
       return parse(dbtProjectYamlFile, {
         uniqueKeys: false,
         maxAliasCount: -1,
@@ -757,6 +757,7 @@ select * from renamed
       window.showErrorMessage(
         `Skipping project: could not parse dbt_project_config.yml at '${dbtProjectConfigLocation}': ${error}`,
       );
+      // TODO: add telemetry
     }
   }
 
