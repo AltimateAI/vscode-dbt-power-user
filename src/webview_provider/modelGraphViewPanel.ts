@@ -101,10 +101,12 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
   }
 
   private async transmitData(graphInfo: G6DataModel | undefined) {
-    await this._panel!.webview.postMessage({
-      command: "renderGraph",
-      graph: graphInfo,
-    });
+    if (this._panel) {
+      await this._panel.webview.postMessage({
+        command: "renderGraph",
+        graph: graphInfo,
+      });
+    }
   }
 
   private async updateGraphStyle() {
@@ -114,10 +116,12 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     ].includes(window.activeColorTheme.kind)
       ? "light"
       : "dark";
-    await this._panel!.webview.postMessage({
-      command: "setStylesByTheme",
-      theme: theme,
-    });
+    if (this._panel) {
+      await this._panel.webview.postMessage({
+        command: "setStylesByTheme",
+        theme: theme,
+      });
+    }
   }
 
   public async resolveWebviewView(

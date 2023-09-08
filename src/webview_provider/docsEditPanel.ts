@@ -135,46 +135,58 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   }
 
   private async transmitError() {
-    await this._panel!.webview.postMessage({
-      command: "renderError",
-    });
+    if (this._panel) {
+      await this._panel.webview.postMessage({
+        command: "renderError",
+      });
+    }
   }
 
   private async transmitData() {
-    await this._panel!.webview.postMessage({
-      command: "renderDocumentation",
-      docs: this.documentation,
-    });
+    if (this._panel) {
+      await this._panel.webview.postMessage({
+        command: "renderDocumentation",
+        docs: this.documentation,
+      });
+    }
   }
 
   private async transmitColumns(columns: MetadataColumn[]) {
-    await this._panel!.webview.postMessage({
-      command: "renderColumnsFromMetadataFetch",
-      columns,
-    });
+    if (this._panel) {
+      await this._panel.webview.postMessage({
+        command: "renderColumnsFromMetadataFetch",
+        columns,
+      });
+    }
   }
 
   private async transmitAIGeneratedModelDocs(description: string) {
-    await this._panel!.webview.postMessage({
-      command: "renderAIGeneratedModelDocs",
-      description,
-    });
+    if (this._panel) {
+      await this._panel.webview.postMessage({
+        command: "renderAIGeneratedModelDocs",
+        description,
+      });
+    }
   }
 
   private async transmitAIGeneratedColumnDocs(
     generatedColumnDescriptions: AIColumnDescription[],
   ) {
-    await this._panel!.webview.postMessage({
-      command: "renderAIGeneratedColumnDocs",
-      columns: generatedColumnDescriptions,
-    });
+    if (this._panel) {
+      await this._panel.webview.postMessage({
+        command: "renderAIGeneratedColumnDocs",
+        columns: generatedColumnDescriptions,
+      });
+    }
   }
 
   private async transmitConfig() {
-    await this._panel!.webview.postMessage({
-      command: "updateConfig",
-      config: { aiEnabled: this.altimateRequest.enabled() },
-    });
+    if (this._panel) {
+      await this._panel.webview.postMessage({
+        command: "updateConfig",
+        config: { aiEnabled: this.altimateRequest.enabled() },
+      });
+    }
   }
 
   private async updateGraphStyle() {
@@ -184,10 +196,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     ].includes(window.activeColorTheme.kind)
       ? "light"
       : "dark";
-    await this._panel!.webview.postMessage({
-      command: "setStylesByTheme",
-      theme: theme,
-    });
+
+    if (this._panel) {
+      await this._panel.webview.postMessage({
+        command: "setStylesByTheme",
+        theme: theme,
+      });
+    }
   }
 
   public async resolveWebviewView(

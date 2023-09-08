@@ -171,10 +171,12 @@ export class QueryResultPanel implements WebviewViewProvider {
     raw_sql: string,
     compiled_sql: string,
   ) {
-    await this._panel!.webview.postMessage({
-      command: OutboundCommand.RenderQuery,
-      ...(<RenderQuery>{ columns, rows, raw_sql, compiled_sql }),
-    });
+    if (this._panel) {
+      await this._panel.webview.postMessage({
+        command: OutboundCommand.RenderQuery,
+        ...(<RenderQuery>{ columns, rows, raw_sql, compiled_sql }),
+      });
+    }
   }
 
   /** Sends error result data to webview */
@@ -183,11 +185,13 @@ export class QueryResultPanel implements WebviewViewProvider {
     raw_sql: string,
     compiled_sql: string,
   ) {
-    // TODO: telemetry
-    await this._panel!.webview.postMessage({
-      command: OutboundCommand.RenderError,
-      ...(<RenderError>{ ...error, raw_sql, compiled_sql }),
-    });
+    if (this._panel) {
+      // TODO: telemetry
+      await this._panel.webview.postMessage({
+        command: OutboundCommand.RenderError,
+        ...(<RenderError>{ ...error, raw_sql, compiled_sql }),
+      });
+    }
   }
 
   /** Sends VSCode config data to webview */
@@ -199,24 +203,30 @@ export class QueryResultPanel implements WebviewViewProvider {
         "queryTemplate",
         "select * from ({query}) as query limit {limit}",
       );
-    this._panel!.webview.postMessage({
-      command: OutboundCommand.InjectConfig,
-      ...(<InjectConfig>{ limit, queryTemplate }),
-    });
+    if (this._panel) {
+      this._panel.webview.postMessage({
+        command: OutboundCommand.InjectConfig,
+        ...(<InjectConfig>{ limit, queryTemplate }),
+      });
+    }
   }
 
   /** Sends VSCode render loading command to webview */
   private async transmitLoading() {
-    await this._panel!.webview.postMessage({
-      command: OutboundCommand.RenderLoading,
-    });
+    if (this._panel) {
+      await this._panel.webview.postMessage({
+        command: OutboundCommand.RenderLoading,
+      });
+    }
   }
 
   /** Sends VSCode clear state command */
   private async transmitReset() {
-    await this._panel!.webview.postMessage({
-      command: OutboundCommand.ResetState,
-    });
+    if (this._panel) {
+      await this._panel.webview.postMessage({
+        command: OutboundCommand.ResetState,
+      });
+    }
   }
 
   /** A wrapper for {@link transmitData} which converts server
