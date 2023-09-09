@@ -11,7 +11,7 @@
   grid-row-gap: 1.5rem;
 }
 
-#columns-form {
+.documentation {
   display: grid;
   grid-auto-flow: row;
   grid-row-gap: 1.5rem;

@@ -58,13 +58,6 @@ const app = createApp({
     aiEnabledChanged(config) {
       this.aiEnabled = config.aiEnabled;
     },
-    toggleRating(ref) {
-      let element = this.$refs[ref];
-      if (Array.isArray(element)) {
-        element = element[0];
-      }
-      element.toggle();
-    },
     async generateDocsForModel() {
       await executeCommand("generateDocsForModel", {
         description: this.docs?.description,
@@ -146,7 +139,7 @@ const app = createApp({
   },
 });
 
-Comment = {
+const Comment = {
   props: ["data"],
   data() {
     return {
@@ -193,6 +186,61 @@ Comment = {
 };
 
 app.component("Comment", Comment);
+
+const Documentation = {
+  props: [
+    "ai-enabled",
+    "generated",
+    "title",
+    "documentation",
+    "placeholder",
+    "comment-ref",
+  ],
+  emits: ["generate-docs"],
+  methods: {
+    toggleRating(ref) {
+      let element = this.$refs[ref];
+      if (Array.isArray(element)) {
+        element = element[0];
+      }
+      element.toggle();
+    },
+  },
+  template: `
+    <div class="documentation">
+      <vscode-text-area
+        v-model="documentation"
+        :placeholder="placeholder"
+        resize="vertical"
+        rows="5"
+      >
+        <h2>
+          {{ title }} &nbsp;<vscode-tag
+            v-show="generated && aiEnabled"
+            >DataPilot</vscode-tag
+          >
+        </h2>
+      </vscode-text-area>
+      <div v-if="aiEnabled" class="column-actions">
+        <vscode-button @click="$emit('generate-docs')"
+          >Generate Documentation<span
+            slot="start"
+            class="codicon codicon-hubot"
+          ></span
+        ></vscode-button>
+        <vscode-button
+          appearance="secondary"
+          v-show="generated"
+          @click="toggleRating(commentRef)"
+          >Give Feedback
+          <span slot="start" class="codicon codicon-comment"></span>
+        </vscode-button>
+      </div>
+      <Comment :data="documentation" :ref="commentRef"></Comment>
+    </div>`,
+};
+
+app.component("Documentation", Documentation);
 
 app.config.errorHandler = (err) => {
   console.log(err);
