@@ -15,7 +15,7 @@ Main features:
 - [Go to the definition of any models, macros, sources and docs.](#gotodef)
 - [Edit documentation of your model and its columns in a dedicated panel](#doceditor)
 - [View column details, go to documentation editor and run dbt docs generate.](#doctreeview)
-- [Autocompletion of models, macros, sources and docs](#autocomplet)
+- [Autocompletion of models, macros, sources and docs](#autocomplete)
 - Run a model through the play button of the document
 - Build a model through the paper plane button (next to the play button)
 - dbt update notifications
@@ -144,21 +144,21 @@ Telemetry is used for error and usage reporting in order to make the extension b
 
 ## Features at work
 
-### <a name="lineage">Lineage of current model</a>
+### <a id="lineage">Lineage of current model</a>
 
 ![See the parents and children of your model](./media/images/lineage.png)
 
-### <a name="sourcegen">Generate a model from your source definition</a>
+### <a id="sourcegen">Generate a model from your source definition</a>
 
 ![Generate a model from your source definition](./media/images/generate-model-from-source.gif)
 
 You can select a file name template and prefix in the settings.
 
-### <a name="doceditor">Edit the documentation from your model</a>
+### <a id="doceditor">Edit the documentation from your model</a>
 
 ![Edit the documentation from your model](./media/images/documentation-editor.png)
 
-### <a name="doctreeview">View Column details of current model</a>
+### <a id="doctreeview">View Column details of current model</a>
 
 ![Tree view of of columns in model documentation](./media/images/demo-doc-treeview.gif)
 
@@ -169,23 +169,23 @@ Clicking the table name will route you to the YML schema file if it exists:
 You can run Generate Documentation Schema or Trigger `dbt docs generate` from the documentation tab.
 This feature relies on a defined schema in a YML file. It extracts data from both the catalog.json, and the manifest.json.
 
-### <a name="sqlrunner">Visualize the result set of your model (Use CMD+ENTER (mac) or CTRL+ENTER (win))</a>
+### <a id="sqlrunner">Visualize the result set of your model (Use CMD+ENTER (mac) or CTRL+ENTER (win))</a>
 
 ![Use ctrl+enter or cmd+enter to retrieve the result set of your model](./media/images/visualize-result-set.gif)
 
-### <a name="compiler">See the compiled query of your model (Use CMD+' (mac) or CTRL+' (win))</a>
+### <a id="compiler">See the compiled query of your model (Use CMD+' (mac) or CTRL+' (win))</a>
 
 ![Use ctrl+' or cmd+' to see the compiled sql of your model](./media/images/compile.gif)
 
-### <a name="modeltester">Execute model tests</a>
+### <a id="modeltester">Execute model tests</a>
 
 ![Test your model](./media/images/tests.gif)
 
-### <a name="modelgraph">See the model graph</a>
+### <a id="modelgraph">See the model graph</a>
 
 ![See the graph and execute parent or children models](./media/images/graph.gif)
 
-### <a name="gotodef">Go to definition</a>
+### <a id="gotodef">Go to definition</a>
 
 ![Go to model definition](./media/images/definition-model.gif)
 
@@ -195,7 +195,7 @@ This feature relies on a defined schema in a YML file. It extracts data from bot
 
 ![Go to doc definition](./media/images/definition-doc.gif)
 
-### <a name="autocomplete">Autocompletion</a>
+### <a id="autocomplete">Autocompletion</a>
 
 ![Autocomplete model](./media/images/autocomplete-model.gif)
 
@@ -205,6 +205,6 @@ This feature relies on a defined schema in a YML file. It extracts data from bot
 
 ![Autocomplete source](./media/images/autocomplete-doc.gif)
 
-### <a name="logtailer">dbt logs force tailing</a>
+### <a id="logtailer">dbt logs force tailing</a>
 
 ![dbt logs](./media/images/dbt-log.gif)
