@@ -38,6 +38,15 @@ interface DocsGenerateResponse {
   model_description?: string;
 }
 
+interface DocPromptOptionsResponse {
+  prompt_options: {
+    options: {
+      key: string;
+      value: string;
+    }[];
+  }[];
+}
+
 @provideSingleton(AltimateRequest)
 export class AltimateRequest {
   private static ALTIMATE_URL = workspace
@@ -117,6 +126,12 @@ export class AltimateRequest {
     await this.fetch<void>("feedbacks/ai/fb", {
       method: "POST",
       body: JSON.stringify(feedback),
+    });
+  }
+
+  async getDocPromptOptions() {
+    await this.fetch<DocPromptOptionsResponse>("dbt/v1/doc_prompt_options", {
+      method: "POST",
     });
   }
 }
