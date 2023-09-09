@@ -42,35 +42,15 @@
 
       <vscode-panel-view v-if="hasData">
         <section id="docs-form">
-          <vscode-text-area
-            v-model="docs.description"
+          <Documentation
+            :ai-enabled="aiEnabled"
+            :generated="generated"
+            :title="'Documentation for ' + name"
+            :documentation="docs.description"
             placeholder="Describe your model"
-            resize="vertical"
-            rows="5"
-          >
-            <h2>
-              Documentation for {{ name }} &nbsp;<vscode-tag
-                v-show="generated && aiEnabled"
-                >DataPilot</vscode-tag
-              >
-            </h2>
-          </vscode-text-area>
-          <div v-if="aiEnabled" class="column-actions">
-            <vscode-button @click="generateDocsForModel()"
-              >Generate Documentation<span
-                slot="start"
-                class="codicon codicon-hubot"
-              ></span
-            ></vscode-button>
-            <vscode-button
-              appearance="secondary"
-              v-show="generated"
-              @click="toggleRating('model_rating')"
-              >Give Feedback
-              <span slot="start" class="codicon codicon-comment"></span>
-            </vscode-button>
-          </div>
-          <Comment :data="docs.description" :ref="'model_rating'"></Comment>
+            @generate-docs="generateDocsForModel()"
+            comment-ref="model_rating"
+          ></Documentation>
           <vscode-divider></vscode-divider>
           <h2>Columns</h2>
           <vscode-button @click="fetchMetadataFromDatabase()"
@@ -82,37 +62,16 @@
           <p v-if="docs?.columns.length == 0">
             No columns found in the dbt manifest for {{ name }}.
           </p>
-          <section id="columns-form" v-for="column in docs.columns">
-            <vscode-text-area
-              v-model="column.description"
+          <section v-for="column in docs.columns">
+            <Documentation
+              :ai-enabled="aiEnabled"
+              :generated="column.generated"
+              :title="column.name + (column.type ? '&nbsp;(' + column.type + ')' : '')"
+              :documentation="column.description"
               :placeholder="'Describe ' + column.name"
-              resize="vertical"
-              rows="5"
-            >
-              <h3>
-                {{ column.name }}<span v-if="column.type"
-                  >&nbsp;({{ column.type }})</span
-                >&nbsp;<vscode-tag v-show="column.generated && aiEnabled"
-                  >DataPilot</vscode-tag
-                >
-              </h3>
-            </vscode-text-area>
-            <div v-if="aiEnabled" class="column-actions">
-              <vscode-button @click="generateDocsForColumn(column.name)"
-                >Generate Documentation<span
-                  slot="start"
-                  class="codicon codicon-hubot"
-                ></span>
-              </vscode-button>
-              <vscode-button
-                appearance="secondary"
-                v-show="column.generated"
-                @click="toggleRating('rating_' + column.name)"
-                >Give Feedback
-                <span slot="start" class="codicon codicon-comment"></span>
-              </vscode-button>
-            </div>
-            <Comment :data="column" :ref="'rating_' + column.name"></Comment>
+              @generate-docs="generateDocsForColumn(column.name)"
+              :comment-ref="'rating_' + column.name"
+            ></Documentation>
           </section>
           <p v-if="patchPath">Documentation will be saved to {{ patchPath }}</p>
 
