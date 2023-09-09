@@ -50,6 +50,7 @@
             placeholder="Describe your model"
             @generate-docs="generateDocsForModel()"
             comment-ref="model_rating"
+            :prompt-options="[[{key: 'short', value: 'Make it shorter'}, {key: 'long', value: 'Make it longer'}]]"
           ></Documentation>
           <vscode-divider></vscode-divider>
           <h2>Columns</h2>
@@ -70,7 +71,9 @@
               :documentation="column.description"
               :placeholder="'Describe ' + column.name"
               @generate-docs="generateDocsForColumn(column.name)"
+              @enhance-docs="enhanceDocsForColumn(column.name)"
               :comment-ref="'rating_' + column.name"
+              :prompt-options="[[{key: 'short', value: 'Make it shorter'}, {key: 'long', value: 'Make it longer'}]]"
             ></Documentation>
           </section>
           <p v-if="patchPath">Documentation will be saved to {{ patchPath }}</p>

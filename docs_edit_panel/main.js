@@ -195,8 +195,15 @@ const Documentation = {
     "documentation",
     "placeholder",
     "comment-ref",
+    "prompt-options",
   ],
-  emits: ["generate-docs"],
+  data() {
+    return {
+      // We should store any selected prompts here and send it when the user clicks the generate docs button.
+      activePrompts: {},
+    };
+  },
+  emits: ["generate-docs", "enhance-docs"],
   methods: {
     toggleRating(ref) {
       let element = this.$refs[ref];
@@ -221,6 +228,9 @@ const Documentation = {
           >
         </h2>
       </vscode-text-area>
+      <div v-if="aiEnabled && documentation" class="column-actions" v-for="options in promptOptions">
+        <vscode-tag v-for="option in options">{{ option.value }}</vscode-tag>
+      </div>
       <div v-if="aiEnabled" class="column-actions">
         <vscode-button @click="$emit('generate-docs')"
           >Generate Documentation<span
