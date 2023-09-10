@@ -154,6 +154,8 @@ Telemetry is used for error and usage reporting in order to make the extension b
 
 You can select a file name template and prefix in the settings.
 
+If this feature is not desired, it can be disabled by setting "dbt.enableGenerateModelCodeLens" to false.
+
 ### <a id="doceditor">Edit the documentation from your model</a>
 
 ![Edit the documentation from your model](./media/images/documentation-editor.png)

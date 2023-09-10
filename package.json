@@ -109,6 +109,11 @@
             "description": "Override the default scale of the result table that is used by the `Preview SQL Query` command.",
             "default": 1
           },
+          "dbt.enableGenerateModelCodeLens": {
+            "type": "boolean",
+            "description": "Enable the code lens that allows you to generate a model from a source yml file.",
+            "default": true
+          },
           "dbt.fileNameTemplateGenerateModel": {
             "type": "string",
             "enum": [

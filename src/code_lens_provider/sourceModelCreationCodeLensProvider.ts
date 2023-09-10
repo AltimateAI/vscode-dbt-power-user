@@ -7,6 +7,7 @@ import {
   Range,
   TextDocument,
   Uri,
+  workspace,
 } from "vscode";
 import { CST, LineCounter, Parser } from "yaml";
 import { provideSingleton } from "../utils";
@@ -124,32 +125,38 @@ export class SourceModelCreationCodeLensProvider implements CodeLensProvider {
               }
 
               // add all tables
-              for (const i in currentTables) {
-                const table = currentTables[i];
-                const params: GenerateModelFromSourceParams = {
-                  currentDoc: document.uri,
-                  sourceName: currentSource!,
-                  database: currentDatabase!,
-                  schema: currentSchema!,
-                  tableName: table.tableName,
-                  tableIdentifier: table.tableIdentifier,
-                };
-                this.codeLenses.push(
-                  new CodeLens(
-                    new Range(
-                      table.pos.line - 1,
-                      table.pos.col,
-                      table.pos.line - 1,
-                      table.pos.col,
+              if (
+                workspace
+                  .getConfiguration("dbt")
+                  .get<boolean>("enableGenerateModelCodeLens", true)
+              ) {
+                for (const i in currentTables) {
+                  const table = currentTables[i];
+                  const params: GenerateModelFromSourceParams = {
+                    currentDoc: document.uri,
+                    sourceName: currentSource!,
+                    database: currentDatabase!,
+                    schema: currentSchema!,
+                    tableName: table.tableName,
+                    tableIdentifier: table.tableIdentifier,
+                  };
+                  this.codeLenses.push(
+                    new CodeLens(
+                      new Range(
+                        table.pos.line - 1,
+                        table.pos.col,
+                        table.pos.line - 1,
+                        table.pos.col,
+                      ),
+                      {
+                        title: "Generate model",
+                        tooltip: "Generate model based on source configuration",
+                        command: "dbtPowerUser.createModelBasedonSourceConfig",
+                        arguments: [params],
+                      },
                     ),
-                    {
-                      title: "Generate model",
-                      tooltip: "Generate model based on source configuration",
-                      command: "dbtPowerUser.createModelBasedonSourceConfig",
-                      arguments: [params],
-                    },
-                  ),
-                );
+                  );
+                }
               }
               currentDatabase = undefined;
               currentSchema = undefined;
