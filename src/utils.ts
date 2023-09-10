@@ -94,7 +94,10 @@ export const provideSingleton = (identifier: any) => {
   return fluentProvide(identifier).inSingletonScope().done();
 };
 
-export function substituteSettingsVariables(value: string): string {
+export function substituteSettingsVariables(value: any): any {
+  if (typeof value !== "string") {
+    return value;
+  }
   const regexVsCodeEnv = /\$\{env\:(.*?)\}/gm;
   let matchResult;
   while ((matchResult = regexVsCodeEnv.exec(value)) !== null) {
