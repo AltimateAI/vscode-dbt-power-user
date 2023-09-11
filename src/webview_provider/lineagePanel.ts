@@ -111,11 +111,14 @@ export class LineagePanel implements WebviewViewProvider {
 /** Gets webview HTML */
 function getHtml(webview: Webview, extensionUri: Uri) {
   const indexPath = getUri(webview, extensionUri, [
-    "new_lineage_panel",
+    "new_lineage_panel2",
     "dist",
     "index.html",
   ]);
-  const resourceDir = getUri(webview, extensionUri, ["new_lineage_panel"]);
+  const resourceDir = getUri(webview, extensionUri, [
+    "new_lineage_panel2",
+    "dist",
+  ]);
   // const theme = [
   //   ColorThemeKind.Light,
   //   ColorThemeKind.HighContrastLight,
