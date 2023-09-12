@@ -223,6 +223,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
   private mapParentsAndChildren = (graphMetaMap: any, fileName: string) => {
     let nodes: any[] = [];
     const edges: any[] = [];
+    console.log(JSON.parse(JSON.stringify(graphMetaMap)), fileName);
     Object.keys(nodeConfigurations).forEach((type) => {
       const dependencyNodes = graphMetaMap[type];
       Array.from(dependencyNodes.keys()).forEach((key: any) => {
@@ -258,6 +259,8 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
         }
       });
     });
+    console.log(nodes, edges);
+
     return { nodes, edges };
   };
 
