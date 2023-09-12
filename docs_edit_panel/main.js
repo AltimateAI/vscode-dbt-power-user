@@ -61,6 +61,7 @@ const app = createApp({
     async generateDocsForModel(activePrompt) {
       await executeCommand("generateDocsForModel", {
         description: this.docs?.description,
+        prompt_hint: activePrompt,
         columns: this.docs?.columns.map((col) => ({
           name: col.name,
           type: col.type,
@@ -72,6 +73,7 @@ const app = createApp({
       await executeCommand("generateDocsForColumn", {
         description: this.docs?.description,
         columnName,
+        prompt_hint: promptOption,
         columns: this.docs?.columns.map((col) => ({
           name: col.name,
           type: col.type,
