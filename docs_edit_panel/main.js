@@ -58,7 +58,7 @@ const app = createApp({
     aiEnabledChanged(config) {
       this.aiEnabled = config.aiEnabled;
     },
-    async generateDocsForModel() {
+    async generateDocsForModel(activePrompt) {
       await executeCommand("generateDocsForModel", {
         description: this.docs?.description,
         columns: this.docs?.columns.map((col) => ({
@@ -68,7 +68,7 @@ const app = createApp({
         })),
       });
     },
-    async generateDocsForColumn(columnName) {
+    async generateDocsForColumn(columnName, promptOption) {
       await executeCommand("generateDocsForColumn", {
         description: this.docs?.description,
         columnName,
@@ -192,18 +192,17 @@ const Documentation = {
     "ai-enabled",
     "generated",
     "title",
-    "documentation",
+    "modelValue",
     "placeholder",
     "comment-ref",
     "prompt-options",
   ],
   data() {
     return {
-      // We should store any selected prompts here and send it when the user clicks the generate docs button.
-      activePrompts: {},
+      activePrompt: "",
     };
   },
-  emits: ["generate-docs", "enhance-docs"],
+  emits: ["generate-docs"],
   methods: {
     toggleRating(ref) {
       let element = this.$refs[ref];
@@ -216,7 +215,8 @@ const Documentation = {
   template: `
     <div class="documentation">
       <vscode-text-area
-        v-model="documentation"
+        :value="modelValue"
+        @input="$emit('update:modelValue', $event.target.value)"
         :placeholder="placeholder"
         resize="vertical"
         rows="5"
@@ -232,9 +232,13 @@ const Documentation = {
         <vscode-tag v-for="option in options">{{ option.value }}</vscode-tag>
       </div>
       <div v-if="aiEnabled" class="column-actions">
-        <vscode-button @click="$emit('generate-docs')"
-          >Generate Documentation<span
-            slot="start"
+        <vscode-dropdown v-model="activePrompt" class="documentation-options">
+          <vscode-option value="">Generate documentation</vscode-option>
+          <vscode-option value="short">Make it shorter</vscode-option>
+          <vscode-option value="long">Make it longer</vscode-option>
+        </vscode-dropdown>
+        <vscode-button @click="$emit('generate-docs', this.activePrompt)" appearance="icon" aria-label="Generate documentation"
+          ><span
             class="codicon codicon-hubot"
           ></span
         ></vscode-button>

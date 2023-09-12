@@ -17,6 +17,10 @@
   grid-row-gap: 1.5rem;
 }
 
+.documentation-options {
+  size: 2rem;
+}
+
 #submit-button {
   width: fit-content;
 }
