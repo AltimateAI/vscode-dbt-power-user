@@ -176,15 +176,15 @@ export class LineagePanel implements WebviewViewProvider {
   };
 
   private mapParentsAndChildren = (graphMetaMap: any, fileName: string) => {
-    const nodes: any[] = [];
     const edges: { source: string; target: string }[] = [];
-    Object.entries(nodeConfigurations).forEach(([type, dependencyNodes]) => {
-      Object.entries(dependencyNodes).forEach(([key, _node]) => {
+    const tables: Map<string, string> = new Map();
+    Object.keys(nodeConfigurations).forEach((type) => {
+      const dependencyNodes: Map<string, { nodes: any[] }> = graphMetaMap[type];
+      dependencyNodes.forEach((node, key) => {
         if (!key.endsWith(`.${fileName}`) || !key.startsWith("model.")) {
           return;
         }
-        nodes.push({ id: key, label: key.split(".").pop() || "" });
-        const node = _node as { nodes: any[] };
+        tables.set(key, "");
         if (!node?.nodes) {
           return;
         }
@@ -195,11 +195,16 @@ export class LineagePanel implements WebviewViewProvider {
                 ? { target: key, source: childrenNode.key }
                 : { target: childrenNode.key, source: key },
             );
-            nodes.push({ id: childrenNode.key, url: childrenNode.url });
+            tables.set(childrenNode.key, childrenNode.url);
           },
         );
       });
     });
+
+    const nodes = Array.from(tables.entries()).map(([id, url]) => ({
+      id,
+      url,
+    }));
 
     return { nodes, edges };
   };
