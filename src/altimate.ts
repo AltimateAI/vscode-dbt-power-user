@@ -27,6 +27,7 @@ interface DocsGenerateModelRequest {
     }[];
     adapter?: string;
   };
+  prompt_hint: string;
   gen_model_description: boolean;
 }
 
