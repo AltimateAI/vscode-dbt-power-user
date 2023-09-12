@@ -59,35 +59,6 @@ const nodeConfigurations: Record<string, any> = {
   },
 };
 
-const calcStrLen = (label: string) => {
-  let len = 0;
-  for (let i = 0; i < label.length; i++) {
-    if (label.charCodeAt(i) > 0 && label.charCodeAt(i) < 128) {
-      len++;
-    } else {
-      len += 2;
-    }
-  }
-  return len;
-};
-
-const fitLabelToNodeWidth = (
-  label: string,
-  maxWidth: number,
-  fontSize: number,
-) => {
-  const fontWidth = fontSize * 1.3;
-  maxWidth = maxWidth * 2;
-  const width = calcStrLen(label) * fontWidth;
-  const ellipsis = "…";
-  if (width > maxWidth) {
-    const actualLen = Math.floor((maxWidth - 10) / fontWidth);
-    const result = label.substring(0, actualLen) + ellipsis;
-    return result;
-  }
-  return label;
-};
-
 @provideSingleton(LineagePanel)
 export class LineagePanel implements WebviewViewProvider {
   public static readonly viewType = "dbtPowerUser.LineageView";
@@ -205,60 +176,33 @@ export class LineagePanel implements WebviewViewProvider {
   };
 
   private mapParentsAndChildren = (graphMetaMap: any, fileName: string) => {
-    let nodes: any[] = [];
-    const edges: any[] = [];
-    Object.keys(nodeConfigurations).forEach((type) => {
-      const dependencyNodes = graphMetaMap[type];
-      Array.from(dependencyNodes.keys()).forEach((key: any) => {
-        if (key.endsWith(`.${fileName}`) && key.startsWith("model.")) {
-          const node = dependencyNodes!.get(key)!;
-          const currentNode = node;
-          nodes = this.addCurrentNode(key, nodes);
-          if (currentNode !== undefined) {
-            currentNode.nodes.map(
-              (childrenNode: {
-                key: "string";
-                label: "string";
-                url: "string";
-              }) => {
-                let edge = { target: childrenNode.key, source: key };
-                if (type === "parents") {
-                  edge = { target: key, source: childrenNode.key };
-                }
-                edges.push(edge);
-                nodes.push({
-                  id: childrenNode.key,
-                  style: nodeConfigurations[type].style,
-                  url: childrenNode.url,
-                });
-              },
-            );
-          }
+    const nodes: any[] = [];
+    const edges: { source: string; target: string }[] = [];
+    Object.entries(nodeConfigurations).forEach(([type, dependencyNodes]) => {
+      Object.entries(dependencyNodes).forEach(([key, _node]) => {
+        if (!key.endsWith(`.${fileName}`) || !key.startsWith("model.")) {
+          return;
         }
+        nodes.push({ id: key, label: key.split(".").pop() || "" });
+        const node = _node as { nodes: any[] };
+        if (!node?.nodes) {
+          return;
+        }
+        node.nodes.forEach(
+          (childrenNode: { key: "string"; label: "string"; url: "string" }) => {
+            edges.push(
+              type === "parents"
+                ? { target: key, source: childrenNode.key }
+                : { target: childrenNode.key, source: key },
+            );
+            nodes.push({ id: childrenNode.key, url: childrenNode.url });
+          },
+        );
       });
     });
-    console.log("nodes and edges -> ", nodes, edges);
 
     return { nodes, edges };
   };
-
-  private addCurrentNode(nodeKey: string, nodes: any[]) {
-    const nodeLabel: string = nodeKey.split(".").pop() || "";
-    return [
-      ...nodes,
-      {
-        id: nodeKey,
-        label: fitLabelToNodeWidth(nodeLabel, labelMaxWidth, fontSize),
-        labelCfg: { style: { fill: colors.white } },
-        style: {
-          fill: colors.purple,
-          stroke: "black",
-          radius: 6,
-          lineWidth: 2,
-        },
-      },
-    ];
-  }
 
   private setupWebviewOptions(context: WebviewViewResolveContext) {
     this._panel!.title = "Lineage(Beta)";
