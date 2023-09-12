@@ -239,11 +239,11 @@ const Documentation = {
           <vscode-option value="short">Make it shorter</vscode-option>
           <vscode-option value="long">Make it longer</vscode-option>
         </vscode-dropdown>
-        <vscode-button @click="$emit('generate-docs', this.activePrompt)" appearance="icon" aria-label="Generate documentation"
+        <vscode-button @click="$emit('generate-docs', this.activePrompt)" appearance="primary" aria-label="Generate documentation"
           ><span
             class="codicon codicon-hubot"
-          ></span
-        ></vscode-button>
+          ></span>&nbsp;Go!
+        </vscode-button>
         <vscode-button
           appearance="secondary"
           v-show="generated"
