@@ -143,11 +143,11 @@ export class LineagePanel implements WebviewViewProvider {
 
   private mapParentsAndChildren = (graphMetaMap: any, fileName: string) => {
     const edges: { source: string; target: string }[] = [];
-    const tables: Map<string, string> = new Map();
-    const tablesLevel: Map<string, number> = new Map();
-    const setOnce = (key: string, value: number) => {
-      if (!tablesLevel.has(key)) {
-        tablesLevel.set(key, value);
+    type Table = { id: string; url: string; level: number };
+    const tables: Map<string, Table> = new Map();
+    const addToTables = (key: string, value: Omit<Table, "id">) => {
+      if (!tables.has(key)) {
+        tables.set(key, { ...value, id: key });
       }
     };
     ["parents", "children", "tests"].forEach((type) => {
@@ -162,33 +162,22 @@ export class LineagePanel implements WebviewViewProvider {
       if (!node) {
         return;
       }
-      tables.set(key, "");
-      setOnce(key, 0);
+      addToTables(key, { url: "", level: 0 });
       if (!node?.nodes) {
         return;
       }
-      node.nodes.forEach(
-        (child: { key: "string"; label: "string"; url: "string" }) => {
-          if (type === "parents") {
-            tables.set(child.key, child.url);
-            edges.push({ target: key, source: child.key });
-            setOnce(child.key, -1);
-          } else if (type === "children") {
-            tables.set(child.key, child.url);
-            edges.push({ target: child.key, source: key });
-            setOnce(child.key, 1);
-          }
-        },
-      );
+      node.nodes.forEach((child: { key: "string"; url: "string" }) => {
+        if (type === "parents") {
+          addToTables(child.key, { url: child.url, level: -1 });
+          edges.push({ source: child.key, target: key });
+        } else if (type === "children") {
+          addToTables(child.key, { url: child.url, level: 1 });
+          edges.push({ source: key, target: child.key });
+        }
+      });
     });
 
-    const nodes: { id: string; url: string; level: number }[] = Array.from(
-      tables.entries(),
-    ).map(([id, url]) => ({
-      id,
-      url,
-      level: tablesLevel.get(id) || 0,
-    }));
+    const nodes = Array.from(tables.values());
 
     return { nodes, edges };
   };
