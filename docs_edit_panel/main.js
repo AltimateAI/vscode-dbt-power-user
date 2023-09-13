@@ -232,6 +232,7 @@ const Documentation = {
       </vscode-text-area>
       <div v-if="aiEnabled" class="column-actions">
         <vscode-dropdown v-if="generated" v-model="activePrompt" class="documentation-options">
+          <vscode-option value="">Regenerate</vscode-option>
           <vscode-option value="short">Make it shorter</vscode-option>
           <vscode-option value="long">Make it longer</vscode-option>
           <vscode-option value="funny">Make it fun</vscode-option>
