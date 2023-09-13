@@ -9,6 +9,7 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import { TableNode } from "./CustomNodes";
 import { layoutElementsOnCanvas } from "./graph";
+import { createForwardEdge } from "./utils";
 
 // declare var acquireVsCodeApi: () => { postMessage: (v: any) => void };
 
@@ -32,13 +33,8 @@ function App() {
         type: "table",
       }));
       const _edges: Edge[] = edges.map(
-        (e: { source: string; target: string }) => ({
-          id: `${e.source}-${e.target}`,
-          source: e.source,
-          target: e.target,
-          sourceHandle: "right",
-          targetHandle: "left",
-        })
+        (e: { source: string; target: string }) =>
+          createForwardEdge(e.source, e.target, true)
       );
       layoutElementsOnCanvas(_nodes, _edges);
       flow.current?.setNodes(_nodes);

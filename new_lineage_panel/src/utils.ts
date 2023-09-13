@@ -38,3 +38,30 @@ export const highlightMarker = {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
 export const isColumn = (_: any) => false;
+
+const _createEdge =
+  (sourceHandle: string, targetHandle: string, edgeType: string) =>
+  (n1: string, n2: string, right: boolean) => {
+    let src = n1;
+    let dst = n2;
+    if (!right) {
+      src = n2;
+      dst = n1;
+    }
+    if (n1 === n2) {
+      edgeType = "selfConnecting";
+    }
+    return {
+      id: `${src}-${dst}`,
+      source: src,
+      target: dst,
+      sourceHandle,
+      targetHandle,
+      style: defaultEdgeStyle,
+      markerEnd: defaultMarker,
+      type: edgeType,
+    };
+  };
+
+export const createForwardEdge = _createEdge("right", "left", "default");
+export const createReverseEdge = _createEdge("left", "right", "default");

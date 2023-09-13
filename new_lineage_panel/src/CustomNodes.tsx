@@ -1,5 +1,5 @@
 import { FunctionComponent } from "react";
-import { Handle, NodeProps, Position } from "reactflow";
+import { BaseEdge, EdgeProps, Handle, NodeProps, Position } from "reactflow";
 import styles from "./styles.module.scss";
 import classNames from "classnames";
 
@@ -71,4 +71,15 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
       <BidirectionalHandles />
     </div>
   );
+};
+
+export const SelfConnectingEdge: FunctionComponent<EdgeProps> = (props) => {
+  const { sourceX, sourceY, targetX, targetY, markerEnd } = props;
+  const radiusX = (sourceX - targetX) * 0.6;
+  const radiusY = 50;
+  const edgePath = `M ${sourceX - 5} ${sourceY} A ${radiusX} ${radiusY} 0 1 0 ${
+    targetX + 2
+  } ${targetY}`;
+
+  return <BaseEdge path={edgePath} markerEnd={markerEnd} />;
 };
