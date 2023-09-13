@@ -68,3 +68,7 @@
 .column-actions {
   display: inline-flex;
 }
+
+.gen-button {
+  width: inherit;
+}
