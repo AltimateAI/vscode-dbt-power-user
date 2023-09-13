@@ -321,7 +321,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                         })),
                         adapter: project.getAdapterType(),
                       },
-                      prompt_hint: message.prompt_hint || "generate",
+                      prompt_hint: message.promptHint || "generate",
                       gen_model_description: true,
                     });
 
@@ -378,7 +378,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                         })),
                         adapter: project.getAdapterType(),
                       },
-                      prompt_hint: message.prompt_hint || "generate",
+                      prompt_hint: message.promptHint || "generate",
                       gen_model_description: false,
                     });
 
