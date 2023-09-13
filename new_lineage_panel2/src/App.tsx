@@ -2,11 +2,13 @@ import { useEffect, useRef } from "react";
 import ReactFlow, {
   Background,
   Controls,
+  Edge,
   NodeTypes,
   ReactFlowInstance,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { TableNode } from "./CustomNodes";
+import { layoutElementsOnCanvas } from "./graph";
 
 // declare var acquireVsCodeApi: () => { postMessage: (v: any) => void };
 
@@ -15,22 +17,30 @@ import { TableNode } from "./CustomNodes";
 const nodeTypes: NodeTypes = { table: TableNode };
 
 function App() {
-  // @ts-ignore
-  const flow = useRef<ReactFlowInstance<any, any>>();
+  const flow = useRef<ReactFlowInstance<unknown, unknown>>();
 
   useEffect(() => {
     // @ts-ignore
     const render = ({ nodes, edges }) => {
       console.log("render -> ", nodes, edges);
-      const _flow = flow.current;
-      _flow?.addNodes(
-        (nodes as { id: string }[]).map((n, i) => ({
-          id: n.id,
-          data: { id: n.id },
-          position: { x: i * 200 + 100, y: 100 },
-          type: "table",
-        }))
+      const _nodes = (nodes as { id: string }[]).map((n, i) => ({
+        id: n.id,
+        data: { id: n.id, level: i },
+        position: { x: i * 200 + 100, y: 100 },
+        type: "table",
+      }));
+      const _edges: Edge[] = edges.map(
+        (e: { source: string; target: string }) => ({
+          id: `${e.source}-${e.target}`,
+          source: e.source,
+          target: e.target,
+          sourceHandle: "right",
+          targetHandle: "left",
+        })
       );
+      layoutElementsOnCanvas(_nodes, _edges);
+      flow.current?.setNodes(_nodes);
+      flow.current?.setEdges(_edges);
     };
     const commandMap = { render };
     window.addEventListener("message", (event) => {
