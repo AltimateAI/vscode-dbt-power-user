@@ -67,3 +67,49 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+.position-relative {
+  position: relative;
+}
+
+.d-flex {
+  display: flex;
+}
+
+.flex-column {
+  flex-direction: column;
+}
+
+.align-items-start {
+  align-items: flex-start;
+}
+
+.gap-xs {
+  gap: 1em;
+}
+
+.lines-2 {
+  display: -webkit-box;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.text-muted {
+  color: #8390a3;
+}
+
+.text-black {
+  color: #000000;
+}
+
+.text-overflow {
+  text-overflow: ellipsis;
+  overflow-x: hidden;
+  white-space: nowrap;
+}
+
+.invisible {
+  visibility: hidden;
+}

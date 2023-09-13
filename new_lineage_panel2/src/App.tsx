@@ -27,7 +27,7 @@ function App() {
         (nodes as { id: string }[]).map((n, i) => ({
           id: n.id,
           data: { id: n.id },
-          position: { x: i * 100, y: 100 },
+          position: { x: i * 200 + 100, y: 100 },
           type: "table",
         }))
       );

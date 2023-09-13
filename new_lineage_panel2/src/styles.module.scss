@@ -1,0 +1,26 @@
+$node-width: 260px;
+
+.table_node {
+  width: $node-width;
+  display: flex;
+  flex-direction: column;
+  cursor: default;
+
+  .header {
+    background: #ffffff;
+    border: 2px solid #eeeff2;
+    border-radius: 0.5em;
+    padding: 0.5em;
+  }
+}
+
+.table_header {
+  display: grid;
+  grid-template-columns: 0em 1fr;
+  gap: 0em 0.5em;
+  width: 100%;
+  height: 4em;
+  div {
+    height: fit-content;
+  }
+}
