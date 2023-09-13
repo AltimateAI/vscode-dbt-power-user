@@ -11,7 +11,11 @@ import {
 } from "vscode";
 import * as which from "which";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
+import {
+  extendErrorWithSupportLinks,
+  provideSingleton,
+  substituteSettingsVariables,
+} from "../utils";
 import { TelemetryService } from "../telemetry";
 
 @provideSingleton(DbtDocumentFormattingEditProvider)
@@ -31,10 +35,15 @@ export class DbtDocumentFormattingEditProvider
     return this.executeSqlFmt(document);
   }
 
-  private async executeSqlFmt(document: TextDocument) {
-    const sqlFmtPathSetting = workspace
+  private getSqlFmtPathSetting(): string | undefined {
+    const value = workspace
       .getConfiguration("dbt")
       .get<string>("sqlFmtPath", "");
+    return value ? substituteSettingsVariables(value) : undefined;
+  }
+
+  private async executeSqlFmt(document: TextDocument) {
+    const sqlFmtPathSetting = this.getSqlFmtPathSetting();
     const sqlFmtAdditionalParamsSetting = workspace
       .getConfiguration("dbt")
       .get<string[]>("sqlFmtAdditionalParams", [])
