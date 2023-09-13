@@ -234,15 +234,15 @@ const Documentation = {
         <vscode-tag v-for="option in options">{{ option.value }}</vscode-tag>
       </div>
       <div v-if="aiEnabled" class="column-actions">
-        <vscode-dropdown v-model="activePrompt" class="documentation-options">
-          <vscode-option value="">Generate documentation</vscode-option>
+        <vscode-dropdown v-if="generated" v-model="activePrompt" class="documentation-options">
           <vscode-option value="short">Make it shorter</vscode-option>
           <vscode-option value="long">Make it longer</vscode-option>
+          <vscode-option value="funny">Make it fun</vscode-option>
         </vscode-dropdown>
         <vscode-button @click="$emit('generate-docs', this.activePrompt)" appearance="primary" aria-label="Generate documentation"
           ><span
             class="codicon codicon-hubot"
-          ></span>&nbsp;Go!
+          ></span>&nbsp;<span v-if="generated" class="gen-button">Go!</span><span v-else class="gen-button">Generate</span>
         </vscode-button>
         <vscode-button
           appearance="secondary"
