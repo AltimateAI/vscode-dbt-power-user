@@ -203,11 +203,12 @@ export class LineagePanel implements WebviewViewProvider {
       }
       node.nodes.forEach(
         (child: { key: "string"; label: "string"; url: "string" }) => {
-          tables.set(child.key, child.url);
           if (type === "parents") {
+            tables.set(child.key, child.url);
             edges.push({ target: key, source: child.key });
             setOnce(child.key, -1);
-          } else if (type === "children" || type === "tests") {
+          } else if (type === "children") {
+            tables.set(child.key, child.url);
             edges.push({ target: child.key, source: key });
             setOnce(child.key, 1);
           }
