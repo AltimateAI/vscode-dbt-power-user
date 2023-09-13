@@ -58,10 +58,10 @@ const app = createApp({
     aiEnabledChanged(config) {
       this.aiEnabled = config.aiEnabled;
     },
-    async generateDocsForModel(activePrompt) {
+    async generateDocsForModel(promptHint) {
       await executeCommand("generateDocsForModel", {
         description: this.docs?.description,
-        prompt_hint: activePrompt,
+        promptHint,
         columns: this.docs?.columns.map((col) => ({
           name: col.name,
           type: col.type,
@@ -69,11 +69,11 @@ const app = createApp({
         })),
       });
     },
-    async generateDocsForColumn(columnName, promptOption) {
+    async generateDocsForColumn(columnName, promptHint) {
       await executeCommand("generateDocsForColumn", {
         description: this.docs?.description,
         columnName,
-        prompt_hint: promptOption,
+        promptHint,
         columns: this.docs?.columns.map((col) => ({
           name: col.name,
           type: col.type,
@@ -201,7 +201,7 @@ const Documentation = {
   ],
   data() {
     return {
-      activePrompt: "",
+      promptHint: "",
     };
   },
   emits: ["generate-docs"],
@@ -231,14 +231,14 @@ const Documentation = {
         </h2>
       </vscode-text-area>
       <div v-if="aiEnabled" class="column-actions">
-        <vscode-dropdown v-if="generated" v-model="activePrompt" class="documentation-options">
+        <vscode-dropdown v-if="generated" v-model="promptHint" class="documentation-options">
           <vscode-option value="">Regenerate</vscode-option>
           <vscode-option value="short">Make it shorter</vscode-option>
           <vscode-option value="long">Make it longer</vscode-option>
           <vscode-option value="funny">Make it fun</vscode-option>
           <vscode-option value="business_user">Generate for Business User</vscode-option>
         </vscode-dropdown>
-        <vscode-button @click="$emit('generate-docs', this.activePrompt)" appearance="primary" aria-label="Generate documentation"
+        <vscode-button @click="$emit('generate-docs', this.promptHint)" appearance="primary" aria-label="Generate documentation"
           ><span
             class="codicon codicon-hubot"
           ></span>&nbsp;<span v-if="generated" class="gen-button">Go!</span><span v-else class="gen-button">Generate</span>
