@@ -70,7 +70,7 @@ export class AltimateRequest {
     return !!this.getConfig();
   }
 
-  async fetch<T>(endpoint: string, fetchArgs = {}, timeout: number = 25000) {
+  async fetch<T>(endpoint: string, fetchArgs = {}, timeout: number = 120000) {
     const abortController = new AbortController();
     const timeoutHandler = setTimeout(() => {
       abortController.abort();

@@ -18,7 +18,8 @@
 }
 
 .documentation-options {
-  size: 2rem;
+  width: 15rem;
+  grid-column-gap: 0.5rem;
 }
 
 #submit-button {
