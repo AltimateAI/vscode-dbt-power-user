@@ -178,32 +178,49 @@ export class LineagePanel implements WebviewViewProvider {
   private mapParentsAndChildren = (graphMetaMap: any, fileName: string) => {
     const edges: { source: string; target: string }[] = [];
     const tables: Map<string, string> = new Map();
+    const tablesLevel: Map<string, number> = new Map();
+    const setOnce = (key: string, value: number) => {
+      if (!tablesLevel.has(key)) {
+        tablesLevel.set(key, value);
+      }
+    };
     Object.keys(nodeConfigurations).forEach((type) => {
       const dependencyNodes: Map<string, { nodes: any[] }> = graphMetaMap[type];
-      dependencyNodes.forEach((node, key) => {
-        if (!key.endsWith(`.${fileName}`) || !key.startsWith("model.")) {
-          return;
-        }
-        tables.set(key, "");
-        if (!node?.nodes) {
-          return;
-        }
-        node.nodes.forEach(
-          (childrenNode: { key: "string"; label: "string"; url: "string" }) => {
-            edges.push(
-              type === "parents"
-                ? { target: key, source: childrenNode.key }
-                : { target: childrenNode.key, source: key },
-            );
-            tables.set(childrenNode.key, childrenNode.url);
-          },
-        );
-      });
+      const key = Array.from(dependencyNodes.keys()).find(
+        (k) => k.endsWith(`.${fileName}`) && k.startsWith("model."),
+      );
+      if (!key) {
+        return;
+      }
+      const node = dependencyNodes.get(key);
+      if (!node) {
+        return;
+      }
+      tables.set(key, "");
+      setOnce(key, 0);
+      if (!node?.nodes) {
+        return;
+      }
+      node.nodes.forEach(
+        (child: { key: "string"; label: "string"; url: "string" }) => {
+          tables.set(child.key, child.url);
+          if (type === "parents") {
+            edges.push({ target: key, source: child.key });
+            setOnce(child.key, -1);
+          } else if (type === "children" || type === "tests") {
+            edges.push({ target: child.key, source: key });
+            setOnce(child.key, 1);
+          }
+        },
+      );
     });
 
-    const nodes = Array.from(tables.entries()).map(([id, url]) => ({
+    const nodes: { id: string; url: string; level: number }[] = Array.from(
+      tables.entries(),
+    ).map(([id, url]) => ({
       id,
       url,
+      level: tablesLevel.get(id) || 0,
     }));
 
     return { nodes, edges };

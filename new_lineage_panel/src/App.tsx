@@ -23,9 +23,11 @@ function App() {
     // @ts-ignore
     const render = ({ nodes, edges }) => {
       console.log("render -> ", nodes, edges);
-      const _nodes = (nodes as { id: string }[]).map((n, i) => ({
+      const _nodes = (
+        nodes as { id: string; url: string; level: string }[]
+      ).map((n, i) => ({
         id: n.id,
-        data: { id: n.id, level: i },
+        data: n,
         position: { x: i * 200 + 100, y: 100 },
         type: "table",
       }));
