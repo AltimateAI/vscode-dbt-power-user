@@ -236,7 +236,6 @@ const Documentation = {
           <vscode-option value="short">Make it shorter</vscode-option>
           <vscode-option value="long">Make it longer</vscode-option>
           <vscode-option value="funny">Make it fun</vscode-option>
-          <vscode-option value="data_analyst">Generate for Data analysts</vscode-option>
           <vscode-option value="business_user">Generate for Business User</vscode-option>
         </vscode-dropdown>
         <vscode-button @click="$emit('generate-docs', this.activePrompt)" appearance="primary" aria-label="Generate documentation"
