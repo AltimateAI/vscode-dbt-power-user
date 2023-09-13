@@ -230,9 +230,6 @@ const Documentation = {
           >
         </h2>
       </vscode-text-area>
-      <div v-if="aiEnabled && documentation" class="column-actions" v-for="options in promptOptions">
-        <vscode-tag v-for="option in options">{{ option.value }}</vscode-tag>
-      </div>
       <div v-if="aiEnabled" class="column-actions">
         <vscode-dropdown v-if="generated" v-model="activePrompt" class="documentation-options">
           <vscode-option value="short">Make it shorter</vscode-option>
