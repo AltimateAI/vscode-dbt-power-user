@@ -3,6 +3,7 @@ import ReactFlow, {
   Background,
   Controls,
   Edge,
+  Node,
   NodeTypes,
   ReactFlowInstance,
 } from "reactflow";
@@ -11,9 +12,9 @@ import { TableNode } from "./CustomNodes";
 import { layoutElementsOnCanvas } from "./graph";
 import { createForwardEdge } from "./utils";
 
-// declare var acquireVsCodeApi: () => { postMessage: (v: any) => void };
+declare const acquireVsCodeApi: () => { postMessage: (v: unknown) => void };
 
-// const vscode = acquireVsCodeApi();
+const vscode = acquireVsCodeApi();
 
 const nodeTypes: NodeTypes = { table: TableNode };
 
@@ -23,13 +24,12 @@ function App() {
   useEffect(() => {
     // @ts-ignore
     const render = ({ nodes, edges }) => {
-      console.log("render -> ", nodes, edges);
-      const _nodes = (
+      const _nodes: Node[] = (
         nodes as { id: string; url: string; level: string }[]
-      ).map((n, i) => ({
+      ).map((n) => ({
         id: n.id,
         data: n,
-        position: { x: i * 200 + 100, y: 100 },
+        position: { x: 100, y: 100 },
         type: "table",
       }));
       const _edges: Edge[] = edges.map(
@@ -44,6 +44,7 @@ function App() {
     window.addEventListener("message", (event) => {
       const { command, args } = event.data;
       commandMap[command as "render"](args);
+      vscode.postMessage({ command: "thisistest", args: { id: 1 } });
     });
   }, []);
 

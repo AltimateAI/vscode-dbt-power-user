@@ -258,7 +258,6 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
         }
       });
     });
-    console.log("old for verfiy -> ", nodes, edges);
 
     return { nodes, edges };
   };

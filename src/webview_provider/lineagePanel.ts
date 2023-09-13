@@ -24,41 +24,6 @@ import {
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 
-const labelMaxWidth = 280;
-const fontSize = 14;
-
-const colors = {
-  orange: "#EFB27B",
-  blue: "#8DAAE8",
-  green: "#8DE88E",
-  black: "#000",
-  purple: "#88447D",
-  white: "#FFFFFF",
-  softBlack: "#232b2b",
-};
-
-const nodeConfigurations: Record<string, any> = {
-  children: {
-    style: {
-      lineWidth: 2,
-      fill: colors.orange,
-      stroke: colors.black,
-      radius: 6,
-    },
-  },
-  parents: {
-    style: { lineWidth: 2, fill: colors.blue, stroke: colors.black, radius: 6 },
-  },
-  tests: {
-    style: {
-      lineWidth: 2,
-      fill: colors.green,
-      stroke: colors.black,
-      radius: 6,
-    },
-  },
-};
-
 @provideSingleton(LineagePanel)
 export class LineagePanel implements WebviewViewProvider {
   public static readonly viewType = "dbtPowerUser.LineageView";
@@ -126,6 +91,7 @@ export class LineagePanel implements WebviewViewProvider {
   private setupWebviewHooks(context: WebviewViewResolveContext) {
     this._panel!.webview.onDidReceiveMessage(
       async (message) => {
+        console.log("onDidReceiveMessage -> ", message);
         switch (message.command) {
           case "openFile":
             const { url } = message;
@@ -184,7 +150,7 @@ export class LineagePanel implements WebviewViewProvider {
         tablesLevel.set(key, value);
       }
     };
-    Object.keys(nodeConfigurations).forEach((type) => {
+    ["parents", "children", "tests"].forEach((type) => {
       const dependencyNodes: Map<string, { nodes: any[] }> = graphMetaMap[type];
       const key = Array.from(dependencyNodes.keys()).find(
         (k) => k.endsWith(`.${fileName}`) && k.startsWith("model."),
