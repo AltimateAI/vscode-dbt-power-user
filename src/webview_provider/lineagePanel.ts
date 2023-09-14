@@ -143,7 +143,7 @@ export class LineagePanel implements WebviewViewProvider {
 
   private mapParentsAndChildren = (graphMetaMap: any, fileName: string) => {
     const edges: { source: string; target: string }[] = [];
-    type Table = { id: string; url: string; level: number };
+    type Table = { id: string; url: string; level: number; count: number };
     const tables: Map<string, Table> = new Map();
     const addToTables = (key: string, value: Omit<Table, "id">) => {
       if (!tables.has(key)) {
@@ -152,6 +152,8 @@ export class LineagePanel implements WebviewViewProvider {
     };
     ["parents", "children", "tests"].forEach((type) => {
       const dependencyNodes: Map<string, { nodes: any[] }> = graphMetaMap[type];
+      const temp = Array.from(dependencyNodes.keys());
+      console.log(temp);
       const key = Array.from(dependencyNodes.keys()).find(
         (k) => k.endsWith(`.${fileName}`) && k.startsWith("model."),
       );
@@ -162,16 +164,17 @@ export class LineagePanel implements WebviewViewProvider {
       if (!node) {
         return;
       }
-      addToTables(key, { url: "", level: 0 });
+      addToTables(key, { url: "", level: 0, count: -1 });
       if (!node?.nodes) {
         return;
       }
       node.nodes.forEach((child: { key: "string"; url: "string" }) => {
+        const count = dependencyNodes.get(child.key)?.nodes.length || 0;
         if (type === "parents") {
-          addToTables(child.key, { url: child.url, level: -1 });
+          addToTables(child.key, { url: child.url, level: -1, count });
           edges.push({ source: child.key, target: key });
         } else if (type === "children") {
-          addToTables(child.key, { url: child.url, level: 1 });
+          addToTables(child.key, { url: child.url, level: 1, count });
           edges.push({ source: key, target: child.key });
         }
       });

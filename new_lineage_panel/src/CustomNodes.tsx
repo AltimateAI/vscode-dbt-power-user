@@ -1,7 +1,16 @@
-import { FunctionComponent } from "react";
-import { BaseEdge, EdgeProps, Handle, NodeProps, Position } from "reactflow";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { FunctionComponent, useState } from "react";
+import {
+  BaseEdge,
+  EdgeProps,
+  Handle,
+  NodeProps,
+  Position,
+  useReactFlow,
+} from "reactflow";
 import styles from "./styles.module.scss";
 import classNames from "classnames";
+import { layoutElementsOnCanvas } from "./graph";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -49,7 +58,62 @@ const destructTable = (id: string) => {
 };
 
 export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
-  const [table, schema] = destructTable(data.id);
+  const { shouldExpand, processed, id, level } = data;
+  const flow = useReactFlow();
+  // hack to force re-render the component
+  const [, _rerender] = useState(0);
+  const rerender = () => _rerender((x) => x + 1);
+
+  const expand = async (t: string, tables: unknown[], right: boolean) => {
+    if (processed[right ? 1 : 0]) return;
+    // tables.sort((a, b) => {
+    //   const [, , tableA] = destructTable(a.table);
+    //   const [, , tableB] = destructTable(b.table);
+    //   return tableA.localeCompare(tableB);
+    // });
+    // const [nodes, edges] = createNewNodesEdges(
+    //   flow.getNodes(),
+    //   flow.getEdges(),
+    //   tables,
+    //   t,
+    //   right,
+    //   level
+    // );
+    // layoutElementsOnCanvas(nodes, edges);
+    // flow.setNodes(nodes);
+    // flow.setEdges(edges);
+    // rerender();
+  };
+
+  const expandRight = async (t: string) => {
+    // const { tables } = await upstreamTables(t);
+    // await expand(t, tables, true);
+  };
+
+  const expandLeft = async (t: string) => {
+    // const { tables } = await downstreamTables(t);
+    // await expand(t, tables, false);
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const collapse = (_right: boolean) => (_t: string) => {
+    // const [nodes, edges] = removeRelatedNodesEdges(
+    //   flow.getNodes(),
+    //   flow.getEdges(),
+    //   t,
+    //   right,
+    //   level
+    // );
+    // layoutElementsOnCanvas(nodes, edges);
+    // flow.setNodes(nodes);
+    // flow.setEdges(edges);
+    // rerender();
+  };
+
+  const collapseLeft = collapse(false);
+  const collapseRight = collapse(true);
+
+  const [table, schema] = destructTable(id);
   return (
     <div className="position-relative">
       <div className={styles.table_node}>
@@ -63,10 +127,48 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             <div />
             <div className="lines-2 text-black">{table}</div>
             <div />
-            <div className="text-muted text-overflow">{schema}</div>
+            <div className="text-muted text-overflow">{data.count}-{schema}</div>
           </div>
         </div>
       </div>
+      {shouldExpand[1] && (
+        <div
+          className={classNames(
+            "nodrag",
+            styles.table_handle,
+            styles.right_handle
+          )}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (processed[1]) {
+              collapseRight(id);
+            } else {
+              expandRight(id);
+            }
+          }}
+        >
+          {processed[1] ? "-" : "+"}
+        </div>
+      )}
+      {shouldExpand[0] && (
+        <div
+          className={classNames(
+            "nodrag",
+            styles.table_handle,
+            styles.left_handle
+          )}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (processed[0]) {
+              collapseLeft(id);
+            } else {
+              expandLeft(id);
+            }
+          }}
+        >
+          {processed[0] ? "-" : "+"}
+        </div>
+      )}
 
       <BidirectionalHandles />
     </div>

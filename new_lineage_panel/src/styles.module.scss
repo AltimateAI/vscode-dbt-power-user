@@ -24,3 +24,29 @@ $node-width: 260px;
     height: fit-content;
   }
 }
+
+$size: 1.2em;
+$diff: 0.25em;
+.table_handle {
+  position: absolute;
+  width: $size;
+  height: $size;
+  line-height: $size;
+  border-radius: 50%;
+  background-color: #247efe;
+  border: 1px solid #d6e7ff;
+  color: #ffffff;
+  top: calc(50% - 0.5 * $size);
+  display: flex;
+  justify-content: center;
+  align-items: end;
+  cursor: default;
+}
+
+.right_handle {
+  right: $diff;
+}
+
+.left_handle {
+  left: $diff;
+}
