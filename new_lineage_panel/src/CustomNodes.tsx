@@ -89,7 +89,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
   const expandRight = async (t: string) => {
     const { tables } = await upstreamTables(t);
-    console.log("tables -> ", tables);
     await expand(t, tables, true);
   };
 
@@ -130,9 +129,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             <div />
             <div className="lines-2 text-black">{label}</div>
             <div />
-            <div className="text-muted text-overflow">
-              {data.count}-{schema}
-            </div>
+            <div className="text-muted text-overflow">{schema}</div>
           </div>
         </div>
       </div>

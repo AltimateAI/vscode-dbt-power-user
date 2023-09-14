@@ -197,7 +197,7 @@ export class LineagePanel implements WebviewViewProvider {
     return event.graphMetaMap;
   }
 
-  private parseGraphData = () => {
+  private parseGraphData() {
     const graphMetaMap = this.getGraphMetaMap();
     if (!graphMetaMap) {
       return;
@@ -206,51 +206,24 @@ export class LineagePanel implements WebviewViewProvider {
       window.activeTextEditor!.document.fileName,
       ".sql",
     );
-    return this.mapParentsAndChildren(graphMetaMap, fileName);
-  };
-
-  private mapParentsAndChildren = (graphMetaMap: any, fileName: string) => {
-    const edges: { source: string; target: string }[] = [];
-    const tables: Map<string, Table> = new Map();
-    const addToTables = (key: string, value: Omit<Table, "table">) => {
-      if (!tables.has(key)) {
-        tables.set(key, { ...value, table: key });
-      }
+    const dependencyNodes = graphMetaMap["parents"];
+    const key = Array.from(dependencyNodes.keys()).find(
+      (k) => k.endsWith(`.${fileName}`) && k.startsWith("model."),
+    );
+    if (!key) {
+      return;
+    }
+    const downstreamCount = dependencyNodes.get(key)?.nodes.length || 0;
+    const upstreamCount = graphMetaMap["children"].get(key)?.nodes.length || 0;
+    return {
+      node: {
+        table: key,
+        url: "",
+        upstreamCount,
+        downstreamCount,
+      },
     };
-    ["parents", "children", "tests"].forEach((type) => {
-      const dependencyNodes: Map<string, { nodes: any[] }> = graphMetaMap[type];
-      const temp = Array.from(dependencyNodes.keys());
-      console.log(temp);
-      const key = Array.from(dependencyNodes.keys()).find(
-        (k) => k.endsWith(`.${fileName}`) && k.startsWith("model."),
-      );
-      if (!key) {
-        return;
-      }
-      const node = dependencyNodes.get(key);
-      if (!node) {
-        return;
-      }
-      addToTables(key, { url: "", level: 0, count: -1 });
-      if (!node?.nodes) {
-        return;
-      }
-      node.nodes.forEach((child: { key: "string"; url: "string" }) => {
-        const count = dependencyNodes.get(child.key)?.nodes.length || 0;
-        if (type === "parents") {
-          addToTables(child.key, { url: child.url, level: -1, count });
-          edges.push({ source: child.key, target: key });
-        } else if (type === "children") {
-          addToTables(child.key, { url: child.url, level: 1, count });
-          edges.push({ source: key, target: child.key });
-        }
-      });
-    });
-
-    const nodes = Array.from(tables.values());
-
-    return { nodes, edges };
-  };
+  }
 
   private setupWebviewOptions(context: WebviewViewResolveContext) {
     this._panel!.title = "Lineage(Beta)";

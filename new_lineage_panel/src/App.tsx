@@ -33,26 +33,22 @@ function App() {
 
   useEffect(() => {
     // @ts-ignore
-    const render = ({ nodes, edges }) => {
-      const _nodes: Node[] = (
-        nodes as { table: string; url: string; level: string; count: number }[]
-      ).map((n) => ({
-        id: n.table,
-        data: {
-          ...n,
-          shouldExpand: [n.count > 0, n.count > 0],
-          processed: [false, false],
+    const render = ({ node: n }) => {
+      const _nodes: Node[] = [
+        {
+          id: n.table,
+          data: {
+            table: n.table,
+            url: n.url,
+            level: 0,
+            shouldExpand: [n.downstreamCount > 0, n.upstreamCount > 0],
+            processed: [false, false],
+          },
+          position: { x: 100, y: 100 },
+          type: "table",
         },
-        position: { x: 100, y: 100 },
-        type: "table",
-      }));
-      const _edges: Edge[] = edges.map(
-        (e: { source: string; target: string }) =>
-          createForwardEdge(e.source, e.target, true)
-      );
-      layoutElementsOnCanvas(_nodes, _edges);
+      ];
       flow.current?.setNodes(_nodes);
-      flow.current?.setEdges(_edges);
     };
     const response = (args: {
       id: number;
