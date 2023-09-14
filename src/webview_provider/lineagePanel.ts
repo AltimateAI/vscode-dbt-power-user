@@ -113,13 +113,15 @@ export class LineagePanel implements WebviewViewProvider {
     });
   }
 
-  private getUpstreamTables({ table }: { table: string }) {
+  private getConnectedTables(
+    key: keyof GraphMetaMap,
+    table: string,
+  ): Table[] | undefined {
     const graphMetaMap = this.getGraphMetaMap();
     if (!graphMetaMap) {
       return;
     }
-    const dependencyNodes: Map<string, { nodes: any[] }> =
-      graphMetaMap["children"];
+    const dependencyNodes: Map<string, { nodes: any[] }> = graphMetaMap[key];
     const node = dependencyNodes.get(table);
     if (!node) {
       return;
@@ -137,7 +139,13 @@ export class LineagePanel implements WebviewViewProvider {
     return Array.from(tables.values());
   }
 
-  private getDownstreamTables({ table }: { table: string }) {}
+  private getUpstreamTables({ table }: { table: string }) {
+    return this.getConnectedTables("children", table);
+  }
+
+  private getDownstreamTables({ table }: { table: string }) {
+    return this.getConnectedTables("parents", table);
+  }
 
   private setupWebviewHooks(context: WebviewViewResolveContext) {
     this._panel!.webview.onDidReceiveMessage(
