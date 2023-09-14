@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { Dispatch, createContext, useEffect, useRef, useState } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -23,14 +23,33 @@ export const requestExecutor = (url: string, params: unknown) => {
   });
 };
 export const openFile = (url: string) => {
-  console.log("openFile -> ", url)
+  console.log("openFile -> ", url);
   vscode.postMessage({ command: "openFile", url });
 };
 
 const nodeTypes: NodeTypes = { table: TableNode };
 
+export const LineageContext = createContext<{
+  selectedTable: any;
+  setSelectedTable: Dispatch<any>;
+}>({
+  // showSidebar: false,
+  // setShowSidebar: () => {},
+  selectedTable: {},
+  setSelectedTable: () => {},
+  // moreTables: {},
+  // setMoreTables: () => {},
+  // sidebarScreen: "",
+  // setSidebarScreen: () => {},
+  // selectedColumn: {},
+  // setSelectedColumn: () => {},
+  // collectColumns: {},
+  // setCollectColumns: () => {},
+});
+
 function App() {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
+  const [selectedTable, setSelectedTable] = useState<any>(null);
 
   useEffect(() => {
     // @ts-ignore
@@ -77,19 +96,21 @@ function App() {
   }, []);
 
   return (
-    <div style={{ height: "100vh", width: "100vw" }}>
-      <ReactFlow
-        defaultNodes={[]}
-        defaultEdges={[]}
-        onInit={(_flow) => (flow.current = _flow)}
-        nodeTypes={nodeTypes}
-        style={{ background: "#f5f5f7" }}
-        proOptions={{ hideAttribution: true }}
-      >
-        <Background />
-        <Controls />
-      </ReactFlow>
-    </div>
+    <LineageContext.Provider value={{ selectedTable, setSelectedTable }}>
+      <div style={{ height: "100vh", width: "100vw" }}>
+        <ReactFlow
+          defaultNodes={[]}
+          defaultEdges={[]}
+          onInit={(_flow) => (flow.current = _flow)}
+          nodeTypes={nodeTypes}
+          style={{ background: "#f5f5f7" }}
+          proOptions={{ hideAttribution: true }}
+        >
+          <Background />
+          <Controls />
+        </ReactFlow>
+      </div>
+    </LineageContext.Provider>
   );
 }
 

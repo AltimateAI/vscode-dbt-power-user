@@ -11,6 +11,9 @@ $node-width: 260px;
     border: 2px solid #eeeff2;
     border-radius: 0.5em;
     padding: 0.5em;
+    &.selected {
+      border-color: #e38e00;
+    }
   }
 }
 

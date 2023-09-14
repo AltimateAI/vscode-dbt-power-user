@@ -96,6 +96,10 @@ button:focus-visible {
   -webkit-box-orient: vertical;
 }
 
+.text-primary {
+  color: #247efe;
+}
+
 .text-muted {
   color: #8390a3;
 }

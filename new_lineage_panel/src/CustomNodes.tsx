@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent, useContext, useState } from "react";
 import {
   BaseEdge,
   EdgeProps,
@@ -11,7 +11,7 @@ import {
 import styles from "./styles.module.scss";
 import classNames from "classnames";
 import { createNewNodesEdges, layoutElementsOnCanvas } from "./graph";
-import { openFile } from "./App";
+import { LineageContext, openFile } from "./App";
 import { Tables, downstreamTables, upstreamTables } from "./service";
 
 const HANDLE_OFFSET = "-1px";
@@ -66,6 +66,12 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const [, _rerender] = useState(0);
   const rerender = () => _rerender((x) => x + 1);
 
+  const { selectedTable, setSelectedTable } = useContext(LineageContext);
+
+  const selected = selectedTable === table;
+  const toggleTableSelection = () =>
+    setSelectedTable((prev: string) => (prev === table ? null : table));
+
   const expand = async (t: string, tables: Tables, right: boolean) => {
     if (processed[right ? 1 : 0]) return;
     // tables.sort((a, b) => {
@@ -117,12 +123,22 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
   const [label, schema] = destructTable(table);
   return (
-    <div className="position-relative" onClick={() => openFile(url)}>
-      <div className={styles.table_node}>
+    <div className="position-relative">
+      <div
+        className={styles.table_node}
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleTableSelection();
+          // highlightTable();
+        }}
+      >
         <div
           className={classNames(
             styles.header,
-            "d-flex flex-column align-items-start gap-xs"
+            "d-flex flex-column align-items-start gap-xs",
+            {
+              [styles.selected]: selected,
+            }
           )}
         >
           <div className={styles.table_header}>
@@ -130,6 +146,15 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             <div className="lines-2 text-black">{label}</div>
             <div />
             <div className="text-muted text-overflow">{schema}</div>
+          </div>
+          <div
+            className={classNames(
+              "nodrag ms-3",
+              selected ? "text-primary" : "text-muted"
+            )}
+            onClick={() => openFile(url)}
+          >
+            Open file
           </div>
         </div>
       </div>
