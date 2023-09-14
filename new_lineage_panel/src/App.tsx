@@ -16,6 +16,16 @@ declare const acquireVsCodeApi: () => { postMessage: (v: unknown) => void };
 
 const vscode = acquireVsCodeApi();
 
+let id = 0;
+const requestMap: Record<number, any> = {};
+export const requestExecutor = (url: string, params: unknown) => {
+  return new Promise((resolve, reject) => {
+    requestMap[id] = { resolve, reject };
+    vscode.postMessage({ command: "request", args: { id, url, params } });
+    id++;
+  });
+};
+
 const nodeTypes: NodeTypes = { table: TableNode };
 
 function App() {
@@ -44,11 +54,28 @@ function App() {
       flow.current?.setNodes(_nodes);
       flow.current?.setEdges(_edges);
     };
-    const commandMap = { render };
+    const response = (args: {
+      id: number;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      body: any;
+      status: boolean;
+      error: string;
+    }) => {
+      const { resolve, reject } = requestMap[args.id];
+      if (args.status) {
+        resolve(args.body);
+      } else {
+        reject(args.error);
+      }
+      delete requestMap[args.id];
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const commandMap: Record<string, (a: any) => void> = { render, response };
     window.addEventListener("message", (event) => {
       const { command, args } = event.data;
-      commandMap[command as "render"](args);
-      vscode.postMessage({ command: "thisistest", args: { id: 1 } });
+      if ((command as string) in commandMap) {
+        commandMap[command](args);
+      }
     });
   }, []);
 

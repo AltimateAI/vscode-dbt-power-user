@@ -102,6 +102,17 @@ export class LineagePanel implements WebviewViewProvider {
               preview: false,
               preserveFocus: true,
             });
+          case "request":
+            const { args } = message;
+            console.log("inside host -> ", args);
+            if (args.url === "echo") {
+              if (this._panel) {
+                await this._panel.webview.postMessage({
+                  command: "response",
+                  args: { id: args.id, body: args.params, status: true },
+                });
+              }
+            }
         }
       },
       null,

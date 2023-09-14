@@ -11,6 +11,7 @@ import {
 import styles from "./styles.module.scss";
 import classNames from "classnames";
 import { layoutElementsOnCanvas } from "./graph";
+import { requestExecutor } from "./App";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -88,6 +89,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const expandRight = async (t: string) => {
     // const { tables } = await upstreamTables(t);
     // await expand(t, tables, true);
+    const body = await requestExecutor("echo", { msg: "ping" });
+    console.log("expandRight -> ", body);
   };
 
   const expandLeft = async (t: string) => {
@@ -127,7 +130,9 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             <div />
             <div className="lines-2 text-black">{table}</div>
             <div />
-            <div className="text-muted text-overflow">{data.count}-{schema}</div>
+            <div className="text-muted text-overflow">
+              {data.count}-{schema}
+            </div>
           </div>
         </div>
       </div>
