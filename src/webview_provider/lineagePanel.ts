@@ -218,7 +218,7 @@ export class LineagePanel implements WebviewViewProvider {
     return {
       node: {
         table: key,
-        url: "",
+        url: window.activeTextEditor!.document.uri.path,
         upstreamCount,
         downstreamCount,
       },
@@ -226,7 +226,7 @@ export class LineagePanel implements WebviewViewProvider {
   }
 
   private setupWebviewOptions(context: WebviewViewResolveContext) {
-    this._panel!.title = "Lineage(Beta)";
+    this._panel!.title = "Lineage";
     this._panel!.description =
       "Show table level and column level lineage SQL queries";
     this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };

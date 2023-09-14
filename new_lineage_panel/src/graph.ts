@@ -18,7 +18,7 @@ import {
 export const createNewNodesEdges = (
   prevNodes: Node[],
   prevEdges: Edge[],
-  tables: { table: string; count: number }[],
+  tables: { table: string; count: number; url: string }[],
   t: string,
   right: boolean,
   level: number

@@ -11,7 +11,7 @@ import {
 import styles from "./styles.module.scss";
 import classNames from "classnames";
 import { createNewNodesEdges, layoutElementsOnCanvas } from "./graph";
-import { requestExecutor } from "./App";
+import { openFile } from "./App";
 import { Tables, downstreamTables, upstreamTables } from "./service";
 
 const HANDLE_OFFSET = "-1px";
@@ -60,7 +60,7 @@ const destructTable = (id: string) => {
 };
 
 export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
-  const { shouldExpand, processed, table, level } = data;
+  const { shouldExpand, processed, table, level, url } = data;
   const flow = useReactFlow();
   // hack to force re-render the component
   const [, _rerender] = useState(0);
@@ -117,7 +117,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
   const [label, schema] = destructTable(table);
   return (
-    <div className="position-relative">
+    <div className="position-relative" onClick={() => openFile(url)}>
       <div className={styles.table_node}>
         <div
           className={classNames(

@@ -2,15 +2,12 @@ import { useEffect, useRef } from "react";
 import ReactFlow, {
   Background,
   Controls,
-  Edge,
   Node,
   NodeTypes,
   ReactFlowInstance,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { TableNode } from "./CustomNodes";
-import { layoutElementsOnCanvas } from "./graph";
-import { createForwardEdge } from "./utils";
 
 declare const acquireVsCodeApi: () => { postMessage: (v: unknown) => void };
 
@@ -24,6 +21,10 @@ export const requestExecutor = (url: string, params: unknown) => {
     vscode.postMessage({ command: "request", args: { id, url, params } });
     id++;
   });
+};
+export const openFile = (url: string) => {
+  console.log("openFile -> ", url)
+  vscode.postMessage({ command: "openFile", url });
 };
 
 const nodeTypes: NodeTypes = { table: TableNode };
