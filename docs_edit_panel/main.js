@@ -251,7 +251,7 @@ const Documentation = {
           <span slot="start" class="codicon codicon-comment"></span>
         </vscode-button>
       </div>
-      <Comment :data="documentation" :ref="commentRef"></Comment>
+      <Comment :data="modelValue" :ref="commentRef"></Comment>
     </div>`,
 };
 
