@@ -68,6 +68,7 @@
 
 .column-actions {
   display: inline-flex;
+  grid-column-gap: 0.5rem;
 }
 
 .gen-button {
