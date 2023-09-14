@@ -10,8 +10,9 @@ import {
 } from "reactflow";
 import styles from "./styles.module.scss";
 import classNames from "classnames";
-import { layoutElementsOnCanvas } from "./graph";
+import { createNewNodesEdges, layoutElementsOnCanvas } from "./graph";
 import { requestExecutor } from "./App";
+import { Tables, downstreamTables, upstreamTables } from "./service";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -59,43 +60,42 @@ const destructTable = (id: string) => {
 };
 
 export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
-  const { shouldExpand, processed, id, level } = data;
+  const { shouldExpand, processed, table, level } = data;
   const flow = useReactFlow();
   // hack to force re-render the component
   const [, _rerender] = useState(0);
   const rerender = () => _rerender((x) => x + 1);
 
-  const expand = async (t: string, tables: unknown[], right: boolean) => {
+  const expand = async (t: string, tables: Tables, right: boolean) => {
     if (processed[right ? 1 : 0]) return;
     // tables.sort((a, b) => {
     //   const [, , tableA] = destructTable(a.table);
     //   const [, , tableB] = destructTable(b.table);
     //   return tableA.localeCompare(tableB);
     // });
-    // const [nodes, edges] = createNewNodesEdges(
-    //   flow.getNodes(),
-    //   flow.getEdges(),
-    //   tables,
-    //   t,
-    //   right,
-    //   level
-    // );
-    // layoutElementsOnCanvas(nodes, edges);
-    // flow.setNodes(nodes);
-    // flow.setEdges(edges);
-    // rerender();
+    const [nodes, edges] = createNewNodesEdges(
+      flow.getNodes(),
+      flow.getEdges(),
+      tables,
+      t,
+      right,
+      level
+    );
+    layoutElementsOnCanvas(nodes, edges);
+    flow.setNodes(nodes);
+    flow.setEdges(edges);
+    rerender();
   };
 
   const expandRight = async (t: string) => {
-    // const { tables } = await upstreamTables(t);
-    // await expand(t, tables, true);
-    const body = await requestExecutor("echo", { msg: "ping" });
-    console.log("expandRight -> ", body);
+    const { tables } = await upstreamTables(t);
+    console.log("tables -> ", tables);
+    await expand(t, tables, true);
   };
 
   const expandLeft = async (t: string) => {
-    // const { tables } = await downstreamTables(t);
-    // await expand(t, tables, false);
+    const { tables } = await downstreamTables(t);
+    await expand(t, tables, false);
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -116,7 +116,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const collapseLeft = collapse(false);
   const collapseRight = collapse(true);
 
-  const [table, schema] = destructTable(id);
+  const [label, schema] = destructTable(table);
   return (
     <div className="position-relative">
       <div className={styles.table_node}>
@@ -128,7 +128,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
         >
           <div className={styles.table_header}>
             <div />
-            <div className="lines-2 text-black">{table}</div>
+            <div className="lines-2 text-black">{label}</div>
             <div />
             <div className="text-muted text-overflow">
               {data.count}-{schema}
@@ -146,9 +146,9 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           onClick={(e) => {
             e.stopPropagation();
             if (processed[1]) {
-              collapseRight(id);
+              collapseRight(table);
             } else {
-              expandRight(id);
+              expandRight(table);
             }
           }}
         >
@@ -165,9 +165,9 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           onClick={(e) => {
             e.stopPropagation();
             if (processed[0]) {
-              collapseLeft(id);
+              collapseLeft(table);
             } else {
-              expandLeft(id);
+              expandLeft(table);
             }
           }}
         >

@@ -5,11 +5,69 @@ import {
   C_OFFSET_Y,
   C_PADDING_Y,
   LEVEL_SEPARATION,
+  MAX_EXPAND_TABLE,
   SEE_MORE_PREFIX,
   T_NODE_H,
   T_NODE_W,
+  createForwardEdge,
+  createReverseEdge,
+  createTableNode,
   isColumn,
 } from "./utils";
+
+export const createNewNodesEdges = (
+  prevNodes: Node[],
+  prevEdges: Edge[],
+  tables: { table: string; count: number }[],
+  t: string,
+  right: boolean,
+  level: number
+): [Node[], Edge[]] => {
+  const newNodes = [...prevNodes];
+  const newEdges = [...prevEdges];
+  const newLevel = right ? level + 1 : level - 1;
+  const _node = newNodes.find((_n) => _n.id === t);
+  if (_node) _node.data.processed[right ? 1 : 0] = true;
+
+  const addUniqueEdge = (_edge: Edge) => {
+    const existingEdge = newEdges.find((e) => e.id === _edge.id);
+    if (!existingEdge) newEdges.push(_edge);
+  };
+
+  tables.slice(0, MAX_EXPAND_TABLE).forEach((_t) => {
+    const existingNode = newNodes.find((_n) => _n.id === _t.table);
+    if (!existingNode) {
+      newNodes.push(createTableNode(_t, right, newLevel, t));
+      addUniqueEdge(createForwardEdge(t, _t.table, right));
+    } else if (right && existingNode.data.level < level) {
+      addUniqueEdge(createReverseEdge(t, _t.table, true));
+    } else if (!right && existingNode.data.level > level) {
+      addUniqueEdge(createReverseEdge(t, _t.table, false));
+    } else if (t === _t.table) {
+      addUniqueEdge(createForwardEdge(t, _t.table, right));
+    }
+  });
+
+  if (tables.length > MAX_EXPAND_TABLE) {
+    const _t = SEE_MORE_PREFIX + t;
+    newNodes.push({
+      id: _t,
+      data: {
+        tables,
+        prevTable: t,
+        right,
+        level: newLevel,
+      },
+      position: { x: 100, y: 100 },
+      type: "seeMore",
+      width: T_NODE_W,
+      height: 100,
+    });
+    addUniqueEdge(createForwardEdge(t, _t, right));
+  }
+
+  return [newNodes, newEdges];
+};
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const layoutElementsOnCanvas = (nodes: Node[], _edges: Edge[]) => {

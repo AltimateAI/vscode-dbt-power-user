@@ -35,9 +35,9 @@ function App() {
     // @ts-ignore
     const render = ({ nodes, edges }) => {
       const _nodes: Node[] = (
-        nodes as { id: string; url: string; level: string; count: number }[]
+        nodes as { table: string; url: string; level: string; count: number }[]
       ).map((n) => ({
-        id: n.id,
+        id: n.table,
         data: {
           ...n,
           shouldExpand: [n.count > 0, n.count > 0],

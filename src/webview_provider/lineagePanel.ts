@@ -23,6 +23,9 @@ import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
+import { GraphMetaMap } from "../domain";
+
+type Table = { table: string; url: string; level: number; count: number };
 
 @provideSingleton(LineagePanel)
 export class LineagePanel implements WebviewViewProvider {
@@ -88,6 +91,54 @@ export class LineagePanel implements WebviewViewProvider {
     this.setupWebviewHooks(context);
   }
 
+  private handleRequest(args: { url: string; id: number; params: unknown }) {
+    let body;
+    if (args.url === "upstreamTables") {
+      body = {
+        tables: this.getUpstreamTables(args.params as { table: string }),
+      };
+    }
+    if (args.url === "downstreamTables") {
+      body = {
+        tables: this.getDownstreamTables(args.params as { table: string }),
+      };
+    }
+    this._panel?.webview.postMessage({
+      command: "response",
+      args: {
+        id: args.id,
+        body,
+        status: true,
+      },
+    });
+  }
+
+  private getUpstreamTables({ table }: { table: string }) {
+    const graphMetaMap = this.getGraphMetaMap();
+    if (!graphMetaMap) {
+      return;
+    }
+    const dependencyNodes: Map<string, { nodes: any[] }> =
+      graphMetaMap["children"];
+    const node = dependencyNodes.get(table);
+    if (!node) {
+      return;
+    }
+    const tables: Map<string, Table> = new Map();
+    const addToTables = (key: string, value: Omit<Table, "table">) => {
+      if (!tables.has(key)) {
+        tables.set(key, { ...value, table: key });
+      }
+    };
+    node.nodes.forEach((child: { key: "string"; url: "string" }) => {
+      const count = dependencyNodes.get(child.key)?.nodes.length || 0;
+      addToTables(child.key, { url: child.url, level: 1, count });
+    });
+    return Array.from(tables.values());
+  }
+
+  private getDownstreamTables({ table }: { table: string }) {}
+
   private setupWebviewHooks(context: WebviewViewResolveContext) {
     this._panel!.webview.onDidReceiveMessage(
       async (message) => {
@@ -103,16 +154,7 @@ export class LineagePanel implements WebviewViewProvider {
               preserveFocus: true,
             });
           case "request":
-            const { args } = message;
-            console.log("inside host -> ", args);
-            if (args.url === "echo") {
-              if (this._panel) {
-                await this._panel.webview.postMessage({
-                  command: "response",
-                  args: { id: args.id, body: args.params, status: true },
-                });
-              }
-            }
+            this.handleRequest(message.args);
         }
       },
       null,
@@ -127,7 +169,7 @@ export class LineagePanel implements WebviewViewProvider {
     // this._panel!.onDidChangeVisibility(sendLineageViewEvent);
   }
 
-  private parseGraphData = () => {
+  private getGraphMetaMap(): GraphMetaMap | undefined {
     if (window.activeTextEditor === undefined || this.eventMap === undefined) {
       return;
     }
@@ -144,7 +186,14 @@ export class LineagePanel implements WebviewViewProvider {
       return;
     }
 
-    const { graphMetaMap } = event;
+    return event.graphMetaMap;
+  }
+
+  private parseGraphData = () => {
+    const graphMetaMap = this.getGraphMetaMap();
+    if (!graphMetaMap) {
+      return;
+    }
     const fileName = path.basename(
       window.activeTextEditor!.document.fileName,
       ".sql",
@@ -154,11 +203,10 @@ export class LineagePanel implements WebviewViewProvider {
 
   private mapParentsAndChildren = (graphMetaMap: any, fileName: string) => {
     const edges: { source: string; target: string }[] = [];
-    type Table = { id: string; url: string; level: number; count: number };
     const tables: Map<string, Table> = new Map();
-    const addToTables = (key: string, value: Omit<Table, "id">) => {
+    const addToTables = (key: string, value: Omit<Table, "table">) => {
       if (!tables.has(key)) {
-        tables.set(key, { ...value, id: key });
+        tables.set(key, { ...value, table: key });
       }
     };
     ["parents", "children", "tests"].forEach((type) => {

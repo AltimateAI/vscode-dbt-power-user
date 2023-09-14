@@ -1,3 +1,5 @@
+import { Edge, MarkerType, Node } from "reactflow";
+
 // config constants
 export const MAX_EXPAND_TABLE = 5;
 
@@ -22,7 +24,7 @@ const HIGHLIGHT_COLOR = "#E38E00";
 export const defaultEdgeStyle = { stroke: DEFAULT_COLOR, strokeWidth: 1 };
 export const highlightEdgeStyle = { stroke: HIGHLIGHT_COLOR, strokeWidth: 2 };
 export const defaultMarker = {
-  type: "arrow",
+  type: "arrow" as MarkerType,
   strokeWidth: 1,
   width: 24,
   height: 24,
@@ -41,7 +43,7 @@ export const isColumn = (_: any) => false;
 
 const _createEdge =
   (sourceHandle: string, targetHandle: string, edgeType: string) =>
-  (n1: string, n2: string, right: boolean) => {
+  (n1: string, n2: string, right: boolean): Edge => {
     let src = n1;
     let dst = n2;
     if (!right) {
@@ -65,3 +67,26 @@ const _createEdge =
 
 export const createForwardEdge = _createEdge("right", "left", "default");
 export const createReverseEdge = _createEdge("left", "right", "default");
+
+export const createTableNode = (
+  { table, count }: { table: string; count: number },
+  right: boolean,
+  level: number,
+  parent: string
+): Node => {
+  const expand = count > 0;
+  return {
+    id: table,
+    data: {
+      table,
+      level,
+      parent,
+      shouldExpand: right ? [false, expand] : [expand, false],
+      processed: right ? [true, false] : [false, true],
+    },
+    position: { x: 100, y: 100 },
+    type: "table",
+    width: T_NODE_W,
+    height: T_NODE_H,
+  };
+};
