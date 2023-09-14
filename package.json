@@ -464,14 +464,15 @@
   "scripts": {
     "prepare": "husky install",
     "vscode:prepublish": "webpack --mode production",
-    "webpack": "webpack --mode development",
+    "webpack": "npm run panel:lineage && webpack --mode development",
     "webpack-dev": "webpack --mode development --watch",
     "test-compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
     "deploy-vscode": "vsce publish",
     "build-vsix": "vsce package",
-    "deploy-openvsx": "ovsx publish"
+    "deploy-openvsx": "ovsx publish",
+    "panel:lineage": "npm run build --prefix ./new_lineage_panel"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
