@@ -10,7 +10,7 @@ import {
 } from "reactflow";
 import styles from "./styles.module.scss";
 import classNames from "classnames";
-import { createNewNodesEdges, layoutElementsOnCanvas } from "./graph";
+import { createNewNodesEdges, highlightTableConnections, layoutElementsOnCanvas, resetTableHighlights } from "./graph";
 import { LineageContext, openFile } from "./App";
 import { Tables, downstreamTables, upstreamTables } from "./service";
 import { TABLES_SIDEBAR, destructTable } from "./utils";
@@ -67,6 +67,16 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const selected = selectedTable === table;
   const toggleTableSelection = () =>
     setSelectedTable((prev) => (prev === table ? "" : table));
+
+    const highlightTable = () => {
+      const _nodes = flow.getNodes();
+      const _edges = flow.getEdges();
+      const [nodes, edges] = selected
+        ? resetTableHighlights(_nodes, _edges)
+        : highlightTableConnections(_nodes, _edges, table);
+      flow.setNodes(nodes);
+      flow.setEdges(edges);
+    };
 
   const expand = async (t: string, tables: Tables, right: boolean) => {
     if (processed[right ? 1 : 0]) return;
@@ -125,7 +135,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
         onClick={(e) => {
           e.stopPropagation();
           toggleTableSelection();
-          // highlightTable();
+          highlightTable();
         }}
       >
         <div

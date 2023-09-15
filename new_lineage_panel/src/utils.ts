@@ -31,7 +31,7 @@ export const defaultMarker = {
   color: DEFAULT_COLOR,
 };
 export const highlightMarker = {
-  type: "arrow",
+  type: "arrow" as MarkerType,
   strokeWidth: 1,
   width: 16,
   height: 16,
@@ -96,4 +96,9 @@ export const destructTable = (id: string) => {
   const splits = id.split(".");
   const table = splits.pop() || "";
   return [table, splits.join(".")];
+};
+
+export const applyEdgeStyling = (e: Edge, highlight: boolean) => {
+  e.style = highlight ? highlightEdgeStyle : defaultEdgeStyle;
+  e.markerEnd = highlight ? highlightMarker : defaultMarker;
 };

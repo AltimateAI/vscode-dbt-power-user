@@ -9,6 +9,7 @@ import {
   SEE_MORE_PREFIX,
   T_NODE_H,
   T_NODE_W,
+  applyEdgeStyling,
   createForwardEdge,
   createReverseEdge,
   createTableNode,
@@ -122,4 +123,50 @@ export const layoutElementsOnCanvas = (nodes: Node[], _edges: Edge[]) => {
     const y = getY(n, level);
     n.position = { x, y };
   }
+};
+
+export const resetTableHighlights = (
+  nodes: Node[],
+  edges: Edge[]
+): [Node[], Edge[]] => {
+  nodes.forEach((n) => (n.style = { opacity: 1 }));
+  edges.forEach((e) => applyEdgeStyling(e, false));
+  return [nodes, edges];
+};
+
+export const highlightTableConnections = (
+  nodes: Node[],
+  edges: Edge[],
+  table: string
+): [Node[], Edge[]] => {
+  const highlightNode: Record<string, boolean> = {};
+  const highlightEdge: Record<string, boolean> = {};
+  const bfsTraversal = (src: "source" | "target", dst: "source" | "target") => {
+    const queue = [table];
+    const visited: Record<string, boolean> = {};
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      visited[curr] = true;
+      highlightNode[curr] = true;
+      edges.forEach((e) => {
+        if (e[src] === curr) {
+          highlightEdge[e.id] = true;
+          if (!visited[e[dst]]) queue.push(e[dst]);
+        }
+      });
+    }
+  };
+  bfsTraversal("source", "target");
+  bfsTraversal("target", "source");
+
+  // apply styling
+  const newEdges = [...edges];
+  newEdges.forEach((_e) => applyEdgeStyling(_e, highlightEdge[_e.id]));
+
+  const newNodes = [...nodes];
+  newNodes.forEach(
+    (_n) => (_n.style = { opacity: highlightNode[_n.id] ? 1 : 0.5 })
+  );
+
+  return [newNodes, newEdges];
 };
