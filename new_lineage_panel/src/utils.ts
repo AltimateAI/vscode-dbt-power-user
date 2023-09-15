@@ -40,6 +40,8 @@ export const highlightMarker = {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
 export const isColumn = (_: any) => false;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+export const isNotColumn = (_: any) => true;
 
 const _createEdge =
   (sourceHandle: string, targetHandle: string, edgeType: string) =>

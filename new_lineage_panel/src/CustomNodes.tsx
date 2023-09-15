@@ -10,7 +10,13 @@ import {
 } from "reactflow";
 import styles from "./styles.module.scss";
 import classNames from "classnames";
-import { createNewNodesEdges, highlightTableConnections, layoutElementsOnCanvas, resetTableHighlights } from "./graph";
+import {
+  createNewNodesEdges,
+  highlightTableConnections,
+  layoutElementsOnCanvas,
+  removeRelatedNodesEdges,
+  resetTableHighlights,
+} from "./graph";
 import { LineageContext, openFile } from "./App";
 import { Tables, downstreamTables, upstreamTables } from "./service";
 import { TABLES_SIDEBAR, destructTable } from "./utils";
@@ -68,23 +74,23 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const toggleTableSelection = () =>
     setSelectedTable((prev) => (prev === table ? "" : table));
 
-    const highlightTable = () => {
-      const _nodes = flow.getNodes();
-      const _edges = flow.getEdges();
-      const [nodes, edges] = selected
-        ? resetTableHighlights(_nodes, _edges)
-        : highlightTableConnections(_nodes, _edges, table);
-      flow.setNodes(nodes);
-      flow.setEdges(edges);
-    };
+  const highlightTable = () => {
+    const _nodes = flow.getNodes();
+    const _edges = flow.getEdges();
+    const [nodes, edges] = selected
+      ? resetTableHighlights(_nodes, _edges)
+      : highlightTableConnections(_nodes, _edges, table);
+    flow.setNodes(nodes);
+    flow.setEdges(edges);
+  };
 
   const expand = async (t: string, tables: Tables, right: boolean) => {
     if (processed[right ? 1 : 0]) return;
-    // tables.sort((a, b) => {
-    //   const [, , tableA] = destructTable(a.table);
-    //   const [, , tableB] = destructTable(b.table);
-    //   return tableA.localeCompare(tableB);
-    // });
+    tables.sort((a, b) => {
+      const [tableA] = destructTable(a.table);
+      const [tableB] = destructTable(b.table);
+      return tableA.localeCompare(tableB);
+    });
     const [nodes, edges] = createNewNodesEdges(
       flow.getNodes(),
       flow.getEdges(),
@@ -109,19 +115,18 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     await expand(t, tables, false);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const collapse = (_right: boolean) => (_t: string) => {
-    // const [nodes, edges] = removeRelatedNodesEdges(
-    //   flow.getNodes(),
-    //   flow.getEdges(),
-    //   t,
-    //   right,
-    //   level
-    // );
-    // layoutElementsOnCanvas(nodes, edges);
-    // flow.setNodes(nodes);
-    // flow.setEdges(edges);
-    // rerender();
+  const collapse = (right: boolean) => (t: string) => {
+    const [nodes, edges] = removeRelatedNodesEdges(
+      flow.getNodes(),
+      flow.getEdges(),
+      t,
+      right,
+      level
+    );
+    layoutElementsOnCanvas(nodes, edges);
+    flow.setNodes(nodes);
+    flow.setEdges(edges);
+    rerender();
   };
 
   const collapseLeft = collapse(false);

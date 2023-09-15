@@ -14,6 +14,7 @@ import {
   createReverseEdge,
   createTableNode,
   isColumn,
+  isNotColumn,
 } from "./utils";
 
 export const createNewNodesEdges = (
@@ -167,6 +168,78 @@ export const highlightTableConnections = (
   newNodes.forEach(
     (_n) => (_n.style = { opacity: highlightNode[_n.id] ? 1 : 0.5 })
   );
+
+  return [newNodes, newEdges];
+};
+
+// TODO: fix member_profile-> expand left, expand right, collapse left, collapse right
+export const removeRelatedNodesEdges = (
+  prevNodes: Node[],
+  prevEdges: Edge[],
+  table: string,
+  right: boolean,
+  level: number
+): [Node[], Edge[]] => {
+  const nodesToRemove: Record<string, boolean> = {};
+  const edgesToRemove: Record<string, boolean> = {};
+  const src = right ? "source" : "target";
+  const dst = !right ? "source" : "target";
+
+  const nodesIdMap: Record<string, Node> = {};
+  for (const n of prevNodes) {
+    if (isColumn(n)) continue;
+    nodesIdMap[n.id] = n;
+  }
+
+  // TODO: check visited == nodesToRemove
+  const queue = [table];
+  const visited: Record<string, boolean> = {};
+  while (queue.length > 0) {
+    const curr = queue.shift()!;
+    visited[curr] = true;
+    prevEdges.forEach((e) => {
+      if (e[src] !== curr) return;
+      const _t = e[dst];
+      if (visited[_t]) return;
+      const _level = nodesIdMap[_t].data.level;
+      if ((right && _level > level) || (!right && _level < level)) {
+        queue.push(_t);
+        nodesToRemove[_t] = true;
+      }
+    });
+  }
+
+  const columnNodesToRemove: Record<string, boolean> = {};
+  const columnEdgesToRemove: Record<string, boolean> = {};
+
+  prevNodes.forEach((n) => {
+    if (!nodesToRemove[n.parentNode || ""]) return;
+    columnNodesToRemove[n.id] = true;
+  });
+
+  prevEdges.forEach((e) => {
+    if (isNotColumn(e)) {
+      edgesToRemove[e.id] =
+        nodesToRemove[e.source] || nodesToRemove[e.target] || e[src] === table;
+    } else {
+      columnEdgesToRemove[e.id] =
+        columnNodesToRemove[e.source] || columnNodesToRemove[e.target];
+    }
+  });
+
+  const remove =
+    (dict: Record<string, boolean>) => (x: { id: string | number }) =>
+      !dict[x.id];
+
+  const newNodes = prevNodes
+    .filter(remove(columnNodesToRemove))
+    .filter(remove(nodesToRemove));
+  const newEdges = prevEdges
+    .filter(remove(columnEdgesToRemove))
+    .filter(remove(edgesToRemove));
+
+  const _node = newNodes.find((_n) => _n.id === table);
+  if (_node) _node.data.processed[right ? 1 : 0] = false;
 
   return [newNodes, newEdges];
 };
