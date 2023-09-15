@@ -155,8 +155,10 @@ export class LineagePanel implements WebviewViewProvider {
               preview: false,
               preserveFocus: true,
             });
+            break;
           case "request":
             this.handleRequest(message.args);
+            break;
         }
       },
       null,

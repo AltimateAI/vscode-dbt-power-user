@@ -53,15 +53,26 @@ function App() {
 
   useEffect(() => {
     // @ts-ignore
-    const render = ({ node: n }) => {
+    const render = (args: {
+      node: {
+        table: string;
+        url: string;
+        downstreamCount: number;
+        upstreamCount: number;
+      };
+    }) => {
+      if (!args) {
+        return;
+      }
+      const { node } = args;
       const _nodes: Node[] = [
         {
-          id: n.table,
+          id: node.table,
           data: {
-            table: n.table,
-            url: n.url,
+            table: node.table,
+            url: node.url,
             level: 0,
-            shouldExpand: [n.downstreamCount > 0, n.upstreamCount > 0],
+            shouldExpand: [node.downstreamCount > 0, node.upstreamCount > 0],
             processed: [false, false],
           },
           position: { x: 100, y: 100 },
