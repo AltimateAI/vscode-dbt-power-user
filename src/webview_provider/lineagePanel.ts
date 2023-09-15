@@ -42,24 +42,15 @@ export class LineagePanel implements WebviewViewProvider {
     dbtProjectContainer.onManifestChanged((event) => {
       this.onManifestCacheChanged(event);
     });
-    window.onDidChangeActiveColorTheme(
-      async (e) => {
-        if (this._panel) {
-          //   this.updateGraphStyle();
-        }
-      },
-      null,
-      this._disposables,
-    );
+
     window.onDidChangeActiveTextEditor((event: TextEditor | undefined) => {
       if (event === undefined) {
         return;
       }
-      //   this.g6Data = this.parseGraphData();
-      //   if (this._panel) {
-      //     this.transmitData(this.g6Data);
-      //     this.updateGraphStyle();
-      //   }
+      if (!this._panel) {
+        return;
+      }
+      this.renderStartingNode();
     });
   }
 
@@ -70,14 +61,17 @@ export class LineagePanel implements WebviewViewProvider {
     event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);
     });
-    (async () => {
-      if (this._panel) {
-        await this._panel.webview.postMessage({
-          command: "render",
-          args: this.parseGraphData(),
-        });
-      }
-    })();
+    this.renderStartingNode();
+  }
+
+  private renderStartingNode() {
+    if (!this._panel) {
+      return;
+    }
+    this._panel.webview.postMessage({
+      command: "render",
+      args: this.getStartingNode(),
+    });
   }
 
   resolveWebviewView(
@@ -168,13 +162,6 @@ export class LineagePanel implements WebviewViewProvider {
       null,
       this._disposables,
     );
-    // const sendLineageViewEvent = () => {
-    //   if (this._panel!.visible) {
-    //     this.telemetry.sendTelemetryEvent("LineagePanelActive");
-    //   }
-    // };
-    // sendLineageViewEvent();
-    // this._panel!.onDidChangeVisibility(sendLineageViewEvent);
   }
 
   private getGraphMetaMap(): GraphMetaMap | undefined {
@@ -197,7 +184,7 @@ export class LineagePanel implements WebviewViewProvider {
     return event.graphMetaMap;
   }
 
-  private parseGraphData() {
+  private getStartingNode() {
     const graphMetaMap = this.getGraphMetaMap();
     if (!graphMetaMap) {
       return;
@@ -252,21 +239,12 @@ function getHtml(webview: Webview, extensionUri: Uri) {
     "new_lineage_panel",
     "dist",
   ]);
-  // const theme = [
-  //   ColorThemeKind.Light,
-  //   ColorThemeKind.HighContrastLight,
-  // ].includes(window.activeColorTheme.kind)
-  //   ? "light"
-  //   : "dark";
-  return (
-    readFileSync(indexPath.fsPath)
-      .toString()
-      .replace(/\/__ROOT__/g, resourceDir.toString())
-      .replace(/__ROOT__/g, resourceDir.toString())
-      //   .replace(/__THEME__/g, theme)
-      .replace(/__NONCE__/g, getNonce())
-      .replace(/__CSPSOURCE__/g, webview.cspSource)
-  );
+  return readFileSync(indexPath.fsPath)
+    .toString()
+    .replace(/\/__ROOT__/g, resourceDir.toString())
+    .replace(/__ROOT__/g, resourceDir.toString())
+    .replace(/__NONCE__/g, getNonce())
+    .replace(/__CSPSOURCE__/g, webview.cspSource);
 }
 
 /** Used to enforce a secure CSP */
