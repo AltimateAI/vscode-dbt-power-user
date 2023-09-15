@@ -13,6 +13,8 @@ import classNames from "classnames";
 import { createNewNodesEdges, layoutElementsOnCanvas } from "./graph";
 import { LineageContext, openFile } from "./App";
 import { Tables, downstreamTables, upstreamTables } from "./service";
+import { TABLES_SIDEBAR, destructTable } from "./utils";
+import { TMoreTables } from "./MoreTables";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -53,12 +55,6 @@ const BidirectionalHandles = () => (
   </>
 );
 
-const destructTable = (id: string) => {
-  const splits = id.split(".");
-  const table = splits.pop() || "";
-  return [table, splits.join(".")];
-};
-
 export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const { shouldExpand, processed, table, level, url } = data;
   const flow = useReactFlow();
@@ -70,7 +66,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
   const selected = selectedTable === table;
   const toggleTableSelection = () =>
-    setSelectedTable((prev: string) => (prev === table ? null : table));
+    setSelectedTable((prev) => (prev === table ? "" : table));
 
   const expand = async (t: string, tables: Tables, right: boolean) => {
     if (processed[right ? 1 : 0]) return;
@@ -197,6 +193,29 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
         </div>
       )}
 
+      <BidirectionalHandles />
+    </div>
+  );
+};
+
+export const SeeMoreNode: FunctionComponent<NodeProps> = ({ data }) => {
+  const { tables, prevTable, right, level } = data as TMoreTables;
+  const { setShowSidebar, setMoreTables, setSidebarScreen } =
+    useContext(LineageContext);
+  const flow = useReactFlow();
+  return (
+    <div
+      className={classNames("d-flex", styles.see_more_node)}
+      onClick={(e) => {
+        e.stopPropagation();
+        setShowSidebar(true);
+        setSidebarScreen(TABLES_SIDEBAR);
+        setMoreTables({ tables, prevTable, right, level });
+      }}
+    >
+      <div className="fw-semibold">See more</div>
+      <div className="spacer" />
+      <div>{tables.filter((t) => !flow.getNode(t.table)).length || ""}</div>
       <BidirectionalHandles />
     </div>
   );

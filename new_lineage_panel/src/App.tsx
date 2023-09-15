@@ -1,20 +1,34 @@
-import { Dispatch, createContext, useEffect, useRef, useState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  createContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import ReactFlow, {
   Background,
   Controls,
   Node,
   NodeTypes,
   ReactFlowInstance,
+  ReactFlowProvider,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { TableNode } from "./CustomNodes";
+import { SeeMoreNode, SelfConnectingEdge, TableNode } from "./CustomNodes";
+import { TABLES_SIDEBAR } from "./utils";
+import { SidebarModal } from "./SidebarModal";
+import { MoreTables, TMoreTables } from "./MoreTables";
 
 declare const acquireVsCodeApi: () => { postMessage: (v: unknown) => void };
 
 const vscode = acquireVsCodeApi();
 
 let id = 0;
-const requestMap: Record<number, any> = {};
+const requestMap: Record<
+  number,
+  { resolve: (k: unknown) => void; reject: (reason?: string) => void }
+> = {};
 export const requestExecutor = (url: string, params: unknown) => {
   return new Promise((resolve, reject) => {
     requestMap[id] = { resolve, reject };
@@ -23,24 +37,30 @@ export const requestExecutor = (url: string, params: unknown) => {
   });
 };
 export const openFile = (url: string) => {
-  console.log("openFile -> ", url);
   vscode.postMessage({ command: "openFile", url });
 };
 
-const nodeTypes: NodeTypes = { table: TableNode };
+const nodeTypes: NodeTypes = { table: TableNode, seeMore: SeeMoreNode };
+const edgeTypes = { selfConnecting: SelfConnectingEdge };
 
 export const LineageContext = createContext<{
-  selectedTable: any;
-  setSelectedTable: Dispatch<any>;
+  showSidebar: boolean;
+  setShowSidebar: Dispatch<boolean>;
+  selectedTable: string;
+  setSelectedTable: Dispatch<SetStateAction<string>>;
+  moreTables: TMoreTables | null;
+  setMoreTables: Dispatch<TMoreTables>;
+  sidebarScreen: string;
+  setSidebarScreen: Dispatch<string>;
 }>({
-  // showSidebar: false,
-  // setShowSidebar: () => {},
-  selectedTable: {},
-  setSelectedTable: () => {},
-  // moreTables: {},
-  // setMoreTables: () => {},
-  // sidebarScreen: "",
-  // setSidebarScreen: () => {},
+  showSidebar: false,
+  setShowSidebar: () => {},
+  selectedTable: "",
+  setSelectedTable: () => "",
+  moreTables: null,
+  setMoreTables: () => {},
+  sidebarScreen: "",
+  setSidebarScreen: () => {},
   // selectedColumn: {},
   // setSelectedColumn: () => {},
   // collectColumns: {},
@@ -49,10 +69,12 @@ export const LineageContext = createContext<{
 
 function App() {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
-  const [selectedTable, setSelectedTable] = useState<any>(null);
+  const [selectedTable, setSelectedTable] = useState("");
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [moreTables, setMoreTables] = useState<TMoreTables | null>(null);
+  const [sidebarScreen, setSidebarScreen] = useState("");
 
   useEffect(() => {
-    // @ts-ignore
     const render = (args: {
       node: {
         table: string;
@@ -107,20 +129,41 @@ function App() {
   }, []);
 
   return (
-    <LineageContext.Provider value={{ selectedTable, setSelectedTable }}>
-      <div style={{ height: "100vh", width: "100vw" }}>
-        <ReactFlow
-          defaultNodes={[]}
-          defaultEdges={[]}
-          onInit={(_flow) => (flow.current = _flow)}
-          nodeTypes={nodeTypes}
-          style={{ background: "#f5f5f7" }}
-          proOptions={{ hideAttribution: true }}
+    <LineageContext.Provider
+      value={{
+        showSidebar,
+        setShowSidebar,
+        selectedTable,
+        setSelectedTable,
+        moreTables,
+        setMoreTables,
+        sidebarScreen,
+        setSidebarScreen,
+      }}
+    >
+      <ReactFlowProvider>
+        <div style={{ height: "100vh", width: "100vw" }}>
+          <ReactFlow
+            defaultNodes={[]}
+            defaultEdges={[]}
+            onInit={(_flow) => (flow.current = _flow)}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            style={{ background: "#f5f5f7" }}
+            proOptions={{ hideAttribution: true }}
+          >
+            <Background />
+            <Controls />
+          </ReactFlow>
+        </div>
+        <SidebarModal
+          isOpen={showSidebar}
+          toggleModal={() => setShowSidebar((b) => !b)}
+          width={446}
         >
-          <Background />
-          <Controls />
-        </ReactFlow>
-      </div>
+          {sidebarScreen === TABLES_SIDEBAR && <MoreTables />}
+        </SidebarModal>
+      </ReactFlowProvider>
     </LineageContext.Provider>
   );
 }

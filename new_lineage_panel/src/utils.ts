@@ -91,3 +91,9 @@ export const createTableNode = (
     height: T_NODE_H,
   };
 };
+
+export const destructTable = (id: string) => {
+  const splits = id.split(".");
+  const table = splits.pop() || "";
+  return [table, splits.join(".")];
+};

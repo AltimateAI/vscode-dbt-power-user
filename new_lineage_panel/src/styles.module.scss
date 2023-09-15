@@ -53,3 +53,12 @@ $diff: 0.25em;
 .left_handle {
   left: $diff;
 }
+
+.see_more_node {
+  width: $node-width;
+  background: #f7faff;
+  border: 1px solid #eeeff2;
+  border-radius: 0.5em;
+  padding: 0.5em;
+  cursor: default;
+}
