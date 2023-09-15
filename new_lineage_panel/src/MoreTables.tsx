@@ -49,15 +49,16 @@ function MoreTables() {
 
   const [filteredTables, setFilteredTables] = useState(tables);
   return (
-    <div className="p-2 h-100 d-flex flex-column">
+    <div className="p-2 h-100 d-flex flex-column text-black">
       <div className={styles.header}>
         <div className="mb-2 d-flex gap-sm align-items-center">
-          <div>Datastore name</div>
+          <div>Tables</div>
         </div>
       </div>
       <div className="mb-3" />
       <input
         placeholder="Search by table name"
+        className={styles.table_input}
         onChange={(e) => {
           const _search = e.target.value.toLowerCase();
           setFilteredTables(

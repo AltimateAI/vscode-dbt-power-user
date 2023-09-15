@@ -84,8 +84,32 @@ button:focus-visible {
   align-items: flex-start;
 }
 
+.align-items-center {
+  align-items: center;
+}
+
 .gap-xs {
   gap: 1em;
+}
+
+.gap-sm {
+  gap: 1.2em;
+}
+
+.p-2 {
+  padding: 0.5em;
+}
+
+.mb-3 {
+  margin-bottom: 0.75em;
+}
+
+.h-100 {
+  height: 100%;
+}
+
+.overflow-y {
+  overflow-y: auto;
 }
 
 .lines-2 {

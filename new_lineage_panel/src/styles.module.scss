@@ -62,3 +62,40 @@ $diff: 0.25em;
   padding: 0.5em;
   cursor: default;
 }
+
+.table_card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+  overflow-x: hidden;
+  border-radius: 0.6em;
+  padding: 0.8em;
+  border: 1px solid #e7e8ea;
+  background: #ffffff;
+  cursor: pointer;
+
+  &.selected {
+    border-color: #e38e00;
+  }
+
+  &:hover {
+    background-color: #f7faff;
+  }
+
+  &.disabled {
+    background-color: #e5e6e7;
+    cursor: default;
+  }
+}
+
+.table_input {
+  padding: 0.5em;
+  background-color: #ffffff;
+  color: #000000;
+  border-radius: 0.5em;
+  border: 1px solid #000000;
+  &:focus {
+    outline: 1px solid #247efe;
+  }
+}
