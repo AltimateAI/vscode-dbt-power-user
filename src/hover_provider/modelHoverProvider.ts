@@ -127,7 +127,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
       content.supportHtml = true;
       content.isTrusted = true;
       content.appendMarkdown(
-        `<span style="color:#347890;">(ref)&nbsp;</span><span>${node.alias}</span>`,
+        `<span style="color:#347890;">(ref)&nbsp;</span><span><strong>${node.alias}</strong></span>`,
       );
       if (node.description !== null) {
         content.appendMarkdown(`</br><span>${node.description}</span>`);
