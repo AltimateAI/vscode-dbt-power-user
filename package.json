@@ -38,9 +38,6 @@
   ],
   "main": "./dist/extension",
   "contributes": {
-    "capabilities": {
-      "hoverProvider": "true"
-    },
     "snippets": [
       {
         "language": "jinja-sql",
