@@ -130,7 +130,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
         `<span style="color:#347890;">(ref)&nbsp;</span><span>${node.alias}</span>`,
       );
       if (node.description !== null) {
-        content.appendMarkdown(`<span>${node.description}</span>`);
+        content.appendMarkdown(`</br><span>${node.description}</span>`);
       }
       content.appendText("\n");
       content.appendText("\n");
