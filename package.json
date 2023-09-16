@@ -17,6 +17,9 @@
   "engines": {
     "vscode": "^1.82.0"
   },
+  "capabilities": {
+    "hoverProvider": true
+  },
   "categories": [
     "Other",
     "Programming Languages",
@@ -35,6 +38,9 @@
   ],
   "main": "./dist/extension",
   "contributes": {
+    "capabilities": {
+      "hoverProvider": "true"
+    },
     "snippets": [
       {
         "language": "jinja-sql",
