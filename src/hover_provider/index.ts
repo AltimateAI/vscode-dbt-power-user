@@ -2,7 +2,7 @@ import { Disposable, languages } from "vscode";
 import { DBTPowerUserExtension } from "../dbtPowerUserExtension";
 import { provideSingleton } from "../utils";
 import { ModelHoverProvider } from "./modelHoverProvider";
-import { SourceHoverProvider } from "./sourceDefinitionProvider";
+import { SourceHoverProvider } from "./sourceHoverProvider";
 
 @provideSingleton(HoverProviders)
 export class HoverProviders implements Disposable {

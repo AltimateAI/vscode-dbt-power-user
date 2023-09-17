@@ -86,7 +86,7 @@ export class SourceHoverProvider implements HoverProvider, Disposable {
         const hover = new Hover(mdString);
         resolve(hover);
       }
-      this.telemetry.sendTelemetryEvent("provideSourceDefinition");
+      this.telemetry.sendTelemetryEvent("provideSourceHover");
     });
   }
 

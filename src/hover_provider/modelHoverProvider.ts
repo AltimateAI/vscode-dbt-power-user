@@ -73,7 +73,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
             const hover = new Hover(mdString, new Range(position, position));
             resolve(hover);
           }
-          this.telemetry.sendTelemetryEvent("provideModelDefinition", {
+          this.telemetry.sendTelemetryEvent("provideModelHover", {
             type: "single",
           });
           return;
@@ -88,7 +88,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
             const hover = new Hover(mdString, new Range(position, position));
             resolve(hover);
           }
-          this.telemetry.sendTelemetryEvent("provideModelDefinition", {
+          this.telemetry.sendTelemetryEvent("provideModelHover", {
             type: "dual",
           });
           return;
