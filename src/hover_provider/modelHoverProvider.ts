@@ -56,7 +56,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
       const project = this.dbtProjectContainer.findDBTProject(document.uri);
       if (!project) {
         console.error(
-          "Could not load definition provider, project not found in container for " +
+          "Could not load hover provider, project not found in container for " +
             document.uri.fsPath,
         );
         return;
@@ -143,7 +143,9 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
           `<br/><span style="color:#347890;">(column)&nbsp;</span><span>${column.name} &nbsp;</span>`,
         );
         if (column.data_type !== null) {
-          content.appendMarkdown(`<span>${column.data_type}&nbsp;</span>`);
+          content.appendMarkdown(
+            `<span>-&nbsp;${column.data_type.toUpperCase()}</span>`,
+          );
         }
         if (column.description !== null) {
           content.appendMarkdown(
