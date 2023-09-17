@@ -64,7 +64,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
       if (word !== undefined && hover !== "ref") {
         const dbtModel = word.match(ModelHoverProvider.GET_DBT_MODEL);
         if (dbtModel && dbtModel.length === 1) {
-          const mdString = this.getDefinitionFor(
+          const mdString = this.getHoverMarkdownFor(
             project.getProjectName(),
             dbtModel[0],
             document.uri,
@@ -79,7 +79,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
           return;
         }
         if (dbtModel && dbtModel.length === 3) {
-          const mdString = this.getDefinitionFor(
+          const mdString = this.getHoverMarkdownFor(
             dbtModel[0],
             dbtModel[2],
             document.uri,
@@ -107,7 +107,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
     });
   }
 
-  private getDefinitionFor(
+  private getHoverMarkdownFor(
     projectName: string,
     modelName: string,
     currentFilePath: Uri,
