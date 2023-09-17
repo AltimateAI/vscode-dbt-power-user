@@ -748,6 +748,7 @@ select * from renamed
     );
     const dbtProjectYamlFile = readFileSync(dbtProjectConfigLocation, "utf8");
     return parse(dbtProjectYamlFile, {
+      strict: false,
       uniqueKeys: false,
       maxAliasCount: -1,
     });
