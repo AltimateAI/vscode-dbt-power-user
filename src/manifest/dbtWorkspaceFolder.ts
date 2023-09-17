@@ -2,11 +2,14 @@ import { statSync } from "fs";
 import { inject } from "inversify";
 import * as path from "path";
 import {
+  Diagnostic,
   Disposable,
   EventEmitter,
   FileSystemWatcher,
+  languages,
   RelativePattern,
   Uri,
+  Range,
   window,
   workspace,
   WorkspaceFolder,
@@ -14,10 +17,12 @@ import {
 import { DBTProject } from "./dbtProject";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
-import { DbtPowerUserDiagnostics } from "../diagnostics";
+import { YAMLError } from "yaml";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
+  private readonly projectDiscoveryDiagnostics =
+    languages.createDiagnosticCollection("dbt");
   private dbtProjects: DBTProject[] = [];
   private disposables: Disposable[] = [];
 
@@ -50,6 +55,9 @@ export class DBTWorkspaceFolder implements Disposable {
     const projectFiles = dbtProjectFiles
       .filter((uri) => statSync(uri.fsPath).isFile())
       .filter((uri) => this.notInVenv(uri.fsPath))
+      .filter((uri) => this.notInDBtPackages(uri.fsPath, dbtProjectFiles))
+      // TODO: also filter out projects within the target folder of another project
+      //  This is somewhat difficult as we would need to parse the target-path variable of the project.
       .map((uri) => Uri.file(uri.path.split("/")!.slice(0, -1).join("/")));
     if (projectFiles.length > 20) {
       window.showWarningMessage(
@@ -98,7 +106,14 @@ export class DBTWorkspaceFolder implements Disposable {
       this.dbtProjects.sort(
         (a, b) => -a.projectRoot.fsPath.localeCompare(b.projectRoot.fsPath),
       );
+      this.projectDiscoveryDiagnostics.clear();
     } catch (error) {
+      if (error instanceof YAMLError) {
+        this.projectDiscoveryDiagnostics.set(
+          Uri.joinPath(uri, DBTProject.DBT_PROJECT_FILE),
+          [new Diagnostic(new Range(0, 0, 999, 999), error.message)],
+        );
+      }
       window.showErrorMessage(
         `Skipping project: could not parse dbt_project_config.yml at '${uri}': ${error}`,
       );
@@ -139,5 +154,17 @@ export class DBTWorkspaceFolder implements Disposable {
 
   private notInVenv(path: string): boolean {
     return !path.includes("site-packages");
+  }
+
+  private notInDBtPackages(uri: string, projectRoots: Uri[]) {
+    for (const projectRoot of projectRoots) {
+      const projectFsPath = projectRoot.fsPath;
+      for (const dbtModulesPath of DBTProject.DBT_MODULES) {
+        if (uri.startsWith(path.join(projectFsPath, dbtModulesPath))) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 }
