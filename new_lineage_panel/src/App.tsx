@@ -9,6 +9,7 @@ import {
 import ReactFlow, {
   Background,
   Controls,
+  Edge,
   Node,
   NodeTypes,
   ReactFlowInstance,
@@ -16,9 +17,11 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { SeeMoreNode, SelfConnectingEdge, TableNode } from "./CustomNodes";
-import { TABLES_SIDEBAR } from "./utils";
+import { TABLES_SIDEBAR, destructTable } from "./utils";
 import { SidebarModal } from "./SidebarModal";
 import { MoreTables, TMoreTables } from "./MoreTables";
+import { Tables, downstreamTables, upstreamTables } from "./service";
+import { createNewNodesEdges, layoutElementsOnCanvas } from "./graph";
 
 declare const acquireVsCodeApi: () => { postMessage: (v: unknown) => void };
 
@@ -75,7 +78,7 @@ function App() {
   const [sidebarScreen, setSidebarScreen] = useState("");
 
   useEffect(() => {
-    const render = (args: {
+    const render = async (args: {
       node: {
         table: string;
         url: string;
@@ -94,19 +97,49 @@ function App() {
       if (_flow.getNode(node.table)) {
         return;
       }
-      const _node: Node = {
-        id: node.table,
-        data: {
-          table: node.table,
-          url: node.url,
-          level: 0,
-          shouldExpand: [node.downstreamCount > 0, node.upstreamCount > 0],
-          processed: [false, false],
+      let _nodes: Node[] = [
+        {
+          id: node.table,
+          data: {
+            table: node.table,
+            url: node.url,
+            level: 0,
+            shouldExpand: [node.downstreamCount > 0, node.upstreamCount > 0],
+            processed: [node.downstreamCount > 0, node.upstreamCount > 0],
+          },
+          position: { x: 100, y: 100 },
+          type: "table",
         },
-        position: { x: 100, y: 100 },
-        type: "table",
+      ];
+      let _edges: Edge[] = [];
+      const expand = (t: string, tables: Tables, right: boolean) => {
+        tables.sort((a, b) => {
+          const [tableA] = destructTable(a.table);
+          const [tableB] = destructTable(b.table);
+          return tableA.localeCompare(tableB);
+        });
+        const [nodes, edges] = createNewNodesEdges(
+          _nodes,
+          _edges,
+          tables,
+          t,
+          right,
+          0
+        );
+        _nodes = nodes;
+        _edges = edges;
       };
-      _flow.setNodes([_node]);
+      if (node.upstreamCount > 0) {
+        const { tables } = await upstreamTables(node.table);
+        expand(node.table, tables, true);
+      }
+      if (node.downstreamCount > 0) {
+        const { tables } = await downstreamTables(node.table);
+        expand(node.table, tables, false);
+      }
+      layoutElementsOnCanvas(_nodes, _edges);
+      _flow.setNodes(_nodes);
+      _flow.setEdges(_edges);
     };
     const response = (args: {
       id: number;
