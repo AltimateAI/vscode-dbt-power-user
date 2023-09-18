@@ -86,22 +86,27 @@ function App() {
       if (!args) {
         return;
       }
+      const _flow = flow.current;
+      if (!_flow) {
+        return;
+      }
       const { node } = args;
-      const _nodes: Node[] = [
-        {
-          id: node.table,
-          data: {
-            table: node.table,
-            url: node.url,
-            level: 0,
-            shouldExpand: [node.downstreamCount > 0, node.upstreamCount > 0],
-            processed: [false, false],
-          },
-          position: { x: 100, y: 100 },
-          type: "table",
+      if (_flow.getNode(node.table)) {
+        return;
+      }
+      const _node: Node = {
+        id: node.table,
+        data: {
+          table: node.table,
+          url: node.url,
+          level: 0,
+          shouldExpand: [node.downstreamCount > 0, node.upstreamCount > 0],
+          processed: [false, false],
         },
-      ];
-      flow.current?.setNodes(_nodes);
+        position: { x: 100, y: 100 },
+        type: "table",
+      };
+      _flow.setNodes([_node]);
     };
     const response = (args: {
       id: number;

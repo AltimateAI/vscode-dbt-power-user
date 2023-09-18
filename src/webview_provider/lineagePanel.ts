@@ -50,8 +50,7 @@ export class LineagePanel implements WebviewViewProvider {
       if (!this._panel) {
         return;
       }
-      // TODO: fix the file change experince
-      // this.renderStartingNode();
+      this.renderStartingNode();
     });
   }
 
