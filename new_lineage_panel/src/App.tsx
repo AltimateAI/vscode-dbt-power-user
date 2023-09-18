@@ -17,10 +17,10 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { SeeMoreNode, SelfConnectingEdge, TableNode } from "./CustomNodes";
-import { TABLES_SIDEBAR, destructTable } from "./utils";
+import { TABLES_SIDEBAR } from "./utils";
 import { SidebarModal } from "./SidebarModal";
 import { MoreTables, TMoreTables } from "./MoreTables";
-import { Tables, downstreamTables, upstreamTables } from "./service";
+import { downstreamTables, upstreamTables } from "./service";
 import { createNewNodesEdges, layoutElementsOnCanvas } from "./graph";
 
 declare const acquireVsCodeApi: () => { postMessage: (v: unknown) => void };

@@ -68,13 +68,13 @@ const nodeConfigurations: Record<string, any> = {
   },
 };
 
-@provideSingleton(ModelGraphViewPanel)
 export class ModelGraphViewPanel implements WebviewViewProvider {
   public static readonly viewType = "dbtPowerUser.ModelViewGraph";
   private _panel: WebviewView | undefined = undefined;
-  private g6Data?: G6DataModel;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private _disposables: Disposable[] = [];
+
+  private g6Data?: G6DataModel;
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,

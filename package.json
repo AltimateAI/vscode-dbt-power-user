@@ -181,11 +181,6 @@
           "id": "docs_edit_view",
           "title": "Documentation Editor",
           "icon": "./media/images/dbt_icon.svg"
-        },
-        {
-          "id": "lineage_view",
-          "title": "Lineage (Beta)",
-          "icon": "./media/images/dbt_icon.svg"
         }
       ]
     },
@@ -216,13 +211,6 @@
         }
       ],
       "dbt_lineage_view": [
-        {
-          "id": "dbtPowerUser.ModelViewGraph",
-          "name": "",
-          "type": "webview"
-        }
-      ],
-      "lineage_view": [
         {
           "id": "dbtPowerUser.LineageView",
           "name": "",

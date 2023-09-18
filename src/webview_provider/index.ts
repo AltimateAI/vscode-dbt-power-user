@@ -1,7 +1,6 @@
 import { Disposable, window } from "vscode";
 import { provideSingleton } from "../utils";
 import { QueryResultPanel } from "./queryResultPanel";
-import { ModelGraphViewPanel } from "./modelGraphViewPanel";
 import { DocsEditViewPanel } from "./docsEditPanel";
 import { LineagePanel } from "./lineagePanel";
 
@@ -11,7 +10,6 @@ export class WebviewViewProviders implements Disposable {
 
   constructor(
     private queryResultPanel: QueryResultPanel,
-    private graphViewPanel: ModelGraphViewPanel,
     private docsEditPanel: DocsEditViewPanel,
     private lineagePanel: LineagePanel,
   ) {
@@ -19,11 +17,6 @@ export class WebviewViewProviders implements Disposable {
       window.registerWebviewViewProvider(
         QueryResultPanel.viewType,
         this.queryResultPanel,
-        { webviewOptions: { retainContextWhenHidden: true } },
-      ),
-      window.registerWebviewViewProvider(
-        ModelGraphViewPanel.viewType,
-        this.graphViewPanel,
         { webviewOptions: { retainContextWhenHidden: true } },
       ),
       window.registerWebviewViewProvider(

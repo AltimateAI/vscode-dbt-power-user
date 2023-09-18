@@ -2,10 +2,8 @@ import { readFileSync } from "fs";
 import * as path from "path";
 import {
   CancellationToken,
-  ColorThemeKind,
   commands,
   Disposable,
-  ProgressLocation,
   TextEditor,
   Uri,
   Webview,
@@ -14,7 +12,6 @@ import {
   WebviewViewProvider,
   WebviewViewResolveContext,
   window,
-  workspace,
 } from "vscode";
 import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
@@ -24,6 +21,7 @@ import {
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import { GraphMetaMap } from "../domain";
+import { ModelGraphViewPanel } from "./modelGraphViewPanel";
 
 type Table = {
   table: string;
@@ -36,6 +34,32 @@ type Table = {
 export class LineagePanel implements WebviewViewProvider {
   public static readonly viewType = "dbtPowerUser.LineageView";
 
+  private _lineagePanel: WebviewViewProvider | undefined;
+
+  public constructor(
+    dbtProjectContainer: DBTProjectContainer,
+    telemetry: TelemetryService,
+  ) {
+    if (true) {
+      this._lineagePanel = new NewLineagePanel(dbtProjectContainer, telemetry);
+    } else {
+      this._lineagePanel = new ModelGraphViewPanel(
+        dbtProjectContainer,
+        telemetry,
+      );
+    }
+  }
+
+  resolveWebviewView(
+    panel: WebviewView,
+    context: WebviewViewResolveContext<unknown>,
+    _token: CancellationToken,
+  ): void | Thenable<void> {
+    this._lineagePanel?.resolveWebviewView(panel, context, _token);
+  }
+}
+
+class NewLineagePanel implements WebviewViewProvider {
   private _disposables: Disposable[] = [];
   private _panel: WebviewView | undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
@@ -157,7 +181,6 @@ export class LineagePanel implements WebviewViewProvider {
   private setupWebviewHooks(context: WebviewViewResolveContext) {
     this._panel!.webview.onDidReceiveMessage(
       async (message) => {
-        console.log("onDidReceiveMessage -> ", message);
         switch (message.command) {
           case "openFile":
             const { url } = message;
