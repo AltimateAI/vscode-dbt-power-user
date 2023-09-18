@@ -94,7 +94,38 @@ function App() {
         return;
       }
       const { node } = args;
-      if (_flow.getNode(node.table)) {
+      const existingNode = _flow.getNode(node.table);
+      if (existingNode) {
+        const { level, processed } = existingNode.data as {
+          level: number;
+          processed: [boolean, boolean];
+        };
+        let _nodes = _flow.getNodes();
+        let _edges = _flow.getEdges();
+        if (level > 0 && !processed[1]) {
+          const { tables } = await upstreamTables(node.table);
+          [_nodes, _edges] = createNewNodesEdges(
+            _nodes,
+            _edges,
+            tables,
+            node.table,
+            true,
+            level
+          );
+        } else if (level < 0 && !processed[0]) {
+          const { tables } = await downstreamTables(node.table);
+          [_nodes, _edges] = createNewNodesEdges(
+            _nodes,
+            _edges,
+            tables,
+            node.table,
+            false,
+            level
+          );
+        }
+        layoutElementsOnCanvas(_nodes, _edges);
+        _flow.setNodes(_nodes);
+        _flow.setEdges(_edges);
         return;
       }
       let _nodes: Node[] = [
@@ -112,30 +143,27 @@ function App() {
         },
       ];
       let _edges: Edge[] = [];
-      const expand = (t: string, tables: Tables, right: boolean) => {
-        tables.sort((a, b) => {
-          const [tableA] = destructTable(a.table);
-          const [tableB] = destructTable(b.table);
-          return tableA.localeCompare(tableB);
-        });
-        const [nodes, edges] = createNewNodesEdges(
+      if (node.upstreamCount > 0) {
+        const { tables } = await upstreamTables(node.table);
+        [_nodes, _edges] = createNewNodesEdges(
           _nodes,
           _edges,
           tables,
-          t,
-          right,
+          node.table,
+          true,
           0
         );
-        _nodes = nodes;
-        _edges = edges;
-      };
-      if (node.upstreamCount > 0) {
-        const { tables } = await upstreamTables(node.table);
-        expand(node.table, tables, true);
       }
       if (node.downstreamCount > 0) {
         const { tables } = await downstreamTables(node.table);
-        expand(node.table, tables, false);
+        [_nodes, _edges] = createNewNodesEdges(
+          _nodes,
+          _edges,
+          tables,
+          node.table,
+          false,
+          0
+        );
       }
       layoutElementsOnCanvas(_nodes, _edges);
       _flow.setNodes(_nodes);

@@ -86,11 +86,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
   const expand = async (t: string, tables: Tables, right: boolean) => {
     if (processed[right ? 1 : 0]) return;
-    tables.sort((a, b) => {
-      const [tableA] = destructTable(a.table);
-      const [tableB] = destructTable(b.table);
-      return tableA.localeCompare(tableB);
-    });
     const [nodes, edges] = createNewNodesEdges(
       flow.getNodes(),
       flow.getEdges(),

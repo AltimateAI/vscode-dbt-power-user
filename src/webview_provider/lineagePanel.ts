@@ -25,7 +25,12 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { GraphMetaMap } from "../domain";
 
-type Table = { table: string; url: string; level: number; count: number };
+type Table = {
+  table: string;
+  url: string;
+  count: number;
+  label: string;
+};
 
 @provideSingleton(LineagePanel)
 export class LineagePanel implements WebviewViewProvider {
@@ -126,11 +131,19 @@ export class LineagePanel implements WebviewViewProvider {
         tables.set(key, { ...value, table: key });
       }
     };
-    node.nodes.forEach((child: { key: "string"; url: "string" }) => {
-      const count = dependencyNodes.get(child.key)?.nodes.length || 0;
-      addToTables(child.key, { url: child.url, level: 1, count });
-    });
-    return Array.from(tables.values());
+    node.nodes.forEach(
+      (child: { key: "string"; url: "string"; label: "string" }) => {
+        const count = dependencyNodes.get(child.key)?.nodes.length || 0;
+        addToTables(child.key, {
+          url: child.url,
+          count,
+          label: child.label,
+        });
+      },
+    );
+    return Array.from(tables.values()).sort((a, b) =>
+      a.label.localeCompare(b.label),
+    );
   }
 
   private getUpstreamTables({ table }: { table: string }) {
