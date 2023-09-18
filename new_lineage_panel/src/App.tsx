@@ -195,42 +195,48 @@ function App() {
   }, []);
 
   return (
-    <LineageContext.Provider
-      value={{
-        showSidebar,
-        setShowSidebar,
-        selectedTable,
-        setSelectedTable,
-        moreTables,
-        setMoreTables,
-        sidebarScreen,
-        setSidebarScreen,
-      }}
-    >
-      <ReactFlowProvider>
-        <div style={{ height: "100vh", width: "100vw" }}>
-          <ReactFlow
-            defaultNodes={[]}
-            defaultEdges={[]}
-            onInit={(_flow) => (flow.current = _flow)}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            style={{ background: "#f5f5f7" }}
-            proOptions={{ hideAttribution: true }}
+    <div className="position-relative">
+      <div className="panel-tabs-container">
+        <div className="panel-tab">Legacy Panel</div>
+        <div className="panel-tab-selected">New Panel(Beta)</div>
+      </div>
+      <LineageContext.Provider
+        value={{
+          showSidebar,
+          setShowSidebar,
+          selectedTable,
+          setSelectedTable,
+          moreTables,
+          setMoreTables,
+          sidebarScreen,
+          setSidebarScreen,
+        }}
+      >
+        <ReactFlowProvider>
+          <div style={{ height: "100vh", width: "100vw" }}>
+            <ReactFlow
+              defaultNodes={[]}
+              defaultEdges={[]}
+              onInit={(_flow) => (flow.current = _flow)}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              style={{ background: "#f5f5f7" }}
+              proOptions={{ hideAttribution: true }}
+            >
+              <Background />
+              <Controls />
+            </ReactFlow>
+          </div>
+          <SidebarModal
+            isOpen={showSidebar}
+            toggleModal={() => setShowSidebar((b) => !b)}
+            width={446}
           >
-            <Background />
-            <Controls />
-          </ReactFlow>
-        </div>
-        <SidebarModal
-          isOpen={showSidebar}
-          toggleModal={() => setShowSidebar((b) => !b)}
-          width={446}
-        >
-          {sidebarScreen === TABLES_SIDEBAR && <MoreTables />}
-        </SidebarModal>
-      </ReactFlowProvider>
-    </LineageContext.Provider>
+            {sidebarScreen === TABLES_SIDEBAR && <MoreTables />}
+          </SidebarModal>
+        </ReactFlowProvider>
+      </LineageContext.Provider>
+    </div>
   );
 }
 

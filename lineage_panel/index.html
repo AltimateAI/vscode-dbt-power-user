@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <!-- These are injected at HTML render time
     __ROOT__            [path to resource directory]
@@ -17,6 +17,10 @@
   </head>
 
   <body>
+    <div class="panel-tabs-container">
+      <div class="panel-tab-selected">Legacy Panel</div>
+      <div class="panel-tab">New Panel(Beta)</div>
+    </div>
     <div id="container"></div>
     <script src="__ROOT__/assets/g6.min.js"></script>
     <script nonce="__NONCE__" type="module" src="__ROOT__/main.js"></script>
