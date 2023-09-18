@@ -12,6 +12,7 @@ import {
   WebviewViewProvider,
   WebviewViewResolveContext,
   window,
+  workspace,
 } from "vscode";
 import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
@@ -40,7 +41,7 @@ export class LineagePanel implements WebviewViewProvider {
     dbtProjectContainer: DBTProjectContainer,
     telemetry: TelemetryService,
   ) {
-    if (true) {
+    if (workspace.getConfiguration("dbt").get<boolean>("newLineagePanel")) {
       this._lineagePanel = new NewLineagePanel(dbtProjectContainer, telemetry);
     } else {
       this._lineagePanel = new ModelGraphViewPanel(
