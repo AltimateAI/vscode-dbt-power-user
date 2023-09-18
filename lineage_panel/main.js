@@ -116,3 +116,7 @@ window.addEventListener("message", (event) => {
     updateStyles(event.data.theme);
   }
 });
+
+document.getElementById("new-panel-button")?.addEventListener("click", () => {
+  vscode.postMessage({ command: "setNewLineageView" });
+});

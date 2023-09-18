@@ -197,7 +197,14 @@ function App() {
   return (
     <div className="position-relative">
       <div className="panel-tabs-container">
-        <div className="panel-tab">Legacy Panel</div>
+        <div
+          className="panel-tab"
+          onClick={() => {
+            vscode.postMessage({ command: "setLeagacyLineageView" });
+          }}
+        >
+          Legacy Panel
+        </div>
         <div className="panel-tab-selected">New Panel(Beta)</div>
       </div>
       <LineageContext.Provider

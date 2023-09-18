@@ -79,6 +79,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
+    private reset: (newLineagePanel: boolean) => void,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
@@ -167,6 +168,10 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
               preview: false,
               preserveFocus: true,
             });
+            break;
+          case "setNewLineageView":
+            this.reset(true);
+            break;
         }
       },
       null,

@@ -36,27 +36,48 @@ export class LineagePanel implements WebviewViewProvider {
   public static readonly viewType = "dbtPowerUser.LineageView";
 
   private _lineagePanel: WebviewViewProvider | undefined;
+  private panel: WebviewView | undefined;
+  private context: WebviewViewResolveContext<unknown> | undefined;
+  private token: CancellationToken | undefined;
 
   public constructor(
-    dbtProjectContainer: DBTProjectContainer,
-    telemetry: TelemetryService,
-  ) {
-    if (workspace.getConfiguration("dbt").get<boolean>("newLineagePanel")) {
-      this._lineagePanel = new NewLineagePanel(dbtProjectContainer, telemetry);
+    private dbtProjectContainer: DBTProjectContainer,
+    private telemetry: TelemetryService,
+  ) {}
+
+  private init = async (newLineagePanel: boolean) => {
+    if (newLineagePanel) {
+      this._lineagePanel = new NewLineagePanel(
+        this.dbtProjectContainer,
+        this.telemetry,
+        this.init,
+      );
     } else {
       this._lineagePanel = new ModelGraphViewPanel(
-        dbtProjectContainer,
-        telemetry,
+        this.dbtProjectContainer,
+        this.telemetry,
+        this.init,
       );
     }
-  }
+
+    await this._lineagePanel?.resolveWebviewView(
+      this.panel!,
+      this.context!,
+      this.token!,
+    );
+  };
 
   resolveWebviewView(
     panel: WebviewView,
     context: WebviewViewResolveContext<unknown>,
-    _token: CancellationToken,
+    token: CancellationToken,
   ): void | Thenable<void> {
-    this._lineagePanel?.resolveWebviewView(panel, context, _token);
+    this.panel = panel;
+    this.context = context;
+    this.token = token;
+    this.init(
+      workspace.getConfiguration("dbt").get<boolean>("newLineagePanel", false),
+    );
   }
 }
 
@@ -68,6 +89,7 @@ class NewLineagePanel implements WebviewViewProvider {
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
+    private reset: (newLineagePanel: boolean) => void,
   ) {
     dbtProjectContainer.onManifestChanged((event) => {
       this.onManifestCacheChanged(event);
@@ -195,6 +217,9 @@ class NewLineagePanel implements WebviewViewProvider {
             break;
           case "request":
             this.handleRequest(message.args);
+            break;
+          case "setLeagacyLineageView":
+            this.reset(false);
             break;
         }
       },
