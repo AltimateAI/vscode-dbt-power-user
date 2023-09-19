@@ -11,7 +11,6 @@ import { TreeviewProviders } from "./treeview_provider";
 import { provideSingleton } from "./utils";
 import { WebviewViewProviders } from "./webview_provider";
 import { TelemetryService } from "./telemetry";
-import { DbtPowerUserDiagnostics } from "./diagnostics";
 
 @provideSingleton(DBTPowerUserExtension)
 export class DBTPowerUserExtension implements Disposable {
@@ -35,7 +34,6 @@ export class DBTPowerUserExtension implements Disposable {
     private documentFormattingEditProviders: DocumentFormattingEditProviders,
     private statusBars: StatusBars,
     private telemetry: TelemetryService,
-    private diagnostics: DbtPowerUserDiagnostics,
   ) {
     this.disposables.push(
       this.dbtProjectContainer,
@@ -49,7 +47,6 @@ export class DBTPowerUserExtension implements Disposable {
       this.documentFormattingEditProviders,
       this.statusBars,
       this.telemetry,
-      this.diagnostics,
     );
   }
 

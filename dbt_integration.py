@@ -497,7 +497,8 @@ class DbtProject:
 
     def get_columns_in_relation(self, relation: "BaseRelation") -> List[str]:
         """Wrapper for `adapter.get_columns_in_relation`"""
-        return self.adapter.get_columns_in_relation(relation)
+        with self.adapter.connection_named("master"):
+            return self.adapter.get_columns_in_relation(relation)
 
     @lru_cache(maxsize=5)
     def get_columns(self, node: "ManifestNode") -> List["ColumnInfo"]:
