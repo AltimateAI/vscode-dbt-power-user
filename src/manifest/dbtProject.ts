@@ -348,7 +348,8 @@ export class DBTProject implements Disposable {
           [
             new Diagnostic(
               new Range(0, 0, 999, 999),
-              "dbt compilation failed: " + exc.exception.message,
+              "There is a problem in your dbt project. Compilation failed: " +
+                exc.exception.message,
             ),
           ],
         );
