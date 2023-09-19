@@ -86,6 +86,7 @@ function App() {
         upstreamCount: number;
       };
     }) => {
+      console.log("inside new host render -> ", args);
       if (!args) {
         return;
       }

@@ -31,19 +31,31 @@ type Table = {
   label: string;
 };
 
+export interface WebviewViewWithManifestChangeHandler
+  extends WebviewViewProvider {
+  onManifestCacheChanged(event: ManifestCacheChangedEvent): void;
+}
+
 @provideSingleton(LineagePanel)
 export class LineagePanel implements WebviewViewProvider {
   public static readonly viewType = "dbtPowerUser.LineageView";
 
-  private _lineagePanel: WebviewViewProvider | undefined;
+  private _lineagePanel: WebviewViewWithManifestChangeHandler | undefined;
   private panel: WebviewView | undefined;
   private context: WebviewViewResolveContext<unknown> | undefined;
   private token: CancellationToken | undefined;
 
+  private manifestEvent: ManifestCacheChangedEvent | undefined;
+
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
-  ) {}
+  ) {
+    dbtProjectContainer.onManifestChanged((event) => {
+      this.manifestEvent = event;
+      this._lineagePanel?.onManifestCacheChanged(this.manifestEvent!);
+    });
+  }
 
   private init = async (newLineagePanel: boolean) => {
     if (newLineagePanel) {
@@ -59,12 +71,15 @@ export class LineagePanel implements WebviewViewProvider {
         this.init,
       );
     }
-
     await this._lineagePanel?.resolveWebviewView(
       this.panel!,
       this.context!,
       this.token!,
     );
+    console.log("iniit -> ", this.manifestEvent);
+    if (this.manifestEvent) {
+      this._lineagePanel.onManifestCacheChanged(this.manifestEvent!);
+    }
   };
 
   resolveWebviewView(
@@ -81,7 +96,7 @@ export class LineagePanel implements WebviewViewProvider {
   }
 }
 
-class NewLineagePanel implements WebviewViewProvider {
+class NewLineagePanel implements WebviewViewWithManifestChangeHandler {
   private _disposables: Disposable[] = [];
   private _panel: WebviewView | undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
@@ -91,9 +106,7 @@ class NewLineagePanel implements WebviewViewProvider {
     private telemetry: TelemetryService,
     private reset: (newLineagePanel: boolean) => void,
   ) {
-    dbtProjectContainer.onManifestChanged((event) => {
-      this.onManifestCacheChanged(event);
-    });
+    console.log("constructor");
 
     window.onDidChangeActiveTextEditor((event: TextEditor | undefined) => {
       if (event === undefined) {
@@ -106,7 +119,8 @@ class NewLineagePanel implements WebviewViewProvider {
     });
   }
 
-  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+    console.log("onManifestCacheChanged -> ");
     event.added?.forEach((added) => {
       this.eventMap.set(added.projectRoot.fsPath, added);
     });
@@ -117,6 +131,7 @@ class NewLineagePanel implements WebviewViewProvider {
   }
 
   private renderStartingNode() {
+    console.log("renderStartingNode -> ", this._panel);
     if (!this._panel) {
       return;
     }

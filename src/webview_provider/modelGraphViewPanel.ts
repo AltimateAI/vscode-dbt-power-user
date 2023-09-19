@@ -19,8 +19,8 @@ import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
-import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
+import { WebviewViewWithManifestChangeHandler } from "./lineagePanel";
 
 interface G6DataModel {
   nodes: {
@@ -68,7 +68,9 @@ const nodeConfigurations: Record<string, any> = {
   },
 };
 
-export class ModelGraphViewPanel implements WebviewViewProvider {
+export class ModelGraphViewPanel
+  implements WebviewViewWithManifestChangeHandler
+{
   public static readonly viewType = "dbtPowerUser.ModelViewGraph";
   private _panel: WebviewView | undefined = undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
@@ -81,9 +83,6 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     private telemetry: TelemetryService,
     private reset: (newLineagePanel: boolean) => void,
   ) {
-    dbtProjectContainer.onManifestChanged((event) =>
-      this.onManifestCacheChanged(event),
-    );
     window.onDidChangeActiveColorTheme(
       async (e) => {
         if (this._panel) {
@@ -186,7 +185,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     this._panel!.onDidChangeVisibility(sendLineageViewEvent);
   }
 
-  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
       this.eventMap.set(added.projectRoot.fsPath, added);
     });
