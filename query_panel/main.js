@@ -34,6 +34,58 @@ const app = createApp({
     };
   },
   methods: {
+    // Converts the provided data to CSV format.
+    dataToCsv(data) {
+      try {
+        const replacer = (key, value) => (value === null ? "" : value);
+        const header = Object.keys(data[0]);
+        const csv = [
+          header.join(","),
+          ...data.map((row) =>
+            header
+              .map((fieldName) => {
+                let fieldData = row[fieldName];
+                if (fieldData && typeof fieldData === "string") {
+                  fieldData = fieldData.replace(/"/g, '""'); // Escape double quotes
+                  return `"${fieldData}"`; // Wrap in double quotes
+                }
+                return JSON.stringify(fieldData, replacer);
+              })
+              .join(","),
+          ),
+        ].join("\r\n");
+        return csv;
+      } catch (error) {
+        console.error("Error converting data to CSV:", error);
+        return ""; // Return an empty string if there's an error
+      }
+    },
+    // Copies the table's data to the clipboard in CSV format.
+    async copyResultsToClipboard() {
+      try {
+        if (!this.table) {
+          throw new Error("Table is not initialized.");
+        }
+        const data = this.table.getData();
+        if (!data || data.length === 0) {
+          throw new Error("No data available for copying.");
+        }
+        const csv = this.dataToCsv(data);
+        this.copyTextToClipboard(csv);
+      } catch (error) {
+        console.error("Error copying results to clipboard:", error);
+      }
+    },
+    copyTextToClipboard(text) {
+      const el = document.createElement("textarea");
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      alert("Data copied to clipboard!");
+    },
+
     updateTable(data) {
       this.count = data.rows.length;
       this.table = new Tabulator("#query-results", {
