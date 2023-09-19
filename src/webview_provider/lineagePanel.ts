@@ -243,7 +243,7 @@ class NewLineagePanel implements LineagePanelView {
       },
     );
     return Array.from(tables.values()).sort((a, b) =>
-      a.label.localeCompare(b.label),
+      a.label.localeCompare(b.label)
     );
   }
 
@@ -261,8 +261,9 @@ class NewLineagePanel implements LineagePanelView {
     }
 
     const currentFilePath = window.activeTextEditor.document.uri;
-    const projectRootpath =
-      this.dbtProjectContainer.getProjectRootpath(currentFilePath);
+    const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
+      currentFilePath,
+    );
     if (projectRootpath === undefined) {
       return;
     }
@@ -307,7 +308,7 @@ class NewLineagePanel implements LineagePanelView {
     this._panel!.title = "Lineage";
     this._panel!.description =
       "Show table level and column level lineage SQL queries";
-    this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
+    this._panel!.webview.options = <WebviewOptions> { enableScripts: true };
   }
 
   private renderWebviewView(context: WebviewViewResolveContext) {

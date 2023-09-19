@@ -17,10 +17,5 @@
     // "noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */
     // "noUnusedParameters": true,  /* Report errors on unused parameters. */
   },
-  "exclude": [
-    "node_modules",
-    ".vscode-test",
-    "new_lineage_panel",
-    "new_lineage_panel2"
-  ]
+  "exclude": ["node_modules", ".vscode-test", "new_lineage_panel"]
 }
