@@ -81,7 +81,6 @@ export class ModelGraphViewPanel
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
-    private reset: (newLineagePanel: boolean) => void,
   ) {
     window.onDidChangeActiveColorTheme(
       async (e) => {
@@ -136,7 +135,6 @@ export class ModelGraphViewPanel
     this._panel = panel;
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
-    this.setupWebviewHooks(context);
     this.g6Data = this.parseGraphData();
     this.transmitData(this.g6Data);
     this.updateGraphStyle();
@@ -152,37 +150,6 @@ export class ModelGraphViewPanel
     this._panel!.title = "";
     this._panel!.description = "View dbt graph";
     this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
-  }
-
-  private setupWebviewHooks(context: WebviewViewResolveContext) {
-    this._panel!.webview.onDidReceiveMessage(
-      async (message) => {
-        switch (message.command) {
-          case "openFile":
-            const { url } = message;
-            if (!url) {
-              return;
-            }
-            await commands.executeCommand("vscode.open", Uri.file(url), {
-              preview: false,
-              preserveFocus: true,
-            });
-            break;
-          case "setNewLineageView":
-            this.reset(true);
-            break;
-        }
-      },
-      null,
-      this._disposables,
-    );
-    const sendLineageViewEvent = () => {
-      if (this._panel!.visible) {
-        this.telemetry.sendTelemetryEvent("LineagePanelActive");
-      }
-    };
-    sendLineageViewEvent();
-    this._panel!.onDidChangeVisibility(sendLineageViewEvent);
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {

@@ -62,13 +62,11 @@ export class LineagePanel implements WebviewViewProvider {
       this._lineagePanel = new NewLineagePanel(
         this.dbtProjectContainer,
         this.telemetry,
-        this.init,
       );
     } else {
       this._lineagePanel = new ModelGraphViewPanel(
         this.dbtProjectContainer,
         this.telemetry,
-        this.init,
       );
     }
     await this._lineagePanel?.resolveWebviewView(
@@ -93,7 +91,48 @@ export class LineagePanel implements WebviewViewProvider {
     this.init(
       workspace.getConfiguration("dbt").get<boolean>("newLineagePanel", false),
     );
+    panel.webview.onDidReceiveMessage(this.handleWebviewMessage, null, []);
+    const sendLineageViewEvent = () => {
+      if (this.panel!.visible) {
+        this.telemetry.sendTelemetryEvent("LineagePanelActive");
+      }
+    };
+    sendLineageViewEvent();
+    panel.onDidChangeVisibility(sendLineageViewEvent);
   }
+
+  private handleWebviewMessage = async (message: {
+    command: string;
+    args: any;
+  }) => {
+    const { command, args } = message;
+    if (command === "openFile") {
+      const { url } = args;
+      if (!url) {
+        return;
+      }
+      await commands.executeCommand("vscode.open", Uri.file(url), {
+        preview: false,
+        preserveFocus: true,
+      });
+      return;
+    }
+
+    if (command === "setNewLineageView") {
+      this.init(true);
+      return;
+    }
+
+    if (command === "setLeagacyLineageView") {
+      this.init(false);
+      return;
+    }
+
+    if (command === "request") {
+      (this._lineagePanel as NewLineagePanel).handleRequest(args);
+      return;
+    }
+  };
 }
 
 class NewLineagePanel implements WebviewViewWithManifestChangeHandler {
@@ -104,7 +143,6 @@ class NewLineagePanel implements WebviewViewWithManifestChangeHandler {
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
-    private reset: (newLineagePanel: boolean) => void,
   ) {
     console.log("constructor");
 
@@ -149,10 +187,9 @@ class NewLineagePanel implements WebviewViewWithManifestChangeHandler {
     this._panel = panel;
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
-    this.setupWebviewHooks(context);
   }
 
-  private handleRequest(args: { url: string; id: number; params: unknown }) {
+  handleRequest(args: { url: string; id: number; params: unknown }) {
     let body;
     if (args.url === "upstreamTables") {
       body = {
@@ -214,33 +251,6 @@ class NewLineagePanel implements WebviewViewWithManifestChangeHandler {
 
   private getDownstreamTables({ table }: { table: string }) {
     return this.getConnectedTables("parents", table);
-  }
-
-  private setupWebviewHooks(context: WebviewViewResolveContext) {
-    this._panel!.webview.onDidReceiveMessage(
-      async (message) => {
-        switch (message.command) {
-          case "openFile":
-            const { url } = message;
-            if (!url) {
-              return;
-            }
-            await commands.executeCommand("vscode.open", Uri.file(url), {
-              preview: false,
-              preserveFocus: true,
-            });
-            break;
-          case "request":
-            this.handleRequest(message.args);
-            break;
-          case "setLeagacyLineageView":
-            this.reset(false);
-            break;
-        }
-      },
-      null,
-      this._disposables,
-    );
   }
 
   private getGraphMetaMap(): GraphMetaMap | undefined {
