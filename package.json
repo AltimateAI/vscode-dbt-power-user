@@ -60,6 +60,10 @@
           "dbt.altimateAiKey": {
             "type": "string",
             "description": "Sign up for an altimate account to unlock ai features. Add the Altimate AI Key here to enable the features."
+          },
+          "dbt.newLineagePanel": {
+            "type": "boolean",
+            "description": "Enable the new lineage panel in dbt."
           }
         }
       },

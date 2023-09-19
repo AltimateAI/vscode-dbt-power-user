@@ -121,11 +121,19 @@ export class LineagePanel implements WebviewViewProvider {
     }
 
     if (command === "setNewLineageView") {
+      await workspace.getConfiguration("dbt").update(
+        "newLineagePanel",
+        true,
+      );
       this.init(true);
       return;
     }
 
     if (command === "setLegacyLineageView") {
+      await workspace.getConfiguration("dbt").update(
+        "newLineagePanel",
+        false,
+      );
       this.init(false);
       return;
     }
