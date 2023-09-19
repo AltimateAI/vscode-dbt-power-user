@@ -108,6 +108,7 @@ const updateStyles = (theme) => {
 };
 
 window.addEventListener("message", (event) => {
+  console.log("graph:message  -> ", event?.data);
   const { command } = event?.data;
   if (command === "renderGraph") {
     graph.data(event.data.graph);
@@ -122,5 +123,6 @@ document.getElementById("new-panel-button")?.addEventListener("click", () => {
 });
 
 window.onload = () => {
+  console.log("graph:onload  -> ");
   vscode.postMessage({ command: "init", args: {} });
 };

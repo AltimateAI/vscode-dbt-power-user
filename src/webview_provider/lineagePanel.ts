@@ -52,12 +52,14 @@ export class LineagePanel implements WebviewViewProvider {
     private telemetry: TelemetryService,
   ) {
     dbtProjectContainer.onManifestChanged((event) => {
+      console.log("abstract:onManifestChanged -> ");
       this.manifestEvent = event;
       this.lineagePanel?.onManifestCacheChanged(event);
     });
   }
 
   private init = async (newLineagePanel: boolean) => {
+    console.log("abstract:init -> ");
     if (newLineagePanel) {
       this.lineagePanel = new NewLineagePanel(
         this.dbtProjectContainer,
@@ -84,6 +86,7 @@ export class LineagePanel implements WebviewViewProvider {
     context: WebviewViewResolveContext<unknown>,
     token: CancellationToken,
   ): void | Thenable<void> {
+    console.log("abstract:resolveWebviewView -> ");
     this.panel = panel;
     this.context = context;
     this.token = token;
@@ -147,6 +150,7 @@ class NewLineagePanel implements LineagePanelView {
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
   ) {
+    console.log("lineage:constructor -> ", this._panel);
     window.onDidChangeActiveTextEditor((event: TextEditor | undefined) => {
       if (event === undefined) {
         return;
@@ -159,6 +163,7 @@ class NewLineagePanel implements LineagePanelView {
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+    console.log("lineage:onManifestCacheChanged -> ", this._panel);
     event.added?.forEach((added) => {
       this.eventMap.set(added.projectRoot.fsPath, added);
     });
@@ -168,6 +173,7 @@ class NewLineagePanel implements LineagePanelView {
   }
 
   init() {
+    console.log("lineage:init -> ", this._panel);
     this.renderStartingNode();
   }
 
@@ -186,6 +192,7 @@ class NewLineagePanel implements LineagePanelView {
     context: WebviewViewResolveContext<unknown>,
     _token: CancellationToken,
   ): void | Thenable<void> {
+    console.log("lineage:resolveWebviewView -> ");
     this._panel = panel;
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);

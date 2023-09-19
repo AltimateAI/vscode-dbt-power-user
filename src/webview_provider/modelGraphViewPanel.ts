@@ -80,6 +80,7 @@ export class ModelGraphViewPanel implements LineagePanelView {
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
   ) {
+    console.log("graph:constructor  -> ", this._panel);
     window.onDidChangeActiveColorTheme(
       async (e) => {
         this.updateGraphStyle();
@@ -110,9 +111,9 @@ export class ModelGraphViewPanel implements LineagePanelView {
       return;
     }
     const theme = [
-      ColorThemeKind.Light,
-      ColorThemeKind.HighContrastLight,
-    ].includes(window.activeColorTheme.kind)
+        ColorThemeKind.Light,
+        ColorThemeKind.HighContrastLight,
+      ].includes(window.activeColorTheme.kind)
       ? "light"
       : "dark";
     await this._panel.webview.postMessage({
@@ -126,6 +127,7 @@ export class ModelGraphViewPanel implements LineagePanelView {
     context: WebviewViewResolveContext,
     _token: CancellationToken,
   ) {
+    console.log("graph:resolveWebviewView  -> ", this._panel);
     this._panel = panel;
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
@@ -139,10 +141,11 @@ export class ModelGraphViewPanel implements LineagePanelView {
   private setupWebviewOptions(context: WebviewViewResolveContext) {
     this._panel!.title = "";
     this._panel!.description = "View dbt graph";
-    this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
+    this._panel!.webview.options = <WebviewOptions> { enableScripts: true };
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+    console.log("graph:onManifestCacheChanged  -> ", this._panel);
     event.added?.forEach((added) => {
       this.eventMap.set(added.projectRoot.fsPath, added);
     });
@@ -156,6 +159,7 @@ export class ModelGraphViewPanel implements LineagePanelView {
   }
 
   init() {
+    console.log("graph:init  -> ", this._panel);
     this.g6Data = this.parseGraphData();
     this.transmitData(this.g6Data);
     this.updateGraphStyle();
@@ -167,8 +171,9 @@ export class ModelGraphViewPanel implements LineagePanelView {
     }
 
     const currentFilePath = window.activeTextEditor.document.uri;
-    const projectRootpath =
-      this.dbtProjectContainer.getProjectRootpath(currentFilePath);
+    const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
+      currentFilePath,
+    );
     if (projectRootpath === undefined) {
       return;
     }
@@ -283,9 +288,9 @@ function getHtml(webview: Webview, extensionUri: Uri) {
   ]);
   const resourceDir = getUri(webview, extensionUri, ["lineage_panel"]);
   const theme = [
-    ColorThemeKind.Light,
-    ColorThemeKind.HighContrastLight,
-  ].includes(window.activeColorTheme.kind)
+      ColorThemeKind.Light,
+      ColorThemeKind.HighContrastLight,
+    ].includes(window.activeColorTheme.kind)
     ? "light"
     : "dark";
   return readFileSync(indexPath.fsPath)

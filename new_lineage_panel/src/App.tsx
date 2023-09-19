@@ -187,11 +187,13 @@ function App() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const commandMap: Record<string, (a: any) => void> = { render, response };
     window.addEventListener("message", (event) => {
+      console.log("lineage:message -> ", event);
       const { command, args } = event.data;
       if ((command as string) in commandMap) {
         commandMap[command](args);
       }
     });
+    console.log("lineage:onload -> ");
     vscode.postMessage({ command: "init", args: {} });
   }, []);
 
