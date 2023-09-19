@@ -178,6 +178,7 @@ class NewLineagePanel implements LineagePanelView {
     event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);
     });
+    this.init();
   }
 
   init() {
