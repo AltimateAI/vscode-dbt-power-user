@@ -143,7 +143,6 @@ export class ModelGraphViewPanel implements LineagePanelView {
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    console.log("onManifestCacheChanged -> prev");
     event.added?.forEach((added) => {
       this.eventMap.set(added.projectRoot.fsPath, added);
     });
@@ -157,7 +156,6 @@ export class ModelGraphViewPanel implements LineagePanelView {
   }
 
   init() {
-    console.log("init -> prev");
     this.g6Data = this.parseGraphData();
     this.transmitData(this.g6Data);
     this.updateGraphStyle();

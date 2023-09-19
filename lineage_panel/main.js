@@ -108,7 +108,6 @@ const updateStyles = (theme) => {
 };
 
 window.addEventListener("message", (event) => {
-  console.log("in previous -> ", event?.data);
   const { command } = event?.data;
   if (command === "renderGraph") {
     graph.data(event.data.graph);

@@ -74,7 +74,6 @@ export class LineagePanel implements WebviewViewProvider {
       this.context!,
       this.token!,
     );
-    console.log("abstract init -> ", this.manifestEvent);
     if (this.manifestEvent) {
       this.lineagePanel.onManifestCacheChanged(this.manifestEvent!);
     }
@@ -105,7 +104,6 @@ export class LineagePanel implements WebviewViewProvider {
     command: string;
     args: any;
   }) => {
-    console.log("handleWebviewMessage -> ", message);
     const { command, args } = message;
     if (command === "openFile") {
       const { url } = args;
@@ -149,8 +147,6 @@ class NewLineagePanel implements LineagePanelView {
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
   ) {
-    console.log("constructor");
-
     window.onDidChangeActiveTextEditor((event: TextEditor | undefined) => {
       if (event === undefined) {
         return;
@@ -163,7 +159,6 @@ class NewLineagePanel implements LineagePanelView {
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    console.log("onManifestCacheChanged -> ");
     event.added?.forEach((added) => {
       this.eventMap.set(added.projectRoot.fsPath, added);
     });
@@ -177,7 +172,6 @@ class NewLineagePanel implements LineagePanelView {
   }
 
   private renderStartingNode() {
-    console.log("renderStartingNode -> ", this._panel);
     if (!this._panel) {
       return;
     }

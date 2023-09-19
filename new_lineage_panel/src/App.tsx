@@ -86,7 +86,6 @@ function App() {
         upstreamCount: number;
       };
     }) => {
-      console.log("inside new host render -> ", args);
       if (!args) {
         return;
       }
@@ -188,8 +187,6 @@ function App() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const commandMap: Record<string, (a: any) => void> = { render, response };
     window.addEventListener("message", (event) => {
-      console.log("in next -> ", event?.data);
-
       const { command, args } = event.data;
       if ((command as string) in commandMap) {
         commandMap[command](args);
