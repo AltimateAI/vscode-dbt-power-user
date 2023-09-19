@@ -195,6 +195,7 @@ function App() {
         commandMap[command](args);
       }
     });
+    vscode.postMessage({ command: "init", args: {} });
   }, []);
 
   return (
@@ -203,7 +204,7 @@ function App() {
         <div
           className="panel-tab"
           onClick={() => {
-            vscode.postMessage({ command: "setLeagacyLineageView" });
+            vscode.postMessage({ command: "setLegacyLineageView" });
           }}
         >
           Legacy Panel

@@ -31,16 +31,16 @@ type Table = {
   label: string;
 };
 
-export interface WebviewViewWithManifestChangeHandler
-  extends WebviewViewProvider {
+export interface LineagePanelView extends WebviewViewProvider {
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void;
+  init(): void;
 }
 
 @provideSingleton(LineagePanel)
 export class LineagePanel implements WebviewViewProvider {
   public static readonly viewType = "dbtPowerUser.LineageView";
 
-  private _lineagePanel: WebviewViewWithManifestChangeHandler | undefined;
+  private lineagePanel: LineagePanelView | undefined;
   private panel: WebviewView | undefined;
   private context: WebviewViewResolveContext<unknown> | undefined;
   private token: CancellationToken | undefined;
@@ -53,30 +53,30 @@ export class LineagePanel implements WebviewViewProvider {
   ) {
     dbtProjectContainer.onManifestChanged((event) => {
       this.manifestEvent = event;
-      this._lineagePanel?.onManifestCacheChanged(this.manifestEvent!);
+      this.lineagePanel?.onManifestCacheChanged(event);
     });
   }
 
   private init = async (newLineagePanel: boolean) => {
     if (newLineagePanel) {
-      this._lineagePanel = new NewLineagePanel(
+      this.lineagePanel = new NewLineagePanel(
         this.dbtProjectContainer,
         this.telemetry,
       );
     } else {
-      this._lineagePanel = new ModelGraphViewPanel(
+      this.lineagePanel = new ModelGraphViewPanel(
         this.dbtProjectContainer,
         this.telemetry,
       );
     }
-    await this._lineagePanel?.resolveWebviewView(
+    await this.lineagePanel?.resolveWebviewView(
       this.panel!,
       this.context!,
       this.token!,
     );
-    console.log("iniit -> ", this.manifestEvent);
+    console.log("abstract init -> ", this.manifestEvent);
     if (this.manifestEvent) {
-      this._lineagePanel.onManifestCacheChanged(this.manifestEvent!);
+      this.lineagePanel.onManifestCacheChanged(this.manifestEvent!);
     }
   };
 
@@ -105,6 +105,7 @@ export class LineagePanel implements WebviewViewProvider {
     command: string;
     args: any;
   }) => {
+    console.log("handleWebviewMessage -> ", message);
     const { command, args } = message;
     if (command === "openFile") {
       const { url } = args;
@@ -123,20 +124,24 @@ export class LineagePanel implements WebviewViewProvider {
       return;
     }
 
-    if (command === "setLeagacyLineageView") {
+    if (command === "setLegacyLineageView") {
       this.init(false);
       return;
     }
 
     if (command === "request") {
-      (this._lineagePanel as NewLineagePanel).handleRequest(args);
+      (this.lineagePanel as NewLineagePanel).handleRequest(args);
+      return;
+    }
+
+    if (command === "init") {
+      this.lineagePanel?.init();
       return;
     }
   };
 }
 
-class NewLineagePanel implements WebviewViewWithManifestChangeHandler {
-  private _disposables: Disposable[] = [];
+class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
 
@@ -165,6 +170,9 @@ class NewLineagePanel implements WebviewViewWithManifestChangeHandler {
     event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);
     });
+  }
+
+  init() {
     this.renderStartingNode();
   }
 

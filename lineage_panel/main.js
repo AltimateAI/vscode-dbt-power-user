@@ -121,3 +121,7 @@ window.addEventListener("message", (event) => {
 document.getElementById("new-panel-button")?.addEventListener("click", () => {
   vscode.postMessage({ command: "setNewLineageView" });
 });
+
+window.onload = () => {
+  vscode.postMessage({ command: "init", args: {} });
+};

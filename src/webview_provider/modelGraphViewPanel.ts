@@ -20,7 +20,7 @@ import {
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
-import { WebviewViewWithManifestChangeHandler } from "./lineagePanel";
+import { LineagePanelView } from "./lineagePanel";
 
 interface G6DataModel {
   nodes: {
@@ -68,9 +68,7 @@ const nodeConfigurations: Record<string, any> = {
   },
 };
 
-export class ModelGraphViewPanel
-  implements WebviewViewWithManifestChangeHandler
-{
+export class ModelGraphViewPanel implements LineagePanelView {
   public static readonly viewType = "dbtPowerUser.ModelViewGraph";
   private _panel: WebviewView | undefined = undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
@@ -84,9 +82,7 @@ export class ModelGraphViewPanel
   ) {
     window.onDidChangeActiveColorTheme(
       async (e) => {
-        if (this._panel) {
-          this.updateGraphStyle();
-        }
+        this.updateGraphStyle();
       },
       null,
       this._disposables,
@@ -95,36 +91,34 @@ export class ModelGraphViewPanel
       if (event === undefined) {
         return;
       }
-      this.g6Data = this.parseGraphData();
-      if (this._panel) {
-        this.transmitData(this.g6Data);
-        this.updateGraphStyle();
-      }
+      this.init();
     });
   }
 
   private async transmitData(graphInfo: G6DataModel | undefined) {
-    if (this._panel) {
-      await this._panel.webview.postMessage({
-        command: "renderGraph",
-        graph: graphInfo,
-      });
+    if (!this._panel) {
+      return;
     }
+    await this._panel.webview.postMessage({
+      command: "renderGraph",
+      graph: graphInfo,
+    });
   }
 
   private async updateGraphStyle() {
+    if (!this._panel) {
+      return;
+    }
     const theme = [
       ColorThemeKind.Light,
       ColorThemeKind.HighContrastLight,
     ].includes(window.activeColorTheme.kind)
       ? "light"
       : "dark";
-    if (this._panel) {
-      await this._panel.webview.postMessage({
-        command: "setStylesByTheme",
-        theme: theme,
-      });
-    }
+    await this._panel.webview.postMessage({
+      command: "setStylesByTheme",
+      theme: theme,
+    });
   }
 
   public async resolveWebviewView(
@@ -135,14 +129,10 @@ export class ModelGraphViewPanel
     this._panel = panel;
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
-    this.g6Data = this.parseGraphData();
-    this.transmitData(this.g6Data);
-    this.updateGraphStyle();
   }
 
   private renderWebviewView(context: WebviewViewResolveContext) {
     const webview = this._panel!.webview!;
-    this.g6Data = this.parseGraphData();
     webview.html = getHtml(webview, this.dbtProjectContainer.extensionUri);
   }
 
@@ -153,17 +143,24 @@ export class ModelGraphViewPanel
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+    console.log("onManifestCacheChanged -> prev");
     event.added?.forEach((added) => {
       this.eventMap.set(added.projectRoot.fsPath, added);
     });
     event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);
     });
+    // TODO: remove this. Ideally init should be automatically called
+    // after on onManifestCacheChanged, but currently onManifestCacheChanged
+    // is getting called after for ModelGraphViewPanel
+    this.init();
+  }
+
+  init() {
+    console.log("init -> prev");
     this.g6Data = this.parseGraphData();
-    if (this._panel) {
-      this.transmitData(this.g6Data);
-      this.updateGraphStyle();
-    }
+    this.transmitData(this.g6Data);
+    this.updateGraphStyle();
   }
 
   private parseGraphData = () => {
