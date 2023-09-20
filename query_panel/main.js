@@ -37,6 +37,10 @@ const app = createApp({
     // Converts the provided data to CSV format.
     dataToCsv(data) {
       try {
+        if (!data || data.length === 0) {
+          console.error("No data available to convert to CSV");
+          return "";
+        }
         const replacer = (key, value) => (value === null ? "" : value);
         const header = Object.keys(data[0]);
         const csv = [
@@ -60,6 +64,29 @@ const app = createApp({
         return ""; // Return an empty string if there's an error
       }
     },
+    downloadAsCSV() {
+      const data = this.table.getData(); // Get the data the same way you do for copying
+      if (!data || data.length === 0) {
+        console.error("No data available for downloading.");
+        return;
+      }
+      let csvContent = this.dataToCsv(data);
+      let blob = new Blob([csvContent], { type: "text/csv" });
+      let url = window.URL.createObjectURL(blob);
+      let a = document.createElement("a");
+      a.href = url;
+      a.download = `power_user_data_${new Date().toISOString()}.csv`; // Filename with a timestamp
+      a.click();
+    },
+    copyTextToClipboard(text) {
+      const el = document.createElement("textarea");
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      alert("Data copied to clipboard!");
+    },
     // Copies the table's data to the clipboard in CSV format.
     async copyResultsToClipboard() {
       try {
@@ -76,16 +103,6 @@ const app = createApp({
         console.error("Error copying results to clipboard:", error);
       }
     },
-    copyTextToClipboard(text) {
-      const el = document.createElement("textarea");
-      el.value = text;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
-      alert("Data copied to clipboard!");
-    },
-
     updateTable(data) {
       this.count = data.rows.length;
       this.table = new Tabulator("#query-results", {
