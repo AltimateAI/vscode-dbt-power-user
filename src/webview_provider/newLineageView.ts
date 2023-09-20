@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { readFileSync, writeFileSync } from "fs";
 import * as path from "path";
 import {
   CancellationToken,
@@ -213,19 +213,26 @@ export class NewLineagePanel implements LineagePanelView {
 
 /** Gets webview HTML */
 function getHtml(webview: Webview, extensionUri: Uri) {
+  const indexJs = getUri(webview, extensionUri, [
+    "new_lineage_panel",
+    "dist",
+    "assets",
+    "index.js",
+  ]);
+  const resourceDir = getUri(webview, extensionUri, [
+    "new_lineage_panel",
+    "dist",
+  ]).toString();
+  replaceInFile(indexJs, "/__ROOT__/", resourceDir + "/");
   const indexPath = getUri(webview, extensionUri, [
     "new_lineage_panel",
     "dist",
     "index.html",
   ]);
-  const resourceDir = getUri(webview, extensionUri, [
-    "new_lineage_panel",
-    "dist",
-  ]);
   return readFileSync(indexPath.fsPath)
     .toString()
-    .replace(/\/__ROOT__/g, resourceDir.toString())
-    .replace(/__ROOT__/g, resourceDir.toString())
+    .replace(/\/__ROOT__/g, resourceDir)
+    .replace(/__ROOT__/g, resourceDir)
     .replace(/__NONCE__/g, getNonce())
     .replace(/__CSPSOURCE__/g, webview.cspSource);
 }
@@ -244,4 +251,14 @@ function getNonce() {
 /** Utility method for generating webview Uris for resources */
 function getUri(webview: Webview, extensionUri: Uri, pathList: string[]) {
   return webview.asWebviewUri(Uri.joinPath(extensionUri, ...pathList));
+}
+
+async function replaceInFile(
+  filename: Uri,
+  searchString: string,
+  replacementString: string,
+) {
+  const contents = readFileSync(filename.fsPath, "utf8");
+  const replacedContents = contents.replace(searchString, replacementString);
+  writeFileSync(filename.fsPath, replacedContents, "utf8");
 }
