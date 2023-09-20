@@ -58,16 +58,10 @@ const app = createApp({
     aiEnabledChanged(config) {
       this.aiEnabled = config.aiEnabled;
     },
-    toggleRating(ref) {
-      let element = this.$refs[ref];
-      if (Array.isArray(element)) {
-        element = element[0];
-      }
-      element.toggle();
-    },
-    async generateDocsForModel() {
+    async generateDocsForModel(promptHint) {
       await executeCommand("generateDocsForModel", {
         description: this.docs?.description,
+        promptHint,
         columns: this.docs?.columns.map((col) => ({
           name: col.name,
           type: col.type,
@@ -75,10 +69,11 @@ const app = createApp({
         })),
       });
     },
-    async generateDocsForColumn(columnName) {
+    async generateDocsForColumn(columnName, promptHint) {
       await executeCommand("generateDocsForColumn", {
         description: this.docs?.description,
         columnName,
+        promptHint,
         columns: this.docs?.columns.map((col) => ({
           name: col.name,
           type: col.type,
@@ -146,7 +141,7 @@ const app = createApp({
   },
 });
 
-Comment = {
+const Comment = {
   props: ["data"],
   data() {
     return {
@@ -193,6 +188,74 @@ Comment = {
 };
 
 app.component("Comment", Comment);
+
+const Documentation = {
+  props: [
+    "ai-enabled",
+    "generated",
+    "title",
+    "modelValue",
+    "placeholder",
+    "comment-ref",
+    "prompt-options",
+  ],
+  data() {
+    return {
+      promptHint: "",
+    };
+  },
+  emits: ["generate-docs"],
+  methods: {
+    toggleRating(ref) {
+      let element = this.$refs[ref];
+      if (Array.isArray(element)) {
+        element = element[0];
+      }
+      element.toggle();
+    },
+  },
+  template: `
+    <div class="documentation">
+      <vscode-text-area
+        :value="modelValue"
+        @input="$emit('update:modelValue', $event.target.value)"
+        :placeholder="placeholder"
+        resize="vertical"
+        rows="5"
+      >
+        <h2>
+          {{ title }} &nbsp;<vscode-tag
+            v-show="generated && aiEnabled"
+            >DataPilot</vscode-tag
+          >
+        </h2>
+      </vscode-text-area>
+      <div v-if="aiEnabled" class="column-actions">
+        <vscode-dropdown v-if="generated" v-model="promptHint" class="documentation-options">
+          <vscode-option value="">Regenerate</vscode-option>
+          <vscode-option value="short">Make it shorter</vscode-option>
+          <vscode-option value="long">Make it longer</vscode-option>
+          <vscode-option value="funny">Make it fun</vscode-option>
+          <vscode-option value="business_user">Generate for Business User</vscode-option>
+        </vscode-dropdown>
+        <vscode-button @click="$emit('generate-docs', this.promptHint)" appearance="primary" aria-label="Generate documentation"
+          ><span
+            class="codicon codicon-hubot"
+          ></span>&nbsp;<span v-if="generated" class="gen-button">Go!</span><span v-else class="gen-button">Generate</span>
+        </vscode-button>
+        <vscode-button
+          appearance="secondary"
+          v-show="generated"
+          @click="toggleRating(commentRef)"
+          >Give Feedback
+          <span slot="start" class="codicon codicon-comment"></span>
+        </vscode-button>
+      </div>
+      <Comment :data="modelValue" :ref="commentRef"></Comment>
+    </div>`,
+};
+
+app.component("Documentation", Documentation);
 
 app.config.errorHandler = (err) => {
   console.log(err);

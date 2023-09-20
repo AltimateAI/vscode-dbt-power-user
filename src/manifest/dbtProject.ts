@@ -9,6 +9,7 @@ import {
   Disposable,
   Event,
   EventEmitter,
+  languages,
   Range,
   RelativePattern,
   Uri,
@@ -16,7 +17,7 @@ import {
   window,
   workspace,
 } from "vscode";
-import { parse } from "yaml";
+import { YAMLError, parse } from "yaml";
 import {
   DBTCommandFactory,
   RunModelParams,
@@ -42,7 +43,6 @@ import { TargetWatchersFactory } from "./modules/targetWatchers";
 import { PythonEnvironment } from "./pythonEnvironment";
 import { TelemetryService } from "../telemetry";
 import * as crypto from "crypto";
-import { DbtPowerUserDiagnostics } from "../diagnostics";
 
 export interface ExecuteSQLResult {
   table: {
@@ -98,6 +98,12 @@ export class DBTProject implements Disposable {
   public onSourceFileChanged: Event<void>;
   private dbtProjectLog: DBTProjectLog;
   private disposables: Disposable[] = [this._onProjectConfigChanged];
+  private readonly rebuildManifestDiagnostics =
+    languages.createDiagnosticCollection("dbt");
+  private readonly pythonBridgeDiagnostics =
+    languages.createDiagnosticCollection("dbt");
+  private readonly projectConfigDiagnostics =
+    languages.createDiagnosticCollection("dbt");
 
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -109,7 +115,6 @@ export class DBTProject implements Disposable {
     private terminal: DBTTerminal,
     private queryResultPanel: QueryResultPanel,
     private telemetry: TelemetryService,
-    private diagnostics: DbtPowerUserDiagnostics,
     path: Uri,
     projectConfig: any,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
@@ -174,6 +179,9 @@ export class DBTProject implements Disposable {
       this.onSourceFileChanged(fireProjectChanged),
       this.sourceFileWatchers,
       this.dbtProjectLog,
+      this.rebuildManifestDiagnostics,
+      this.pythonBridgeDiagnostics,
+      this.projectConfigDiagnostics,
     );
     this.initializePythonBridge(
       this.PythonEnvironment.pythonPath,
@@ -225,12 +233,12 @@ export class DBTProject implements Disposable {
         adapter: this.adapterType,
         project: DBTProject.hashProjectRoot(this.projectRoot.fsPath),
       });
-      this.diagnostics.pythonBridgeDiagnostics.clear();
+      this.pythonBridgeDiagnostics.clear();
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         // python errors can be about anything, so we just associate the error with the project file
         //  with a fixed range
-        this.diagnostics.rebuildManifestDiagnostics.set(
+        this.pythonBridgeDiagnostics.set(
           Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
           [
             new Diagnostic(
@@ -268,7 +276,14 @@ export class DBTProject implements Disposable {
   private async tryRefresh() {
     try {
       await this.refresh();
+      this.projectConfigDiagnostics.clear();
     } catch (error) {
+      if (error instanceof YAMLError) {
+        this.projectConfigDiagnostics.set(
+          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+          [new Diagnostic(new Range(0, 0, 999, 999), error.message)],
+        );
+      }
       console.warn(
         "An error occurred while trying to refresh the project configuration",
         error,
@@ -323,14 +338,20 @@ export class DBTProject implements Disposable {
       await this.python?.lock(
         (python) => python!`to_dict(project.safe_parse_project())`,
       );
-      this.diagnostics.rebuildManifestDiagnostics.clear();
+      this.rebuildManifestDiagnostics.clear();
     } catch (exc) {
       if (exc instanceof PythonException) {
         // dbt errors can be about anything, so we just associate the error with the project file
         //  with a fixed range
-        this.diagnostics.rebuildManifestDiagnostics.set(
+        this.rebuildManifestDiagnostics.set(
           Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
-          [new Diagnostic(new Range(0, 0, 999, 999), exc.exception.message)],
+          [
+            new Diagnostic(
+              new Range(0, 0, 999, 999),
+              "There is a problem in your dbt project. Compilation failed: " +
+                exc.exception.message,
+            ),
+          ],
         );
         this.telemetry.sendTelemetryEvent(
           "pythonBridgeCannotParseProjectUserError",
@@ -748,6 +769,7 @@ select * from renamed
     );
     const dbtProjectYamlFile = readFileSync(dbtProjectConfigLocation, "utf8");
     return parse(dbtProjectYamlFile, {
+      strict: false,
       uniqueKeys: false,
       maxAliasCount: -1,
     });

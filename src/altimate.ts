@@ -27,6 +27,7 @@ interface DocsGenerateModelRequest {
     }[];
     adapter?: string;
   };
+  prompt_hint: string;
   gen_model_description: boolean;
 }
 
@@ -36,6 +37,15 @@ interface DocsGenerateResponse {
     column_description: string;
   }[];
   model_description?: string;
+}
+
+interface DocPromptOptionsResponse {
+  prompt_options: {
+    options: {
+      key: string;
+      value: string;
+    }[];
+  }[];
 }
 
 @provideSingleton(AltimateRequest)
@@ -60,7 +70,7 @@ export class AltimateRequest {
     return !!this.getConfig();
   }
 
-  async fetch<T>(endpoint: string, fetchArgs = {}, timeout: number = 25000) {
+  async fetch<T>(endpoint: string, fetchArgs = {}, timeout: number = 120000) {
     const abortController = new AbortController();
     const timeoutHandler = setTimeout(() => {
       abortController.abort();
@@ -117,6 +127,12 @@ export class AltimateRequest {
     await this.fetch<void>("feedbacks/ai/fb", {
       method: "POST",
       body: JSON.stringify(feedback),
+    });
+  }
+
+  async getDocPromptOptions() {
+    await this.fetch<DocPromptOptionsResponse>("dbt/v1/doc_prompt_options", {
+      method: "POST",
     });
   }
 }

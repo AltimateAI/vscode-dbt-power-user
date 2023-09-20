@@ -13,9 +13,9 @@
   "bugs": {
     "url": "https://github.com/innoverio/vscode-dbt-power-user/issues"
   },
-  "version": "0.17.6",
+  "version": "0.17.9",
   "engines": {
-    "vscode": "^1.81.0"
+    "vscode": "^1.82.0"
   },
   "categories": [
     "Other",
@@ -470,7 +470,7 @@
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.1",
     "@types/node": "^18.15.11",
-    "@types/vscode": "^1.81.0",
+    "@types/vscode": "^1.82.0",
     "@types/which": "^3.0.0",
     "@typescript-eslint/eslint-plugin": "^5.54.1",
     "@typescript-eslint/parser": "^5.62.0",

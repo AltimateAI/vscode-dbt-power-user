@@ -276,6 +276,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       `An error occured while fetching metadata for ${modelName} from the database: ` +
                         exc.exception.message,
                     );
+                    this.telemetry.sendTelemetryError(
+                      "docsEditPanelLoadPythonError",
+                      exc,
+                    );
                     return;
                   }
                   window.showErrorMessage(
@@ -321,6 +325,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                         })),
                         adapter: project.getAdapterType(),
                       },
+                      prompt_hint: message.promptHint || "generate",
                       gen_model_description: true,
                     });
 
@@ -377,6 +382,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                         })),
                         adapter: project.getAdapterType(),
                       },
+                      prompt_hint: message.promptHint || "generate",
                       gen_model_description: false,
                     });
 
@@ -505,6 +511,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     readFileSync(patchPath).toString("utf8");
                   const parsedDocFile =
                     parse(docFile, {
+                      strict: false,
                       uniqueKeys: false,
                       maxAliasCount: -1,
                     }) || {};

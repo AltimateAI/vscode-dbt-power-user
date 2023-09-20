@@ -11,10 +11,15 @@
   grid-row-gap: 1.5rem;
 }
 
-#columns-form {
+.documentation {
   display: grid;
   grid-auto-flow: row;
   grid-row-gap: 1.5rem;
+}
+
+.documentation-options {
+  width: 15rem;
+  grid-column-gap: 0.5rem;
 }
 
 #submit-button {
@@ -59,4 +64,13 @@
   justify-self: center;
   margin-left: auto;
   margin-right: auto;
+}
+
+.column-actions {
+  display: inline-flex;
+  grid-column-gap: 0.5rem;
+}
+
+.gen-button {
+  width: inherit;
 }
