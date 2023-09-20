@@ -21,7 +21,8 @@ const app = createApp({
     updateColumns(columns) {
       this.docs.columns = columns.map((column) => {
         const existingColumn = this.docs?.columns.find(
-          (existingColumn) => column.name === existingColumn.name,
+          (existingColumn) =>
+            column.name.toLowerCase() === existingColumn.name.toLowerCase(),
         );
         return {
           name: column.name,
