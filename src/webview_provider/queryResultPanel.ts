@@ -267,6 +267,8 @@ export class QueryResultPanel implements WebviewViewProvider {
       "workbench.view.extension.dbt_preview_results",
     );
     if (this._panel) {
+      this._panel.show(true); // Show the view
+      this._panel.webview.postMessage({ command: "focus" }); // keyboard focus
       this.transmitLoading();
     }
     try {
