@@ -84,8 +84,12 @@
           />
 
           <div v-show="hasData">
-            <button @click="copyResultsToClipboard">Copy Results</button>
-            <button @click="downloadAsCSV">Download as CSV</button>
+            <vscode-button @click="copyResultsToClipboard"
+              >Copy Results</vscode-button
+            >
+            <vscode-button @click="downloadAsCSV"
+              >Download as CSV</vscode-button
+            >
             <div id="query-results" :style="getTableStyles()"></div>
           </div>
 
