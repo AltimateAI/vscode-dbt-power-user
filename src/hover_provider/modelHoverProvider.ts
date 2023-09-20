@@ -129,7 +129,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
       content.appendMarkdown(
         `<span style="color:#347890;">(ref)&nbsp;</span><span><strong>${node.alias}</strong></span>`,
       );
-      if (node.description !== null) {
+      if (node.description !== "") {
         content.appendMarkdown(`</br><span>${node.description}</span>`);
       }
       content.appendText("\n");
@@ -140,18 +140,19 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
       for (const colKey in node.columns) {
         const column = node.columns[colKey];
         content.appendMarkdown(
-          `<br/><span style="color:#347890;">(column)&nbsp;</span><span>${column.name} &nbsp;</span>`,
+          `<span style="color:#347890;">(column)&nbsp;</span><span>${column.name} &nbsp;</span>`,
         );
         if (column.data_type !== null) {
           content.appendMarkdown(
             `<span>-&nbsp;${column.data_type.toUpperCase()}</span>`,
           );
         }
-        if (column.description !== null) {
+        if (column.description !== "") {
           content.appendMarkdown(
             `<br/><span><em>${column.description}</em></span>`,
           );
         }
+        content.appendMarkdown("</br>");
       }
       return content;
     }
