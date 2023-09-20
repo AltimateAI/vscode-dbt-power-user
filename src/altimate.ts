@@ -1,10 +1,44 @@
-import { workspace, window } from "vscode";
+import { window, workspace } from "vscode";
 import { provideSingleton } from "./utils";
 import fetch from "node-fetch";
 
 interface AltimateConfig {
   key: string;
   instance: string;
+}
+
+interface ColumnLineageResponse {
+  collect_columns: { [k: string]: string[] };
+  highlight_edges: [string, string][];
+}
+
+interface ModelColumn {
+  name: string;
+  description?: string | null;
+  data_type?: string | null;
+}
+
+interface ModelNode {
+  database: string;
+  alias: string;
+  uniqueId: string;
+  columns: { [key: string]: ModelColumn };
+}
+
+interface Schemas {
+  [key: string]: { [key: string]: unknown };
+}
+
+interface SQLs {
+  current_model: string;
+  child: { [key: string]: string };
+}
+
+interface DBTColumnLineageRequest {
+  model_name: string;
+  model_node: ModelNode;
+  compiled_sqls: SQLs;
+  schemas?: Schemas | null;
 }
 
 interface OnewayFeedback {
@@ -133,6 +167,13 @@ export class AltimateRequest {
   async getDocPromptOptions() {
     await this.fetch<DocPromptOptionsResponse>("dbt/v1/doc_prompt_options", {
       method: "POST",
+    });
+  }
+
+  async getColumnLevelLineage(req: DBTColumnLineageRequest) {
+    return this.fetch<ColumnLineageResponse>("dbt/v1/lineage", {
+      method: "POST",
+      body: JSON.stringify(req),
     });
   }
 }
