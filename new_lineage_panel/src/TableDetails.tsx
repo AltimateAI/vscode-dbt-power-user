@@ -222,8 +222,7 @@ const ColumnSection: FunctionComponent<{
           <div className="fs-5 fw-semibold">Column</div>
         </div>
         <Input
-          // @ts-ignore
-          size="sm"
+          bsSize="sm"
           placeholder="Search by column name"
           value={search}
           onChange={(e) => {
@@ -267,7 +266,6 @@ const TableDetails = () => {
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
     getColumns(selectedTable).then((_data) => {
-      console.log("getColumns -> ", _data);
       _data.columns.sort((a, b) => a.name.localeCompare(b.name));
       setData(_data);
       setFilteredColumn(_data.columns);
@@ -281,7 +279,7 @@ const TableDetails = () => {
     const { nodes, edges, collect_columns } = await processColumnLineage(
       _nodes,
       _edges,
-      _column.rk
+      { name: _column.rk, table: selectedTable }
     );
 
     flow.setNodes(nodes);

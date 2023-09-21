@@ -18,6 +18,7 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { GraphMetaMap } from "../domain";
 import { LineagePanelView } from "./lineagePanel";
+import { AltimateRequest } from "../altimate";
 
 type Table = {
   table: string;
@@ -45,6 +46,7 @@ export class NewLineagePanel implements LineagePanelView {
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
+    private altimate: AltimateRequest,
     private telemetry: TelemetryService,
   ) {
     console.log("lineage:constructor -> ", this._panel);
@@ -111,6 +113,9 @@ export class NewLineagePanel implements LineagePanelView {
     if (args.url === "getColumns") {
       body = await this.getColumns(args.params as { table: string });
     }
+    if (args.url === "getConnectedColumns") {
+      body = await this.getConnectedColumns(args.params as any);
+    }
     this._panel?.webview.postMessage({
       command: "response",
       args: {
@@ -126,14 +131,13 @@ export class NewLineagePanel implements LineagePanelView {
     if (!nodeMetaMap) {
       return;
     }
-    const fileName = this.getFilename();
-    const _table = nodeMetaMap.get(fileName);
+    const _table = nodeMetaMap.get(table);
     if (!_table) {
       return;
     }
     const project = this.getProject();
     if (project) {
-      const columnsFromDB = await project.getColumnsInRelation(fileName);
+      const columnsFromDB = await project.getColumnsInRelation(table);
       console.log(columnsFromDB);
       if (columnsFromDB) {
         columnsFromDB.forEach((c) => {
@@ -164,6 +168,33 @@ export class NewLineagePanel implements LineagePanelView {
         description: c.description,
       })),
     };
+  }
+
+  private async getConnectedColumns(
+    { table, column }: { table: string; column: string },
+  ) {
+    const nodeMetaMap = this.getEvent()?.nodeMetaMap;
+    if (!nodeMetaMap) {
+      return;
+    }
+    const _table = nodeMetaMap.get(table.split(".").pop()!);
+    if (!_table) {
+      return;
+    }
+    const project = this.getProject();
+    if (!project) {
+      return;
+    }
+    const compiledSql = await project.compileQuery(
+      window.activeTextEditor!.document.getText(),
+    );
+    console.log("column lineage request -> ", _table, compiledSql);
+    const resp = await this.altimate.getColumnLevelLineage({
+      model_name: _table.alias,
+      compiled_sqls: { current_model: compiledSql || "", child: {} },
+      model_node: _table,
+    });
+    console.log("column lineage response -> ", resp);
   }
 
   private getConnectedTables(

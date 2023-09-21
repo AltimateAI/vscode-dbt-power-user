@@ -12,7 +12,7 @@ interface MacroMetaData {
   character: number;
 }
 
-interface NodeMetaData {
+export interface NodeMetaData {
   uniqueId: string;
   path: string;
   database: string;

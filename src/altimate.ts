@@ -1,6 +1,7 @@
 import { window, workspace } from "vscode";
 import { provideSingleton } from "./utils";
 import fetch from "node-fetch";
+import { NodeMetaData } from "./domain";
 
 interface AltimateConfig {
   key: string;
@@ -10,19 +11,6 @@ interface AltimateConfig {
 interface ColumnLineageResponse {
   collect_columns: { [k: string]: string[] };
   highlight_edges: [string, string][];
-}
-
-interface ModelColumn {
-  name: string;
-  description?: string | null;
-  data_type?: string | null;
-}
-
-interface ModelNode {
-  database: string;
-  alias: string;
-  uniqueId: string;
-  columns: { [key: string]: ModelColumn };
 }
 
 interface Schemas {
@@ -36,7 +24,7 @@ interface SQLs {
 
 interface DBTColumnLineageRequest {
   model_name: string;
-  model_node: ModelNode;
+  model_node: NodeMetaData;
   compiled_sqls: SQLs;
   schemas?: Schemas | null;
 }

@@ -15,6 +15,7 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { ModelGraphViewPanel } from "./modelGraphViewPanel";
 import { NewLineagePanel } from "./newLineageView";
+import { AltimateRequest } from "../altimate";
 
 export interface LineagePanelView extends WebviewViewProvider {
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void;
@@ -34,6 +35,7 @@ export class LineagePanel implements WebviewViewProvider {
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
+    private altimate: AltimateRequest,
     private telemetry: TelemetryService,
   ) {
     dbtProjectContainer.onManifestChanged((event) => {
@@ -48,6 +50,7 @@ export class LineagePanel implements WebviewViewProvider {
     if (newLineagePanel) {
       this.lineagePanel = new NewLineagePanel(
         this.dbtProjectContainer,
+        this.altimate,
         this.telemetry,
       );
     } else {

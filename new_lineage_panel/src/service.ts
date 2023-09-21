@@ -31,12 +31,15 @@ export const downstreamTables = (table: string) => {
 };
 
 export const getColumns = (table: string) => {
-  return requestExecutor("getColumns", { table }) as Promise<
+  return requestExecutor("getColumns", {
+    table: table.split(".").pop(), // TODO: stopgap solution 
+  }) as Promise<
     Columns
   >;
 };
 
 export const getConnectedColumns = (body: unknown) => {
+  console.log("service:getConnectedColumns -> ", body)
   return requestExecutor("getConnectedColumns", body) as Promise<
     ColumnLineageResponse
   >;

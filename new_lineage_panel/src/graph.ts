@@ -253,7 +253,7 @@ export const removeRelatedNodesEdges = (
 export const processColumnLineage = async (
   _nodes: Node[],
   _edges: Edge[],
-  column_rk: string,
+  column: { name: string; table: string },
 ) => {
   let nodes = _nodes.filter(isNotColumn);
   let edges = _edges.filter(isNotColumn);
@@ -291,8 +291,10 @@ export const processColumnLineage = async (
     }
   }
 
+  console.log("this is reaching -> ");
   const { collect_columns, highlight_edges } = await getConnectedColumns({
-    column_fqn: column_rk,
+    column: column.name,
+    table: column.table,
     edges: edgesPayload,
   });
 
