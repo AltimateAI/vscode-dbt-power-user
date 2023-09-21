@@ -114,3 +114,11 @@ body {
   background-color: #247efe;
   color: #ffffff;
 }
+
+.bg-gray {
+  background-color: #f5f6f7;
+}
+
+.bg-blue {
+  background-color: #eaf3ff;
+}

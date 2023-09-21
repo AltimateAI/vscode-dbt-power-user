@@ -17,11 +17,12 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { SeeMoreNode, SelfConnectingEdge, TableNode } from "./CustomNodes";
-import { TABLES_SIDEBAR } from "./utils";
+import { COLUMNS_SIDEBAR, TABLES_SIDEBAR } from "./utils";
 import { SidebarModal } from "./SidebarModal";
 import { MoreTables, TMoreTables } from "./MoreTables";
 import { downstreamTables, upstreamTables } from "./service";
 import { createNewNodesEdges, layoutElementsOnCanvas } from "./graph";
+import { TableDetails } from "./TableDetails";
 
 declare const acquireVsCodeApi: () => { postMessage: (v: unknown) => void };
 
@@ -55,6 +56,10 @@ export const LineageContext = createContext<{
   setMoreTables: Dispatch<TMoreTables>;
   sidebarScreen: string;
   setSidebarScreen: Dispatch<string>;
+  selectedColumn: string;
+  setSelectedColumn: Dispatch<SetStateAction<string>>;
+  collectColumns: Record<string, string[]>;
+  setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>;
 }>({
   showSidebar: false,
   setShowSidebar: () => {},
@@ -64,10 +69,10 @@ export const LineageContext = createContext<{
   setMoreTables: () => {},
   sidebarScreen: "",
   setSidebarScreen: () => {},
-  // selectedColumn: {},
-  // setSelectedColumn: () => {},
-  // collectColumns: {},
-  // setCollectColumns: () => {},
+  selectedColumn: "",
+  setSelectedColumn: () => "",
+  collectColumns: {},
+  setCollectColumns: () => {},
 });
 
 function App() {
@@ -76,6 +81,8 @@ function App() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [moreTables, setMoreTables] = useState<TMoreTables | null>(null);
   const [sidebarScreen, setSidebarScreen] = useState("");
+  const [selectedColumn, setSelectedColumn] = useState("");
+  const [collectColumns, setCollectColumns] = useState({});
 
   useEffect(() => {
     const render = async (args: {
@@ -220,6 +227,10 @@ function App() {
           setMoreTables,
           sidebarScreen,
           setSidebarScreen,
+          selectedColumn,
+          setSelectedColumn,
+          collectColumns,
+          setCollectColumns,
         }}
       >
         <ReactFlowProvider>
@@ -243,6 +254,7 @@ function App() {
             width={446}
           >
             {sidebarScreen === TABLES_SIDEBAR && <MoreTables />}
+            {sidebarScreen === COLUMNS_SIDEBAR && <TableDetails />}
           </SidebarModal>
         </ReactFlowProvider>
       </LineageContext.Provider>
