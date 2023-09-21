@@ -17,7 +17,6 @@
     "curly": "warn",
     "eqeqeq": "warn",
     "no-throw-literal": "warn",
-    "indent": "off",
-    "prettier/prettier": "off"
+    "indent": "off"
   }
 }
