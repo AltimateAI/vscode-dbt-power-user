@@ -252,7 +252,7 @@ const ColumnSection: FunctionComponent<{
 
 const TableDetails = () => {
   const {
-    selectedTable: table,
+    selectedTable,
     selectedColumn,
     setSelectedColumn,
     setCollectColumns,
@@ -264,13 +264,13 @@ const TableDetails = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
-    getColumns(table).then((_data) => {
+    getColumns(selectedTable).then((_data) => {
       _data.columns.sort((a, b) => a.name.localeCompare(b.name));
       setData(_data);
       setFilteredColumn(_data.columns);
       setIsLoading(false);
     });
-  }, [table]);
+  }, [selectedTable]);
 
   const handleColumnClick = async (_column: { rk: string }) => {
     const _nodes = flow.getNodes();
@@ -291,7 +291,7 @@ const TableDetails = () => {
 
   return (
     <div className="p-2 h-100 d-flex flex-column gap-md">
-      <HeaderSection table={table} />
+      <HeaderSection table={selectedTable} />
       <PurposeSection tableId={data.id} purpose={data.purpose} />
       <ColumnSection
         selectedColumn={selectedColumn}

@@ -31,7 +31,7 @@ export const downstreamTables = (table: string) => {
 };
 
 export const getColumns = (table: string) => {
-  return requestExecutor("getConnectedColumns", { table }) as Promise<
+  return requestExecutor("getColumns", { table }) as Promise<
     Columns
   >;
 };

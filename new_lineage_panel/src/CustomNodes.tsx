@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { FunctionComponent, useContext, useState } from "react";
+import React, { FunctionComponent, useContext, useState } from "react";
 import {
   BaseEdge,
   EdgeProps,
@@ -19,7 +19,7 @@ import {
 } from "./graph";
 import { LineageContext, openFile } from "./App";
 import { Tables, downstreamTables, upstreamTables } from "./service";
-import { TABLES_SIDEBAR, destructTable } from "./utils";
+import { COLUMNS_SIDEBAR, TABLES_SIDEBAR, destructTable } from "./utils";
 import { TMoreTables } from "./MoreTables";
 
 const HANDLE_OFFSET = "-1px";
@@ -68,7 +68,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const [, _rerender] = useState(0);
   const rerender = () => _rerender((x) => x + 1);
 
-  const { selectedTable, setSelectedTable } = useContext(LineageContext);
+  const { selectedTable, setSelectedTable, setShowSidebar, setSidebarScreen } =
+    useContext(LineageContext);
 
   const selected = selectedTable === table;
   const toggleTableSelection = () =>
@@ -127,6 +128,13 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const collapseLeft = collapse(false);
   const collapseRight = collapse(true);
 
+  const onDetailsClick = (e: React.MouseEvent) => {
+    if (!selected) return;
+    e.stopPropagation();
+    setShowSidebar(true);
+    setSidebarScreen(COLUMNS_SIDEBAR);
+  };
+
   const [label, schema] = destructTable(table);
   return (
     <div className="position-relative">
@@ -153,14 +161,25 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             <div />
             <div className="text-muted text-overflow">{schema}</div>
           </div>
-          <div
-            className={classNames(
-              "nodrag ms-3",
-              selected ? "text-primary" : "text-muted"
-            )}
-            onClick={() => openFile(url)}
-          >
-            Open file
+          <div className="d-flex gap-sm">
+            <div
+              className={classNames(
+                "nodrag",
+                selected ? "text-primary" : "text-muted"
+              )}
+              onClick={() => openFile(url)}
+            >
+              Open file
+            </div>
+            <div
+              className={classNames(
+                "nodrag",
+                selected ? "text-primary" : "text-muted"
+              )}
+              onClick={onDetailsClick}
+            >
+              View Details
+            </div>
           </div>
         </div>
       </div>
