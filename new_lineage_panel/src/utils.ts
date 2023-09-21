@@ -74,7 +74,7 @@ export const createTableNode = (
   { table, count, url }: { table: string; count: number; url: string },
   right: boolean,
   level: number,
-  parent: string
+  parent: string,
 ): Node => {
   const expand = count > 0;
   return {
@@ -97,7 +97,7 @@ export const createTableNode = (
 export const destructTable = (id: string) => {
   const splits = id.split(".");
   const table = splits.pop() || "";
-  return [table, splits.join(".")];
+  return [table, splits[0]];
 };
 
 export const applyEdgeStyling = (e: Edge, highlight: boolean) => {
