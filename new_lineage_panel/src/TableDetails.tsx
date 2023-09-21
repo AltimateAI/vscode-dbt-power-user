@@ -55,16 +55,16 @@ const ColumnCard: FunctionComponent<{
             <ExpandLineageIcon />
           </div>
         )}
+        <ColorTag
+          label={column.datatype || "object"}
+          color={styles.column_tag}
+        />
       </div>
-      <ColorTag label={column.datatype} color={styles.column_tag} />
       {column.description && (
-        <>
-          <div className="divider" />
-          <div className="d-flex flex-column">
-            <div>Description</div>
-            <div className="text-muted font-normal">{column.description}</div>
-          </div>
-        </>
+        <div className="d-flex flex-column">
+          <div>Description</div>
+          <div className="text-muted font-normal">{column.description}</div>
+        </div>
       )}
     </div>
   );
@@ -74,9 +74,9 @@ const HeaderSection: FunctionComponent<{ table: string }> = ({ table }) => {
   const [tableName, schema] = destructTable(table);
   return (
     <div>
-      <div className="mb-2 d-flex gap-sm align-items-center">
+      <div className="mb-2">
         {/* {getIconByDatastoreType(datastore_type)} */}
-        <div className="text-overflow">{tableName}</div>
+        <div className="fw-semibold fs-5 lines-2">{tableName}</div>
       </div>
       <div className="text-primary">{schema}</div>
     </div>
@@ -214,9 +214,7 @@ const ColumnSection: FunctionComponent<{
 }) => {
   const [search, setSearch] = useState("");
   return (
-    <div
-      className={classNames(styles.card, "flex-grow overflow-y-hidden bg-gray")}
-    >
+    <div className={classNames(styles.card, "flex-grow bg-gray")}>
       <div className="d-flex flex-column gap-sm h-100 p-2">
         <div className="d-flex align-items-center gap-xs">
           <div className="fs-5 fw-semibold">Column</div>
@@ -236,7 +234,7 @@ const ColumnSection: FunctionComponent<{
         <div className="d-flex align-items-center gap-xs">
           <div className="text-muted">{filteredColumn.length} columns</div>
         </div>
-        <div className="d-flex flex-column gap-sm overflow-y">
+        <div className="d-flex flex-column gap-sm">
           {filteredColumn.map((_column) => (
             <ColumnCard
               key={_column.rk}
@@ -291,7 +289,7 @@ const TableDetails = () => {
   if (isLoading || !data) return <ComponentLoader />;
 
   return (
-    <div className="p-2 h-100 d-flex flex-column gap-md text-black">
+    <div className="p-2 h-100 d-flex flex-column gap-md text-black overflow-y">
       <HeaderSection table={selectedTable} />
       <PurposeSection tableId={data.id} purpose={data.purpose} />
       <ColumnSection
