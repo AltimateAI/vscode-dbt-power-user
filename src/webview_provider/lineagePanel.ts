@@ -23,7 +23,7 @@ export interface LineagePanelView extends WebviewViewProvider {
 
 @provideSingleton(LineagePanel)
 export class LineagePanel implements WebviewViewProvider {
-  public static readonly viewType = "dbtPowerUser.LineageView";
+  public static readonly viewType = "dbtPowerUser.Lineage";
 
   private lineagePanel: LineagePanelView | undefined;
   private panel: WebviewView | undefined;
@@ -76,7 +76,7 @@ export class LineagePanel implements WebviewViewProvider {
     this.context = context;
     this.token = token;
     this.init(
-      workspace.getConfiguration("dbt").get<boolean>("newLineagePanel", false),
+      workspace.getConfiguration("dbt").get<boolean>("enableNewLineagePanel", false),
     );
     panel.webview.onDidReceiveMessage(this.handleWebviewMessage, null, []);
     const sendLineageViewEvent = () => {
@@ -107,7 +107,7 @@ export class LineagePanel implements WebviewViewProvider {
 
     if (command === "setNewLineageView") {
       await workspace.getConfiguration("dbt").update(
-        "newLineagePanel",
+        "enableNewLineagePanel",
         true,
       );
       this.init(true);
@@ -116,7 +116,7 @@ export class LineagePanel implements WebviewViewProvider {
 
     if (command === "setLegacyLineageView") {
       await workspace.getConfiguration("dbt").update(
-        "newLineagePanel",
+        "enableNewLineagePanel",
         false,
       );
       this.init(false);

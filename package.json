@@ -61,7 +61,7 @@
             "type": "string",
             "description": "Sign up for an altimate account to unlock ai features. Add the Altimate AI Key here to enable the features."
           },
-          "dbt.newLineagePanel": {
+          "dbt.enableNewLineagePanel": {
             "type": "boolean",
             "description": "Enable the new lineage panel in dbt."
           }
@@ -177,8 +177,8 @@
           "icon": "./media/images/dbt_icon.svg"
         },
         {
-          "id": "dbt_lineage_view",
-          "title": "Lineage View",
+          "id": "lineage_view",
+          "title": "Lineage",
           "icon": "./media/images/dbt_icon.svg"
         },
         {
@@ -214,9 +214,9 @@
           "type": "webview"
         }
       ],
-      "dbt_lineage_view": [
+      "lineage_view": [
         {
-          "id": "dbtPowerUser.LineageView",
+          "id": "dbtPowerUser.Lineage",
           "name": "",
           "type": "webview"
         }
