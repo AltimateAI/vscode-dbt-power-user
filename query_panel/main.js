@@ -37,32 +37,28 @@ const app = createApp({
   methods: {
     // Converts the provided data to CSV format.
     dataToCsv(data) {
-      try {
-        if (!data || data.length === 0) {
-          console.error("No data available to convert to CSV");
-          return "";
-        }
-        const replacer = (key, value) => (value === null ? "" : value);
-        const header = Object.keys(data[0]);
-        const csv = [
-          header.join(","),
-          ...data.map((row) =>
-            header
-              .map((fieldName) => {
-                let fieldData = row[fieldName];
-                if (fieldData && typeof fieldData === "string") {
-                  fieldData = fieldData.replace(/"/g, '""'); // Escape double quotes
-                  return `"${fieldData}"`; // Wrap in double quotes
-                }
-                return JSON.stringify(fieldData, replacer);
-              })
-              .join(","),
-          ),
-        ].join("\r\n");
-        return csv;
-      } catch (error) {
-        throw err;
+      if (!data || data.length === 0) {
+        console.error("No data available to convert to CSV");
+        return "";
       }
+      const replacer = (key, value) => (value === null ? "" : value);
+      const header = Object.keys(data[0]);
+      const csv = [
+        header.join(","),
+        ...data.map((row) =>
+          header
+            .map((fieldName) => {
+              let fieldData = row[fieldName];
+              if (fieldData && typeof fieldData === "string") {
+                fieldData = fieldData.replace(/"/g, '""'); // Escape double quotes
+                return `"${fieldData}"`; // Wrap in double quotes
+              }
+              return JSON.stringify(fieldData, replacer);
+            })
+            .join(","),
+        ),
+      ].join("\r\n");
+      return csv;
     },
     downloadAsCSV() {
       const data = this.table.getData(); // Get the data the same way you do for copying
