@@ -94,13 +94,7 @@ const app = createApp({
     // Copies the table's data to the clipboard in CSV format.
     async copyResultsToClipboard() {
       try {
-        if (!this.table) {
-          throw new Error("Table is not initialized.");
-        }
         const data = this.table.getData();
-        if (!data || data.length === 0) {
-          throw new Error("No data available for copying.");
-        }
         const csv = this.dataToCsv(data);
         this.copyTextToClipboard(csv);
       } catch (error) {
