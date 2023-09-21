@@ -61,12 +61,12 @@ $diff: 0.25em;
 
 .table_card {
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6em;
+  display: grid;
+  grid-template-columns: 1.5rem 1fr;
+  gap: 0.5rem;
   overflow-x: hidden;
-  border-radius: 0.6em;
-  padding: 0.8em;
+  border-radius: 0.5em;
+  padding: 0.5em;
   border: 1px solid #e7e8ea;
   background: #ffffff;
   cursor: pointer;
@@ -82,16 +82,5 @@ $diff: 0.25em;
   &.disabled {
     background-color: #e5e6e7;
     cursor: default;
-  }
-}
-
-.table_input {
-  padding: 0.5em;
-  background-color: #ffffff;
-  color: #000000;
-  border-radius: 0.5em;
-  border: 1px solid #000000;
-  &:focus {
-    outline: 1px solid #247efe;
   }
 }
