@@ -260,10 +260,7 @@ export class NewLineagePanel implements LineagePanelView {
   }
 
   private getFilename() {
-    return path.basename(
-      window.activeTextEditor!.document.fileName,
-      ".sql",
-    );
+    return path.basename(window.activeTextEditor!.document.fileName, ".sql");
   }
 
   private getProject() {
