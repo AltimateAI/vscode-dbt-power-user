@@ -17,6 +17,9 @@
   "engines": {
     "vscode": "^1.82.0"
   },
+  "capabilities": {
+    "hoverProvider": true
+  },
   "categories": [
     "Other",
     "Programming Languages",
