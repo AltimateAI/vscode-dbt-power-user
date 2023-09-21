@@ -79,7 +79,7 @@ const HeaderSection: FunctionComponent<{ table: string }> = ({ table }) => {
         {/* {getIconByDatastoreType(datastore_type)} */}
         <div className="text-overflow">{tableName}</div>
       </div>
-      <div className="ms-2 text-primary">{schema}</div>
+      <div className="text-primary">{schema}</div>
     </div>
   );
 };
@@ -93,7 +93,7 @@ const PurposeSection: FunctionComponent<{
   const [isLoading, setIsLoading] = useState(false);
 
   return (
-    <div className="bg-blue">
+    <div className={classNames(styles.card, "bg-blue")}>
       <div className="d-flex flex-column gap-sm">
         <div className="d-flex gap-xs flex-column">
           <div className="fs-5 fw-semibold">Generate Description & Tags</div>
@@ -215,7 +215,9 @@ const ColumnSection: FunctionComponent<{
 }) => {
   const [search, setSearch] = useState("");
   return (
-    <div className="mb-0 flex-grow overflow-y-hidden bg-gray">
+    <div
+      className={classNames(styles.card, "flex-grow overflow-y-hidden bg-gray")}
+    >
       <div className="d-flex flex-column gap-sm h-100 p-2">
         <div className="d-flex align-items-center gap-xs">
           <div className="fs-5 fw-semibold">Column</div>
@@ -291,7 +293,7 @@ const TableDetails = () => {
   if (isLoading || !data) return <ComponentLoader />;
 
   return (
-    <div className="p-2 h-100 d-flex flex-column gap-md">
+    <div className="p-2 h-100 d-flex flex-column gap-md text-black">
       <HeaderSection table={selectedTable} />
       <PurposeSection tableId={data.id} purpose={data.purpose} />
       <ColumnSection

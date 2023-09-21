@@ -99,3 +99,65 @@ $diff: 0.25em;
     outline: 1px solid #247efe;
   }
 }
+
+.column_card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+  overflow-x: hidden;
+  border-radius: 0.6em;
+  padding: 0.8em;
+  border: 1px solid #e7e8ea;
+  background: #ffffff;
+  cursor: pointer;
+
+  &.selected {
+    border-color: #e38e00;
+  }
+
+  &:hover {
+    background-color: #f7faff;
+  }
+}
+
+.edit_icon {
+  $size: 1.2rem;
+  width: $size;
+  height: $size;
+  color: #8390a3;
+  &:hover {
+    color: #247efe;
+  }
+  &.active {
+    color: #247efe;
+  }
+}
+
+.expand_lineage_icon {
+  $size: 1rem;
+  background-color: #247efe;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  svg {
+    width: $size;
+    height: $size;
+  }
+}
+
+.processing_div {
+  background-color: #ffffff;
+  .gif_img {
+    max-width: 100%;
+    max-height: 90%;
+  }
+}
+
+.card {
+  box-shadow: 0 1px 2px rgba(56, 65, 74, 0.15);
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+}
