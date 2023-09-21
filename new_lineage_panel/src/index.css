@@ -23,11 +23,11 @@ body {
 }
 
 .gap-xs {
-  gap: 1em;
+  gap: 0.75rem;
 }
 
 .gap-sm {
-  gap: 1.2em;
+  gap: 1rem;
 }
 
 .p-2 {
