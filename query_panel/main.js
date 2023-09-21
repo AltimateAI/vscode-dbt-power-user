@@ -61,7 +61,6 @@ const app = createApp({
         ].join("\r\n");
         return csv;
       } catch (error) {
-        console.error("Error converting data to CSV:", error);
         throw err;
       }
     },
