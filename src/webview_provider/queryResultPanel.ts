@@ -263,11 +263,10 @@ export class QueryResultPanel implements WebviewViewProvider {
     query: string,
     queryExecution: Promise<ExecuteSQLResult>,
   ) {
-    await commands.executeCommand(
-      "workbench.view.extension.dbt_preview_results",
-    );
+    //using id to focus on the webview is more reliable than using the view title
+    await commands.executeCommand("dbtPowerUser.PreviewResults.focus");
     if (this._panel) {
-      this._panel.show(true); // Show the view
+      this._panel.show(); // Show the view
       this._panel.webview.postMessage({ command: "focus" }); // keyboard focus
       this.transmitLoading();
     }
