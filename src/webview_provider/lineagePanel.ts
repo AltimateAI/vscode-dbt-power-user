@@ -10,9 +10,7 @@ import {
 import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import {
-  ManifestCacheChangedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
+import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { ModelGraphViewPanel } from "./modelGraphViewPanel";
 import { NewLineagePanel } from "./newLineageView";
 import { AltimateRequest } from "../altimate";
@@ -24,7 +22,7 @@ export interface LineagePanelView extends WebviewViewProvider {
 
 @provideSingleton(LineagePanel)
 export class LineagePanel implements WebviewViewProvider {
-  public static readonly viewType = "dbtPowerUser.LineageView";
+  public static readonly viewType = "dbtPowerUser.Lineage";
 
   private lineagePanel: LineagePanelView | undefined;
   private panel: WebviewView | undefined;
@@ -79,7 +77,9 @@ export class LineagePanel implements WebviewViewProvider {
     this.context = context;
     this.token = token;
     this.init(
-      workspace.getConfiguration("dbt").get<boolean>("newLineagePanel", false),
+      workspace
+        .getConfiguration("dbt")
+        .get<boolean>("enableNewLineagePanel", false),
     );
     panel.webview.onDidReceiveMessage(this.handleWebviewMessage, null, []);
     const sendLineageViewEvent = () => {
@@ -109,19 +109,17 @@ export class LineagePanel implements WebviewViewProvider {
     }
 
     if (command === "setNewLineageView") {
-      await workspace.getConfiguration("dbt").update(
-        "newLineagePanel",
-        true,
-      );
+      await workspace
+        .getConfiguration("dbt")
+        .update("enableNewLineagePanel", true);
       this.init(true);
       return;
     }
 
     if (command === "setLegacyLineageView") {
-      await workspace.getConfiguration("dbt").update(
-        "newLineagePanel",
-        false,
-      );
+      await workspace
+        .getConfiguration("dbt")
+        .update("enableNewLineagePanel", false);
       this.init(false);
       return;
     }

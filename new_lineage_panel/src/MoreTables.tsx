@@ -6,6 +6,8 @@ import { createForwardEdge, createTableNode, destructTable } from "./utils";
 import { layoutElementsOnCanvas } from "./graph";
 import { LineageContext } from "./App";
 import { Tables } from "./service";
+import { Input } from "reactstrap";
+import DBTIcon from "./assets/icons/dbt.svg?react";
 
 export type TMoreTables = {
   prevTable: string;
@@ -50,15 +52,10 @@ function MoreTables() {
   const [filteredTables, setFilteredTables] = useState(tables);
   return (
     <div className="p-2 h-100 d-flex flex-column text-black">
-      <div className={styles.header}>
-        <div className="mb-2 d-flex gap-sm align-items-center">
-          <div>Tables</div>
-        </div>
-      </div>
-      <div className="mb-3" />
-      <input
+      <div className="mb-2 fw-semibold fs-5">Tables</div>
+      <Input
+        bsSize="sm"
         placeholder="Search by table name"
-        className={styles.table_input}
         onChange={(e) => {
           const _search = e.target.value.toLowerCase();
           setFilteredTables(
@@ -86,10 +83,11 @@ function MoreTables() {
                   onItemClick(t);
                 }}
               >
-                <div className="d-flex align-items-center gap-sm">
+                <DBTIcon />
+                <div className="d-flex flex-column">
                   <div className="text-overflow">{label}</div>
+                  <div className="text-primary">{schema}</div>
                 </div>
-                <div className="text-primary">{schema}</div>
               </div>
             );
           })}

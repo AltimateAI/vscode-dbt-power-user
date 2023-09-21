@@ -21,6 +21,7 @@ import { LineageContext, openFile } from "./App";
 import { Tables, downstreamTables, upstreamTables } from "./service";
 import { COLUMNS_SIDEBAR, TABLES_SIDEBAR, destructTable } from "./utils";
 import { TMoreTables } from "./MoreTables";
+import DBTIcon from "./assets/icons/dbt.svg?react";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -156,10 +157,11 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           )}
         >
           <div className={styles.table_header}>
-            <div />
-            <div className="lines-2 text-black">{label}</div>
-            <div />
-            <div className="text-muted text-overflow">{schema}</div>
+            <DBTIcon />
+            <div className="d-flex flex-column">
+              <div className="lines-2 text-black">{label}</div>
+              <div className="text-muted text-overflow">{schema}</div>
+            </div>
           </div>
           <div className="d-flex gap-sm">
             <div
