@@ -9,7 +9,7 @@ import {
 import { useReactFlow } from "reactflow";
 import styles from "./styles.module.scss";
 import classNames from "classnames";
-
+import { Button, Input } from "reactstrap";
 import {
   updateTablePurpose,
   generateDescription,
@@ -33,7 +33,6 @@ import ExpandLineageIcon from "./assets/icons/expand_lineage.svg?react";
 import EditIcon from "./assets/icons/edit.svg?react";
 import RobotLogo from "./assets/icons/robot1.svg?react";
 import RotateIcon from "./assets/icons/rotate.svg?react";
-import { Button, Input } from "./Form";
 
 const ColumnCard: FunctionComponent<{
   column: Column;
@@ -132,7 +131,7 @@ const PurposeSection: FunctionComponent<{
                 <div className="divider" />
               </>
             ) : (
-              <div className="d-flex gap-xs align-items-center">
+              <div className="d-flex gap-xs">
                 <div>Description</div>
                 <div className="spacer" />
                 <Button
@@ -223,6 +222,7 @@ const ColumnSection: FunctionComponent<{
           <div className="fs-5 fw-semibold">Column</div>
         </div>
         <Input
+          // @ts-ignore
           size="sm"
           placeholder="Search by column name"
           value={search}

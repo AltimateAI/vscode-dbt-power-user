@@ -6,22 +6,6 @@ body {
   position: relative;
 }
 
-.d-flex {
-  display: flex;
-}
-
-.flex-column {
-  flex-direction: column;
-}
-
-.align-items-start {
-  align-items: flex-start;
-}
-
-.align-items-center {
-  align-items: center;
-}
-
 .gap-xxs {
   gap: 0.2em;
 }
@@ -44,46 +28,6 @@ body {
 
 .gap-xl {
   gap: 2rem;
-}
-
-.p-2 {
-  padding: 0.5em;
-}
-
-.mb-3 {
-  margin-bottom: 0.75em;
-}
-
-.mt-3 {
-  margin-top: 0.75em;
-}
-
-.ms-3 {
-  margin-left: 0.75em;
-}
-
-.me-3 {
-  margin-right: 0.75em;
-}
-
-.mb-2 {
-  margin-bottom: 0.5em;
-}
-
-.mt-2 {
-  margin-top: 0.5em;
-}
-
-.ms-2 {
-  margin-left: 0.5em;
-}
-
-.me-2 {
-  margin-right: 0.5em;
-}
-
-.h-100 {
-  height: 100%;
 }
 
 .overflow-y {
