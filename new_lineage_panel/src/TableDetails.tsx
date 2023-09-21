@@ -265,6 +265,7 @@ const TableDetails = () => {
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
     getColumns(selectedTable).then((_data) => {
+      console.log("getColumns -> ", _data);
       _data.columns.sort((a, b) => a.name.localeCompare(b.name));
       setData(_data);
       setFilteredColumn(_data.columns);

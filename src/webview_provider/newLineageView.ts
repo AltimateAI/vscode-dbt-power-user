@@ -26,6 +26,19 @@ type Table = {
   label: string;
 };
 
+type Column = {
+  name: string;
+  rk: string;
+  datatype: string;
+  can_lineage_expand: boolean;
+  description: string;
+};
+type Columns = {
+  id: string;
+  purpose: string;
+  columns: Column[];
+};
+
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
@@ -95,6 +108,9 @@ export class NewLineagePanel implements LineagePanelView {
         tables: this.getDownstreamTables(args.params as { table: string }),
       };
     }
+    if (args.url === "getColumns") {
+      body = this.getColumns(args.params as { table: string });
+    }
     this._panel?.webview.postMessage({
       command: "response",
       args: {
@@ -105,11 +121,35 @@ export class NewLineagePanel implements LineagePanelView {
     });
   }
 
+  private getColumns({ table }: { table: string }): Columns | undefined {
+    const nodeMetaMap = this.getEvent()?.nodeMetaMap;
+    if (!nodeMetaMap) {
+      return;
+    }
+    const fileName = this.getFilename();
+    const _table = nodeMetaMap.get(fileName);
+    console.log(_table);
+    if (!_table) {
+      return;
+    }
+    return {
+      id: _table.uniqueId,
+      purpose: _table.description,
+      columns: Object.values(_table.columns).map((c) => ({
+        name: c.name,
+        rk: c.name,
+        datatype: c.data_type || "",
+        can_lineage_expand: false,
+        description: c.description,
+      })),
+    };
+  }
+
   private getConnectedTables(
     key: keyof GraphMetaMap,
     table: string,
   ): Table[] | undefined {
-    const graphMetaMap = this.getGraphMetaMap();
+    const graphMetaMap = this.getEvent()?.graphMetaMap;
     if (!graphMetaMap) {
       return;
     }
@@ -147,7 +187,7 @@ export class NewLineagePanel implements LineagePanelView {
     return this.getConnectedTables("parents", table);
   }
 
-  private getGraphMetaMap(): GraphMetaMap | undefined {
+  private getEvent(): ManifestCacheProjectAddedEvent | undefined {
     if (window.activeTextEditor === undefined || this.eventMap === undefined) {
       return;
     }
@@ -164,19 +204,22 @@ export class NewLineagePanel implements LineagePanelView {
     if (event === undefined) {
       return;
     }
-
-    return event.graphMetaMap;
+    return event;
   }
 
-  private getStartingNode() {
-    const graphMetaMap = this.getGraphMetaMap();
-    if (!graphMetaMap) {
-      return;
-    }
-    const fileName = path.basename(
+  private getFilename() {
+    return path.basename(
       window.activeTextEditor!.document.fileName,
       ".sql",
     );
+  }
+
+  private getStartingNode() {
+    const graphMetaMap = this.getEvent()?.graphMetaMap;
+    if (!graphMetaMap) {
+      return;
+    }
+    const fileName = this.getFilename();
     const dependencyNodes = graphMetaMap["parents"];
     const key = Array.from(dependencyNodes.keys()).find(
       (k) => k.endsWith(`.${fileName}`) && k.startsWith("model."),
