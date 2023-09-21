@@ -96,7 +96,7 @@ export class NewLineagePanel implements LineagePanelView {
     this.renderWebviewView(context);
   }
 
-  handleRequest(args: { url: string; id: number; params: unknown }) {
+  async handleRequest(args: { url: string; id: number; params: unknown }) {
     let body;
     if (args.url === "upstreamTables") {
       body = {
@@ -109,7 +109,7 @@ export class NewLineagePanel implements LineagePanelView {
       };
     }
     if (args.url === "getColumns") {
-      body = this.getColumns(args.params as { table: string });
+      body = await this.getColumns(args.params as { table: string });
     }
     this._panel?.webview.postMessage({
       command: "response",
@@ -121,17 +121,38 @@ export class NewLineagePanel implements LineagePanelView {
     });
   }
 
-  private getColumns({ table }: { table: string }): Columns | undefined {
+  private async getColumns({ table }: { table: string }) {
     const nodeMetaMap = this.getEvent()?.nodeMetaMap;
     if (!nodeMetaMap) {
       return;
     }
     const fileName = this.getFilename();
     const _table = nodeMetaMap.get(fileName);
-    console.log(_table);
     if (!_table) {
       return;
     }
+    const project = this.getProject();
+    if (project) {
+      const columnsFromDB = await project.getColumnsInRelation(fileName);
+      console.log(columnsFromDB);
+      if (columnsFromDB) {
+        columnsFromDB.forEach((c) => {
+          const existing_column = _table.columns[c.column];
+          if (existing_column) {
+            existing_column.data_type = existing_column.data_type || c.dtype;
+            return;
+          }
+          _table.columns[c.column] = {
+            name: c.column,
+            data_type: c.dtype,
+            description: "",
+          };
+        });
+      }
+    }
+
+    console.log(_table);
+
     return {
       id: _table.uniqueId,
       purpose: _table.description,
@@ -212,6 +233,14 @@ export class NewLineagePanel implements LineagePanelView {
       window.activeTextEditor!.document.fileName,
       ".sql",
     );
+  }
+
+  private getProject() {
+    const currentFilePath = window.activeTextEditor?.document.uri;
+    if (!currentFilePath) {
+      return;
+    }
+    return this.dbtProjectContainer.findDBTProject(currentFilePath);
   }
 
   private getStartingNode() {
