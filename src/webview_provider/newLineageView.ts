@@ -29,7 +29,6 @@ type Table = {
 
 type Column = {
   name: string;
-  rk: string;
   datatype: string;
   can_lineage_expand: boolean;
   description: string;
@@ -155,14 +154,12 @@ export class NewLineagePanel implements LineagePanelView {
       }
     }
 
-    console.log(_table);
-
     return {
       id: _table.uniqueId,
       purpose: _table.description,
       columns: Object.values(_table.columns).map((c) => ({
         name: c.name,
-        rk: c.name,
+        table: table,
         datatype: c.data_type || "",
         can_lineage_expand: false,
         description: c.description,

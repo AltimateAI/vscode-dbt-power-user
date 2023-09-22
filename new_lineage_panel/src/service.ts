@@ -3,7 +3,7 @@ import { requestExecutor } from "./App";
 export type Tables = { table: string; count: number; url: string }[];
 export type Column = {
   name: string;
-  rk: string;
+  table: string;
   datatype: string;
   can_lineage_expand: boolean;
   description: string;

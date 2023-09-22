@@ -237,10 +237,10 @@ const ColumnSection: FunctionComponent<{
         <div className="d-flex flex-column gap-sm">
           {filteredColumn.map((_column) => (
             <ColumnCard
-              key={_column.rk}
+              key={_column.name}
               column={_column}
               handleClick={() => handleColumnClick(_column)}
-              selected={_column.rk === selectedColumn}
+              selected={_column.name === selectedColumn}
             />
           ))}
         </div>
@@ -271,18 +271,18 @@ const TableDetails = () => {
     });
   }, [selectedTable]);
 
-  const handleColumnClick = async (_column: { rk: string }) => {
+  const handleColumnClick = async (_column: Column) => {
     const _nodes = flow.getNodes();
     const _edges = flow.getEdges();
     const { nodes, edges, collect_columns } = await processColumnLineage(
       _nodes,
       _edges,
-      { name: _column.rk, table: selectedTable }
+      { name: _column.name, table: _column.table }
     );
 
     flow.setNodes(nodes);
     flow.setEdges(edges);
-    setSelectedColumn(_column.rk);
+    setSelectedColumn(_column.name);
     setCollectColumns(collect_columns);
     setShowSidebar(false);
   };
