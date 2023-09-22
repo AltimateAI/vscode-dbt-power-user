@@ -73,15 +73,20 @@ body {
   font-weight: 600;
 }
 
-.panel-tabs-container {
+.top-right-container {
   position: absolute;
   top: 16px;
   right: 16px;
   display: flex;
+  gap: 16px;
+  z-index: 10;
+}
+
+.panel-tabs-container {
+  display: flex;
   background-color: #ffffff;
   border-radius: 8px;
   gap: 8px;
-  z-index: 10;
 }
 
 .panel-tab {

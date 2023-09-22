@@ -29,6 +29,7 @@ import { MoreTables, TMoreTables } from "./MoreTables";
 import { Table, downstreamTables, upstreamTables } from "./service";
 import { createNewNodesEdges, layoutElementsOnCanvas } from "./graph";
 import { TableDetails } from "./TableDetails";
+import { Button } from "reactstrap";
 
 declare const acquireVsCodeApi: () => { postMessage: (v: unknown) => void };
 
@@ -48,6 +49,9 @@ export const requestExecutor = (url: string, params: unknown) => {
 };
 export const openFile = (url: string) => {
   vscode.postMessage({ command: "openFile", args: { url } });
+};
+export const openDocs = () => {
+  vscode.postMessage({ command: "openDocs", args: {} });
 };
 
 const nodeTypes: NodeTypes = {
@@ -219,16 +223,27 @@ function App() {
 
   return (
     <div className="position-relative">
-      <div className="panel-tabs-container">
-        <div
-          className="panel-tab"
-          onClick={() => {
-            vscode.postMessage({ command: "setLegacyLineageView" });
+      <div className="top-right-container">
+        <div className="panel-tabs-container">
+          <div
+            className="panel-tab"
+            onClick={() => {
+              vscode.postMessage({ command: "setLegacyLineageView" });
+            }}
+          >
+            Legacy Panel
+          </div>
+          <div className="panel-tab-selected">New Panel(Beta)</div>
+        </div>
+        <Button
+          color="link"
+          onClick={(e) => {
+            e.stopPropagation();
+            openDocs();
           }}
         >
-          Legacy Panel
-        </div>
-        <div className="panel-tab-selected">New Panel(Beta)</div>
+          Feedback
+        </Button>
       </div>
       <LineageContext.Provider
         value={{

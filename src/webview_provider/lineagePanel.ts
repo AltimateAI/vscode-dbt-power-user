@@ -1,6 +1,7 @@
 import {
   CancellationToken,
   commands,
+  env,
   Uri,
   WebviewView,
   WebviewViewProvider,
@@ -131,6 +132,15 @@ export class LineagePanel implements WebviewViewProvider {
 
     if (command === "init") {
       this.lineagePanel?.init();
+      return;
+    }
+
+    if (command === "openDocs") {
+      env.openExternal(
+        Uri.parse(
+          "https://docs.google.com/forms/d/10_YT2XDwpbkDXio-7TEYPQXsJfCBFqYUa7t0ImzyZvE/edit",
+        ),
+      );
       return;
     }
   };
