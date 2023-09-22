@@ -17,9 +17,9 @@ import {
   getColumns,
   Columns,
   Column,
+  Table,
 } from "./service";
 import { LineageContext } from "./App";
-import { destructTable } from "./utils";
 import { processColumnLineage } from "./graph";
 
 // ui components
@@ -70,15 +70,16 @@ const ColumnCard: FunctionComponent<{
   );
 };
 
-const HeaderSection: FunctionComponent<{ table: string }> = ({ table }) => {
-  const [tableName, schema] = destructTable(table);
+const HeaderSection: FunctionComponent<{ table: Table }> = ({
+  table: { table, key },
+}) => {
   return (
     <div>
       <div className="mb-2">
         {/* {getIconByDatastoreType(datastore_type)} */}
-        <div className="fw-semibold fs-5 lines-2">{tableName}</div>
+        <div className="fw-semibold fs-5 lines-2">{table}</div>
       </div>
-      <div className="text-primary">{schema}</div>
+      <div className="text-primary">{key}</div>
     </div>
   );
 };
@@ -263,7 +264,10 @@ const TableDetails = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
-    getColumns(selectedTable).then((_data) => {
+    if (!selectedTable) {
+      return;
+    }
+    getColumns(selectedTable.table).then((_data) => {
       _data.columns.sort((a, b) => a.name.localeCompare(b.name));
       setData(_data);
       setFilteredColumn(_data.columns);
@@ -286,7 +290,7 @@ const TableDetails = () => {
     setCollectColumns(collect_columns);
     setShowSidebar(false);
   };
-  if (isLoading || !data) return <ComponentLoader />;
+  if (isLoading || !data || !selectedTable) return <ComponentLoader />;
 
   return (
     <div className="p-2 h-100 d-flex flex-column gap-md text-black overflow-y">

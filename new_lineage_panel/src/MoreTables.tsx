@@ -2,16 +2,16 @@ import { useContext, useState } from "react";
 import styles from "./styles.module.scss";
 import classNames from "classnames";
 import { useReactFlow } from "reactflow";
-import { createForwardEdge, createTableNode, destructTable } from "./utils";
+import { createForwardEdge, createTableNode } from "./utils";
 import { layoutElementsOnCanvas } from "./graph";
 import { LineageContext } from "./App";
-import { Tables } from "./service";
+import { Table } from "./service";
 import { Input } from "reactstrap";
 import DBTIcon from "./assets/icons/dbt.svg?react";
 
 export type TMoreTables = {
   prevTable: string;
-  tables: Tables;
+  tables: Table[];
   right: boolean;
   level: number;
 };
@@ -25,11 +25,7 @@ function MoreTables() {
   const [, _rerender] = useState(0);
   const rerender = () => _rerender((x) => x + 1);
 
-  const onItemClick = async (_table: {
-    table: string;
-    count: number;
-    url: string;
-  }) => {
+  const onItemClick = async (_table: Table) => {
     const { table } = _table;
     let nodes = flow.getNodes();
     let edges = flow.getEdges();
@@ -67,7 +63,6 @@ function MoreTables() {
       <div className="h-100 overflow-y">
         <div className="d-flex flex-column gap-sm">
           {filteredTables.map((t) => {
-            const [label, schema] = destructTable(t.table);
             const _node = flow.getNode(t.table);
             const isNodeOnOtherLevel = _node && _node.data.level !== level;
             return (
@@ -85,8 +80,8 @@ function MoreTables() {
               >
                 <DBTIcon />
                 <div className="d-flex flex-column">
-                  <div className="text-overflow">{label}</div>
-                  <div className="text-primary">{schema}</div>
+                  <div className="text-overflow">{t.table}</div>
+                  <div className="text-primary">{t.key}</div>
                 </div>
               </div>
             );

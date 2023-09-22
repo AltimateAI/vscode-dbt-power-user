@@ -1,4 +1,5 @@
 import { Edge, MarkerType, Node } from "reactflow";
+import { Table } from "./service";
 
 // config constants
 export const MAX_EXPAND_TABLE = 5;
@@ -71,7 +72,7 @@ export const createForwardEdge = _createEdge("right", "left", "default");
 export const createReverseEdge = _createEdge("left", "right", "default");
 
 export const createTableNode = (
-  { table, count, url }: { table: string; count: number; url: string },
+  { key, table, count, url }: Table,
   right: boolean,
   level: number,
   parent: string,
@@ -80,6 +81,7 @@ export const createTableNode = (
   return {
     id: table,
     data: {
+      key,
       table,
       url,
       level,
@@ -92,12 +94,6 @@ export const createTableNode = (
     width: T_NODE_W,
     height: T_NODE_H,
   };
-};
-
-export const destructTable = (id: string) => {
-  const splits = id.split(".");
-  const table = splits.pop() || "";
-  return [table, splits[0]];
 };
 
 export const applyEdgeStyling = (e: Edge, highlight: boolean) => {

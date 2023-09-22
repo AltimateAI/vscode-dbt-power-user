@@ -18,8 +18,8 @@ import {
   resetTableHighlights,
 } from "./graph";
 import { LineageContext, openFile } from "./App";
-import { Tables, downstreamTables, upstreamTables } from "./service";
-import { COLUMNS_SIDEBAR, TABLES_SIDEBAR, destructTable } from "./utils";
+import { Table, downstreamTables, upstreamTables } from "./service";
+import { COLUMNS_SIDEBAR, TABLES_SIDEBAR } from "./utils";
 import { TMoreTables } from "./MoreTables";
 import DBTIcon from "./assets/icons/dbt.svg?react";
 
@@ -63,7 +63,7 @@ const BidirectionalHandles = () => (
 );
 
 export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
-  const { shouldExpand, processed, table, level, url } = data;
+  const { shouldExpand, processed, table, level, url, key } = data;
   const flow = useReactFlow();
   // hack to force re-render the component
   const [, _rerender] = useState(0);
@@ -86,13 +86,13 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     flow.setEdges(edges);
   };
 
-  const expand = async (t: string, tables: Tables, right: boolean) => {
+  const expand = async (tables: Table[], right: boolean) => {
     if (processed[right ? 1 : 0]) return;
     const [nodes, edges] = createNewNodesEdges(
       flow.getNodes(),
       flow.getEdges(),
       tables,
-      t,
+      table,
       right,
       level
     );
@@ -102,21 +102,21 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     rerender();
   };
 
-  const expandRight = async (t: string) => {
-    const { tables } = await upstreamTables(t);
-    await expand(t, tables, true);
+  const expandRight = async () => {
+    const { tables } = await upstreamTables(key);
+    await expand(tables, true);
   };
 
-  const expandLeft = async (t: string) => {
-    const { tables } = await downstreamTables(t);
-    await expand(t, tables, false);
+  const expandLeft = async () => {
+    const { tables } = await downstreamTables(key);
+    await expand(tables, false);
   };
 
-  const collapse = (right: boolean) => (t: string) => {
+  const collapse = (right: boolean) => () => {
     const [nodes, edges] = removeRelatedNodesEdges(
       flow.getNodes(),
       flow.getEdges(),
-      t,
+      table,
       right,
       level
     );
@@ -136,7 +136,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     setSidebarScreen(COLUMNS_SIDEBAR);
   };
 
-  const [label, schema] = destructTable(table);
   return (
     <div className="position-relative">
       <div
@@ -159,8 +158,10 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           <div className={styles.table_header}>
             <DBTIcon />
             <div className="d-flex flex-column">
-              <div className="lines-2 text-black">{label}</div>
-              <div className="text-muted text-overflow">{schema}</div>
+              <div className="lines-2 text-black">{table}</div>
+              <div className="text-muted text-overflow">
+                {key}
+              </div>
             </div>
           </div>
           <div className="d-flex gap-sm">
@@ -195,9 +196,9 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           onClick={(e) => {
             e.stopPropagation();
             if (processed[1]) {
-              collapseRight(table);
+              collapseRight();
             } else {
-              expandRight(table);
+              expandRight();
             }
           }}
         >
@@ -214,9 +215,9 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           onClick={(e) => {
             e.stopPropagation();
             if (processed[0]) {
-              collapseLeft(table);
+              collapseLeft();
             } else {
-              expandLeft(table);
+              expandLeft();
             }
           }}
         >

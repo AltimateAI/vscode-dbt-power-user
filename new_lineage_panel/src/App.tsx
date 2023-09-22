@@ -20,7 +20,7 @@ import { SeeMoreNode, SelfConnectingEdge, TableNode } from "./CustomNodes";
 import { COLUMNS_SIDEBAR, TABLES_SIDEBAR } from "./utils";
 import { SidebarModal } from "./SidebarModal";
 import { MoreTables, TMoreTables } from "./MoreTables";
-import { downstreamTables, upstreamTables } from "./service";
+import { Table, downstreamTables, upstreamTables } from "./service";
 import { createNewNodesEdges, layoutElementsOnCanvas } from "./graph";
 import { TableDetails } from "./TableDetails";
 
@@ -50,8 +50,8 @@ const edgeTypes = { selfConnecting: SelfConnectingEdge };
 export const LineageContext = createContext<{
   showSidebar: boolean;
   setShowSidebar: Dispatch<boolean>;
-  selectedTable: string;
-  setSelectedTable: Dispatch<SetStateAction<string>>;
+  selectedTable: Table | null;
+  setSelectedTable: Dispatch<SetStateAction<Table | null>>;
   moreTables: TMoreTables | null;
   setMoreTables: Dispatch<TMoreTables>;
   sidebarScreen: string;
@@ -63,8 +63,8 @@ export const LineageContext = createContext<{
 }>({
   showSidebar: false,
   setShowSidebar: () => {},
-  selectedTable: "",
-  setSelectedTable: () => "",
+  selectedTable: null,
+  setSelectedTable: () => null,
   moreTables: null,
   setMoreTables: () => {},
   sidebarScreen: "",
@@ -77,7 +77,7 @@ export const LineageContext = createContext<{
 
 function App() {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
-  const [selectedTable, setSelectedTable] = useState("");
+  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [moreTables, setMoreTables] = useState<TMoreTables | null>(null);
   const [sidebarScreen, setSidebarScreen] = useState("");
@@ -88,6 +88,7 @@ function App() {
     const render = async (args: {
       node: {
         table: string;
+        key: string;
         url: string;
         downstreamCount: number;
         upstreamCount: number;
@@ -110,7 +111,7 @@ function App() {
         let _nodes = _flow.getNodes();
         let _edges = _flow.getEdges();
         if (level > 0 && !processed[1]) {
-          const { tables } = await upstreamTables(node.table);
+          const { tables } = await upstreamTables(node.key);
           [_nodes, _edges] = createNewNodesEdges(
             _nodes,
             _edges,
@@ -120,7 +121,7 @@ function App() {
             level
           );
         } else if (level < 0 && !processed[0]) {
-          const { tables } = await downstreamTables(node.table);
+          const { tables } = await downstreamTables(node.key);
           [_nodes, _edges] = createNewNodesEdges(
             _nodes,
             _edges,
@@ -140,6 +141,7 @@ function App() {
           id: node.table,
           data: {
             table: node.table,
+            key: node.key,
             url: node.url,
             level: 0,
             shouldExpand: [node.downstreamCount > 0, node.upstreamCount > 0],
@@ -151,7 +153,7 @@ function App() {
       ];
       let _edges: Edge[] = [];
       if (node.upstreamCount > 0) {
-        const { tables } = await upstreamTables(node.table);
+        const { tables } = await upstreamTables(node.key);
         [_nodes, _edges] = createNewNodesEdges(
           _nodes,
           _edges,
@@ -162,7 +164,7 @@ function App() {
         );
       }
       if (node.downstreamCount > 0) {
-        const { tables } = await downstreamTables(node.table);
+        const { tables } = await downstreamTables(node.key);
         [_nodes, _edges] = createNewNodesEdges(
           _nodes,
           _edges,

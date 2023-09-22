@@ -20,12 +20,12 @@ import {
   T_NODE_H,
   T_NODE_W,
 } from "./utils";
-import { getConnectedColumns } from "./service";
+import { getConnectedColumns, Table } from "./service";
 
 export const createNewNodesEdges = (
   prevNodes: Node[],
   prevEdges: Edge[],
-  tables: { table: string; count: number; url: string }[],
+  tables: Table[],
   t: string,
   right: boolean,
   level: number,
