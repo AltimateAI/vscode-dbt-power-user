@@ -193,8 +193,7 @@ function App() {
     };
     const response = (args: {
       id: number;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      body: any;
+      body: unknown;
       status: boolean;
       error: string;
     }) => {
@@ -206,13 +205,12 @@ function App() {
       }
       delete requestMap[args.id];
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const commandMap: Record<string, (a: any) => void> = { render, response };
+    const commandMap = { render, response };
     window.addEventListener("message", (event) => {
       console.log("lineage:message -> ", event);
       const { command, args } = event.data;
       if ((command as string) in commandMap) {
-        commandMap[command](args);
+        commandMap[command as keyof typeof commandMap](args);
       }
     });
     console.log("lineage:onload -> ");
