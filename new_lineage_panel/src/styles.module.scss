@@ -151,3 +151,19 @@ $diff: 0.25em;
   font-size: 0.8em;
   color: #082247;
 }
+
+.column_node {
+  border: 1px solid #247efe;
+  background: #e9f2ff;
+  color: #247efe;
+  width: calc($node-width - 24px);
+  border-radius: 0.25em;
+  padding: 4px 8px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  &.selected {
+    background: #247efe;
+    color: #ffffff;
+  }
+}

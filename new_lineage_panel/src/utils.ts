@@ -39,10 +39,9 @@ export const highlightMarker = {
   color: HIGHLIGHT_COLOR,
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-export const isColumn = (_: any) => false;
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-export const isNotColumn = (_: any) => true;
+export const isColumn = (x: { id: string }) => x.id.startsWith(COLUMN_PREFIX);
+export const isNotColumn = (x: { id: string }) =>
+  !x.id.startsWith(COLUMN_PREFIX);
 
 const _createEdge =
   (sourceHandle: string, targetHandle: string, edgeType: string) =>

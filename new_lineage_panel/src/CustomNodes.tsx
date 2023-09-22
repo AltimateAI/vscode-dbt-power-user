@@ -265,3 +265,19 @@ export const SelfConnectingEdge: FunctionComponent<EdgeProps> = (props) => {
 
   return <BaseEdge path={edgePath} markerEnd={markerEnd} />;
 };
+
+export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
+  const { column, table } = data;
+  const { selectedColumn } = useContext(LineageContext);
+
+  return (
+    <div
+      className={classNames(styles.column_node, {
+        [styles.selected]: selectedColumn === `${table}/${column}`,
+      })}
+    >
+      {column}
+      <BidirectionalHandles />
+    </div>
+  );
+};

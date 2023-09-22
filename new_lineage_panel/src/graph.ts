@@ -317,10 +317,8 @@ export const processColumnLineage = async (
   edges.forEach((_e) => (_e.style = defaultEdgeStyle));
 
   for (const e of highlightEdges) {
-    // const [t0] = destructColumn(e[0]);
-    // const [t1] = destructColumn(e[1]);
-    const t0 = e[0];
-    const t1 = e[1];
+    const [t0] = e[0].split("/");
+    const [t1] = e[1].split("/");
     const [sourceHandle, targetHandle] = levelMap[t1] > levelMap[t0]
       ? ["right", "left"]
       : ["left", "right"];

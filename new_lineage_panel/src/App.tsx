@@ -17,7 +17,12 @@ import ReactFlow, {
   ReactFlowProvider,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { SeeMoreNode, SelfConnectingEdge, TableNode } from "./CustomNodes";
+import {
+  ColumnNode,
+  SeeMoreNode,
+  SelfConnectingEdge,
+  TableNode,
+} from "./CustomNodes";
 import { COLUMNS_SIDEBAR, TABLES_SIDEBAR } from "./utils";
 import { SidebarModal } from "./SidebarModal";
 import { MoreTables, TMoreTables } from "./MoreTables";
@@ -45,7 +50,11 @@ export const openFile = (url: string) => {
   vscode.postMessage({ command: "openFile", args: { url } });
 };
 
-const nodeTypes: NodeTypes = { table: TableNode, seeMore: SeeMoreNode };
+const nodeTypes: NodeTypes = {
+  table: TableNode,
+  seeMore: SeeMoreNode,
+  column: ColumnNode,
+};
 const edgeTypes = { selfConnecting: SelfConnectingEdge };
 
 export const LineageContext = createContext<{
@@ -78,7 +87,10 @@ export const LineageContext = createContext<{
 
 function App() {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
-  const [selectedTable, setSelectedTable] = useState<Omit<Table, "count"> | null>(null);
+  const [selectedTable, setSelectedTable] = useState<Omit<
+    Table,
+    "count"
+  > | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [moreTables, setMoreTables] = useState<TMoreTables | null>(null);
   const [sidebarScreen, setSidebarScreen] = useState("");
