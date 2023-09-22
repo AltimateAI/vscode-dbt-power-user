@@ -9,6 +9,7 @@ import {
   WebviewView,
   WebviewViewResolveContext,
   window,
+  workspace,
 } from "vscode";
 import { TelemetryService } from "../telemetry";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -16,7 +17,7 @@ import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
-import { GraphMetaMap } from "../domain";
+import { GraphMetaMap, NodeMetaData } from "../domain";
 import { LineagePanelView } from "./lineagePanel";
 import { AltimateRequest } from "../altimate";
 
@@ -174,24 +175,40 @@ export class NewLineagePanel implements LineagePanelView {
     if (!nodeMetaMap) {
       return;
     }
-    const _table = nodeMetaMap.get(table);
-    if (!_table) {
-      return;
-    }
     const project = this.getProject();
     if (!project) {
       return;
     }
-    const compiledSql = await project.compileQuery(
-      window.activeTextEditor!.document.getText(),
-    );
-    console.log("column lineage request -> ", _table, compiledSql);
-    const resp = await this.altimate.getColumnLevelLineage({
-      model_name: _table.alias,
-      compiled_sqls: { current_model: compiledSql || "", child: {} },
-      model_node: _table,
+    const visibleTables: Record<string, NodeMetaData> = {};
+    const addToVisibleTables = (t: string) => {
+      if (t in visibleTables) {
+        return;
+      }
+      const node = nodeMetaMap.get(t);
+      if (!node) {
+        return;
+      }
+      visibleTables[t] = node;
+    };
+    edges.forEach((e) => {
+      addToVisibleTables(e.src);
+      addToVisibleTables(e.dst);
     });
-    console.log("column lineage response -> ", resp);
+    const result = await Promise.all(
+      Object.values(visibleTables).map(async (node) => {
+        const uri = Uri.file(node.path);
+        const data = await workspace.fs.readFile(uri);
+        const fileContent = Buffer.from(data).toString("utf8");
+        const compiledSql = await project.compileQuery(fileContent);
+        const resp = await this.altimate.getColumnLevelLineage({
+          model_name: node.alias,
+          compiled_sqls: { current_model: compiledSql || "", child: {} },
+          model_node: node,
+        });
+        return resp;
+      }),
+    );
+    console.log("column lineage -> ", result);
   }
 
   private getConnectedTables(
