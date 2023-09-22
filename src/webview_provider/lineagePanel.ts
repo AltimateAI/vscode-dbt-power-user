@@ -6,13 +6,12 @@ import {
   WebviewViewProvider,
   WebviewViewResolveContext,
   workspace,
+  env,
 } from "vscode";
 import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import {
-  ManifestCacheChangedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
+import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { ModelGraphViewPanel } from "./modelGraphViewPanel";
 import { NewLineagePanel } from "./newLineageView";
 
@@ -76,7 +75,9 @@ export class LineagePanel implements WebviewViewProvider {
     this.context = context;
     this.token = token;
     this.init(
-      workspace.getConfiguration("dbt").get<boolean>("enableNewLineagePanel", false),
+      workspace
+        .getConfiguration("dbt")
+        .get<boolean>("enableNewLineagePanel", false),
     );
     panel.webview.onDidReceiveMessage(this.handleWebviewMessage, null, []);
     const sendLineageViewEvent = () => {
@@ -106,19 +107,17 @@ export class LineagePanel implements WebviewViewProvider {
     }
 
     if (command === "setNewLineageView") {
-      await workspace.getConfiguration("dbt").update(
-        "enableNewLineagePanel",
-        true,
-      );
+      await workspace
+        .getConfiguration("dbt")
+        .update("enableNewLineagePanel", true);
       this.init(true);
       return;
     }
 
     if (command === "setLegacyLineageView") {
-      await workspace.getConfiguration("dbt").update(
-        "enableNewLineagePanel",
-        false,
-      );
+      await workspace
+        .getConfiguration("dbt")
+        .update("enableNewLineagePanel", false);
       this.init(false);
       return;
     }
@@ -130,6 +129,11 @@ export class LineagePanel implements WebviewViewProvider {
 
     if (command === "init") {
       this.lineagePanel?.init();
+      return;
+    }
+
+    if (command === "openDocs") {
+      env.openExternal(Uri.parse("https://www.google.com"));
       return;
     }
   };
