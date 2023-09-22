@@ -92,6 +92,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     );
 
   const highlightTable = () => {
+    if (selectedColumn) return;
     const _nodes = flow.getNodes();
     const _edges = flow.getEdges();
     const [nodes, edges] = selected
