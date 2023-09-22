@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import ReactFlow, {
+  MiniMap,
   Background,
   Controls,
   Edge,
@@ -235,6 +236,7 @@ function App() {
             >
               <Background />
               <Controls />
+              <MiniMap />
             </ReactFlow>
           </div>
           <SidebarModal
