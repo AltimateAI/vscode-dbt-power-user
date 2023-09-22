@@ -223,7 +223,7 @@ function App() {
             openDocs();
           }}
         >
-          Docs
+          Feedback
         </Button>
       </div>
       <LineageContext.Provider

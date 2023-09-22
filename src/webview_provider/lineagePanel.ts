@@ -1,12 +1,12 @@
 import {
   CancellationToken,
   commands,
+  env,
   Uri,
   WebviewView,
   WebviewViewProvider,
   WebviewViewResolveContext,
   workspace,
-  env,
 } from "vscode";
 import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
@@ -133,7 +133,11 @@ export class LineagePanel implements WebviewViewProvider {
     }
 
     if (command === "openDocs") {
-      env.openExternal(Uri.parse("https://www.google.com"));
+      env.openExternal(
+        Uri.parse(
+          "https://docs.google.com/forms/d/10_YT2XDwpbkDXio-7TEYPQXsJfCBFqYUa7t0ImzyZvE/edit",
+        ),
+      );
       return;
     }
   };
