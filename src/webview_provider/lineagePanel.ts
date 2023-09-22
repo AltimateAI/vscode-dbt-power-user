@@ -14,6 +14,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { ModelGraphViewPanel } from "./modelGraphViewPanel";
 import { NewLineagePanel } from "./newLineageView";
+import { inject } from "inversify";
 
 export interface LineagePanelView extends WebviewViewProvider {
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void;
@@ -32,7 +33,11 @@ export class LineagePanel implements WebviewViewProvider {
   private manifestEvent: ManifestCacheChangedEvent | undefined;
 
   public constructor(
-    private dbtProjectContainer: DBTProjectContainer,
+    @inject("Factory<NewLineagePanel>")
+    private newLineageFactory: () => NewLineagePanel,
+    @inject("Factory<ModelGraphViewPanel>")
+    private legacyLineageFactory: () => ModelGraphViewPanel,
+    dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
   ) {
     dbtProjectContainer.onManifestChanged((event) => {
@@ -44,17 +49,9 @@ export class LineagePanel implements WebviewViewProvider {
 
   private init = async (newLineagePanel: boolean) => {
     console.log("abstract:init -> ");
-    if (newLineagePanel) {
-      this.lineagePanel = new NewLineagePanel(
-        this.dbtProjectContainer,
-        this.telemetry,
-      );
-    } else {
-      this.lineagePanel = new ModelGraphViewPanel(
-        this.dbtProjectContainer,
-        this.telemetry,
-      );
-    }
+    this.lineagePanel = newLineagePanel
+      ? this.newLineageFactory()
+      : this.legacyLineageFactory();
     await this.lineagePanel?.resolveWebviewView(
       this.panel!,
       this.context!,
