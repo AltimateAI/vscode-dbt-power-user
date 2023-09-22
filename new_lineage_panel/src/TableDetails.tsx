@@ -79,7 +79,7 @@ const HeaderSection: FunctionComponent<{ table: Table }> = ({
         {/* {getIconByDatastoreType(datastore_type)} */}
         <div className="fw-semibold fs-5 lines-2">{table}</div>
       </div>
-      <div className="text-primary">{key}</div>
+      <div className="text-primary">{key.split(".")?.[0]}</div>
     </div>
   );
 };

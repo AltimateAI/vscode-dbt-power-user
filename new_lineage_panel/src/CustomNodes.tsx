@@ -160,7 +160,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             <div className="d-flex flex-column">
               <div className="lines-2 text-black">{table}</div>
               <div className="text-muted text-overflow">
-                {key}
+                {key.split(".")?.[0]}
               </div>
             </div>
           </div>
