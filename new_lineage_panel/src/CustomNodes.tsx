@@ -72,9 +72,11 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const { selectedTable, setSelectedTable, setShowSidebar, setSidebarScreen } =
     useContext(LineageContext);
 
-  const selected = selectedTable === table;
+  const selected = selectedTable?.table === table;
   const toggleTableSelection = () =>
-    setSelectedTable((prev) => (prev === table ? "" : table));
+    setSelectedTable((prev) =>
+      prev?.table === table ? null : { table, key, url }
+    );
 
   const highlightTable = () => {
     const _nodes = flow.getNodes();

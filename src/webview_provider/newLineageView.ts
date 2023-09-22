@@ -163,7 +163,7 @@ export class NewLineagePanel implements LineagePanelView {
         datatype: c.data_type || "",
         can_lineage_expand: false,
         description: c.description,
-      })),
+      })).sort((a, b) => a.name.localeCompare(b.name)),
     };
   }
 

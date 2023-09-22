@@ -50,8 +50,8 @@ const edgeTypes = { selfConnecting: SelfConnectingEdge };
 export const LineageContext = createContext<{
   showSidebar: boolean;
   setShowSidebar: Dispatch<boolean>;
-  selectedTable: Table | null;
-  setSelectedTable: Dispatch<SetStateAction<Table | null>>;
+  selectedTable: Omit<Table, "count"> | null;
+  setSelectedTable: Dispatch<SetStateAction<Omit<Table, "count"> | null>>;
   moreTables: TMoreTables | null;
   setMoreTables: Dispatch<TMoreTables>;
   sidebarScreen: string;
@@ -77,7 +77,7 @@ export const LineageContext = createContext<{
 
 function App() {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
-  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+  const [selectedTable, setSelectedTable] = useState<Omit<Table, "count"> | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [moreTables, setMoreTables] = useState<TMoreTables | null>(null);
   const [sidebarScreen, setSidebarScreen] = useState("");

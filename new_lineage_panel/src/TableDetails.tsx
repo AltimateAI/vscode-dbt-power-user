@@ -17,7 +17,6 @@ import {
   getColumns,
   Columns,
   Column,
-  Table,
 } from "./service";
 import { LineageContext } from "./App";
 import { processColumnLineage } from "./graph";
@@ -70,8 +69,9 @@ const ColumnCard: FunctionComponent<{
   );
 };
 
-const HeaderSection: FunctionComponent<{ table: Table }> = ({
-  table: { table, key },
+const HeaderSection: FunctionComponent<{ table: string; tableKey: string }> = ({
+  table,
+  tableKey,
 }) => {
   return (
     <div>
@@ -79,7 +79,7 @@ const HeaderSection: FunctionComponent<{ table: Table }> = ({
         {/* {getIconByDatastoreType(datastore_type)} */}
         <div className="fw-semibold fs-5 lines-2">{table}</div>
       </div>
-      <div className="text-primary">{key.split(".")?.[0]}</div>
+      <div className="text-primary">{tableKey.split(".")?.[0]}</div>
     </div>
   );
 };
@@ -268,7 +268,6 @@ const TableDetails = () => {
       return;
     }
     getColumns(selectedTable.table).then((_data) => {
-      _data.columns.sort((a, b) => a.name.localeCompare(b.name));
       setData(_data);
       setFilteredColumn(_data.columns);
       setIsLoading(false);
@@ -294,7 +293,7 @@ const TableDetails = () => {
 
   return (
     <div className="p-2 h-100 d-flex flex-column gap-md text-black overflow-y">
-      <HeaderSection table={selectedTable} />
+      <HeaderSection table={selectedTable.table} tableKey={selectedTable.key} />
       <PurposeSection tableId={data.id} purpose={data.purpose} />
       <ColumnSection
         selectedColumn={selectedColumn}
