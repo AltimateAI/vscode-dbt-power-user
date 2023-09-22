@@ -285,7 +285,7 @@ const TableDetails = () => {
 
     flow.setNodes(nodes);
     flow.setEdges(edges);
-    setSelectedColumn(_column.name);
+    setSelectedColumn(_column);
     setCollectColumns(collectColumns);
     setShowSidebar(false);
   };
@@ -296,7 +296,7 @@ const TableDetails = () => {
       <HeaderSection table={selectedTable.table} tableKey={selectedTable.key} />
       <PurposeSection tableId={data.id} purpose={data.purpose} />
       <ColumnSection
-        selectedColumn={selectedColumn}
+        selectedColumn={selectedColumn.name}
         filteredColumn={filteredColumn}
         setFilteredColumn={setFilteredColumn}
         columns={data.columns}

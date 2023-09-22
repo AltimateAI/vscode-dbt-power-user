@@ -14,6 +14,7 @@ import {
   createNewNodesEdges,
   highlightTableConnections,
   layoutElementsOnCanvas,
+  processColumnLineage,
   removeRelatedNodesEdges,
   resetTableHighlights,
 } from "./graph";
@@ -81,6 +82,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     setSidebarScreen,
     collectColumns,
     selectedColumn,
+    setCollectColumns
   } = useContext(LineageContext);
 
   const _columnLen = Object.keys(collectColumns[table] || {}).length;
@@ -104,7 +106,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
   const expand = async (tables: Table[], right: boolean) => {
     if (processed[right ? 1 : 0]) return;
-    const [nodes, edges] = createNewNodesEdges(
+    let [nodes, edges] = createNewNodesEdges(
       flow.getNodes(),
       flow.getEdges(),
       tables,
@@ -112,6 +114,28 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
       right,
       level
     );
+    if (selectedColumn) {
+      const {
+        nodes: _nodes,
+        edges: _edges,
+        collectColumns,
+      } = await processColumnLineage(
+        nodes,
+        edges,
+        selectedColumn
+      );
+      nodes = _nodes;
+      edges = _edges;
+      setCollectColumns(collectColumns);
+    } else if (selectedTable) {
+      const [_nodes, _edges] = highlightTableConnections(
+        nodes,
+        edges,
+        selectedTable.table
+      );
+      nodes = _nodes;
+      edges = _edges;
+    }
     layoutElementsOnCanvas(nodes, edges);
     flow.setNodes(nodes);
     flow.setEdges(edges);
@@ -301,7 +325,7 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
   return (
     <div
       className={classNames(styles.column_node, {
-        [styles.selected]: selectedColumn === `${table}/${column}`,
+        [styles.selected]: selectedColumn.table === table && selectedColumn.name === column,
       })}
     >
       {column}

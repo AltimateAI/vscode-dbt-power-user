@@ -70,8 +70,8 @@ export const LineageContext = createContext<{
   setMoreTables: Dispatch<TMoreTables>;
   sidebarScreen: string;
   setSidebarScreen: Dispatch<string>;
-  selectedColumn: string;
-  setSelectedColumn: Dispatch<SetStateAction<string>>;
+  selectedColumn: { name: string; table: string };
+  setSelectedColumn: Dispatch<SetStateAction<{ name: string; table: string }>>;
   collectColumns: Record<string, string[]>;
   setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>;
 }>({
@@ -83,7 +83,7 @@ export const LineageContext = createContext<{
   setMoreTables: () => {},
   sidebarScreen: "",
   setSidebarScreen: () => {},
-  selectedColumn: "",
+  selectedColumn: { name: "", table: "" },
   setSelectedColumn: () => "",
   collectColumns: {},
   setCollectColumns: () => {},
@@ -98,7 +98,7 @@ function App() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [moreTables, setMoreTables] = useState<TMoreTables | null>(null);
   const [sidebarScreen, setSidebarScreen] = useState("");
-  const [selectedColumn, setSelectedColumn] = useState("");
+  const [selectedColumn, setSelectedColumn] = useState({ name: "", table: "" });
   const [collectColumns, setCollectColumns] = useState({});
 
   useEffect(() => {
