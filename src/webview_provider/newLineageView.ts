@@ -258,6 +258,9 @@ export class NewLineagePanel implements LineagePanelView {
       (c) => columnLineages.filter((x) => x.dst === c).map((x) => x.src),
       (t1, t2) => [t2, t1],
     );
+    for (const t in collectColumns) {
+      collectColumns[t] = [...new Set(collectColumns[t])];
+    }
 
     console.log(
       "column lineage -> ",
