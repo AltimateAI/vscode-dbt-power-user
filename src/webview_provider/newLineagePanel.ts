@@ -26,7 +26,6 @@ import { LineagePanelView } from "./lineagePanel";
 import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { PythonException } from "python-bridge";
-import { AbortError } from "node-fetch";
 
 type Table = {
   key: string;
@@ -465,7 +464,7 @@ export class NewLineagePanel implements LineagePanelView {
         result as {},
       );
     } catch (error) {
-      if (error instanceof AbortError) {
+      if (error instanceof Error && error.name === "AbortError") {
         window.showErrorMessage("Fetching column level lineage timed out.");
         this.telemetry.sendTelemetryError(
           "columnLevelLineageRequestTimeout",

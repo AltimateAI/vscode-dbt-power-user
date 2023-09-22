@@ -111,6 +111,10 @@ export class DBTProjectContainer implements Disposable {
     this.context = context;
   }
 
+  get dbtDetected(): boolean {
+    return this.dbtClient.dbtDetected || false;
+  }
+
   async initializeDBTProjects(): Promise<void> {
     const folders = workspace.workspaceFolders;
     if (folders === undefined) {

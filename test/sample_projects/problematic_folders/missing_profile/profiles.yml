@@ -1,0 +1,9 @@
+everything_else:
+    target: dev
+    outputs:
+        dev:
+            database: myapp_dev
+            username: myapp
+            password: myapp
+            host: localhost
+            port: 5432
