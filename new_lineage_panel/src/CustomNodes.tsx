@@ -114,7 +114,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
       right,
       level
     );
-    if (selectedColumn) {
+    if (selectedColumn.name) {
       const {
         nodes: _nodes,
         edges: _edges,
@@ -180,7 +180,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     <div
       className="position-relative"
       style={{
-        opacity: !selectedColumn ? 1 : _showColumns ? 1 : 0.5,
+        opacity: !selectedColumn.name ? 1 : _showColumns ? 1 : 0.5,
       }}
     >
       <div

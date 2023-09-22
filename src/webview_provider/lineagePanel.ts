@@ -91,6 +91,7 @@ export class LineagePanel implements WebviewViewProvider {
     args: any;
   }) => {
     const { command, args } = message;
+    console.log("host:handleWebviewMessage -> ", command, args);
     if (command === "openFile") {
       const { url } = args;
       if (!url) {
