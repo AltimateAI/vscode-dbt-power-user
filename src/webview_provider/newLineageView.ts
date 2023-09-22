@@ -98,34 +98,28 @@ export class NewLineagePanel implements LineagePanelView {
   }
 
   async handleRequest(args: { url: string; id: number; params: unknown }) {
-    let body;
-    if (args.url === "upstreamTables") {
-      body = {
-        tables: this.getUpstreamTables(args.params as { table: string }),
-      };
+    const { id, url, params } = args;
+    const urlFnMap = {
+      upstreamTables: this.getUpstreamTables,
+      downstreamTables: this.getDownstreamTables,
+      getColumns: this.getColumns,
+      getConnectedColumns: this.getConnectedColumns,
+    };
+    if (!(url in urlFnMap)) {
+      this._panel?.webview.postMessage({
+        command: "response",
+        args: { id, status: false, error: "url not found" },
+      });
+      return;
     }
-    if (args.url === "downstreamTables") {
-      body = {
-        tables: this.getDownstreamTables(args.params as { table: string }),
-      };
-    }
-    if (args.url === "getColumns") {
-      body = await this.getColumns(args.params as { table: string });
-    }
-    if (args.url === "getConnectedColumns") {
-      body = await this.getConnectedColumns(args.params as any);
-    }
+    const body = await urlFnMap[url as keyof typeof urlFnMap](params as any);
     this._panel?.webview.postMessage({
       command: "response",
-      args: {
-        id: args.id,
-        body,
-        status: true,
-      },
+      args: { id, body, status: true },
     });
   }
 
-  private async getColumns({ table }: { table: string }) {
+  private getColumns = async ({ table }: { table: string }) => {
     const nodeMetaMap = this.getEvent()?.nodeMetaMap;
     if (!nodeMetaMap) {
       return;
@@ -165,11 +159,15 @@ export class NewLineagePanel implements LineagePanelView {
         description: c.description,
       })).sort((a, b) => a.name.localeCompare(b.name)),
     };
-  }
+  };
 
-  private async getConnectedColumns(
-    { table, column }: { table: string; column: string },
-  ) {
+  private getConnectedColumns = async (
+    { table, column, edges }: {
+      table: string;
+      column: string;
+      edges: { src: string; dst: string }[];
+    },
+  ) => {
     const nodeMetaMap = this.getEvent()?.nodeMetaMap;
     if (!nodeMetaMap) {
       return;
@@ -192,12 +190,12 @@ export class NewLineagePanel implements LineagePanelView {
       model_node: _table,
     });
     console.log("column lineage response -> ", resp);
-  }
+  };
 
-  private getConnectedTables(
+  private getConnectedTables = (
     key: keyof GraphMetaMap,
     table: string,
-  ): Table[] | undefined {
+  ): Table[] | undefined => {
     const graphMetaMap = this.getEvent()?.graphMetaMap;
     if (!graphMetaMap) {
       return;
@@ -226,15 +224,15 @@ export class NewLineagePanel implements LineagePanelView {
     return Array.from(tables.values()).sort((a, b) =>
       a.table.localeCompare(b.table)
     );
-  }
+  };
 
-  private getUpstreamTables({ table }: { table: string }) {
-    return this.getConnectedTables("children", table);
-  }
+  private getUpstreamTables = ({ table }: { table: string }) => {
+    return { tables: this.getConnectedTables("children", table) };
+  };
 
-  private getDownstreamTables({ table }: { table: string }) {
-    return this.getConnectedTables("parents", table);
-  }
+  private getDownstreamTables = ({ table }: { table: string }) => {
+    return { tables: this.getConnectedTables("parents", table) };
+  };
 
   private getEvent(): ManifestCacheProjectAddedEvent | undefined {
     if (window.activeTextEditor === undefined || this.eventMap === undefined) {
