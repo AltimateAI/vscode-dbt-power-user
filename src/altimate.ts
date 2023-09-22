@@ -8,9 +8,9 @@ interface AltimateConfig {
   instance: string;
 }
 
-interface ColumnLineageResponse {
-  collect_columns: { [k: string]: string[] };
-  highlight_edges: [string, string][];
+export interface ColumnLineage {
+  source: [string, string];
+  target: [string, string];
 }
 
 interface Schemas {
@@ -159,9 +159,9 @@ export class AltimateRequest {
   }
 
   async getColumnLevelLineage(req: DBTColumnLineageRequest) {
-    return this.fetch<ColumnLineageResponse>("dbt/v1/lineage", {
-      method: "POST",
-      body: JSON.stringify(req),
-    });
+    return this.fetch<ColumnLineage[]>(
+      "dbt/v1/lineage",
+      { method: "POST", body: JSON.stringify(req) },
+    );
   }
 }

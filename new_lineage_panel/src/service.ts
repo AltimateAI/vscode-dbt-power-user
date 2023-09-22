@@ -19,8 +19,8 @@ export type Columns = {
   columns: Column[];
 };
 interface ColumnLineageResponse {
-  collect_columns: Record<string, string[]>;
-  highlight_edges: [string, string][];
+  collectColumns: Record<string, string[]>;
+  highlightEdges: [string, string][];
 }
 
 export const upstreamTables = (tableKey: string) => {

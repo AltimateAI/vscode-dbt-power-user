@@ -277,7 +277,7 @@ const TableDetails = () => {
   const handleColumnClick = async (_column: Column) => {
     const _nodes = flow.getNodes();
     const _edges = flow.getEdges();
-    const { nodes, edges, collect_columns } = await processColumnLineage(
+    const { nodes, edges, collectColumns } = await processColumnLineage(
       _nodes,
       _edges,
       { name: _column.name, table: _column.table }
@@ -286,7 +286,7 @@ const TableDetails = () => {
     flow.setNodes(nodes);
     flow.setEdges(edges);
     setSelectedColumn(_column.name);
-    setCollectColumns(collect_columns);
+    setCollectColumns(collectColumns);
     setShowSidebar(false);
   };
   if (isLoading || !data || !selectedTable) return <ComponentLoader />;

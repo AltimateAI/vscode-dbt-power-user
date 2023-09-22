@@ -188,6 +188,9 @@ export class NewLineagePanel implements LineagePanelView {
       if (!node) {
         return;
       }
+      if (node.config.materialized === "seed") {
+        return;
+      }
       visibleTables[t] = node;
     };
     edges.forEach((e) => {
@@ -208,7 +211,61 @@ export class NewLineagePanel implements LineagePanelView {
         return resp;
       }),
     );
-    console.log("column lineage -> ", result);
+    const columnLineages = result.flat().filter((e) => !!e).map((e) => ({
+      src: e!.source.join("/"),
+      dst: e!.target.join("/"),
+    }));
+    // collect_columns is a map from table to columns. This is to show columns in each table node
+    const collectColumns: Record<string, string[]> = {};
+    // highlightEdges contains edges of column lineage connection
+    const highlightEdges: [string, string][] = [];
+
+    // Performing BFS traversal only in ONE direction (upstream/downstream)
+    // Because too many columns showing in the presence of a super popular column
+
+    const bfsTraversal = (
+      connectedColumns: (column: string) => string[],
+      createEdge: (t1: string, t2: string) => [string, string],
+    ) => {
+      const queue: string[] = [table + "/" + column];
+      const visited: Record<string, boolean> = {};
+      let i = 0;
+      const MAX_ITERATION_LIMIT = 1000; // Define your maximum iteration limit here
+
+      while (queue.length > 0 && i < MAX_ITERATION_LIMIT) {
+        i += 1;
+        const curr = queue.shift()!;
+        visited[curr] = true;
+        const [table, column] = curr.split("/");
+        collectColumns[table] = collectColumns[table] || [];
+        collectColumns[table].push(column);
+        for (const c of connectedColumns(curr)) {
+          const [_t, _] = c.split("/");
+          if (visited[c]) {
+            continue;
+          }
+          queue.push(c);
+          highlightEdges.push(createEdge(curr, c));
+        }
+      }
+    };
+
+    bfsTraversal(
+      (c) => columnLineages.filter((x) => x.src === c).map((x) => x.dst),
+      (t1, t2) => [t1, t2],
+    );
+    bfsTraversal(
+      (c) => columnLineages.filter((x) => x.dst === c).map((x) => x.src),
+      (t1, t2) => [t2, t1],
+    );
+
+    console.log(
+      "column lineage -> ",
+      columnLineages,
+      collectColumns,
+      highlightEdges,
+    );
+    return { collectColumns, highlightEdges };
   }
 
   private getConnectedTables(

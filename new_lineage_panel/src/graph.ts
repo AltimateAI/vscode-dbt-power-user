@@ -292,16 +292,16 @@ export const processColumnLineage = async (
   }
 
   console.log("this is reaching -> ");
-  const { collect_columns, highlight_edges } = await getConnectedColumns({
+  const { collectColumns, highlightEdges } = await getConnectedColumns({
     column: column.name,
     table: column.table,
     edges: edgesPayload,
   });
 
-  for (const t in collect_columns) {
+  for (const t in collectColumns) {
     if (!tableNodes[t]) continue;
-    collect_columns[t].sort();
-    for (const c of collect_columns[t]) {
+    collectColumns[t].sort();
+    for (const c of collectColumns[t]) {
       nodes.push({
         id: COLUMN_PREFIX + `${t}/${c}`,
         data: { column: c, table: t },
@@ -316,7 +316,7 @@ export const processColumnLineage = async (
 
   edges.forEach((_e) => (_e.style = defaultEdgeStyle));
 
-  for (const e of highlight_edges) {
+  for (const e of highlightEdges) {
     // const [t0] = destructColumn(e[0]);
     // const [t1] = destructColumn(e[1]);
     const t0 = e[0];
@@ -367,5 +367,5 @@ export const processColumnLineage = async (
 
   layoutElementsOnCanvas(nodes, edges);
 
-  return { nodes, edges, collect_columns };
+  return { nodes, edges, collectColumns };
 };
