@@ -27,6 +27,7 @@ We warmly welcome contributions from our active community! If you're interested 
 
       ```bash
       npm install
+      npm run install:panels
       ```
 
    1. **Start Debugging:** In the Visual Studio Code interface, navigate to the "Run and Debug" sidebar. Click on "Launch Extension" to start the debugging process. This will open a new window with the dbt Power User extension installed. During this debug session, the existing installation of dbt-power-user will be overridden, allowing you to test your changes without affecting the installed extension.
