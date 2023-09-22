@@ -464,7 +464,8 @@
     "deploy-vscode": "vsce publish",
     "build-vsix": "vsce package",
     "deploy-openvsx": "ovsx publish",
-    "panel:lineage": "npm run build --prefix ./new_lineage_panel"
+    "panel:lineage": "npm run build --prefix ./new_lineage_panel",
+    "install:panels": "npm install --prefix ./new_lineage_panel"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
