@@ -111,9 +111,9 @@ export class ModelGraphViewPanel implements LineagePanelView {
       return;
     }
     const theme = [
-        ColorThemeKind.Light,
-        ColorThemeKind.HighContrastLight,
-      ].includes(window.activeColorTheme.kind)
+      ColorThemeKind.Light,
+      ColorThemeKind.HighContrastLight,
+    ].includes(window.activeColorTheme.kind)
       ? "light"
       : "dark";
     await this._panel.webview.postMessage({
@@ -141,7 +141,7 @@ export class ModelGraphViewPanel implements LineagePanelView {
   private setupWebviewOptions(context: WebviewViewResolveContext) {
     this._panel!.title = "";
     this._panel!.description = "View dbt graph";
-    this._panel!.webview.options = <WebviewOptions> { enableScripts: true };
+    this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
@@ -171,9 +171,8 @@ export class ModelGraphViewPanel implements LineagePanelView {
     }
 
     const currentFilePath = window.activeTextEditor.document.uri;
-    const projectRootpath = this.dbtProjectContainer.getProjectRootpath(
-      currentFilePath,
-    );
+    const projectRootpath =
+      this.dbtProjectContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
       return;
     }
@@ -288,9 +287,9 @@ function getHtml(webview: Webview, extensionUri: Uri) {
   ]);
   const resourceDir = getUri(webview, extensionUri, ["lineage_panel"]);
   const theme = [
-      ColorThemeKind.Light,
-      ColorThemeKind.HighContrastLight,
-    ].includes(window.activeColorTheme.kind)
+    ColorThemeKind.Light,
+    ColorThemeKind.HighContrastLight,
+  ].includes(window.activeColorTheme.kind)
     ? "light"
     : "dark";
   return readFileSync(indexPath.fsPath)
