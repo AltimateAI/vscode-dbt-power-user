@@ -112,14 +112,16 @@ export class NewLineagePanel implements LineagePanelView {
       });
       return;
     }
-    const body = await urlFnMap[url as keyof typeof urlFnMap](params as any);
+    const body = await urlFnMap[url as keyof typeof urlFnMap].bind(this)(
+      params as any,
+    );
     this._panel?.webview.postMessage({
       command: "response",
       args: { id, body, status: true },
     });
   }
 
-  private getColumns = async ({ table }: { table: string }) => {
+  private async getColumns({ table }: { table: string }) {
     const nodeMetaMap = this.getEvent()?.nodeMetaMap;
     if (!nodeMetaMap) {
       return;
@@ -159,20 +161,20 @@ export class NewLineagePanel implements LineagePanelView {
         description: c.description,
       })).sort((a, b) => a.name.localeCompare(b.name)),
     };
-  };
+  }
 
-  private getConnectedColumns = async (
+  private async getConnectedColumns(
     { table, column, edges }: {
       table: string;
       column: string;
       edges: { src: string; dst: string }[];
     },
-  ) => {
+  ) {
     const nodeMetaMap = this.getEvent()?.nodeMetaMap;
     if (!nodeMetaMap) {
       return;
     }
-    const _table = nodeMetaMap.get(table.split(".").pop()!);
+    const _table = nodeMetaMap.get(table);
     if (!_table) {
       return;
     }
@@ -190,12 +192,12 @@ export class NewLineagePanel implements LineagePanelView {
       model_node: _table,
     });
     console.log("column lineage response -> ", resp);
-  };
+  }
 
-  private getConnectedTables = (
+  private getConnectedTables(
     key: keyof GraphMetaMap,
     table: string,
-  ): Table[] | undefined => {
+  ): Table[] | undefined {
     const graphMetaMap = this.getEvent()?.graphMetaMap;
     if (!graphMetaMap) {
       return;
@@ -224,15 +226,15 @@ export class NewLineagePanel implements LineagePanelView {
     return Array.from(tables.values()).sort((a, b) =>
       a.table.localeCompare(b.table)
     );
-  };
+  }
 
-  private getUpstreamTables = ({ table }: { table: string }) => {
+  private getUpstreamTables({ table }: { table: string }) {
     return { tables: this.getConnectedTables("children", table) };
-  };
+  }
 
-  private getDownstreamTables = ({ table }: { table: string }) => {
+  private getDownstreamTables({ table }: { table: string }) {
     return { tables: this.getConnectedTables("parents", table) };
-  };
+  }
 
   private getEvent(): ManifestCacheProjectAddedEvent | undefined {
     if (window.activeTextEditor === undefined || this.eventMap === undefined) {
