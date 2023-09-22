@@ -19,7 +19,12 @@ import {
 } from "./graph";
 import { LineageContext, openFile } from "./App";
 import { Table, downstreamTables, upstreamTables } from "./service";
-import { COLUMNS_SIDEBAR, TABLES_SIDEBAR } from "./utils";
+import {
+  COLUMNS_SIDEBAR,
+  C_NODE_H,
+  C_PADDING_Y,
+  TABLES_SIDEBAR,
+} from "./utils";
 import { TMoreTables } from "./MoreTables";
 import DBTIcon from "./assets/icons/dbt.svg?react";
 
@@ -69,9 +74,17 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const [, _rerender] = useState(0);
   const rerender = () => _rerender((x) => x + 1);
 
-  const { selectedTable, setSelectedTable, setShowSidebar, setSidebarScreen } =
-    useContext(LineageContext);
+  const {
+    selectedTable,
+    setSelectedTable,
+    setShowSidebar,
+    setSidebarScreen,
+    collectColumns,
+    selectedColumn,
+  } = useContext(LineageContext);
 
+  const _columnLen = Object.keys(collectColumns[table] || {}).length;
+  const _showColumns = _columnLen > 0;
   const selected = selectedTable?.table === table;
   const toggleTableSelection = () =>
     setSelectedTable((prev) =>
@@ -139,7 +152,12 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   };
 
   return (
-    <div className="position-relative">
+    <div
+      className="position-relative"
+      style={{
+        opacity: !selectedColumn ? 1 : _showColumns ? 1 : 0.5,
+      }}
+    >
       <div
         className={styles.table_node}
         onClick={(e) => {
@@ -154,6 +172,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             "d-flex flex-column align-items-start gap-xs",
             {
               [styles.selected]: selected,
+              [styles.collapse]: !_showColumns,
             }
           )}
         >
@@ -187,6 +206,14 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             </div>
           </div>
         </div>
+        {_showColumns && (
+          <div
+            className={classNames(styles.content, {
+              [styles.selected]: selected,
+            })}
+            style={{ height: _columnLen * C_NODE_H + C_PADDING_Y }}
+          />
+        )}
       </div>
       {shouldExpand[1] && (
         <div
