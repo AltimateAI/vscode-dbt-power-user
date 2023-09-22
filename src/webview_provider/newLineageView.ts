@@ -21,10 +21,10 @@ import { LineagePanelView } from "./lineagePanel";
 import { AltimateRequest } from "../altimate";
 
 type Table = {
+  key: string;
   table: string;
   url: string;
   count: number;
-  label: string;
 };
 
 type Column = {
@@ -208,23 +208,23 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
     const tables: Map<string, Table> = new Map();
-    const addToTables = (key: string, value: Omit<Table, "table">) => {
+    const addToTables = (key: string, value: Omit<Table, "key">) => {
       if (!tables.has(key)) {
-        tables.set(key, { ...value, table: key });
+        tables.set(key, { ...value, key });
       }
     };
     node.nodes.forEach(
       (child: { key: "string"; url: "string"; label: "string" }) => {
         const count = dependencyNodes.get(child.key)?.nodes.length || 0;
         addToTables(child.key, {
+          table: child.label,
           url: child.url,
           count,
-          label: child.label,
         });
       },
     );
     return Array.from(tables.values()).sort((a, b) =>
-      a.label.localeCompare(b.label)
+      a.table.localeCompare(b.table)
     );
   }
 
@@ -269,23 +269,22 @@ export class NewLineagePanel implements LineagePanelView {
   }
 
   private getStartingNode() {
-    const graphMetaMap = this.getEvent()?.graphMetaMap;
-    if (!graphMetaMap) {
+    const event = this.getEvent();
+    if (!event) {
       return;
     }
+    const { graphMetaMap, nodeMetaMap } = event;
     const fileName = this.getFilename();
-    const dependencyNodes = graphMetaMap["parents"];
-    const key = Array.from(dependencyNodes.keys()).find(
-      (k) => k.endsWith(`.${fileName}`) && k.startsWith("model."),
-    );
+    const key = nodeMetaMap.get(fileName)?.uniqueId;
     if (!key) {
       return;
     }
-    const downstreamCount = dependencyNodes.get(key)?.nodes.length || 0;
+    const downstreamCount = graphMetaMap["parents"].get(key)?.nodes.length || 0;
     const upstreamCount = graphMetaMap["children"].get(key)?.nodes.length || 0;
     return {
       node: {
-        table: key,
+        key,
+        table: fileName,
         url: window.activeTextEditor!.document.uri.path,
         upstreamCount,
         downstreamCount,
