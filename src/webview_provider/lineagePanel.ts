@@ -14,7 +14,6 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { ModelGraphViewPanel } from "./modelGraphViewPanel";
 import { NewLineagePanel } from "./newLineageView";
-import { AltimateRequest } from "../altimate";
 import { inject } from "inversify";
 
 export interface LineagePanelView extends WebviewViewProvider {

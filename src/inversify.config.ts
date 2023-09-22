@@ -16,6 +16,7 @@ import { QueryResultPanel } from "./webview_provider/queryResultPanel";
 import { TelemetryService } from "./telemetry";
 import { NewLineagePanel } from "./webview_provider/newLineageView";
 import { ModelGraphViewPanel } from "./webview_provider/modelGraphViewPanel";
+import { AltimateRequest } from "./altimate";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -80,6 +81,7 @@ container
       const { container } = context;
       return new NewLineagePanel(
         container.get(DBTProjectContainer),
+        container.get(AltimateRequest),
         container.get(TelemetryService),
       );
     };
