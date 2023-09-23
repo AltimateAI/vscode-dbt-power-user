@@ -43,6 +43,8 @@ interface SourceMetaData {
 interface SourceTable {
   name: string;
   path: string;
+  description: string;
+  columns: { [columnName: string]: ColumnMetaData };
 }
 
 interface DocMetaData {
