@@ -155,6 +155,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             {schema === "source" && <SourceIcon />}
             <div className="lines-2 text-black">{label}</div>
           </div>
+          <div className={styles.divider}/>
           <div className="w-100 d-flex align-items-center gap-xs">
             <div
               className={classNames("nodrag", styles.table_handle, {

@@ -88,6 +88,7 @@ $size: 1.2em;
 
 .divider {
   height: 2px;
-  width: 100%;
+  width: calc(100% + 1em);
   background-color: $border-color;
+  margin-left: -0.5em;
 }
