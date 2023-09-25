@@ -44,6 +44,7 @@ type Columns = {
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
+  private _offline: boolean;
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -60,6 +61,7 @@ export class NewLineagePanel implements LineagePanelView {
       }
       this.renderStartingNode();
     });
+    this._offline = true;
   }
 
   onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
@@ -132,23 +134,25 @@ export class NewLineagePanel implements LineagePanelView {
     if (!_table) {
       return;
     }
-    const project = this.getProject();
-    if (project) {
-      const columnsFromDB = await project.getColumnsInRelation(table);
-      console.log(columnsFromDB);
-      if (columnsFromDB) {
-        columnsFromDB.forEach((c) => {
-          const existing_column = _table.columns[c.column];
-          if (existing_column) {
-            existing_column.data_type = existing_column.data_type || c.dtype;
-            return;
-          }
-          _table.columns[c.column] = {
-            name: c.column,
-            data_type: c.dtype,
-            description: "",
-          };
-        });
+    if(!this._offline) {
+      const project = this.getProject();
+      if (project) {
+        const columnsFromDB = await project.getColumnsInRelation(table);
+        console.log(columnsFromDB);
+        if (columnsFromDB) {
+          columnsFromDB.forEach((c) => {
+            const existing_column = _table.columns[c.column];
+            if (existing_column) {
+              existing_column.data_type = existing_column.data_type || c.dtype;
+              return;
+            }
+            _table.columns[c.column] = {
+              name: c.column,
+              data_type: c.dtype,
+              description: "",
+            };
+          });
+        }
       }
     }
 
