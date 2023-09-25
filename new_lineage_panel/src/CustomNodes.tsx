@@ -21,7 +21,10 @@ import { LineageContext, openFile } from "./App";
 import { Tables, downstreamTables, upstreamTables } from "./service";
 import { TABLES_SIDEBAR, destructTable } from "./utils";
 import { TMoreTables } from "./MoreTables";
-import DBTIcon from "./assets/icons/dbt.svg?react";
+import ModelIcon from "./assets/icons/model.svg?react";
+import SeedIcon from "./assets/icons/seed.svg?react";
+import SourceIcon from "./assets/icons/source.svg?react";
+import FolderIcon from "./assets/icons/folder.svg?react";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -143,26 +146,21 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           className={classNames(
             styles.header,
             "d-flex flex-column align-items-start gap-xs",
-            {
-              [styles.selected]: selected,
-            }
+            { [styles.selected]: selected }
           )}
         >
           <div className={styles.table_header}>
-            <DBTIcon />
-            <div className="d-flex flex-column">
-              <div className="lines-2 text-black">{label}</div>
-              <div className="text-muted text-overflow">{schema}</div>
-            </div>
+            {schema === "seed" && <SeedIcon />}
+            {schema === "model" && <ModelIcon />}
+            {schema === "source" && <SourceIcon />}
+            <div className="lines-2 text-black">{label}</div>
           </div>
           <div
-            className={classNames(
-              "nodrag",
-              selected ? "text-primary" : "text-muted"
-            )}
+            className={classNames("nodrag", styles.open_file_button)}
             onClick={() => openFile(url)}
           >
-            Open file
+            <FolderIcon />
+            <span className="text-primary">Open file</span>
           </div>
         </div>
       </div>

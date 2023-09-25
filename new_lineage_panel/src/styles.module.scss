@@ -84,3 +84,14 @@ $diff: 0.25em;
     cursor: default;
   }
 }
+
+.open_file_button {
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+  svg {
+    $size: 1.5rem;
+    width: $size;
+    height: $size;
+  }
+}

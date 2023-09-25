@@ -212,9 +212,9 @@ function App() {
               vscode.postMessage({ command: "setLegacyLineageView" });
             }}
           >
-            Legacy Panel
+            Legacy UX
           </div>
-          <div className="panel-tab-selected">New Panel(Beta)</div>
+          <div className="panel-tab-selected">New UX (Beta)</div>
         </div>
         <Button
           color="link"
