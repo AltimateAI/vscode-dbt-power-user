@@ -1,4 +1,5 @@
 $node-width: 260px;
+$border-color: rgba(#a7b2c1, 0.3);
 
 .table_node {
   width: $node-width;
@@ -8,7 +9,7 @@ $node-width: 260px;
 
   .header {
     background: #ffffff;
-    border: 2px solid #eeeff2;
+    border: 2px solid $border-color;
     border-radius: 0.5em;
     padding: 0.5em;
     &.selected {
@@ -25,9 +26,7 @@ $node-width: 260px;
 }
 
 $size: 1.2em;
-$diff: 0.25em;
 .table_handle {
-  position: absolute;
   width: $size;
   height: $size;
   line-height: $size;
@@ -35,19 +34,10 @@ $diff: 0.25em;
   background-color: #247efe;
   border: 1px solid #d6e7ff;
   color: #ffffff;
-  top: calc(50% - 0.5 * $size);
   display: flex;
   justify-content: center;
   align-items: end;
   cursor: default;
-}
-
-.right_handle {
-  right: $diff;
-}
-
-.left_handle {
-  left: $diff;
 }
 
 .see_more_node {
@@ -94,4 +84,10 @@ $diff: 0.25em;
     width: $size;
     height: $size;
   }
+}
+
+.divider {
+  height: 2px;
+  width: 100%;
+  background-color: $border-color;
 }

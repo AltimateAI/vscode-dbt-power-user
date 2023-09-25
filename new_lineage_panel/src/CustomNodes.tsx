@@ -155,53 +155,49 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             {schema === "source" && <SourceIcon />}
             <div className="lines-2 text-black">{label}</div>
           </div>
-          <div
-            className={classNames("nodrag", styles.open_file_button)}
-            onClick={() => openFile(url)}
-          >
-            <FolderIcon />
-            <span className="text-primary">Open file</span>
+          <div className="w-100 d-flex align-items-center gap-xs">
+            <div
+              className={classNames("nodrag", styles.table_handle, {
+                invisible: !shouldExpand[0],
+              })}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (processed[0]) {
+                  collapseLeft(table);
+                } else {
+                  expandLeft(table);
+                }
+              }}
+            >
+              {processed[0] ? "-" : "+"}
+            </div>
+            <div
+              className={classNames("nodrag", styles.open_file_button)}
+              onClick={() => openFile(url)}
+            >
+              <FolderIcon />
+              <span className="text-primary">Open file</span>
+            </div>
+            <div className="spacer" />
+
+            <div
+              className={classNames("nodrag", styles.table_handle, {
+                invisible: !shouldExpand[1],
+              })}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (processed[1]) {
+                  collapseRight(table);
+                } else {
+                  expandRight(table);
+                }
+              }}
+            >
+              {processed[1] ? "-" : "+"}
+            </div>
           </div>
         </div>
       </div>
-      {shouldExpand[1] && (
-        <div
-          className={classNames(
-            "nodrag",
-            styles.table_handle,
-            styles.right_handle
-          )}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (processed[1]) {
-              collapseRight(table);
-            } else {
-              expandRight(table);
-            }
-          }}
-        >
-          {processed[1] ? "-" : "+"}
-        </div>
-      )}
-      {shouldExpand[0] && (
-        <div
-          className={classNames(
-            "nodrag",
-            styles.table_handle,
-            styles.left_handle
-          )}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (processed[0]) {
-              collapseLeft(table);
-            } else {
-              expandLeft(table);
-            }
-          }}
-        >
-          {processed[0] ? "-" : "+"}
-        </div>
-      )}
 
       <BidirectionalHandles />
     </div>
