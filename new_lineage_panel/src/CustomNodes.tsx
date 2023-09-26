@@ -71,6 +71,16 @@ const BidirectionalHandles = () => (
   </>
 );
 
+export const NodeTypeIcon: FunctionComponent<{ nodeType: string }> = ({
+  nodeType,
+}) => (
+  <div>
+    {nodeType === "seed" && <SeedIcon />}
+    {nodeType === "model" && <ModelIcon />}
+    {nodeType === "source" && <SourceIcon />}
+  </div>
+);
+
 export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const { shouldExpand, processed, table, level, url, key, nodeType } = data;
   const flow = useReactFlow();
@@ -198,11 +208,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           )}
         >
           <div className={styles.table_header}>
-            <div>
-              {nodeType === "seed" && <SeedIcon />}
-              {nodeType === "model" && <ModelIcon />}
-              {nodeType === "source" && <SourceIcon />}
-            </div>
+            <NodeTypeIcon nodeType={nodeType} />
             <div className="lines-2 text-black">{table}</div>
           </div>
           <div className={styles.divider} />

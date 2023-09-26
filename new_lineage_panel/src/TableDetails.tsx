@@ -32,6 +32,7 @@ import ExpandLineageIcon from "./assets/icons/expand_lineage.svg?react";
 import EditIcon from "./assets/icons/edit.svg?react";
 import RobotLogo from "./assets/icons/robot1.svg?react";
 import RotateIcon from "./assets/icons/rotate.svg?react";
+import { NodeTypeIcon } from "./CustomNodes";
 
 const ColumnCard: FunctionComponent<{
   column: Column;
@@ -69,17 +70,14 @@ const ColumnCard: FunctionComponent<{
   );
 };
 
-const HeaderSection: FunctionComponent<{ table: string; tableKey: string }> = ({
+const HeaderSection: FunctionComponent<{ table: string; nodeType: string }> = ({
   table,
-  tableKey,
+  nodeType,
 }) => {
   return (
-    <div>
-      <div className="mb-2">
-        {/* {getIconByDatastoreType(datastore_type)} */}
-        <div className="fw-semibold fs-5 lines-2">{table}</div>
-      </div>
-      <div className="text-primary">{tableKey.split(".")?.[0]}</div>
+    <div className="mb-2">
+      <NodeTypeIcon nodeType={nodeType} />
+      <div className="fw-semibold fs-5 lines-2">{table}</div>
     </div>
   );
 };
@@ -103,9 +101,13 @@ const PurposeSection: FunctionComponent<{
                 <div className="d-flex gap-xs align-items-center">
                   <div>Description</div>
                   <EditIcon
-                    className={classNames("cursor-pointer invisible", styles.edit_icon, {
-                      [styles.active]: isPurposeEditing,
-                    })}
+                    className={classNames(
+                      "cursor-pointer invisible",
+                      styles.edit_icon,
+                      {
+                        [styles.active]: isPurposeEditing,
+                      }
+                    )}
                     onClick={() => {
                       if (isPurposeEditing) {
                         setPurpose(defaultPurpose);
@@ -130,7 +132,6 @@ const PurposeSection: FunctionComponent<{
                     <RotateIcon />
                   </Button>
                 </div>
-                <div className="divider" />
               </>
             ) : (
               <div className="d-flex gap-xs">
@@ -294,7 +295,10 @@ const TableDetails = () => {
 
   return (
     <div className="p-2 h-100 d-flex flex-column gap-md text-black overflow-y">
-      <HeaderSection table={selectedTable.table} tableKey={selectedTable.key} />
+      <HeaderSection
+        table={selectedTable.table}
+        nodeType={selectedTable.nodeType}
+      />
       <PurposeSection tableId={data.id} purpose={data.purpose} />
       <ColumnSection
         selectedColumn={selectedColumn.name}
