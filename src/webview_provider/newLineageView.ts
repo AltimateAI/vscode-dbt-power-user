@@ -120,8 +120,9 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
     const tables: Map<string, Table> = new Map();
+    const allowedNodeTypes = ["model.", "source.", "seed."];
     const addToTables = (key: string, value: Omit<Table, "table">) => {
-      if (!tables.has(key)) {
+      if (!tables.has(key) && allowedNodeTypes.some((t) => key.startsWith(t))) {
         tables.set(key, { ...value, table: key });
       }
     };
