@@ -291,7 +291,6 @@ export const processColumnLineage = async (
     }
   }
 
-  console.log("this is reaching -> ");
   const { collectColumns, highlightEdges } = await getConnectedColumns({
     column: column.name,
     table: column.table,
