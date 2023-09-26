@@ -18,7 +18,7 @@ import {
   resetTableHighlights,
 } from "./graph";
 import { LineageContext, openFile } from "./App";
-import { Tables, downstreamTables, upstreamTables } from "./service";
+import { Table, downstreamTables, upstreamTables } from "./service";
 import { TABLES_SIDEBAR, destructTable } from "./utils";
 import { TMoreTables } from "./MoreTables";
 import ModelIcon from "./assets/icons/model.svg?react";
@@ -88,8 +88,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     flow.setEdges(edges);
   };
 
-  const expand = async (t: string, tables: Tables, right: boolean) => {
-    if (processed[right ? 1 : 0]) return;
+  const expand = async (t: string, tables: Table[], right: boolean) => {
     const [nodes, edges] = createNewNodesEdges(
       flow.getNodes(),
       flow.getEdges(),
@@ -155,7 +154,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             {schema === "source" && <SourceIcon />}
             <div className="lines-2 text-black">{label}</div>
           </div>
-          <div className={styles.divider}/>
+          <div className={styles.divider} />
           <div className="w-100 d-flex align-items-center gap-xs">
             <div
               className={classNames("nodrag", styles.table_handle, {

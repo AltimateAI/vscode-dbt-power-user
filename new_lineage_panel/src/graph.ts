@@ -1,29 +1,30 @@
 import { Edge, Node } from "reactflow";
 import {
+  applyEdgeStyling,
   C_NODE_H,
   C_OFFSET_X,
   C_OFFSET_Y,
   C_PADDING_Y,
-  LEVEL_SEPARATION,
-  MAX_EXPAND_TABLE,
-  SEE_MORE_PREFIX,
-  T_NODE_H,
-  T_NODE_W,
-  applyEdgeStyling,
   createForwardEdge,
   createReverseEdge,
   createTableNode,
   isColumn,
   isNotColumn,
+  LEVEL_SEPARATION,
+  MAX_EXPAND_TABLE,
+  SEE_MORE_PREFIX,
+  T_NODE_H,
+  T_NODE_W,
 } from "./utils";
+import { Table } from "./service";
 
 export const createNewNodesEdges = (
   prevNodes: Node[],
   prevEdges: Edge[],
-  tables: { table: string; count: number; url: string }[],
+  tables: Table[],
   t: string,
   right: boolean,
-  level: number
+  level: number,
 ): [Node[], Edge[]] => {
   const newNodes = [...prevNodes];
   const newEdges = [...prevEdges];
@@ -39,7 +40,7 @@ export const createNewNodesEdges = (
   tables.slice(0, MAX_EXPAND_TABLE).forEach((_t) => {
     const existingNode = newNodes.find((_n) => _n.id === _t.table);
     if (!existingNode) {
-      newNodes.push(createTableNode(_t, right, newLevel, t));
+      newNodes.push(createTableNode(_t, newLevel, t));
       addUniqueEdge(createForwardEdge(t, _t.table, right));
     } else if (right && existingNode.data.level < level) {
       addUniqueEdge(createReverseEdge(t, _t.table, true));
@@ -81,13 +82,13 @@ export const layoutElementsOnCanvas = (nodes: Node[], _edges: Edge[]) => {
 
   for (const n of nodes) {
     if (isColumn(n) && n.parentNode) {
-      if (!(n.parentNode in tableWiseColumnIndex))
+      if (!(n.parentNode in tableWiseColumnIndex)) {
         tableWiseColumnIndex[n.parentNode] = 0;
+      }
 
       n.position = {
         x: C_OFFSET_X,
-        y:
-          tableWiseColumnIndex[n.parentNode] * C_NODE_H +
+        y: tableWiseColumnIndex[n.parentNode] * C_NODE_H +
           C_OFFSET_Y +
           (C_PADDING_Y >> 1) +
           2,
@@ -108,8 +109,9 @@ export const layoutElementsOnCanvas = (nodes: Node[], _edges: Edge[]) => {
   const getY = (n: Node, level: number) => {
     const _count = levelWiseCount[level];
     const _index = levelWiseIndex[level];
-    if (n.id.startsWith(SEE_MORE_PREFIX))
+    if (n.id.startsWith(SEE_MORE_PREFIX)) {
       return ((_count - 1) >> 1) * T_NODE_H + 100;
+    }
     levelWiseIndex[level]++;
     return (_index - (_count >> 1)) * T_NODE_H + 100;
   };
@@ -128,7 +130,7 @@ export const layoutElementsOnCanvas = (nodes: Node[], _edges: Edge[]) => {
 
 export const resetTableHighlights = (
   nodes: Node[],
-  edges: Edge[]
+  edges: Edge[],
 ): [Node[], Edge[]] => {
   nodes.forEach((n) => (n.style = { opacity: 1 }));
   edges.forEach((e) => applyEdgeStyling(e, false));
@@ -138,7 +140,7 @@ export const resetTableHighlights = (
 export const highlightTableConnections = (
   nodes: Node[],
   edges: Edge[],
-  table: string
+  table: string,
 ): [Node[], Edge[]] => {
   const highlightNode: Record<string, boolean> = {};
   const highlightEdge: Record<string, boolean> = {};
@@ -166,7 +168,7 @@ export const highlightTableConnections = (
 
   const newNodes = [...nodes];
   newNodes.forEach(
-    (_n) => (_n.style = { opacity: highlightNode[_n.id] ? 1 : 0.5 })
+    (_n) => (_n.style = { opacity: highlightNode[_n.id] ? 1 : 0.5 }),
   );
 
   return [newNodes, newEdges];
@@ -178,7 +180,7 @@ export const removeRelatedNodesEdges = (
   prevEdges: Edge[],
   table: string,
   right: boolean,
-  level: number
+  level: number,
 ): [Node[], Edge[]] => {
   const nodesToRemove: Record<string, boolean> = {};
   const edgesToRemove: Record<string, boolean> = {};
@@ -219,11 +221,11 @@ export const removeRelatedNodesEdges = (
 
   prevEdges.forEach((e) => {
     if (isNotColumn(e)) {
-      edgesToRemove[e.id] =
-        nodesToRemove[e.source] || nodesToRemove[e.target] || e[src] === table;
+      edgesToRemove[e.id] = nodesToRemove[e.source] ||
+        nodesToRemove[e.target] || e[src] === table;
     } else {
-      columnEdgesToRemove[e.id] =
-        columnNodesToRemove[e.source] || columnNodesToRemove[e.target];
+      columnEdgesToRemove[e.id] = columnNodesToRemove[e.source] ||
+        columnNodesToRemove[e.target];
     }
   });
 

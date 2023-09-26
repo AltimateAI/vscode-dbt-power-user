@@ -22,8 +22,9 @@ import { LineagePanelView } from "./lineagePanel";
 type Table = {
   table: string;
   url: string;
-  count: number;
   label: string;
+  downstreamCount: number;
+  upstreamCount: number;
 };
 
 export class NewLineagePanel implements LineagePanelView {
@@ -113,7 +114,7 @@ export class NewLineagePanel implements LineagePanelView {
     if (!graphMetaMap) {
       return;
     }
-    const dependencyNodes: Map<string, { nodes: any[] }> = graphMetaMap[key];
+    const dependencyNodes = graphMetaMap[key];
     const node = dependencyNodes.get(table);
     if (!node) {
       return;
@@ -124,16 +125,14 @@ export class NewLineagePanel implements LineagePanelView {
         tables.set(key, { ...value, table: key });
       }
     };
-    node.nodes.forEach(
-      (child: { key: "string"; url: "string"; label: "string" }) => {
-        const count = dependencyNodes.get(child.key)?.nodes.length || 0;
-        addToTables(child.key, {
-          url: child.url,
-          count,
-          label: child.label,
-        });
-      },
-    );
+    node.nodes.forEach(({ key, url, label }) => {
+      addToTables(key, {
+        url,
+        label,
+        upstreamCount: graphMetaMap["children"].get(key)?.nodes.length || 0,
+        downstreamCount: graphMetaMap["parents"].get(key)?.nodes.length || 0,
+      });
+    });
     return Array.from(tables.values()).sort((a, b) =>
       a.label.localeCompare(b.label),
     );

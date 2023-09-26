@@ -108,7 +108,7 @@ function App() {
         };
         let _nodes = _flow.getNodes();
         let _edges = _flow.getEdges();
-        if (level > 0 && !processed[1]) {
+        if (!processed[1]) {
           const { tables } = await upstreamTables(node.table);
           [_nodes, _edges] = createNewNodesEdges(
             _nodes,
@@ -118,7 +118,8 @@ function App() {
             true,
             level
           );
-        } else if (level < 0 && !processed[0]) {
+        }
+        if (!processed[0]) {
           const { tables } = await downstreamTables(node.table);
           [_nodes, _edges] = createNewNodesEdges(
             _nodes,
