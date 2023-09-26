@@ -5,6 +5,7 @@ export type Table = {
   table: string;
   count: number;
   url: string;
+  nodeType: string;
 };
 export type Column = {
   name: string;

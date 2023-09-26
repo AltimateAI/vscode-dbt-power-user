@@ -107,6 +107,7 @@ function App() {
         table: string;
         key: string;
         url: string;
+        nodeType: string;
         downstreamCount: number;
         upstreamCount: number;
       };
@@ -161,6 +162,7 @@ function App() {
               level: 0,
               shouldExpand: [node.downstreamCount > 0, node.upstreamCount > 0],
               processed: [node.downstreamCount > 0, node.upstreamCount > 0],
+              nodeType: node.nodeType,
             },
             position: { x: 100, y: 100 },
             type: "table",

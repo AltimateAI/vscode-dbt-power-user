@@ -71,7 +71,7 @@ export const createForwardEdge = _createEdge("right", "left", "default");
 export const createReverseEdge = _createEdge("left", "right", "default");
 
 export const createTableNode = (
-  { key, table, count, url }: Table,
+  { key, table, count, url, nodeType }: Table,
   right: boolean,
   level: number,
   parent: string,
@@ -85,6 +85,7 @@ export const createTableNode = (
       url,
       level,
       parent,
+      nodeType,
       shouldExpand: right ? [false, expand] : [expand, false],
       processed: right ? [true, false] : [false, true],
     },

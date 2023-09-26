@@ -72,15 +72,7 @@ const BidirectionalHandles = () => (
 );
 
 export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
-  const {
-    shouldExpand,
-    processed,
-    table,
-    level,
-    url,
-    key,
-    nodeType = "model",
-  } = data;
+  const { shouldExpand, processed, table, level, url, key, nodeType } = data;
   const flow = useReactFlow();
   // hack to force re-render the component
   const [, _rerender] = useState(0);
@@ -101,7 +93,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const selected = selectedTable?.table === table;
   const toggleTableSelection = () =>
     setSelectedTable((prev) =>
-      prev?.table === table ? null : { table, key, url }
+      prev?.table === table ? null : { table, key, url, nodeType }
     );
 
   const highlightTable = () => {
@@ -206,9 +198,11 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           )}
         >
           <div className={styles.table_header}>
-            {nodeType === "seed" && <SeedIcon />}
-            {nodeType === "model" && <ModelIcon />}
-            {nodeType === "source" && <SourceIcon />}
+            <div>
+              {nodeType === "seed" && <SeedIcon />}
+              {nodeType === "model" && <ModelIcon />}
+              {nodeType === "source" && <SourceIcon />}
+            </div>
             <div className="lines-2 text-black">{table}</div>
           </div>
           <div className={styles.divider} />
