@@ -223,7 +223,7 @@ function App() {
             openDocs();
           }}
         >
-          Feedback
+          Report a problem
         </Button>
       </div>
       <LineageContext.Provider
