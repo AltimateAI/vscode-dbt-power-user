@@ -211,6 +211,21 @@ export class NewLineagePanel implements LineagePanelView {
         const data = await workspace.fs.readFile(uri);
         const fileContent = Buffer.from(data).toString("utf8");
         const compiledSql = await project.compileQuery(fileContent);
+        const columnsFromDB = await project.getColumnsInRelation(node.alias);
+        if (columnsFromDB) {
+          columnsFromDB.forEach((c) => {
+            const existing_column = node.columns[c.column];
+            if (existing_column) {
+              existing_column.data_type = existing_column.data_type || c.dtype;
+              return;
+            }
+            node.columns[c.column] = {
+              name: c.column,
+              data_type: c.dtype,
+              description: "",
+            };
+          });
+        }
         const resp = await this.altimate.getColumnLevelLineage({
           model_name: node.alias,
           compiled_sqls: { current_model: compiledSql || "", child: {} },
