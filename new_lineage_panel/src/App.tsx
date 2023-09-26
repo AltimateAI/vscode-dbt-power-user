@@ -7,7 +7,6 @@ import {
   useState,
 } from "react";
 import ReactFlow, {
-  MiniMap,
   Background,
   Controls,
   Edge,
@@ -208,6 +207,17 @@ function App() {
     <div className="position-relative">
       <div className="top-right-container">
         <Button
+          color="secondary"
+          onClick={(e) => {
+            e.stopPropagation();
+            flow.current?.setNodes([]);
+            flow.current?.setEdges([]);
+            vscode.postMessage({ command: "init" });
+          }}
+        >
+          Reset
+        </Button>
+        <Button
           color="primary"
           onClick={(e) => {
             e.stopPropagation();
@@ -251,7 +261,6 @@ function App() {
             >
               <Background />
               <Controls />
-              <MiniMap />
             </ReactFlow>
           </div>
           <SidebarModal
