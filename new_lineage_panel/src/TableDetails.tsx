@@ -96,14 +96,14 @@ const PurposeSection: FunctionComponent<{
     <div className={classNames(styles.card, "bg-blue")}>
       <div className="d-flex flex-column gap-sm">
         <div className="d-flex gap-xs flex-column">
-          <div className="fs-5 fw-semibold">Generate Description & Tags</div>
+          <div className="fs-5 fw-semibold">Description</div>
           <div className={classNames(styles.column_card)}>
             {purpose ? (
               <>
                 <div className="d-flex gap-xs align-items-center">
                   <div>Description</div>
                   <EditIcon
-                    className={classNames("cursor-pointer", styles.edit_icon, {
+                    className={classNames("cursor-pointer invisible", styles.edit_icon, {
                       [styles.active]: isPurposeEditing,
                     })}
                     onClick={() => {
@@ -119,6 +119,7 @@ const PurposeSection: FunctionComponent<{
                   <Button
                     color="white"
                     size="sm"
+                    className="invisible"
                     onClick={async (e) => {
                       e.stopPropagation();
                       setIsLoading(true);
