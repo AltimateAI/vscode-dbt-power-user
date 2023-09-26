@@ -85,6 +85,8 @@ export const createTableNode = (
       parent,
       shouldExpand: [downstreamCount > 0, upstreamCount > 0],
       processed: [false, false],
+      upstreamCount,
+      downstreamCount,
     },
     position: { x: 100, y: 100 },
     type: "table",

@@ -59,6 +59,7 @@ export const LineageContext = createContext<{
   setMoreTables: Dispatch<TMoreTables>;
   sidebarScreen: string;
   setSidebarScreen: Dispatch<string>;
+  rerender: () => void;
 }>({
   showSidebar: false,
   setShowSidebar: () => {},
@@ -68,6 +69,7 @@ export const LineageContext = createContext<{
   setMoreTables: () => {},
   sidebarScreen: "",
   setSidebarScreen: () => {},
+  rerender: () => {},
   // selectedColumn: {},
   // setSelectedColumn: () => {},
   // collectColumns: {},
@@ -80,6 +82,8 @@ function App() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [moreTables, setMoreTables] = useState<TMoreTables | null>(null);
   const [sidebarScreen, setSidebarScreen] = useState("");
+  const [, _rerender] = useState(0);
+  const rerender = () => _rerender((x) => x + 1);
 
   useEffect(() => {
     const render = async (args: {
@@ -143,6 +147,8 @@ function App() {
             level: 0,
             shouldExpand: [node.downstreamCount > 0, node.upstreamCount > 0],
             processed: [node.downstreamCount > 0, node.upstreamCount > 0],
+            upstreamCount: node.upstreamCount,
+            downstreamCount: node.downstreamCount,
           },
           position: { x: 100, y: 100 },
           type: "table",
@@ -246,6 +252,7 @@ function App() {
           setMoreTables,
           sidebarScreen,
           setSidebarScreen,
+          rerender,
         }}
       >
         <ReactFlowProvider>

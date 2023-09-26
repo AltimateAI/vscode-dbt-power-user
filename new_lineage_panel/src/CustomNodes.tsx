@@ -66,13 +66,19 @@ const BidirectionalHandles = () => (
 );
 
 export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
-  const { shouldExpand, processed, table, level, url } = data;
+  const {
+    shouldExpand,
+    processed,
+    table,
+    level,
+    url,
+    upstreamCount,
+    downstreamCount,
+  } = data;
   const flow = useReactFlow();
-  // hack to force re-render the component
-  const [, _rerender] = useState(0);
-  const rerender = () => _rerender((x) => x + 1);
 
-  const { selectedTable, setSelectedTable } = useContext(LineageContext);
+  const { selectedTable, setSelectedTable, rerender } =
+    useContext(LineageContext);
 
   const selected = selectedTable === table;
   const toggleTableSelection = () =>
@@ -131,6 +137,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const collapseRight = collapse(true);
 
   const [label, schema] = destructTable(table);
+  const _edges = flow.getEdges();
   return (
     <div className="position-relative">
       <div
@@ -158,15 +165,15 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           <div className="w-100 d-flex align-items-center gap-xs">
             <div
               className={classNames("nodrag", styles.table_handle, {
-                invisible: !shouldExpand[0],
+                invisible:
+                  !shouldExpand[0] ||
+                  processed[0] ||
+                  downstreamCount ===
+                    _edges.filter((e) => e.target === table).length,
               })}
               onClick={(e) => {
                 e.stopPropagation();
-                if (processed[0]) {
-                  collapseLeft(table);
-                } else {
-                  expandLeft(table);
-                }
+                expandLeft(table);
               }}
             >
               {processed[0] ? "-" : "+"}
@@ -182,15 +189,15 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
             <div
               className={classNames("nodrag", styles.table_handle, {
-                invisible: !shouldExpand[1],
+                invisible:
+                  !shouldExpand[1] ||
+                  processed[1] ||
+                  upstreamCount ===
+                    _edges.filter((e) => e.source === table).length,
               })}
               onClick={(e) => {
                 e.stopPropagation();
-                if (processed[1]) {
-                  collapseRight(table);
-                } else {
-                  expandRight(table);
-                }
+                expandRight(table);
               }}
             >
               {processed[1] ? "-" : "+"}
