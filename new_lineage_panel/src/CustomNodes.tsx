@@ -72,7 +72,15 @@ const BidirectionalHandles = () => (
 );
 
 export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
-  const { shouldExpand, processed, table, level, url, key } = data;
+  const {
+    shouldExpand,
+    processed,
+    table,
+    level,
+    url,
+    key,
+    nodeType = "model",
+  } = data;
   const flow = useReactFlow();
   // hack to force re-render the component
   const [, _rerender] = useState(0);
@@ -174,7 +182,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     setShowSidebar(true);
     setSidebarScreen(COLUMNS_SIDEBAR);
   };
-  const schema = "seed";
 
   return (
     <div
@@ -199,9 +206,9 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           )}
         >
           <div className={styles.table_header}>
-            {schema === "seed" && <SeedIcon />}
-            {schema === "model" && <ModelIcon />}
-            {schema === "source" && <SourceIcon />}
+            {nodeType === "seed" && <SeedIcon />}
+            {nodeType === "model" && <ModelIcon />}
+            {nodeType === "source" && <SourceIcon />}
             <div className="lines-2 text-black">{table}</div>
           </div>
           <div className={styles.divider} />
@@ -222,13 +229,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
               {processed[0] ? "-" : "+"}
             </div>
             <div
-              className={classNames("nodrag", styles.open_file_button)}
-              onClick={() => openFile(url)}
-            >
-              <FolderIcon />
-              <span className="text-primary">Open file</span>
-            </div>
-            <div
               className={classNames(
                 "nodrag",
                 selected ? "text-primary" : "text-muted"
@@ -236,6 +236,12 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
               onClick={onDetailsClick}
             >
               View Details
+            </div>
+            <div
+              className={classNames("nodrag", styles.open_file_button)}
+              onClick={() => openFile(url)}
+            >
+              <FolderIcon />
             </div>
             <div className="spacer" />
 
