@@ -207,17 +207,15 @@ function App() {
   return (
     <div className="position-relative">
       <div className="top-right-container">
-        <div className="panel-tabs-container">
-          <div
-            className="panel-tab"
-            onClick={() => {
-              vscode.postMessage({ command: "setLegacyLineageView" });
-            }}
-          >
-            Legacy UX
-          </div>
-          <div className="panel-tab-selected">New UX (Beta)</div>
-        </div>
+        <Button
+          color="primary"
+          onClick={(e) => {
+            e.stopPropagation();
+            vscode.postMessage({ command: "setLegacyLineageView" });
+          }}
+        >
+          Show Legacy UX
+        </Button>
         <Button
           color="link"
           onClick={(e) => {

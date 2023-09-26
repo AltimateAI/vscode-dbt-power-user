@@ -93,30 +93,3 @@ body {
   gap: 16px;
   z-index: 10;
 }
-
-.panel-tabs-container {
-  display: flex;
-  background-color: #ffffff;
-  border-radius: 8px;
-  gap: 8px;
-}
-
-.panel-tab {
-  padding: 8px 16px 8px 16px;
-  cursor: pointer;
-  border-radius: 8px;
-  background-color: #ffffff;
-  color: #247efe;
-}
-
-.panel-tab:hover {
-  background-color: #247efe22;
-}
-
-.panel-tab-selected {
-  padding: 8px 16px 8px 16px;
-  cursor: pointer;
-  border-radius: 8px;
-  background-color: #247efe;
-  color: #ffffff;
-}
