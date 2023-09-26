@@ -27,7 +27,10 @@ import {
   TABLES_SIDEBAR,
 } from "./utils";
 import { TMoreTables } from "./MoreTables";
-import DBTIcon from "./assets/icons/dbt.svg?react";
+import ModelIcon from "./assets/icons/model.svg?react";
+import SeedIcon from "./assets/icons/seed.svg?react";
+import SourceIcon from "./assets/icons/source.svg?react";
+import FolderIcon from "./assets/icons/folder.svg?react";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -82,7 +85,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     setSidebarScreen,
     collectColumns,
     selectedColumn,
-    setCollectColumns
+    setCollectColumns,
   } = useContext(LineageContext);
 
   const _columnLen = Object.keys(collectColumns[table] || {}).length;
@@ -119,11 +122,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
         nodes: _nodes,
         edges: _edges,
         collectColumns,
-      } = await processColumnLineage(
-        nodes,
-        edges,
-        selectedColumn
-      );
+      } = await processColumnLineage(nodes, edges, selectedColumn);
       nodes = _nodes;
       edges = _edges;
       setCollectColumns(collectColumns);
@@ -175,6 +174,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     setShowSidebar(true);
     setSidebarScreen(COLUMNS_SIDEBAR);
   };
+  const schema = "seed";
 
   return (
     <div
@@ -195,30 +195,38 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           className={classNames(
             styles.header,
             "d-flex flex-column align-items-start gap-xs",
-            {
-              [styles.selected]: selected,
-              [styles.collapse]: !_showColumns,
-            }
+            { [styles.selected]: selected, [styles.collapse]: !_showColumns }
           )}
         >
           <div className={styles.table_header}>
-            <DBTIcon />
-            <div className="d-flex flex-column">
-              <div className="lines-2 text-black">{table}</div>
-              <div className="text-muted text-overflow">
-                {key.split(".")?.[0]}
-              </div>
-            </div>
+            {schema === "seed" && <SeedIcon />}
+            {schema === "model" && <ModelIcon />}
+            {schema === "source" && <SourceIcon />}
+            <div className="lines-2 text-black">{table}</div>
           </div>
-          <div className="d-flex gap-sm">
+          <div className={styles.divider} />
+          <div className="w-100 d-flex align-items-center gap-xs">
             <div
-              className={classNames(
-                "nodrag",
-                selected ? "text-primary" : "text-muted"
-              )}
+              className={classNames("nodrag", styles.table_handle, {
+                invisible: !shouldExpand[0],
+              })}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (processed[0]) {
+                  collapseLeft();
+                } else {
+                  expandLeft();
+                }
+              }}
+            >
+              {processed[0] ? "-" : "+"}
+            </div>
+            <div
+              className={classNames("nodrag", styles.open_file_button)}
               onClick={() => openFile(url)}
             >
-              Open file
+              <FolderIcon />
+              <span className="text-primary">Open file</span>
             </div>
             <div
               className={classNames(
@@ -228,6 +236,23 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
               onClick={onDetailsClick}
             >
               View Details
+            </div>
+            <div className="spacer" />
+
+            <div
+              className={classNames("nodrag", styles.table_handle, {
+                invisible: !shouldExpand[1],
+              })}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (processed[1]) {
+                  collapseRight();
+                } else {
+                  expandRight();
+                }
+              }}
+            >
+              {processed[1] ? "-" : "+"}
             </div>
           </div>
         </div>
@@ -240,44 +265,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           />
         )}
       </div>
-      {shouldExpand[1] && (
-        <div
-          className={classNames(
-            "nodrag",
-            styles.table_handle,
-            styles.right_handle
-          )}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (processed[1]) {
-              collapseRight();
-            } else {
-              expandRight();
-            }
-          }}
-        >
-          {processed[1] ? "-" : "+"}
-        </div>
-      )}
-      {shouldExpand[0] && (
-        <div
-          className={classNames(
-            "nodrag",
-            styles.table_handle,
-            styles.left_handle
-          )}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (processed[0]) {
-              collapseLeft();
-            } else {
-              expandLeft();
-            }
-          }}
-        >
-          {processed[0] ? "-" : "+"}
-        </div>
-      )}
 
       <BidirectionalHandles />
     </div>
@@ -325,7 +312,8 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
   return (
     <div
       className={classNames(styles.column_node, {
-        [styles.selected]: selectedColumn.table === table && selectedColumn.name === column,
+        [styles.selected]:
+          selectedColumn.table === table && selectedColumn.name === column,
       })}
     >
       {column}

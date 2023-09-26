@@ -1,4 +1,5 @@
 $node-width: 260px;
+$border-color: rgba(#a7b2c1, 0.3);
 
 .table_node {
   width: $node-width;
@@ -26,10 +27,8 @@ $node-width: 260px;
   .content {
     flex-grow: 1;
     background: #ffffff;
-    border-bottom: 2px solid #eeeff2;
-    border-left: 2px solid #eeeff2;
-    border-right: 2px solid #eeeff2;
-    border-radius: 0 0 0.5em 0.5em;
+    border: 2px solid $border-color;
+    border-radius: 0.5em;
     padding: 0.5em;
     &.selected {
       border-color: #e38e00;
@@ -45,9 +44,7 @@ $node-width: 260px;
 }
 
 $size: 1.2em;
-$diff: 0.25em;
 .table_handle {
-  position: absolute;
   width: $size;
   height: $size;
   line-height: $size;
@@ -55,19 +52,10 @@ $diff: 0.25em;
   background-color: #247efe;
   border: 1px solid #d6e7ff;
   color: #ffffff;
-  top: calc(50% - 0.5 * $size);
   display: flex;
   justify-content: center;
   align-items: end;
   cursor: default;
-}
-
-.right_handle {
-  right: $diff;
-}
-
-.left_handle {
-  left: $diff;
 }
 
 .see_more_node {
@@ -151,6 +139,17 @@ $diff: 0.25em;
   }
 }
 
+.open_file_button {
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+  svg {
+    $size: 1.5rem;
+    width: $size;
+    height: $size;
+  }
+}
+
 .processing_div {
   background-color: #ffffff;
   .gif_img {
@@ -186,4 +185,11 @@ $diff: 0.25em;
     background: #247efe;
     color: #ffffff;
   }
+}
+
+.divider {
+  height: 2px;
+  width: calc(100% + 1em);
+  background-color: $border-color;
+  margin-left: -0.5em;
 }
