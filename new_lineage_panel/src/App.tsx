@@ -91,6 +91,7 @@ function App() {
         upstreamCount: number;
       };
     }) => {
+      setShowSidebar(false);
       if (!args) {
         return;
       }
@@ -223,7 +224,7 @@ function App() {
             openDocs();
           }}
         >
-          Report a problem
+          Feedback
         </Button>
       </div>
       <LineageContext.Provider
