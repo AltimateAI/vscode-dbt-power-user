@@ -70,18 +70,6 @@ const ColumnCard: FunctionComponent<{
   );
 };
 
-const HeaderSection: FunctionComponent<{ table: string; nodeType: string }> = ({
-  table,
-  nodeType,
-}) => {
-  return (
-    <div className="mb-2">
-      <NodeTypeIcon nodeType={nodeType} />
-      <div className="fw-semibold fs-5 lines-2">{table}</div>
-    </div>
-  );
-};
-
 const PurposeSection: FunctionComponent<{
   tableId: string;
   purpose: string;
@@ -295,10 +283,10 @@ const TableDetails = () => {
 
   return (
     <div className="p-2 h-100 d-flex flex-column gap-md text-black overflow-y">
-      <HeaderSection
-        table={selectedTable.table}
-        nodeType={selectedTable.nodeType}
-      />
+      <div className={styles.table_details_header}>
+        <NodeTypeIcon nodeType={selectedTable.nodeType} />
+        <div className="fw-semibold fs-5 lines-2">{selectedTable.table}</div>
+      </div>
       <PurposeSection tableId={data.id} purpose={data.purpose} />
       <ColumnSection
         selectedColumn={selectedColumn.name}

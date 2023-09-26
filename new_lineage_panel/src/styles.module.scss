@@ -195,3 +195,11 @@ $size: 1.2em;
   background-color: $border-color;
   margin-left: -0.5em;
 }
+
+.table_details_header {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1.5rem 1fr;
+  gap: 0em 0.5em;
+  align-items: center;
+}
