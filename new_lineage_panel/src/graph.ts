@@ -6,7 +6,6 @@ import {
   C_OFFSET_Y,
   C_PADDING_Y,
   createForwardEdge,
-  createReverseEdge,
   createTableNode,
   isColumn,
   isNotColumn,
@@ -41,14 +40,8 @@ export const createNewNodesEdges = (
     const existingNode = newNodes.find((_n) => _n.id === _t.table);
     if (!existingNode) {
       newNodes.push(createTableNode(_t, newLevel, t));
-      addUniqueEdge(createForwardEdge(t, _t.table, right));
-    } else if (right && existingNode.data.level < level) {
-      addUniqueEdge(createReverseEdge(t, _t.table, true));
-    } else if (!right && existingNode.data.level > level) {
-      addUniqueEdge(createReverseEdge(t, _t.table, false));
-    } else if (t === _t.table) {
-      addUniqueEdge(createForwardEdge(t, _t.table, right));
     }
+    addUniqueEdge(createForwardEdge(t, _t.table, right));
   });
 
   if (tables.length > MAX_EXPAND_TABLE) {
@@ -200,14 +193,21 @@ export const removeRelatedNodesEdges = (
     const curr = queue.shift()!;
     visited[curr] = true;
     prevEdges.forEach((e) => {
-      if (e[src] !== curr) return;
-      const _t = e[dst];
-      if (visited[_t]) return;
-      const _level = nodesIdMap[_t].data.level;
-      if ((right && _level > level) || (!right && _level < level)) {
-        queue.push(_t);
-        nodesToRemove[_t] = true;
-      }
+      const performVisit = (
+        src: "source" | "target",
+        dst: "source" | "target",
+      ) => {
+        if (e[src] !== curr) return;
+        const _t = e[dst];
+        if (visited[_t]) return;
+        const _level = nodesIdMap[_t].data.level;
+        if ((right && _level > level) || (!right && _level < level)) {
+          queue.push(_t);
+          nodesToRemove[_t] = true;
+        }
+      };
+      performVisit(src, dst);
+      performVisit(dst, src);
     });
   }
 
