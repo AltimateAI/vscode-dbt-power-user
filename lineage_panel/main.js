@@ -85,7 +85,7 @@ graph.on("nodeselectchange", (e) => {
   const nodeUrl = e.target._cfg.model.url;
   vscode.postMessage({
     command: "openFile",
-    url: nodeUrl,
+    args: { url: nodeUrl },
   });
 });
 
@@ -108,6 +108,7 @@ const updateStyles = (theme) => {
 };
 
 window.addEventListener("message", (event) => {
+  console.log("graph:message  -> ", event?.data);
   const { command } = event?.data;
   if (command === "renderGraph") {
     graph.data(event.data.graph);
@@ -116,3 +117,12 @@ window.addEventListener("message", (event) => {
     updateStyles(event.data.theme);
   }
 });
+
+document.getElementById("new-panel-button")?.addEventListener("click", () => {
+  vscode.postMessage({ command: "setNewLineageView" });
+});
+
+window.onload = () => {
+  console.log("graph:onload  -> ");
+  vscode.postMessage({ command: "init", args: {} });
+};

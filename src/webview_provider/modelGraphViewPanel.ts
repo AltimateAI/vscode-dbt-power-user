@@ -19,8 +19,9 @@ import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
-import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
+import { LineagePanelView } from "./lineagePanel";
+import { provideSingleton } from "../utils";
 
 interface G6DataModel {
   nodes: {
@@ -69,63 +70,55 @@ const nodeConfigurations: Record<string, any> = {
 };
 
 @provideSingleton(ModelGraphViewPanel)
-export class ModelGraphViewPanel implements WebviewViewProvider {
+export class ModelGraphViewPanel implements LineagePanelView {
   public static readonly viewType = "dbtPowerUser.ModelViewGraph";
   private _panel: WebviewView | undefined = undefined;
-  private g6Data?: G6DataModel;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
-  private _disposables: Disposable[] = [];
 
-  public constructor(
-    private dbtProjectContainer: DBTProjectContainer,
-    private telemetry: TelemetryService,
-  ) {
-    dbtProjectContainer.onManifestChanged((event) =>
-      this.onManifestCacheChanged(event),
-    );
-    window.onDidChangeActiveColorTheme(
-      async (e) => {
-        if (this._panel) {
-          this.updateGraphStyle();
-        }
-      },
-      null,
-      this._disposables,
-    );
-    window.onDidChangeActiveTextEditor((event: TextEditor | undefined) => {
-      if (event === undefined) {
-        return;
-      }
-      this.g6Data = this.parseGraphData();
-      if (this._panel) {
-        this.transmitData(this.g6Data);
-        this.updateGraphStyle();
-      }
-    });
+  private g6Data?: G6DataModel;
+
+  public constructor(private dbtProjectContainer: DBTProjectContainer) {}
+
+  eventMapChanged(eventMap: Map<string, ManifestCacheProjectAddedEvent>): void {
+    this.eventMap = eventMap;
+    this.init();
+  }
+
+  changedActiveColorTheme() {
+    this.updateGraphStyle();
+  }
+
+  changedActiveTextEditor(event: TextEditor | undefined) {
+    if (event === undefined) {
+      return;
+    }
+    this.init();
   }
 
   private async transmitData(graphInfo: G6DataModel | undefined) {
-    if (this._panel) {
-      await this._panel.webview.postMessage({
-        command: "renderGraph",
-        graph: graphInfo,
-      });
+    if (!this._panel) {
+      return;
     }
+    await this._panel.webview.postMessage({
+      command: "renderGraph",
+      graph: graphInfo,
+    });
   }
 
   private async updateGraphStyle() {
+    if (!this._panel) {
+      return;
+    }
     const theme = [
       ColorThemeKind.Light,
       ColorThemeKind.HighContrastLight,
     ].includes(window.activeColorTheme.kind)
       ? "light"
       : "dark";
-    if (this._panel) {
-      await this._panel.webview.postMessage({
-        command: "setStylesByTheme",
-        theme: theme,
-      });
-    }
+    await this._panel.webview.postMessage({
+      command: "setStylesByTheme",
+      theme: theme,
+    });
   }
 
   public async resolveWebviewView(
@@ -133,18 +126,14 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     context: WebviewViewResolveContext,
     _token: CancellationToken,
   ) {
+    console.log("graph:resolveWebviewView  -> ", this._panel);
     this._panel = panel;
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
-    this.setupWebviewHooks(context);
-    this.g6Data = this.parseGraphData();
-    this.transmitData(this.g6Data);
-    this.updateGraphStyle();
   }
 
   private renderWebviewView(context: WebviewViewResolveContext) {
     const webview = this._panel!.webview!;
-    this.g6Data = this.parseGraphData();
     webview.html = getHtml(webview, this.dbtProjectContainer.extensionUri);
   }
 
@@ -154,45 +143,11 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
     this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
   }
 
-  private setupWebviewHooks(context: WebviewViewResolveContext) {
-    this._panel!.webview.onDidReceiveMessage(
-      async (message) => {
-        switch (message.command) {
-          case "openFile":
-            const { url } = message;
-            if (!url) {
-              return;
-            }
-            await commands.executeCommand("vscode.open", Uri.file(url), {
-              preview: false,
-              preserveFocus: true,
-            });
-        }
-      },
-      null,
-      this._disposables,
-    );
-    const sendLineageViewEvent = () => {
-      if (this._panel!.visible) {
-        this.telemetry.sendTelemetryEvent("LineagePanelActive");
-      }
-    };
-    sendLineageViewEvent();
-    this._panel!.onDidChangeVisibility(sendLineageViewEvent);
-  }
-
-  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    event.added?.forEach((added) => {
-      this.eventMap.set(added.projectRoot.fsPath, added);
-    });
-    event.removed?.forEach((removed) => {
-      this.eventMap.delete(removed.projectRoot.fsPath);
-    });
+  init() {
+    console.log("graph:init  -> ", this._panel);
     this.g6Data = this.parseGraphData();
-    if (this._panel) {
-      this.transmitData(this.g6Data);
-      this.updateGraphStyle();
-    }
+    this.transmitData(this.g6Data);
+    this.updateGraphStyle();
   }
 
   private parseGraphData = () => {
@@ -258,6 +213,7 @@ export class ModelGraphViewPanel implements WebviewViewProvider {
         }
       });
     });
+
     return { nodes, edges };
   };
 
