@@ -6,11 +6,11 @@ import {
   C_OFFSET_Y,
   C_PADDING_Y,
   COLUMN_PREFIX,
+  createForwardEdge,
+  createTableNode,
   defaultEdgeStyle,
   highlightEdgeStyle,
   highlightMarker,
-  createForwardEdge,
-  createTableNode,
   isColumn,
   isNotColumn,
   LEVEL_SEPARATION,
@@ -365,4 +365,13 @@ export const processColumnLineage = async (
   layoutElementsOnCanvas(nodes, edges);
 
   return { nodes, edges, collectColumns };
+};
+
+export const removeColumnNodes = (
+  _nodes: Node[],
+  _edges: Edge[],
+): [Node[], Edge[]] => {
+  const nodes = _nodes.filter((n) => isNotColumn(n));
+  const edges = _edges.filter((n) => isNotColumn(n));
+  return [nodes, edges];
 };

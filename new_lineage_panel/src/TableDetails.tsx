@@ -12,7 +12,7 @@ import classNames from "classnames";
 import { Input } from "reactstrap";
 import { getColumns, Columns, Column } from "./service";
 import { LineageContext } from "./App";
-import { processColumnLineage } from "./graph";
+import { processColumnLineage, removeColumnNodes } from "./graph";
 
 // ui components
 import { ComponentLoader } from "./Loader";
@@ -155,6 +155,21 @@ const TableDetails = () => {
   }, [selectedTable]);
 
   const handleColumnClick = async (_column: Column) => {
+    if (
+      selectedColumn.table === _column.table &&
+      selectedColumn.name === _column.name
+    ) {
+      const [_nodes, _edges] = removeColumnNodes(
+        flow.getNodes(),
+        flow.getEdges()
+      );
+      flow.setNodes(_nodes);
+      flow.setEdges(_edges);
+      setSelectedColumn({ table: "", name: "" });
+      setCollectColumns({});
+      setShowSidebar(false);
+      return;
+    }
     const _nodes = flow.getNodes();
     const _edges = flow.getEdges();
     const { nodes, edges, collectColumns } = await processColumnLineage(
