@@ -10,9 +10,20 @@ import { useReactFlow } from "reactflow";
 import styles from "./styles.module.scss";
 import classNames from "classnames";
 import { Button, Input } from "reactstrap";
-import { getColumns, Columns, Column } from "./service";
+import {
+  getColumns,
+  Columns,
+  Column,
+  upstreamTables,
+  downstreamTables,
+  Table,
+} from "./service";
 import { LineageContext } from "./App";
-import { processColumnLineage, removeColumnNodes } from "./graph";
+import {
+  createNewNodesEdges,
+  processColumnLineage,
+  removeColumnNodes,
+} from "./graph";
 
 // ui components
 import { ComponentLoader } from "./Loader";
@@ -170,8 +181,32 @@ const TableDetails = () => {
       setShowSidebar(false);
       return;
     }
-    const _nodes = flow.getNodes();
-    const _edges = flow.getEdges();
+    let _nodes = flow.getNodes();
+    let _edges = flow.getEdges();
+    const addNodesEdges = (tables: Table[], right: boolean, level: number) => {
+      [_nodes, _edges] = createNewNodesEdges(
+        _nodes,
+        _edges,
+        tables,
+        _column.table,
+        right,
+        level
+      );
+    };
+    const tableNode = flow.getNode(_column.table);
+    if (tableNode) {
+      const {
+        data: { processed, key, level },
+      } = tableNode;
+      if (!processed[1]) {
+        const { tables } = await upstreamTables(key);
+        addNodesEdges(tables, true, level);
+      }
+      if (!processed[0]) {
+        const { tables } = await downstreamTables(key);
+        addNodesEdges(tables, false, level);
+      }
+    }
     const { nodes, edges, collectColumns } = await processColumnLineage(
       _nodes,
       _edges,
