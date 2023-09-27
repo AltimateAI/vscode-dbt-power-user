@@ -81,3 +81,15 @@ body {
   gap: 8px;
   z-index: 10;
 }
+
+.bg-gray {
+  background-color: #f5f6f7;
+}
+
+.bg-blue {
+  background-color: #eaf3ff;
+}
+
+.fs-xxs {
+  font-size: 0.875rem;
+}

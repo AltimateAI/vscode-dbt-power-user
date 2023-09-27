@@ -50,9 +50,3 @@ export const getConnectedColumns = (body: unknown) => {
     ColumnLineageResponse
   >;
 };
-
-export const updateTablePurpose = (body: unknown) =>
-  requestExecutor("updateTablePurpose", body) as Promise<{ ok: boolean }>;
-
-export const generateDescription = (body: unknown) =>
-  requestExecutor("generateDescription", body) as Promise<unknown>;
