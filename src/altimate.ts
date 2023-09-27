@@ -23,6 +23,7 @@ interface SQLs {
 }
 
 interface DBTColumnLineageRequest {
+  model_dialect: string;
   model_name: string;
   model_node: NodeMetaData;
   compiled_sqls: SQLs;

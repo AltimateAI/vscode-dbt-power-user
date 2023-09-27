@@ -203,6 +203,7 @@ export class NewLineagePanel implements LineagePanelView {
         const fileContent = Buffer.from(data).toString("utf8");
         const compiledSql = await project.compileQuery(fileContent);
         const columnsFromDB = await project.getColumnsInRelation(node.alias);
+        const modelDialect = project.getAdapterType();
         if (columnsFromDB) {
           columnsFromDB.forEach((c) => {
             const existing_column = node.columns[c.column];
@@ -218,6 +219,7 @@ export class NewLineagePanel implements LineagePanelView {
           });
         }
         const resp = await this.altimate.getColumnLevelLineage({
+          model_dialect: modelDialect,
           model_name: node.alias,
           compiled_sqls: { current_model: compiledSql || "", child: {} },
           model_node: node,
