@@ -31,9 +31,75 @@ const app = createApp({
       resizeTimer: undefined,
       windowHeight: DEFAULT_HEIGHT,
       scale: 1,
+      clipboardText: "",
     };
   },
   methods: {
+    // Converts the provided data to CSV format.
+    dataToCsv(data) {
+      if (!data || data.length === 0) {
+        console.error("No data available to convert to CSV");
+        return "";
+      }
+      const replacer = (key, value) => (value === null ? "" : value);
+      const header = Object.keys(data[0]);
+      const csv = [
+        header.join(","),
+        ...data.map((row) =>
+          header
+            .map((fieldName) => {
+              let fieldData = row[fieldName];
+              if (fieldData && typeof fieldData === "string") {
+                fieldData = fieldData.replace(/"/g, '""'); // Escape double quotes
+                return `"${fieldData}"`; // Wrap in double quotes
+              }
+              return JSON.stringify(fieldData, replacer);
+            })
+            .join(","),
+        ),
+      ].join("\r\n");
+      return csv;
+    },
+    downloadAsCSV() {
+      const data = this.table.getData(); // Get the data the same way you do for copying
+      try {
+        if (!data || data.length === 0) {
+          console.error("No data available for downloading.");
+          return;
+        }
+        const csvContent = this.dataToCsv(data);
+        const blob = new Blob([csvContent], { type: "text/csv" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `power_user_data_${new Date().toISOString()}.csv`; // Filename with a timestamp
+        a.click();
+      } catch (error) {
+        // Show error message
+        vscode.window.showErrorMessage(
+          "Unable to download data as CSV. " + error.message,
+        );
+        // Log error for debugging
+        console.error("Failed to download CSV:", error);
+      }
+    },
+    copyTextToClipboard(text) {
+      navigator.clipboard.writeText(text);
+    },
+    // Copies the table's data to the clipboard in CSV format.
+    async copyResultsToClipboard() {
+      try {
+        const data = this.table.getData();
+        const csv = this.dataToCsv(data);
+        this.copyTextToClipboard(csv);
+      } catch (error) {
+        console.error("Error copying results to clipboard:", error);
+        // Show error message
+        vscode.window.showErrorMessage(
+          "Unable to convert data to CSV. " + error.message,
+        );
+      }
+    },
     updateTable(data) {
       this.count = data.rows.length;
       this.table = new Tabulator("#query-results", {

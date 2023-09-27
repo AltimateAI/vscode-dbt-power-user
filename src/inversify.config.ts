@@ -17,7 +17,6 @@ import { TelemetryService } from "./telemetry";
 import { NewLineagePanel } from "./webview_provider/newLineageView";
 import { ModelGraphViewPanel } from "./webview_provider/modelGraphViewPanel";
 import { AltimateRequest } from "./altimate";
-
 export const container = new Container();
 container.load(buildProviderModule());
 
@@ -82,7 +81,6 @@ container
       return new NewLineagePanel(
         container.get(DBTProjectContainer),
         container.get(AltimateRequest),
-        container.get(TelemetryService),
       );
     };
   });
@@ -92,9 +90,6 @@ container
   .toFactory<ModelGraphViewPanel>((context: interfaces.Context) => {
     return () => {
       const { container } = context;
-      return new ModelGraphViewPanel(
-        container.get(DBTProjectContainer),
-        container.get(TelemetryService),
-      );
+      return new ModelGraphViewPanel(container.get(DBTProjectContainer));
     };
   });

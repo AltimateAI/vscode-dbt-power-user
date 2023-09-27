@@ -1,65 +1,102 @@
 import {
   CancellationToken,
   commands,
+  Disposable,
   env,
+  TextEditor,
   Uri,
   WebviewView,
   WebviewViewProvider,
   WebviewViewResolveContext,
+  window,
   workspace,
 } from "vscode";
 import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
+import {
+  ManifestCacheChangedEvent,
+  ManifestCacheProjectAddedEvent,
+} from "../manifest/event/manifestCacheChangedEvent";
 import { ModelGraphViewPanel } from "./modelGraphViewPanel";
-import { NewLineagePanel } from "./newLineageView";
+import { NewLineagePanel } from "./newLineagePanel";
 import { inject } from "inversify";
 
 export interface LineagePanelView extends WebviewViewProvider {
-  onManifestCacheChanged(event: ManifestCacheChangedEvent): void;
   init(): void;
+  eventMapChanged(eventMap: Map<string, ManifestCacheProjectAddedEvent>): void;
+  changedActiveColorTheme(): void;
+  changedActiveTextEditor(event: TextEditor | undefined): void;
 }
 
 @provideSingleton(LineagePanel)
-export class LineagePanel implements WebviewViewProvider {
+export class LineagePanel implements WebviewViewProvider, Disposable {
   public static readonly viewType = "dbtPowerUser.Lineage";
 
-  private lineagePanel: LineagePanelView | undefined;
   private panel: WebviewView | undefined;
   private context: WebviewViewResolveContext<unknown> | undefined;
   private token: CancellationToken | undefined;
-
-  private manifestEvent: ManifestCacheChangedEvent | undefined;
+  private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
+  private disposables: Disposable[] = [];
 
   public constructor(
-    @inject("Factory<NewLineagePanel>")
-    private newLineageFactory: () => NewLineagePanel,
-    @inject("Factory<ModelGraphViewPanel>")
-    private legacyLineageFactory: () => ModelGraphViewPanel,
+    private lineagePanel: NewLineagePanel,
+    private legacyLineagePanel: ModelGraphViewPanel,
     dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
   ) {
-    dbtProjectContainer.onManifestChanged((event) => {
-      console.log("abstract:onManifestChanged -> ");
-      this.manifestEvent = event;
-      this.lineagePanel?.onManifestCacheChanged(event);
+    this.disposables.push(
+      dbtProjectContainer.onManifestChanged((event) =>
+        this.onManifestCacheChanged(event),
+      ),
+    );
+    window.onDidChangeActiveColorTheme(
+      async (e) => {
+        // TODO: add code for
+      },
+      null,
+      this.disposables,
+    );
+    window.onDidChangeActiveTextEditor((event: TextEditor | undefined) => {
+      this.getPanel().changedActiveTextEditor(event);
     });
   }
 
-  private init = async (newLineagePanel: boolean) => {
-    console.log("abstract:init -> ");
-    this.lineagePanel = newLineagePanel
-      ? this.newLineageFactory()
-      : this.legacyLineageFactory();
-    await this.lineagePanel?.resolveWebviewView(
+  private getPanel() {
+    const isEnableNewLineagePanel = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("enableNewLineagePanel", false);
+    return isEnableNewLineagePanel
+      ? this.lineagePanel
+      : this.legacyLineagePanel;
+  }
+
+  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+    event.added?.forEach((added) => {
+      this.eventMap.set(added.projectRoot.fsPath, added);
+    });
+    event.removed?.forEach((removed) => {
+      this.eventMap.delete(removed.projectRoot.fsPath);
+    });
+    this.getPanel().eventMapChanged(this.eventMap);
+  }
+
+  dispose() {
+    while (this.disposables.length) {
+      const x = this.disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
+  }
+
+  private init = async () => {
+    await this.getPanel().resolveWebviewView(
       this.panel!,
       this.context!,
       this.token!,
     );
-    if (this.manifestEvent) {
-      this.lineagePanel.onManifestCacheChanged(this.manifestEvent!);
-    }
+    this.getPanel().eventMapChanged(this.eventMap);
   };
 
   resolveWebviewView(
@@ -75,7 +112,7 @@ export class LineagePanel implements WebviewViewProvider {
       .getConfiguration("dbt")
       .get<boolean>("enableNewLineagePanel", false);
 
-    this.init(panelType);
+    this.init();
     panel.webview.onDidReceiveMessage(this.handleWebviewMessage, null, []);
     const sendLineageViewEvent = () => {
       if (this.panel!.visible) {
@@ -111,7 +148,7 @@ export class LineagePanel implements WebviewViewProvider {
       await workspace
         .getConfiguration("dbt")
         .update("enableNewLineagePanel", true);
-      this.init(true);
+      this.init();
       this.telemetry.sendTelemetryEvent("NewLineagePanelSelected");
       return;
     }
@@ -120,18 +157,18 @@ export class LineagePanel implements WebviewViewProvider {
       await workspace
         .getConfiguration("dbt")
         .update("enableNewLineagePanel", false);
-      this.init(false);
+      this.init();
       this.telemetry.sendTelemetryEvent("LegacyLineagePanelSelected");
       return;
     }
 
     if (command === "request") {
-      (this.lineagePanel as NewLineagePanel).handleRequest(args);
+      (this.getPanel() as NewLineagePanel).handleRequest(args);
       return;
     }
 
     if (command === "init") {
-      this.lineagePanel?.init();
+      this.getPanel()?.init();
       return;
     }
 
