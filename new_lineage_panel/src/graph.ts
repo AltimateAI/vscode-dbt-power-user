@@ -87,8 +87,7 @@ export const layoutElementsOnCanvas = (nodes: Node[], _edges: Edge[]) => {
         x: C_OFFSET_X,
         y: tableWiseColumnIndex[n.parentNode] * C_NODE_H +
           C_OFFSET_Y +
-          (C_PADDING_Y >> 1) +
-          2,
+          (C_PADDING_Y >> 1),
       };
       tableWiseColumnIndex[n.parentNode]++;
       continue;
