@@ -2,7 +2,12 @@ import { useContext, useState } from "react";
 import styles from "./styles.module.scss";
 import classNames from "classnames";
 import { useReactFlow } from "reactflow";
-import { createForwardEdge, createTableNode, destructTable } from "./utils";
+import {
+  SEE_MORE_PREFIX,
+  createForwardEdge,
+  createTableNode,
+  destructTable,
+} from "./utils";
 import { layoutElementsOnCanvas } from "./graph";
 import { LineageContext } from "./App";
 import { Input } from "reactstrap";
@@ -17,7 +22,7 @@ export type TMoreTables = {
 };
 
 function MoreTables() {
-  const { moreTables } = useContext(LineageContext);
+  const { moreTables, setShowSidebar } = useContext(LineageContext);
   const { prevTable, tables, right, level } = moreTables as TMoreTables;
   const flow = useReactFlow();
 
@@ -37,6 +42,16 @@ function MoreTables() {
       nodes = nodes.filter((n) => n.id !== table);
       const _edgeId = right ? `${prevTable}-${table}` : `${table}-${prevTable}`;
       edges = edges.filter((e) => e.id !== _edgeId);
+    }
+
+    if (tables.every((t) => !!nodes.find((n) => n.id === t.table))) {
+      const seeMoreNodeId = SEE_MORE_PREFIX + prevTable;
+      const seeMoreEdgeId = right
+        ? `${prevTable}-${seeMoreNodeId}`
+        : `${seeMoreNodeId}-${prevTable}`;
+      nodes = nodes.filter((n) => n.id !== seeMoreNodeId);
+      edges = edges.filter((e) => e.id !== seeMoreEdgeId);
+      setShowSidebar(false);
     }
 
     layoutElementsOnCanvas(nodes, edges);
