@@ -19,7 +19,7 @@ import {
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import { ModelGraphViewPanel } from "./modelGraphViewPanel";
-import { NewLineagePanel } from "./newLineageView";
+import { NewLineagePanel } from "./newLineagePanel";
 import { inject } from "inversify";
 
 export interface LineagePanelView extends WebviewViewProvider {
