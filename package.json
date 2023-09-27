@@ -63,6 +63,10 @@
           "dbt.altimateAiKey": {
             "type": "string",
             "description": "Sign up for an altimate account to unlock ai features. Add the Altimate AI Key here to enable the features."
+          },
+          "dbt.enableNewLineagePanel": {
+            "type": "boolean",
+            "description": "Enable the new lineage panel in dbt."
           }
         }
       },
@@ -176,8 +180,8 @@
           "icon": "./media/images/dbt_icon.svg"
         },
         {
-          "id": "dbt_lineage_view",
-          "title": "Lineage View",
+          "id": "lineage_view",
+          "title": "Lineage",
           "icon": "./media/images/dbt_icon.svg"
         },
         {
@@ -213,9 +217,9 @@
           "type": "webview"
         }
       ],
-      "dbt_lineage_view": [
+      "lineage_view": [
         {
-          "id": "dbtPowerUser.ModelViewGraph",
+          "id": "dbtPowerUser.Lineage",
           "name": "",
           "type": "webview"
         }
@@ -455,14 +459,16 @@
   "scripts": {
     "prepare": "husky install",
     "vscode:prepublish": "webpack --mode production",
-    "webpack": "webpack --mode development",
+    "webpack": "npm run panel:lineage && webpack --mode development",
     "webpack-dev": "webpack --mode development --watch",
     "test-compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
     "deploy-vscode": "vsce publish",
     "build-vsix": "vsce package",
-    "deploy-openvsx": "ovsx publish"
+    "deploy-openvsx": "ovsx publish",
+    "panel:lineage": "npm run build --prefix ./new_lineage_panel",
+    "install:panels": "npm install --prefix ./new_lineage_panel"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
