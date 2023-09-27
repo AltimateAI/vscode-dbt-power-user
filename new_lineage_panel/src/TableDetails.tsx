@@ -195,6 +195,7 @@ const TableDetails = () => {
           <div className="spacer" />
           <Button
             size="sm"
+            color="primary"
             onClick={() => {
               if (!selectedTable) {
                 return;
