@@ -71,15 +71,18 @@ export class LineagePanel implements WebviewViewProvider {
     this.panel = panel;
     this.context = context;
     this.token = token;
-    this.init(
-      workspace
-        .getConfiguration("dbt")
-        .get<boolean>("enableNewLineagePanel", false),
-    );
+    const panelType = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("enableNewLineagePanel", false);
+
+    this.init(panelType);
     panel.webview.onDidReceiveMessage(this.handleWebviewMessage, null, []);
     const sendLineageViewEvent = () => {
       if (this.panel!.visible) {
-        this.telemetry.sendTelemetryEvent("LineagePanelActive");
+        // keeping the legacy event name same for analysis
+        this.telemetry.sendTelemetryEvent(
+          panelType ? "NewLineagePanelActive" : "LineagePanelActive",
+        );
       }
     };
     sendLineageViewEvent();
@@ -109,6 +112,7 @@ export class LineagePanel implements WebviewViewProvider {
         .getConfiguration("dbt")
         .update("enableNewLineagePanel", true);
       this.init(true);
+      this.telemetry.sendTelemetryEvent("NewLineagePanelSelected");
       return;
     }
 
@@ -117,6 +121,7 @@ export class LineagePanel implements WebviewViewProvider {
         .getConfiguration("dbt")
         .update("enableNewLineagePanel", false);
       this.init(false);
+      this.telemetry.sendTelemetryEvent("LegacyLineagePanelSelected");
       return;
     }
 

@@ -6,6 +6,8 @@ export type Table = {
   count: number;
   url: string;
   nodeType: string;
+  downstreamCount: number;
+  upstreamCount: number;
 };
 export type Column = {
   name: string;

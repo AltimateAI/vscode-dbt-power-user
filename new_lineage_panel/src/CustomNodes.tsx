@@ -82,11 +82,18 @@ export const NodeTypeIcon: FunctionComponent<{ nodeType: string }> = ({
 );
 
 export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
-  const { shouldExpand, processed, table, level, url, key, nodeType } = data;
+  const {
+    shouldExpand,
+    processed,
+    table,
+    level,
+    url,
+    upstreamCount,
+    downstreamCount,
+    key,
+    nodeType,
+  } = data;
   const flow = useReactFlow();
-  // hack to force re-render the component
-  const [, _rerender] = useState(0);
-  const rerender = () => _rerender((x) => x + 1);
 
   const {
     selectedTable,
@@ -96,6 +103,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     collectColumns,
     selectedColumn,
     setCollectColumns,
+    rerender,
   } = useContext(LineageContext);
 
   const _columnLen = Object.keys(collectColumns[table] || {}).length;
@@ -103,7 +111,9 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const selected = selectedTable?.table === table;
   const toggleTableSelection = () =>
     setSelectedTable((prev) =>
-      prev?.table === table ? null : { table, key, url, nodeType }
+      prev?.table === table
+        ? null
+        : { table, key, url, nodeType, upstreamCount, downstreamCount }
     );
 
   const highlightTable = () => {
@@ -185,6 +195,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     setSidebarScreen(COLUMNS_SIDEBAR);
   };
 
+  const _edges = flow.getEdges();
   return (
     <div
       className="position-relative"
@@ -215,15 +226,15 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           <div className="w-100 d-flex align-items-center gap-xs">
             <div
               className={classNames("nodrag", styles.table_handle, {
-                invisible: !shouldExpand[0],
+                invisible:
+                  !shouldExpand[0] ||
+                  processed[0] ||
+                  downstreamCount ===
+                    _edges.filter((e) => e.target === table).length,
               })}
               onClick={(e) => {
                 e.stopPropagation();
-                if (processed[0]) {
-                  collapseLeft();
-                } else {
-                  expandLeft();
-                }
+                expandLeft();
               }}
             >
               {processed[0] ? "-" : "+"}
@@ -247,15 +258,15 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
             <div
               className={classNames("nodrag", styles.table_handle, {
-                invisible: !shouldExpand[1],
+                invisible:
+                  !shouldExpand[1] ||
+                  processed[1] ||
+                  upstreamCount ===
+                    _edges.filter((e) => e.source === table).length,
               })}
               onClick={(e) => {
                 e.stopPropagation();
-                if (processed[1]) {
-                  collapseRight();
-                } else {
-                  expandRight();
-                }
+                expandRight();
               }}
             >
               {processed[1] ? "-" : "+"}

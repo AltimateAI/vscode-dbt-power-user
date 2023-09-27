@@ -5,9 +5,9 @@ import { useReactFlow } from "reactflow";
 import { createForwardEdge, createTableNode } from "./utils";
 import { layoutElementsOnCanvas } from "./graph";
 import { LineageContext } from "./App";
-import { Table } from "./service";
 import { Input } from "reactstrap";
 import DBTIcon from "./assets/icons/dbt.svg?react";
+import { Table } from "./service";
 
 export type TMoreTables = {
   prevTable: string;
@@ -31,7 +31,7 @@ function MoreTables() {
     let edges = flow.getEdges();
     const node = nodes.find((n) => n.id === table);
     if (!node) {
-      nodes.push(createTableNode(_table, right, level, prevTable));
+      nodes.push(createTableNode(_table, level, prevTable));
       edges.push(createForwardEdge(prevTable, table, right));
     } else {
       nodes = nodes.filter((n) => n.id !== table);

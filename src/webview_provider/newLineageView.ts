@@ -25,7 +25,8 @@ type Table = {
   key: string;
   table: string;
   url: string;
-  count: number;
+  downstreamCount: number;
+  upstreamCount: number;
   nodeType: string;
 };
 
@@ -134,7 +135,7 @@ export class NewLineagePanel implements LineagePanelView {
     if (!_table) {
       return;
     }
-    if(!this._offline) {
+    if (!this._offline) {
       const project = this.getProject();
       if (project) {
         const columnsFromDB = await project.getColumnsInRelation(table);
@@ -306,28 +307,30 @@ export class NewLineagePanel implements LineagePanelView {
     if (!graphMetaMap) {
       return;
     }
-    const dependencyNodes: Map<string, { nodes: any[] }> = graphMetaMap[key];
+    const dependencyNodes = graphMetaMap[key];
     const node = dependencyNodes.get(table);
     if (!node) {
       return;
     }
     const tables: Map<string, Table> = new Map();
+    const allowedNodeTypes = ["model.", "source.", "seed."];
     const addToTables = (key: string, value: Omit<Table, "key">) => {
-      if (!tables.has(key)) {
+      if (!tables.has(key) && allowedNodeTypes.some((t) => key.startsWith(t))) {
         tables.set(key, { ...value, key });
       }
     };
     node.nodes.forEach(
-      (child: { key: "string"; url: "string"; label: "string" }) => {
-        const count = dependencyNodes.get(child.key)?.nodes.length || 0;
-        addToTables(child.key, {
-          table: child.label,
-          url: child.url,
-          count,
-          nodeType: child.key.split(".")?.[0] || "model",
+      ({ key, url, label }) => {
+        addToTables(key, {
+          table: label,
+          url,
+          nodeType: key.split(".")?.[0] || "model",
+          upstreamCount: graphMetaMap["children"].get(key)?.nodes.length || 0,
+          downstreamCount: graphMetaMap["parents"].get(key)?.nodes.length || 0,
         });
       },
     );
+    //
     return Array.from(tables.values()).sort((a, b) =>
       a.table.localeCompare(b.table)
     );

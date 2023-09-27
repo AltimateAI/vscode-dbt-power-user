@@ -7,7 +7,6 @@ import {
   useState,
 } from "react";
 import ReactFlow, {
-  MiniMap,
   Background,
   Controls,
   Edge,
@@ -74,6 +73,7 @@ export const LineageContext = createContext<{
   setSelectedColumn: Dispatch<SetStateAction<{ name: string; table: string }>>;
   collectColumns: Record<string, string[]>;
   setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>;
+  rerender: () => void;
 }>({
   showSidebar: false,
   setShowSidebar: () => {},
@@ -87,6 +87,7 @@ export const LineageContext = createContext<{
   setSelectedColumn: () => "",
   collectColumns: {},
   setCollectColumns: () => {},
+  rerender: () => {},
 });
 
 function App() {
@@ -100,6 +101,8 @@ function App() {
   const [sidebarScreen, setSidebarScreen] = useState("");
   const [selectedColumn, setSelectedColumn] = useState({ name: "", table: "" });
   const [collectColumns, setCollectColumns] = useState({});
+  const [, _rerender] = useState(0);
+  const rerender = () => _rerender((x) => x + 1);
 
   useEffect(() => {
     const render = async (args: {
@@ -112,6 +115,7 @@ function App() {
         upstreamCount: number;
       };
     }) => {
+      setShowSidebar(false);
       if (!args) {
         return;
       }
@@ -144,10 +148,11 @@ function App() {
         };
         _nodes = _flow.getNodes();
         _edges = _flow.getEdges();
-        if (level > 0 && !processed[1]) {
+        if (!processed[1]) {
           const { tables } = await upstreamTables(node.key);
           addNodesEdges(tables, true, level);
-        } else if (level < 0 && !processed[0]) {
+        }
+        if (!processed[0]) {
           const { tables } = await downstreamTables(node.key);
           addNodesEdges(tables, false, level);
         }
@@ -163,6 +168,8 @@ function App() {
               shouldExpand: [node.downstreamCount > 0, node.upstreamCount > 0],
               processed: [node.downstreamCount > 0, node.upstreamCount > 0],
               nodeType: node.nodeType,
+              upstreamCount: node.upstreamCount,
+              downstreamCount: node.downstreamCount,
             },
             position: { x: 100, y: 100 },
             type: "table",
@@ -211,17 +218,26 @@ function App() {
   return (
     <div className="position-relative">
       <div className="top-right-container">
-        <div className="panel-tabs-container">
-          <div
-            className="panel-tab"
-            onClick={() => {
-              vscode.postMessage({ command: "setLegacyLineageView" });
-            }}
-          >
-            Legacy UX
-          </div>
-          <div className="panel-tab-selected">New UX (Beta)</div>
-        </div>
+        <Button
+          color="secondary"
+          onClick={(e) => {
+            e.stopPropagation();
+            flow.current?.setNodes([]);
+            flow.current?.setEdges([]);
+            vscode.postMessage({ command: "init" });
+          }}
+        >
+          Reset
+        </Button>
+        <Button
+          color="primary"
+          onClick={(e) => {
+            e.stopPropagation();
+            vscode.postMessage({ command: "setLegacyLineageView" });
+          }}
+        >
+          Show Legacy UX
+        </Button>
         <Button
           color="link"
           onClick={(e) => {
@@ -229,7 +245,7 @@ function App() {
             openDocs();
           }}
         >
-          Report a problem
+          Feedback
         </Button>
       </div>
       <LineageContext.Provider
@@ -246,6 +262,7 @@ function App() {
           setSelectedColumn,
           collectColumns,
           setCollectColumns,
+          rerender,
         }}
       >
         <ReactFlowProvider>
@@ -261,7 +278,6 @@ function App() {
             >
               <Background />
               <Controls />
-              <MiniMap />
             </ReactFlow>
           </div>
           <SidebarModal
