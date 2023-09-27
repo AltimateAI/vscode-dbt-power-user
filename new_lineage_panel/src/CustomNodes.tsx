@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { FunctionComponent, useContext, useState } from "react";
+import React, { FunctionComponent, useContext } from "react";
 import {
   BaseEdge,
   EdgeProps,
@@ -15,7 +14,6 @@ import {
   highlightTableConnections,
   layoutElementsOnCanvas,
   processColumnLineage,
-  removeRelatedNodesEdges,
   resetTableHighlights,
 } from "./graph";
 import { LineageContext, openFile } from "./App";
@@ -170,23 +168,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     const { tables } = await downstreamTables(key);
     await expand(tables, false);
   };
-
-  const collapse = (right: boolean) => () => {
-    const [nodes, edges] = removeRelatedNodesEdges(
-      flow.getNodes(),
-      flow.getEdges(),
-      table,
-      right,
-      level
-    );
-    layoutElementsOnCanvas(nodes, edges);
-    flow.setNodes(nodes);
-    flow.setEdges(edges);
-    rerender();
-  };
-
-  const collapseLeft = collapse(false);
-  const collapseRight = collapse(true);
 
   const onDetailsClick = (e: React.MouseEvent) => {
     if (!selected) return;
