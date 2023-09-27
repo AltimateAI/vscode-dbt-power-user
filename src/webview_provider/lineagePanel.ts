@@ -71,7 +71,7 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
       : this.legacyLineagePanel;
   }
 
-  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
       this.eventMap.set(added.projectRoot.fsPath, added);
     });
