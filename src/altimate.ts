@@ -17,16 +17,13 @@ interface Schemas {
   [key: string]: { [key: string]: unknown };
 }
 
-interface SQLs {
-  current_model: string;
-  child: { [key: string]: string };
-}
-
 interface DBTColumnLineageRequest {
   model_dialect: string;
-  model_name: string;
-  model_node: NodeMetaData;
-  compiled_sqls: SQLs;
+  model_info: {
+    model_name: string;
+    model_node: NodeMetaData;
+    compiled_sql: string;
+  }[];
   schemas?: Schemas | null;
 }
 

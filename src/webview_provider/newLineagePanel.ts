@@ -220,9 +220,11 @@ export class NewLineagePanel implements LineagePanelView {
         }
         const resp = await this.altimate.getColumnLevelLineage({
           model_dialect: modelDialect,
-          model_name: node.alias,
-          compiled_sqls: { current_model: compiledSql || "", child: {} },
-          model_node: node,
+          model_info: [{
+            model_name: node.alias,
+            model_node: node,
+            compiled_sql: compiledSql || "",
+          }]
         });
         return resp;
       }),
