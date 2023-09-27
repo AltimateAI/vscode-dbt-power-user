@@ -40,9 +40,7 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
   private disposables: Disposable[] = [];
 
   public constructor(
-    @inject(NewLineagePanel)
     private lineagePanel: NewLineagePanel,
-    @inject(ModelGraphViewPanel)
     private legacyLineagePanel: ModelGraphViewPanel,
     dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
