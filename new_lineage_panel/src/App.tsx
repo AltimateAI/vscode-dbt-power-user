@@ -64,7 +64,7 @@ export const LineageContext = createContext<{
   showSidebar: boolean;
   setShowSidebar: Dispatch<boolean>;
   selectedTable: Omit<Table, "count"> | null;
-  setSelectedTable: Dispatch<SetStateAction<Omit<Table, "count"> | null>>;
+  setSelectedTable: Dispatch<SetStateAction<Table | null>>;
   moreTables: TMoreTables | null;
   setMoreTables: Dispatch<TMoreTables>;
   sidebarScreen: string;
@@ -92,10 +92,7 @@ export const LineageContext = createContext<{
 
 function App() {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
-  const [selectedTable, setSelectedTable] = useState<Omit<
-    Table,
-    "count"
-  > | null>(null);
+  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [moreTables, setMoreTables] = useState<TMoreTables | null>(null);
   const [sidebarScreen, setSidebarScreen] = useState("");
@@ -224,6 +221,9 @@ function App() {
             e.stopPropagation();
             flow.current?.setNodes([]);
             flow.current?.setEdges([]);
+            setSelectedTable(null);
+            setSelectedColumn({ table: "", name: "" });
+            setCollectColumns({});
             vscode.postMessage({ command: "init" });
           }}
         >

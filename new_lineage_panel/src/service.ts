@@ -3,7 +3,6 @@ import { requestExecutor } from "./App";
 export type Table = {
   key: string;
   table: string;
-  count: number;
   url: string;
   nodeType: string;
   downstreamCount: number;
