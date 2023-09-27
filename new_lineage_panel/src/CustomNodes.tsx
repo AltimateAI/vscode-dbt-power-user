@@ -156,9 +156,11 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           )}
         >
           <div className={styles.table_header}>
-            {schema === "seed" && <SeedIcon />}
-            {schema === "model" && <ModelIcon />}
-            {schema === "source" && <SourceIcon />}
+            <div>
+              {schema === "seed" && <SeedIcon />}
+              {schema === "model" && <ModelIcon />}
+              {schema === "source" && <SourceIcon />}
+            </div>
             <div className="lines-2 text-black">{label}</div>
           </div>
           <div className={styles.divider} />
