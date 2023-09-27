@@ -14,7 +14,7 @@ import { TargetWatchersFactory } from "./manifest/modules/targetWatchers";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
 import { QueryResultPanel } from "./webview_provider/queryResultPanel";
 import { TelemetryService } from "./telemetry";
-import { NewLineagePanel } from "./webview_provider/newLineageView";
+import { NewLineagePanel } from "./webview_provider/newLineagePanel";
 import { ModelGraphViewPanel } from "./webview_provider/modelGraphViewPanel";
 import { AltimateRequest } from "./altimate";
 export const container = new Container();
