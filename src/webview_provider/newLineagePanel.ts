@@ -31,18 +31,6 @@ type Table = {
   nodeType: string;
 };
 
-type Column = {
-  name: string;
-  datatype: string;
-  can_lineage_expand: boolean;
-  description: string;
-};
-type Columns = {
-  id: string;
-  purpose: string;
-  columns: Column[];
-};
-
 @provideSingleton(NewLineagePanel)
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
@@ -122,7 +110,9 @@ export class NewLineagePanel implements LineagePanelView {
     });
   }
 
-  private async getColumns({ table }: { table: string }) {
+  private async getColumns(
+    { table, online }: { table: string; online: boolean },
+  ) {
     const nodeMetaMap = this.getEvent()?.nodeMetaMap;
     if (!nodeMetaMap) {
       return;
@@ -131,7 +121,7 @@ export class NewLineagePanel implements LineagePanelView {
     if (!_table) {
       return;
     }
-    if (!this._offline) {
+    if (online) {
       const project = this.getProject();
       if (project) {
         const columnsFromDB = await project.getColumnsInRelation(table);

@@ -9,7 +9,7 @@ import {
 import { useReactFlow } from "reactflow";
 import styles from "./styles.module.scss";
 import classNames from "classnames";
-import { Input } from "reactstrap";
+import { Button, Input } from "reactstrap";
 import { getColumns, Columns, Column } from "./service";
 import { LineageContext } from "./App";
 import { processColumnLineage, removeColumnNodes } from "./graph";
@@ -190,7 +190,25 @@ const TableDetails = () => {
     <div className="p-2 h-100 d-flex flex-column gap-md text-black overflow-y">
       <div className={styles.table_details_header}>
         <NodeTypeIcon nodeType={selectedTable.nodeType} />
-        <div className="fw-semibold fs-5 lines-2">{selectedTable.table}</div>
+        <div className="d-flex align-items-center">
+          <div className="fw-semibold fs-5 lines-2">{selectedTable.table}</div>
+          <div className="spacer" />
+          <Button
+            size="sm"
+            onClick={() => {
+              if (!selectedTable) {
+                return;
+              }
+              getColumns(selectedTable.table, true).then((_data) => {
+                setData(_data);
+                setFilteredColumn(_data.columns);
+                setIsLoading(false);
+              });
+            }}
+          >
+            Re-Sync
+          </Button>
+        </div>
       </div>
       <PurposeSection tableId={data.id} purpose={data.purpose} />
       <ColumnSection
