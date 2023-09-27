@@ -18,6 +18,7 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { GraphMetaMap } from "../domain";
 import { LineagePanelView } from "./lineagePanel";
+import { provideSingleton } from "../utils";
 
 type Table = {
   table: string;
@@ -27,36 +28,29 @@ type Table = {
   upstreamCount: number;
 };
 
+@provideSingleton(NewLineagePanel)
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
 
-  public constructor(
-    private dbtProjectContainer: DBTProjectContainer,
-    private telemetry: TelemetryService,
-  ) {
-    console.log("lineage:constructor -> ", this._panel);
-    window.onDidChangeActiveTextEditor((event: TextEditor | undefined) => {
-      if (event === undefined) {
-        return;
-      }
-      if (!this._panel) {
-        return;
-      }
-      this.renderStartingNode();
-    });
+  public constructor(private dbtProjectContainer: DBTProjectContainer) {}
+
+  public changedActiveTextEditor(event: TextEditor | undefined) {
+    if (event === undefined) {
+      return;
+    }
+    if (!this._panel) {
+      return;
+    }
+    this.renderStartingNode();
   }
 
-  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    console.log("lineage:onManifestCacheChanged -> ", this._panel);
-    event.added?.forEach((added) => {
-      this.eventMap.set(added.projectRoot.fsPath, added);
-    });
-    event.removed?.forEach((removed) => {
-      this.eventMap.delete(removed.projectRoot.fsPath);
-    });
+  eventMapChanged(eventMap: Map<string, ManifestCacheProjectAddedEvent>): void {
+    this.eventMap = eventMap;
     this.init();
   }
+
+  changedActiveColorTheme() {}
 
   init() {
     console.log("lineage:init -> ", this._panel);

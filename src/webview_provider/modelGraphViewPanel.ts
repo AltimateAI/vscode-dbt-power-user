@@ -21,6 +21,7 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
 import { LineagePanelView } from "./lineagePanel";
+import { provideSingleton } from "../utils";
 
 interface G6DataModel {
   nodes: {
@@ -68,32 +69,30 @@ const nodeConfigurations: Record<string, any> = {
   },
 };
 
+@provideSingleton(ModelGraphViewPanel)
 export class ModelGraphViewPanel implements LineagePanelView {
   public static readonly viewType = "dbtPowerUser.ModelViewGraph";
   private _panel: WebviewView | undefined = undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
-  private _disposables: Disposable[] = [];
 
   private g6Data?: G6DataModel;
 
-  public constructor(
-    private dbtProjectContainer: DBTProjectContainer,
-    private telemetry: TelemetryService,
-  ) {
-    console.log("graph:constructor  -> ", this._panel);
-    window.onDidChangeActiveColorTheme(
-      async (e) => {
-        this.updateGraphStyle();
-      },
-      null,
-      this._disposables,
-    );
-    window.onDidChangeActiveTextEditor((event: TextEditor | undefined) => {
-      if (event === undefined) {
-        return;
-      }
-      this.init();
-    });
+  public constructor(private dbtProjectContainer: DBTProjectContainer) {}
+
+  eventMapChanged(eventMap: Map<string, ManifestCacheProjectAddedEvent>): void {
+    this.eventMap = eventMap;
+    this.init();
+  }
+
+  changedActiveColorTheme() {
+    this.updateGraphStyle();
+  }
+
+  changedActiveTextEditor(event: TextEditor | undefined) {
+    if (event === undefined) {
+      return;
+    }
+    this.init();
   }
 
   private async transmitData(graphInfo: G6DataModel | undefined) {
@@ -142,20 +141,6 @@ export class ModelGraphViewPanel implements LineagePanelView {
     this._panel!.title = "";
     this._panel!.description = "View dbt graph";
     this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
-  }
-
-  onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    console.log("graph:onManifestCacheChanged  -> ", this._panel);
-    event.added?.forEach((added) => {
-      this.eventMap.set(added.projectRoot.fsPath, added);
-    });
-    event.removed?.forEach((removed) => {
-      this.eventMap.delete(removed.projectRoot.fsPath);
-    });
-    // TODO: remove this. Ideally init should be automatically called
-    // after on onManifestCacheChanged, but currently onManifestCacheChanged
-    // is getting called after for ModelGraphViewPanel
-    this.init();
   }
 
   init() {

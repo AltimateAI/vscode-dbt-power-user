@@ -78,10 +78,7 @@ container
   .toFactory<NewLineagePanel>((context: interfaces.Context) => {
     return () => {
       const { container } = context;
-      return new NewLineagePanel(
-        container.get(DBTProjectContainer),
-        container.get(TelemetryService),
-      );
+      return new NewLineagePanel(container.get(DBTProjectContainer));
     };
   });
 
@@ -90,9 +87,6 @@ container
   .toFactory<ModelGraphViewPanel>((context: interfaces.Context) => {
     return () => {
       const { container } = context;
-      return new ModelGraphViewPanel(
-        container.get(DBTProjectContainer),
-        container.get(TelemetryService),
-      );
+      return new ModelGraphViewPanel(container.get(DBTProjectContainer));
     };
   });
