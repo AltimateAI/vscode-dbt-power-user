@@ -11,10 +11,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <meta
+    <!-- <meta
       http-equiv="Content-Security-Policy"
       content="default-src 'none'; img-src __CSPSOURCE__ https:; style-src __CSPSOURCE__ 'unsafe-inline'; script-src 'strict-dynamic' 'unsafe-eval' 'nonce-__NONCE__';"
-    />
+    /> -->
 
     <title>Query Runner</title>
 
@@ -24,10 +24,27 @@
         "imports": {
           "vue": "__ROOT__/assets/vue.esm-browser.prod.js",
           "tabulator": "__ROOT__/assets/tabulator.min.js",
-          "prism": "__ROOT__/assets/prism.js"
+          "prism": "__ROOT__/assets/prism.js",
+          "perspective": "__ROOT__/assets/perspective.js",
+          "perspective-viewer": "__ROOT__/assets/perspective-viewer.js"
         }
       }
     </script>
+
+    <script
+      type="module"
+      src="__ROOT__/assets/perspective-viewer-datagrid.js"
+    ></script>
+    <script
+      type="module"
+      src="__ROOT__/assets/perspective-viewer-d3fc.js"
+    ></script>
+
+    <link
+      rel="stylesheet"
+      crossorigin="anonymous"
+      href="__ROOT__/assets/themes.css"
+    />
 
     <script
       nonce="__NONCE__"
@@ -52,24 +69,36 @@
     <div id="app">
       <vscode-panels
         id="panel-manager"
-        activeid="tab-3"
+        activeid="tab-4"
         aria-label="dbt Preview"
       >
         <vscode-panel-tab
           v-show="(hasData || hasError || isLoading)"
           id="tab-1"
+          @click="onLegacyPanel"
         >
-          Preview
+          Preview(Legacy UI)
           <vscode-badge appearance="secondary"
             >{{ queryExecutionInfo }}</vscode-badge
           >
         </vscode-panel-tab>
 
-        <vscode-panel-tab v-show="hasCode" id="tab-2">
+        <vscode-panel-tab
+          v-show="(hasData || hasError || isLoading)"
+          @click="onNewPanel"
+          id="tab-2"
+        >
+          Preview(New UI)
+          <vscode-badge appearance="secondary"
+            >{{ queryExecutionInfo }}</vscode-badge
+          >
+        </vscode-panel-tab>
+
+        <vscode-panel-tab v-show="hasCode" id="tab-3">
           Dispatched SQL
         </vscode-panel-tab>
 
-        <vscode-panel-tab id="tab-3">
+        <vscode-panel-tab id="tab-4">
           {{ (hasData || hasError || isLoading) ? "Help" : "Welcome 🚀" }}
         </vscode-panel-tab>
 
@@ -83,7 +112,7 @@
             src="__ROOT__/assets/spinner.gif"
           />
 
-          <div v-show="hasData">
+          <div v-show="hasData" style="width: 100%">
             <vscode-button
               @click="copyResultsToClipboard"
               style="margin-bottom: 4px"
@@ -109,6 +138,12 @@
           </div>
         </vscode-panel-view>
 
+        <vscode-panel-view>
+          <perspective-viewer
+            :style="getPerspectiveStyles()"
+            theme="Pro Dark"
+          ></perspective-viewer>
+        </vscode-panel-view>
         <vscode-panel-view v-show="hasCode" id="view-2">
           <div>
             <pre><code class="language-sql line-numbers" data-prismjs-copy="Copy SQL" v-html="compiledCodeMarkup"></code></pre>

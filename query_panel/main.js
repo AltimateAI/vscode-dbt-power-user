@@ -14,10 +14,35 @@ async function updateConfig(config) {
 
 const DEFAULT_HEIGHT = 455;
 
+import perspective from "perspective";
+import "perspective-viewer";
+
+class Grid {
+  constructor() {}
+
+  async init() {
+    this.worker = perspective.worker();
+    this.elem = document.querySelector("perspective-viewer");
+  }
+
+  async load(rows) {
+    const table = await this.worker.table(rows);
+    await this.elem.load(table);
+    await this.elem.restore({ settings: true, title: "query result" });
+  }
+}
+
+const grid = new Grid();
+
+window.addEventListener("DOMContentLoaded", async function () {
+  grid.init();
+});
+
 const app = createApp({
   data() {
     return {
       count: 0,
+      data: null,
       table: undefined,
       rawCode: "",
       compiledCode: "",
@@ -32,6 +57,7 @@ const app = createApp({
       windowHeight: DEFAULT_HEIGHT,
       scale: 1,
       clipboardText: "",
+      enableNewQueryPanel: true,
     };
   },
   methods: {
@@ -101,7 +127,9 @@ const app = createApp({
       }
     },
     updateTable(data) {
+      console.log(data);
       this.count = data.rows.length;
+      grid.load(data.rows);
       this.table = new Tabulator("#query-results", {
         height: this.tableHeight,
         data: data.rows,
@@ -133,6 +161,7 @@ const app = createApp({
       if (data.scale) {
         this.scale = data.scale;
       }
+      this.enableNewQueryPanel = data.enableNewQueryPanel;
     },
     updateDispatchedCode(raw_stmt, compiled_stmt) {
       this.rawCode = raw_stmt;
@@ -155,6 +184,7 @@ const app = createApp({
     },
     clearData() {
       this.count = 0;
+      this.cacheData = null;
       this.table = undefined;
       this.rawCode = "";
       this.compiledCode = "";
@@ -164,7 +194,11 @@ const app = createApp({
       this.timer = undefined;
     },
     focusPreviewPane() {
-      document.querySelector("#panel-manager").activeid = "tab-1";
+      const panelManager = document.querySelector("#panel-manager");
+      if (["tab-1", "tab-2"].includes(panelManager.activeid)) {
+        return;
+      }
+      panelManager.activeid = this.enableNewQueryPanel ? "tab-2" : "tab-1";
     },
     timeExecution() {
       this.timer = setInterval(() => {
@@ -192,7 +226,21 @@ const app = createApp({
       return {
         fontSize: `${this.scale}em`,
         lineHeight: `${this.scale}`,
+        display: "block",
       };
+    },
+    getPerspectiveStyles() {
+      return {
+        width: "100%",
+        height: "400px",
+        display: "block",
+      };
+    },
+    onLegacyPanel() {
+      updateConfig({ enableNewQueryPanel: false });
+    },
+    onNewPanel() {
+      updateConfig({ enableNewQueryPanel: true });
     },
   },
   computed: {
@@ -257,6 +305,7 @@ const app = createApp({
       console.log(event);
       switch (event.data.command) {
         case "renderQuery":
+          this.cacheData = event.data;
           this.updateTable(event.data);
           this.updateDispatchedCode(
             event.data.raw_sql,
