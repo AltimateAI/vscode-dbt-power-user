@@ -217,7 +217,13 @@ export class NewLineagePanel implements LineagePanelView {
       }
       visibleTables[t] = node;
     });
-    const result = await Promise.all(
+
+    const modelInfos: {
+      model_name: string;
+      compiled_sql: string;
+      model_node: NodeMetaData;
+    }[] = [];
+    await Promise.all(
       Object.values(visibleTables).map(async (node) => {
         const uri = Uri.file(node.path);
         const data = await workspace.fs.readFile(uri);
@@ -227,7 +233,7 @@ export class NewLineagePanel implements LineagePanelView {
           return;
         }
         const columnsFromDB = await project.getColumnsInRelation(node.alias);
-        const modelDialect = project.getAdapterType();
+
         if (columnsFromDB) {
           columnsFromDB.forEach((c) => {
             const existing_column = node.columns[c.column];
@@ -242,20 +248,20 @@ export class NewLineagePanel implements LineagePanelView {
             };
           });
         }
-        const resp = await this.altimate.getColumnLevelLineage({
-          model_dialect: modelDialect,
-          model_info: [
-            {
-              model_name: node.alias,
-              model_node: node,
-              compiled_sql: compiledSql,
-            },
-          ],
+        modelInfos.push({
+          model_name: node.alias,
+          compiled_sql: compiledSql,
+          model_node: node,
         });
-        return resp;
       }),
     );
-    const columnLineages = result
+    const modelDialect = project.getAdapterType();
+    const result = await this.altimate.getColumnLevelLineage({
+      model_dialect: modelDialect,
+      model_info: modelInfos,
+    });
+    // FIXME - err bounds needed here. results can be undefined if call fails
+    const columnLineages = result!
       .flat()
       .filter((e) => !!e)
       .map((e) => ({
