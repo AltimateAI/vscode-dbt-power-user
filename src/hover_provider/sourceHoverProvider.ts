@@ -18,6 +18,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
+import { GenerateHoverMarkdownString } from "./utils";
 
 @provideSingleton(SourceHoverProvider)
 export class SourceHoverProvider implements HoverProvider, Disposable {
@@ -117,13 +118,7 @@ export class SourceHoverProvider implements HoverProvider, Disposable {
       .get(sourceName)
       ?.tables.find((table) => table.name === tableName);
     if (node) {
-      const content = new MarkdownString();
-      content.supportHtml = true;
-      content.isTrusted = true;
-      content.appendMarkdown(
-        `<span style="color:#347890;">(source)&nbsp;</span><span><strong>${node.name}</strong></span>`,
-      );
-      return content;
+      return GenerateHoverMarkdownString(node, "source");
     }
     return undefined;
   }

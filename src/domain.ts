@@ -1,10 +1,13 @@
 import * as path from "path";
+import { MarkdownString } from "vscode";
 
 export type NodeMetaMap = Map<string, NodeMetaData>;
 export type MacroMetaMap = Map<string, MacroMetaData>;
 export type SourceMetaMap = Map<string, SourceMetaData>;
 export type TestMetaMap = Map<string, TestMetaData>;
 export type DocMetaMap = Map<string, DocMetaData>;
+export type NodeMetaType = NodeMetaData;
+export type SourceMetaType = SourceTable;
 
 interface MacroMetaData {
   path: string;
@@ -18,6 +21,7 @@ interface NodeMetaData {
   database: string;
   schema: string;
   alias: string;
+  name: string;
   package_name: string;
   description: string;
   patch_path: string;
@@ -43,6 +47,8 @@ interface SourceMetaData {
 interface SourceTable {
   name: string;
   path: string;
+  description: string;
+  columns: { [columnName: string]: ColumnMetaData };
 }
 
 interface DocMetaData {
