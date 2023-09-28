@@ -8,9 +8,29 @@ $border-color: rgba(#a7b2c1, 0.3);
   cursor: default;
 
   .header {
+    background: #eaf3ff;
+    border-top: 2px solid $border-color;
+    border-left: 2px solid $border-color;
+    border-right: 2px solid $border-color;
+    border-radius: 0.5em 0.5em 0 0;
+    padding: 0.5em;
+    &.collapse {
+      background: #ffffff;
+      border-bottom: 2px solid #eeeff2;
+      border-radius: 0.5em;
+    }
+    &.selected {
+      border-color: #e38e00;
+    }
+  }
+
+  .content {
+    flex-grow: 1;
     background: #ffffff;
-    border: 2px solid $border-color;
-    border-radius: 0.5em;
+    border-bottom: 2px solid $border-color;
+    border-left: 2px solid $border-color;
+    border-right: 2px solid $border-color;
+    border-radius: 0 0 0.5em 0.5em;
     padding: 0.5em;
     &.selected {
       border-color: #e38e00;
@@ -75,6 +95,52 @@ $size: 1.2em;
   }
 }
 
+.column_card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  border-radius: 0.6em;
+  padding: 0.8em;
+  border: 1px solid #e7e8ea;
+  background: #ffffff;
+  cursor: pointer;
+
+  &.selected {
+    border-color: #e38e00;
+  }
+
+  &:hover {
+    background-color: #f7faff;
+  }
+}
+
+.edit_icon {
+  $size: 1.2rem;
+  width: $size;
+  height: $size;
+  color: #8390a3;
+  &:hover {
+    color: #247efe;
+  }
+  &.active {
+    color: #247efe;
+  }
+}
+
+.expand_lineage_icon {
+  $size: 1rem;
+  background-color: #247efe;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  svg {
+    width: $size;
+    height: $size;
+  }
+}
+
 .open_file_button {
   display: flex;
   gap: 0.5em;
@@ -86,9 +152,54 @@ $size: 1.2em;
   }
 }
 
+.processing_div {
+  background-color: #ffffff;
+  .gif_img {
+    max-width: 100%;
+    max-height: 90%;
+  }
+}
+
+.card {
+  box-shadow: 0 1px 2px rgba(56, 65, 74, 0.15);
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+}
+
+.column_tag {
+  background: rgba(63, 140, 255, 0.1);
+  font-size: 0.8em;
+  color: #082247;
+}
+
+.column_node {
+  border: 1px solid #247efe;
+  background: #e9f2ff;
+  color: #247efe;
+  width: calc($node-width - 24px);
+  border-radius: 0.25em;
+  padding: 4px 8px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  &.selected {
+    background: #247efe;
+    color: #ffffff;
+  }
+}
+
 .divider {
   height: 2px;
   width: calc(100% + 1em);
   background-color: $border-color;
   margin-left: -0.5em;
+}
+
+.table_details_header {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1.5rem 1fr;
+  gap: 0em 0.5em;
+  align-items: center;
 }

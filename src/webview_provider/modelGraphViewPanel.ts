@@ -3,23 +3,16 @@ import * as path from "path";
 import {
   CancellationToken,
   ColorThemeKind,
-  commands,
-  Disposable,
   TextEditor,
   Uri,
   Webview,
   WebviewOptions,
   WebviewView,
-  WebviewViewProvider,
   WebviewViewResolveContext,
   window,
 } from "vscode";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import {
-  ManifestCacheChangedEvent,
-  ManifestCacheProjectAddedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
-import { TelemetryService } from "../telemetry";
+import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { LineagePanelView } from "./lineagePanel";
 import { provideSingleton } from "../utils";
 
@@ -148,6 +141,10 @@ export class ModelGraphViewPanel implements LineagePanelView {
     this.g6Data = this.parseGraphData();
     this.transmitData(this.g6Data);
     this.updateGraphStyle();
+  }
+
+  handleCommand(message: { command: string; args: any }): void {
+    console.error("Unsupported mssage", message);
   }
 
   private parseGraphData = () => {

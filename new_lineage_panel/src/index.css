@@ -6,40 +6,28 @@ body {
   position: relative;
 }
 
-.d-flex {
-  display: flex;
-}
-
-.flex-column {
-  flex-direction: column;
-}
-
-.align-items-start {
-  align-items: flex-start;
-}
-
-.align-items-center {
-  align-items: center;
+.gap-xxs {
+  gap: 0.25rem;
 }
 
 .gap-xs {
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .gap-sm {
+  gap: 0.75rem;
+}
+
+.gap-md {
   gap: 1rem;
 }
 
-.p-2 {
-  padding: 0.5em;
+.gap-lg {
+  gap: 1.25rem;
 }
 
-.mb-3 {
-  margin-bottom: 0.75em;
-}
-
-.h-100 {
-  height: 100%;
+.gap-xl {
+  gap: 2rem;
 }
 
 .overflow-y {
@@ -92,4 +80,16 @@ body {
   display: flex;
   gap: 8px;
   z-index: 10;
+}
+
+.bg-gray {
+  background-color: #f5f6f7;
+}
+
+.bg-blue {
+  background-color: #eaf3ff;
+}
+
+.fs-xxs {
+  font-size: 0.875rem;
 }

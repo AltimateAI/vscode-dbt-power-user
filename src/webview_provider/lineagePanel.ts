@@ -20,13 +20,13 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { ModelGraphViewPanel } from "./modelGraphViewPanel";
 import { NewLineagePanel } from "./newLineagePanel";
-import { inject } from "inversify";
 
 export interface LineagePanelView extends WebviewViewProvider {
   init(): void;
   eventMapChanged(eventMap: Map<string, ManifestCacheProjectAddedEvent>): void;
   changedActiveColorTheme(): void;
   changedActiveTextEditor(event: TextEditor | undefined): void;
+  handleCommand(message: { command: string; args: any }): Promise<void> | void;
 }
 
 @provideSingleton(LineagePanel)
@@ -131,6 +131,7 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     args: any;
   }) => {
     const { command, args } = message;
+    // common commands
     if (command === "openFile") {
       const { url } = args;
       if (!url) {
@@ -161,11 +162,6 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
       return;
     }
 
-    if (command === "request") {
-      (this.getPanel() as NewLineagePanel).handleRequest(args);
-      return;
-    }
-
     if (command === "init") {
       this.getPanel()?.init();
       return;
@@ -179,5 +175,8 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
       );
       return;
     }
+
+    // specific commands
+    this.getPanel().handleCommand(message);
   };
 }

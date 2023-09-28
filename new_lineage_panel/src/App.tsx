@@ -16,12 +16,18 @@ import ReactFlow, {
   ReactFlowProvider,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { SeeMoreNode, SelfConnectingEdge, TableNode } from "./CustomNodes";
-import { TABLES_SIDEBAR } from "./utils";
+import {
+  ColumnNode,
+  SeeMoreNode,
+  SelfConnectingEdge,
+  TableNode,
+} from "./CustomNodes";
+import { COLUMNS_SIDEBAR, TABLES_SIDEBAR } from "./utils";
 import { SidebarModal } from "./SidebarModal";
 import { MoreTables, TMoreTables } from "./MoreTables";
-import { downstreamTables, upstreamTables } from "./service";
+import { Table, downstreamTables, upstreamTables } from "./service";
 import { createNewNodesEdges, layoutElementsOnCanvas } from "./graph";
+import { TableDetails } from "./TableDetails";
 import { Button } from "reactstrap";
 
 declare const acquireVsCodeApi: () => { postMessage: (v: unknown) => void };
@@ -36,7 +42,7 @@ const requestMap: Record<
 export const requestExecutor = (url: string, params: unknown) => {
   return new Promise((resolve, reject) => {
     requestMap[id] = { resolve, reject };
-    vscode.postMessage({ command: "request", args: { id, url, params } });
+    vscode.postMessage({ command: url, args: { id, params } });
     id++;
   });
 };
@@ -47,41 +53,51 @@ export const openDocs = () => {
   vscode.postMessage({ command: "openDocs", args: {} });
 };
 
-const nodeTypes: NodeTypes = { table: TableNode, seeMore: SeeMoreNode };
+const nodeTypes: NodeTypes = {
+  table: TableNode,
+  seeMore: SeeMoreNode,
+  column: ColumnNode,
+};
 const edgeTypes = { selfConnecting: SelfConnectingEdge };
 
 export const LineageContext = createContext<{
   showSidebar: boolean;
   setShowSidebar: Dispatch<boolean>;
-  selectedTable: string;
-  setSelectedTable: Dispatch<SetStateAction<string>>;
+  selectedTable: Omit<Table, "count"> | null;
+  setSelectedTable: Dispatch<SetStateAction<Table | null>>;
   moreTables: TMoreTables | null;
   setMoreTables: Dispatch<TMoreTables>;
   sidebarScreen: string;
   setSidebarScreen: Dispatch<string>;
+  selectedColumn: { name: string; table: string };
+  setSelectedColumn: Dispatch<SetStateAction<{ name: string; table: string }>>;
+  collectColumns: Record<string, string[]>;
+  setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>;
   rerender: () => void;
 }>({
   showSidebar: false,
   setShowSidebar: () => {},
-  selectedTable: "",
-  setSelectedTable: () => "",
+  selectedTable: null,
+  setSelectedTable: () => null,
   moreTables: null,
   setMoreTables: () => {},
   sidebarScreen: "",
   setSidebarScreen: () => {},
+  selectedColumn: { name: "", table: "" },
+  setSelectedColumn: () => "",
+  collectColumns: {},
+  setCollectColumns: () => {},
   rerender: () => {},
-  // selectedColumn: {},
-  // setSelectedColumn: () => {},
-  // collectColumns: {},
-  // setCollectColumns: () => {},
 });
 
 function App() {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
-  const [selectedTable, setSelectedTable] = useState("");
+  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [moreTables, setMoreTables] = useState<TMoreTables | null>(null);
   const [sidebarScreen, setSidebarScreen] = useState("");
+  const [selectedColumn, setSelectedColumn] = useState({ name: "", table: "" });
+  const [collectColumns, setCollectColumns] = useState({});
   const [, _rerender] = useState(0);
   const rerender = () => _rerender((x) => x + 1);
 
@@ -89,7 +105,9 @@ function App() {
     const render = async (args: {
       node: {
         table: string;
+        key: string;
         url: string;
+        nodeType: string;
         downstreamCount: number;
         upstreamCount: number;
       };
@@ -104,87 +122,73 @@ function App() {
       }
       const { node } = args;
       const existingNode = _flow.getNode(node.table);
+      let _nodes: Node[] = [];
+      let _edges: Edge[] = [];
+      const addNodesEdges = (
+        tables: Table[],
+        right: boolean,
+        level: number
+      ) => {
+        [_nodes, _edges] = createNewNodesEdges(
+          _nodes,
+          _edges,
+          tables,
+          node.table,
+          right,
+          level
+        );
+      };
       if (existingNode) {
         const { level, processed } = existingNode.data as {
           level: number;
           processed: [boolean, boolean];
         };
-        let _nodes = _flow.getNodes();
-        let _edges = _flow.getEdges();
+        _nodes = _flow.getNodes();
+        _edges = _flow.getEdges();
         if (!processed[1]) {
-          const { tables } = await upstreamTables(node.table);
-          [_nodes, _edges] = createNewNodesEdges(
-            _nodes,
-            _edges,
-            tables,
-            node.table,
-            true,
-            level
-          );
+          const { tables } = await upstreamTables(node.key);
+          addNodesEdges(tables, true, level);
         }
         if (!processed[0]) {
-          const { tables } = await downstreamTables(node.table);
-          [_nodes, _edges] = createNewNodesEdges(
-            _nodes,
-            _edges,
-            tables,
-            node.table,
-            false,
-            level
-          );
+          const { tables } = await downstreamTables(node.key);
+          addNodesEdges(tables, false, level);
         }
-        layoutElementsOnCanvas(_nodes, _edges);
-        _flow.setNodes(_nodes);
-        _flow.setEdges(_edges);
-        return;
-      }
-      let _nodes: Node[] = [
-        {
-          id: node.table,
-          data: {
-            table: node.table,
-            url: node.url,
-            level: 0,
-            shouldExpand: [node.downstreamCount > 0, node.upstreamCount > 0],
-            processed: [node.downstreamCount > 0, node.upstreamCount > 0],
-            upstreamCount: node.upstreamCount,
-            downstreamCount: node.downstreamCount,
+      } else {
+        _nodes = [
+          {
+            id: node.table,
+            data: {
+              table: node.table,
+              key: node.key,
+              url: node.url,
+              level: 0,
+              shouldExpand: [node.downstreamCount > 0, node.upstreamCount > 0],
+              processed: [node.downstreamCount > 0, node.upstreamCount > 0],
+              nodeType: node.nodeType,
+              upstreamCount: node.upstreamCount,
+              downstreamCount: node.downstreamCount,
+            },
+            position: { x: 100, y: 100 },
+            type: "table",
           },
-          position: { x: 100, y: 100 },
-          type: "table",
-        },
-      ];
-      let _edges: Edge[] = [];
-      if (node.upstreamCount > 0) {
-        const { tables } = await upstreamTables(node.table);
-        [_nodes, _edges] = createNewNodesEdges(
-          _nodes,
-          _edges,
-          tables,
-          node.table,
-          true,
-          0
-        );
+        ];
+        if (node.upstreamCount > 0) {
+          const { tables } = await upstreamTables(node.key);
+          addNodesEdges(tables, true, 0);
+        }
+        if (node.downstreamCount > 0) {
+          const { tables } = await downstreamTables(node.key);
+          addNodesEdges(tables, false, 0);
+        }
       }
-      if (node.downstreamCount > 0) {
-        const { tables } = await downstreamTables(node.table);
-        [_nodes, _edges] = createNewNodesEdges(
-          _nodes,
-          _edges,
-          tables,
-          node.table,
-          false,
-          0
-        );
-      }
+
       layoutElementsOnCanvas(_nodes, _edges);
       _flow.setNodes(_nodes);
       _flow.setEdges(_edges);
     };
     const response = (args: {
       id: number;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      body: any;
+      body: unknown;
       status: boolean;
       error: string;
     }) => {
@@ -196,13 +200,12 @@ function App() {
       }
       delete requestMap[args.id];
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const commandMap: Record<string, (a: any) => void> = { render, response };
+    const commandMap = { render, response };
     window.addEventListener("message", (event) => {
       console.log("lineage:message -> ", event);
       const { command, args } = event.data;
       if ((command as string) in commandMap) {
-        commandMap[command](args);
+        commandMap[command as keyof typeof commandMap](args);
       }
     });
     console.log("lineage:onload -> ");
@@ -218,6 +221,9 @@ function App() {
             e.stopPropagation();
             flow.current?.setNodes([]);
             flow.current?.setEdges([]);
+            setSelectedTable(null);
+            setSelectedColumn({ table: "", name: "" });
+            setCollectColumns({});
             vscode.postMessage({ command: "init" });
           }}
         >
@@ -252,6 +258,10 @@ function App() {
           setMoreTables,
           sidebarScreen,
           setSidebarScreen,
+          selectedColumn,
+          setSelectedColumn,
+          collectColumns,
+          setCollectColumns,
           rerender,
         }}
       >
@@ -276,6 +286,7 @@ function App() {
             width={446}
           >
             {sidebarScreen === TABLES_SIDEBAR && <MoreTables />}
+            {sidebarScreen === COLUMNS_SIDEBAR && <TableDetails />}
           </SidebarModal>
         </ReactFlowProvider>
       </LineageContext.Provider>
