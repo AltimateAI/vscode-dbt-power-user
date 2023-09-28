@@ -11,10 +11,8 @@ import {
   window,
   workspace,
 } from "vscode";
-import { TelemetryService } from "../telemetry";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
-  ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import { GraphMetaMap, NodeMetaData } from "../domain";

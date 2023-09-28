@@ -3,23 +3,18 @@ import * as path from "path";
 import {
   CancellationToken,
   ColorThemeKind,
-  commands,
-  Disposable,
   TextEditor,
   Uri,
   Webview,
   WebviewOptions,
   WebviewView,
-  WebviewViewProvider,
   WebviewViewResolveContext,
   window,
 } from "vscode";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
-  ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
-import { TelemetryService } from "../telemetry";
 import { LineagePanelView } from "./lineagePanel";
 import { provideSingleton } from "../utils";
 

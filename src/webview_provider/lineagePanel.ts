@@ -162,6 +162,9 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     }
 
     if (command === "request") {
+      if(args.url === "getConnectedColumns") {
+        this.telemetry.sendTelemetryEvent("GetConnectedColumns");
+      }
       (this.getPanel() as NewLineagePanel).handleRequest(args);
       return;
     }
