@@ -1,11 +1,7 @@
-import { readFileSync } from "fs";
 import {
   CancellationToken,
-  Definition,
-  DefinitionLink,
   HoverProvider,
   Disposable,
-  Location,
   Position,
   ProviderResult,
   TextDocument,
@@ -18,7 +14,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
-import { GenerateHoverMarkdownString } from "./utils";
+import { generateHoverMarkdownString } from "./utils";
 
 @provideSingleton(SourceHoverProvider)
 export class SourceHoverProvider implements HoverProvider, Disposable {
@@ -118,7 +114,7 @@ export class SourceHoverProvider implements HoverProvider, Disposable {
       .get(sourceName)
       ?.tables.find((table) => table.name === tableName);
     if (node) {
-      return GenerateHoverMarkdownString(node, "source");
+      return generateHoverMarkdownString(node, "source");
     }
     return undefined;
   }
