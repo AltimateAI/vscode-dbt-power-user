@@ -15,7 +15,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
-import { GenerateHoverMarkdownString } from "./utils";
+import { generateHoverMarkdownString } from "./utils";
 
 @provideSingleton(ModelHoverProvider)
 export class ModelHoverProvider implements HoverProvider, Disposable {
@@ -124,7 +124,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
     }
     const node = nodeMap.get(modelName);
     if (node) {
-      return GenerateHoverMarkdownString(node, "ref");
+      return generateHoverMarkdownString(node, "ref");
     }
     return undefined;
   }
