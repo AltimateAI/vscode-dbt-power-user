@@ -50,6 +50,7 @@ export class NodeParser {
               database,
               schema,
               alias,
+              name,
               package_name,
               uniqueId: unique_id,
               columns,
