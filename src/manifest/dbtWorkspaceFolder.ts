@@ -65,7 +65,7 @@ export class DBTWorkspaceFolder implements Disposable {
       )
       // TODO: also filter out projects within the target folder of another project
       //  This is somewhat difficult as we would need to parse the target-path variable of the project.
-      .map((uri) => Uri.file(uri.path.split("/")!.slice(0, -1).join("/")))      ;
+      .map((uri) => Uri.file(uri.path.split("/")!.slice(0, -1).join("/")));
     if (projectFiles.length > 20) {
       window.showWarningMessage(
         `dbt Power User detected ${projectFiles.length} projects in your work space, this will negatively affect performance.`,
