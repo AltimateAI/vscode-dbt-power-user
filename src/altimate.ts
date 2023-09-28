@@ -20,7 +20,6 @@ interface Schemas {
 interface DBTColumnLineageRequest {
   model_dialect: string;
   model_info: {
-    model_name: string;
     model_node: NodeMetaData;
     compiled_sql: string;
   }[];

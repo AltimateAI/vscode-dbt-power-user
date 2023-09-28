@@ -219,7 +219,6 @@ export class NewLineagePanel implements LineagePanelView {
     });
 
     const modelInfos: {
-      model_name: string;
       compiled_sql: string;
       model_node: NodeMetaData;
     }[] = [];
@@ -249,7 +248,6 @@ export class NewLineagePanel implements LineagePanelView {
           });
         }
         modelInfos.push({
-          model_name: node.alias,
           compiled_sql: compiledSql,
           model_node: node,
         });
