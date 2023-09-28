@@ -14,8 +14,6 @@ import { TargetWatchersFactory } from "./manifest/modules/targetWatchers";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
 import { QueryResultPanel } from "./webview_provider/queryResultPanel";
 import { TelemetryService } from "./telemetry";
-import { NewLineagePanel } from "./webview_provider/newLineagePanel";
-import { ModelGraphViewPanel } from "./webview_provider/modelGraphViewPanel";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -72,21 +70,3 @@ container
       };
     },
   );
-
-container
-  .bind<interfaces.Factory<NewLineagePanel>>("Factory<NewLineagePanel>")
-  .toFactory<NewLineagePanel>((context: interfaces.Context) => {
-    return () => {
-      const { container } = context;
-      return new NewLineagePanel(container.get(DBTProjectContainer));
-    };
-  });
-
-container
-  .bind<interfaces.Factory<ModelGraphViewPanel>>("Factory<ModelGraphViewPanel>")
-  .toFactory<ModelGraphViewPanel>((context: interfaces.Context) => {
-    return () => {
-      const { container } = context;
-      return new ModelGraphViewPanel(container.get(DBTProjectContainer));
-    };
-  });
