@@ -5,8 +5,12 @@ import {
   C_OFFSET_X,
   C_OFFSET_Y,
   C_PADDING_Y,
+  COLUMN_PREFIX,
   createForwardEdge,
   createTableNode,
+  defaultEdgeStyle,
+  highlightEdgeStyle,
+  highlightMarker,
   isColumn,
   isNotColumn,
   LEVEL_SEPARATION,
@@ -15,7 +19,7 @@ import {
   T_NODE_H,
   T_NODE_W,
 } from "./utils";
-import { Table } from "./service";
+import { getConnectedColumns, Table } from "./service";
 
 export const createNewNodesEdges = (
   prevNodes: Node[],
@@ -83,8 +87,7 @@ export const layoutElementsOnCanvas = (nodes: Node[], _edges: Edge[]) => {
         x: C_OFFSET_X,
         y: tableWiseColumnIndex[n.parentNode] * C_NODE_H +
           C_OFFSET_Y +
-          (C_PADDING_Y >> 1) +
-          2,
+          (C_PADDING_Y >> 1),
       };
       tableWiseColumnIndex[n.parentNode]++;
       continue;
@@ -244,4 +247,130 @@ export const removeRelatedNodesEdges = (
   if (_node) _node.data.processed[right ? 1 : 0] = false;
 
   return [newNodes, newEdges];
+};
+
+export const processColumnLineage = async (
+  _nodes: Node[],
+  _edges: Edge[],
+  column: { name: string; table: string },
+) => {
+  let nodes = _nodes.filter(isNotColumn);
+  let edges = _edges.filter(isNotColumn);
+  [nodes, edges] = resetTableHighlights(nodes, edges);
+
+  const levelMap: Record<string, number> = {};
+  nodes.forEach((n) => (levelMap[n.id] = n.data.level));
+
+  const tableNodes: Record<string, boolean> = {};
+  _nodes
+    .filter((_n) => _n.type === "table")
+    .forEach((_n) => (tableNodes[_n.id] = true));
+  const seeMoreIdTableReverseMap: Record<string, string> = {};
+  const edgesPayload = [];
+  for (const e of _edges) {
+    if (e.id.startsWith(COLUMN_PREFIX)) continue;
+    const sourceTableExist = tableNodes[e.source];
+    const targetTableExist = tableNodes[e.target];
+    if (sourceTableExist && targetTableExist) {
+      edgesPayload.push({ src: e.source, dst: e.target });
+    } else if (sourceTableExist) {
+      const _n = _nodes.find((_n) => _n.id === e.target)!;
+      _n.data.tables.forEach((_t: { table: string }) => {
+        edgesPayload.push({ src: e.source, dst: _t.table });
+        seeMoreIdTableReverseMap[_t.table] = e.target;
+      });
+    } else if (targetTableExist) {
+      const _n = _nodes.find((_n) => _n.id === e.source)!;
+      _n.data.tables.forEach((_t: { table: string }) => {
+        edgesPayload.push({ src: _t.table, dst: e.target });
+        seeMoreIdTableReverseMap[_t.table] = e.source;
+      });
+    } else {
+      // TODO: check is nothing to do in this case
+    }
+  }
+
+  const { collectColumns, highlightEdges } = await getConnectedColumns({
+    column: column.name,
+    table: column.table,
+    edges: edgesPayload,
+  });
+
+  for (const t in collectColumns) {
+    if (!tableNodes[t]) continue;
+    collectColumns[t].sort();
+    for (const c of collectColumns[t]) {
+      nodes.push({
+        id: COLUMN_PREFIX + `${t}/${c}`,
+        data: { column: c, table: t },
+        parentNode: t,
+        extent: "parent",
+        draggable: false,
+        type: "column",
+        position: { x: 100, y: 100 },
+      });
+    }
+  }
+
+  edges.forEach((_e) => (_e.style = defaultEdgeStyle));
+
+  for (const e of highlightEdges) {
+    const [t0] = e[0].split("/");
+    const [t1] = e[1].split("/");
+    const [sourceHandle, targetHandle] = levelMap[t1] > levelMap[t0]
+      ? ["right", "left"]
+      : ["left", "right"];
+    const sourceTableExist = tableNodes[t0];
+    const targetTableExist = tableNodes[t1];
+    if (sourceTableExist && targetTableExist) {
+      edges.push({
+        id: COLUMN_PREFIX + `${e[0]}-${e[1]}`,
+        source: COLUMN_PREFIX + e[0],
+        target: COLUMN_PREFIX + e[1],
+        sourceHandle,
+        targetHandle,
+        style: highlightEdgeStyle,
+        zIndex: 1000,
+        markerEnd: highlightMarker,
+      });
+    } else if (sourceTableExist) {
+      edges.push({
+        id: COLUMN_PREFIX + `${e[0]}-${e[1]}`,
+        source: COLUMN_PREFIX + e[0],
+        target: seeMoreIdTableReverseMap[t1],
+        sourceHandle: "right",
+        targetHandle: "left",
+        style: highlightEdgeStyle,
+        zIndex: 1000,
+        markerEnd: highlightMarker,
+      });
+    } else if (targetTableExist) {
+      // TODO: check if this case will occur
+      edges.push({
+        id: COLUMN_PREFIX + `${e[0]}-${e[1]}`,
+        source: seeMoreIdTableReverseMap[t0],
+        target: COLUMN_PREFIX + e[1],
+        sourceHandle,
+        targetHandle,
+        style: highlightEdgeStyle,
+        zIndex: 1000,
+        markerEnd: highlightMarker,
+      });
+    } else {
+      // TODO: check is nothing to do in this case
+    }
+  }
+
+  layoutElementsOnCanvas(nodes, edges);
+
+  return { nodes, edges, collectColumns };
+};
+
+export const removeColumnNodes = (
+  _nodes: Node[],
+  _edges: Edge[],
+): [Node[], Edge[]] => {
+  const nodes = _nodes.filter((n) => isNotColumn(n));
+  const edges = _edges.filter((n) => isNotColumn(n));
+  return [nodes, edges];
 };

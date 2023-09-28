@@ -20,7 +20,6 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { ModelGraphViewPanel } from "./modelGraphViewPanel";
 import { NewLineagePanel } from "./newLineagePanel";
-import { inject } from "inversify";
 
 export interface LineagePanelView extends WebviewViewProvider {
   init(): void;
@@ -131,6 +130,7 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     args: any;
   }) => {
     const { command, args } = message;
+    console.log("host:handleWebviewMessage -> ", command, args);
     if (command === "openFile") {
       const { url } = args;
       if (!url) {

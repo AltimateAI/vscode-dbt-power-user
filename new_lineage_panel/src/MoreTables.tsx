@@ -2,12 +2,7 @@ import { useContext, useState } from "react";
 import styles from "./styles.module.scss";
 import classNames from "classnames";
 import { useReactFlow } from "reactflow";
-import {
-  SEE_MORE_PREFIX,
-  createForwardEdge,
-  createTableNode,
-  destructTable,
-} from "./utils";
+import { SEE_MORE_PREFIX, createForwardEdge, createTableNode } from "./utils";
 import { layoutElementsOnCanvas } from "./graph";
 import { LineageContext } from "./App";
 import { Input } from "reactstrap";
@@ -78,7 +73,6 @@ function MoreTables() {
       <div className="h-100 overflow-y">
         <div className="d-flex flex-column gap-sm">
           {filteredTables.map((t) => {
-            const [label, schema] = destructTable(t.table);
             const _node = flow.getNode(t.table);
             const isNodeOnOtherLevel = _node && _node.data.level !== level;
             return (
@@ -96,8 +90,7 @@ function MoreTables() {
               >
                 <DBTIcon />
                 <div className="d-flex flex-column">
-                  <div className="text-overflow">{label}</div>
-                  <div className="text-primary">{schema}</div>
+                  <div className="text-overflow">{t.table}</div>
                 </div>
               </div>
             );
