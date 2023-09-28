@@ -1,7 +1,7 @@
 import { MarkdownString } from "vscode";
 import { NodeMetaType, SourceMetaType } from "../domain";
 
-export function GenerateHoverMarkdownString(
+export function generateHoverMarkdownString(
   node: NodeMetaType | SourceMetaType,
   nodeType: string,
 ): MarkdownString {
