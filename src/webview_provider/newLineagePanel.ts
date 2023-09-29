@@ -133,13 +133,7 @@ export class NewLineagePanel implements LineagePanelView {
     console.error("Unsupported mssage", message);
   }
 
-  private async getColumns({
-    table,
-    online,
-  }: {
-    table: string;
-    online: boolean;
-  }) {
+  private async getColumns({ table }: { table: string }) {
     const nodeMetaMap = this.getEvent()?.nodeMetaMap;
     if (!nodeMetaMap) {
       return;
@@ -148,25 +142,23 @@ export class NewLineagePanel implements LineagePanelView {
     if (!_table) {
       return;
     }
-    if (online) {
-      const project = this.getProject();
-      if (project) {
-        const columnsFromDB = await project.getColumnsInRelation(table);
-        console.log(columnsFromDB);
-        if (columnsFromDB) {
-          columnsFromDB.forEach((c) => {
-            const existing_column = _table.columns[c.column];
-            if (existing_column) {
-              existing_column.data_type = existing_column.data_type || c.dtype;
-              return;
-            }
-            _table.columns[c.column] = {
-              name: c.column,
-              data_type: c.dtype,
-              description: "",
-            };
-          });
-        }
+    const project = this.getProject();
+    if (project) {
+      const columnsFromDB = await project.getColumnsInRelation(table);
+      console.log(columnsFromDB);
+      if (columnsFromDB) {
+        columnsFromDB.forEach((c) => {
+          const existing_column = _table.columns[c.column];
+          if (existing_column) {
+            existing_column.data_type = existing_column.data_type || c.dtype;
+            return;
+          }
+          _table.columns[c.column] = {
+            name: c.column,
+            data_type: c.dtype,
+            description: "",
+          };
+        });
       }
     }
 

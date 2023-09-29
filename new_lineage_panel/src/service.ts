@@ -37,8 +37,8 @@ export const downstreamTables = (tableKey: string) => {
   }>;
 };
 
-export const getColumns = (table: string, online: boolean = false) => {
-  return requestExecutor("getColumns", { table, online }) as Promise<
+export const getColumns = (table: string) => {
+  return requestExecutor("getColumns", { table }) as Promise<
     Columns
   >;
 };

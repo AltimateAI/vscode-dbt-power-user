@@ -235,14 +235,14 @@ const TableDetails = () => {
               if (!selectedTable) {
                 return;
               }
-              getColumns(selectedTable.table, true).then((_data) => {
+              getColumns(selectedTable.table).then((_data) => {
                 setData(_data);
                 setFilteredColumn(_data.columns);
                 setIsLoading(false);
               });
             }}
           >
-            Re-Sync
+            Refresh
           </Button>
         </div>
       </div>
