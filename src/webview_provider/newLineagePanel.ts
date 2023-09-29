@@ -282,6 +282,14 @@ export class NewLineagePanel implements LineagePanelView {
       model_info: modelInfos,
     });
     // FIXME - err bounds needed here. results can be undefined if call fails
+    //  This should be handled in altimate.ts and throw exceptions instead
+    if (!Array.isArray(result)) {
+      window.showErrorMessage(
+        "An unexpected error occured while fetching column level lineage: " +
+          result,
+      );
+      return;
+    }
     const columnLineages = result!
       .flat()
       .filter((e) => !!e)
