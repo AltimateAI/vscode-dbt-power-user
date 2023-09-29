@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from "fs";
 import * as path from "path";
 import {
   CancellationToken,
+  ProgressLocation,
   TextEditor,
   Uri,
   Webview,
@@ -11,12 +12,12 @@ import {
   window,
   workspace,
 } from "vscode";
+import { AltimateRequest } from "../altimate";
+import { GraphMetaMap, NodeMetaData } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { GraphMetaMap, NodeMetaData } from "../domain";
-import { LineagePanelView } from "./lineagePanel";
-import { AltimateRequest } from "../altimate";
 import { provideSingleton } from "../utils";
+import { LineagePanelView } from "./lineagePanel";
 
 type Table = {
   key: string;
@@ -112,11 +113,20 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     if (command === "getConnectedColumns") {
-      const body = await this.getConnectedColumns(params);
-      this._panel?.webview.postMessage({
-        command: "response",
-        args: { id, body, status: true },
-      });
+      window.withProgress(
+        {
+          title: "Fetching Column Lineage",
+          location: ProgressLocation.Notification,
+          cancellable: false,
+        },
+        async () => {
+          const body = await this.getConnectedColumns(params);
+          this._panel?.webview.postMessage({
+            command: "response",
+            args: { id, body, status: true },
+          });
+        },
+      );
       return;
     }
 

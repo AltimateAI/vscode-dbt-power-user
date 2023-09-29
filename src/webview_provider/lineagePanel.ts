@@ -177,6 +177,7 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     }
 
     // specific commands
+    this.telemetry.sendTelemetryEvent(command);
     this.getPanel().handleCommand(message);
   };
 }
