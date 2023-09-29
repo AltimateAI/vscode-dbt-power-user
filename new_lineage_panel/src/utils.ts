@@ -14,7 +14,7 @@ export const SEE_MORE_PREFIX = "see-more-";
 export const T_NODE_W = 260;
 export const T_NODE_H = 200;
 export const C_OFFSET_X = 12;
-export const C_OFFSET_Y = 92;
+export const C_OFFSET_Y = 86;
 export const C_NODE_H = 36;
 export const C_PADDING_Y = 16;
 export const LEVEL_SEPARATION = 150;
@@ -39,10 +39,9 @@ export const highlightMarker = {
   color: HIGHLIGHT_COLOR,
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-export const isColumn = (_: any) => false;
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-export const isNotColumn = (_: any) => true;
+export const isColumn = (x: { id: string }) => x.id.startsWith(COLUMN_PREFIX);
+export const isNotColumn = (x: { id: string }) =>
+  !x.id.startsWith(COLUMN_PREFIX);
 
 const _createEdge =
   (sourceHandle: string, targetHandle: string, edgeType: string) =>
@@ -72,13 +71,14 @@ export const createForwardEdge = _createEdge("right", "left", "default");
 export const createReverseEdge = _createEdge("left", "right", "default");
 
 export const createTableNode = (
-  { table, upstreamCount, downstreamCount, url }: Table,
+  { table, upstreamCount, downstreamCount, url, nodeType, key, aiEnabled }: Table,
   level: number,
   parent: string,
 ): Node => {
   return {
     id: table,
     data: {
+      key,
       table,
       url,
       level,
@@ -87,18 +87,14 @@ export const createTableNode = (
       processed: [false, false],
       upstreamCount,
       downstreamCount,
+      nodeType,
+      aiEnabled,
     },
     position: { x: 100, y: 100 },
     type: "table",
     width: T_NODE_W,
     height: T_NODE_H,
   };
-};
-
-export const destructTable = (id: string) => {
-  const splits = id.split(".");
-  const table = splits.pop() || "";
-  return [table, splits[0]];
 };
 
 export const applyEdgeStyling = (e: Edge, highlight: boolean) => {
