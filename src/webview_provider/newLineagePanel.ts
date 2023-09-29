@@ -26,6 +26,7 @@ type Table = {
   downstreamCount: number;
   upstreamCount: number;
   nodeType: string;
+  aiEnabled: boolean;
 };
 
 @provideSingleton(NewLineagePanel)
@@ -372,6 +373,7 @@ export class NewLineagePanel implements LineagePanelView {
         nodeType: key.split(".")?.[0] || "model",
         upstreamCount: graphMetaMap["children"].get(key)?.nodes.length || 0,
         downstreamCount: graphMetaMap["parents"].get(key)?.nodes.length || 0,
+        aiEnabled: this.altimate.enabled(),
       });
     });
     return Array.from(tables.values()).sort((a, b) =>

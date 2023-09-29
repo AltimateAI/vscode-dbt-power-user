@@ -110,6 +110,7 @@ function App() {
         nodeType: string;
         downstreamCount: number;
         upstreamCount: number;
+        aiEnabled: boolean;
       };
     }) => {
       setShowSidebar(false);
@@ -167,6 +168,7 @@ function App() {
               nodeType: node.nodeType,
               upstreamCount: node.upstreamCount,
               downstreamCount: node.downstreamCount,
+              aiEnabled: node.aiEnabled,
             },
             position: { x: 100, y: 100 },
             type: "table",

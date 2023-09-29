@@ -7,6 +7,7 @@ export type Table = {
   nodeType: string;
   downstreamCount: number;
   upstreamCount: number;
+  aiEnabled: boolean;
 };
 export type Column = {
   name: string;

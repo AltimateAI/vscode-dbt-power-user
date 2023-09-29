@@ -90,6 +90,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     downstreamCount,
     key,
     nodeType,
+    aiEnabled,
   } = data;
   const flow = useReactFlow();
 
@@ -111,7 +112,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     setSelectedTable((prev) =>
       prev?.table === table
         ? null
-        : { table, key, url, nodeType, upstreamCount, downstreamCount }
+        : { table, key, url, nodeType, upstreamCount, downstreamCount, aiEnabled }
     );
 
   const highlightTable = () => {
@@ -220,7 +221,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             >
               {processed[0] ? "-" : "+"}
             </div>
-            <div
+           
+            { aiEnabled ? (<div
               className={classNames(
                 "nodrag",
                 selected ? "text-primary" : "text-muted"
@@ -228,7 +230,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
               onClick={onDetailsClick}
             >
               View Details
-            </div>
+            </div>): null}
+            
             <div
               className={classNames("nodrag", styles.open_file_button)}
               onClick={() => openFile(url)}
