@@ -112,7 +112,15 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     setSelectedTable((prev) =>
       prev?.table === table
         ? null
-        : { table, key, url, nodeType, upstreamCount, downstreamCount, aiEnabled }
+        : {
+            table,
+            key,
+            url,
+            nodeType,
+            upstreamCount,
+            downstreamCount,
+            aiEnabled,
+          }
     );
 
   const highlightTable = () => {
@@ -221,21 +229,24 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             >
               {processed[0] ? "-" : "+"}
             </div>
-           
-            { aiEnabled ? (<div
-              className={classNames(
-                "nodrag",
-                selected ? "text-primary" : "text-muted"
-              )}
-              onClick={onDetailsClick}
-            >
-              View Details
-            </div>): null}
-            
+
+            {aiEnabled && (
+              <div
+                className={classNames(
+                  "nodrag",
+                  selected ? "text-primary" : "text-muted"
+                )}
+                onClick={onDetailsClick}
+              >
+                View Details
+              </div>
+            )}
+
             <div
               className={classNames("nodrag", styles.open_file_button)}
               onClick={() => openFile(url)}
             >
+              {!aiEnabled && <span className="text-primary">Open file</span>}
               <FolderIcon />
             </div>
             <div className="spacer" />

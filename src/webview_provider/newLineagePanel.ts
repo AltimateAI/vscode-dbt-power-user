@@ -420,7 +420,7 @@ export class NewLineagePanel implements LineagePanelView {
     return this.dbtProjectContainer.findDBTProject(currentFilePath);
   }
 
-  private getStartingNode() {
+  private getStartingNode(): { node: Table } | undefined {
     const event = this.getEvent();
     if (!event) {
       return;
@@ -441,6 +441,7 @@ export class NewLineagePanel implements LineagePanelView {
         upstreamCount,
         downstreamCount,
         nodeType: key.split(".")?.[0] || "model",
+        aiEnabled: this.altimate.enabled(),
       },
     };
   }
