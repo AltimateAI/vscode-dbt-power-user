@@ -232,6 +232,7 @@ export class NewLineagePanel implements LineagePanelView {
       compiled_sql: string;
       model_node: NodeMetaData;
     }[] = [];
+    const relationsWithoutColumns: string[] = [];
     await Promise.all(
       Object.values(visibleTables).map(async (node) => {
         const uri = Uri.file(node.path);
@@ -242,6 +243,9 @@ export class NewLineagePanel implements LineagePanelView {
           return;
         }
         const columnsFromDB = await project.getColumnsInRelation(node.alias);
+        if (!columnsFromDB || columnsFromDB.length === 0) {
+          relationsWithoutColumns.push(node.alias);
+        }
 
         if (columnsFromDB) {
           columnsFromDB.forEach((c) => {
@@ -263,6 +267,15 @@ export class NewLineagePanel implements LineagePanelView {
         });
       }),
     );
+    if (relationsWithoutColumns.length !== 0) {
+      window.showErrorMessage(
+        "Column lineage failed to fetch columns for following tables: " +
+          relationsWithoutColumns.join(", ") +
+          ". Please first materialize these models by executing dbt run.",
+      );
+      return;
+    }
+
     const modelDialect = project.getAdapterType();
     const result = await this.altimate.getColumnLevelLineage({
       model_dialect: modelDialect,
