@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { FunctionComponent, useContext, useState } from "react";
+import React, { FunctionComponent, useContext } from "react";
 import {
   BaseEdge,
   EdgeProps,
@@ -14,12 +13,17 @@ import {
   createNewNodesEdges,
   highlightTableConnections,
   layoutElementsOnCanvas,
-  removeRelatedNodesEdges,
+  processColumnLineage,
   resetTableHighlights,
 } from "./graph";
 import { LineageContext, openFile } from "./App";
 import { Table, downstreamTables, upstreamTables } from "./service";
-import { TABLES_SIDEBAR, destructTable } from "./utils";
+import {
+  COLUMNS_SIDEBAR,
+  C_NODE_H,
+  C_PADDING_Y,
+  TABLES_SIDEBAR,
+} from "./utils";
 import { TMoreTables } from "./MoreTables";
 import ModelIcon from "./assets/icons/model.svg?react";
 import SeedIcon from "./assets/icons/seed.svg?react";
@@ -65,6 +69,16 @@ const BidirectionalHandles = () => (
   </>
 );
 
+export const NodeTypeIcon: FunctionComponent<{ nodeType: string }> = ({
+  nodeType,
+}) => (
+  <div>
+    {nodeType === "seed" && <SeedIcon />}
+    {nodeType === "model" && <ModelIcon />}
+    {nodeType === "source" && <SourceIcon />}
+  </div>
+);
+
 export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const {
     shouldExpand,
@@ -74,17 +88,43 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     url,
     upstreamCount,
     downstreamCount,
+    key,
+    nodeType,
+    aiEnabled,
   } = data;
   const flow = useReactFlow();
 
-  const { selectedTable, setSelectedTable, rerender } =
-    useContext(LineageContext);
+  const {
+    selectedTable,
+    setSelectedTable,
+    setShowSidebar,
+    setSidebarScreen,
+    collectColumns,
+    selectedColumn,
+    setCollectColumns,
+    rerender,
+  } = useContext(LineageContext);
 
-  const selected = selectedTable === table;
+  const _columnLen = Object.keys(collectColumns[table] || {}).length;
+  const _showColumns = _columnLen > 0;
+  const selected = selectedTable?.table === table;
   const toggleTableSelection = () =>
-    setSelectedTable((prev) => (prev === table ? "" : table));
+    setSelectedTable((prev) =>
+      prev?.table === table
+        ? null
+        : {
+            table,
+            key,
+            url,
+            nodeType,
+            upstreamCount,
+            downstreamCount,
+            aiEnabled,
+          }
+    );
 
   const highlightTable = () => {
+    if (selectedColumn) return;
     const _nodes = flow.getNodes();
     const _edges = flow.getEdges();
     const [nodes, edges] = selected
@@ -94,52 +134,65 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     flow.setEdges(edges);
   };
 
-  const expand = async (t: string, tables: Table[], right: boolean) => {
-    const [nodes, edges] = createNewNodesEdges(
+  const expand = async (tables: Table[], right: boolean) => {
+    if (processed[right ? 1 : 0]) return;
+    let [nodes, edges] = createNewNodesEdges(
       flow.getNodes(),
       flow.getEdges(),
       tables,
-      t,
+      table,
       right,
       level
     );
+    if (selectedColumn.name) {
+      const {
+        nodes: _nodes,
+        edges: _edges,
+        collectColumns,
+      } = await processColumnLineage(nodes, edges, selectedColumn);
+      nodes = _nodes;
+      edges = _edges;
+      setCollectColumns(collectColumns);
+    } else if (selectedTable) {
+      const [_nodes, _edges] = highlightTableConnections(
+        nodes,
+        edges,
+        selectedTable.table
+      );
+      nodes = _nodes;
+      edges = _edges;
+    }
     layoutElementsOnCanvas(nodes, edges);
     flow.setNodes(nodes);
     flow.setEdges(edges);
     rerender();
   };
 
-  const expandRight = async (t: string) => {
-    const { tables } = await upstreamTables(t);
-    await expand(t, tables, true);
+  const expandRight = async () => {
+    const { tables } = await upstreamTables(key);
+    await expand(tables, true);
   };
 
-  const expandLeft = async (t: string) => {
-    const { tables } = await downstreamTables(t);
-    await expand(t, tables, false);
+  const expandLeft = async () => {
+    const { tables } = await downstreamTables(key);
+    await expand(tables, false);
   };
 
-  const collapse = (right: boolean) => (t: string) => {
-    const [nodes, edges] = removeRelatedNodesEdges(
-      flow.getNodes(),
-      flow.getEdges(),
-      t,
-      right,
-      level
-    );
-    layoutElementsOnCanvas(nodes, edges);
-    flow.setNodes(nodes);
-    flow.setEdges(edges);
-    rerender();
+  const onDetailsClick = (e: React.MouseEvent) => {
+    if (!selected) return;
+    e.stopPropagation();
+    setShowSidebar(true);
+    setSidebarScreen(COLUMNS_SIDEBAR);
   };
 
-  const collapseLeft = collapse(false);
-  const collapseRight = collapse(true);
-
-  const [label, schema] = destructTable(table);
   const _edges = flow.getEdges();
   return (
-    <div className="position-relative">
+    <div
+      className="position-relative"
+      style={{
+        opacity: !selectedColumn.name ? 1 : _showColumns ? 1 : 0.5,
+      }}
+    >
       <div
         className={styles.table_node}
         onClick={(e) => {
@@ -152,16 +205,12 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           className={classNames(
             styles.header,
             "d-flex flex-column align-items-start gap-xs",
-            { [styles.selected]: selected }
+            { [styles.selected]: selected, [styles.collapse]: !_showColumns }
           )}
         >
           <div className={styles.table_header}>
-            <div>
-              {schema === "seed" && <SeedIcon />}
-              {schema === "model" && <ModelIcon />}
-              {schema === "source" && <SourceIcon />}
-            </div>
-            <div className="lines-2 text-black">{label}</div>
+            <NodeTypeIcon nodeType={nodeType} />
+            <div className="lines-2 text-black">{table}</div>
           </div>
           <div className={styles.divider} />
           <div className="w-100 d-flex align-items-center gap-xs">
@@ -175,17 +224,30 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
               })}
               onClick={(e) => {
                 e.stopPropagation();
-                expandLeft(table);
+                expandLeft();
               }}
             >
               {processed[0] ? "-" : "+"}
             </div>
+
+            {aiEnabled && (
+              <div
+                className={classNames(
+                  "nodrag",
+                  selected ? "text-primary" : "text-muted"
+                )}
+                onClick={onDetailsClick}
+              >
+                View Details
+              </div>
+            )}
+
             <div
               className={classNames("nodrag", styles.open_file_button)}
               onClick={() => openFile(url)}
             >
+              {!aiEnabled && <span className="text-primary">Open file</span>}
               <FolderIcon />
-              <span className="text-primary">Open file</span>
             </div>
             <div className="spacer" />
 
@@ -199,13 +261,21 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
               })}
               onClick={(e) => {
                 e.stopPropagation();
-                expandRight(table);
+                expandRight();
               }}
             >
               {processed[1] ? "-" : "+"}
             </div>
           </div>
         </div>
+        {_showColumns && (
+          <div
+            className={classNames(styles.content, {
+              [styles.selected]: selected,
+            })}
+            style={{ height: _columnLen * C_NODE_H + C_PADDING_Y }}
+          />
+        )}
       </div>
 
       <BidirectionalHandles />
@@ -245,4 +315,21 @@ export const SelfConnectingEdge: FunctionComponent<EdgeProps> = (props) => {
   } ${targetY}`;
 
   return <BaseEdge path={edgePath} markerEnd={markerEnd} />;
+};
+
+export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
+  const { column, table } = data;
+  const { selectedColumn } = useContext(LineageContext);
+
+  return (
+    <div
+      className={classNames(styles.column_node, {
+        [styles.selected]:
+          selectedColumn.table === table && selectedColumn.name === column,
+      })}
+    >
+      {column}
+      <BidirectionalHandles />
+    </div>
+  );
 };
