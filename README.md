@@ -99,11 +99,9 @@ Please make a PR if you find that you need to change `dbt.queryTemplate` for you
 
 Change to `select * from ({query})\n where ROWNUM <= {limit}`
 
-#### `dbt.queryTemplate` for MS SQL
+#### `dbt.queryTemplate` for MS SQL, Synapse
 
-Change to `{query}\n order by 1 OFFSET 0 ROWS FETCH FIRST {limit} ROWS ONLY`
-
-Note that your query can't have an order by clause.
+Change to `set rowcount {limit}; {query}` or `{query}\n order by 1 OFFSET 0 ROWS FETCH FIRST {limit} ROWS ONLY` (note that your query can't have an order by clause).
 
 ### Format your dbt SQL with `sqlfmt`
 
