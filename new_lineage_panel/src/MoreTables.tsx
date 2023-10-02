@@ -5,9 +5,9 @@ import { useReactFlow } from "reactflow";
 import { SEE_MORE_PREFIX, createForwardEdge, createTableNode } from "./utils";
 import { layoutElementsOnCanvas } from "./graph";
 import { LineageContext } from "./App";
-import { Input } from "reactstrap";
-import DBTIcon from "./assets/icons/dbt.svg?react";
 import { Table } from "./service";
+import { NodeTypeIcon } from "./CustomNodes";
+import { CustomInput } from "./Form";
 
 export type TMoreTables = {
   prevTable: string;
@@ -57,9 +57,9 @@ function MoreTables() {
 
   const [filteredTables, setFilteredTables] = useState(tables);
   return (
-    <div className="p-2 h-100 d-flex flex-column text-black">
+    <div className="p-2 h-100 d-flex flex-column">
       <div className="mb-2 fw-semibold fs-5">Tables</div>
-      <Input
+      <CustomInput
         bsSize="sm"
         placeholder="Search by table name"
         onChange={(e) => {
@@ -88,7 +88,7 @@ function MoreTables() {
                   onItemClick(t);
                 }}
               >
-                <DBTIcon />
+                <NodeTypeIcon nodeType={t.nodeType} />
                 <div className="d-flex flex-column">
                   <div className="text-overflow">{t.table}</div>
                 </div>

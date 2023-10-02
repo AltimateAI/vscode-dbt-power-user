@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from "fs";
 import * as path from "path";
 import {
   CancellationToken,
+  ColorThemeKind,
   ProgressLocation,
   TextEditor,
   Uri,
@@ -67,10 +68,25 @@ export class NewLineagePanel implements LineagePanelView {
     this.init();
   }
 
-  changedActiveColorTheme() {}
+  changedActiveColorTheme() {
+    if (!this._panel) {
+      return;
+    }
+    const theme = [
+      ColorThemeKind.Light,
+      ColorThemeKind.HighContrastLight,
+    ].includes(window.activeColorTheme.kind)
+      ? "light"
+      : "dark";
+    this._panel.webview.postMessage({
+      command: "setTheme",
+      args: { theme },
+    });
+  }
 
   init() {
     console.log("lineage:init -> ", this._panel);
+    this.changedActiveColorTheme();
     this.renderStartingNode();
   }
 
