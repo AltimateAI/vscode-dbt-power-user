@@ -136,7 +136,7 @@ You can enable format on save for python by having the following values in your 
   }
 ```
 
-#### Configure `dbt.allowListFolders` (Optional)
+### Configure `dbt.allowListFolders` (Optional)
 
 To specify project folders explicitly and control which projects are included in the build process, you can configure the `dbt.allowListFolders` setting. This can be particularly useful when you have a large number of projects in the same workspace. You can define workspace-relative paths to include as follows:
 
