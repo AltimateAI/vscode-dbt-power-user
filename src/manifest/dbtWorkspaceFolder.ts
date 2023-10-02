@@ -143,6 +143,7 @@ export class DBTWorkspaceFolder implements Disposable {
 
     watcher.onDidCreate((uri) => {
       if (
+        statSync(uri.fsPath).isFile() &&
         this.notInVenv(uri.fsPath) &&
         this.notInDBtPackages(
           uri.fsPath,
