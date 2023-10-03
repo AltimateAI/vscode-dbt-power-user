@@ -58,6 +58,7 @@ const app = createApp({
       scale: 1,
       clipboardText: "",
       enableNewQueryPanel: true,
+      isDarkMode: false,
     };
   },
   methods: {
@@ -162,6 +163,7 @@ const app = createApp({
         this.scale = data.scale;
       }
       this.enableNewQueryPanel = data.enableNewQueryPanel;
+      this.isDarkMode = data.darkMode;
     },
     updateDispatchedCode(raw_stmt, compiled_stmt) {
       this.rawCode = raw_stmt;
@@ -236,6 +238,9 @@ const app = createApp({
         minHeight: "400px",
         display: "block",
       };
+    },
+    getPerspectiveTheme() {
+      return this.isDarkMode ? "Pro Dark" : "Pro Light";
     },
     onLegacyPanel() {
       updateConfig({ enableNewQueryPanel: false });

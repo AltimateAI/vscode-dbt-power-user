@@ -49,6 +49,7 @@ interface RenderError {
 interface InjectConfig {
   limit?: number;
   enableNewQueryPanel: boolean;
+  darkMode: boolean;
 }
 
 enum InboundCommand {
@@ -227,7 +228,15 @@ export class QueryResultPanel implements WebviewViewProvider {
     if (this._panel) {
       this._panel.webview.postMessage({
         command: OutboundCommand.InjectConfig,
-        ...(<InjectConfig>{ limit, queryTemplate, enableNewQueryPanel }),
+        ...(<InjectConfig>{
+          limit,
+          queryTemplate,
+          enableNewQueryPanel,
+          darkMode: ![
+            ColorThemeKind.Light,
+            ColorThemeKind.HighContrastLight,
+          ].includes(window.activeColorTheme.kind),
+        }),
       });
     }
   }
