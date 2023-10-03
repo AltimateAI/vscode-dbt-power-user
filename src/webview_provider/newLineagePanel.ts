@@ -13,11 +13,12 @@ import {
   workspace,
 } from "vscode";
 import { AltimateRequest } from "../altimate";
-import { GraphMetaMap, NodeMetaData } from "../domain";
+import { ColumnMetaData, GraphMetaMap, NodeMetaData } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
 import { LineagePanelView } from "./lineagePanel";
+import { DBTProject } from "../manifest/dbtProject";
 
 type Table = {
   key: string;
@@ -134,6 +135,38 @@ export class NewLineagePanel implements LineagePanelView {
     console.error("Unsupported mssage", message);
   }
 
+  private async addColumnsFromDB(
+    project: DBTProject | undefined,
+    node: NodeMetaData,
+    table: string,
+  ) {
+    if (!project) {
+      return false;
+    }
+    const columnsFromDB = await project.getColumnsInRelation(table);
+    if (!columnsFromDB || columnsFromDB.length === 0) {
+      return false;
+    }
+    const columns: Record<string, ColumnMetaData> = {};
+    Object.entries(node.columns).forEach(([k, v]) => {
+      columns[k.toLowerCase()] = v;
+    });
+
+    columnsFromDB.forEach((c) => {
+      const existing_column = columns[c.column.toLowerCase()];
+      if (existing_column) {
+        existing_column.data_type = existing_column.data_type || c.dtype;
+        return;
+      }
+      node.columns[c.column] = {
+        name: c.column,
+        data_type: c.dtype,
+        description: "",
+      };
+    });
+    return true;
+  }
+
   private async getColumns({ table }: { table: string }) {
     const nodeMetaMap = this.getEvent()?.nodeMetaMap;
     if (!nodeMetaMap) {
@@ -143,25 +176,7 @@ export class NewLineagePanel implements LineagePanelView {
     if (!_table) {
       return;
     }
-    const project = this.getProject();
-    if (project) {
-      const columnsFromDB = await project.getColumnsInRelation(table);
-      console.log(columnsFromDB);
-      if (columnsFromDB) {
-        columnsFromDB.forEach((c) => {
-          const existing_column = _table.columns[c.column];
-          if (existing_column) {
-            existing_column.data_type = existing_column.data_type || c.dtype;
-            return;
-          }
-          _table.columns[c.column] = {
-            name: c.column,
-            data_type: c.dtype,
-            description: "",
-          };
-        });
-      }
-    }
+    this.addColumnsFromDB(this.getProject(), _table, table);
 
     return {
       id: _table.uniqueId,
@@ -235,29 +250,12 @@ export class NewLineagePanel implements LineagePanelView {
         if (!compiledSql) {
           return;
         }
-        const columnsFromDB = await project.getColumnsInRelation(node.alias);
-        if (!columnsFromDB || columnsFromDB.length === 0) {
+        const ok = await this.addColumnsFromDB(project, node, node.alias);
+        if (!ok) {
           relationsWithoutColumns.push(node.alias);
+          return;
         }
-
-        if (columnsFromDB) {
-          columnsFromDB.forEach((c) => {
-            const existing_column = node.columns[c.column];
-            if (existing_column) {
-              existing_column.data_type = existing_column.data_type || c.dtype;
-              return;
-            }
-            node.columns[c.column] = {
-              name: c.column,
-              data_type: c.dtype,
-              description: "",
-            };
-          });
-        }
-        modelInfos.push({
-          compiled_sql: compiledSql,
-          model_node: node,
-        });
+        modelInfos.push({ compiled_sql: compiledSql, model_node: node });
       }),
     );
     if (relationsWithoutColumns.length !== 0) {
