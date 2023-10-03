@@ -14,6 +14,7 @@ html {
   --column-section-bg: #f5f6f7;
   --tag-bg: rgba(63, 140, 255, 0.1);
   --tag-text-color: #082247;
+  --placeholder-color: rgba(8, 34, 71, 0.5);
 }
 
 html[data-theme="dark"] {
@@ -32,6 +33,7 @@ html[data-theme="dark"] {
   --column-section-bg: #3c3c3c;
   --tag-bg: rgba(255, 255, 255, 0.1);
   --tag-text-color: #ffffff;
+  --placeholder-color: #ffffff;
 }
 
 body {
@@ -125,4 +127,19 @@ body {
 
 .column-section {
   background-color: var(--column-section-bg);
+}
+
+.custom-input::placeholder {
+  color: var(--placeholder-color) !important;
+  opacity: 1 !important;
+}
+
+.custom-input::-moz-placeholder {
+  color: var(--placeholder-color) !important;
+  opacity: 1 !important;
+}
+
+.custom-input::-ms-input-placeholder {
+  color: var(--placeholder-color) !important;
+  opacity: 1 !important;
 }

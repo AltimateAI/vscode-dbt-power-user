@@ -4,6 +4,7 @@ import { isDarkMode } from "./App";
 export function CustomInput(props: InputProps) {
   return (
     <Input
+      className="custom-input"
       style={{
         backgroundColor: isDarkMode ? "rgba(131, 144, 163, 0.2)" : "#ffffff",
         color: isDarkMode ? "#ffffff" : "#212529",

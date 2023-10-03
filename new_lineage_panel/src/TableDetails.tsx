@@ -128,6 +128,7 @@ const ColumnSection: FunctionComponent<{
         </div>
         <CustomInput
           bsSize="sm"
+          type="text"
           placeholder="Search by column name"
           onChange={(e) => {
             const _search = e.target.value.toLowerCase();
