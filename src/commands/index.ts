@@ -12,6 +12,7 @@ import { RunModelType } from "../domain";
 import { provideSingleton } from "../utils";
 import { RunModel } from "./runModel";
 import { SqlToModel } from "./sqlToModel";
+import { AltimateScan } from "./altimateScan";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -20,6 +21,7 @@ export class VSCodeCommands implements Disposable {
   constructor(
     private runModel: RunModel,
     private sqlToModel: SqlToModel,
+    private altimateScan: AltimateScan,
   ) {
     this.disposables.push(
       commands.registerCommand("dbtPowerUser.runCurrentModel", () =>
@@ -97,6 +99,9 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand("dbtPowerUser.sqlToModel", () =>
         this.sqlToModel.getModelFromSql(),
+      ),
+      commands.registerCommand("dbtPowerUser.altimateScan", () =>
+        this.altimateScan.getProblems(),
       ),
     );
   }

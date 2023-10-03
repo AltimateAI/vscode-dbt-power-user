@@ -265,6 +265,11 @@
         "icon": "$(circuit-board)"
       },
       {
+        "command": "dbtPowerUser.altimateScan",
+        "title": "Deep Scan",
+        "icon": "$(circuit-board)"
+      },
+      {
         "command": "dbtPowerUser.compileCurrentModel",
         "title": "Compile dbt Model",
         "icon": {

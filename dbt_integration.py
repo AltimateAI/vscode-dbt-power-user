@@ -30,6 +30,7 @@ from typing import (
     Optional,
     Tuple,
     TypeVar,
+    Union,
 )
 
 import agate
@@ -44,6 +45,7 @@ from dbt.parser.sql import SqlBlockParser, SqlMacroParser
 from dbt.task.sql import SqlCompileRunner, SqlExecuteRunner
 from dbt.tracking import disable_tracking
 from dbt.version import __version__ as dbt_version
+from dbt.task.generate import Catalog
 
 try:
     # dbt <= 1.3
@@ -59,6 +61,17 @@ if TYPE_CHECKING:
     from dbt.adapters.base import BaseRelation  # type: ignore
     from dbt.contracts.connection import AdapterResponse
 
+import logging
+
+# Set up logging to file
+logging.basicConfig(filename="python_log.log", level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# Add logs throughout the code
+logger.info("Starting program")
+
+Primitive = Union[bool, str, float, None]
+PrimitiveDict = Dict[str, Primitive]
 
 CACHE = {}
 CACHE_VERSION = 1
@@ -557,6 +570,38 @@ class DbtProject:
             delattr(node, COMPILED_CODE)
             columns.extend(result.table.column_names)
         return columns
+
+    def get_catalog(self) -> Dict[str, Any]:
+        """Get catalog from adapter"""
+        catalog_table: agate.Table = agate.Table([])
+        catalog_data: List[PrimitiveDict] = []
+        exceptions: List[Exception] = []
+        logger.debug("getting connection")
+        try:
+            with self.adapter.connection_named("generate_catalog"):
+                logger.debug("Generating catalog...")
+                catalog_table, exceptions = self.adapter.get_catalog(self.dbt)
+                logger.debug("Raw catalog:")
+                logger.debug(catalog_table)
+
+            if exceptions:
+                logger.debug("Found exceptions")
+                logger.debug(exceptions)
+
+            catalog_data = [
+                dict(
+                    zip(catalog_table.column_names, map(dbt.utils._coerce_decimal, row))
+                )
+                for row in catalog_table
+            ]
+            logger.debug("parsed catalog data")
+            logger.debug(catalog_data)
+
+        except Exception as e:
+            logger.debug("exception during get catalog event")
+            logger.debug(e)
+            return catalog_data
+        return catalog_data
 
     def get_or_create_relation(
         self, database: str, schema: str, name: str
