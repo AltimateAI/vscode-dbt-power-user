@@ -13,11 +13,12 @@ import {
   workspace,
 } from "vscode";
 import { AltimateRequest } from "../altimate";
-import { GraphMetaMap, NodeMetaData } from "../domain";
+import { ColumnMetaData, GraphMetaMap, NodeMetaData } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
 import { LineagePanelView } from "./lineagePanel";
+import { DBTProject } from "../manifest/dbtProject";
 
 type Table = {
   key: string;
@@ -26,7 +27,6 @@ type Table = {
   downstreamCount: number;
   upstreamCount: number;
   nodeType: string;
-  aiEnabled: boolean;
 };
 
 @provideSingleton(NewLineagePanel)
@@ -134,6 +134,38 @@ export class NewLineagePanel implements LineagePanelView {
     console.error("Unsupported mssage", message);
   }
 
+  private async addColumnsFromDB(
+    project: DBTProject | undefined,
+    node: NodeMetaData,
+    table: string,
+  ) {
+    if (!project) {
+      return false;
+    }
+    const columnsFromDB = await project.getColumnsInRelation(table);
+    if (!columnsFromDB || columnsFromDB.length === 0) {
+      return false;
+    }
+    const columns: Record<string, ColumnMetaData> = {};
+    Object.entries(node.columns).forEach(([k, v]) => {
+      columns[k.toLowerCase()] = v;
+    });
+
+    columnsFromDB.forEach((c) => {
+      const existing_column = columns[c.column.toLowerCase()];
+      if (existing_column) {
+        existing_column.data_type = existing_column.data_type || c.dtype;
+        return;
+      }
+      node.columns[c.column] = {
+        name: c.column,
+        data_type: c.dtype,
+        description: "",
+      };
+    });
+    return true;
+  }
+
   private async getColumns({ table }: { table: string }) {
     const nodeMetaMap = this.getEvent()?.nodeMetaMap;
     if (!nodeMetaMap) {
@@ -143,25 +175,7 @@ export class NewLineagePanel implements LineagePanelView {
     if (!_table) {
       return;
     }
-    const project = this.getProject();
-    if (project) {
-      const columnsFromDB = await project.getColumnsInRelation(table);
-      console.log(columnsFromDB);
-      if (columnsFromDB) {
-        columnsFromDB.forEach((c) => {
-          const existing_column = _table.columns[c.column];
-          if (existing_column) {
-            existing_column.data_type = existing_column.data_type || c.dtype;
-            return;
-          }
-          _table.columns[c.column] = {
-            name: c.column,
-            data_type: c.dtype,
-            description: "",
-          };
-        });
-      }
-    }
+    this.addColumnsFromDB(this.getProject(), _table, table);
 
     return {
       id: _table.uniqueId,
@@ -195,19 +209,9 @@ export class NewLineagePanel implements LineagePanelView {
     if (!project) {
       return;
     }
-    const nonSourceNodes: Record<string, number> = {};
-    edges.forEach((e) => {
-      if (!(e.dst in nonSourceNodes)) {
-        nonSourceNodes[e.dst] = 0;
-      }
-      nonSourceNodes[e.dst]++;
-    });
 
     const visibleTables: Record<string, NodeMetaData> = {};
-    Object.entries(nonSourceNodes).forEach(([t, v]) => {
-      if (v === 0) {
-        return;
-      }
+    const addToVisibleTable = (t: string) => {
       if (t in visibleTables) {
         return;
       }
@@ -219,6 +223,10 @@ export class NewLineagePanel implements LineagePanelView {
         return;
       }
       visibleTables[t] = node;
+    };
+    edges.forEach((e) => {
+      addToVisibleTable(e.src);
+      addToVisibleTable(e.dst);
     });
 
     const modelInfos: {
@@ -235,29 +243,12 @@ export class NewLineagePanel implements LineagePanelView {
         if (!compiledSql) {
           return;
         }
-        const columnsFromDB = await project.getColumnsInRelation(node.alias);
-        if (!columnsFromDB || columnsFromDB.length === 0) {
+        const ok = await this.addColumnsFromDB(project, node, node.alias);
+        if (!ok) {
           relationsWithoutColumns.push(node.alias);
+          return;
         }
-
-        if (columnsFromDB) {
-          columnsFromDB.forEach((c) => {
-            const existing_column = node.columns[c.column];
-            if (existing_column) {
-              existing_column.data_type = existing_column.data_type || c.dtype;
-              return;
-            }
-            node.columns[c.column] = {
-              name: c.column,
-              data_type: c.dtype,
-              description: "",
-            };
-          });
-        }
-        modelInfos.push({
-          compiled_sql: compiledSql,
-          model_node: node,
-        });
+        modelInfos.push({ compiled_sql: compiledSql, model_node: node });
       }),
     );
     if (relationsWithoutColumns.length !== 0) {
@@ -373,7 +364,6 @@ export class NewLineagePanel implements LineagePanelView {
         nodeType: key.split(".")?.[0] || "model",
         upstreamCount: graphMetaMap["children"].get(key)?.nodes.length || 0,
         downstreamCount: graphMetaMap["parents"].get(key)?.nodes.length || 0,
-        aiEnabled: this.altimate.enabled(),
       });
     });
     return Array.from(tables.values()).sort((a, b) =>
@@ -420,7 +410,7 @@ export class NewLineagePanel implements LineagePanelView {
     return this.dbtProjectContainer.findDBTProject(currentFilePath);
   }
 
-  private getStartingNode(): { node: Table } | undefined {
+  private getStartingNode(): { node: Table; aiEnabled: boolean } | undefined {
     const event = this.getEvent();
     if (!event) {
       return;
@@ -441,8 +431,8 @@ export class NewLineagePanel implements LineagePanelView {
         upstreamCount,
         downstreamCount,
         nodeType: key.split(".")?.[0] || "model",
-        aiEnabled: this.altimate.enabled(),
       },
+      aiEnabled: this.altimate.enabled(),
     };
   }
 

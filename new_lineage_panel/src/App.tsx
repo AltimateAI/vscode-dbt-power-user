@@ -34,6 +34,7 @@ declare const acquireVsCodeApi: () => { postMessage: (v: unknown) => void };
 
 const vscode = acquireVsCodeApi();
 
+export let aiEnabled = false;
 let id = 0;
 const requestMap: Record<
   number,
@@ -50,7 +51,14 @@ export const openFile = (url: string) => {
   vscode.postMessage({ command: "openFile", args: { url } });
 };
 export const openDocs = () => {
-  vscode.postMessage({ command: "openDocs", args: {} });
+  vscode.postMessage({
+    command: "openDocs",
+    args: {
+      url: aiEnabled
+        ? "https://docs.google.com/forms/d/e/1FAIpQLScsvmEdZ56F1GAFZq_SW7ejYe0dwpHe-N69qiQBz4ekN4gPNQ/viewform?usp=sf_link"
+        : "https://docs.google.com/forms/d/10_YT2XDwpbkDXio-7TEYPQXsJfCBFqYUa7t0ImzyZvE/edit",
+    },
+  });
 };
 
 const nodeTypes: NodeTypes = {
@@ -110,18 +118,19 @@ function App() {
         nodeType: string;
         downstreamCount: number;
         upstreamCount: number;
-        aiEnabled: boolean;
       };
+      aiEnabled: boolean;
     }) => {
       setShowSidebar(false);
       if (!args) {
         return;
       }
+      const { node, aiEnabled: _aiEnabled } = args;
+      aiEnabled = _aiEnabled;
       const _flow = flow.current;
       if (!_flow) {
         return;
       }
-      const { node } = args;
       const existingNode = _flow.getNode(node.table);
       let _nodes: Node[] = [];
       let _edges: Edge[] = [];
@@ -168,7 +177,6 @@ function App() {
               nodeType: node.nodeType,
               upstreamCount: node.upstreamCount,
               downstreamCount: node.downstreamCount,
-              aiEnabled: node.aiEnabled,
             },
             position: { x: 100, y: 100 },
             type: "table",

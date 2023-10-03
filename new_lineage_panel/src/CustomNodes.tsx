@@ -16,7 +16,7 @@ import {
   processColumnLineage,
   resetTableHighlights,
 } from "./graph";
-import { LineageContext, openFile } from "./App";
+import { LineageContext, aiEnabled, openFile } from "./App";
 import { Table, downstreamTables, upstreamTables } from "./service";
 import {
   COLUMNS_SIDEBAR,
@@ -90,7 +90,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     downstreamCount,
     key,
     nodeType,
-    aiEnabled,
   } = data;
   const flow = useReactFlow();
 
@@ -119,7 +118,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             nodeType,
             upstreamCount,
             downstreamCount,
-            aiEnabled,
           }
     );
 
