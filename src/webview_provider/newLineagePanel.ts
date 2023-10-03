@@ -209,19 +209,9 @@ export class NewLineagePanel implements LineagePanelView {
     if (!project) {
       return;
     }
-    const nonSourceNodes: Record<string, number> = {};
-    edges.forEach((e) => {
-      if (!(e.dst in nonSourceNodes)) {
-        nonSourceNodes[e.dst] = 0;
-      }
-      nonSourceNodes[e.dst]++;
-    });
 
     const visibleTables: Record<string, NodeMetaData> = {};
-    Object.entries(nonSourceNodes).forEach(([t, v]) => {
-      if (v === 0) {
-        return;
-      }
+    const addToVisibleTable = (t: string) => {
       if (t in visibleTables) {
         return;
       }
@@ -233,6 +223,10 @@ export class NewLineagePanel implements LineagePanelView {
         return;
       }
       visibleTables[t] = node;
+    };
+    edges.forEach((e) => {
+      addToVisibleTable(e.src);
+      addToVisibleTable(e.dst);
     });
 
     const modelInfos: {
