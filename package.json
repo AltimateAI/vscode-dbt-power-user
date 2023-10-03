@@ -260,6 +260,14 @@
         }
       },
       {
+        "command": "dbtPowerUser.sqlToModel",
+        "title": "Associate model references",
+        "icon": {
+          "light": "./media/images/run-light.svg",
+          "dark": "./media/images/run-dark.svg"
+        }
+      },
+      {
         "command": "dbtPowerUser.compileCurrentModel",
         "title": "Compile dbt Model",
         "icon": {
@@ -377,30 +385,35 @@
           "group": "navigation@3"
         },
         {
-          "command": "dbtPowerUser.testCurrentModel",
+          "command": "dbtPowerUser.sqlToModel",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
           "group": "navigation@4"
         },
         {
-          "command": "dbtPowerUser.sqlPreview",
+          "command": "dbtPowerUser.testCurrentModel",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
           "group": "navigation@5"
+        },
+        {
+          "command": "dbtPowerUser.sqlPreview",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "group": "navigation@6"
         }
       ],
       "editor/context": [
         {
           "command": "dbtPowerUser.showCompiledSQL",
-          "group": "dbt@4",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
-        },
-        {
-          "command": "dbtPowerUser.showRunSQL",
           "group": "dbt@5",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
         },
         {
-          "command": "dbtPowerUser.goToDocumentationEditor",
+          "command": "dbtPowerUser.showRunSQL",
           "group": "dbt@6",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        },
+        {
+          "command": "dbtPowerUser.goToDocumentationEditor",
+          "group": "dbt@7",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
         },
         {
@@ -414,8 +427,13 @@
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
         },
         {
-          "command": "dbtPowerUser.compileCurrentModel",
+          "command": "dbtPowerUser.sqlToModel",
           "group": "dbt@3",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        },
+        {
+          "command": "dbtPowerUser.compileCurrentModel",
+          "group": "dbt@4",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
         }
       ],

@@ -29,6 +29,17 @@ interface DBTColumnLineageRequest {
   downstream_models: string[];
 }
 
+interface SQLToModelRequest {
+  sql: string;
+  adapter: string;
+  models: NodeMetaData[];
+  //sources: List[ModelNode]
+}
+
+interface SQLToModelResponse {
+  sql: string;
+}
+
 interface OnewayFeedback {
   feedback_value: "good" | "bad";
   feedback_text: string;
@@ -160,6 +171,13 @@ export class AltimateRequest {
 
   async getColumnLevelLineage(req: DBTColumnLineageRequest) {
     return this.fetch<ColumnLineage[]>("dbt/v1/lineage", {
+      method: "POST",
+      body: JSON.stringify(req),
+    });
+  }
+
+  async runModeller(req: SQLToModelRequest) {
+    return this.fetch<SQLToModelResponse>("dbt/v1/sqltomodel", {
       method: "POST",
       body: JSON.stringify(req),
     });
