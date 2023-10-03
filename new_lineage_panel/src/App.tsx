@@ -277,6 +277,7 @@ function App() {
               edgeTypes={edgeTypes}
               style={{ background: "#f5f5f7" }}
               proOptions={{ hideAttribution: true }}
+              minZoom={0.1}
             >
               <Background />
               <Controls />
