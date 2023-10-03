@@ -168,11 +168,10 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     }
 
     if (command === "openDocs") {
-      env.openExternal(
-        Uri.parse(
-          "https://docs.google.com/forms/d/10_YT2XDwpbkDXio-7TEYPQXsJfCBFqYUa7t0ImzyZvE/edit",
-        ),
-      );
+      if (!args.url) {
+        return;
+      }
+      env.openExternal(Uri.parse(args.url));
       return;
     }
 

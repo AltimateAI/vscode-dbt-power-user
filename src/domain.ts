@@ -29,7 +29,7 @@ export interface NodeMetaData {
   config: Config;
 }
 
-interface ColumnMetaData {
+export interface ColumnMetaData {
   name: string;
   description: string;
   data_type: string;
