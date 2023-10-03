@@ -77,6 +77,14 @@
             "type": "string",
             "description": "Path to a python executable or entrypoint. If undefined, we will use the Python extension's configured environment. Most users will not need to change this setting without specific reasoning such as custom wrappers and should instead modify the Python extensions selected interpreter."
           },
+          "dbt.allowListFolders": {
+            "type": "array",
+            "items": {
+            "type": "string"
+            },
+            "default": [],
+            "description": "Define workspace-relative paths to include. Only projects within these folders will be built. If empty, no filtering is applied."
+          },
           "dbt.runModelCommandAdditionalParams": {
             "type": "array",
             "items": {
