@@ -27,7 +27,6 @@ type Table = {
   downstreamCount: number;
   upstreamCount: number;
   nodeType: string;
-  aiEnabled: boolean;
 };
 
 @provideSingleton(NewLineagePanel)
@@ -371,7 +370,6 @@ export class NewLineagePanel implements LineagePanelView {
         nodeType: key.split(".")?.[0] || "model",
         upstreamCount: graphMetaMap["children"].get(key)?.nodes.length || 0,
         downstreamCount: graphMetaMap["parents"].get(key)?.nodes.length || 0,
-        aiEnabled: this.altimate.enabled(),
       });
     });
     return Array.from(tables.values()).sort((a, b) =>
@@ -418,7 +416,7 @@ export class NewLineagePanel implements LineagePanelView {
     return this.dbtProjectContainer.findDBTProject(currentFilePath);
   }
 
-  private getStartingNode(): { node: Table } | undefined {
+  private getStartingNode(): { node: Table; aiEnabled: boolean } | undefined {
     const event = this.getEvent();
     if (!event) {
       return;
@@ -439,8 +437,8 @@ export class NewLineagePanel implements LineagePanelView {
         upstreamCount,
         downstreamCount,
         nodeType: key.split(".")?.[0] || "model",
-        aiEnabled: this.altimate.enabled(),
       },
+      aiEnabled: this.altimate.enabled(),
     };
   }
 

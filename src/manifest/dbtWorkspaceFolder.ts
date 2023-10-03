@@ -55,13 +55,18 @@ export class DBTWorkspaceFolder implements Disposable {
     const allowListFolders = workspace
       .getConfiguration("dbt")
       .get<string[]>("allowListFolders", [])
-      .map((folder) => Uri.joinPath(Uri.file(this.workspaceFolder.uri.path), folder).fsPath);
+      .map(
+        (folder) =>
+          Uri.joinPath(Uri.file(this.workspaceFolder.uri.path), folder).fsPath,
+      );
 
     const projectFiles = dbtProjectFiles
       .filter((uri) => statSync(uri.fsPath).isFile())
       .filter((uri) => this.notInVenv(uri.fsPath))
-      .filter((uri) =>
-        allowListFolders.length === 0 || allowListFolders.some((folder) => uri.toString().includes(folder))
+      .filter(
+        (uri) =>
+          allowListFolders.length === 0 ||
+          allowListFolders.some((folder) => uri.toString().includes(folder)),
       )
       // TODO: also filter out projects within the target folder of another project
       //  This is somewhat difficult as we would need to parse the target-path variable of the project.
