@@ -28,7 +28,11 @@ class Grid {
   async load(rows) {
     const table = await this.worker.table(rows);
     await this.elem.load(table);
-    await this.elem.restore({ settings: true, title: "query result" });
+    await this.elem.restore({
+      settings: true,
+      title: "query result",
+      plugin_config: { editable: false },
+    });
   }
 }
 
