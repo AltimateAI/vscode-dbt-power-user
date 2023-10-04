@@ -243,11 +243,19 @@ export class NewLineagePanel implements LineagePanelView {
         if (!compiledSql) {
           return;
         }
-        const ok = await this.addColumnsFromDB(project, node, node.alias);
-        if (!ok) {
+        const columnsFromDB = await project.getColumnsInRelation(table);
+        if (!columnsFromDB || columnsFromDB.length === 0) {
           relationsWithoutColumns.push(node.alias);
-          return;
         }
+        // TODO: this is not ideal
+        node.columns = {};
+        columnsFromDB.forEach((c) => {
+          node.columns[c.column] = {
+            name: c.column,
+            data_type: c.dtype,
+            description: "",
+          };
+        });
         modelInfos.push({ compiled_sql: compiledSql, model_node: node });
       }),
     );
@@ -317,11 +325,17 @@ export class NewLineagePanel implements LineagePanelView {
     };
 
     bfsTraversal(
-      (c) => columnLineages.filter((x) => x.src === c).map((x) => x.dst),
+      (c) =>
+        columnLineages
+          .filter((x) => x.src.toLowerCase() === c.toLowerCase())
+          .map((x) => x.dst),
       (t1, t2) => [t1, t2],
     );
     bfsTraversal(
-      (c) => columnLineages.filter((x) => x.dst === c).map((x) => x.src),
+      (c) =>
+        columnLineages
+          .filter((x) => x.dst.toLowerCase() === c.toLowerCase())
+          .map((x) => x.src),
       (t1, t2) => [t2, t1],
     );
     for (const t in collectColumns) {
