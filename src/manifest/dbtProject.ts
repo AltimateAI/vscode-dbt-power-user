@@ -64,6 +64,7 @@ interface FileNameTemplateMap {
 interface ResolveReferenceResult {
   database: string;
   schema: string;
+  alias: string;
 }
 
 export class DBTProject implements Disposable {
@@ -532,7 +533,9 @@ export class DBTProject implements Disposable {
     // Get columns
     return await this.python?.lock(
       (python) =>
-        python!`to_dict(project.get_columns_in_relation(project.create_relation(${refNode.database}, ${refNode.schema}, ${modelName})))`,
+        python!`to_dict(project.get_columns_in_relation(project.create_relation(${
+          refNode.database
+        }, ${refNode.schema}, ${refNode.alias || modelName})))`,
     );
   }
 
