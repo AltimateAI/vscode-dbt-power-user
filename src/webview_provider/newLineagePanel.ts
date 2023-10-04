@@ -219,9 +219,6 @@ export class NewLineagePanel implements LineagePanelView {
       if (!node) {
         return;
       }
-      if (node.config.materialized === "seed") {
-        return;
-      }
       visibleTables[t] = node;
     };
     edges.forEach((e) => {
