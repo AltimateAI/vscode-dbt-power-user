@@ -227,9 +227,6 @@ export class NewLineagePanel implements LineagePanelView {
       if (!node) {
         return;
       }
-      if (node.config.materialized === "seed") {
-        return;
-      }
       visibleTables[t] = node;
     };
     edges.forEach((e) => {
@@ -238,18 +235,21 @@ export class NewLineagePanel implements LineagePanelView {
     });
 
     const modelInfos: {
-      compiled_sql: string;
+      compiled_sql: string | undefined;
       model_node: NodeMetaData;
     }[] = [];
     const relationsWithoutColumns: string[] = [];
     await Promise.all(
       Object.values(visibleTables).map(async (node) => {
-        const uri = Uri.file(node.path);
-        const data = await workspace.fs.readFile(uri);
-        const fileContent = Buffer.from(data).toString("utf8");
-        const compiledSql = await project.compileQuery(fileContent);
-        if (!compiledSql) {
-          return;
+        let compiledSql: string | undefined;
+        if (node.config.materialized !== "seed") {
+          const uri = Uri.file(node.path);
+          const data = await workspace.fs.readFile(uri);
+          const fileContent = Buffer.from(data).toString("utf8");
+          compiledSql = await project.compileQuery(fileContent);
+          if (!compiledSql) {
+            return;
+          }
         }
         const ok = await this.addColumnsFromDB(project, node, node.alias);
         if (!ok) {
