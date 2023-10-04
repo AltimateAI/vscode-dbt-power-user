@@ -23,7 +23,7 @@ html {
 
 html[data-theme="dark"] {
   --bg-color: #1e1e1e;
-  --primary-accent: #0e639c;
+  --primary-accent: #247efe;
   --column-node-bg: rgba(131, 144, 163, 0.2);
   --column-node-color: #ffffff;
   --text-color: #ffffff;
