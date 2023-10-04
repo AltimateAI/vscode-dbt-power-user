@@ -212,7 +212,7 @@ function App() {
     };
     const commandMap = { render, response };
     window.addEventListener("message", (event) => {
-      console.log("lineage:message -> ", event);
+      console.log("lineage:message -> ", event.data);
       const { command, args } = event.data;
       if ((command as string) in commandMap) {
         commandMap[command as keyof typeof commandMap](args);

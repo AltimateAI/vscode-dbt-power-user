@@ -166,7 +166,13 @@ export class NewLineagePanel implements LineagePanelView {
     return true;
   }
 
-  private async getColumns({ table }: { table: string }) {
+  private async getColumns({
+    table,
+    refresh,
+  }: {
+    table: string;
+    refresh: boolean;
+  }) {
     const nodeMetaMap = this.getEvent()?.nodeMetaMap;
     if (!nodeMetaMap) {
       return;
@@ -175,7 +181,9 @@ export class NewLineagePanel implements LineagePanelView {
     if (!_table) {
       return;
     }
-    this.addColumnsFromDB(this.getProject(), _table, table);
+    if (refresh) {
+      await this.addColumnsFromDB(this.getProject(), _table, table);
+    }
 
     return {
       id: _table.uniqueId,
@@ -329,7 +337,7 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     console.log(
-      "column lineage -> ",
+      "newLineagePanel:getConnectedColumns -> ",
       columnLineages,
       collectColumns,
       highlightEdges,

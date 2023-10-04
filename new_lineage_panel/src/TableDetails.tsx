@@ -158,7 +158,7 @@ const TableDetails = () => {
     if (!selectedTable) {
       return;
     }
-    getColumns(selectedTable.table).then((_data) => {
+    getColumns(selectedTable.table, false).then((_data) => {
       setData(_data);
       setFilteredColumn(_data.columns);
       setIsLoading(false);
@@ -235,7 +235,7 @@ const TableDetails = () => {
               if (!selectedTable) {
                 return;
               }
-              getColumns(selectedTable.table).then((_data) => {
+              getColumns(selectedTable.table, true).then((_data) => {
                 setData(_data);
                 setFilteredColumn(_data.columns);
                 setIsLoading(false);
