@@ -139,11 +139,14 @@ export class NewLineagePanel implements LineagePanelView {
     node: NodeMetaData,
     table: string,
   ) {
-    const columnsFromDB = await project.getColumnsInRelation(table);
-    console.log("addColumnsFromDB -> ", columnsFromDB);
+    const columnsFromDB = await project.getColumnsInRelation(node.name);
+    console.log("addColumnsFromDB: ", node.name, " -> ", columnsFromDB);
     if (!columnsFromDB || columnsFromDB.length === 0) {
       window.showErrorMessage(
-        "Unable to get columns from DB for table: " + table,
+        "Unable to get columns from DB for model: " +
+          node.name +
+          " table: " +
+          table,
       );
       return false;
     }
@@ -270,7 +273,7 @@ export class NewLineagePanel implements LineagePanelView {
           relationsWithoutColumns.join(", ") +
           ". Please first materialize these models by executing dbt run.",
       );
-      return;
+      // return;
     }
 
     const modelDialect = project.getAdapterType();

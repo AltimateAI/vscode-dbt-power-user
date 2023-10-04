@@ -531,6 +531,9 @@ export class DBTProject implements Disposable {
       (python) => python!`to_dict(project.get_ref_node(${modelName}))`,
     )) as ResolveReferenceResult;
     // Get columns
+    if (!refNode) {
+      return [];
+    }
     return await this.python?.lock(
       (python) =>
         python!`to_dict(project.get_columns_in_relation(project.create_relation(${
