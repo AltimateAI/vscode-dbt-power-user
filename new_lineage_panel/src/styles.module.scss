@@ -26,7 +26,7 @@ $node-width: 260px;
 
   .content {
     flex-grow: 1;
-    background: var(--table-node-collapse-bg);
+    background: var(--table-node-content-bg);
     border-bottom: 2px solid var(--table-node-border-color);
     border-left: 2px solid var(--table-node-border-color);
     border-right: 2px solid var(--table-node-border-color);

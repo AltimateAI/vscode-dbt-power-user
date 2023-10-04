@@ -9,6 +9,7 @@ html {
   --table-node-border-color: rgba(167, 178, 193, 0.3);
   --table-node-expand-bg: #eaf3ff;
   --table-node-collapse-bg: #ffffff;
+  --table-node-content-bg: #ffffff;
   --text-grey-color: #8390a3;
   --purpose-section-bg: #eaf3ff;
   --column-section-bg: #f5f6f7;
@@ -29,8 +30,9 @@ html[data-theme="dark"] {
   --card-bg: #252526;
   --card-border-color: #d5dbe433;
   --table-node-border-color: rgba(213, 219, 228, 0.1);
-  --table-node-expand-bg: #3a3d41;
+  --table-node-expand-bg: #494e56;
   --table-node-collapse-bg: #3a3d41;
+  --table-node-content-bg: #3a3d41;
   --text-grey-color: #66768d;
   --purpose-section-bg: #3c3c3c;
   --column-section-bg: #3c3c3c;
