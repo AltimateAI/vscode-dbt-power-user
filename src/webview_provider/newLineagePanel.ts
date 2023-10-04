@@ -177,18 +177,18 @@ export class NewLineagePanel implements LineagePanelView {
     if (!nodeMetaMap) {
       return;
     }
-    const _table = nodeMetaMap.get(table);
-    if (!_table) {
+    const node = nodeMetaMap.get(table);
+    if (!node) {
       return;
     }
     if (refresh) {
-      await this.addColumnsFromDB(this.getProject(), _table, table);
+      await this.addColumnsFromDB(this.getProject(), node, table);
     }
 
     return {
-      id: _table.uniqueId,
-      purpose: _table.description,
-      columns: Object.values(_table.columns)
+      id: node.uniqueId,
+      purpose: node.description,
+      columns: Object.values(node.columns)
         .map((c) => ({
           name: c.name,
           table: table,
