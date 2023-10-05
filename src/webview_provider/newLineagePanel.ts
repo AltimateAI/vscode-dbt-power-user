@@ -134,20 +134,10 @@ export class NewLineagePanel implements LineagePanelView {
     console.error("Unsupported mssage", message);
   }
 
-  private async addColumnsFromDB(
-    project: DBTProject,
-    node: NodeMetaData,
-    table: string,
-  ) {
+  private async addColumnsFromDB(project: DBTProject, node: NodeMetaData) {
     const columnsFromDB = await project.getColumnsInRelation(node.name);
     console.log("addColumnsFromDB: ", node.name, " -> ", columnsFromDB);
     if (!columnsFromDB || columnsFromDB.length === 0) {
-      window.showErrorMessage(
-        "Unable to get columns from DB for model: " +
-          node.name +
-          " table: " +
-          table,
-      );
       return false;
     }
     const columns: Record<string, ColumnMetaData> = {};
@@ -190,7 +180,16 @@ export class NewLineagePanel implements LineagePanelView {
       return false;
     }
     if (refresh) {
-      await this.addColumnsFromDB(project, node, table);
+      const ok = await this.addColumnsFromDB(project, node);
+      if (!ok) {
+        window.showErrorMessage(
+          "Unable to get columns from DB for model: " +
+            node.name +
+            " table: " +
+            table,
+        );
+        return;
+      }
     }
 
     return {
@@ -259,7 +258,7 @@ export class NewLineagePanel implements LineagePanelView {
             return;
           }
         }
-        const ok = await this.addColumnsFromDB(project, node, node.alias);
+        const ok = await this.addColumnsFromDB(project, node);
         if (!ok) {
           relationsWithoutColumns.push(node.alias);
           return;
