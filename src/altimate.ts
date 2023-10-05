@@ -26,7 +26,7 @@ interface DBTColumnLineageRequest {
     compiled_sql: string | undefined;
   }[];
   schemas?: Schemas | null;
-  downstream_tables: string[];
+  downstream_models: string[];
 }
 
 interface OnewayFeedback {

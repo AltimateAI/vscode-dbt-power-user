@@ -318,7 +318,7 @@ export class NewLineagePanel implements LineagePanelView {
           model_info: modelInfos,
           target_model: table,
           target_column: column,
-          downstream_tables: downstreamTables,
+          downstream_models: downstreamTables,
         });
         return result;
       },
