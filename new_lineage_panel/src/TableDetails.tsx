@@ -144,6 +144,8 @@ const ColumnSection: FunctionComponent<{
           <div className="text-muted fs-xxs">
             {filteredColumn.length} columns
           </div>
+          <div className="spacer" />
+          <div className="text-muted fs-xxs">{filteredColumn.every(en => !en.datatype) ? "Needs DB Sync" : ""}</div>
         </div>
         <div className="d-flex flex-column gap-sm">
           {filteredColumn.map((_column) => (
