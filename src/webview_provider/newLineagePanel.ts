@@ -224,6 +224,25 @@ export class NewLineagePanel implements LineagePanelView {
     if (!project) {
       return;
     }
+    const getDownstreamTables = () => {
+      const queue = [table];
+      const visited: Record<string, boolean> = {};
+      while (queue.length > 0) {
+        const curr = queue.shift()!;
+        if (visited[curr]) {
+          continue;
+        }
+        visited[curr] = true;
+        edges.forEach((e) => {
+          if (e.dst !== curr) {
+            return;
+          }
+          queue.push(e.src);
+        });
+      }
+      return Object.keys(visited).filter((t) => t !== table);
+    };
+    const downstreamTables = getDownstreamTables();
 
     const visibleTables: Record<string, NodeMetaData> = {};
     const addToVisibleTable = (t: string) => {
@@ -299,6 +318,7 @@ export class NewLineagePanel implements LineagePanelView {
           model_info: modelInfos,
           target_model: table,
           target_column: column,
+          downstream_tables: downstreamTables,
         });
         return result;
       },
