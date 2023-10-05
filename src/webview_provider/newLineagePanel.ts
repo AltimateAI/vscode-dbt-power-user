@@ -318,15 +318,15 @@ export class NewLineagePanel implements LineagePanelView {
       while (queue.length > 0 && i < MAX_ITERATION_LIMIT) {
         i += 1;
         const curr = queue.shift()!;
+        if (visited[curr]) {
+          continue;
+        }
         visited[curr] = true;
         const [table, column] = curr.split("/");
         collectColumns[table] = collectColumns[table] || [];
         collectColumns[table].push(column);
         for (const c of connectedColumns(curr)) {
           const [_t, _] = c.split("/");
-          if (visited[c]) {
-            continue;
-          }
           queue.push(c);
           highlightEdges.push(createEdge(curr, c));
         }
