@@ -269,11 +269,12 @@ export class NewLineagePanel implements LineagePanelView {
     );
     if (relationsWithoutColumns.length !== 0) {
       window.showErrorMessage(
-        "Column lineage failed to fetch columns for following tables: " +
+        "Failed to fetch columns for following tables: " +
           relationsWithoutColumns.join(", ") +
-          ". Please first materialize these models by executing dbt run.",
+          ".",
       );
-      // return;
+      // TODO - currently skipping models whose schemas we could not get.
+      // Should we still show the lineage for the rest of the models whose schemas we could get?
     }
 
     const modelDialect = project.getAdapterType();
