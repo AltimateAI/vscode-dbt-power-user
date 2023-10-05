@@ -114,20 +114,11 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     if (command === "getConnectedColumns") {
-      window.withProgress(
-        {
-          title: "Fetching Column Lineage",
-          location: ProgressLocation.Notification,
-          cancellable: false,
-        },
-        async () => {
-          const body = await this.getConnectedColumns(params);
-          this._panel?.webview.postMessage({
-            command: "response",
-            args: { id, body, status: true },
-          });
-        },
-      );
+      const body = await this.getConnectedColumns(params);
+      this._panel?.webview.postMessage({
+        command: "response",
+        args: { id, body, status: true },
+      });
       return;
     }
 
@@ -246,26 +237,36 @@ export class NewLineagePanel implements LineagePanelView {
       model_node: NodeMetaData;
     }[] = [];
     const relationsWithoutColumns: string[] = [];
-    await Promise.all(
-      Object.values(visibleTables).map(async (node) => {
-        let compiledSql: string | undefined;
-        if (node.config.materialized !== "seed") {
-          const uri = Uri.file(node.path);
-          const data = await workspace.fs.readFile(uri);
-          const fileContent = Buffer.from(data).toString("utf8");
-          compiledSql = await project.compileQuery(fileContent);
-          if (!compiledSql) {
-            return;
-          }
-        }
-        const ok = await this.addColumnsFromDB(project, node);
-        if (!ok) {
-          relationsWithoutColumns.push(node.alias);
-          return;
-        }
-        modelInfos.push({ compiled_sql: compiledSql, model_node: node });
-      }),
+    await window.withProgress(
+      {
+        title: "Fetching metadata",
+        location: ProgressLocation.Notification,
+        cancellable: false,
+      },
+      async () => {
+        await Promise.all(
+          Object.values(visibleTables).map(async (node) => {
+            let compiledSql: string | undefined;
+            if (node.config.materialized !== "seed") {
+              const uri = Uri.file(node.path);
+              const data = await workspace.fs.readFile(uri);
+              const fileContent = Buffer.from(data).toString("utf8");
+              compiledSql = await project.compileQuery(fileContent);
+              if (!compiledSql) {
+                return;
+              }
+            }
+            const ok = await this.addColumnsFromDB(project, node);
+            if (!ok) {
+              relationsWithoutColumns.push(node.alias);
+              return;
+            }
+            modelInfos.push({ compiled_sql: compiledSql, model_node: node });
+          }),
+        );
+      },
     );
+
     if (relationsWithoutColumns.length !== 0) {
       window.showErrorMessage(
         "Failed to fetch columns for following tables: " +
@@ -277,12 +278,22 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     const modelDialect = project.getAdapterType();
-    const result = await this.altimate.getColumnLevelLineage({
-      model_dialect: modelDialect,
-      model_info: modelInfos,
-      target_model: table,
-      target_column: column,
-    });
+    const result = await window.withProgress(
+      {
+        title: "Fetching column lineage",
+        location: ProgressLocation.Notification,
+        cancellable: false,
+      },
+      async () => {
+        const result = await this.altimate.getColumnLevelLineage({
+          model_dialect: modelDialect,
+          model_info: modelInfos,
+          target_model: table,
+          target_column: column,
+        });
+        return result;
+      },
+    );
     // FIXME - err bounds needed here. results can be undefined if call fails
     //  This should be handled in altimate.ts and throw exceptions instead
     if (!Array.isArray(result)) {
