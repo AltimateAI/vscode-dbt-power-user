@@ -176,6 +176,17 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
       return;
     }
 
+    if (command === "reactError") {
+      const typeMapper: { [key: string]: string } = {
+        generic: "Generic",
+      };
+      const { type } = args;
+      this.telemetry.sendTelemetryEvent(
+        "ReactError:" + typeMapper[type as keyof typeof typeMapper] ||
+          "Unknown",
+      );
+    }
+
     // specific commands
     this.telemetry.sendTelemetryEvent(command);
     this.getPanel().handleCommand(message);

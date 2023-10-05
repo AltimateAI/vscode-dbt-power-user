@@ -24,6 +24,7 @@ import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheC
 import { provideSingleton } from "../utils";
 import { LineagePanelView } from "./lineagePanel";
 import { DBTProject } from "../manifest/dbtProject";
+import { TelemetryService } from "../telemetry";
 
 type Table = {
   key: string;
@@ -46,6 +47,7 @@ export class NewLineagePanel implements LineagePanelView {
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private altimate: AltimateRequest,
+    private telemetry: TelemetryService,
   ) {}
 
   public changedActiveTextEditor(event: TextEditor | undefined) {
@@ -140,6 +142,10 @@ export class NewLineagePanel implements LineagePanelView {
     if (!columnsFromDB || columnsFromDB.length === 0) {
       return false;
     }
+    if (columnsFromDB.length > 100) {
+      // Flagging events where more than 100 columns are fetched from db to get a sense of how many of these happen
+      this.telemetry.sendTelemetryEvent("ExcessiveColumnsFetchedFromDB");
+    }
     const columns: Record<string, ColumnMetaData> = {};
     Object.entries(node.columns).forEach(([k, v]) => {
       columns[k.toLowerCase()] = v;
@@ -157,6 +163,15 @@ export class NewLineagePanel implements LineagePanelView {
         description: "",
       };
     });
+    if (Object.keys(node.columns).length > columnsFromDB.length) {
+      // Flagging events where columns fetched from db are less than the number of columns in the manifest
+      this.telemetry.sendTelemetryEvent("PossibleStaleSchema");
+      window.showInformationMessage(
+        `The model ${node.name} might contain stale schema. Found ${
+          Object.keys(node.columns).length - columnsFromDB.length
+        } columns not in db.`,
+      );
+    }
     return true;
   }
 
@@ -320,8 +335,8 @@ export class NewLineagePanel implements LineagePanelView {
           relationsWithoutColumns.join(", ") +
           ".",
       );
-      // TODO - currently skipping models whose schemas we could not get.
-      // Should we still show the lineage for the rest of the models whose schemas we could get?
+      // we still show the lineage for the rest of the models whose
+      // schemas we could get so not returning here
     }
 
     const modelDialect = project.getAdapterType();
