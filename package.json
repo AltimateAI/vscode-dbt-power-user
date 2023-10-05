@@ -492,7 +492,7 @@
     "eslint-config-prettier": "^8.9.0",
     "eslint-plugin-prettier": "^5.0.0",
     "file-loader": "^6.1.0",
-    "glob": "^10.3.4",
+    "glob": "^10.3.10",
     "husky": "^8.0.3",
     "lint-staged": "^14.0.1",
     "mocha": "^10.2.0",
