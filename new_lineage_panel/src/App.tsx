@@ -71,7 +71,7 @@ const edgeTypes = { selfConnecting: SelfConnectingEdge };
 export const LineageContext = createContext<{
   showSidebar: boolean;
   setShowSidebar: Dispatch<boolean>;
-  selectedTable: Omit<Table, "count"> | null;
+  selectedTable: Table | null;
   setSelectedTable: Dispatch<SetStateAction<Table | null>>;
   moreTables: TMoreTables | null;
   setMoreTables: Dispatch<TMoreTables>;
