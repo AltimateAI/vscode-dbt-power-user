@@ -336,23 +336,31 @@ export const processColumnLineage = async (
         markerEnd: highlightMarker,
       });
     } else if (sourceTableExist) {
+      const [sourceHandle, targetHandle] = getSourceTargetHandles(
+        levelMap[t0],
+        levelMap[seeMoreIdTableReverseMap[t1]],
+      );
       edges.push({
         id: COLUMN_PREFIX + `${e[0]}-${e[1]}`,
         source: COLUMN_PREFIX + e[0],
         target: seeMoreIdTableReverseMap[t1],
-        sourceHandle: "right",
-        targetHandle: "left",
+        sourceHandle,
+        targetHandle,
         style: highlightEdgeStyle,
         zIndex: 1000,
         markerEnd: highlightMarker,
       });
     } else if (targetTableExist) {
+      const [sourceHandle, targetHandle] = getSourceTargetHandles(
+        levelMap[seeMoreIdTableReverseMap[t0]],
+        levelMap[t1],
+      );
       edges.push({
         id: COLUMN_PREFIX + `${e[0]}-${e[1]}`,
         source: seeMoreIdTableReverseMap[t0],
         target: COLUMN_PREFIX + e[1],
-        sourceHandle: "right",
-        targetHandle: "left",
+        sourceHandle,
+        targetHandle,
         style: highlightEdgeStyle,
         zIndex: 1000,
         markerEnd: highlightMarker,
