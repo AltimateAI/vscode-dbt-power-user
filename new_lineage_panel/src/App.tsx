@@ -164,6 +164,10 @@ function App() {
           addNodesEdges(tables, false, level);
         }
       } else {
+        setSelectedTable(null);
+        setSelectedColumn({ table: "", name: "" });
+        setCollectColumns({});
+        setMoreTables(null);
         _nodes = [
           {
             id: node.table,
@@ -234,6 +238,7 @@ function App() {
             setSelectedTable(null);
             setSelectedColumn({ table: "", name: "" });
             setCollectColumns({});
+            setMoreTables(null);
             vscode.postMessage({ command: "init" });
           }}
         >
