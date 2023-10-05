@@ -280,6 +280,8 @@ export class NewLineagePanel implements LineagePanelView {
     const result = await this.altimate.getColumnLevelLineage({
       model_dialect: modelDialect,
       model_info: modelInfos,
+      target_model: table,
+      target_column: column,
     });
     // FIXME - err bounds needed here. results can be undefined if call fails
     //  This should be handled in altimate.ts and throw exceptions instead

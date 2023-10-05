@@ -18,6 +18,8 @@ interface Schemas {
 }
 
 interface DBTColumnLineageRequest {
+  target_model: string;
+  target_column: string;
   model_dialect: string;
   model_info: {
     model_node: NodeMetaData;
