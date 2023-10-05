@@ -180,6 +180,12 @@ export class NewLineagePanel implements LineagePanelView {
       return false;
     }
     if (refresh) {
+      if (node.config.materialized === "ephemeral") {
+        window.showInformationMessage(
+          "Cannot fetch columns for ephemeral models.",
+        );
+        return;
+      }
       const ok = await window.withProgress(
         {
           title: "Fetching metadata",
@@ -282,6 +288,12 @@ export class NewLineagePanel implements LineagePanelView {
         await Promise.all(
           Object.values(visibleTables).map(async (node) => {
             let compiledSql: string | undefined;
+            if (node.config.materialized === "ephemeral") {
+              // ephemeral nodes can be skipped. they dont have a schema
+              // and their sql makes it into the compiled sql of the models
+              // referring to it.
+              return;
+            }
             if (node.config.materialized !== "seed") {
               const uri = Uri.file(node.path);
               const data = await workspace.fs.readFile(uri);
