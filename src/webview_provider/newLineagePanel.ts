@@ -180,7 +180,14 @@ export class NewLineagePanel implements LineagePanelView {
       return false;
     }
     if (refresh) {
-      const ok = await this.addColumnsFromDB(project, node);
+      const ok = await window.withProgress(
+        {
+          title: "Fetching metadata",
+          location: ProgressLocation.Notification,
+          cancellable: false,
+        },
+        async () => await this.addColumnsFromDB(project, node),
+      );
       if (!ok) {
         window.showErrorMessage(
           "Unable to get columns from DB for model: " +
