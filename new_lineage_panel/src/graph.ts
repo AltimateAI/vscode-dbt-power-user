@@ -313,6 +313,28 @@ export const processColumnLineage = async (
   }
 
   edges.forEach((_e) => (_e.style = defaultEdgeStyle));
+  const addToEdges = (
+    columnId: string,
+    id1: string,
+    id2: string,
+    source: string,
+    target: string,
+  ) => {
+    const [sourceHandle, targetHandle] = getSourceTargetHandles(
+      levelMap[id1],
+      levelMap[id2],
+    );
+    edges.push({
+      id: columnId,
+      source,
+      target,
+      sourceHandle,
+      targetHandle,
+      style: highlightEdgeStyle,
+      zIndex: 1000,
+      markerEnd: highlightMarker,
+    });
+  };
 
   for (const e of highlightEdges) {
     const [t0] = e[0].split("/");
@@ -320,51 +342,26 @@ export const processColumnLineage = async (
 
     const sourceTableExist = tableNodes[t0];
     const targetTableExist = tableNodes[t1];
+    const columnId = COLUMN_PREFIX + `${e[0]}-${e[1]}`;
+
     if (sourceTableExist && targetTableExist) {
-      const [sourceHandle, targetHandle] = getSourceTargetHandles(
-        levelMap[t0],
-        levelMap[t1],
-      );
-      edges.push({
-        id: COLUMN_PREFIX + `${e[0]}-${e[1]}`,
-        source: COLUMN_PREFIX + e[0],
-        target: COLUMN_PREFIX + e[1],
-        sourceHandle,
-        targetHandle,
-        style: highlightEdgeStyle,
-        zIndex: 1000,
-        markerEnd: highlightMarker,
-      });
+      addToEdges(columnId, t0, t1, COLUMN_PREFIX + e[0], COLUMN_PREFIX + e[1]);
     } else if (sourceTableExist) {
-      const [sourceHandle, targetHandle] = getSourceTargetHandles(
-        levelMap[t0],
-        levelMap[seeMoreIdTableReverseMap[t1]],
+      addToEdges(
+        columnId,
+        t0,
+        seeMoreIdTableReverseMap[t1],
+        COLUMN_PREFIX + e[0],
+        seeMoreIdTableReverseMap[t1],
       );
-      edges.push({
-        id: COLUMN_PREFIX + `${e[0]}-${e[1]}`,
-        source: COLUMN_PREFIX + e[0],
-        target: seeMoreIdTableReverseMap[t1],
-        sourceHandle,
-        targetHandle,
-        style: highlightEdgeStyle,
-        zIndex: 1000,
-        markerEnd: highlightMarker,
-      });
     } else if (targetTableExist) {
-      const [sourceHandle, targetHandle] = getSourceTargetHandles(
-        levelMap[seeMoreIdTableReverseMap[t0]],
-        levelMap[t1],
+      addToEdges(
+        columnId,
+        seeMoreIdTableReverseMap[t0],
+        t1,
+        seeMoreIdTableReverseMap[t0],
+        COLUMN_PREFIX + e[1],
       );
-      edges.push({
-        id: COLUMN_PREFIX + `${e[0]}-${e[1]}`,
-        source: seeMoreIdTableReverseMap[t0],
-        target: COLUMN_PREFIX + e[1],
-        sourceHandle,
-        targetHandle,
-        style: highlightEdgeStyle,
-        zIndex: 1000,
-        markerEnd: highlightMarker,
-      });
     } else {
       // TODO: check is nothing to do in this case
     }
