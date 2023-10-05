@@ -13,7 +13,12 @@ import {
   workspace,
 } from "vscode";
 import { AltimateRequest } from "../altimate";
-import { ColumnMetaData, GraphMetaMap, NodeMetaData } from "../domain";
+import {
+  ColumnMetaData,
+  GraphMetaMap,
+  NodeGraphMap,
+  NodeMetaData,
+} from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
@@ -28,6 +33,10 @@ type Table = {
   upstreamCount: number;
   nodeType: string;
 };
+
+const ALLOWED_NODE_TYPES = ["model.", "source.", "seed."];
+const isAllowedNode = (key: string) =>
+  ALLOWED_NODE_TYPES.some((t) => key.startsWith(t));
 
 @provideSingleton(NewLineagePanel)
 export class NewLineagePanel implements LineagePanelView {
@@ -380,9 +389,8 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
     const tables: Map<string, Table> = new Map();
-    const allowedNodeTypes = ["model.", "source.", "seed."];
     const addToTables = (key: string, value: Omit<Table, "key">) => {
-      if (!tables.has(key) && allowedNodeTypes.some((t) => key.startsWith(t))) {
+      if (!tables.has(key) && isAllowedNode(key)) {
         tables.set(key, { ...value, key });
       }
     };
@@ -391,8 +399,14 @@ export class NewLineagePanel implements LineagePanelView {
         table: label,
         url,
         nodeType: key.split(".")?.[0] || "model",
-        upstreamCount: graphMetaMap["children"].get(key)?.nodes.length || 0,
-        downstreamCount: graphMetaMap["parents"].get(key)?.nodes.length || 0,
+        upstreamCount: this.getConnectedNodeCount(
+          graphMetaMap["children"],
+          key,
+        ),
+        downstreamCount: this.getConnectedNodeCount(
+          graphMetaMap["parents"],
+          key,
+        ),
       });
     });
     return Array.from(tables.values()).sort((a, b) =>
@@ -427,6 +441,10 @@ export class NewLineagePanel implements LineagePanelView {
     return event;
   }
 
+  private getConnectedNodeCount(g: NodeGraphMap, key: string) {
+    return g.get(key)?.nodes.filter((n) => isAllowedNode(n.key)).length || 0;
+  }
+
   private getFilename() {
     return path.basename(window.activeTextEditor!.document.fileName, ".sql");
   }
@@ -450,8 +468,14 @@ export class NewLineagePanel implements LineagePanelView {
     if (!key) {
       return;
     }
-    const downstreamCount = graphMetaMap["parents"].get(key)?.nodes.length || 0;
-    const upstreamCount = graphMetaMap["children"].get(key)?.nodes.length || 0;
+    const downstreamCount = this.getConnectedNodeCount(
+      graphMetaMap["parents"],
+      key,
+    );
+    const upstreamCount = this.getConnectedNodeCount(
+      graphMetaMap["children"],
+      key,
+    );
     return {
       node: {
         key,
