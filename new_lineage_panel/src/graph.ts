@@ -333,6 +333,7 @@ export const processColumnLineage = async (
       style: highlightEdgeStyle,
       zIndex: 1000,
       markerEnd: highlightMarker,
+      type: levelMap[id1] === levelMap[id2] ? "smoothstep" : "default",
     });
   };
 
