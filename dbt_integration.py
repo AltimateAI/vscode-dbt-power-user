@@ -44,7 +44,6 @@ from dbt.parser.sql import SqlBlockParser, SqlMacroParser
 from dbt.task.sql import SqlCompileRunner, SqlExecuteRunner
 from dbt.tracking import disable_tracking
 from dbt.version import __version__ as dbt_version
-import logging
 
 try:
     # dbt <= 1.3
@@ -66,13 +65,18 @@ CACHE_VERSION = 1
 SQL_CACHE_SIZE = 1024
 
 MANIFEST_ARTIFACT = "manifest.json"
-DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER = (int(v) if v.isnumeric() else v for v in dbt_version.split("."))
+DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER = (
+    int(v) if v.isnumeric() else v for v in dbt_version.split(".")
+)
 RAW_CODE = "raw_code" if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 3 else "raw_sql"
-COMPILED_CODE = "compiled_code" if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 3 else "compiled_sql"
+COMPILED_CODE = (
+    "compiled_code" if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 3 else "compiled_sql"
+)
 
 JINJA_CONTROL_SEQS = ["{{", "}}", "{%", "%}", "{#", "#}"]
 
 T = TypeVar("T")
+
 
 def to_dict(obj):
     if isinstance(obj, agate.Table):
@@ -90,10 +94,12 @@ def to_dict(obj):
         return dict((key, to_dict(val)) for key, val in obj.items())
     elif isinstance(obj, Iterable):
         return [to_dict(val) for val in obj]
-    elif hasattr(obj, '__dict__'):
+    elif hasattr(obj, "__dict__"):
         return to_dict(vars(obj))
-    elif hasattr(obj, '__slots__'):
-        return to_dict(dict((name, getattr(obj, name)) for name in getattr(obj, '__slots__')))
+    elif hasattr(obj, "__slots__"):
+        return to_dict(
+            dict((name, getattr(obj, name)) for name in getattr(obj, "__slots__"))
+        )
     return obj
 
 
@@ -179,7 +185,11 @@ class DbtAdapterExecutionResult:
     """Interface for execution results, this keeps us 1 layer removed from dbt interfaces which may change"""
 
     def __init__(
-        self, adapter_response: "AdapterResponse", table: agate.Table, raw_sql: str, compiled_sql: str
+        self,
+        adapter_response: "AdapterResponse",
+        table: agate.Table,
+        raw_sql: str,
+        compiled_sql: str,
     ) -> None:
         self.adapter_response = adapter_response
         self.table = table
@@ -209,24 +219,13 @@ class DbtProject:
         profile: Optional[str] = None,
         target_path: Optional[str] = None,
     ):
-        # logging.basicConfig(
-        #     filename=os.path.join(project_dir, "logs", "vscode_pu.log"),
-        #     filemode="a",
-        #     format="%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
-        #     datefmt="%H:%M:%S",
-        #     level=logging.DEBUG,
-        # )
-
-        # self.logger = logging.getLogger(
-        #     f"DBT_Project:{os.path.basename(os.path.normpath(project_dir))}"
-        # )
         self.args = ConfigInterface(
             threads=threads,
             target=target,
             profiles_dir=profiles_dir,
             project_dir=project_dir,
             profile=profile,
-            target_path = target_path,
+            target_path=target_path,
         )
 
         self.init_project()
@@ -265,7 +264,9 @@ class DbtProject:
             self.init_project()
 
         project_parser = ManifestLoader(
-            self.config, self.config.load_dependencies(), self.adapter.connections.set_query_header
+            self.config,
+            self.config.load_dependencies(),
+            self.adapter.connections.set_query_header,
         )
         self.dbt = project_parser.load()
         self.dbt.build_flat_graph()
@@ -290,7 +291,8 @@ class DbtProject:
     def sql_parser(self) -> SqlBlockParser:
         """A dbt-core SQL parser capable of parsing and adding nodes to the manifest via `parse_remote` which will
         also return the added node to the caller. Note that post-parsing this still typically requires calls to
-        `_process_nodes_for_ref` and `_process_sources_for_ref` from `dbt.parser.manifest`"""
+        `_process_nodes_for_ref` and `_process_sources_for_ref` from `dbt.parser.manifest`
+        """
         if self._sql_parser is None:
             self._sql_parser = SqlBlockParser(self.config, self.dbt, self.config)
         return self._sql_parser
@@ -305,7 +307,8 @@ class DbtProject:
     @property
     def sql_runner(self) -> SqlExecuteRunner:
         """A runner which is used internally by the `execute_sql` function of `dbt.lib`.
-        The runners `node` attribute can be updated before calling `compile` or `compile_and_execute`."""
+        The runners `node` attribute can be updated before calling `compile` or `compile_and_execute`.
+        """
         if self._sql_runner is None:
             self._sql_runner = SqlExecuteRunner(
                 self.config, self.adapter, node=None, node_index=1, num_nodes=1
@@ -315,7 +318,8 @@ class DbtProject:
     @property
     def sql_compiler(self) -> SqlCompileRunner:
         """A runner which is used internally by the `compile_sql` function of `dbt.lib`.
-        The runners `node` attribute can be updated before calling `compile` or `compile_and_execute`."""
+        The runners `node` attribute can be updated before calling `compile` or `compile_and_execute`.
+        """
         if self._sql_compiler is None:
             self._sql_compiler = SqlCompileRunner(
                 self.config, self.adapter, node=None, node_index=1, num_nodes=1
@@ -390,7 +394,9 @@ class DbtProject:
         )
 
     @lru_cache(maxsize=10)
-    def get_source_node(self, target_source_name: str, target_table_name: str) -> "ManifestNode":
+    def get_source_node(
+        self, target_source_name: str, target_table_name: str
+    ) -> "ManifestNode":
         """Get a `"ManifestNode"` from a dbt project source name and table name"""
         return self.dbt.resolve_source(
             target_source_name=target_source_name,
@@ -414,7 +420,9 @@ class DbtProject:
         make_schema_fn = get_macro_function('make_schema')\n
         make_schema_fn({'name': '__test_schema_1'})\n
         make_schema_fn({'name': '__test_schema_2'})"""
-        return partial(self.adapter.execute_macro, macro_name=macro_name, manifest=self.dbt)
+        return partial(
+            self.adapter.execute_macro, macro_name=macro_name, manifest=self.dbt
+        )
 
     def adapter_execute(
         self, sql: str, auto_begin: bool = True, fetch: bool = False
@@ -439,7 +447,7 @@ class DbtProject:
                 # jinja found, compile it
                 compilation_result = self.compile_sql(raw_sql)
                 compiled_sql = compilation_result.compiled_sql
-            
+
             return DbtAdapterExecutionResult(
                 *self.adapter_execute(compiled_sql, fetch=True),
                 raw_sql,
@@ -495,13 +503,19 @@ class DbtProject:
     def _clear_node(self, name="name"):
         """Removes the statically named node created by `execute_sql` and `compile_sql` in `dbt.lib`"""
         if self.dbt is not None:
-            self.dbt.nodes.pop(f"{NodeType.SqlOperation}.{self.project_name}.{name}", None)
+            self.dbt.nodes.pop(
+                f"{NodeType.SqlOperation}.{self.project_name}.{name}", None
+            )
 
-    def get_relation(self, database:  Optional[str], schema:  Optional[str], name: Optional[str]) -> Optional["BaseRelation"]:
+    def get_relation(
+        self, database: Optional[str], schema: Optional[str], name: Optional[str]
+    ) -> Optional["BaseRelation"]:
         """Wrapper for `adapter.get_relation`"""
         return self.adapter.get_relation(database, schema, name)
 
-    def create_relation(self, database: Optional[str], schema: Optional[str], name: Optional[str]) -> "BaseRelation":
+    def create_relation(
+        self, database: Optional[str], schema: Optional[str], name: Optional[str]
+    ) -> "BaseRelation":
         """Wrapper for `adapter.Relation.create`"""
         return self.adapter.Relation.create(database, schema, name)
 
@@ -520,7 +534,12 @@ class DbtProject:
         columns = []
         try:
             columns.extend(
-                [c.name for c in self.get_columns_in_relation(self.create_relation_from_node(node))]
+                [
+                    c.name
+                    for c in self.get_columns_in_relation(
+                        self.create_relation_from_node(node)
+                    )
+                ]
             )
         except Exception:
             original_sql = str(getattr(node, RAW_CODE))
@@ -538,7 +557,11 @@ class DbtProject:
         """Get relation or create if not exists. Returns tuple of relation and
         boolean result of whether it existed ie: (relation, did_exist)"""
         ref = self.get_relation(database, schema, name)
-        return (ref, True) if ref else (self.create_relation(database, schema, name), False)
+        return (
+            (ref, True)
+            if ref
+            else (self.create_relation(database, schema, name), False)
+        )
 
     def create_schema(self, node: "ManifestNode"):
         """Create a schema in the database"""
