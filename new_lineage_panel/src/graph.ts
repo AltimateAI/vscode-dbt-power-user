@@ -49,7 +49,7 @@ export const createNewNodesEdges = (
   });
 
   if (tables.length > MAX_EXPAND_TABLE) {
-    const _t = SEE_MORE_PREFIX + t;
+    const _t = SEE_MORE_PREFIX + t + "-" + (right ? "1" : "0");
     newNodes.push({
       id: _t,
       data: {
@@ -313,49 +313,56 @@ export const processColumnLineage = async (
   }
 
   edges.forEach((_e) => (_e.style = defaultEdgeStyle));
+  const addToEdges = (
+    columnId: string,
+    id1: string,
+    id2: string,
+    source: string,
+    target: string,
+  ) => {
+    const [sourceHandle, targetHandle] = getSourceTargetHandles(
+      levelMap[id1],
+      levelMap[id2],
+    );
+    edges.push({
+      id: columnId,
+      source,
+      target,
+      sourceHandle,
+      targetHandle,
+      style: highlightEdgeStyle,
+      zIndex: 1000,
+      markerEnd: highlightMarker,
+      type: levelMap[id1] === levelMap[id2] ? "smoothstep" : "default",
+    });
+  };
 
   for (const e of highlightEdges) {
     const [t0] = e[0].split("/");
     const [t1] = e[1].split("/");
-    const [sourceHandle, targetHandle] = levelMap[t1] > levelMap[t0]
-      ? ["right", "left"]
-      : ["left", "right"];
+
     const sourceTableExist = tableNodes[t0];
     const targetTableExist = tableNodes[t1];
+    const columnId = COLUMN_PREFIX + `${e[0]}-${e[1]}`;
+
     if (sourceTableExist && targetTableExist) {
-      edges.push({
-        id: COLUMN_PREFIX + `${e[0]}-${e[1]}`,
-        source: COLUMN_PREFIX + e[0],
-        target: COLUMN_PREFIX + e[1],
-        sourceHandle,
-        targetHandle,
-        style: highlightEdgeStyle,
-        zIndex: 1000,
-        markerEnd: highlightMarker,
-      });
+      addToEdges(columnId, t0, t1, COLUMN_PREFIX + e[0], COLUMN_PREFIX + e[1]);
     } else if (sourceTableExist) {
-      edges.push({
-        id: COLUMN_PREFIX + `${e[0]}-${e[1]}`,
-        source: COLUMN_PREFIX + e[0],
-        target: seeMoreIdTableReverseMap[t1],
-        sourceHandle: "right",
-        targetHandle: "left",
-        style: highlightEdgeStyle,
-        zIndex: 1000,
-        markerEnd: highlightMarker,
-      });
+      addToEdges(
+        columnId,
+        t0,
+        seeMoreIdTableReverseMap[t1],
+        COLUMN_PREFIX + e[0],
+        seeMoreIdTableReverseMap[t1],
+      );
     } else if (targetTableExist) {
-      // TODO: check if this case will occur
-      edges.push({
-        id: COLUMN_PREFIX + `${e[0]}-${e[1]}`,
-        source: seeMoreIdTableReverseMap[t0],
-        target: COLUMN_PREFIX + e[1],
-        sourceHandle,
-        targetHandle,
-        style: highlightEdgeStyle,
-        zIndex: 1000,
-        markerEnd: highlightMarker,
-      });
+      addToEdges(
+        columnId,
+        seeMoreIdTableReverseMap[t0],
+        t1,
+        seeMoreIdTableReverseMap[t0],
+        COLUMN_PREFIX + e[1],
+      );
     } else {
       // TODO: check is nothing to do in this case
     }
@@ -364,6 +371,23 @@ export const processColumnLineage = async (
   layoutElementsOnCanvas(nodes, edges);
 
   return { nodes, edges, collectColumns };
+};
+
+const getSourceTargetHandles = (
+  l0: number,
+  l1: number,
+): ["left" | "right", "left" | "right"] => {
+  if (l0 < l1) {
+    return ["right", "left"];
+  }
+  // TODO: check if this case will happen for dbt
+  if (l0 > l1) {
+    return ["left", "right"];
+  }
+  if (l0 < 0) {
+    return ["left", "left"];
+  }
+  return ["right", "right"];
 };
 
 export const removeColumnNodes = (
