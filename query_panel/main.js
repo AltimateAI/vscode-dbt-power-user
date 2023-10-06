@@ -138,14 +138,8 @@ const app = createApp({
       setTimeout(() => {
         const shadowRoot =
           document.querySelector("perspective-viewer").shadowRoot;
-        const children = shadowRoot.children;
-        console.log(
-          "export -> ",
-          children,
-          children["app_panel"],
-          children[10],
-          (shadowRoot.getElementById("export").style = "display: block;"),
-        );
+        const exportButton = shadowRoot.getElementById("export");
+        exportButton.addEventListener("click", () => this.downloadAsCSV());
       }, 1000);
       this.table = new Tabulator("#query-results", {
         height: this.tableHeight,

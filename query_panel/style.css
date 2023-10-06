@@ -82,3 +82,7 @@ button {
 #panel-manager {
   height: 100vh;
 }
+
+perspective-export-menu {
+  display: none;
+}
