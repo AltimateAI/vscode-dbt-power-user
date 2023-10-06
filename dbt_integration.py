@@ -1,5 +1,4 @@
 from decimal import Decimal
-from pathlib import Path
 import dbt.adapters.factory
 
 # This is critical because `get_adapter` is all over dbt-core
@@ -45,6 +44,7 @@ from dbt.parser.sql import SqlBlockParser, SqlMacroParser
 from dbt.task.sql import SqlCompileRunner, SqlExecuteRunner
 from dbt.tracking import disable_tracking
 from dbt.version import __version__ as dbt_version
+import logging
 
 try:
     # dbt <= 1.3
@@ -209,7 +209,17 @@ class DbtProject:
         profile: Optional[str] = None,
         target_path: Optional[str] = None,
     ):
-        
+        # logging.basicConfig(
+        #     filename=os.path.join(project_dir, "logs", "vscode_pu.log"),
+        #     filemode="a",
+        #     format="%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
+        #     datefmt="%H:%M:%S",
+        #     level=logging.DEBUG,
+        # )
+
+        # self.logger = logging.getLogger(
+        #     f"DBT_Project:{os.path.basename(os.path.normpath(project_dir))}"
+        # )
         self.args = ConfigInterface(
             threads=threads,
             target=target,
@@ -463,10 +473,6 @@ class DbtProject:
                 self._clear_node(temp_node_id)
                 return node
             except Exception as e:
-                self.logger.error(
-                    "Exception during compile_sql: raw_sql -> %s", raw_sql
-                )
-                self.logger.error(e)
                 raise Exception(str(e))
 
     def compile_node(
@@ -484,10 +490,6 @@ class DbtProject:
                     compiled_node,
                 )
             except Exception as e:
-                self.logger.error(
-                    "Exception during compile node: node -> %s", node.alias
-                )
-                self.logger.error(e)
                 raise Exception(str(e))
 
     def _clear_node(self, name="name"):
