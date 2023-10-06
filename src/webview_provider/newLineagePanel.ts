@@ -25,6 +25,7 @@ import { provideSingleton } from "../utils";
 import { LineagePanelView } from "./lineagePanel";
 import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
+import { PythonException } from "python-bridge";
 
 type Table = {
   key: string;
@@ -288,38 +289,69 @@ export class NewLineagePanel implements LineagePanelView {
       model_node: NodeMetaData;
     }[] = [];
     const relationsWithoutColumns: string[] = [];
-    await window.withProgress(
-      {
-        title: "Fetching metadata",
-        location: ProgressLocation.Notification,
-        cancellable: false,
-      },
-      async () => {
-        await Promise.all(
-          Object.values(visibleTables).map(async (node) => {
-            let compiledSql: string | undefined;
-            if (node.config.materialized === "ephemeral") {
-              // ephemeral nodes can be skipped. they dont have a schema
-              // and their sql makes it into the compiled sql of the models
-              // referring to it.
-              return;
-            }
-            if (node.config.materialized !== "seed") {
-              compiledSql = await project.compileNode(node.name);
-              if (!compiledSql) {
+    try {
+      await window.withProgress(
+        {
+          title: "Fetching metadata",
+          location: ProgressLocation.Notification,
+          cancellable: false,
+        },
+        async () => {
+          await Promise.all(
+            Object.values(visibleTables).map(async (node) => {
+              let compiledSql: string | undefined;
+              if (node.config.materialized === "ephemeral") {
+                // ephemeral nodes can be skipped. they dont have a schema
+                // and their sql makes it into the compiled sql of the models
+                // referring to it.
                 return;
               }
-            }
-            const ok = await this.addColumnsFromDB(project, node);
-            if (!ok) {
-              relationsWithoutColumns.push(node.alias);
-              return;
-            }
-            modelInfos.push({ compiled_sql: compiledSql, model_node: node });
-          }),
+              if (node.config.materialized !== "seed") {
+                compiledSql = await project.compileNode(node.name);
+                if (!compiledSql) {
+                  return;
+                }
+              }
+              const ok = await this.addColumnsFromDB(project, node);
+              if (!ok) {
+                relationsWithoutColumns.push(node.alias);
+                return;
+              }
+              modelInfos.push({ compiled_sql: compiledSql, model_node: node });
+            }),
+          );
+        },
+      );
+    } catch (exc) {
+      if (exc instanceof PythonException) {
+        window.showErrorMessage(
+          "An error occured while trying to compile your node: " +
+            exc.exception.message +
+            ".",
         );
-      },
-    );
+        this.telemetry.sendTelemetryError(
+          "ColumnLineageCompileNodePythonError",
+          exc,
+        );
+        console.error(
+          "Exception: " +
+            exc.exception.message +
+            "\n\n" +
+            "Detailed error information:\n" +
+            exc,
+        );
+        return;
+      }
+      this.telemetry.sendTelemetryError(
+        "ColumnLineageCompileNodeUnknownError",
+        exc,
+      );
+      // Unknown error
+      window.showErrorMessage(
+        "Encountered an unknown issue: " + exc + " while compiling nodes.",
+      );
+      return;
+    }
 
     if (relationsWithoutColumns.length !== 0) {
       window.showErrorMessage(
