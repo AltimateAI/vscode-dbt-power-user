@@ -356,9 +356,9 @@ export class NewLineagePanel implements LineagePanelView {
     //  This should be handled in altimate.ts and throw exceptions instead
     if (!Array.isArray(result)) {
       window.showErrorMessage(
-        "An unexpected error occured while fetching column level lineage: " +
-          result,
+        "An unexpected error occured while fetching column level lineage.",
       );
+      this.telemetry.sendTelemetryEvent("ColumnLevelLineageError", result);
       return;
     }
     const columnLineages = result!
