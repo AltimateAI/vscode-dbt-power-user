@@ -13,12 +13,20 @@ import {
   workspace,
 } from "vscode";
 import { AltimateRequest } from "../altimate";
-import { ColumnMetaData, GraphMetaMap, NodeMetaData } from "../domain";
+import {
+  ColumnMetaData,
+  GraphMetaMap,
+  NodeGraphMap,
+  NodeMetaData,
+} from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
 import { LineagePanelView } from "./lineagePanel";
 import { DBTProject } from "../manifest/dbtProject";
+import { TelemetryService } from "../telemetry";
+import { PythonException } from "python-bridge";
+import { AbortError } from "node-fetch";
 
 type Table = {
   key: string;
@@ -29,6 +37,10 @@ type Table = {
   nodeType: string;
 };
 
+const ALLOWED_NODE_TYPES = ["model.", "source.", "seed."];
+const isAllowedNode = (key: string) =>
+  ALLOWED_NODE_TYPES.some((t) => key.startsWith(t));
+
 @provideSingleton(NewLineagePanel)
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
@@ -37,6 +49,7 @@ export class NewLineagePanel implements LineagePanelView {
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private altimate: AltimateRequest,
+    private telemetry: TelemetryService,
   ) {}
 
   public changedActiveTextEditor(event: TextEditor | undefined) {
@@ -114,37 +127,28 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     if (command === "getConnectedColumns") {
-      window.withProgress(
-        {
-          title: "Fetching Column Lineage",
-          location: ProgressLocation.Notification,
-          cancellable: false,
-        },
-        async () => {
-          const body = await this.getConnectedColumns(params);
-          this._panel?.webview.postMessage({
-            command: "response",
-            args: { id, body, status: true },
-          });
-        },
-      );
+      const body = await this.getConnectedColumns(params);
+      this._panel?.webview.postMessage({
+        command: "response",
+        args: { id, body, status: true },
+      });
       return;
     }
 
     console.error("Unsupported mssage", message);
   }
 
-  private async addColumnsFromDB(
-    project: DBTProject | undefined,
-    node: NodeMetaData,
-    table: string,
-  ) {
-    if (!project) {
-      return false;
-    }
-    const columnsFromDB = await project.getColumnsInRelation(table);
+  private async addColumnsFromDB(project: DBTProject, node: NodeMetaData) {
+    const columnsFromDB = await project.getColumnsInRelation(node.name);
+    console.log("addColumnsFromDB: ", node.name, " -> ", columnsFromDB);
     if (!columnsFromDB || columnsFromDB.length === 0) {
       return false;
+    }
+    if (columnsFromDB.length > 100) {
+      // Flagging events where more than 100 columns are fetched from db to get a sense of how many of these happen
+      this.telemetry.sendTelemetryEvent(
+        "ColumnLineageExcessiveColumnsFetchedFromDB",
+      );
     }
     const columns: Record<string, ColumnMetaData> = {};
     Object.entries(node.columns).forEach(([k, v]) => {
@@ -163,24 +167,62 @@ export class NewLineagePanel implements LineagePanelView {
         description: "",
       };
     });
+    if (Object.keys(node.columns).length > columnsFromDB.length) {
+      // Flagging events where columns fetched from db are less than the number of columns in the manifest
+      this.telemetry.sendTelemetryEvent("ColumnLineagePossibleStaleSchema");
+    }
     return true;
   }
 
-  private async getColumns({ table }: { table: string }) {
+  private async getColumns({
+    table,
+    refresh,
+  }: {
+    table: string;
+    refresh: boolean;
+  }) {
     const nodeMetaMap = this.getEvent()?.nodeMetaMap;
     if (!nodeMetaMap) {
       return;
     }
-    const _table = nodeMetaMap.get(table);
-    if (!_table) {
+    const node = nodeMetaMap.get(table);
+    if (!node) {
       return;
     }
-    this.addColumnsFromDB(this.getProject(), _table, table);
+    const project = this.getProject();
+    if (!project) {
+      return false;
+    }
+    if (refresh) {
+      if (node.config.materialized === "ephemeral") {
+        window.showInformationMessage(
+          "Cannot fetch columns for ephemeral models.",
+        );
+        return;
+      }
+      const ok = await window.withProgress(
+        {
+          title: "Fetching metadata",
+          location: ProgressLocation.Notification,
+          cancellable: false,
+        },
+        async () => await this.addColumnsFromDB(project, node),
+      );
+      if (!ok) {
+        window.showErrorMessage(
+          "Unable to get columns from DB for model: " +
+            node.name +
+            " table: " +
+            table,
+        );
+        return;
+      }
+    }
 
     return {
-      id: _table.uniqueId,
-      purpose: _table.description,
-      columns: Object.values(_table.columns)
+      id: node.uniqueId,
+      purpose: node.description,
+      columns: Object.values(node.columns)
         .map((c) => ({
           name: c.name,
           table: table,
@@ -209,6 +251,25 @@ export class NewLineagePanel implements LineagePanelView {
     if (!project) {
       return;
     }
+    const getDownstreamTables = () => {
+      const queue = [table];
+      const visited: Record<string, boolean> = {};
+      while (queue.length > 0) {
+        const curr = queue.shift()!;
+        if (visited[curr]) {
+          continue;
+        }
+        visited[curr] = true;
+        edges.forEach((e) => {
+          if (e.dst !== curr) {
+            return;
+          }
+          queue.push(e.src);
+        });
+      }
+      return Object.keys(visited).filter((t) => t !== table);
+    };
+    const downstreamTables = getDownstreamTables();
 
     const visibleTables: Record<string, NodeMetaData> = {};
     const addToVisibleTable = (t: string) => {
@@ -219,9 +280,6 @@ export class NewLineagePanel implements LineagePanelView {
       if (!node) {
         return;
       }
-      if (node.config.materialized === "seed") {
-        return;
-      }
       visibleTables[t] = node;
     };
     edges.forEach((e) => {
@@ -230,47 +288,126 @@ export class NewLineagePanel implements LineagePanelView {
     });
 
     const modelInfos: {
-      compiled_sql: string;
+      compiled_sql: string | undefined;
       model_node: NodeMetaData;
     }[] = [];
     const relationsWithoutColumns: string[] = [];
-    await Promise.all(
-      Object.values(visibleTables).map(async (node) => {
-        const uri = Uri.file(node.path);
-        const data = await workspace.fs.readFile(uri);
-        const fileContent = Buffer.from(data).toString("utf8");
-        const compiledSql = await project.compileQuery(fileContent);
-        if (!compiledSql) {
-          return;
-        }
-        const ok = await this.addColumnsFromDB(project, node, node.alias);
-        if (!ok) {
-          relationsWithoutColumns.push(node.alias);
-          return;
-        }
-        modelInfos.push({ compiled_sql: compiledSql, model_node: node });
-      }),
-    );
-    if (relationsWithoutColumns.length !== 0) {
+    try {
+      await window.withProgress(
+        {
+          title: "Fetching metadata",
+          location: ProgressLocation.Notification,
+          cancellable: false,
+        },
+        async () => {
+          await Promise.all(
+            Object.values(visibleTables).map(async (node) => {
+              let compiledSql: string | undefined;
+              if (node.config.materialized === "ephemeral") {
+                // ephemeral nodes can be skipped. they dont have a schema
+                // and their sql makes it into the compiled sql of the models
+                // referring to it.
+                return;
+              }
+              if (node.config.materialized !== "seed") {
+                compiledSql = await project.compileNode(node.name);
+                if (!compiledSql) {
+                  return;
+                }
+              }
+              const ok = await this.addColumnsFromDB(project, node);
+              if (!ok) {
+                relationsWithoutColumns.push(node.alias);
+                return;
+              }
+              modelInfos.push({ compiled_sql: compiledSql, model_node: node });
+            }),
+          );
+        },
+      );
+    } catch (exc) {
+      if (exc instanceof PythonException) {
+        window.showErrorMessage(
+          "An error occured while trying to compile your node: " +
+            exc.exception.message +
+            ".",
+        );
+        this.telemetry.sendTelemetryError(
+          "ColumnLineageCompileNodePythonError",
+          exc,
+        );
+        console.error(
+          "Exception: " +
+            exc.exception.message +
+            "\n\n" +
+            "Detailed error information:\n" +
+            exc,
+        );
+        return;
+      }
+      this.telemetry.sendTelemetryError(
+        "ColumnLineageCompileNodeUnknownError",
+        exc,
+      );
+      // Unknown error
       window.showErrorMessage(
-        "Column lineage failed to fetch columns for following tables: " +
-          relationsWithoutColumns.join(", ") +
-          ". Please first materialize these models by executing dbt run.",
+        "Encountered an unknown issue: " + exc + " while compiling nodes.",
       );
       return;
     }
 
+    if (relationsWithoutColumns.length !== 0) {
+      window.showErrorMessage(
+        "Failed to fetch columns for following tables: " +
+          relationsWithoutColumns.join(", ") +
+          ".",
+      );
+      // we still show the lineage for the rest of the models whose
+      // schemas we could get so not returning here
+    }
+
     const modelDialect = project.getAdapterType();
-    const result = await this.altimate.getColumnLevelLineage({
-      model_dialect: modelDialect,
-      model_info: modelInfos,
-    });
-    // FIXME - err bounds needed here. results can be undefined if call fails
-    //  This should be handled in altimate.ts and throw exceptions instead
+    let result;
+    try {
+      result = await window.withProgress(
+        {
+          title: "Fetching column lineage",
+          location: ProgressLocation.Notification,
+          cancellable: false,
+        },
+        async () => {
+          const result = await this.altimate.getColumnLevelLineage({
+            model_dialect: modelDialect,
+            model_info: modelInfos,
+            target_model: table,
+            target_column: column,
+            downstream_models: downstreamTables,
+          });
+          return result;
+        },
+      );
+    } catch (error) {
+      if (error instanceof AbortError) {
+        window.showErrorMessage("Fetching column level lineage timed out.");
+        this.telemetry.sendTelemetryError(
+          "ColumnLevelLineageRequestTimeout",
+          error,
+        );
+        return;
+      }
+      window.showErrorMessage(
+        "An unexpected error occured while fetching column level lineage.",
+      );
+      this.telemetry.sendTelemetryError("ColumnLevelLineageError", error);
+      return;
+    }
     if (!Array.isArray(result)) {
       window.showErrorMessage(
-        "An unexpected error occured while fetching column level lineage: " +
-          result,
+        "An unexpected error occured while fetching column level lineage.",
+      );
+      this.telemetry.sendTelemetryEvent(
+        "ColumnLevelLineageInvalidResponse",
+        result,
       );
       return;
     }
@@ -301,15 +438,15 @@ export class NewLineagePanel implements LineagePanelView {
       while (queue.length > 0 && i < MAX_ITERATION_LIMIT) {
         i += 1;
         const curr = queue.shift()!;
+        if (visited[curr]) {
+          continue;
+        }
         visited[curr] = true;
         const [table, column] = curr.split("/");
         collectColumns[table] = collectColumns[table] || [];
         collectColumns[table].push(column);
         for (const c of connectedColumns(curr)) {
           const [_t, _] = c.split("/");
-          if (visited[c]) {
-            continue;
-          }
           queue.push(c);
           highlightEdges.push(createEdge(curr, c));
         }
@@ -329,7 +466,7 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     console.log(
-      "column lineage -> ",
+      "newLineagePanel:getConnectedColumns -> ",
       columnLineages,
       collectColumns,
       highlightEdges,
@@ -351,9 +488,8 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
     const tables: Map<string, Table> = new Map();
-    const allowedNodeTypes = ["model.", "source.", "seed."];
     const addToTables = (key: string, value: Omit<Table, "key">) => {
-      if (!tables.has(key) && allowedNodeTypes.some((t) => key.startsWith(t))) {
+      if (!tables.has(key) && isAllowedNode(key)) {
         tables.set(key, { ...value, key });
       }
     };
@@ -362,8 +498,14 @@ export class NewLineagePanel implements LineagePanelView {
         table: label,
         url,
         nodeType: key.split(".")?.[0] || "model",
-        upstreamCount: graphMetaMap["children"].get(key)?.nodes.length || 0,
-        downstreamCount: graphMetaMap["parents"].get(key)?.nodes.length || 0,
+        upstreamCount: this.getConnectedNodeCount(
+          graphMetaMap["children"],
+          key,
+        ),
+        downstreamCount: this.getConnectedNodeCount(
+          graphMetaMap["parents"],
+          key,
+        ),
       });
     });
     return Array.from(tables.values()).sort((a, b) =>
@@ -398,6 +540,10 @@ export class NewLineagePanel implements LineagePanelView {
     return event;
   }
 
+  private getConnectedNodeCount(g: NodeGraphMap, key: string) {
+    return g.get(key)?.nodes.filter((n) => isAllowedNode(n.key)).length || 0;
+  }
+
   private getFilename() {
     return path.basename(window.activeTextEditor!.document.fileName, ".sql");
   }
@@ -421,8 +567,14 @@ export class NewLineagePanel implements LineagePanelView {
     if (!key) {
       return;
     }
-    const downstreamCount = graphMetaMap["parents"].get(key)?.nodes.length || 0;
-    const upstreamCount = graphMetaMap["children"].get(key)?.nodes.length || 0;
+    const downstreamCount = this.getConnectedNodeCount(
+      graphMetaMap["parents"],
+      key,
+    );
+    const upstreamCount = this.getConnectedNodeCount(
+      graphMetaMap["children"],
+      key,
+    );
     return {
       node: {
         key,

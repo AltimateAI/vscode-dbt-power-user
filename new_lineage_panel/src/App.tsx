@@ -71,7 +71,7 @@ const edgeTypes = { selfConnecting: SelfConnectingEdge };
 export const LineageContext = createContext<{
   showSidebar: boolean;
   setShowSidebar: Dispatch<boolean>;
-  selectedTable: Omit<Table, "count"> | null;
+  selectedTable: Table | null;
   setSelectedTable: Dispatch<SetStateAction<Table | null>>;
   moreTables: TMoreTables | null;
   setMoreTables: Dispatch<TMoreTables>;
@@ -212,7 +212,7 @@ function App() {
     };
     const commandMap = { render, response };
     window.addEventListener("message", (event) => {
-      console.log("lineage:message -> ", event);
+      console.log("lineage:message -> ", event.data);
       const { command, args } = event.data;
       if ((command as string) in commandMap) {
         commandMap[command as keyof typeof commandMap](args);

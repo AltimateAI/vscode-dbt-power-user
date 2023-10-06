@@ -55,10 +55,9 @@ const ColumnCard: FunctionComponent<{
             <ExpandLineageIcon />
           </div>
         )}
-        <ColorTag
-          label={column.datatype || "object"}
-          color={styles.column_tag}
-        />
+        {column.datatype && (
+          <ColorTag label={column.datatype} color={styles.column_tag} />
+        )}
       </div>
       {column.description && (
         <div className="d-flex flex-column">
@@ -94,13 +93,17 @@ const ColumnSection: FunctionComponent<{
   filteredColumn: Column[];
   setFilteredColumn: Dispatch<SetStateAction<Column[]>>;
   handleColumnClick: (x: Column) => Promise<void>;
+  selectedTable: Table | null;
   selectedColumn: string;
+  setData: Dispatch<SetStateAction<Columns | null>>;
 }> = ({
   columns,
   filteredColumn,
   setFilteredColumn,
   handleColumnClick,
+  selectedTable,
   selectedColumn,
+  setData,
 }) => {
   const [search, setSearch] = useState("");
   return (
@@ -108,6 +111,22 @@ const ColumnSection: FunctionComponent<{
       <div className="d-flex flex-column gap-sm h-100 p-2">
         <div className="d-flex align-items-center gap-xs">
           <div className="fs-5 fw-semibold">Column</div>
+          <div className="spacer" />
+          <Button
+            size="sm"
+            color="primary"
+            onClick={() => {
+              if (!selectedTable) {
+                return;
+              }
+              getColumns(selectedTable.table, true).then((_data) => {
+                setData(_data);
+                setFilteredColumn(_data.columns);
+              });
+            }}
+          >
+            Sync with DB
+          </Button>
         </div>
         <Input
           bsSize="sm"
@@ -125,6 +144,8 @@ const ColumnSection: FunctionComponent<{
           <div className="text-muted fs-xxs">
             {filteredColumn.length} columns
           </div>
+          <div className="spacer" />
+          <div className="text-muted fs-xxs">{filteredColumn.every(en => !en.datatype) ? "Needs DB Sync" : ""}</div>
         </div>
         <div className="d-flex flex-column gap-sm">
           {filteredColumn.map((_column) => (
@@ -158,7 +179,7 @@ const TableDetails = () => {
     if (!selectedTable) {
       return;
     }
-    getColumns(selectedTable.table).then((_data) => {
+    getColumns(selectedTable.table, false).then((_data) => {
       setData(_data);
       setFilteredColumn(_data.columns);
       setIsLoading(false);
@@ -227,32 +248,17 @@ const TableDetails = () => {
         <NodeTypeIcon nodeType={selectedTable.nodeType} />
         <div className="d-flex align-items-center">
           <div className="fw-semibold fs-5 lines-2">{selectedTable.table}</div>
-          <div className="spacer" />
-          <Button
-            size="sm"
-            color="primary"
-            onClick={() => {
-              if (!selectedTable) {
-                return;
-              }
-              getColumns(selectedTable.table).then((_data) => {
-                setData(_data);
-                setFilteredColumn(_data.columns);
-                setIsLoading(false);
-              });
-            }}
-          >
-            Refresh
-          </Button>
         </div>
       </div>
       <PurposeSection tableId={data.id} purpose={data.purpose} />
       <ColumnSection
+        selectedTable={selectedTable}
         selectedColumn={selectedColumn.name}
         filteredColumn={filteredColumn}
         setFilteredColumn={setFilteredColumn}
         columns={data.columns}
         handleColumnClick={handleColumnClick}
+        setData={setData}
       />
     </div>
   );
