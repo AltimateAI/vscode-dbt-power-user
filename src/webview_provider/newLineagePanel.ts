@@ -26,6 +26,7 @@ import { LineagePanelView } from "./lineagePanel";
 import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { PythonException } from "python-bridge";
+import { AbortError } from "node-fetch";
 
 type Table = {
   key: string;
@@ -364,30 +365,48 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     const modelDialect = project.getAdapterType();
-    const result = await window.withProgress(
-      {
-        title: "Fetching column lineage",
-        location: ProgressLocation.Notification,
-        cancellable: false,
-      },
-      async () => {
-        const result = await this.altimate.getColumnLevelLineage({
-          model_dialect: modelDialect,
-          model_info: modelInfos,
-          target_model: table,
-          target_column: column,
-          downstream_models: downstreamTables,
-        });
-        return result;
-      },
-    );
-    // FIXME - err bounds needed here. results can be undefined if call fails
-    //  This should be handled in altimate.ts and throw exceptions instead
+    let result;
+    try {
+      result = await window.withProgress(
+        {
+          title: "Fetching column lineage",
+          location: ProgressLocation.Notification,
+          cancellable: false,
+        },
+        async () => {
+          const result = await this.altimate.getColumnLevelLineage({
+            model_dialect: modelDialect,
+            model_info: modelInfos,
+            target_model: table,
+            target_column: column,
+            downstream_models: downstreamTables,
+          });
+          return result;
+        },
+      );
+    } catch (error) {
+      if (error instanceof AbortError) {
+        window.showErrorMessage("Fetching column level lineage timed out.");
+        this.telemetry.sendTelemetryError(
+          "ColumnLevelLineageRequestTimeout",
+          error,
+        );
+        return;
+      }
+      window.showErrorMessage(
+        "An unexpected error occured while fetching column level lineage.",
+      );
+      this.telemetry.sendTelemetryError("ColumnLevelLineageError", error);
+      return;
+    }
     if (!Array.isArray(result)) {
       window.showErrorMessage(
         "An unexpected error occured while fetching column level lineage.",
       );
-      this.telemetry.sendTelemetryEvent("ColumnLevelLineageError", result);
+      this.telemetry.sendTelemetryEvent(
+        "ColumnLevelLineageInvalidResponse",
+        result,
+      );
       return;
     }
     const columnLineages = result!
