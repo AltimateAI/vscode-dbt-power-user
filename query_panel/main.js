@@ -135,6 +135,18 @@ const app = createApp({
       console.log(data);
       this.count = data.rows.length;
       grid.load(data.rows);
+      setTimeout(() => {
+        const shadowRoot =
+          document.querySelector("perspective-viewer").shadowRoot;
+        const children = shadowRoot.children;
+        console.log(
+          "export -> ",
+          children,
+          children["app_panel"],
+          children[10],
+          (shadowRoot.getElementById("export").style = "display: block;"),
+        );
+      }, 1000);
       this.table = new Tabulator("#query-results", {
         height: this.tableHeight,
         data: data.rows,
