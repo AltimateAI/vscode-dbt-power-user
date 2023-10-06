@@ -305,10 +305,7 @@ export class NewLineagePanel implements LineagePanelView {
               return;
             }
             if (node.config.materialized !== "seed") {
-              const uri = Uri.file(node.path);
-              const data = await workspace.fs.readFile(uri);
-              const fileContent = Buffer.from(data).toString("utf8");
-              compiledSql = await project.compileQuery(fileContent);
+              compiledSql = await project.compileNode(node.name);
               if (!compiledSql) {
                 return;
               }

@@ -439,6 +439,60 @@ export class DBTProject implements Disposable {
     this.dbtProjectContainer.addCommandToQueue(docsGenerateCommand);
   }
 
+  async unsafeCompileNode(modelName: string): Promise<string | undefined> {
+    const output = (await this.python?.lock(
+      (python) =>
+        python!`to_dict(project.compile_node(project.get_ref_node(${modelName})))`,
+    )) as CompilationResult;
+    return output.compiled_sql;
+  }
+
+  async compileNode(modelName: string): Promise<string | undefined> {
+    await this.blockUntilPythonBridgeIsInitalized();
+
+    if (!this.pythonBridgeInitialized) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Could not compile node, because the Python bridge has not been initalized.",
+        ),
+      );
+      this.telemetry.sendTelemetryError(
+        "compileNodePythonBridgeNotInitializedError",
+      );
+      return;
+    }
+    this.telemetry.sendTelemetryEvent("compileNode");
+    try {
+      return this.unsafeCompileNode(modelName);
+    } catch (exc: any) {
+      if (exc instanceof PythonException) {
+        window.showErrorMessage(
+          extendErrorWithSupportLinks(
+            "An error occured while trying to compile your node: " +
+              exc.exception.message +
+              ".",
+          ),
+        );
+        this.telemetry.sendTelemetryError("compileNodePythonError", exc);
+        return (
+          "Exception: " +
+          exc.exception.message +
+          "\n\n" +
+          "Detailed error information:\n" +
+          exc
+        );
+      }
+      this.telemetry.sendTelemetryError("compileNodeUnknownError", exc);
+      // Unknown error
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Encountered an unknown issue: " + exc + ".",
+        ),
+      );
+      return "Detailed error information:\n" + exc;
+    }
+  }
+
   async unsafeCompileQuery(query: string): Promise<string | undefined> {
     const output = (await this.python?.lock(
       (python) => python!`to_dict(project.compile_sql(${query}))`,
