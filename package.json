@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/innoverio/vscode-dbt-power-user/issues"
   },
-  "version": "0.20.0",
+  "version": "0.20.1",
   "engines": {
     "vscode": "^1.82.0"
   },
@@ -80,7 +80,7 @@
           "dbt.allowListFolders": {
             "type": "array",
             "items": {
-            "type": "string"
+              "type": "string"
             },
             "default": [],
             "description": "Define workspace-relative paths to include. Only projects within these folders will be built. If empty, no filtering is applied."
