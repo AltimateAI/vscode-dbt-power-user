@@ -147,7 +147,7 @@ export class NewLineagePanel implements LineagePanelView {
     if (columnsFromDB.length > 100) {
       // Flagging events where more than 100 columns are fetched from db to get a sense of how many of these happen
       this.telemetry.sendTelemetryEvent(
-        "ColumnLineageExcessiveColumnsFetchedFromDB",
+        "columnLineageExcessiveColumnsFetchedFromDB",
       );
     }
     const columns: Record<string, ColumnMetaData> = {};
@@ -169,7 +169,7 @@ export class NewLineagePanel implements LineagePanelView {
     });
     if (Object.keys(node.columns).length > columnsFromDB.length) {
       // Flagging events where columns fetched from db are less than the number of columns in the manifest
-      this.telemetry.sendTelemetryEvent("ColumnLineagePossibleStaleSchema");
+      this.telemetry.sendTelemetryEvent("columnLineagePossibleStaleSchema");
     }
     return true;
   }
@@ -333,7 +333,7 @@ export class NewLineagePanel implements LineagePanelView {
             ".",
         );
         this.telemetry.sendTelemetryError(
-          "ColumnLineageCompileNodePythonError",
+          "columnLineageCompileNodePythonError",
           exc,
         );
         console.error(
@@ -346,7 +346,7 @@ export class NewLineagePanel implements LineagePanelView {
         return;
       }
       this.telemetry.sendTelemetryError(
-        "ColumnLineageCompileNodeUnknownError",
+        "columnLineageCompileNodeUnknownError",
         exc,
       );
       // Unknown error
@@ -390,7 +390,7 @@ export class NewLineagePanel implements LineagePanelView {
       if (error instanceof AbortError) {
         window.showErrorMessage("Fetching column level lineage timed out.");
         this.telemetry.sendTelemetryError(
-          "ColumnLevelLineageRequestTimeout",
+          "columnLevelLineageRequestTimeout",
           error,
         );
         return;
@@ -406,7 +406,7 @@ export class NewLineagePanel implements LineagePanelView {
         "An unexpected error occured while fetching column level lineage.",
       );
       this.telemetry.sendTelemetryEvent(
-        "ColumnLevelLineageInvalidResponse",
+        "columnLevelLineageInvalidResponse",
         result,
       );
       return;
