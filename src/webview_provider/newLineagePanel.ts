@@ -166,11 +166,6 @@ export class NewLineagePanel implements LineagePanelView {
     if (Object.keys(node.columns).length > columnsFromDB.length) {
       // Flagging events where columns fetched from db are less than the number of columns in the manifest
       this.telemetry.sendTelemetryEvent("PossibleStaleSchema");
-      window.showInformationMessage(
-        `The model ${node.name} might contain stale schema. Found ${
-          Object.keys(node.columns).length - columnsFromDB.length
-        } columns not in db.`,
-      );
     }
     return true;
   }
