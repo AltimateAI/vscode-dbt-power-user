@@ -146,7 +146,9 @@ export class NewLineagePanel implements LineagePanelView {
     }
     if (columnsFromDB.length > 100) {
       // Flagging events where more than 100 columns are fetched from db to get a sense of how many of these happen
-      this.telemetry.sendTelemetryEvent("ExcessiveColumnsFetchedFromDB");
+      this.telemetry.sendTelemetryEvent(
+        "ColumnLineageExcessiveColumnsFetchedFromDB",
+      );
     }
     const columns: Record<string, ColumnMetaData> = {};
     Object.entries(node.columns).forEach(([k, v]) => {
@@ -167,7 +169,7 @@ export class NewLineagePanel implements LineagePanelView {
     });
     if (Object.keys(node.columns).length > columnsFromDB.length) {
       // Flagging events where columns fetched from db are less than the number of columns in the manifest
-      this.telemetry.sendTelemetryEvent("PossibleStaleSchema");
+      this.telemetry.sendTelemetryEvent("ColumnLineagePossibleStaleSchema");
     }
     return true;
   }
