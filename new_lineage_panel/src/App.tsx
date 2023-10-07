@@ -61,6 +61,8 @@ export const openDocs = () => {
   });
 };
 
+export let isDarkMode = false;
+
 const nodeTypes: NodeTypes = {
   table: TableNode,
   seeMore: SeeMoreNode,
@@ -107,7 +109,7 @@ function App() {
   const [selectedColumn, setSelectedColumn] = useState({ name: "", table: "" });
   const [collectColumns, setCollectColumns] = useState({});
   const [, _rerender] = useState(0);
-  const rerender = () => _rerender((x) => x + 1);
+  const rerender = () => _rerender((x) => (x + 1) % 100);
 
   useEffect(() => {
     const render = async (args: {
@@ -210,7 +212,12 @@ function App() {
       }
       delete requestMap[args.id];
     };
-    const commandMap = { render, response };
+    const setTheme = ({ theme }: { theme: string }) => {
+      isDarkMode = theme === "dark";
+      document.documentElement.setAttribute("data-theme", theme);
+      rerender();
+    };
+    const commandMap = { render, response, setTheme };
     window.addEventListener("message", (event) => {
       console.log("lineage:message -> ", event.data);
       const { command, args } = event.data;
@@ -283,7 +290,7 @@ function App() {
               onInit={(_flow) => (flow.current = _flow)}
               nodeTypes={nodeTypes}
               edgeTypes={edgeTypes}
-              style={{ background: "#f5f5f7" }}
+              style={{ background: "var(--bg-color)" }}
               proOptions={{ hideAttribution: true }}
               minZoom={0.1}
             >

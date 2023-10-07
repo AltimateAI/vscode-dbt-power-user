@@ -7,34 +7,7 @@
   border-radius: 30px;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-
-@mixin color($c) {
-  background-color: rgba($c, 0.15);
-  color: $c;
-}
-
-.level_red {
-  @include color(#ee140f);
-}
-.level_orange {
-  @include color(#ff754c);
-}
-.level_blue {
-  @include color(#247efe);
-}
-.level_green {
-  @include color(#01cd8c);
-}
-.level_dark_green {
-  color: #19504d;
-  background: #d3f8f8;
-}
-.level_yellow {
-  background: #fff4c3;
-  color: #783a00;
-}
-.level_purple {
-  background: #e6ddff;
-  color: #392091;
+  font-size: 0.8em;
+  background-color: var(--tag-bg);
+  color: var(--tag-text-color);
 }

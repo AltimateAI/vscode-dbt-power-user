@@ -9,7 +9,7 @@ import {
 import { useReactFlow } from "reactflow";
 import styles from "./styles.module.scss";
 import classNames from "classnames";
-import { Button, Input } from "reactstrap";
+import { Button } from "reactstrap";
 import {
   getColumns,
   Columns,
@@ -33,6 +33,7 @@ import { ColorTag } from "./Tags";
 // assets
 import ExpandLineageIcon from "./assets/icons/expand_lineage.svg?react";
 import { NodeTypeIcon } from "./CustomNodes";
+import { CustomInput } from "./Form";
 
 const ColumnCard: FunctionComponent<{
   column: Column;
@@ -55,13 +56,11 @@ const ColumnCard: FunctionComponent<{
             <ExpandLineageIcon />
           </div>
         )}
-        {column.datatype && (
-          <ColorTag label={column.datatype} color={styles.column_tag} />
-        )}
+        {column.datatype && <ColorTag label={column.datatype} />}
       </div>
       {column.description && (
         <div className="d-flex flex-column">
-          <div className="text-muted font-normal fs-xxs">
+          <div className="font-normal fs-xxs text-grey">
             {column.description}
           </div>
         </div>
@@ -75,12 +74,12 @@ const PurposeSection: FunctionComponent<{
   purpose: string;
 }> = ({ purpose }) => {
   return (
-    <div className={classNames(styles.card, "bg-blue")}>
+    <div className={classNames(styles.card, "purpose-section")}>
       <div className="d-flex flex-column gap-sm">
         <div className="d-flex gap-xs flex-column">
           <div className="fs-5 fw-semibold">Description</div>
           <div className={classNames(styles.column_card)}>
-            <div className="text-muted font-normal fs-xxs">{purpose}</div>
+            <div className="font-normal fs-xxs">{purpose}</div>
           </div>
         </div>
       </div>
@@ -105,9 +104,8 @@ const ColumnSection: FunctionComponent<{
   selectedColumn,
   setData,
 }) => {
-  const [search, setSearch] = useState("");
   return (
-    <div className={classNames(styles.card, "flex-grow bg-gray")}>
+    <div className={classNames(styles.card, "flex-grow column-section")}>
       <div className="d-flex flex-column gap-sm h-100 p-2">
         <div className="d-flex align-items-center gap-xs">
           <div className="fs-5 fw-semibold">Column</div>
@@ -128,12 +126,11 @@ const ColumnSection: FunctionComponent<{
             Sync with DB
           </Button>
         </div>
-        <Input
+        <CustomInput
           bsSize="sm"
+          type="text"
           placeholder="Search by column name"
-          value={search}
           onChange={(e) => {
-            setSearch(e.target.value);
             const _search = e.target.value.toLowerCase();
             setFilteredColumn(
               columns.filter((c) => c.name.toLowerCase().includes(_search))
@@ -141,11 +138,13 @@ const ColumnSection: FunctionComponent<{
           }}
         />
         <div className="d-flex align-items-center gap-xs">
-          <div className="text-muted fs-xxs">
+          <div className="fs-xxs text-grey">
             {filteredColumn.length} columns
           </div>
           <div className="spacer" />
-          <div className="text-muted fs-xxs">{filteredColumn.every(en => !en.datatype) ? "Needs DB Sync" : ""}</div>
+          <div className="text-muted fs-xxs">
+            {filteredColumn.every((en) => !en.datatype) ? "Needs DB Sync" : ""}
+          </div>
         </div>
         <div className="d-flex flex-column gap-sm">
           {filteredColumn.map((_column) => (
@@ -243,7 +242,7 @@ const TableDetails = () => {
   if (isLoading || !data || !selectedTable) return <ComponentLoader />;
 
   return (
-    <div className="p-2 h-100 d-flex flex-column gap-md text-black overflow-y">
+    <div className="p-2 h-100 d-flex flex-column gap-md overflow-y">
       <div className={styles.table_details_header}>
         <NodeTypeIcon nodeType={selectedTable.nodeType} />
         <div className="d-flex align-items-center">

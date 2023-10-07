@@ -16,7 +16,7 @@ import {
   processColumnLineage,
   resetTableHighlights,
 } from "./graph";
-import { LineageContext, aiEnabled, openFile } from "./App";
+import { LineageContext, aiEnabled, openFile, isDarkMode } from "./App";
 import { Table, downstreamTables, upstreamTables } from "./service";
 import {
   COLUMNS_SIDEBAR,
@@ -29,6 +29,7 @@ import ModelIcon from "./assets/icons/model.svg?react";
 import SeedIcon from "./assets/icons/seed.svg?react";
 import SourceIcon from "./assets/icons/source.svg?react";
 import FolderIcon from "./assets/icons/folder.svg?react";
+import FolderDarkIcon from "./assets/icons/folder_dark.svg?react";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -122,7 +123,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     );
 
   const highlightTable = () => {
-    if (selectedColumn) return;
+    if (selectedColumn.name) return;
     const _nodes = flow.getNodes();
     const _edges = flow.getEdges();
     const [nodes, edges] = selected
@@ -203,12 +204,15 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           className={classNames(
             styles.header,
             "d-flex flex-column align-items-start gap-xs",
-            { [styles.selected]: selected, [styles.collapse]: !_showColumns }
+            {
+              [styles.selected]: selected,
+              [styles.collapse]: !_showColumns,
+            }
           )}
         >
           <div className={styles.table_header}>
             <NodeTypeIcon nodeType={nodeType} />
-            <div className="lines-2 text-black">{table}</div>
+            <div className="lines-2">{table}</div>
           </div>
           <div className={styles.divider} />
           <div className="w-100 d-flex align-items-center gap-xs">
@@ -232,7 +236,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
               <div
                 className={classNames(
                   "nodrag",
-                  selected ? "text-primary" : "text-muted"
+                  selected ? "text-blue" : "text-grey"
                 )}
                 onClick={onDetailsClick}
               >
@@ -244,8 +248,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
               className={classNames("nodrag", styles.open_file_button)}
               onClick={() => openFile(url)}
             >
-              {!aiEnabled && <span className="text-primary">Open file</span>}
-              <FolderIcon />
+              {!aiEnabled && <span className="text-blue">Open file</span>}
+              {isDarkMode ? <FolderDarkIcon /> : <FolderIcon />}
             </div>
             <div className="spacer" />
 
@@ -288,7 +292,7 @@ export const SeeMoreNode: FunctionComponent<NodeProps> = ({ data }) => {
   const flow = useReactFlow();
   return (
     <div
-      className={classNames("d-flex", styles.see_more_node)}
+      className={styles.see_more_node}
       onClick={(e) => {
         e.stopPropagation();
         setShowSidebar(true);
@@ -318,13 +322,15 @@ export const SelfConnectingEdge: FunctionComponent<EdgeProps> = (props) => {
 export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
   const { column, table } = data;
   const { selectedColumn } = useContext(LineageContext);
+  const isSelected =
+    selectedColumn.table === table && selectedColumn.name === column;
 
   return (
     <div
-      className={classNames(styles.column_node, {
-        [styles.selected]:
-          selectedColumn.table === table && selectedColumn.name === column,
-      })}
+      className={classNames(
+        styles.column_node,
+        isSelected ? styles.selected : styles.default
+      )}
     >
       {column}
       <BidirectionalHandles />
