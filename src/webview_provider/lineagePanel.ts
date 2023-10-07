@@ -52,7 +52,7 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     );
     window.onDidChangeActiveColorTheme(
       async (e) => {
-        // TODO: add code for
+        this.getPanel().changedActiveColorTheme();
       },
       null,
       this.disposables,

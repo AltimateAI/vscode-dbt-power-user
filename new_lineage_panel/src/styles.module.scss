@@ -1,22 +1,22 @@
 $node-width: 260px;
-$border-color: rgba(#a7b2c1, 0.3);
 
 .table_node {
   width: $node-width;
   display: flex;
   flex-direction: column;
   cursor: default;
+  color: var(--text-color);
 
   .header {
-    background: #eaf3ff;
-    border-top: 2px solid $border-color;
-    border-left: 2px solid $border-color;
-    border-right: 2px solid $border-color;
+    background: var(--table-node-expand-bg);
+    border-top: 2px solid var(--table-node-border-color);
+    border-left: 2px solid var(--table-node-border-color);
+    border-right: 2px solid var(--table-node-border-color);
     border-radius: 0.5em 0.5em 0 0;
     padding: 0.5em;
     &.collapse {
-      background: #ffffff;
-      border-bottom: 2px solid #eeeff2;
+      background: var(--table-node-collapse-bg);
+      border-bottom: 2px solid var(--table-node-border-color);
       border-radius: 0.5em;
     }
     &.selected {
@@ -26,10 +26,10 @@ $border-color: rgba(#a7b2c1, 0.3);
 
   .content {
     flex-grow: 1;
-    background: #ffffff;
-    border-bottom: 2px solid $border-color;
-    border-left: 2px solid $border-color;
-    border-right: 2px solid $border-color;
+    background: var(--table-node-content-bg);
+    border-bottom: 2px solid var(--table-node-border-color);
+    border-left: 2px solid var(--table-node-border-color);
+    border-right: 2px solid var(--table-node-border-color);
     border-radius: 0 0 0.5em 0.5em;
     padding: 0.5em;
     &.selected {
@@ -53,7 +53,7 @@ $size: 1.2em;
   height: $size;
   line-height: $size;
   border-radius: 50%;
-  background-color: #247efe;
+  background-color: var(--primary-accent);
   border: 1px solid #d6e7ff;
   color: #ffffff;
   display: flex;
@@ -64,11 +64,13 @@ $size: 1.2em;
 
 .see_more_node {
   width: $node-width;
-  background: #f7faff;
-  border: 1px solid #eeeff2;
+  display: flex;
+  background: var(--table-node-collapse-bg);
+  border: 1px solid var(--table-node-border-color);
   border-radius: 0.5em;
   padding: 0.5em;
   cursor: default;
+  color: var(--text-color);
 }
 
 .table_card {
@@ -79,18 +81,12 @@ $size: 1.2em;
   overflow-x: hidden;
   border-radius: 0.5em;
   padding: 0.5em;
-  border: 1px solid #e7e8ea;
-  background: #ffffff;
+  border: 1px solid var(--card-border-color);
   cursor: pointer;
-
+  background-color: var(--card-bg);
   &.selected {
     border-color: #e38e00;
   }
-
-  &:hover {
-    background-color: #f7faff;
-  }
-
   &.disabled {
     background-color: #e5e6e7;
     cursor: default;
@@ -103,16 +99,11 @@ $size: 1.2em;
   gap: 0.5em;
   border-radius: 0.6em;
   padding: 0.8em;
-  border: 1px solid #e7e8ea;
-  background: #ffffff;
+  border: 1px solid var(--card-border-color);
   cursor: pointer;
-
+  background-color: var(--card-bg);
   &.selected {
     border-color: #e38e00;
-  }
-
-  &:hover {
-    background-color: #f7faff;
   }
 }
 
@@ -122,16 +113,16 @@ $size: 1.2em;
   height: $size;
   color: #8390a3;
   &:hover {
-    color: #247efe;
+    color: var(--primary-accent);
   }
   &.active {
-    color: #247efe;
+    color: var(--primary-accent);
   }
 }
 
 .expand_lineage_icon {
   $size: 1rem;
-  background-color: #247efe;
+  background-color: var(--primary-accent);
   padding: 0.25rem;
   border-radius: 0.25rem;
   display: flex;
@@ -169,16 +160,8 @@ $size: 1.2em;
   padding: 0.5rem;
 }
 
-.column_tag {
-  background: rgba(63, 140, 255, 0.1);
-  font-size: 0.8em;
-  color: #082247;
-}
-
 .column_node {
-  border: 1px solid #247efe;
-  background: #e9f2ff;
-  color: #247efe;
+  border: 1px solid var(--primary-accent);
   width: calc($node-width - 24px);
   border-radius: 0.25em;
   padding: 4px 8px;
@@ -186,15 +169,19 @@ $size: 1.2em;
   overflow: hidden;
   white-space: nowrap;
   &.selected {
-    background: #247efe;
+    background: var(--primary-accent);
     color: #ffffff;
+  }
+  &.default {
+    background: var(--column-node-bg);
+    color: var(--column-node-color);
   }
 }
 
 .divider {
   height: 2px;
   width: calc(100% + 1em);
-  background-color: $border-color;
+  background-color: var(--table-node-border-color);
   margin-left: -0.5em;
 }
 

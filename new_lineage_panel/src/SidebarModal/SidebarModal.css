@@ -2,10 +2,7 @@
   position: fixed;
   top: -1px;
   height: calc(100% + 1px);
-  background-color: white;
   box-shadow: none;
-  border: 1px solid #e7e8ea;
-  background: #fefefe;
   transition: transform 0.3s ease-in-out;
   z-index: 997;
 }
@@ -49,5 +46,5 @@
   cursor: pointer;
   z-index: 999;
   padding: 8px;
-  background: var(--blue-primary, #247efe);
+  background: var(--primary-accent, #247efe);
 }

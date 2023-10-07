@@ -22,6 +22,8 @@ function SidebarModal({
         width: `${width}px`,
         right: `-${width}px`,
         transform: isOpen ? `translateX(-${width}px)` : ``,
+        backgroundColor: "var(--card-bg)",
+        color: "var(--text-color)",
       }}
     >
       {isOpen && (
