@@ -110,23 +110,6 @@ const app = createApp({
         );
       }
     },
-    copyTextToClipboard(text) {
-      navigator.clipboard.writeText(text);
-    },
-    // Copies the table's data to the clipboard in CSV format.
-    async copyResultsToClipboard() {
-      try {
-        const data = this.table.getData();
-        const csv = this.dataToCsv(data);
-        this.copyTextToClipboard(csv);
-      } catch (error) {
-        console.error("Error copying results to clipboard:", error);
-        // Show error message
-        vscode.window.showErrorMessage(
-          "Unable to convert data to CSV. " + error.message,
-        );
-      }
-    },
     updateTable(data) {
       console.log(data);
       this.count = data.rows.length;
@@ -193,27 +176,6 @@ const app = createApp({
     endTimer() {
       clearTimeout(this.timer);
     },
-    setTableHeight() {
-      this.table.setHeight(this.windowHeight);
-    },
-    handleResize(event) {
-      const currentHeight = window.innerHeight;
-      if (this.windowHeight !== currentHeight) {
-        this.windowHeight = currentHeight;
-        if (currentHeight < DEFAULT_HEIGHT) {
-          this.windowHeight = DEFAULT_HEIGHT;
-        }
-        cancelAnimationFrame(this.resizeTimer);
-        this.resizeTimer = requestAnimationFrame(this.setTableHeight);
-      }
-    },
-    getTableStyles() {
-      return {
-        fontSize: `${this.scale}em`,
-        lineHeight: `${this.scale}`,
-        display: "block",
-      };
-    },
     getPerspectiveStyles() {
       return {
         width: "100%",
@@ -227,11 +189,6 @@ const app = createApp({
     },
   },
   computed: {
-    tableHeight() {
-      return this.count * 65 < this.windowHeight
-        ? this.count * 65
-        : this.windowHeight;
-    },
     hasData() {
       return this.count > 0;
     },
@@ -318,11 +275,8 @@ const app = createApp({
           break;
       }
     });
-    window.addEventListener("resize", this.handleResize);
   },
-  unmounted() {
-    window.removeEventListener("resize", this.handleResize);
-  },
+  unmounted() {},
   beforeDestroy() {
     clearInterval(this.timer);
   },

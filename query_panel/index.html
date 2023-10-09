@@ -63,7 +63,7 @@
     <div id="app">
       <vscode-panels
         id="panel-manager"
-        activeid="tab-4"
+        activeid="tab-3"
         aria-label="dbt Preview"
       >
         <vscode-panel-tab
@@ -84,7 +84,11 @@
           {{ (hasData || hasError || isLoading) ? "Help" : "Welcome 🚀" }}
         </vscode-panel-tab>
 
-        <vscode-panel-view style="height: 100%">
+        <vscode-panel-view
+          style="height: 100%"
+          v-show="(hasData || hasError || isLoading)"
+          id="view-1"
+        >
           <perspective-viewer
             :style="getPerspectiveStyles()"
             :theme="getPerspectiveTheme()"
