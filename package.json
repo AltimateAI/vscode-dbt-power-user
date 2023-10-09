@@ -262,10 +262,7 @@
       {
         "command": "dbtPowerUser.sqlToModel",
         "title": "Associate model references",
-        "icon": {
-          "light": "./media/images/run-light.svg",
-          "dark": "./media/images/run-dark.svg"
-        }
+        "icon": "$(circuit-board)"
       },
       {
         "command": "dbtPowerUser.compileCurrentModel",
