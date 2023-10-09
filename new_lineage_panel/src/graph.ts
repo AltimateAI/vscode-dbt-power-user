@@ -350,16 +350,6 @@ export const processColumnLineage = async (
   return { nodes, edges, collectColumns };
 };
 
-export const mergeNodesEdges = (
-  prevState: { nodes: Node[]; edges: Edge[] },
-  newState: { nodes: Node[]; edges: Edge[] },
-) => {
-  const nodes = [...prevState.nodes, ...newState.nodes];
-  const edges = [...prevState.edges, ...newState.edges];
-
-  return { nodes, edges };
-};
-
 const getSourceTargetHandles = (
   l0: number,
   l1: number,

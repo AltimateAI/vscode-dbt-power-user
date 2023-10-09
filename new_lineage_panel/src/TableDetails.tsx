@@ -21,7 +21,6 @@ import {
 import { LineageContext } from "./App";
 import {
   createNewNodesEdges,
-  mergeNodesEdges,
   processColumnLineage,
   removeColumnNodes,
   resetTableHighlights,
@@ -304,12 +303,8 @@ const TableDetails = () => {
           { name: _column.name, table: _column.table },
           connectedTables
         );
-        const mergedState = mergeNodesEdges(
-          { nodes: flow.getNodes(), edges: flow.getEdges() },
-          newState
-        );
-        flow.setNodes(mergedState.nodes);
-        flow.setEdges(mergedState.edges);
+        newState.nodes.forEach((n) => !flow.getNode(n.id) && flow.addNodes(n));
+        newState.edges.forEach((e) => !flow.getEdge(e.id) && flow.addEdges(e));
         setCollectColumns((prev) => {
           const collectColumns: Record<string, string[]> = { ...prev };
           for (const t in newState.collectColumns) {
