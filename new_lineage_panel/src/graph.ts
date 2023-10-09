@@ -350,40 +350,14 @@ export const processColumnLineage = async (
   return { nodes, edges, collectColumns };
 };
 
-export const mergeColumnLineages = (
-  prevState: {
-    nodes: Node[];
-    edges: Edge[];
-    collectColumns: Record<string, string[]>;
-  },
-  newState: {
-    nodes: Node[];
-    edges: Edge[];
-    collectColumns: Record<string, string[]>;
-  },
+export const mergeNodesEdges = (
+  prevState: { nodes: Node[]; edges: Edge[] },
+  newState: { nodes: Node[]; edges: Edge[] },
 ) => {
   const nodes = [...prevState.nodes, ...newState.nodes];
   const edges = [...prevState.edges, ...newState.edges];
 
-  // deep merge
-  const collectColumns: Record<string, string[]> = {
-    ...prevState.collectColumns,
-  };
-  for (const t in newState.collectColumns) {
-    const _columns = newState.collectColumns[t];
-    if (!(t in collectColumns)) {
-      collectColumns[t] = _columns;
-      continue;
-    }
-    _columns.forEach((c) => {
-      if (collectColumns[t].includes(c)) {
-        return;
-      }
-      collectColumns[t].push(c);
-    });
-  }
-
-  return { nodes, edges, collectColumns };
+  return { nodes, edges };
 };
 
 const getSourceTargetHandles = (

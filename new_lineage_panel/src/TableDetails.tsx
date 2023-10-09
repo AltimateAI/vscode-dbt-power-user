@@ -21,7 +21,7 @@ import {
 import { LineageContext } from "./App";
 import {
   createNewNodesEdges,
-  mergeColumnLineages,
+  mergeNodesEdges,
   processColumnLineage,
   removeColumnNodes,
   resetTableHighlights,
@@ -304,17 +304,29 @@ const TableDetails = () => {
           { name: _column.name, table: _column.table },
           connectedTables
         );
-        const mergedState = mergeColumnLineages(
-          {
-            nodes: flow.getNodes(),
-            edges: flow.getEdges(),
-            collectColumns: {}, // TODO: fix this 
-          },
+        const mergedState = mergeNodesEdges(
+          { nodes: flow.getNodes(), edges: flow.getEdges() },
           newState
         );
         flow.setNodes(mergedState.nodes);
         flow.setEdges(mergedState.edges);
-        setCollectColumns(mergedState.collectColumns);
+        setCollectColumns((prev) => {
+          const collectColumns: Record<string, string[]> = { ...prev };
+          for (const t in newState.collectColumns) {
+            const _columns = newState.collectColumns[t];
+            if (!(t in collectColumns)) {
+              collectColumns[t] = _columns;
+              continue;
+            }
+            _columns.forEach((c) => {
+              if (collectColumns[t].includes(c)) {
+                return;
+              }
+              collectColumns[t].push(c);
+            });
+          }
+          return collectColumns;
+        });
       }
     };
 
