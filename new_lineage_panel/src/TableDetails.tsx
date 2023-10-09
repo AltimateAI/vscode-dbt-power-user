@@ -43,8 +43,14 @@ import { ColorTag } from "./Tags";
 import ExpandLineageIcon from "./assets/icons/expand_lineage.svg?react";
 import { NodeTypeIcon } from "./CustomNodes";
 import { CustomInput } from "./Form";
-import { defaultEdgeStyle, getHelperDataForCLL, isNotColumn } from "./utils";
 import { TMoreTables } from "./MoreTables";
+import {
+  defaultEdgeStyle,
+  getHelperDataForCLL,
+  isLeftExpanded,
+  isNotColumn,
+  isRightExpanded,
+} from "./utils";
 
 const ColumnCard: FunctionComponent<{
   column: Column;
@@ -238,23 +244,25 @@ const TableDetails = () => {
     const tableNode = flow.getNode(_column.table);
     if (tableNode) {
       const {
-        data: { processed, key, level },
+        data: { key, level, upstreamCount, downstreamCount },
       } = tableNode;
-      if (!processed[1]) {
-        try {
+      try {
+        if (
+          upstreamCount > 0 &&
+          !isRightExpanded(_edges, _column.table, upstreamCount)
+        ) {
           const { tables } = await upstreamTables(key);
           addNodesEdges(tables, true, level);
-        } catch (e) {
-          console.error(e);
         }
-      }
-      if (!processed[0]) {
-        try {
+        if (
+          downstreamCount > 0 &&
+          !isLeftExpanded(_edges, _column.table, downstreamCount)
+        ) {
           const { tables } = await downstreamTables(key);
           addNodesEdges(tables, false, level);
-        } catch (e) {
-          console.error(e);
         }
+      } catch (e) {
+        console.error(e);
       }
     }
     setSelectedColumn(_column);

@@ -98,8 +98,6 @@ export const createTableNode = (
       url,
       level,
       parent,
-      shouldExpand: [downstreamCount > 0, upstreamCount > 0],
-      processed: [false, false],
       upstreamCount,
       downstreamCount,
       nodeType,
@@ -198,8 +196,6 @@ export const getHelperDataForCLL = (nodes: Node[], edges: Edge[]) => {
 
 export const getColumnId = (t: string, c: string) =>
   COLUMN_PREFIX + `${t}/${c}`;
-export const getSeeMoreId = (t: string, right: boolean) =>
-  SEE_MORE_PREFIX + t + "-" + (right ? "1" : "0");
 
 export const contains = (arr: [string, string][], x: [string, string]) => {
   for (const item of arr) {
@@ -207,3 +203,23 @@ export const contains = (arr: [string, string][], x: [string, string]) => {
   }
   return false;
 };
+
+const isExpanded =
+  (key: "source" | "target") =>
+  (edges: Edge[], table: string, count: number): boolean => {
+    let connectingEdgesCount = 0;
+    for (const e of edges) {
+      if (e[key] !== table) continue;
+      if (
+        (key === "source" ? e.target : e.source).startsWith(SEE_MORE_PREFIX)
+      ) return true;
+      connectingEdgesCount++;
+    }
+    return connectingEdgesCount === count;
+  };
+
+export const isRightExpanded = isExpanded("source");
+export const isLeftExpanded = isExpanded("target");
+
+export const getSeeMoreId = (t: string, right: boolean) =>
+  SEE_MORE_PREFIX + t + "-" + (right ? "1" : "0");

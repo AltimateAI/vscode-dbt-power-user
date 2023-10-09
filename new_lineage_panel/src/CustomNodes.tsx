@@ -16,6 +16,7 @@ import {
   mergeCollectColumns,
   mergeNodesEdges,
   processColumnLineage,
+  removeRelatedNodesEdges2,
   resetTableHighlights,
 } from "./graph";
 import { LineageContext, openFile, isDarkMode } from "./App";
@@ -26,6 +27,8 @@ import {
   C_PADDING_Y,
   TABLES_SIDEBAR,
   getHelperDataForCLL,
+  isLeftExpanded,
+  isRightExpanded,
 } from "./utils";
 import { TMoreTables } from "./MoreTables";
 import ModelIcon from "./assets/icons/model.svg?react";
@@ -84,17 +87,8 @@ export const NodeTypeIcon: FunctionComponent<{ nodeType: string }> = ({
 );
 
 export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
-  const {
-    shouldExpand,
-    processed,
-    table,
-    level,
-    url,
-    upstreamCount,
-    downstreamCount,
-    key,
-    nodeType,
-  } = data;
+  const { table, level, url, upstreamCount, downstreamCount, key, nodeType } =
+    data;
   const flow = useReactFlow();
 
   const {
@@ -137,7 +131,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   };
 
   const expand = async (tables: Table[], right: boolean) => {
-    if (processed[right ? 1 : 0]) return;
     let [nodes, edges] = createNewNodesEdges(
       flow.getNodes(),
       flow.getEdges(),
@@ -188,6 +181,20 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     await expand(tables, false);
   };
 
+  const collapse = (right: boolean) => {
+    const [nodes, edges] = removeRelatedNodesEdges2(
+      flow.getNodes(),
+      flow.getEdges(),
+      table,
+      right,
+      level
+    );
+    layoutElementsOnCanvas(nodes, edges);
+    flow.setNodes(nodes);
+    flow.setEdges(edges);
+    rerender();
+  };
+
   const onDetailsClick = (e: React.MouseEvent) => {
     if (!selected) return;
     e.stopPropagation();
@@ -196,6 +203,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   };
 
   const _edges = flow.getEdges();
+  const leftExpanded = isLeftExpanded(_edges, table, downstreamCount);
+  const rightExpanded = isRightExpanded(_edges, table, upstreamCount);
   return (
     <div
       className="position-relative"
@@ -229,18 +238,15 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           <div className="w-100 d-flex align-items-center gap-xs">
             <div
               className={classNames("nodrag", styles.table_handle, {
-                invisible:
-                  !shouldExpand[0] ||
-                  processed[0] ||
-                  downstreamCount ===
-                    _edges.filter((e) => e.target === table).length,
+                invisible: downstreamCount === 0,
               })}
               onClick={(e) => {
                 e.stopPropagation();
-                expandLeft();
+                if (leftExpanded) collapse(false);
+                else expandLeft();
               }}
             >
-              {processed[0] ? "-" : "+"}
+              {leftExpanded ? "-" : "+"}
             </div>
 
             <div
@@ -263,18 +269,15 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
             <div
               className={classNames("nodrag", styles.table_handle, {
-                invisible:
-                  !shouldExpand[1] ||
-                  processed[1] ||
-                  upstreamCount ===
-                    _edges.filter((e) => e.source === table).length,
+                invisible: upstreamCount === 0,
               })}
               onClick={(e) => {
                 e.stopPropagation();
-                expandRight();
+                if (rightExpanded) collapse(true);
+                else expandRight();
               }}
             >
-              {processed[1] ? "-" : "+"}
+              {rightExpanded ? "-" : "+"}
             </div>
           </div>
         </div>

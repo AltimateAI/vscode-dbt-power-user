@@ -23,7 +23,13 @@ import {
   SelfConnectingEdge,
   TableNode,
 } from "./CustomNodes";
-import { COLUMNS_SIDEBAR, TABLES_SIDEBAR, getHelperDataForCLL } from "./utils";
+import {
+  COLUMNS_SIDEBAR,
+  TABLES_SIDEBAR,
+  getHelperDataForCLL,
+  isLeftExpanded,
+  isRightExpanded,
+} from "./utils";
 import { SidebarModal } from "./SidebarModal";
 import { MoreTables, TMoreTables } from "./MoreTables";
 import { Table, downstreamTables, upstreamTables } from "./service";
@@ -218,17 +224,24 @@ function App() {
         }
       };
       if (existingNode) {
-        const { level, processed } = existingNode.data as {
+        const { level, upstreamCount, downstreamCount } = existingNode.data as {
           level: number;
-          processed: [boolean, boolean];
+          upstreamCount: number;
+          downstreamCount: number;
         };
         nodes = _flow.getNodes();
         edges = _flow.getEdges();
-        if (!processed[1]) {
+        if (
+          upstreamCount > 0 &&
+          !isRightExpanded(edges, node.table, upstreamCount)
+        ) {
           const { tables } = await upstreamTables(node.key);
           addNodesEdges(tables, node.table, true, level);
         }
-        if (!processed[0]) {
+        if (
+          downstreamCount > 0 &&
+          !isLeftExpanded(edges, node.table, downstreamCount)
+        ) {
           const { tables } = await downstreamTables(node.key);
           addNodesEdges(tables, node.table, false, level);
         }
@@ -241,8 +254,6 @@ function App() {
               key: node.key,
               url: node.url,
               level: 0,
-              shouldExpand: [node.downstreamCount > 0, node.upstreamCount > 0],
-              processed: [node.downstreamCount > 0, node.upstreamCount > 0],
               nodeType: node.nodeType,
               upstreamCount: node.upstreamCount,
               downstreamCount: node.downstreamCount,
