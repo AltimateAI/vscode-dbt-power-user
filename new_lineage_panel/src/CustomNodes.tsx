@@ -13,7 +13,6 @@ import {
   createNewNodesEdges,
   highlightTableConnections,
   layoutElementsOnCanvas,
-  processColumnLineage,
   resetTableHighlights,
 } from "./graph";
 import { LineageContext, aiEnabled, openFile, isDarkMode } from "./App";
@@ -101,7 +100,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     setSidebarScreen,
     collectColumns,
     selectedColumn,
-    setCollectColumns,
     rerender,
   } = useContext(LineageContext);
 
@@ -143,16 +141,22 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
       right,
       level
     );
-    if (selectedColumn.name) {
-      const {
-        nodes: _nodes,
-        edges: _edges,
-        collectColumns,
-      } = await processColumnLineage(nodes, edges, selectedColumn);
-      nodes = _nodes;
-      edges = _edges;
-      setCollectColumns(collectColumns);
-    } else if (selectedTable) {
+    // if (selectedColumn.name) {
+    //   const {
+    //     nodes: _nodes,
+    //     edges: _edges,
+    //     collectColumns,
+    //   } = await processColumnLineage(
+    //     nodes,
+    //     edges,
+    //     selectedColumn,
+    //     right ? [false, true] : [true, false]
+    //   );
+    //   nodes = _nodes;
+    //   edges = _edges;
+    //   setCollectColumns(collectColumns);
+    // }
+    if (selectedTable) {
       const [_nodes, _edges] = highlightTableConnections(
         nodes,
         edges,

@@ -21,8 +21,10 @@ import {
 import { LineageContext } from "./App";
 import {
   createNewNodesEdges,
+  mergeColumnLineages,
   processColumnLineage,
   removeColumnNodes,
+  resetTableHighlights,
 } from "./graph";
 
 // ui components
@@ -34,6 +36,7 @@ import { ColorTag } from "./Tags";
 import ExpandLineageIcon from "./assets/icons/expand_lineage.svg?react";
 import { NodeTypeIcon } from "./CustomNodes";
 import { CustomInput } from "./Form";
+import { defaultEdgeStyle, isColumn, isNotColumn } from "./utils";
 
 const ColumnCard: FunctionComponent<{
   column: Column;
@@ -227,17 +230,96 @@ const TableDetails = () => {
         addNodesEdges(tables, false, level);
       }
     }
-    const { nodes, edges, collectColumns } = await processColumnLineage(
-      _nodes,
-      _edges,
-      { name: _column.name, table: _column.table }
-    );
+    setSelectedColumn(_column);
+    setShowSidebar(false);
 
+    // resetting existing styles
+    const [nodes, edges] = resetTableHighlights(
+      _nodes.filter(isNotColumn),
+      _edges.filter(isNotColumn)
+    );
+    edges.forEach((_e) => (_e.style = defaultEdgeStyle));
     flow.setNodes(nodes);
     flow.setEdges(edges);
-    setSelectedColumn(_column);
-    setCollectColumns(collectColumns);
-    setShowSidebar(false);
+
+    // creating helper data for current lineage once
+    const levelMap: Record<string, number> = {};
+    nodes.forEach((n) => (levelMap[n.id] = n.data.level));
+    const tableNodes: Record<string, boolean> = {};
+    nodes
+      .filter((_n) => _n.type === "table")
+      .forEach((_n) => (tableNodes[_n.id] = true));
+    const seeMoreIdTableReverseMap: Record<string, string> = {};
+    for (const e of edges) {
+      if (isColumn(e)) continue;
+      const sourceTableExist = tableNodes[e.source];
+      const targetTableExist = tableNodes[e.target];
+      if (sourceTableExist && targetTableExist) {
+        continue;
+      }
+      if (sourceTableExist) {
+        const _n = _nodes.find((_n) => _n.id === e.target)!;
+        _n.data.tables.forEach((_t: { table: string }) => {
+          seeMoreIdTableReverseMap[_t.table] = e.target;
+        });
+        continue;
+      }
+      if (targetTableExist) {
+        const _n = _nodes.find((_n) => _n.id === e.source)!;
+        _n.data.tables.forEach((_t: { table: string }) => {
+          seeMoreIdTableReverseMap[_t.table] = e.source;
+        });
+      }
+    }
+
+    const bfsTraversal = async (right: boolean) => {
+      const visited: Record<string, boolean> = {};
+      const queue: [string, string][] = [[_column.table, _column.name]];
+      while (queue.length > 0) {
+        const [_t, _c] = queue.shift()!;
+        const id = `${_t}/${_c}`;
+        if (visited[id]) {
+          continue;
+        }
+        visited[id] = true;
+        const connectedTables: {
+          upstreamTables?: string[];
+          downstreamTables?: string[];
+        } = {};
+
+        if (right) {
+          connectedTables.upstreamTables = _edges
+            .filter((e) => e.source === _t)
+            .map((e) => e.target);
+        } else {
+          connectedTables.downstreamTables = _edges
+            .filter((e) => e.target === _t)
+            .map((e) => e.source);
+        }
+
+        const newState = await processColumnLineage(
+          levelMap,
+          seeMoreIdTableReverseMap,
+          tableNodes,
+          { name: _column.name, table: _column.table },
+          connectedTables
+        );
+        const { nodes, edges, collectColumns } = mergeColumnLineages(
+          {
+            nodes: flow.getNodes(),
+            edges: flow.getEdges(),
+            collectColumns: {},
+          },
+          newState
+        );
+        flow.setNodes(nodes);
+        flow.setEdges(edges);
+        setCollectColumns(collectColumns);
+      }
+    };
+
+    bfsTraversal(true);
+    bfsTraversal(false);
   };
   if (isLoading || !data || !selectedTable) return <ComponentLoader />;
 

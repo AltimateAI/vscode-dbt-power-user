@@ -267,8 +267,8 @@ export class NewLineagePanel implements LineagePanelView {
   }: {
     table: string;
     column: string;
-    upstreamTables: string[];
-    downstreamTables: string[];
+    upstreamTables: string[] | undefined;
+    downstreamTables: string[] | undefined;
   }) {
     const nodeMetaMap = this.getEvent()?.nodeMetaMap;
     if (!nodeMetaMap) {
@@ -290,8 +290,8 @@ export class NewLineagePanel implements LineagePanelView {
       visibleTables[t] = node;
     };
     addToVisibleTable(table);
-    upstreamTables.forEach(addToVisibleTable);
-    downstreamTables.forEach(addToVisibleTable);
+    upstreamTables?.forEach(addToVisibleTable);
+    downstreamTables?.forEach(addToVisibleTable);
 
     const modelInfos: {
       compiled_sql: string | undefined;
@@ -387,7 +387,7 @@ export class NewLineagePanel implements LineagePanelView {
             model_info: modelInfos,
             target_model: table,
             target_column: column,
-            downstream_models: downstreamTables,
+            downstream_models: downstreamTables || [],
           });
         },
       );

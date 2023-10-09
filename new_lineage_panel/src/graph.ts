@@ -8,7 +8,6 @@ import {
   COLUMN_PREFIX,
   createForwardEdge,
   createTableNode,
-  defaultEdgeStyle,
   highlightEdgeStyle,
   highlightMarker,
   isColumn,
@@ -250,34 +249,19 @@ export const removeRelatedNodesEdges = (
 };
 
 export const processColumnLineage = async (
-  _nodes: Node[],
-  _edges: Edge[],
+  levelMap: Record<string, number>,
+  seeMoreIdTableReverseMap: Record<string, string>,
+  tableNodes: Record<string, boolean>,
   column: { name: string; table: string },
+  connectedTables: { upstreamTables?: string[]; downstreamTables?: string[] },
 ) => {
-  let nodes = _nodes.filter(isNotColumn);
-  let edges = _edges.filter(isNotColumn);
-  [nodes, edges] = resetTableHighlights(nodes, edges);
-
-  const levelMap: Record<string, number> = {};
-  nodes.forEach((n) => (levelMap[n.id] = n.data.level));
-
-  const tableNodes: Record<string, boolean> = {};
-  _nodes
-    .filter((_n) => _n.type === "table")
-    .forEach((_n) => (tableNodes[_n.id] = true));
-  const seeMoreIdTableReverseMap: Record<string, string> = {};
-  const upstreamTables = _edges.filter((e) => e.source === column.table).map(
-    (e) => e.target,
-  );
-  const downstreamTables = _edges.filter((e) => e.target === column.table).map(
-    (e) => e.source,
-  );
+  const nodes: Node[] = [];
+  const edges: Edge[] = [];
 
   const { columnLineage } = await getConnectedColumns({
     column: column.name,
     table: column.table,
-    upstreamTables,
-    downstreamTables,
+    ...connectedTables,
   });
 
   const collectColumns: Record<string, string[]> = {};
@@ -293,7 +277,6 @@ export const processColumnLineage = async (
   });
 
   for (const t in collectColumns) {
-    if (!tableNodes[t]) continue;
     collectColumns[t].sort();
     for (const c of collectColumns[t]) {
       nodes.push({
@@ -308,29 +291,6 @@ export const processColumnLineage = async (
     }
   }
 
-  edges.forEach((_e) => (_e.style = defaultEdgeStyle));
-
-  for (const e of _edges) {
-    if (e.id.startsWith(COLUMN_PREFIX)) continue;
-    const sourceTableExist = tableNodes[e.source];
-    const targetTableExist = tableNodes[e.target];
-    if (sourceTableExist && targetTableExist) {
-      continue;
-    }
-    if (sourceTableExist) {
-      const _n = _nodes.find((_n) => _n.id === e.target)!;
-      _n.data.tables.forEach((_t: { table: string }) => {
-        seeMoreIdTableReverseMap[_t.table] = e.target;
-      });
-      continue;
-    }
-    if (targetTableExist) {
-      const _n = _nodes.find((_n) => _n.id === e.source)!;
-      _n.data.tables.forEach((_t: { table: string }) => {
-        seeMoreIdTableReverseMap[_t.table] = e.source;
-      });
-    }
-  }
   const addToEdges = (
     id1: string,
     id2: string,
@@ -387,6 +347,27 @@ export const processColumnLineage = async (
 
   layoutElementsOnCanvas(nodes, edges);
 
+  return { nodes, edges, collectColumns };
+};
+
+export const mergeColumnLineages = (
+  prevState: {
+    nodes: Node[];
+    edges: Edge[];
+    collectColumns: Record<string, string[]>;
+  },
+  newState: {
+    nodes: Node[];
+    edges: Edge[];
+    collectColumns: Record<string, string[]>;
+  },
+) => {
+  const nodes = [...prevState.nodes, ...newState.nodes];
+  const edges = [...prevState.edges, ...newState.edges];
+  const collectColumns = {
+    ...prevState.collectColumns,
+    ...newState.collectColumns,
+  };
   return { nodes, edges, collectColumns };
 };
 
