@@ -304,17 +304,17 @@ const TableDetails = () => {
           { name: _column.name, table: _column.table },
           connectedTables
         );
-        const { nodes, edges, collectColumns } = mergeColumnLineages(
+        const mergedState = mergeColumnLineages(
           {
             nodes: flow.getNodes(),
             edges: flow.getEdges(),
-            collectColumns: {},
+            collectColumns: {}, // TODO: fix this 
           },
           newState
         );
-        flow.setNodes(nodes);
-        flow.setEdges(edges);
-        setCollectColumns(collectColumns);
+        flow.setNodes(mergedState.nodes);
+        flow.setEdges(mergedState.edges);
+        setCollectColumns(mergedState.collectColumns);
       }
     };
 

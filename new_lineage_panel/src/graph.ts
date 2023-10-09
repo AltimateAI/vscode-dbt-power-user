@@ -364,10 +364,25 @@ export const mergeColumnLineages = (
 ) => {
   const nodes = [...prevState.nodes, ...newState.nodes];
   const edges = [...prevState.edges, ...newState.edges];
-  const collectColumns = {
+
+  // deep merge
+  const collectColumns: Record<string, string[]> = {
     ...prevState.collectColumns,
-    ...newState.collectColumns,
   };
+  for (const t in newState.collectColumns) {
+    const _columns = newState.collectColumns[t];
+    if (!(t in collectColumns)) {
+      collectColumns[t] = _columns;
+      continue;
+    }
+    _columns.forEach((c) => {
+      if (collectColumns[t].includes(c)) {
+        return;
+      }
+      collectColumns[t].push(c);
+    });
+  }
+
   return { nodes, edges, collectColumns };
 };
 
