@@ -48,7 +48,6 @@ interface RenderError {
 
 interface InjectConfig {
   limit?: number;
-  enableNewQueryPanel: boolean;
   darkMode: boolean;
 }
 
@@ -69,7 +68,6 @@ interface RecError {
 interface RecConfig {
   limit?: number;
   scale?: number;
-  enableNewQueryPanel?: boolean;
 }
 
 @provideSingleton(QueryResultPanel)
@@ -154,11 +152,6 @@ export class QueryResultPanel implements WebviewViewProvider {
                 .getConfiguration("dbt")
                 .update("queryScale", config.scale);
             }
-            if ("enableNewQueryPanel" in config) {
-              workspace
-                .getConfiguration("dbt")
-                .update("enableNewQueryPanel", config.enableNewQueryPanel);
-            }
             break;
         }
       },
@@ -216,9 +209,6 @@ export class QueryResultPanel implements WebviewViewProvider {
   /** Sends VSCode config data to webview */
   private transmitConfig() {
     const limit = workspace.getConfiguration("dbt").get<number>("queryLimit");
-    const enableNewQueryPanel = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("enableNewQueryPanel", false);
     const queryTemplate = workspace
       .getConfiguration("dbt")
       .get<string>(
@@ -231,7 +221,6 @@ export class QueryResultPanel implements WebviewViewProvider {
         ...(<InjectConfig>{
           limit,
           queryTemplate,
-          enableNewQueryPanel,
           darkMode: ![
             ColorThemeKind.Light,
             ColorThemeKind.HighContrastLight,

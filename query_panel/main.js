@@ -61,7 +61,6 @@ const app = createApp({
       windowHeight: DEFAULT_HEIGHT,
       scale: 1,
       clipboardText: "",
-      enableNewQueryPanel: true,
       isDarkMode: false,
     };
   },
@@ -172,7 +171,6 @@ const app = createApp({
       if (data.scale) {
         this.scale = data.scale;
       }
-      this.enableNewQueryPanel = data.enableNewQueryPanel;
       this.isDarkMode = data.darkMode;
     },
     updateDispatchedCode(raw_stmt, compiled_stmt) {
@@ -206,11 +204,7 @@ const app = createApp({
       this.timer = undefined;
     },
     focusPreviewPane() {
-      const panelManager = document.querySelector("#panel-manager");
-      if (["tab-1", "tab-2"].includes(panelManager.activeid)) {
-        return;
-      }
-      panelManager.activeid = this.enableNewQueryPanel ? "tab-2" : "tab-1";
+      document.querySelector("#panel-manager").activeid = "tab-1";
     },
     timeExecution() {
       this.timer = setInterval(() => {
@@ -251,12 +245,6 @@ const app = createApp({
     },
     getPerspectiveTheme() {
       return this.isDarkMode ? "Pro Dark" : "Pro Light";
-    },
-    onLegacyPanel() {
-      updateConfig({ enableNewQueryPanel: false });
-    },
-    onNewPanel() {
-      updateConfig({ enableNewQueryPanel: true });
     },
   },
   computed: {

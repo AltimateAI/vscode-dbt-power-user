@@ -75,68 +75,20 @@
         <vscode-panel-tab
           v-show="(hasData || hasError || isLoading)"
           id="tab-1"
-          @click="onLegacyPanel"
         >
-          Preview(Legacy UI)
+          Preview
           <vscode-badge appearance="secondary"
             >{{ queryExecutionInfo }}</vscode-badge
           >
         </vscode-panel-tab>
 
-        <vscode-panel-tab
-          v-show="(hasData || hasError || isLoading)"
-          @click="onNewPanel"
-          id="tab-2"
-        >
-          Preview(New UI)
-          <vscode-badge appearance="secondary"
-            >{{ queryExecutionInfo }}</vscode-badge
-          >
-        </vscode-panel-tab>
-
-        <vscode-panel-tab v-show="hasCode" id="tab-3">
+        <vscode-panel-tab v-show="hasCode" id="tab-2">
           Dispatched SQL
         </vscode-panel-tab>
 
-        <vscode-panel-tab id="tab-4">
+        <vscode-panel-tab id="tab-3">
           {{ (hasData || hasError || isLoading) ? "Help" : "Welcome 🚀" }}
         </vscode-panel-tab>
-
-        <vscode-panel-view
-          v-show="(hasData || hasError || isLoading)"
-          id="view-1"
-        >
-          <img
-            v-if="isLoading"
-            id="spinner"
-            src="__ROOT__/assets/spinner.gif"
-          />
-
-          <div v-show="hasData" style="width: 100%">
-            <vscode-button
-              @click="copyResultsToClipboard"
-              style="margin-bottom: 4px"
-              >Copy Results</vscode-button
-            >
-            <vscode-button
-              @click="downloadAsCSV"
-              style="margin-left: 5px; margin-bottom: 4px"
-              >Download as CSV</vscode-button
-            >
-            <div id="query-results" :style="getTableStyles()"></div>
-          </div>
-
-          <div v-show="hasError">
-            <h3 class="error-title">{{ errorTitle }}</h3>
-            <h4>{{ errorMessage }}</h4>
-            <br />
-            <details>
-              <summary>View Detailed Error 🚨</summary>
-              <pre><code class="language-javascript" data-prismjs-copy="Copy Error" v-html="errorDataMarkup"></code></pre>
-            </details>
-            <br />
-          </div>
-        </vscode-panel-view>
 
         <vscode-panel-view style="height: 100%">
           <perspective-viewer
