@@ -283,7 +283,9 @@ export const processColumnLineage = async (
   const collectColumns: Record<string, string[]> = {};
   const addToCollectColumns = ([_table, _column]: [string, string]) => {
     collectColumns[_table] = collectColumns[_table] || [];
-    collectColumns[_table].push(_column);
+    if (!collectColumns[_table].includes(_column)) {
+      collectColumns[_table].push(_column);
+    }
   };
   columnLineage.forEach((e) => {
     addToCollectColumns(e.source);
