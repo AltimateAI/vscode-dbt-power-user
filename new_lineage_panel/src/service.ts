@@ -20,9 +20,13 @@ export type Columns = {
   purpose: string;
   columns: Column[];
 };
+
+type Edge = {
+  source :[string, string];
+  target :[string, string];
+}
 interface ColumnLineageResponse {
-  collectColumns: Record<string, string[]>;
-  highlightEdges: [string, string][];
+  columnLineage: Edge[];
 }
 
 export const upstreamTables = (tableKey: string) => {
@@ -44,8 +48,7 @@ export const getColumns = (table: string, refresh: boolean) => {
 };
 
 export const getConnectedColumns = (body: unknown) => {
-  console.log("service:getConnectedColumns -> ", body);
-  return requestExecutor("getConnectedColumns", body) as Promise<
+  return requestExecutor("getConnectedColumns2", body) as Promise<
     ColumnLineageResponse
   >;
 };

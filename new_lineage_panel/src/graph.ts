@@ -266,34 +266,28 @@ export const processColumnLineage = async (
     .filter((_n) => _n.type === "table")
     .forEach((_n) => (tableNodes[_n.id] = true));
   const seeMoreIdTableReverseMap: Record<string, string> = {};
-  const edgesPayload = [];
-  for (const e of _edges) {
-    if (e.id.startsWith(COLUMN_PREFIX)) continue;
-    const sourceTableExist = tableNodes[e.source];
-    const targetTableExist = tableNodes[e.target];
-    if (sourceTableExist && targetTableExist) {
-      edgesPayload.push({ src: e.source, dst: e.target });
-    } else if (sourceTableExist) {
-      const _n = _nodes.find((_n) => _n.id === e.target)!;
-      _n.data.tables.forEach((_t: { table: string }) => {
-        edgesPayload.push({ src: e.source, dst: _t.table });
-        seeMoreIdTableReverseMap[_t.table] = e.target;
-      });
-    } else if (targetTableExist) {
-      const _n = _nodes.find((_n) => _n.id === e.source)!;
-      _n.data.tables.forEach((_t: { table: string }) => {
-        edgesPayload.push({ src: _t.table, dst: e.target });
-        seeMoreIdTableReverseMap[_t.table] = e.source;
-      });
-    } else {
-      // TODO: check is nothing to do in this case
-    }
-  }
+  const upstreamTables = _edges.filter((e) => e.source === column.table).map(
+    (e) => e.target,
+  );
+  const downstreamTables = _edges.filter((e) => e.target === column.table).map(
+    (e) => e.source,
+  );
 
-  const { collectColumns, highlightEdges } = await getConnectedColumns({
+  const { columnLineage } = await getConnectedColumns({
     column: column.name,
     table: column.table,
-    edges: edgesPayload,
+    upstreamTables,
+    downstreamTables,
+  });
+
+  const collectColumns: Record<string, string[]> = {};
+  const addToCollectColumns = ([_table, _column]: [string, string]) => {
+    collectColumns[_table] = collectColumns[_table] || [];
+    collectColumns[_table].push(_column);
+  };
+  columnLineage.forEach((e) => {
+    addToCollectColumns(e.source);
+    addToCollectColumns(e.target);
   });
 
   for (const t in collectColumns) {
@@ -313,19 +307,41 @@ export const processColumnLineage = async (
   }
 
   edges.forEach((_e) => (_e.style = defaultEdgeStyle));
+
+  for (const e of _edges) {
+    if (e.id.startsWith(COLUMN_PREFIX)) continue;
+    const sourceTableExist = tableNodes[e.source];
+    const targetTableExist = tableNodes[e.target];
+    if (sourceTableExist && targetTableExist) {
+      continue;
+    }
+    if (sourceTableExist) {
+      const _n = _nodes.find((_n) => _n.id === e.target)!;
+      _n.data.tables.forEach((_t: { table: string }) => {
+        seeMoreIdTableReverseMap[_t.table] = e.target;
+      });
+      continue;
+    }
+    if (targetTableExist) {
+      const _n = _nodes.find((_n) => _n.id === e.source)!;
+      _n.data.tables.forEach((_t: { table: string }) => {
+        seeMoreIdTableReverseMap[_t.table] = e.source;
+      });
+    }
+  }
   const addToEdges = (
-    columnId: string,
     id1: string,
     id2: string,
     source: string,
     target: string,
   ) => {
+    const edgeId = COLUMN_PREFIX + `${source}-${target}`;
     const [sourceHandle, targetHandle] = getSourceTargetHandles(
       levelMap[id1],
       levelMap[id2],
     );
     edges.push({
-      id: columnId,
+      id: edgeId,
       source,
       target,
       sourceHandle,
@@ -337,31 +353,30 @@ export const processColumnLineage = async (
     });
   };
 
-  for (const e of highlightEdges) {
-    const [t0] = e[0].split("/");
-    const [t1] = e[1].split("/");
+  for (const e of columnLineage) {
+    const [t0] = e.source;
+    const [t1] = e.target;
 
     const sourceTableExist = tableNodes[t0];
     const targetTableExist = tableNodes[t1];
-    const columnId = COLUMN_PREFIX + `${e[0]}-${e[1]}`;
+    const source = COLUMN_PREFIX + e.source.join("/");
+    const target = COLUMN_PREFIX + e.target.join("/");
 
     if (sourceTableExist && targetTableExist) {
-      addToEdges(columnId, t0, t1, COLUMN_PREFIX + e[0], COLUMN_PREFIX + e[1]);
+      addToEdges(t0, t1, source, target);
     } else if (sourceTableExist) {
       addToEdges(
-        columnId,
         t0,
         seeMoreIdTableReverseMap[t1],
-        COLUMN_PREFIX + e[0],
+        source,
         seeMoreIdTableReverseMap[t1],
       );
     } else if (targetTableExist) {
       addToEdges(
-        columnId,
         seeMoreIdTableReverseMap[t0],
         t1,
         seeMoreIdTableReverseMap[t0],
-        COLUMN_PREFIX + e[1],
+        target,
       );
     } else {
       // TODO: check is nothing to do in this case

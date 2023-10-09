@@ -151,6 +151,15 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
 
+    if (command === "getConnectedColumns2") {
+      const body = await this.getConnectedColumns2(params);
+      this._panel?.webview.postMessage({
+        command: "response",
+        args: { id, body, status: !!body },
+      });
+      return;
+    }
+
     console.error("Unsupported mssage", message);
   }
 
@@ -248,6 +257,168 @@ export class NewLineagePanel implements LineagePanelView {
         }))
         .sort((a, b) => a.name.localeCompare(b.name)),
     };
+  }
+
+  private async getConnectedColumns2({
+    table,
+    column,
+    upstreamTables,
+    downstreamTables,
+  }: {
+    table: string;
+    column: string;
+    upstreamTables: string[];
+    downstreamTables: string[];
+  }) {
+    const nodeMetaMap = this.getEvent()?.nodeMetaMap;
+    if (!nodeMetaMap) {
+      return;
+    }
+    const project = this.getProject();
+    if (!project) {
+      return;
+    }
+    const visibleTables: Record<string, NodeMetaData> = {};
+    const addToVisibleTable = (t: string) => {
+      if (t in visibleTables) {
+        return;
+      }
+      const node = nodeMetaMap.get(t);
+      if (!node) {
+        return;
+      }
+      visibleTables[t] = node;
+    };
+    addToVisibleTable(table);
+    upstreamTables.forEach(addToVisibleTable);
+    downstreamTables.forEach(addToVisibleTable);
+
+    const modelInfos: {
+      compiled_sql: string | undefined;
+      model_node: NodeMetaData;
+    }[] = [];
+    const relationsWithoutColumns: string[] = [];
+    try {
+      await window.withProgress(
+        {
+          title: "Fetching metadata",
+          location: ProgressLocation.Notification,
+          cancellable: false,
+        },
+        async () => {
+          await Promise.all(
+            Object.values(visibleTables).map(async (node) => {
+              let compiledSql: string | undefined;
+              if (node.config.materialized === "ephemeral") {
+                // ephemeral nodes can be skipped. they dont have a schema
+                // and their sql makes it into the compiled sql of the models
+                // referring to it.
+                return;
+              }
+              if (node.config.materialized !== "seed") {
+                compiledSql = await project.compileNode(node.name);
+                if (!compiledSql) {
+                  return;
+                }
+              }
+              const ok = await this.addColumnsFromDB(project, node);
+              if (!ok) {
+                relationsWithoutColumns.push(node.alias);
+                return;
+              }
+              modelInfos.push({ compiled_sql: compiledSql, model_node: node });
+            }),
+          );
+        },
+      );
+    } catch (exc) {
+      if (exc instanceof PythonException) {
+        window.showErrorMessage(
+          "An error occured while trying to compile your node: " +
+            exc.exception.message +
+            ".",
+        );
+        this.telemetry.sendTelemetryError(
+          "columnLineageCompileNodePythonError",
+          exc,
+        );
+        console.error(
+          "Exception: " +
+            exc.exception.message +
+            "\n\n" +
+            "Detailed error information:\n" +
+            exc,
+        );
+        return;
+      }
+      this.telemetry.sendTelemetryError(
+        "columnLineageCompileNodeUnknownError",
+        exc,
+      );
+      // Unknown error
+      window.showErrorMessage(
+        "Encountered an unknown issue: " + exc + " while compiling nodes.",
+      );
+      return;
+    }
+
+    if (relationsWithoutColumns.length !== 0) {
+      window.showErrorMessage(
+        "Failed to fetch columns for following tables: " +
+          relationsWithoutColumns.join(", ") +
+          ".",
+      );
+      // we still show the lineage for the rest of the models whose
+      // schemas we could get so not returning here
+    }
+
+    const modelDialect = project.getAdapterType();
+    let result;
+    try {
+      result = await window.withProgress(
+        {
+          title: "Fetching column lineage",
+          location: ProgressLocation.Notification,
+          cancellable: false,
+        },
+        async () => {
+          return await this.altimate.getColumnLevelLineage({
+            model_dialect: modelDialect,
+            model_info: modelInfos,
+            target_model: table,
+            target_column: column,
+            downstream_models: downstreamTables,
+          });
+        },
+      );
+    } catch (error) {
+      if (error instanceof AbortError) {
+        window.showErrorMessage("Fetching column level lineage timed out.");
+        this.telemetry.sendTelemetryError(
+          "columnLevelLineageRequestTimeout",
+          error,
+        );
+        return;
+      }
+      window.showErrorMessage(
+        "An unexpected error occured while fetching column level lineage.",
+      );
+      this.telemetry.sendTelemetryError("ColumnLevelLineageError", error);
+      return;
+    }
+    if (!Array.isArray(result)) {
+      window.showErrorMessage(
+        "An unexpected error occured while fetching column level lineage.",
+      );
+      this.telemetry.sendTelemetryEvent(
+        "columnLevelLineageInvalidResponse",
+        result,
+      );
+      return;
+    }
+    const columnLineage = result!.flat().filter((e) => !!e);
+    console.log("cll -> ", columnLineage);
+    return { columnLineage };
   }
 
   private async getConnectedColumns({
