@@ -1,6 +1,7 @@
 import { createApp } from "vue";
-import "tabulator"; // Exposes Tabulator class
 import "prism"; // Exposes Prism object
+import perspective from "perspective";
+import "perspective-viewer";
 
 const vscode = acquireVsCodeApi();
 
@@ -13,9 +14,6 @@ async function updateConfig(config) {
 }
 
 const DEFAULT_HEIGHT = 455;
-
-import perspective from "perspective";
-import "perspective-viewer";
 
 class Grid {
   constructor() {}
@@ -47,7 +45,6 @@ const app = createApp({
     return {
       count: 0,
       data: null,
-      table: undefined,
       rawCode: "",
       compiledCode: "",
       error: {},
@@ -66,18 +63,18 @@ const app = createApp({
   },
   methods: {
     // Converts the provided data to CSV format.
-    dataToCsv(data) {
-      if (!data || data.length === 0) {
+    dataToCsv(columns, rows) {
+      if (!rows || rows.length === 0) {
         console.error("No data available to convert to CSV");
         return "";
       }
       const replacer = (key, value) => (value === null ? "" : value);
-      const header = Object.keys(data[0]);
       const csv = [
-        header.join(","),
-        ...data.map((row) =>
-          header
-            .map((fieldName) => {
+        columns.map((c) => c.title).join(","),
+        ...rows.map((row) =>
+          columns
+            .map((c) => {
+              const fieldName = c.field;
               let fieldData = row[fieldName];
               if (fieldData && typeof fieldData === "string") {
                 fieldData = fieldData.replace(/"/g, '""'); // Escape double quotes
@@ -91,13 +88,13 @@ const app = createApp({
       return csv;
     },
     downloadAsCSV() {
-      const data = this.table.getData(); // Get the data the same way you do for copying
+      const data = this.cacheData;
       try {
         if (!data || data.length === 0) {
           console.error("No data available for downloading.");
           return;
         }
-        const csvContent = this.dataToCsv(data);
+        const csvContent = this.dataToCsv(data.columns, data.rows);
         const blob = new Blob([csvContent], { type: "text/csv" });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -105,12 +102,12 @@ const app = createApp({
         a.download = `power_user_data_${new Date().toISOString()}.csv`; // Filename with a timestamp
         a.click();
       } catch (error) {
+        // Log error for debugging
+        console.error("Failed to download CSV:", error);
         // Show error message
         vscode.window.showErrorMessage(
           "Unable to download data as CSV. " + error.message,
         );
-        // Log error for debugging
-        console.error("Failed to download CSV:", error);
       }
     },
     copyTextToClipboard(text) {
@@ -140,23 +137,6 @@ const app = createApp({
         const exportButton = shadowRoot.getElementById("export");
         exportButton.addEventListener("click", () => this.downloadAsCSV());
       }, 1000);
-      this.table = new Tabulator("#query-results", {
-        height: this.tableHeight,
-        data: data.rows,
-        columns: data.columns,
-        layout: "fitDataFill",
-        headerSortElement: function (column, dir) {
-          //dir - current sort direction ("asc", "desc", "none")
-          switch (dir) {
-            case "asc":
-              return "<p>&#9660;</p>";
-            case "desc":
-              return "<p>&#9650;</p>";
-            default:
-              return "<p>&#9661;</p>";
-          }
-        },
-      });
     },
     updateError(data) {
       this.error = data.error;
@@ -195,7 +175,6 @@ const app = createApp({
     clearData() {
       this.count = 0;
       this.cacheData = null;
-      this.table = undefined;
       this.rawCode = "";
       this.compiledCode = "";
       this.error = {};
