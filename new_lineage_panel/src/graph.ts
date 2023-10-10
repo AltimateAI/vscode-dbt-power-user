@@ -6,8 +6,9 @@ import {
   C_OFFSET_Y,
   C_PADDING_Y,
   COLUMN_PREFIX,
-  createForwardEdge,
+  createTableEdge,
   createTableNode,
+  getSourceTargetHandles,
   highlightEdgeStyle,
   highlightMarker,
   isColumn,
@@ -34,7 +35,9 @@ export const createNewNodesEdges = (
   const _node = newNodes.find((_n) => _n.id === t);
   if (_node) _node.data.processed[right ? 1 : 0] = true;
 
-  const addUniqueEdge = (_edge: Edge) => {
+  const addUniqueEdge = (to: string) => {
+    const toLevel = newNodes.find((n) => n.id === to)?.data?.level;
+    const _edge = createTableEdge(level, toLevel, t, to, right);
     const existingEdge = newEdges.find((e) => e.id === _edge.id);
     if (!existingEdge) newEdges.push(_edge);
   };
@@ -44,7 +47,7 @@ export const createNewNodesEdges = (
     if (!existingNode) {
       newNodes.push(createTableNode(_t, newLevel, t));
     }
-    addUniqueEdge(createForwardEdge(t, _t.table, right));
+    addUniqueEdge(_t.table);
   });
 
   if (tables.length > MAX_EXPAND_TABLE) {
@@ -62,7 +65,7 @@ export const createNewNodesEdges = (
       width: T_NODE_W,
       height: 100,
     });
-    addUniqueEdge(createForwardEdge(t, _t, right));
+    addUniqueEdge(_t);
   }
 
   return [newNodes, newEdges];
@@ -362,23 +365,6 @@ export const mergeNodesEdges = (
   patchState.edges.forEach((e) => !edgesId[e.id] && edges.push(e));
   layoutElementsOnCanvas(nodes, edges);
   return [nodes, edges];
-};
-
-const getSourceTargetHandles = (
-  l0: number,
-  l1: number,
-): ["left" | "right", "left" | "right"] => {
-  if (l0 < l1) {
-    return ["right", "left"];
-  }
-  // TODO: check if this case will happen for dbt
-  if (l0 > l1) {
-    return ["left", "right"];
-  }
-  if (l0 < 0) {
-    return ["left", "left"];
-  }
-  return ["right", "right"];
 };
 
 export const removeColumnNodes = (

@@ -43,32 +43,32 @@ export const isColumn = (x: { id: string }) => x.id.startsWith(COLUMN_PREFIX);
 export const isNotColumn = (x: { id: string }) =>
   !x.id.startsWith(COLUMN_PREFIX);
 
-const _createEdge =
-  (sourceHandle: string, targetHandle: string, edgeType: string) =>
-  (n1: string, n2: string, right: boolean): Edge => {
-    let src = n1;
-    let dst = n2;
-    if (!right) {
-      src = n2;
-      dst = n1;
-    }
-    if (n1 === n2) {
-      edgeType = "selfConnecting";
-    }
-    return {
-      id: `${src}-${dst}`,
-      source: src,
-      target: dst,
-      sourceHandle,
-      targetHandle,
-      style: defaultEdgeStyle,
-      markerEnd: defaultMarker,
-      type: edgeType,
-    };
+export const createTableEdge = (
+  n1Level: number,
+  n2Level: number,
+  n1: string,
+  n2: string,
+  right: boolean,
+): Edge => {
+  const [src, dst] = right ? [n1, n2] : [n2, n1];
+  const [sourceHandle, targetHandle] = right
+    ? getSourceTargetHandles(n1Level, n2Level)
+    : getSourceTargetHandles(n2Level, n1Level);
+  return {
+    id: `${src}-${dst}`,
+    source: src,
+    target: dst,
+    sourceHandle,
+    targetHandle,
+    style: defaultEdgeStyle,
+    markerEnd: defaultMarker,
+    type: n1 === n2
+      ? "selfConnecting"
+      : n1Level === n2Level
+      ? "smoothstep"
+      : "default",
   };
-
-export const createForwardEdge = _createEdge("right", "left", "default");
-export const createReverseEdge = _createEdge("left", "right", "default");
+};
 
 export const createTableNode = (
   { table, upstreamCount, downstreamCount, url, nodeType, key }: Table,
@@ -99,4 +99,21 @@ export const createTableNode = (
 export const applyEdgeStyling = (e: Edge, highlight: boolean) => {
   e.style = highlight ? highlightEdgeStyle : defaultEdgeStyle;
   e.markerEnd = highlight ? highlightMarker : defaultMarker;
+};
+
+export const getSourceTargetHandles = (
+  l0: number,
+  l1: number,
+): ["left" | "right", "left" | "right"] => {
+  if (l0 < l1) {
+    return ["right", "left"];
+  }
+  // TODO: check if this case will happen for dbt
+  if (l0 > l1) {
+    return ["left", "right"];
+  }
+  if (l0 < 0) {
+    return ["left", "left"];
+  }
+  return ["right", "right"];
 };
