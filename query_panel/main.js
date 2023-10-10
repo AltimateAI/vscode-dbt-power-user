@@ -188,7 +188,7 @@ const app = createApp({
       });
       setTimeout(() => {
         document.querySelector("#panel-manager").activeid = prevTab;
-      }, 500);
+      }, 100);
     },
   },
   computed: {
