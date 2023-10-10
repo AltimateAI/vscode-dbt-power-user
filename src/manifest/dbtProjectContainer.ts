@@ -217,6 +217,10 @@ export class DBTProjectContainer implements Disposable {
     this.findDBTProject(uri)?.executeSQL(query);
   }
 
+  getSummary(uri: Uri, query: string): void {
+    this.findDBTProject(uri)?.getSummary(query);
+  }
+
   runModel(modelPath: Uri, type?: RunModelType) {
     this.findDBTProject(modelPath)?.runModel(
       this.createModelParams(modelPath, type),

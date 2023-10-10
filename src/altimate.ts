@@ -189,4 +189,14 @@ export class AltimateRequest {
       body: JSON.stringify(req),
     });
   }
+
+  async getQuerySummary(compiled_sql: string, adapter: string) {
+    return this.fetch<{ explanation: string; ok: string }>(
+      "dbt/v1/query-explain",
+      {
+        method: "POST",
+        body: JSON.stringify({ compiled_sql, adapter }),
+      },
+    );
+  }
 }

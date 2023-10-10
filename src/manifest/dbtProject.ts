@@ -552,7 +552,7 @@ export class DBTProject implements Disposable {
           "Encountered an unknown issue: " + exc + ".",
         ),
       );
-      return "Detailed error information:\n" + exc;
+      return "Exception:\n\nDetailed error information:\n" + exc;
     }
   }
 
@@ -814,6 +814,16 @@ select * from renamed
     }
   }
 
+  async getSummary(query: string) {
+    this.telemetry.sendTelemetryEvent("getSummary");
+    const compiledSql = await this.compileQuery(query);
+    if (compiledSql === undefined || compiledSql.startsWith("Exception:")) {
+      // error handling done inside compileQuery
+      return;
+    }
+    this.queryResultPanel.getSummary(compiledSql, this.adapterType);
+  }
+
   async executeSQL(query: string) {
     await this.blockUntilPythonBridgeIsInitalized();
     if (!this.pythonBridgeInitialized) {
@@ -861,6 +871,7 @@ select * from renamed
       this.python?.lock(
         (python) => python!`to_dict(project.execute_sql(${limitQuery}))`,
       ) as Promise<ExecuteSQLResult>,
+      this.adapterType,
     );
   }
 

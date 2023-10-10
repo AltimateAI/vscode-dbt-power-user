@@ -81,12 +81,14 @@
           >
         </vscode-panel-tab>
 
-        <vscode-panel-tab v-show="hasCode" id="tab-2">
-          Dispatched SQL
+        <vscode-panel-tab v-show="hasCode" id="tab-2"> SQL </vscode-panel-tab>
+        <vscode-panel-tab v-show="hasSummary" id="tab-6">
+          Summary
         </vscode-panel-tab>
 
         <vscode-panel-tab id="tab-3">
-          {{ (hasData || hasError || isLoading) ? "Help" : "Welcome 🚀" }}
+          {{ (hasData || hasError || isLoading || hasSummary) ? "Help" :
+          "Welcome 🚀" }}
         </vscode-panel-tab>
         <vscode-panel-tab id="tab-4" v-show="hasData" @click="togglePerspective"
           >{{ isPerspective ? "Show legacy UI" : "Show new UI"
@@ -142,10 +144,28 @@
         </vscode-panel-view>
         <vscode-panel-view v-show="hasCode" id="view-2">
           <div>
-            <pre><code class="language-sql line-numbers" data-prismjs-copy="Copy SQL" v-html="compiledCodeMarkup"></code></pre>
+            <div>
+              <pre><code class="language-sql line-numbers" data-prismjs-copy="Copy SQL" v-html="compiledCodeMarkup"></code></pre>
+            </div>
+            <div v-show="!hasSummary">
+              DataPilot can try to explain the query
+              <div style="display: flex; justify-content: flex-end">
+                <vscode-button @click="onGetSummary" style="margin-bottom: 4px"
+                  >Generate Summary</vscode-button
+                >
+              </div>
+            </div>
           </div>
         </vscode-panel-view>
-
+        <vscode-panel-view v-show="hasSummary" id="view-6">
+          <div>
+            <h2>Query Explanation</h2>
+            <pre>
+            <p v-html="summary" style="margin: 2em;"></p>
+          </pre>
+            <div @click="onSummaryFeedback">Give us Feedback</div>
+          </div>
+        </vscode-panel-view>
         <vscode-panel-view id="view-3">
           <div>
             <br />

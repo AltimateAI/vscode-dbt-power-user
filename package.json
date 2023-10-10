@@ -360,6 +360,11 @@
         "icon": "$(play)"
       },
       {
+        "command": "dbtPowerUser.summarizeQuery",
+        "title": "Explain selected SQL",
+        "icon": "$(lightbulb-autofix)"
+      },
+      {
         "command": "dbtPowerUser.buildCurrentModel",
         "title": "Build dbt Model",
         "icon": {
@@ -386,6 +391,11 @@
         {
           "command": "dbtPowerUser.executeSQL",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "group": "navigation@1"
+        },
+        {
+          "command": "dbtPowerUser.summarizeQuery",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.altimateInstanceName && config.dbt.altimateAiKey",
           "group": "navigation@1"
         },
         {

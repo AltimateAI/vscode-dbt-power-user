@@ -96,6 +96,9 @@ const app = createApp({
       clickTimer: null,
       table: undefined,
       isPerspective: true,
+      summary: undefined,
+      previousSummary: undefined,
+      previousCode: undefined,
     };
   },
   methods: {
@@ -212,9 +215,40 @@ const app = createApp({
       this.isPerspective = data.enableNewQueryPanel;
       this.isDarkMode = data.darkMode;
     },
+    updateSummary(data) {
+      if (data.summary) {
+        // this.summary = data.summary;
+        console.log(data);
+        // If the query we're getting summary for is different from the one
+        // we're currently displaying, clear the data as it will create confusion.
+        let newCompiledCode = data.compiled_sql;
+        try {
+          const queryRegex = new RegExp(
+            this.queryTemplate
+              .replace(/\(/g, "\\(")
+              .replace(/\)/g, "\\)")
+              .replace(/\*/g, "\\*")
+              .replace("{query}", "([\\w\\W]+)")
+              .replace("{limit}", this.limit.toString()),
+            "gm",
+          );
+          const result = queryRegex.exec(data.compiled_sql);
+          newCompiledCode = result[1];
+        } catch (err) {}
+
+        if (this.hasCode && newCompiledCode !== this.compiledCode) {
+          this.clearData();
+        }
+        this.summary = data.summary;
+        this.compiledCode = newCompiledCode;
+      }
+    },
+    focusSummaryTab() {
+      document.querySelector("#panel-manager").activeid = "tab-6";
+    },
     updateDispatchedCode(raw_stmt, compiled_stmt) {
       this.rawCode = raw_stmt;
-
+      let newCompiledCode = compiled_stmt;
       try {
         const queryRegex = new RegExp(
           this.queryTemplate
@@ -226,12 +260,19 @@ const app = createApp({
           "gm",
         );
         const result = queryRegex.exec(compiled_stmt);
-        this.compiledCode = result[1];
-        return;
+        newCompiledCode = result[1].trim();
       } catch (err) {}
-      this.compiledCode = compiled_stmt;
+      if (newCompiledCode !== this.previousCode && this.previousSummary) {
+        this.summary = undefined;
+        this.previousCode = undefined;
+        this.previousSummary = undefined;
+      }
+      this.compiledCode = newCompiledCode;
+      this.summary = this.previousSummary;
     },
     clearData() {
+      this.previousCode = this.compiledCode;
+      this.previousSummary = this.summary;
       this.count = 0;
       this.data = undefined;
       this.table = undefined;
@@ -288,6 +329,20 @@ const app = createApp({
     getPerspectiveTheme() {
       return this.isDarkMode ? "Pro Dark" : "Pro Light";
     },
+    onGetSummary() {
+      if (!this.hasCode) {
+        // This will never be the case but adding for type safety
+        return;
+      }
+      executeCommand("getSummary", {
+        compiledSql: this.compiledCode,
+      });
+    },
+    onSummaryFeedback() {
+      executeCommand("openUrl", {
+        url: "https://docs.google.com/forms/d/e/1FAIpQLScwN3wRTAniQzvcO6Hn3jC0WtBoFE2NP4X_6qGQ09IZKZ3Ojw/viewform",
+      });
+    },
     onFeedback() {
       const prevTab = document.querySelector("#panel-manager").activeid;
       executeCommand("openUrl", {
@@ -306,6 +361,9 @@ const app = createApp({
     },
     hasData() {
       return !!this.data;
+    },
+    hasSummary() {
+      return !!this.summary;
     },
     hasError() {
       return this.error?.data;
@@ -399,6 +457,10 @@ const app = createApp({
           break;
         case "resetState":
           this.clearData();
+          break;
+        case "renderSummary":
+          this.updateSummary(event.data);
+          this.focusSummaryTab();
           break;
       }
     });
