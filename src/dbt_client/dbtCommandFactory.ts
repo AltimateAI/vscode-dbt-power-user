@@ -219,9 +219,13 @@ export class DBTCommandFactory {
   }
 
   private dbtCommand(cmd: string | string[]): string {
+    // Lets pass through these params here too
+    const dbtCustomRunnerImport = workspace
+    .getConfiguration("dbt")
+    .get<string>("dbtCustomRunnerImport", "from dbt.cli.main import dbtRunner");
     return `has_dbt_runner = True
 try: 
-    from dbt.cli.main import dbtRunner
+    ${dbtCustomRunnerImport}
 except:
     has_dbt_runner = False
 if has_dbt_runner:
