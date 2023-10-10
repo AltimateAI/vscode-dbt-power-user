@@ -310,7 +310,7 @@ const TableDetails = () => {
           levelMap,
           seeMoreIdTableReverseMap,
           tableNodes,
-          { name: _column.name, table: _column.table },
+          { name: _c, table: _t },
           connectedTables
         );
         patchState.nodes.forEach((n) =>
