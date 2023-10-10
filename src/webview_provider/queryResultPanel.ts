@@ -3,6 +3,7 @@ import {
   ColorThemeKind,
   commands,
   Disposable,
+  env,
   ProgressLocation,
   Uri,
   Webview,
@@ -55,6 +56,7 @@ enum InboundCommand {
   Info = "info",
   Error = "error",
   UpdateConfig = "updateConfig",
+  OpenUrl = "openUrl",
 }
 
 interface RecInfo {
@@ -68,6 +70,10 @@ interface RecError {
 interface RecConfig {
   limit?: number;
   scale?: number;
+}
+
+interface RecOpenUrl {
+  url: string;
 }
 
 @provideSingleton(QueryResultPanel)
@@ -153,6 +159,11 @@ export class QueryResultPanel implements WebviewViewProvider {
                 .update("queryScale", config.scale);
             }
             break;
+          case InboundCommand.OpenUrl: {
+            const config = message as RecOpenUrl;
+            env.openExternal(Uri.parse(config.url));
+            break;
+          }
         }
       },
       null,

@@ -83,6 +83,9 @@
         <vscode-panel-tab id="tab-3">
           {{ (hasData || hasError || isLoading) ? "Help" : "Welcome 🚀" }}
         </vscode-panel-tab>
+        <vscode-panel-tab id="tab-4" @click="onFeedback"
+          >Feedback</vscode-panel-tab
+        >
 
         <vscode-panel-view
           style="height: 100%"
@@ -140,6 +143,7 @@
             </p>
           </div>
         </vscode-panel-view>
+        <vscode-panel-view></vscode-panel-view>
       </vscode-panels>
     </div>
     <script nonce="__NONCE__" type="module" src="__ROOT__/main.js"></script>

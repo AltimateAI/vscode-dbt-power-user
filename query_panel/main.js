@@ -105,10 +105,9 @@ const app = createApp({
       } catch (error) {
         // Log error for debugging
         console.error("Failed to download CSV:", error);
-        // Show error message
-        vscode.window.showErrorMessage(
-          "Unable to download data as CSV. " + error.message,
-        );
+        executeCommand("error", {
+          text: "Unable to download data as CSV. " + error.message,
+        });
       }
     },
     updateTable(data) {
@@ -181,6 +180,15 @@ const app = createApp({
     },
     getPerspectiveTheme() {
       return this.isDarkMode ? "Pro Dark" : "Pro Light";
+    },
+    onFeedback() {
+      const prevTab = document.querySelector("#panel-manager").activeid;
+      executeCommand("openUrl", {
+        url: "https://docs.google.com/forms/d/19wX5b5_xXL6J_Q_GpuWzYddIXbvLxuarv09Y3VRk_EU/edit",
+      });
+      setTimeout(() => {
+        document.querySelector("#panel-manager").activeid = prevTab;
+      }, 500);
     },
   },
   computed: {
