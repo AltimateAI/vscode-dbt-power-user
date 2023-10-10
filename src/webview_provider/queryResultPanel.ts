@@ -3,6 +3,7 @@ import {
   ColorThemeKind,
   commands,
   Disposable,
+  env,
   ProgressLocation,
   Uri,
   Webview,
@@ -48,12 +49,14 @@ interface RenderError {
 
 interface InjectConfig {
   limit?: number;
+  darkMode: boolean;
 }
 
 enum InboundCommand {
   Info = "info",
   Error = "error",
   UpdateConfig = "updateConfig",
+  OpenUrl = "openUrl",
 }
 
 interface RecInfo {
@@ -67,6 +70,10 @@ interface RecError {
 interface RecConfig {
   limit?: number;
   scale?: number;
+}
+
+interface RecOpenUrl {
+  url: string;
 }
 
 @provideSingleton(QueryResultPanel)
@@ -152,6 +159,11 @@ export class QueryResultPanel implements WebviewViewProvider {
                 .update("queryScale", config.scale);
             }
             break;
+          case InboundCommand.OpenUrl: {
+            const config = message as RecOpenUrl;
+            env.openExternal(Uri.parse(config.url));
+            break;
+          }
         }
       },
       null,
@@ -217,7 +229,14 @@ export class QueryResultPanel implements WebviewViewProvider {
     if (this._panel) {
       this._panel.webview.postMessage({
         command: OutboundCommand.InjectConfig,
-        ...(<InjectConfig>{ limit, queryTemplate }),
+        ...(<InjectConfig>{
+          limit,
+          queryTemplate,
+          darkMode: ![
+            ColorThemeKind.Light,
+            ColorThemeKind.HighContrastLight,
+          ].includes(window.activeColorTheme.kind),
+        }),
       });
     }
   }

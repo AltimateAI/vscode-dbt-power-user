@@ -1,6 +1,7 @@
 import { createApp } from "vue";
-import "tabulator"; // Exposes Tabulator class
 import "prism"; // Exposes Prism object
+import perspective from "perspective";
+import "perspective-viewer";
 
 const vscode = acquireVsCodeApi();
 
@@ -14,11 +15,36 @@ async function updateConfig(config) {
 
 const DEFAULT_HEIGHT = 455;
 
+class Grid {
+  constructor() {}
+
+  async init() {
+    this.worker = perspective.worker();
+    this.elem = document.querySelector("perspective-viewer");
+  }
+
+  async load(rows) {
+    const table = await this.worker.table(rows);
+    await this.elem.load(table);
+    await this.elem.restore({
+      settings: true,
+      title: "query result",
+      plugin_config: { editable: false },
+    });
+  }
+}
+
+const grid = new Grid();
+
+window.addEventListener("DOMContentLoaded", async function () {
+  grid.init();
+});
+
 const app = createApp({
   data() {
     return {
       count: 0,
-      table: undefined,
+      data: null,
       rawCode: "",
       compiledCode: "",
       error: {},
@@ -32,22 +58,24 @@ const app = createApp({
       windowHeight: DEFAULT_HEIGHT,
       scale: 1,
       clipboardText: "",
+      isDarkMode: false,
+      clickTimer: null,
     };
   },
   methods: {
     // Converts the provided data to CSV format.
-    dataToCsv(data) {
-      if (!data || data.length === 0) {
+    dataToCsv(columns, rows) {
+      if (!rows || rows.length === 0) {
         console.error("No data available to convert to CSV");
         return "";
       }
       const replacer = (key, value) => (value === null ? "" : value);
-      const header = Object.keys(data[0]);
       const csv = [
-        header.join(","),
-        ...data.map((row) =>
-          header
-            .map((fieldName) => {
+        columns.map((c) => c.title).join(","),
+        ...rows.map((row) =>
+          columns
+            .map((c) => {
+              const fieldName = c.field;
               let fieldData = row[fieldName];
               if (fieldData && typeof fieldData === "string") {
                 fieldData = fieldData.replace(/"/g, '""'); // Escape double quotes
@@ -61,13 +89,13 @@ const app = createApp({
       return csv;
     },
     downloadAsCSV() {
-      const data = this.table.getData(); // Get the data the same way you do for copying
+      const data = this.cacheData;
       try {
         if (!data || data.length === 0) {
           console.error("No data available for downloading.");
           return;
         }
-        const csvContent = this.dataToCsv(data);
+        const csvContent = this.dataToCsv(data.columns, data.rows);
         const blob = new Blob([csvContent], { type: "text/csv" });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -75,50 +103,16 @@ const app = createApp({
         a.download = `power_user_data_${new Date().toISOString()}.csv`; // Filename with a timestamp
         a.click();
       } catch (error) {
-        // Show error message
-        vscode.window.showErrorMessage(
-          "Unable to download data as CSV. " + error.message,
-        );
         // Log error for debugging
         console.error("Failed to download CSV:", error);
-      }
-    },
-    copyTextToClipboard(text) {
-      navigator.clipboard.writeText(text);
-    },
-    // Copies the table's data to the clipboard in CSV format.
-    async copyResultsToClipboard() {
-      try {
-        const data = this.table.getData();
-        const csv = this.dataToCsv(data);
-        this.copyTextToClipboard(csv);
-      } catch (error) {
-        console.error("Error copying results to clipboard:", error);
-        // Show error message
-        vscode.window.showErrorMessage(
-          "Unable to convert data to CSV. " + error.message,
-        );
+        executeCommand("error", {
+          text: "Unable to download data as CSV. " + error.message,
+        });
       }
     },
     updateTable(data) {
       this.count = data.rows.length;
-      this.table = new Tabulator("#query-results", {
-        height: this.tableHeight,
-        data: data.rows,
-        columns: data.columns,
-        layout: "fitDataFill",
-        headerSortElement: function (column, dir) {
-          //dir - current sort direction ("asc", "desc", "none")
-          switch (dir) {
-            case "asc":
-              return "<p>&#9660;</p>";
-            case "desc":
-              return "<p>&#9650;</p>";
-            default:
-              return "<p>&#9661;</p>";
-          }
-        },
-      });
+      grid.load(data.rows);
     },
     updateError(data) {
       this.error = data.error;
@@ -133,6 +127,7 @@ const app = createApp({
       if (data.scale) {
         this.scale = data.scale;
       }
+      this.isDarkMode = data.darkMode;
     },
     updateDispatchedCode(raw_stmt, compiled_stmt) {
       this.rawCode = raw_stmt;
@@ -155,7 +150,7 @@ const app = createApp({
     },
     clearData() {
       this.count = 0;
-      this.table = undefined;
+      this.cacheData = null;
       this.rawCode = "";
       this.compiledCode = "";
       this.error = {};
@@ -174,33 +169,28 @@ const app = createApp({
     endTimer() {
       clearTimeout(this.timer);
     },
-    setTableHeight() {
-      this.table.setHeight(this.windowHeight);
-    },
-    handleResize(event) {
-      const currentHeight = window.innerHeight;
-      if (this.windowHeight !== currentHeight) {
-        this.windowHeight = currentHeight;
-        if (currentHeight < DEFAULT_HEIGHT) {
-          this.windowHeight = DEFAULT_HEIGHT;
-        }
-        cancelAnimationFrame(this.resizeTimer);
-        this.resizeTimer = requestAnimationFrame(this.setTableHeight);
-      }
-    },
-    getTableStyles() {
+    getPerspectiveStyles() {
       return {
-        fontSize: `${this.scale}em`,
-        lineHeight: `${this.scale}`,
+        width: "100%",
+        height: "100%",
+        minHeight: "400px",
+        display: "block",
       };
+    },
+    getPerspectiveTheme() {
+      return this.isDarkMode ? "Pro Dark" : "Pro Light";
+    },
+    onFeedback() {
+      const prevTab = document.querySelector("#panel-manager").activeid;
+      executeCommand("openUrl", {
+        url: "https://docs.google.com/forms/d/19wX5b5_xXL6J_Q_GpuWzYddIXbvLxuarv09Y3VRk_EU/edit",
+      });
+      setTimeout(() => {
+        document.querySelector("#panel-manager").activeid = prevTab;
+      }, 100);
     },
   },
   computed: {
-    tableHeight() {
-      return this.count * 65 < this.windowHeight
-        ? this.count * 65
-        : this.windowHeight;
-    },
     hasData() {
       return this.count > 0;
     },
@@ -253,10 +243,21 @@ const app = createApp({
     },
   },
   mounted() {
+    this.clickTimer = setInterval(() => {
+      const shadowRoot =
+        document.querySelector("perspective-viewer").shadowRoot;
+      const exportButton = shadowRoot.getElementById("export");
+      if (!exportButton) {
+        return;
+      }
+      exportButton.removeEventListener("click", this.downloadAsCSV);
+      exportButton.addEventListener("click", this.downloadAsCSV);
+    }, 1000);
     window.addEventListener("message", (event) => {
       console.log(event);
       switch (event.data.command) {
         case "renderQuery":
+          this.cacheData = event.data;
           this.updateTable(event.data);
           this.updateDispatchedCode(
             event.data.raw_sql,
@@ -286,13 +287,11 @@ const app = createApp({
           break;
       }
     });
-    window.addEventListener("resize", this.handleResize);
   },
-  unmounted() {
-    window.removeEventListener("resize", this.handleResize);
-  },
+  unmounted() {},
   beforeDestroy() {
     clearInterval(this.timer);
+    clearInterval(this.clickTimer);
   },
 });
 
