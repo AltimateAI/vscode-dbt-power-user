@@ -77,7 +77,7 @@ class dbtCustomRunner(dbtRunner):
         print("Invoke finished!")
 ```
 
-`dbt.dbtPythonPathOverride` = `from my_custom_runner import dbtCustomRunner as dbtRunner`
+`dbt.dbtCustomRunnerImport` = `from my_custom_runner import dbtCustomRunner as dbtRunner`
 
 ### Environment variables
 
