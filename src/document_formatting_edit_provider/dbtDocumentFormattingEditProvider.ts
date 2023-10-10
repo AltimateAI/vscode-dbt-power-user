@@ -17,6 +17,9 @@ import {
   substituteSettingsVariables,
 } from "../utils";
 import { TelemetryService } from "../telemetry";
+import { readFileSync } from "fs";
+
+const channel = window.createOutputChannel("vscode-dbt-power-user");
 
 @provideSingleton(DbtDocumentFormattingEditProvider)
 export class DbtDocumentFormattingEditProvider
@@ -27,12 +30,25 @@ export class DbtDocumentFormattingEditProvider
     private telemetry: TelemetryService,
   ) {}
 
-  provideDocumentFormattingEdits(
+  async provideDocumentFormattingEdits(
     document: TextDocument,
     options: FormattingOptions,
     token: CancellationToken,
-  ): ProviderResult<TextEdit[]> {
-    return this.executeSqlFmt(document);
+  ): Promise<TextEdit[]> {
+    // channel.appendLine("executeSqlFmt");
+    // channel.appendLine(">----- new document -----<");
+    // channel.appendLine(document.getText());
+
+    // channel.appendLine(">----- file content -----<");
+    // channel.appendLine("path: " + document.uri.fsPath);
+    // const content = readFileSync(document.uri.fsPath);
+    // channel.appendLine("file content");
+    // channel.appendLine(content.toString());
+
+    const edit = await this.executeSqlFmt(document);
+    // channel.appendLine(JSON.stringify(edit));
+    // channel.appendLine("\n\n\n");
+    return edit;
   }
 
   private getSqlFmtPathSetting(): string | undefined {
@@ -52,11 +68,11 @@ export class DbtDocumentFormattingEditProvider
       .filter((s) => s !== "");
 
     const sqlFmtArgs = [
+      "-",
       "--diff",
       "--no-progressbar",
       "--quiet",
       ...sqlFmtAdditionalParamsSetting,
-      document.uri.fsPath,
     ];
     try {
       // try to find sqlfmt on PATH if not set
@@ -67,7 +83,7 @@ export class DbtDocumentFormattingEditProvider
       try {
         await this.commandProcessExecutionFactory
           .createCommandProcessExecution(sqlFmtPath, sqlFmtArgs)
-          .complete();
+          .complete(document.getText());
         return [];
       } catch (diffOutput) {
         try {

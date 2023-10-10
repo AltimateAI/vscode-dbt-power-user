@@ -52,7 +52,7 @@ export class CommandProcessExecution {
     }
   }
 
-  async complete(): Promise<string> {
+  async complete(stdin?: string): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       const commandProcess = this.spawn();
       let stdoutBuffer = "";
@@ -78,6 +78,11 @@ export class CommandProcessExecution {
         console.warn(error);
         reject(`${error}`);
       });
+
+      if (stdin) {
+        commandProcess.stdin.write(stdin);
+        commandProcess.stdin.end();
+      }
     });
   }
 
