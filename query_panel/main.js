@@ -111,7 +111,6 @@ const app = createApp({
       }
     },
     updateTable(data) {
-      console.log(data);
       this.count = data.rows.length;
       grid.load(data.rows);
     },
