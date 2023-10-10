@@ -59,6 +59,7 @@ const app = createApp({
       scale: 1,
       clipboardText: "",
       isDarkMode: false,
+      clickTimer: null,
     };
   },
   methods: {
@@ -114,12 +115,6 @@ const app = createApp({
       console.log(data);
       this.count = data.rows.length;
       grid.load(data.rows);
-      setTimeout(() => {
-        const shadowRoot =
-          document.querySelector("perspective-viewer").shadowRoot;
-        const exportButton = shadowRoot.getElementById("export");
-        exportButton.addEventListener("click", () => this.downloadAsCSV());
-      }, 1000);
     },
     updateError(data) {
       this.error = data.error;
@@ -241,6 +236,16 @@ const app = createApp({
     },
   },
   mounted() {
+    this.clickTimer = setInterval(() => {
+      const shadowRoot =
+        document.querySelector("perspective-viewer").shadowRoot;
+      const exportButton = shadowRoot.getElementById("export");
+      if (!exportButton) {
+        return;
+      }
+      exportButton.removeEventListener("click", this.downloadAsCSV);
+      exportButton.addEventListener("click", this.downloadAsCSV);
+    }, 1000);
     window.addEventListener("message", (event) => {
       console.log(event);
       switch (event.data.command) {
@@ -279,6 +284,7 @@ const app = createApp({
   unmounted() {},
   beforeDestroy() {
     clearInterval(this.timer);
+    clearInterval(this.clickTimer);
   },
 });
 
