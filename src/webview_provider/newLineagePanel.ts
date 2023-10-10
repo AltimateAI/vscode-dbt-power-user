@@ -416,7 +416,14 @@ export class NewLineagePanel implements LineagePanelView {
       );
       return;
     }
-    const columnLineage = result!.flat().filter((e) => !!e);
+    const columnLineage = result!
+      .flat()
+      .filter(
+        (e) =>
+          !!e &&
+          ((e.source[0] === table && e.source[1] === column) ||
+            (e.target[0] === table && e.target[1] === column)),
+      );
     console.log("cll -> ", columnLineage);
     return { columnLineage };
   }

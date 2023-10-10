@@ -21,6 +21,7 @@ import {
 import { LineageContext } from "./App";
 import {
   createNewNodesEdges,
+  mergeNodesEdges,
   processColumnLineage,
   removeColumnNodes,
   resetTableHighlights,
@@ -95,7 +96,7 @@ const ColumnSection: FunctionComponent<{
   setFilteredColumn: Dispatch<SetStateAction<Column[]>>;
   handleColumnClick: (x: Column) => Promise<void>;
   selectedTable: Table | null;
-  selectedColumn: string;
+  selectedColumn: { name: string; table: string };
   setData: Dispatch<SetStateAction<Columns | null>>;
 }> = ({
   columns,
@@ -154,7 +155,10 @@ const ColumnSection: FunctionComponent<{
               key={_column.name}
               column={_column}
               handleClick={() => handleColumnClick(_column)}
-              selected={_column.name === selectedColumn}
+              selected={
+                _column.name === selectedColumn.name &&
+                _column.table === selectedColumn.table
+              }
             />
           ))}
         </div>
@@ -295,20 +299,33 @@ const TableDetails = () => {
             .filter((e) => e.target === _t)
             .map((e) => e.source);
         }
+        if (
+          !connectedTables.upstreamTables?.length &&
+          !connectedTables.downstreamTables?.length
+        ) {
+          continue;
+        }
 
-        const newState = await processColumnLineage(
+        const patchState = await processColumnLineage(
           levelMap,
           seeMoreIdTableReverseMap,
           tableNodes,
           { name: _column.name, table: _column.table },
           connectedTables
         );
-        newState.nodes.forEach((n) => !flow.getNode(n.id) && flow.addNodes(n));
-        newState.edges.forEach((e) => !flow.getEdge(e.id) && flow.addEdges(e));
+        patchState.nodes.forEach((n) =>
+          queue.push([n.data.table, n.data.column])
+        );
+        const [nodes, edges] = mergeNodesEdges(
+          { nodes: flow.getNodes(), edges: flow.getEdges() },
+          patchState
+        );
+        flow.setNodes(nodes);
+        flow.setEdges(edges);
         setCollectColumns((prev) => {
           const collectColumns: Record<string, string[]> = { ...prev };
-          for (const t in newState.collectColumns) {
-            const _columns = newState.collectColumns[t];
+          for (const t in patchState.collectColumns) {
+            const _columns = patchState.collectColumns[t];
             if (!(t in collectColumns)) {
               collectColumns[t] = _columns;
               continue;
@@ -341,7 +358,7 @@ const TableDetails = () => {
       <PurposeSection tableId={data.id} purpose={data.purpose} />
       <ColumnSection
         selectedTable={selectedTable}
-        selectedColumn={selectedColumn.name}
+        selectedColumn={selectedColumn}
         filteredColumn={filteredColumn}
         setFilteredColumn={setFilteredColumn}
         columns={data.columns}

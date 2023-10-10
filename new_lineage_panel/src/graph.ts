@@ -345,9 +345,23 @@ export const processColumnLineage = async (
     }
   }
 
-  layoutElementsOnCanvas(nodes, edges);
-
   return { nodes, edges, collectColumns };
+};
+
+export const mergeNodesEdges = (
+  prevState: { nodes: Node[]; edges: Edge[] },
+  patchState: { nodes: Node[]; edges: Edge[] },
+): [Node[], Edge[]] => {
+  const nodes = [...prevState.nodes];
+  const edges = [...prevState.edges];
+  const nodesId: Record<string, boolean> = {};
+  const edgesId: Record<string, boolean> = {};
+  nodes.forEach((n) => nodesId[n.id] = true);
+  edges.forEach((e) => edgesId[e.id] = true);
+  patchState.nodes.forEach((n) => !nodesId[n.id] && nodes.push(n));
+  patchState.edges.forEach((e) => !edgesId[e.id] && edges.push(e));
+  layoutElementsOnCanvas(nodes, edges);
+  return [nodes, edges];
 };
 
 const getSourceTargetHandles = (
