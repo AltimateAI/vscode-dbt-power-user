@@ -46,6 +46,7 @@ const isAllowedNode = (key: string) =>
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
+  private dbCache: Map<string, Record<string, string>[]> = new Map();
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -155,7 +156,11 @@ export class NewLineagePanel implements LineagePanelView {
   }
 
   private async addColumnsFromDB(project: DBTProject, node: NodeMetaData) {
-    const columnsFromDB = await project.getColumnsInRelation(node.name);
+    if (!this.dbCache.has(node.name)) {
+      const _columnsFromDB = await project.getColumnsInRelation(node.name);
+      this.dbCache.set(node.name, _columnsFromDB);
+    }
+    const columnsFromDB = this.dbCache.get(node.name)!;
     console.log("addColumnsFromDB: ", node.name, " -> ", columnsFromDB);
     if (!columnsFromDB || columnsFromDB.length === 0) {
       return false;
@@ -268,7 +273,7 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
     const visibleTables: Record<string, NodeMetaData> = {};
-    const addToVisibleTable = (t: string) => {
+    currAnd1HopTables?.forEach((t: string) => {
       if (t in visibleTables) {
         return;
       }
@@ -277,8 +282,7 @@ export class NewLineagePanel implements LineagePanelView {
         return;
       }
       visibleTables[t] = node;
-    };
-    currAnd1HopTables?.forEach(addToVisibleTable);
+    });
 
     const modelInfos: {
       compiled_sql: string | undefined;

@@ -209,6 +209,7 @@ const TableDetails = () => {
       setShowSidebar(false);
       return;
     }
+    console.time();
     let _nodes = flow.getNodes();
     let _edges = flow.getEdges();
     const addNodesEdges = (tables: Table[], right: boolean, level: number) => {
@@ -300,8 +301,8 @@ const TableDetails = () => {
       }
     };
 
-    bfsTraversal(true);
-    bfsTraversal(false);
+    await Promise.all([bfsTraversal(true), bfsTraversal(false)]);
+    console.timeEnd();
   };
   if (isLoading || !data || !selectedTable) return <ComponentLoader />;
 
