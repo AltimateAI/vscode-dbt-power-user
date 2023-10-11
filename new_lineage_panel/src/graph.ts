@@ -255,16 +255,34 @@ export const processColumnLineage = async (
   levelMap: Record<string, number>,
   seeMoreIdTableReverseMap: Record<string, string>,
   tableNodes: Record<string, boolean>,
-  column: { name: string; table: string },
+  curr: [string, string][],
+  right: boolean,
   connectedTables: { upstreamTables?: string[]; downstreamTables?: string[] },
 ) => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
-  const { columnLineage } = await getConnectedColumns({
-    column: column.name,
-    table: column.table,
+  let { columnLineage } = await getConnectedColumns({
+    column: curr.length === 1
+      ? { name: curr[0][1], table: curr[0][0] }
+      : undefined,
     ...connectedTables,
+  });
+  const newCurr: [string, string][] = [];
+  columnLineage = columnLineage.filter((e) => {
+    if (right) {
+      if (curr.some((c) => c[0] === e.source[0] && c[1] === e.source[1])) {
+        newCurr.push(e.target);
+        return true;
+      }
+      return false;
+    }
+
+    if (curr.some((c) => c[0] === e.target[0] && c[1] === e.target[1])) {
+      newCurr.push(e.source);
+      return true;
+    }
+    return false;
   });
 
   const collectColumns: Record<string, string[]> = {};
@@ -348,7 +366,7 @@ export const processColumnLineage = async (
     }
   }
 
-  return { nodes, edges, collectColumns };
+  return { nodes, edges, collectColumns, newCurr };
 };
 
 export const mergeNodesEdges = (

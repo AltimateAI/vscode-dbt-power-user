@@ -280,45 +280,51 @@ const TableDetails = () => {
 
     const bfsTraversal = async (right: boolean) => {
       const visited: Record<string, boolean> = {};
-      const queue: [string, string][] = [[_column.table, _column.name]];
-      while (queue.length > 0) {
-        const [_t, _c] = queue.shift()!;
-        const id = `${_t}/${_c}`;
-        if (visited[id]) {
+      let curr: [string, string][] = [[_column.table, _column.name]];
+      let n = 3;
+      while (n-- > 0) {
+        const tablesInCurrIter: Record<string, boolean> = {};
+        const unvistedColumns = curr.filter((x) => !visited[x.join("/")]);
+        if (unvistedColumns.length === 0) {
           continue;
         }
-        visited[id] = true;
+        unvistedColumns.forEach((x) => {
+          visited[x.join("/")] = true;
+          tablesInCurrIter[x[0]] = true;
+        });
         const connectedTables: {
           upstreamTables?: string[];
           downstreamTables?: string[];
         } = {};
 
-        if (right) {
-          connectedTables.upstreamTables = _edges
-            .filter((e) => e.source === _t)
-            .map((e) => e.target);
-        } else {
-          connectedTables.downstreamTables = _edges
-            .filter((e) => e.target === _t)
-            .map((e) => e.source);
-        }
-        if (
-          !connectedTables.upstreamTables?.length &&
-          !connectedTables.downstreamTables?.length
-        ) {
+        const _connectedTables = right
+          ? _edges
+              .filter((e) => tablesInCurrIter[e.source])
+              .map((e) => e.target)
+          : _edges
+              .filter((e) => tablesInCurrIter[e.target])
+              .map((e) => e.source);
+
+        if (_connectedTables.length === 0) {
           continue;
+        }
+        _connectedTables.push(...Object.keys(tablesInCurrIter));
+
+        if (right) {
+          connectedTables.upstreamTables = _connectedTables;
+        } else {
+          connectedTables.downstreamTables = _connectedTables;
         }
 
         const patchState = await processColumnLineage(
           levelMap,
           seeMoreIdTableReverseMap,
           tableNodes,
-          { name: _c, table: _t },
+          curr,
+          right,
           connectedTables
         );
-        patchState.nodes.forEach((n) =>
-          queue.push([n.data.table, n.data.column])
-        );
+        curr = patchState.newCurr;
         const [nodes, edges] = mergeNodesEdges(
           { nodes: flow.getNodes(), edges: flow.getEdges() },
           patchState

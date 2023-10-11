@@ -13,7 +13,7 @@ import {
   window,
   workspace,
 } from "vscode";
-import { AltimateRequest } from "../altimate";
+import { AltimateRequest, DBTColumnLineageRequest } from "../altimate";
 import {
   ColumnMetaData,
   GraphMetaMap,
@@ -260,13 +260,11 @@ export class NewLineagePanel implements LineagePanelView {
   }
 
   private async getConnectedColumns2({
-    table,
     column,
     upstreamTables,
     downstreamTables,
   }: {
-    table: string;
-    column: string;
+    column: { name: string; table: string };
     upstreamTables: string[] | undefined;
     downstreamTables: string[] | undefined;
   }) {
@@ -289,7 +287,7 @@ export class NewLineagePanel implements LineagePanelView {
       }
       visibleTables[t] = node;
     };
-    addToVisibleTable(table);
+    column && addToVisibleTable(column.table);
     upstreamTables?.forEach(addToVisibleTable);
     downstreamTables?.forEach(addToVisibleTable);
 
@@ -382,13 +380,16 @@ export class NewLineagePanel implements LineagePanelView {
           cancellable: false,
         },
         async () => {
-          return await this.altimate.getColumnLevelLineage({
+          const params: DBTColumnLineageRequest = {
             model_dialect: modelDialect,
             model_info: modelInfos,
-            target_model: table,
-            target_column: column,
-            downstream_models: downstreamTables || [],
-          });
+          };
+          if (column) {
+            params.target_model = column.table;
+            params.target_column = column.name;
+            params.downstream_models = downstreamTables;
+          }
+          return await this.altimate.getColumnLevelLineage(params);
         },
       );
     } catch (error) {
@@ -416,14 +417,7 @@ export class NewLineagePanel implements LineagePanelView {
       );
       return;
     }
-    const columnLineage = result!
-      .flat()
-      .filter(
-        (e) =>
-          !!e &&
-          ((e.source[0] === table && e.source[1] === column) ||
-            (e.target[0] === table && e.target[1] === column)),
-      );
+    const columnLineage = result!.flat().filter((e) => !!e);
     console.log("cll -> ", columnLineage);
     return { columnLineage };
   }

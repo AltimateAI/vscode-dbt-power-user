@@ -17,16 +17,16 @@ interface Schemas {
   [key: string]: { [key: string]: unknown };
 }
 
-interface DBTColumnLineageRequest {
-  target_model: string;
-  target_column: string;
+export interface DBTColumnLineageRequest {
+  target_model?: string;
+  target_column?: string;
   model_dialect: string;
   model_info: {
     model_node: NodeMetaData;
     compiled_sql: string | undefined;
   }[];
   schemas?: Schemas | null;
-  downstream_models: string[];
+  downstream_models?: string[];
 }
 
 interface OnewayFeedback {
