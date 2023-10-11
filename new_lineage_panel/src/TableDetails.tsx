@@ -174,6 +174,7 @@ const TableDetails = () => {
     setSelectedColumn,
     setCollectColumns,
     setShowSidebar,
+    rerender,
   } = useContext(LineageContext);
   const flow = useReactFlow();
   const [filteredColumn, setFilteredColumn] = useState<Column[]>([]);
@@ -235,6 +236,7 @@ const TableDetails = () => {
     }
     setSelectedColumn(_column);
     setShowSidebar(false);
+    setCollectColumns({});
 
     // resetting existing styles
     const [nodes, edges] = resetTableHighlights(
@@ -244,6 +246,7 @@ const TableDetails = () => {
     edges.forEach((_e) => (_e.style = defaultEdgeStyle));
     flow.setNodes(nodes);
     flow.setEdges(edges);
+    rerender();
 
     // creating helper data for current lineage once
     const levelMap: Record<string, number> = {};
