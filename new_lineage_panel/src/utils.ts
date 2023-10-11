@@ -105,16 +105,9 @@ export const getSourceTargetHandles = (
   l0: number,
   l1: number,
 ): ["left" | "right", "left" | "right"] => {
-  if (l0 < l1) {
-    return ["right", "left"];
-  }
-  // TODO: check if this case will happen for dbt
-  if (l0 > l1) {
-    return ["left", "right"];
-  }
-  if (l0 < 0) {
-    return ["left", "left"];
-  }
+  if (l0 < l1) return ["right", "left"];
+  if (l0 > l1) return ["left", "right"];
+  if (l0 < 0) return ["left", "left"];
   return ["right", "right"];
 };
 
