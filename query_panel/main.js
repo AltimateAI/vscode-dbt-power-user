@@ -53,6 +53,7 @@ class Grid {
     table.replace(result.rows);
     await this.elem.load(table);
     await this.elem.restore({
+      columns: [], // reset columns
       settings: true,
       title: "query result",
       plugin_config: { editable: false },
@@ -69,7 +70,6 @@ window.addEventListener("DOMContentLoaded", async function () {
 const app = createApp({
   data() {
     return {
-      count: 0,
       data: null,
       rawCode: "",
       compiledCode: "",
@@ -124,9 +124,9 @@ const app = createApp({
       return csv;
     },
     downloadAsCSV() {
-      const data = this.cacheData;
+      const data = this.data;
       try {
-        if (!data || data.length === 0) {
+        if (!data || data.rows.length === 0) {
           console.error("No data available for downloading.");
           return;
         }
@@ -297,7 +297,7 @@ const app = createApp({
         : this.windowHeight;
     },
     hasData() {
-      return this.count > 0;
+      return !!this.data;
     },
     hasError() {
       return this.error?.data;
@@ -315,7 +315,8 @@ const app = createApp({
     },
     queryExecutionInfo() {
       if (this.hasData || this.hasError || this.elapsedTime) {
-        return `${this.count} rows in ${this.elapsedTime}s`;
+        const count = this.data?.rows?.length || 0;
+        return `${count} rows in ${this.elapsedTime}s`;
       }
       return "...";
     },
@@ -362,10 +363,10 @@ const app = createApp({
       exportButton.addEventListener("click", this.downloadAsCSV);
     }, 1000);
     window.addEventListener("message", (event) => {
-      console.log(event);
+      console.log(event.data);
       switch (event.data.command) {
         case "renderQuery":
-          this.cacheData = event.data;
+          this.data = event.data;
           this.updateTable(event.data);
           this.updateDispatchedCode(
             event.data.raw_sql,
