@@ -149,7 +149,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     if (selectedColumn.name) {
       const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
         getHelperDataForCLL(nodes, edges);
-      const tableNames = tables.map((t) => t.table);
+      const currAnd1HopTables = tables.map((t) => t.table);
+      currAnd1HopTables.push(table);
       const curr = (collectColumns[table] || []).map(
         (c) => [table, c] as [string, string]
       );
@@ -159,9 +160,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
         tableNodes,
         curr,
         right,
-        right
-          ? { upstreamTables: tableNames }
-          : { downstreamTables: tableNames }
+        currAnd1HopTables
       );
       [nodes, edges] = mergeNodesEdges({ nodes, edges }, patchState);
       mergeCollectColumns(setCollectColumns, patchState.collectColumns);

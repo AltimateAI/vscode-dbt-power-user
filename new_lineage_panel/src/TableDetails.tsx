@@ -258,21 +258,17 @@ const TableDetails = () => {
       let curr: [string, string][] = [[_column.table, _column.name]];
       let n = 3;
       while (n-- > 0) {
-        const tablesInCurrIter: Record<string, boolean> = {};
         const unvistedColumns = curr.filter((x) => !visited[x.join("/")]);
         if (unvistedColumns.length === 0) {
           continue;
         }
+        const tablesInCurrIter: Record<string, boolean> = {};
         unvistedColumns.forEach((x) => {
           visited[x.join("/")] = true;
           tablesInCurrIter[x[0]] = true;
         });
-        const connectedTables: {
-          upstreamTables?: string[];
-          downstreamTables?: string[];
-        } = {};
 
-        const _connectedTables = right
+        const currAnd1HopTables = right
           ? _edges
               .filter((e) => tablesInCurrIter[e.source])
               .map((e) => e.target)
@@ -280,17 +276,10 @@ const TableDetails = () => {
               .filter((e) => tablesInCurrIter[e.target])
               .map((e) => e.source);
 
-        if (_connectedTables.length === 0) {
+        if (currAnd1HopTables.length === 0) {
           continue;
         }
-        // TODO: in first iteration, duplicate starting table
-        _connectedTables.push(...Object.keys(tablesInCurrIter));
-
-        if (right) {
-          connectedTables.upstreamTables = _connectedTables;
-        } else {
-          connectedTables.downstreamTables = _connectedTables;
-        }
+        currAnd1HopTables.push(...Object.keys(tablesInCurrIter));
 
         const patchState = await processColumnLineage(
           levelMap,
@@ -298,7 +287,7 @@ const TableDetails = () => {
           tableNodes,
           curr,
           right,
-          connectedTables
+          currAnd1HopTables
         );
         curr = patchState.newCurr;
         const [nodes, edges] = mergeNodesEdges(

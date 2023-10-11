@@ -252,12 +252,12 @@ export class NewLineagePanel implements LineagePanelView {
 
   private async getConnectedColumns({
     column,
-    upstreamTables,
-    downstreamTables,
+    currAnd1HopTables,
   }: {
-    column: { name: string; table: string };
-    upstreamTables: string[] | undefined;
-    downstreamTables: string[] | undefined;
+    column:
+      | { name: string; table: string; downstreamTables: string[] }
+      | undefined;
+    currAnd1HopTables: string[];
   }) {
     const nodeMetaMap = this.getEvent()?.nodeMetaMap;
     if (!nodeMetaMap) {
@@ -278,9 +278,7 @@ export class NewLineagePanel implements LineagePanelView {
       }
       visibleTables[t] = node;
     };
-    column && addToVisibleTable(column.table);
-    upstreamTables?.forEach(addToVisibleTable);
-    downstreamTables?.forEach(addToVisibleTable);
+    currAnd1HopTables?.forEach(addToVisibleTable);
 
     const modelInfos: {
       compiled_sql: string | undefined;
@@ -378,7 +376,7 @@ export class NewLineagePanel implements LineagePanelView {
           if (column) {
             params.target_model = column.table;
             params.target_column = column.name;
-            params.downstream_models = downstreamTables;
+            params.downstream_models = column.downstreamTables;
           }
           return await this.altimate.getColumnLevelLineage(params);
         },

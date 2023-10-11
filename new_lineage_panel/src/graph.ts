@@ -258,16 +258,22 @@ export const processColumnLineage = async (
   tableNodes: Record<string, boolean>,
   curr: [string, string][],
   right: boolean,
-  connectedTables: { upstreamTables?: string[]; downstreamTables?: string[] },
+  currAnd1HopTables: string[],
 ) => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
   let { columnLineage } = await getConnectedColumns({
     column: curr.length === 1
-      ? { name: curr[0][1], table: curr[0][0] }
+      ? {
+        name: curr[0][1],
+        table: curr[0][0],
+        downstreamTables: right
+          ? []
+          : currAnd1HopTables.filter((t) => t !== curr[0][0]),
+      }
       : undefined,
-    ...connectedTables,
+    currAnd1HopTables,
   });
   const newCurr: [string, string][] = [];
   columnLineage = columnLineage.filter((e) => {
