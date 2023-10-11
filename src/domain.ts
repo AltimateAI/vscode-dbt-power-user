@@ -41,6 +41,7 @@ interface Config {
 
 export interface SourceMetaData {
   uniqueId: string;
+  name: string;
   database: string;
   schema: string;
   tables: SourceTable[];

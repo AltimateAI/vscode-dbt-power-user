@@ -40,6 +40,7 @@ export class SourceParser {
               source = {
                 tables: [],
                 uniqueId: unique_id,
+                name: source_name,
                 database: database,
                 schema: schema,
               };

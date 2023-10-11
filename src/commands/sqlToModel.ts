@@ -74,7 +74,8 @@ export class SqlToModel {
       sources: allsources,
     });
     console.log(retobj);
-    if (retobj === undefined) {
+    // if somehow the response isnt there or got an error response
+    if (retobj === undefined || retobj.sql === undefined) {
       return undefined;
     }
 
