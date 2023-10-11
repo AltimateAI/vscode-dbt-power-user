@@ -38,6 +38,8 @@ type Table = {
   nodeType: string;
 };
 
+const CACHE_SIZE = 100;
+
 const ALLOWED_NODE_TYPES = ["model.", "source.", "seed."];
 const isAllowedNode = (key: string) =>
   ALLOWED_NODE_TYPES.some((t) => key.startsWith(t));
@@ -47,6 +49,7 @@ export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private dbCache: Map<string, Record<string, string>[]> = new Map();
+  private lruCache: Map<string, number> = new Map();
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -159,7 +162,16 @@ export class NewLineagePanel implements LineagePanelView {
     if (!this.dbCache.has(node.name)) {
       const _columnsFromDB = await project.getColumnsInRelation(node.name);
       this.dbCache.set(node.name, _columnsFromDB);
+      if (this.dbCache.size > CACHE_SIZE) {
+        const arr = Array.from(this.lruCache.entries());
+        arr.sort((a, b) => b[1] - a[1]);
+        arr.slice(CACHE_SIZE).forEach(([k]) => {
+          this.lruCache.delete(k);
+          this.dbCache.delete(k);
+        });
+      }
     }
+    this.lruCache.set(node.name, Date.now());
     const columnsFromDB = this.dbCache.get(node.name)!;
     console.log("addColumnsFromDB: ", node.name, " -> ", columnsFromDB);
     if (!columnsFromDB || columnsFromDB.length === 0) {
