@@ -13,6 +13,9 @@ import {
   createNewNodesEdges,
   highlightTableConnections,
   layoutElementsOnCanvas,
+  mergeCollectColumns,
+  mergeNodesEdges,
+  processColumnLineage,
   resetTableHighlights,
 } from "./graph";
 import { LineageContext, aiEnabled, openFile, isDarkMode } from "./App";
@@ -22,6 +25,7 @@ import {
   C_NODE_H,
   C_PADDING_Y,
   TABLES_SIDEBAR,
+  getHelperDataForCLL,
 } from "./utils";
 import { TMoreTables } from "./MoreTables";
 import ModelIcon from "./assets/icons/model.svg?react";
@@ -100,6 +104,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     setSidebarScreen,
     collectColumns,
     selectedColumn,
+    setCollectColumns,
     rerender,
   } = useContext(LineageContext);
 
@@ -141,22 +146,26 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
       right,
       level
     );
-    // if (selectedColumn.name) {
-    //   const {
-    //     nodes: _nodes,
-    //     edges: _edges,
-    //     collectColumns,
-    //   } = await processColumnLineage(
-    //     nodes,
-    //     edges,
-    //     selectedColumn,
-    //     right ? [false, true] : [true, false]
-    //   );
-    //   nodes = _nodes;
-    //   edges = _edges;
-    //   setCollectColumns(collectColumns);
-    // }
-    if (selectedTable) {
+    if (selectedColumn.name) {
+      const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
+        getHelperDataForCLL(nodes, edges);
+      const tableNames = tables.map((t) => t.table);
+      const curr = (collectColumns[table] || []).map(
+        (c) => [table, c] as [string, string]
+      );
+      const patchState = await processColumnLineage(
+        levelMap,
+        seeMoreIdTableReverseMap,
+        tableNodes,
+        curr,
+        right,
+        right
+          ? { upstreamTables: tableNames }
+          : { downstreamTables: tableNames }
+      );
+      [nodes, edges] = mergeNodesEdges({ nodes, edges }, patchState);
+      mergeCollectColumns(setCollectColumns, patchState.collectColumns);
+    } else if (selectedTable) {
       const [_nodes, _edges] = highlightTableConnections(
         nodes,
         edges,

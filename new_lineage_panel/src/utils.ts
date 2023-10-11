@@ -117,3 +117,36 @@ export const getSourceTargetHandles = (
   }
   return ["right", "right"];
 };
+
+export const getHelperDataForCLL = (nodes: Node[], edges: Edge[]) => {
+  const levelMap: Record<string, number> = {};
+  nodes.forEach((n) => (levelMap[n.id] = n.data.level));
+  const tableNodes: Record<string, boolean> = {};
+  nodes
+    .filter((_n) => _n.type === "table")
+    .forEach((_n) => (tableNodes[_n.id] = true));
+  const seeMoreIdTableReverseMap: Record<string, string> = {};
+  for (const e of edges) {
+    if (isColumn(e)) continue;
+    const sourceTableExist = tableNodes[e.source];
+    const targetTableExist = tableNodes[e.target];
+    if (sourceTableExist && targetTableExist) {
+      continue;
+    }
+    if (sourceTableExist) {
+      const _n = nodes.find((_n) => _n.id === e.target)!;
+      _n.data.tables.forEach((_t: { table: string }) => {
+        seeMoreIdTableReverseMap[_t.table] = e.target;
+      });
+      continue;
+    }
+    if (targetTableExist) {
+      const _n = nodes.find((_n) => _n.id === e.source)!;
+      _n.data.tables.forEach((_t: { table: string }) => {
+        seeMoreIdTableReverseMap[_t.table] = e.source;
+      });
+    }
+  }
+
+  return { levelMap, tableNodes, seeMoreIdTableReverseMap };
+};

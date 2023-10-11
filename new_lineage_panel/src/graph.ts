@@ -20,6 +20,7 @@ import {
   T_NODE_W,
 } from "./utils";
 import { getConnectedColumns, Table } from "./service";
+import { Dispatch, SetStateAction } from "react";
 
 export const createNewNodesEdges = (
   prevNodes: Node[],
@@ -392,4 +393,27 @@ export const removeColumnNodes = (
   const nodes = _nodes.filter((n) => isNotColumn(n));
   const edges = _edges.filter((n) => isNotColumn(n));
   return [nodes, edges];
+};
+
+export const mergeCollectColumns = (
+  setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>,
+  newCcollectColumns: Record<string, string[]>,
+) => {
+  setCollectColumns((prev) => {
+    const collectColumns: Record<string, string[]> = { ...prev };
+    for (const t in newCcollectColumns) {
+      const _columns = newCcollectColumns[t];
+      if (!(t in collectColumns)) {
+        collectColumns[t] = _columns;
+        continue;
+      }
+      _columns.forEach((c) => {
+        if (collectColumns[t].includes(c)) {
+          return;
+        }
+        collectColumns[t].push(c);
+      });
+    }
+    return collectColumns;
+  });
 };

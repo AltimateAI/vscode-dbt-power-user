@@ -21,6 +21,7 @@ import {
 import { LineageContext } from "./App";
 import {
   createNewNodesEdges,
+  mergeCollectColumns,
   mergeNodesEdges,
   processColumnLineage,
   removeColumnNodes,
@@ -36,7 +37,7 @@ import { ColorTag } from "./Tags";
 import ExpandLineageIcon from "./assets/icons/expand_lineage.svg?react";
 import { NodeTypeIcon } from "./CustomNodes";
 import { CustomInput } from "./Form";
-import { defaultEdgeStyle, isColumn, isNotColumn } from "./utils";
+import { defaultEdgeStyle, getHelperDataForCLL, isNotColumn } from "./utils";
 
 const ColumnCard: FunctionComponent<{
   column: Column;
@@ -249,34 +250,8 @@ const TableDetails = () => {
     rerender();
 
     // creating helper data for current lineage once
-    const levelMap: Record<string, number> = {};
-    nodes.forEach((n) => (levelMap[n.id] = n.data.level));
-    const tableNodes: Record<string, boolean> = {};
-    nodes
-      .filter((_n) => _n.type === "table")
-      .forEach((_n) => (tableNodes[_n.id] = true));
-    const seeMoreIdTableReverseMap: Record<string, string> = {};
-    for (const e of edges) {
-      if (isColumn(e)) continue;
-      const sourceTableExist = tableNodes[e.source];
-      const targetTableExist = tableNodes[e.target];
-      if (sourceTableExist && targetTableExist) {
-        continue;
-      }
-      if (sourceTableExist) {
-        const _n = _nodes.find((_n) => _n.id === e.target)!;
-        _n.data.tables.forEach((_t: { table: string }) => {
-          seeMoreIdTableReverseMap[_t.table] = e.target;
-        });
-        continue;
-      }
-      if (targetTableExist) {
-        const _n = _nodes.find((_n) => _n.id === e.source)!;
-        _n.data.tables.forEach((_t: { table: string }) => {
-          seeMoreIdTableReverseMap[_t.table] = e.source;
-        });
-      }
-    }
+    const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
+      getHelperDataForCLL(nodes, edges);
 
     const bfsTraversal = async (right: boolean) => {
       const visited: Record<string, boolean> = {};
@@ -308,6 +283,7 @@ const TableDetails = () => {
         if (_connectedTables.length === 0) {
           continue;
         }
+        // TODO: in first iteration, duplicate starting table
         _connectedTables.push(...Object.keys(tablesInCurrIter));
 
         if (right) {
@@ -331,23 +307,7 @@ const TableDetails = () => {
         );
         flow.setNodes(nodes);
         flow.setEdges(edges);
-        setCollectColumns((prev) => {
-          const collectColumns: Record<string, string[]> = { ...prev };
-          for (const t in patchState.collectColumns) {
-            const _columns = patchState.collectColumns[t];
-            if (!(t in collectColumns)) {
-              collectColumns[t] = _columns;
-              continue;
-            }
-            _columns.forEach((c) => {
-              if (collectColumns[t].includes(c)) {
-                return;
-              }
-              collectColumns[t].push(c);
-            });
-          }
-          return collectColumns;
-        });
+        mergeCollectColumns(setCollectColumns, patchState.collectColumns);
       }
     };
 
