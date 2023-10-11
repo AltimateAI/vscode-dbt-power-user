@@ -1,7 +1,7 @@
 import { window, workspace } from "vscode";
 import { provideSingleton } from "./utils";
 import fetch from "node-fetch";
-import { NodeMetaData } from "./domain";
+import { NodeMetaData, SourceMetaData } from "./domain";
 
 interface AltimateConfig {
   key: string;
@@ -33,7 +33,7 @@ interface SQLToModelRequest {
   sql: string;
   adapter: string;
   models: NodeMetaData[];
-  //sources: List[ModelNode]
+  sources: SourceMetaData[];
 }
 
 interface SQLToModelResponse {

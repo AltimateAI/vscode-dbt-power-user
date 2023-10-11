@@ -26,6 +26,8 @@ export class SourceParser {
             previousValue: SourceMetaMap,
             {
               source_name,
+              database,
+              schema,
               name,
               original_file_path,
               unique_id,
@@ -35,7 +37,12 @@ export class SourceParser {
           ) => {
             let source = previousValue.get(source_name);
             if (!source) {
-              source = { tables: [], uniqueId: unique_id };
+              source = {
+                tables: [],
+                uniqueId: unique_id,
+                database: database,
+                schema: schema,
+              };
               previousValue.set(source_name, source);
             }
             const fullPath = path.join(rootPath, original_file_path);

@@ -1,5 +1,5 @@
 import { AltimateRequest } from "../altimate";
-import { NodeMetaData } from "../domain";
+import { NodeMetaData, SourceMetaData } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
@@ -56,6 +56,12 @@ export class SqlToModel {
       allmodels.push(rrvalue);
     }
 
+    const allsources: SourceMetaData[] = [];
+    const srcriter = event.sourceMetaMap.values();
+    for (const srcvalue of srcriter) {
+      allsources.push(srcvalue);
+    }
+
     const fileText = activedoc.document.getText();
     const compiled_sql = await project.compileQuery(fileText);
 
@@ -65,6 +71,7 @@ export class SqlToModel {
       sql: compiled_sql || fileText,
       adapter: project.getAdapterType(),
       models: allmodels,
+      sources: allsources,
     });
     console.log(retobj);
     if (retobj === undefined) {
