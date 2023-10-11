@@ -48,7 +48,7 @@ export const getColumns = (table: string, refresh: boolean) => {
 };
 
 export const getConnectedColumns = (body: unknown) => {
-  return requestExecutor("getConnectedColumns2", body) as Promise<
+  return requestExecutor("getConnectedColumns", body) as Promise<
     ColumnLineageResponse
   >;
 };
