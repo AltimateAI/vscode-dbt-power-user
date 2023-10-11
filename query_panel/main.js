@@ -50,9 +50,10 @@ class Grid {
       schema[result.columnNames[i]] = this.mapType(result.columnTypes[i]);
     }
     const table = await this.worker.table(schema);
-    table.replace(result.rows);
+    await table.replace(JSON.parse(JSON.stringify(result.rows)));
     await this.elem.load(table);
     await this.elem.restore({
+      columns: [], // reset columns
       settings: true,
       title: "query result",
       plugin_config: { editable: false },
@@ -70,7 +71,7 @@ const app = createApp({
   data() {
     return {
       count: 0,
-      data: null,
+      cacheData: undefined,
       rawCode: "",
       compiledCode: "",
       error: {},
@@ -126,7 +127,7 @@ const app = createApp({
     downloadAsCSV() {
       const data = this.cacheData;
       try {
-        if (!data || data.length === 0) {
+        if (!data || data.rows.length === 0) {
           console.error("No data available for downloading.");
           return;
         }
@@ -225,7 +226,7 @@ const app = createApp({
     },
     clearData() {
       this.count = 0;
-      this.cacheData = null;
+      this.cacheData = undefined;
       this.table = undefined;
       this.rawCode = "";
       this.compiledCode = "";
@@ -297,7 +298,7 @@ const app = createApp({
         : this.windowHeight;
     },
     hasData() {
-      return this.count > 0;
+      return !!this.cacheData;
     },
     hasError() {
       return this.error?.data;
@@ -362,7 +363,7 @@ const app = createApp({
       exportButton.addEventListener("click", this.downloadAsCSV);
     }, 1000);
     window.addEventListener("message", (event) => {
-      console.log(event);
+      console.log(event.data);
       switch (event.data.command) {
         case "renderQuery":
           this.cacheData = event.data;
