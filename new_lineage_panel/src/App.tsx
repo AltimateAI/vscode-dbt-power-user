@@ -165,6 +165,7 @@ function App() {
           const { tables } = await downstreamTables(node.key);
           addNodesEdges(tables, false, level);
         }
+        // TODO: handle cll and highlight
       } else {
         _nodes = [
           {
@@ -192,11 +193,15 @@ function App() {
           const { tables } = await downstreamTables(node.key);
           addNodesEdges(tables, false, 0);
         }
+        setSelectedTable(null);
+        setSelectedColumn({ table: "", name: "" });
+        setCollectColumns({});
       }
 
       layoutElementsOnCanvas(_nodes, _edges);
       _flow.setNodes(_nodes);
       _flow.setEdges(_edges);
+      rerender();
     };
     const response = (args: {
       id: number;
