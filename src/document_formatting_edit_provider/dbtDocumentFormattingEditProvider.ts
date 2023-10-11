@@ -17,9 +17,6 @@ import {
   substituteSettingsVariables,
 } from "../utils";
 import { TelemetryService } from "../telemetry";
-import { readFileSync } from "fs";
-
-const channel = window.createOutputChannel("vscode-dbt-power-user");
 
 @provideSingleton(DbtDocumentFormattingEditProvider)
 export class DbtDocumentFormattingEditProvider
@@ -30,25 +27,12 @@ export class DbtDocumentFormattingEditProvider
     private telemetry: TelemetryService,
   ) {}
 
-  async provideDocumentFormattingEdits(
+  provideDocumentFormattingEdits(
     document: TextDocument,
     options: FormattingOptions,
     token: CancellationToken,
-  ): Promise<TextEdit[]> {
-    // channel.appendLine("executeSqlFmt");
-    // channel.appendLine(">----- new document -----<");
-    // channel.appendLine(document.getText());
-
-    // channel.appendLine(">----- file content -----<");
-    // channel.appendLine("path: " + document.uri.fsPath);
-    // const content = readFileSync(document.uri.fsPath);
-    // channel.appendLine("file content");
-    // channel.appendLine(content.toString());
-
-    const edit = await this.executeSqlFmt(document);
-    // channel.appendLine(JSON.stringify(edit));
-    // channel.appendLine("\n\n\n");
-    return edit;
+  ): ProviderResult<TextEdit[]> {
+    return this.executeSqlFmt(document);
   }
 
   private getSqlFmtPathSetting(): string | undefined {
