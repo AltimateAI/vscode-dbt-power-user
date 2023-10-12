@@ -30,8 +30,8 @@ class Grid {
         return "string";
       case "Integer":
         return "integer";
-      case "Boolean":
-        return "boolean";
+      // case "Boolean":
+      //   return "boolean"; // TODO: uncomment when material icons are added
       case "Date":
         return "date";
       case "DateTime":
