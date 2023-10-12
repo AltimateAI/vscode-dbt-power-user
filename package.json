@@ -67,6 +67,11 @@
           "dbt.enableNewLineagePanel": {
             "type": "boolean",
             "description": "Enable the new lineage panel in dbt."
+          },
+          "dbt.enableNewQueryPanel": {
+            "type": "boolean",
+            "description": "Enable the new query panel in dbt.",
+            "default": true
           }
         }
       },
