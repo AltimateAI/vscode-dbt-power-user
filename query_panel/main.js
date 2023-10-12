@@ -67,6 +67,7 @@ const app = createApp({
   },
   methods: {
     togglePerspective() {
+      const prevTab = document.querySelector("#panel-manager").activeid;
       this.hasPerspective = !this.hasPerspective;
       if (this.hasPerspective) {
         this.table.destroy();
@@ -74,6 +75,9 @@ const app = createApp({
       } else {
         this.updateTable(this.cacheData);
       }
+      setTimeout(() => {
+        document.querySelector("#panel-manager").activeid = prevTab;
+      }, 100);
     },
     // Converts the provided data to CSV format.
     dataToCsv(columns, rows) {

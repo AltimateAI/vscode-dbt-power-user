@@ -74,7 +74,6 @@
         <vscode-panel-tab
           v-show="(hasData || hasError || isLoading)"
           id="tab-1"
-          @click="togglePerspective"
         >
           Preview
           <vscode-badge appearance="secondary"
@@ -89,16 +88,23 @@
         <vscode-panel-tab id="tab-3">
           {{ (hasData || hasError || isLoading) ? "Help" : "Welcome 🚀" }}
         </vscode-panel-tab>
-        <vscode-panel-tab id="tab-4" @click="onFeedback"
+        <vscode-panel-tab
+          id="tab-4"
+          v-show="(hasData || hasError || isLoading)"
+          @click="togglePerspective"
+          >{{ hasPerspective ? "Show legacy UI" : "Show new UI"
+          }}</vscode-panel-tab
+        >
+        <vscode-panel-tab id="tab-5" @click="onFeedback"
           >Feedback</vscode-panel-tab
         >
 
         <vscode-panel-view
-          style="height: 100%; display: block"
+          style="height: 100%"
           v-show="(hasData || hasError || isLoading)"
           id="view-1"
         >
-          <div v-show="hasPerspective">
+          <div v-show="hasPerspective" style="width: 100%">
             <perspective-viewer
               :style="getPerspectiveStyles()"
               :theme="getPerspectiveTheme()"
@@ -183,6 +189,9 @@
             </p>
           </div>
         </vscode-panel-view>
+        <vscode-panel-view
+          v-show="(hasData || hasError || isLoading)"
+        ></vscode-panel-view>
         <vscode-panel-view></vscode-panel-view>
       </vscode-panels>
     </div>
