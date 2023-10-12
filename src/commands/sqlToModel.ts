@@ -49,8 +49,8 @@ export class SqlToModel {
     const event = this.eventMap.get(project.projectRoot.fsPath);
     if (event === undefined) {
       window.showErrorMessage(
-        "Could not find dbt project to associate with. \
-      Please check if the file is in the correct folder.",
+        "Could not associate with models due to pending initiation, \
+      Please retry again.",
       );
       return undefined;
     }
