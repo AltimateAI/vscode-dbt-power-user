@@ -50,6 +50,7 @@ export class NewLineagePanel implements LineagePanelView {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private dbCache: Map<string, Record<string, string>[]> = new Map();
   private lruCache: Map<string, number> = new Map();
+  private progressBarResolve?: () => void;
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -152,6 +153,27 @@ export class NewLineagePanel implements LineagePanelView {
         command: "response",
         args: { id, body, status: !!body },
       });
+      return;
+    }
+
+    if (command === "startProgressBar") {
+      window.withProgress(
+        {
+          title: "Show progress bar",
+          location: ProgressLocation.Notification,
+          cancellable: false,
+        },
+        async () => {
+          await new Promise<void>((resolve) => {
+            this.progressBarResolve = resolve;
+          });
+        },
+      );
+      return;
+    }
+
+    if (command === "endProgressBar") {
+      this.progressBarResolve?.();
       return;
     }
 

@@ -60,6 +60,12 @@ export const openDocs = () => {
     },
   });
 };
+export const startProgressBar = () => {
+  vscode.postMessage({ command: "startProgressBar", args: {} });
+};
+export const endProgressBar = () => {
+  vscode.postMessage({ command: "endProgressBar", args: {} });
+};
 
 export let isDarkMode = false;
 

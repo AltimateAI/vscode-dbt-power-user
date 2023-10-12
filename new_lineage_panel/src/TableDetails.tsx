@@ -18,7 +18,7 @@ import {
   downstreamTables,
   Table,
 } from "./service";
-import { LineageContext } from "./App";
+import { endProgressBar, LineageContext, startProgressBar } from "./App";
 import {
   createNewNodesEdges,
   mergeCollectColumns,
@@ -209,6 +209,7 @@ const TableDetails = () => {
       setShowSidebar(false);
       return;
     }
+    startProgressBar();
     console.time();
     let _nodes = flow.getNodes();
     let _edges = flow.getEdges();
@@ -228,12 +229,20 @@ const TableDetails = () => {
         data: { processed, key, level },
       } = tableNode;
       if (!processed[1]) {
-        const { tables } = await upstreamTables(key);
-        addNodesEdges(tables, true, level);
+        try {
+          const { tables } = await upstreamTables(key);
+          addNodesEdges(tables, true, level);
+        } catch (e) {
+          console.error(e);
+        }
       }
       if (!processed[0]) {
-        const { tables } = await downstreamTables(key);
-        addNodesEdges(tables, false, level);
+        try {
+          const { tables } = await downstreamTables(key);
+          addNodesEdges(tables, false, level);
+        } catch (e) {
+          console.error(e);
+        }
       }
     }
     setSelectedColumn(_column);
@@ -282,27 +291,32 @@ const TableDetails = () => {
         }
         currAnd1HopTables.push(...Object.keys(tablesInCurrIter));
 
-        const patchState = await processColumnLineage(
-          levelMap,
-          seeMoreIdTableReverseMap,
-          tableNodes,
-          curr,
-          right,
-          currAnd1HopTables
-        );
-        curr = patchState.newCurr;
-        const [nodes, edges] = mergeNodesEdges(
-          { nodes: flow.getNodes(), edges: flow.getEdges() },
-          patchState
-        );
-        flow.setNodes(nodes);
-        flow.setEdges(edges);
-        mergeCollectColumns(setCollectColumns, patchState.collectColumns);
+        try {
+          const patchState = await processColumnLineage(
+            levelMap,
+            seeMoreIdTableReverseMap,
+            tableNodes,
+            curr,
+            right,
+            currAnd1HopTables
+          );
+          curr = patchState.newCurr;
+          const [nodes, edges] = mergeNodesEdges(
+            { nodes: flow.getNodes(), edges: flow.getEdges() },
+            patchState
+          );
+          flow.setNodes(nodes);
+          flow.setEdges(edges);
+          mergeCollectColumns(setCollectColumns, patchState.collectColumns);
+        } catch (e) {
+          console.error(e);
+        }
       }
     };
 
     await Promise.all([bfsTraversal(true), bfsTraversal(false)]);
     console.timeEnd();
+    endProgressBar();
   };
   if (isLoading || !data || !selectedTable) return <ComponentLoader />;
 
