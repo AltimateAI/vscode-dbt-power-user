@@ -159,7 +159,7 @@ export class NewLineagePanel implements LineagePanelView {
     if (command === "startProgressBar") {
       window.withProgress(
         {
-          title: "Show progress bar",
+          title: "Processing column level lineage",
           location: ProgressLocation.Notification,
           cancellable: false,
         },
@@ -324,37 +324,28 @@ export class NewLineagePanel implements LineagePanelView {
     }[] = [];
     const relationsWithoutColumns: string[] = [];
     try {
-      await window.withProgress(
-        {
-          title: "Fetching metadata",
-          location: ProgressLocation.Notification,
-          cancellable: false,
-        },
-        async () => {
-          await Promise.all(
-            Object.values(visibleTables).map(async (node) => {
-              let compiledSql: string | undefined;
-              if (node.config.materialized === "ephemeral") {
-                // ephemeral nodes can be skipped. they dont have a schema
-                // and their sql makes it into the compiled sql of the models
-                // referring to it.
-                return;
-              }
-              if (node.config.materialized !== "seed") {
-                compiledSql = await project.compileNode(node.name);
-                if (!compiledSql) {
-                  return;
-                }
-              }
-              const ok = await this.addColumnsFromDB(project, node);
-              if (!ok) {
-                relationsWithoutColumns.push(node.alias);
-                return;
-              }
-              modelInfos.push({ compiled_sql: compiledSql, model_node: node });
-            }),
-          );
-        },
+      await Promise.all(
+        Object.values(visibleTables).map(async (node) => {
+          let compiledSql: string | undefined;
+          if (node.config.materialized === "ephemeral") {
+            // ephemeral nodes can be skipped. they dont have a schema
+            // and their sql makes it into the compiled sql of the models
+            // referring to it.
+            return;
+          }
+          if (node.config.materialized !== "seed") {
+            compiledSql = await project.compileNode(node.name);
+            if (!compiledSql) {
+              return;
+            }
+          }
+          const ok = await this.addColumnsFromDB(project, node);
+          if (!ok) {
+            relationsWithoutColumns.push(node.alias);
+            return;
+          }
+          modelInfos.push({ compiled_sql: compiledSql, model_node: node });
+        }),
       );
     } catch (exc) {
       if (exc instanceof PythonException) {
@@ -400,25 +391,16 @@ export class NewLineagePanel implements LineagePanelView {
     const modelDialect = project.getAdapterType();
     let result;
     try {
-      result = await window.withProgress(
-        {
-          title: "Fetching column lineage",
-          location: ProgressLocation.Notification,
-          cancellable: false,
-        },
-        async () => {
-          const params: DBTColumnLineageRequest = {
-            model_dialect: modelDialect,
-            model_info: modelInfos,
-          };
-          if (column) {
-            params.target_model = column.table;
-            params.target_column = column.name;
-            params.downstream_models = column.downstreamTables;
-          }
-          return await this.altimate.getColumnLevelLineage(params);
-        },
-      );
+      const params: DBTColumnLineageRequest = {
+        model_dialect: modelDialect,
+        model_info: modelInfos,
+      };
+      if (column) {
+        params.target_model = column.table;
+        params.target_column = column.name;
+        params.downstream_models = column.downstreamTables;
+      }
+      result = await this.altimate.getColumnLevelLineage(params);
     } catch (error) {
       if (error instanceof AbortError) {
         window.showErrorMessage("Fetching column level lineage timed out.");
