@@ -108,11 +108,12 @@
           />
 
           <div v-show="hasData" style="width: 100%">
-            <perspective-viewer
-              v-show="hasPerspective"
-              :style="getPerspectiveStyles()"
-              :theme="getPerspectiveTheme()"
-            ></perspective-viewer>
+            <div v-show="hasPerspective" style="width: 100%">
+              <perspective-viewer
+                :style="getPerspectiveStyles()"
+                :theme="getPerspectiveTheme()"
+              ></perspective-viewer>
+            </div>
             <div v-show="!hasPerspective">
               <vscode-button
                 @click="copyResultsToClipboard"
