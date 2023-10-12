@@ -6,14 +6,29 @@ import { EnvironmentVariables } from "./domain";
 
 @provide(CommandProcessExecutionFactory)
 export class CommandProcessExecutionFactory {
-  createCommandProcessExecution(
-    command: string,
-    args?: string[],
-    cwd?: string,
-    token?: CancellationToken,
-    envVars?: EnvironmentVariables,
-  ) {
-    return new CommandProcessExecution(command, args, cwd, token, envVars);
+  createCommandProcessExecution({
+    command,
+    args,
+    stdin,
+    cwd,
+    token,
+    envVars,
+  }: {
+    command: string;
+    args?: string[];
+    stdin?: string;
+    cwd?: string;
+    token?: CancellationToken;
+    envVars?: EnvironmentVariables;
+  }) {
+    return new CommandProcessExecution(
+      command,
+      args,
+      stdin,
+      cwd,
+      token,
+      envVars,
+    );
   }
 }
 
@@ -23,6 +38,7 @@ export class CommandProcessExecution {
   constructor(
     private command: string,
     private args?: string[],
+    private stdin?: string,
     private cwd?: string,
     private token?: CancellationToken,
     private envVars?: EnvironmentVariables,
@@ -52,7 +68,7 @@ export class CommandProcessExecution {
     }
   }
 
-  async complete(stdin?: string): Promise<string> {
+  async complete(): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       const commandProcess = this.spawn();
       let stdoutBuffer = "";
@@ -79,8 +95,8 @@ export class CommandProcessExecution {
         reject(`${error}`);
       });
 
-      if (stdin) {
-        commandProcess.stdin.write(stdin);
+      if (this.stdin) {
+        commandProcess.stdin.write(this.stdin);
         commandProcess.stdin.end();
       }
     });
@@ -100,10 +116,14 @@ export class CommandProcessExecution {
         resolve();
         this.dispose();
       });
-
       commandProcess.once("error", (error) => {
         reject(`Error occurred during process execution: ${error}`);
       });
+
+      if (this.stdin) {
+        commandProcess.stdin.write(this.stdin);
+        commandProcess.stdin.end();
+      }
     });
   }
 
