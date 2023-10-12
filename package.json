@@ -490,7 +490,7 @@
     "copy-webpack-plugin": "^11.0.0",
     "eslint": "^8.51.0",
     "eslint-config-prettier": "^8.9.0",
-    "eslint-plugin-prettier": "^5.0.0",
+    "eslint-plugin-prettier": "^5.0.1",
     "file-loader": "^6.1.0",
     "glob": "^10.3.10",
     "husky": "^8.0.3",
