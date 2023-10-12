@@ -65,7 +65,6 @@ export class DbtDocumentFormattingEditProvider
         sqlFmtPath: sqlFmtPathSetting ? "setting" : "path",
       });
       try {
-        console.log(document.getText());
         await this.commandProcessExecutionFactory
           .createCommandProcessExecution({
             command: sqlFmtPath,
