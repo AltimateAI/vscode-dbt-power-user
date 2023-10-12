@@ -47,6 +47,7 @@ import * as crypto from "crypto";
 export interface ExecuteSQLResult {
   table: {
     column_names: string[];
+    column_types: string[];
     rows: any[][];
   };
   raw_sql: string;
@@ -802,6 +803,7 @@ select * from renamed
       },
     );
 
+    // TODO: this should generate an event instead of directly going to the panel
     this.queryResultPanel.executeQuery(
       query,
       this.python?.lock(
