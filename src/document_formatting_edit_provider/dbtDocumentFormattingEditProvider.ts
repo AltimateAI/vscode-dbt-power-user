@@ -52,11 +52,11 @@ export class DbtDocumentFormattingEditProvider
       .filter((s) => s !== "");
 
     const sqlFmtArgs = [
+      "-",
       "--diff",
       "--no-progressbar",
       "--quiet",
       ...sqlFmtAdditionalParamsSetting,
-      document.uri.fsPath,
     ];
     try {
       // try to find sqlfmt on PATH if not set
@@ -66,7 +66,11 @@ export class DbtDocumentFormattingEditProvider
       });
       try {
         await this.commandProcessExecutionFactory
-          .createCommandProcessExecution(sqlFmtPath, sqlFmtArgs)
+          .createCommandProcessExecution({
+            command: sqlFmtPath,
+            args: sqlFmtArgs,
+            stdin: document.getText(),
+          })
           .complete();
         return [];
       } catch (diffOutput) {
