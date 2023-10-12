@@ -23,6 +23,7 @@
       {
         "imports": {
           "vue": "__ROOT__/assets/vue.esm-browser.prod.js",
+          "tabulator": "__ROOT__/assets/tabulator.min.js",
           "prism": "__ROOT__/assets/prism.js",
           "perspective": "__ROOT__/assets/perspective.js",
           "perspective-viewer": "__ROOT__/assets/perspective-viewer.js"
@@ -50,7 +51,11 @@
       type="module"
       src="__ROOT__/assets/toolkit.min.js"
     ></script>
-
+    <link
+      nonce="__NONCE__"
+      rel="stylesheet"
+      href="__ROOT__/assets/tabulator.min.css"
+    />
     <link
       nonce="__NONCE__"
       rel="stylesheet"
@@ -83,7 +88,11 @@
         <vscode-panel-tab id="tab-3">
           {{ (hasData || hasError || isLoading) ? "Help" : "Welcome 🚀" }}
         </vscode-panel-tab>
-        <vscode-panel-tab id="tab-4" @click="onFeedback"
+        <vscode-panel-tab id="tab-4" v-show="hasData" @click="togglePerspective"
+          >{{ hasPerspective ? "Show legacy UI" : "Show new UI"
+          }}</vscode-panel-tab
+        >
+        <vscode-panel-tab id="tab-5" @click="onFeedback"
           >Feedback</vscode-panel-tab
         >
 
@@ -92,10 +101,44 @@
           v-show="(hasData || hasError || isLoading)"
           id="view-1"
         >
-          <perspective-viewer
-            :style="getPerspectiveStyles()"
-            :theme="getPerspectiveTheme()"
-          ></perspective-viewer>
+          <img
+            v-if="isLoading"
+            id="spinner"
+            src="__ROOT__/assets/spinner.gif"
+          />
+
+          <div v-show="hasData" style="width: 100%">
+            <div v-show="hasPerspective" style="width: 100%">
+              <perspective-viewer
+                :style="getPerspectiveStyles()"
+                :theme="getPerspectiveTheme()"
+              ></perspective-viewer>
+            </div>
+            <div v-show="!hasPerspective">
+              <vscode-button
+                @click="copyResultsToClipboard"
+                style="margin-bottom: 4px"
+                >Copy Results</vscode-button
+              >
+              <vscode-button
+                @click="downloadAsCSV"
+                style="margin-left: 5px; margin-bottom: 4px"
+                >Download as CSV</vscode-button
+              >
+              <div id="query-results" :style="getTableStyles()"></div>
+            </div>
+          </div>
+
+          <div v-show="hasError">
+            <h3 class="error-title">{{ errorTitle }}</h3>
+            <h4>{{ errorMessage }}</h4>
+            <br />
+            <details>
+              <summary>View Detailed Error 🚨</summary>
+              <pre><code class="language-javascript" data-prismjs-copy="Copy Error" v-html="errorDataMarkup"></code></pre>
+            </details>
+            <br />
+          </div>
         </vscode-panel-view>
         <vscode-panel-view v-show="hasCode" id="view-2">
           <div>
@@ -143,6 +186,7 @@
             </p>
           </div>
         </vscode-panel-view>
+        <vscode-panel-view v-show="hasData"></vscode-panel-view>
         <vscode-panel-view></vscode-panel-view>
       </vscode-panels>
     </div>

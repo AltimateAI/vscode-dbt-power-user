@@ -1,4 +1,5 @@
 import { createApp } from "vue";
+import "tabulator"; // Exposes Tabulator class
 import "prism"; // Exposes Prism object
 import perspective from "perspective";
 import "perspective-viewer";
@@ -60,9 +61,19 @@ const app = createApp({
       clipboardText: "",
       isDarkMode: false,
       clickTimer: null,
+      table: undefined,
+      hasPerspective: true,
     };
   },
   methods: {
+    togglePerspective() {
+      this.hasPerspective = !this.hasPerspective;
+      updateConfig({ enableNewQueryPanel: this.hasPerspective });
+      this.updateTable(this.cacheData);
+      setTimeout(() => {
+        document.querySelector("#panel-manager").activeid = "tab-1";
+      }, 100);
+    },
     // Converts the provided data to CSV format.
     dataToCsv(columns, rows) {
       if (!rows || rows.length === 0) {
@@ -110,9 +121,48 @@ const app = createApp({
         });
       }
     },
+    copyTextToClipboard(text) {
+      navigator.clipboard.writeText(text);
+    },
+    // Copies the table's data to the clipboard in CSV format.
+    async copyResultsToClipboard() {
+      try {
+        const data = this.cacheData;
+        const csv = this.dataToCsv(data.columns, data.rows);
+        this.copyTextToClipboard(csv);
+      } catch (error) {
+        console.error("Error copying results to clipboard:", error);
+        // Show error message
+        vscode.window.showErrorMessage(
+          "Unable to convert data to CSV. " + error.message,
+        );
+      }
+    },
     updateTable(data) {
       this.count = data.rows.length;
-      grid.load(data.rows);
+      if (!this.hasPerspective) {
+        this.table = new Tabulator("#query-results", {
+          height: this.tableHeight,
+          data: data.rows,
+          columns: data.columns,
+          layout: "fitDataFill",
+          headerSortElement: function (column, dir) {
+            //dir - current sort direction ("asc", "desc", "none")
+            switch (dir) {
+              case "asc":
+                return "<p>&#9660;</p>";
+              case "desc":
+                return "<p>&#9650;</p>";
+              default:
+                return "<p>&#9661;</p>";
+            }
+          },
+        });
+      } else {
+        this.table?.destroy();
+        this.table = undefined;
+        grid.load(data.rows);
+      }
     },
     updateError(data) {
       this.error = data.error;
@@ -127,6 +177,7 @@ const app = createApp({
       if (data.scale) {
         this.scale = data.scale;
       }
+      this.hasPerspective = data.enableNewQueryPanel;
       this.isDarkMode = data.darkMode;
     },
     updateDispatchedCode(raw_stmt, compiled_stmt) {
@@ -151,6 +202,7 @@ const app = createApp({
     clearData() {
       this.count = 0;
       this.cacheData = null;
+      this.table = undefined;
       this.rawCode = "";
       this.compiledCode = "";
       this.error = {};
@@ -168,6 +220,30 @@ const app = createApp({
     },
     endTimer() {
       clearTimeout(this.timer);
+    },
+    setTableHeight() {
+      if (!this.table) {
+        return;
+      }
+      this.table.setHeight(this.windowHeight);
+    },
+    handleResize(event) {
+      const currentHeight = window.innerHeight;
+      if (this.windowHeight !== currentHeight) {
+        this.windowHeight = currentHeight;
+        if (currentHeight < DEFAULT_HEIGHT) {
+          this.windowHeight = DEFAULT_HEIGHT;
+        }
+        cancelAnimationFrame(this.resizeTimer);
+        this.resizeTimer = requestAnimationFrame(this.setTableHeight);
+      }
+    },
+    getTableStyles() {
+      return {
+        fontSize: `${this.scale}em`,
+        lineHeight: `${this.scale}`,
+        display: "block",
+      };
     },
     getPerspectiveStyles() {
       return {
@@ -191,6 +267,11 @@ const app = createApp({
     },
   },
   computed: {
+    tableHeight() {
+      return this.count * 65 < this.windowHeight
+        ? this.count * 65
+        : this.windowHeight;
+    },
     hasData() {
       return this.count > 0;
     },
@@ -245,7 +326,10 @@ const app = createApp({
   mounted() {
     this.clickTimer = setInterval(() => {
       const shadowRoot =
-        document.querySelector("perspective-viewer").shadowRoot;
+        document.querySelector("perspective-viewer")?.shadowRoot;
+      if (!shadowRoot) {
+        return;
+      }
       const exportButton = shadowRoot.getElementById("export");
       if (!exportButton) {
         return;
@@ -287,8 +371,11 @@ const app = createApp({
           break;
       }
     });
+    window.addEventListener("resize", this.handleResize);
   },
-  unmounted() {},
+  unmounted() {
+    window.removeEventListener("resize", this.handleResize);
+  },
   beforeDestroy() {
     clearInterval(this.timer);
     clearInterval(this.clickTimer);
