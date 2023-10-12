@@ -83,6 +83,7 @@ def to_dict(obj):
         return {
             "rows": [to_dict(row) for row in obj.rows],
             "column_names": obj.column_names,
+            "column_types": list(map(lambda x: x.__class__.__name__, obj.column_types))
         }
     if isinstance(obj, str):
         return obj

@@ -24,8 +24,33 @@ class Grid {
     this.elem = document.querySelector("perspective-viewer");
   }
 
-  async load(rows) {
-    const table = await this.worker.table(rows);
+  mapType(agateType) {
+    switch (agateType) {
+      case "Text":
+        return "string";
+      case "Integer":
+        return "integer";
+      case "Boolean":
+        return "boolean";
+      case "Date":
+        return "date";
+      case "DateTime":
+        return "datetime";
+      case "Number":
+        return "float";
+      default:
+        // treat any unknown types as string
+        return "string";
+    }
+  }
+
+  async load(result) {
+    const schema = {};
+    for (let i = 0; i < result.columnNames.length; i++) {
+      schema[result.columnNames[i]] = this.mapType(result.columnTypes[i]);
+    }
+    const table = await this.worker.table(schema);
+    table.replace(result.rows);
     await this.elem.load(table);
     await this.elem.restore({
       settings: true,
@@ -82,11 +107,10 @@ const app = createApp({
       }
       const replacer = (key, value) => (value === null ? "" : value);
       const csv = [
-        columns.map((c) => c.title).join(","),
+        columns.join(","),
         ...rows.map((row) =>
           columns
-            .map((c) => {
-              const fieldName = c.field;
+            .map((fieldName) => {
               let fieldData = row[fieldName];
               if (fieldData && typeof fieldData === "string") {
                 fieldData = fieldData.replace(/"/g, '""'); // Escape double quotes
@@ -106,7 +130,7 @@ const app = createApp({
           console.error("No data available for downloading.");
           return;
         }
-        const csvContent = this.dataToCsv(data.columns, data.rows);
+        const csvContent = this.dataToCsv(data.columnNames, data.rows);
         const blob = new Blob([csvContent], { type: "text/csv" });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -128,7 +152,7 @@ const app = createApp({
     async copyResultsToClipboard() {
       try {
         const data = this.cacheData;
-        const csv = this.dataToCsv(data.columns, data.rows);
+        const csv = this.dataToCsv(data.columnNames, data.rows);
         this.copyTextToClipboard(csv);
       } catch (error) {
         console.error("Error copying results to clipboard:", error);
@@ -144,7 +168,7 @@ const app = createApp({
         this.table = new Tabulator("#query-results", {
           height: this.tableHeight,
           data: data.rows,
-          columns: data.columns,
+          columns: data.columnNames.map((def) => ({ title: def, field: def })),
           layout: "fitDataFill",
           headerSortElement: function (column, dir) {
             //dir - current sort direction ("asc", "desc", "none")
@@ -161,7 +185,7 @@ const app = createApp({
       } else {
         this.table?.destroy();
         this.table = undefined;
-        grid.load(data.rows);
+        grid.load(data);
       }
     },
     updateError(data) {
