@@ -88,10 +88,7 @@
         <vscode-panel-tab id="tab-3">
           {{ (hasData || hasError || isLoading) ? "Help" : "Welcome 🚀" }}
         </vscode-panel-tab>
-        <vscode-panel-tab
-          id="tab-4"
-          v-show="(hasData || hasError || isLoading)"
-          @click="togglePerspective"
+        <vscode-panel-tab id="tab-4" v-show="hasData" @click="togglePerspective"
           >{{ hasPerspective ? "Show legacy UI" : "Show new UI"
           }}</vscode-panel-tab
         >
@@ -104,20 +101,19 @@
           v-show="(hasData || hasError || isLoading)"
           id="view-1"
         >
-          <div v-show="hasPerspective" style="width: 100%">
+          <img
+            v-if="isLoading"
+            id="spinner"
+            src="__ROOT__/assets/spinner.gif"
+          />
+
+          <div v-show="hasData" style="width: 100%">
             <perspective-viewer
+              v-show="hasPerspective"
               :style="getPerspectiveStyles()"
               :theme="getPerspectiveTheme()"
             ></perspective-viewer>
-          </div>
-          <div v-show="!hasPerspective">
-            <img
-              v-if="isLoading"
-              id="spinner"
-              src="__ROOT__/assets/spinner.gif"
-            />
-
-            <div v-show="hasData" style="width: 100%">
+            <div v-else>
               <vscode-button
                 @click="copyResultsToClipboard"
                 style="margin-bottom: 4px"
@@ -130,17 +126,17 @@
               >
               <div id="query-results" :style="getTableStyles()"></div>
             </div>
+          </div>
 
-            <div v-show="hasError">
-              <h3 class="error-title">{{ errorTitle }}</h3>
-              <h4>{{ errorMessage }}</h4>
-              <br />
-              <details>
-                <summary>View Detailed Error 🚨</summary>
-                <pre><code class="language-javascript" data-prismjs-copy="Copy Error" v-html="errorDataMarkup"></code></pre>
-              </details>
-              <br />
-            </div>
+          <div v-show="hasError">
+            <h3 class="error-title">{{ errorTitle }}</h3>
+            <h4>{{ errorMessage }}</h4>
+            <br />
+            <details>
+              <summary>View Detailed Error 🚨</summary>
+              <pre><code class="language-javascript" data-prismjs-copy="Copy Error" v-html="errorDataMarkup"></code></pre>
+            </details>
+            <br />
           </div>
         </vscode-panel-view>
         <vscode-panel-view v-show="hasCode" id="view-2">
@@ -189,9 +185,7 @@
             </p>
           </div>
         </vscode-panel-view>
-        <vscode-panel-view
-          v-show="(hasData || hasError || isLoading)"
-        ></vscode-panel-view>
+        <vscode-panel-view v-show="hasData"></vscode-panel-view>
         <vscode-panel-view></vscode-panel-view>
       </vscode-panels>
     </div>
