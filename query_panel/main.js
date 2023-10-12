@@ -68,12 +68,7 @@ const app = createApp({
   methods: {
     togglePerspective() {
       this.hasPerspective = !this.hasPerspective;
-      if (this.hasPerspective) {
-        this.table.destroy();
-        this.table = undefined;
-      } else {
-        this.updateTable(this.cacheData);
-      }
+      this.updateTable(this.cacheData);
       setTimeout(() => {
         document.querySelector("#panel-manager").activeid = "tab-1";
       }, 100);
@@ -131,8 +126,8 @@ const app = createApp({
     // Copies the table's data to the clipboard in CSV format.
     async copyResultsToClipboard() {
       try {
-        const data = this.table.getData();
-        const csv = this.dataToCsv(data);
+        const data = this.cacheData;
+        const csv = this.dataToCsv(data.columns, data.rows);
         this.copyTextToClipboard(csv);
       } catch (error) {
         console.error("Error copying results to clipboard:", error);
@@ -163,6 +158,8 @@ const app = createApp({
           },
         });
       } else {
+        this.table?.destroy();
+        this.table = undefined;
         grid.load(data.rows);
       }
     },
