@@ -113,7 +113,7 @@
               :style="getPerspectiveStyles()"
               :theme="getPerspectiveTheme()"
             ></perspective-viewer>
-            <div v-else>
+            <div v-show="!hasPerspective">
               <vscode-button
                 @click="copyResultsToClipboard"
                 style="margin-bottom: 4px"

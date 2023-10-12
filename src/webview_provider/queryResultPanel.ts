@@ -50,6 +50,7 @@ interface RenderError {
 interface InjectConfig {
   limit?: number;
   darkMode: boolean;
+  enableNewQueryPanel: boolean;
 }
 
 enum InboundCommand {
@@ -70,6 +71,7 @@ interface RecError {
 interface RecConfig {
   limit?: number;
   scale?: number;
+  enableNewQueryPanel?: boolean;
 }
 
 interface RecOpenUrl {
@@ -158,6 +160,11 @@ export class QueryResultPanel implements WebviewViewProvider {
                 .getConfiguration("dbt")
                 .update("queryScale", config.scale);
             }
+            if ("enableNewQueryPanel" in config) {
+              workspace
+                .getConfiguration("dbt")
+                .update("enableNewQueryPanel", config.enableNewQueryPanel);
+            }
             break;
           case InboundCommand.OpenUrl: {
             const config = message as RecOpenUrl;
@@ -220,6 +227,9 @@ export class QueryResultPanel implements WebviewViewProvider {
   /** Sends VSCode config data to webview */
   private transmitConfig() {
     const limit = workspace.getConfiguration("dbt").get<number>("queryLimit");
+    const enableNewQueryPanel = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("enableNewQueryPanel", true);
     const queryTemplate = workspace
       .getConfiguration("dbt")
       .get<string>(
@@ -232,6 +242,7 @@ export class QueryResultPanel implements WebviewViewProvider {
         ...(<InjectConfig>{
           limit,
           queryTemplate,
+          enableNewQueryPanel,
           darkMode: ![
             ColorThemeKind.Light,
             ColorThemeKind.HighContrastLight,

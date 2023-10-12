@@ -68,6 +68,7 @@ const app = createApp({
   methods: {
     togglePerspective() {
       this.hasPerspective = !this.hasPerspective;
+      updateConfig({ enableNewQueryPanel: this.hasPerspective });
       this.updateTable(this.cacheData);
       setTimeout(() => {
         document.querySelector("#panel-manager").activeid = "tab-1";
@@ -176,6 +177,7 @@ const app = createApp({
       if (data.scale) {
         this.scale = data.scale;
       }
+      this.hasPerspective = data.enableNewQueryPanel;
       this.isDarkMode = data.darkMode;
     },
     updateDispatchedCode(raw_stmt, compiled_stmt) {
@@ -324,7 +326,10 @@ const app = createApp({
   mounted() {
     this.clickTimer = setInterval(() => {
       const shadowRoot =
-        document.querySelector("perspective-viewer").shadowRoot;
+        document.querySelector("perspective-viewer")?.shadowRoot;
+      if (!shadowRoot) {
+        return;
+      }
       const exportButton = shadowRoot.getElementById("export");
       if (!exportButton) {
         return;
