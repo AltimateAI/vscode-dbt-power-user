@@ -22,11 +22,11 @@ import {
   SelfConnectingEdge,
   TableNode,
 } from "./CustomNodes";
-import { COLUMNS_SIDEBAR, TABLES_SIDEBAR } from "./utils";
+import { COLUMNS_SIDEBAR, TABLES_SIDEBAR, getHelperDataForCLL } from "./utils";
 import { SidebarModal } from "./SidebarModal";
 import { MoreTables, TMoreTables } from "./MoreTables";
 import { Table, downstreamTables, upstreamTables } from "./service";
-import { createNewNodesEdges, layoutElementsOnCanvas } from "./graph";
+import { createNewNodesEdges, highlightTableConnections, layoutElementsOnCanvas, mergeCollectColumns, mergeNodesEdges, processColumnLineage } from "./graph";
 import { TableDetails } from "./TableDetails";
 import { Button } from "reactstrap";
 
@@ -113,7 +113,7 @@ function App() {
   const [moreTables, setMoreTables] = useState<TMoreTables | null>(null);
   const [sidebarScreen, setSidebarScreen] = useState("");
   const [selectedColumn, setSelectedColumn] = useState({ name: "", table: "" });
-  const [collectColumns, setCollectColumns] = useState({});
+  const [collectColumns, setCollectColumns] = useState<Record<string, string[]>>({});
   const [, _rerender] = useState(0);
   const rerender = () => _rerender((x) => (x + 1) % 100);
 
@@ -140,40 +140,66 @@ function App() {
         return;
       }
       const existingNode = _flow.getNode(node.table);
-      let _nodes: Node[] = [];
-      let _edges: Edge[] = [];
-      const addNodesEdges = (
+      let nodes: Node[] = [];
+      let edges: Edge[] = [];
+      const addNodesEdges = async (
         tables: Table[],
+        table: string,
         right: boolean,
         level: number
       ) => {
-        [_nodes, _edges] = createNewNodesEdges(
-          _nodes,
-          _edges,
+        [nodes, edges] = createNewNodesEdges(
+          nodes,
+          edges,
           tables,
           node.table,
           right,
           level
         );
+        if (selectedColumn.name) {
+          const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
+            getHelperDataForCLL(nodes, edges);
+          const currAnd1HopTables = tables.map((t) => t.table);
+          currAnd1HopTables.push(table);
+          const curr = (collectColumns[table] || []).map(
+            (c) => [table, c] as [string, string]
+          );
+          const patchState = await processColumnLineage(
+            levelMap,
+            seeMoreIdTableReverseMap,
+            tableNodes,
+            curr,
+            right,
+            currAnd1HopTables
+          );
+          [nodes, edges] = mergeNodesEdges({ nodes, edges }, patchState);
+          mergeCollectColumns(setCollectColumns, patchState.collectColumns);
+        } else if (selectedTable) {
+          [nodes, edges] = highlightTableConnections(
+            nodes,
+            edges,
+            selectedTable.table
+          );
+        }
       };
       if (existingNode) {
         const { level, processed } = existingNode.data as {
           level: number;
           processed: [boolean, boolean];
         };
-        _nodes = _flow.getNodes();
-        _edges = _flow.getEdges();
+        nodes = _flow.getNodes();
+        edges = _flow.getEdges();
         if (!processed[1]) {
           const { tables } = await upstreamTables(node.key);
-          addNodesEdges(tables, true, level);
+          addNodesEdges(tables, node.table, true, level);
         }
         if (!processed[0]) {
           const { tables } = await downstreamTables(node.key);
-          addNodesEdges(tables, false, level);
+          addNodesEdges(tables, node.table, false, level);
         }
         // TODO: handle cll and highlight
       } else {
-        _nodes = [
+        nodes = [
           {
             id: node.table,
             data: {
@@ -193,20 +219,20 @@ function App() {
         ];
         if (node.upstreamCount > 0) {
           const { tables } = await upstreamTables(node.key);
-          addNodesEdges(tables, true, 0);
+          addNodesEdges(tables, node.table, true, 0);
         }
         if (node.downstreamCount > 0) {
           const { tables } = await downstreamTables(node.key);
-          addNodesEdges(tables, false, 0);
+          addNodesEdges(tables, node.table, false, 0);
         }
         setSelectedTable(null);
         setSelectedColumn({ table: "", name: "" });
         setCollectColumns({});
       }
 
-      layoutElementsOnCanvas(_nodes, _edges);
-      _flow.setNodes(_nodes);
-      _flow.setEdges(_edges);
+      layoutElementsOnCanvas(nodes, edges);
+      _flow.setNodes(nodes);
+      _flow.setEdges(edges);
       rerender();
     };
     const response = (args: {

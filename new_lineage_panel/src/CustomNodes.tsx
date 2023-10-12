@@ -165,13 +165,11 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
       [nodes, edges] = mergeNodesEdges({ nodes, edges }, patchState);
       mergeCollectColumns(setCollectColumns, patchState.collectColumns);
     } else if (selectedTable) {
-      const [_nodes, _edges] = highlightTableConnections(
+      [nodes, edges] = highlightTableConnections(
         nodes,
         edges,
         selectedTable.table
       );
-      nodes = _nodes;
-      edges = _edges;
     }
     layoutElementsOnCanvas(nodes, edges);
     flow.setNodes(nodes);
