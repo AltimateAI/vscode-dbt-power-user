@@ -160,13 +160,13 @@ export class DBTClient implements Disposable {
       );
     }
 
-    return this.commandProcessExecutionFactory.createCommandProcessExecution(
-      this.pythonEnvironment.pythonPath,
+    return this.commandProcessExecutionFactory.createCommandProcessExecution({
+      command: this.pythonEnvironment.pythonPath,
       args,
       cwd,
       token,
-      this.pythonEnvironment.environmentVariables,
-    );
+      envVars: this.pythonEnvironment.environmentVariables,
+    });
   }
 
   private raiseDBTNotInstalledEvent(): void {
