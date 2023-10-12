@@ -74,6 +74,7 @@
         <vscode-panel-tab
           v-show="(hasData || hasError || isLoading)"
           id="tab-1"
+          @click="togglePerspective"
         >
           Preview
           <vscode-badge appearance="secondary"

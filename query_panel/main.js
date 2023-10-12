@@ -62,10 +62,19 @@ const app = createApp({
       isDarkMode: false,
       clickTimer: null,
       table: undefined,
-      hasPerspective: false,
+      hasPerspective: true,
     };
   },
   methods: {
+    togglePerspective() {
+      this.hasPerspective = !this.hasPerspective;
+      if (this.hasPerspective) {
+        this.table.destroy();
+        this.table = undefined;
+      } else {
+        this.updateTable(this.cacheData);
+      }
+    },
     // Converts the provided data to CSV format.
     dataToCsv(columns, rows) {
       if (!rows || rows.length === 0) {
