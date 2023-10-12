@@ -40,15 +40,18 @@ export class SqlToModel {
     const allmodels: NodeMetaData[] = [];
     const project = this.dbtProjectContainer.findDBTProject(currentFilePath);
     if (project === undefined) {
+      window.showErrorMessage(
+        "Could not find a dbt project. \
+      Please put the new model in a dbt project before associating with the existing models.",
+      );
       return undefined;
     }
-    // uncomment this line in case you need to pass everything
-    // const reciter = this.eventMap.values();
-
-    // for now, restrict it to this project only.
-    // assuming user has narrowed down to a project.
     const event = this.eventMap.get(project.projectRoot.fsPath);
     if (event === undefined) {
+      window.showErrorMessage(
+        "Could not find dbt project to associate with. \
+      Please check if the file is in the correct folder.",
+      );
       return undefined;
     }
     const rriter = event.nodeMetaMap.values();
@@ -65,17 +68,29 @@ export class SqlToModel {
     const fileText = activedoc.document.getText();
     const compiled_sql = await project.compileQuery(fileText);
 
-    const retobj = await this.altimate.runModeller({
-      // if we can run this through compile sql, we can also do
-      // conversions that were half done. if it fails, just send the text as is.
-      sql: compiled_sql || fileText,
-      adapter: project.getAdapterType(),
-      models: allmodels,
-      sources: allsources,
-    });
-    console.log(retobj);
+    const retobj = await this.altimate
+      .runModeller({
+        // if we can run this through compile sql, we can also do
+        // conversions that were half done. if it fails, just send the text as is.
+        sql: compiled_sql || fileText,
+        adapter: project.getAdapterType(),
+        models: allmodels,
+        sources: allsources,
+      })
+      .catch((err) => {
+        window.showErrorMessage(
+          "Could not convert sql to model. \
+        Encountered unknown error when converting sql to model.",
+        );
+        console.error(err);
+        return undefined;
+      });
     // if somehow the response isnt there or got an error response
     if (retobj === undefined || retobj.sql === undefined) {
+      window.showErrorMessage(
+        "Could not convert sql to model. \
+        Encountered unknown error when converting sql to model.",
+      );
       return undefined;
     }
 
