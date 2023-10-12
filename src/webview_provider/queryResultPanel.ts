@@ -35,7 +35,8 @@ enum OutboundCommand {
 }
 
 interface RenderQuery {
-  columns: JsonObj[];
+  columnNames: string[];
+  columnTypes: string[];
   rows: JsonObj[];
   raw_sql: string;
   compiled_sql: string;
@@ -196,7 +197,8 @@ export class QueryResultPanel implements WebviewViewProvider {
 
   /** Sends query result data to webview */
   private async transmitData(
-    columns: JsonObj[],
+    columnNames: string[],
+    columnTypes: string[],
     rows: JsonObj[],
     raw_sql: string,
     compiled_sql: string,
@@ -204,7 +206,13 @@ export class QueryResultPanel implements WebviewViewProvider {
     if (this._panel) {
       await this._panel.webview.postMessage({
         command: OutboundCommand.RenderQuery,
-        ...(<RenderQuery>{ columns, rows, raw_sql, compiled_sql }),
+        ...(<RenderQuery>{
+          columnNames,
+          columnTypes,
+          rows,
+          raw_sql,
+          compiled_sql,
+        }),
       });
     }
   }
@@ -273,7 +281,6 @@ export class QueryResultPanel implements WebviewViewProvider {
   /** A wrapper for {@link transmitData} which converts server
    * results interface ({@link ExecuteSQLResult}) to what the webview expects */
   private async transmitDataWrapper(result: ExecuteSQLResult, query: string) {
-    let columns: JsonObj[] = [];
     const rows: JsonObj[] = [];
     // Convert compressed array format to dict[]
     for (let i = 0; i < result.table.rows.length; i++) {
@@ -281,11 +288,13 @@ export class QueryResultPanel implements WebviewViewProvider {
         rows[i] = { ...rows[i], [result.table.column_names[j]]: value };
       });
     }
-    // Define column spec for Tabulator
-    result.table.column_names.forEach((def: any) => {
-      columns = [...columns, { title: def, field: def }];
-    });
-    await this.transmitData(columns, rows, query, result.compiled_sql);
+    await this.transmitData(
+      result.table.column_names,
+      result.table.column_types,
+      rows,
+      query,
+      result.compiled_sql,
+    );
   }
 
   /** Runs a query transmitting appropriate notifications to webview */
