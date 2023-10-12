@@ -32,6 +32,7 @@ export class SqlToModel {
   }
 
   async getModelFromSql() {
+    this.telemetry.sendTelemetryEvent("sqlToModel");
     if (!window.activeTextEditor) {
       return;
     }
@@ -44,6 +45,7 @@ export class SqlToModel {
         "Could not find a dbt project. \
       Please put the new model in a dbt project before associating with the existing models.",
       );
+      this.telemetry.sendTelemetryError("sqlToModelNoProjectError");
       return undefined;
     }
     const event = this.eventMap.get(project.projectRoot.fsPath);
@@ -52,6 +54,7 @@ export class SqlToModel {
         "Could not associate with models due to pending initiation, \
       Please retry again.",
       );
+      this.telemetry.sendTelemetryError("sqlToModelNoManifestError");
       return undefined;
     }
     const rriter = event.nodeMetaMap.values();
@@ -82,6 +85,7 @@ export class SqlToModel {
           "Could not convert sql to model. \
         Encountered unknown error when converting sql to model.",
         );
+        this.telemetry.sendTelemetryError("sqlToModelBackendError", err);
         console.error(err);
         return undefined;
       });
@@ -91,6 +95,7 @@ export class SqlToModel {
         "Could not convert sql to model. \
         Encountered unknown error when converting sql to model.",
       );
+      this.telemetry.sendTelemetryError("sqlToModelEmptyBackendResponseError");
       return undefined;
     }
 
