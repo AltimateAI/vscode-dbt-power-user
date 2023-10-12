@@ -61,6 +61,24 @@ Avoid using the setting `dbt.dbtPythonPathOverride` unless using Meltano, the ex
 
 When you set the Python interpreter, the extension will try to detect dbt and you should be able to make use of the features listed below.
 
+### Select the custom dbtRunner.
+
+In case you want to use a custom runner. You can overwrite the import string for it.
+
+For an example, you have module `my_custom_runner`:
+```python
+from dbt.cli.main import dbtRunner
+
+class dbtCustomRunner(dbtRunner):
+    def invoke(self, *args, **kwargs):
+        print("Hello from overwritten runner!")
+        print("Staring invoke...")
+        return dbtRunner.invoke(self, *args, **kwargs)
+        print("Invoke finished!")
+```
+
+`dbt.dbtCustomRunnerImport` = `from my_custom_runner import dbtCustomRunner as dbtRunner`
+
 ### Environment variables
 
 This extension supports environment variables in various ways;

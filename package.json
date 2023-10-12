@@ -82,6 +82,11 @@
             "type": "string",
             "description": "Path to a python executable or entrypoint. If undefined, we will use the Python extension's configured environment. Most users will not need to change this setting without specific reasoning such as custom wrappers and should instead modify the Python extensions selected interpreter."
           },
+          "dbt.dbtCustomRunnerImport": {
+            "type": "string",
+            "description": "Python import string to import custom dbt runner. ",
+            "default": "from dbt.cli.main import dbtRunner"
+          },
           "dbt.allowListFolders": {
             "type": "array",
             "items": {
