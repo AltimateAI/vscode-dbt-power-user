@@ -70,6 +70,7 @@ window.addEventListener("DOMContentLoaded", async function () {
 const app = createApp({
   data() {
     return {
+      count: 0,
       data: null,
       rawCode: "",
       compiledCode: "",
@@ -94,7 +95,7 @@ const app = createApp({
     togglePerspective() {
       this.hasPerspective = !this.hasPerspective;
       updateConfig({ enableNewQueryPanel: this.hasPerspective });
-      this.updateTable(this.cacheData);
+      this.updateTable(this.data);
       setTimeout(() => {
         document.querySelector("#panel-manager").activeid = "tab-1";
       }, 100);
@@ -151,7 +152,7 @@ const app = createApp({
     // Copies the table's data to the clipboard in CSV format.
     async copyResultsToClipboard() {
       try {
-        const data = this.cacheData;
+        const data = this.data;
         const csv = this.dataToCsv(data.columnNames, data.rows);
         this.copyTextToClipboard(csv);
       } catch (error) {
@@ -225,7 +226,7 @@ const app = createApp({
     },
     clearData() {
       this.count = 0;
-      this.cacheData = null;
+      this.data = null;
       this.table = undefined;
       this.rawCode = "";
       this.compiledCode = "";
