@@ -49,8 +49,9 @@ class Grid {
     for (let i = 0; i < result.columnNames.length; i++) {
       schema[result.columnNames[i]] = this.mapType(result.columnTypes[i]);
     }
+    console.log("this is load -> ", schema, result);
     const table = await this.worker.table(schema);
-    table.replace(result.rows);
+    await table.update(result.rows);
     await this.elem.load(table);
     await this.elem.restore({
       columns: [], // reset columns
