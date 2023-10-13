@@ -317,8 +317,7 @@ const app = createApp({
     },
     queryExecutionInfo() {
       if (this.hasData || this.hasError || this.elapsedTime) {
-        const count = this.cacheData?.rows?.length || 0;
-        return `${count} rows in ${this.elapsedTime}s`;
+        return `${this.count} rows in ${this.elapsedTime}s`;
       }
       return "...";
     },
