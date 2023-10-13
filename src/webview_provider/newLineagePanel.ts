@@ -11,9 +11,8 @@ import {
   WebviewView,
   WebviewViewResolveContext,
   window,
-  workspace,
 } from "vscode";
-import { AltimateRequest, DBTColumnLineageRequest } from "../altimate";
+import { AltimateRequest } from "../altimate";
 import {
   ColumnMetaData,
   GraphMetaMap,
@@ -290,12 +289,12 @@ export class NewLineagePanel implements LineagePanelView {
   }
 
   private async getConnectedColumns({
-    column,
+    targets,
+    downstreamTables,
     currAnd1HopTables,
   }: {
-    column:
-      | { name: string; table: string; downstreamTables: string[] }
-      | undefined;
+    targets: { table: string; column: string }[];
+    downstreamTables: string[];
     currAnd1HopTables: string[];
   }) {
     const nodeMetaMap = this.getEvent()?.nodeMetaMap;
@@ -391,16 +390,12 @@ export class NewLineagePanel implements LineagePanelView {
     const modelDialect = project.getAdapterType();
     let result;
     try {
-      const params: DBTColumnLineageRequest = {
+      result = await this.altimate.getColumnLevelLineage({
         model_dialect: modelDialect,
         model_info: modelInfos,
-      };
-      if (column) {
-        params.target_model = column.table;
-        params.target_column = column.name;
-        params.downstream_models = column.downstreamTables;
-      }
-      result = await this.altimate.getColumnLevelLineage(params);
+        downstream_models: downstreamTables,
+        targets,
+      });
     } catch (error) {
       if (error instanceof AbortError) {
         window.showErrorMessage("Fetching column level lineage timed out.");

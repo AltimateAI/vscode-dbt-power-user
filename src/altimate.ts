@@ -18,15 +18,14 @@ interface Schemas {
 }
 
 export interface DBTColumnLineageRequest {
-  target_model?: string;
-  target_column?: string;
+  targets: { table: string; column: string }[];
   model_dialect: string;
   model_info: {
     model_node: NodeMetaData;
     compiled_sql: string | undefined;
   }[];
   schemas?: Schemas | null;
-  downstream_models?: string[];
+  downstream_models: string[];
 }
 
 interface OnewayFeedback {

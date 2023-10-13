@@ -48,9 +48,8 @@ export const getColumns = (table: string, refresh: boolean) => {
 };
 
 export const getConnectedColumns = (body: {
-  column:
-    | { name: string; table: string; downstreamTables: string[] }
-    | undefined;
+  targets: { table: string; column: string }[];
+  downstreamTables: string[];
   currAnd1HopTables: string[];
 }) => {
   return requestExecutor("getConnectedColumns", body) as Promise<
