@@ -421,9 +421,7 @@ export class NewLineagePanel implements LineagePanelView {
       );
       return;
     }
-    const columnLineage = result!.flat().filter((e) => !!e);
-    console.log("cll -> ", columnLineage);
-    return { columnLineage };
+    return { columnLineage: result };
   }
 
   private getConnectedTables(
