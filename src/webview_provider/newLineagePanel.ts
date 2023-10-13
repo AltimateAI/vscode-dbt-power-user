@@ -38,6 +38,7 @@ type Table = {
 };
 
 const CACHE_SIZE = 100;
+const CACHE_VALID_TIME = 24 * 60 * 60 * 1000;
 
 const ALLOWED_NODE_TYPES = ["model.", "source.", "seed."];
 const isAllowedNode = (key: string) =>
@@ -180,7 +181,11 @@ export class NewLineagePanel implements LineagePanelView {
   }
 
   private async addColumnsFromDB(project: DBTProject, node: NodeMetaData) {
-    if (!this.dbCache.has(node.name)) {
+    const now = Date.now();
+    if (
+      !this.dbCache.has(node.name) ||
+      (this.lruCache.get(node.name) || 0) < now - CACHE_VALID_TIME
+    ) {
       const _columnsFromDB = await project.getColumnsInRelation(node.name);
       this.dbCache.set(node.name, _columnsFromDB);
       if (this.dbCache.size > CACHE_SIZE) {
@@ -192,7 +197,7 @@ export class NewLineagePanel implements LineagePanelView {
         });
       }
     }
-    this.lruCache.set(node.name, Date.now());
+    this.lruCache.set(node.name, now);
     const columnsFromDB = this.dbCache.get(node.name)!;
     console.log("addColumnsFromDB: ", node.name, " -> ", columnsFromDB);
     if (!columnsFromDB || columnsFromDB.length === 0) {
