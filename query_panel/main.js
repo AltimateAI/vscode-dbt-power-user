@@ -72,7 +72,7 @@ const app = createApp({
   data() {
     return {
       count: 0,
-      data: null,
+      cacheData: null,
       rawCode: "",
       compiledCode: "",
       error: {},
