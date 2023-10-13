@@ -51,7 +51,7 @@ class Grid {
     }
     console.log("this is load -> ", schema, result);
     const table = await this.worker.table(schema);
-    await table.update(result.rows);
+    await table.replace(result.rows);
     await this.elem.load(table);
     await this.elem.restore({
       columns: [], // reset columns
@@ -72,7 +72,7 @@ const app = createApp({
   data() {
     return {
       count: 0,
-      cacheData: null,
+      cacheData: undefined,
       rawCode: "",
       compiledCode: "",
       error: {},
@@ -227,7 +227,7 @@ const app = createApp({
     },
     clearData() {
       this.count = 0;
-      this.cacheData = null;
+      this.cacheData = undefined;
       this.table = undefined;
       this.rawCode = "";
       this.compiledCode = "";
