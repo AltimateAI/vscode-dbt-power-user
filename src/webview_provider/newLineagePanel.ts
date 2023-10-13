@@ -265,7 +265,11 @@ export class NewLineagePanel implements LineagePanelView {
           location: ProgressLocation.Notification,
           cancellable: false,
         },
-        async () => await this.addColumnsFromDB(project, node),
+        async () => {
+          this.lruCache.delete(node.name);
+          this.dbCache.delete(node.name);
+          return await this.addColumnsFromDB(project, node);
+        },
       );
       if (!ok) {
         window.showErrorMessage(
