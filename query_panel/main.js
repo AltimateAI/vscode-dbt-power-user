@@ -96,7 +96,7 @@ const app = createApp({
     togglePerspective() {
       this.hasPerspective = !this.hasPerspective;
       updateConfig({ enableNewQueryPanel: this.hasPerspective });
-      this.updateTable(this.data);
+      this.updateTable(this.cacheData);
       setTimeout(() => {
         document.querySelector("#panel-manager").activeid = "tab-1";
       }, 100);
@@ -126,7 +126,7 @@ const app = createApp({
       return csv;
     },
     downloadAsCSV() {
-      const data = this.data;
+      const data = this.cacheData;
       try {
         if (!data || data.rows.length === 0) {
           console.error("No data available for downloading.");
@@ -153,7 +153,7 @@ const app = createApp({
     // Copies the table's data to the clipboard in CSV format.
     async copyResultsToClipboard() {
       try {
-        const data = this.data;
+        const data = this.cacheData;
         const csv = this.dataToCsv(data.columnNames, data.rows);
         this.copyTextToClipboard(csv);
       } catch (error) {
@@ -227,7 +227,7 @@ const app = createApp({
     },
     clearData() {
       this.count = 0;
-      this.data = null;
+      this.cacheData = null;
       this.table = undefined;
       this.rawCode = "";
       this.compiledCode = "";
@@ -299,7 +299,7 @@ const app = createApp({
         : this.windowHeight;
     },
     hasData() {
-      return !!this.data;
+      return !!this.cacheData;
     },
     hasError() {
       return this.error?.data;
@@ -317,7 +317,7 @@ const app = createApp({
     },
     queryExecutionInfo() {
       if (this.hasData || this.hasError || this.elapsedTime) {
-        const count = this.data?.rows?.length || 0;
+        const count = this.cacheData?.rows?.length || 0;
         return `${count} rows in ${this.elapsedTime}s`;
       }
       return "...";
@@ -368,7 +368,7 @@ const app = createApp({
       console.log(event.data);
       switch (event.data.command) {
         case "renderQuery":
-          this.data = event.data;
+          this.cacheData = event.data;
           this.updateTable(event.data);
           this.updateDispatchedCode(
             event.data.raw_sql,
