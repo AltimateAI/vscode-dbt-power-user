@@ -290,11 +290,11 @@ export class NewLineagePanel implements LineagePanelView {
 
   private async getConnectedColumns({
     targets,
-    downstreamTables,
+    upstreamExpansion,
     currAnd1HopTables,
   }: {
-    targets: { table: string; column: string }[];
-    downstreamTables: string[];
+    targets: [string, string][];
+    upstreamExpansion: boolean;
     currAnd1HopTables: string[];
   }) {
     const nodeMetaMap = this.getEvent()?.nodeMetaMap;
@@ -393,7 +393,7 @@ export class NewLineagePanel implements LineagePanelView {
       result = await this.altimate.getColumnLevelLineage({
         model_dialect: modelDialect,
         model_info: modelInfos,
-        downstream_models: downstreamTables,
+        upstream_expansion: upstreamExpansion,
         targets,
       });
     } catch (error) {

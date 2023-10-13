@@ -264,10 +264,8 @@ export const processColumnLineage = async (
   const edges: Edge[] = [];
 
   let { columnLineage } = await getConnectedColumns({
-    targets: curr.map((c) => ({ table: c[0], column: c[1] })),
-    downstreamTables: right
-      ? []
-      : currAnd1HopTables.filter((t) => !curr.find((c) => c[0] === t)),
+    targets: curr,
+    upstreamExpansion: right,
     currAnd1HopTables,
   });
   const newCurr: [string, string][] = [];

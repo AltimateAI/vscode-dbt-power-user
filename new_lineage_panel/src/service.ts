@@ -48,8 +48,8 @@ export const getColumns = (table: string, refresh: boolean) => {
 };
 
 export const getConnectedColumns = (body: {
-  targets: { table: string; column: string }[];
-  downstreamTables: string[];
+  targets: [string, string][];
+  upstreamExpansion: boolean;
   currAnd1HopTables: string[];
 }) => {
   return requestExecutor("getConnectedColumns", body) as Promise<
