@@ -308,46 +308,48 @@ function App() {
   return (
     <div className="position-relative">
       <div className="top-right-container">
-        <Card>
-          <CardBody className="p-1">
-            <div className="d-flex gap-sm">
-              <div className="d-flex gap-xxs align-items-center">
-                <DirectEdgeIcon />
-                <div>Direct</div>
-                <InfoIcon
-                  id="direct_lineage"
-                  message="Direct Linkages are shown if there is direct flow of data between columns through select statements."
-                />
-              </div>
-              <div className="d-flex gap-xxs align-items-center">
-                <IndirectEdgeIcon />
-                <div>Indirect</div>
-                <InfoIcon
-                  id="indirect_lineage"
-                  message="Indirect linkages are shown if columns appear in condition/clauses like Where. Join, having,etc."
-                />
-              </div>
-              <div className={styles.verticle_divider} />
-              <div className="d-flex gap-xxs align-items-center">
-                <div>Confidence</div>
-                {confidence.operator_list && (
+        {aiEnabled && (
+          <Card>
+            <CardBody className="p-1">
+              <div className="d-flex gap-sm">
+                <div className="d-flex gap-xxs align-items-center">
+                  <DirectEdgeIcon />
+                  <div>Direct</div>
                   <InfoIcon
-                    id="confidence"
-                    message={`The confidence of lineage for indirect links is low because of the presence of the following in the sql: ${Array.from(
-                      new Set(confidence.operator_list)
-                    ).join(", ")}`}
+                    id="direct_lineage"
+                    message="Direct Linkages are shown if there is direct flow of data between columns through select statements."
                   />
-                )}
-                {confidence.confidence === "high" && (
-                  <div className={styles.high_confidence}>High</div>
-                )}
-                {confidence.confidence === "low" && (
-                  <div className={styles.low_confidence}>Low</div>
-                )}
+                </div>
+                <div className="d-flex gap-xxs align-items-center">
+                  <IndirectEdgeIcon />
+                  <div>Indirect</div>
+                  <InfoIcon
+                    id="indirect_lineage"
+                    message="Indirect linkages are shown if columns appear in condition/clauses like Where. Join, having,etc."
+                  />
+                </div>
+                <div className={styles.verticle_divider} />
+                <div className="d-flex gap-xxs align-items-center">
+                  <div>Confidence</div>
+                  {confidence.operator_list && (
+                    <InfoIcon
+                      id="confidence"
+                      message={`The confidence of lineage for indirect links is low because of the presence of the following in the sql: ${Array.from(
+                        new Set(confidence.operator_list)
+                      ).join(", ")}`}
+                    />
+                  )}
+                  {confidence.confidence === "high" && (
+                    <div className={styles.high_confidence}>High</div>
+                  )}
+                  {confidence.confidence === "low" && (
+                    <div className={styles.low_confidence}>Low</div>
+                  )}
+                </div>
               </div>
-            </div>
-          </CardBody>
-        </Card>
+            </CardBody>
+          </Card>
+        )}
         <Button
           color="secondary"
           onClick={(e) => {
