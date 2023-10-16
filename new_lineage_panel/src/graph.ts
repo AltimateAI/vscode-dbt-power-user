@@ -117,25 +117,24 @@ export const layoutElementsOnCanvas = (nodes: Node[], _edges: Edge[]) => {
       (C_NODE_H * _columnCount) + C_PADDING_Y;
   };
 
+  const getX = (level: number) => {
+    const basisLevel = level - minLevel;
+    return basisLevel * (T_NODE_W + LEVEL_SEPARATION) + P_OFFSET_X;
+  };
+
   for (const n of nodes) {
     if (isColumn(n) || n.id.startsWith(SEE_MORE_PREFIX)) {
       continue;
     }
     const level = n.data.level;
-    const basisLevel = level - minLevel;
-    const x = basisLevel * (T_NODE_W + LEVEL_SEPARATION) + P_OFFSET_X;
-    const y = getY(n, level);
-    n.position = { x, y };
+    n.position = { x: getX(level), y: getY(n, level) };
   }
   for (const n of nodes) {
     if (!n.id.startsWith(SEE_MORE_PREFIX)) {
       continue;
     }
     const level = n.data.level;
-    const basisLevel = level - minLevel;
-    const x = basisLevel * (T_NODE_W + LEVEL_SEPARATION) + P_OFFSET_X;
-    const y = getY(n, level);
-    n.position = { x, y };
+    n.position = { x: getX(level), y: getY(n, level) };
   }
 };
 
