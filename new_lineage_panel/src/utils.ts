@@ -11,6 +11,8 @@ export const COLUMN_PREFIX = "column-";
 export const SEE_MORE_PREFIX = "see-more-";
 
 // dimensions
+export const P_OFFSET_X = 100;
+export const P_OFFSET_Y = 100;
 export const T_NODE_W = 260;
 export const T_NODE_H = 100;
 export const C_OFFSET_X = 12;

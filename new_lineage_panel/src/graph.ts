@@ -15,6 +15,8 @@ import {
   isNotColumn,
   LEVEL_SEPARATION,
   MAX_EXPAND_TABLE,
+  P_OFFSET_X,
+  P_OFFSET_Y,
   SEE_MORE_PREFIX,
   T_NODE_H,
   T_NODE_W,
@@ -114,7 +116,8 @@ export const layoutElementsOnCanvas = (nodes: Node[], _edges: Edge[]) => {
     const _columnCount = levelWiseColumnCount[level] || 0;
     levelWiseIndex[level]++;
     levelWiseColumnCount[level] += tableWiseColumnIndex[n.id];
-    return 100 + (_index * T_NODE_Y_SEPARATION) + ((_index + 1) * T_NODE_H) +
+    return P_OFFSET_Y + (_index * T_NODE_Y_SEPARATION) +
+      ((_index + 1) * T_NODE_H) +
       (C_NODE_H * _columnCount) + C_PADDING_Y;
   };
 
@@ -124,7 +127,7 @@ export const layoutElementsOnCanvas = (nodes: Node[], _edges: Edge[]) => {
     }
     const level = n.data.level;
     const basisLevel = level - minLevel;
-    const x = basisLevel * (T_NODE_W + LEVEL_SEPARATION) + 100;
+    const x = basisLevel * (T_NODE_W + LEVEL_SEPARATION) + P_OFFSET_X;
     const y = getY(n, level);
     n.position = { x, y };
   }
@@ -134,7 +137,7 @@ export const layoutElementsOnCanvas = (nodes: Node[], _edges: Edge[]) => {
     }
     const level = n.data.level;
     const basisLevel = level - minLevel;
-    const x = basisLevel * (T_NODE_W + LEVEL_SEPARATION) + 100;
+    const x = basisLevel * (T_NODE_W + LEVEL_SEPARATION) + P_OFFSET_X;
     const y = getY(n, level);
     n.position = { x, y };
   }
