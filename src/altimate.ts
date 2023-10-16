@@ -165,7 +165,7 @@ export class AltimateRequest {
   }
 
   async getColumnLevelLineage(req: DBTColumnLineageRequest) {
-    return this.fetch<DBTColumnLineageResponse>("dbt/v1/lineage/v2", {
+    return this.fetch<DBTColumnLineageResponse>("dbt/v2/lineage", {
       method: "POST",
       body: JSON.stringify(req),
     });
