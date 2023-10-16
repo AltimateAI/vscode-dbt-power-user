@@ -276,14 +276,14 @@ export const processColumnLineage = async (
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
-  let { column_lineage } = await getConnectedColumns({
+  const { column_lineage, confidence } = await getConnectedColumns({
     targets: curr,
     upstreamExpansion: right,
     currAnd1HopTables,
     selectedColumn,
   });
   const newCurr: [string, string][] = [];
-  column_lineage = column_lineage.filter((e) => {
+  const columnLineage = column_lineage.filter((e) => {
     if (right) {
       if (curr.some((c) => c[0] === e.source[0] && c[1] === e.source[1])) {
         newCurr.push(e.target);
@@ -306,7 +306,7 @@ export const processColumnLineage = async (
       collectColumns[_table].push(_column);
     }
   };
-  column_lineage.forEach((e) => {
+  columnLineage.forEach((e) => {
     addToCollectColumns(e.source);
     addToCollectColumns(e.target);
   });
@@ -353,7 +353,7 @@ export const processColumnLineage = async (
     });
   };
 
-  for (const e of column_lineage) {
+  for (const e of columnLineage) {
     const [t0] = e.source;
     const [t1] = e.target;
 
@@ -385,7 +385,7 @@ export const processColumnLineage = async (
     }
   }
 
-  return { nodes, edges, collectColumns, newCurr };
+  return { nodes, edges, collectColumns, newCurr, confidence };
 };
 
 export const mergeNodesEdges = (

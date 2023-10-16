@@ -102,6 +102,9 @@ export const LineageContext = createContext<{
   collectColumns: Record<string, string[]>;
   setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>;
   rerender: () => void;
+  setConfidence: Dispatch<
+    SetStateAction<{ confidence: string; message?: string }>
+  >;
 }>({
   showSidebar: false,
   setShowSidebar: () => {},
@@ -116,6 +119,7 @@ export const LineageContext = createContext<{
   collectColumns: {},
   setCollectColumns: () => {},
   rerender: () => {},
+  setConfidence: () => {},
 });
 
 const InfoIcon: FunctionComponent<{ id: string; message: string }> = ({
@@ -144,6 +148,10 @@ function App() {
   const [collectColumns, setCollectColumns] = useState<
     Record<string, string[]>
   >({});
+  const [confidence, setConfidence] = useState<{
+    confidence: string;
+    message?: string;
+  }>({ confidence: "high" });
   const [, _rerender] = useState(0);
   const rerender = () => _rerender((x) => (x + 1) % 100);
 
@@ -322,8 +330,15 @@ function App() {
               <div className={styles.verticle_divider} />
               <div className="d-flex gap-xxs align-items-center">
                 <div>Confidence</div>
-                <InfoIcon id="confidence" message="This is confidence" />
-                <div className={styles.high_confidence}>Low</div>
+                {confidence.message && (
+                  <InfoIcon id="confidence" message={confidence.message} />
+                )}
+                {confidence.confidence === "high" && (
+                  <div className={styles.high_confidence}>High</div>
+                )}
+                {confidence.confidence === "low" && (
+                  <div className={styles.low_confidence}>Low</div>
+                )}
               </div>
             </div>
           </CardBody>
@@ -376,6 +391,7 @@ function App() {
           collectColumns,
           setCollectColumns,
           rerender,
+          setConfidence
         }}
       >
         <ReactFlowProvider>

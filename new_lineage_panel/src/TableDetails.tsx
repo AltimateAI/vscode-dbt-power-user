@@ -177,6 +177,7 @@ const TableDetails = () => {
     setCollectColumns,
     setShowSidebar,
     rerender,
+    setConfidence,
   } = useContext(LineageContext);
   const flow = useReactFlow();
   const [filteredColumn, setFilteredColumn] = useState<Column[]>([]);
@@ -303,6 +304,9 @@ const TableDetails = () => {
             currAnd1HopTables,
             _column
           );
+          if (patchState.confidence?.confidence === "low") {
+            setConfidence(patchState.confidence);
+          }
           curr = patchState.newCurr;
           const [nodes, edges] = mergeNodesEdges(
             { nodes: flow.getNodes(), edges: flow.getEdges() },
