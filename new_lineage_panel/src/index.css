@@ -123,6 +123,7 @@ body {
   display: flex;
   gap: 8px;
   z-index: 10;
+  align-items: center;
 }
 
 .fs-xxs {

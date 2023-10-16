@@ -35,7 +35,11 @@ import {
   processColumnLineage,
 } from "./graph";
 import { TableDetails } from "./TableDetails";
-import { Button } from "reactstrap";
+import { Button, Card, CardBody } from "reactstrap";
+import DirectEdgeIcon from "./assets/icons/direct_edge.svg?react";
+import IndirectEdgeIcon from "./assets/icons/indirect_edge.svg?react";
+import AlertCircleIcon from "./assets/icons/alert-circle.svg?react";
+import styles from "./styles.module.scss";
 
 declare const acquireVsCodeApi: () => { postMessage: (v: unknown) => void };
 
@@ -279,6 +283,28 @@ function App() {
   return (
     <div className="position-relative">
       <div className="top-right-container">
+        <Card>
+          <CardBody className="p-1">
+            <div className="d-flex gap-sm">
+              <div className="d-flex gap-xxs align-items-center">
+                <DirectEdgeIcon />
+                <div>Direct</div>
+                <AlertCircleIcon />
+              </div>
+              <div className="d-flex gap-xxs align-items-center">
+                <IndirectEdgeIcon />
+                <div>Indirect</div>
+                <AlertCircleIcon />
+              </div>
+              <div className={styles.verticle_divider} />
+              <div className="d-flex gap-xxs align-items-center">
+                <div>Confidence</div>
+                <AlertCircleIcon />
+                <div className={styles.high_confidence}>Low</div>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
         <Button
           color="secondary"
           onClick={(e) => {

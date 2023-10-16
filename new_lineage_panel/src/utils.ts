@@ -1,5 +1,6 @@
 import { Edge, MarkerType, Node } from "reactflow";
 import { Table } from "./service";
+import React from "react";
 
 // config constants
 export const MAX_EXPAND_TABLE = 5;
@@ -25,8 +26,15 @@ export const T_NODE_Y_SEPARATION = 50;
 // node styles
 const DEFAULT_COLOR = "#7A899E";
 const HIGHLIGHT_COLOR = "#E38E00";
-export const defaultEdgeStyle = { stroke: DEFAULT_COLOR, strokeWidth: 1 };
-export const highlightEdgeStyle = { stroke: HIGHLIGHT_COLOR, strokeWidth: 2 };
+export const defaultEdgeStyle: React.CSSProperties = {
+  stroke: DEFAULT_COLOR,
+  strokeWidth: 1,
+  strokeDasharray: 10,
+};
+export const highlightEdgeStyle: React.CSSProperties = {
+  stroke: HIGHLIGHT_COLOR,
+  strokeWidth: 2,
+};
 export const defaultMarker = {
   type: "arrow" as MarkerType,
   strokeWidth: 1,

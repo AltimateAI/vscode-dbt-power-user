@@ -192,3 +192,22 @@ $size: 1.2em;
   gap: 0em 0.5em;
   align-items: center;
 }
+
+.verticle_divider {
+  width: 2px;
+  background-color: #c4cad2;
+}
+
+.low_confidence {
+  padding: 0.25em 0.75em;
+  border-radius: 8px;
+  background: #ff754c;
+  color: white;
+}
+
+.high_confidence {
+  padding: 0.25em 0.75em;
+  border-radius: 8px;
+  background: #327e36;
+  color: white;
+}
