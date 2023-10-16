@@ -11,6 +11,7 @@ import {
   getSourceTargetHandles,
   highlightEdgeStyle,
   highlightMarker,
+  indirectHighlightEdgeStyle,
   isColumn,
   isNotColumn,
   LEVEL_SEPARATION,
@@ -275,14 +276,14 @@ export const processColumnLineage = async (
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
-  let { columnLineage } = await getConnectedColumns({
+  let { column_lineage } = await getConnectedColumns({
     targets: curr,
     upstreamExpansion: right,
     currAnd1HopTables,
     selectedColumn,
   });
   const newCurr: [string, string][] = [];
-  columnLineage = columnLineage.filter((e) => {
+  column_lineage = column_lineage.filter((e) => {
     if (right) {
       if (curr.some((c) => c[0] === e.source[0] && c[1] === e.source[1])) {
         newCurr.push(e.target);
@@ -305,7 +306,7 @@ export const processColumnLineage = async (
       collectColumns[_table].push(_column);
     }
   };
-  columnLineage.forEach((e) => {
+  column_lineage.forEach((e) => {
     addToCollectColumns(e.source);
     addToCollectColumns(e.target);
   });
@@ -330,6 +331,7 @@ export const processColumnLineage = async (
     id2: string,
     source: string,
     target: string,
+    type: string,
   ) => {
     const edgeId = COLUMN_PREFIX + `${source}-${target}`;
     const [sourceHandle, targetHandle] = getSourceTargetHandles(
@@ -342,14 +344,16 @@ export const processColumnLineage = async (
       target,
       sourceHandle,
       targetHandle,
-      style: highlightEdgeStyle,
+      style: type === "direct"
+        ? highlightEdgeStyle
+        : indirectHighlightEdgeStyle,
       zIndex: 1000,
       markerEnd: highlightMarker,
       type: levelMap[id1] === levelMap[id2] ? "smoothstep" : "default",
     });
   };
 
-  for (const e of columnLineage) {
+  for (const e of column_lineage) {
     const [t0] = e.source;
     const [t1] = e.target;
 
@@ -359,13 +363,14 @@ export const processColumnLineage = async (
     const target = COLUMN_PREFIX + e.target.join("/");
 
     if (sourceTableExist && targetTableExist) {
-      addToEdges(t0, t1, source, target);
+      addToEdges(t0, t1, source, target, e.type);
     } else if (sourceTableExist) {
       addToEdges(
         t0,
         seeMoreIdTableReverseMap[t1],
         source,
         seeMoreIdTableReverseMap[t1],
+        e.type,
       );
     } else if (targetTableExist) {
       addToEdges(
@@ -373,6 +378,7 @@ export const processColumnLineage = async (
         t1,
         seeMoreIdTableReverseMap[t0],
         target,
+        e.type,
       );
     } else {
       // TODO: check is nothing to do in this case

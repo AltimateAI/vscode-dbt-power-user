@@ -11,6 +11,7 @@ interface AltimateConfig {
 export interface ColumnLineage {
   source: [string, string];
   target: [string, string];
+  type: string;
 }
 
 interface Schemas {
@@ -27,6 +28,11 @@ export interface DBTColumnLineageRequest {
   schemas?: Schemas | null;
   upstream_expansion: boolean;
   selected_column: { model_node?: NodeMetaData; column: string };
+}
+
+interface DBTColumnLineageResponse {
+  column_lineage: ColumnLineage[];
+  confidence?: { confidence: string; message?: string };
 }
 
 interface OnewayFeedback {
@@ -159,7 +165,7 @@ export class AltimateRequest {
   }
 
   async getColumnLevelLineage(req: DBTColumnLineageRequest) {
-    return this.fetch<ColumnLineage[]>("dbt/v1/lineage", {
+    return this.fetch<DBTColumnLineageResponse>("dbt/v1/lineage/v2", {
       method: "POST",
       body: JSON.stringify(req),
     });

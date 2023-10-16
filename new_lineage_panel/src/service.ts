@@ -21,12 +21,14 @@ export type Columns = {
   columns: Column[];
 };
 
-type Edge = {
+type ColumnLineage = {
   source: [string, string];
   target: [string, string];
+  type: string;
 };
 interface ColumnLineageResponse {
-  columnLineage: Edge[];
+  column_lineage: ColumnLineage[];
+  confidence?: { confidence: string; message?: string };
 }
 
 export const upstreamTables = (tableKey: string) => {

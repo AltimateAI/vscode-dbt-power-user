@@ -433,17 +433,17 @@ export class NewLineagePanel implements LineagePanelView {
       this.telemetry.sendTelemetryError("ColumnLevelLineageError", error);
       return;
     }
-    if (!Array.isArray(result)) {
-      window.showErrorMessage(
-        "An unexpected error occured while fetching column level lineage.",
-      );
-      this.telemetry.sendTelemetryEvent(
-        "columnLevelLineageInvalidResponse",
-        result,
-      );
-      return;
-    }
-    return { columnLineage: result };
+    // if (!Array.isArray(result)) {
+    //   window.showErrorMessage(
+    //     "An unexpected error occured while fetching column level lineage.",
+    //   );
+    //   this.telemetry.sendTelemetryEvent(
+    //     "columnLevelLineageInvalidResponse",
+    //     result,
+    //   );
+    //   return;
+    // }
+    return result;
   }
 
   private getConnectedTables(

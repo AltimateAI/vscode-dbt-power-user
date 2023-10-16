@@ -29,11 +29,15 @@ const HIGHLIGHT_COLOR = "#E38E00";
 export const defaultEdgeStyle: React.CSSProperties = {
   stroke: DEFAULT_COLOR,
   strokeWidth: 1,
-  strokeDasharray: 10,
 };
 export const highlightEdgeStyle: React.CSSProperties = {
   stroke: HIGHLIGHT_COLOR,
   strokeWidth: 2,
+};
+export const indirectHighlightEdgeStyle: React.CSSProperties = {
+  stroke: HIGHLIGHT_COLOR,
+  strokeWidth: 1,
+  strokeDasharray: 10,
 };
 export const defaultMarker = {
   type: "arrow" as MarkerType,
