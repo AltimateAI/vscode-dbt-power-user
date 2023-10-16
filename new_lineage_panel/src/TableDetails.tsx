@@ -307,7 +307,7 @@ const TableDetails = () => {
           );
           if (patchState.confidence?.confidence === "low") {
             setConfidence((prev) => {
-              const newConfidence = { ...prev, confidence: "high" };
+              const newConfidence = { ...prev, confidence: "low" };
               newConfidence.operator_list = newConfidence.operator_list || [];
               newConfidence.operator_list.push(
                 ...(patchState.confidence?.operator_list || [])
