@@ -103,7 +103,7 @@ export const LineageContext = createContext<{
   setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>;
   rerender: () => void;
   setConfidence: Dispatch<
-    SetStateAction<{ confidence: string; message?: string }>
+    SetStateAction<{ confidence: string; operator_list?: string[] }>
   >;
 }>({
   showSidebar: false,
@@ -150,7 +150,7 @@ function App() {
   >({});
   const [confidence, setConfidence] = useState<{
     confidence: string;
-    message?: string;
+    operator_list?: string[];
   }>({ confidence: "high" });
   const [, _rerender] = useState(0);
   const rerender = () => _rerender((x) => (x + 1) % 100);
@@ -330,8 +330,13 @@ function App() {
               <div className={styles.verticle_divider} />
               <div className="d-flex gap-xxs align-items-center">
                 <div>Confidence</div>
-                {confidence.message && (
-                  <InfoIcon id="confidence" message={confidence.message} />
+                {confidence.operator_list && (
+                  <InfoIcon
+                    id="confidence"
+                    message={`"The confidence of lineage for indirect links is low because of the presence of the following in the sql:\n - ${confidence.operator_list.join(
+                      "\n - "
+                    )}`}
+                  />
                 )}
                 {confidence.confidence === "high" && (
                   <div className={styles.high_confidence}>High</div>

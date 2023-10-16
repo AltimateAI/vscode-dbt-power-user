@@ -28,7 +28,7 @@ type ColumnLineage = {
 };
 interface ColumnLineageResponse {
   column_lineage: ColumnLineage[];
-  confidence?: { confidence: string; message?: string };
+  confidence?: { confidence: string; operator_list?: string[] };
 }
 
 export const upstreamTables = (tableKey: string) => {

@@ -260,6 +260,7 @@ const TableDetails = () => {
     edges.forEach((_e) => (_e.style = defaultEdgeStyle));
     flow.setNodes(nodes);
     flow.setEdges(edges);
+    setConfidence({ confidence: "high" });
     rerender();
 
     // creating helper data for current lineage once
@@ -305,7 +306,14 @@ const TableDetails = () => {
             _column
           );
           if (patchState.confidence?.confidence === "low") {
-            setConfidence(patchState.confidence);
+            setConfidence((prev) => {
+              const newConfidence = { ...prev, confidence: "high" };
+              newConfidence.operator_list = newConfidence.operator_list || [];
+              newConfidence.operator_list.push(
+                ...(patchState.confidence?.operator_list || [])
+              );
+              return newConfidence;
+            });
           }
           curr = patchState.newCurr;
           const [nodes, edges] = mergeNodesEdges(
