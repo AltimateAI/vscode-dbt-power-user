@@ -333,9 +333,9 @@ function App() {
                 {confidence.operator_list && (
                   <InfoIcon
                     id="confidence"
-                    message={`"The confidence of lineage for indirect links is low because of the presence of the following in the sql:\n - ${confidence.operator_list.join(
-                      "\n - "
-                    )}`}
+                    message={`The confidence of lineage for indirect links is low because of the presence of the following in the sql: ${Array.from(
+                      new Set(confidence.operator_list)
+                    ).join(", ")}`}
                   />
                 )}
                 {confidence.confidence === "high" && (
