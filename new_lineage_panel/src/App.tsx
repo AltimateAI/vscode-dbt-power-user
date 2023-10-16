@@ -316,7 +316,7 @@ function App() {
                 <div>Direct</div>
                 <InfoIcon
                   id="direct_lineage"
-                  message="This is direct lieange"
+                  message="Direct Linkages are shown if there is direct flow of data between columns through select statements."
                 />
               </div>
               <div className="d-flex gap-xxs align-items-center">
@@ -324,7 +324,7 @@ function App() {
                 <div>Indirect</div>
                 <InfoIcon
                   id="indirect_lineage"
-                  message="This is indirect lieange"
+                  message="Indirect linkages are shown if columns appear in condition/clauses like Where. Join, having,etc."
                 />
               </div>
               <div className={styles.verticle_divider} />
@@ -391,7 +391,7 @@ function App() {
           collectColumns,
           setCollectColumns,
           rerender,
-          setConfidence
+          setConfidence,
         }}
       >
         <ReactFlowProvider>
