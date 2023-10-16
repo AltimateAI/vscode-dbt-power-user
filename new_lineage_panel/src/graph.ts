@@ -79,10 +79,9 @@ export const createNewNodesEdges = (
 export const layoutElementsOnCanvas = (nodes: Node[], _edges: Edge[]) => {
   let minLevel = Infinity;
   let maxLevel = -Infinity;
-  const levelWiseCount: { [k: number]: number } = {};
-  const levelWiseIndex: { [k: number]: number } = {};
-  const levelWiseColumnCount: { [k: number]: number } = {};
-  const tableWiseColumnIndex: { [k: string]: number } = {};
+  const levelWiseIndex: Record<number, number> = {};
+  const levelWiseColumnCount: Record<number, number> = {};
+  const tableWiseColumnIndex: Record<string, number> = {};
 
   for (const n of nodes) {
     if (isColumn(n) && n.parentNode) {
@@ -102,16 +101,13 @@ export const layoutElementsOnCanvas = (nodes: Node[], _edges: Edge[]) => {
     const level = n.data.level;
     minLevel = Math.min(minLevel, level);
     maxLevel = Math.max(maxLevel, level);
-    if (!(level in levelWiseCount)) {
-      levelWiseCount[level] = 0;
+    if (!(level in levelWiseIndex)) {
       levelWiseIndex[level] = 0;
       levelWiseColumnCount[level] = 0;
     }
-    levelWiseCount[level]++;
   }
 
   const getY = (n: Node, level: number) => {
-    // const _count = levelWiseCount[level];
     const _index = levelWiseIndex[level];
     const _columnCount = levelWiseColumnCount[level] || 0;
     levelWiseIndex[level]++;
