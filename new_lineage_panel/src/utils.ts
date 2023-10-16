@@ -12,12 +12,13 @@ export const SEE_MORE_PREFIX = "see-more-";
 
 // dimensions
 export const T_NODE_W = 260;
-export const T_NODE_H = 200;
+export const T_NODE_H = 100;
 export const C_OFFSET_X = 12;
 export const C_OFFSET_Y = 108;
 export const C_NODE_H = 36;
 export const C_PADDING_Y = 16;
 export const LEVEL_SEPARATION = 150;
+export const T_NODE_Y_SEPARATION = 50;
 
 // node styles
 const DEFAULT_COLOR = "#7A899E";
