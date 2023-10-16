@@ -301,10 +301,12 @@ export class NewLineagePanel implements LineagePanelView {
     targets,
     upstreamExpansion,
     currAnd1HopTables,
+    selectedColumn,
   }: {
     targets: [string, string][];
     upstreamExpansion: boolean;
     currAnd1HopTables: string[];
+    selectedColumn: { name: string; table: string };
   }) {
     const nodeMetaMap = this.getEvent()?.nodeMetaMap;
     if (!nodeMetaMap) {
@@ -331,9 +333,13 @@ export class NewLineagePanel implements LineagePanelView {
       model_node: NodeMetaData;
     }[] = [];
     const relationsWithoutColumns: string[] = [];
+    const selected_column: { model_node?: NodeMetaData; column: string } = {
+      model_node: nodeMetaMap.get(selectedColumn.table),
+      column: selectedColumn.name,
+    };
     try {
-      await Promise.all(
-        Object.values(visibleTables).map(async (node) => {
+      await Promise.all([
+        ...Object.values(visibleTables).map(async (node) => {
           let compiledSql: string | undefined;
           if (node.config.materialized === "ephemeral") {
             // ephemeral nodes can be skipped. they dont have a schema
@@ -354,7 +360,12 @@ export class NewLineagePanel implements LineagePanelView {
           }
           modelInfos.push({ compiled_sql: compiledSql, model_node: node });
         }),
-      );
+        async () => {
+          if (selected_column.model_node) {
+            await this.addColumnsFromDB(project, selected_column.model_node);
+          }
+        },
+      ]);
     } catch (exc) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
@@ -404,6 +415,8 @@ export class NewLineagePanel implements LineagePanelView {
         model_info: modelInfos,
         upstream_expansion: upstreamExpansion,
         targets,
+        // select_column is used for pricing not business logic
+        selected_column,
       });
     } catch (error) {
       if (error instanceof AbortError) {

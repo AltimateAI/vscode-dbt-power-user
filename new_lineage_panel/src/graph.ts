@@ -259,6 +259,7 @@ export const processColumnLineage = async (
   curr: [string, string][],
   right: boolean,
   currAnd1HopTables: string[],
+  selectedColumn: { name: string; table: string },
 ) => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
@@ -267,6 +268,7 @@ export const processColumnLineage = async (
     targets: curr,
     upstreamExpansion: right,
     currAnd1HopTables,
+    selectedColumn,
   });
   const newCurr: [string, string][] = [];
   columnLineage = columnLineage.filter((e) => {

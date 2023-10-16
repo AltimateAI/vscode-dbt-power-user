@@ -51,6 +51,7 @@ export const getConnectedColumns = (body: {
   targets: [string, string][];
   upstreamExpansion: boolean;
   currAnd1HopTables: string[];
+  selectedColumn: { name: string; table: string };
 }) => {
   return requestExecutor("getConnectedColumns", body) as Promise<
     ColumnLineageResponse

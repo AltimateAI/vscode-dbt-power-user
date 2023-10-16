@@ -26,7 +26,14 @@ import { COLUMNS_SIDEBAR, TABLES_SIDEBAR, getHelperDataForCLL } from "./utils";
 import { SidebarModal } from "./SidebarModal";
 import { MoreTables, TMoreTables } from "./MoreTables";
 import { Table, downstreamTables, upstreamTables } from "./service";
-import { createNewNodesEdges, highlightTableConnections, layoutElementsOnCanvas, mergeCollectColumns, mergeNodesEdges, processColumnLineage } from "./graph";
+import {
+  createNewNodesEdges,
+  highlightTableConnections,
+  layoutElementsOnCanvas,
+  mergeCollectColumns,
+  mergeNodesEdges,
+  processColumnLineage,
+} from "./graph";
 import { TableDetails } from "./TableDetails";
 import { Button } from "reactstrap";
 
@@ -113,7 +120,9 @@ function App() {
   const [moreTables, setMoreTables] = useState<TMoreTables | null>(null);
   const [sidebarScreen, setSidebarScreen] = useState("");
   const [selectedColumn, setSelectedColumn] = useState({ name: "", table: "" });
-  const [collectColumns, setCollectColumns] = useState<Record<string, string[]>>({});
+  const [collectColumns, setCollectColumns] = useState<
+    Record<string, string[]>
+  >({});
   const [, _rerender] = useState(0);
   const rerender = () => _rerender((x) => (x + 1) % 100);
 
@@ -170,7 +179,8 @@ function App() {
             tableNodes,
             curr,
             right,
-            currAnd1HopTables
+            currAnd1HopTables,
+            selectedColumn
           );
           [nodes, edges] = mergeNodesEdges({ nodes, edges }, patchState);
           mergeCollectColumns(setCollectColumns, patchState.collectColumns);

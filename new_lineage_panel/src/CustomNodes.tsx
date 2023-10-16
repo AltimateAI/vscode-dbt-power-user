@@ -160,7 +160,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
         tableNodes,
         curr,
         right,
-        currAnd1HopTables
+        currAnd1HopTables,
+        selectedColumn
       );
       [nodes, edges] = mergeNodesEdges({ nodes, edges }, patchState);
       mergeCollectColumns(setCollectColumns, patchState.collectColumns);

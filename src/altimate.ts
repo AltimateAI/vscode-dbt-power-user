@@ -26,6 +26,7 @@ export interface DBTColumnLineageRequest {
   }[];
   schemas?: Schemas | null;
   upstream_expansion: boolean;
+  selected_column: { model_node?: NodeMetaData; column: string };
 }
 
 interface OnewayFeedback {

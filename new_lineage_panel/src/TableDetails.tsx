@@ -298,7 +298,8 @@ const TableDetails = () => {
             tableNodes,
             curr,
             right,
-            currAnd1HopTables
+            currAnd1HopTables,
+            _column
           );
           curr = patchState.newCurr;
           const [nodes, edges] = mergeNodesEdges(
