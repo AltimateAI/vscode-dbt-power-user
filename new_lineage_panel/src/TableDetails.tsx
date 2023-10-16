@@ -21,6 +21,7 @@ import {
 import { endProgressBar, LineageContext, startProgressBar } from "./App";
 import {
   createNewNodesEdges,
+  layoutElementsOnCanvas,
   mergeCollectColumns,
   mergeNodesEdges,
   processColumnLineage,
@@ -222,6 +223,7 @@ const TableDetails = () => {
         right,
         level
       );
+      layoutElementsOnCanvas(_nodes, _edges);
     };
     const tableNode = flow.getNode(_column.table);
     if (tableNode) {
