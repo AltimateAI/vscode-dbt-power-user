@@ -43,7 +43,7 @@ export class SqlToModel {
     if (project === undefined) {
       window.showErrorMessage(
         "Could not find a dbt project. \
-      Please put the new model in a dbt project before associating with the existing models.",
+      Please put the new model in a dbt project before converting to a model.",
       );
       this.telemetry.sendTelemetryError("sqlToModelNoProjectError");
       return undefined;
@@ -51,7 +51,7 @@ export class SqlToModel {
     const event = this.eventMap.get(project.projectRoot.fsPath);
     if (event === undefined) {
       window.showErrorMessage(
-        "Could not associate with models due to pending initiation, \
+        "Could not convert to model due to pending initiation, \
       Please retry again.",
       );
       this.telemetry.sendTelemetryError("sqlToModelNoManifestError");
