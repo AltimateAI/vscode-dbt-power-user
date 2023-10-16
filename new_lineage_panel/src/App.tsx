@@ -1,5 +1,6 @@
 import {
   Dispatch,
+  FunctionComponent,
   SetStateAction,
   createContext,
   useEffect,
@@ -35,7 +36,7 @@ import {
   processColumnLineage,
 } from "./graph";
 import { TableDetails } from "./TableDetails";
-import { Button, Card, CardBody } from "reactstrap";
+import { Button, Card, CardBody, Tooltip } from "reactstrap";
 import DirectEdgeIcon from "./assets/icons/direct_edge.svg?react";
 import IndirectEdgeIcon from "./assets/icons/indirect_edge.svg?react";
 import AlertCircleIcon from "./assets/icons/alert-circle.svg?react";
@@ -116,6 +117,22 @@ export const LineageContext = createContext<{
   setCollectColumns: () => {},
   rerender: () => {},
 });
+
+const InfoIcon: FunctionComponent<{ id: string; message: string }> = ({
+  id,
+  message,
+}) => {
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+  const toggle = () => setTooltipOpen(!tooltipOpen);
+  return (
+    <div className={styles.alert_icon}>
+      <AlertCircleIcon id={id} />
+      <Tooltip target={id} isOpen={tooltipOpen} toggle={toggle}>
+        {message}
+      </Tooltip>
+    </div>
+  );
+};
 
 function App() {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
@@ -289,17 +306,23 @@ function App() {
               <div className="d-flex gap-xxs align-items-center">
                 <DirectEdgeIcon />
                 <div>Direct</div>
-                <AlertCircleIcon />
+                <InfoIcon
+                  id="direct_lineage"
+                  message="This is direct lieange"
+                />
               </div>
               <div className="d-flex gap-xxs align-items-center">
                 <IndirectEdgeIcon />
                 <div>Indirect</div>
-                <AlertCircleIcon />
+                <InfoIcon
+                  id="indirect_lineage"
+                  message="This is indirect lieange"
+                />
               </div>
               <div className={styles.verticle_divider} />
               <div className="d-flex gap-xxs align-items-center">
                 <div>Confidence</div>
-                <AlertCircleIcon />
+                <InfoIcon id="confidence" message="This is confidence" />
                 <div className={styles.high_confidence}>Low</div>
               </div>
             </div>
