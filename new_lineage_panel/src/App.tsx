@@ -325,7 +325,7 @@ function App() {
                   <div>Indirect</div>
                   <InfoIcon
                     id="indirect_lineage"
-                    message="Indirect linkages are shown if columns appear in condition/clauses like Where. Join, having,etc."
+                    message="Indirect linkages are shown if columns appear in condition/clauses like where, join, having, etc."
                   />
                 </div>
                 <div className={styles.verticle_divider} />
