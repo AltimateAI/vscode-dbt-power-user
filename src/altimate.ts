@@ -1,7 +1,7 @@
 import { window, workspace } from "vscode";
 import { provideSingleton } from "./utils";
 import fetch from "node-fetch";
-import { NodeMetaData } from "./domain";
+import { NodeMetaData, SourceMetaData } from "./domain";
 
 interface AltimateConfig {
   key: string;
@@ -27,6 +27,17 @@ interface DBTColumnLineageRequest {
   }[];
   schemas?: Schemas | null;
   downstream_models: string[];
+}
+
+interface SQLToModelRequest {
+  sql: string;
+  adapter: string;
+  models: NodeMetaData[];
+  sources: SourceMetaData[];
+}
+
+interface SQLToModelResponse {
+  sql: string;
 }
 
 interface OnewayFeedback {
@@ -160,6 +171,13 @@ export class AltimateRequest {
 
   async getColumnLevelLineage(req: DBTColumnLineageRequest) {
     return this.fetch<ColumnLineage[]>("dbt/v1/lineage", {
+      method: "POST",
+      body: JSON.stringify(req),
+    });
+  }
+
+  async runModeller(req: SQLToModelRequest) {
+    return this.fetch<SQLToModelResponse>("dbt/v1/sqltomodel", {
       method: "POST",
       body: JSON.stringify(req),
     });

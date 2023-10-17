@@ -485,7 +485,7 @@ class DbtProject:
                 raise Exception(str(e))
 
     def compile_node(
-        self, node: "ManifestNode", call_count=1
+        self, node: "ManifestNode"
     ) -> Optional[DbtAdapterCompilationResult]:
         """Compiles existing node."""
         with self.adapter.connection_named("master"):

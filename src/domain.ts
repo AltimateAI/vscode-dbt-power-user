@@ -39,12 +39,15 @@ interface Config {
   materialized: string;
 }
 
-interface SourceMetaData {
+export interface SourceMetaData {
   uniqueId: string;
+  name: string;
+  database: string;
+  schema: string;
   tables: SourceTable[];
 }
 
-interface SourceTable {
+export interface SourceTable {
   name: string;
   path: string;
   description: string;

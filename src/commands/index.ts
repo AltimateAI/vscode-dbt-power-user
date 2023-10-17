@@ -11,12 +11,16 @@ import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContent
 import { RunModelType } from "../domain";
 import { provideSingleton } from "../utils";
 import { RunModel } from "./runModel";
+import { SqlToModel } from "./sqlToModel";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
   private disposables: Disposable[] = [];
 
-  constructor(private runModel: RunModel) {
+  constructor(
+    private runModel: RunModel,
+    private sqlToModel: SqlToModel,
+  ) {
     this.disposables.push(
       commands.registerCommand("dbtPowerUser.runCurrentModel", () =>
         this.runModel.runModelOnActiveWindow(),
@@ -90,6 +94,9 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand("dbtPowerUser.buildCurrentModel", () =>
         this.runModel.buildModelOnActiveWindow(),
+      ),
+      commands.registerCommand("dbtPowerUser.sqlToModel", () =>
+        this.sqlToModel.getModelFromSql(),
       ),
     );
   }
