@@ -261,7 +261,7 @@
       },
       {
         "command": "dbtPowerUser.sqlToModel",
-        "title": "Convert to Model",
+        "title": "Convert to dbt Model",
         "icon": "$(circuit-board)"
       },
       {
