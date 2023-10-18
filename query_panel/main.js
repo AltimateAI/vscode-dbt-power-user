@@ -54,7 +54,7 @@ class Grid {
     await this.elem.load(table);
     await this.elem.restore({
       columns: [], // reset columns
-      settings: true,
+      settings: false,
       title: "query result",
       plugin_config: { editable: false },
     });
