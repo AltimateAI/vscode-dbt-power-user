@@ -18,7 +18,7 @@ export class DefinitionProviders implements Disposable {
   ) {
     this.disposables.push(
       languages.registerDefinitionProvider(
-        DBTPowerUserExtension.DBT_SQL_SELECTOR,
+        DBTPowerUserExtension.DBT_YAML_SQL_SELECTOR,
         this.modelDefinitionProvider,
       ),
       languages.registerDefinitionProvider(
@@ -26,11 +26,11 @@ export class DefinitionProviders implements Disposable {
         this.macroDefinitionProvider,
       ),
       languages.registerDefinitionProvider(
-        DBTPowerUserExtension.DBT_SQL_SELECTOR,
+        DBTPowerUserExtension.DBT_YAML_SQL_SELECTOR,
         this.sourceDefinitionProvider,
       ),
       languages.registerDefinitionProvider(
-        DBTPowerUserExtension.DBT_YAML_SELECTOR,
+        DBTPowerUserExtension.DBT_YAML_SQL_SELECTOR,
         this.docDefinitionsProvider,
       ),
     );
