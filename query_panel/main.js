@@ -32,10 +32,10 @@ class Grid {
         return "integer";
       // case "Boolean":
       //   return "boolean"; // TODO: uncomment when material icons are added
-      case "Date":
-        return "date";
-      case "DateTime":
-        return "datetime";
+      // case "Date":
+      //   return "date";
+      // case "DateTime":
+      //   return "datetime";
       case "Number":
         return "float";
       default:
