@@ -83,7 +83,7 @@ def to_dict(obj):
         return {
             "rows": [to_dict(row) for row in obj.rows],
             "column_names": obj.column_names,
-            "column_types": list(map(lambda x: x.__class__.__name__, obj.column_types))
+            "column_types": list(map(lambda x: x.__class__.__name__, obj.column_types)),
         }
     if isinstance(obj, str):
         return obj
@@ -365,7 +365,7 @@ class DbtProject:
         self.get_source_node.cache_clear()
         self.get_macro_function.cache_clear()
         self.get_columns.cache_clear()
-        self.compile_sql.cache_clear()
+        self._compile_sql.cache_clear()
 
     @lru_cache(maxsize=10)
     def get_ref_node(self, target_model_name: str) -> "ManifestNode":
@@ -446,7 +446,7 @@ class DbtProject:
             compiled_sql = raw_sql
             if has_jinja(raw_sql):
                 # jinja found, compile it
-                compilation_result = self.compile_sql(raw_sql)
+                compilation_result = self._compile_sql(raw_sql)
                 compiled_sql = compilation_result.compiled_sql
 
             return DbtAdapterExecutionResult(
@@ -466,40 +466,48 @@ class DbtProject:
             # node not compiled
             if has_jinja(raw_sql):
                 # node has jinja in its SQL, compile it
-                compiled_sql = self.compile_node(node).compiled_sql
+                compiled_sql = self._compile_node(node).compiled_sql
             # execute the SQL
             return self.execute_sql(compiled_sql or raw_sql)
         except Exception as e:
             raise Exception(str(e))
 
-    @lru_cache(maxsize=SQL_CACHE_SIZE)
     def compile_sql(self, raw_sql: str) -> DbtAdapterCompilationResult:
-        """Creates a node with a `dbt.parser.sql` class. Compile generated node."""
         with self.adapter.connection_named("master"):
-            try:
-                temp_node_id = str("t_" + uuid.uuid4().hex)
-                node = self.compile_node(self.get_server_node(raw_sql, temp_node_id))
-                self._clear_node(temp_node_id)
-                return node
-            except Exception as e:
-                raise Exception(str(e))
+            return self._compile_sql(raw_sql)
 
     def compile_node(
         self, node: "ManifestNode"
     ) -> Optional[DbtAdapterCompilationResult]:
-        """Compiles existing node."""
         with self.adapter.connection_named("master"):
-            try:
-                self.sql_compiler.node = node
-                # this is essentially a convenient wrapper to adapter.get_compiler
-                compiled_node = self.sql_compiler.compile(self.dbt)
-                return DbtAdapterCompilationResult(
-                    getattr(compiled_node, RAW_CODE),
-                    getattr(compiled_node, COMPILED_CODE),
-                    compiled_node,
-                )
-            except Exception as e:
-                raise Exception(str(e))
+            return self._compile_node(node)
+
+    @lru_cache(maxsize=SQL_CACHE_SIZE)
+    def _compile_sql(self, raw_sql: str) -> DbtAdapterCompilationResult:
+        """Creates a node with a `dbt.parser.sql` class. Compile generated node."""
+        try:
+            temp_node_id = str("t_" + uuid.uuid4().hex)
+            node = self._compile_node(self.get_server_node(raw_sql, temp_node_id))
+            self._clear_node(temp_node_id)
+            return node
+        except Exception as e:
+            raise Exception(str(e))
+
+    def _compile_node(
+        self, node: "ManifestNode"
+    ) -> Optional[DbtAdapterCompilationResult]:
+        """Compiles existing node."""
+        try:
+            self.sql_compiler.node = node
+            # this is essentially a convenient wrapper to adapter.get_compiler
+            compiled_node = self.sql_compiler.compile(self.dbt)
+            return DbtAdapterCompilationResult(
+                getattr(compiled_node, RAW_CODE),
+                getattr(compiled_node, COMPILED_CODE),
+                compiled_node,
+            )
+        except Exception as e:
+            raise Exception(str(e))
 
     def _clear_node(self, name="name"):
         """Removes the statically named node created by `execute_sql` and `compile_sql` in `dbt.lib`"""
