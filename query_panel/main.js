@@ -363,7 +363,6 @@ const app = createApp({
       exportButton.addEventListener("click", this.downloadAsCSV);
     }, 1000);
     window.addEventListener("message", (event) => {
-      console.log(event.data);
       switch (event.data.command) {
         case "renderQuery":
           this.cacheData = event.data;
