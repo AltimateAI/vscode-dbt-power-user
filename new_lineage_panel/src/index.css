@@ -122,7 +122,7 @@ body {
   right: 16px;
   display: flex;
   gap: 8px;
-  z-index: 10;
+  z-index: 1;
   align-items: center;
 }
 

@@ -36,7 +36,7 @@ import {
   processColumnLineage,
 } from "./graph";
 import { TableDetails } from "./TableDetails";
-import { Button, Card, CardBody, Tooltip } from "reactstrap";
+import { Button, Card, CardBody, UncontrolledTooltip } from "reactstrap";
 import DirectEdgeIcon from "./assets/icons/direct_edge.svg?react";
 import IndirectEdgeIcon from "./assets/icons/indirect_edge.svg?react";
 import AlertCircleIcon from "./assets/icons/alert-circle.svg?react";
@@ -126,14 +126,12 @@ const InfoIcon: FunctionComponent<{ id: string; message: string }> = ({
   id,
   message,
 }) => {
-  const [tooltipOpen, setTooltipOpen] = useState(false);
-  const toggle = () => setTooltipOpen(!tooltipOpen);
   return (
     <div className={styles.alert_icon}>
       <AlertCircleIcon id={id} />
-      <Tooltip target={id} isOpen={tooltipOpen} toggle={toggle}>
+      <UncontrolledTooltip target={id}>
         {message}
-      </Tooltip>
+      </UncontrolledTooltip>
     </div>
   );
 };
