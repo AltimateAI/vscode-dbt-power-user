@@ -127,11 +127,9 @@ const InfoIcon: FunctionComponent<{ id: string; message: string }> = ({
   message,
 }) => {
   return (
-    <div className={styles.alert_icon}>
-      <AlertCircleIcon id={id} />
-      <UncontrolledTooltip target={id}>
-        {message}
-      </UncontrolledTooltip>
+    <div className={styles.alert_icon} id={id}>
+      <AlertCircleIcon />
+      <UncontrolledTooltip target={id}>{message}</UncontrolledTooltip>
     </div>
   );
 };
