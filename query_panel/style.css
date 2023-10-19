@@ -98,3 +98,7 @@ perspective-export-menu {
 .psp-header-leaf:first-child {
   border-left-color: transparent;
 }
+
+.tabulator-tableholder {
+  display: inline-block;
+}

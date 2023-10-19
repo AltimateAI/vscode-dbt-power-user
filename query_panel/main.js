@@ -267,7 +267,7 @@ const app = createApp({
       return {
         fontSize: `${this.scale}em`,
         lineHeight: `${this.scale}`,
-        display: "block",
+        display: "inline-block",
       };
     },
     getPerspectiveStyles() {
