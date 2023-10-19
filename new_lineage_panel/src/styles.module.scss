@@ -199,15 +199,15 @@ $size: 1.2em;
 }
 
 .low_confidence {
-  padding: 0.25em 0.75em;
-  border-radius: 8px;
+  padding: 0.125em 0.75em;
+  border-radius: 0.375rem;
   background: #ff754c;
   color: white;
 }
 
 .high_confidence {
-  padding: 0.25em 0.75em;
-  border-radius: 8px;
+  padding: 0.125em 0.75em;
+  border-radius: 0.375rem;
   background: #327e36;
   color: white;
 }
@@ -216,4 +216,9 @@ $size: 1.2em;
   width: 1rem;
   height: 1rem;
   display: flex;
+}
+
+.menu_card {
+  padding: 0.2em !important;
+  font-size: 0.8em;
 }

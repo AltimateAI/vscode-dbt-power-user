@@ -310,7 +310,7 @@ function App() {
       <div className="top-right-container">
         {aiEnabled && (
           <Card>
-            <CardBody className="p-1">
+            <CardBody className={styles.menu_card}>
               <div className="d-flex gap-sm">
                 <div className="d-flex gap-xxs align-items-center">
                   <DirectEdgeIcon />
@@ -351,6 +351,7 @@ function App() {
           </Card>
         )}
         <Button
+          size="sm"
           color="secondary"
           onClick={(e) => {
             e.stopPropagation();
@@ -365,6 +366,7 @@ function App() {
           Reset
         </Button>
         <Button
+          size="sm"
           color="primary"
           onClick={(e) => {
             e.stopPropagation();
@@ -374,6 +376,7 @@ function App() {
           Show Legacy UX
         </Button>
         <Button
+          size="sm"
           color="link"
           onClick={(e) => {
             e.stopPropagation();
