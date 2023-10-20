@@ -136,6 +136,9 @@ export class DBTProject implements Disposable {
       this.PythonEnvironment.environmentVariables.DBT_PROFILES_DIR ||
       join(os.homedir(), ".dbt");
     this.dbtProfilesDir = this.dbtProfilesDir.replace("~", os.homedir());
+    // remove the trailing slashes if they exists,
+    // causes the quote to be escaped when passing to python
+    this.dbtProfilesDir = this.dbtProfilesDir.replace(/\\+$/, "");
     console.log("Using profile directory " + this.dbtProfilesDir);
     this.projectName = projectConfig.name;
     this.targetPath = this.findTargetPath(projectConfig);

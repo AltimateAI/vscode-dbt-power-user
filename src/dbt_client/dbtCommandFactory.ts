@@ -82,7 +82,7 @@ export class DBTCommandFactory {
         runModelCommandAdditionalParams.length > 0
           ? " " + runModelCommandAdditionalParams.join(" ")
           : ""
-      }`,
+      } ${profilesDirParams.join(" ")}`,
       statusMessage: "Running dbt models...",
       processExecutionParams: {
         cwd: projectRoot.fsPath,
@@ -221,8 +221,11 @@ export class DBTCommandFactory {
   private dbtCommand(cmd: string | string[]): string {
     // Lets pass through these params here too
     const dbtCustomRunnerImport = workspace
-    .getConfiguration("dbt")
-    .get<string>("dbtCustomRunnerImport", "from dbt.cli.main import dbtRunner");
+      .getConfiguration("dbt")
+      .get<string>(
+        "dbtCustomRunnerImport",
+        "from dbt.cli.main import dbtRunner",
+      );
     return `has_dbt_runner = True
 try: 
     ${dbtCustomRunnerImport}
