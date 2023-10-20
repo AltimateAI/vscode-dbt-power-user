@@ -89,7 +89,7 @@
           {{ (hasData || hasError || isLoading) ? "Help" : "Welcome 🚀" }}
         </vscode-panel-tab>
         <vscode-panel-tab id="tab-4" v-show="hasData" @click="togglePerspective"
-          >{{ hasPerspective ? "Show legacy UI" : "Show new UI"
+          >{{ isPerspective ? "Show legacy UI" : "Show new UI"
           }}</vscode-panel-tab
         >
         <vscode-panel-tab id="tab-5" @click="onFeedback"
@@ -108,13 +108,13 @@
           />
 
           <div v-show="hasData" style="width: 100%">
-            <div v-show="hasPerspective" style="width: 100%">
+            <div v-show="isPerspective" style="width: 100%">
               <perspective-viewer
                 :style="getPerspectiveStyles()"
                 :theme="getPerspectiveTheme()"
               ></perspective-viewer>
             </div>
-            <div v-show="!hasPerspective">
+            <div v-show="!isPerspective">
               <vscode-button
                 @click="copyResultsToClipboard"
                 style="margin-bottom: 4px"
