@@ -102,3 +102,7 @@ perspective-export-menu {
 .tabulator-tableholder {
   display: inline-block;
 }
+
+td {
+  user-select: text;
+}
