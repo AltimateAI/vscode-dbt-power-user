@@ -71,7 +71,7 @@ const app = createApp({
   data() {
     return {
       count: 0,
-      cacheData: undefined,
+      data: undefined,
       rawCode: "",
       compiledCode: "",
       error: {},
@@ -84,18 +84,17 @@ const app = createApp({
       resizeTimer: undefined,
       windowHeight: DEFAULT_HEIGHT,
       scale: 1,
-      clipboardText: "",
       isDarkMode: false,
       clickTimer: null,
       table: undefined,
-      hasPerspective: true,
+      isPerspective: true,
     };
   },
   methods: {
     togglePerspective() {
-      this.hasPerspective = !this.hasPerspective;
-      updateConfig({ enableNewQueryPanel: this.hasPerspective });
-      this.updateTable(this.cacheData);
+      this.isPerspective = !this.isPerspective;
+      updateConfig({ enableNewQueryPanel: this.isPerspective });
+      this.updateTable(this.data);
       setTimeout(() => {
         document.querySelector("#panel-manager").activeid = "tab-1";
       }, 100);
@@ -125,7 +124,7 @@ const app = createApp({
       return csv;
     },
     downloadAsCSV() {
-      const data = this.cacheData;
+      const data = this.data;
       try {
         if (!data || data.rows.length === 0) {
           console.error("No data available for downloading.");
@@ -152,7 +151,7 @@ const app = createApp({
     // Copies the table's data to the clipboard in CSV format.
     async copyResultsToClipboard() {
       try {
-        const data = this.cacheData;
+        const data = this.data;
         const csv = this.dataToCsv(data.columnNames, data.rows);
         this.copyTextToClipboard(csv);
       } catch (error) {
@@ -165,7 +164,7 @@ const app = createApp({
     },
     updateTable(data) {
       this.count = data.rows.length;
-      if (!this.hasPerspective) {
+      if (!this.isPerspective) {
         this.table = new Tabulator("#query-results", {
           height: this.tableHeight,
           data: data.rows,
@@ -202,7 +201,7 @@ const app = createApp({
       if (data.scale) {
         this.scale = data.scale;
       }
-      this.hasPerspective = data.enableNewQueryPanel;
+      this.isPerspective = data.enableNewQueryPanel;
       this.isDarkMode = data.darkMode;
     },
     updateDispatchedCode(raw_stmt, compiled_stmt) {
@@ -226,7 +225,7 @@ const app = createApp({
     },
     clearData() {
       this.count = 0;
-      this.cacheData = undefined;
+      this.data = undefined;
       this.table = undefined;
       this.rawCode = "";
       this.compiledCode = "";
@@ -298,7 +297,7 @@ const app = createApp({
         : this.windowHeight;
     },
     hasData() {
-      return !!this.cacheData;
+      return !!this.data;
     },
     hasError() {
       return this.error?.data;
@@ -365,7 +364,7 @@ const app = createApp({
     window.addEventListener("message", (event) => {
       switch (event.data.command) {
         case "renderQuery":
-          this.cacheData = event.data;
+          this.data = event.data;
           this.updateTable(event.data);
           this.updateDispatchedCode(
             event.data.raw_sql,
