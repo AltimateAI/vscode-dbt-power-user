@@ -86,3 +86,23 @@ button {
 perspective-export-menu {
   display: none;
 }
+
+.psp-align-left {
+  border-left: solid 1px var(--inactive--border-color, #8b868045);
+}
+
+.psp-align-right {
+  border-left: solid 1px var(--inactive--border-color, #8b868045);
+}
+
+.psp-header-leaf:first-child {
+  border-left-color: transparent;
+}
+
+.tabulator-tableholder {
+  display: inline-block;
+}
+
+td {
+  user-select: text;
+}
