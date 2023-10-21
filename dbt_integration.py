@@ -365,7 +365,6 @@ class DbtProject:
         self.get_source_node.cache_clear()
         self.get_macro_function.cache_clear()
         self.get_columns.cache_clear()
-        self._compile_sql.cache_clear()
 
     @lru_cache(maxsize=10)
     def get_ref_node(self, target_model_name: str) -> "ManifestNode":
@@ -482,7 +481,6 @@ class DbtProject:
         with self.adapter.connection_named("master"):
             return self._compile_node(node)
 
-    @lru_cache(maxsize=SQL_CACHE_SIZE)
     def _compile_sql(self, raw_sql: str) -> DbtAdapterCompilationResult:
         """Creates a node with a `dbt.parser.sql` class. Compile generated node."""
         try:
