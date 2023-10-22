@@ -103,6 +103,7 @@ perspective-export-menu {
   display: inline-block;
 }
 
-td {
+td,
+th {
   user-select: text;
 }
