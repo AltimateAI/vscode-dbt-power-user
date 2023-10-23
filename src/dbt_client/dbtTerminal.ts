@@ -1,5 +1,5 @@
 import { EventEmitter, Terminal, window } from "vscode";
-import { provideSingleton } from "../utils";
+import { provideSingleton, stripANSI } from "../utils";
 
 @provideSingleton(DBTTerminal)
 export class DBTTerminal {
@@ -15,7 +15,7 @@ export class DBTTerminal {
   }
 
   log(message: string) {
-    this.outputChannel.append(message);
+    this.outputChannel.append(stripANSI(message));
     if (this.terminal !== undefined) {
       this.writeEmitter.fire(message);
     }

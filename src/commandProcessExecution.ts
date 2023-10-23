@@ -128,6 +128,6 @@ export class CommandProcessExecution {
   }
 
   private formatText(text: string) {
-    return `\r${text.split(/(\r?\n)/g).join("\r")}\r`;
+    return `${text.split(/(\r?\n)+/g).join("\r")}`;
   }
 }

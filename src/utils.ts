@@ -125,3 +125,10 @@ export function extendErrorWithSupportLinks(error: string): string {
     "If the issue persists, please seek help in our dbt Community Slack channel [#tools-dbt-power-user](https://getdbt.slack.com/archives/C05KPDGRMDW) or report it on [GitHub](https://github.com/innoverio/vscode-dbt-power-user/issues/new?assignees=&labels=bug&projects=&template=bug_report.yml)"
   );
 }
+
+export function stripANSI(src: string): string {
+  return src.replace(
+    /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
+    "",
+  );
+}
