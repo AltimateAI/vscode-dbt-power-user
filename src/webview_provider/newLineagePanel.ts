@@ -339,7 +339,7 @@ export class NewLineagePanel implements LineagePanelView {
       model_node: nodeMetaMap.get(selectedColumn.table),
       column: selectedColumn.name,
     };
-    const parent_models: NodeMetaData[] = [];
+    const parent_models: { model_node: NodeMetaData }[] = [];
     try {
       await Promise.all([
         ...Object.values(visibleTables).map(async (node) => {
@@ -374,7 +374,7 @@ export class NewLineagePanel implements LineagePanelView {
             return;
           }
           await this.addColumnsFromDB(project, node);
-          parent_models.push(node);
+          parent_models.push({ model_node: node });
         }),
       ]);
     } catch (exc) {

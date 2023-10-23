@@ -233,7 +233,6 @@ function App() {
           const { tables } = await downstreamTables(node.key);
           addNodesEdges(tables, node.table, false, level);
         }
-        // TODO: handle cll and highlight
       } else {
         nodes = [
           {
