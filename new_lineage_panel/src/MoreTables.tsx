@@ -17,13 +17,9 @@ export type TMoreTables = {
 };
 
 function MoreTables() {
-  const { moreTables, setShowSidebar } = useContext(LineageContext);
+  const { moreTables, setShowSidebar, rerender } = useContext(LineageContext);
   const { prevTable, tables, right, level } = moreTables as TMoreTables;
   const flow = useReactFlow();
-
-  // hack to force re-render the component
-  const [, _rerender] = useState(0);
-  const rerender = () => _rerender((x) => x + 1);
 
   const onItemClick = async (_table: Table) => {
     const { table } = _table;
