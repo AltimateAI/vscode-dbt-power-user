@@ -302,11 +302,13 @@ export class NewLineagePanel implements LineagePanelView {
     upstreamExpansion,
     currAnd1HopTables,
     selectedColumn,
+    auxiliaryTables,
   }: {
     targets: [string, string][];
     upstreamExpansion: boolean;
     currAnd1HopTables: string[];
     selectedColumn: { name: string; table: string };
+    auxiliaryTables: string[];
   }) {
     const nodeMetaMap = this.getEvent()?.nodeMetaMap;
     if (!nodeMetaMap) {
@@ -337,6 +339,7 @@ export class NewLineagePanel implements LineagePanelView {
       model_node: nodeMetaMap.get(selectedColumn.table),
       column: selectedColumn.name,
     };
+    const parent_models: NodeMetaData[] = [];
     try {
       await Promise.all([
         ...Object.values(visibleTables).map(async (node) => {
@@ -365,6 +368,14 @@ export class NewLineagePanel implements LineagePanelView {
             await this.addColumnsFromDB(project, selected_column.model_node);
           }
         },
+        ...auxiliaryTables.map(async (t) => {
+          const node = nodeMetaMap.get(t);
+          if (!node) {
+            return;
+          }
+          await this.addColumnsFromDB(project, node);
+          parent_models.push(node);
+        }),
       ]);
     } catch (exc) {
       if (exc instanceof PythonException) {
@@ -417,6 +428,7 @@ export class NewLineagePanel implements LineagePanelView {
         targets,
         // select_column is used for pricing not business logic
         selected_column,
+        parent_models,
       });
     } catch (error) {
       if (error instanceof AbortError) {

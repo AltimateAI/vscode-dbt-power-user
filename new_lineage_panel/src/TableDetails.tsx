@@ -293,6 +293,14 @@ const TableDetails = () => {
         if (currAnd1HopTables.length === 0) {
           continue;
         }
+        const auxiliaryTables: string[] = [];
+        if (right) {
+          for (const e of edges) {
+            if (!currAnd1HopTables.includes(e.target)) continue;
+            if (tablesInCurrIter[e.source]) continue;
+            auxiliaryTables.push(e.source);
+          }
+        }
         currAnd1HopTables.push(...Object.keys(tablesInCurrIter));
 
         try {
@@ -303,7 +311,8 @@ const TableDetails = () => {
             curr,
             right,
             currAnd1HopTables,
-            _column
+            _column,
+            auxiliaryTables
           );
           if (patchState.confidence?.confidence === "low") {
             setConfidence((prev) => {

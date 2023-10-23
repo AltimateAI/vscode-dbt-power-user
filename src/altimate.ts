@@ -28,6 +28,7 @@ export interface DBTColumnLineageRequest {
   schemas?: Schemas | null;
   upstream_expansion: boolean;
   selected_column: { model_node?: NodeMetaData; column: string };
+  parent_models: NodeMetaData[];
 }
 
 interface DBTColumnLineageResponse {
