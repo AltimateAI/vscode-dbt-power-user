@@ -1,4 +1,4 @@
-import { Diagnostic, Range, Uri } from "vscode";
+import { Diagnostic, Uri } from "vscode";
 import { AltimateRequest } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
@@ -7,6 +7,7 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
 import { provideSingleton } from "../utils";
+import { findModelProblems } from "./command_utils";
 
 @provideSingleton(AltimateScan)
 export class AltimateScan {
@@ -65,6 +66,10 @@ export class AltimateScan {
     }
     for (const project of projects) {
       const projectEventMap = this.eventMap.get(project.projectRoot.fsPath);
+      const allDiagnostics: { [fullFilePath: string]: Diagnostic[] } = {};
+
+      const allModelNamesInProject = [];
+
       for (const modelKey of Object.keys(
         altimateCatalog[project.getProjectName() + project.projectRoot],
       )) {
@@ -73,7 +78,7 @@ export class AltimateScan {
             modelKey
           ];
         if (projectEventMap) {
-          const { nodeMetaMap } = projectEventMap;
+          const { nodeMetaMap, docMetaMap } = projectEventMap;
           const {
             projectroot,
             project: projectName,
@@ -106,23 +111,19 @@ export class AltimateScan {
             continue;
           }
           // TODO finally we have the right model
-          if (Object.keys(projectModel.columns).length !== modelDict.length) {
-            const err_message =
-              "Column count mismatch for model: " +
-              name +
-              "\n" +
-              "Current project has: " +
-              Object.keys(projectModel.columns).join(", ") +
-              "\n" +
-              "Expected: " +
-              modelDict.map(({ column_name }) => column_name).join(", ");
-
-            project.projectHealth.set(Uri.file(projectModel.path), [
-              new Diagnostic(new Range(0, 0, 999, 999), err_message),
-            ]);
-            console.log(err_message);
-          }
+          findModelProblems(
+            projectModel,
+            modelDict,
+            name,
+            project,
+            allDiagnostics,
+          );
         }
+      }
+      for (const [filePath, fileDiagnostics] of Object.entries(
+        allDiagnostics,
+      )) {
+        project.projectHealth.set(Uri.file(filePath), fileDiagnostics);
       }
     }
   }
