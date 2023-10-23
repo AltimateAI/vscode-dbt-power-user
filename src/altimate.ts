@@ -31,7 +31,7 @@ export interface DBTColumnLineageRequest {
   parent_models: { model_node: NodeMetaData }[];
 }
 
-interface DBTColumnLineageResponse {
+export interface DBTColumnLineageResponse {
   column_lineage: ColumnLineage[];
   confidence?: { confidence: string; message?: string };
 }

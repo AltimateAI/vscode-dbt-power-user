@@ -12,7 +12,7 @@ import {
   WebviewViewResolveContext,
   window,
 } from "vscode";
-import { AltimateRequest } from "../altimate";
+import { AltimateRequest, DBTColumnLineageResponse } from "../altimate";
 import {
   ColumnMetaData,
   GraphMetaMap,
@@ -440,9 +440,8 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     const modelDialect = project.getAdapterType();
-    let result;
     try {
-      result = await this.altimate.getColumnLevelLineage({
+      const result = await this.altimate.getColumnLevelLineage({
         model_dialect: modelDialect,
         model_info: modelInfos,
         upstream_expansion: upstreamExpansion,
@@ -450,6 +449,17 @@ export class NewLineagePanel implements LineagePanelView {
         selected_column,
         parent_models,
       });
+      if ((result as DBTColumnLineageResponse).column_lineage) {
+        return result;
+      }
+
+      window.showErrorMessage(
+        "An unexpected error occured while fetching column level lineage.",
+      );
+      this.telemetry.sendTelemetryEvent(
+        "columnLevelLineageInvalidResponse",
+        result as {},
+      );
     } catch (error) {
       if (error instanceof AbortError) {
         window.showErrorMessage("Fetching column level lineage timed out.");
@@ -465,17 +475,6 @@ export class NewLineagePanel implements LineagePanelView {
       this.telemetry.sendTelemetryError("ColumnLevelLineageError", error);
       return;
     }
-    // if (!result?.column_lineage) {
-    //   window.showErrorMessage(
-    //     "An unexpected error occured while fetching column level lineage.",
-    //   );
-    //   this.telemetry.sendTelemetryEvent(
-    //     "columnLevelLineageInvalidResponse",
-    //     result?.detail,
-    //   );
-    //   return;
-    // }
-    return result;
   }
 
   private getConnectedTables(
