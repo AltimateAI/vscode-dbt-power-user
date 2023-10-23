@@ -303,7 +303,7 @@ function App() {
   return (
     <div className="position-relative">
       <div className="top-right-container">
-        {aiEnabled && (
+        {aiEnabled && selectedColumn.name && (
           <Card className={styles.menu_card_container}>
             <CardBody className={styles.menu_card}>
               <div className="d-flex gap-sm">
@@ -323,24 +323,23 @@ function App() {
                     message="Indirect linkages are shown if columns appear in condition/clauses like where, join, having, etc."
                   />
                 </div>
-                <div className={styles.verticle_divider} />
-                <div className="d-flex gap-xxs align-items-center">
-                  <div>Confidence</div>
-                  {confidence.operator_list && (
-                    <InfoIcon
-                      id="confidence"
-                      message={`The confidence of lineage for indirect links is low because of the presence of the following in the sql: ${Array.from(
-                        new Set(confidence.operator_list)
-                      ).join(", ")}`}
-                    />
-                  )}
-                  {confidence.confidence === "high" && (
-                    <div className={styles.high_confidence}>High</div>
-                  )}
-                  {confidence.confidence === "low" && (
-                    <div className={styles.low_confidence}>Low</div>
-                  )}
-                </div>
+                {confidence.confidence === "low" && (
+                  <>
+                    <div className={styles.verticle_divider} />
+                    <div className="d-flex gap-xxs align-items-center">
+                      <div>Confidence</div>
+                      {confidence.operator_list && (
+                        <InfoIcon
+                          id="confidence"
+                          message={`The confidence of lineage for indirect links is low because of the presence of the following in the sql: ${Array.from(
+                            new Set(confidence.operator_list)
+                          ).join(", ")}`}
+                        />
+                      )}
+                      <div className={styles.low_confidence}>Low</div>
+                    </div>
+                  </>
+                )}
               </div>
             </CardBody>
           </Card>
