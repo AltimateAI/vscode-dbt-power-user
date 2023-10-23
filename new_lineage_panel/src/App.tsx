@@ -306,7 +306,7 @@ function App() {
     <div className="position-relative">
       <div className="top-right-container">
         {aiEnabled && (
-          <Card>
+          <Card className={styles.menu_card_container}>
             <CardBody className={styles.menu_card}>
               <div className="d-flex gap-sm">
                 <div className="d-flex gap-xxs align-items-center">
