@@ -272,7 +272,6 @@ export const processColumnLineage = async (
   right: boolean,
   currAnd1HopTables: string[],
   selectedColumn: { name: string; table: string },
-  auxiliaryTables: string[],
 ) => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
@@ -282,7 +281,6 @@ export const processColumnLineage = async (
     upstreamExpansion: right,
     currAnd1HopTables,
     selectedColumn,
-    auxiliaryTables,
   });
   const newCurr: [string, string][] = [];
   const columnLineage = column_lineage.filter((e) => {

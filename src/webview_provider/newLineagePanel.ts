@@ -302,18 +302,18 @@ export class NewLineagePanel implements LineagePanelView {
     upstreamExpansion,
     currAnd1HopTables,
     selectedColumn,
-    auxiliaryTables,
   }: {
     targets: [string, string][];
     upstreamExpansion: boolean;
     currAnd1HopTables: string[];
+    // select_column is used for pricing not business logic
     selectedColumn: { name: string; table: string };
-    auxiliaryTables: string[];
   }) {
-    const nodeMetaMap = this.getEvent()?.nodeMetaMap;
-    if (!nodeMetaMap) {
+    const event = this.getEvent();
+    if (!event) {
       return;
     }
+    const { nodeMetaMap, graphMetaMap } = event;
     const project = this.getProject();
     if (!project) {
       return;
@@ -340,6 +340,27 @@ export class NewLineagePanel implements LineagePanelView {
       column: selectedColumn.name,
     };
     const parent_models: { model_node: NodeMetaData }[] = [];
+    let auxiliaryTables: string[] = [];
+    if (upstreamExpansion) {
+      const currTables = targets.map((t) => t[0]);
+      const dependencyNodes = graphMetaMap.parents;
+      const parentSet = new Set<string>();
+      currAnd1HopTables.forEach((t) => {
+        if (currTables.includes(t)) {
+          return;
+        }
+        const node = nodeMetaMap.get(t);
+        if (!node) {
+          return;
+        }
+        const parent = dependencyNodes.get(node.uniqueId);
+        if (!parent) {
+          return;
+        }
+        parent.nodes.forEach((n) => parentSet.add(n.label));
+      });
+      auxiliaryTables = Array.from(parentSet);
+    }
     try {
       await Promise.all([
         ...Object.values(visibleTables).map(async (node) => {
@@ -426,7 +447,6 @@ export class NewLineagePanel implements LineagePanelView {
         model_info: modelInfos,
         upstream_expansion: upstreamExpansion,
         targets,
-        // select_column is used for pricing not business logic
         selected_column,
         parent_models,
       });
@@ -445,13 +465,13 @@ export class NewLineagePanel implements LineagePanelView {
       this.telemetry.sendTelemetryError("ColumnLevelLineageError", error);
       return;
     }
-    // if (!Array.isArray(result)) {
+    // if (!result?.column_lineage) {
     //   window.showErrorMessage(
     //     "An unexpected error occured while fetching column level lineage.",
     //   );
     //   this.telemetry.sendTelemetryEvent(
     //     "columnLevelLineageInvalidResponse",
-    //     result,
+    //     result?.detail,
     //   );
     //   return;
     // }

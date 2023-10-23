@@ -205,8 +205,7 @@ function App() {
             curr,
             right,
             currAnd1HopTables,
-            selectedColumn,
-            []
+            selectedColumn
           );
           [nodes, edges] = mergeNodesEdges({ nodes, edges }, patchState);
           mergeCollectColumns(setCollectColumns, patchState.collectColumns);
