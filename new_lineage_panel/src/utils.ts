@@ -113,7 +113,7 @@ export const createTableNode = (
 
 export const createColumnNode = (t: string, c: string): Node => {
   return {
-    id: COLUMN_PREFIX + `${t}/${c}`,
+    id: getColumnId(t, c),
     data: { column: c, table: t },
     parentNode: t,
     extent: "parent",
@@ -196,6 +196,8 @@ export const getHelperDataForCLL = (nodes: Node[], edges: Edge[]) => {
   return { levelMap, tableNodes, seeMoreIdTableReverseMap };
 };
 
+export const getColumnId = (t: string, c: string) =>
+  COLUMN_PREFIX + `${t}/${c}`;
 export const getSeeMoreId = (t: string, right: boolean) =>
   SEE_MORE_PREFIX + t + "-" + (right ? "1" : "0");
 

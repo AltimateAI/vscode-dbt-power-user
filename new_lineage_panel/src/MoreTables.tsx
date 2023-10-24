@@ -7,6 +7,7 @@ import {
   createColumnNode,
   createTableEdge,
   createTableNode,
+  getColumnId,
   getSeeMoreId,
 } from "./utils";
 import { layoutElementsOnCanvas } from "./graph";
@@ -39,28 +40,28 @@ function MoreTables() {
       const fromLevel = nodes.find((n) => n.id === prevTable)?.data.level;
       edges.push(createTableEdge(fromLevel, level!, prevTable!, table, right!));
       lineage?.forEach((e) => {
+        const src = getColumnId(e.source[0], e.source[1]);
+        const dst = getColumnId(e.target[0], e.target[1]);
         if (right) {
           if (e.target[0] !== table) return;
           nodes.push(createColumnNode(e.target[0], e.target[1]));
+          edges.push(createColumnEdge(src, dst, level! - 1, level!, e.type));
         } else {
           if (e.source[0] !== table) return;
           nodes.push(createColumnNode(e.source[0], e.source[1]));
+          edges.push(createColumnEdge(src, dst, level!, level! + 1, e.type));
         }
-        const srcLevel =
-          nodes.find((n) => n.id === e.source[0])?.data?.level || level;
-        const dstLevel =
-          nodes.find((n) => n.id === e.target[0])?.data?.level || level;
-        edges.push(
-          createColumnEdge(e.source[1], e.target[1], srcLevel, dstLevel, e.type)
-        );
       });
     } else {
+      // TODO: remove node and edges related to table
       // const columns = nodes
       //   .filter((n) => n.parentNode === table)
       //   .map((n) => [n.data.table, n.data.column]);
-      nodes = nodes.filter((n) => n.id !== table || n.parentNode !== table);
-      const _edgeId = right ? `${prevTable}-${table}` : `${table}-${prevTable}`;
-      edges = edges.filter((e) => e.id !== _edgeId);
+      // nodes = nodes
+      //   .filter((n) => isNotColumn(n) && n.id !== table)
+      //   .filter((n) => isColumn(n) && n.parentNode !== table);
+      // const _edgeId = right ? `${prevTable}-${table}` : `${table}-${prevTable}`;
+      // edges = edges.filter((e) => e.id !== _edgeId);
     }
 
     if (tables!.every((t) => !!nodes.find((n) => n.id === t.table))) {
