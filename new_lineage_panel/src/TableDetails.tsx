@@ -38,7 +38,13 @@ import { ColorTag } from "./Tags";
 import ExpandLineageIcon from "./assets/icons/expand_lineage.svg?react";
 import { NodeTypeIcon } from "./CustomNodes";
 import { CustomInput } from "./Form";
-import { defaultEdgeStyle, getHelperDataForCLL, isNotColumn } from "./utils";
+import {
+  defaultEdgeStyle,
+  getHelperDataForCLL,
+  isNotColumn,
+  SEE_MORE_PREFIX,
+} from "./utils";
+import { TMoreTables } from "./MoreTables";
 
 const ColumnCard: FunctionComponent<{
   column: Column;
@@ -282,7 +288,7 @@ const TableDetails = () => {
           tablesInCurrIter[x[0]] = true;
         });
 
-        const currAnd1HopTables = right
+        const hop1Tables = right
           ? _edges
               .filter((e) => tablesInCurrIter[e.source])
               .map((e) => e.target)
@@ -290,10 +296,23 @@ const TableDetails = () => {
               .filter((e) => tablesInCurrIter[e.target])
               .map((e) => e.source);
 
-        if (currAnd1HopTables.length === 0) {
-          continue;
+        if (hop1Tables.length === 0) continue;
+
+        const currAnd1HopTables = Object.keys(tablesInCurrIter);
+        for (const nodeId of hop1Tables) {
+          if (currAnd1HopTables.includes(nodeId)) continue;
+          if (!nodeId.startsWith(SEE_MORE_PREFIX)) {
+            currAnd1HopTables.push(nodeId);
+            continue;
+          }
+          const seeMoreNode = flow.getNode(nodeId);
+          if (!seeMoreNode) continue;
+          const { tables } = seeMoreNode.data as TMoreTables;
+          for (const t of tables) {
+            if (currAnd1HopTables.includes(t.table)) continue;
+            currAnd1HopTables.push(t.table);
+          }
         }
-        currAnd1HopTables.push(...Object.keys(tablesInCurrIter));
 
         try {
           const patchState = await processColumnLineage(
