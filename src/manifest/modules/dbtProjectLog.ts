@@ -9,7 +9,7 @@ import {
   window,
   workspace,
 } from "vscode";
-import { provideSingleton, setupWatcherHandler } from "../../utils";
+import { provideSingleton, setupWatcherHandler, stripANSI } from "../../utils";
 import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 
 @provideSingleton(DBTProjectLogFactory)
@@ -93,7 +93,9 @@ export class DBTProjectLog implements Disposable {
             break;
           }
           this.logPosition += bytesRead;
-          this.outputChannel.appendLine(buffer.toString("utf8", 0, bytesRead));
+          this.outputChannel.appendLine(
+            stripANSI(buffer.toString("utf8", 0, bytesRead)),
+          );
         }
       } catch (error) {
         console.log("Could not read log file", error);
