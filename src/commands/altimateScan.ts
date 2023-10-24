@@ -1,4 +1,4 @@
-import { Diagnostic, Uri } from "vscode";
+import { Diagnostic, DiagnosticSeverity, Range, Uri } from "vscode";
 import { AltimateRequest } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
@@ -99,6 +99,18 @@ function getProjectProblems(
       }
     } else {
       // TODO - model is not materialized - add a diagnostic error here
+      const err_message = "Model " + value.alias + " not materialized: ";
+      let modelDiagnostics = projectDiagnostics[value.path];
+      if (modelDiagnostics === undefined) {
+        projectDiagnostics[value.path] = modelDiagnostics = [];
+      }
+      modelDiagnostics.push(
+        new Diagnostic(
+          new Range(0, 0, 0, 0),
+          err_message,
+          DiagnosticSeverity.Information,
+        ),
+      );
     }
   }
 }

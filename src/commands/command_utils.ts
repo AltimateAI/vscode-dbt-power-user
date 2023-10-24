@@ -70,9 +70,15 @@ export function findModelProblems(
         "The column named `" +
         existingCol +
         "` is documented but might be out of sync with the existing model.";
-      let schemaDiagnostics = allDiagnostic[projectModel.patch_path];
+      // If we are here, the patch_path is guaranteed to be defined since
+      // we catch missing doc errors before we enter this function.
+      const schemaPath = Uri.joinPath(
+        project.projectRoot,
+        projectModel.patch_path.split("://")[1],
+      ).fsPath;
+      let schemaDiagnostics = allDiagnostic[schemaPath];
       if (schemaDiagnostics === undefined) {
-        allDiagnostic[projectModel.patch_path] = schemaDiagnostics = [];
+        allDiagnostic[schemaPath] = schemaDiagnostics = [];
       }
       schemaDiagnostics.push(
         new Diagnostic(
