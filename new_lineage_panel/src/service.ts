@@ -21,7 +21,7 @@ export type Columns = {
   columns: Column[];
 };
 
-export type ColumnLineage = {
+type ColumnLineage = {
   source: [string, string];
   target: [string, string];
   type: string;

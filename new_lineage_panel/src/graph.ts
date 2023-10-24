@@ -25,7 +25,7 @@ import {
   T_NODE_W,
   T_NODE_Y_SEPARATION,
 } from "./utils";
-import { ColumnLineage, getConnectedColumns, Table } from "./service";
+import { getConnectedColumns, Table } from "./service";
 import { Dispatch, SetStateAction } from "react";
 
 export const createNewNodesEdges = (
@@ -288,21 +288,10 @@ export const processColumnLineage = async (
     currAnd1HopTables,
     selectedColumn,
   });
-  const newCurr: [string, string][] = [];
-  const columnLineage: ColumnLineage[] = [];
-  if (right) {
-    for (const e of column_lineage) {
-      if (!contains(curr, e.source)) continue;
-      newCurr.push(e.target);
-      columnLineage.push(e);
-    }
-  } else {
-    for (const e of column_lineage) {
-      if (!contains(curr, e.target)) continue;
-      newCurr.push(e.source);
-      columnLineage.push(e);
-    }
-  }
+  const columnLineage = column_lineage.filter((e) =>
+    right ? contains(curr, e.source) : contains(curr, e.target)
+  );
+  const newCurr = columnLineage.map((e) => right ? e.target : e.source);
 
   const collectColumns: Record<string, string[]> = {};
   const addToCollectColumns = ([_table, _column]: [string, string]) => {
