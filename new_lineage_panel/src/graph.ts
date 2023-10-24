@@ -292,26 +292,14 @@ export const processColumnLineage = async (
     right ? contains(curr, e.source) : contains(curr, e.target)
   );
   const newCurr = columnLineage.map((e) => right ? e.target : e.source);
-
   const collectColumns: Record<string, string[]> = {};
+  
   const addToCollectColumns = ([_table, _column]: [string, string]) => {
     collectColumns[_table] = collectColumns[_table] || [];
     if (!collectColumns[_table].includes(_column)) {
       collectColumns[_table].push(_column);
     }
   };
-  columnLineage.forEach((e) => {
-    addToCollectColumns(e.source);
-    addToCollectColumns(e.target);
-  });
-
-  for (const t in collectColumns) {
-    if (!tableNodes[t]) continue;
-    collectColumns[t].sort();
-    for (const c of collectColumns[t]) {
-      nodes.push(createColumnNode(t, c));
-    }
-  }
 
   const addToEdges = (
     id1: string,
@@ -341,6 +329,8 @@ export const processColumnLineage = async (
   };
 
   for (const e of columnLineage) {
+    addToCollectColumns(e.source);
+    addToCollectColumns(e.target);
     const [t0] = e.source;
     const [t1] = e.target;
 
@@ -359,6 +349,14 @@ export const processColumnLineage = async (
       addToEdges(seeMoreId, t1, seeMoreId, target, e.type);
     } else {
       // TODO: check is nothing to do in this case
+    }
+  }
+
+  for (const t in collectColumns) {
+    if (!tableNodes[t]) continue;
+    collectColumns[t].sort();
+    for (const c of collectColumns[t]) {
+      nodes.push(createColumnNode(t, c));
     }
   }
 

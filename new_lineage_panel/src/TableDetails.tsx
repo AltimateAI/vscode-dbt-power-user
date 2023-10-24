@@ -38,12 +38,7 @@ import { ColorTag } from "./Tags";
 import ExpandLineageIcon from "./assets/icons/expand_lineage.svg?react";
 import { NodeTypeIcon } from "./CustomNodes";
 import { CustomInput } from "./Form";
-import {
-  defaultEdgeStyle,
-  getHelperDataForCLL,
-  isNotColumn,
-  SEE_MORE_PREFIX,
-} from "./utils";
+import { defaultEdgeStyle, getHelperDataForCLL, isNotColumn } from "./utils";
 import { TMoreTables } from "./MoreTables";
 
 const ColumnCard: FunctionComponent<{
@@ -301,7 +296,7 @@ const TableDetails = () => {
         const currAnd1HopTables = Object.keys(tablesInCurrIter);
         for (const nodeId of hop1Tables) {
           if (currAnd1HopTables.includes(nodeId)) continue;
-          if (!nodeId.startsWith(SEE_MORE_PREFIX)) {
+          if (tableNodes[nodeId]) {
             currAnd1HopTables.push(nodeId);
             continue;
           }
