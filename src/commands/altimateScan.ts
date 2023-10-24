@@ -8,6 +8,11 @@ import {
 import { TelemetryService } from "../telemetry";
 import { provideSingleton } from "../utils";
 import { findModelProblems } from "./command_utils";
+import { DBTProject } from "../manifest/dbtProject";
+
+export interface AltimateCatalog {
+  [projectName: string]: { [key: string]: any[] };
+}
 
 @provideSingleton(AltimateScan)
 export class AltimateScan {
@@ -33,98 +38,101 @@ export class AltimateScan {
 
   async getProblems() {
     this.telemetry.sendTelemetryEvent("altimateScan");
-    const altimateCatalog: { [projectName: string]: { [key: string]: any[] } } =
-      {};
     const projects = this.dbtProjectContainer.findAllDBTProjects();
-    for (const project of projects) {
-      try {
-        const cata = await project.getCatalog();
-        const modelDict: { [key: string]: any[] } = cata.reduce(
-          (mdict: { [key: string]: any[] }, model) => {
-            const modelKey: string = JSON.stringify({
-              projectroot: project.projectRoot.fsPath,
-              project: project.getProjectName(),
-              database: model.table_database,
-              schema: model.table_schema,
-              name: model.table_name,
-            });
-            mdict[modelKey] = mdict[modelKey] || [];
-            mdict[modelKey].push(model);
-            return mdict;
-          },
-          Object.create(null),
-        );
-        altimateCatalog[project.getProjectName() + project.projectRoot] =
-          modelDict;
-      } catch (err) {
-        console.log(
-          "Error in getting schema for project: " + project.getProjectName(),
-          err,
-        );
-        console.log(err);
-      }
-    }
+    const altimateCatalog: AltimateCatalog = await getCatalog(projects);
     for (const project of projects) {
       const projectEventMap = this.eventMap.get(project.projectRoot.fsPath);
-      const allDiagnostics: { [fullFilePath: string]: Diagnostic[] } = {};
+      const projectDiagnostics: { [fullFilePath: string]: Diagnostic[] } = {};
 
-      const allModelNamesInProject = [];
-
-      for (const modelKey of Object.keys(
-        altimateCatalog[project.getProjectName() + project.projectRoot],
-      )) {
-        const modelDict =
-          altimateCatalog[project.getProjectName() + project.projectRoot][
-            modelKey
-          ];
-        if (projectEventMap) {
-          const { nodeMetaMap, docMetaMap } = projectEventMap;
-          const {
-            projectroot,
-            project: projectName,
-            database,
-            schema,
-            name,
-          } = JSON.parse(modelKey);
-          if (
-            !(
-              projectroot === project.projectRoot.fsPath &&
-              projectName === project.getProjectName()
-            )
-          ) {
-            continue;
-          }
-          const projectModelKeyMap: { [key: string]: string } = Array.from(
-            nodeMetaMap,
-          ).reduce((map: { [key: string]: string }, [key, node]) => {
-            map[node.alias.toLowerCase()] = node.name;
-            return map;
-          }, {});
-          const projectModel = nodeMetaMap.get(
-            projectModelKeyMap[name.toLowerCase()],
-          );
-          if (
-            !projectModel ||
-            projectModel.database.toLowerCase() !== database.toLowerCase() ||
-            projectModel.schema.toLowerCase() !== schema.toLowerCase()
-          ) {
-            continue;
-          }
-          // TODO finally we have the right model
-          findModelProblems(
-            projectModel,
-            modelDict,
-            name,
-            project,
-            allDiagnostics,
-          );
-        }
-      }
+      getProjectProblems(
+        altimateCatalog,
+        project,
+        projectEventMap,
+        projectDiagnostics,
+      );
       for (const [filePath, fileDiagnostics] of Object.entries(
-        allDiagnostics,
+        projectDiagnostics,
       )) {
         project.projectHealth.set(Uri.file(filePath), fileDiagnostics);
       }
     }
   }
+}
+function getProjectProblems(
+  altimateCatalog: AltimateCatalog,
+  project: DBTProject,
+  projectEventMap: ManifestCacheProjectAddedEvent | undefined,
+  projectDiagnostics: { [fullFilePath: string]: Diagnostic[] },
+) {
+  if (!projectEventMap) {
+    // nothing to do if we dont have any project info loaded
+    return;
+  }
+  const { nodeMetaMap } = projectEventMap;
+  for (const [key, value] of nodeMetaMap) {
+    console.log(key, value);
+    const projectName = project.getProjectName();
+    const projectRootUri = project.projectRoot;
+    const modelKey = JSON.stringify({
+      projectroot: projectRootUri.fsPath,
+      project: projectName,
+      database: value.database.toLowerCase(),
+      schema: value.schema.toLowerCase(),
+      name: value.alias.toLowerCase(),
+    });
+    if (
+      Object.keys(altimateCatalog[projectName + projectRootUri]).includes(
+        modelKey,
+      )
+    ) {
+      // TODO - other checks
+      const modelDict = altimateCatalog[projectName + projectRootUri][modelKey];
+
+      if (modelDict) {
+        findModelProblems(
+          value,
+          modelDict,
+          value.alias,
+          project,
+          projectDiagnostics,
+        );
+      }
+    } else {
+      // TODO - model is not materialized - add a diagnostic error here
+    }
+  }
+}
+
+async function getCatalog(projects: DBTProject[]) {
+  const altimateCatalog: { [projectName: string]: { [key: string]: any[] } } =
+    {};
+  for (const project of projects) {
+    try {
+      const cata = await project.getCatalog();
+      const modelDict: { [key: string]: any[] } = cata.reduce(
+        (mdict: { [key: string]: any[] }, model) => {
+          const modelKey: string = JSON.stringify({
+            projectroot: project.projectRoot.fsPath,
+            project: project.getProjectName(),
+            database: model.table_database.toLowerCase(),
+            schema: model.table_schema.toLowerCase(),
+            name: model.table_name.toLowerCase(),
+          });
+          mdict[modelKey] = mdict[modelKey] || [];
+          mdict[modelKey].push(model);
+          return mdict;
+        },
+        Object.create(null),
+      );
+      altimateCatalog[project.getProjectName() + project.projectRoot] =
+        modelDict;
+    } catch (err) {
+      console.log(
+        "Error in getting schema for project: " + project.getProjectName(),
+        err,
+      );
+      console.log(err);
+    }
+  }
+  return altimateCatalog;
 }
