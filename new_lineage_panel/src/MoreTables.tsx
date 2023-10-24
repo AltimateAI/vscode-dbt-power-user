@@ -53,6 +53,7 @@ function MoreTables() {
         }
       });
     } else {
+      return;
       // TODO: remove node and edges related to table
       // const columns = nodes
       //   .filter((n) => n.parentNode === table)
@@ -105,7 +106,7 @@ function MoreTables() {
                 key={t.table}
                 className={classNames(styles.table_card, {
                   [styles.selected]: _node,
-                  [styles.disabled]: isNodeOnOtherLevel,
+                  // [styles.disabled]: isNodeOnOtherLevel,
                 })}
                 onClick={(e) => {
                   e.stopPropagation();
