@@ -272,11 +272,10 @@ const TableDetails = () => {
     const bfsTraversal = async (right: boolean) => {
       const visited: Record<string, boolean> = {};
       let curr: [string, string][] = [[_column.table, _column.name]];
-      let n = 3;
-      while (n-- > 0) {
+      while (true as boolean) {
         const unvistedColumns = curr.filter((x) => !visited[x.join("/")]);
         if (unvistedColumns.length === 0) {
-          continue;
+          break;
         }
         const tablesInCurrIter: Record<string, boolean> = {};
         unvistedColumns.forEach((x) => {
