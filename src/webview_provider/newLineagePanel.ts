@@ -441,14 +441,16 @@ export class NewLineagePanel implements LineagePanelView {
 
     const modelDialect = project.getAdapterType();
     try {
-      const result = await this.altimate.getColumnLevelLineage({
+      const request = {
         model_dialect: modelDialect,
         model_info: modelInfos,
         upstream_expansion: upstreamExpansion,
         targets,
         selected_column,
         parent_models,
-      });
+      };
+      console.log("cll:request -> ", request);
+      const result = await this.altimate.getColumnLevelLineage(request);
       if ((result as DBTColumnLineageResponse).column_lineage) {
         return result;
       }
