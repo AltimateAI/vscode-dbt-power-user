@@ -1,4 +1,11 @@
-import { Diagnostic, DiagnosticSeverity, Range, Uri } from "vscode";
+import {
+  Diagnostic,
+  DiagnosticSeverity,
+  ProgressLocation,
+  Range,
+  Uri,
+  window,
+} from "vscode";
 import { AltimateRequest } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
@@ -38,24 +45,34 @@ export class AltimateScan {
 
   async getProblems() {
     this.telemetry.sendTelemetryEvent("altimateScan");
-    const projects = this.dbtProjectContainer.findAllDBTProjects();
-    const altimateCatalog: AltimateCatalog = await getCatalog(projects);
-    for (const project of projects) {
-      const projectEventMap = this.eventMap.get(project.projectRoot.fsPath);
-      const projectDiagnostics: { [fullFilePath: string]: Diagnostic[] } = {};
+    window.withProgress(
+      {
+        location: ProgressLocation.Notification,
+        title: "Scanning for problems...",
+        cancellable: false,
+      },
+      async () => {
+        const projects = this.dbtProjectContainer.findAllDBTProjects();
+        const altimateCatalog: AltimateCatalog = await getCatalog(projects);
+        for (const project of projects) {
+          const projectEventMap = this.eventMap.get(project.projectRoot.fsPath);
+          const projectDiagnostics: { [fullFilePath: string]: Diagnostic[] } =
+            {};
 
-      getProjectProblems(
-        altimateCatalog,
-        project,
-        projectEventMap,
-        projectDiagnostics,
-      );
-      for (const [filePath, fileDiagnostics] of Object.entries(
-        projectDiagnostics,
-      )) {
-        project.projectHealth.set(Uri.file(filePath), fileDiagnostics);
-      }
-    }
+          getProjectProblems(
+            altimateCatalog,
+            project,
+            projectEventMap,
+            projectDiagnostics,
+          );
+          for (const [filePath, fileDiagnostics] of Object.entries(
+            projectDiagnostics,
+          )) {
+            project.projectHealth.set(Uri.file(filePath), fileDiagnostics);
+          }
+        }
+      },
+    );
   }
 }
 function getProjectProblems(
@@ -68,7 +85,7 @@ function getProjectProblems(
     // nothing to do if we dont have any project info loaded
     return;
   }
-  const { nodeMetaMap } = projectEventMap;
+  const { nodeMetaMap, sourceMetaMap } = projectEventMap;
   for (const [key, value] of nodeMetaMap) {
     console.log(key, value);
     const projectName = project.getProjectName();
@@ -85,7 +102,7 @@ function getProjectProblems(
         modelKey,
       )
     ) {
-      // TODO - other checks
+      // do model-level checks here.
       const modelDict = altimateCatalog[projectName + projectRootUri][modelKey];
 
       if (modelDict) {
@@ -98,7 +115,9 @@ function getProjectProblems(
         );
       }
     } else {
-      // TODO - model is not materialized - add a diagnostic error here
+      // When the model is not in model dict, we could not find the table in information schema.
+      // meaning it was not materialized.
+      // TODO - ignore ephemeral models here.
       const err_message = "Model " + value.alias + " not materialized: ";
       let modelDiagnostics = projectDiagnostics[value.path];
       if (modelDiagnostics === undefined) {
@@ -113,6 +132,13 @@ function getProjectProblems(
       );
     }
   }
+  // const sources = Array.from(sourceMetaMap.values()).map((source) =>
+  //   source.tables.map(
+  //     (table: { name: string }) =>
+  //       "" + source.database + "." + source.schema + "." + table.name,
+  //   ),
+  // );
+  // console.log(sources);
 }
 
 async function getCatalog(projects: DBTProject[]) {
