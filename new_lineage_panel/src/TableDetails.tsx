@@ -314,7 +314,7 @@ const TableDetails = () => {
             levelMap,
             seeMoreIdTableReverseMap,
             tableNodes,
-            curr,
+            curr.filter((e) => tablesInCurrIter[e[0]]),
             right,
             currAnd1HopTables,
             _column
