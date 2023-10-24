@@ -262,6 +262,7 @@ function App() {
         setSelectedTable(null);
         setSelectedColumn({ table: "", name: "" });
         setCollectColumns({});
+        setMoreTables({});
       }
 
       layoutElementsOnCanvas(nodes, edges);
@@ -354,6 +355,7 @@ function App() {
             setSelectedTable(null);
             setSelectedColumn({ table: "", name: "" });
             setCollectColumns({});
+            setMoreTables({});
             vscode.postMessage({ command: "init" });
           }}
         >
