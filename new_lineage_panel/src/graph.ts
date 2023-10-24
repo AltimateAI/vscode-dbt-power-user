@@ -6,6 +6,7 @@ import {
   C_OFFSET_Y,
   C_PADDING_Y,
   COLUMN_PREFIX,
+  createColumnNode,
   createTableEdge,
   createTableNode,
   getSeeMoreId,
@@ -319,15 +320,7 @@ export const processColumnLineage = async (
     if (!tableNodes[t]) continue;
     collectColumns[t].sort();
     for (const c of collectColumns[t]) {
-      nodes.push({
-        id: COLUMN_PREFIX + `${t}/${c}`,
-        data: { column: c, table: t },
-        parentNode: t,
-        extent: "parent",
-        draggable: false,
-        type: "column",
-        position: { x: 100, y: 100 },
-      });
+      nodes.push(createColumnNode(t, c));
     }
   }
 
@@ -370,21 +363,11 @@ export const processColumnLineage = async (
     if (sourceTableExist && targetTableExist) {
       addToEdges(t0, t1, source, target, e.type);
     } else if (sourceTableExist) {
-      addToEdges(
-        t0,
-        seeMoreIdTableReverseMap[t1],
-        source,
-        seeMoreIdTableReverseMap[t1],
-        e.type,
-      );
+      const seeMoreId = seeMoreIdTableReverseMap[t1];
+      addToEdges(t0, seeMoreId, source, seeMoreId, e.type);
     } else if (targetTableExist) {
-      addToEdges(
-        seeMoreIdTableReverseMap[t0],
-        t1,
-        seeMoreIdTableReverseMap[t0],
-        target,
-        e.type,
-      );
+      const seeMoreId = seeMoreIdTableReverseMap[t0];
+      addToEdges(seeMoreId, t1, seeMoreId, target, e.type);
     } else {
       // TODO: check is nothing to do in this case
     }

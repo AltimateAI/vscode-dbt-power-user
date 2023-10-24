@@ -111,6 +111,18 @@ export const createTableNode = (
   };
 };
 
+export const createColumnNode = (t: string, c: string): Node => {
+  return {
+    id: COLUMN_PREFIX + `${t}/${c}`,
+    data: { column: c, table: t },
+    parentNode: t,
+    extent: "parent",
+    draggable: false,
+    type: "column",
+    position: { x: 100, y: 100 },
+  };
+};
+
 export const applyEdgeStyling = (e: Edge, highlight: boolean) => {
   e.style = highlight ? highlightEdgeStyle : defaultEdgeStyle;
   e.markerEnd = highlight ? highlightMarker : defaultMarker;
