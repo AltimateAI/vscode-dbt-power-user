@@ -2,7 +2,11 @@ import { useContext, useState } from "react";
 import styles from "./styles.module.scss";
 import classNames from "classnames";
 import { useReactFlow } from "reactflow";
-import { SEE_MORE_PREFIX, createTableEdge, createTableNode } from "./utils";
+import {
+  createTableEdge,
+  createTableNode,
+  getSeeMoreId,
+} from "./utils";
 import { layoutElementsOnCanvas } from "./graph";
 import { LineageContext } from "./App";
 import { Table } from "./service";
@@ -37,7 +41,7 @@ function MoreTables() {
     }
 
     if (tables.every((t) => !!nodes.find((n) => n.id === t.table))) {
-      const seeMoreNodeId = SEE_MORE_PREFIX + prevTable;
+      const seeMoreNodeId = getSeeMoreId(prevTable, right);
       const seeMoreEdgeId = right
         ? `${prevTable}-${seeMoreNodeId}`
         : `${seeMoreNodeId}-${prevTable}`;

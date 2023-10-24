@@ -158,3 +158,6 @@ export const getHelperDataForCLL = (nodes: Node[], edges: Edge[]) => {
 
   return { levelMap, tableNodes, seeMoreIdTableReverseMap };
 };
+
+export const getSeeMoreId = (t: string, right: boolean) =>
+  SEE_MORE_PREFIX + t + "-" + (right ? "1" : "0");

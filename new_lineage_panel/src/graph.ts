@@ -8,6 +8,7 @@ import {
   COLUMN_PREFIX,
   createTableEdge,
   createTableNode,
+  getSeeMoreId,
   getSourceTargetHandles,
   highlightEdgeStyle,
   highlightMarker,
@@ -47,30 +48,27 @@ export const createNewNodesEdges = (
     if (!existingEdge) newEdges.push(_edge);
   };
 
-  tables.slice(0, MAX_EXPAND_TABLE).forEach((_t) => {
+  let tableAdded = 0;
+  for (const _t of tables) {
+    if (tableAdded >= MAX_EXPAND_TABLE) {
+      const nodeId = getSeeMoreId(t, right);
+      newNodes.push({
+        id: nodeId,
+        data: { tables, prevTable: t, right, level: newLevel },
+        position: { x: 100, y: 100 },
+        type: "seeMore",
+        width: T_NODE_W,
+        height: 100,
+      });
+      addUniqueEdge(nodeId);
+      break;
+    }
     const existingNode = newNodes.find((_n) => _n.id === _t.table);
     if (!existingNode) {
       newNodes.push(createTableNode(_t, newLevel, t));
+      tableAdded++;
     }
     addUniqueEdge(_t.table);
-  });
-
-  if (tables.length > MAX_EXPAND_TABLE) {
-    const _t = SEE_MORE_PREFIX + t + "-" + (right ? "1" : "0");
-    newNodes.push({
-      id: _t,
-      data: {
-        tables,
-        prevTable: t,
-        right,
-        level: newLevel,
-      },
-      position: { x: 100, y: 100 },
-      type: "seeMore",
-      width: T_NODE_W,
-      height: 100,
-    });
-    addUniqueEdge(_t);
   }
 
   return [newNodes, newEdges];
