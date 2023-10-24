@@ -338,7 +338,7 @@ const TableDetails = () => {
 
           setMoreTables((prev) => ({
             ...prev,
-            lineage: patchState.seeMoreLineage,
+            lineage: [...(prev.lineage || []), ...patchState.seeMoreLineage],
           }));
 
           flow.setNodes(nodes);
