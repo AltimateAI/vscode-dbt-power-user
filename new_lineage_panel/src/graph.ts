@@ -316,6 +316,7 @@ export const processColumnLineage = async (
   });
 
   for (const t in collectColumns) {
+    if (!tableNodes[t]) continue;
     collectColumns[t].sort();
     for (const c of collectColumns[t]) {
       nodes.push({
