@@ -24,7 +24,7 @@ import {
   T_NODE_W,
   T_NODE_Y_SEPARATION,
 } from "./utils";
-import { getConnectedColumns, Table } from "./service";
+import { ColumnLineage, getConnectedColumns, Table } from "./service";
 import { Dispatch, SetStateAction } from "react";
 
 export const createNewNodesEdges = (
@@ -262,6 +262,13 @@ export const removeRelatedNodesEdges = (
   return [newNodes, newEdges];
 };
 
+const contains = (arr: [string, string][], x: [string, string]) => {
+  for (const item of arr) {
+    if (item[0] === x[0] && item[1] === x[1]) return true;
+  }
+  return false;
+};
+
 export const processColumnLineage = async (
   levelMap: Record<string, number>,
   seeMoreIdTableReverseMap: Record<string, string>,
@@ -281,21 +288,20 @@ export const processColumnLineage = async (
     selectedColumn,
   });
   const newCurr: [string, string][] = [];
-  const columnLineage = column_lineage.filter((e) => {
-    if (right) {
-      if (curr.some((c) => c[0] === e.source[0] && c[1] === e.source[1])) {
-        newCurr.push(e.target);
-        return true;
-      }
-      return false;
+  const columnLineage: ColumnLineage[] = [];
+  if (right) {
+    for (const e of column_lineage) {
+      if (!contains(curr, e.source)) continue;
+      newCurr.push(e.target);
+      columnLineage.push(e);
     }
-
-    if (curr.some((c) => c[0] === e.target[0] && c[1] === e.target[1])) {
+  } else {
+    for (const e of column_lineage) {
+      if (!contains(curr, e.target)) continue;
       newCurr.push(e.source);
-      return true;
+      columnLineage.push(e);
     }
-    return false;
-  });
+  }
 
   const collectColumns: Record<string, string[]> = {};
   const addToCollectColumns = ([_table, _column]: [string, string]) => {
