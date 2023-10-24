@@ -55,6 +55,7 @@ export class AltimateScan {
         const projects = this.dbtProjectContainer.findAllDBTProjects();
         const altimateCatalog: AltimateCatalog = await getCatalog(projects);
         for (const project of projects) {
+          project.projectHealth.clear();
           const projectEventMap = this.eventMap.get(project.projectRoot.fsPath);
           const projectDiagnostics: { [fullFilePath: string]: Diagnostic[] } =
             {};
