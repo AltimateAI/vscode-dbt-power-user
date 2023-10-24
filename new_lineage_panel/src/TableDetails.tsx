@@ -179,6 +179,7 @@ const TableDetails = () => {
     setShowSidebar,
     rerender,
     setConfidence,
+    setMoreTables,
   } = useContext(LineageContext);
   const flow = useReactFlow();
   const [filteredColumn, setFilteredColumn] = useState<Column[]>([]);
@@ -302,7 +303,7 @@ const TableDetails = () => {
           }
           const seeMoreNode = flow.getNode(nodeId);
           if (!seeMoreNode) continue;
-          const { tables } = seeMoreNode.data as TMoreTables;
+          const { tables = [] } = seeMoreNode.data as TMoreTables;
           for (const t of tables) {
             if (currAnd1HopTables.includes(t.table)) continue;
             currAnd1HopTables.push(t.table);
@@ -334,6 +335,12 @@ const TableDetails = () => {
             { nodes: flow.getNodes(), edges: flow.getEdges() },
             patchState
           );
+
+          setMoreTables((prev) => ({
+            ...prev,
+            lineage: patchState.seeMoreLineage,
+          }));
+
           flow.setNodes(nodes);
           flow.setEdges(edges);
           mergeCollectColumns(setCollectColumns, patchState.collectColumns);

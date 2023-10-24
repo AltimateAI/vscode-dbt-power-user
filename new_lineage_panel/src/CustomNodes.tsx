@@ -297,7 +297,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 };
 
 export const SeeMoreNode: FunctionComponent<NodeProps> = ({ data }) => {
-  const { tables, prevTable, right, level } = data as TMoreTables;
+  const { tables = [], prevTable, right, level } = data as TMoreTables;
   const { setShowSidebar, setMoreTables, setSidebarScreen } =
     useContext(LineageContext);
   const flow = useReactFlow();
@@ -308,7 +308,7 @@ export const SeeMoreNode: FunctionComponent<NodeProps> = ({ data }) => {
         e.stopPropagation();
         setShowSidebar(true);
         setSidebarScreen(TABLES_SIDEBAR);
-        setMoreTables({ tables, prevTable, right, level });
+        setMoreTables((prev) => ({ ...prev, tables, prevTable, right, level }));
       }}
     >
       <div className="fw-semibold">See more</div>

@@ -93,8 +93,8 @@ export const LineageContext = createContext<{
   setShowSidebar: Dispatch<boolean>;
   selectedTable: Table | null;
   setSelectedTable: Dispatch<SetStateAction<Table | null>>;
-  moreTables: TMoreTables | null;
-  setMoreTables: Dispatch<TMoreTables>;
+  moreTables: TMoreTables;
+  setMoreTables: Dispatch<SetStateAction<TMoreTables>>;
   sidebarScreen: string;
   setSidebarScreen: Dispatch<string>;
   selectedColumn: { name: string; table: string };
@@ -110,7 +110,7 @@ export const LineageContext = createContext<{
   setShowSidebar: () => {},
   selectedTable: null,
   setSelectedTable: () => null,
-  moreTables: null,
+  moreTables: {},
   setMoreTables: () => {},
   sidebarScreen: "",
   setSidebarScreen: () => {},
@@ -138,7 +138,7 @@ function App() {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
-  const [moreTables, setMoreTables] = useState<TMoreTables | null>(null);
+  const [moreTables, setMoreTables] = useState<TMoreTables>({});
   const [sidebarScreen, setSidebarScreen] = useState("");
   const [selectedColumn, setSelectedColumn] = useState({ name: "", table: "" });
   const [collectColumns, setCollectColumns] = useState<

@@ -123,6 +123,31 @@ export const createColumnNode = (t: string, c: string): Node => {
   };
 };
 
+export const createColumnEdge = (
+  source: string,
+  target: string,
+  srcLevel: number,
+  dstLevel: number,
+  type: string,
+) => {
+  const edgeId = COLUMN_PREFIX + `${source}-${target}`;
+  const [sourceHandle, targetHandle] = getSourceTargetHandles(
+    srcLevel,
+    dstLevel,
+  );
+  return ({
+    id: edgeId,
+    source,
+    target,
+    sourceHandle,
+    targetHandle,
+    style: type === "direct" ? highlightEdgeStyle : indirectHighlightEdgeStyle,
+    zIndex: 1000,
+    markerEnd: highlightMarker,
+    type: srcLevel === dstLevel ? "smoothstep" : "default",
+  });
+};
+
 export const applyEdgeStyling = (e: Edge, highlight: boolean) => {
   e.style = highlight ? highlightEdgeStyle : defaultEdgeStyle;
   e.markerEnd = highlight ? highlightMarker : defaultMarker;
@@ -173,3 +198,10 @@ export const getHelperDataForCLL = (nodes: Node[], edges: Edge[]) => {
 
 export const getSeeMoreId = (t: string, right: boolean) =>
   SEE_MORE_PREFIX + t + "-" + (right ? "1" : "0");
+
+export const contains = (arr: [string, string][], x: [string, string]) => {
+  for (const item of arr) {
+    if (item[0] === x[0] && item[1] === x[1]) return true;
+  }
+  return false;
+};

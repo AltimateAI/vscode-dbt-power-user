@@ -6,14 +6,12 @@ import {
   C_OFFSET_Y,
   C_PADDING_Y,
   COLUMN_PREFIX,
+  contains,
+  createColumnEdge,
   createColumnNode,
   createTableEdge,
   createTableNode,
   getSeeMoreId,
-  getSourceTargetHandles,
-  highlightEdgeStyle,
-  highlightMarker,
-  indirectHighlightEdgeStyle,
   isColumn,
   isNotColumn,
   LEVEL_SEPARATION,
@@ -25,7 +23,7 @@ import {
   T_NODE_W,
   T_NODE_Y_SEPARATION,
 } from "./utils";
-import { getConnectedColumns, Table } from "./service";
+import { ColumnLineage, getConnectedColumns, Table } from "./service";
 import { Dispatch, SetStateAction } from "react";
 
 export const createNewNodesEdges = (
@@ -263,13 +261,6 @@ export const removeRelatedNodesEdges = (
   return [newNodes, newEdges];
 };
 
-const contains = (arr: [string, string][], x: [string, string]) => {
-  for (const item of arr) {
-    if (item[0] === x[0] && item[1] === x[1]) return true;
-  }
-  return false;
-};
-
 export const processColumnLineage = async (
   levelMap: Record<string, number>,
   seeMoreIdTableReverseMap: Record<string, string>,
@@ -293,7 +284,7 @@ export const processColumnLineage = async (
   );
   const newCurr = columnLineage.map((e) => right ? e.target : e.source);
   const collectColumns: Record<string, string[]> = {};
-  
+
   const addToCollectColumns = ([_table, _column]: [string, string]) => {
     collectColumns[_table] = collectColumns[_table] || [];
     if (!collectColumns[_table].includes(_column)) {
@@ -308,25 +299,12 @@ export const processColumnLineage = async (
     target: string,
     type: string,
   ) => {
-    const edgeId = COLUMN_PREFIX + `${source}-${target}`;
-    const [sourceHandle, targetHandle] = getSourceTargetHandles(
-      levelMap[id1],
-      levelMap[id2],
+    edges.push(
+      createColumnEdge(source, target, levelMap[id1], levelMap[id2], type),
     );
-    edges.push({
-      id: edgeId,
-      source,
-      target,
-      sourceHandle,
-      targetHandle,
-      style: type === "direct"
-        ? highlightEdgeStyle
-        : indirectHighlightEdgeStyle,
-      zIndex: 1000,
-      markerEnd: highlightMarker,
-      type: levelMap[id1] === levelMap[id2] ? "smoothstep" : "default",
-    });
   };
+
+  const seeMoreLineage: ColumnLineage[] = [];
 
   for (const e of columnLineage) {
     addToCollectColumns(e.source);
@@ -344,10 +322,13 @@ export const processColumnLineage = async (
     } else if (sourceTableExist) {
       const seeMoreId = seeMoreIdTableReverseMap[t1];
       addToEdges(t0, seeMoreId, source, seeMoreId, e.type);
+      seeMoreLineage.push(e);
     } else if (targetTableExist) {
       const seeMoreId = seeMoreIdTableReverseMap[t0];
       addToEdges(seeMoreId, t1, seeMoreId, target, e.type);
+      seeMoreLineage.push(e);
     } else {
+      seeMoreLineage.push(e);
       // TODO: check is nothing to do in this case
     }
   }
@@ -360,7 +341,7 @@ export const processColumnLineage = async (
     }
   }
 
-  return { nodes, edges, collectColumns, newCurr, confidence };
+  return { nodes, edges, collectColumns, newCurr, confidence, seeMoreLineage };
 };
 
 export const mergeNodesEdges = (

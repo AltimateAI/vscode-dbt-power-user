@@ -3,26 +3,30 @@ import styles from "./styles.module.scss";
 import classNames from "classnames";
 import { useReactFlow } from "reactflow";
 import {
+  createColumnEdge,
+  createColumnNode,
   createTableEdge,
   createTableNode,
   getSeeMoreId,
 } from "./utils";
 import { layoutElementsOnCanvas } from "./graph";
 import { LineageContext } from "./App";
-import { Table } from "./service";
+import { ColumnLineage, Table } from "./service";
 import { NodeTypeIcon } from "./CustomNodes";
 import { CustomInput } from "./Form";
 
 export type TMoreTables = {
-  prevTable: string;
-  tables: Table[];
-  right: boolean;
-  level: number;
+  prevTable?: string;
+  tables?: Table[];
+  right?: boolean;
+  level?: number;
+  lineage?: ColumnLineage[];
 };
 
 function MoreTables() {
   const { moreTables, setShowSidebar, rerender } = useContext(LineageContext);
-  const { prevTable, tables, right, level } = moreTables as TMoreTables;
+  const { prevTable, tables, right, level, lineage } =
+    moreTables as TMoreTables;
   const flow = useReactFlow();
 
   const onItemClick = async (_table: Table) => {
@@ -31,17 +35,36 @@ function MoreTables() {
     let edges = flow.getEdges();
     const node = nodes.find((n) => n.id === table);
     if (!node) {
-      nodes.push(createTableNode(_table, level, prevTable));
+      nodes.push(createTableNode(_table, level!, prevTable!));
       const fromLevel = nodes.find((n) => n.id === prevTable)?.data.level;
-      edges.push(createTableEdge(fromLevel, level, prevTable, table, right));
+      edges.push(createTableEdge(fromLevel, level!, prevTable!, table, right!));
+      lineage?.forEach((e) => {
+        if (right) {
+          if (e.target[0] !== table) return;
+          nodes.push(createColumnNode(e.target[0], e.target[1]));
+        } else {
+          if (e.source[0] !== table) return;
+          nodes.push(createColumnNode(e.source[0], e.source[1]));
+        }
+        const srcLevel =
+          nodes.find((n) => n.id === e.source[0])?.data?.level || level;
+        const dstLevel =
+          nodes.find((n) => n.id === e.target[0])?.data?.level || level;
+        edges.push(
+          createColumnEdge(e.source[1], e.target[1], srcLevel, dstLevel, e.type)
+        );
+      });
     } else {
-      nodes = nodes.filter((n) => n.id !== table);
+      // const columns = nodes
+      //   .filter((n) => n.parentNode === table)
+      //   .map((n) => [n.data.table, n.data.column]);
+      nodes = nodes.filter((n) => n.id !== table || n.parentNode !== table);
       const _edgeId = right ? `${prevTable}-${table}` : `${table}-${prevTable}`;
       edges = edges.filter((e) => e.id !== _edgeId);
     }
 
-    if (tables.every((t) => !!nodes.find((n) => n.id === t.table))) {
-      const seeMoreNodeId = getSeeMoreId(prevTable, right);
+    if (tables!.every((t) => !!nodes.find((n) => n.id === t.table))) {
+      const seeMoreNodeId = getSeeMoreId(prevTable!, right!);
       const seeMoreEdgeId = right
         ? `${prevTable}-${seeMoreNodeId}`
         : `${seeMoreNodeId}-${prevTable}`;
@@ -66,14 +89,14 @@ function MoreTables() {
         onChange={(e) => {
           const _search = e.target.value.toLowerCase();
           setFilteredTables(
-            tables.filter((t) => t.table.toLowerCase().includes(_search))
+            tables!.filter((t) => t.table.toLowerCase().includes(_search))
           );
         }}
       />
       <div className="mb-3" />
       <div className="h-100 overflow-y">
         <div className="d-flex flex-column gap-sm">
-          {filteredTables.map((t) => {
+          {filteredTables!.map((t) => {
             const _node = flow.getNode(t.table);
             const isNodeOnOtherLevel = _node && _node.data.level !== level;
             return (
