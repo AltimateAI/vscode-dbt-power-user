@@ -266,7 +266,7 @@
       },
       {
         "command": "dbtPowerUser.altimateScan",
-        "title": "Deep Scan",
+        "title": "Altimate Scan",
         "icon": "$(circuit-board)"
       },
       {
