@@ -1,4 +1,4 @@
-import { closeSync, openSync, readSync } from "fs";
+import { closeSync, existsSync, openSync, readSync } from "fs";
 import * as path from "path";
 import {
   Disposable,
@@ -68,17 +68,15 @@ export class DBTProjectLog implements Disposable {
 
   private readLogFileFromLastPosition(event: ProjectConfigChangedEvent): void {
     const { projectRoot } = event;
-    if (this.outputChannel) {
+    const logPath = path.join(
+      projectRoot.fsPath,
+      DBTProjectLog.LOG_PATH,
+      DBTProjectLog.LOG_FILE,
+    );
+    if (this.outputChannel && existsSync(logPath)) {
       let fileHandle;
       try {
-        fileHandle = openSync(
-          path.join(
-            projectRoot.fsPath,
-            DBTProjectLog.LOG_PATH,
-            DBTProjectLog.LOG_FILE,
-          ),
-          "r",
-        );
+        fileHandle = openSync(logPath, "r");
         const chunkSize = 1024 * 1024;
         const buffer = Buffer.alloc(chunkSize);
         while (true) {
