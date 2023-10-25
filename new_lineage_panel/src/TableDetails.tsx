@@ -18,11 +18,15 @@ import {
   downstreamTables,
   Table,
 } from "./service";
-import { LineageContext } from "./App";
+import { endProgressBar, LineageContext, startProgressBar } from "./App";
 import {
   createNewNodesEdges,
+  layoutElementsOnCanvas,
+  mergeCollectColumns,
+  mergeNodesEdges,
   processColumnLineage,
   removeColumnNodes,
+  resetTableHighlights,
 } from "./graph";
 
 // ui components
@@ -34,6 +38,8 @@ import { ColorTag } from "./Tags";
 import ExpandLineageIcon from "./assets/icons/expand_lineage.svg?react";
 import { NodeTypeIcon } from "./CustomNodes";
 import { CustomInput } from "./Form";
+import { defaultEdgeStyle, getHelperDataForCLL, isNotColumn } from "./utils";
+import { TMoreTables } from "./MoreTables";
 
 const ColumnCard: FunctionComponent<{
   column: Column;
@@ -93,7 +99,7 @@ const ColumnSection: FunctionComponent<{
   setFilteredColumn: Dispatch<SetStateAction<Column[]>>;
   handleColumnClick: (x: Column) => Promise<void>;
   selectedTable: Table | null;
-  selectedColumn: string;
+  selectedColumn: { name: string; table: string };
   setData: Dispatch<SetStateAction<Columns | null>>;
 }> = ({
   columns,
@@ -152,7 +158,10 @@ const ColumnSection: FunctionComponent<{
               key={_column.name}
               column={_column}
               handleClick={() => handleColumnClick(_column)}
-              selected={_column.name === selectedColumn}
+              selected={
+                _column.name === selectedColumn.name &&
+                _column.table === selectedColumn.table
+              }
             />
           ))}
         </div>
@@ -168,6 +177,9 @@ const TableDetails = () => {
     setSelectedColumn,
     setCollectColumns,
     setShowSidebar,
+    rerender,
+    setConfidence,
+    setMoreTables,
   } = useContext(LineageContext);
   const flow = useReactFlow();
   const [filteredColumn, setFilteredColumn] = useState<Column[]>([]);
@@ -201,6 +213,8 @@ const TableDetails = () => {
       setShowSidebar(false);
       return;
     }
+    startProgressBar();
+    console.time();
     let _nodes = flow.getNodes();
     let _edges = flow.getEdges();
     const addNodesEdges = (tables: Table[], right: boolean, level: number) => {
@@ -212,6 +226,7 @@ const TableDetails = () => {
         right,
         level
       );
+      layoutElementsOnCanvas(_nodes, _edges);
     };
     const tableNode = flow.getNode(_column.table);
     if (tableNode) {
@@ -219,25 +234,124 @@ const TableDetails = () => {
         data: { processed, key, level },
       } = tableNode;
       if (!processed[1]) {
-        const { tables } = await upstreamTables(key);
-        addNodesEdges(tables, true, level);
+        try {
+          const { tables } = await upstreamTables(key);
+          addNodesEdges(tables, true, level);
+        } catch (e) {
+          console.error(e);
+        }
       }
       if (!processed[0]) {
-        const { tables } = await downstreamTables(key);
-        addNodesEdges(tables, false, level);
+        try {
+          const { tables } = await downstreamTables(key);
+          addNodesEdges(tables, false, level);
+        } catch (e) {
+          console.error(e);
+        }
       }
     }
-    const { nodes, edges, collectColumns } = await processColumnLineage(
-      _nodes,
-      _edges,
-      { name: _column.name, table: _column.table }
-    );
+    setSelectedColumn(_column);
+    setShowSidebar(false);
+    setCollectColumns({});
 
+    // resetting existing styles
+    const [nodes, edges] = resetTableHighlights(
+      _nodes.filter(isNotColumn),
+      _edges.filter(isNotColumn)
+    );
+    edges.forEach((_e) => (_e.style = defaultEdgeStyle));
     flow.setNodes(nodes);
     flow.setEdges(edges);
-    setSelectedColumn(_column);
-    setCollectColumns(collectColumns);
-    setShowSidebar(false);
+    setConfidence({ confidence: "high" });
+    rerender();
+
+    // creating helper data for current lineage once
+    const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
+      getHelperDataForCLL(nodes, edges);
+
+    const bfsTraversal = async (right: boolean) => {
+      const visited: Record<string, boolean> = {};
+      let curr: [string, string][] = [[_column.table, _column.name]];
+      while (true as boolean) {
+        const unvistedColumns = curr.filter((x) => !visited[x.join("/")]);
+        if (unvistedColumns.length === 0) {
+          break;
+        }
+        const tablesInCurrIter: Record<string, boolean> = {};
+        unvistedColumns.forEach((x) => {
+          visited[x.join("/")] = true;
+          tablesInCurrIter[x[0]] = true;
+        });
+
+        const hop1Tables = right
+          ? _edges
+              .filter((e) => tablesInCurrIter[e.source])
+              .map((e) => e.target)
+          : _edges
+              .filter((e) => tablesInCurrIter[e.target])
+              .map((e) => e.source);
+
+        if (hop1Tables.length === 0) continue;
+
+        const currAnd1HopTables = Object.keys(tablesInCurrIter);
+        for (const nodeId of hop1Tables) {
+          if (currAnd1HopTables.includes(nodeId)) continue;
+          if (tableNodes[nodeId]) {
+            currAnd1HopTables.push(nodeId);
+            continue;
+          }
+          const seeMoreNode = flow.getNode(nodeId);
+          if (!seeMoreNode) continue;
+          const { tables = [] } = seeMoreNode.data as TMoreTables;
+          for (const t of tables) {
+            if (currAnd1HopTables.includes(t.table)) continue;
+            currAnd1HopTables.push(t.table);
+          }
+        }
+
+        try {
+          const patchState = await processColumnLineage(
+            levelMap,
+            seeMoreIdTableReverseMap,
+            tableNodes,
+            curr.filter((e) => tablesInCurrIter[e[0]]),
+            right,
+            currAnd1HopTables,
+            _column
+          );
+          if (patchState.confidence?.confidence === "low") {
+            setConfidence((prev) => {
+              const newConfidence = { ...prev, confidence: "low" };
+              newConfidence.operator_list = newConfidence.operator_list || [];
+              newConfidence.operator_list.push(
+                ...(patchState.confidence?.operator_list || [])
+              );
+              return newConfidence;
+            });
+          }
+          curr = patchState.newCurr;
+          const [nodes, edges] = mergeNodesEdges(
+            { nodes: flow.getNodes(), edges: flow.getEdges() },
+            patchState
+          );
+
+          setMoreTables((prev) => ({
+            ...prev,
+            lineage: [...(prev.lineage || []), ...patchState.seeMoreLineage],
+          }));
+
+          flow.setNodes(nodes);
+          flow.setEdges(edges);
+          mergeCollectColumns(setCollectColumns, patchState.collectColumns);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    };
+
+    await Promise.all([bfsTraversal(true), bfsTraversal(false)]);
+    console.timeEnd();
+    endProgressBar();
   };
   if (isLoading || !data || !selectedTable) return <ComponentLoader />;
 
@@ -252,7 +366,7 @@ const TableDetails = () => {
       <PurposeSection tableId={data.id} purpose={data.purpose} />
       <ColumnSection
         selectedTable={selectedTable}
-        selectedColumn={selectedColumn.name}
+        selectedColumn={selectedColumn}
         filteredColumn={filteredColumn}
         setFilteredColumn={setFilteredColumn}
         columns={data.columns}

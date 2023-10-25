@@ -6,20 +6,25 @@ import {
   C_OFFSET_Y,
   C_PADDING_Y,
   COLUMN_PREFIX,
-  createForwardEdge,
+  contains,
+  createColumnEdge,
+  createColumnNode,
+  createTableEdge,
   createTableNode,
-  defaultEdgeStyle,
-  highlightEdgeStyle,
-  highlightMarker,
+  getSeeMoreId,
   isColumn,
   isNotColumn,
   LEVEL_SEPARATION,
   MAX_EXPAND_TABLE,
+  P_OFFSET_X,
+  P_OFFSET_Y,
   SEE_MORE_PREFIX,
   T_NODE_H,
   T_NODE_W,
+  T_NODE_Y_SEPARATION,
 } from "./utils";
-import { getConnectedColumns, Table } from "./service";
+import { ColumnLineage, getConnectedColumns, Table } from "./service";
+import { Dispatch, SetStateAction } from "react";
 
 export const createNewNodesEdges = (
   prevNodes: Node[],
@@ -35,35 +40,34 @@ export const createNewNodesEdges = (
   const _node = newNodes.find((_n) => _n.id === t);
   if (_node) _node.data.processed[right ? 1 : 0] = true;
 
-  const addUniqueEdge = (_edge: Edge) => {
+  const addUniqueEdge = (to: string) => {
+    const toLevel = newNodes.find((n) => n.id === to)?.data?.level;
+    const _edge = createTableEdge(level, toLevel, t, to, right);
     const existingEdge = newEdges.find((e) => e.id === _edge.id);
     if (!existingEdge) newEdges.push(_edge);
   };
 
-  tables.slice(0, MAX_EXPAND_TABLE).forEach((_t) => {
+  let tableAdded = 0;
+  for (const _t of tables) {
+    if (tableAdded >= MAX_EXPAND_TABLE) {
+      const nodeId = getSeeMoreId(t, right);
+      newNodes.push({
+        id: nodeId,
+        data: { tables, prevTable: t, right, level: newLevel },
+        position: { x: 100, y: 100 },
+        type: "seeMore",
+        width: T_NODE_W,
+        height: 100,
+      });
+      addUniqueEdge(nodeId);
+      break;
+    }
     const existingNode = newNodes.find((_n) => _n.id === _t.table);
     if (!existingNode) {
       newNodes.push(createTableNode(_t, newLevel, t));
+      tableAdded++;
     }
-    addUniqueEdge(createForwardEdge(t, _t.table, right));
-  });
-
-  if (tables.length > MAX_EXPAND_TABLE) {
-    const _t = SEE_MORE_PREFIX + t + "-" + (right ? "1" : "0");
-    newNodes.push({
-      id: _t,
-      data: {
-        tables,
-        prevTable: t,
-        right,
-        level: newLevel,
-      },
-      position: { x: 100, y: 100 },
-      type: "seeMore",
-      width: T_NODE_W,
-      height: 100,
-    });
-    addUniqueEdge(createForwardEdge(t, _t, right));
+    addUniqueEdge(_t.table);
   }
 
   return [newNodes, newEdges];
@@ -73,9 +77,9 @@ export const createNewNodesEdges = (
 export const layoutElementsOnCanvas = (nodes: Node[], _edges: Edge[]) => {
   let minLevel = Infinity;
   let maxLevel = -Infinity;
-  const levelWiseCount: { [k: number]: number } = {};
-  const levelWiseIndex: { [k: number]: number } = {};
-  const tableWiseColumnIndex: { [k: string]: number } = {};
+  const levelWiseIndex: Record<number, number> = {};
+  const levelWiseColumnCount: Record<number, number> = {};
+  const tableWiseColumnIndex: Record<string, number> = {};
 
   for (const n of nodes) {
     if (isColumn(n) && n.parentNode) {
@@ -95,32 +99,40 @@ export const layoutElementsOnCanvas = (nodes: Node[], _edges: Edge[]) => {
     const level = n.data.level;
     minLevel = Math.min(minLevel, level);
     maxLevel = Math.max(maxLevel, level);
-    if (!(level in levelWiseCount)) {
-      levelWiseCount[level] = 0;
+    if (!(level in levelWiseIndex)) {
       levelWiseIndex[level] = 0;
+      levelWiseColumnCount[level] = 0;
     }
-    levelWiseCount[level]++;
   }
 
   const getY = (n: Node, level: number) => {
-    const _count = levelWiseCount[level];
     const _index = levelWiseIndex[level];
-    if (n.id.startsWith(SEE_MORE_PREFIX)) {
-      return ((_count - 1) >> 1) * T_NODE_H + 100;
-    }
+    const _columnCount = levelWiseColumnCount[level] || 0;
     levelWiseIndex[level]++;
-    return (_index - (_count >> 1)) * T_NODE_H + 100;
+    levelWiseColumnCount[level] += tableWiseColumnIndex[n.id];
+    return P_OFFSET_Y + (_index * T_NODE_Y_SEPARATION) +
+      ((_index + 1) * T_NODE_H) +
+      (C_NODE_H * _columnCount) + C_PADDING_Y;
+  };
+
+  const getX = (level: number) => {
+    const basisLevel = level - minLevel;
+    return basisLevel * (T_NODE_W + LEVEL_SEPARATION) + P_OFFSET_X;
   };
 
   for (const n of nodes) {
-    if (isColumn(n)) {
+    if (isColumn(n) || n.id.startsWith(SEE_MORE_PREFIX)) {
       continue;
     }
     const level = n.data.level;
-    const basisLevel = level - minLevel;
-    const x = basisLevel * (T_NODE_W + LEVEL_SEPARATION) + 100;
-    const y = getY(n, level);
-    n.position = { x, y };
+    n.position = { x: getX(level), y: getY(n, level) };
+  }
+  for (const n of nodes) {
+    if (!n.id.startsWith(SEE_MORE_PREFIX)) {
+      continue;
+    }
+    const level = n.data.level;
+    n.position = { x: getX(level), y: getY(n, level) };
   }
 };
 
@@ -250,144 +262,102 @@ export const removeRelatedNodesEdges = (
 };
 
 export const processColumnLineage = async (
-  _nodes: Node[],
-  _edges: Edge[],
-  column: { name: string; table: string },
+  levelMap: Record<string, number>,
+  seeMoreIdTableReverseMap: Record<string, string>,
+  tableNodes: Record<string, boolean>,
+  curr: [string, string][],
+  right: boolean,
+  currAnd1HopTables: string[],
+  selectedColumn: { name: string; table: string },
 ) => {
-  let nodes = _nodes.filter(isNotColumn);
-  let edges = _edges.filter(isNotColumn);
-  [nodes, edges] = resetTableHighlights(nodes, edges);
+  const nodes: Node[] = [];
+  const edges: Edge[] = [];
 
-  const levelMap: Record<string, number> = {};
-  nodes.forEach((n) => (levelMap[n.id] = n.data.level));
+  const { column_lineage, confidence } = await getConnectedColumns({
+    targets: curr,
+    upstreamExpansion: right,
+    currAnd1HopTables,
+    selectedColumn,
+  });
+  const columnLineage = column_lineage.filter((e) =>
+    right ? contains(curr, e.source) : contains(curr, e.target)
+  );
+  const newCurr = columnLineage.map((e) => right ? e.target : e.source);
+  const collectColumns: Record<string, string[]> = {};
 
-  const tableNodes: Record<string, boolean> = {};
-  _nodes
-    .filter((_n) => _n.type === "table")
-    .forEach((_n) => (tableNodes[_n.id] = true));
-  const seeMoreIdTableReverseMap: Record<string, string> = {};
-  const edgesPayload = [];
-  for (const e of _edges) {
-    if (e.id.startsWith(COLUMN_PREFIX)) continue;
-    const sourceTableExist = tableNodes[e.source];
-    const targetTableExist = tableNodes[e.target];
+  const addToCollectColumns = ([_table, _column]: [string, string]) => {
+    collectColumns[_table] = collectColumns[_table] || [];
+    if (!collectColumns[_table].includes(_column)) {
+      collectColumns[_table].push(_column);
+    }
+  };
+
+  const addToEdges = (
+    id1: string,
+    id2: string,
+    source: string,
+    target: string,
+    type: string,
+  ) => {
+    edges.push(
+      createColumnEdge(source, target, levelMap[id1], levelMap[id2], type),
+    );
+  };
+
+  const seeMoreLineage: ColumnLineage[] = [];
+
+  for (const e of columnLineage) {
+    addToCollectColumns(e.source);
+    addToCollectColumns(e.target);
+    const [t0] = e.source;
+    const [t1] = e.target;
+
+    const sourceTableExist = tableNodes[t0];
+    const targetTableExist = tableNodes[t1];
+    const source = COLUMN_PREFIX + e.source.join("/");
+    const target = COLUMN_PREFIX + e.target.join("/");
+
     if (sourceTableExist && targetTableExist) {
-      edgesPayload.push({ src: e.source, dst: e.target });
+      addToEdges(t0, t1, source, target, e.type);
     } else if (sourceTableExist) {
-      const _n = _nodes.find((_n) => _n.id === e.target)!;
-      _n.data.tables.forEach((_t: { table: string }) => {
-        edgesPayload.push({ src: e.source, dst: _t.table });
-        seeMoreIdTableReverseMap[_t.table] = e.target;
-      });
+      const seeMoreId = seeMoreIdTableReverseMap[t1];
+      addToEdges(t0, seeMoreId, source, seeMoreId, e.type);
+      seeMoreLineage.push(e);
     } else if (targetTableExist) {
-      const _n = _nodes.find((_n) => _n.id === e.source)!;
-      _n.data.tables.forEach((_t: { table: string }) => {
-        edgesPayload.push({ src: _t.table, dst: e.target });
-        seeMoreIdTableReverseMap[_t.table] = e.source;
-      });
+      const seeMoreId = seeMoreIdTableReverseMap[t0];
+      addToEdges(seeMoreId, t1, seeMoreId, target, e.type);
+      seeMoreLineage.push(e);
     } else {
+      seeMoreLineage.push(e);
       // TODO: check is nothing to do in this case
     }
   }
-
-  const { collectColumns, highlightEdges } = await getConnectedColumns({
-    column: column.name,
-    table: column.table,
-    edges: edgesPayload,
-  });
 
   for (const t in collectColumns) {
     if (!tableNodes[t]) continue;
     collectColumns[t].sort();
     for (const c of collectColumns[t]) {
-      nodes.push({
-        id: COLUMN_PREFIX + `${t}/${c}`,
-        data: { column: c, table: t },
-        parentNode: t,
-        extent: "parent",
-        draggable: false,
-        type: "column",
-        position: { x: 100, y: 100 },
-      });
+      nodes.push(createColumnNode(t, c));
     }
   }
 
-  edges.forEach((_e) => (_e.style = defaultEdgeStyle));
-  const addToEdges = (
-    columnId: string,
-    id1: string,
-    id2: string,
-    source: string,
-    target: string,
-  ) => {
-    const [sourceHandle, targetHandle] = getSourceTargetHandles(
-      levelMap[id1],
-      levelMap[id2],
-    );
-    edges.push({
-      id: columnId,
-      source,
-      target,
-      sourceHandle,
-      targetHandle,
-      style: highlightEdgeStyle,
-      zIndex: 1000,
-      markerEnd: highlightMarker,
-      type: levelMap[id1] === levelMap[id2] ? "smoothstep" : "default",
-    });
-  };
-
-  for (const e of highlightEdges) {
-    const [t0] = e[0].split("/");
-    const [t1] = e[1].split("/");
-
-    const sourceTableExist = tableNodes[t0];
-    const targetTableExist = tableNodes[t1];
-    const columnId = COLUMN_PREFIX + `${e[0]}-${e[1]}`;
-
-    if (sourceTableExist && targetTableExist) {
-      addToEdges(columnId, t0, t1, COLUMN_PREFIX + e[0], COLUMN_PREFIX + e[1]);
-    } else if (sourceTableExist) {
-      addToEdges(
-        columnId,
-        t0,
-        seeMoreIdTableReverseMap[t1],
-        COLUMN_PREFIX + e[0],
-        seeMoreIdTableReverseMap[t1],
-      );
-    } else if (targetTableExist) {
-      addToEdges(
-        columnId,
-        seeMoreIdTableReverseMap[t0],
-        t1,
-        seeMoreIdTableReverseMap[t0],
-        COLUMN_PREFIX + e[1],
-      );
-    } else {
-      // TODO: check is nothing to do in this case
-    }
-  }
-
-  layoutElementsOnCanvas(nodes, edges);
-
-  return { nodes, edges, collectColumns };
+  return { nodes, edges, collectColumns, newCurr, confidence, seeMoreLineage };
 };
 
-const getSourceTargetHandles = (
-  l0: number,
-  l1: number,
-): ["left" | "right", "left" | "right"] => {
-  if (l0 < l1) {
-    return ["right", "left"];
-  }
-  // TODO: check if this case will happen for dbt
-  if (l0 > l1) {
-    return ["left", "right"];
-  }
-  if (l0 < 0) {
-    return ["left", "left"];
-  }
-  return ["right", "right"];
+export const mergeNodesEdges = (
+  prevState: { nodes: Node[]; edges: Edge[] },
+  patchState: { nodes: Node[]; edges: Edge[] },
+): [Node[], Edge[]] => {
+  const nodes = [...prevState.nodes];
+  const edges = [...prevState.edges];
+  const nodesId: Record<string, boolean> = {};
+  const edgesId: Record<string, boolean> = {};
+  nodes.forEach((n) => nodesId[n.id] = true);
+  edges.forEach((e) => edgesId[e.id] = true);
+  patchState.nodes.forEach((n) => !nodesId[n.id] && nodes.push(n));
+  patchState.edges.forEach((e) => !edgesId[e.id] && edges.push(e));
+  layoutElementsOnCanvas(nodes, edges);
+  return [nodes, edges];
 };
 
 export const removeColumnNodes = (
@@ -397,4 +367,27 @@ export const removeColumnNodes = (
   const nodes = _nodes.filter((n) => isNotColumn(n));
   const edges = _edges.filter((n) => isNotColumn(n));
   return [nodes, edges];
+};
+
+export const mergeCollectColumns = (
+  setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>,
+  newCcollectColumns: Record<string, string[]>,
+) => {
+  setCollectColumns((prev) => {
+    const collectColumns: Record<string, string[]> = { ...prev };
+    for (const t in newCcollectColumns) {
+      const _columns = newCcollectColumns[t];
+      if (!(t in collectColumns)) {
+        collectColumns[t] = _columns;
+        continue;
+      }
+      _columns.forEach((c) => {
+        if (collectColumns[t].includes(c)) {
+          return;
+        }
+        collectColumns[t].push(c);
+      });
+    }
+    return collectColumns;
+  });
 };
