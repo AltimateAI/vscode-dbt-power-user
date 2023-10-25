@@ -11,9 +11,8 @@ import {
   WebviewView,
   WebviewViewResolveContext,
   window,
-  workspace,
 } from "vscode";
-import { AltimateRequest } from "../altimate";
+import { AltimateRequest, DBTColumnLineageResponse } from "../altimate";
 import {
   ColumnMetaData,
   GraphMetaMap,
@@ -38,6 +37,9 @@ type Table = {
   nodeType: string;
 };
 
+const CACHE_SIZE = 100;
+const CACHE_VALID_TIME = 24 * 60 * 60 * 1000;
+
 const ALLOWED_NODE_TYPES = ["model.", "source.", "seed."];
 const isAllowedNode = (key: string) =>
   ALLOWED_NODE_TYPES.some((t) => key.startsWith(t));
@@ -46,6 +48,9 @@ const isAllowedNode = (key: string) =>
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
+  private dbCache: Map<string, Record<string, string>[]> = new Map();
+  private lruCache: Map<string, number> = new Map();
+  private progressBarResolve?: () => void;
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -146,8 +151,29 @@ export class NewLineagePanel implements LineagePanelView {
       const body = await this.getConnectedColumns(params);
       this._panel?.webview.postMessage({
         command: "response",
-        args: { id, body, status: true },
+        args: { id, body, status: !!body },
       });
+      return;
+    }
+
+    if (command === "startProgressBar") {
+      window.withProgress(
+        {
+          title: "Processing column level lineage",
+          location: ProgressLocation.Notification,
+          cancellable: false,
+        },
+        async () => {
+          await new Promise<void>((resolve) => {
+            this.progressBarResolve = resolve;
+          });
+        },
+      );
+      return;
+    }
+
+    if (command === "endProgressBar") {
+      this.progressBarResolve?.();
       return;
     }
 
@@ -155,7 +181,24 @@ export class NewLineagePanel implements LineagePanelView {
   }
 
   private async addColumnsFromDB(project: DBTProject, node: NodeMetaData) {
-    const columnsFromDB = await project.getColumnsInRelation(node.name);
+    const now = Date.now();
+    if (
+      !this.dbCache.has(node.name) ||
+      (this.lruCache.get(node.name) || 0) < now - CACHE_VALID_TIME
+    ) {
+      const _columnsFromDB = await project.getColumnsInRelation(node.name);
+      this.dbCache.set(node.name, _columnsFromDB);
+      if (this.dbCache.size > CACHE_SIZE) {
+        const arr = Array.from(this.lruCache.entries());
+        arr.sort((a, b) => b[1] - a[1]);
+        arr.slice(CACHE_SIZE).forEach(([k]) => {
+          this.lruCache.delete(k);
+          this.dbCache.delete(k);
+        });
+      }
+    }
+    this.lruCache.set(node.name, now);
+    const columnsFromDB = this.dbCache.get(node.name)!;
     console.log("addColumnsFromDB: ", node.name, " -> ", columnsFromDB);
     if (!columnsFromDB || columnsFromDB.length === 0) {
       return false;
@@ -222,7 +265,11 @@ export class NewLineagePanel implements LineagePanelView {
           location: ProgressLocation.Notification,
           cancellable: false,
         },
-        async () => await this.addColumnsFromDB(project, node),
+        async () => {
+          this.lruCache.delete(node.name);
+          this.dbCache.delete(node.name);
+          return await this.addColumnsFromDB(project, node);
+        },
       );
       if (!ok) {
         window.showErrorMessage(
@@ -251,44 +298,28 @@ export class NewLineagePanel implements LineagePanelView {
   }
 
   private async getConnectedColumns({
-    table,
-    column,
-    edges,
+    targets,
+    upstreamExpansion,
+    currAnd1HopTables,
+    selectedColumn,
   }: {
-    table: string;
-    column: string;
-    edges: { src: string; dst: string }[];
+    targets: [string, string][];
+    upstreamExpansion: boolean;
+    currAnd1HopTables: string[];
+    // select_column is used for pricing not business logic
+    selectedColumn: { name: string; table: string };
   }) {
-    const nodeMetaMap = this.getEvent()?.nodeMetaMap;
-    if (!nodeMetaMap) {
+    const event = this.getEvent();
+    if (!event) {
       return;
     }
+    const { nodeMetaMap, graphMetaMap } = event;
     const project = this.getProject();
     if (!project) {
       return;
     }
-    const getDownstreamTables = () => {
-      const queue = [table];
-      const visited: Record<string, boolean> = {};
-      while (queue.length > 0) {
-        const curr = queue.shift()!;
-        if (visited[curr]) {
-          continue;
-        }
-        visited[curr] = true;
-        edges.forEach((e) => {
-          if (e.dst !== curr) {
-            return;
-          }
-          queue.push(e.src);
-        });
-      }
-      return Object.keys(visited).filter((t) => t !== table);
-    };
-    const downstreamTables = getDownstreamTables();
-
     const visibleTables: Record<string, NodeMetaData> = {};
-    const addToVisibleTable = (t: string) => {
+    currAnd1HopTables?.forEach((t: string) => {
       if (t in visibleTables) {
         return;
       }
@@ -297,10 +328,6 @@ export class NewLineagePanel implements LineagePanelView {
         return;
       }
       visibleTables[t] = node;
-    };
-    edges.forEach((e) => {
-      addToVisibleTable(e.src);
-      addToVisibleTable(e.dst);
     });
 
     const modelInfos: {
@@ -308,39 +335,69 @@ export class NewLineagePanel implements LineagePanelView {
       model_node: NodeMetaData;
     }[] = [];
     const relationsWithoutColumns: string[] = [];
+    const selected_column: { model_node?: NodeMetaData; column: string } = {
+      model_node: nodeMetaMap.get(selectedColumn.table),
+      column: selectedColumn.name,
+    };
+    const parent_models: { model_node: NodeMetaData }[] = [];
+    let auxiliaryTables: string[] = [];
+    if (upstreamExpansion) {
+      const currTables = targets.map((t) => t[0]);
+      const dependencyNodes = graphMetaMap.parents;
+      const parentSet = new Set<string>();
+      currAnd1HopTables.forEach((t) => {
+        if (currTables.includes(t)) {
+          return;
+        }
+        const node = nodeMetaMap.get(t);
+        if (!node) {
+          return;
+        }
+        const parent = dependencyNodes.get(node.uniqueId);
+        if (!parent) {
+          return;
+        }
+        parent.nodes.forEach((n) => parentSet.add(n.label));
+      });
+      auxiliaryTables = Array.from(parentSet);
+    }
     try {
-      await window.withProgress(
-        {
-          title: "Fetching metadata",
-          location: ProgressLocation.Notification,
-          cancellable: false,
-        },
+      await Promise.all([
+        ...Object.values(visibleTables).map(async (node) => {
+          let compiledSql: string | undefined;
+          if (node.config.materialized === "ephemeral") {
+            // ephemeral nodes can be skipped. they dont have a schema
+            // and their sql makes it into the compiled sql of the models
+            // referring to it.
+            return;
+          }
+          if (node.config.materialized !== "seed") {
+            compiledSql = await project.compileNode(node.name);
+            if (!compiledSql) {
+              return;
+            }
+          }
+          const ok = await this.addColumnsFromDB(project, node);
+          if (!ok) {
+            relationsWithoutColumns.push(node.alias);
+            return;
+          }
+          modelInfos.push({ compiled_sql: compiledSql, model_node: node });
+        }),
         async () => {
-          await Promise.all(
-            Object.values(visibleTables).map(async (node) => {
-              let compiledSql: string | undefined;
-              if (node.config.materialized === "ephemeral") {
-                // ephemeral nodes can be skipped. they dont have a schema
-                // and their sql makes it into the compiled sql of the models
-                // referring to it.
-                return;
-              }
-              if (node.config.materialized !== "seed") {
-                compiledSql = await project.compileNode(node.name);
-                if (!compiledSql) {
-                  return;
-                }
-              }
-              const ok = await this.addColumnsFromDB(project, node);
-              if (!ok) {
-                relationsWithoutColumns.push(node.alias);
-                return;
-              }
-              modelInfos.push({ compiled_sql: compiledSql, model_node: node });
-            }),
-          );
+          if (selected_column.model_node) {
+            await this.addColumnsFromDB(project, selected_column.model_node);
+          }
         },
-      );
+        ...auxiliaryTables.map(async (t) => {
+          const node = nodeMetaMap.get(t);
+          if (!node) {
+            return;
+          }
+          await this.addColumnsFromDB(project, node);
+          parent_models.push({ model_node: node });
+        }),
+      ]);
     } catch (exc) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
@@ -383,24 +440,28 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     const modelDialect = project.getAdapterType();
-    let result;
     try {
-      result = await window.withProgress(
-        {
-          title: "Fetching column lineage",
-          location: ProgressLocation.Notification,
-          cancellable: false,
-        },
-        async () => {
-          const result = await this.altimate.getColumnLevelLineage({
-            model_dialect: modelDialect,
-            model_info: modelInfos,
-            target_model: table,
-            target_column: column,
-            downstream_models: downstreamTables,
-          });
-          return result;
-        },
+      const request = {
+        model_dialect: modelDialect,
+        model_info: modelInfos,
+        upstream_expansion: upstreamExpansion,
+        targets,
+        selected_column,
+        parent_models,
+      };
+      console.log("cll:request -> ", request);
+      const result = await this.altimate.getColumnLevelLineage(request);
+      console.log("cll:response -> ", result);
+      if ((result as DBTColumnLineageResponse).column_lineage) {
+        return result;
+      }
+
+      window.showErrorMessage(
+        "An unexpected error occured while fetching column level lineage.",
+      );
+      this.telemetry.sendTelemetryEvent(
+        "columnLevelLineageInvalidResponse",
+        result as {},
       );
     } catch (error) {
       if (error instanceof AbortError) {
@@ -417,77 +478,6 @@ export class NewLineagePanel implements LineagePanelView {
       this.telemetry.sendTelemetryError("ColumnLevelLineageError", error);
       return;
     }
-    if (!Array.isArray(result)) {
-      window.showErrorMessage(
-        "An unexpected error occured while fetching column level lineage.",
-      );
-      this.telemetry.sendTelemetryEvent(
-        "columnLevelLineageInvalidResponse",
-        result,
-      );
-      return;
-    }
-    const columnLineages = result!
-      .flat()
-      .filter((e) => !!e)
-      .map((e) => ({
-        src: e!.source.join("/"),
-        dst: e!.target.join("/"),
-      }));
-    // collect_columns is a map from table to columns. This is to show columns in each table node
-    const collectColumns: Record<string, string[]> = {};
-    // highlightEdges contains edges of column lineage connection
-    const highlightEdges: [string, string][] = [];
-
-    // Performing BFS traversal only in ONE direction (upstream/downstream)
-    // Because too many columns showing in the presence of a super popular column
-
-    const bfsTraversal = (
-      connectedColumns: (column: string) => string[],
-      createEdge: (t1: string, t2: string) => [string, string],
-    ) => {
-      const queue: string[] = [table + "/" + column];
-      const visited: Record<string, boolean> = {};
-      let i = 0;
-      const MAX_ITERATION_LIMIT = 1000; // Define your maximum iteration limit here
-
-      while (queue.length > 0 && i < MAX_ITERATION_LIMIT) {
-        i += 1;
-        const curr = queue.shift()!;
-        if (visited[curr]) {
-          continue;
-        }
-        visited[curr] = true;
-        const [table, column] = curr.split("/");
-        collectColumns[table] = collectColumns[table] || [];
-        collectColumns[table].push(column);
-        for (const c of connectedColumns(curr)) {
-          const [_t, _] = c.split("/");
-          queue.push(c);
-          highlightEdges.push(createEdge(curr, c));
-        }
-      }
-    };
-
-    bfsTraversal(
-      (c) => columnLineages.filter((x) => x.src === c).map((x) => x.dst),
-      (t1, t2) => [t1, t2],
-    );
-    bfsTraversal(
-      (c) => columnLineages.filter((x) => x.dst === c).map((x) => x.src),
-      (t1, t2) => [t2, t1],
-    );
-    for (const t in collectColumns) {
-      collectColumns[t] = [...new Set(collectColumns[t])];
-    }
-
-    console.log(
-      "newLineagePanel:getConnectedColumns -> ",
-      columnLineages,
-      collectColumns,
-      highlightEdges,
-    );
-    return { collectColumns, highlightEdges };
   }
 
   private getConnectedTables(

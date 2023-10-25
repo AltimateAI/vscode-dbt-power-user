@@ -13,6 +13,8 @@ import {
   createNewNodesEdges,
   highlightTableConnections,
   layoutElementsOnCanvas,
+  mergeCollectColumns,
+  mergeNodesEdges,
   processColumnLineage,
   resetTableHighlights,
 } from "./graph";
@@ -23,6 +25,7 @@ import {
   C_NODE_H,
   C_PADDING_Y,
   TABLES_SIDEBAR,
+  getHelperDataForCLL,
 } from "./utils";
 import { TMoreTables } from "./MoreTables";
 import ModelIcon from "./assets/icons/model.svg?react";
@@ -144,22 +147,30 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
       level
     );
     if (selectedColumn.name) {
-      const {
-        nodes: _nodes,
-        edges: _edges,
-        collectColumns,
-      } = await processColumnLineage(nodes, edges, selectedColumn);
-      nodes = _nodes;
-      edges = _edges;
-      setCollectColumns(collectColumns);
+      const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
+        getHelperDataForCLL(nodes, edges);
+      const currAnd1HopTables = tables.map((t) => t.table);
+      currAnd1HopTables.push(table);
+      const curr = (collectColumns[table] || []).map(
+        (c) => [table, c] as [string, string]
+      );
+      const patchState = await processColumnLineage(
+        levelMap,
+        seeMoreIdTableReverseMap,
+        tableNodes,
+        curr,
+        right,
+        currAnd1HopTables,
+        selectedColumn
+      );
+      [nodes, edges] = mergeNodesEdges({ nodes, edges }, patchState);
+      mergeCollectColumns(setCollectColumns, patchState.collectColumns);
     } else if (selectedTable) {
-      const [_nodes, _edges] = highlightTableConnections(
+      [nodes, edges] = highlightTableConnections(
         nodes,
         edges,
         selectedTable.table
       );
-      nodes = _nodes;
-      edges = _edges;
     }
     layoutElementsOnCanvas(nodes, edges);
     flow.setNodes(nodes);
@@ -286,7 +297,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 };
 
 export const SeeMoreNode: FunctionComponent<NodeProps> = ({ data }) => {
-  const { tables, prevTable, right, level } = data as TMoreTables;
+  const { tables = [], prevTable, right, level } = data as TMoreTables;
   const { setShowSidebar, setMoreTables, setSidebarScreen } =
     useContext(LineageContext);
   const flow = useReactFlow();
@@ -297,7 +308,7 @@ export const SeeMoreNode: FunctionComponent<NodeProps> = ({ data }) => {
         e.stopPropagation();
         setShowSidebar(true);
         setSidebarScreen(TABLES_SIDEBAR);
-        setMoreTables({ tables, prevTable, right, level });
+        setMoreTables((prev) => ({ ...prev, tables, prevTable, right, level }));
       }}
     >
       <div className="fw-semibold">See more</div>

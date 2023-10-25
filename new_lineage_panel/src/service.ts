@@ -20,9 +20,15 @@ export type Columns = {
   purpose: string;
   columns: Column[];
 };
+
+export type ColumnLineage = {
+  source: [string, string];
+  target: [string, string];
+  type: string;
+};
 interface ColumnLineageResponse {
-  collectColumns: Record<string, string[]>;
-  highlightEdges: [string, string][];
+  column_lineage: ColumnLineage[];
+  confidence?: { confidence: string; operator_list?: string[] };
 }
 
 export const upstreamTables = (tableKey: string) => {
@@ -43,8 +49,12 @@ export const getColumns = (table: string, refresh: boolean) => {
   >;
 };
 
-export const getConnectedColumns = (body: unknown) => {
-  console.log("service:getConnectedColumns -> ", body);
+export const getConnectedColumns = (body: {
+  targets: [string, string][];
+  upstreamExpansion: boolean;
+  currAnd1HopTables: string[];
+  selectedColumn: { name: string; table: string };
+}) => {
   return requestExecutor("getConnectedColumns", body) as Promise<
     ColumnLineageResponse
   >;
