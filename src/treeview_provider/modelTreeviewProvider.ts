@@ -286,6 +286,7 @@ export class DocNode extends Node {
     this.description = description;
   }
 }
+
 export class NodeTreeItem extends TreeItem {
   collapsibleState = TreeItemCollapsibleState.Collapsed;
   key: string;
@@ -303,6 +304,57 @@ export class NodeTreeItem extends TreeItem {
       title: "Select Node",
       arguments: [Uri.file(node.url)],
     };
+  }
+}
+
+export class ActionTreeItem extends TreeItem {
+  collapsibleState = TreeItemCollapsibleState.Collapsed;
+  children?: ActionTreeItem[];
+  constructor(label: string, command?: Command) {
+    super(label);
+    this.iconPath = {
+      light: path.join(
+        path.resolve(__dirname),
+        "../media/images/source_light.svg",
+      ),
+      dark: path.join(
+        path.resolve(__dirname),
+        "../media/images/source_dark.svg",
+      ),
+    };
+    this.command = command;
+  }
+}
+
+@provide(IconActionsTreeviewProvider)
+class IconActionsTreeviewProvider implements TreeDataProvider<ActionTreeItem> {
+  getTreeItem(element: ActionTreeItem): ActionTreeItem {
+    element.collapsibleState = element.children
+      ? TreeItemCollapsibleState.Collapsed
+      : TreeItemCollapsibleState.None;
+    element.iconPath = element.children ? undefined : element.iconPath;
+    return element;
+  }
+
+  getChildren(element: ActionTreeItem): ProviderResult<ActionTreeItem[]> {
+    if (!element) {
+      const scanItem = new ActionTreeItem("Altimate Scan");
+
+      scanItem.children = [
+        new ActionTreeItem("Start Scan", {
+          command: "dbtPowerUser.altimateScan",
+          title: "Altimate Scan",
+          arguments: [],
+        }),
+        new ActionTreeItem("Clear Problems", {
+          command: "dbtPowerUser.clearAltimateScanResults",
+          title: "Clear All Problems",
+          arguments: [],
+        }),
+      ];
+      return Promise.resolve([scanItem]);
+    }
+    return element.children;
   }
 }
 
@@ -372,3 +424,6 @@ export class DocumentationTreeview extends DocumentationTreeviewProvider {
     super(dbtProjectContainer);
   }
 }
+
+@provideSingleton(IconActionsTreeview)
+export class IconActionsTreeview extends IconActionsTreeviewProvider {}

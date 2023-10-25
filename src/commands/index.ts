@@ -103,6 +103,9 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.altimateScan", () =>
         this.altimateScan.getProblems(),
       ),
+      commands.registerCommand("dbtPowerUser.clearAltimateScanResults", () =>
+        this.altimateScan.clearProblems(),
+      ),
     );
   }
 
