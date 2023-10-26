@@ -18,7 +18,12 @@ import {
   downstreamTables,
   Table,
 } from "./service";
-import { endProgressBar, LineageContext, startProgressBar } from "./App";
+import {
+  aiEnabled,
+  endProgressBar,
+  LineageContext,
+  startProgressBar,
+} from "./App";
 import {
   createNewNodesEdges,
   layoutElementsOnCanvas,
@@ -50,8 +55,11 @@ const ColumnCard: FunctionComponent<{
     <div
       className={classNames(styles.column_card, {
         [styles.selected]: selected,
+        ["cursor-pointer"]: aiEnabled,
       })}
-      onClick={handleClick}
+      onClick={() => {
+        if (aiEnabled) handleClick();
+      }}
     >
       <div className="d-flex align-items-center gap-xs">
         <ColumnDatatype datatype={column.datatype} />
