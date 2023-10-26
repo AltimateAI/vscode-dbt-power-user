@@ -18,6 +18,12 @@ export class MissingSchemaTest implements AltimateScanStep {
     const { nodeMetaMap } = projectEventMap;
     for (const [key, value] of nodeMetaMap) {
       console.log(key, value);
+      // blacklisting node types.. should we instead whitelist just models and sources?
+      if (
+        value.config.materialized === "seed" ||
+        value.config.materialized === "ephemeral"
+      ) {
+      }
       if (!value.patch_path) {
         const err_message = "No documentation for model: " + value.name;
         console.log(err_message);
