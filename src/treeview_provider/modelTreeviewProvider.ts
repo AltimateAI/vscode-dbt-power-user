@@ -7,6 +7,7 @@ import {
   Event,
   EventEmitter,
   ProviderResult,
+  ThemeIcon,
   TreeDataProvider,
   TreeItem,
   TreeItemCollapsibleState,
@@ -310,24 +311,16 @@ export class NodeTreeItem extends TreeItem {
 export class ActionTreeItem extends TreeItem {
   collapsibleState = TreeItemCollapsibleState.Collapsed;
   children?: ActionTreeItem[];
-  constructor(label: string, command?: Command) {
+  constructor(label: string, icon?: ThemeIcon, command?: Command) {
     super(label);
-    this.iconPath = {
-      light: path.join(
-        path.resolve(__dirname),
-        "../media/images/source_light.svg",
-      ),
-      dark: path.join(
-        path.resolve(__dirname),
-        "../media/images/source_dark.svg",
-      ),
-    };
+    this.iconPath = icon;
     this.command = command;
   }
 }
 
 @provide(IconActionsTreeviewProvider)
 class IconActionsTreeviewProvider implements TreeDataProvider<ActionTreeItem> {
+  collapsibleState = TreeItemCollapsibleState.Collapsed;
   getTreeItem(element: ActionTreeItem): ActionTreeItem {
     element.collapsibleState = element.children
       ? TreeItemCollapsibleState.Collapsed
@@ -341,15 +334,20 @@ class IconActionsTreeviewProvider implements TreeDataProvider<ActionTreeItem> {
       const scanItem = new ActionTreeItem("Altimate Scan");
 
       scanItem.children = [
-        new ActionTreeItem("Start Scan", {
+        new ActionTreeItem("Start Scan", new ThemeIcon("search-view-icon"), {
           command: "dbtPowerUser.altimateScan",
           title: "Altimate Scan",
           arguments: [],
         }),
-        new ActionTreeItem("Clear Problems", {
+        new ActionTreeItem("Clear Problems", new ThemeIcon("search-stop"), {
           command: "dbtPowerUser.clearAltimateScanResults",
           title: "Clear All Problems",
           arguments: [],
+        }),
+        new ActionTreeItem("Send Feedback", undefined, {
+          command: "vscode.open",
+          title: "Send Feedback",
+          arguments: [Uri.parse("https://www.google.com")],
         }),
       ];
       return Promise.resolve([scanItem]);
