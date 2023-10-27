@@ -2,6 +2,7 @@ import { Diagnostic, DiagnosticSeverity, Range, Uri } from "vscode";
 import { AltimateScanAgent, ScanContext } from "../agent/agent";
 import { AltimateScanStep } from "./step";
 import { readFileSync } from "fs";
+import { createFullPathForNode } from "../../manifest/parsers";
 
 export class StaleModelColumnTest implements AltimateScanStep {
   run(agent: AltimateScanAgent) {
@@ -13,10 +14,14 @@ export class StaleModelColumnTest implements AltimateScanStep {
     try {
       const doctext: string = readFileSync(schemaPath).toString("utf8");
       const astring = doctext.split("\n");
-      const match = new RegExp(colname);
+      // TODO - not sure if we should ignore case. there were instances
+      // where snowflake columns that come in as upper case are documented in lowercase.
+      // If this happens too often, can add an "i" flag to the regex
+      const match = new RegExp("\\b" + colname + "\\b");
 
       astring.forEach(function (line, number) {
-        if (match.exec(line)) {
+        // first condition ignores comments and the next matches word
+        if (!line.trimStart().startsWith("#") && match.exec(line)) {
           let colStart = line.indexOf(colname);
           if (colStart === -1) {
             colStart = 0;
@@ -80,10 +85,18 @@ export class StaleModelColumnTest implements AltimateScanStep {
             It may be outdated or misspelled.`;
             // If we are here, the patch_path is guaranteed to be defined since
             // we catch missing doc errors before we enter this function.
-            const schemaPath = Uri.joinPath(
-              project.projectRoot,
-              value.patch_path.split("://")[1],
-            ).fsPath;
+
+            const schemaPath =
+              createFullPathForNode(
+                projectName,
+                projectRootUri.fsPath,
+                value.package_name,
+                value.patch_path.split("://")[1],
+              ) ||
+              Uri.joinPath(
+                project.projectRoot,
+                value.patch_path.split("://")[1],
+              ).fsPath;
 
             const colInDocRange = this.getTextLocation(existingCol, schemaPath);
 
