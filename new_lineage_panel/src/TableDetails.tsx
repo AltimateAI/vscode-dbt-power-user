@@ -55,7 +55,7 @@ const ColumnCard: FunctionComponent<{
     >
       <div className="d-flex align-items-center gap-xs">
         <ColumnDatatype datatype={column.datatype} />
-        <div>{column.name}</div>
+        <div className="lines-2">{column.name}</div>
         <div className="spacer" />
         {column.can_lineage_expand && (
           <div className={styles.expand_lineage_icon}>
