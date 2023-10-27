@@ -25,7 +25,7 @@ export class ScanContext {
   catalog: AltimateCatalog = {};
   eventMap: ManifestCacheProjectAddedEvent | undefined;
   diagnostics: { [filepath: string]: Diagnostic[] };
-  scanResults: {} = {};
+  scanResults: { [key: string]: any } = {};
 
   constructor(
     project: DBTProject,

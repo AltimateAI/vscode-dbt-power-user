@@ -1,16 +1,51 @@
 import { Diagnostic, DiagnosticSeverity, Range, Uri } from "vscode";
 import { AltimateScanAgent, ScanContext } from "../agent/agent";
 import { AltimateScanStep } from "./step";
+import { readFileSync } from "fs";
 
 export class StaleModelColumnTest implements AltimateScanStep {
   run(agent: AltimateScanAgent) {
     agent.staleModelColumn(this);
   }
+  private getTextLocation(colname: string, schemaPath: string) {
+    const StopException = {};
+    let returnVal = undefined;
+    try {
+      const doctext: string = readFileSync(schemaPath).toString("utf8");
+      const astring = doctext.split("\n");
+      const match = new RegExp(colname);
+
+      astring.forEach(function (line, number) {
+        if (match.exec(line)) {
+          let colStart = line.indexOf(colname);
+          if (colStart === -1) {
+            colStart = 0;
+          }
+          returnVal = new Range(
+            number,
+            colStart,
+            number,
+            colStart + colname.length,
+          );
+          throw StopException;
+        }
+      });
+    } catch (e) {
+      if (e !== StopException) {
+        console.log(
+          `Could not find column ${colname} in schema file ${schemaPath}`,
+        );
+      }
+    }
+    return returnVal;
+  }
   public async flagStaleColumns(scanContext: ScanContext) {
-    const project = scanContext.project;
-    const altimateCatalog = scanContext.catalog;
-    const projectEventMap = scanContext.eventMap;
-    const projectDiagnostics = scanContext.diagnostics;
+    const {
+      project,
+      catalog: altimateCatalog,
+      eventMap: projectEventMap,
+      diagnostics: projectDiagnostics,
+    } = scanContext;
     const projectName = project.getProjectName();
     const projectRootUri = project.projectRoot;
     if (projectEventMap === undefined) {
@@ -43,7 +78,7 @@ export class StaleModelColumnTest implements AltimateScanStep {
         );
         for (const existingCol of Object.keys(value.columns)) {
           if (!allDBColumns.includes(existingCol.toLowerCase())) {
-            const err_message =
+            const errMessage =
               "Column not found in DB for model: " +
               value.name +
               "\n" +
@@ -56,18 +91,21 @@ export class StaleModelColumnTest implements AltimateScanStep {
               project.projectRoot,
               value.patch_path.split("://")[1],
             ).fsPath;
+
+            const colInDocRange = this.getTextLocation(existingCol, schemaPath);
+
             let schemaDiagnostics = projectDiagnostics[schemaPath];
             if (schemaDiagnostics === undefined) {
               projectDiagnostics[schemaPath] = schemaDiagnostics = [];
             }
             schemaDiagnostics.push(
               new Diagnostic(
-                new Range(0, 0, 0, 0),
-                err_message,
+                colInDocRange || new Range(0, 0, 0, 0),
+                errMessage,
                 DiagnosticSeverity.Warning,
               ),
             );
-            console.log(err_message);
+            console.log(errMessage);
           }
         }
       }

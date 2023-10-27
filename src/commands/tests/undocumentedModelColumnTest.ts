@@ -8,10 +8,13 @@ export class UndocumentedModelColumnTest implements AltimateScanStep {
   }
 
   public async flagUndocumentedColumns(scanContext: ScanContext) {
-    const project = scanContext.project;
-    const altimateCatalog = scanContext.catalog;
-    const projectEventMap = scanContext.eventMap;
-    const projectDiagnostics = scanContext.diagnostics;
+    const {
+      project,
+      catalog: altimateCatalog,
+      eventMap: projectEventMap,
+      diagnostics: projectDiagnostics,
+      scanResults,
+    } = scanContext;
     const projectName = project.getProjectName();
     const projectRootUri = project.projectRoot;
     if (projectEventMap === undefined) {
@@ -20,6 +23,16 @@ export class UndocumentedModelColumnTest implements AltimateScanStep {
     const { nodeMetaMap } = projectEventMap;
     for (const [key, value] of nodeMetaMap) {
       console.log(key, value);
+      if (
+        (scanResults["missingDoc"] !== undefined &&
+          scanResults["missingDoc"].has(value.uniqueId)) ||
+        value.config.materialized === "seed" ||
+        value.config.materialized === "ephemeral"
+      ) {
+        // schema is missing, no point in looking for undocumented columns
+        // or the model is not materialized / seed type
+        continue;
+      }
 
       const modelKey = JSON.stringify({
         projectroot: projectRootUri.fsPath,
@@ -43,14 +56,13 @@ export class UndocumentedModelColumnTest implements AltimateScanStep {
           if (
             !existingColumnsLowered.includes(column.column_name.toLowerCase())
           ) {
-            const err_message =
+            const errMessage =
               "Column undocumented for model: " +
               value.name +
               "\n" +
               "Expected an entry for: " +
               column.column_name;
 
-            // TODO - this should point to the model file ?
             let modelDiagnostics = projectDiagnostics[value.path];
             if (modelDiagnostics === undefined) {
               projectDiagnostics[value.path] = modelDiagnostics = [];
@@ -58,11 +70,11 @@ export class UndocumentedModelColumnTest implements AltimateScanStep {
             modelDiagnostics.push(
               new Diagnostic(
                 new Range(0, 0, 0, 0),
-                err_message,
+                errMessage,
                 DiagnosticSeverity.Information,
               ),
             );
-            console.log(err_message);
+            console.log(errMessage);
           }
         }
       }

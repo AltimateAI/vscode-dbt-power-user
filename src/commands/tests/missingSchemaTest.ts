@@ -8,10 +8,12 @@ export class MissingSchemaTest implements AltimateScanStep {
   }
 
   public async flagMissingSchemas(scanContext: ScanContext) {
-    const projectEventMap = scanContext.eventMap;
-    const projectDiagnostics = scanContext.diagnostics;
-    // TODO
-    // const scanResults = scanContext.scanResults;
+    const {
+      eventMap: projectEventMap,
+      diagnostics: projectDiagnostics,
+      scanResults,
+    } = scanContext;
+
     if (projectEventMap === undefined) {
       return;
     }
@@ -23,10 +25,11 @@ export class MissingSchemaTest implements AltimateScanStep {
         value.config.materialized === "seed" ||
         value.config.materialized === "ephemeral"
       ) {
+        continue;
       }
       if (!value.patch_path) {
-        const err_message = "No documentation for model: " + value.name;
-        console.log(err_message);
+        const errMessage = "No documentation for model: " + value.name;
+        console.log(errMessage);
         let projDiagnostic = projectDiagnostics[value.path];
         if (projDiagnostic === undefined) {
           projectDiagnostics[value.path] = projDiagnostic = [];
@@ -34,15 +37,17 @@ export class MissingSchemaTest implements AltimateScanStep {
         projDiagnostic.push(
           new Diagnostic(
             new Range(0, 0, 0, 0),
-            err_message,
+            errMessage,
             DiagnosticSeverity.Information,
           ),
         );
         // TODO - set a note that this model is missing documentation
         // so that we dont keep telling users that x column doc is missing
-
-        // const missingDocsDict = scanResults["missingDoc"];
-        // [value.uniqueId];
+        let missingDocsDict = scanResults["missingDoc"];
+        if (missingDocsDict === undefined) {
+          scanResults["missingDoc"] = missingDocsDict = new Set<string>();
+        }
+        missingDocsDict.add(value.uniqueId);
       }
     }
   }

@@ -1,11 +1,4 @@
-import {
-  Diagnostic,
-  DiagnosticSeverity,
-  ProgressLocation,
-  Range,
-  Uri,
-  window,
-} from "vscode";
+import { ProgressLocation, commands, window } from "vscode";
 import { AltimateRequest } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
@@ -14,14 +7,11 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
 import { provideSingleton } from "../utils";
-import { findModelProblems } from "./command_utils";
-import { DBTProject } from "../manifest/dbtProject";
 import { InitCatalog } from "./tests/initCatalog";
 import { UndocumentedModelColumnTest } from "./tests/undocumentedModelColumnTest";
 import { StaleModelColumnTest } from "./tests/staleModelColumnTest";
 import { MissingSchemaTest } from "./tests/missingSchemaTest";
 import { UnmaterializedModelTest } from "./tests/unmaterializedModelTest";
-import { AltimateCatalog } from "./agent/agent";
 import { FreeAltimateScanAgent } from "./agent/freeAltimateScanAgent";
 
 const offlineAltimateScanSteps = [
@@ -32,8 +22,9 @@ const offlineAltimateScanSteps = [
   // feel free to add more tests
 ];
 
+// online tests rely on a connection to database
 const onlineAltimateScanSteps = [
-  // then check for unmaterialized models
+  // check for unmaterialized models
   new UnmaterializedModelTest(),
   // then check for undocumented models columns
   new UndocumentedModelColumnTest(),
@@ -41,6 +32,10 @@ const onlineAltimateScanSteps = [
   new StaleModelColumnTest(),
   // feel free to add more tests
 ];
+
+//TODO
+// altimate tests rely on an altimate account. these are assumed to be online as well.
+const altimateScanSteps = [];
 
 @provideSingleton(AltimateScan)
 export class AltimateScan {
@@ -91,7 +86,6 @@ export class AltimateScan {
       },
       async () => {
         const projects = this.dbtProjectContainer.findAllDBTProjects();
-        // TODO - maybe this should be initialized per project?
         for (const project of projects) {
           const agent = new FreeAltimateScanAgent(
             project,
@@ -109,6 +103,7 @@ export class AltimateScan {
           }
           agent.showDiagnostics();
         }
+        await commands.executeCommand("workbench.actions.view.problems");
       },
     );
   }
