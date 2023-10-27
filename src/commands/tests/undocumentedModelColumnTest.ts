@@ -22,7 +22,6 @@ export class UndocumentedModelColumnTest implements AltimateScanStep {
     }
     const { nodeMetaMap } = projectEventMap;
     for (const [key, value] of nodeMetaMap) {
-      console.log(key, value);
       if (
         (scanResults["missingDoc"] !== undefined &&
           scanResults["missingDoc"].has(value.uniqueId)) ||
@@ -56,12 +55,7 @@ export class UndocumentedModelColumnTest implements AltimateScanStep {
           if (
             !existingColumnsLowered.includes(column.column_name.toLowerCase())
           ) {
-            const errMessage =
-              "Column undocumented for model: " +
-              value.name +
-              "\n" +
-              "Expected an entry for: " +
-              column.column_name;
+            const errMessage = `Column ${column.column_name} is undocumented in model: ${value.name}`;
 
             let modelDiagnostics = projectDiagnostics[value.path];
             if (modelDiagnostics === undefined) {
@@ -74,7 +68,6 @@ export class UndocumentedModelColumnTest implements AltimateScanStep {
                 DiagnosticSeverity.Information,
               ),
             );
-            console.log(errMessage);
           }
         }
       }

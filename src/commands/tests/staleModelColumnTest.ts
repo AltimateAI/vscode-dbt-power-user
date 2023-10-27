@@ -53,8 +53,6 @@ export class StaleModelColumnTest implements AltimateScanStep {
     }
     const { nodeMetaMap } = projectEventMap;
     for (const [key, value] of nodeMetaMap) {
-      console.log(key, value);
-
       const modelKey = JSON.stringify({
         projectroot: projectRootUri.fsPath,
         project: projectName,
@@ -78,13 +76,8 @@ export class StaleModelColumnTest implements AltimateScanStep {
         );
         for (const existingCol of Object.keys(value.columns)) {
           if (!allDBColumns.includes(existingCol.toLowerCase())) {
-            const errMessage =
-              "Column not found in DB for model: " +
-              value.name +
-              "\n" +
-              "The column named `" +
-              existingCol +
-              "` is documented but might be out of sync with the existing model.";
+            const errMessage = `Column ${existingCol} listed in model ${value.name} is not found in the database.
+            It may be outdated or misspelled.`;
             // If we are here, the patch_path is guaranteed to be defined since
             // we catch missing doc errors before we enter this function.
             const schemaPath = Uri.joinPath(
@@ -105,7 +98,6 @@ export class StaleModelColumnTest implements AltimateScanStep {
                 DiagnosticSeverity.Warning,
               ),
             );
-            console.log(errMessage);
           }
         }
       }

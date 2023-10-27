@@ -20,8 +20,6 @@ export class UnmaterializedModelTest implements AltimateScanStep {
     }
     const { nodeMetaMap } = projectEventMap;
     for (const [key, value] of nodeMetaMap) {
-      console.log(key, value);
-
       if (value.config.materialized === "ephemeral") {
         // ephemeral models by nature wont be materialized.
         continue;
@@ -41,7 +39,7 @@ export class UnmaterializedModelTest implements AltimateScanStep {
       ) {
         // When the model is not in model dict, we could not find the table or view in
         // information schema. meaning it was not materialized.
-        const errMessage = "Model " + value.name + " not materialized.";
+        const errMessage = `Model ${value.name} does not exist in the database`;
         let modelDiagnostics = projectDiagnostics[value.path];
         if (modelDiagnostics === undefined) {
           projectDiagnostics[value.path] = modelDiagnostics = [];
