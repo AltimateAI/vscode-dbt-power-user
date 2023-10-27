@@ -4,7 +4,7 @@ import { AltimateScanStep } from "./step";
 
 export class MissingSchemaTest implements AltimateScanStep {
   run(agent: AltimateScanAgent) {
-    agent.missingSchema(this);
+    agent.runStep(this);
   }
 
   public async flagMissingSchemas(scanContext: ScanContext) {

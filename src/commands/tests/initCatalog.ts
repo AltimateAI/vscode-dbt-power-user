@@ -1,11 +1,13 @@
 import { DBTProject } from "../../manifest/dbtProject";
 import { AltimateScanAgent } from "../agent/agent";
-import { FreeAltimateScanAgent } from "../agent/freeAltimateScanAgent";
+import { BaseAltimateScanAgent } from "../agent/baseAltimateScanAgent";
 import { AltimateScanStep } from "./step";
 
 export class InitCatalog implements AltimateScanStep {
   async run(agent: AltimateScanAgent) {
-    await (agent as FreeAltimateScanAgent).initCatalog(this);
+    // This one has to await
+    // CAUTION - not sure why this isnt giving me circular dependency warning.
+    await (agent as BaseAltimateScanAgent).runStep(this);
   }
 
   public async getProjectCatalog(project: DBTProject) {

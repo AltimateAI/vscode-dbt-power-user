@@ -1,54 +1,29 @@
-import { Uri } from "vscode";
-import { DBTProject } from "../../manifest/dbtProject";
 import { InitCatalog } from "../tests/initCatalog";
 import { UndocumentedModelColumnTest } from "../tests/undocumentedModelColumnTest";
 import { StaleModelColumnTest } from "../tests/staleModelColumnTest";
 import { MissingSchemaTest } from "../tests/missingSchemaTest";
 import { UnmaterializedModelTest } from "../tests/unmaterializedModelTest";
-import { ManifestCacheProjectAddedEvent } from "../../manifest/event/manifestCacheChangedEvent";
-import { AltimateScanAgent } from "./agent";
-import { ScanContext } from "./agent";
+import { AltimateScanStep } from "../tests/step";
+import { BaseAltimateScanAgent } from "./baseAltimateScanAgent";
 
-export class FreeAltimateScanAgent implements AltimateScanAgent {
-  scanContext: ScanContext;
-
-  constructor(
-    project: DBTProject,
-    eventMap: ManifestCacheProjectAddedEvent | undefined,
-  ) {
-    this.scanContext = new ScanContext(project, eventMap);
-  }
-  showDiagnostics() {
-    this.scanContext.project.projectHealth.clear();
-    for (const [filePath, fileDiagnostics] of Object.entries(
-      this.scanContext.diagnostics,
-    )) {
-      this.scanContext.project.projectHealth.set(
-        Uri.file(filePath),
-        fileDiagnostics,
+export class FreeAltimateScanAgent extends BaseAltimateScanAgent {
+  public async runStep(test: AltimateScanStep): Promise<void> {
+    if (test instanceof UnmaterializedModelTest) {
+      await (test as UnmaterializedModelTest).flagUnmaterializedModels(
+        this.scanContext,
       );
+    } else if (test instanceof UndocumentedModelColumnTest) {
+      await (test as UndocumentedModelColumnTest).flagUndocumentedColumns(
+        this.scanContext,
+      );
+    } else if (test instanceof StaleModelColumnTest) {
+      await (test as StaleModelColumnTest).flagStaleColumns(this.scanContext);
+    } else if (test instanceof MissingSchemaTest) {
+      await (test as MissingSchemaTest).flagMissingSchemas(this.scanContext);
+    } else if (test instanceof InitCatalog) {
+      await this.initCatalog(test as InitCatalog);
+    } else {
+      console.log("Test not supported for free accounts");
     }
-  }
-
-  public async initCatalog(test: InitCatalog): Promise<void> {
-    const projectCatalog = await test.getProjectCatalog(
-      this.scanContext.project,
-    );
-    this.scanContext.catalog[
-      this.scanContext.project.getProjectName() +
-        this.scanContext.project.projectRoot
-    ] = projectCatalog;
-  }
-  public async unmaterializedModel(test: UnmaterializedModelTest) {
-    await test.flagUnmaterializedModels(this.scanContext);
-  }
-  public async undocumentedModelColumn(test: UndocumentedModelColumnTest) {
-    await test.flagUndocumentedColumns(this.scanContext);
-  }
-  public async staleModelColumn(test: StaleModelColumnTest) {
-    await test.flagStaleColumns(this.scanContext);
-  }
-  public async missingSchema(test: MissingSchemaTest) {
-    await test.flagMissingSchemas(this.scanContext);
   }
 }

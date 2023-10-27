@@ -4,7 +4,7 @@ import { AltimateScanStep } from "./step";
 
 export class UndocumentedModelColumnTest implements AltimateScanStep {
   run(agent: AltimateScanAgent) {
-    agent.undocumentedModelColumn(this);
+    agent.runStep(this);
   }
 
   public async flagUndocumentedColumns(scanContext: ScanContext) {

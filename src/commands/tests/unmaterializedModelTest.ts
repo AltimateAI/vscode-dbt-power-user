@@ -4,7 +4,7 @@ import { AltimateScanStep } from "./step";
 
 export class UnmaterializedModelTest implements AltimateScanStep {
   run(agent: AltimateScanAgent) {
-    agent.unmaterializedModel(this);
+    agent.runStep(this);
   }
   public async flagUnmaterializedModels(scanContext: ScanContext) {
     const {

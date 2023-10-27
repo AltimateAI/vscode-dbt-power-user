@@ -5,7 +5,7 @@ import { readFileSync } from "fs";
 
 export class StaleModelColumnTest implements AltimateScanStep {
   run(agent: AltimateScanAgent) {
-    agent.staleModelColumn(this);
+    agent.runStep(this);
   }
   private getTextLocation(colname: string, schemaPath: string) {
     const StopException = {};

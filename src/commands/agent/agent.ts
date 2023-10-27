@@ -1,20 +1,11 @@
 import { DBTProject } from "../../manifest/dbtProject";
-import { InitCatalog } from "../tests/initCatalog";
-import { UndocumentedModelColumnTest } from "../tests/undocumentedModelColumnTest";
-import { StaleModelColumnTest } from "../tests/staleModelColumnTest";
 import { ManifestCacheProjectAddedEvent } from "../../manifest/event/manifestCacheChangedEvent";
-import { MissingSchemaTest } from "../tests/missingSchemaTest";
-import { UnmaterializedModelTest } from "../tests/unmaterializedModelTest";
 import { Diagnostic } from "vscode";
+import { AltimateScanStep } from "../tests/step";
 
 export interface AltimateScanAgent {
   scanContext: ScanContext;
-  missingSchema(test: MissingSchemaTest): void;
-  initCatalog(test: InitCatalog): void;
-  unmaterializedModel(test: UnmaterializedModelTest): void;
-  undocumentedModelColumn(test: UndocumentedModelColumnTest): void;
-  staleModelColumn(test: StaleModelColumnTest): void;
-  //duplicateSource(test: DuplicateSourceTest): void;
+  runStep(test: AltimateScanStep): void;
 }
 
 export interface AltimateCatalog {
