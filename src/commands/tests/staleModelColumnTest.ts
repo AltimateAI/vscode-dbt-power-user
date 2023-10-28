@@ -8,42 +8,51 @@ export class StaleModelColumnTest implements AltimateScanStep {
   run(agent: AltimateScanAgent) {
     agent.runStep(this);
   }
-  private getTextLocation(colname: string, schemaPath: string) {
-    const StopException = {};
-    let returnVal = undefined;
-    try {
-      const doctext: string = readFileSync(schemaPath).toString("utf8");
-      const astring = doctext.split("\n");
-      // TODO - not sure if we should ignore case. there were instances
-      // where snowflake columns that come in as upper case are documented in lowercase.
-      // If this happens too often, can add an "i" flag to the regex
-      const match = new RegExp("\\b" + colname + "\\b");
 
-      astring.forEach(function (line, number) {
-        // first condition ignores comments and the next matches word
-        if (!line.trimStart().startsWith("#") && match.exec(line)) {
-          let colStart = line.indexOf(colname);
-          if (colStart === -1) {
-            colStart = 0;
-          }
-          returnVal = new Range(
-            number,
-            colStart,
-            number,
-            colStart + colname.length,
-          );
-          throw StopException;
-        }
-      });
-    } catch (e) {
-      if (e !== StopException) {
-        console.log(
-          `Could not find column ${colname} in schema file ${schemaPath}`,
+  private getTextLocation(
+    modelname: string,
+    colname: string,
+    schemaPath: string,
+  ): Range | undefined {
+    // 1) Read the file at filepath
+    const docContent: string = readFileSync(schemaPath, "utf-8");
+
+    // Use regex to find whole word matches for model
+    const modelRegex = new RegExp(`\\bname\\:\\s*?${modelname}\\b`);
+    const modelMatch = docContent.match(modelRegex);
+    if (!modelMatch) {
+      return undefined;
+    }
+
+    // 2) Search for exact matches of 'colname' that occur after 'modelname'
+    const colRegex = new RegExp(
+      `\\bname\\:\\s*?${colname}\\b|\\balias\\:\\s*?${colname}\\b`,
+      "g",
+    );
+    let colMatch;
+    while ((colMatch = colRegex.exec(docContent)) !== null) {
+      if (colMatch.index > (modelMatch.index || 0)) {
+        // Calculate line and character number for the match
+        const beforeMatch = docContent.substring(0, colMatch.index);
+        const lines = beforeMatch.split("\n");
+        const line = lines.length - 1;
+        const char = lines[line].length; // +1 to make it 1-based
+        // doing this because regex contains variable number of chars.
+        const matchLength = colMatch[0].length;
+
+        // 3) Return the line number and character number
+        return new Range(
+          line,
+          char + matchLength - colname.length,
+          line,
+          char + matchLength,
         );
       }
     }
-    return returnVal;
+
+    return undefined;
   }
+
   public async flagStaleColumns(scanContext: ScanContext) {
     const {
       project,
@@ -98,7 +107,11 @@ export class StaleModelColumnTest implements AltimateScanStep {
                 value.patch_path.split("://")[1],
               ).fsPath;
 
-            const colInDocRange = this.getTextLocation(existingCol, schemaPath);
+            const colInDocRange = this.getTextLocation(
+              value.name,
+              existingCol,
+              schemaPath,
+            );
 
             let schemaDiagnostics = projectDiagnostics[schemaPath];
             if (schemaDiagnostics === undefined) {
