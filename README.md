@@ -20,6 +20,7 @@ Main features:
 - Build a model through the paper plane button (next to the play button)
 - dbt update notifications
 - [dbt logs viewer (force tailing)](#logtailer)
+- [Run workspace scan and see the issues across all projects in the workspace](#projectscan)
 
 This extension is using the Python extension to detect Python interpreters that are installed in standard locations. See [Python Environments](https://code.visualstudio.com/docs/languages/python#_environments).
 
@@ -66,6 +67,7 @@ When you set the Python interpreter, the extension will try to detect dbt and yo
 In case you want to use a custom runner. You can overwrite the import string for it.
 
 For an example, you have module `my_custom_runner`:
+
 ```python
 from dbt.cli.main import dbtRunner
 
@@ -237,3 +239,7 @@ This feature relies on a defined schema in a YML file. It extracts data from bot
 ### <a id="logtailer">dbt logs force tailing</a>
 
 ![dbt logs](./media/images/dbt-log.gif)
+
+### <a id="projectscan">Altimate scan</a>
+
+![projectscan](./media/images/project-scan.gif)
