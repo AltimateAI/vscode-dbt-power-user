@@ -55,7 +55,7 @@ const ColumnCard: FunctionComponent<{
     >
       <div className="d-flex align-items-center gap-xs">
         <ColumnDatatype datatype={column.datatype} />
-        <div>{column.name}</div>
+        <div className="lines-2">{column.name}</div>
         <div className="spacer" />
         {column.can_lineage_expand && (
           <div className={styles.expand_lineage_icon}>
@@ -76,7 +76,6 @@ const ColumnCard: FunctionComponent<{
 };
 
 const PurposeSection: FunctionComponent<{
-  tableId: string;
   purpose: string;
 }> = ({ purpose }) => {
   return (
@@ -363,7 +362,7 @@ const TableDetails = () => {
           <div className="fw-semibold fs-5 lines-2">{selectedTable.table}</div>
         </div>
       </div>
-      <PurposeSection tableId={data.id} purpose={data.purpose} />
+      {data.purpose && <PurposeSection purpose={data.purpose} />}
       <ColumnSection
         selectedTable={selectedTable}
         selectedColumn={selectedColumn}
