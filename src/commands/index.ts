@@ -13,15 +13,19 @@ import { provideSingleton } from "../utils";
 import { RunModel } from "./runModel";
 import { SqlToModel } from "./sqlToModel";
 import { AltimateScan } from "./altimateScan";
+import { DebugCommands } from "./installDbt";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
   private disposables: Disposable[] = [];
 
   constructor(
+    private dbtProjectContainer: DBTProjectContainer,
     private runModel: RunModel,
     private sqlToModel: SqlToModel,
     private altimateScan: AltimateScan,
+    private debugCommands: DebugCommands,
   ) {
     this.disposables.push(
       commands.registerCommand("dbtPowerUser.runCurrentModel", () =>
@@ -106,7 +110,36 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.clearAltimateScanResults", () =>
         this.altimateScan.clearProblems(),
       ),
+      commands.registerCommand("dbtPowerUser.installDBTAdapters", () =>
+        this.debugCommands.installDBTAdapters(),
+      ),
+      commands.registerCommand("dbtPowerUser.validateProject", () =>
+        this.debugCommands.validateProjects(),
+      ),
+      commands.registerCommand("dbtPowerUser.installDeps", () =>
+        this.debugCommands.installDeps(),
+      ),
+      commands.registerCommand("dbtPowerUser.openSetupWalkthrough", () =>
+        commands.executeCommand(
+          "workbench.action.openWalkthrough",
+          `${this.dbtProjectContainer.context?.extension.id.toString()}#initialSetup`,
+          false,
+        ),
+      ),
+      commands.registerCommand("dbtPowerUser.associateFileExts", () =>
+        commands.executeCommand(
+          "workbench.action.openSettings",
+          "file.associations",
+        ),
+      ),
     );
+  }
+
+  needVscodeUpdate() {
+    return this.debugCommands.isVsCodeOutdatated();
+  }
+  needExtensionUpdate() {
+    return this.debugCommands.isExtensionOutdated();
   }
 
   dispose() {

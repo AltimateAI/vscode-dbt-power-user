@@ -25,7 +25,8 @@ export class DBTProjectContainer implements Disposable {
   private _onManifestChanged = new EventEmitter<ManifestCacheChangedEvent>();
   public readonly onManifestChanged = this._onManifestChanged.event;
   private disposables: Disposable[] = [this._onManifestChanged];
-  private context?: ExtensionContext;
+  // TODO revert back to private after this is done
+  public context?: ExtensionContext;
 
   constructor(
     private dbtClient: DBTClient,
@@ -68,6 +69,10 @@ export class DBTProjectContainer implements Disposable {
 
   get extensionUri() {
     return this.context!.extensionUri;
+  }
+
+  get extensionVersion() {
+    return this.context!.extension.packageJSON.version;
   }
 
   // TODO: bypasses events and could be inconsistent
@@ -157,6 +162,20 @@ export class DBTProjectContainer implements Disposable {
       return;
     }
     this.dbtClient.addCommandToQueue(command);
+  }
+
+  getAdapters(): string[] {
+    return Array.from(
+      new Set<string>(
+        this.dbtWorkspaceFolders.flatMap((workspaceFolder) =>
+          workspaceFolder.getAdapters(),
+        ),
+      ),
+    );
+  }
+
+  getPythonEnvironment() {
+    return this.dbtClient.getPythonEnvironment();
   }
 
   dispose() {

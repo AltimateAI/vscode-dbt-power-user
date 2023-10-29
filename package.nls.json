@@ -1,0 +1,22 @@
+{
+  "walkthrough.<id>.title": "Walkthrough Title",
+  "walkthrough.<id>.description": "Walkthrough Description",
+  "walkthrough.<id>.steps.<stepid>.title": "Walkthrough idx step idy title",
+  "walkthrough.<id>.steps.<stepid>.description": "Walkthrough idx step idy description",
+  "walkthrough.initialSetup.title": "Start using dbt Power User",
+  "walkthrough.initialSetup.description": "Start using dbt in vscode by opening a dbt project.",
+  "walkthrough.initialSetup.steps.open.title": "Open dbt Project",
+  "walkthrough.initialSetup.steps.open.description": "To start off, open a dbt project. If you are just beginning to explore dbt, try out the jaffle-shop project (link).\n[Check Setting](command:vscode.openFolder)",
+  "walkthrough.initialSetup.steps.selectInterpreter.title": "Check Python Interpreter Setting",
+  "walkthrough.initialSetup.steps.selectInterpreter.description": "This step will change a setting and check off when the setting has changed\n[Change Setting](command:python.setInterpreter)",
+  "walkthrough.initialSetup.steps.updateExtension.title": "Update dbt Power User Extension",
+  "walkthrough.initialSetup.steps.updateExtension.description": "To get the latest features, update the dbt Power User extension.\n[Update Extension](command:workbench.extensions.action.updateExtension?%22innoverio.vscode-dbt-power-user%22)",
+  "walkthrough.initialSetup.steps.associateFileExts.title": "Associate File Types",
+  "walkthrough.initialSetup.steps.associateFileExts.description": "Associate file types with dbt Power User.\n[Associate File Types](command:dbtPowerUser.associateFileExts)",
+  "walkthrough.initialSetup.steps.validateProject.title": "Check if projects are set up correction.",
+  "walkthrough.initialSetup.steps.validateProject.description": "Check if projects are set up correction.\n[Validate Project](command:dbtPowerUser.validateProject)",
+  "walkthrough.initialSetup.steps.installDbt.title": "Install missing DBT adapters",
+  "walkthrough.initialSetup.steps.installDbt.description": "Install missing DBT adapters.\n[Install DBT Adapters](command:dbtPowerUser.installDBTAdapters)",
+  "walkthrough.initialSetup.steps.installDeps.title": "Run dbt deps",
+  "walkthrough.initialSetup.steps.installDeps.description": "Install packages in dbt projects. This step will run dbt deps.\n[Run dbt deps](command:dbtPowerUser.installDeps)"
+}

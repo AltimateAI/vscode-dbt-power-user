@@ -128,6 +128,10 @@ export class DBTClient implements Disposable {
     });
   }
 
+  getPythonEnvironment() {
+    return this.pythonEnvironment;
+  }
+
   private async executeCommandImmediately(
     command: DBTCommand,
     token?: CancellationToken,

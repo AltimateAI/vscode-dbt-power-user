@@ -101,6 +101,14 @@ export class DBTWorkspaceFolder implements Disposable {
     );
   }
 
+  getAdapters(): string[] {
+    return Array.from(
+      new Set<string>(
+        this.dbtProjects.map((project) => project.getAdapterType()),
+      ),
+    );
+  }
+
   dispose() {
     this.dbtProjects.forEach((project) => project.dispose());
     while (this.disposables.length) {

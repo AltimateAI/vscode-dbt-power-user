@@ -256,6 +256,10 @@
     },
     "commands": [
       {
+        "command": "dbtPowerUser.puQuickPick",
+        "title": "dbt Power User Quick Pick"
+      },
+      {
         "command": "dbtPowerUser.runCurrentModel",
         "title": "Run dbt Model",
         "icon": {
@@ -276,6 +280,11 @@
       {
         "command": "dbtPowerUser.clearAltimateScanResults",
         "title": "Clear Health Check Results"
+      },
+      {
+        "command": "dbtPowerUser.installDBTAdapters",
+        "title": "Install dbt",
+        "icon": "$(database)"
       },
       {
         "command": "dbtPowerUser.compileCurrentModel",
@@ -499,6 +508,107 @@
           "light": "./media/images/dbt_file_icon.svg",
           "dark": "./media/images/dbt_file_icon.svg"
         }
+      }
+    ],
+    "walkthroughs": [
+      {
+        "id": "initialSetup",
+        "title": "%walkthrough.initialSetup.title%",
+        "description": "%walkthrough.initialSetup.description%",
+        "steps": [
+          {
+            "id": "open",
+            "title": "%walkthrough.initialSetup.steps.open.title%",
+            "description": "%walkthrough.initialSetup.steps.open.description%",
+            "when": "workspaceFolderCount == 0",
+            "media": {
+              "image": "media/images/run-status.gif",
+              "altText": "Empty image"
+            },
+            "completionEvents": [
+              ""
+            ]
+          },
+          {
+            "id": "updateVSCode",
+            "title": "Update Old VSCode",
+            "description": "Click here to update the old vscode installation.\n[Here](command:workbench.extensions.installExtension?%22samuelcolvin.jinjahtml%22)",
+            "when": "dbtPowerUser.needsVSCodeUpdate",
+            "media": {
+              "markdown": "media/updateVSCode.md"
+            },
+            "completionEvents": [
+              "onContext:dbtPowerUser.needsVSCodeUpdate"
+            ]
+          },
+          {
+            "id": "updateExtension",
+            "title": "%walkthrough.initialSetup.steps.updateExtension.title%",
+            "description": "%walkthrough.initialSetup.steps.updateExtension.description%",
+            "when": "dbtPowerUser.needsExtensionUpdate",
+            "media": {
+              "markdown": "media/updateExtension.md"
+            },
+            "completionEvents": [
+              "onContext:dbtPowerUser.needsExtensionUpdate"
+            ]
+          },
+          {
+            "id": "selectInterpreter",
+            "title": "%walkthrough.initialSetup.steps.selectInterpreter.title%",
+            "description": "%walkthrough.initialSetup.steps.selectInterpreter.description%",
+            "media": {
+              "markdown": "media/selectInterpreter.md"
+            },
+            "completionEvents": [
+              "onSettingChanged:python.setInterpreter"
+            ]
+          },
+          {
+            "id": "associateFileExts",
+            "title": "%walkthrough.initialSetup.steps.associateFileExts.title%",
+            "description": "%walkthrough.initialSetup.steps.associateFileExts.description%",
+            "media": {
+              "markdown": "media/associateFileExts.md"
+            },
+            "completionEvents": [
+              "onCommand:dbtPowerUser.associateFileExts"
+            ]
+          },
+          {
+            "id": "installDBT",
+            "title": "%walkthrough.initialSetup.steps.installDBT.title%",
+            "description": "%walkthrough.initialSetup.steps.installDBT.description%",
+            "media": {
+              "markdown": "media/installDBT.md"
+            },
+            "completionEvents": [
+              "onCommand:dbtPowerUser.installDBTAdapters"
+            ]
+          },
+          {
+            "id": "installDeps",
+            "title": "%walkthrough.initialSetup.steps.installDeps.title%",
+            "description": "%walkthrough.initialSetup.steps.installDeps.description%",
+            "media": {
+              "markdown": "media/installDeps.md"
+            },
+            "completionEvents": [
+              "onCommand:dbtPowerUser.installDeps"
+            ]
+          },
+          {
+            "id": "validateProject",
+            "title": "%walkthrough.initialSetup.steps.validateProject.title%",
+            "description": "%walkthrough.initialSetup.steps.validateProject.description%",
+            "media": {
+              "markdown": "media/validateProject.md"
+            },
+            "completionEvents": [
+              "onCommand:dbtPowerUser.validateProject"
+            ]
+          }
+        ]
       }
     ]
   },

@@ -1,4 +1,4 @@
-import { Disposable, ExtensionContext } from "vscode";
+import { Disposable, ExtensionContext, commands } from "vscode";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";
@@ -12,6 +12,7 @@ import { provideSingleton } from "./utils";
 import { WebviewViewProviders } from "./webview_provider";
 import { TelemetryService } from "./telemetry";
 import { HoverProviders } from "./hover_provider";
+import { PUStatusBars } from "./quickpick";
 
 @provideSingleton(DBTPowerUserExtension)
 export class DBTPowerUserExtension implements Disposable {
@@ -43,6 +44,7 @@ export class DBTPowerUserExtension implements Disposable {
     private codeLensProviders: CodeLensProviders,
     private documentFormattingEditProviders: DocumentFormattingEditProviders,
     private statusBars: StatusBars,
+    private puStatusBars: PUStatusBars,
     private telemetry: TelemetryService,
     private hoverProviders: HoverProviders,
   ) {
@@ -57,6 +59,7 @@ export class DBTPowerUserExtension implements Disposable {
       this.vscodeCommands,
       this.documentFormattingEditProviders,
       this.statusBars,
+      this.puStatusBars,
       this.telemetry,
       this.hoverProviders,
     );
@@ -73,6 +76,23 @@ export class DBTPowerUserExtension implements Disposable {
 
   async activate(context: ExtensionContext): Promise<void> {
     this.dbtProjectContainer.setContext(context);
+    // set contexts
+    commands.executeCommand(
+      "setContext",
+      "dbtPowerUser.updateVSCode",
+      await this.vscodeCommands.needVscodeUpdate(),
+    );
+    commands.executeCommand(
+      "setContext",
+      "dbtPowerUser.needsExtensionUpdate",
+      await this.vscodeCommands.needExtensionUpdate(),
+    );
+    commands.executeCommand(
+      "setContext",
+      "dbtPowerUser.extensionVersion",
+      "very old",
+    );
+
     await this.dbtProjectContainer.detectDBT();
     await this.dbtProjectContainer.initializeDBTProjects();
   }

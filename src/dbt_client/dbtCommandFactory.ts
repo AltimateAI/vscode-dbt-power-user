@@ -218,6 +218,32 @@ export class DBTCommandFactory {
     };
   }
 
+  createDebugCommand(projectRoot: Uri, profilesDir: string): DBTCommand {
+    const profilesDirParams = this.profilesDirParams(profilesDir);
+    return {
+      commandAsString: `dbt debug`,
+      statusMessage: `Debugging project at ${projectRoot.fsPath}...`,
+      processExecutionParams: {
+        cwd: projectRoot.fsPath,
+        args: ["-c", this.dbtCommand(["'debug'", ...profilesDirParams])],
+      },
+      focus: true,
+    };
+  }
+
+  createInstallDepsCommand(projectRoot: Uri, profilesDir: string): DBTCommand {
+    const profilesDirParams = this.profilesDirParams(profilesDir);
+    return {
+      commandAsString: `dbt deps`,
+      statusMessage: `Installing packages for project at ${projectRoot.fsPath}...`,
+      processExecutionParams: {
+        cwd: projectRoot.fsPath,
+        args: ["-c", this.dbtCommand(["'deps'", ...profilesDirParams])],
+      },
+      focus: true,
+    };
+  }
+
   private dbtCommand(cmd: string | string[]): string {
     // Lets pass through these params here too
     const dbtCustomRunnerImport = workspace
