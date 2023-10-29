@@ -18,7 +18,7 @@ import {
   processColumnLineage,
   resetTableHighlights,
 } from "./graph";
-import { LineageContext, aiEnabled, openFile, isDarkMode } from "./App";
+import { LineageContext, openFile, isDarkMode } from "./App";
 import { Table, downstreamTables, upstreamTables } from "./service";
 import {
   COLUMNS_SIDEBAR,
@@ -243,23 +243,20 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
               {processed[0] ? "-" : "+"}
             </div>
 
-            {aiEnabled && (
-              <div
-                className={classNames(
-                  "nodrag",
-                  selected ? "text-blue" : "text-grey"
-                )}
-                onClick={onDetailsClick}
-              >
-                View Details
-              </div>
-            )}
+            <div
+              className={classNames(
+                "nodrag",
+                selected ? "text-blue" : "text-grey"
+              )}
+              onClick={onDetailsClick}
+            >
+              View Details
+            </div>
 
             <div
               className={classNames("nodrag", styles.open_file_button)}
               onClick={() => openFile(url)}
             >
-              {!aiEnabled && <span className="text-blue">Open file</span>}
               {isDarkMode ? <FolderDarkIcon /> : <FolderIcon />}
             </div>
             <div className="spacer" />
