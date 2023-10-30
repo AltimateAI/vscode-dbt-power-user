@@ -242,10 +242,29 @@ This feature relies on a defined schema in a YML file. It extracts data from bot
 
 ### <a id="projectscan">Altimate scan</a>
 
-This feature allows you to run our scanner on all dbt projects in the workspace and list all the issues found in the problems panel. Depending on your team's conventions, these may or may not be required so they are listed at the warnings or information level. Currently, the following tests are available:
+#### Enhance Your Workspace with the Altimate Scanner!
 
-- Missing schema.yml files: Models not documented at all are captured in these errors. Seeds or ephemeral models are currently skipped in this test as these might be traditionally undocumented.
-- Missing documentation: Models that have a schema.yml file but have columns undocumented are captured in these errors. These columns are simply an indication of a mismatch between the model that is stored in the database and the one that is documented in the schema.yml file and is not necessarily an error.
-- Extra columns: Sometimes, as the model changes, columns are removed from the model but not from the schema.yml file. These columns are captured in these errors. It could also simply be a spelling mistake in the schema.yml file which would be a good find.
+Our new feature lets you swiftly scan all dbt projects in your workspace, bringing any issues straight to the problems panel. Depending on your team's conventions, we've classified potential discrepancies as warnings or just informational pointers.
+
+#### What the Scanner Checks For:
+
+- **Missing schema.yml Files**:
+
+  - If some models aren’t documented, they'll show up here.
+  - _Note_: We give seeds or ephemeral models a pass, as they're often traditionally undocumented.
+
+- **Undocumented Columns**:
+
+  - For models with a schema.yml but with some columns left undocumented.
+  - This typically points to a mismatch between the actual database model and its documentation. It's more of a heads-up than an error.
+
+- **Extra Columns**:
+
+  - Over time, columns might get dropped from models but linger in the schema.yml.
+  - Our scanner catches this. Or, maybe it's just a typo in the schema.yml – good to know, right?
+
+- **Models Absent in the Database**:
+  - We'll flag seeds and models missing from the database.
+  - Maybe it's an unused model ripe for removal, or perhaps it’s a fresh model that's yet to make its debut in the database.
 
 ![projectscan](./media/images/project-scan.gif)
