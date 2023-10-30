@@ -61,14 +61,6 @@ if TYPE_CHECKING:
     from dbt.adapters.base import BaseRelation  # type: ignore
     from dbt.contracts.connection import AdapterResponse
 
-import logging
-
-# Set up logging to file
-logging.basicConfig(filename="python_log.log", level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-
-# Add logs throughout the code
-logger.info("Starting program")
 
 Primitive = Union[bool, str, float, None]
 PrimitiveDict = Dict[str, Primitive]
@@ -576,17 +568,13 @@ class DbtProject:
         catalog_table: agate.Table = agate.Table([])
         catalog_data: List[PrimitiveDict] = []
         exceptions: List[Exception] = []
-        logger.debug("getting connection")
         try:
             with self.adapter.connection_named("generate_catalog"):
-                logger.debug("Generating catalog...")
                 catalog_table, exceptions = self.adapter.get_catalog(self.dbt)
-                logger.debug("Raw catalog:")
-                logger.debug(catalog_table)
 
             if exceptions:
-                logger.debug("Found exceptions")
-                logger.debug(exceptions)
+                # TODO - log exception somehow but dont block the call
+                pass
 
             catalog_data = [
                 dict(
@@ -594,12 +582,11 @@ class DbtProject:
                 )
                 for row in catalog_table
             ]
-            logger.debug("parsed catalog data")
-            logger.debug(catalog_data)
 
         except Exception as e:
-            logger.debug("exception during get catalog event")
-            logger.debug(e)
+            # TODO: log exception - not reraising because this call should not
+            # be blocking any active features and we can still list out the problems
+            # using the catalogs we have collected so far.
             return catalog_data
         return catalog_data
 
