@@ -67,6 +67,10 @@ export class StaleModelColumnTest implements AltimateScanStep {
     }
     const { nodeMetaMap } = projectEventMap;
     for (const [key, value] of nodeMetaMap) {
+      if (value.config.materialized === "ephemeral") {
+        // ephemeral models by nature wont be materialized so we cant verify if they are stale.
+        continue;
+      }
       const modelKey = JSON.stringify({
         projectroot: projectRootUri.fsPath,
         project: projectName,
