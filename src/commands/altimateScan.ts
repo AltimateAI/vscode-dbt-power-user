@@ -60,7 +60,7 @@ export class AltimateScan {
   }
 
   async clearProblems() {
-    this.telemetry.sendTelemetryEvent("clearAltimateScan");
+    this.telemetry.sendTelemetryEvent("altimateScan:Clear");
     window.withProgress(
       {
         location: ProgressLocation.Notification,
@@ -77,7 +77,8 @@ export class AltimateScan {
   }
 
   async getProblems() {
-    this.telemetry.sendTelemetryEvent("altimateScan");
+    this.telemetry.sendTelemetryEvent("altimateScan:Start");
+    let totalProblems: number = 0;
     window.withProgress(
       {
         location: ProgressLocation.Notification,
@@ -101,9 +102,13 @@ export class AltimateScan {
           for (const step of onlineAltimateScanSteps) {
             step.run(agent);
           }
-          agent.showDiagnostics();
+          totalProblems += agent.showDiagnostics();
         }
+        // we can select problem tab as soon as the first project is done maybe
         await commands.executeCommand("workbench.actions.view.problems");
+        this.telemetry.sendTelemetryEvent("altimateScan:Done", {
+          problemsFound: totalProblems.toString(),
+        });
       },
     );
   }

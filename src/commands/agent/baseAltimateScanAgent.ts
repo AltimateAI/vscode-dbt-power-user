@@ -17,6 +17,7 @@ export class BaseAltimateScanAgent implements AltimateScanAgent {
   }
   showDiagnostics() {
     this.scanContext.project.projectHealth.clear();
+    let totalProblems = 0;
     for (const [filePath, fileDiagnostics] of Object.entries(
       this.scanContext.diagnostics,
     )) {
@@ -24,7 +25,9 @@ export class BaseAltimateScanAgent implements AltimateScanAgent {
         Uri.file(filePath),
         fileDiagnostics,
       );
+      totalProblems += fileDiagnostics.length;
     }
+    return totalProblems;
   }
 
   public async initCatalog(test: InitCatalog): Promise<void> {
