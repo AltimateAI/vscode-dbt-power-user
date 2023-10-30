@@ -1,4 +1,4 @@
-import { ProgressLocation, commands, window } from "vscode";
+import { ProgressLocation, Uri, commands, window } from "vscode";
 import { AltimateRequest } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
@@ -12,42 +12,42 @@ import { UndocumentedModelColumnTest } from "./tests/undocumentedModelColumnTest
 import { StaleModelColumnTest } from "./tests/staleModelColumnTest";
 import { MissingSchemaTest } from "./tests/missingSchemaTest";
 import { UnmaterializedModelTest } from "./tests/unmaterializedModelTest";
-import { FreeAltimateScanAgent } from "./agent/freeAltimateScanAgent";
-
-const offlineAltimateScanSteps = [
-  // check for missing schemas i.e. undocumented models
-  new MissingSchemaTest(),
-  // then check for duplicate sources
-  // TODO
-  // feel free to add more tests
-];
-
-// online tests rely on a connection to database
-const onlineAltimateScanSteps = [
-  // check for unmaterialized models
-  new UnmaterializedModelTest(),
-  // then check for undocumented models columns
-  new UndocumentedModelColumnTest(),
-  // then check for stale columns in models
-  new StaleModelColumnTest(),
-  // feel free to add more tests
-];
-
-//TODO
-// altimate tests rely on an altimate account. these are assumed to be online as well.
-const altimateScanSteps = [];
+import { ScanContext } from "./tests/scanContext";
+import { AltimateScanStep } from "./tests/step";
 
 @provideSingleton(AltimateScan)
 export class AltimateScan {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
+  private offlineAltimateScanSteps: AltimateScanStep[];
+  private onlineAltimateScanSteps: AltimateScanStep[];
+  private altimateScanSteps: AltimateScanStep[];
+
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
     private altimate: AltimateRequest,
+    private missingSchemaTest: MissingSchemaTest,
+    private undocumentedModelColumnTest: UndocumentedModelColumnTest,
+    private unmaterializedModelTest: UnmaterializedModelTest,
+    private staleModelColumnTest: StaleModelColumnTest,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
     );
+
+    this.offlineAltimateScanSteps = [missingSchemaTest];
+
+    // online tests rely on a connection to database
+    this.onlineAltimateScanSteps = [
+      unmaterializedModelTest,
+      undocumentedModelColumnTest,
+      staleModelColumnTest,
+      // feel free to add more tests
+    ];
+
+    //TODO
+    // altimate tests rely on an altimate account. these are assumed to be online as well.
+    this.altimateScanSteps = [];
   }
 
   private async onManifestCacheChanged(event: ManifestCacheChangedEvent) {
@@ -83,26 +83,21 @@ export class AltimateScan {
       {
         location: ProgressLocation.Notification,
         title: "Scanning for problems...",
-        cancellable: false,
+        cancellable: true,
       },
       async () => {
         const projects = this.dbtProjectContainer.findAllDBTProjects();
         for (const project of projects) {
-          const agent = new FreeAltimateScanAgent(
-            project,
-            this.eventMap.get(project.projectRoot.fsPath),
-          );
-
-          // run all the offline steps first, no need to get the catalog yet
-          for (const step of offlineAltimateScanSteps) {
-            step.run(agent);
+          try {
+            const scanContext: ScanContext = new ScanContext(
+              project,
+              this.eventMap.get(project.projectRoot.fsPath),
+            );
+            await this.runSteps(scanContext);
+            totalProblems += this.showDiagnostics(scanContext);
+          } catch (err) {
+            console.log(err);
           }
-          // get catalog before continuing to online steps
-          await new InitCatalog().run(agent);
-          for (const step of onlineAltimateScanSteps) {
-            step.run(agent);
-          }
-          totalProblems += agent.showDiagnostics();
         }
         // we can select problem tab as soon as the first project is done maybe
         await commands.executeCommand("workbench.actions.view.problems");
@@ -111,5 +106,46 @@ export class AltimateScan {
         });
       },
     );
+  }
+
+  async runSteps(scanContext: ScanContext) {
+    // run all the offline steps first, no need to get the catalog yet
+    for (const stepof of this.offlineAltimateScanSteps) {
+      stepof.run(scanContext);
+    }
+    // get catalog before continuing to online steps
+    await this.initCatalog(scanContext);
+    for (const stepon of this.onlineAltimateScanSteps) {
+      stepon.run(scanContext);
+    }
+  }
+
+  public async initCatalog(scanContext: ScanContext): Promise<void> {
+    if (scanContext === undefined) {
+      throw new Error("Scan Context has not been set");
+    }
+
+    const projectCatalog = await new InitCatalog().run(scanContext);
+    scanContext.catalog[
+      scanContext.project.getProjectName() + scanContext.project.projectRoot
+    ] = projectCatalog;
+  }
+
+  showDiagnostics(scanContext: ScanContext) {
+    if (scanContext === undefined) {
+      throw new Error("Scan Context has not been set");
+    }
+    scanContext.project.projectHealth.clear();
+    let totalProblems = 0;
+    for (const [filePath, fileDiagnostics] of Object.entries(
+      scanContext.diagnostics,
+    )) {
+      scanContext.project.projectHealth.set(
+        Uri.file(filePath),
+        fileDiagnostics,
+      );
+      totalProblems += fileDiagnostics.length;
+    }
+    return totalProblems;
   }
 }

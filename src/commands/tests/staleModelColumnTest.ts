@@ -1,14 +1,12 @@
 import { Diagnostic, DiagnosticSeverity, Range, Uri } from "vscode";
-import { AltimateScanAgent, ScanContext } from "../agent/agent";
+import { ScanContext } from "./scanContext";
 import { AltimateScanStep } from "./step";
 import { readFileSync } from "fs";
 import { createFullPathForNode } from "../../manifest/parsers";
+import { provideSingleton } from "../../utils";
 
+@provideSingleton(StaleModelColumnTest)
 export class StaleModelColumnTest implements AltimateScanStep {
-  run(agent: AltimateScanAgent) {
-    agent.runStep(this);
-  }
-
   private getTextLocation(
     modelname: string,
     colname: string,
@@ -53,7 +51,7 @@ export class StaleModelColumnTest implements AltimateScanStep {
     return undefined;
   }
 
-  public async flagStaleColumns(scanContext: ScanContext) {
+  public async run(scanContext: ScanContext) {
     const {
       project,
       catalog: altimateCatalog,

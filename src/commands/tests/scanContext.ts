@@ -1,12 +1,6 @@
 import { DBTProject } from "../../manifest/dbtProject";
 import { ManifestCacheProjectAddedEvent } from "../../manifest/event/manifestCacheChangedEvent";
 import { Diagnostic } from "vscode";
-import { AltimateScanStep } from "../tests/step";
-
-export interface AltimateScanAgent {
-  scanContext: ScanContext;
-  runStep(test: AltimateScanStep): void;
-}
 
 export interface AltimateCatalog {
   [projectName: string]: { [key: string]: any[] };

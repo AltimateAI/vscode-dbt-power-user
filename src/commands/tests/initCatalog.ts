@@ -1,16 +1,11 @@
-import { DBTProject } from "../../manifest/dbtProject";
-import { AltimateScanAgent } from "../agent/agent";
-import { BaseAltimateScanAgent } from "../agent/baseAltimateScanAgent";
+import { provideSingleton } from "../../utils";
+import { ScanContext } from "./scanContext";
 import { AltimateScanStep } from "./step";
 
+@provideSingleton(InitCatalog)
 export class InitCatalog implements AltimateScanStep {
-  async run(agent: AltimateScanAgent) {
-    // This one has to await
-    // CAUTION - not sure why this isnt giving me circular dependency warning.
-    await (agent as BaseAltimateScanAgent).runStep(this);
-  }
-
-  public async getProjectCatalog(project: DBTProject) {
+  public async run(scanContext: ScanContext) {
+    const project = scanContext.project;
     try {
       const cata = await project.getCatalog();
       const modelDict: { [key: string]: any[] } = cata.reduce(

@@ -1,12 +1,11 @@
 import { Diagnostic, DiagnosticSeverity, Range } from "vscode";
-import { AltimateScanAgent, ScanContext } from "../agent/agent";
+import { ScanContext } from "./scanContext";
 import { AltimateScanStep } from "./step";
+import { provideSingleton } from "../../utils";
 
+@provideSingleton(UnmaterializedModelTest)
 export class UnmaterializedModelTest implements AltimateScanStep {
-  run(agent: AltimateScanAgent) {
-    agent.runStep(this);
-  }
-  public async flagUnmaterializedModels(scanContext: ScanContext) {
+  public async run(scanContext: ScanContext) {
     const {
       project,
       catalog: altimateCatalog,
@@ -22,6 +21,8 @@ export class UnmaterializedModelTest implements AltimateScanStep {
     for (const [key, value] of nodeMetaMap) {
       if (value.config.materialized === "ephemeral") {
         // ephemeral models by nature wont be materialized.
+        // seeds should be materialized so that other features
+        // work well so we'll raise errors for those
         continue;
       }
 

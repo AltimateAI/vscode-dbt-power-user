@@ -1,13 +1,12 @@
 import { Diagnostic, DiagnosticSeverity, Range } from "vscode";
-import { AltimateScanAgent, ScanContext } from "../agent/agent";
+import { ScanContext } from "./scanContext";
 import { AltimateScanStep } from "./step";
+import { provideSingleton } from "../../utils";
+import { DBTProject } from "../../manifest/dbtProject";
 
+@provideSingleton(MissingSchemaTest)
 export class MissingSchemaTest implements AltimateScanStep {
-  run(agent: AltimateScanAgent) {
-    agent.runStep(this);
-  }
-
-  public async flagMissingSchemas(scanContext: ScanContext) {
+  public async run(scanContext: ScanContext) {
     const {
       eventMap: projectEventMap,
       diagnostics: projectDiagnostics,
@@ -21,6 +20,8 @@ export class MissingSchemaTest implements AltimateScanStep {
     for (const [key, value] of nodeMetaMap) {
       // blacklisting node types.. should we instead whitelist just models and sources?
       if (
+        // TODO - need to filter out only models here but the resource type isnt available
+        !value.uniqueId.startsWith(DBTProject.RESOURCE_TYPE_MODEL) ||
         value.config.materialized === "seed" ||
         value.config.materialized === "ephemeral"
       ) {

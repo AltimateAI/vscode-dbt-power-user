@@ -242,4 +242,10 @@ This feature relies on a defined schema in a YML file. It extracts data from bot
 
 ### <a id="projectscan">Altimate scan</a>
 
+This feature allows you to run our scanner on all dbt projects in the workspace and list all the issues found in the problems panel. Depending on your team's conventions, these may or may not be required so they are listed at the warnings or information level. Currently, the following tests are available:
+
+- Missing schema.yml files: Models not documented at all are captured in these errors. Seeds or ephemeral models are currently skipped in this test as these might be traditionally undocumented.
+- Missing documentation: Models that have a schema.yml file but have columns undocumented are captured in these errors. These columns are simply an indication of a mismatch between the model that is stored in the database and the one that is documented in the schema.yml file and is not necessarily an error.
+- Extra columns: Sometimes, as the model changes, columns are removed from the model but not from the schema.yml file. These columns are captured in these errors. It could also simply be a spelling mistake in the schema.yml file which would be a good find.
+
 ![projectscan](./media/images/project-scan.gif)

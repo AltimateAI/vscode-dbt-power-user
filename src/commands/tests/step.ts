@@ -1,5 +1,5 @@
-import { AltimateScanAgent } from "../agent/agent";
+import { ScanContext } from "./scanContext";
 
 export interface AltimateScanStep {
-  run(agent: AltimateScanAgent): void;
+  run(scanContext: ScanContext): Promise<any>;
 }

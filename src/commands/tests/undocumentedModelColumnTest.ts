@@ -1,13 +1,11 @@
 import { Diagnostic, DiagnosticSeverity, Range } from "vscode";
-import { AltimateScanAgent, ScanContext } from "../agent/agent";
+import { ScanContext } from "./scanContext";
 import { AltimateScanStep } from "./step";
+import { provideSingleton } from "../../utils";
 
+@provideSingleton(UndocumentedModelColumnTest)
 export class UndocumentedModelColumnTest implements AltimateScanStep {
-  run(agent: AltimateScanAgent) {
-    agent.runStep(this);
-  }
-
-  public async flagUndocumentedColumns(scanContext: ScanContext) {
+  public async run(scanContext: ScanContext) {
     const {
       project,
       catalog: altimateCatalog,
