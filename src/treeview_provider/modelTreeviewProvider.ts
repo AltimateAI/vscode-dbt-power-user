@@ -311,10 +311,16 @@ export class NodeTreeItem extends TreeItem {
 export class ActionTreeItem extends TreeItem {
   collapsibleState = TreeItemCollapsibleState.Collapsed;
   children?: ActionTreeItem[];
-  constructor(label: string, icon?: ThemeIcon, command?: Command) {
+  constructor(
+    label: string,
+    icon?: ThemeIcon,
+    command?: Command,
+    tooltip?: string,
+  ) {
     super(label);
     this.iconPath = icon;
     this.command = command;
+    this.tooltip = tooltip;
   }
 }
 
@@ -331,19 +337,34 @@ class IconActionsTreeviewProvider implements TreeDataProvider<ActionTreeItem> {
 
   getChildren(element: ActionTreeItem): ProviderResult<ActionTreeItem[]> {
     if (!element) {
-      const scanItem = new ActionTreeItem("Altimate Scan");
+      const scanItem = new ActionTreeItem(
+        "Altimate Scan",
+        undefined,
+        undefined,
+        "Find dbt issues in workspace using Altimate AI",
+      );
 
       scanItem.children = [
-        new ActionTreeItem("Start Scan", new ThemeIcon("search-view-icon"), {
-          command: "dbtPowerUser.altimateScan",
-          title: "Altimate Scan",
-          arguments: [],
-        }),
-        new ActionTreeItem("Clear Problems", new ThemeIcon("search-stop"), {
-          command: "dbtPowerUser.clearAltimateScanResults",
-          title: "Clear All Problems",
-          arguments: [],
-        }),
+        new ActionTreeItem(
+          "Start Scan",
+          new ThemeIcon("search-view-icon"),
+          {
+            command: "dbtPowerUser.altimateScan",
+            title: "Altimate Scan",
+            arguments: [],
+          },
+          "Scan all projects for issues",
+        ),
+        new ActionTreeItem(
+          "Clear Problems",
+          new ThemeIcon("search-stop"),
+          {
+            command: "dbtPowerUser.clearAltimateScanResults",
+            title: "Clear All Problems",
+            arguments: [],
+          },
+          "Clear issues from problems panel",
+        ),
         new ActionTreeItem("Send Feedback", undefined, {
           command: "vscode.open",
           title: "Send Feedback",
