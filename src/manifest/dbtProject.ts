@@ -626,9 +626,9 @@ export class DBTProject implements Disposable {
         });
         window.showErrorMessage(
           extendErrorWithSupportLinks(
-            "An error occured while trying to fetch the schemas " +
-              exc.exception.message +
-              ".",
+            "An error occured while trying to fetch the schemas for project: " +
+              this.projectName +
+              ". ",
           ),
         );
         return [];

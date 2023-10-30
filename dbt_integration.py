@@ -573,8 +573,7 @@ class DbtProject:
                 catalog_table, exceptions = self.adapter.get_catalog(self.dbt)
 
             if exceptions:
-                # TODO - log exception somehow but dont block the call
-                pass
+                raise Exception(str(exceptions))
 
             catalog_data = [
                 dict(
@@ -584,10 +583,7 @@ class DbtProject:
             ]
 
         except Exception as e:
-            # TODO: log exception - not reraising because this call should not
-            # be blocking any active features and we can still list out the problems
-            # using the catalogs we have collected so far.
-            return catalog_data
+            raise Exception(str(e))
         return catalog_data
 
     def get_or_create_relation(

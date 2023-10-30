@@ -110,14 +110,31 @@ export class AltimateScan {
 
   async runSteps(scanContext: ScanContext) {
     // run all the offline steps first, no need to get the catalog yet
-    for (const stepof of this.offlineAltimateScanSteps) {
-      stepof.run(scanContext);
-    }
+    await Promise.all(
+      this.offlineAltimateScanSteps.map(
+        async (stepof) => await stepof.run(scanContext),
+      ),
+    );
+
     // get catalog before continuing to online steps
+    // errors are caught on python side and returned as a catalog with 0 length
+    // telemetry is sent from dbtproject.ts if there is an error
     await this.initCatalog(scanContext);
-    for (const stepon of this.onlineAltimateScanSteps) {
-      stepon.run(scanContext);
+    // if there was some error in getting the catalog, we dont get anything back.
+    // stop the remaining tests in that case.
+    if (
+      scanContext.scanResults["missingCatalog"] !== undefined &&
+      scanContext.scanResults["missingCatalog"][
+        scanContext.project.getProjectName() + scanContext.project.projectRoot
+      ] === true
+    ) {
+      return;
     }
+    await Promise.all(
+      this.onlineAltimateScanSteps.map(
+        async (stepon) => await stepon.run(scanContext),
+      ),
+    );
   }
 
   public async initCatalog(scanContext: ScanContext): Promise<void> {
