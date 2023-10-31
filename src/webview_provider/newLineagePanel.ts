@@ -341,9 +341,9 @@ export class NewLineagePanel implements LineagePanelView {
     };
     const parent_models: { model_node: NodeMetaData }[] = [];
     let auxiliaryTables: string[] = [];
+    const dependencyNodes = graphMetaMap.parents;
     if (upstreamExpansion) {
       const currTables = targets.map((t) => t[0]);
-      const dependencyNodes = graphMetaMap.parents;
       const parentSet = new Set<string>();
       currAnd1HopTables.forEach((t) => {
         if (currTables.includes(t)) {
@@ -361,29 +361,65 @@ export class NewLineagePanel implements LineagePanelView {
       });
       auxiliaryTables = Array.from(parentSet);
     }
-    try {
-      await Promise.all([
-        ...Object.values(visibleTables).map(async (node) => {
-          let compiledSql: string | undefined;
-          if (node.config.materialized === "ephemeral") {
-            // ephemeral nodes can be skipped. they dont have a schema
-            // and their sql makes it into the compiled sql of the models
-            // referring to it.
-            return;
+    const addToModelInfos = async (node: NodeMetaData) => {
+      let compiledSql: string | undefined;
+      if (node.config.materialized === "ephemeral") {
+        const queue: string[] = [node.uniqueId];
+        const visited: Record<string, boolean> = {};
+        while (queue.length > 0) {
+          const curr = queue.shift()!;
+          if (visited[curr]) {
+            continue;
           }
-          if (node.config.materialized !== "seed") {
-            compiledSql = await project.compileNode(node.name);
-            if (!compiledSql) {
+          visited[curr] = true;
+          const parent = dependencyNodes.get(curr);
+          if (!parent) {
+            continue;
+          }
+          parent?.nodes?.forEach(async (n) => {
+            const tableNode = nodeMetaMap.get(n.label);
+            if (!tableNode) {
               return;
             }
-          }
-          const ok = await this.addColumnsFromDB(project, node);
-          if (!ok) {
-            relationsWithoutColumns.push(node.alias);
-            return;
-          }
-          modelInfos.push({ compiled_sql: compiledSql, model_node: node });
-        }),
+            if (tableNode.config.materialized === "ephemeral") {
+              queue.push(tableNode.uniqueId);
+            } else {
+              if (tableNode.config.materialized !== "seed") {
+                compiledSql = await project.compileNode(tableNode.name);
+                if (!compiledSql) {
+                  return;
+                }
+              }
+              const ok = await this.addColumnsFromDB(project, tableNode);
+              if (!ok) {
+                relationsWithoutColumns.push(tableNode.alias);
+                return;
+              }
+              modelInfos.push({
+                compiled_sql: compiledSql,
+                model_node: tableNode,
+              });
+            }
+          });
+        }
+        return;
+      }
+      if (node.config.materialized !== "seed") {
+        compiledSql = await project.compileNode(node.name);
+        if (!compiledSql) {
+          return;
+        }
+      }
+      const ok = await this.addColumnsFromDB(project, node);
+      if (!ok) {
+        relationsWithoutColumns.push(node.alias);
+        return;
+      }
+      modelInfos.push({ compiled_sql: compiledSql, model_node: node });
+    };
+    try {
+      await Promise.all([
+        ...Object.values(visibleTables).map(addToModelInfos),
         async () => {
           if (selected_column.model_node) {
             await this.addColumnsFromDB(project, selected_column.model_node);
