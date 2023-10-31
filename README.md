@@ -261,7 +261,7 @@ Our new feature lets you swiftly scan all dbt projects in your workspace, bringi
 - **Extra Columns**:
 
   - Over time, columns might get dropped from models but linger in the schema.yml.
-  - Our scanner catches this. Or, maybe it's just a typo in the schema.yml – good to know, right?
+  - Our scanner catches this. Or, maybe it's just a typo in the schema.yml
 
 - **Models Absent in the Database**:
   - We'll flag seeds and models missing from the database.
