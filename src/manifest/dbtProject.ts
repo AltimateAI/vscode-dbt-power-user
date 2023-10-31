@@ -625,11 +625,9 @@ export class DBTProject implements Disposable {
           adapter: this.adapterType,
         });
         window.showErrorMessage(
-          extendErrorWithSupportLinks(
-            "An error occured while trying to fetch the schemas for project: " +
-              this.projectName +
-              ". ",
-          ),
+          "Some of the scans could not run as connectivity to database for the project " +
+            this.projectName +
+            " is not available. ",
         );
         return [];
       }
@@ -638,9 +636,9 @@ export class DBTProject implements Disposable {
         adapter: this.adapterType,
       });
       window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "Encountered an unknown issue:" + exc + ".",
-        ),
+        "Some of the scans could not run as connectivity to database for the project " +
+          this.projectName +
+          " is not available. ",
       );
       return [];
     }
