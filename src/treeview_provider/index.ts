@@ -5,6 +5,7 @@ import {
   DocumentationTreeview,
   ModelTestTreeview,
   ParentModelTreeview,
+  IconActionsTreeview,
 } from "./modelTreeviewProvider";
 
 @provideSingleton(TreeviewProviders)
@@ -16,6 +17,7 @@ export class TreeviewProviders implements Disposable {
     private parentModelTreeview: ParentModelTreeview,
     private testModelTreeview: ModelTestTreeview,
     private documentationTreeView: DocumentationTreeview,
+    private iconActionsTreeview: IconActionsTreeview,
   ) {
     this.disposables.push(
       window.registerTreeDataProvider(
@@ -33,6 +35,10 @@ export class TreeviewProviders implements Disposable {
       window.registerTreeDataProvider(
         "documentation_treeview",
         this.documentationTreeView,
+      ),
+      window.registerTreeDataProvider(
+        "icon_actions_treeview",
+        this.iconActionsTreeview,
       ),
     );
   }

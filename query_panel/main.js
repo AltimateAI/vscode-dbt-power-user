@@ -283,7 +283,7 @@ const app = createApp({
     onFeedback() {
       const prevTab = document.querySelector("#panel-manager").activeid;
       executeCommand("openUrl", {
-        url: "https://docs.google.com/forms/d/19wX5b5_xXL6J_Q_GpuWzYddIXbvLxuarv09Y3VRk_EU/edit",
+        url: "https://docs.google.com/forms/d/19wX5b5_xXL6J_Q_GpuWzYddIXbvLxuarv09Y3VRk_EU/viewform",
       });
       setTimeout(() => {
         document.querySelector("#panel-manager").activeid = prevTab;

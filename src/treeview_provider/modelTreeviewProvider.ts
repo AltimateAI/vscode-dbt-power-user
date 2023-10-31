@@ -7,6 +7,7 @@ import {
   Event,
   EventEmitter,
   ProviderResult,
+  ThemeIcon,
   TreeDataProvider,
   TreeItem,
   TreeItemCollapsibleState,
@@ -286,6 +287,7 @@ export class DocNode extends Node {
     this.description = description;
   }
 }
+
 export class NodeTreeItem extends TreeItem {
   collapsibleState = TreeItemCollapsibleState.Collapsed;
   key: string;
@@ -303,6 +305,79 @@ export class NodeTreeItem extends TreeItem {
       title: "Select Node",
       arguments: [Uri.file(node.url)],
     };
+  }
+}
+
+export class ActionTreeItem extends TreeItem {
+  collapsibleState = TreeItemCollapsibleState.Collapsed;
+  children?: ActionTreeItem[];
+  constructor(
+    label: string,
+    icon?: ThemeIcon,
+    command?: Command,
+    tooltip?: string,
+  ) {
+    super(label);
+    this.iconPath = icon;
+    this.command = command;
+    this.tooltip = tooltip;
+  }
+}
+
+@provide(IconActionsTreeviewProvider)
+class IconActionsTreeviewProvider implements TreeDataProvider<ActionTreeItem> {
+  collapsibleState = TreeItemCollapsibleState.Collapsed;
+  getTreeItem(element: ActionTreeItem): ActionTreeItem {
+    element.collapsibleState = element.children
+      ? TreeItemCollapsibleState.Collapsed
+      : TreeItemCollapsibleState.None;
+    element.iconPath = element.children ? undefined : element.iconPath;
+    return element;
+  }
+
+  getChildren(element: ActionTreeItem): ProviderResult<ActionTreeItem[]> {
+    if (!element) {
+      const scanItem = new ActionTreeItem(
+        "Altimate Scan",
+        undefined,
+        undefined,
+        "Find dbt issues in workspace using Altimate AI",
+      );
+
+      scanItem.children = [
+        new ActionTreeItem(
+          "Start Scan",
+          new ThemeIcon("search-view-icon"),
+          {
+            command: "dbtPowerUser.altimateScan",
+            title: "Altimate Scan",
+            arguments: [],
+          },
+          "Scan all projects for issues",
+        ),
+        new ActionTreeItem(
+          "Clear Problems",
+          new ThemeIcon("search-stop"),
+          {
+            command: "dbtPowerUser.clearAltimateScanResults",
+            title: "Clear All Problems",
+            arguments: [],
+          },
+          "Clear issues from problems panel",
+        ),
+        new ActionTreeItem("Send Feedback", undefined, {
+          command: "vscode.open",
+          title: "Send Feedback",
+          arguments: [
+            Uri.parse(
+              "https://docs.google.com/forms/d/e/1FAIpQLSdw7QEvM84FX0KQT1ADhxVsdHk81cdDp_a930Ggym5_Fk1vWg/viewform",
+            ),
+          ],
+        }),
+      ];
+      return Promise.resolve([scanItem]);
+    }
+    return element.children;
   }
 }
 
@@ -372,3 +447,6 @@ export class DocumentationTreeview extends DocumentationTreeviewProvider {
     super(dbtProjectContainer);
   }
 }
+
+@provideSingleton(IconActionsTreeview)
+export class IconActionsTreeview extends IconActionsTreeviewProvider {}

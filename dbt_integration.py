@@ -30,6 +30,7 @@ from typing import (
     Optional,
     Tuple,
     TypeVar,
+    Union,
 )
 
 import agate
@@ -44,6 +45,7 @@ from dbt.parser.sql import SqlBlockParser, SqlMacroParser
 from dbt.task.sql import SqlCompileRunner, SqlExecuteRunner
 from dbt.tracking import disable_tracking
 from dbt.version import __version__ as dbt_version
+from dbt.task.generate import Catalog
 
 try:
     # dbt <= 1.3
@@ -59,6 +61,9 @@ if TYPE_CHECKING:
     from dbt.adapters.base import BaseRelation  # type: ignore
     from dbt.contracts.connection import AdapterResponse
 
+
+Primitive = Union[bool, str, float, None]
+PrimitiveDict = Dict[str, Primitive]
 
 CACHE = {}
 CACHE_VERSION = 1
@@ -557,6 +562,29 @@ class DbtProject:
             delattr(node, COMPILED_CODE)
             columns.extend(result.table.column_names)
         return columns
+
+    def get_catalog(self) -> Dict[str, Any]:
+        """Get catalog from adapter"""
+        catalog_table: agate.Table = agate.Table([])
+        catalog_data: List[PrimitiveDict] = []
+        exceptions: List[Exception] = []
+        try:
+            with self.adapter.connection_named("generate_catalog"):
+                catalog_table, exceptions = self.adapter.get_catalog(self.dbt)
+
+            if exceptions:
+                raise Exception(str(exceptions))
+
+            catalog_data = [
+                dict(
+                    zip(catalog_table.column_names, map(dbt.utils._coerce_decimal, row))
+                )
+                for row in catalog_table
+            ]
+
+        except Exception as e:
+            raise Exception(str(e))
+        return catalog_data
 
     def get_or_create_relation(
         self, database: str, schema: str, name: str

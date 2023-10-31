@@ -106,6 +106,7 @@ export class DBTProject implements Disposable {
     languages.createDiagnosticCollection("dbt");
   private readonly projectConfigDiagnostics =
     languages.createDiagnosticCollection("dbt");
+  public readonly projectHealth = languages.createDiagnosticCollection("dbt");
 
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -598,6 +599,51 @@ export class DBTProject implements Disposable {
           refNode.database
         }, ${refNode.schema}, ${refNode.alias || modelName})))`,
     );
+  }
+
+  async getCatalog(): Promise<{ [key: string]: string }[]> {
+    await this.blockUntilPythonBridgeIsInitalized();
+    if (!this.pythonBridgeInitialized) {
+      window.showErrorMessage(
+        "Could not execute query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue.",
+      );
+      this.telemetry.sendTelemetryError(
+        "getColumnsInRelationPythonBridgeNotInitializedError",
+      );
+      // TODO: improve this, the errors should be captured at a higher level
+      return [];
+    }
+    // Get database and schema
+    try {
+      const catalog = (await this.python?.lock(
+        (python) => python!`to_dict(project.get_catalog())`,
+      )) as any;
+      return catalog;
+    } catch (exc: any) {
+      if (exc instanceof PythonException) {
+        this.telemetry.sendTelemetryError("catalogPythonError", exc, {
+          adapter: this.adapterType,
+        });
+        window.showErrorMessage(
+          extendErrorWithSupportLinks(
+            "An error occured while trying to fetch the schemas for project: " +
+              this.projectName +
+              ". ",
+          ),
+        );
+        return [];
+      }
+      // Unknown error
+      this.telemetry.sendTelemetryError("catalogUnknownError", exc, {
+        adapter: this.adapterType,
+      });
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Encountered an unknown issue:" + exc + ".",
+        ),
+      );
+      return [];
+    }
   }
 
   async generateSchemaYML(modelPath: Uri, modelName: string) {
