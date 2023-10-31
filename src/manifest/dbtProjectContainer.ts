@@ -138,6 +138,15 @@ export class DBTProjectContainer implements Disposable {
     return this.findDBTWorkspaceFolder(uri)?.findDBTProject(uri);
   }
 
+  findAllDBTProjects(): DBTProject[] {
+    const allProjects: DBTProject[] = [];
+    this.dbtWorkspaceFolders.forEach((workspaceFolder) => {
+      const workspaceProjects = workspaceFolder.findDBTProjects();
+      allProjects.push(...workspaceProjects);
+    });
+    return allProjects;
+  }
+
   addCommandToQueue(command: DBTCommand) {
     if (this.dbtClient === undefined) {
       if (command.focus) {

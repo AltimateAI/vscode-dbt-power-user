@@ -20,6 +20,7 @@ Main features:
 - Build a model through the paper plane button (next to the play button)
 - dbt update notifications
 - [dbt logs viewer (force tailing)](#logtailer)
+- [Run workspace scan and see the issues across all projects in the workspace](#projectscan)
 
 This extension is using the Python extension to detect Python interpreters that are installed in standard locations. See [Python Environments](https://code.visualstudio.com/docs/languages/python#_environments).
 
@@ -66,6 +67,7 @@ When you set the Python interpreter, the extension will try to detect dbt and yo
 In case you want to use a custom runner. You can overwrite the import string for it.
 
 For an example, you have module `my_custom_runner`:
+
 ```python
 from dbt.cli.main import dbtRunner
 
@@ -237,3 +239,32 @@ This feature relies on a defined schema in a YML file. It extracts data from bot
 ### <a id="logtailer">dbt logs force tailing</a>
 
 ![dbt logs](./media/images/dbt-log.gif)
+
+### <a id="projectscan">Altimate scan</a>
+
+#### Enhance Your Workspace with the Altimate Scanner!
+
+Our new feature lets you swiftly scan all dbt projects in your workspace, bringing any issues straight to the problems panel. Depending on your team's conventions, we've classified potential discrepancies as warnings or just informational pointers.
+
+#### What the Scanner Checks For:
+
+- **Missing schema.yml Files**:
+
+  - If some models aren’t documented, they'll show up here.
+  - _Note_: We give seeds or ephemeral models a pass, as they're often traditionally undocumented.
+
+- **Undocumented Columns**:
+
+  - For models with a schema.yml but with some columns left undocumented.
+  - This typically points to a mismatch between the actual database model and its documentation. It's more of a heads-up than an error.
+
+- **Extra Columns**:
+
+  - Over time, columns might get dropped from models but linger in the schema.yml.
+  - Our scanner catches this. Or, maybe it's just a typo in the schema.yml
+
+- **Models Absent in the Database**:
+  - We'll flag seeds and models missing from the database.
+  - Maybe it's an unused model ripe for removal, or perhaps it’s a fresh model that's yet to make its debut in the database.
+
+![projectscan](./media/images/project-scan.gif)

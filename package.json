@@ -226,6 +226,10 @@
         {
           "id": "documentation_treeview",
           "name": "Documentation"
+        },
+        {
+          "id": "icon_actions_treeview",
+          "name": "Project Actions ✨"
         }
       ],
       "dbt_preview_results": [
@@ -263,6 +267,15 @@
         "command": "dbtPowerUser.sqlToModel",
         "title": "Convert to dbt Model",
         "icon": "$(circuit-board)"
+      },
+      {
+        "command": "dbtPowerUser.altimateScan",
+        "title": "Altimate Scan",
+        "icon": "$(circuit-board)"
+      },
+      {
+        "command": "dbtPowerUser.clearAltimateScanResults",
+        "title": "Clear Altimate Scan Results"
       },
       {
         "command": "dbtPowerUser.compileCurrentModel",
