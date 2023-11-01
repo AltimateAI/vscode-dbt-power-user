@@ -270,12 +270,12 @@
       },
       {
         "command": "dbtPowerUser.altimateScan",
-        "title": "Altimate Scan",
+        "title": "Project Health Check",
         "icon": "$(circuit-board)"
       },
       {
         "command": "dbtPowerUser.clearAltimateScanResults",
-        "title": "Clear Altimate Scan Results"
+        "title": "Clear Health Check Results"
       },
       {
         "command": "dbtPowerUser.compileCurrentModel",
