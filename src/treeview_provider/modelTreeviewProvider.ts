@@ -338,10 +338,10 @@ class IconActionsTreeviewProvider implements TreeDataProvider<ActionTreeItem> {
   getChildren(element: ActionTreeItem): ProviderResult<ActionTreeItem[]> {
     if (!element) {
       const scanItem = new ActionTreeItem(
-        "Altimate Scan",
+        "Project Health Check",
         undefined,
         undefined,
-        "Find dbt issues in workspace using Altimate AI",
+        "Find issues in dbt projects",
       );
 
       scanItem.children = [
@@ -350,7 +350,7 @@ class IconActionsTreeviewProvider implements TreeDataProvider<ActionTreeItem> {
           new ThemeIcon("search-view-icon"),
           {
             command: "dbtPowerUser.altimateScan",
-            title: "Altimate Scan",
+            title: "Project Health Check",
             arguments: [],
           },
           "Scan all projects for issues",
