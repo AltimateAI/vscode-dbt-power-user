@@ -45,7 +45,7 @@ from dbt.parser.sql import SqlBlockParser, SqlMacroParser
 from dbt.task.sql import SqlCompileRunner, SqlExecuteRunner
 from dbt.tracking import disable_tracking
 from dbt.version import __version__ as dbt_version
-from dbt.task.generate import Catalog
+
 
 try:
     # dbt <= 1.3

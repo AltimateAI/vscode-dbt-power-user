@@ -20,7 +20,15 @@ class Grid {
   constructor() {}
 
   async init() {
-    this.worker = perspective.worker();
+    this.worker = perspective.worker({
+      types: {
+        integer: {
+          format: {
+            useGrouping: false,
+          },
+        },
+      },
+    });
     this.elem = document.querySelector("perspective-viewer");
   }
 
