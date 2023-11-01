@@ -242,7 +242,7 @@ This feature relies on a defined schema in a YML file. It extracts data from bot
 
 ### <a id="projectscan">Project Health Check</a>
 
-#### Prevent issues for getting shipped to production!
+#### Prevent issues from getting shipped to production!
 
 Our new feature lets you swiftly scan all dbt projects in your workspace, bringing any issues straight to the problems panel. Depending on your team's conventions, we've classified potential discrepancies as warnings or just informational pointers.
 
