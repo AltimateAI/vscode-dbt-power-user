@@ -240,9 +240,9 @@ This feature relies on a defined schema in a YML file. It extracts data from bot
 
 ![dbt logs](./media/images/dbt-log.gif)
 
-### <a id="projectscan">Altimate scan</a>
+### <a id="projectscan">Project Health Check</a>
 
-#### Enhance Your Workspace with the Altimate Scanner!
+#### Enhance Your Workspace with the Project Health Check Scanner!
 
 Our new feature lets you swiftly scan all dbt projects in your workspace, bringing any issues straight to the problems panel. Depending on your team's conventions, we've classified potential discrepancies as warnings or just informational pointers.
 
