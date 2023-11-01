@@ -20,7 +20,15 @@ class Grid {
   constructor() {}
 
   async init() {
-    this.worker = perspective.worker();
+    this.worker = perspective.worker({
+      types: {
+        integer: {
+          format: {
+            useGrouping: false,
+          },
+        },
+      },
+    });
     this.elem = document.querySelector("perspective-viewer");
   }
 
@@ -48,6 +56,11 @@ class Grid {
     const schema = {};
     for (let i = 0; i < result.columnNames.length; i++) {
       schema[result.columnNames[i]] = this.mapType(result.columnTypes[i]);
+      console.log(
+        "datatype -> ",
+        result.columnTypes[i],
+        this.mapType(result.columnTypes[i]),
+      );
     }
     const table = await this.worker.table(schema);
     await table.replace(JSON.parse(JSON.stringify(result.rows)));
