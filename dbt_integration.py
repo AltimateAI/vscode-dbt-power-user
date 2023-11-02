@@ -48,6 +48,8 @@ from dbt.tracking import disable_tracking
 from dbt.version import __version__ as dbt_version
 from dbt.task.generate import Catalog
 import logging
+from agate.data_types.text import Text
+
 
 # Set up logging to file
 logging.basicConfig(filename="python_log.log", level=logging.DEBUG)
@@ -95,7 +97,9 @@ class Integer(agate.data_types.DataType):
         # by default agate will cast none as a Number
         # but we need to cast it as an Integer to preserve
         # the type when merging and unioning tables
-        if type(d) == int or d is None:
+        if isinstance(d, agate.Decimal) and d == int(d):
+            return d
+        elif type(d) == int or d is None:
             return d
         else:
             raise agate.exceptions.CastError('Can not parse value "%s" as Integer.' % d)
@@ -135,7 +139,6 @@ class ISODateTime(agate.data_types.DateTime):
 
 
 def build_type_tester(
-    text_columns: Iterable[str],
     string_null_values: Optional[Iterable[str]] = ("null", ""),
 ) -> agate.TypeTester:
     types = [
@@ -151,22 +154,24 @@ def build_type_tester(
         ),
         agate.data_types.Text(null_values=string_null_values),
     ]
-    force = {
-        k: agate.data_types.Text(null_values=string_null_values) for k in text_columns
-    }
     return agate.TypeTester(types=types)
 
 
 def to_dict(obj):
     if isinstance(obj, agate.Table):
         logger.debug(type(obj))
+        logger.debug(obj.print_structure())
         logger.debug(obj.column_names)
         logger.debug(list(map(lambda x: x.__class__.__name__, obj.column_types)))
-        rows = [to_dict(row) for row in obj.rows]
-        logger.debug(rows)
-        column_types = build_type_tester(obj.column_names, string_null_values=()).run(
-            rows, obj.column_names
+        for k in obj.rows[:1]:
+            logger.debug(k["PAYMENT_YEAR"])
+            logger.debug(type(k["PAYMENT_YEAR"]))
+            logger.debug(Integer(null_values=("null", "")).test(k["PAYMENT_YEAR"]))
+        column_types = build_type_tester(string_null_values=()).run(
+            obj.rows,
+            obj.column_names,
         )
+        rows = [to_dict(row) for row in obj.rows]
         logger.debug(list(map(lambda x: x.__class__.__name__, column_types)))
         return {
             "rows": rows,
