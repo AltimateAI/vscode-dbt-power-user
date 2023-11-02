@@ -139,6 +139,7 @@ class ISODateTime(agate.data_types.DateTime):
 
 
 def build_type_tester(
+    text_columns: Iterable[str],
     string_null_values: Optional[Iterable[str]] = ("null", ""),
 ) -> agate.TypeTester:
     types = [
@@ -154,7 +155,10 @@ def build_type_tester(
         ),
         agate.data_types.Text(null_values=string_null_values),
     ]
-    return agate.TypeTester(types=types)
+    force = {
+        k: agate.data_types.Text(null_values=string_null_values) for k in text_columns
+    }
+    return agate.TypeTester(force=force, types=types)
 
 
 def to_dict(obj):
@@ -162,21 +166,26 @@ def to_dict(obj):
         logger.debug(type(obj))
         logger.debug(obj.print_structure())
         logger.debug(obj.column_names)
-        logger.debug(list(map(lambda x: x.__class__.__name__, obj.column_types)))
+        agate_column_types = list(map(lambda x: x.__class__.__name__, obj.column_types))
+        logger.debug(agate_column_types)
         for k in obj.rows[:1]:
-            logger.debug(k["PAYMENT_YEAR"])
-            logger.debug(type(k["PAYMENT_YEAR"]))
-            logger.debug(Integer(null_values=("null", "")).test(k["PAYMENT_YEAR"]))
-        column_types = build_type_tester(string_null_values=()).run(
+            logger.debug(k["PATIENT_ID"])
+            logger.debug(type(k["PATIENT_ID"]))
+            logger.debug(Integer(null_values=("null", "")).test(k["PATIENT_ID"]))
+        text_columns = [
+            cn
+            for i, cn in enumerate(obj.column_names)
+            if agate_column_types[i] == "Text"
+        ]
+        column_types = build_type_tester(text_columns, string_null_values=()).run(
             obj.rows,
             obj.column_names,
         )
-        rows = [to_dict(row) for row in obj.rows]
         logger.debug(list(map(lambda x: x.__class__.__name__, column_types)))
         return {
-            "rows": rows,
+            "rows": [to_dict(row) for row in obj.rows],
             "column_names": obj.column_names,
-            "column_types": list(map(lambda x: x.__class__.__name__, obj.column_types)),
+            "column_types": list(map(lambda x: x.__class__.__name__, column_types)),
         }
     if isinstance(obj, str):
         return obj
