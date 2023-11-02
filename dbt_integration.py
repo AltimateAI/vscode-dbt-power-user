@@ -47,13 +47,6 @@ from dbt.task.sql import SqlCompileRunner, SqlExecuteRunner
 from dbt.tracking import disable_tracking
 from dbt.version import __version__ as dbt_version
 from dbt.task.generate import Catalog
-import logging
-from agate.data_types.text import Text
-
-
-# Set up logging to file
-logging.basicConfig(filename="python_log.log", level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
 
 try:
@@ -163,15 +156,7 @@ def build_type_tester(
 
 def to_dict(obj):
     if isinstance(obj, agate.Table):
-        logger.debug(type(obj))
-        logger.debug(obj.print_structure())
-        logger.debug(obj.column_names)
         agate_column_types = list(map(lambda x: x.__class__.__name__, obj.column_types))
-        logger.debug(agate_column_types)
-        for k in obj.rows[:1]:
-            logger.debug(k["PATIENT_ID"])
-            logger.debug(type(k["PATIENT_ID"]))
-            logger.debug(Integer(null_values=("null", "")).test(k["PATIENT_ID"]))
         text_columns = [
             cn
             for i, cn in enumerate(obj.column_names)
@@ -181,7 +166,6 @@ def to_dict(obj):
             obj.rows,
             obj.column_names,
         )
-        logger.debug(list(map(lambda x: x.__class__.__name__, column_types)))
         return {
             "rows": [to_dict(row) for row in obj.rows],
             "column_names": obj.column_names,
