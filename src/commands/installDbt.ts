@@ -32,24 +32,52 @@ export class DebugCommands {
       PromptAnswer.NO,
     );
     if (answer === PromptAnswer.YES) {
-      // TODO: telemetry
-
       try {
-        const runModelCommand =
-          this.dbtCommandFactory.createCompileModelCommand(
-            this.projectRoot,
-            this.dbtProfilesDir,
-            runModelParams,
+        this.telemetry.sendTelemetryEvent("validateProjects");
+        // TODO add a filter to projects using picker
+        const projects = this.dbtProjectContainer.findAllDBTProjects();
+
+        for (const project of projects) {
+          const runModelCommand = this.dbtCommandFactory.createDebugCommand(
+            project.projectRoot,
+            project.dbtProfilesDir,
           );
-        this.telemetry.sendTelemetryEvent("compileModel");
-        this.dbtProjectContainer.addCommandToQueue(runModelCommand);
+          this.dbtProjectContainer.addCommandToQueue(runModelCommand);
+        }
       } catch (err) {
         // do something useful with error
         // TODO: telemetry
+        this.telemetry.sendTelemetryError("validateProjectsError", err);
       }
     }
   }
-  async installDeps() {}
+  async installDeps() {
+    const answer = await window.showErrorMessage(
+      `Do you want to validate all the projects? This will run the command 'dbt debug' on all the projects. Do you want to continue?`,
+      PromptAnswer.YES,
+      PromptAnswer.NO,
+    );
+    if (answer === PromptAnswer.YES) {
+      try {
+        this.telemetry.sendTelemetryEvent("validateProjects");
+        // TODO add a filter to projects using picker
+        const projects = this.dbtProjectContainer.findAllDBTProjects();
+
+        for (const project of projects) {
+          const runModelCommand =
+            this.dbtCommandFactory.createInstallDepsCommand(
+              project.projectRoot,
+              project.dbtProfilesDir,
+            );
+          this.dbtProjectContainer.addCommandToQueue(runModelCommand);
+        }
+      } catch (err) {
+        // do something useful with error
+        // TODO: telemetry
+        this.telemetry.sendTelemetryError("validateProjectsError", err);
+      }
+    }
+  }
 
   async isVsCodeOutdatated() {
     const currentVersion = version.toString();
