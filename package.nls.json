@@ -15,8 +15,10 @@
   "walkthrough.initialSetup.steps.associateFileExts.description": "Associate file types with dbt Power User.\n[Associate File Types](command:dbtPowerUser.associateFileExts)",
   "walkthrough.initialSetup.steps.validateProject.title": "Check if projects are set up correction.",
   "walkthrough.initialSetup.steps.validateProject.description": "Check if projects are set up correction.\n[Validate Project](command:dbtPowerUser.validateProject)",
-  "walkthrough.initialSetup.steps.installDbt.title": "Install missing DBT adapters",
-  "walkthrough.initialSetup.steps.installDbt.description": "Install missing DBT adapters.\n[Install DBT Adapters](command:dbtPowerUser.installDBTAdapters)",
+  "walkthrough.initialSetup.steps.pickProject.title": "Pick a dbt project",
+  "walkthrough.initialSetup.steps.pickProject.description": "Pick a dbt project.\n[Pick Project](command:dbtPowerUser.pickProject)",
+  "walkthrough.initialSetup.steps.installDBT.title": "Install missing DBT adapters",
+  "walkthrough.initialSetup.steps.installDBT.description": "Install missing DBT adapters.\n[Install DBT Adapters](command:dbtPowerUser.installDBTAdapters)",
   "walkthrough.initialSetup.steps.installDeps.title": "Run dbt deps",
   "walkthrough.initialSetup.steps.installDeps.description": "Install packages in dbt projects. This step will run dbt deps.\n[Run dbt deps](command:dbtPowerUser.installDeps)"
 }

@@ -576,20 +576,21 @@
             ]
           },
           {
-            "id": "installDBT",
-            "title": "%walkthrough.initialSetup.steps.installDBT.title%",
-            "description": "%walkthrough.initialSetup.steps.installDBT.description%",
+            "id": "pickProject",
+            "title": "%walkthrough.initialSetup.steps.pickProject.title%",
+            "description": "%walkthrough.initialSetup.steps.pickProject.description%",
             "media": {
-              "markdown": "media/installDBT.md"
+              "markdown": "media/pickProject.md"
             },
             "completionEvents": [
-              "onCommand:dbtPowerUser.installDBTAdapters"
+              "onContext:dbtPowerUser.walkthroughProjectSelected"
             ]
           },
           {
             "id": "installDeps",
             "title": "%walkthrough.initialSetup.steps.installDeps.title%",
             "description": "%walkthrough.initialSetup.steps.installDeps.description%",
+            "when": "dbtPowerUser.walkthroughProjectSelected",
             "media": {
               "markdown": "media/installDeps.md"
             },
@@ -601,6 +602,7 @@
             "id": "validateProject",
             "title": "%walkthrough.initialSetup.steps.validateProject.title%",
             "description": "%walkthrough.initialSetup.steps.validateProject.description%",
+            "when": "dbtPowerUser.walkthroughProjectSelected",
             "media": {
               "markdown": "media/validateProject.md"
             },

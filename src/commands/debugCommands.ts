@@ -1,11 +1,11 @@
-import { window, version } from "vscode";
-import * as vscode from "vscode";
+import { window, version, commands } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DBTCommandFactory } from "../dbt_client/dbtCommandFactory";
+import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -25,15 +25,22 @@ export class DebugCommands {
   async installDBTAdapters() {
     await this.askforDBTInstallation();
   }
-  async validateProjects() {
+  async validateProjects(projectContext: ProjectQuickPickItem | undefined) {
+    if (projectContext === undefined) {
+      // This shouldnt happen really
+      window.showErrorMessage(
+        "No project was selected, please select a project in the step 'Pick a dbt project' above.",
+      );
+      return;
+    }
     const answer = await window.showErrorMessage(
-      `Do you want to validate all the projects? This will run the command 'dbt debug' on all the projects. Do you want to continue?`,
+      `Do you want to validate the project: ${projectContext.label}? This will run the command 'dbt debug' inside this project. Do you want to continue?`,
       PromptAnswer.YES,
       PromptAnswer.NO,
     );
     if (answer === PromptAnswer.YES) {
       try {
-        this.telemetry.sendTelemetryEvent("validateProjects");
+        this.telemetry.sendTelemetryEvent("validateProject");
         // TODO add a filter to projects using picker
         const projects = this.dbtProjectContainer.findAllDBTProjects();
 
@@ -47,19 +54,26 @@ export class DebugCommands {
       } catch (err) {
         // do something useful with error
         // TODO: telemetry
-        this.telemetry.sendTelemetryError("validateProjectsError", err);
+        this.telemetry.sendTelemetryError("validateProjectError", err);
       }
     }
   }
-  async installDeps() {
+  async installDeps(projectContext: ProjectQuickPickItem | undefined) {
+    if (projectContext === undefined) {
+      // This shouldnt happen really
+      window.showErrorMessage(
+        "No project was selected, please select a project in the step 'Pick a dbt project' above.",
+      );
+      return;
+    }
     const answer = await window.showErrorMessage(
-      `Do you want to validate all the projects? This will run the command 'dbt debug' on all the projects. Do you want to continue?`,
+      `Do you want to validate the project: ${projectContext.label}? This will run the command 'dbt deps' inside this project. Do you want to continue?`,
       PromptAnswer.YES,
       PromptAnswer.NO,
     );
     if (answer === PromptAnswer.YES) {
       try {
-        this.telemetry.sendTelemetryEvent("validateProjects");
+        this.telemetry.sendTelemetryEvent("installDeps");
         // TODO add a filter to projects using picker
         const projects = this.dbtProjectContainer.findAllDBTProjects();
 
@@ -74,7 +88,7 @@ export class DebugCommands {
       } catch (err) {
         // do something useful with error
         // TODO: telemetry
-        this.telemetry.sendTelemetryError("validateProjectsError", err);
+        this.telemetry.sendTelemetryError("installDepsError", err);
       }
     }
   }

@@ -13,8 +13,9 @@ import { provideSingleton } from "../utils";
 import { RunModel } from "./runModel";
 import { SqlToModel } from "./sqlToModel";
 import { AltimateScan } from "./altimateScan";
-import { DebugCommands } from "./installDbt";
+import { DebugCommands } from "./debugCommands";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -113,12 +114,21 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.installDBTAdapters", () =>
         this.debugCommands.installDBTAdapters(),
       ),
-      commands.registerCommand("dbtPowerUser.validateProject", () =>
-        this.debugCommands.validateProjects(),
-      ),
-      commands.registerCommand("dbtPowerUser.installDeps", () =>
-        this.debugCommands.installDeps(),
-      ),
+      commands.registerCommand("dbtPowerUser.validateProject", () => {
+        const pickedProject: ProjectQuickPickItem | undefined =
+          this.dbtProjectContainer.context?.workspaceState.get(
+            "dbtPowerUser.projectSelected",
+          );
+
+        this.debugCommands.validateProjects(pickedProject);
+      }),
+      commands.registerCommand("dbtPowerUser.installDeps", () => {
+        const pickedProject: ProjectQuickPickItem | undefined =
+          this.dbtProjectContainer.context?.workspaceState.get(
+            "dbtPowerUser.projectSelected",
+          );
+        this.debugCommands.installDeps(pickedProject);
+      }),
       commands.registerCommand("dbtPowerUser.openSetupWalkthrough", () =>
         commands.executeCommand(
           "workbench.action.openWalkthrough",
