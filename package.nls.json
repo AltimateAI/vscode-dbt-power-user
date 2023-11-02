@@ -10,7 +10,7 @@
   "walkthrough.initialSetup.steps.selectInterpreter.title": "Check Python Interpreter Setting",
   "walkthrough.initialSetup.steps.selectInterpreter.description": "This step will change a setting and check off when the setting has changed\n[Change Setting](command:python.setInterpreter)",
   "walkthrough.initialSetup.steps.updateExtension.title": "Update dbt Power User Extension",
-  "walkthrough.initialSetup.steps.updateExtension.description": "To get the latest features, update the dbt Power User extension.\n[Update Extension](command:workbench.extensions.action.updateExtension?%22innoverio.vscode-dbt-power-user%22)",
+  "walkthrough.initialSetup.steps.updateExtension.description": "To get the latest features, update the dbt Power User extension.\n[Update Extension](command:workbench.extensions.action.extensionUpdates)",
   "walkthrough.initialSetup.steps.associateFileExts.title": "Associate File Types",
   "walkthrough.initialSetup.steps.associateFileExts.description": "Associate file types with dbt Power User.\n[Associate File Types](command:dbtPowerUser.associateFileExts)",
   "walkthrough.initialSetup.steps.validateProject.title": "Check if projects are set up correction.",

@@ -282,11 +282,6 @@
         "title": "Clear Health Check Results"
       },
       {
-        "command": "dbtPowerUser.installDBTAdapters",
-        "title": "Install dbt",
-        "icon": "$(database)"
-      },
-      {
         "command": "dbtPowerUser.compileCurrentModel",
         "title": "Compile dbt Model",
         "icon": {
