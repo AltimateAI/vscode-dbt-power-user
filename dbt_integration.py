@@ -34,6 +34,7 @@ from typing import (
 )
 
 import agate
+import isodate
 from dbt.adapters.factory import get_adapter_class_by_name
 from dbt.config.runtime import RuntimeConfig
 from dbt.contracts.graph.manifest import NodeType
@@ -46,6 +47,12 @@ from dbt.task.sql import SqlCompileRunner, SqlExecuteRunner
 from dbt.tracking import disable_tracking
 from dbt.version import __version__ as dbt_version
 from dbt.task.generate import Catalog
+import logging
+
+# Set up logging to file
+logging.basicConfig(filename="python_log.log", level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 
 try:
     # dbt <= 1.3
@@ -83,10 +90,86 @@ JINJA_CONTROL_SEQS = ["{{", "}}", "{%", "%}", "{#", "#}"]
 T = TypeVar("T")
 
 
+class Integer(agate.data_types.DataType):
+    def cast(self, d):
+        # by default agate will cast none as a Number
+        # but we need to cast it as an Integer to preserve
+        # the type when merging and unioning tables
+        if type(d) == int or d is None:
+            return d
+        else:
+            raise agate.exceptions.CastError('Can not parse value "%s" as Integer.' % d)
+
+    def jsonify(self, d):
+        return d
+
+
+class Number(agate.data_types.Number):
+    # undo the change in https://github.com/wireservice/agate/pull/733
+    # i.e. do not cast True and False to numeric 1 and 0
+    def cast(self, d):
+        if type(d) == bool:
+            raise agate.exceptions.CastError("Do not cast True to 1 or False to 0.")
+        else:
+            return super().cast(d)
+
+
+class ISODateTime(agate.data_types.DateTime):
+    def cast(self, d):
+        # this is agate.data_types.DateTime.cast with the "clever" bits removed
+        # so we only handle ISO8601 stuff
+        if isinstance(d, datetime) or d is None:
+            return d
+        elif isinstance(d, date):
+            return datetime.combine(d, time(0, 0, 0))
+        elif isinstance(d, str):
+            d = d.strip()
+            if d.lower() in self.null_values:
+                return None
+        try:
+            return isodate.parse_datetime(d)
+        except:  # noqa
+            pass
+
+        raise agate.exceptions.CastError('Can not parse value "%s" as datetime.' % d)
+
+
+def build_type_tester(
+    text_columns: Iterable[str],
+    string_null_values: Optional[Iterable[str]] = ("null", ""),
+) -> agate.TypeTester:
+    types = [
+        Integer(null_values=("null", "")),
+        Number(null_values=("null", "")),
+        agate.data_types.Date(null_values=("null", ""), date_format="%Y-%m-%d"),
+        agate.data_types.DateTime(
+            null_values=("null", ""), datetime_format="%Y-%m-%d %H:%M:%S"
+        ),
+        ISODateTime(null_values=("null", "")),
+        agate.data_types.Boolean(
+            true_values=("true",), false_values=("false",), null_values=("null", "")
+        ),
+        agate.data_types.Text(null_values=string_null_values),
+    ]
+    force = {
+        k: agate.data_types.Text(null_values=string_null_values) for k in text_columns
+    }
+    return agate.TypeTester(types=types)
+
+
 def to_dict(obj):
     if isinstance(obj, agate.Table):
+        logger.debug(type(obj))
+        logger.debug(obj.column_names)
+        logger.debug(list(map(lambda x: x.__class__.__name__, obj.column_types)))
+        rows = [to_dict(row) for row in obj.rows]
+        logger.debug(rows)
+        column_types = build_type_tester(obj.column_names, string_null_values=()).run(
+            rows, obj.column_names
+        )
+        logger.debug(list(map(lambda x: x.__class__.__name__, column_types)))
         return {
-            "rows": [to_dict(row) for row in obj.rows],
+            "rows": rows,
             "column_names": obj.column_names,
             "column_types": list(map(lambda x: x.__class__.__name__, obj.column_types)),
         }
