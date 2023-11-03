@@ -63,7 +63,13 @@ export class PuQuickPick {
             "Run Project Healthcheck",
             "debug-start",
             "Run the Project healthcheck",
-            "dbtPowerUser.runProjectHealthcheck",
+            "dbtPowerUser.altimateScan",
+          ),
+          new AltimateCommandCenterItem(
+            "Clear Healthcheck Results",
+            "debug-stop",
+            "Clear all problems",
+            "dbtPowerUser.clearAltimateScanResults",
           ),
         ];
 
