@@ -562,7 +562,7 @@
     "python-bridge": "github:mdesmet/node-python-bridge#feat/detached",
     "reflect-metadata": "^0.1.13",
     "which": "^4.0.0",
-    "yaml": "^2.3.2"
+    "yaml": "^2.3.4"
   },
   "lint-staged": {
     "*.ts": [
