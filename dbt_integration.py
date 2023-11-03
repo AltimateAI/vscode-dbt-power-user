@@ -85,12 +85,6 @@ T = TypeVar("T")
 
 def to_dict(obj):
     if isinstance(obj, agate.Table):
-        agate_column_types = list(map(lambda x: x.__class__.__name__, obj.column_types))
-        text_columns = [
-            cn
-            for i, cn in enumerate(obj.column_names)
-            if agate_column_types[i] == "Text"
-        ]
         return {
             "rows": [to_dict(row) for row in obj.rows],
             "column_names": obj.column_names,
