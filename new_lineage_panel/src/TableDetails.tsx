@@ -307,7 +307,7 @@ const TableDetails = () => {
           : ["target", "source"];
         const hop1Tables = [];
         const _ephemeralNodes: string[] = [];
-        const tempCurrEphemeralTable: string[] = [];
+        const collectEphemeralAncestors: string[] = [];
         for (const e of _edges) {
           const srcTable = e[src];
           const dstTable = e[dst];
@@ -333,8 +333,7 @@ const TableDetails = () => {
               );
               _ephemeralNodes.push(dstTable);
             } else {
-              // TODO: collect all here
-              tempCurrEphemeralTable.push(srcTable);
+              collectEphemeralAncestors.push(srcTable);
               hop1Tables.push(dstTable);
             }
           }
@@ -361,11 +360,11 @@ const TableDetails = () => {
 
         console.log(
           "nodeType4:",
-          tempCurrEphemeralTable,
+          collectEphemeralAncestors,
           currEphemeralNodes,
           ephemeralAncestors
         );
-        tempCurrEphemeralTable.forEach((t) => {
+        collectEphemeralAncestors.forEach((t) => {
           currTargetColumns.push(...ephemeralAncestors[t]);
           currAnd1HopTables.push(...ephemeralAncestors[t].map((c) => c[0]));
         });
