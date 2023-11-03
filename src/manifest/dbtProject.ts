@@ -267,8 +267,8 @@ export class DBTProject implements Disposable {
       return;
     }
     // this methods already handle exceptions
-    await this.rebuildManifest();
     await this.tryRefresh();
+    await this.rebuildManifest();
   }
 
   private async onPythonEnvironmentChanged() {
