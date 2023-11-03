@@ -29,17 +29,11 @@ export class PuQuickPick {
         dbtpuquickpick.title = "Power User Control Panel";
         dbtpuquickpick.items = [
           new AltimateCommandCenterItem(
-            "Debug Extension Setup",
+            "Setup Extension",
             "debug",
-            "Open the debug extension setup walkthrough",
+            "Open the extension setup walkthrough",
             "dbtPowerUser.openSetupWalkthrough",
           ),
-          // new AltimateCommandCenterItem(
-          //   "Open Lineage",
-          //   "link-external",
-          //   "Open the lineage panel",
-          //   "dbtPowerUser.Lineage.focus",
-          // ),
           new AltimateCommandCenterItem(
             "dbt Power User Tutorials",
             "book",
@@ -47,13 +41,17 @@ export class PuQuickPick {
             "dbtPowerUser.openTutorialWalkthrough",
           ),
           new AltimateCommandCenterItem(
-            "Set up Altimate Account",
+            "Readme",
             "link-external",
-            "Register for Altimate and set up your account",
+            "View the detailed ReadMe for the extension",
             // This really is an older interface meant to work with executeCommand.
             // recommended is to use vscode.env.openExternal
             "vscode.open",
-            [Uri.parse("https://app.myaltimate.com/register")],
+            [
+              Uri.parse(
+                "https://github.com/AltimateAI/vscode-dbt-power-user/blob/master/README.md",
+              ),
+            ],
           ),
           {
             label: "",
@@ -70,6 +68,16 @@ export class PuQuickPick {
             "debug-stop",
             "Clear all problems",
             "dbtPowerUser.clearAltimateScanResults",
+          ),
+          {
+            label: "",
+            kind: QuickPickItemKind.Separator,
+          },
+          new AltimateCommandCenterItem(
+            "Run Project Healthcheck",
+            "debug-start",
+            "Run the Project healthcheck",
+            "dbtPowerUser.altimateScan",
           ),
         ];
 

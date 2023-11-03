@@ -129,26 +129,45 @@ export class VSCodeCommands implements Disposable {
           );
         this.debugCommands.installDeps(pickedProject);
       }),
-      commands.registerCommand("dbtPowerUser.openSetupWalkthrough", () =>
-        commands.executeCommand(
-          "workbench.action.openWalkthrough",
-          `${this.dbtProjectContainer.context?.extension.id.toString()}#initialSetup`,
-          true,
-        ),
+      commands.registerCommand(
+        "dbtPowerUser.openSetupWalkthrough",
+        async () => {
+          await commands.executeCommand("workbench.action.openWalkthrough");
+          commands.executeCommand(
+            "workbench.action.openWalkthrough",
+            `${this.dbtProjectContainer.context?.extension.id.toString()}#initialSetup`,
+            true,
+          );
+        },
       ),
-      commands.registerCommand("dbtPowerUser.openTutorialWalkthrough", () =>
-        commands.executeCommand(
-          "workbench.action.openWalkthrough",
-          `${this.dbtProjectContainer.context?.extension.id.toString()}#tutorials`,
+      commands.registerCommand(
+        "dbtPowerUser.openTutorialWalkthrough",
+        async () => {
+          await commands.executeCommand("workbench.action.openWalkthrough");
+          commands.executeCommand(
+            "workbench.action.openWalkthrough",
+            `${this.dbtProjectContainer.context?.extension.id.toString()}#tutorials`,
+            false,
+          );
+        },
+      ),
+      commands.registerCommand("dbtPowerUser.associateFileExts", async () => {
+        // TODO - set a config here to indicate that walkthrough has been seen
+        // commands.executeCommand();
+        // this seems to persist across vscode restarts. might disable it across versions though.
+        this.dbtProjectContainer.context?.globalState.update(
+          "showSetupWalkthrough",
           false,
-        ),
-      ),
-      commands.registerCommand("dbtPowerUser.associateFileExts", () =>
+        );
+        // not sure why this doesnt work
+        await workspace
+          .getConfiguration("dbt")
+          .update("showSetupWalkthrough", false);
         commands.executeCommand(
           "workbench.action.openSettings",
           "file.associations",
-        ),
-      ),
+        );
+      }),
     );
   }
 

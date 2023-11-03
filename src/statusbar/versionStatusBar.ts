@@ -48,7 +48,7 @@ export class VersionStatusBar implements Disposable {
     if (!event.dbtInstallationFound!.installed) {
       this.showTextInStatusBar(
         "$(error) dbt is not installed",
-        "statusBarItem.errorBackground",
+        // "statusBarItem.errorBackground",
       );
       return;
     }
@@ -64,7 +64,7 @@ export class VersionStatusBar implements Disposable {
         if (event.dbtInstallationFound.installedVersion !== undefined) {
           this.showTextInStatusBar(
             `$(error) dbt ${event.dbtInstallationFound.installedVersion} is not up to date`,
-            "statusBarItem.warningBackground",
+            // "statusBarItem.warningBackground",
           );
         } else {
           this.showTextInStatusBar(`$(check) dbt`);
@@ -77,7 +77,7 @@ export class VersionStatusBar implements Disposable {
 
   private showTextInStatusBar(
     text: string,
-    statusColor: string = this.defaultColor,
+    //statusColor: string = this.defaultColor,
     command?: Command,
   ) {
     this.statusBar.text = text;
@@ -85,7 +85,7 @@ export class VersionStatusBar implements Disposable {
       title: "Open Pu Control Panel",
       command: "dbtPowerUser.puQuickPick",
     };
-    this.statusBar.backgroundColor = new ThemeColor(statusColor);
+    //this.statusBar.backgroundColor = new ThemeColor(statusColor);
     this.statusBar.show();
   }
   private setStatusBarColor(color: string) {

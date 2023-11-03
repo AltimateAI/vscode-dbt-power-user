@@ -1,4 +1,4 @@
-import { Disposable, ExtensionContext, commands } from "vscode";
+import { Disposable, ExtensionContext, commands, workspace } from "vscode";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";
@@ -92,6 +92,18 @@ export class DBTPowerUserExtension implements Disposable {
       "dbtPowerUser.extensionVersion",
       "very old",
     );
+
+    // show setup walkthrough if needed
+    const showSetupWalkthrough = context.globalState.get(
+      "showSetupWalkthrough",
+    );
+    // not sure why this isnt working
+    const showSetup2 = workspace
+      .getConfiguration("dbt")
+      .get("showSetupWalkthrough");
+    if (showSetupWalkthrough === undefined || showSetupWalkthrough === true) {
+      commands.executeCommand("dbtPowerUser.openSetupWalkthrough");
+    }
 
     await this.dbtProjectContainer.detectDBT();
     await this.dbtProjectContainer.initializeDBTProjects();
