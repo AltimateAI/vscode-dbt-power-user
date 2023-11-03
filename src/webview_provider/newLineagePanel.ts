@@ -349,6 +349,7 @@ export class NewLineagePanel implements LineagePanelView {
         if (currTables.includes(t)) {
           return;
         }
+        // now we have 1Hop tables
         const node = nodeMetaMap.get(t);
         if (!node) {
           return;
@@ -484,10 +485,11 @@ export class NewLineagePanel implements LineagePanelView {
     key: keyof GraphMetaMap,
     table: string,
   ): Table[] | undefined {
-    const graphMetaMap = this.getEvent()?.graphMetaMap;
-    if (!graphMetaMap) {
+    const event = this.getEvent();
+    if (!event) {
       return;
     }
+    const { graphMetaMap, nodeMetaMap } = event;
     const dependencyNodes = graphMetaMap[key];
     const node = dependencyNodes.get(table);
     if (!node) {
@@ -500,10 +502,15 @@ export class NewLineagePanel implements LineagePanelView {
       }
     };
     node.nodes.forEach(({ key, url, label }) => {
+      let nodeType = key.split(".")?.[0] || "model";
+      const _node = nodeMetaMap.get(label);
+      if (_node?.config?.materialized === "ephemeral") {
+        nodeType = "ephemeral";
+      }
       addToTables(key, {
         table: label,
         url,
-        nodeType: key.split(".")?.[0] || "model",
+        nodeType,
         upstreamCount: this.getConnectedNodeCount(
           graphMetaMap["children"],
           key,

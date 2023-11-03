@@ -287,7 +287,13 @@ const TableDetails = () => {
         const unvistedColumns = currTargetColumns.filter(
           (x) => !visited[x.join("/")]
         );
-        if (unvistedColumns.length === 0) {
+        console.log(
+          "nodeType1:",
+          currTargetColumns,
+          currEphemeralNodes,
+          ephemeralAncestors
+        );
+        if (unvistedColumns.length === 0 && currEphemeralNodes.length === 0) {
           break;
         }
         const currTargetTables: Record<string, boolean> = {};
@@ -306,15 +312,20 @@ const TableDetails = () => {
           const srcTable = e[src];
           const dstTable = e[dst];
           const nodeType = flow.getNode(dstTable)?.data?.nodeType;
+          console.log("nodeType2:", srcTable, ":", dstTable, ":", nodeType);
           if (currTargetTables[srcTable]) {
+            console.log("nodeType3:", dstTable, ":", nodeType);
             if (nodeType === "ephemeral") {
               ephemeralAncestors[dstTable] = ephemeralAncestors[dstTable] || [];
-              ephemeralAncestors[dstTable].push([srcTable, "TODO"]);
+              ephemeralAncestors[dstTable].push(
+                ...currTargetColumns.filter((c) => c[0] === srcTable)
+              );
               _ephemeralNodes.push(dstTable);
             } else {
               hop1Tables.push(dstTable);
             }
           } else if (currEphemeralNodes.includes(srcTable)) {
+            console.log("nodeType3.5:", dstTable, ":", nodeType);
             if (nodeType === "ephemeral") {
               ephemeralAncestors[dstTable] = ephemeralAncestors[dstTable] || [];
               ephemeralAncestors[dstTable].push(
@@ -324,12 +335,13 @@ const TableDetails = () => {
             } else {
               // TODO: collect all here
               tempCurrEphemeralTable.push(srcTable);
+              hop1Tables.push(dstTable);
             }
           }
         }
         currEphemeralNodes = _ephemeralNodes;
 
-        if (hop1Tables.length === 0) continue;
+        // if (hop1Tables.length === 0) continue;
 
         const currAnd1HopTables = Object.keys(currTargetTables);
         for (const nodeId of hop1Tables) {
@@ -347,8 +359,15 @@ const TableDetails = () => {
           }
         }
 
+        console.log(
+          "nodeType4:",
+          tempCurrEphemeralTable,
+          currEphemeralNodes,
+          ephemeralAncestors
+        );
         tempCurrEphemeralTable.forEach((t) => {
           currTargetColumns.push(...ephemeralAncestors[t]);
+          currAnd1HopTables.push(...ephemeralAncestors[t].map((c) => c[0]));
         });
         try {
           const patchState = await processColumnLineage(
@@ -391,7 +410,7 @@ const TableDetails = () => {
       }
     };
 
-    await Promise.all([bfsTraversal(true), bfsTraversal(false)]);
+    await Promise.all([bfsTraversal(true)]);
     console.timeEnd();
     endProgressBar();
   };
