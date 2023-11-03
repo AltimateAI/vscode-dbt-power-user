@@ -133,6 +133,13 @@ export class VSCodeCommands implements Disposable {
         commands.executeCommand(
           "workbench.action.openWalkthrough",
           `${this.dbtProjectContainer.context?.extension.id.toString()}#initialSetup`,
+          true,
+        ),
+      ),
+      commands.registerCommand("dbtPowerUser.openTutorialWalkthrough", () =>
+        commands.executeCommand(
+          "workbench.action.openWalkthrough",
+          `${this.dbtProjectContainer.context?.extension.id.toString()}#tutorials`,
           false,
         ),
       ),

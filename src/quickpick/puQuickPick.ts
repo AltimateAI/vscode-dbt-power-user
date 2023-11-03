@@ -30,15 +30,21 @@ export class PuQuickPick {
         dbtpuquickpick.items = [
           new AltimateCommandCenterItem(
             "Debug Extension Setup",
-            "star-empty",
+            "debug",
             "Open the debug extension setup walkthrough",
             "dbtPowerUser.openSetupWalkthrough",
           ),
+          // new AltimateCommandCenterItem(
+          //   "Open Lineage",
+          //   "link-external",
+          //   "Open the lineage panel",
+          //   "dbtPowerUser.Lineage.focus",
+          // ),
           new AltimateCommandCenterItem(
-            "Open Lineage",
-            "link-external",
-            "Open the lineage panel",
-            "dbtPowerUser.Lineage.focus",
+            "dbt Power User Tutorials",
+            "book",
+            "Open the dbt Power User Tutorials",
+            "dbtPowerUser.openTutorialWalkthrough",
           ),
           new AltimateCommandCenterItem(
             "Set up Altimate Account",
@@ -54,7 +60,7 @@ export class PuQuickPick {
             kind: QuickPickItemKind.Separator,
           },
           new AltimateCommandCenterItem(
-            "Scan for errors",
+            "Run Project Healthcheck",
             "debug-start",
             "Run the Project healthcheck",
             "dbtPowerUser.runProjectHealthcheck",

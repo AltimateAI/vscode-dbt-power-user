@@ -29,6 +29,9 @@ export class ProjectQuickPick {
         // any other properties you need
       },
     );
+    if (!pick) {
+      return;
+    }
     commands.executeCommand(
       "setContext",
       "dbtPowerUser.walkthroughProjectSelected",
