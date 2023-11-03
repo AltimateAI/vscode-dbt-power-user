@@ -409,7 +409,7 @@ const TableDetails = () => {
       }
     };
 
-    await Promise.all([bfsTraversal(true)]);
+    await Promise.all([bfsTraversal(true), bfsTraversal(false)]);
     console.timeEnd();
     endProgressBar();
   };
