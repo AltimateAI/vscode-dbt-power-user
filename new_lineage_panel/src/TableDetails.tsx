@@ -284,7 +284,7 @@ const TableDetails = () => {
       ];
       let currEphemeralNodes: string[] = [];
       while (true as boolean) {
-        const unvistedColumns = currTargetColumns.filter(
+        currTargetColumns = currTargetColumns.filter(
           (x) => !visited[x.join("/")]
         );
         console.log(
@@ -293,11 +293,11 @@ const TableDetails = () => {
           currEphemeralNodes,
           ephemeralAncestors
         );
-        if (unvistedColumns.length === 0 && currEphemeralNodes.length === 0) {
+        if (currTargetColumns.length === 0 && currEphemeralNodes.length === 0) {
           break;
         }
         const currTargetTables: Record<string, boolean> = {};
-        unvistedColumns.forEach((x) => {
+        currTargetColumns.forEach((x) => {
           visited[x.join("/")] = true;
           currTargetTables[x[0]] = true;
         });
