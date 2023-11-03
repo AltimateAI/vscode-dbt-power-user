@@ -576,10 +576,11 @@ export class NewLineagePanel implements LineagePanelView {
     }
     const { graphMetaMap, nodeMetaMap } = event;
     const fileName = this.getFilename();
-    const key = nodeMetaMap.get(fileName)?.uniqueId;
-    if (!key) {
+    const node = nodeMetaMap.get(fileName);
+    if (!node) {
       return;
     }
+    const key = node.uniqueId;
     const downstreamCount = this.getConnectedNodeCount(
       graphMetaMap["parents"],
       key,
@@ -588,6 +589,10 @@ export class NewLineagePanel implements LineagePanelView {
       graphMetaMap["children"],
       key,
     );
+    let nodeType = key.split(".")?.[0] || "model";
+    if (node.config.materialized === "ephemeral") {
+      nodeType = "ephemeral";
+    }
     return {
       node: {
         key,
@@ -595,7 +600,7 @@ export class NewLineagePanel implements LineagePanelView {
         url: window.activeTextEditor!.document.uri.path,
         upstreamCount,
         downstreamCount,
-        nodeType: key.split(".")?.[0] || "model",
+        nodeType,
       },
       aiEnabled: this.altimate.enabled(),
     };
