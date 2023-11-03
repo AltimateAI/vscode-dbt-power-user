@@ -17,6 +17,7 @@ export class VersionStatusBar implements Disposable {
     StatusBarAlignment.Left,
     10,
   );
+  private defaultColor: string = "statusBarItem.activeBackground";
   private disposables: Disposable[] = [];
 
   constructor(private dbtProjectContainer: DBTProjectContainer) {
@@ -76,7 +77,7 @@ export class VersionStatusBar implements Disposable {
 
   private showTextInStatusBar(
     text: string,
-    statusColor: string = "statusBarItem.activeBackground",
+    statusColor: string = this.defaultColor,
     command?: Command,
   ) {
     this.statusBar.text = text;
@@ -86,5 +87,11 @@ export class VersionStatusBar implements Disposable {
     };
     this.statusBar.backgroundColor = new ThemeColor(statusColor);
     this.statusBar.show();
+  }
+  private setStatusBarColor(color: string) {
+    this.statusBar.backgroundColor = new ThemeColor(color);
+  }
+  private resetStatusBarColor() {
+    this.statusBar.backgroundColor = new ThemeColor(this.defaultColor);
   }
 }
