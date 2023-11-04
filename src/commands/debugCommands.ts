@@ -33,7 +33,7 @@ export class DebugCommands {
       );
       return;
     }
-    const answer = await window.showErrorMessage(
+    const answer = await window.showInformationMessage(
       `Do you want to validate the project: ${projectContext.label}? This will run the command 'dbt debug' inside this project. Do you want to continue?`,
       PromptAnswer.YES,
       PromptAnswer.NO,
@@ -54,7 +54,26 @@ export class DebugCommands {
           project.projectRoot,
           project.dbtProfilesDir,
         );
-        this.dbtProjectContainer.addCommandToQueue(runModelCommand);
+        try {
+          const runModelProcess =
+            await this.dbtProjectContainer.dbtClient?.executeCommand(
+              runModelCommand,
+            );
+          const runModelOutput = await runModelProcess.complete();
+          this.terminal.log(
+            `${runModelProcess.formatText(runModelOutput.toString())}`,
+          );
+          if (runModelOutput.includes("ERROR")) {
+            throw new Error();
+          }
+        } catch (runError) {
+          console.log(runError);
+          window.showErrorMessage(
+            "Error running dbt debug for project " +
+              projectContext.label +
+              ". Please check the output tab for more details.",
+          );
+        }
       } catch (err) {
         console.log(err);
         this.telemetry.sendTelemetryError("validateProjectError", err);
@@ -69,7 +88,7 @@ export class DebugCommands {
       );
       return;
     }
-    const answer = await window.showErrorMessage(
+    const answer = await window.showInformationMessage(
       `Do you want to validate the project: ${projectContext.label}? This will run the command 'dbt deps' inside this project. Do you want to continue?`,
       PromptAnswer.YES,
       PromptAnswer.NO,
@@ -87,11 +106,25 @@ export class DebugCommands {
           return;
         }
 
-        const runModelCommand = this.dbtCommandFactory.createInstallDepsCommand(
+        const depsCommand = this.dbtCommandFactory.createInstallDepsCommand(
           project.projectRoot,
           project.dbtProfilesDir,
         );
-        this.dbtProjectContainer.addCommandToQueue(runModelCommand);
+        try {
+          const dbtDepsProcess =
+            await this.dbtProjectContainer.dbtClient?.executeCommand(
+              depsCommand,
+            );
+          const depsOut = await dbtDepsProcess.complete();
+          this.terminal.log(`${dbtDepsProcess.formatText(depsOut.toString())}`);
+        } catch (depsError) {
+          console.log(depsError);
+          window.showErrorMessage(
+            "Error installing dbt dependencies for project " +
+              projectContext.label +
+              ". Please check the output tab for more details.",
+          );
+        }
       } catch (err) {
         console.log(err);
         this.telemetry.sendTelemetryError("installDepsError", err);

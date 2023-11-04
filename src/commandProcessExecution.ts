@@ -127,7 +127,7 @@ export class CommandProcessExecution {
     });
   }
 
-  private formatText(text: string) {
+  public formatText(text: string) {
     return `${text.split(/(\r?\n)+/g).join("\r")}`;
   }
 }

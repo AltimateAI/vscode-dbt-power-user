@@ -1,1 +1,0 @@
-![Associations](./images/associations.png)

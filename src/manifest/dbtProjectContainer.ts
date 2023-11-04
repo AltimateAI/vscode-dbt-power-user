@@ -29,7 +29,7 @@ export class DBTProjectContainer implements Disposable {
   public context?: ExtensionContext;
 
   constructor(
-    private dbtClient: DBTClient,
+    public dbtClient: DBTClient,
     @inject("Factory<DBTWorkspaceFolder>")
     private dbtWorkspaceFolderFactory: (
       workspaceFolder: WorkspaceFolder,
