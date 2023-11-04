@@ -74,10 +74,19 @@ export class PuQuickPick {
             kind: QuickPickItemKind.Separator,
           },
           new AltimateCommandCenterItem(
-            "Run Project Healthcheck",
-            "debug-start",
-            "Run the Project healthcheck",
-            "dbtPowerUser.altimateScan",
+            "Join the Community",
+            "add",
+            "Join our slack community",
+            "vscode.open",
+            [Uri.parse("https://getdbt.slack.com/archives/C05KPDGRMDW")],
+          ),
+          new AltimateCommandCenterItem(
+            "Feedback",
+            "feed",
+            "Give us Feedback!",
+            "vscode.open",
+            //TODO add feedback link
+            [Uri.parse("")],
           ),
         ];
 

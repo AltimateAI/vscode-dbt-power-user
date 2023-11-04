@@ -152,8 +152,6 @@ export class VSCodeCommands implements Disposable {
         },
       ),
       commands.registerCommand("dbtPowerUser.associateFileExts", async () => {
-        // TODO - set a config here to indicate that walkthrough has been seen
-        // commands.executeCommand();
         // this seems to persist across vscode restarts. might disable it across versions though.
         this.dbtProjectContainer.context?.globalState.update(
           "showSetupWalkthrough",

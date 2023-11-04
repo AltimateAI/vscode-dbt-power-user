@@ -41,19 +41,22 @@ export class DebugCommands {
     if (answer === PromptAnswer.YES) {
       try {
         this.telemetry.sendTelemetryEvent("validateProject");
-        // TODO add a filter to projects using picker
-        const projects = this.dbtProjectContainer.findAllDBTProjects();
-
-        for (const project of projects) {
-          const runModelCommand = this.dbtCommandFactory.createDebugCommand(
-            project.projectRoot,
-            project.dbtProfilesDir,
+        const project = this.dbtProjectContainer.findDBTProject(
+          projectContext.uri,
+        );
+        if (project === undefined) {
+          window.showErrorMessage(
+            `Project ${projectContext.label} was not found`,
           );
-          this.dbtProjectContainer.addCommandToQueue(runModelCommand);
+          return;
         }
+        const runModelCommand = this.dbtCommandFactory.createDebugCommand(
+          project.projectRoot,
+          project.dbtProfilesDir,
+        );
+        this.dbtProjectContainer.addCommandToQueue(runModelCommand);
       } catch (err) {
-        // do something useful with error
-        // TODO: telemetry
+        console.log(err);
         this.telemetry.sendTelemetryError("validateProjectError", err);
       }
     }
@@ -74,26 +77,30 @@ export class DebugCommands {
     if (answer === PromptAnswer.YES) {
       try {
         this.telemetry.sendTelemetryEvent("installDeps");
-        // TODO add a filter to projects using picker
-        const projects = this.dbtProjectContainer.findAllDBTProjects();
-
-        for (const project of projects) {
-          const runModelCommand =
-            this.dbtCommandFactory.createInstallDepsCommand(
-              project.projectRoot,
-              project.dbtProfilesDir,
-            );
-          this.dbtProjectContainer.addCommandToQueue(runModelCommand);
+        const project = this.dbtProjectContainer.findDBTProject(
+          projectContext.uri,
+        );
+        if (project === undefined) {
+          window.showErrorMessage(
+            `Project ${projectContext.label} was not found`,
+          );
+          return;
         }
+
+        const runModelCommand = this.dbtCommandFactory.createInstallDepsCommand(
+          project.projectRoot,
+          project.dbtProfilesDir,
+        );
+        this.dbtProjectContainer.addCommandToQueue(runModelCommand);
       } catch (err) {
-        // do something useful with error
-        // TODO: telemetry
+        console.log(err);
         this.telemetry.sendTelemetryError("installDepsError", err);
       }
     }
   }
 
   async isVsCodeOutdatated() {
+    this.telemetry.sendTelemetryEvent("vscodeOutdatedStep");
     const currentVersion = version.toString();
     const minVersion =
       this.dbtProjectContainer.context?.extension.packageJSON.engines.vscode
@@ -107,6 +114,7 @@ export class DebugCommands {
   }
 
   async isExtensionOutdated() {
+    this.telemetry.sendTelemetryEvent("versionOutdatedStep");
     const currentVersion = this.dbtProjectContainer.extensionVersion.toString();
     const extLatestJson = await fetch(
       "https://api.github.com/repos/AltimateAI/vscode-dbt-power-user/releases/latest",
