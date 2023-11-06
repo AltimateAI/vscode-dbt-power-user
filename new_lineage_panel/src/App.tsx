@@ -310,18 +310,18 @@ function App() {
               <div className="d-flex gap-sm">
                 <div className="d-flex gap-xxs align-items-center">
                   <DirectEdgeIcon />
-                  <div>Direct</div>
+                  <div>Select</div>
                   <InfoIcon
-                    id="direct_lineage"
-                    message="Direct Linkages are shown if there is direct flow of data between columns through select statements."
+                    id="select_lineage"
+                    message="Select linkages are shown if there is direct flow of data between columns through select statements."
                   />
                 </div>
                 <div className="d-flex gap-xxs align-items-center">
                   <IndirectEdgeIcon />
-                  <div>Indirect</div>
+                  <div>Non-Select</div>
                   <InfoIcon
-                    id="indirect_lineage"
-                    message="Indirect linkages are shown if columns appear in condition/clauses like where, join, having, etc."
+                    id="non_select_lineage"
+                    message="Non-Select linkages are shown if columns appear in condition/clauses like where, join, having, etc."
                   />
                 </div>
                 {confidence.confidence === "low" && (
