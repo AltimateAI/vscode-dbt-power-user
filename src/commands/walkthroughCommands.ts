@@ -12,8 +12,8 @@ enum PromptAnswer {
   NO = "No",
 }
 
-@provideSingleton(DebugCommands)
-export class DebugCommands {
+@provideSingleton(WalkthroughCommands)
+export class WalkthroughCommands {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,

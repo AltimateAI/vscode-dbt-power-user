@@ -13,7 +13,7 @@ import { provideSingleton } from "../utils";
 import { RunModel } from "./runModel";
 import { SqlToModel } from "./sqlToModel";
 import { AltimateScan } from "./altimateScan";
-import { DebugCommands } from "./debugCommands";
+import { WalkthroughCommands } from "./walkthroughCommands";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 
@@ -26,7 +26,7 @@ export class VSCodeCommands implements Disposable {
     private runModel: RunModel,
     private sqlToModel: SqlToModel,
     private altimateScan: AltimateScan,
-    private debugCommands: DebugCommands,
+    private walkthroughCommands: WalkthroughCommands,
   ) {
     this.disposables.push(
       commands.registerCommand("dbtPowerUser.runCurrentModel", () =>
@@ -112,7 +112,7 @@ export class VSCodeCommands implements Disposable {
         this.altimateScan.clearProblems(),
       ),
       commands.registerCommand("dbtPowerUser.installDBTAdapters", () =>
-        this.debugCommands.installDBTAdapters(),
+        this.walkthroughCommands.installDBTAdapters(),
       ),
       commands.registerCommand("dbtPowerUser.validateProject", () => {
         const pickedProject: ProjectQuickPickItem | undefined =
@@ -120,14 +120,14 @@ export class VSCodeCommands implements Disposable {
             "dbtPowerUser.projectSelected",
           );
 
-        this.debugCommands.validateProjects(pickedProject);
+        this.walkthroughCommands.validateProjects(pickedProject);
       }),
       commands.registerCommand("dbtPowerUser.installDeps", () => {
         const pickedProject: ProjectQuickPickItem | undefined =
           this.dbtProjectContainer.getFromWorkspaceState(
             "dbtPowerUser.projectSelected",
           );
-        this.debugCommands.installDeps(pickedProject);
+        this.walkthroughCommands.installDeps(pickedProject);
       }),
       commands.registerCommand(
         "dbtPowerUser.openSetupWalkthrough",
@@ -166,10 +166,10 @@ export class VSCodeCommands implements Disposable {
   }
 
   needVscodeUpdate() {
-    return this.debugCommands.isVsCodeOutdatated();
+    return this.walkthroughCommands.isVsCodeOutdatated();
   }
   needExtensionUpdate() {
-    return this.debugCommands.isExtensionOutdated();
+    return this.walkthroughCommands.isExtensionOutdated();
   }
 
   dispose() {
