@@ -16,6 +16,7 @@ import { provideSingleton } from "../utils";
 import { DBTProject } from "./dbtProject";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 @provideSingleton(DBTProjectContainer)
 export class DBTProjectContainer implements Disposable {
@@ -25,11 +26,11 @@ export class DBTProjectContainer implements Disposable {
   private _onManifestChanged = new EventEmitter<ManifestCacheChangedEvent>();
   public readonly onManifestChanged = this._onManifestChanged.event;
   private disposables: Disposable[] = [this._onManifestChanged];
-  // TODO revert back to private after this is done
-  public context?: ExtensionContext;
+  private context?: ExtensionContext;
 
   constructor(
-    public dbtClient: DBTClient,
+    private dbtClient: DBTClient,
+    private terminal: DBTTerminal,
     @inject("Factory<DBTWorkspaceFolder>")
     private dbtWorkspaceFolderFactory: (
       workspaceFolder: WorkspaceFolder,
@@ -73,6 +74,24 @@ export class DBTProjectContainer implements Disposable {
 
   get extensionVersion() {
     return this.context!.extension.packageJSON.version;
+  }
+
+  setToWorkspaceState(key: string, value: any) {
+    this.context?.workspaceState.update(key, value);
+  }
+  getFromWorkspaceState(key: string): any {
+    return this.context?.workspaceState.get(key);
+  }
+  setToGlobalState(key: string, value: any) {
+    this.context?.globalState.update(key, value);
+  }
+
+  getFromGlobalState(key: string): any {
+    this.context?.globalState.get(key);
+  }
+
+  get extensionId(): string {
+    return this.context?.extension.id.toString() || "";
   }
 
   // TODO: bypasses events and could be inconsistent
@@ -150,6 +169,15 @@ export class DBTProjectContainer implements Disposable {
       allProjects.push(...workspaceProjects);
     });
     return allProjects;
+  }
+
+  async runCommandAndReturnResults(command: DBTCommand): Promise<string> {
+    const runModelProcess = await this.dbtClient?.executeCommand(command);
+    const runModelOutput: string = await runModelProcess.complete();
+    this.terminal.log(
+      `${runModelProcess.formatText(runModelOutput.toString())}`,
+    );
+    return (runModelOutput || "").toString();
   }
 
   addCommandToQueue(command: DBTCommand) {

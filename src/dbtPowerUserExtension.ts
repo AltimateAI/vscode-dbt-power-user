@@ -79,18 +79,8 @@ export class DBTPowerUserExtension implements Disposable {
     // set contexts
     commands.executeCommand(
       "setContext",
-      "dbtPowerUser.updateVSCode",
-      await this.vscodeCommands.needVscodeUpdate(),
-    );
-    commands.executeCommand(
-      "setContext",
       "dbtPowerUser.needsExtensionUpdate",
       await this.vscodeCommands.needExtensionUpdate(),
-    );
-    commands.executeCommand(
-      "setContext",
-      "dbtPowerUser.extensionVersion",
-      "very old",
     );
 
     // show setup walkthrough if needed

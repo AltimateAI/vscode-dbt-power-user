@@ -116,7 +116,7 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand("dbtPowerUser.validateProject", () => {
         const pickedProject: ProjectQuickPickItem | undefined =
-          this.dbtProjectContainer.context?.workspaceState.get(
+          this.dbtProjectContainer.getFromWorkspaceState(
             "dbtPowerUser.projectSelected",
           );
 
@@ -124,7 +124,7 @@ export class VSCodeCommands implements Disposable {
       }),
       commands.registerCommand("dbtPowerUser.installDeps", () => {
         const pickedProject: ProjectQuickPickItem | undefined =
-          this.dbtProjectContainer.context?.workspaceState.get(
+          this.dbtProjectContainer.getFromWorkspaceState(
             "dbtPowerUser.projectSelected",
           );
         this.debugCommands.installDeps(pickedProject);
@@ -135,7 +135,7 @@ export class VSCodeCommands implements Disposable {
           await commands.executeCommand("workbench.action.openWalkthrough");
           commands.executeCommand(
             "workbench.action.openWalkthrough",
-            `${this.dbtProjectContainer.context?.extension.id.toString()}#initialSetup`,
+            `${this.dbtProjectContainer.extensionId}#initialSetup`,
             true,
           );
         },
@@ -146,14 +146,14 @@ export class VSCodeCommands implements Disposable {
           await commands.executeCommand("workbench.action.openWalkthrough");
           commands.executeCommand(
             "workbench.action.openWalkthrough",
-            `${this.dbtProjectContainer.context?.extension.id.toString()}#tutorials`,
+            `${this.dbtProjectContainer.extensionId}#tutorials`,
             false,
           );
         },
       ),
       commands.registerCommand("dbtPowerUser.associateFileExts", async () => {
         // this seems to persist across vscode restarts. might disable it across versions though.
-        this.dbtProjectContainer.context?.globalState.update(
+        this.dbtProjectContainer.setToGlobalState(
           "showSetupWalkthrough",
           false,
         );

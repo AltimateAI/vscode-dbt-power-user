@@ -21,7 +21,7 @@ export class PUStatusBars implements Disposable {
         await this.dbtProjectContainer.findAllDBTProjects(),
       );
       if (pickedProject) {
-        this.dbtProjectContainer.context?.workspaceState.update(
+        this.dbtProjectContainer.setToWorkspaceState(
           "dbtPowerUser.projectSelected",
           pickedProject,
         );

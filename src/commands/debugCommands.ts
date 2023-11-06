@@ -55,14 +55,10 @@ export class DebugCommands {
           project.dbtProfilesDir,
         );
         try {
-          const runModelProcess =
-            await this.dbtProjectContainer.dbtClient?.executeCommand(
+          const runModelOutput: string =
+            await this.dbtProjectContainer.runCommandAndReturnResults(
               runModelCommand,
             );
-          const runModelOutput = await runModelProcess.complete();
-          this.terminal.log(
-            `${runModelProcess.formatText(runModelOutput.toString())}`,
-          );
           if (runModelOutput.includes("ERROR")) {
             throw new Error();
           }
@@ -111,12 +107,9 @@ export class DebugCommands {
           project.dbtProfilesDir,
         );
         try {
-          const dbtDepsProcess =
-            await this.dbtProjectContainer.dbtClient?.executeCommand(
-              depsCommand,
-            );
-          const depsOut = await dbtDepsProcess.complete();
-          this.terminal.log(`${dbtDepsProcess.formatText(depsOut.toString())}`);
+          await this.dbtProjectContainer.runCommandAndReturnResults(
+            depsCommand,
+          );
         } catch (depsError) {
           console.log(depsError);
           window.showErrorMessage(
@@ -135,11 +128,8 @@ export class DebugCommands {
   async isVsCodeOutdatated() {
     this.telemetry.sendTelemetryEvent("vscodeOutdatedStep");
     const currentVersion = version.toString();
-    const minVersion =
-      this.dbtProjectContainer.context?.extension.packageJSON.engines.vscode
-        .toString()
-        .trim()
-        .replace(/^[^<>~]/, "");
+    // TODO - this one should be fetched from some place
+    const minVersion = version.toString();
     if (minVersion === undefined) {
       return false;
     }
