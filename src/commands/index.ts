@@ -159,7 +159,7 @@ export class VSCodeCommands implements Disposable {
         );
         commands.executeCommand(
           "workbench.action.openSettings",
-          "file.associations",
+          "@id:files.associations",
         );
       }),
     );
