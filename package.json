@@ -525,18 +525,6 @@
             ]
           },
           {
-            "id": "updateVSCode",
-            "title": "Update Old VSCode",
-            "description": "Click here to update the old vscode installation.\n[Here](command:workbench.extensions.installExtension?%22samuelcolvin.jinjahtml%22)",
-            "when": "dbtPowerUser.needsVSCodeUpdate",
-            "media": {
-              "markdown": "media/updateVSCode.md"
-            },
-            "completionEvents": [
-              "onContext:dbtPowerUser.needsVSCodeUpdate"
-            ]
-          },
-          {
             "id": "updateExtension",
             "title": "%walkthrough.initialSetup.steps.updateExtension.title%",
             "description": "%walkthrough.initialSetup.steps.updateExtension.description%",
