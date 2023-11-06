@@ -312,7 +312,7 @@ function App() {
                   <DirectEdgeIcon />
                   <div>Select</div>
                   <InfoIcon
-                    id="direct_lineage"
+                    id="select_lineage"
                     message="Select linkages are shown if there is direct flow of data between columns through select statements."
                   />
                 </div>
@@ -320,7 +320,7 @@ function App() {
                   <IndirectEdgeIcon />
                   <div>Non-Select</div>
                   <InfoIcon
-                    id="indirect_lineage"
+                    id="non_select_lineage"
                     message="Non-Select linkages are shown if columns appear in condition/clauses like where, join, having, etc."
                   />
                 </div>
