@@ -519,10 +519,7 @@
             "media": {
               "image": "media/images/run-status.gif",
               "altText": "Empty image"
-            },
-            "completionEvents": [
-              ""
-            ]
+            }
           },
           {
             "id": "updateExtension",
@@ -562,6 +559,7 @@
             "id": "pickProject",
             "title": "%walkthrough.initialSetup.steps.pickProject.title%",
             "description": "%walkthrough.initialSetup.steps.pickProject.description%",
+            "when": "dbtPowerUser.projectCount > 1",
             "media": {
               "markdown": "media/pickProject.md"
             },

@@ -1,4 +1,4 @@
-import { Disposable, ExtensionContext, commands, workspace } from "vscode";
+import { Disposable, ExtensionContext, commands } from "vscode";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";
@@ -76,6 +76,8 @@ export class DBTPowerUserExtension implements Disposable {
 
   async activate(context: ExtensionContext): Promise<void> {
     this.dbtProjectContainer.setContext(context);
+    await this.dbtProjectContainer.detectDBT();
+    await this.dbtProjectContainer.initializeDBTProjects();
     // set contexts
     commands.executeCommand(
       "setContext",
@@ -91,7 +93,27 @@ export class DBTPowerUserExtension implements Disposable {
       commands.executeCommand("dbtPowerUser.openSetupWalkthrough");
     }
 
-    await this.dbtProjectContainer.detectDBT();
-    await this.dbtProjectContainer.initializeDBTProjects();
+    const allProjects = await this.dbtProjectContainer.findAllDBTProjects();
+
+    commands.executeCommand(
+      "setContext",
+      "dbtPowerUser.projectCount",
+      allProjects.length,
+    );
+    if (allProjects.length === 1) {
+      this.dbtProjectContainer.setToWorkspaceState(
+        "dbtPowerUser.projectSelected",
+        {
+          label: allProjects[0].getProjectName(),
+          description: allProjects[0].projectRoot.fsPath,
+          uri: allProjects[0].projectRoot,
+        },
+      );
+      commands.executeCommand(
+        "setContext",
+        "dbtPowerUser.walkthroughProjectSelected",
+        true,
+      );
+    }
   }
 }
