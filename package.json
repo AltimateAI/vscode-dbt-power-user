@@ -592,6 +592,15 @@
             "completionEvents": [
               "onCommand:dbtPowerUser.validateProject"
             ]
+          },
+          {
+            "id": "finish",
+            "title": "%walkthrough.initialSetup.steps.finish.title%",
+            "description": "%walkthrough.initialSetup.steps.finish.description%",
+            "when": "dbtPowerUser.walkthroughProjectSelected",
+            "media": {
+              "markdown": "media/finish.md"
+            }
           }
         ]
       },
