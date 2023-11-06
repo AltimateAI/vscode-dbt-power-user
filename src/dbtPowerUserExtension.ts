@@ -97,10 +97,6 @@ export class DBTPowerUserExtension implements Disposable {
     const showSetupWalkthrough = context.globalState.get(
       "showSetupWalkthrough",
     );
-    // not sure why this isnt working
-    const showSetup2 = workspace
-      .getConfiguration("dbt")
-      .get("showSetupWalkthrough");
     if (showSetupWalkthrough === undefined || showSetupWalkthrough === true) {
       commands.executeCommand("dbtPowerUser.openSetupWalkthrough");
     }

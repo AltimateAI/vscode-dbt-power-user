@@ -157,10 +157,6 @@ export class VSCodeCommands implements Disposable {
           "showSetupWalkthrough",
           false,
         );
-        // not sure why this doesnt work
-        await workspace
-          .getConfiguration("dbt")
-          .update("showSetupWalkthrough", false);
         commands.executeCommand(
           "workbench.action.openSettings",
           "file.associations",
