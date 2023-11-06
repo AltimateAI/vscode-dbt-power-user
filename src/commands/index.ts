@@ -123,6 +123,11 @@ export class VSCodeCommands implements Disposable {
         this.walkthroughCommands.validateProjects(pickedProject);
       }),
       commands.registerCommand("dbtPowerUser.installDeps", () => {
+        this.dbtProjectContainer.setToGlobalState(
+          "showSetupWalkthrough",
+          false,
+        );
+
         const pickedProject: ProjectQuickPickItem | undefined =
           this.dbtProjectContainer.getFromWorkspaceState(
             "dbtPowerUser.projectSelected",

@@ -12,7 +12,7 @@
   "walkthrough.initialSetup.steps.updateExtension.title": "Update dbt Power User Extension",
   "walkthrough.initialSetup.steps.updateExtension.description": "To get the latest features, update the dbt Power User extension.\n[Update Extension](command:workbench.extensions.action.extensionUpdates)",
   "walkthrough.initialSetup.steps.associateFileExts.title": "Associate File Types",
-  "walkthrough.initialSetup.steps.associateFileExts.description": "Associate file types with dbt Power User.\n[Associate File Types](command:toSide:dbtPowerUser.associateFileExts)",
+  "walkthrough.initialSetup.steps.associateFileExts.description": "For some of the features to work, *.sql file types need to be associated with the value 'sql' or 'jinja-sql' and *.yml/*.yaml should be associated with the value 'yaml' or 'jinja-yaml'.\n[Associate File Types](command:toSide:dbtPowerUser.associateFileExts)",
   "walkthrough.initialSetup.steps.validateProject.title": "Validate project setup.",
   "walkthrough.initialSetup.steps.validateProject.description": "Check if projects are set up correctly. This will run dbt debug to ensure that dbt is able to locate the profile and connect to the database.\n[Validate Project](command:dbtPowerUser.validateProject)",
   "walkthrough.initialSetup.steps.pickProject.title": "Pick a dbt project",

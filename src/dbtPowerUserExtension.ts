@@ -1,4 +1,4 @@
-import { Disposable, ExtensionContext, commands } from "vscode";
+import { Disposable, ExtensionContext, commands, workspace } from "vscode";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";
@@ -115,5 +115,24 @@ export class DBTPowerUserExtension implements Disposable {
         true,
       );
     }
+    const existingAssociations = workspace
+      .getConfiguration("files")
+      .get<any>("associations", {});
+    let showFileAssociationsStep = false;
+    Object.entries({
+      "*.sql": ["jinja-sql", "sql"],
+      "*.yml": ["jinja-yaml", "yaml"],
+      "*.yaml": ["jinja-yaml", "yaml"],
+    }).forEach(([key, value]) => {
+      if (existingAssociations[key] === undefined) {
+        showFileAssociationsStep ||= true;
+      }
+      showFileAssociationsStep ||= !value.includes(existingAssociations[key]);
+    });
+    commands.executeCommand(
+      "setContext",
+      "dbtPowerUser.showFileAssociationStep",
+      showFileAssociationsStep,
+    );
   }
 }

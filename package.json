@@ -548,6 +548,7 @@
             "id": "associateFileExts",
             "title": "%walkthrough.initialSetup.steps.associateFileExts.title%",
             "description": "%walkthrough.initialSetup.steps.associateFileExts.description%",
+            "when": "dbtPowerUser.showFileAssociationStep",
             "media": {
               "markdown": "media/associateFileExts.md"
             },
