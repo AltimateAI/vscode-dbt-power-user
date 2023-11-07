@@ -278,29 +278,60 @@ const TableDetails = () => {
 
     const bfsTraversal = async (right: boolean) => {
       const visited: Record<string, boolean> = {};
-      let curr: [string, string][] = [[_column.table, _column.name]];
+      const ephemeralAncestors: Record<string, [string, string][]> = {};
+      let currTargetColumns: [string, string][] = [
+        [_column.table, _column.name],
+      ];
+      let currEphemeralNodes: string[] = [];
       while (true as boolean) {
-        const unvistedColumns = curr.filter((x) => !visited[x.join("/")]);
-        if (unvistedColumns.length === 0) {
+        currTargetColumns = currTargetColumns.filter(
+          (x) => !visited[x.join("/")]
+        );
+        if (currTargetColumns.length === 0 && currEphemeralNodes.length === 0) {
           break;
         }
-        const tablesInCurrIter: Record<string, boolean> = {};
-        unvistedColumns.forEach((x) => {
+        const currTargetTables: Record<string, boolean> = {};
+        currTargetColumns.forEach((x) => {
           visited[x.join("/")] = true;
-          tablesInCurrIter[x[0]] = true;
+          currTargetTables[x[0]] = true;
         });
 
-        const hop1Tables = right
-          ? _edges
-              .filter((e) => tablesInCurrIter[e.source])
-              .map((e) => e.target)
-          : _edges
-              .filter((e) => tablesInCurrIter[e.target])
-              .map((e) => e.source);
+        const [src, dst]: ("source" | "target")[] = right
+          ? ["source", "target"]
+          : ["target", "source"];
+        const hop1Tables = [];
+        const _ephemeralNodes: string[] = [];
+        const collectEphemeralAncestors: string[] = [];
+        for (const e of _edges) {
+          const srcTable = e[src];
+          const dstTable = e[dst];
+          const nodeType = flow.getNode(dstTable)?.data?.nodeType;
+          if (currTargetTables[srcTable]) {
+            if (nodeType === "ephemeral") {
+              ephemeralAncestors[dstTable] = ephemeralAncestors[dstTable] || [];
+              ephemeralAncestors[dstTable].push(
+                ...currTargetColumns.filter((c) => c[0] === srcTable)
+              );
+              _ephemeralNodes.push(dstTable);
+            } else {
+              hop1Tables.push(dstTable);
+            }
+          } else if (currEphemeralNodes.includes(srcTable)) {
+            if (nodeType === "ephemeral") {
+              ephemeralAncestors[dstTable] = ephemeralAncestors[dstTable] || [];
+              ephemeralAncestors[dstTable].push(
+                ...ephemeralAncestors[srcTable]
+              );
+              _ephemeralNodes.push(dstTable);
+            } else {
+              collectEphemeralAncestors.push(srcTable);
+              hop1Tables.push(dstTable);
+            }
+          }
+        }
+        currEphemeralNodes = _ephemeralNodes;
 
-        if (hop1Tables.length === 0) continue;
-
-        const currAnd1HopTables = Object.keys(tablesInCurrIter);
+        const currAnd1HopTables = Object.keys(currTargetTables);
         for (const nodeId of hop1Tables) {
           if (currAnd1HopTables.includes(nodeId)) continue;
           if (tableNodes[nodeId]) {
@@ -316,12 +347,16 @@ const TableDetails = () => {
           }
         }
 
+        collectEphemeralAncestors.forEach((t) => {
+          currTargetColumns.push(...ephemeralAncestors[t]);
+          currAnd1HopTables.push(...ephemeralAncestors[t].map((c) => c[0]));
+        });
         try {
           const patchState = await processColumnLineage(
             levelMap,
             seeMoreIdTableReverseMap,
             tableNodes,
-            curr.filter((e) => tablesInCurrIter[e[0]]),
+            currTargetColumns,
             right,
             currAnd1HopTables,
             _column
@@ -336,7 +371,7 @@ const TableDetails = () => {
               return newConfidence;
             });
           }
-          curr = patchState.newCurr;
+          currTargetColumns = patchState.newCurr;
           const [nodes, edges] = mergeNodesEdges(
             { nodes: flow.getNodes(), edges: flow.getEdges() },
             patchState
