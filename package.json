@@ -553,6 +553,18 @@
             ]
           },
           {
+            "id": "installDbt",
+            "title": "%walkthrough.initialSetup.steps.installDbt.title%",
+            "description": "%walkthrough.initialSetup.steps.installDbt.description%",
+            "when": "!dbtPowerUser.dbtInstalled",
+            "media": {
+              "markdown": "media/installDbt.md"
+            },
+            "completionEvents": [
+              "onContext:dbtPowerUser.dbtInstalled"
+            ]
+          },
+          {
             "id": "associateFileExts",
             "title": "%walkthrough.initialSetup.steps.associateFileExts.title%",
             "description": "%walkthrough.initialSetup.steps.associateFileExts.description%",
@@ -561,7 +573,7 @@
               "markdown": "media/associateFileExts.md"
             },
             "completionEvents": [
-              "onCommand:dbtPowerUser.associateFileExts"
+              "onCommand:dbtPowerUser.checkDbtInstalled"
             ]
           },
           {

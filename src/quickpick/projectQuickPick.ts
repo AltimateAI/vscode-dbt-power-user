@@ -10,7 +10,9 @@ export interface ProjectQuickPickItem extends QuickPickItem {
 
 @provideSingleton(ProjectQuickPick)
 export class ProjectQuickPick {
-  async projectPicker(projects: DBTProject[]): Promise<any> {
+  async projectPicker(
+    projects: DBTProject[],
+  ): Promise<ProjectQuickPickItem | undefined> {
     // in your code assuming you have a list of items that you map to this object
     const options: ProjectQuickPickItem[] = projects.map((item) => {
       return {

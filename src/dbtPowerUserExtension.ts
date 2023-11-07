@@ -1,4 +1,10 @@
-import { Disposable, ExtensionContext, commands, workspace } from "vscode";
+import {
+  Disposable,
+  commands,
+  workspace,
+  window,
+  ExtensionContext,
+} from "vscode";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";
@@ -13,6 +19,11 @@ import { WebviewViewProviders } from "./webview_provider";
 import { TelemetryService } from "./telemetry";
 import { HoverProviders } from "./hover_provider";
 import { PUStatusBars } from "./quickpick";
+
+enum PromptAnswer {
+  YES = "Yes",
+  IGNORE = "Ignore",
+}
 
 @provideSingleton(DBTPowerUserExtension)
 export class DBTPowerUserExtension implements Disposable {
@@ -74,26 +85,36 @@ export class DBTPowerUserExtension implements Disposable {
     }
   }
 
+  async showWalkthrough() {
+    const answer = await window.showInformationMessage(
+      `Thanks for installing dbt Power User. Do you need help setting up the extension?`,
+      PromptAnswer.YES,
+      PromptAnswer.IGNORE,
+    );
+    commands.executeCommand(
+      "setContext",
+      "dbtPowerUser.showSetupWalkthrough",
+      true,
+    );
+    if (answer === PromptAnswer.YES) {
+      commands.executeCommand("dbtPowerUser.openSetupWalkthrough");
+    }
+  }
+
   async activate(context: ExtensionContext): Promise<void> {
     this.dbtProjectContainer.setContext(context);
     await this.dbtProjectContainer.detectDBT();
     await this.dbtProjectContainer.initializeDBTProjects();
-    // set contexts
-    commands.executeCommand(
-      "setContext",
-      "dbtPowerUser.needsExtensionUpdate",
-      await this.vscodeCommands.needExtensionUpdate(),
-    );
 
     // show setup walkthrough if needed
     const showSetupWalkthrough = context.globalState.get(
       "showSetupWalkthrough",
     );
     if (showSetupWalkthrough === undefined || showSetupWalkthrough === true) {
-      commands.executeCommand("dbtPowerUser.openSetupWalkthrough");
+      this.showWalkthrough();
     }
 
-    const allProjects = await this.dbtProjectContainer.findAllDBTProjects();
+    const allProjects = await this.dbtProjectContainer.getProjects();
 
     commands.executeCommand(
       "setContext",

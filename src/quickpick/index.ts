@@ -1,4 +1,4 @@
-import { Disposable, commands } from "vscode";
+import { Disposable, commands, window } from "vscode";
 import { provideSingleton } from "../utils";
 import { PuQuickPick } from "./puQuickPick";
 import { ProjectQuickPick } from "./projectQuickPick";
@@ -18,12 +18,15 @@ export class PUStatusBars implements Disposable {
     });
     commands.registerCommand("dbtPowerUser.pickProject", async () => {
       const pickedProject = await this.projectQuickPick.projectPicker(
-        await this.dbtProjectContainer.findAllDBTProjects(),
+        await this.dbtProjectContainer.getProjects(),
       );
       if (pickedProject) {
         this.dbtProjectContainer.setToWorkspaceState(
           "dbtPowerUser.projectSelected",
           pickedProject,
+        );
+        window.showInformationMessage(
+          "You have succesfully selected " + pickedProject.label + ".",
         );
       }
     });

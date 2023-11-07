@@ -1,4 +1,5 @@
 import {
+  commands,
   CancellationToken,
   Disposable,
   EventEmitter,
@@ -74,10 +75,16 @@ export class DBTClient implements Disposable {
       );
       await checkDBTInstalledProcess.complete();
       this.dbtInstalled = true;
+      commands.executeCommand(
+        "setContext",
+        "dbtPowerUser.dbtInstalled",
+        this.dbtInstalled,
+      );
     } catch (error) {
       this.telemetry.sendTelemetryError("dbtInstalledCheckError", error);
       this.dbtInstalled = false;
       this.raiseDBTNotInstalledEvent();
+      commands.executeCommand("setContext", "dbtPowerUser.dbtInstalled", false);
       return;
     }
 

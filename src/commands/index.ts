@@ -29,6 +29,9 @@ export class VSCodeCommands implements Disposable {
     private walkthroughCommands: WalkthroughCommands,
   ) {
     this.disposables.push(
+      commands.registerCommand("dbtPowerUser.checkIfDbtIsInstalled", () =>
+        this.dbtProjectContainer.detectDBT(),
+      ),
       commands.registerCommand("dbtPowerUser.runCurrentModel", () =>
         this.runModel.runModelOnActiveWindow(),
       ),
@@ -157,11 +160,6 @@ export class VSCodeCommands implements Disposable {
         },
       ),
       commands.registerCommand("dbtPowerUser.associateFileExts", async () => {
-        // this seems to persist across vscode restarts. might disable it across versions though.
-        this.dbtProjectContainer.setToGlobalState(
-          "showSetupWalkthrough",
-          false,
-        );
         commands.executeCommand(
           "workbench.action.openSettings",
           "@id:files.associations",
@@ -170,9 +168,6 @@ export class VSCodeCommands implements Disposable {
     );
   }
 
-  needVscodeUpdate() {
-    return this.walkthroughCommands.isVsCodeOutdatated();
-  }
   needExtensionUpdate() {
     return this.walkthroughCommands.isExtensionOutdated();
   }

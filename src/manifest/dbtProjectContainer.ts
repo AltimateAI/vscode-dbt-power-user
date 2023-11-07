@@ -162,22 +162,17 @@ export class DBTProjectContainer implements Disposable {
     return this.findDBTWorkspaceFolder(uri)?.findDBTProject(uri);
   }
 
-  findAllDBTProjects(): DBTProject[] {
-    const allProjects: DBTProject[] = [];
-    this.dbtWorkspaceFolders.forEach((workspaceFolder) => {
-      const workspaceProjects = workspaceFolder.findDBTProjects();
-      allProjects.push(...workspaceProjects);
-    });
-    return allProjects;
+  getProjects(): DBTProject[] {
+    return this.dbtWorkspaceFolders.flatMap((workspaceFolder) =>
+      workspaceFolder.getProjects(),
+    );
   }
 
   async runCommandAndReturnResults(command: DBTCommand): Promise<string> {
-    const runModelProcess = await this.dbtClient?.executeCommand(command);
-    const runModelOutput: string = await runModelProcess.complete();
-    this.terminal.log(
-      `${runModelProcess.formatText(runModelOutput.toString())}`,
-    );
-    return (runModelOutput || "").toString();
+    const commandProcess = await this.dbtClient?.executeCommand(command);
+    const commandOutput: string = await commandProcess.complete();
+    this.terminal.log(`${commandProcess.formatText(commandOutput.toString())}`);
+    return (commandOutput || "").toString();
   }
 
   addCommandToQueue(command: DBTCommand) {

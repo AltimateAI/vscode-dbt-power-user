@@ -88,10 +88,8 @@ export class DBTWorkspaceFolder implements Disposable {
     return this.dbtProjects.find((project) => project.contains(uri));
   }
 
-  findDBTProjects(): DBTProject[] {
-    const allProjects: DBTProject[] = [];
-    this.dbtProjects.forEach((project) => allProjects.push(project));
-    return allProjects;
+  getProjects(): DBTProject[] {
+    return this.dbtProjects;
   }
 
   contains(uri: Uri) {

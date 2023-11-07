@@ -12,8 +12,8 @@ enum PromptAnswer {
   NO = "No",
 }
 
-@provideSingleton(WalkthroughCommands)
-export class WalkthroughCommands {
+@provideSingleton(DebugCommands)
+export class DebugCommands {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
@@ -50,16 +50,16 @@ export class WalkthroughCommands {
           );
           return;
         }
-        const runModelCommand = this.dbtCommandFactory.createDebugCommand(
+        const debugCommand = this.dbtCommandFactory.createDebugCommand(
           project.projectRoot,
           project.dbtProfilesDir,
         );
         try {
-          const runModelOutput: string =
+          const debugOutput =
             await this.dbtProjectContainer.runCommandAndReturnResults(
-              runModelCommand,
+              debugCommand,
             );
-          if (runModelOutput.includes("ERROR")) {
+          if (debugOutput.includes("ERROR")) {
             throw new Error();
           }
         } catch (runError) {
