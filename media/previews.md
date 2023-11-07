@@ -2,7 +2,7 @@
 
 ![Preview query results and SQL](./images/query-results-and-SQL.gif)
 
-#### Analyze the results data with operations like 'filter', 'group by' as well as create different types of charts or just export the data as CSV etc.
+#### Analyze the results data with operations like 'split by', 'group by' as well as create different types of charts. You can also export the data as CSV
 
 ![Results data analysis and export](./images/EDA-and-export.gif)
 
