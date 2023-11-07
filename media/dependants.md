@@ -2,4 +2,4 @@
 
 ![See the graph and execute parent or children models](./images/graph.gif)
 
-#### Note: there is also a toolbar on the right, that can be used for performing many operations.
+#### Note: there is also a toolbar on the right section of file, that can be used for performing many operations like build or run models, query preview etc.
