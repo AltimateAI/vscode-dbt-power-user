@@ -609,6 +609,14 @@
         "description": "%walkthrough.tutorials.description%",
         "steps": [
           {
+            "id": "generate_models",
+            "title": "%walkthrough.tutorials.steps.generate_models.title%",
+            "description": "%walkthrough.tutorials.steps.generate_models.description%",
+            "media": {
+              "markdown": "media/generate_models.md"
+            }
+          },
+          {
             "id": "autocompletion",
             "title": "%walkthrough.tutorials.steps.autocompletion.title%",
             "description": "%walkthrough.tutorials.steps.autocompletion.description%",
@@ -622,6 +630,14 @@
             "description": "%walkthrough.tutorials.steps.previews.description%",
             "media": {
               "markdown": "media/previews.md"
+            }
+          },
+          {
+            "id": "dependants",
+            "title": "%walkthrough.tutorials.steps.dependants.title%",
+            "description": "%walkthrough.tutorials.steps.dependants.description%",
+            "media": {
+              "markdown": "media/dependants.md"
             }
           },
           {
@@ -641,35 +657,11 @@
             }
           },
           {
-            "id": "dependants",
-            "title": "%walkthrough.tutorials.steps.dependants.title%",
-            "description": "%walkthrough.tutorials.steps.dependants.description%",
-            "media": {
-              "markdown": "media/dependants.md"
-            }
-          },
-          {
-            "id": "generate_models",
-            "title": "%walkthrough.tutorials.steps.generate_models.title%",
-            "description": "%walkthrough.tutorials.steps.generate_models.description%",
-            "media": {
-              "markdown": "media/generate_models.md"
-            }
-          },
-          {
             "id": "healthcheck",
             "title": "%walkthrough.tutorials.steps.healthcheck.title%",
             "description": "%walkthrough.tutorials.steps.healthcheck.description%",
             "media": {
               "markdown": "media/healthcheck.md"
-            }
-          },
-          {
-            "id": "qsummary",
-            "title": "%walkthrough.tutorials.steps.qsummary.title%",
-            "description": "%walkthrough.tutorials.steps.qsummary.description%",
-            "media": {
-              "markdown": "media/qsummary.md"
             }
           }
         ]

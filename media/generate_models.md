@@ -1,7 +1,7 @@
-You can convert existing SQL to a dbt model or generate a new dbt model from source files
-
-//TODO - sql to refs gif exporting
+#### Start by generating a new dbt model from source files or you can convert existing SQL to a dbt model
 
 ![Generate a model from your source definition](./images/generate-model-from-source.gif)
 
-You can select a file name template and prefix in the settings.
+! TODO - add gif for SQL to dbt model
+
+#### Note: You can configure a file name template and prefix in the extension settings
