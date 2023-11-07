@@ -501,7 +501,7 @@ class DbtProject:
     ) -> Optional[DbtAdapterCompilationResult]:
         """Compiles existing node."""
         try:
-            self.sql_compiler.node = node
+            self.sql_compiler.node = copy(node)
             # this is essentially a convenient wrapper to adapter.get_compiler
             compiled_node = self.sql_compiler.compile(self.dbt)
             return DbtAdapterCompilationResult(
