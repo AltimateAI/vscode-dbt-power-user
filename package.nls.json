@@ -33,7 +33,7 @@
   "walkthrough.tutorials.steps.previews.description": " ",
   "walkthrough.tutorials.steps.documentation.title": "Generate or view dbt documentation easily",
   "walkthrough.tutorials.steps.documentation.description": " ",
-  "walkthrough.tutorials.steps.lineage.title": "Column Lineage",
+  "walkthrough.tutorials.steps.lineage.title": "Model Lineage and impact analysis using column level lineage",
   "walkthrough.tutorials.steps.lineage.description": " ",
   "walkthrough.tutorials.steps.dependants.title": "Click to build and run parent / children models, tests",
   "walkthrough.tutorials.steps.dependants.description": " ",
