@@ -143,7 +143,6 @@ export class DBTPowerUserExtension implements Disposable {
     Object.entries({
       "*.sql": ["jinja-sql", "sql"],
       "*.yml": ["jinja-yaml", "yaml"],
-      "*.yaml": ["jinja-yaml", "yaml"],
     }).forEach(([key, value]) => {
       if (existingAssociations[key] === undefined) {
         showFileAssociationsStep ||= true;
