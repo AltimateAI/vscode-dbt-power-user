@@ -11,6 +11,7 @@ import {
   createColumnNode,
   createTableEdge,
   createTableNode,
+  getColumnEdgeId,
   getSeeMoreId,
   isColumn,
   isNotColumn,
@@ -299,6 +300,8 @@ export const processColumnLineage = async (
     target: string,
     type: string,
   ) => {
+    const id = getColumnEdgeId(source, target);
+    if (edges.find((e) => e.id === id)) return;
     edges.push(
       createColumnEdge(source, target, levelMap[id1], levelMap[id2], type),
     );

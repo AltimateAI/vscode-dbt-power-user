@@ -130,7 +130,7 @@ export const createColumnEdge = (
   dstLevel: number,
   type: string,
 ) => {
-  const edgeId = COLUMN_PREFIX + `${source}-${target}`;
+  const edgeId = getColumnEdgeId(source, target);
   const [sourceHandle, targetHandle] = getSourceTargetHandles(
     srcLevel,
     dstLevel,
@@ -147,6 +147,9 @@ export const createColumnEdge = (
     type: srcLevel === dstLevel ? "smoothstep" : "default",
   });
 };
+
+export const getColumnEdgeId = (source: string, target: string) =>
+  COLUMN_PREFIX + `${source}-${target}`;
 
 export const applyEdgeStyling = (e: Edge, highlight: boolean) => {
   e.style = highlight ? highlightEdgeStyle : defaultEdgeStyle;
