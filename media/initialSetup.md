@@ -1,3 +1,7 @@
-Welcome! We're here to ensure a smooth setup process. If you need help or run into any questions, our support team is just a click away. [Chat with us](https://app.myaltimate.com/contactus) for support.
+# Welcome to the dbt-power-user extension setup!
 
-[Enable python interpreter selection](./images/contact_us.gif)
+**We're here to ensure a smooth setup process. If you need help or run into any questions, our support team is just a click away**
+
+**Need help?** [Chat with us](https://app.myaltimate.com/contactus) for support.
+
+[![Chat with us for support](./images/contact_us.png)](https://app.myaltimate.com/contactus)

@@ -1,8 +1,4 @@
----
-title: "About dbt deps command"
-sidebar_label: "deps"
-id: "deps"
----
+# About dbt deps command
 
 `dbt deps` pulls the most recent version of the dependencies listed in your `packages.yml` from git. See [Package-Management](/docs/build/packages) for more information.
 
@@ -28,7 +24,9 @@ packages:
     version: 0.13.0
 ```
 
-```txt
+When you press the "Run dbt deps" button, the console window will display an output similar to the one illustrated below.
+
+```
 Installing dbt-labs/dbt_utils@0.7.1
   Installed from version 0.7.1
   Up to date!

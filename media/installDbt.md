@@ -1,10 +1,4 @@
----
-title: "About installing dbt"
-id: "installation"
-description: "You can install dbt Core using a few different tested methods."
-pagination_next: "docs/core/homebrew-install"
-pagination_prev: null
----
+# About installing dbt
 
 You can install dbt Core on the command line by using one of these methods:
 

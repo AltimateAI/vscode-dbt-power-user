@@ -1,3 +1,5 @@
+# Setup Python Interpreter
+
 Ensure that the Python interpreter selection is always visible for ease of use:
 
 ![Enable python interpreter selection](./images/enable-python-interpreter-visibility.gif)
