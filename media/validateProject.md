@@ -13,7 +13,7 @@ To view your profiles.yml file, run:
 open /Users/alice/.dbt
 ```
 
-When you press the "Validate Project" button, the console window will display an output similar to the one illustrated below.
+When you press the "Validate Project" button, the console window should display an output similar to the one illustrated below.
 
 ```
 19:08:24  Running with dbt=1.6.5

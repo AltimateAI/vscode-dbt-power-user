@@ -24,7 +24,7 @@ packages:
     version: 0.13.0
 ```
 
-When you press the "Run dbt deps" button, the console window will display an output similar to the one illustrated below.
+When you press the "Run dbt deps" button, the console window should display an output similar to the one illustrated below.
 
 ```
 Installing dbt-labs/dbt_utils@0.7.1

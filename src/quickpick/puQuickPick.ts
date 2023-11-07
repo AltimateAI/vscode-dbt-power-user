@@ -85,8 +85,11 @@ export class PuQuickPick {
             "feed",
             "Give us Feedback!",
             "vscode.open",
-            //TODO add feedback link
-            [Uri.parse("")],
+            [
+              Uri.parse(
+                "https://docs.google.com/forms/d/e/1FAIpQLSf7X2nQ3cfqpP6-uYSTE-mFg41ZKigCh2ytPUuX1jz7FoZOnw/viewform?usp=sf_link",
+              ),
+            ],
           ),
         ];
 
