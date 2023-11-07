@@ -1,46 +1,38 @@
 import {
-  Command,
   Disposable,
-  QuickInputButton,
   QuickPickItem,
   QuickPickItemKind,
-  StatusBarAlignment,
-  StatusBarItem,
-  ThemeColor,
   ThemeIcon,
   Uri,
   commands,
   window,
-  workspace,
 } from "vscode";
-import { DBTInstallationVerificationEvent } from "../dbt_client/dbtVersionEvent";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { provideSingleton } from "../utils";
 
-@provideSingleton(PuQuickPick)
-export class PuQuickPick {
+@provideSingleton(DbtPowerUserControlCenterAction)
+export class DbtPowerUserControlCenterAction {
   async openPuQuickPick() {
     const disposables: Disposable[] = [];
     try {
       return await new Promise<Uri | undefined>((resolve, reject) => {
         const dbtpuquickpick = window.createQuickPick<
-          AltimateCommandCenterItem | QuickPickItem
+          DbtPowerUserControlPanelItem | QuickPickItem
         >();
-        dbtpuquickpick.title = "Power User Control Panel";
+        dbtpuquickpick.title = "dbt Power User Control Panel";
         dbtpuquickpick.items = [
-          new AltimateCommandCenterItem(
+          new DbtPowerUserControlPanelItem(
             "Setup Extension",
             "debug",
             "Open the extension setup walkthrough",
             "dbtPowerUser.openSetupWalkthrough",
           ),
-          new AltimateCommandCenterItem(
+          new DbtPowerUserControlPanelItem(
             "dbt Power User Tutorials",
             "book",
             "Open the dbt Power User Tutorials",
             "dbtPowerUser.openTutorialWalkthrough",
           ),
-          new AltimateCommandCenterItem(
+          new DbtPowerUserControlPanelItem(
             "Readme",
             "link-external",
             "View the detailed ReadMe for the extension",
@@ -57,13 +49,13 @@ export class PuQuickPick {
             label: "",
             kind: QuickPickItemKind.Separator,
           },
-          new AltimateCommandCenterItem(
+          new DbtPowerUserControlPanelItem(
             "Run Project Healthcheck",
             "debug-start",
             "Run the Project healthcheck",
             "dbtPowerUser.altimateScan",
           ),
-          new AltimateCommandCenterItem(
+          new DbtPowerUserControlPanelItem(
             "Clear Healthcheck Results",
             "debug-stop",
             "Clear all problems",
@@ -73,14 +65,14 @@ export class PuQuickPick {
             label: "",
             kind: QuickPickItemKind.Separator,
           },
-          new AltimateCommandCenterItem(
+          new DbtPowerUserControlPanelItem(
             "Join the Community",
             "add",
             "Join our slack community",
             "vscode.open",
             [Uri.parse("https://getdbt.slack.com/archives/C05KPDGRMDW")],
           ),
-          new AltimateCommandCenterItem(
+          new DbtPowerUserControlPanelItem(
             "Feedback",
             "feed",
             "Give us Feedback!",
@@ -99,7 +91,7 @@ export class PuQuickPick {
           }),
           dbtpuquickpick.onDidChangeSelection((items) => {
             const item = items[0];
-            if (item instanceof AltimateCommandCenterItem) {
+            if (item instanceof DbtPowerUserControlPanelItem) {
               commands.executeCommand(item.command, ...item.commandArgs);
               dbtpuquickpick.hide();
             }
@@ -117,7 +109,7 @@ export class PuQuickPick {
   }
 }
 
-class AltimateCommandCenterItem implements QuickPickItem {
+class DbtPowerUserControlPanelItem implements QuickPickItem {
   label: string;
   iconPath?: ThemeIcon | Uri | { light: Uri; dark: Uri } | undefined;
   description?: string | undefined;

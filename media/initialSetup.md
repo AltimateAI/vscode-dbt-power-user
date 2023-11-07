@@ -1,4 +1,4 @@
-# Welcome to the dbt-power-user extension setup!
+# Welcome to the dbt Power User extension setup!
 
 **We're here to ensure a smooth setup process. If you need help or run into any questions, our support team is just a click away**
 

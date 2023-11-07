@@ -1,15 +1,15 @@
 import { Disposable, commands, window } from "vscode";
 import { provideSingleton } from "../utils";
-import { PuQuickPick } from "./puQuickPick";
+import { DbtPowerUserControlCenterAction } from "./puQuickPick";
 import { ProjectQuickPick } from "./projectQuickPick";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 
-@provideSingleton(PUStatusBars)
-export class PUStatusBars implements Disposable {
+@provideSingleton(DbtPowerUserActionsCenter)
+export class DbtPowerUserActionsCenter implements Disposable {
   private disposables: Disposable[] = [];
 
   constructor(
-    private puLaunchQuickPick: PuQuickPick,
+    private puLaunchQuickPick: DbtPowerUserControlCenterAction,
     private projectQuickPick: ProjectQuickPick,
     private dbtProjectContainer: DBTProjectContainer,
   ) {

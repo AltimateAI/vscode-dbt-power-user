@@ -18,7 +18,7 @@ import { provideSingleton } from "./utils";
 import { WebviewViewProviders } from "./webview_provider";
 import { TelemetryService } from "./telemetry";
 import { HoverProviders } from "./hover_provider";
-import { PUStatusBars } from "./quickpick";
+import { DbtPowerUserActionsCenter } from "./quickpick";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -55,7 +55,7 @@ export class DBTPowerUserExtension implements Disposable {
     private codeLensProviders: CodeLensProviders,
     private documentFormattingEditProviders: DocumentFormattingEditProviders,
     private statusBars: StatusBars,
-    private puStatusBars: PUStatusBars,
+    private puStatusBars: DbtPowerUserActionsCenter,
     private telemetry: TelemetryService,
     private hoverProviders: HoverProviders,
   ) {
