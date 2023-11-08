@@ -114,9 +114,6 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.clearAltimateScanResults", () =>
         this.altimateScan.clearProblems(),
       ),
-      commands.registerCommand("dbtPowerUser.installDBTAdapters", () =>
-        this.walkthroughCommands.installDBTAdapters(),
-      ),
       commands.registerCommand("dbtPowerUser.validateProject", () => {
         const pickedProject: ProjectQuickPickItem | undefined =
           this.dbtProjectContainer.getFromWorkspaceState(
