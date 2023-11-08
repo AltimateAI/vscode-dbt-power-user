@@ -8,7 +8,7 @@ You've successfully configured the dbt-power-user extension. This is just the be
 - **Connect with Peers**: Join the conversation in our [Slack channel #tools-dbt-power-user](https://getdbt.slack.com/archives/C05KPDGRMDW) to share insights, tips, and get support from the dbt community.
 - **Engage with Us**: Visit our [GitHub repository](https://github.com/AltimateAI/vscode-dbt-power-user) to contribute, report issues, or suggest new features.
 
-As you embark on this new chapter, remember that our [support team](https://app.myaltimate.com/contactus) is just a click away, ready to assist you.
+As you embark on this new chapter, remember that we are just a [chat message](https://app.myaltimate.com/contactus) away, ready to assist you.
 
 Here’s to building great things with dbt-power-user!
 

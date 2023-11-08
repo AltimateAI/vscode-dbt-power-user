@@ -1,4 +1,4 @@
-#### Edit your docs inline using the docs editior
+#### Edit your dbt model and column descriptions in the Documentation Editor
 
 ![Edit and update your docs inline using the docs editor](./images/docs-editor.gif)
 
