@@ -68,7 +68,7 @@ export class AltimateScan {
         cancellable: false,
       },
       async () => {
-        const projects = this.dbtProjectContainer.findAllDBTProjects();
+        const projects = this.dbtProjectContainer.getProjects();
         for (const project of projects) {
           project.projectHealth.clear();
         }
@@ -86,7 +86,7 @@ export class AltimateScan {
         cancellable: true,
       },
       async () => {
-        const projects = this.dbtProjectContainer.findAllDBTProjects();
+        const projects = this.dbtProjectContainer.getProjects();
         for (const project of projects) {
           try {
             const scanContext: ScanContext = new ScanContext(

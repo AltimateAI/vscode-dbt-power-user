@@ -13,17 +13,25 @@ import { provideSingleton } from "../utils";
 import { RunModel } from "./runModel";
 import { SqlToModel } from "./sqlToModel";
 import { AltimateScan } from "./altimateScan";
+import { WalkthroughCommands } from "./walkthroughCommands";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
   private disposables: Disposable[] = [];
 
   constructor(
+    private dbtProjectContainer: DBTProjectContainer,
     private runModel: RunModel,
     private sqlToModel: SqlToModel,
     private altimateScan: AltimateScan,
+    private walkthroughCommands: WalkthroughCommands,
   ) {
     this.disposables.push(
+      commands.registerCommand("dbtPowerUser.checkIfDbtIsInstalled", () =>
+        this.dbtProjectContainer.detectDBT(),
+      ),
       commands.registerCommand("dbtPowerUser.runCurrentModel", () =>
         this.runModel.runModelOnActiveWindow(),
       ),
@@ -106,7 +114,59 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.clearAltimateScanResults", () =>
         this.altimateScan.clearProblems(),
       ),
+      commands.registerCommand("dbtPowerUser.validateProject", () => {
+        const pickedProject: ProjectQuickPickItem | undefined =
+          this.dbtProjectContainer.getFromWorkspaceState(
+            "dbtPowerUser.projectSelected",
+          );
+
+        this.walkthroughCommands.validateProjects(pickedProject);
+      }),
+      commands.registerCommand("dbtPowerUser.installDeps", () => {
+        this.dbtProjectContainer.setToGlobalState(
+          "showSetupWalkthrough",
+          false,
+        );
+
+        const pickedProject: ProjectQuickPickItem | undefined =
+          this.dbtProjectContainer.getFromWorkspaceState(
+            "dbtPowerUser.projectSelected",
+          );
+        this.walkthroughCommands.installDeps(pickedProject);
+      }),
+      commands.registerCommand(
+        "dbtPowerUser.openSetupWalkthrough",
+        async () => {
+          await commands.executeCommand("workbench.action.openWalkthrough");
+          commands.executeCommand(
+            "workbench.action.openWalkthrough",
+            `${this.dbtProjectContainer.extensionId}#initialSetup`,
+            true,
+          );
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.openTutorialWalkthrough",
+        async () => {
+          await commands.executeCommand("workbench.action.openWalkthrough");
+          commands.executeCommand(
+            "workbench.action.openWalkthrough",
+            `${this.dbtProjectContainer.extensionId}#tutorials`,
+            false,
+          );
+        },
+      ),
+      commands.registerCommand("dbtPowerUser.associateFileExts", async () => {
+        commands.executeCommand(
+          "workbench.action.openSettings",
+          "@id:files.associations",
+        );
+      }),
     );
+  }
+
+  needExtensionUpdate() {
+    return this.walkthroughCommands.isExtensionOutdated();
   }
 
   dispose() {

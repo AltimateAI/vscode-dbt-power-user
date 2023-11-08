@@ -88,16 +88,22 @@ export class DBTWorkspaceFolder implements Disposable {
     return this.dbtProjects.find((project) => project.contains(uri));
   }
 
-  findDBTProjects(): DBTProject[] {
-    const allProjects: DBTProject[] = [];
-    this.dbtProjects.forEach((project) => allProjects.push(project));
-    return allProjects;
+  getProjects(): DBTProject[] {
+    return this.dbtProjects;
   }
 
   contains(uri: Uri) {
     return (
       uri.fsPath === this.workspaceFolder.uri.fsPath ||
       uri.fsPath.startsWith(this.workspaceFolder.uri.fsPath + path.sep)
+    );
+  }
+
+  getAdapters(): string[] {
+    return Array.from(
+      new Set<string>(
+        this.dbtProjects.map((project) => project.getAdapterType()),
+      ),
     );
   }
 
