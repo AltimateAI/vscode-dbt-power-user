@@ -256,6 +256,10 @@
     },
     "commands": [
       {
+        "command": "dbtPowerUser.puQuickPick",
+        "title": "dbt Power User Quick Pick"
+      },
+      {
         "command": "dbtPowerUser.runCurrentModel",
         "title": "Run dbt Model",
         "icon": {
@@ -499,6 +503,188 @@
           "light": "./media/images/dbt_file_icon.svg",
           "dark": "./media/images/dbt_file_icon.svg"
         }
+      }
+    ],
+    "walkthroughs": [
+      {
+        "id": "initialSetup",
+        "title": "%walkthrough.initialSetup.title%",
+        "description": "%walkthrough.initialSetup.description%",
+        "steps": [
+          {
+            "id": "open",
+            "title": "%walkthrough.initialSetup.steps.open.title%",
+            "description": "%walkthrough.initialSetup.steps.open.description%",
+            "when": "workspaceFolderCount == 0",
+            "media": {
+              "image": "media/images/run-status.gif",
+              "altText": "Empty image"
+            }
+          },
+          {
+            "id": "initialSupport",
+            "title": "%walkthrough.initialSetup.steps.support.title%",
+            "description": "%walkthrough.initialSetup.steps.support.description%",
+            "media": {
+              "markdown": "media/initialSetup.md"
+            }
+          },
+          {
+            "id": "updateExtension",
+            "title": "%walkthrough.initialSetup.steps.updateExtension.title%",
+            "description": "%walkthrough.initialSetup.steps.updateExtension.description%",
+            "when": "dbtPowerUser.needsExtensionUpdate",
+            "media": {
+              "markdown": "media/updateExtension.md"
+            },
+            "completionEvents": [
+              "onContext:dbtPowerUser.needsExtensionUpdate"
+            ]
+          },
+          {
+            "id": "selectInterpreter",
+            "title": "%walkthrough.initialSetup.steps.selectInterpreter.title%",
+            "description": "%walkthrough.initialSetup.steps.selectInterpreter.description%",
+            "media": {
+              "markdown": "media/selectInterpreter.md"
+            },
+            "completionEvents": [
+              "onSettingChanged:python.setInterpreter"
+            ]
+          },
+          {
+            "id": "installDbt",
+            "title": "%walkthrough.initialSetup.steps.installDbt.title%",
+            "description": "%walkthrough.initialSetup.steps.installDbt.description%",
+            "when": "!dbtPowerUser.dbtInstalled",
+            "media": {
+              "markdown": "media/installDbt.md"
+            },
+            "completionEvents": [
+              "onContext:dbtPowerUser.dbtInstalled"
+            ]
+          },
+          {
+            "id": "associateFileExts",
+            "title": "%walkthrough.initialSetup.steps.associateFileExts.title%",
+            "description": "%walkthrough.initialSetup.steps.associateFileExts.description%",
+            "when": "dbtPowerUser.showFileAssociationStep",
+            "media": {
+              "markdown": "media/associateFileExts.md"
+            },
+            "completionEvents": [
+              "onCommand:dbtPowerUser.checkDbtInstalled"
+            ]
+          },
+          {
+            "id": "pickProject",
+            "title": "%walkthrough.initialSetup.steps.pickProject.title%",
+            "description": "%walkthrough.initialSetup.steps.pickProject.description%",
+            "when": "dbtPowerUser.projectCount > 1",
+            "media": {
+              "markdown": "media/pickProject.md"
+            },
+            "completionEvents": [
+              "onContext:dbtPowerUser.walkthroughProjectSelected"
+            ]
+          },
+          {
+            "id": "installDeps",
+            "title": "%walkthrough.initialSetup.steps.installDeps.title%",
+            "description": "%walkthrough.initialSetup.steps.installDeps.description%",
+            "when": "dbtPowerUser.walkthroughProjectSelected",
+            "media": {
+              "markdown": "media/installDeps.md"
+            },
+            "completionEvents": [
+              "onCommand:dbtPowerUser.installDeps"
+            ]
+          },
+          {
+            "id": "validateProject",
+            "title": "%walkthrough.initialSetup.steps.validateProject.title%",
+            "description": "%walkthrough.initialSetup.steps.validateProject.description%",
+            "when": "dbtPowerUser.walkthroughProjectSelected",
+            "media": {
+              "markdown": "media/validateProject.md"
+            },
+            "completionEvents": [
+              "onCommand:dbtPowerUser.validateProject"
+            ]
+          },
+          {
+            "id": "finish",
+            "title": "%walkthrough.initialSetup.steps.finish.title%",
+            "description": "%walkthrough.initialSetup.steps.finish.description%",
+            "when": "dbtPowerUser.walkthroughProjectSelected",
+            "media": {
+              "markdown": "media/finish.md"
+            }
+          }
+        ]
+      },
+      {
+        "id": "tutorials",
+        "title": "%walkthrough.tutorials.title%",
+        "description": "%walkthrough.tutorials.description%",
+        "steps": [
+          {
+            "id": "generate_models",
+            "title": "%walkthrough.tutorials.steps.generate_models.title%",
+            "description": "%walkthrough.tutorials.steps.generate_models.description%",
+            "media": {
+              "markdown": "media/generate_models.md"
+            }
+          },
+          {
+            "id": "autocompletion",
+            "title": "%walkthrough.tutorials.steps.autocompletion.title%",
+            "description": "%walkthrough.tutorials.steps.autocompletion.description%",
+            "media": {
+              "markdown": "media/autocompletion.md"
+            }
+          },
+          {
+            "id": "previews",
+            "title": "%walkthrough.tutorials.steps.previews.title%",
+            "description": "%walkthrough.tutorials.steps.previews.description%",
+            "media": {
+              "markdown": "media/previews.md"
+            }
+          },
+          {
+            "id": "dependants",
+            "title": "%walkthrough.tutorials.steps.dependants.title%",
+            "description": "%walkthrough.tutorials.steps.dependants.description%",
+            "media": {
+              "markdown": "media/dependants.md"
+            }
+          },
+          {
+            "id": "documentation",
+            "title": "%walkthrough.tutorials.steps.documentation.title%",
+            "description": "%walkthrough.tutorials.steps.documentation.description%",
+            "media": {
+              "markdown": "media/documentation.md"
+            }
+          },
+          {
+            "id": "lineage",
+            "title": "%walkthrough.tutorials.steps.lineage.title%",
+            "description": "%walkthrough.tutorials.steps.lineage.description%",
+            "media": {
+              "markdown": "media/lineage.md"
+            }
+          },
+          {
+            "id": "healthcheck",
+            "title": "%walkthrough.tutorials.steps.healthcheck.title%",
+            "description": "%walkthrough.tutorials.steps.healthcheck.description%",
+            "media": {
+              "markdown": "media/healthcheck.md"
+            }
+          }
+        ]
       }
     ]
   },

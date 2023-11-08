@@ -3,6 +3,7 @@ import {
   Disposable,
   StatusBarAlignment,
   StatusBarItem,
+  ThemeColor,
   window,
   workspace,
 } from "vscode";
@@ -16,6 +17,7 @@ export class VersionStatusBar implements Disposable {
     StatusBarAlignment.Left,
     10,
   );
+  private defaultColor: string = "statusBarItem.activeBackground";
   private disposables: Disposable[] = [];
 
   constructor(private dbtProjectContainer: DBTProjectContainer) {
@@ -44,7 +46,10 @@ export class VersionStatusBar implements Disposable {
       return;
     }
     if (!event.dbtInstallationFound!.installed) {
-      this.showTextInStatusBar("$(error) dbt is not installed");
+      this.showTextInStatusBar(
+        "$(error) dbt is not installed",
+        // "statusBarItem.errorBackground",
+      );
       return;
     }
 
@@ -59,6 +64,7 @@ export class VersionStatusBar implements Disposable {
         if (event.dbtInstallationFound.installedVersion !== undefined) {
           this.showTextInStatusBar(
             `$(error) dbt ${event.dbtInstallationFound.installedVersion} is not up to date`,
+            // "statusBarItem.warningBackground",
           );
         } else {
           this.showTextInStatusBar(`$(check) dbt`);
@@ -69,9 +75,23 @@ export class VersionStatusBar implements Disposable {
     }
   }
 
-  private showTextInStatusBar(text: string, command?: Command) {
+  private showTextInStatusBar(
+    text: string,
+    //statusColor: string = this.defaultColor,
+    command?: Command,
+  ) {
     this.statusBar.text = text;
-    this.statusBar.command = command;
+    this.statusBar.command = command || {
+      title: "Open Pu Control Panel",
+      command: "dbtPowerUser.puQuickPick",
+    };
+    //this.statusBar.backgroundColor = new ThemeColor(statusColor);
     this.statusBar.show();
+  }
+  private setStatusBarColor(color: string) {
+    this.statusBar.backgroundColor = new ThemeColor(color);
+  }
+  private resetStatusBarColor() {
+    this.statusBar.backgroundColor = new ThemeColor(this.defaultColor);
   }
 }

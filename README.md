@@ -44,7 +44,8 @@ or add the following in settings.json:
 
 ```
     "files.associations": {
-        "*.sql": "jinja-sql"
+        "*.sql": "jinja-sql",
+        "*.yml": "jinja-yaml"
     },
 ```
 
