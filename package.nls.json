@@ -8,7 +8,7 @@
   "walkthrough.initialSetup.steps.support.title": "Welcome to dbt Power User setup!",
   "walkthrough.initialSetup.steps.support.description": "Before you begin, know that our team is on standby to assist you. Should you encounter any issues or have questions, [chat with us](https://app.myaltimate.com/contactus) right away.",
   "walkthrough.initialSetup.steps.open.title": "Open dbt Project",
-  "walkthrough.initialSetup.steps.open.description": "To start off, open a dbt project. If you are just beginning to explore dbt, try out the jaffle-shop project (https://github.com/dbt-labs/jaffle_shop).\n[Open dbt Project](command:toSide:vscode.openFolder)",
+  "walkthrough.initialSetup.steps.open.description": "To start off, open a dbt project.\n[Open dbt Project](command:toSide:vscode.openFolder)",
   "walkthrough.initialSetup.steps.selectInterpreter.title": "Select Python Interpreter",
   "walkthrough.initialSetup.steps.selectInterpreter.description": "Choose the Python Interpreter where you have installed dbt.\n[Select Python Interpreter](command:python.setInterpreter)",
   "walkthrough.initialSetup.steps.installDbt.title": "Install dbt",
