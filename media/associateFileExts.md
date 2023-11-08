@@ -1,6 +1,6 @@
 # Associate your .sql files the jinja-sql language
 
-You should associate your .sql files with the jinja-sql language by configuring in Preferences > Settings
+For dbt Power User to work, \*.sql file types need to be associated with the value 'sql' or 'jinja-sql' and \*.yml file types should be associated with the value 'yaml' or 'jinja-yaml'
 
 ![Associations](./images/associations.png)
 
