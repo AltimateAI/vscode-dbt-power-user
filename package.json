@@ -517,8 +517,7 @@
             "description": "%walkthrough.initialSetup.steps.open.description%",
             "when": "workspaceFolderCount == 0",
             "media": {
-              "image": "media/images/run-status.gif",
-              "altText": "Empty image"
+              "markdown": "media/loadDbtProject.md"
             }
           },
           {
