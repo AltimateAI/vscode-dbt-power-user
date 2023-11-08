@@ -6,6 +6,6 @@
 
 ![Results data analysis and export](./images/EDA-and-export.gif)
 
-#### Quickly understand complex dbt models (sometimes written by others) by generating query explanations
+#### (Coming Soon) Quickly understand complex dbt models (sometimes written by others) by generating query explanations
 
 ![Results data analysis and export](./images/query-explanation.gif)

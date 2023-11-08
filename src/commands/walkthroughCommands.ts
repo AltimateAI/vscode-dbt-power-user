@@ -22,9 +22,6 @@ export class WalkthroughCommands {
     private dbtCommandFactory: DBTCommandFactory,
   ) {}
 
-  async installDBTAdapters() {
-    await this.askforDBTInstallation();
-  }
   async validateProjects(projectContext: ProjectQuickPickItem | undefined) {
     if (projectContext === undefined) {
       // This shouldnt happen really
@@ -140,46 +137,5 @@ export class WalkthroughCommands {
     const extLatest = await extLatestJson.json();
     const latestVersion = extLatest.tag_name.toString();
     return currentVersion < latestVersion;
-  }
-
-  private async askforDBTInstallation() {
-    const answer = await window.showErrorMessage(
-      `dbt is not installed in this python environment. Do you want to install dbt?`,
-      PromptAnswer.YES,
-      PromptAnswer.NO,
-    );
-    if (answer === PromptAnswer.YES) {
-      const adapters = this.dbtProjectContainer.getAdapters();
-      if (adapters.length === 0) {
-        window.showErrorMessage(
-          "No adapters detected. could not determine dbt adapter. Please install dbt manually.",
-        );
-        // TODO: telemetry
-        return;
-      }
-
-      if (adapters.length > 1) {
-        window.showErrorMessage(
-          "Multiple adapters detected. could not determine dbt adapter. Please install dbt manually.",
-        );
-        // TODO: telemetry
-        return;
-      }
-
-      // TODO: telemetry
-      try {
-        await this.commandProcessExecutionFactory
-          .createCommandProcessExecution({
-            command: this.dbtProjectContainer.getPythonEnvironment().pythonPath,
-            //args: ["-m", "pip", "install", "dbt"],
-            args: ["--version"],
-          })
-          .completeWithTerminalOutput(this.terminal);
-        return [];
-      } catch (err) {
-        // do something useful with error
-        // TODO: telemetry
-      }
-    }
   }
 }

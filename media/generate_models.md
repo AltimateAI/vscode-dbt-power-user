@@ -4,6 +4,6 @@
 
 Note: You can configure a file name template and prefix in the extension settings
 
-#### You can also convert existing SQL to dbt model
+#### [Coming Soon] You can also convert existing SQL to dbt model
 
 ![Generate a model from SQL](./images/generate-model-from-SQL.gif)
