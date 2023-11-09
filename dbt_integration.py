@@ -169,6 +169,9 @@ class ConfigInterface:
         self.profile = profile
         self.target_path = target_path
 
+    def __str__(self):
+        return f"ConfigInterface(threads={self.threads}, target={self.target}, profiles_dir={self.profiles_dir}, project_dir={self.project_dir}, profile={self.profile}, target_path={self.target_path})"
+
 
 class ManifestProxy(UserDict):
     """Proxy for manifest dictionary (`flat_graph`), if we need mutation then we should
@@ -348,7 +351,12 @@ class DbtProject:
 
     def safe_parse_project(self, reinit: bool = False) -> None:
         self.clear_caches()
-        _config_pointer = copy(self.config)
+        # doing this so that we can allow inits to fail when config is
+        # bad and restart after the user sets it up correctly
+        if hasattr(self, "config"):
+            _config_pointer = copy(self.config)
+        else:
+            _config_pointer = None
         try:
             self.parse_project(init=reinit)
             self.write_manifest_artifact()

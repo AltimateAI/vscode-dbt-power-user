@@ -1001,7 +1001,9 @@ select * from renamed
           [
             new Diagnostic(
               new Range(0, 0, 999, 999),
-              "An error occured while initializing the dbt project, probably the Python interpreter is not correctly setup: " +
+              "An error occured while initializing the dbt project. \nan update to the profiles file was detected at: " +
+                this.dbtProfilesDir +
+                " . \nException details: " +
                 exc.exception.message,
             ),
           ],
