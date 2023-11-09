@@ -1,6 +1,7 @@
 import { inject } from "inversify";
 import { basename } from "path";
 import {
+  commands,
   Disposable,
   EventEmitter,
   ExtensionContext,
@@ -17,6 +18,11 @@ import { DBTProject } from "./dbtProject";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+
+enum PromptAnswer {
+  YES = "Yes",
+  IGNORE = "Ignore",
+}
 
 @provideSingleton(DBTProjectContainer)
 export class DBTProjectContainer implements Disposable {
@@ -65,6 +71,70 @@ export class DBTProjectContainer implements Disposable {
     }
     await Promise.all(
       folders.map((folder) => this.registerWorkspaceFolder(folder)),
+    );
+  }
+
+  async showWalkthrough() {
+    const answer = await window.showInformationMessage(
+      `Thanks for installing dbt Power User. Do you need help setting up the extension?`,
+      PromptAnswer.YES,
+      PromptAnswer.IGNORE,
+    );
+    commands.executeCommand(
+      "setContext",
+      "dbtPowerUser.showSetupWalkthrough",
+      false,
+    );
+    if (answer === PromptAnswer.YES) {
+      commands.executeCommand("dbtPowerUser.openSetupWalkthrough");
+    }
+  }
+
+  async initializeWalkthrough() {
+    // show setup walkthrough if needed
+    const showSetupWalkthrough = this.context!.globalState.get(
+      "showSetupWalkthrough",
+    );
+    if (showSetupWalkthrough === undefined || showSetupWalkthrough === true) {
+      this.showWalkthrough();
+    }
+
+    const allProjects = await this.getProjects();
+
+    commands.executeCommand(
+      "setContext",
+      "dbtPowerUser.projectCount",
+      allProjects.length,
+    );
+    if (allProjects.length === 1) {
+      this.setToWorkspaceState("dbtPowerUser.projectSelected", {
+        label: allProjects[0].getProjectName(),
+        description: allProjects[0].projectRoot.fsPath,
+        uri: allProjects[0].projectRoot,
+      });
+      commands.executeCommand(
+        "setContext",
+        "dbtPowerUser.walkthroughProjectSelected",
+        true,
+      );
+    }
+    const existingAssociations = workspace
+      .getConfiguration("files")
+      .get<any>("associations", {});
+    let showFileAssociationsStep = false;
+    Object.entries({
+      "*.sql": ["jinja-sql", "sql"],
+      "*.yml": ["jinja-yaml", "yaml"],
+    }).forEach(([key, value]) => {
+      if (existingAssociations[key] === undefined) {
+        showFileAssociationsStep ||= true;
+      }
+      showFileAssociationsStep ||= !value.includes(existingAssociations[key]);
+    });
+    commands.executeCommand(
+      "setContext",
+      "dbtPowerUser.showFileAssociationStep",
+      showFileAssociationsStep,
     );
   }
 
