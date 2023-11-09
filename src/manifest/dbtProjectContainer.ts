@@ -24,15 +24,27 @@ enum PromptAnswer {
   IGNORE = "Ignore",
 }
 
+export interface ProjectRegisteredUnregisteredEvent {
+  root: Uri;
+  name: string;
+  registered: boolean;
+}
+
 @provideSingleton(DBTProjectContainer)
 export class DBTProjectContainer implements Disposable {
   public onDBTInstallationVerification =
     this.dbtClient.onDBTInstallationVerification;
   private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
   private _onManifestChanged = new EventEmitter<ManifestCacheChangedEvent>();
+  private _onProjectRegisteredUnregistered =
+    new EventEmitter<ProjectRegisteredUnregisteredEvent>();
   public readonly onManifestChanged = this._onManifestChanged.event;
-  private disposables: Disposable[] = [this._onManifestChanged];
+  private disposables: Disposable[] = [
+    this._onManifestChanged,
+    this._onProjectRegisteredUnregistered,
+  ];
   private context?: ExtensionContext;
+  private projects: Map<Uri, string> = new Map<Uri, string>();
 
   constructor(
     private dbtClient: DBTClient,
@@ -41,6 +53,7 @@ export class DBTProjectContainer implements Disposable {
     private dbtWorkspaceFolderFactory: (
       workspaceFolder: WorkspaceFolder,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+      _onProjectRegisteredUnregistered: EventEmitter<ProjectRegisteredUnregisteredEvent>,
       pythonPath?: string,
       envVars?: EnvironmentVariables,
     ) => DBTWorkspaceFolder,
@@ -58,6 +71,40 @@ export class DBTProjectContainer implements Disposable {
         );
       }),
     );
+    this._onProjectRegisteredUnregistered.event((event) => {
+      if (event.registered) {
+        this.projects.set(event.root, event.name);
+      } else {
+        this.projects.delete(event.root);
+      }
+      const projects = Array.from(this.projects.entries());
+      commands.executeCommand(
+        "setContext",
+        "dbtPowerUser.projectCount",
+        projects.length,
+      );
+      if (projects.length === 1) {
+        this.setToWorkspaceState("dbtPowerUser.projectSelected", {
+          label: projects[0][1],
+          description: projects[0][0].fsPath,
+          uri: projects[0][0],
+        });
+        // For some reason we can't use dbtPowerUser.projectSelected to control the steps
+        commands.executeCommand(
+          "setContext",
+          "dbtPowerUser.walkthroughProjectSelected",
+          true,
+        );
+      } else {
+        // reset the experience so the user can reselect another project when running again
+        this.setToWorkspaceState("dbtPowerUser.projectSelected", null);
+        commands.executeCommand(
+          "setContext",
+          "dbtPowerUser.walkthroughProjectSelected",
+          false,
+        );
+      }
+    });
   }
 
   setContext(context: ExtensionContext) {
@@ -106,18 +153,6 @@ export class DBTProjectContainer implements Disposable {
       "dbtPowerUser.projectCount",
       allProjects.length,
     );
-    if (allProjects.length === 1) {
-      this.setToWorkspaceState("dbtPowerUser.projectSelected", {
-        label: allProjects[0].getProjectName(),
-        description: allProjects[0].projectRoot.fsPath,
-        uri: allProjects[0].projectRoot,
-      });
-      commands.executeCommand(
-        "setContext",
-        "dbtPowerUser.walkthroughProjectSelected",
-        true,
-      );
-    }
     const existingAssociations = workspace
       .getConfiguration("files")
       .get<any>("associations", {});
@@ -296,6 +331,7 @@ export class DBTProjectContainer implements Disposable {
     const dbtProjectWorkspaceFolder = this.dbtWorkspaceFolderFactory(
       workspaceFolder,
       this._onManifestChanged,
+      this._onProjectRegisteredUnregistered,
     );
     this.dbtWorkspaceFolders.push(dbtProjectWorkspaceFolder);
     await dbtProjectWorkspaceFolder.discoverProjects();

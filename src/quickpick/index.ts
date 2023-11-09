@@ -25,6 +25,11 @@ export class DbtPowerUserActionsCenter implements Disposable {
           "dbtPowerUser.projectSelected",
           pickedProject,
         );
+        commands.executeCommand(
+          "setContext",
+          "dbtPowerUser.walkthroughProjectSelected",
+          true,
+        );
         window.showInformationMessage(
           "You have succesfully selected " + pickedProject.label + ".",
         );
