@@ -180,7 +180,10 @@ export class RunModel {
       );
     } else {
       window.showErrorMessage(
-        extendErrorWithSupportLinks("Could not generate model!"),
+        extendErrorWithSupportLinks(
+          "Could not generate model! No project found for " +
+            params.currentDoc.fsPath,
+        ),
       );
     }
   }
