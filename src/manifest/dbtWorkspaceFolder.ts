@@ -18,6 +18,7 @@ import { DBTProject } from "./dbtProject";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
 import { YAMLError } from "yaml";
+import { ProjectRegisteredUnregisteredEvent } from "./dbtProjectContainer";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
@@ -36,6 +37,7 @@ export class DBTWorkspaceFolder implements Disposable {
     private telemetry: TelemetryService,
     private workspaceFolder: WorkspaceFolder,
     private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+    private _onProjectRegisteredUnregistered: EventEmitter<ProjectRegisteredUnregisteredEvent>,
   ) {
     this.watcher = this.createConfigWatcher();
     this.disposables.push(this.watcher);
@@ -131,6 +133,11 @@ export class DBTWorkspaceFolder implements Disposable {
         (a, b) => -a.projectRoot.fsPath.localeCompare(b.projectRoot.fsPath),
       );
       this.projectDiscoveryDiagnostics.clear();
+      this._onProjectRegisteredUnregistered.fire({
+        root: uri,
+        name: dbtProject.getProjectName(),
+        registered: true,
+      });
     } catch (error) {
       if (error instanceof YAMLError) {
         this.projectDiscoveryDiagnostics.set(
@@ -152,6 +159,11 @@ export class DBTWorkspaceFolder implements Disposable {
     if (projectToDelete === undefined) {
       return;
     }
+    this._onProjectRegisteredUnregistered.fire({
+      root: uri,
+      name: projectToDelete.getProjectName(),
+      registered: false,
+    });
     projectToDelete.dispose();
     this.dbtProjects.splice(this.dbtProjects.indexOf(projectToDelete));
   }
