@@ -61,7 +61,6 @@ if TYPE_CHECKING:
     from dbt.adapters.base import BaseRelation  # type: ignore
     from dbt.contracts.connection import AdapterResponse
 
-
 Primitive = Union[bool, str, float, None]
 PrimitiveDict = Dict[str, Primitive]
 
@@ -234,8 +233,6 @@ class DbtProject:
             target_path=target_path,
         )
 
-        self.init_project()
-
         # Utilities
         self._sql_parser: Optional[SqlBlockParser] = None
         self._macro_parser: Optional[SqlMacroParser] = None
@@ -256,8 +253,10 @@ class DbtProject:
     def init_project(self):
         set_from_args(self.args, self.args)
         self.config = RuntimeConfig.from_args(self.args)
-        if hasattr(self, "adapter"):
-            self.adapter.cleanup_all()
+        # looks like the adapter do not follow the AdapterProtocol defined by dbt.
+        # both postgres and snowflake dont have a cleanup_all method defined.
+        # if hasattr(self, "adapter"):
+        #     self.adapter.cleanup_all()
         self.adapter = self.get_adapter()
         self.adapter.connections.set_connection_name()
         self.config.adapter = self.adapter
