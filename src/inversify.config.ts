@@ -5,7 +5,10 @@ import { DBTCommandFactory } from "./dbt_client/dbtCommandFactory";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
 import { EnvironmentVariables } from "./domain";
 import { DBTProject } from "./manifest/dbtProject";
-import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
+import {
+  DBTProjectContainer,
+  ProjectRegisteredUnregisteredEvent,
+} from "./manifest/dbtProjectContainer";
 import { DBTWorkspaceFolder } from "./manifest/dbtWorkspaceFolder";
 import { ManifestCacheChangedEvent } from "./manifest/event/manifestCacheChangedEvent";
 import { DBTProjectLogFactory } from "./manifest/modules/dbtProjectLog";
@@ -25,6 +28,7 @@ container
     [
       WorkspaceFolder,
       EventEmitter<ManifestCacheChangedEvent>,
+      EventEmitter<ProjectRegisteredUnregisteredEvent>,
       string,
       EnvironmentVariables,
     ]
@@ -32,6 +36,7 @@ container
     return (
       workspaceFolder: WorkspaceFolder,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+      _onProjectRegisteredUnregistered: EventEmitter<ProjectRegisteredUnregisteredEvent>,
     ) => {
       const { container } = context;
       return new DBTWorkspaceFolder(
@@ -39,6 +44,7 @@ container
         container.get(TelemetryService),
         workspaceFolder,
         _onManifestChanged,
+        _onProjectRegisteredUnregistered,
       );
     };
   });
