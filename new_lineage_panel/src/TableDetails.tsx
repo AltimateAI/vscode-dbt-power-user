@@ -191,6 +191,7 @@ const TableDetails = () => {
   const flow = useReactFlow();
   const [filteredColumn, setFilteredColumn] = useState<Column[]>([]);
   const [data, setData] = useState<Columns | null>(null);
+  const [tab, setTab] = useState(0);
 
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
@@ -406,15 +407,27 @@ const TableDetails = () => {
         </div>
       </div>
       {data.purpose && <PurposeSection purpose={data.purpose} />}
-      <ColumnSection
-        selectedTable={selectedTable}
-        selectedColumn={selectedColumn}
-        filteredColumn={filteredColumn}
-        setFilteredColumn={setFilteredColumn}
-        columns={data.columns}
-        handleColumnClick={handleColumnClick}
-        setData={setData}
-      />
+      <div className={styles.table_details_tabs}>
+        {["Column", "Tests"].map((label, i) => (
+          <div
+            className={classNames(styles.tab, { [styles.selected]: tab === i })}
+            onClick={() => setTab(i)}
+          >
+            {label}
+          </div>
+        ))}
+      </div>
+      {tab === 0 && (
+        <ColumnSection
+          selectedTable={selectedTable}
+          selectedColumn={selectedColumn}
+          filteredColumn={filteredColumn}
+          setFilteredColumn={setFilteredColumn}
+          columns={data.columns}
+          handleColumnClick={handleColumnClick}
+          setData={setData}
+        />
+      )}
     </div>
   );
 };

@@ -227,3 +227,25 @@ $size: 1.2em;
   border-color: var(--card-border-color) !important;
   color: var(--text-color) !important;
 }
+
+.table_details_tabs {
+  width: 100%;
+  padding: 0.25em;
+  border-radius: 0.5em;
+  display: flex;
+  background-color: var(--column-section-bg);
+
+  .tab {
+    width: 100%;
+    padding: 0.5em;
+    border-radius: 0.5em;
+    color: var(--text-color);
+    text-align: center;
+    cursor: pointer;
+
+    &.selected {
+      background-color: var(--primary-accent);
+      color: #ffffff;
+    }
+  }
+}
