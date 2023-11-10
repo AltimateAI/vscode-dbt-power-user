@@ -82,7 +82,7 @@ export class WalkthroughCommands {
       return;
     }
     const answer = await window.showInformationMessage(
-      `Do you want to validate the project: ${projectContext.label}? This will run the command 'dbt deps' inside this project. Do you want to continue?`,
+      `Do you want to install packages for the project: ${projectContext.label}? This will run the command 'dbt deps' inside this project. Do you want to continue?`,
       PromptAnswer.YES,
       PromptAnswer.NO,
     );
