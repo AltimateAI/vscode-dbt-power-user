@@ -166,7 +166,7 @@ export class DBTProject implements Disposable {
     );
 
     setupWatcherHandler(dbtProjectConfigWatcher, () => this.tryRefresh());
-    setupWatcherHandler(dbtProfileWatcher, () => this.profileChanged());
+    setupWatcherHandler(dbtProfileWatcher, () => this.rebuildManifest(true));
 
     this.sourceFileWatchers =
       this.sourceFileWatchersFactory.createSourceFileWatchers(
@@ -234,18 +234,7 @@ export class DBTProject implements Disposable {
       await this.python.ex`from dbt_integration import *`;
       await this.python
         .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir}, target_path=${this.targetPath})`;
-      // initialize the project
-      await this.python.ex`project.init_project()`;
-      // get adapter
-      this.adapterType = (await this.python?.lock(
-        (python) => python!`project.config.credentials.type`,
-      )) as string;
-      // now we can accept project method invocations on the python env.
       this.pythonBridgeInitialized = true;
-      this.telemetry.sendTelemetryEvent("dbtProject", {
-        adapter: this.adapterType,
-        project: DBTProject.hashProjectRoot(this.projectRoot.fsPath),
-      });
       this.pythonBridgeDiagnostics.clear();
     } catch (exc: any) {
       if (exc instanceof PythonException) {
@@ -276,7 +265,7 @@ export class DBTProject implements Disposable {
     }
     // this methods already handle exceptions
     await this.tryRefresh();
-    await this.rebuildManifest();
+    await this.rebuildManifest(true);
   }
 
   private async onPythonEnvironmentChanged() {
@@ -335,7 +324,7 @@ export class DBTProject implements Disposable {
     );
   }
 
-  private async rebuildManifest() {
+  private async rebuildManifest(init: boolean = false) {
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
         extendErrorWithSupportLinks(
@@ -349,8 +338,17 @@ export class DBTProject implements Disposable {
     }
     try {
       await this.python?.lock(
-        (python) => python!`to_dict(project.safe_parse_project())`,
+        (python) => python!`to_dict(project.safe_parse_project(${init}))`,
       );
+      if (init) {
+        this.adapterType = (await this.python?.lock(
+          (python) => python!`project.config.credentials.type`,
+        )) as string;
+        this.telemetry.sendTelemetryEvent("dbtProject", {
+          adapter: this.adapterType,
+          project: DBTProject.hashProjectRoot(this.projectRoot.fsPath),
+        });
+      }
       this.rebuildManifestDiagnostics.clear();
     } catch (exc) {
       if (exc instanceof PythonException) {
@@ -976,50 +974,5 @@ select * from renamed
       this.macroPaths,
     );
     this._onProjectConfigChanged.fire(event);
-  }
-
-  private async profileChanged() {
-    await this.blockUntilPythonBridgeIsInitalized();
-    try {
-      await this.python!.ex`project.safe_parse_project(True)`;
-      this.adapterType = (await this.python?.lock(
-        (python) => python!`project.config.credentials.type`,
-      )) as string;
-      // now we can accept project method invocations on the python env.
-      this.pythonBridgeInitialized = true;
-      this.telemetry.sendTelemetryEvent("dbtProject", {
-        adapter: this.adapterType,
-        project: DBTProject.hashProjectRoot(this.projectRoot.fsPath),
-      });
-      this.pythonBridgeDiagnostics.clear();
-    } catch (exc: any) {
-      if (exc instanceof PythonException) {
-        // python errors can be about anything, so we just associate the error with the project file
-        //  with a fixed range
-        this.pythonBridgeDiagnostics.set(
-          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
-          [
-            new Diagnostic(
-              new Range(0, 0, 999, 999),
-              "An error occured while initializing the dbt project. \nan update to the profiles file was detected at: " +
-                this.dbtProfilesDir +
-                " . \nException details: " +
-                exc.exception.message,
-            ),
-          ],
-        );
-        this.telemetry.sendTelemetryError("pythonAdapterInitPythonError", exc);
-        return;
-      }
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "An unexpected error occured while initializing the dbt project: " +
-            exc +
-            ".",
-        ),
-      );
-      this.telemetry.sendTelemetryError("pythonAdapterInitError", exc);
-      return;
-    }
   }
 }

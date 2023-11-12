@@ -245,7 +245,6 @@ class DbtProject:
         # Tracks internal state version
         self._version: int = 1
         self.mutex = threading.Lock()
-        # atexit.register(lambda dbt_project: dbt_project.adapter.connections.cleanup_all, self)
 
     def get_adapter(self):
         """This inits a new Adapter which is fundamentally different than
@@ -256,10 +255,6 @@ class DbtProject:
     def init_project(self):
         set_from_args(self.args, self.args)
         self.config = RuntimeConfig.from_args(self.args)
-        # looks like the adapter do not follow the AdapterProtocol defined by dbt.
-        # both postgres and snowflake dont have a cleanup_all method defined.
-        # if hasattr(self, "adapter"):
-        #     self.adapter.cleanup_all()
         self.adapter = self.get_adapter()
         self.adapter.connections.set_connection_name()
         self.config.adapter = self.adapter
