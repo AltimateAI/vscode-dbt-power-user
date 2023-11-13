@@ -70,6 +70,7 @@ interface ResolveReferenceResult {
 
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
+  static DBT_PROFILES_FILE = "profiles.yml";
   static DBT_MODULES = ["dbt_modules", "dbt_packages"];
   static MANIFEST_FILE = "manifest.json";
   static RUN_RESULTS_FILE = "run_results.json";
@@ -155,12 +156,17 @@ export class DBTProject implements Disposable {
       new RelativePattern(path, DBTProject.DBT_PROJECT_FILE),
     );
 
+    const dbtProfileWatcher = workspace.createFileSystemWatcher(
+      new RelativePattern(this.dbtProfilesDir, DBTProject.DBT_PROFILES_FILE),
+    );
+
     const fireProjectChanged = debounce(
       async () => await this.rebuildManifest(),
       2000,
     );
 
     setupWatcherHandler(dbtProjectConfigWatcher, () => this.tryRefresh());
+    setupWatcherHandler(dbtProfileWatcher, () => this.rebuildManifest(true));
 
     this.sourceFileWatchers =
       this.sourceFileWatchersFactory.createSourceFileWatchers(
@@ -228,17 +234,7 @@ export class DBTProject implements Disposable {
       await this.python.ex`from dbt_integration import *`;
       await this.python
         .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir}, target_path=${this.targetPath})`;
-
-      // get adapter
-      this.adapterType = (await this.python?.lock(
-        (python) => python!`project.config.credentials.type`,
-      )) as string;
-      // now we can accept project method invocations on the python env.
       this.pythonBridgeInitialized = true;
-      this.telemetry.sendTelemetryEvent("dbtProject", {
-        adapter: this.adapterType,
-        project: DBTProject.hashProjectRoot(this.projectRoot.fsPath),
-      });
       this.pythonBridgeDiagnostics.clear();
     } catch (exc: any) {
       if (exc instanceof PythonException) {
@@ -269,7 +265,7 @@ export class DBTProject implements Disposable {
     }
     // this methods already handle exceptions
     await this.tryRefresh();
-    await this.rebuildManifest();
+    await this.rebuildManifest(true);
   }
 
   private async onPythonEnvironmentChanged() {
@@ -328,7 +324,7 @@ export class DBTProject implements Disposable {
     );
   }
 
-  private async rebuildManifest() {
+  private async rebuildManifest(init: boolean = false) {
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
         extendErrorWithSupportLinks(
@@ -342,8 +338,17 @@ export class DBTProject implements Disposable {
     }
     try {
       await this.python?.lock(
-        (python) => python!`to_dict(project.safe_parse_project())`,
+        (python) => python!`to_dict(project.safe_parse_project(${init}))`,
       );
+      if (init) {
+        this.adapterType = (await this.python?.lock(
+          (python) => python!`project.config.credentials.type`,
+        )) as string;
+        this.telemetry.sendTelemetryEvent("dbtProject", {
+          adapter: this.adapterType,
+          project: DBTProject.hashProjectRoot(this.projectRoot.fsPath),
+        });
+      }
       this.rebuildManifestDiagnostics.clear();
     } catch (exc) {
       if (exc instanceof PythonException) {

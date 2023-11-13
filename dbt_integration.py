@@ -61,7 +61,6 @@ if TYPE_CHECKING:
     from dbt.adapters.base import BaseRelation  # type: ignore
     from dbt.contracts.connection import AdapterResponse
 
-
 Primitive = Union[bool, str, float, None]
 PrimitiveDict = Dict[str, Primitive]
 
@@ -170,6 +169,9 @@ class ConfigInterface:
         self.profile = profile
         self.target_path = target_path
 
+    def __str__(self):
+        return f"ConfigInterface(threads={self.threads}, target={self.target}, profiles_dir={self.profiles_dir}, project_dir={self.project_dir}, profile={self.profile}, target_path={self.target_path})"
+
 
 class ManifestProxy(UserDict):
     """Proxy for manifest dictionary (`flat_graph`), if we need mutation then we should
@@ -234,8 +236,6 @@ class DbtProject:
             target_path=target_path,
         )
 
-        self.init_project()
-
         # Utilities
         self._sql_parser: Optional[SqlBlockParser] = None
         self._macro_parser: Optional[SqlMacroParser] = None
@@ -245,7 +245,6 @@ class DbtProject:
         # Tracks internal state version
         self._version: int = 1
         self.mutex = threading.Lock()
-        # atexit.register(lambda dbt_project: dbt_project.adapter.connections.cleanup_all, self)
 
     def get_adapter(self):
         """This inits a new Adapter which is fundamentally different than
@@ -256,8 +255,6 @@ class DbtProject:
     def init_project(self):
         set_from_args(self.args, self.args)
         self.config = RuntimeConfig.from_args(self.args)
-        if hasattr(self, "adapter"):
-            self.adapter.cleanup_all()
         self.adapter = self.get_adapter()
         self.adapter.connections.set_connection_name()
         self.config.adapter = self.adapter
@@ -349,7 +346,12 @@ class DbtProject:
 
     def safe_parse_project(self, reinit: bool = False) -> None:
         self.clear_caches()
-        _config_pointer = copy(self.config)
+        # doing this so that we can allow inits to fail when config is
+        # bad and restart after the user sets it up correctly
+        if hasattr(self, "config"):
+            _config_pointer = copy(self.config)
+        else:
+            _config_pointer = None
         try:
             self.parse_project(init=reinit)
             self.write_manifest_artifact()
