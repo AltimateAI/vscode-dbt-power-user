@@ -160,6 +160,7 @@ function App() {
         nodeType: string;
         downstreamCount: number;
         upstreamCount: number;
+        tests: { key: string; path: string }[];
       };
       aiEnabled: boolean;
     }) => {
@@ -246,6 +247,7 @@ function App() {
               nodeType: node.nodeType,
               upstreamCount: node.upstreamCount,
               downstreamCount: node.downstreamCount,
+              tests: node.tests,
             },
             position: { x: 100, y: 100 },
             type: "table",

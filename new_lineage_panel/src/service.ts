@@ -7,6 +7,7 @@ export type Table = {
   nodeType: string;
   downstreamCount: number;
   upstreamCount: number;
+  tests: { key: string; path: string }[];
 };
 export type Column = {
   name: string;

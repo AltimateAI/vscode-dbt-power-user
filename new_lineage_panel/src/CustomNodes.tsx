@@ -94,6 +94,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     downstreamCount,
     key,
     nodeType,
+    tests,
   } = data;
   const flow = useReactFlow();
 
@@ -122,6 +123,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             nodeType,
             upstreamCount,
             downstreamCount,
+            tests
           }
     );
 

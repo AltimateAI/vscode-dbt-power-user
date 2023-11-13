@@ -177,6 +177,41 @@ const ColumnSection: FunctionComponent<{
   );
 };
 
+const TestSection: FunctionComponent<{
+  tests: { key: string; path: string }[];
+}> = ({ tests }) => {
+  const [filteredTests, setFilteredTests] = useState(tests);
+  return (
+    <div className={classNames(styles.card, "flex-grow column-section")}>
+      <div className="d-flex flex-column gap-sm h-100 p-2">
+        <div className="fs-5 fw-semibold">Tests</div>
+        <CustomInput
+          bsSize="sm"
+          type="text"
+          placeholder="Search by test"
+          onChange={(e) => {
+            const _search = e.target.value.toLowerCase();
+            setFilteredTests(
+              tests.filter((t) => t.key.toLowerCase().includes(_search))
+            );
+          }}
+        />
+        <div className="d-flex align-items-center gap-xs">
+          <div className="fs-xxs text-grey">{tests.length} tests</div>
+        </div>
+        <div className="d-flex flex-column gap-sm">
+          {filteredTests.map((_test) => (
+            <div key={_test.key} className={styles.column_card}>
+              <div className="d-flex align-items-center gap-xs">
+                <div className="lines-2">{_test.key}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 const TableDetails = () => {
   const {
     selectedTable,
@@ -428,6 +463,7 @@ const TableDetails = () => {
           setData={setData}
         />
       )}
+      {tab === 1 && <TestSection tests={selectedTable.tests} />}
     </div>
   );
 };

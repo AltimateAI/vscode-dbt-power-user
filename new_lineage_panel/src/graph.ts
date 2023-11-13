@@ -54,7 +54,7 @@ export const createNewNodesEdges = (
       const nodeId = getSeeMoreId(t, right);
       newNodes.push({
         id: nodeId,
-        data: { tables, prevTable: t, right, level: newLevel },
+        data: { tables, prevTable: t, right, level: newLevel, tests: _t.tests },
         position: { x: 100, y: 100 },
         type: "seeMore",
         width: T_NODE_W,
