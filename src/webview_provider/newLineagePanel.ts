@@ -35,6 +35,7 @@ type Table = {
   downstreamCount: number;
   upstreamCount: number;
   nodeType: string;
+  tests: any[];
 };
 
 const CACHE_SIZE = 100;
@@ -489,7 +490,7 @@ export class NewLineagePanel implements LineagePanelView {
     if (!event) {
       return;
     }
-    const { graphMetaMap, nodeMetaMap } = event;
+    const { graphMetaMap, nodeMetaMap, testMetaMap } = event;
     const dependencyNodes = graphMetaMap[key];
     const node = dependencyNodes.get(table);
     if (!node) {
@@ -519,6 +520,10 @@ export class NewLineagePanel implements LineagePanelView {
           graphMetaMap["parents"],
           key,
         ),
+        tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
+          const testKey = n.label.split(".")[0];
+          return { ...testMetaMap.get(testKey), key: testKey };
+        }),
       });
     });
     return Array.from(tables.values()).sort((a, b) =>
@@ -574,7 +579,7 @@ export class NewLineagePanel implements LineagePanelView {
     if (!event) {
       return;
     }
-    const { graphMetaMap, nodeMetaMap } = event;
+    const { graphMetaMap, nodeMetaMap, testMetaMap } = event;
     const fileName = this.getFilename();
     const node = nodeMetaMap.get(fileName);
     if (!node) {
@@ -601,6 +606,10 @@ export class NewLineagePanel implements LineagePanelView {
         upstreamCount,
         downstreamCount,
         nodeType,
+        tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
+          const testKey = n.label.split(".")[0];
+          return { ...testMetaMap.get(testKey), key: testKey };
+        }),
       },
       aiEnabled: this.altimate.enabled(),
     };
