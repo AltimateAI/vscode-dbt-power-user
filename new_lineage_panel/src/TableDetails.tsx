@@ -197,7 +197,7 @@ const TestSection: FunctionComponent<{
           }}
         />
         <div className="d-flex align-items-center gap-xs">
-          <div className="fs-xxs text-grey">{tests.length} tests</div>
+          <div className="fs-xxs text-grey">{filteredTests.length} tests</div>
         </div>
         <div className="d-flex flex-column gap-sm">
           {filteredTests.map((_test) => (
