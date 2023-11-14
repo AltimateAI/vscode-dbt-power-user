@@ -36,9 +36,14 @@ import {
   processColumnLineage,
 } from "./graph";
 import { TableDetails } from "./TableDetails";
-import { Button, Card, CardBody, UncontrolledTooltip } from "reactstrap";
-import DirectEdgeIcon from "./assets/icons/direct_edge.svg?react";
-import IndirectEdgeIcon from "./assets/icons/indirect_edge.svg?react";
+import {
+  Button,
+  Card,
+  CardBody,
+  Input,
+  Label,
+  UncontrolledTooltip,
+} from "reactstrap";
 import AlertCircleIcon from "./assets/icons/alert-circle.svg?react";
 import styles from "./styles.module.scss";
 
@@ -312,17 +317,25 @@ function App() {
           <Card className={styles.menu_card_container}>
             <CardBody className={styles.menu_card}>
               <div className="d-flex gap-sm">
-                <div className="d-flex gap-xxs align-items-center">
-                  <DirectEdgeIcon />
-                  <div>Select</div>
+                <div className={styles.select_node_checkbox}>
+                  <Input type="checkbox" id="select-check" className="mt-0" />
+                  <Label check for="select-check">
+                    Select
+                  </Label>
                   <InfoIcon
                     id="select_lineage"
                     message="Select linkages are shown if there is direct flow of data between columns through select statements."
                   />
                 </div>
-                <div className="d-flex gap-xxs align-items-center">
-                  <IndirectEdgeIcon />
-                  <div>Non-Select</div>
+                <div className={styles.non_select_node_checkbox}>
+                  <Input
+                    type="checkbox"
+                    id="non-select-check"
+                    className="mt-0"
+                  />
+                  <Label check for="non-select-check">
+                    Non-Select
+                  </Label>
                   <InfoIcon
                     id="non_select_lineage"
                     message="Non-Select linkages are shown if columns appear in condition/clauses like where, join, having, etc."
