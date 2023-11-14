@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useContext } from "react";
+import React, { FunctionComponent, ReactElement, useContext } from "react";
 import {
   BaseEdge,
   EdgeProps,
@@ -35,6 +35,7 @@ import FolderIcon from "./assets/icons/folder.svg?react";
 import FolderDarkIcon from "./assets/icons/folder_dark.svg?react";
 import TestsIcon from "./assets/icons/tests.svg?react";
 import EphemeralIcon from "./assets/icons/ephemeral.svg?react";
+import { UncontrolledTooltip } from "reactstrap";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -83,6 +84,21 @@ export const NodeTypeIcon: FunctionComponent<{ nodeType: string }> = ({
     {nodeType === "model" && <ModelIcon />}
     {nodeType === "source" && <SourceIcon />}
   </div>
+);
+
+const TableNodePill: FunctionComponent<{
+  id: string;
+  icon: ReactElement;
+  label: string;
+  text: string;
+}> = ({ id, icon, text, label }) => (
+  <>
+    <div className={styles.table_node_pill} id={id}>
+      <div className={styles.icon}>{icon}</div>
+      <div>{text}</div>
+    </div>
+    <UncontrolledTooltip target={id}>{label}</UncontrolledTooltip>
+  </>
 );
 
 export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
@@ -220,19 +236,19 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           </div>
           <div className="d-flex gap-xs">
             {tests?.length > 0 && (
-              <div className={styles.table_node_pill}>
-                <div className={styles.icon}>
-                  <TestsIcon />
-                </div>
-                <div>{tests?.length}</div>
-              </div>
+              <TableNodePill
+                id={"table-node-tests-" + table}
+                icon={<TestsIcon />}
+                text={tests?.length}
+                label="Tests"
+              />
             )}
-            <div className={styles.table_node_pill}>
-              <div className={styles.icon}>
-                <EphemeralIcon />
-              </div>
-              <div>{materialization}</div>
-            </div>
+            <TableNodePill
+              id={"table-node-materilization-" + table}
+              icon={<EphemeralIcon />}
+              text={materialization}
+              label="Materialization"
+            />
           </div>
           <div className={styles.divider} />
           <div className="w-100 d-flex align-items-center gap-xs">
