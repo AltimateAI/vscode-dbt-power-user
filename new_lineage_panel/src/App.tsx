@@ -158,6 +158,7 @@ function App() {
         key: string;
         url: string;
         nodeType: string;
+        materialization?: string;
         downstreamCount: number;
         upstreamCount: number;
         tests: { key: string; path: string }[];
@@ -248,6 +249,7 @@ function App() {
               upstreamCount: node.upstreamCount,
               downstreamCount: node.downstreamCount,
               tests: node.tests,
+              materialization: node.materialization,
             },
             position: { x: 100, y: 100 },
             type: "table",

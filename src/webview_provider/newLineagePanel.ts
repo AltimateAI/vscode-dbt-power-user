@@ -35,6 +35,7 @@ type Table = {
   downstreamCount: number;
   upstreamCount: number;
   nodeType: string;
+  materialization?: string;
   tests: any[];
 };
 
@@ -512,6 +513,7 @@ export class NewLineagePanel implements LineagePanelView {
         table: label,
         url,
         nodeType,
+        materialization: _node?.config?.materialized,
         upstreamCount: this.getConnectedNodeCount(
           graphMetaMap["children"],
           key,
@@ -606,6 +608,7 @@ export class NewLineagePanel implements LineagePanelView {
         upstreamCount,
         downstreamCount,
         nodeType,
+        materialization: node?.config?.materialized,
         tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
           const testKey = n.label.split(".")[0];
           return { ...testMetaMap.get(testKey), key: testKey };

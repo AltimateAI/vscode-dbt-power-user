@@ -5,6 +5,7 @@ export type Table = {
   table: string;
   url: string;
   nodeType: string;
+  materialization?: string;
   downstreamCount: number;
   upstreamCount: number;
   tests: { key: string; path: string }[];

@@ -34,6 +34,7 @@ import SourceIcon from "./assets/icons/source.svg?react";
 import FolderIcon from "./assets/icons/folder.svg?react";
 import FolderDarkIcon from "./assets/icons/folder_dark.svg?react";
 import TestsIcon from "./assets/icons/tests.svg?react";
+import EphemeralIcon from "./assets/icons/ephemeral.svg?react";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -96,6 +97,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     key,
     nodeType,
     tests,
+    materialization,
   } = data;
   const flow = useReactFlow();
 
@@ -114,19 +116,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const _showColumns = _columnLen > 0;
   const selected = selectedTable?.table === table;
   const toggleTableSelection = () =>
-    setSelectedTable((prev) =>
-      prev?.table === table
-        ? null
-        : {
-            table,
-            key,
-            url,
-            nodeType,
-            upstreamCount,
-            downstreamCount,
-            tests,
-          }
-    );
+    setSelectedTable((prev) => (prev?.table === table ? null : data));
 
   const highlightTable = () => {
     if (selectedColumn.name) return;
@@ -228,7 +218,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             <NodeTypeIcon nodeType={nodeType} />
             <div className="lines-2">{table}</div>
           </div>
-          <div className="d-flex gap-sm">
+          <div className="d-flex gap-xs">
             {tests?.length > 0 && (
               <div className={styles.table_node_pill}>
                 <div className={styles.icon}>
@@ -237,6 +227,12 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                 <div>{tests?.length}</div>
               </div>
             )}
+            <div className={styles.table_node_pill}>
+              <div className={styles.icon}>
+                <EphemeralIcon />
+              </div>
+              <div>{materialization}</div>
+            </div>
           </div>
           <div className={styles.divider} />
           <div className="w-100 d-flex align-items-center gap-xs">

@@ -86,23 +86,19 @@ export const createTableEdge = (
 };
 
 export const createTableNode = (
-  { table, upstreamCount, downstreamCount, url, nodeType, key }: Table,
+  _table: Table,
   level: number,
   parent: string,
 ): Node => {
+  const { table, upstreamCount, downstreamCount } = _table;
   return {
     id: table,
     data: {
-      key,
-      table,
-      url,
+      ..._table,
       level,
       parent,
       shouldExpand: [downstreamCount > 0, upstreamCount > 0],
       processed: [false, false],
-      upstreamCount,
-      downstreamCount,
-      nodeType,
     },
     position: { x: 100, y: 100 },
     type: "table",
