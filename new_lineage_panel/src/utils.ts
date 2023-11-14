@@ -125,7 +125,7 @@ export const createColumnEdge = (
   srcLevel: number,
   dstLevel: number,
   type: string,
-) => {
+): Edge => {
   const edgeId = getColumnEdgeId(source, target);
   const [sourceHandle, targetHandle] = getSourceTargetHandles(
     srcLevel,
@@ -133,6 +133,7 @@ export const createColumnEdge = (
   );
   return ({
     id: edgeId,
+    data: { type },
     source,
     target,
     sourceHandle,

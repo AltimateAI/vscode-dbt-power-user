@@ -156,6 +156,9 @@ function App() {
   const [, _rerender] = useState(0);
   const rerender = () => _rerender((x) => (x + 1) % 100);
 
+  const [selectCheck, setSelectCheck] = useState(false);
+  const [nonSelectCheck, setNonSelectCheck] = useState(false);
+
   useEffect(() => {
     const render = async (args: {
       node: {
@@ -310,6 +313,25 @@ function App() {
     vscode.postMessage({ command: "init", args: {} });
   }, []);
 
+  useEffect(() => {
+    const _flow = flow.current;
+    if (!_flow) return;
+    const _edges = _flow.getEdges();
+    if ((selectCheck && nonSelectCheck) || (!selectCheck && !nonSelectCheck)) {
+      for (const e of _edges) e.hidden = false;
+      _flow.setEdges(_edges);
+      return;
+    }
+    for (const e of _edges) {
+      e.hidden = false;
+      const _type = (e.data as { type: string })?.type;
+      if (!_type) continue;
+      if (_type === "direct") e.hidden = !selectCheck;
+      if (_type === "indirect") e.hidden = !nonSelectCheck;
+    }
+    _flow.setEdges(_edges);
+  }, [selectCheck, nonSelectCheck]);
+
   return (
     <div className="position-relative">
       <div className="top-right-container">
@@ -318,7 +340,13 @@ function App() {
             <CardBody className={styles.menu_card}>
               <div className="d-flex gap-sm">
                 <div className={styles.select_node_checkbox}>
-                  <Input type="checkbox" id="select-check" className="mt-0" />
+                  <Input
+                    type="checkbox"
+                    id="select-check"
+                    className="mt-0"
+                    checked={selectCheck}
+                    onChange={(e) => setSelectCheck(e.target.checked)}
+                  />
                   <Label check for="select-check">
                     Select
                   </Label>
@@ -332,6 +360,8 @@ function App() {
                     type="checkbox"
                     id="non-select-check"
                     className="mt-0"
+                    checked={nonSelectCheck}
+                    onChange={(e) => setNonSelectCheck(e.target.checked)}
                   />
                   <Label check for="non-select-check">
                     Non-Select
