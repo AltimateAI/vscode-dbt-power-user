@@ -33,6 +33,7 @@ import SeedIcon from "./assets/icons/seed.svg?react";
 import SourceIcon from "./assets/icons/source.svg?react";
 import FolderIcon from "./assets/icons/folder.svg?react";
 import FolderDarkIcon from "./assets/icons/folder_dark.svg?react";
+import TestsIcon from "./assets/icons/tests.svg?react";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -123,7 +124,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             nodeType,
             upstreamCount,
             downstreamCount,
-            tests
+            tests,
           }
     );
 
@@ -226,6 +227,16 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           <div className={styles.table_header}>
             <NodeTypeIcon nodeType={nodeType} />
             <div className="lines-2">{table}</div>
+          </div>
+          <div className="d-flex gap-sm">
+            {tests?.length > 0 && (
+              <div className={styles.table_node_pill}>
+                <div className={styles.icon}>
+                  <TestsIcon />
+                </div>
+                <div>{tests?.length}</div>
+              </div>
+            )}
           </div>
           <div className={styles.divider} />
           <div className="w-100 d-flex align-items-center gap-xs">
