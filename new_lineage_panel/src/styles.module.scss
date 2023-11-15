@@ -40,11 +40,31 @@ $node-width: 260px;
 
 .table_header {
   display: grid;
-  grid-template-columns: 1.5rem 1fr;
+  grid-template-columns: 3rem 1fr;
   gap: 0em 0.5em;
   width: 100%;
   height: 3em;
   align-items: center;
+  border-radius: 0.5em;
+  border: 1px solid var(--table-node-border-color);
+
+  .node_icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.15em 0.5em;
+    border-radius: 0.5em;
+    border: 1px solid rgba(1, 205, 140, 0.3);
+    color: #01cd8c;
+    background-color: rgba(1, 205, 140, 0.1);
+
+    svg {
+      $size: 2em;
+      width: $size;
+      height: $size;
+    }
+    font-size: 0.75em;
+  }
 }
 
 $size: 1.2em;

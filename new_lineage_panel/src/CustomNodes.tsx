@@ -31,6 +31,10 @@ import { TMoreTables } from "./MoreTables";
 import ModelIcon from "./assets/icons/model.svg?react";
 import SeedIcon from "./assets/icons/seed.svg?react";
 import SourceIcon from "./assets/icons/source.svg?react";
+import ExposureIcon from "./assets/icons/exposure.svg?react";
+import SnapshotIcon from "./assets/icons/snapshot.svg?react";
+import MetricsIcon from "./assets/icons/metrics.svg?react";
+import MacrosIcon from "./assets/icons/macros.svg?react";
 import FolderIcon from "./assets/icons/folder.svg?react";
 import FolderDarkIcon from "./assets/icons/folder_dark.svg?react";
 import TestsIcon from "./assets/icons/tests.svg?react";
@@ -83,8 +87,22 @@ export const NodeTypeIcon: FunctionComponent<{ nodeType: string }> = ({
     {nodeType === "seed" && <SeedIcon />}
     {nodeType === "model" && <ModelIcon />}
     {nodeType === "source" && <SourceIcon />}
+    {nodeType === "exposure" && <ExposureIcon />}
+    {nodeType === "snapshot" && <SnapshotIcon />}
+    {nodeType === "metrics" && <MetricsIcon />}
+    {nodeType === "macros" && <MacrosIcon />}
   </div>
 );
+
+const NODE_TYPE_SHORTHAND = {
+  seed: "SED",
+  model: "MDL",
+  source: "SRC",
+  exposure: "EXP",
+  snapshot: "SNP",
+  metrics: "MET",
+  macros: "SEM",
+};
 
 const TableNodePill: FunctionComponent<{
   id: string;
@@ -231,7 +249,16 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           )}
         >
           <div className={styles.table_header}>
-            <NodeTypeIcon nodeType={nodeType} />
+            <div className={styles.node_icon}>
+              <NodeTypeIcon nodeType={nodeType} />
+              <div>
+                {
+                  NODE_TYPE_SHORTHAND[
+                    nodeType as keyof typeof NODE_TYPE_SHORTHAND
+                  ]
+                }
+              </div>
+            </div>
             <div className="lines-2">{table}</div>
           </div>
           <div className="d-flex gap-xs">
