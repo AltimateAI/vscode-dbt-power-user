@@ -59,6 +59,7 @@ interface InjectConfig {
   limit?: number;
   darkMode: boolean;
   enableNewQueryPanel: boolean;
+  aiEnabled: boolean;
 }
 
 enum InboundCommand {
@@ -287,6 +288,7 @@ export class QueryResultPanel implements WebviewViewProvider {
             ColorThemeKind.Light,
             ColorThemeKind.HighContrastLight,
           ].includes(window.activeColorTheme.kind),
+          aiEnabled: this.altimate.enabled(),
         }),
       });
     }

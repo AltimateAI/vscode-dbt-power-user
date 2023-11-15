@@ -147,7 +147,7 @@
             <div>
               <pre><code class="language-sql line-numbers" data-prismjs-copy="Copy SQL" v-html="compiledCodeMarkup"></code></pre>
             </div>
-            <div v-show="!hasSummary">
+            <div v-show="!hasSummary && aiEnabled">
               DataPilot can try to explain the query
               <div style="display: flex; justify-content: flex-end">
                 <vscode-button @click="onGetSummary" style="margin-bottom: 4px"

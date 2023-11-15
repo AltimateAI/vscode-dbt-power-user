@@ -99,6 +99,7 @@ const app = createApp({
       summary: undefined,
       previousSummary: undefined,
       previousCode: undefined,
+      aiEnabled: false,
     };
   },
   methods: {
@@ -214,6 +215,7 @@ const app = createApp({
       }
       this.isPerspective = data.enableNewQueryPanel;
       this.isDarkMode = data.darkMode;
+      this.aiEnabled = data.aiEnabled || false;
     },
     updateSummary(data) {
       if (data.summary) {
