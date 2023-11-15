@@ -104,6 +104,16 @@ const NODE_TYPE_SHORTHAND = {
   macros: "SEM",
 };
 
+const NODE_TYPE_STYLES = {
+  seed: styles.seed,
+  model: styles.model,
+  source: styles.source,
+  exposure: styles.exposure,
+  snapshot: styles.snapshot,
+  metrics: styles.metrics,
+  macros: styles.macros,
+};
+
 const TableNodePill: FunctionComponent<{
   id: string;
   icon: ReactElement;
@@ -223,6 +233,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   };
 
   const _edges = flow.getEdges();
+  const nType = nodeType as keyof typeof NODE_TYPE_SHORTHAND;
   return (
     <div
       className="position-relative"
@@ -249,15 +260,11 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           )}
         >
           <div className={styles.table_header}>
-            <div className={styles.node_icon}>
-              <NodeTypeIcon nodeType={nodeType} />
-              <div>
-                {
-                  NODE_TYPE_SHORTHAND[
-                    nodeType as keyof typeof NODE_TYPE_SHORTHAND
-                  ]
-                }
-              </div>
+            <div
+              className={classNames(styles.node_icon, NODE_TYPE_STYLES[nType])}
+            >
+              <NodeTypeIcon nodeType={nType} />
+              <div>{NODE_TYPE_SHORTHAND[nType]}</div>
             </div>
             <div className="lines-2">{table}</div>
           </div>

@@ -38,6 +38,12 @@ $node-width: 260px;
   }
 }
 
+@mixin node_type_color($c) {
+  border: 1px solid rgba($c, 0.3);
+  color: $c;
+  background-color: rgba($c, 0.1);
+}
+
 .table_header {
   display: grid;
   grid-template-columns: 3rem 1fr;
@@ -48,15 +54,40 @@ $node-width: 260px;
   border-radius: 0.5em;
   border: 1px solid var(--table-node-border-color);
 
+  .seed {
+    @include node_type_color(#01cd8c);
+  }
+
+  .model {
+    @include node_type_color(#cae8f9);
+  }
+
+  .source {
+    @include node_type_color(#bce2e4);
+  }
+
+  .exposure {
+    @include node_type_color(#f1b497);
+  }
+
+  .snapshot {
+    @include node_type_color(#f5c5f0);
+  }
+
+  .metrics {
+    @include node_type_color(#c7f3c0);
+  }
+
+  .macros {
+    @include node_type_color(#dd9da5);
+  }
+
   .node_icon {
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: 0.15em 0.5em;
     border-radius: 0.5em;
-    border: 1px solid rgba(1, 205, 140, 0.3);
-    color: #01cd8c;
-    background-color: rgba(1, 205, 140, 0.1);
 
     svg {
       $size: 2em;
