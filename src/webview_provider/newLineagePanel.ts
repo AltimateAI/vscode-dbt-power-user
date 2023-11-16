@@ -367,18 +367,16 @@ export class NewLineagePanel implements LineagePanelView {
     try {
       await Promise.all([
         ...Object.values(visibleTables).map(async (node) => {
-          let compiledSql: string | undefined;
-          if (node.config.materialized === "ephemeral") {
+          const nodeType = node.uniqueId.split(".")?.[0];
+          if (!(nodeType === "model" || nodeType === "snapshot")) {
             // ephemeral nodes can be skipped. they dont have a schema
             // and their sql makes it into the compiled sql of the models
             // referring to it.
             return;
           }
-          if (node.config.materialized !== "seed") {
-            compiledSql = await project.compileNode(node.name);
-            if (!compiledSql) {
-              return;
-            }
+          const compiledSql = await project.compileNode(node.name);
+          if (!compiledSql) {
+            return;
           }
           const ok = await this.addColumnsFromDB(project, node);
           if (!ok) {
