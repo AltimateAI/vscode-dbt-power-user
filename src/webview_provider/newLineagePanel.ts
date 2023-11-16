@@ -504,11 +504,8 @@ export class NewLineagePanel implements LineagePanelView {
       }
     };
     node.nodes.forEach(({ key, url, label }) => {
-      let nodeType = key.split(".")?.[0] || "model";
+      const nodeType = key.split(".")?.[0] || "model";
       const _node = nodeMetaMap.get(label);
-      if (_node?.config?.materialized === "ephemeral") {
-        nodeType = "ephemeral";
-      }
       addToTables(key, {
         table: label,
         url,
@@ -596,10 +593,7 @@ export class NewLineagePanel implements LineagePanelView {
       graphMetaMap["children"],
       key,
     );
-    let nodeType = key.split(".")?.[0] || "model";
-    if (node.config.materialized === "ephemeral") {
-      nodeType = "ephemeral";
-    }
+    const nodeType = key.split(".")?.[0] || "model";
     return {
       node: {
         key,

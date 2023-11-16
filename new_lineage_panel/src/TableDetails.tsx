@@ -341,9 +341,9 @@ const TableDetails = () => {
         for (const e of _edges) {
           const srcTable = e[src];
           const dstTable = e[dst];
-          const nodeType = flow.getNode(dstTable)?.data?.nodeType;
+          const materialization = flow.getNode(dstTable)?.data?.materialization;
           if (currTargetTables[srcTable]) {
-            if (nodeType === "ephemeral") {
+            if (materialization === "ephemeral") {
               ephemeralAncestors[dstTable] = ephemeralAncestors[dstTable] || [];
               ephemeralAncestors[dstTable].push(
                 ...currTargetColumns.filter((c) => c[0] === srcTable)
@@ -353,7 +353,7 @@ const TableDetails = () => {
               hop1Tables.push(dstTable);
             }
           } else if (currEphemeralNodes.includes(srcTable)) {
-            if (nodeType === "ephemeral") {
+            if (materialization === "ephemeral") {
               ephemeralAncestors[dstTable] = ephemeralAncestors[dstTable] || [];
               ephemeralAncestors[dstTable].push(
                 ...ephemeralAncestors[srcTable]
