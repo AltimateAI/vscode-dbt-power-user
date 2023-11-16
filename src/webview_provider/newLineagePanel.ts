@@ -368,7 +368,10 @@ export class NewLineagePanel implements LineagePanelView {
       await Promise.all([
         ...Object.values(visibleTables).map(async (node) => {
           const nodeType = node.uniqueId.split(".")?.[0];
-          if (!(nodeType === "model" || nodeType === "snapshot")) {
+          if (
+            !(nodeType === "model" || nodeType === "snapshot") ||
+            (nodeType === "model" && node.config.materialized === "ephemeral")
+          ) {
             // ephemeral nodes can be skipped. they dont have a schema
             // and their sql makes it into the compiled sql of the models
             // referring to it.
