@@ -53,7 +53,7 @@ export class RunModel {
     }
   }
 
-  _getQueryWithName() {
+  private _getQueryWithName() {
     if (!window.activeTextEditor) {
       return;
     }
@@ -84,7 +84,7 @@ export class RunModel {
     if (ret === undefined) {
       return;
     }
-    const { query, queryName } = ret;
+    const { query } = ret;
     this.getSummary(window.activeTextEditor!.document.uri, query);
   }
 

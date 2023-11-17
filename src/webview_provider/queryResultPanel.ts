@@ -98,7 +98,7 @@ export class QueryResultPanel implements WebviewViewProvider {
 
   private _disposables: Disposable[] = [];
   private _panel: WebviewView | undefined;
-  private adapter: string = "";
+  private adapter: string = "unknown";
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
