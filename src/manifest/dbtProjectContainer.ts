@@ -134,12 +134,14 @@ export class DBTProjectContainer implements Disposable {
     );
     if (answer === PromptAnswer.YES) {
       commands.executeCommand("dbtPowerUser.openSetupWalkthrough");
+    } else if (answer === PromptAnswer.IGNORE) {
+      this.setToGlobalState("showSetupWalkthrough", false);
     }
   }
 
   async initializeWalkthrough() {
     // show setup walkthrough if needed
-    const showSetupWalkthrough = this.context!.globalState.get(
+    const showSetupWalkthrough = this.getFromGlobalState(
       "showSetupWalkthrough",
     );
     if (showSetupWalkthrough === undefined || showSetupWalkthrough === true) {
@@ -192,7 +194,7 @@ export class DBTProjectContainer implements Disposable {
   }
 
   getFromGlobalState(key: string): any {
-    this.context?.globalState.get(key);
+    return this.context?.globalState.get(key);
   }
 
   get extensionId(): string {
