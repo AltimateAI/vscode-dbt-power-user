@@ -418,6 +418,12 @@ export class NewLineagePanel implements LineagePanelView {
           exc,
         );
         console.error(
+          "Error encountered while compiling/retrieving schema for node: " +
+            current_node +
+            ", type: " +
+            current_node_type,
+        );
+        console.error(
           "Exception: " +
             exc.exception.message +
             "\n\n" +
@@ -432,8 +438,11 @@ export class NewLineagePanel implements LineagePanelView {
       );
       // Unknown error
       window.showErrorMessage(
-        "Encountered an unknown issue: " + exc + " while compiling nodes.",
+        "Encountered an unknown issue: " +
+          exc +
+          " while compiling/retrieving schema for nodes.",
       );
+      console.error("Last node: " + current_node + "\n\n" + exc);
       return;
     }
 
