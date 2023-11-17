@@ -42,6 +42,13 @@ type Table = {
 const CACHE_SIZE = 100;
 const CACHE_VALID_TIME = 24 * 60 * 60 * 1000;
 
+const CAN_COMIPLE_SQL_NODE = [
+  DBTProject.RESOURCE_TYPE_MODEL,
+  DBTProject.RESOURCE_TYPE_SNAPSHOT,
+];
+const canCompileSQL = (nodeType: string) =>
+  CAN_COMIPLE_SQL_NODE.includes(nodeType);
+
 @provideSingleton(NewLineagePanel)
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
@@ -375,7 +382,7 @@ export class NewLineagePanel implements LineagePanelView {
             // referring to it.
             return;
           }
-          if (nodeType === "model" || nodeType === "snapshot") {
+          if (canCompileSQL(nodeType)) {
             compiledSql = await project.compileNode(node.name);
             if (!compiledSql) {
               return;
