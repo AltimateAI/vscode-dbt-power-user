@@ -364,10 +364,14 @@ export class NewLineagePanel implements LineagePanelView {
       });
       auxiliaryTables = Array.from(parentSet);
     }
+    let current_node = "";
+    let current_node_type = "";
     try {
       await Promise.all([
         ...Object.values(visibleTables).map(async (node) => {
+          current_node = node.name;
           const nodeType = node.uniqueId.split(".")?.[0];
+          current_node_type = nodeType;
           if (
             !(nodeType === "model" || nodeType === "snapshot") ||
             (nodeType === "model" && node.config.materialized === "ephemeral")
@@ -405,7 +409,7 @@ export class NewLineagePanel implements LineagePanelView {
     } catch (exc) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
-          "An error occured while trying to compile your node: " +
+          `An error occured while trying to compile your node: ${current_node}, type: ${current_node_type} ` +
             exc.exception.message +
             ".",
         );

@@ -473,7 +473,7 @@ export class DBTProject implements Disposable {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
           extendErrorWithSupportLinks(
-            "An error occured while trying to compile your node: " +
+            `An error occured while trying to compile your node: ${modelName}` +
               exc.exception.message +
               ".",
           ),
