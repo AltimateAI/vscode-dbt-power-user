@@ -12,7 +12,7 @@ async function main() {
   try {
     const python = getPythonExecutable();
     console.log(`Python executable is ${python}`);
-    const version = "1.82.1";
+    const version = "1.84.1";
 
     // The folder containing the Extension Manifest package.json
     // Passed to `--extensionDevelopmentPath`

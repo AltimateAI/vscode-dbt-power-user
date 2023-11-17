@@ -46,7 +46,7 @@ const isAllowedNode = (key: string) =>
 @provideSingleton(NewLineagePanel)
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
-  private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
+  public eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private dbCache: Map<string, Record<string, string>[]> = new Map();
   private lruCache: Map<string, number> = new Map();
   private progressBarResolve?: () => void;
