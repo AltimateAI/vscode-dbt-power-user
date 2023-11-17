@@ -365,6 +365,7 @@ export class NewLineagePanel implements LineagePanelView {
     try {
       await Promise.all([
         ...Object.values(visibleTables).map(async (node) => {
+          let compiledSql: string | undefined;
           current_node = node.name;
           const nodeType = node.uniqueId.split(".")?.[0];
           current_node_type = nodeType;
@@ -374,7 +375,6 @@ export class NewLineagePanel implements LineagePanelView {
             // referring to it.
             return;
           }
-          let compiledSql;
           if (nodeType === "model" || nodeType === "snapshot") {
             compiledSql = await project.compileNode(node.name);
             if (!compiledSql) {
