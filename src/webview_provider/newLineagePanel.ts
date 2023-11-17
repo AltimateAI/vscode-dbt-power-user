@@ -42,10 +42,6 @@ type Table = {
 const CACHE_SIZE = 100;
 const CACHE_VALID_TIME = 24 * 60 * 60 * 1000;
 
-const ALLOWED_NODE_TYPES = ["model.", "source.", "seed."];
-const isAllowedNode = (key: string) =>
-  ALLOWED_NODE_TYPES.some((t) => key.startsWith(t));
-
 @provideSingleton(NewLineagePanel)
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
@@ -372,18 +368,18 @@ export class NewLineagePanel implements LineagePanelView {
           current_node = node.name;
           const nodeType = node.uniqueId.split(".")?.[0];
           current_node_type = nodeType;
-          if (
-            !(nodeType === "model" || nodeType === "snapshot") ||
-            (nodeType === "model" && node.config.materialized === "ephemeral")
-          ) {
+          if (node.config.materialized === "ephemeral") {
             // ephemeral nodes can be skipped. they dont have a schema
             // and their sql makes it into the compiled sql of the models
             // referring to it.
             return;
           }
-          const compiledSql = await project.compileNode(node.name);
-          if (!compiledSql) {
-            return;
+          let compiledSql;
+          if (nodeType === "model" || nodeType === "snapshot") {
+            compiledSql = await project.compileNode(node.name);
+            if (!compiledSql) {
+              return;
+            }
           }
           const ok = await this.addColumnsFromDB(project, node);
           if (!ok) {
@@ -513,7 +509,7 @@ export class NewLineagePanel implements LineagePanelView {
     }
     const tables: Map<string, Table> = new Map();
     const addToTables = (key: string, value: Omit<Table, "key">) => {
-      if (!tables.has(key) && isAllowedNode(key)) {
+      if (!tables.has(key)) {
         tables.set(key, { ...value, key });
       }
     };
@@ -572,7 +568,7 @@ export class NewLineagePanel implements LineagePanelView {
   }
 
   private getConnectedNodeCount(g: NodeGraphMap, key: string) {
-    return g.get(key)?.nodes.filter((n) => isAllowedNode(n.key)).length || 0;
+    return g.get(key)?.nodes.length || 0;
   }
 
   private getFilename() {
