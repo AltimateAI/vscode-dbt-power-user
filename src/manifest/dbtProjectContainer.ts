@@ -184,17 +184,17 @@ export class DBTProjectContainer implements Disposable {
   }
 
   setToWorkspaceState(key: string, value: any) {
-    this.context?.workspaceState.update(key, value);
+    this.context!.workspaceState.update(key, value);
   }
   getFromWorkspaceState(key: string): any {
-    return this.context?.workspaceState.get(key);
+    return this.context!.workspaceState.get(key);
   }
   setToGlobalState(key: string, value: any) {
-    this.context?.globalState.update(key, value);
+    this.context!.globalState.update(key, value);
   }
 
   getFromGlobalState(key: string): any {
-    return this.context?.globalState.get(key);
+    return this.context!.globalState.get(key);
   }
 
   get extensionId(): string {
