@@ -56,13 +56,15 @@
       {
         "title": "Altimate AI",
         "properties": {
-          "dbt.altimateInstanceName": {
-            "type": "string",
-            "description": "Sign up for an altimate account to unlock ai features. Add the Altimate Instance Name here to enable the features."
-          },
           "dbt.altimateAiKey": {
             "type": "string",
-            "description": "Sign up for an altimate account to unlock ai features. Add the Altimate AI Key here to enable the features."
+            "displayName": "Altimate AI API Key",
+            "markdownDescription": "Needed for features that require backend support. Sign up for a free Altimate AI account [here](https://app.myaltimate.com/register). API Key can be copied from Altimate AI UI (navigate to Settings->API Key)"
+          },
+          "dbt.altimateInstanceName": {
+            "type": "string",
+            "displayName": "Altimate AI Instance Name",
+            "markdownDescription": "Needed for features that require backend support. Sign up for a free Altimate AI account [here](https://app.myaltimate.com/register). If your Altimate AI instance URL is https://betatest.app.myaltimate.com/, The instance name is betatest"
           },
           "dbt.enableNewLineagePanel": {
             "type": "boolean",
