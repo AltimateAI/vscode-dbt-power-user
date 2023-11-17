@@ -537,13 +537,7 @@ export class DBTProject implements Disposable {
           ),
         );
         this.telemetry.sendTelemetryError("compileQueryPythonError", exc);
-        return (
-          "Exception: " +
-          exc.exception.message +
-          "\n\n" +
-          "Detailed error information:\n" +
-          exc
-        );
+        return undefined;
       }
       this.telemetry.sendTelemetryError("compileQueryUnknownError", exc);
       // Unknown error
@@ -552,7 +546,7 @@ export class DBTProject implements Disposable {
           "Encountered an unknown issue: " + exc + ".",
         ),
       );
-      return "Exception:\n\nDetailed error information:\n" + exc;
+      return undefined;
     }
   }
 
@@ -817,7 +811,7 @@ select * from renamed
   async getSummary(query: string) {
     this.telemetry.sendTelemetryEvent("getSummary");
     const compiledSql = await this.compileQuery(query);
-    if (compiledSql === undefined || compiledSql.startsWith("Exception:")) {
+    if (compiledSql === undefined) {
       // error handling done inside compileQuery
       return;
     }
