@@ -15,6 +15,7 @@ import {
   aiEnabled,
   endProgressBar,
   LineageContext,
+  previewFeature,
   startProgressBar,
 } from "./App";
 import {
@@ -32,9 +33,19 @@ import { ColorTag } from "./Tags";
 
 // assets
 import ExpandLineageIcon from "./assets/icons/expand_lineage.svg?react";
+import Preview from "./assets/icons/preview.svg?react";
 import { NodeTypeIcon } from "./CustomNodes";
 import { CustomInput } from "./Form";
 import { defaultEdgeStyle, isNotColumn } from "./utils";
+
+const PreviewIcon = () => {
+  return (
+    <div className="tooltip-container">
+      <Preview />
+      <div className="tooltip-text">Preview Feature</div>
+    </div>
+  );
+};
 
 const ColumnCard: FunctionComponent<{
   column: Column;
@@ -43,13 +54,10 @@ const ColumnCard: FunctionComponent<{
 }> = ({ column, handleClick, selected }) => {
   return (
     <div
-      className={classNames(styles.column_card, {
+      className={classNames(styles.column_card, "cursor-pointer", {
         [styles.selected]: selected,
-        ["cursor-pointer"]: aiEnabled,
       })}
-      onClick={() => {
-        if (aiEnabled) handleClick();
-      }}
+      onClick={handleClick}
     >
       <div className="d-flex align-items-center gap-xs">
         <ColumnDatatype datatype={column.datatype} />
@@ -112,6 +120,7 @@ const ColumnSection: FunctionComponent<{
       <div className="d-flex flex-column gap-sm h-100 p-2">
         <div className="d-flex align-items-center gap-xs">
           <div className="fs-5 fw-semibold">Column</div>
+          <PreviewIcon />
           <div className="spacer" />
           <Button
             size="sm"
@@ -231,6 +240,10 @@ const TableDetails = () => {
   }, [selectedTable]);
 
   const handleColumnClick = async (_column: Column) => {
+    if (!aiEnabled) {
+      previewFeature();
+      return;
+    }
     if (
       selectedColumn.table === _column.table &&
       selectedColumn.name === _column.name

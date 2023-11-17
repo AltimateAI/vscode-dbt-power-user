@@ -83,7 +83,11 @@
 
         <vscode-panel-tab v-show="hasCode" id="tab-2"> SQL </vscode-panel-tab>
         <vscode-panel-tab v-show="hasSummary" id="tab-6">
-          Explanation
+          Explanation &nbsp;
+          <div class="tooltip-container">
+            <img src="__ROOT__/assets/preview.svg" />
+            <div class="tooltip-text tooltip-text-bottom">Preview Feature</div>
+          </div>
         </vscode-panel-tab>
 
         <vscode-panel-tab id="tab-3">
@@ -147,9 +151,17 @@
             <div>
               <pre><code class="language-sql line-numbers" data-prismjs-copy="Copy SQL" v-html="compiledCodeMarkup"></code></pre>
             </div>
-            <div v-show="!hasSummary && aiEnabled">
+            <div v-show="!hasSummary">
               <p>DataPilot can explain the query for you</p>
-              <vscode-button @click="onGetSummary">Explain query</vscode-button>
+              <vscode-button @click="onGetSummary"
+                >Explain query&nbsp;
+                <div class="tooltip-container">
+                  <img src="__ROOT__/assets/preview.svg" />
+                  <div class="tooltip-text tooltip-text-top">
+                    Preview Feature
+                  </div>
+                </div>
+              </vscode-button>
             </div>
           </div>
         </vscode-panel-view>
