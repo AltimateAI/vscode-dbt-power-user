@@ -122,7 +122,7 @@ export function substituteSettingsVariables(value: any): any {
 export function extendErrorWithSupportLinks(error: string): string {
   return (
     error +
-    "If the issue persists, please [#contact us](https://www.altimate.ai/support) via chat or Slack"
+    "If the issue persists, please [contact us](https://www.altimate.ai/support) via chat or Slack"
   );
 }
 
