@@ -399,6 +399,8 @@ export class NewLineagePanel implements LineagePanelView {
           const nodeType = node.uniqueId.split(".")?.[0];
           current_node_type = nodeType;
           if (node.config.materialized === "ephemeral") {
+            // TODO: add telemetry here
+            // ideally should not be taking this code path
             // ephemeral nodes can be skipped. they dont have a schema
             // and their sql makes it into the compiled sql of the models
             // referring to it.
