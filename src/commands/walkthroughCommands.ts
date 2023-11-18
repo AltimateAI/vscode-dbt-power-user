@@ -24,6 +24,11 @@ export class WalkthroughCommands {
 
   async debugExtension() {
     try {
+      // get all profiles dir
+      const allProjects = this.dbtProjectContainer.getProjects();
+      const allProfilesDir: string[] = allProjects.map((project) => {
+        return `${project.getProjectName()}: ${project.dbtProfilesDir}`;
+      });
       this.terminal.show(true);
       await this.commandProcessExecutionFactory
         .createCommandProcessExecution({
@@ -31,6 +36,9 @@ export class WalkthroughCommands {
           args: ["debugExt.py"],
           // args: ["--version"],
           cwd: this.dbtProjectContainer.extensionUri.fsPath,
+          envVars: {
+            DBTPU__PROFILES_DIR: allProfilesDir.join("\r\n"),
+          },
         })
         .completeWithTerminalOutput(this.terminal);
     } catch (err) {
