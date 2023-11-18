@@ -17,5 +17,16 @@ suite("Extension setup healthcheck Suite", () => {
     // const dbtPowerUserExtension = container.get(DBTPowerUserExtension);
     // const dbtPowerUserExtension = dbtpu.activate(vs);
     //dbtPowerUserExtension.activate(vscode.ExtensionContext);
+    const dbtProjectContainer = container.get(DBTProjectContainer);
+    await dbtProjectContainer.detectDBT();
+    assert.equal(dbtProjectContainer.dbtDetected, true);
+    await dbtProjectContainer
+      .initializeDBTProjects()
+      .catch((err: string | Error | undefined) => {
+        assert.fail(err);
+      });
+    const projCount = dbtProjectContainer.getProjects().length;
+    assert(projCount !== undefined);
+    assert.equal(projCount, 3);
   });
 });
