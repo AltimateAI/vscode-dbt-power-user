@@ -33,6 +33,12 @@ export class DbtPowerUserControlCenterAction {
             "dbtPowerUser.openTutorialWalkthrough",
           ),
           new DbtPowerUserControlPanelItem(
+            "Shop support info",
+            "debug",
+            "Get Extension Support info",
+            "dbtPowerUser.debugExtension",
+          ),
+          new DbtPowerUserControlPanelItem(
             "Readme",
             "link-external",
             "View the detailed ReadMe for the extension",

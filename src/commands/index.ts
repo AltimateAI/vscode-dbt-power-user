@@ -162,6 +162,9 @@ export class VSCodeCommands implements Disposable {
           "@id:files.associations",
         );
       }),
+      commands.registerCommand("dbtPowerUser.debugExtension", async () => {
+        await this.walkthroughCommands.debugExtension();
+      }),
     );
   }
 

@@ -61,6 +61,10 @@ const config = {
           ),
           to: "node_python_bridge.py",
         },
+        {
+          from: path.resolve(__dirname, "debugExt.py"),
+          to: "debugExt.py",
+        },
       ],
     }),
   ],

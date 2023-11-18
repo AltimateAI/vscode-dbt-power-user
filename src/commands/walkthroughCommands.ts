@@ -1,4 +1,4 @@
-import { window, version, commands } from "vscode";
+import { window } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
@@ -21,6 +21,24 @@ export class WalkthroughCommands {
     private telemetry: TelemetryService,
     private dbtCommandFactory: DBTCommandFactory,
   ) {}
+
+  async debugExtension() {
+    try {
+      this.terminal.show(true);
+      await this.commandProcessExecutionFactory
+        .createCommandProcessExecution({
+          command: this.dbtProjectContainer.getPythonEnvironment().pythonPath,
+          args: ["debugExt.py"],
+          // args: ["--version"],
+          cwd: this.dbtProjectContainer.extensionUri.fsPath,
+        })
+        .completeWithTerminalOutput(this.terminal);
+    } catch (err) {
+      // do something useful with error
+      // TODO: telemetry
+      console.log(err);
+    }
+  }
 
   async validateProjects(projectContext: ProjectQuickPickItem | undefined) {
     if (projectContext === undefined) {
