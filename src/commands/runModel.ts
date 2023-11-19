@@ -53,38 +53,36 @@ export class RunModel {
     }
   }
 
-  private _getQueryWithName() {
+  private getQuery() {
     if (!window.activeTextEditor) {
       return;
     }
     const cursor = window.activeTextEditor.selection;
-    const query = window.activeTextEditor.document.getText(
+    return window.activeTextEditor.document.getText(
       cursor.isEmpty ? undefined : cursor,
     );
-    const queryName =
-      "Results: " +
-      path.basename(window.activeTextEditor.document.uri.fsPath ?? "Ad Hoc") +
-      " " +
-      (cursor.isEmpty ? "" : "(Ad Hoc) ") +
-      new Date().toTimeString().split(" ")[0];
-    return { query, queryName };
   }
 
   executeQueryOnActiveWindow() {
-    const ret = this._getQueryWithName();
-    if (ret === undefined) {
+    const query = this.getQuery();
+    if (query === undefined) {
       return;
     }
-    const { query, queryName } = ret;
+    const cursor = window.activeTextEditor!.selection;
+    const queryName =
+      "Results: " +
+      path.basename(window.activeTextEditor!.document.uri.fsPath ?? "Ad Hoc") +
+      " " +
+      (cursor.isEmpty ? "" : "(Ad Hoc) ") +
+      new Date().toTimeString().split(" ")[0];
     this.executeSQL(window.activeTextEditor!.document.uri, query, queryName);
   }
 
   getSummaryOnActiveWindow() {
-    const ret = this._getQueryWithName();
-    if (ret === undefined) {
+    const query = this.getQuery();
+    if (query === undefined) {
       return;
     }
-    const { query } = ret;
     this.getSummary(window.activeTextEditor!.document.uri, query);
   }
 

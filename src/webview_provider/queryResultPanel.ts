@@ -337,7 +337,7 @@ export class QueryResultPanel implements WebviewViewProvider {
     this.telemetry.sendTelemetryEvent("getQuerySummary");
     window.withProgress(
       {
-        title: "Getting summary",
+        title: "Getting query explanation",
         location: ProgressLocation.Notification,
         cancellable: false,
       },
@@ -346,25 +346,22 @@ export class QueryResultPanel implements WebviewViewProvider {
           this._panel.show(); // Show the view
           this._panel.webview.postMessage({ command: "focus" }); // keyboard focus
         }
-
-        const response = await this.altimate
-          .getQuerySummary(query, adapter)
-          .catch((err) => {
+        try {
+          const response = await this.altimate.getQuerySummary(query, adapter);
+          if (response === undefined || response.explanation === undefined) {
             window.showErrorMessage(
               extendErrorWithSupportLinks("Could not get summary. "),
             );
             this.telemetry.sendTelemetryError("getQuerySummaryAltimateError");
             return;
-          });
-        console.log(response);
-        if (response === undefined || response.explanation === undefined) {
+          }
+          await this.transmitSummary(query, response.explanation);
+        } catch (err) {
           window.showErrorMessage(
-            extendErrorWithSupportLinks("Could not get summary. "),
+            extendErrorWithSupportLinks("Could not get summary: " + err + " "),
           );
           this.telemetry.sendTelemetryError("getQuerySummaryAltimateError");
-          return;
         }
-        await this.transmitSummary(query, response.explanation);
       },
     );
   }

@@ -88,6 +88,11 @@ interface DocPromptOptionsResponse {
   }[];
 }
 
+interface QuerySummaryResponse {
+  explanation: string;
+  ok: string;
+}
+
 @provideSingleton(AltimateRequest)
 export class AltimateRequest {
   private static ALTIMATE_URL = workspace
@@ -191,12 +196,9 @@ export class AltimateRequest {
   }
 
   async getQuerySummary(compiled_sql: string, adapter: string) {
-    return this.fetch<{ explanation: string; ok: string }>(
-      "dbt/v1/query-explain",
-      {
-        method: "POST",
-        body: JSON.stringify({ compiled_sql, adapter }),
-      },
-    );
+    return this.fetch<QuerySummaryResponse>("dbt/v1/query-explain", {
+      method: "POST",
+      body: JSON.stringify({ compiled_sql, adapter }),
+    });
   }
 }

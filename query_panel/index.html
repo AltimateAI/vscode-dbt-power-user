@@ -148,22 +148,15 @@
               <pre><code class="language-sql line-numbers" data-prismjs-copy="Copy SQL" v-html="compiledCodeMarkup"></code></pre>
             </div>
             <div v-show="!hasSummary && aiEnabled">
-              DataPilot can try to explain the query
-              <div style="display: flex; justify-content: flex-end">
-                <vscode-button @click="onGetSummary" style="margin-bottom: 4px"
-                  >Generate Explanation</vscode-button
-                >
-              </div>
+              <p>DataPilot can explain what's the query is doing</p>
+              <vscode-button @click="onGetSummary">Explain query</vscode-button>
             </div>
           </div>
         </vscode-panel-view>
         <vscode-panel-view v-show="hasSummary" id="view-6">
           <div>
             <h2>Query Explanation</h2>
-            <pre>
-            <p v-html="summary" style="margin: 2em;"></p>
-          </pre>
-            <div @click="onSummaryFeedback">Give us Feedback</div>
+            <p v-html="summary"></p>
           </div>
         </vscode-panel-view>
         <vscode-panel-view id="view-3">

@@ -340,11 +340,6 @@ const app = createApp({
         compiledSql: this.compiledCode,
       });
     },
-    onSummaryFeedback() {
-      executeCommand("openUrl", {
-        url: "https://docs.google.com/forms/d/e/1FAIpQLScwN3wRTAniQzvcO6Hn3jC0WtBoFE2NP4X_6qGQ09IZKZ3Ojw/viewform",
-      });
-    },
     onFeedback() {
       const prevTab = document.querySelector("#panel-manager").activeid;
       executeCommand("openUrl", {
