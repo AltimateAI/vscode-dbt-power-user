@@ -394,11 +394,6 @@
           "group": "navigation@1"
         },
         {
-          "command": "dbtPowerUser.summarizeQuery",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.altimateInstanceName && config.dbt.altimateAiKey",
-          "group": "navigation@1"
-        },
-        {
           "command": "dbtPowerUser.buildCurrentModel",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
           "group": "navigation@2"
@@ -417,6 +412,11 @@
           "command": "dbtPowerUser.sqlPreview",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
           "group": "navigation@5"
+        },
+        {
+          "command": "dbtPowerUser.summarizeQuery",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.altimateInstanceName && config.dbt.altimateAiKey",
+          "group": "navigation@1"
         },
         {
           "command": "dbtPowerUser.sqlToModel",
