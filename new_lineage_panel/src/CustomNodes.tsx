@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useContext } from "react";
+import React, { FunctionComponent, ReactElement, useContext } from "react";
 import {
   BaseEdge,
   EdgeProps,
@@ -31,8 +31,15 @@ import { TMoreTables } from "./MoreTables";
 import ModelIcon from "./assets/icons/model.svg?react";
 import SeedIcon from "./assets/icons/seed.svg?react";
 import SourceIcon from "./assets/icons/source.svg?react";
+import ExposureIcon from "./assets/icons/exposure.svg?react";
+import SnapshotIcon from "./assets/icons/snapshot.svg?react";
+import MetricsIcon from "./assets/icons/metrics.svg?react";
+import MacrosIcon from "./assets/icons/macros.svg?react";
 import FolderIcon from "./assets/icons/folder.svg?react";
 import FolderDarkIcon from "./assets/icons/folder_dark.svg?react";
+import TestsIcon from "./assets/icons/tests.svg?react";
+import EphemeralIcon from "./assets/icons/ephemeral.svg?react";
+import { UncontrolledTooltip } from "reactstrap";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -80,7 +87,46 @@ export const NodeTypeIcon: FunctionComponent<{ nodeType: string }> = ({
     {nodeType === "seed" && <SeedIcon />}
     {nodeType === "model" && <ModelIcon />}
     {nodeType === "source" && <SourceIcon />}
+    {nodeType === "exposure" && <ExposureIcon />}
+    {nodeType === "snapshot" && <SnapshotIcon />}
+    {nodeType === "metrics" && <MetricsIcon />}
+    {nodeType === "macros" && <MacrosIcon />}
   </div>
+);
+
+const NODE_TYPE_SHORTHAND = {
+  seed: "SED",
+  model: "MDL",
+  source: "SRC",
+  exposure: "EXP",
+  snapshot: "SNP",
+  metrics: "MET",
+  macros: "SEM",
+};
+
+const NODE_TYPE_STYLES = {
+  seed: styles.seed,
+  model: styles.model,
+  source: styles.source,
+  exposure: styles.exposure,
+  snapshot: styles.snapshot,
+  metrics: styles.metrics,
+  macros: styles.macros,
+};
+
+const TableNodePill: FunctionComponent<{
+  id: string;
+  icon: ReactElement;
+  label: string;
+  text: string;
+}> = ({ id, icon, text, label }) => (
+  <>
+    <div className={styles.table_node_pill} id={id}>
+      <div className={styles.icon}>{icon}</div>
+      <div>{text}</div>
+    </div>
+    <UncontrolledTooltip target={id}>{label}</UncontrolledTooltip>
+  </>
 );
 
 export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
@@ -94,6 +140,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     downstreamCount,
     key,
     nodeType,
+    tests,
+    materialization,
   } = data;
   const flow = useReactFlow();
 
@@ -112,18 +160,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const _showColumns = _columnLen > 0;
   const selected = selectedTable?.table === table;
   const toggleTableSelection = () =>
-    setSelectedTable((prev) =>
-      prev?.table === table
-        ? null
-        : {
-            table,
-            key,
-            url,
-            nodeType,
-            upstreamCount,
-            downstreamCount,
-          }
-    );
+    setSelectedTable((prev) => (prev?.table === table ? null : data));
 
   const highlightTable = () => {
     if (selectedColumn.name) return;
@@ -196,6 +233,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   };
 
   const _edges = flow.getEdges();
+  const nType = nodeType as keyof typeof NODE_TYPE_SHORTHAND;
   return (
     <div
       className="position-relative"
@@ -222,8 +260,29 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           )}
         >
           <div className={styles.table_header}>
-            <NodeTypeIcon nodeType={nodeType} />
+            <div
+              className={classNames(styles.node_icon, NODE_TYPE_STYLES[nType])}
+            >
+              <NodeTypeIcon nodeType={nType} />
+              <div>{NODE_TYPE_SHORTHAND[nType]}</div>
+            </div>
             <div className="lines-2">{table}</div>
+          </div>
+          <div className="d-flex gap-xs">
+            {tests?.length > 0 && (
+              <TableNodePill
+                id={"table-node-tests-" + table}
+                icon={<TestsIcon />}
+                text={tests?.length}
+                label="Tests"
+              />
+            )}
+            <TableNodePill
+              id={"table-node-materilization-" + table}
+              icon={<EphemeralIcon />}
+              text={materialization}
+              label="Materialization"
+            />
           </div>
           <div className={styles.divider} />
           <div className="w-100 d-flex align-items-center gap-xs">
