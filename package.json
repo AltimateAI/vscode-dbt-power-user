@@ -451,6 +451,11 @@
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
         },
         {
+          "command": "dbtPowerUser.summarizeQuery",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.altimateInstanceName && config.dbt.altimateAiKey",
+          "group": "navigation@1"
+        },
+        {
           "command": "dbtPowerUser.sqlToModel",
           "group": "dbt@3",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.altimateInstanceName && config.dbt.altimateAiKey"
