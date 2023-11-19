@@ -42,12 +42,12 @@ type Table = {
 const CACHE_SIZE = 100;
 const CACHE_VALID_TIME = 24 * 60 * 60 * 1000;
 
-const CAN_COMIPLE_SQL_NODE = [
+const CAN_COMPILE_SQL_NODE = [
   DBTProject.RESOURCE_TYPE_MODEL,
   DBTProject.RESOURCE_TYPE_SNAPSHOT,
 ];
 const canCompileSQL = (nodeType: string) =>
-  CAN_COMIPLE_SQL_NODE.includes(nodeType);
+  CAN_COMPILE_SQL_NODE.includes(nodeType);
 
 const getResourceMetaMap = (
   event: ManifestCacheProjectAddedEvent,
