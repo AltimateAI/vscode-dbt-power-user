@@ -362,6 +362,11 @@
         "icon": "$(play)"
       },
       {
+        "command": "dbtPowerUser.summarizeQuery",
+        "title": "Explain selected SQL",
+        "icon": "$(lightbulb-autofix)"
+      },
+      {
         "command": "dbtPowerUser.buildCurrentModel",
         "title": "Build dbt Model",
         "icon": {
@@ -411,6 +416,11 @@
           "group": "navigation@5"
         },
         {
+          "command": "dbtPowerUser.summarizeQuery",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.altimateInstanceName && config.dbt.altimateAiKey",
+          "group": "navigation@1"
+        },
+        {
           "command": "dbtPowerUser.sqlToModel",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.altimateInstanceName && config.dbt.altimateAiKey",
           "group": "navigation@6"
@@ -441,6 +451,11 @@
           "command": "dbtPowerUser.runCurrentModel",
           "group": "dbt@1",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        },
+        {
+          "command": "dbtPowerUser.summarizeQuery",
+          "group": "dbt@3",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.altimateInstanceName && config.dbt.altimateAiKey"
         },
         {
           "command": "dbtPowerUser.sqlToModel",

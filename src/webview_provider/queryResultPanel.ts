@@ -21,6 +21,7 @@ import { ExecuteSQLResult } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
+import { AltimateRequest } from "../altimate";
 
 interface JsonObj {
   [key: string]: string | number | undefined;
@@ -32,6 +33,7 @@ enum OutboundCommand {
   RenderError = "renderError",
   InjectConfig = "injectConfig",
   ResetState = "resetState",
+  RenderSummary = "renderSummary",
 }
 
 interface RenderQuery {
@@ -40,6 +42,11 @@ interface RenderQuery {
   rows: JsonObj[];
   raw_sql: string;
   compiled_sql: string;
+}
+
+interface RenderSummary {
+  compiled_sql: string;
+  summary: string;
 }
 
 interface RenderError {
@@ -52,6 +59,7 @@ interface InjectConfig {
   limit?: number;
   darkMode: boolean;
   enableNewQueryPanel: boolean;
+  aiEnabled: boolean;
 }
 
 enum InboundCommand {
@@ -59,10 +67,15 @@ enum InboundCommand {
   Error = "error",
   UpdateConfig = "updateConfig",
   OpenUrl = "openUrl",
+  GetSummary = "getSummary",
 }
 
 interface RecInfo {
   text: string;
+}
+
+interface RecSummary {
+  compiledSql: string;
 }
 
 interface RecError {
@@ -85,10 +98,12 @@ export class QueryResultPanel implements WebviewViewProvider {
 
   private _disposables: Disposable[] = [];
   private _panel: WebviewView | undefined;
+  private adapter: string = "unknown";
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
+    private altimate: AltimateRequest,
   ) {
     window.onDidChangeActiveColorTheme(
       (e) => {
@@ -150,28 +165,34 @@ export class QueryResultPanel implements WebviewViewProvider {
             );
             break;
           case InboundCommand.UpdateConfig:
-            const config = message as RecConfig;
-            if (config.limit) {
+            const configMessage = message as RecConfig;
+            if (configMessage.limit) {
               workspace
                 .getConfiguration("dbt")
-                .update("queryLimit", config.limit);
+                .update("queryLimit", configMessage.limit);
             }
-            if (config.scale) {
+            if (configMessage.scale) {
               workspace
                 .getConfiguration("dbt")
-                .update("queryScale", config.scale);
+                .update("queryScale", configMessage.scale);
             }
-            if ("enableNewQueryPanel" in config) {
+            if ("enableNewQueryPanel" in configMessage) {
               workspace
                 .getConfiguration("dbt")
-                .update("enableNewQueryPanel", config.enableNewQueryPanel);
+                .update(
+                  "enableNewQueryPanel",
+                  configMessage.enableNewQueryPanel,
+                );
             }
             break;
-          case InboundCommand.OpenUrl: {
+          case InboundCommand.OpenUrl:
             const config = message as RecOpenUrl;
             env.openExternal(Uri.parse(config.url));
             break;
-          }
+          case InboundCommand.GetSummary:
+            const summary = message as RecSummary;
+            await this.getSummary(summary.compiledSql, this.adapter);
+            break;
         }
       },
       null,
@@ -217,6 +238,18 @@ export class QueryResultPanel implements WebviewViewProvider {
     }
   }
 
+  private async transmitSummary(compiled_sql: string, summary: string) {
+    if (this._panel) {
+      await this._panel.webview.postMessage({
+        command: OutboundCommand.RenderSummary,
+        ...(<RenderSummary>{
+          compiled_sql: compiled_sql,
+          summary: summary,
+        }),
+      });
+    }
+  }
+
   /** Sends error result data to webview */
   private async transmitError(
     error: any,
@@ -255,6 +288,7 @@ export class QueryResultPanel implements WebviewViewProvider {
             ColorThemeKind.Light,
             ColorThemeKind.HighContrastLight,
           ].includes(window.activeColorTheme.kind),
+          aiEnabled: this.altimate.enabled(),
         }),
       });
     }
@@ -297,16 +331,53 @@ export class QueryResultPanel implements WebviewViewProvider {
     );
   }
 
+  public async getSummary(query: string, adapter: string) {
+    //using id to focus on the webview is more reliable than using the view title
+    await commands.executeCommand("dbtPowerUser.PreviewResults.focus");
+    this.telemetry.sendTelemetryEvent("getQuerySummary");
+    window.withProgress(
+      {
+        title: "Getting query explanation",
+        location: ProgressLocation.Notification,
+        cancellable: false,
+      },
+      async () => {
+        if (this._panel) {
+          this._panel.show(); // Show the view
+          this._panel.webview.postMessage({ command: "focus" }); // keyboard focus
+        }
+        try {
+          const response = await this.altimate.getQuerySummary(query, adapter);
+          if (response === undefined || response.explanation === undefined) {
+            window.showErrorMessage(
+              extendErrorWithSupportLinks("Could not get summary. "),
+            );
+            this.telemetry.sendTelemetryError("getQuerySummaryAltimateError");
+            return;
+          }
+          await this.transmitSummary(query, response.explanation);
+        } catch (err) {
+          window.showErrorMessage(
+            extendErrorWithSupportLinks("Could not get summary: " + err + " "),
+          );
+          this.telemetry.sendTelemetryError("getQuerySummaryAltimateError");
+        }
+      },
+    );
+  }
+
   /** Runs a query transmitting appropriate notifications to webview */
   public async executeQuery(
     query: string,
     queryExecution: Promise<ExecuteSQLResult>,
+    adapter: string,
   ) {
     //using id to focus on the webview is more reliable than using the view title
     await commands.executeCommand("dbtPowerUser.PreviewResults.focus");
     if (this._panel) {
       this._panel.show(); // Show the view
       this._panel.webview.postMessage({ command: "focus" }); // keyboard focus
+      this.adapter = adapter;
       this.transmitLoading();
     }
     try {

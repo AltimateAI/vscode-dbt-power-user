@@ -53,21 +53,37 @@ export class RunModel {
     }
   }
 
-  executeQueryOnActiveWindow() {
+  private getQuery() {
     if (!window.activeTextEditor) {
       return;
     }
     const cursor = window.activeTextEditor.selection;
-    const query = window.activeTextEditor.document.getText(
+    return window.activeTextEditor.document.getText(
       cursor.isEmpty ? undefined : cursor,
     );
+  }
+
+  executeQueryOnActiveWindow() {
+    const query = this.getQuery();
+    if (query === undefined) {
+      return;
+    }
+    const cursor = window.activeTextEditor!.selection;
     const queryName =
       "Results: " +
-      path.basename(window.activeTextEditor.document.uri.fsPath ?? "Ad Hoc") +
+      path.basename(window.activeTextEditor!.document.uri.fsPath ?? "Ad Hoc") +
       " " +
       (cursor.isEmpty ? "" : "(Ad Hoc) ") +
       new Date().toTimeString().split(" ")[0];
-    this.executeSQL(window.activeTextEditor.document.uri, query, queryName);
+    this.executeSQL(window.activeTextEditor!.document.uri, query, queryName);
+  }
+
+  getSummaryOnActiveWindow() {
+    const query = this.getQuery();
+    if (query === undefined) {
+      return;
+    }
+    this.getSummary(window.activeTextEditor!.document.uri, query);
   }
 
   runModelOnNodeTreeItem(type: RunModelType) {
@@ -152,6 +168,10 @@ export class RunModel {
 
   async executeSQL(uri: Uri, query: string, title: string) {
     this.dbtProjectContainer.executeSQL(uri, query);
+  }
+
+  async getSummary(uri: Uri, query: string) {
+    this.dbtProjectContainer.getSummary(uri, query);
   }
 
   showCompiledSQL(modelPath: Uri) {
