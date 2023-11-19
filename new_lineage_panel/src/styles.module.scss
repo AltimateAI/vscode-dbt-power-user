@@ -38,13 +38,64 @@ $node-width: 260px;
   }
 }
 
+@mixin node_type_color($c) {
+  border: 1px solid rgba($c, 0.3);
+  color: $c;
+  background-color: rgba($c, 0.1);
+}
+
 .table_header {
   display: grid;
-  grid-template-columns: 1.5rem 1fr;
+  grid-template-columns: 3rem 1fr;
   gap: 0em 0.5em;
   width: 100%;
   height: 3em;
   align-items: center;
+  border-radius: 0.5em;
+  border: 1px solid var(--table-node-border-color);
+
+  .seed {
+    @include node_type_color(#01cd8c);
+  }
+
+  .model {
+    @include node_type_color(#cae8f9);
+  }
+
+  .source {
+    @include node_type_color(#bce2e4);
+  }
+
+  .exposure {
+    @include node_type_color(#f1b497);
+  }
+
+  .snapshot {
+    @include node_type_color(#f5c5f0);
+  }
+
+  .metrics {
+    @include node_type_color(#c7f3c0);
+  }
+
+  .macros {
+    @include node_type_color(#dd9da5);
+  }
+
+  .node_icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.15em 0.5em;
+    border-radius: 0.5em;
+
+    svg {
+      $size: 2em;
+      width: $size;
+      height: $size;
+    }
+    font-size: 0.75em;
+  }
 }
 
 $size: 1.2em;
@@ -226,4 +277,62 @@ $size: 1.2em;
   background-color: var(--card-bg) !important;
   border-color: var(--card-border-color) !important;
   color: var(--text-color) !important;
+}
+
+.table_details_tabs {
+  width: 100%;
+  padding: 0.25em;
+  border-radius: 0.5em;
+  display: flex;
+  background-color: var(--column-section-bg);
+
+  .tab {
+    width: 100%;
+    padding: 0.5em;
+    border-radius: 0.5em;
+    color: var(--text-color);
+    text-align: center;
+    cursor: pointer;
+
+    &.selected {
+      background-color: var(--primary-accent);
+      color: #ffffff;
+    }
+  }
+}
+
+.table_node_pill {
+  display: flex;
+  align-items: center;
+  border-radius: 0.5em;
+  border: 1px solid var(--card-border-color);
+  gap: 0.25em;
+  padding: 0.125em 0.325em;
+  font-size: 0.8em;
+
+  .icon {
+    $size: 1rem;
+    width: $size;
+    height: $size;
+    display: flex;
+    align-items: center;
+  }
+}
+
+.node-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.125em 0.5em;
+  border-radius: 0.5em;
+}
+
+.select_node_checkbox {
+  @extend .node-checkbox;
+  border: 2px solid var(--card-border-color);
+}
+
+.non_select_node_checkbox {
+  @extend .node-checkbox;
+  border: 2px dashed var(--card-border-color);
 }

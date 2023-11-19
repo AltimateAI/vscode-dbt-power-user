@@ -177,6 +177,41 @@ const ColumnSection: FunctionComponent<{
   );
 };
 
+const TestSection: FunctionComponent<{
+  tests: { key: string; path: string }[];
+}> = ({ tests }) => {
+  const [filteredTests, setFilteredTests] = useState(tests);
+  return (
+    <div className={classNames(styles.card, "flex-grow column-section")}>
+      <div className="d-flex flex-column gap-sm h-100 p-2">
+        <div className="fs-5 fw-semibold">Tests</div>
+        <CustomInput
+          bsSize="sm"
+          type="text"
+          placeholder="Search by test"
+          onChange={(e) => {
+            const _search = e.target.value.toLowerCase();
+            setFilteredTests(
+              tests.filter((t) => t.key.toLowerCase().includes(_search))
+            );
+          }}
+        />
+        <div className="d-flex align-items-center gap-xs">
+          <div className="fs-xxs text-grey">{filteredTests.length} tests</div>
+        </div>
+        <div className="d-flex flex-column gap-sm">
+          {filteredTests.map((_test) => (
+            <div key={_test.key} className={styles.column_card}>
+              <div className="d-flex align-items-center gap-xs">
+                <div className="lines-2">{_test.key}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 const TableDetails = () => {
   const {
     selectedTable,
@@ -191,6 +226,7 @@ const TableDetails = () => {
   const flow = useReactFlow();
   const [filteredColumn, setFilteredColumn] = useState<Column[]>([]);
   const [data, setData] = useState<Columns | null>(null);
+  const [tab, setTab] = useState(0);
 
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
@@ -305,9 +341,9 @@ const TableDetails = () => {
         for (const e of _edges) {
           const srcTable = e[src];
           const dstTable = e[dst];
-          const nodeType = flow.getNode(dstTable)?.data?.nodeType;
+          const materialization = flow.getNode(dstTable)?.data?.materialization;
           if (currTargetTables[srcTable]) {
-            if (nodeType === "ephemeral") {
+            if (materialization === "ephemeral") {
               ephemeralAncestors[dstTable] = ephemeralAncestors[dstTable] || [];
               ephemeralAncestors[dstTable].push(
                 ...currTargetColumns.filter((c) => c[0] === srcTable)
@@ -317,7 +353,7 @@ const TableDetails = () => {
               hop1Tables.push(dstTable);
             }
           } else if (currEphemeralNodes.includes(srcTable)) {
-            if (nodeType === "ephemeral") {
+            if (materialization === "ephemeral") {
               ephemeralAncestors[dstTable] = ephemeralAncestors[dstTable] || [];
               ephemeralAncestors[dstTable].push(
                 ...ephemeralAncestors[srcTable]
@@ -406,15 +442,28 @@ const TableDetails = () => {
         </div>
       </div>
       {data.purpose && <PurposeSection purpose={data.purpose} />}
-      <ColumnSection
-        selectedTable={selectedTable}
-        selectedColumn={selectedColumn}
-        filteredColumn={filteredColumn}
-        setFilteredColumn={setFilteredColumn}
-        columns={data.columns}
-        handleColumnClick={handleColumnClick}
-        setData={setData}
-      />
+      <div className={styles.table_details_tabs}>
+        {["Column", "Tests"].map((label, i) => (
+          <div
+            className={classNames(styles.tab, { [styles.selected]: tab === i })}
+            onClick={() => setTab(i)}
+          >
+            {label}
+          </div>
+        ))}
+      </div>
+      {tab === 0 && (
+        <ColumnSection
+          selectedTable={selectedTable}
+          selectedColumn={selectedColumn}
+          filteredColumn={filteredColumn}
+          setFilteredColumn={setFilteredColumn}
+          columns={data.columns}
+          handleColumnClick={handleColumnClick}
+          setData={setData}
+        />
+      )}
+      {tab === 1 && <TestSection tests={selectedTable.tests} />}
     </div>
   );
 };

@@ -35,14 +35,40 @@ type Table = {
   downstreamCount: number;
   upstreamCount: number;
   nodeType: string;
+  materialization?: string;
+  tests: any[];
 };
 
 const CACHE_SIZE = 100;
 const CACHE_VALID_TIME = 24 * 60 * 60 * 1000;
 
-const ALLOWED_NODE_TYPES = ["model.", "source.", "seed."];
-const isAllowedNode = (key: string) =>
-  ALLOWED_NODE_TYPES.some((t) => key.startsWith(t));
+const CAN_COMPILE_SQL_NODE = [
+  DBTProject.RESOURCE_TYPE_MODEL,
+  DBTProject.RESOURCE_TYPE_SNAPSHOT,
+];
+const canCompileSQL = (nodeType: string) =>
+  CAN_COMPILE_SQL_NODE.includes(nodeType);
+
+const getResourceMetaMap = (
+  event: ManifestCacheProjectAddedEvent,
+  resourceType: string,
+) => {
+  if (
+    resourceType === DBTProject.RESOURCE_TYPE_MODEL ||
+    resourceType === DBTProject.RESOURCE_TYPE_SEED ||
+    resourceType === DBTProject.RESOURCE_TYPE_SNAPSHOT
+  ) {
+    return event.nodeMetaMap;
+  }
+
+  if (resourceType === DBTProject.RESOURCE_TYPE_SOURCE) {
+    return event.sourceMetaMap;
+  }
+
+  if (resourceType === DBTProject.RESOURCE_TYPE_TEST) {
+    return event.testMetaMap;
+  }
+};
 
 @provideSingleton(NewLineagePanel)
 export class NewLineagePanel implements LineagePanelView {
@@ -240,10 +266,11 @@ export class NewLineagePanel implements LineagePanelView {
     table: string;
     refresh: boolean;
   }) {
-    const nodeMetaMap = this.getEvent()?.nodeMetaMap;
-    if (!nodeMetaMap) {
+    const event = this.getEvent();
+    if (!event) {
       return;
     }
+    const { nodeMetaMap } = event;
     const node = nodeMetaMap.get(table);
     if (!node) {
       return;
@@ -362,17 +389,24 @@ export class NewLineagePanel implements LineagePanelView {
       });
       auxiliaryTables = Array.from(parentSet);
     }
+    let current_node = "";
+    let current_node_type = "";
     try {
       await Promise.all([
         ...Object.values(visibleTables).map(async (node) => {
           let compiledSql: string | undefined;
+          current_node = node.name;
+          const nodeType = node.uniqueId.split(".")?.[0];
+          current_node_type = nodeType;
           if (node.config.materialized === "ephemeral") {
+            // TODO: add telemetry here
+            // ideally should not be taking this code path
             // ephemeral nodes can be skipped. they dont have a schema
             // and their sql makes it into the compiled sql of the models
             // referring to it.
             return;
           }
-          if (node.config.materialized !== "seed") {
+          if (canCompileSQL(nodeType)) {
             compiledSql = await project.compileNode(node.name);
             if (!compiledSql) {
               return;
@@ -402,13 +436,19 @@ export class NewLineagePanel implements LineagePanelView {
     } catch (exc) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
-          "An error occured while trying to compile your node: " +
+          `An error occured while trying to compile your node: ${current_node}, type: ${current_node_type} ` +
             exc.exception.message +
             ".",
         );
         this.telemetry.sendTelemetryError(
           "columnLineageCompileNodePythonError",
           exc,
+        );
+        console.error(
+          "Error encountered while compiling/retrieving schema for node: " +
+            current_node +
+            ", type: " +
+            current_node_type,
         );
         console.error(
           "Exception: " +
@@ -425,8 +465,11 @@ export class NewLineagePanel implements LineagePanelView {
       );
       // Unknown error
       window.showErrorMessage(
-        "Encountered an unknown issue: " + exc + " while compiling nodes.",
+        "Encountered an unknown issue: " +
+          exc +
+          " while compiling/retrieving schema for nodes.",
       );
+      console.error("Last node: " + current_node + "\n\n" + exc);
       return;
     }
 
@@ -489,41 +532,60 @@ export class NewLineagePanel implements LineagePanelView {
     if (!event) {
       return;
     }
-    const { graphMetaMap, nodeMetaMap } = event;
+    const { graphMetaMap } = event;
     const dependencyNodes = graphMetaMap[key];
     const node = dependencyNodes.get(table);
     if (!node) {
       return;
     }
     const tables: Map<string, Table> = new Map();
-    const addToTables = (key: string, value: Omit<Table, "key">) => {
-      if (!tables.has(key) && isAllowedNode(key)) {
-        tables.set(key, { ...value, key });
+    node.nodes.forEach(({ url, label }) => {
+      const _node = this.createTable(event, label, url);
+      if (!_node) {
+        return;
       }
-    };
-    node.nodes.forEach(({ key, url, label }) => {
-      let nodeType = key.split(".")?.[0] || "model";
-      const _node = nodeMetaMap.get(label);
-      if (_node?.config?.materialized === "ephemeral") {
-        nodeType = "ephemeral";
+      if (!tables.has(_node.key)) {
+        tables.set(_node.key, _node);
       }
-      addToTables(key, {
-        table: label,
-        url,
-        nodeType,
-        upstreamCount: this.getConnectedNodeCount(
-          graphMetaMap["children"],
-          key,
-        ),
-        downstreamCount: this.getConnectedNodeCount(
-          graphMetaMap["parents"],
-          key,
-        ),
-      });
     });
     return Array.from(tables.values()).sort((a, b) =>
       a.table.localeCompare(b.table),
     );
+  }
+
+  private createTable(
+    event: ManifestCacheProjectAddedEvent,
+    tableName: string,
+    tableUrl: string,
+  ): Table | undefined {
+    const { graphMetaMap, nodeMetaMap, testMetaMap } = event;
+    const node = nodeMetaMap.get(tableName);
+    if (!node) {
+      return;
+    }
+    const key = node.uniqueId;
+    const downstreamCount = this.getConnectedNodeCount(
+      graphMetaMap["parents"],
+      key,
+    );
+    const upstreamCount = this.getConnectedNodeCount(
+      graphMetaMap["children"],
+      key,
+    );
+    const nodeType = key.split(".")?.[0] || "model";
+    return {
+      key,
+      table: tableName,
+      url: tableUrl,
+      upstreamCount,
+      downstreamCount,
+      nodeType,
+      materialization: node?.config?.materialized,
+      tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
+        const testKey = n.label.split(".")[0];
+        return { ...testMetaMap.get(testKey), key: testKey };
+      }),
+    };
   }
 
   private getUpstreamTables({ table }: { table: string }) {
@@ -554,7 +616,7 @@ export class NewLineagePanel implements LineagePanelView {
   }
 
   private getConnectedNodeCount(g: NodeGraphMap, key: string) {
-    return g.get(key)?.nodes.filter((n) => isAllowedNode(n.key)).length || 0;
+    return g.get(key)?.nodes.length || 0;
   }
 
   private getFilename() {
@@ -574,36 +636,15 @@ export class NewLineagePanel implements LineagePanelView {
     if (!event) {
       return;
     }
-    const { graphMetaMap, nodeMetaMap } = event;
-    const fileName = this.getFilename();
-    const node = nodeMetaMap.get(fileName);
+    const node = this.createTable(
+      event,
+      this.getFilename(),
+      window.activeTextEditor!.document.uri.path,
+    );
     if (!node) {
       return;
     }
-    const key = node.uniqueId;
-    const downstreamCount = this.getConnectedNodeCount(
-      graphMetaMap["parents"],
-      key,
-    );
-    const upstreamCount = this.getConnectedNodeCount(
-      graphMetaMap["children"],
-      key,
-    );
-    let nodeType = key.split(".")?.[0] || "model";
-    if (node.config.materialized === "ephemeral") {
-      nodeType = "ephemeral";
-    }
-    return {
-      node: {
-        key,
-        table: fileName,
-        url: window.activeTextEditor!.document.uri.path,
-        upstreamCount,
-        downstreamCount,
-        nodeType,
-      },
-      aiEnabled: this.altimate.enabled(),
-    };
+    return { node, aiEnabled: this.altimate.enabled() };
   }
 
   private setupWebviewOptions(context: WebviewViewResolveContext) {
