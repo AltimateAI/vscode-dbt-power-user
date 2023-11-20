@@ -64,10 +64,6 @@ const getResourceMetaMap = (
   if (resourceType === DBTProject.RESOURCE_TYPE_SOURCE) {
     return event.sourceMetaMap;
   }
-
-  if (resourceType === DBTProject.RESOURCE_TYPE_TEST) {
-    return event.testMetaMap;
-  }
 };
 
 @provideSingleton(NewLineagePanel)
@@ -539,8 +535,9 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
     const tables: Map<string, Table> = new Map();
-    node.nodes.forEach(({ url, label }) => {
-      const _node = this.createTable(event, label, url);
+    node.nodes.forEach(({ url, label, key }) => {
+      const nodeType = key.split(".")?.[0] || DBTProject.RESOURCE_TYPE_MODEL;
+      const _node = this.createTable(event, label, url, nodeType);
       if (!_node) {
         return;
       }
@@ -557,9 +554,11 @@ export class NewLineagePanel implements LineagePanelView {
     event: ManifestCacheProjectAddedEvent,
     tableName: string,
     tableUrl: string,
+    nodeType: string,
   ): Table | undefined {
-    const { graphMetaMap, nodeMetaMap, testMetaMap } = event;
-    const node = nodeMetaMap.get(tableName);
+    const { graphMetaMap, testMetaMap } = event;
+    const resourceMetaMap = getResourceMetaMap(event, nodeType);
+    const node = resourceMetaMap?.get(tableName);
     if (!node) {
       return;
     }
@@ -572,7 +571,10 @@ export class NewLineagePanel implements LineagePanelView {
       graphMetaMap["children"],
       key,
     );
-    const nodeType = key.split(".")?.[0] || "model";
+    let materialization: string | undefined;
+    if (nodeType !== DBTProject.RESOURCE_TYPE_SOURCE) {
+      materialization = (node as NodeMetaData).config.materialized;
+    }
     return {
       key,
       table: tableName,
@@ -580,7 +582,7 @@ export class NewLineagePanel implements LineagePanelView {
       upstreamCount,
       downstreamCount,
       nodeType,
-      materialization: node?.config?.materialized,
+      materialization,
       tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
         const testKey = n.label.split(".")[0];
         return { ...testMetaMap.get(testKey), key: testKey };
@@ -640,6 +642,7 @@ export class NewLineagePanel implements LineagePanelView {
       event,
       this.getFilename(),
       window.activeTextEditor!.document.uri.path,
+      DBTProject.RESOURCE_TYPE_MODEL,
     );
     if (!node) {
       return;
