@@ -269,21 +269,23 @@ export class NewLineagePanel implements LineagePanelView {
     if (!event) {
       return;
     }
-    const resourceMetaMap = getResourceMetaMap(event, nodeType);
-    if (!resourceMetaMap) {
-      return;
-    }
-    const _node = resourceMetaMap.get(table);
-    if (!_node) {
-      return;
-    }
     if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
-      // TODO: fix this; for now just taking 1st table
-      const node = _node as SourceMetaData;
+      const { sourceMetaMap } = event;
+      const splits = table.split(".");
+      const schema = splits[2];
+      const tableName = splits[3];
+      const _node = sourceMetaMap.get(schema);
+      if (!_node) {
+        return;
+      }
+      const _table = _node.tables.find((t) => t.name === tableName);
+      if (!_table) {
+        return;
+      }
       return {
-        id: node.uniqueId,
-        purpose: node.tables[0].description,
-        columns: Object.values(node.tables[0].columns)
+        id: _node.uniqueId,
+        purpose: _table.description,
+        columns: Object.values(_table.columns)
           .map((c) => ({
             name: c.name,
             table: table,
@@ -294,10 +296,14 @@ export class NewLineagePanel implements LineagePanelView {
           .sort((a, b) => a.name.localeCompare(b.name)),
       };
     }
-    const node = _node as NodeMetaData;
+    const { nodeMetaMap } = event;
+    const node = nodeMetaMap.get(table);
+    if (!node) {
+      return;
+    }
     const project = this.getProject();
     if (!project) {
-      return false;
+      return;
     }
     if (refresh) {
       if (node.config.materialized === "ephemeral") {
