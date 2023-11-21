@@ -504,10 +504,10 @@ class DbtProject:
         """Compiles existing node."""
         try:
             self.sql_compiler.node = copy(node)
-            # this is essentially a convenient wrapper to adapter.get_compiler
             if isinstance(node, CompiledNode):
                 compiled_node = node
             else:
+                # this is essentially a convenient wrapper to adapter.get_compiler
                 compiled_node = self.sql_compiler.compile(self.dbt)
             return DbtAdapterCompilationResult(
                 getattr(compiled_node, RAW_CODE),
