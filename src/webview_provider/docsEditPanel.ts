@@ -540,10 +540,12 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                         if (model.name === message.name) {
                           model.description = message.description;
                           model.columns = message.columns.map((column: any) => {
-                            const existingColumn = model.columns.find(
-                              (yamlColumn: any) =>
-                                yamlColumn.name === column.name,
-                            );
+                            const existingColumn =
+                              model.columns &&
+                              model.columns.find(
+                                (yamlColumn: any) =>
+                                  yamlColumn.name === column.name,
+                              );
                             if (existingColumn !== undefined) {
                               return {
                                 ...existingColumn,
