@@ -45,8 +45,11 @@ export const downstreamTables = (tableKey: string) => {
   }>;
 };
 
-export const getColumns = (table: string, refresh: boolean) => {
-  return requestExecutor("getColumns", { table, refresh }) as Promise<
+export const getColumns = (
+  { table, nodeType }: { table: string; nodeType: string },
+  refresh: boolean,
+) => {
+  return requestExecutor("getColumns", { table, refresh, nodeType }) as Promise<
     Columns
   >;
 };

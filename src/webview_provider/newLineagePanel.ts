@@ -18,6 +18,7 @@ import {
   GraphMetaMap,
   NodeGraphMap,
   NodeMetaData,
+  SourceMetaData,
 } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
@@ -257,20 +258,43 @@ export class NewLineagePanel implements LineagePanelView {
 
   private async getColumns({
     table,
+    nodeType,
     refresh,
   }: {
     table: string;
+    nodeType: string;
     refresh: boolean;
   }) {
     const event = this.getEvent();
     if (!event) {
       return;
     }
-    const { nodeMetaMap } = event;
-    const node = nodeMetaMap.get(table);
-    if (!node) {
+    const resourceMetaMap = getResourceMetaMap(event, nodeType);
+    if (!resourceMetaMap) {
       return;
     }
+    const _node = resourceMetaMap.get(table);
+    if (!_node) {
+      return;
+    }
+    if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
+      // TODO: fix this; for now just taking 1st table
+      const node = _node as SourceMetaData;
+      return {
+        id: node.uniqueId,
+        purpose: node.tables[0].description,
+        columns: Object.values(node.tables[0].columns)
+          .map((c) => ({
+            name: c.name,
+            table: table,
+            datatype: c.data_type || "",
+            can_lineage_expand: false,
+            description: c.description,
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+      };
+    }
+    const node = _node as NodeMetaData;
     const project = this.getProject();
     if (!project) {
       return false;
