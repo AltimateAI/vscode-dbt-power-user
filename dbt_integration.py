@@ -505,7 +505,7 @@ class DbtProject:
         try:
             self.sql_compiler.node = copy(node)
             if DBT_MAJOR_VER == 1 and DBT_MINOR_VER <= 3:
-                compiled_node = node if isinstance(node, CompiledNode) else self.sql_compiler.compile(node)
+                compiled_node = node if isinstance(node, CompiledNode) else self.sql_compiler.compile(self.dbt)
             else:
                 # this is essentially a convenient wrapper to adapter.get_compiler
                 compiled_node = self.sql_compiler.compile(self.dbt)        
