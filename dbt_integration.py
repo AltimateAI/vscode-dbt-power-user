@@ -49,11 +49,11 @@ from dbt.version import __version__ as dbt_version
 
 try:
     # dbt <= 1.3
-    from dbt.contracts.graph.compiled import ManifestNode  # type: ignore
+    from dbt.contracts.graph.compiled import ManifestNode, CompiledNode  # type: ignore
     from dbt.contracts.graph.parsed import ColumnInfo  # type: ignore
 except Exception:
     # dbt > 1.3
-    from dbt.contracts.graph.nodes import ColumnInfo, ManifestNode  # type: ignore
+    from dbt.contracts.graph.nodes import ColumnInfo, ManifestNode, CompiledNode  # type: ignore
 
 
 if TYPE_CHECKING:
@@ -499,13 +499,16 @@ class DbtProject:
             raise Exception(str(e))
 
     def _compile_node(
-        self, node: "ManifestNode"
+        self, node: Union["ManifestNode", "CompiledNode"]
     ) -> Optional[DbtAdapterCompilationResult]:
         """Compiles existing node."""
         try:
             self.sql_compiler.node = copy(node)
             # this is essentially a convenient wrapper to adapter.get_compiler
-            compiled_node = self.sql_compiler.compile(self.dbt)
+            if isinstance(node, CompiledNode):
+                compiled_node = node
+            else:
+                compiled_node = self.sql_compiler.compile(self.dbt)
             return DbtAdapterCompilationResult(
                 getattr(compiled_node, RAW_CODE),
                 getattr(compiled_node, COMPILED_CODE),
