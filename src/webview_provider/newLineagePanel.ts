@@ -558,8 +558,6 @@ export class NewLineagePanel implements LineagePanelView {
   ): Table | undefined {
     const { graphMetaMap, testMetaMap } = event;
     const resourceMetaMap = getResourceMetaMap(event, nodeType);
-    // TODO: fix this for source, this won't work
-    // here the key for sourceMetamap is different from tableName(label from graphMetamap)
     const node = resourceMetaMap?.get(tableName);
     if (!node) {
       return;

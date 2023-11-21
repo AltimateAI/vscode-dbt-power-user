@@ -85,16 +85,11 @@ export class GraphParser {
       const nodeName = restNodeName.join(".");
       switch (nodeType) {
         case "source": {
-          // TODO: match source label to graph children nodes key
           const [sourceName, tableName] = nodeName.split(".");
           const url = sourceMetaMap
             .get(sourceName)
             ?.tables.find((table) => table.name === tableName)?.path!;
-          return new Source(
-            `${tableName} (${sourceName})`,
-            parentNodeName,
-            url,
-          );
+          return new Source(sourceName, parentNodeName, url);
         }
         case "model": {
           const url = nodeMetaMap.get(nodeName)?.path!;
