@@ -1,14 +1,14 @@
 on:
-    push:
-      branches:
-        - master
-    pull_request:
-      branches:
-        - master
-    release:
-      types:
-        - created
-  
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  release:
+    types:
+      - created
+
 jobs:
   build:
     strategy:
@@ -16,27 +16,26 @@ jobs:
         os: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-    - name: Install Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '16'
-    - run: npm install
-    - run: npm install
-      working-directory: ./new_lineage_panel
-    - name: Debugging info 
-      run: |
-        echo "Ref: ${{ github.ref }}"
-        echo "Matrix OS: ${{ matrix.os }}"
-        echo "Success: ${{ success() }}"
-    - name: Publish Visual Studio Marketplace
-      if: success() && startsWith( github.ref, 'refs/tags/') && matrix.os == 'ubuntu-latest'
-      run: npm run deploy-vscode
-      env:
-        VSCE_PAT: ${{ secrets.VSCE_PAT }}
-    - name: Publish OpenVSX Marketplace
-      if: success() && startsWith( github.ref, 'refs/tags/') && matrix.os == 'ubuntu-latest'
-      run: npm run deploy-openvsx
-      env:
-        OVSX_PAT: ${{ secrets.OVSX_PAT }}
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+      - run: npm install
+      - run: npm install
+        working-directory: ./new_lineage_panel
+      - name: Debugging info
+        run: |
+          echo "Ref: ${{ github.ref }}"
+          echo "Matrix OS: ${{ matrix.os }}"
+      - name: Publish Visual Studio Marketplace
+        if: success() && startsWith( github.ref, 'refs/tags/') && matrix.os == 'ubuntu-latest'
+        run: npm run deploy-vscode
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      - name: Publish OpenVSX Marketplace
+        if: success() && startsWith( github.ref, 'refs/tags/') && matrix.os == 'ubuntu-latest'
+        run: npm run deploy-openvsx
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
