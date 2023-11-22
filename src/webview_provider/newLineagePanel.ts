@@ -50,23 +50,6 @@ const CAN_COMPILE_SQL_NODE = [
 const canCompileSQL = (nodeType: string) =>
   CAN_COMPILE_SQL_NODE.includes(nodeType);
 
-const getResourceMetaMap = (
-  event: ManifestCacheProjectAddedEvent,
-  resourceType: string,
-) => {
-  if (
-    resourceType === DBTProject.RESOURCE_TYPE_MODEL ||
-    resourceType === DBTProject.RESOURCE_TYPE_SEED ||
-    resourceType === DBTProject.RESOURCE_TYPE_SNAPSHOT
-  ) {
-    return event.nodeMetaMap;
-  }
-
-  if (resourceType === DBTProject.RESOURCE_TYPE_SOURCE) {
-    return event.sourceMetaMap;
-  }
-};
-
 @provideSingleton(NewLineagePanel)
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
@@ -283,7 +266,7 @@ export class NewLineagePanel implements LineagePanelView {
         return;
       }
       return {
-        id: _node.uniqueId,
+        id: table,
         purpose: _table.description,
         columns: Object.values(_table.columns)
           .map((c) => ({
@@ -565,9 +548,8 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
     const tables: Map<string, Table> = new Map();
-    node.nodes.forEach(({ url, label, key }) => {
-      const nodeType = key.split(".")?.[0] || DBTProject.RESOURCE_TYPE_MODEL;
-      const _node = this.createTable(event, label, url, nodeType);
+    node.nodes.forEach(({ url, key }) => {
+      const _node = this.createTable(event, url, key);
       if (!_node) {
         return;
       }
@@ -582,32 +564,58 @@ export class NewLineagePanel implements LineagePanelView {
 
   private createTable(
     event: ManifestCacheProjectAddedEvent,
-    tableName: string,
     tableUrl: string,
-    nodeType: string,
+    key: string,
   ): Table | undefined {
+    const nodeType = key.split(".")[0];
     const { graphMetaMap, testMetaMap } = event;
-    const resourceMetaMap = getResourceMetaMap(event, nodeType);
-    const node = resourceMetaMap?.get(tableName);
-    if (!node) {
-      return;
-    }
-    const key = node.uniqueId;
-    const downstreamCount = this.getConnectedNodeCount(
-      graphMetaMap["parents"],
-      key,
-    );
     const upstreamCount = this.getConnectedNodeCount(
       graphMetaMap["children"],
       key,
     );
-    let materialization: string | undefined;
-    if (nodeType !== DBTProject.RESOURCE_TYPE_SOURCE) {
-      materialization = (node as NodeMetaData).config.materialized;
+    const downstreamCount = this.getConnectedNodeCount(
+      graphMetaMap["parents"],
+      key,
+    );
+    if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
+      const { sourceMetaMap } = event;
+      const splits = key.split(".");
+      const schema = splits[2];
+      const table = splits[3];
+      const _node = sourceMetaMap.get(schema);
+      if (!_node) {
+        return;
+      }
+      const _table = _node.tables.find((t) => t.name === table);
+      if (!_table) {
+        return;
+      }
+      return {
+        key,
+        table: table,
+        url: tableUrl,
+        upstreamCount,
+        downstreamCount: 0,
+        nodeType,
+        tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
+          const testKey = n.label.split(".")[0];
+          return { ...testMetaMap.get(testKey), key: testKey };
+        }),
+      };
     }
+    const { nodeMetaMap } = event;
+
+    const splits = key.split(".");
+    const table = splits[2];
+    const node = nodeMetaMap.get(table);
+    if (!node) {
+      return;
+    }
+
+    const materialization = node.config.materialized;
     return {
       key,
-      table: tableName,
+      table,
       url: tableUrl,
       upstreamCount,
       downstreamCount,
@@ -668,15 +676,36 @@ export class NewLineagePanel implements LineagePanelView {
     if (!event) {
       return;
     }
-    const node = this.createTable(
-      event,
-      this.getFilename(),
-      window.activeTextEditor!.document.uri.path,
-      DBTProject.RESOURCE_TYPE_MODEL,
-    );
-    if (!node) {
+    const { nodeMetaMap, graphMetaMap, testMetaMap } = event;
+    const tableName = this.getFilename();
+    const _node = nodeMetaMap.get(tableName);
+    if (!_node) {
       return;
     }
+    const key = _node.uniqueId;
+    const nodeType = key.split(".")[0];
+    const downstreamCount = this.getConnectedNodeCount(
+      graphMetaMap["parents"],
+      key,
+    );
+    const upstreamCount = this.getConnectedNodeCount(
+      graphMetaMap["children"],
+      key,
+    );
+    const materialization = _node.config.materialized;
+    const node = {
+      key,
+      table: tableName,
+      url: window.activeTextEditor!.document.uri.path,
+      upstreamCount,
+      downstreamCount,
+      nodeType,
+      materialization,
+      tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
+        const testKey = n.label.split(".")[0];
+        return { ...testMetaMap.get(testKey), key: testKey };
+      }),
+    };
     return { node, aiEnabled: this.altimate.enabled() };
   }
 
