@@ -257,16 +257,16 @@ export class NewLineagePanel implements LineagePanelView {
       const splits = tableKey.split(".");
       const schema = splits[2];
       const tableName = splits[3];
-      const _node = sourceMetaMap.get(schema);
-      if (!_node) {
+      const node = sourceMetaMap.get(schema);
+      if (!node) {
         return;
       }
-      const table = _node.tables.find((t) => t.name === tableName);
+      const table = node.tables.find((t) => t.name === tableName);
       if (!table) {
         return;
       }
       return {
-        id: tableKey,
+        id: node.uniqueId,
         purpose: table.description,
         columns: Object.values(table.columns)
           .map((c) => ({
