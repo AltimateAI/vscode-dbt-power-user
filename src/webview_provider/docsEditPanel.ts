@@ -261,7 +261,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 const modelName = path.basename(currentFilePath.fsPath, ".sql");
                 try {
                   const columnsInRelation =
-                    await project.getColumnsInRelation(modelName);
+                    await project.getColumnsOfModel(modelName);
                   const columns = columnsInRelation.map((column) => {
                     return {
                       name: column.column,

@@ -186,13 +186,13 @@ export class NewLineagePanel implements LineagePanelView {
     console.error("Unsupported mssage", message);
   }
 
-  private async addColumnsFromDB(project: DBTProject, node: NodeMetaData) {
+  private async addModelColumnsFromDB(project: DBTProject, node: NodeMetaData) {
     const now = Date.now();
     if (
       !this.dbCache.has(node.name) ||
       (this.lruCache.get(node.name) || 0) < now - CACHE_VALID_TIME
     ) {
-      const _columnsFromDB = await project.getColumnsInRelation(node.name);
+      const _columnsFromDB = await project.getColumnsOfModel(node.name);
       this.dbCache.set(node.name, _columnsFromDB);
       if (this.dbCache.size > CACHE_SIZE) {
         const arr = Array.from(this.lruCache.entries());
@@ -239,6 +239,54 @@ export class NewLineagePanel implements LineagePanelView {
     return true;
   }
 
+  private async addSourceColumnsFromDB(
+    project: DBTProject,
+    node: SourceMetaData,
+    tableName: string,
+  ) {
+    const now = Date.now();
+    const columnsFromDB = await project.getColumnsOfSource(
+      node.name,
+      tableName,
+    );
+    console.log("addColumnsFromDB: ", node.name, " -> ", columnsFromDB);
+    if (!columnsFromDB || columnsFromDB.length === 0) {
+      return false;
+    }
+    if (columnsFromDB.length > 100) {
+      // Flagging events where more than 100 columns are fetched from db to get a sense of how many of these happen
+      this.telemetry.sendTelemetryEvent(
+        "columnLineageExcessiveColumnsFetchedFromDB",
+      );
+    }
+    const table = node.tables.find((t) => t.name === tableName);
+    if (!table) {
+      return;
+    }
+    const columns: Record<string, ColumnMetaData> = {};
+    Object.entries(table.columns).forEach(([k, v]) => {
+      columns[k.toLowerCase()] = v;
+    });
+
+    columnsFromDB.forEach((c) => {
+      const existing_column = columns[c.column.toLowerCase()];
+      if (existing_column) {
+        existing_column.data_type = existing_column.data_type || c.dtype;
+        return;
+      }
+      table.columns[c.column] = {
+        name: c.column,
+        data_type: c.dtype,
+        description: "",
+      };
+    });
+    if (Object.keys(table.columns).length > columnsFromDB.length) {
+      // Flagging events where columns fetched from db are less than the number of columns in the manifest
+      this.telemetry.sendTelemetryEvent("columnLineagePossibleStaleSchema");
+    }
+    return true;
+  }
+
   private async getColumns({
     tableKey,
     nodeType,
@@ -252,18 +300,46 @@ export class NewLineagePanel implements LineagePanelView {
     if (!event) {
       return;
     }
+    const project = this.getProject();
+    if (!project) {
+      return;
+    }
     if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
       const { sourceMetaMap } = event;
       const splits = tableKey.split(".");
-      const schema = splits[2];
+      const sourceName = splits[2];
       const tableName = splits[3];
-      const node = sourceMetaMap.get(schema);
+      const node = sourceMetaMap.get(sourceName);
       if (!node) {
         return;
       }
       const table = node.tables.find((t) => t.name === tableName);
       if (!table) {
         return;
+      }
+      if (refresh) {
+        const ok = await window.withProgress(
+          {
+            title: "Fetching metadata",
+            location: ProgressLocation.Notification,
+            cancellable: false,
+          },
+          async () => {
+            // TODO: the cache should also support sources
+            // this.lruCache.delete(node.name);
+            // this.dbCache.delete(node.name);
+            return await this.addSourceColumnsFromDB(project, node, tableName);
+          },
+        );
+        if (!ok) {
+          window.showErrorMessage(
+            "Unable to get columns from DB for model: " +
+              node.name +
+              " table: " +
+              tableKey,
+          );
+          return;
+        }
       }
       return {
         id: node.uniqueId,
@@ -286,10 +362,6 @@ export class NewLineagePanel implements LineagePanelView {
     if (!node) {
       return;
     }
-    const project = this.getProject();
-    if (!project) {
-      return;
-    }
     if (refresh) {
       if (node.config.materialized === "ephemeral") {
         window.showInformationMessage(
@@ -306,7 +378,7 @@ export class NewLineagePanel implements LineagePanelView {
         async () => {
           this.lruCache.delete(node.name);
           this.dbCache.delete(node.name);
-          return await this.addColumnsFromDB(project, node);
+          return await this.addModelColumnsFromDB(project, node);
         },
       );
       if (!ok) {
@@ -423,7 +495,7 @@ export class NewLineagePanel implements LineagePanelView {
               return;
             }
           }
-          const ok = await this.addColumnsFromDB(project, node);
+          const ok = await this.addModelColumnsFromDB(project, node);
           if (!ok) {
             relationsWithoutColumns.push(node.alias);
             return;
@@ -432,7 +504,10 @@ export class NewLineagePanel implements LineagePanelView {
         }),
         async () => {
           if (selected_column.model_node) {
-            await this.addColumnsFromDB(project, selected_column.model_node);
+            await this.addModelColumnsFromDB(
+              project,
+              selected_column.model_node,
+            );
           }
         },
         ...auxiliaryTables.map(async (t) => {
@@ -440,7 +515,7 @@ export class NewLineagePanel implements LineagePanelView {
           if (!node) {
             return;
           }
-          await this.addColumnsFromDB(project, node);
+          await this.addModelColumnsFromDB(project, node);
           parent_models.push({ model_node: node });
         }),
       ]);
