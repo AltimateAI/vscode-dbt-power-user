@@ -89,7 +89,11 @@ export class GraphParser {
           const url = sourceMetaMap
             .get(sourceName)
             ?.tables.find((table) => table.name === tableName)?.path!;
-          return new Source(sourceName, parentNodeName, url);
+          return new Source(
+            `${tableName} (${sourceName})`,
+            parentNodeName,
+            url,
+          );
         }
         case "model": {
           const url = nodeMetaMap.get(nodeName)?.path!;
