@@ -279,8 +279,10 @@ export class NewLineagePanel implements LineagePanelView {
           .sort((a, b) => a.name.localeCompare(b.name)),
       };
     }
+    const splits = tableKey.split(".");
+    const tableName = splits[2];
     const { nodeMetaMap } = event;
-    const node = nodeMetaMap.get(tableKey);
+    const node = nodeMetaMap.get(tableName);
     if (!node) {
       return;
     }
