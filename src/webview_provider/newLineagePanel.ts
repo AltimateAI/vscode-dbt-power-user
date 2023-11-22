@@ -347,7 +347,7 @@ export class NewLineagePanel implements LineagePanelView {
         columns: Object.values(table.columns)
           .map((c) => ({
             name: c.name,
-            table: tableKey,
+            table: tableName,
             datatype: c.data_type || "",
             can_lineage_expand: false,
             description: c.description,
@@ -398,7 +398,7 @@ export class NewLineagePanel implements LineagePanelView {
       columns: Object.values(node.columns)
         .map((c) => ({
           name: c.name,
-          table: tableKey,
+          table: tableName,
           datatype: c.data_type || "",
           can_lineage_expand: false,
           description: c.description,
