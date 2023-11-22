@@ -50,7 +50,7 @@ export const getColumns = (
   refresh: boolean,
 ) => {
   return requestExecutor("getColumns", {
-    table: key,
+    tableKey: key,
     refresh,
     nodeType,
   }) as Promise<

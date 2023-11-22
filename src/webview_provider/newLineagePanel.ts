@@ -240,11 +240,11 @@ export class NewLineagePanel implements LineagePanelView {
   }
 
   private async getColumns({
-    table,
+    tableKey,
     nodeType,
     refresh,
   }: {
-    table: string;
+    tableKey: string;
     nodeType: string;
     refresh: boolean;
   }) {
@@ -252,30 +252,26 @@ export class NewLineagePanel implements LineagePanelView {
     if (!event) {
       return;
     }
-    const project = this.getProject();
-    if (!project) {
-      return;
-    }
     if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
       const { sourceMetaMap } = event;
-      const splits = table.split(".");
+      const splits = tableKey.split(".");
       const schema = splits[2];
       const tableName = splits[3];
       const _node = sourceMetaMap.get(schema);
       if (!_node) {
         return;
       }
-      const _table = _node.tables.find((t) => t.name === tableName);
-      if (!_table) {
+      const table = _node.tables.find((t) => t.name === tableName);
+      if (!table) {
         return;
       }
       return {
-        id: table,
-        purpose: _table.description,
-        columns: Object.values(_table.columns)
+        id: tableKey,
+        purpose: table.description,
+        columns: Object.values(table.columns)
           .map((c) => ({
             name: c.name,
-            table: table,
+            table: tableKey,
             datatype: c.data_type || "",
             can_lineage_expand: false,
             description: c.description,
@@ -284,8 +280,12 @@ export class NewLineagePanel implements LineagePanelView {
       };
     }
     const { nodeMetaMap } = event;
-    const node = nodeMetaMap.get(table);
+    const node = nodeMetaMap.get(tableKey);
     if (!node) {
+      return;
+    }
+    const project = this.getProject();
+    if (!project) {
       return;
     }
     if (refresh) {
@@ -312,7 +312,7 @@ export class NewLineagePanel implements LineagePanelView {
           "Unable to get columns from DB for model: " +
             node.name +
             " table: " +
-            table,
+            tableKey,
         );
         return;
       }
@@ -324,7 +324,7 @@ export class NewLineagePanel implements LineagePanelView {
       columns: Object.values(node.columns)
         .map((c) => ({
           name: c.name,
-          table: table,
+          table: tableKey,
           datatype: c.data_type || "",
           can_lineage_expand: false,
           description: c.description,
