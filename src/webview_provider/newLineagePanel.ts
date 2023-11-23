@@ -531,7 +531,7 @@ export class NewLineagePanel implements LineagePanelView {
         window.showErrorMessage(
           `An error occured while trying to compile your model: ${current_node}, type: ${current_node_type} ` +
             exc.exception.message +
-            ". Probably your dbt model is not yet materialized.",
+            ".",
         );
         this.telemetry.sendTelemetryError(
           "columnLineageCompileNodePythonError",
@@ -568,9 +568,9 @@ export class NewLineagePanel implements LineagePanelView {
 
     if (relationsWithoutColumns.length !== 0) {
       window.showErrorMessage(
-        "Failed to fetch columns for following tables: " +
+        "Failed to fetch columns for " +
           relationsWithoutColumns.join(", ") +
-          ".",
+          ". Probably the dbt models are not yet materialized.",
       );
       // we still show the lineage for the rest of the models whose
       // schemas we could get so not returning here
