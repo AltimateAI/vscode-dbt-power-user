@@ -130,7 +130,7 @@ const ColumnSection: FunctionComponent<{
               if (!selectedTable) {
                 return;
               }
-              getColumns(selectedTable.table, true).then((_data) => {
+              getColumns(selectedTable, true).then((_data) => {
                 setData(_data);
                 setFilteredColumn(_data.columns);
               });
@@ -233,7 +233,7 @@ const TableDetails = () => {
     if (!selectedTable) {
       return;
     }
-    getColumns(selectedTable.table, false).then((_data) => {
+    getColumns(selectedTable, false).then((_data) => {
       setData(_data);
       setFilteredColumn(_data.columns);
       setIsLoading(false);

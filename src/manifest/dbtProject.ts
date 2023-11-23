@@ -570,7 +570,7 @@ export class DBTProject implements Disposable {
     return yamlString;
   }
 
-  async getColumnsInRelation(
+  async getColumnsOfModel(
     modelName: string,
   ): Promise<{ [key: string]: string }[]> {
     await this.blockUntilPythonBridgeIsInitalized();
@@ -585,18 +585,59 @@ export class DBTProject implements Disposable {
       return [];
     }
     // Get database and schema
-    const refNode = (await this.python?.lock(
+    const node = (await this.python?.lock(
       (python) => python!`to_dict(project.get_ref_node(${modelName}))`,
     )) as ResolveReferenceResult;
     // Get columns
-    if (!refNode) {
+    if (!node) {
       return [];
     }
+    return this.getColumsOfRelation(
+      node.database,
+      node.schema,
+      node.alias || modelName,
+    );
+  }
+
+  async getColumnsOfSource(
+    sourceName: string,
+    tableName: string,
+  ): Promise<{ [key: string]: string }[]> {
+    await this.blockUntilPythonBridgeIsInitalized();
+    if (!this.pythonBridgeInitialized) {
+      window.showErrorMessage(
+        "Could not execute query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue.",
+      );
+      this.telemetry.sendTelemetryError(
+        "getColumnsInRelationPythonBridgeNotInitializedError",
+      );
+      // TODO: improve this, the errors should be captured at a higher level
+      return [];
+    }
+    // Get database and schema
+    const node = (await this.python?.lock(
+      (python) =>
+        python!`to_dict(project.get_source_node(${sourceName}, ${tableName}))`,
+    )) as ResolveReferenceResult;
+    // Get columns
+    if (!node) {
+      return [];
+    }
+    return this.getColumsOfRelation(
+      node.database,
+      node.schema,
+      node.alias || tableName,
+    );
+  }
+
+  async getColumsOfRelation(
+    database: string | undefined,
+    schema: string | undefined,
+    objectName: string,
+  ) {
     return await this.python?.lock(
       (python) =>
-        python!`to_dict(project.get_columns_in_relation(project.create_relation(${
-          refNode.database
-        }, ${refNode.schema}, ${refNode.alias || modelName})))`,
+        python!`to_dict(project.get_columns_in_relation(project.create_relation(${database}, ${schema}, ${objectName})))`,
     );
   }
 
@@ -664,7 +705,7 @@ export class DBTProject implements Disposable {
         this.telemetry.sendTelemetryEvent("generateSchemaYML", {
           adapter: this.adapterType,
         });
-        const columnsInRelation = await this.getColumnsInRelation(modelName);
+        const columnsInRelation = await this.getColumnsOfModel(modelName);
         // Generate yml file content
         const fileContents = this.createYMLContent(
           columnsInRelation,
