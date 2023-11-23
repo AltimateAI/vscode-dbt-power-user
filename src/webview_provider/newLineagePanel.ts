@@ -539,11 +539,43 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
     const tables: Map<string, Table> = new Map();
-    node.nodes.forEach(({ url, label }) => {
-      const _node = this.createTable(event, label, url);
-      if (!_node) {
+    node.nodes.forEach(({ url, key }) => {
+      const splits = key.split(".");
+      const nodeType = splits[0];
+      const { graphMetaMap, testMetaMap } = event;
+      const node = getResourceMetaMap(event, nodeType)?.get(splits[2]);
+      if (!node) {
         return;
       }
+      const downstreamCount = this.getConnectedNodeCount(
+        graphMetaMap["parents"],
+        key,
+      );
+      const upstreamCount = this.getConnectedNodeCount(
+        graphMetaMap["children"],
+        key,
+      );
+      const isNode = [
+        DBTProject.RESOURCE_TYPE_MODEL,
+        DBTProject.RESOURCE_TYPE_SEED,
+        DBTProject.RESOURCE_TYPE_SNAPSHOT,
+      ].includes(nodeType);
+      const materialization = isNode
+        ? (node as NodeMetaData).config.materialized
+        : undefined;
+      const _node = {
+        key,
+        table: isNode ? splits[2] : splits[3],
+        url,
+        upstreamCount,
+        downstreamCount,
+        nodeType,
+        materialization,
+        tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
+          const testKey = n.label.split(".")[0];
+          return { ...testMetaMap.get(testKey), key: testKey };
+        }),
+      };
       if (!tables.has(_node.key)) {
         tables.set(_node.key, _node);
       }
