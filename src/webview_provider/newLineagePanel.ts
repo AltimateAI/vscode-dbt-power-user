@@ -504,10 +504,14 @@ export class NewLineagePanel implements LineagePanelView {
         }),
         async () => {
           if (selected_column.model_node) {
-            await this.addModelColumnsFromDB(
+            const ok = await this.addModelColumnsFromDB(
               project,
               selected_column.model_node,
             );
+            if (!ok) {
+              relationsWithoutColumns.push(selected_column.model_node.alias);
+              return;
+            }
           }
         },
         ...auxiliaryTables.map(async (t) => {
@@ -515,23 +519,26 @@ export class NewLineagePanel implements LineagePanelView {
           if (!node) {
             return;
           }
-          await this.addModelColumnsFromDB(project, node);
+          const ok = await this.addModelColumnsFromDB(project, node);
+          if (!ok) {
+            relationsWithoutColumns.push(node.alias);
+          }
           parent_models.push({ model_node: node });
         }),
       ]);
     } catch (exc) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
-          `An error occured while trying to compile your node: ${current_node}, type: ${current_node_type} ` +
+          `An error occured while trying to compile your model: ${current_node}, type: ${current_node_type} ` +
             exc.exception.message +
-            ".",
+            ". Probably your dbt model is not yet materialized.",
         );
         this.telemetry.sendTelemetryError(
           "columnLineageCompileNodePythonError",
           exc,
         );
         console.error(
-          "Error encountered while compiling/retrieving schema for node: " +
+          "Error encountered while compiling/retrieving schema for model: " +
             current_node +
             ", type: " +
             current_node_type,
