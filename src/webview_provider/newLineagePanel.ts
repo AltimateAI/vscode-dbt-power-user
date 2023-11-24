@@ -537,7 +537,11 @@ export class NewLineagePanel implements LineagePanelView {
               selected_column.model_node,
             );
             if (!ok) {
-              relationsWithoutColumns.push(selected_column.model_node.alias);
+              relationsWithoutColumns.push(
+                // @ts-ignore
+                selected_column.model_node.alias ||
+                  selected_column.model_node.name,
+              );
               return;
             }
           }
@@ -549,7 +553,8 @@ export class NewLineagePanel implements LineagePanelView {
           }
           const ok = await this.addModelColumnsFromDB(project, node);
           if (!ok) {
-            relationsWithoutColumns.push(node.alias);
+            // @ts-ignore
+            relationsWithoutColumns.push(node.alias || node.name);
           }
           parent_models.push({ model_node: node });
         }),
