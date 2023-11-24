@@ -19,6 +19,7 @@ import {
   NodeGraphMap,
   NodeMetaData,
   SourceMetaData,
+  SourceTable,
 } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
@@ -49,6 +50,21 @@ const CAN_COMPILE_SQL_NODE = [
 ];
 const canCompileSQL = (nodeType: string) =>
   CAN_COMPILE_SQL_NODE.includes(nodeType);
+
+const getNode = (
+  event: ManifestCacheProjectAddedEvent,
+  key: string,
+): SourceTable | NodeMetaData | undefined => {
+  const { nodeMetaMap, sourceMetaMap } = event;
+  const splits = key.split(".");
+  const nodeType = splits[0];
+  if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
+    return sourceMetaMap
+      .get(splits[2])
+      ?.tables.find((t) => t.name === splits[3]);
+  }
+  return nodeMetaMap.get(splits[2]);
+};
 
 @provideSingleton(NewLineagePanel)
 export class NewLineagePanel implements LineagePanelView {
@@ -186,7 +202,10 @@ export class NewLineagePanel implements LineagePanelView {
     console.error("Unsupported mssage", message);
   }
 
-  private async addModelColumnsFromDB(project: DBTProject, node: NodeMetaData) {
+  private async addModelColumnsFromDB(
+    project: DBTProject,
+    node: { name: string; columns: { [columnName: string]: ColumnMetaData } },
+  ) {
     const now = Date.now();
     if (
       !this.dbCache.has(node.name) ||
@@ -347,7 +366,7 @@ export class NewLineagePanel implements LineagePanelView {
         columns: Object.values(table.columns)
           .map((c) => ({
             name: c.name,
-            table: tableName,
+            table: tableKey,
             datatype: c.data_type || "",
             can_lineage_expand: false,
             description: c.description,
@@ -398,7 +417,7 @@ export class NewLineagePanel implements LineagePanelView {
       columns: Object.values(node.columns)
         .map((c) => ({
           name: c.name,
-          table: tableName,
+          table: tableKey,
           datatype: c.data_type || "",
           can_lineage_expand: false,
           description: c.description,
@@ -423,17 +442,17 @@ export class NewLineagePanel implements LineagePanelView {
     if (!event) {
       return;
     }
-    const { nodeMetaMap, graphMetaMap } = event;
+    const { graphMetaMap } = event;
     const project = this.getProject();
     if (!project) {
       return;
     }
-    const visibleTables: Record<string, NodeMetaData> = {};
+    const visibleTables: Record<string, NodeMetaData | SourceTable> = {};
     currAnd1HopTables?.forEach((t: string) => {
       if (t in visibleTables) {
         return;
       }
-      const node = nodeMetaMap.get(t);
+      const node = getNode(event, t);
       if (!node) {
         return;
       }
@@ -442,14 +461,19 @@ export class NewLineagePanel implements LineagePanelView {
 
     const modelInfos: {
       compiled_sql: string | undefined;
-      model_node: NodeMetaData;
+      model_node: { columns: { [columnName: string]: ColumnMetaData } };
     }[] = [];
     const relationsWithoutColumns: string[] = [];
-    const selected_column: { model_node?: NodeMetaData; column: string } = {
-      model_node: nodeMetaMap.get(selectedColumn.table),
+    const selected_column: {
+      model_node?: NodeMetaData | SourceTable | undefined;
+      column: string;
+    } = {
+      model_node: getNode(event, selectedColumn.table),
       column: selectedColumn.name,
     };
-    const parent_models: { model_node: NodeMetaData }[] = [];
+    const parent_models: {
+      model_node: { columns: { [columnName: string]: ColumnMetaData } };
+    }[] = [];
     let auxiliaryTables: string[] = [];
     if (upstreamExpansion) {
       const currTables = targets.map((t) => t[0]);
@@ -460,15 +484,15 @@ export class NewLineagePanel implements LineagePanelView {
           return;
         }
         // now we have 1Hop tables
-        const node = nodeMetaMap.get(t);
-        if (!node) {
-          return;
-        }
-        const parent = dependencyNodes.get(node.uniqueId);
+        // const node = getNode(event, t);
+        // if (!node) {
+        //   return;
+        // }
+        const parent = dependencyNodes.get(t);
         if (!parent) {
           return;
         }
-        parent.nodes.forEach((n) => parentSet.add(n.label));
+        parent.nodes.forEach((n) => parentSet.add(n.key));
       });
       auxiliaryTables = Array.from(parentSet);
     }
@@ -476,12 +500,15 @@ export class NewLineagePanel implements LineagePanelView {
     let current_node_type = "";
     try {
       await Promise.all([
-        ...Object.values(visibleTables).map(async (node) => {
+        ...Object.entries(visibleTables).map(async ([key, node]) => {
           let compiledSql: string | undefined;
           current_node = node.name;
-          const nodeType = node.uniqueId.split(".")?.[0];
+          const nodeType = key.split(".")[0];
           current_node_type = nodeType;
-          if (node.config.materialized === "ephemeral") {
+          if (
+            nodeType !== DBTProject.RESOURCE_TYPE_SOURCE &&
+            (node as NodeMetaData).config.materialized === "ephemeral"
+          ) {
             // TODO: add telemetry here
             // ideally should not be taking this code path
             // ephemeral nodes can be skipped. they dont have a schema
@@ -497,7 +524,8 @@ export class NewLineagePanel implements LineagePanelView {
           }
           const ok = await this.addModelColumnsFromDB(project, node);
           if (!ok) {
-            relationsWithoutColumns.push(node.alias);
+            // @ts-ignore
+            relationsWithoutColumns.push(node.alias || node.name);
             return;
           }
           modelInfos.push({ compiled_sql: compiledSql, model_node: node });
@@ -515,7 +543,7 @@ export class NewLineagePanel implements LineagePanelView {
           }
         },
         ...auxiliaryTables.map(async (t) => {
-          const node = nodeMetaMap.get(t);
+          const node = getNode(event, t);
           if (!node) {
             return;
           }
@@ -582,7 +610,10 @@ export class NewLineagePanel implements LineagePanelView {
         model_dialect: modelDialect,
         model_info: modelInfos,
         upstream_expansion: upstreamExpansion,
-        targets,
+        targets: targets.map((t) => {
+          const splits = t[0].split(".");
+          return [splits[splits.length - 1], t[1]] as [string, string];
+        }),
         selected_column,
         parent_models,
       };

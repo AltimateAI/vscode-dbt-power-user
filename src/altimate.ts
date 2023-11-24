@@ -1,7 +1,7 @@
 import { window, workspace } from "vscode";
 import { provideSingleton } from "./utils";
 import fetch from "node-fetch";
-import { NodeMetaData, SourceMetaData } from "./domain";
+import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 
 interface AltimateConfig {
   key: string;
@@ -22,13 +22,18 @@ export interface DBTColumnLineageRequest {
   targets: [string, string][];
   model_dialect: string;
   model_info: {
-    model_node: NodeMetaData;
+    model_node: { columns: { [columnName: string]: ColumnMetaData } };
     compiled_sql: string | undefined;
   }[];
   schemas?: Schemas | null;
   upstream_expansion: boolean;
-  selected_column: { model_node?: NodeMetaData; column: string };
-  parent_models: { model_node: NodeMetaData }[];
+  selected_column: {
+    model_node?: { columns: { [columnName: string]: ColumnMetaData } };
+    column: string;
+  };
+  parent_models: {
+    model_node: { columns: { [columnName: string]: ColumnMetaData } };
+  }[];
 }
 
 export interface DBTColumnLineageResponse {
