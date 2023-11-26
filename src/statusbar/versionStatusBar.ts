@@ -4,12 +4,22 @@ import {
   StatusBarAlignment,
   StatusBarItem,
   ThemeColor,
+  commands,
   window,
   workspace,
 } from "vscode";
 import { DBTInstallationVerificationEvent } from "../dbt_client/dbtVersionEvent";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { provideSingleton } from "../utils";
+
+enum DbtInstallationPromptAnswer {
+  INSTALL = "Install dbt",
+  VALIDATE = "Detect dbt",
+}
+
+enum PythonInterpreterPromptAnswer {
+  SELECT = "Select Python interpreter",
+}
 
 @provideSingleton(VersionStatusBar)
 export class VersionStatusBar implements Disposable {
@@ -38,7 +48,7 @@ export class VersionStatusBar implements Disposable {
     this.statusBar.dispose();
   }
 
-  private onDBTInstallationVerification(
+  private async onDBTInstallationVerification(
     event: DBTInstallationVerificationEvent,
   ) {
     if (event.inProgress === true) {
@@ -50,6 +60,27 @@ export class VersionStatusBar implements Disposable {
         "$(error) dbt is not installed",
         // "statusBarItem.errorBackground",
       );
+      if (event.pythonInstalled) {
+        const answer = await window.showInformationMessage(
+          "dbt is not installed. Do you want to install dbt?",
+          DbtInstallationPromptAnswer.INSTALL,
+          DbtInstallationPromptAnswer.VALIDATE,
+        );
+        if (answer === DbtInstallationPromptAnswer.INSTALL) {
+          commands.executeCommand("dbtPowerUser.installDbt");
+        }
+        if (answer === DbtInstallationPromptAnswer.VALIDATE) {
+          commands.executeCommand("dbtPowerUser.checkIfDbtIsInstalled");
+        }
+      } else {
+        const answer = await window.showInformationMessage(
+          "No Python interpreter is selected or Python is not installed",
+          PythonInterpreterPromptAnswer.SELECT,
+        );
+        if (answer === PythonInterpreterPromptAnswer.SELECT) {
+          commands.executeCommand("command:python.setInterpreter");
+        }
+      }
       return;
     }
 

@@ -29,9 +29,18 @@ export class VSCodeCommands implements Disposable {
     private walkthroughCommands: WalkthroughCommands,
   ) {
     this.disposables.push(
-      commands.registerCommand("dbtPowerUser.checkIfDbtIsInstalled", () =>
-        this.dbtProjectContainer.detectDBT(),
+      commands.registerCommand(
+        "dbtPowerUser.checkIfDbtIsInstalled",
+        async () => {
+          await this.dbtProjectContainer.detectDBT();
+          this.dbtProjectContainer.initializePythonBridges();
+        },
       ),
+      commands.registerCommand("dbtPowerUser.installDbt", async () => {
+        await this.walkthroughCommands.installDbt();
+        await this.dbtProjectContainer.detectDBT();
+        this.dbtProjectContainer.initializePythonBridges();
+      }),
       commands.registerCommand("dbtPowerUser.runCurrentModel", () =>
         this.runModel.runModelOnActiveWindow(),
       ),

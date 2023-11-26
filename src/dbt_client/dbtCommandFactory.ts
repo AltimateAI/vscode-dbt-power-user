@@ -231,6 +231,17 @@ export class DBTCommandFactory {
     };
   }
 
+  createDbtInstallCommand(adapter: string, version: string): DBTCommand {
+    return {
+      commandAsString: `pip install ${adapter}==${version}`,
+      statusMessage: "Installing dbt...",
+      processExecutionParams: {
+        args: ["-m", "pip", "install", `${adapter}==${version}`],
+      },
+      focus: true,
+    };
+  }
+
   createInstallDepsCommand(projectRoot: Uri, profilesDir: string): DBTCommand {
     const profilesDirParams = this.profilesDirParams(profilesDir);
     return {

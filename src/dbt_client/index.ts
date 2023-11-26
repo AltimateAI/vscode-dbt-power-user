@@ -17,6 +17,7 @@ import { DBTCommandQueue } from "./dbtCommandQueue";
 import { DBTTerminal } from "./dbtTerminal";
 import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
 import { TelemetryService } from "../telemetry";
+import { existsSync } from "fs";
 
 @provideSingleton(DBTClient)
 export class DBTClient implements Disposable {
@@ -66,6 +67,7 @@ export class DBTClient implements Disposable {
   private async checkAllInstalled(): Promise<void> {
     this._onDBTInstallationVerificationEvent.fire({
       inProgress: true,
+      pythonInstalled: this.pythonPathExists(),
     });
     this.dbtInstalled = undefined;
     try {
@@ -219,6 +221,7 @@ export class DBTClient implements Disposable {
     });
     this._onDBTInstallationVerificationEvent.fire({
       inProgress: false,
+      pythonInstalled: this.pythonPathExists(),
       dbtInstallationFound: {
         installed: this.dbtInstalled,
         installedVersion,
@@ -226,6 +229,13 @@ export class DBTClient implements Disposable {
         upToDate,
       },
     });
+  }
+
+  private pythonPathExists() {
+    return (
+      this.pythonEnvironment.pythonPath !== undefined &&
+      existsSync(this.pythonEnvironment.pythonPath)
+    );
   }
 
   private checkIfDBTIsUpToDate(message: string): void {

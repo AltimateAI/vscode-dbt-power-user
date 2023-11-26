@@ -1,4 +1,4 @@
-import { window, version, commands } from "vscode";
+import { window, QuickPickItem, ProgressLocation } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
@@ -137,5 +137,93 @@ export class WalkthroughCommands {
     const extLatest = await extLatestJson.json();
     const latestVersion = extLatest.tag_name.toString();
     return currentVersion < latestVersion;
+  }
+
+  async installDbt(): Promise<void> {
+    const dbtVersion: QuickPickItem | undefined = await window.showQuickPick(
+      ["1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7"].map((value) => ({
+        label: value,
+      })),
+      {
+        title: "Select your dbt version",
+        canPickMany: false,
+      },
+    );
+    if (dbtVersion) {
+      const adapter: QuickPickItem | undefined = await window.showQuickPick(
+        [
+          "snowflake",
+          "bigquery",
+          "redshift",
+          "postgres",
+          "databricks",
+          "sqlserver",
+          "duckdb",
+          "athena",
+          "spark",
+          "clickhouse",
+          "trino",
+          "synapse",
+        ].map((value) => ({
+          label: value,
+        })),
+        {
+          title: "Select your adapter",
+          canPickMany: false,
+        },
+      );
+      if (adapter && adapter.label) {
+        return window.withProgress(
+          {
+            title: "Installing dbt",
+            location: ProgressLocation.Notification,
+            cancellable: false,
+          },
+          async () => {
+            try {
+              await this.dbtProjectContainer.runCommandAndReturnResults(
+                this.dbtCommandFactory.createDbtInstallCommand(
+                  this.mapToAdapterPackage(adapter.label),
+                  dbtVersion.label,
+                ),
+              );
+            } catch (err) {
+              console.log(err);
+              window.showErrorMessage("Could not install dbt: " + err);
+            }
+          },
+        );
+      }
+    }
+  }
+
+  private mapToAdapterPackage(adapter: string): string {
+    switch (adapter) {
+      case "snowflake":
+        return "dbt-snowflake";
+      case "bigquery":
+        return "dbt-bigquery";
+      case "redshift":
+        return "dbt-redshift";
+      case "postgres":
+        return "dbt-postgres";
+      case "databricks":
+        return "dbt-databricks";
+      case "sqlserver":
+        return "dbt-sqlserver";
+      case "duckdb":
+        return "dbt-duckdb";
+      case "athena":
+        return "dbt-athena-community";
+      case "spark":
+        return "dbt-spark";
+      case "clickhouse":
+        return "dbt-clickhouse";
+      case "trino":
+        return "dbt-trino";
+      case "synapse":
+        return "dbt-synapse";
+    }
+    throw new Error("Adapter is not supported" + adapter);
   }
 }

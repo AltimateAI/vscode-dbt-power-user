@@ -214,6 +214,10 @@ export class DBTProjectContainer implements Disposable {
     await this.dbtClient.detectDBT();
   }
 
+  async initializePythonBridges() {
+    this.getProjects().forEach((project) => project.initializePythonBridge());
+  }
+
   executeSQL(uri: Uri, query: string): void {
     this.findDBTProject(uri)?.executeSQL(query);
   }
