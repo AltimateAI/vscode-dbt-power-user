@@ -12,14 +12,17 @@ import {
   WebviewViewResolveContext,
   window,
 } from "vscode";
-import { AltimateRequest, DBTColumnLineageResponse } from "../altimate";
+import {
+  AltimateRequest,
+  DBTColumnLineageResponse,
+  ModelNode,
+} from "../altimate";
 import {
   ColumnMetaData,
   GraphMetaMap,
   NodeGraphMap,
   NodeMetaData,
   SourceMetaData,
-  SourceTable,
 } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
@@ -54,14 +57,27 @@ const canCompileSQL = (nodeType: string) =>
 const getNode = (
   event: ManifestCacheProjectAddedEvent,
   key: string,
-): SourceTable | NodeMetaData | undefined => {
+): ModelNode | undefined => {
   const { nodeMetaMap, sourceMetaMap } = event;
   const splits = key.split(".");
   const nodeType = splits[0];
   if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
-    return sourceMetaMap
-      .get(splits[2])
-      ?.tables.find((t) => t.name === splits[3]);
+    const source = sourceMetaMap.get(splits[2]);
+    if (!source) {
+      return;
+    }
+    const table = source?.tables.find((t) => t.name === splits[3]);
+    if (!table) {
+      return;
+    }
+    return {
+      database: source.database,
+      schema: source.schema,
+      name: table.name,
+      alias: table.name,
+      uniqueId: key,
+      columns: table.columns,
+    };
   }
   return nodeMetaMap.get(splits[2]);
 };
@@ -445,7 +461,7 @@ export class NewLineagePanel implements LineagePanelView {
     if (!project) {
       return;
     }
-    const visibleTables: Record<string, NodeMetaData | SourceTable> = {};
+    const visibleTables: Record<string, ModelNode> = {};
     currAnd1HopTables?.forEach((t: string) => {
       if (t in visibleTables) {
         return;
@@ -459,19 +475,14 @@ export class NewLineagePanel implements LineagePanelView {
 
     const modelInfos: {
       compiled_sql: string | undefined;
-      model_node: { columns: { [columnName: string]: ColumnMetaData } };
+      model_node: ModelNode;
     }[] = [];
     const relationsWithoutColumns: string[] = [];
-    const selected_column: {
-      model_node?: NodeMetaData | SourceTable | undefined;
-      column: string;
-    } = {
+    const selected_column = {
       model_node: getNode(event, selectedColumn.table),
       column: selectedColumn.name,
     };
-    const parent_models: {
-      model_node: { columns: { [columnName: string]: ColumnMetaData } };
-    }[] = [];
+    const parent_models: { model_node: ModelNode }[] = [];
     let auxiliaryTables: string[] = [];
     if (upstreamExpansion) {
       const currTables = targets.map((t) => t[0]);
@@ -613,10 +624,7 @@ export class NewLineagePanel implements LineagePanelView {
         model_dialect: modelDialect,
         model_info: modelInfos,
         upstream_expansion: upstreamExpansion,
-        targets: targets.map((t) => {
-          const splits = t[0].split(".");
-          return [splits[splits.length - 1], t[1]] as [string, string];
-        }),
+        targets: targets.map((t) => ({ uniqueId: t[0], column_name: t[1] })),
         selected_column,
         parent_models,
       };
@@ -624,7 +632,13 @@ export class NewLineagePanel implements LineagePanelView {
       const result = await this.altimate.getColumnLevelLineage(request);
       console.log("cll:response -> ", result);
       if ((result as DBTColumnLineageResponse).column_lineage) {
-        return result;
+        const column_lineage =
+          result?.column_lineage.map((c) => ({
+            source: [c.source.uniqueId, c.source.column_name],
+            target: [c.target.uniqueId, c.target.column_name],
+            type: c.type,
+          })) || [];
+        return { column_lineage, confindence: result?.confidence };
       }
 
       window.showErrorMessage(

@@ -9,8 +9,8 @@ interface AltimateConfig {
 }
 
 export interface ColumnLineage {
-  source: [string, string];
-  target: [string, string];
+  source: { uniqueId: string; column_name: string };
+  target: { uniqueId: string; column_name: string };
   type: string;
 }
 
@@ -18,21 +18,26 @@ interface Schemas {
   [key: string]: { [key: string]: unknown };
 }
 
+export type ModelNode = Pick<
+  NodeMetaData,
+  "database" | "schema" | "name" | "alias" | "uniqueId" | "columns"
+>;
+
 export interface DBTColumnLineageRequest {
-  targets: [string, string][];
+  targets: { uniqueId: string; column_name: string }[];
   model_dialect: string;
   model_info: {
-    model_node: { columns: { [columnName: string]: ColumnMetaData } };
+    model_node: ModelNode;
     compiled_sql: string | undefined;
   }[];
   schemas?: Schemas | null;
   upstream_expansion: boolean;
   selected_column: {
-    model_node?: { columns: { [columnName: string]: ColumnMetaData } };
+    model_node?: ModelNode;
     column: string;
   };
   parent_models: {
-    model_node: { columns: { [columnName: string]: ColumnMetaData } };
+    model_node: ModelNode;
   }[];
 }
 
@@ -187,7 +192,7 @@ export class AltimateRequest {
   }
 
   async getColumnLevelLineage(req: DBTColumnLineageRequest) {
-    return this.fetch<DBTColumnLineageResponse>("dbt/v2/lineage", {
+    return this.fetch<DBTColumnLineageResponse>("dbt/v3/lineage", {
       method: "POST",
       body: JSON.stringify(req),
     });
