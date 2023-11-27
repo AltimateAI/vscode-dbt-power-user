@@ -133,12 +133,12 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const {
     shouldExpand,
     processed,
+    label,
     table,
     level,
     url,
     upstreamCount,
     downstreamCount,
-    key,
     nodeType,
     tests,
     materialization,
@@ -216,12 +216,12 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   };
 
   const expandRight = async () => {
-    const { tables } = await upstreamTables(key);
+    const { tables } = await upstreamTables(table);
     await expand(tables, true);
   };
 
   const expandLeft = async () => {
-    const { tables } = await downstreamTables(key);
+    const { tables } = await downstreamTables(table);
     await expand(tables, false);
   };
 
@@ -266,23 +266,25 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
               <NodeTypeIcon nodeType={nType} />
               <div>{NODE_TYPE_SHORTHAND[nType]}</div>
             </div>
-            <div className="lines-2">{table}</div>
+            <div className="lines-2">{label}</div>
           </div>
           <div className="d-flex gap-xs">
             {tests?.length > 0 && (
               <TableNodePill
-                id={"table-node-tests-" + table}
+                id={"table-node-tests-" + table.replaceAll(".", "-")}
                 icon={<TestsIcon />}
                 text={tests?.length}
                 label="Tests"
               />
             )}
-            <TableNodePill
-              id={"table-node-materilization-" + table}
-              icon={<EphemeralIcon />}
-              text={materialization}
-              label="Materialization"
-            />
+            {materialization && (
+              <TableNodePill
+                id={"table-node-materilization-" + table.replaceAll(".", "-")}
+                icon={<EphemeralIcon />}
+                text={materialization}
+                label="Materialization"
+              />
+            )}
           </div>
           <div className={styles.divider} />
           <div className="w-100 d-flex align-items-center gap-xs">

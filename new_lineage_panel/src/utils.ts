@@ -90,9 +90,9 @@ export const createTableNode = (
   level: number,
   parent: string,
 ): Node => {
-  const { upstreamCount, downstreamCount, key } = _table;
+  const { upstreamCount, downstreamCount, table } = _table;
   return {
-    id: key,
+    id: table,
     data: {
       ..._table,
       level,

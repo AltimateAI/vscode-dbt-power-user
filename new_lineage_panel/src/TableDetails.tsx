@@ -438,7 +438,7 @@ const TableDetails = () => {
       <div className={styles.table_details_header}>
         <NodeTypeIcon nodeType={selectedTable.nodeType} />
         <div className="d-flex align-items-center">
-          <div className="fw-semibold fs-5 lines-2">{selectedTable.table}</div>
+          <div className="fw-semibold fs-5 lines-2">{selectedTable.label}</div>
         </div>
       </div>
       {data.purpose && <PurposeSection purpose={data.purpose} />}

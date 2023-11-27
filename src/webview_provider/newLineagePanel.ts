@@ -31,7 +31,7 @@ import { PythonException } from "python-bridge";
 import { AbortError } from "node-fetch";
 
 type Table = {
-  key: string;
+  label: string;
   table: string;
   url: string;
   downstreamCount: number;
@@ -307,12 +307,10 @@ export class NewLineagePanel implements LineagePanelView {
   }
 
   private async getColumns({
-    tableKey,
-    nodeType,
+    table,
     refresh,
   }: {
-    tableKey: string;
-    nodeType: string;
+    table: string;
     refresh: boolean;
   }) {
     const event = this.getEvent();
@@ -323,9 +321,10 @@ export class NewLineagePanel implements LineagePanelView {
     if (!project) {
       return;
     }
+    const splits = table.split(".");
+    const nodeType = splits[0];
     if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
       const { sourceMetaMap } = event;
-      const splits = tableKey.split(".");
       const sourceName = splits[2];
       const tableName = splits[3];
       const node = sourceMetaMap.get(sourceName);
@@ -355,7 +354,7 @@ export class NewLineagePanel implements LineagePanelView {
             "Unable to get columns from DB for model: " +
               node.name +
               " table: " +
-              tableKey,
+              table,
           );
           return;
         }
@@ -365,8 +364,8 @@ export class NewLineagePanel implements LineagePanelView {
         purpose: table.description,
         columns: Object.values(table.columns)
           .map((c) => ({
+            table,
             name: c.name,
-            table: tableKey,
             datatype: c.data_type || "",
             can_lineage_expand: false,
             description: c.description,
@@ -374,7 +373,6 @@ export class NewLineagePanel implements LineagePanelView {
           .sort((a, b) => a.name.localeCompare(b.name)),
       };
     }
-    const splits = tableKey.split(".");
     const tableName = splits[2];
     const { nodeMetaMap } = event;
     const node = nodeMetaMap.get(tableName);
@@ -405,7 +403,7 @@ export class NewLineagePanel implements LineagePanelView {
           "Unable to get columns from DB for model: " +
             node.name +
             " table: " +
-            tableKey,
+            table,
         );
         return;
       }
@@ -416,8 +414,8 @@ export class NewLineagePanel implements LineagePanelView {
       purpose: node.description,
       columns: Object.values(node.columns)
         .map((c) => ({
+          table,
           name: c.name,
-          table: tableKey,
           datatype: c.data_type || "",
           can_lineage_expand: false,
           description: c.description,
@@ -673,8 +671,8 @@ export class NewLineagePanel implements LineagePanelView {
       if (!_node) {
         return;
       }
-      if (!tables.has(_node.key)) {
-        tables.set(_node.key, _node);
+      if (!tables.has(_node.table)) {
+        tables.set(_node.table, _node);
       }
     });
     return Array.from(tables.values()).sort((a, b) =>
@@ -711,8 +709,8 @@ export class NewLineagePanel implements LineagePanelView {
         return;
       }
       return {
-        key,
-        table: table,
+        table: key,
+        label: table,
         url: tableUrl,
         upstreamCount,
         downstreamCount,
@@ -734,8 +732,8 @@ export class NewLineagePanel implements LineagePanelView {
 
     const materialization = node.config.materialized;
     return {
-      key,
-      table,
+      table: key,
+      label: table,
       url: tableUrl,
       upstreamCount,
       downstreamCount,
@@ -814,8 +812,8 @@ export class NewLineagePanel implements LineagePanelView {
     );
     const materialization = _node.config.materialized;
     const node = {
-      key,
-      table: tableName,
+      table: key,
+      label: tableName,
       url: window.activeTextEditor!.document.uri.path,
       upstreamCount,
       downstreamCount,

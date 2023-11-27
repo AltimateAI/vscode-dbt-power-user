@@ -1,8 +1,8 @@
 import { requestExecutor } from "./App";
 
 export type Table = {
-  key: string;
   table: string;
+  label: string;
   url: string;
   nodeType: string;
   materialization?: string;
@@ -33,26 +33,25 @@ interface ColumnLineageResponse {
   confidence?: { confidence: string; operator_list?: string[] };
 }
 
-export const upstreamTables = (tableKey: string) => {
-  return requestExecutor("upstreamTables", { table: tableKey }) as Promise<{
+export const upstreamTables = (table: string) => {
+  return requestExecutor("upstreamTables", { table }) as Promise<{
     tables: Table[];
   }>;
 };
 
-export const downstreamTables = (tableKey: string) => {
-  return requestExecutor("downstreamTables", { table: tableKey }) as Promise<{
+export const downstreamTables = (table: string) => {
+  return requestExecutor("downstreamTables", { table }) as Promise<{
     tables: Table[];
   }>;
 };
 
 export const getColumns = (
-  { key, nodeType }: { key: string; nodeType: string },
+  { table }: { table: string },
   refresh: boolean,
 ) => {
   return requestExecutor("getColumns", {
-    tableKey: key,
+    table,
     refresh,
-    nodeType,
   }) as Promise<
     Columns
   >;
