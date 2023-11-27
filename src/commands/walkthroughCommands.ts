@@ -1,4 +1,4 @@
-import { window, QuickPickItem, ProgressLocation } from "vscode";
+import { window, QuickPickItem, ProgressLocation, commands } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
@@ -12,12 +12,14 @@ enum PromptAnswer {
   NO = "No",
 }
 
+enum DbtInstallationPromptAnswer {
+  INSTALL = "Install dbt",
+}
+
 @provideSingleton(WalkthroughCommands)
 export class WalkthroughCommands {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
-    private commandProcessExecutionFactory: CommandProcessExecutionFactory,
-    private terminal: DBTTerminal,
     private telemetry: TelemetryService,
     private dbtCommandFactory: DBTCommandFactory,
   ) {}
@@ -173,9 +175,12 @@ export class WalkthroughCommands {
         },
       );
       if (adapter && adapter.label) {
-        return window.withProgress(
+        const packageVersion = dbtVersion.label;
+        const packageName = this.mapToAdapterPackage(adapter.label);
+        let error = undefined;
+        await window.withProgress(
           {
-            title: "Installing dbt",
+            title: `Installing ${packageName} ${packageVersion}...`,
             location: ProgressLocation.Notification,
             cancellable: false,
           },
@@ -183,16 +188,27 @@ export class WalkthroughCommands {
             try {
               await this.dbtProjectContainer.runCommandAndReturnResults(
                 this.dbtCommandFactory.createDbtInstallCommand(
-                  this.mapToAdapterPackage(adapter.label),
-                  dbtVersion.label,
+                  packageName,
+                  packageVersion,
                 ),
               );
+              await this.dbtProjectContainer.detectDBT();
+              this.dbtProjectContainer.initializePythonBridges();
             } catch (err) {
               console.log(err);
-              window.showErrorMessage("Could not install dbt: " + err);
+              error = err;
             }
           },
         );
+        if (error) {
+          const answer = await window.showErrorMessage(
+            "Could not install dbt: " + error,
+            DbtInstallationPromptAnswer.INSTALL,
+          );
+          if (answer === DbtInstallationPromptAnswer.INSTALL) {
+            commands.executeCommand("dbtPowerUser.installDbt");
+          }
+        }
       }
     }
   }

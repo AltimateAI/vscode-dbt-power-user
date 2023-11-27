@@ -453,7 +453,11 @@ export class DBTProject implements Disposable {
 
   async compileNode(modelName: string): Promise<string | undefined> {
     await this.blockUntilPythonBridgeIsInitalized();
-
+    if (
+      await this.dbtProjectContainer.showDbtNotInstalledErrorMessageIfDbtIsNotInstalled()
+    ) {
+      return;
+    }
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
         extendErrorWithSupportLinks(
@@ -506,7 +510,11 @@ export class DBTProject implements Disposable {
 
   async compileQuery(query: string): Promise<string | undefined> {
     await this.blockUntilPythonBridgeIsInitalized();
-
+    if (
+      await this.dbtProjectContainer.showDbtNotInstalledErrorMessageIfDbtIsNotInstalled()
+    ) {
+      return;
+    }
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
         extendErrorWithSupportLinks(
@@ -855,6 +863,11 @@ select * from renamed
 
   async executeSQL(query: string) {
     await this.blockUntilPythonBridgeIsInitalized();
+    if (
+      await this.dbtProjectContainer.showDbtNotInstalledErrorMessageIfDbtIsNotInstalled()
+    ) {
+      return;
+    }
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
         extendErrorWithSupportLinks(

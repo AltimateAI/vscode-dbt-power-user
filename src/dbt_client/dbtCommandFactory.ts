@@ -234,7 +234,7 @@ export class DBTCommandFactory {
   createDbtInstallCommand(adapter: string, version: string): DBTCommand {
     return {
       commandAsString: `pip install ${adapter}==${version}`,
-      statusMessage: "Installing dbt...",
+      statusMessage: `Installing ${adapter} ${version}...`,
       processExecutionParams: {
         args: ["-m", "pip", "install", `${adapter}==${version}`],
       },

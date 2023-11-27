@@ -111,6 +111,10 @@ export class DBTProjectContainer implements Disposable {
     this.context = context;
   }
 
+  showDbtNotInstalledErrorMessageIfDbtIsNotInstalled() {
+    return this.dbtClient.showDbtNotInstalledErrorMessageIfDbtIsNotInstalled();
+  }
+
   async initializeDBTProjects(): Promise<void> {
     const folders = workspace.workspaceFolders;
     if (folders === undefined) {

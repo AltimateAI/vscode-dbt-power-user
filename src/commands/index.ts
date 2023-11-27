@@ -36,11 +36,9 @@ export class VSCodeCommands implements Disposable {
           this.dbtProjectContainer.initializePythonBridges();
         },
       ),
-      commands.registerCommand("dbtPowerUser.installDbt", async () => {
-        await this.walkthroughCommands.installDbt();
-        await this.dbtProjectContainer.detectDBT();
-        this.dbtProjectContainer.initializePythonBridges();
-      }),
+      commands.registerCommand("dbtPowerUser.installDbt", () =>
+        this.walkthroughCommands.installDbt(),
+      ),
       commands.registerCommand("dbtPowerUser.runCurrentModel", () =>
         this.runModel.runModelOnActiveWindow(),
       ),
