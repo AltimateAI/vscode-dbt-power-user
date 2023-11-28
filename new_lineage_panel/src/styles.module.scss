@@ -336,3 +336,7 @@ $size: 1.2em;
   @extend .node-checkbox;
   border: 2px dashed var(--card-border-color);
 }
+
+.node_extra_info {
+  height: 1.8em;
+}

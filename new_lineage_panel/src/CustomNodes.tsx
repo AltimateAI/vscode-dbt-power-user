@@ -268,7 +268,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             </div>
             <div className="lines-2">{label}</div>
           </div>
-          <div className="d-flex gap-xs">
+          <div className={classNames("d-flex gap-xs", styles.node_extra_info)}>
             {tests?.length > 0 && (
               <TableNodePill
                 id={"table-node-tests-" + table.replaceAll(".", "-")}
@@ -277,12 +277,14 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                 label="Tests"
               />
             )}
-            <TableNodePill
-              id={"table-node-materilization-" + table.replaceAll(".", "-")}
-              icon={<EphemeralIcon />}
-              text={materialization || "table"}
-              label="Materialization"
-            />
+            {materialization && (
+              <TableNodePill
+                id={"table-node-materilization-" + table.replaceAll(".", "-")}
+                icon={<EphemeralIcon />}
+                text={materialization}
+                label="Materialization"
+              />
+            )}
           </div>
           <div className={styles.divider} />
           <div className="w-100 d-flex align-items-center gap-xs">
