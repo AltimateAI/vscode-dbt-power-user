@@ -111,6 +111,10 @@ export class DBTProjectContainer implements Disposable {
     this.context = context;
   }
 
+  showDbtNotInstalledErrorMessageIfDbtIsNotInstalled() {
+    return this.dbtClient.showDbtNotInstalledErrorMessageIfDbtIsNotInstalled();
+  }
+
   async initializeDBTProjects(): Promise<void> {
     const folders = workspace.workspaceFolders;
     if (folders === undefined) {
@@ -212,6 +216,10 @@ export class DBTProjectContainer implements Disposable {
 
   async detectDBT(): Promise<void> {
     await this.dbtClient.detectDBT();
+  }
+
+  async initializePythonBridges() {
+    this.getProjects().forEach((project) => project.initializePythonBridge());
   }
 
   executeSQL(uri: Uri, query: string): void {

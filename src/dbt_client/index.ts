@@ -17,6 +17,15 @@ import { DBTCommandQueue } from "./dbtCommandQueue";
 import { DBTTerminal } from "./dbtTerminal";
 import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
 import { TelemetryService } from "../telemetry";
+import { existsSync } from "fs";
+
+enum DbtInstallationPromptAnswer {
+  INSTALL = "Install dbt",
+}
+
+enum PythonInterpreterPromptAnswer {
+  SELECT = "Select Python interpreter",
+}
 
 @provideSingleton(DBTClient)
 export class DBTClient implements Disposable {
@@ -31,6 +40,7 @@ export class DBTClient implements Disposable {
     /latest.*:\s*(\d{1,2}\.\d{1,2}\.\d{1,2})/g;
   private static readonly IS_INSTALLED = /installed/g;
   private dbtInstalled?: boolean;
+  private pythonInstalled?: boolean;
   private disposables: Disposable[] = [
     this._onDBTInstallationVerificationEvent,
   ];
@@ -66,6 +76,7 @@ export class DBTClient implements Disposable {
   private async checkAllInstalled(): Promise<void> {
     this._onDBTInstallationVerificationEvent.fire({
       inProgress: true,
+      pythonInstalled: this.pythonPathExists(),
     });
     this.dbtInstalled = undefined;
     try {
@@ -74,12 +85,6 @@ export class DBTClient implements Disposable {
         this.dbtCommandFactory.createVerifyDbtInstalledCommand(),
       );
       await checkDBTInstalledProcess.complete();
-      this.dbtInstalled = true;
-      commands.executeCommand(
-        "setContext",
-        "dbtPowerUser.dbtInstalled",
-        this.dbtInstalled,
-      );
     } catch (error) {
       this.telemetry.sendTelemetryError("dbtInstalledCheckError", error);
       this.dbtInstalled = false;
@@ -118,14 +123,35 @@ export class DBTClient implements Disposable {
     this.raiseDBTVersionCouldNotBeDeterminedEvent();
   }
 
-  addCommandToQueue(command: DBTCommand) {
-    if (!this.dbtInstalled) {
-      if (command.focus) {
-        window.showErrorMessage(
-          "Please ensure dbt is installed in your selected Python environment.",
-        );
+  async showDbtNotInstalledErrorMessageIfDbtIsNotInstalled() {
+    if (!this.pythonInstalled) {
+      const answer = await window.showErrorMessage(
+        "No Python interpreter is selected or Python is not installed",
+        PythonInterpreterPromptAnswer.SELECT,
+      );
+      if (answer === PythonInterpreterPromptAnswer.SELECT) {
+        commands.executeCommand("python.setInterpreter");
       }
-      return;
+      return true;
+    }
+    if (!this.dbtInstalled) {
+      const answer = await window.showErrorMessage(
+        "Please ensure dbt is installed in your selected Python environment.",
+        DbtInstallationPromptAnswer.INSTALL,
+      );
+      if (answer === DbtInstallationPromptAnswer.INSTALL) {
+        commands.executeCommand("dbtPowerUser.installDbt");
+      }
+      return true;
+    }
+    return false;
+  }
+
+  async addCommandToQueue(command: DBTCommand) {
+    if (command.focus) {
+      if (await this.showDbtNotInstalledErrorMessageIfDbtIsNotInstalled()) {
+        return;
+      }
     }
 
     this.queue.addToQueue({
@@ -195,6 +221,7 @@ export class DBTClient implements Disposable {
     message: string | undefined = undefined,
   ): void {
     this.dbtInstalled = dbtInstalled;
+    this.pythonInstalled = this.pythonPathExists();
     const upToDate =
       installedVersion !== undefined &&
       latestVersion !== undefined &&
@@ -219,6 +246,7 @@ export class DBTClient implements Disposable {
     });
     this._onDBTInstallationVerificationEvent.fire({
       inProgress: false,
+      pythonInstalled: this.pythonInstalled,
       dbtInstallationFound: {
         installed: this.dbtInstalled,
         installedVersion,
@@ -226,6 +254,19 @@ export class DBTClient implements Disposable {
         upToDate,
       },
     });
+    commands.executeCommand(
+      "setContext",
+      "dbtPowerUser.dbtInstalled",
+      this.dbtInstalled,
+    );
+    this.showDbtNotInstalledErrorMessageIfDbtIsNotInstalled();
+  }
+
+  private pythonPathExists() {
+    return (
+      this.pythonEnvironment.pythonPath !== undefined &&
+      existsSync(this.pythonEnvironment.pythonPath)
+    );
   }
 
   private checkIfDBTIsUpToDate(message: string): void {

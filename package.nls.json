@@ -12,7 +12,7 @@
   "walkthrough.initialSetup.steps.selectInterpreter.title": "Select Python Interpreter",
   "walkthrough.initialSetup.steps.selectInterpreter.description": "Choose the Python Interpreter where you have installed dbt.\n[Select Python Interpreter](command:python.setInterpreter)",
   "walkthrough.initialSetup.steps.installDbt.title": "Install dbt",
-  "walkthrough.initialSetup.steps.installDbt.description": "Please install dbt in the selected Python Environment and validate the dbt installation.\n[Validate dbt installation](command:dbtPowerUser.checkIfDbtIsInstalled)",
+  "walkthrough.initialSetup.steps.installDbt.description": "Please install dbt in the selected Python Environment.\n[Install dbt](command:dbtPowerUser.installDbt)",
   "walkthrough.initialSetup.steps.updateExtension.title": "Update dbt Power User Extension",
   "walkthrough.initialSetup.steps.updateExtension.description": "To get the latest features, update the dbt Power User extension.\n[Update Extension](command:workbench.extensions.action.extensionUpdates)",
   "walkthrough.initialSetup.steps.associateFileExts.title": "Associate File Types",
