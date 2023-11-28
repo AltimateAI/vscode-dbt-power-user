@@ -277,14 +277,12 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                 label="Tests"
               />
             )}
-            {materialization && (
-              <TableNodePill
-                id={"table-node-materilization-" + table.replaceAll(".", "-")}
-                icon={<EphemeralIcon />}
-                text={materialization}
-                label="Materialization"
-              />
-            )}
+            <TableNodePill
+              id={"table-node-materilization-" + table.replaceAll(".", "-")}
+              icon={<EphemeralIcon />}
+              text={materialization || "table"}
+              label="Materialization"
+            />
           </div>
           <div className={styles.divider} />
           <div className="w-100 d-flex align-items-center gap-xs">
