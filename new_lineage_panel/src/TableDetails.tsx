@@ -274,11 +274,11 @@ const TableDetails = () => {
     const tableNode = flow.getNode(_column.table);
     if (tableNode) {
       const {
-        data: { processed, key, level },
+        data: { processed, table, level },
       } = tableNode;
       if (!processed[1]) {
         try {
-          const { tables } = await upstreamTables(key);
+          const { tables } = await upstreamTables(table);
           addNodesEdges(tables, true, level);
         } catch (e) {
           console.error(e);
@@ -286,7 +286,7 @@ const TableDetails = () => {
       }
       if (!processed[0]) {
         try {
-          const { tables } = await downstreamTables(key);
+          const { tables } = await downstreamTables(table);
           addNodesEdges(tables, false, level);
         } catch (e) {
           console.error(e);
