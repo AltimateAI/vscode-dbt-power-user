@@ -593,7 +593,6 @@ export class NewLineagePanel implements LineagePanelView {
           exc +
           " while compiling/retrieving schema for nodes.",
       );
-      console.error("Last node: " + exc);
       return;
     }
 
