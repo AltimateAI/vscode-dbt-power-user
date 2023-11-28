@@ -190,10 +190,7 @@ export class NewLineagePanel implements LineagePanelView {
     console.error("Unsupported mssage", message);
   }
 
-  private async addModelColumnsFromDB(
-    project: DBTProject,
-    node: { name: string; columns: { [columnName: string]: ColumnMetaData } },
-  ) {
+  private async addModelColumnsFromDB(project: DBTProject, node: NodeMetaData) {
     const now = Date.now();
     if (
       !this.dbCache.has(node.name) ||
@@ -410,7 +407,7 @@ export class NewLineagePanel implements LineagePanelView {
 
   private async getNodeWithDBColumns(
     key: string,
-  ): Promise<ModelNode | undefined> {
+  ): Promise<{ dbColumnAdded: boolean; node: ModelNode } | undefined> {
     const event = this.getEvent();
     if (!event) {
       return;
@@ -432,8 +429,12 @@ export class NewLineagePanel implements LineagePanelView {
       if (!table) {
         return;
       }
-      await this.addSourceColumnsFromDB(project, source.name, table);
-      return {
+      const dbColumnAdded = await this.addSourceColumnsFromDB(
+        project,
+        source.name,
+        table,
+      );
+      const node = {
         database: source.database,
         schema: source.schema,
         name: table.name,
@@ -441,13 +442,14 @@ export class NewLineagePanel implements LineagePanelView {
         uniqueId: key,
         columns: table.columns,
       };
+      return { dbColumnAdded, node };
     }
     const node = nodeMetaMap.get(splits[2]);
     if (!node) {
       return;
     }
-    await this.addModelColumnsFromDB(project, node);
-    return node;
+    const dbColumnAdded = await this.addModelColumnsFromDB(project, node);
+    return { dbColumnAdded, node };
   }
 
   private async getConnectedColumns({
@@ -501,8 +503,12 @@ export class NewLineagePanel implements LineagePanelView {
       await Promise.all([
         ...Array.from(new Set(currAnd1HopTables)).map(async (key) => {
           let compiledSql: string | undefined;
-          const node = await this.getNodeWithDBColumns(key);
-          if (!node) {
+          const result = await this.getNodeWithDBColumns(key);
+          if (!result) {
+            return;
+          }
+          const { node, dbColumnAdded } = result;
+          if (!dbColumnAdded) {
             relationsWithoutColumns.push(key);
             return;
           }
@@ -527,8 +533,12 @@ export class NewLineagePanel implements LineagePanelView {
           modelInfos.push({ compiled_sql: compiledSql, model_node: node });
         }),
         async () => {
-          const node = await this.getNodeWithDBColumns(selectedColumn.table);
-          if (!node) {
+          const result = await this.getNodeWithDBColumns(selectedColumn.table);
+          if (!result) {
+            return;
+          }
+          const { node, dbColumnAdded } = result;
+          if (!dbColumnAdded) {
             relationsWithoutColumns.push(selectedColumn.table);
             return;
           }
@@ -538,8 +548,12 @@ export class NewLineagePanel implements LineagePanelView {
           };
         },
         ...auxiliaryTables.map(async (key) => {
-          const node = await this.getNodeWithDBColumns(key);
-          if (!node) {
+          const result = await this.getNodeWithDBColumns(key);
+          if (!result) {
+            return;
+          }
+          const { node, dbColumnAdded } = result;
+          if (!dbColumnAdded) {
             relationsWithoutColumns.push(key);
             return;
           }
