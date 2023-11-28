@@ -54,34 +54,6 @@ const CAN_COMPILE_SQL_NODE = [
 const canCompileSQL = (nodeType: string) =>
   CAN_COMPILE_SQL_NODE.includes(nodeType);
 
-const getNode = (
-  event: ManifestCacheProjectAddedEvent,
-  key: string,
-): ModelNode | undefined => {
-  const { nodeMetaMap, sourceMetaMap } = event;
-  const splits = key.split(".");
-  const nodeType = splits[0];
-  if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
-    const source = sourceMetaMap.get(splits[2]);
-    if (!source) {
-      return;
-    }
-    const table = source?.tables.find((t) => t.name === splits[3]);
-    if (!table) {
-      return;
-    }
-    return {
-      database: source.database,
-      schema: source.schema,
-      name: table.name,
-      alias: table.name,
-      uniqueId: key,
-      columns: table.columns,
-    };
-  }
-  return nodeMetaMap.get(splits[2]);
-};
-
 @provideSingleton(NewLineagePanel)
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
@@ -440,6 +412,48 @@ export class NewLineagePanel implements LineagePanelView {
     };
   }
 
+  private async getNodeWithDBColumns(
+    key: string,
+  ): Promise<ModelNode | undefined> {
+    const event = this.getEvent();
+    if (!event) {
+      return;
+    }
+    const project = this.getProject();
+    if (!project) {
+      return;
+    }
+    const splits = key.split(".");
+    const nodeType = splits[0];
+    const { nodeMetaMap, sourceMetaMap } = event;
+    if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
+      const source = sourceMetaMap.get(splits[2]);
+      const tableName = splits[3];
+      if (!source) {
+        return;
+      }
+      const table = source?.tables.find((t) => t.name === tableName);
+      if (!table) {
+        return;
+      }
+      await this.addSourceColumnsFromDB(project, source, tableName);
+      return {
+        database: source.database,
+        schema: source.schema,
+        name: table.name,
+        alias: table.name,
+        uniqueId: key,
+        columns: table.columns,
+      };
+    }
+    const node = nodeMetaMap.get(splits[2]);
+    if (!node) {
+      return;
+    }
+    await this.addModelColumnsFromDB(project, node);
+    return node;
+  }
+
   private async getConnectedColumns({
     targets,
     upstreamExpansion,
@@ -461,27 +475,13 @@ export class NewLineagePanel implements LineagePanelView {
     if (!project) {
       return;
     }
-    const visibleTables: Record<string, ModelNode> = {};
-    currAnd1HopTables?.forEach((t: string) => {
-      if (t in visibleTables) {
-        return;
-      }
-      const node = getNode(event, t);
-      if (!node) {
-        return;
-      }
-      visibleTables[t] = node;
-    });
 
     const modelInfos: {
       compiled_sql: string | undefined;
       model_node: ModelNode;
     }[] = [];
     const relationsWithoutColumns: string[] = [];
-    const selected_column = {
-      model_node: getNode(event, selectedColumn.table),
-      column: selectedColumn.name,
-    };
+    let selected_column: { model_node: ModelNode; column: string } | undefined;
     const parent_models: { model_node: ModelNode }[] = [];
     let auxiliaryTables: string[] = [];
     if (upstreamExpansion) {
@@ -501,15 +501,16 @@ export class NewLineagePanel implements LineagePanelView {
       });
       auxiliaryTables = Array.from(parentSet);
     }
-    let current_node = "";
-    let current_node_type = "";
     try {
       await Promise.all([
-        ...Object.entries(visibleTables).map(async ([key, node]) => {
+        ...Array.from(new Set(currAnd1HopTables)).map(async (key) => {
           let compiledSql: string | undefined;
-          current_node = node.name;
+          const node = await this.getNodeWithDBColumns(key);
+          if (!node) {
+            relationsWithoutColumns.push(key);
+            return;
+          }
           const nodeType = key.split(".")[0];
-          current_node_type = nodeType;
           if (
             nodeType !== DBTProject.RESOURCE_TYPE_SOURCE &&
             (node as NodeMetaData).config.materialized === "ephemeral"
@@ -527,39 +528,24 @@ export class NewLineagePanel implements LineagePanelView {
               return;
             }
           }
-          const ok = await this.addModelColumnsFromDB(project, node);
-          if (!ok) {
-            // @ts-ignore
-            relationsWithoutColumns.push(node.alias || node.name);
-            return;
-          }
           modelInfos.push({ compiled_sql: compiledSql, model_node: node });
         }),
         async () => {
-          if (selected_column.model_node) {
-            const ok = await this.addModelColumnsFromDB(
-              project,
-              selected_column.model_node,
-            );
-            if (!ok) {
-              relationsWithoutColumns.push(
-                // @ts-ignore
-                selected_column.model_node.alias ||
-                  selected_column.model_node.name,
-              );
-              return;
-            }
-          }
-        },
-        ...auxiliaryTables.map(async (t) => {
-          const node = getNode(event, t);
+          const node = await this.getNodeWithDBColumns(selectedColumn.table);
           if (!node) {
+            relationsWithoutColumns.push(selectedColumn.table);
             return;
           }
-          const ok = await this.addModelColumnsFromDB(project, node);
-          if (!ok) {
-            // @ts-ignore
-            relationsWithoutColumns.push(node.alias || node.name);
+          selected_column = {
+            model_node: node,
+            column: selectedColumn.name,
+          };
+        },
+        ...auxiliaryTables.map(async (key) => {
+          const node = await this.getNodeWithDBColumns(key);
+          if (!node) {
+            relationsWithoutColumns.push(key);
+            return;
           }
           parent_models.push({ model_node: node });
         }),
@@ -567,7 +553,7 @@ export class NewLineagePanel implements LineagePanelView {
     } catch (exc) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
-          `An error occured while trying to compile your model: ${current_node}, type: ${current_node_type} ` +
+          `An error occured while trying to compile your model: ` +
             exc.exception.message +
             ".",
         );
@@ -576,10 +562,7 @@ export class NewLineagePanel implements LineagePanelView {
           exc,
         );
         console.error(
-          "Error encountered while compiling/retrieving schema for model: " +
-            current_node +
-            ", type: " +
-            current_node_type,
+          "Error encountered while compiling/retrieving schema for model: ",
         );
         console.error(
           "Exception: " +
@@ -600,7 +583,7 @@ export class NewLineagePanel implements LineagePanelView {
           exc +
           " while compiling/retrieving schema for nodes.",
       );
-      console.error("Last node: " + current_node + "\n\n" + exc);
+      console.error("Last node: " + exc);
       return;
     }
 
@@ -621,7 +604,7 @@ export class NewLineagePanel implements LineagePanelView {
         model_info: modelInfos,
         upstream_expansion: upstreamExpansion,
         targets: targets.map((t) => ({ uniqueId: t[0], column_name: t[1] })),
-        selected_column,
+        selected_column: selected_column!,
         parent_models,
       };
       console.log("cll:request -> ", request);
