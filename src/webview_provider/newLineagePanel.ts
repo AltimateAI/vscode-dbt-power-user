@@ -22,7 +22,7 @@ import {
   GraphMetaMap,
   NodeGraphMap,
   NodeMetaData,
-  SourceMetaData,
+  SourceTable,
 } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
@@ -248,15 +248,15 @@ export class NewLineagePanel implements LineagePanelView {
 
   private async addSourceColumnsFromDB(
     project: DBTProject,
-    node: SourceMetaData,
-    tableName: string,
+    nodeName: string,
+    table: SourceTable,
   ) {
     const now = Date.now();
     const columnsFromDB = await project.getColumnsOfSource(
-      node.name,
-      tableName,
+      nodeName,
+      table.name,
     );
-    console.log("addColumnsFromDB: ", node.name, " -> ", columnsFromDB);
+    console.log("addColumnsFromDB: ", nodeName, " -> ", columnsFromDB);
     if (!columnsFromDB || columnsFromDB.length === 0) {
       return false;
     }
@@ -265,10 +265,6 @@ export class NewLineagePanel implements LineagePanelView {
       this.telemetry.sendTelemetryEvent(
         "columnLineageExcessiveColumnsFetchedFromDB",
       );
-    }
-    const table = node.tables.find((t) => t.name === tableName);
-    if (!table) {
-      return;
     }
     const columns: Record<string, ColumnMetaData> = {};
     Object.entries(table.columns).forEach(([k, v]) => {
@@ -334,7 +330,7 @@ export class NewLineagePanel implements LineagePanelView {
             // TODO: the cache should also support sources
             // this.lruCache.delete(node.name);
             // this.dbCache.delete(node.name);
-            return await this.addSourceColumnsFromDB(project, node, tableName);
+            return await this.addSourceColumnsFromDB(project, node.name, table);
           },
         );
         if (!ok) {
@@ -436,7 +432,7 @@ export class NewLineagePanel implements LineagePanelView {
       if (!table) {
         return;
       }
-      await this.addSourceColumnsFromDB(project, source, tableName);
+      await this.addSourceColumnsFromDB(project, source.name, table);
       return {
         database: source.database,
         schema: source.schema,
