@@ -83,10 +83,10 @@ export class VSCodeCommands implements Disposable {
         this.runModel.runModelOnNodeTreeItem(RunModelType.TEST)(model),
       ),
       commands.registerCommand("dbtPowerUser.runChildrenModels", (model) =>
-        this.runModel.runModelOnNodeTreeItem(RunModelType.CHILDREN)(model),
+        this.runModel.runModelOnNodeTreeItem(RunModelType.RUN_CHILDREN)(model),
       ),
       commands.registerCommand("dbtPowerUser.runParentModels", (model) =>
-        this.runModel.runModelOnNodeTreeItem(RunModelType.PARENTS)(model),
+        this.runModel.runModelOnNodeTreeItem(RunModelType.RUN_PARENTS)(model),
       ),
       commands.registerCommand("dbtPowerUser.showRunSQL", () =>
         this.runModel.showRunSQLOnActiveWindow(),
@@ -114,6 +114,17 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand("dbtPowerUser.buildCurrentModel", () =>
         this.runModel.buildModelOnActiveWindow(),
+      ),
+      commands.registerCommand("dbtPowerUser.buildChildrenModels", () =>
+        this.runModel.buildModelOnActiveWindow(RunModelType.BUILD_CHILDREN),
+      ),
+      commands.registerCommand("dbtPowerUser.buildParentModels", () =>
+        this.runModel.buildModelOnActiveWindow(RunModelType.BUILD_PARENTS),
+      ),
+      commands.registerCommand("dbtPowerUser.buildChildrenParentModels", () =>
+        this.runModel.buildModelOnActiveWindow(
+          RunModelType.BUILD_CHILDREN_PARENTS,
+        ),
       ),
       commands.registerCommand("dbtPowerUser.sqlToModel", () =>
         this.sqlToModel.getModelFromSql(),
