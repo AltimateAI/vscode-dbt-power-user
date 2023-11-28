@@ -38,7 +38,7 @@ export class VersionStatusBar implements Disposable {
     this.statusBar.dispose();
   }
 
-  private onDBTInstallationVerification(
+  private async onDBTInstallationVerification(
     event: DBTInstallationVerificationEvent,
   ) {
     if (event.inProgress === true) {

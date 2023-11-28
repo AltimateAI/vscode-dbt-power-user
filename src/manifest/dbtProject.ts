@@ -195,20 +195,17 @@ export class DBTProject implements Disposable {
       this.pythonBridgeDiagnostics,
       this.projectConfigDiagnostics,
     );
-    this.initializePythonBridge(
-      this.PythonEnvironment.pythonPath,
-      this.PythonEnvironment.environmentVariables,
-    );
+    this.initializePythonBridge();
   }
 
   public getProjectName() {
     return this.projectName;
   }
 
-  private async initializePythonBridge(
-    pythonPath: string,
-    envVars: EnvironmentVariables,
-  ) {
+  async initializePythonBridge() {
+    let pythonPath = this.PythonEnvironment.pythonPath;
+    const envVars = this.PythonEnvironment.environmentVariables;
+
     if (this.python !== undefined) {
       // Python env has changed
       this.pythonBridgeInitialized = false;
@@ -269,10 +266,7 @@ export class DBTProject implements Disposable {
   }
 
   private async onPythonEnvironmentChanged() {
-    this.initializePythonBridge(
-      this.PythonEnvironment.pythonPath,
-      this.PythonEnvironment.environmentVariables,
-    );
+    this.initializePythonBridge();
   }
 
   private async tryRefresh() {
@@ -459,7 +453,11 @@ export class DBTProject implements Disposable {
 
   async compileNode(modelName: string): Promise<string | undefined> {
     await this.blockUntilPythonBridgeIsInitalized();
-
+    if (
+      await this.dbtProjectContainer.showDbtNotInstalledErrorMessageIfDbtIsNotInstalled()
+    ) {
+      return;
+    }
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
         extendErrorWithSupportLinks(
@@ -512,7 +510,11 @@ export class DBTProject implements Disposable {
 
   async compileQuery(query: string): Promise<string | undefined> {
     await this.blockUntilPythonBridgeIsInitalized();
-
+    if (
+      await this.dbtProjectContainer.showDbtNotInstalledErrorMessageIfDbtIsNotInstalled()
+    ) {
+      return;
+    }
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
         extendErrorWithSupportLinks(
@@ -861,6 +863,11 @@ select * from renamed
 
   async executeSQL(query: string) {
     await this.blockUntilPythonBridgeIsInitalized();
+    if (
+      await this.dbtProjectContainer.showDbtNotInstalledErrorMessageIfDbtIsNotInstalled()
+    ) {
+      return;
+    }
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
         extendErrorWithSupportLinks(
