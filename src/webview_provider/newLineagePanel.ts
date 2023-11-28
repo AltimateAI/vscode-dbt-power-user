@@ -493,10 +493,6 @@ export class NewLineagePanel implements LineagePanelView {
           return;
         }
         // now we have 1Hop tables
-        // const node = getNode(event, t);
-        // if (!node) {
-        //   return;
-        // }
         const parent = dependencyNodes.get(t);
         if (!parent) {
           return;
