@@ -370,7 +370,7 @@ export class NewLineagePanel implements LineagePanelView {
             "Unable to get columns from DB for model: " +
               node.name +
               " table: " +
-              table,
+              table.name,
           );
           return;
         }
@@ -380,7 +380,7 @@ export class NewLineagePanel implements LineagePanelView {
         purpose: table.description,
         columns: Object.values(table.columns)
           .map((c) => ({
-            table,
+            table: node.uniqueId,
             name: c.name,
             datatype: c.data_type || "",
             can_lineage_expand: false,
