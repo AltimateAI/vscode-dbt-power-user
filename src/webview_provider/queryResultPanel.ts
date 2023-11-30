@@ -350,7 +350,7 @@ export class QueryResultPanel implements WebviewViewProvider {
           const response = await this.altimate.getQuerySummary(query, adapter);
           if (response === undefined || response.explanation === undefined) {
             window.showErrorMessage(
-              extendErrorWithSupportLinks("Could not get summary. "),
+              extendErrorWithSupportLinks("Could not get summary."),
             );
             this.telemetry.sendTelemetryError("getQuerySummaryAltimateError");
             return;
@@ -358,7 +358,7 @@ export class QueryResultPanel implements WebviewViewProvider {
           await this.transmitSummary(query, response.explanation);
         } catch (err) {
           window.showErrorMessage(
-            extendErrorWithSupportLinks("Could not get summary: " + err + " "),
+            extendErrorWithSupportLinks("Could not get summary: " + err + "."),
           );
           this.telemetry.sendTelemetryError("getQuerySummaryAltimateError");
         }

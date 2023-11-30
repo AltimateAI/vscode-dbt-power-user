@@ -210,7 +210,8 @@ export class RunModel {
       window.showErrorMessage(
         extendErrorWithSupportLinks(
           "Could not generate model! No project found for " +
-            params.currentDoc.fsPath,
+            params.currentDoc.fsPath +
+            ".",
         ),
       );
     }

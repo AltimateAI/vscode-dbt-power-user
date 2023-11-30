@@ -111,8 +111,7 @@ export const layoutElementsOnCanvas = (nodes: Node[], _edges: Edge[]) => {
     const _columnCount = levelWiseColumnCount[level] || 0;
     levelWiseIndex[level]++;
     levelWiseColumnCount[level] += tableWiseColumnIndex[n.id];
-    return P_OFFSET_Y + (_index * T_NODE_Y_SEPARATION) +
-      ((_index + 1) * T_NODE_H) +
+    return P_OFFSET_Y + (_index * (T_NODE_Y_SEPARATION + T_NODE_H)) +
       (C_NODE_H * _columnCount) + C_PADDING_Y;
   };
 
