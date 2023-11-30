@@ -18,10 +18,14 @@ interface Schemas {
   [key: string]: { [key: string]: unknown };
 }
 
-export type ModelNode = Pick<
-  NodeMetaData,
-  "database" | "schema" | "name" | "alias" | "uniqueId" | "columns"
->;
+export type ModelNode = {
+  database: string;
+  schema: string;
+  name: string;
+  alias: string;
+  uniqueId: string;
+  columns: { [columnName: string]: ColumnMetaData };
+};
 
 export interface DBTColumnLineageRequest {
   targets: { uniqueId: string; column_name: string }[];
