@@ -102,7 +102,15 @@ export class RunModel {
           }
           break;
         }
-        default: {
+        case RunModelType.BUILD_CHILDREN:
+        case RunModelType.BUILD_CHILDREN_PARENTS:
+        case RunModelType.BUILD_PARENTS: {
+          // Catch Parents || Children RunTypes
+          this.buildDBTModel(Uri.file(model.url), type);
+          break;
+        }
+        case RunModelType.RUN_CHILDREN:
+        case RunModelType.RUN_PARENTS: {
           // Catch Parents || Children RunTypes
           this.runDBTModel(Uri.file(model.url), type);
           break;
