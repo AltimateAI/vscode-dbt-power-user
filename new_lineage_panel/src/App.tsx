@@ -163,7 +163,7 @@ function App() {
     const render = async (args: {
       node: {
         table: string;
-        key: string;
+        label: string;
         url: string;
         nodeType: string;
         materialization?: string;
@@ -235,11 +235,11 @@ function App() {
         nodes = _flow.getNodes();
         edges = _flow.getEdges();
         if (!processed[1]) {
-          const { tables } = await upstreamTables(node.key);
+          const { tables } = await upstreamTables(node.table);
           addNodesEdges(tables, node.table, true, level);
         }
         if (!processed[0]) {
-          const { tables } = await downstreamTables(node.key);
+          const { tables } = await downstreamTables(node.table);
           addNodesEdges(tables, node.table, false, level);
         }
       } else {
@@ -248,7 +248,7 @@ function App() {
             id: node.table,
             data: {
               table: node.table,
-              key: node.key,
+              label: node.label,
               url: node.url,
               level: 0,
               shouldExpand: [node.downstreamCount > 0, node.upstreamCount > 0],
@@ -264,11 +264,11 @@ function App() {
           },
         ];
         if (node.upstreamCount > 0) {
-          const { tables } = await upstreamTables(node.key);
+          const { tables } = await upstreamTables(node.table);
           addNodesEdges(tables, node.table, true, 0);
         }
         if (node.downstreamCount > 0) {
-          const { tables } = await downstreamTables(node.key);
+          const { tables } = await downstreamTables(node.table);
           addNodesEdges(tables, node.table, false, 0);
         }
         setSelectedTable(null);
