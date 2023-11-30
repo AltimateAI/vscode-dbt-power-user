@@ -293,7 +293,20 @@ export class NewLineagePanel implements LineagePanelView {
   }: {
     table: string;
     refresh: boolean;
-  }) {
+  }): Promise<
+    | {
+        id: string;
+        purpose: string;
+        columns: {
+          table: string;
+          name: string;
+          datatype: string;
+          can_lineage_expand: boolean;
+          description: string;
+        }[];
+      }
+    | undefined
+  > {
     const event = this.getEvent();
     if (!event) {
       return;
@@ -312,8 +325,8 @@ export class NewLineagePanel implements LineagePanelView {
       if (!node) {
         return;
       }
-      const table = node.tables.find((t) => t.name === tableName);
-      if (!table) {
+      const _table = node.tables.find((t) => t.name === tableName);
+      if (!_table) {
         return;
       }
       if (refresh) {
@@ -327,7 +340,11 @@ export class NewLineagePanel implements LineagePanelView {
             // TODO: the cache should also support sources
             // this.lruCache.delete(node.name);
             // this.dbCache.delete(node.name);
-            return await this.addSourceColumnsFromDB(project, node.name, table);
+            return await this.addSourceColumnsFromDB(
+              project,
+              node.name,
+              _table,
+            );
           },
         );
         if (!ok) {
@@ -335,17 +352,17 @@ export class NewLineagePanel implements LineagePanelView {
             "Unable to get columns from DB for model: " +
               node.name +
               " table: " +
-              table.name,
+              _table.name,
           );
           return;
         }
       }
       return {
-        id: node.uniqueId,
-        purpose: table.description,
-        columns: Object.values(table.columns)
+        id: table,
+        purpose: _table.description,
+        columns: Object.values(_table.columns)
           .map((c) => ({
-            table: node.uniqueId,
+            table,
             name: c.name,
             datatype: c.data_type || "",
             can_lineage_expand: false,
@@ -391,7 +408,7 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     return {
-      id: node.uniqueId,
+      id: table,
       purpose: node.description,
       columns: Object.values(node.columns)
         .map((c) => ({
