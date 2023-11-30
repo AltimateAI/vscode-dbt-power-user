@@ -355,7 +355,8 @@ export class NewLineagePanel implements LineagePanelView {
               "Unable to get columns from DB for model: " +
                 node.name +
                 " table: " +
-                _table.name,
+                _table.name +
+                ".",
             ),
           );
           return;
@@ -406,7 +407,8 @@ export class NewLineagePanel implements LineagePanelView {
             "Unable to get columns from DB for model: " +
               node.name +
               " table: " +
-              table,
+              table +
+              ".",
           ),
         );
         return;
