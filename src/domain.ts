@@ -145,8 +145,11 @@ export class Source extends Node {
 }
 
 export enum RunModelType {
-  PARENTS,
-  CHILDREN,
+  RUN_PARENTS,
+  RUN_CHILDREN,
+  BUILD_PARENTS,
+  BUILD_CHILDREN,
+  BUILD_CHILDREN_PARENTS,
   TEST,
   SNAPSHOT,
 }

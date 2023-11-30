@@ -373,6 +373,30 @@
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
         }
+      },
+      {
+        "command": "dbtPowerUser.buildChildrenModels",
+        "title": "Build Downstream Models",
+        "icon": {
+          "light": "./media/images/build-model_light.svg",
+          "dark": "./media/images/build-model_dark.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.buildParentModels",
+        "title": "Build Upstream Models",
+        "icon": {
+          "light": "./media/images/build-model_light.svg",
+          "dark": "./media/images/build-model_dark.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.buildChildrenParentModels",
+        "title": "Build Upstream and Downstream Models",
+        "icon": {
+          "light": "./media/images/build-model_light.svg",
+          "dark": "./media/images/build-model_dark.svg"
+        }
       }
     ],
     "keybindings": [
@@ -394,11 +418,6 @@
           "command": "dbtPowerUser.executeSQL",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
           "group": "navigation@1"
-        },
-        {
-          "command": "dbtPowerUser.buildCurrentModel",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
-          "group": "navigation@2"
         },
         {
           "command": "dbtPowerUser.runCurrentModel",
@@ -427,6 +446,11 @@
         }
       ],
       "editor/context": [
+        {
+          "submenu": "dbtPowerUser.buildModel",
+          "group": "dbt@5",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        },
         {
           "command": "dbtPowerUser.showCompiledSQL",
           "group": "dbt@5",
@@ -466,6 +490,33 @@
           "command": "dbtPowerUser.compileCurrentModel",
           "group": "dbt@4",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        }
+      ],
+      "editor/title/run": [
+        {
+          "command": "dbtPowerUser.buildCurrentModel",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.buildChildrenModels",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.buildParentModels",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.buildChildrenParentModels",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.runCurrentModel",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "group": "inline"
         }
       ],
       "view/title": [
@@ -513,6 +564,38 @@
         }
       ]
     },
+    "dbtPowerUser.buildModel": [
+      {
+        "command": "dbtPowerUser.buildCurrentModel",
+        "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+        "group": "inline"
+      },
+      {
+        "command": "dbtPowerUser.buildChildrenModels",
+        "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+        "group": "inline"
+      },
+      {
+        "command": "dbtPowerUser.buildParentModels",
+        "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+        "group": "inline"
+      },
+      {
+        "command": "dbtPowerUser.buildChildrenParentModels",
+        "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+        "group": "inline"
+      }
+    ],
+    "submenus": [
+      {
+        "id": "dbtPowerUser.buildModel",
+        "label": "Build dbt Model",
+        "icon": {
+          "light": "./media/images/build-model_light.svg",
+          "dark": "./media/images/build-model_dark.svg"
+        }
+      }
+    ],
     "languages": [
       {
         "id": "jinja-sql",

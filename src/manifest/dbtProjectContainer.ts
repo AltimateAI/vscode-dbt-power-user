@@ -333,8 +333,18 @@ export class DBTProjectContainer implements Disposable {
 
   private createModelParams(modelPath: Uri, type?: RunModelType) {
     const modelName = basename(modelPath.fsPath, ".sql");
-    const plusOperatorLeft = type === RunModelType.PARENTS ? "+" : "";
-    const plusOperatorRight = type === RunModelType.CHILDREN ? "+" : "";
+    const plusOperatorLeft =
+      type === RunModelType.RUN_PARENTS ||
+      type === RunModelType.BUILD_PARENTS ||
+      type === RunModelType.BUILD_CHILDREN_PARENTS
+        ? "+"
+        : "";
+    const plusOperatorRight =
+      type === RunModelType.RUN_CHILDREN ||
+      type === RunModelType.BUILD_CHILDREN ||
+      type === RunModelType.BUILD_CHILDREN_PARENTS
+        ? "+"
+        : "";
     return { plusOperatorLeft, modelName, plusOperatorRight };
   }
 
