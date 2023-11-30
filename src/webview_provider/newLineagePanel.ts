@@ -26,7 +26,7 @@ import {
 } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { provideSingleton } from "../utils";
+import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { LineagePanelView } from "./lineagePanel";
 import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
@@ -351,10 +351,12 @@ export class NewLineagePanel implements LineagePanelView {
         );
         if (!ok) {
           window.showErrorMessage(
-            "Unable to get columns from DB for model: " +
-              node.name +
-              " table: " +
-              _table.name,
+            extendErrorWithSupportLinks(
+              "Unable to get columns from DB for model: " +
+                node.name +
+                " table: " +
+                _table.name,
+            ),
           );
           return;
         }
@@ -400,10 +402,12 @@ export class NewLineagePanel implements LineagePanelView {
       );
       if (!ok) {
         window.showErrorMessage(
-          "Unable to get columns from DB for model: " +
-            node.name +
-            " table: " +
-            table,
+          extendErrorWithSupportLinks(
+            "Unable to get columns from DB for model: " +
+              node.name +
+              " table: " +
+              table,
+          ),
         );
         return;
       }
@@ -582,9 +586,11 @@ export class NewLineagePanel implements LineagePanelView {
     } catch (exc) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
-          `An error occured while trying to compile your model: ` +
-            exc.exception.message +
-            ".",
+          extendErrorWithSupportLinks(
+            `An error occured while trying to compile your model: ` +
+              exc.exception.message +
+              ".",
+          ),
         );
         this.telemetry.sendTelemetryError(
           "columnLineageCompileNodePythonError",
@@ -608,18 +614,22 @@ export class NewLineagePanel implements LineagePanelView {
       );
       // Unknown error
       window.showErrorMessage(
-        "Encountered an unknown issue: " +
-          exc +
-          " while compiling/retrieving schema for nodes.",
+        extendErrorWithSupportLinks(
+          "Encountered an unknown issue: " +
+            exc +
+            " while compiling/retrieving schema for nodes.",
+        ),
       );
       return;
     }
 
     if (relationsWithoutColumns.length !== 0) {
       window.showErrorMessage(
-        "Failed to fetch columns for " +
-          relationsWithoutColumns.join(", ") +
-          ". Probably the dbt models are not yet materialized.",
+        extendErrorWithSupportLinks(
+          "Failed to fetch columns for " +
+            relationsWithoutColumns.join(", ") +
+            ". Probably the dbt models are not yet materialized.",
+        ),
       );
       // we still show the lineage for the rest of the models whose
       // schemas we could get so not returning here
@@ -649,7 +659,9 @@ export class NewLineagePanel implements LineagePanelView {
       }
 
       window.showErrorMessage(
-        "An unexpected error occured while fetching column level lineage.",
+        extendErrorWithSupportLinks(
+          "An unexpected error occured while fetching column level lineage.",
+        ),
       );
       this.telemetry.sendTelemetryEvent(
         "columnLevelLineageInvalidResponse",
@@ -657,7 +669,11 @@ export class NewLineagePanel implements LineagePanelView {
       );
     } catch (error) {
       if (error instanceof AbortError) {
-        window.showErrorMessage("Fetching column level lineage timed out.");
+        window.showErrorMessage(
+          extendErrorWithSupportLinks(
+            "Fetching column level lineage timed out.",
+          ),
+        );
         this.telemetry.sendTelemetryError(
           "columnLevelLineageRequestTimeout",
           error,
@@ -665,7 +681,9 @@ export class NewLineagePanel implements LineagePanelView {
         return;
       }
       window.showErrorMessage(
-        "An unexpected error occured while fetching column level lineage.",
+        extendErrorWithSupportLinks(
+          "An unexpected error occured while fetching column level lineage.",
+        ),
       );
       this.telemetry.sendTelemetryError("ColumnLevelLineageError", error);
       return;
