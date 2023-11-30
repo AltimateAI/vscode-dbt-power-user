@@ -338,11 +338,13 @@ const TableDetails = () => {
         const hop1Tables = [];
         const _ephemeralNodes: string[] = [];
         const collectEphemeralAncestors: string[] = [];
+        let noDependents = false;
         for (const e of _edges) {
           const srcTable = e[src];
           const dstTable = e[dst];
           const materialization = flow.getNode(dstTable)?.data?.materialization;
           if (currTargetTables[srcTable]) {
+            noDependents = true;
             if (materialization === "ephemeral") {
               ephemeralAncestors[dstTable] = ephemeralAncestors[dstTable] || [];
               ephemeralAncestors[dstTable].push(
@@ -353,6 +355,7 @@ const TableDetails = () => {
               hop1Tables.push(dstTable);
             }
           } else if (currEphemeralNodes.includes(srcTable)) {
+            noDependents = true;
             if (materialization === "ephemeral") {
               ephemeralAncestors[dstTable] = ephemeralAncestors[dstTable] || [];
               ephemeralAncestors[dstTable].push(
@@ -364,6 +367,9 @@ const TableDetails = () => {
               hop1Tables.push(dstTable);
             }
           }
+        }
+        if (!noDependents) {
+          break;
         }
         currEphemeralNodes = _ephemeralNodes;
 
