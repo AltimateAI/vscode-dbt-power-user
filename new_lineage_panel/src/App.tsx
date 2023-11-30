@@ -280,6 +280,7 @@ function App() {
       layoutElementsOnCanvas(nodes, edges);
       _flow.setNodes(nodes);
       _flow.setEdges(edges);
+      _flow.fitView();
       rerender();
     };
     const response = (args: {
