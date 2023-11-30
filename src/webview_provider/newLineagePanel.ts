@@ -191,24 +191,26 @@ export class NewLineagePanel implements LineagePanelView {
   }
 
   private async addModelColumnsFromDB(project: DBTProject, node: NodeMetaData) {
-    const now = Date.now();
-    if (
-      !this.dbCache.has(node.name) ||
-      (this.lruCache.get(node.name) || 0) < now - CACHE_VALID_TIME
-    ) {
-      const _columnsFromDB = await project.getColumnsOfModel(node.name);
-      this.dbCache.set(node.name, _columnsFromDB);
-      if (this.dbCache.size > CACHE_SIZE) {
-        const arr = Array.from(this.lruCache.entries());
-        arr.sort((a, b) => b[1] - a[1]);
-        arr.slice(CACHE_SIZE).forEach(([k]) => {
-          this.lruCache.delete(k);
-          this.dbCache.delete(k);
-        });
-      }
-    }
-    this.lruCache.set(node.name, now);
-    const columnsFromDB = this.dbCache.get(node.name)!;
+    // Disabling cache
+    // const now = Date.now();
+    // if (
+    //   !this.dbCache.has(node.name) ||
+    //   (this.lruCache.get(node.name) || 0) < now - CACHE_VALID_TIME
+    // ) {
+    //   const _columnsFromDB = await project.getColumnsOfModel(node.name);
+    //   this.dbCache.set(node.name, _columnsFromDB);
+    //   if (this.dbCache.size > CACHE_SIZE) {
+    //     const arr = Array.from(this.lruCache.entries());
+    //     arr.sort((a, b) => b[1] - a[1]);
+    //     arr.slice(CACHE_SIZE).forEach(([k]) => {
+    //       this.lruCache.delete(k);
+    //       this.dbCache.delete(k);
+    //     });
+    //   }
+    // }
+    // this.lruCache.set(node.name, now);
+    // const columnsFromDB = this.dbCache.get(node.name)!;
+    const columnsFromDB = await project.getColumnsOfModel(node.name);
     console.log("addColumnsFromDB: ", node.name, " -> ", columnsFromDB);
     if (!columnsFromDB || columnsFromDB.length === 0) {
       return false;
@@ -391,8 +393,8 @@ export class NewLineagePanel implements LineagePanelView {
           cancellable: false,
         },
         async () => {
-          this.lruCache.delete(node.name);
-          this.dbCache.delete(node.name);
+          // this.lruCache.delete(node.name);
+          // this.dbCache.delete(node.name);
           return await this.addModelColumnsFromDB(project, node);
         },
       );
