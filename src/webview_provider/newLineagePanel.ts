@@ -430,7 +430,10 @@ export class NewLineagePanel implements LineagePanelView {
 
   private async getNodeWithDBColumns(
     key: string,
-  ): Promise<{ dbColumnAdded: boolean; node: ModelNode } | undefined> {
+  ): Promise<
+    | { dbColumnAdded: boolean; node: ModelNode; isEphemeral?: boolean }
+    | undefined
+  > {
     const event = this.getEvent();
     if (!event) {
       return;
@@ -470,6 +473,9 @@ export class NewLineagePanel implements LineagePanelView {
     const node = nodeMetaMap.get(splits[2]);
     if (!node) {
       return;
+    }
+    if (node.config.materialized === "ephemeral") {
+      return { dbColumnAdded: false, node, isEphemeral: true };
     }
     const dbColumnAdded = await this.addModelColumnsFromDB(project, node);
     return { dbColumnAdded, node };
@@ -575,7 +581,10 @@ export class NewLineagePanel implements LineagePanelView {
           if (!result) {
             return;
           }
-          const { node, dbColumnAdded } = result;
+          const { node, dbColumnAdded, isEphemeral } = result;
+          if (isEphemeral) {
+            return;
+          }
           if (!dbColumnAdded) {
             relationsWithoutColumns.push(key);
             return;
