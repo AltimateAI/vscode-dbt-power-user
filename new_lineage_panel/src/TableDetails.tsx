@@ -43,7 +43,12 @@ import { ColorTag } from "./Tags";
 import ExpandLineageIcon from "./assets/icons/expand_lineage.svg?react";
 import { NodeTypeIcon } from "./CustomNodes";
 import { CustomInput } from "./Form";
-import { defaultEdgeStyle, getHelperDataForCLL, isNotColumn } from "./utils";
+import {
+  defaultEdgeStyle,
+  getHelperDataForCLL,
+  isColumn,
+  isNotColumn,
+} from "./utils";
 import { TMoreTables } from "./MoreTables";
 
 const ColumnCard: FunctionComponent<{
@@ -335,38 +340,49 @@ const TableDetails = () => {
         const [src, dst]: ("source" | "target")[] = right
           ? ["source", "target"]
           : ["target", "source"];
-        const hop1Tables = [];
+        const hop1Tables: string[] = [];
         const _currEphemeralNodes: string[] = [];
         const collectEphemeralAncestors: string[] = [];
         let noDependents = false;
         for (const e of _edges) {
           const srcTable = e[src];
-          const dstTable = e[dst];
-          const materialization = flow.getNode(dstTable)?.data?.materialization;
-          if (currTargetTables[srcTable]) {
-            noDependents = true;
-            if (materialization === "ephemeral") {
-              ephemeralAncestors[dstTable] = ephemeralAncestors[dstTable] || [];
-              ephemeralAncestors[dstTable].push(
-                ...currTargetColumns.filter((c) => c[0] === srcTable)
-              );
-              _currEphemeralNodes.push(dstTable);
-            } else {
-              hop1Tables.push(dstTable);
+          const dstNode = e[dst];
+          if (isColumn(e)) continue;
+          const dstTables = tableNodes[dstNode]
+            ? [dstNode]
+            : (flow.getNode(dstNode)?.data as TMoreTables)?.tables
+                ?.map((t) => t.table)
+                .filter((t) => !tableNodes[t]);
+          dstTables?.forEach((dstTable) => {
+            const materialization =
+              flow.getNode(dstTable)?.data?.materialization;
+            if (currTargetTables[srcTable]) {
+              noDependents = true;
+              if (materialization === "ephemeral") {
+                ephemeralAncestors[dstTable] =
+                  ephemeralAncestors[dstTable] || [];
+                ephemeralAncestors[dstTable].push(
+                  ...currTargetColumns.filter((c) => c[0] === srcTable)
+                );
+                _currEphemeralNodes.push(dstTable);
+              } else {
+                hop1Tables.push(dstTable);
+              }
+            } else if (currEphemeralNodes.includes(srcTable)) {
+              noDependents = true;
+              if (materialization === "ephemeral") {
+                ephemeralAncestors[dstTable] =
+                  ephemeralAncestors[dstTable] || [];
+                ephemeralAncestors[dstTable].push(
+                  ...ephemeralAncestors[srcTable]
+                );
+                _currEphemeralNodes.push(dstTable);
+              } else {
+                collectEphemeralAncestors.push(srcTable);
+                hop1Tables.push(dstTable);
+              }
             }
-          } else if (currEphemeralNodes.includes(srcTable)) {
-            noDependents = true;
-            if (materialization === "ephemeral") {
-              ephemeralAncestors[dstTable] = ephemeralAncestors[dstTable] || [];
-              ephemeralAncestors[dstTable].push(
-                ...ephemeralAncestors[srcTable]
-              );
-              _currEphemeralNodes.push(dstTable);
-            } else {
-              collectEphemeralAncestors.push(srcTable);
-              hop1Tables.push(dstTable);
-            }
-          }
+          });
         }
         if (!noDependents) {
           break;
