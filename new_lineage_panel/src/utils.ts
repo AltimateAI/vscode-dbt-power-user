@@ -207,3 +207,12 @@ export const contains = (arr: [string, string][], x: [string, string]) => {
   }
   return false;
 };
+
+export const safeConcat = <T>(
+  obj: Record<string, T[]>,
+  key: string,
+  values: T[],
+) => {
+  obj[key] = obj[key] || [];
+  obj[key].push(...values);
+};

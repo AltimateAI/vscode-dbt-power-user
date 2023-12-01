@@ -48,6 +48,7 @@ import {
   getHelperDataForCLL,
   isColumn,
   isNotColumn,
+  safeConcat,
 } from "./utils";
 import { TMoreTables } from "./MoreTables";
 
@@ -345,9 +346,9 @@ const TableDetails = () => {
         const collectEphemeralAncestors: string[] = [];
         let noDependents = false;
         for (const e of _edges) {
+          if (isColumn(e)) continue;
           const srcTable = e[src];
           const dstNode = e[dst];
-          if (isColumn(e)) continue;
           const dstTables = tableNodes[dstNode]
             ? [dstNode]
             : (flow.getNode(dstNode)?.data as TMoreTables)?.tables
@@ -359,10 +360,11 @@ const TableDetails = () => {
             if (currTargetTables[srcTable]) {
               noDependents = true;
               if (materialization === "ephemeral") {
-                ephemeralAncestors[dstTable] =
-                  ephemeralAncestors[dstTable] || [];
-                ephemeralAncestors[dstTable].push(
-                  ...currTargetColumns.filter((c) => c[0] === srcTable)
+                // carry forward
+                safeConcat(
+                  ephemeralAncestors,
+                  dstTable,
+                  currTargetColumns.filter((c) => c[0] === srcTable)
                 );
                 _currEphemeralNodes.push(dstTable);
               } else {
@@ -371,10 +373,11 @@ const TableDetails = () => {
             } else if (currEphemeralNodes.includes(srcTable)) {
               noDependents = true;
               if (materialization === "ephemeral") {
-                ephemeralAncestors[dstTable] =
-                  ephemeralAncestors[dstTable] || [];
-                ephemeralAncestors[dstTable].push(
-                  ...ephemeralAncestors[srcTable]
+                // carry forward follow through
+                safeConcat(
+                  ephemeralAncestors,
+                  dstTable,
+                  ephemeralAncestors[srcTable]
                 );
                 _currEphemeralNodes.push(dstTable);
               } else {
