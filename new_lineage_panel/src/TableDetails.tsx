@@ -336,7 +336,7 @@ const TableDetails = () => {
           ? ["source", "target"]
           : ["target", "source"];
         const hop1Tables = [];
-        const _ephemeralNodes: string[] = [];
+        const _currEphemeralNodes: string[] = [];
         const collectEphemeralAncestors: string[] = [];
         let noDependents = false;
         for (const e of _edges) {
@@ -350,7 +350,7 @@ const TableDetails = () => {
               ephemeralAncestors[dstTable].push(
                 ...currTargetColumns.filter((c) => c[0] === srcTable)
               );
-              _ephemeralNodes.push(dstTable);
+              _currEphemeralNodes.push(dstTable);
             } else {
               hop1Tables.push(dstTable);
             }
@@ -361,7 +361,7 @@ const TableDetails = () => {
               ephemeralAncestors[dstTable].push(
                 ...ephemeralAncestors[srcTable]
               );
-              _ephemeralNodes.push(dstTable);
+              _currEphemeralNodes.push(dstTable);
             } else {
               collectEphemeralAncestors.push(srcTable);
               hop1Tables.push(dstTable);
@@ -371,7 +371,7 @@ const TableDetails = () => {
         if (!noDependents) {
           break;
         }
-        currEphemeralNodes = _ephemeralNodes;
+        currEphemeralNodes = _currEphemeralNodes;
 
         const currAnd1HopTables = Object.keys(currTargetTables);
         for (const nodeId of hop1Tables) {
@@ -384,6 +384,8 @@ const TableDetails = () => {
           if (!seeMoreNode) continue;
           const { tables = [] } = seeMoreNode.data as TMoreTables;
           for (const t of tables) {
+            // only process those see more table which are not visible
+            if (flow.getNode(t.table)) continue;
             if (currAnd1HopTables.includes(t.table)) continue;
             currAnd1HopTables.push(t.table);
           }
