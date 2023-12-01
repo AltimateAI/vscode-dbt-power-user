@@ -520,6 +520,7 @@ export class NewLineagePanel implements LineagePanelView {
       const parentSet = new Set<string>();
       const hop1Tables = currAnd1HopTables.filter((t) => !currTables.has(t));
       const visited: Record<string, boolean> = {};
+      const { nodeMetaMap } = event;
       while (hop1Tables.length > 0) {
         const curr = hop1Tables.shift()!;
         if (visited[curr]) {
@@ -530,7 +531,6 @@ export class NewLineagePanel implements LineagePanelView {
         if (!parent) {
           continue;
         }
-        const { nodeMetaMap } = event;
         parent.nodes.forEach((n) => {
           const splits = n.key.split(".");
           const nodeType = splits[0];
