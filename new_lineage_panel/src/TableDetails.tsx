@@ -350,13 +350,11 @@ const TableDetails = () => {
           const srcTable = e[src];
           const dstNode = e[dst];
           const dstTables = tableNodes[dstNode]
-            ? [dstNode]
-            : (flow.getNode(dstNode)?.data as TMoreTables)?.tables
-                ?.map((t) => t.table)
-                .filter((t) => !tableNodes[t]);
-          dstTables?.forEach((dstTable) => {
-            const materialization =
-              flow.getNode(dstTable)?.data?.materialization;
+            ? [flow.getNode(dstNode)?.data as Table]
+            : (flow.getNode(dstNode)?.data as TMoreTables)?.tables?.filter(
+                (t) => !tableNodes[t.table]
+              );
+          dstTables?.forEach(({ table: dstTable, materialization }) => {
             if (currTargetTables[srcTable]) {
               noDependents = true;
               if (materialization === "ephemeral") {
@@ -392,23 +390,8 @@ const TableDetails = () => {
         }
         currEphemeralNodes = _currEphemeralNodes;
 
-        const currAnd1HopTables = Object.keys(currTargetTables);
-        for (const nodeId of hop1Tables) {
-          if (currAnd1HopTables.includes(nodeId)) continue;
-          if (tableNodes[nodeId]) {
-            currAnd1HopTables.push(nodeId);
-            continue;
-          }
-          const seeMoreNode = flow.getNode(nodeId);
-          if (!seeMoreNode) continue;
-          const { tables = [] } = seeMoreNode.data as TMoreTables;
-          for (const t of tables) {
-            // only process those see more table which are not visible
-            if (flow.getNode(t.table)) continue;
-            if (currAnd1HopTables.includes(t.table)) continue;
-            currAnd1HopTables.push(t.table);
-          }
-        }
+        const currAnd1HopTables =
+          Object.keys(currTargetTables).concat(hop1Tables);
 
         collectEphemeralAncestors.forEach((t) => {
           currTargetColumns.push(...ephemeralAncestors[t]);
@@ -421,7 +404,7 @@ const TableDetails = () => {
             tableNodes,
             currTargetColumns,
             right,
-            currAnd1HopTables,
+            Array.from(new Set(currAnd1HopTables)),
             _column
           );
           if (patchState.confidence?.confidence === "low") {
