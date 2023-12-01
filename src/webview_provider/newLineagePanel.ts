@@ -555,23 +555,19 @@ export class NewLineagePanel implements LineagePanelView {
           if (!result) {
             return;
           }
-          const { node, dbColumnAdded } = result;
+          const { node, dbColumnAdded, isEphemeral } = result;
+          if (isEphemeral) {
+            // ideally should not be taking this code path
+            this.telemetry.sendTelemetryError(
+              "columnLineageProcessingEphemeral",
+            );
+            return;
+          }
           if (!dbColumnAdded) {
             relationsWithoutColumns.push(key);
             return;
           }
           const nodeType = key.split(".")[0];
-          if (
-            nodeType !== DBTProject.RESOURCE_TYPE_SOURCE &&
-            (node as NodeMetaData).config.materialized === "ephemeral"
-          ) {
-            // TODO: add telemetry here
-            // ideally should not be taking this code path
-            // ephemeral nodes can be skipped. they dont have a schema
-            // and their sql makes it into the compiled sql of the models
-            // referring to it.
-            return;
-          }
           if (canCompileSQL(nodeType)) {
             compiledSql = await project.compileNode(node.name);
             if (!compiledSql) {
