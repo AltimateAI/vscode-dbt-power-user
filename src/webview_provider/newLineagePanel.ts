@@ -513,26 +513,46 @@ export class NewLineagePanel implements LineagePanelView {
     let selected_column: { model_node: ModelNode; column: string } | undefined;
     const parent_models: { model_node: ModelNode }[] = [];
     let auxiliaryTables: string[] = [];
+    currAnd1HopTables = Array.from(new Set(currAnd1HopTables));
     if (upstreamExpansion) {
       const currTables = targets.map((t) => t[0]);
       const dependencyNodes = graphMetaMap.parents;
       const parentSet = new Set<string>();
-      currAnd1HopTables.forEach((t) => {
-        if (currTables.includes(t)) {
-          return;
+      const hop1Tables = currAnd1HopTables.filter(
+        (t) => !currTables.includes(t),
+      );
+      const visited: Record<string, boolean> = {};
+      while (hop1Tables.length > 0) {
+        const curr = hop1Tables.shift()!;
+        if (visited[curr]) {
+          continue;
         }
-        // now we have 1Hop tables
-        const parent = dependencyNodes.get(t);
+        visited[curr] = true;
+        const parent = dependencyNodes.get(curr);
         if (!parent) {
-          return;
+          continue;
         }
-        parent.nodes.forEach((n) => parentSet.add(n.key));
-      });
+        parent.nodes.forEach((n) => {
+          const _nodeType = n.key.split(".")[0];
+          if (_nodeType !== DBTProject.RESOURCE_TYPE_MODEL) {
+            parentSet.add(n.key);
+            return;
+          }
+          if (
+            event.nodeMetaMap.get(n.key.split(".")[2])?.config.materialized ===
+            "ephemeral"
+          ) {
+            hop1Tables.push(n.key);
+          } else {
+            parentSet.add(n.key);
+          }
+        });
+      }
       auxiliaryTables = Array.from(parentSet);
     }
     try {
       await Promise.all([
-        ...Array.from(new Set(currAnd1HopTables)).map(async (key) => {
+        ...currAnd1HopTables.map(async (key) => {
           let compiledSql: string | undefined;
           const result = await this.getNodeWithDBColumns(key);
           if (!result) {
