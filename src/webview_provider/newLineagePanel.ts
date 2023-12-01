@@ -515,12 +515,10 @@ export class NewLineagePanel implements LineagePanelView {
     let auxiliaryTables: string[] = [];
     currAnd1HopTables = Array.from(new Set(currAnd1HopTables));
     if (upstreamExpansion) {
-      const currTables = targets.map((t) => t[0]);
+      const currTables = new Set(targets.map((t) => t[0]));
       const dependencyNodes = graphMetaMap.parents;
       const parentSet = new Set<string>();
-      const hop1Tables = currAnd1HopTables.filter(
-        (t) => !currTables.includes(t),
-      );
+      const hop1Tables = currAnd1HopTables.filter((t) => !currTables.has(t));
       const visited: Record<string, boolean> = {};
       while (hop1Tables.length > 0) {
         const curr = hop1Tables.shift()!;
@@ -532,16 +530,15 @@ export class NewLineagePanel implements LineagePanelView {
         if (!parent) {
           continue;
         }
+        const { nodeMetaMap } = event;
         parent.nodes.forEach((n) => {
-          const _nodeType = n.key.split(".")[0];
-          if (_nodeType !== DBTProject.RESOURCE_TYPE_MODEL) {
+          const splits = n.key.split(".");
+          const nodeType = splits[0];
+          if (nodeType !== DBTProject.RESOURCE_TYPE_MODEL) {
             parentSet.add(n.key);
             return;
           }
-          if (
-            event.nodeMetaMap.get(n.key.split(".")[2])?.config.materialized ===
-            "ephemeral"
-          ) {
+          if (nodeMetaMap.get(splits[2])?.config.materialized === "ephemeral") {
             hop1Tables.push(n.key);
           } else {
             parentSet.add(n.key);
