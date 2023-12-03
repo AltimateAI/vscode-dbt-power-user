@@ -275,6 +275,11 @@
         "icon": "$(circuit-board)"
       },
       {
+        "command": "dbtPowerUser.validateSql",
+        "title": "Validate SQL",
+        "icon": "$(circuit-board)"
+      },
+      {
         "command": "dbtPowerUser.altimateScan",
         "title": "Project Health Check",
         "icon": "$(circuit-board)"

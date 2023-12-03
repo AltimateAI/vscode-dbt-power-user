@@ -16,6 +16,7 @@ import { AltimateScan } from "./altimateScan";
 import { WalkthroughCommands } from "./walkthroughCommands";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
+import { ValidateSql } from "./validateSql";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -25,6 +26,7 @@ export class VSCodeCommands implements Disposable {
     private dbtProjectContainer: DBTProjectContainer,
     private runModel: RunModel,
     private sqlToModel: SqlToModel,
+    private validateSql: ValidateSql,
     private altimateScan: AltimateScan,
     private walkthroughCommands: WalkthroughCommands,
   ) {
@@ -128,6 +130,9 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand("dbtPowerUser.sqlToModel", () =>
         this.sqlToModel.getModelFromSql(),
+      ),
+      commands.registerCommand("dbtPowerUser.validateSql", () =>
+        this.validateSql.validateSql(),
       ),
       commands.registerCommand("dbtPowerUser.altimateScan", () =>
         this.altimateScan.getProblems(),
