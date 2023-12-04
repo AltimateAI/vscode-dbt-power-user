@@ -221,6 +221,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     if (selectedColumn.name) {
       const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
         getHelperDataForCLL(nodes, edges);
+        // TODO: instead of doing 1 iteration, append into previous cll from this point
       // const currAnd1HopTables = tables.map((t) => t.table);
       const currAnd1HopTables = [];
       currAnd1HopTables.push(table);

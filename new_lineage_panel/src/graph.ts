@@ -1,4 +1,4 @@
-import { Edge, Node } from "reactflow";
+import { Edge, Node, ReactFlowInstance } from "reactflow";
 import {
   applyEdgeStyling,
   C_NODE_H,
@@ -12,6 +12,7 @@ import {
   createTableEdge,
   createTableNode,
   getColumnEdgeId,
+  getHelperDataForCLL,
   getSeeMoreId,
   isColumn,
   isNotColumn,
@@ -19,12 +20,14 @@ import {
   MAX_EXPAND_TABLE,
   P_OFFSET_X,
   P_OFFSET_Y,
+  safeConcat,
   SEE_MORE_PREFIX,
   T_NODE_H,
   T_NODE_W,
   T_NODE_Y_SEPARATION,
 } from "./utils";
 import {
+  Column,
   ColumnLineage,
   downstreamTables,
   getConnectedColumns,
@@ -32,8 +35,9 @@ import {
   upstreamTables,
 } from "./service";
 import { Dispatch, SetStateAction } from "react";
+import { TMoreTables } from "./MoreTables";
 
-export const createNewNodesEdges = (
+const createNewNodesEdges = (
   prevNodes: Node[],
   prevEdges: Edge[],
   tables: Table[],
@@ -434,4 +438,137 @@ export const expandTableLineage = async (
     });
   }
   return [nodes, edges];
+};
+
+export const bfsTraversal = async (
+  nodes: Node[],
+  edges: Edge[],
+  right: boolean,
+  _column: Column,
+  setConfidence: Dispatch<
+    SetStateAction<{ confidence: string; operator_list?: string[] | undefined }>
+  >,
+  setMoreTables: Dispatch<SetStateAction<TMoreTables>>,
+  setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>,
+  flow: ReactFlowInstance,
+) => {
+  // creating helper data for current lineage once
+  const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
+    getHelperDataForCLL(nodes, edges);
+
+  const visited: Record<string, boolean> = {};
+  const ephemeralAncestors: Record<string, [string, string][]> = {};
+  let currTargetColumns: [string, string][] = [
+    [_column.table, _column.name],
+  ];
+  let currEphemeralNodes: string[] = [];
+  while (true as boolean) {
+    currTargetColumns = currTargetColumns.filter(
+      (x) => !visited[x.join("/")],
+    );
+    if (currTargetColumns.length === 0 && currEphemeralNodes.length === 0) {
+      break;
+    }
+    const currTargetTables: Record<string, boolean> = {};
+    currTargetColumns.forEach((x) => {
+      visited[x.join("/")] = true;
+      currTargetTables[x[0]] = true;
+    });
+
+    const [src, dst]: ("source" | "target")[] = right
+      ? ["source", "target"]
+      : ["target", "source"];
+    const hop1Tables: string[] = [];
+    const _currEphemeralNodes: string[] = [];
+    const collectEphemeralAncestors: string[] = [];
+    let noDependents = false;
+    for (const e of edges) {
+      if (isColumn(e)) continue;
+      const srcTable = e[src];
+      const dstNode = e[dst];
+      const dstTables = tableNodes[dstNode]
+        ? [flow.getNode(dstNode)?.data as Table]
+        : (flow.getNode(dstNode)?.data as TMoreTables)?.tables?.filter(
+          (t) => !tableNodes[t.table],
+        );
+      dstTables?.forEach(({ table: dstTable, materialization }) => {
+        if (currTargetTables[srcTable]) {
+          noDependents = true;
+          if (materialization === "ephemeral") {
+            // carry forward
+            safeConcat(
+              ephemeralAncestors,
+              dstTable,
+              currTargetColumns.filter((c) => c[0] === srcTable),
+            );
+            _currEphemeralNodes.push(dstTable);
+          } else {
+            hop1Tables.push(dstTable);
+          }
+        } else if (currEphemeralNodes.includes(srcTable)) {
+          noDependents = true;
+          if (materialization === "ephemeral") {
+            // carry forward follow through
+            safeConcat(
+              ephemeralAncestors,
+              dstTable,
+              ephemeralAncestors[srcTable],
+            );
+            _currEphemeralNodes.push(dstTable);
+          } else {
+            collectEphemeralAncestors.push(srcTable);
+            hop1Tables.push(dstTable);
+          }
+        }
+      });
+    }
+    if (!noDependents) {
+      break;
+    }
+    currEphemeralNodes = _currEphemeralNodes;
+
+    const currAnd1HopTables = Object.keys(currTargetTables).concat(hop1Tables);
+
+    collectEphemeralAncestors.forEach((t) => {
+      currTargetColumns.push(...ephemeralAncestors[t]);
+      currAnd1HopTables.push(...ephemeralAncestors[t].map((c) => c[0]));
+    });
+    try {
+      const patchState = await processColumnLineage(
+        levelMap,
+        seeMoreIdTableReverseMap,
+        tableNodes,
+        currTargetColumns,
+        right,
+        Array.from(new Set(currAnd1HopTables)),
+        _column,
+      );
+      if (patchState.confidence?.confidence === "low") {
+        setConfidence((prev) => {
+          const newConfidence = { ...prev, confidence: "low" };
+          newConfidence.operator_list = newConfidence.operator_list || [];
+          newConfidence.operator_list.push(
+            ...(patchState.confidence?.operator_list || []),
+          );
+          return newConfidence;
+        });
+      }
+      currTargetColumns = patchState.newCurr;
+      const [_nodes, _edges] = mergeNodesEdges({
+        nodes: flow.getNodes(),
+        edges: flow.getEdges(),
+      }, patchState);
+
+      setMoreTables((prev) => ({
+        ...prev,
+        lineage: [...(prev.lineage || []), ...patchState.seeMoreLineage],
+      }));
+
+      flow.setNodes(_nodes);
+      flow.setEdges(_edges);
+      mergeCollectColumns(setCollectColumns, patchState.collectColumns);
+    } catch (e) {
+      console.error(e);
+    }
+  }
 };

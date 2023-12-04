@@ -18,11 +18,9 @@ import {
   startProgressBar,
 } from "./App";
 import {
+  bfsTraversal,
   expandTableLineage,
   layoutElementsOnCanvas,
-  mergeCollectColumns,
-  mergeNodesEdges,
-  processColumnLineage,
   removeColumnNodes,
   resetTableHighlights,
 } from "./graph";
@@ -36,14 +34,7 @@ import { ColorTag } from "./Tags";
 import ExpandLineageIcon from "./assets/icons/expand_lineage.svg?react";
 import { NodeTypeIcon } from "./CustomNodes";
 import { CustomInput } from "./Form";
-import {
-  defaultEdgeStyle,
-  getHelperDataForCLL,
-  isColumn,
-  isNotColumn,
-  safeConcat,
-} from "./utils";
-import { TMoreTables } from "./MoreTables";
+import { defaultEdgeStyle, isNotColumn } from "./utils";
 
 const ColumnCard: FunctionComponent<{
   column: Column;
@@ -256,7 +247,6 @@ const TableDetails = () => {
       return;
     }
     startProgressBar();
-    console.time();
     let _nodes = flow.getNodes();
     let _edges = flow.getEdges();
     const addNodesEdges = async (right: boolean) => {
@@ -290,132 +280,18 @@ const TableDetails = () => {
     flow.setEdges(edges);
     setConfidence({ confidence: "high" });
     rerender();
-
-    // creating helper data for current lineage once
-    const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
-      getHelperDataForCLL(nodes, edges);
-
-    const bfsTraversal = async (right: boolean) => {
-      const visited: Record<string, boolean> = {};
-      const ephemeralAncestors: Record<string, [string, string][]> = {};
-      let currTargetColumns: [string, string][] = [
-        [_column.table, _column.name],
-      ];
-      let currEphemeralNodes: string[] = [];
-      while (true as boolean) {
-        currTargetColumns = currTargetColumns.filter(
-          (x) => !visited[x.join("/")]
-        );
-        if (currTargetColumns.length === 0 && currEphemeralNodes.length === 0) {
-          break;
-        }
-        const currTargetTables: Record<string, boolean> = {};
-        currTargetColumns.forEach((x) => {
-          visited[x.join("/")] = true;
-          currTargetTables[x[0]] = true;
-        });
-
-        const [src, dst]: ("source" | "target")[] = right
-          ? ["source", "target"]
-          : ["target", "source"];
-        const hop1Tables: string[] = [];
-        const _currEphemeralNodes: string[] = [];
-        const collectEphemeralAncestors: string[] = [];
-        let noDependents = false;
-        for (const e of _edges) {
-          if (isColumn(e)) continue;
-          const srcTable = e[src];
-          const dstNode = e[dst];
-          const dstTables = tableNodes[dstNode]
-            ? [flow.getNode(dstNode)?.data as Table]
-            : (flow.getNode(dstNode)?.data as TMoreTables)?.tables?.filter(
-                (t) => !tableNodes[t.table]
-              );
-          dstTables?.forEach(({ table: dstTable, materialization }) => {
-            if (currTargetTables[srcTable]) {
-              noDependents = true;
-              if (materialization === "ephemeral") {
-                // carry forward
-                safeConcat(
-                  ephemeralAncestors,
-                  dstTable,
-                  currTargetColumns.filter((c) => c[0] === srcTable)
-                );
-                _currEphemeralNodes.push(dstTable);
-              } else {
-                hop1Tables.push(dstTable);
-              }
-            } else if (currEphemeralNodes.includes(srcTable)) {
-              noDependents = true;
-              if (materialization === "ephemeral") {
-                // carry forward follow through
-                safeConcat(
-                  ephemeralAncestors,
-                  dstTable,
-                  ephemeralAncestors[srcTable]
-                );
-                _currEphemeralNodes.push(dstTable);
-              } else {
-                collectEphemeralAncestors.push(srcTable);
-                hop1Tables.push(dstTable);
-              }
-            }
-          });
-        }
-        if (!noDependents) {
-          break;
-        }
-        currEphemeralNodes = _currEphemeralNodes;
-
-        const currAnd1HopTables =
-          Object.keys(currTargetTables).concat(hop1Tables);
-
-        collectEphemeralAncestors.forEach((t) => {
-          currTargetColumns.push(...ephemeralAncestors[t]);
-          currAnd1HopTables.push(...ephemeralAncestors[t].map((c) => c[0]));
-        });
-        try {
-          const patchState = await processColumnLineage(
-            levelMap,
-            seeMoreIdTableReverseMap,
-            tableNodes,
-            currTargetColumns,
-            right,
-            Array.from(new Set(currAnd1HopTables)),
-            _column
-          );
-          if (patchState.confidence?.confidence === "low") {
-            setConfidence((prev) => {
-              const newConfidence = { ...prev, confidence: "low" };
-              newConfidence.operator_list = newConfidence.operator_list || [];
-              newConfidence.operator_list.push(
-                ...(patchState.confidence?.operator_list || [])
-              );
-              return newConfidence;
-            });
-          }
-          currTargetColumns = patchState.newCurr;
-          const [nodes, edges] = mergeNodesEdges(
-            { nodes: flow.getNodes(), edges: flow.getEdges() },
-            patchState
-          );
-
-          setMoreTables((prev) => ({
-            ...prev,
-            lineage: [...(prev.lineage || []), ...patchState.seeMoreLineage],
-          }));
-
-          flow.setNodes(nodes);
-          flow.setEdges(edges);
-          mergeCollectColumns(setCollectColumns, patchState.collectColumns);
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    };
-
-    await Promise.all([bfsTraversal(true), bfsTraversal(false)]);
-    console.timeEnd();
+    const _bfsTraversal = (right: boolean) =>
+      bfsTraversal(
+        nodes,
+        edges,
+        right,
+        _column,
+        setConfidence,
+        setMoreTables,
+        setCollectColumns,
+        flow
+      );
+    await Promise.all([_bfsTraversal(true), _bfsTraversal(false)]);
     endProgressBar();
   };
   if (isLoading || !data || !selectedTable) return <ComponentLoader />;

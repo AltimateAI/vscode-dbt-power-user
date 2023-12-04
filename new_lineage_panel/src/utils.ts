@@ -165,7 +165,9 @@ export const getSourceTargetHandles = (
 
 export const getHelperDataForCLL = (nodes: Node[], edges: Edge[]) => {
   const levelMap: Record<string, number> = {};
-  nodes.forEach((n) => (levelMap[n.id] = n.data.level));
+  nodes.forEach((n) => {
+    if (isNotColumn(n)) levelMap[n.id] = n.data.level;
+  });
   const tableNodes: Record<string, boolean> = {};
   nodes
     .filter((_n) => _n.type === "table")
