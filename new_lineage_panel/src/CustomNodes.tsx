@@ -129,6 +129,46 @@ const TableNodePill: FunctionComponent<{
   </>
 );
 
+export const TableHeader: FunctionComponent<{
+  nodeType: keyof typeof NODE_TYPE_STYLES;
+  label: string;
+  table: string;
+  tests: string[];
+  materialization: string;
+}> = ({ nodeType, label, table, tests, materialization }) => {
+  return (
+    <div className="d-flex flex-column align-items-start gap-xs">
+      <div className={styles.table_header}>
+        <div
+          className={classNames(styles.node_icon, NODE_TYPE_STYLES[nodeType])}
+        >
+          <NodeTypeIcon nodeType={nodeType} />
+          <div>{NODE_TYPE_SHORTHAND[nodeType]}</div>
+        </div>
+        <div className="lines-2">{label}</div>
+      </div>
+      <div className={classNames("d-flex gap-xs", styles.node_extra_info)}>
+        {tests?.length > 0 && (
+          <TableNodePill
+            id={"table-node-tests-" + table.replaceAll(".", "-")}
+            icon={<TestsIcon />}
+            text={tests.length.toString()}
+            label="Tests"
+          />
+        )}
+        {materialization && (
+          <TableNodePill
+            id={"table-node-materilization-" + table.replaceAll(".", "-")}
+            icon={<EphemeralIcon />}
+            text={materialization}
+            label="Materialization"
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const {
     shouldExpand,
@@ -233,7 +273,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   };
 
   const _edges = flow.getEdges();
-  const nType = nodeType as keyof typeof NODE_TYPE_SHORTHAND;
   return (
     <div
       className="position-relative"
@@ -259,33 +298,13 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             }
           )}
         >
-          <div className={styles.table_header}>
-            <div
-              className={classNames(styles.node_icon, NODE_TYPE_STYLES[nType])}
-            >
-              <NodeTypeIcon nodeType={nType} />
-              <div>{NODE_TYPE_SHORTHAND[nType]}</div>
-            </div>
-            <div className="lines-2">{label}</div>
-          </div>
-          <div className={classNames("d-flex gap-xs", styles.node_extra_info)}>
-            {tests?.length > 0 && (
-              <TableNodePill
-                id={"table-node-tests-" + table.replaceAll(".", "-")}
-                icon={<TestsIcon />}
-                text={tests?.length}
-                label="Tests"
-              />
-            )}
-            {materialization && (
-              <TableNodePill
-                id={"table-node-materilization-" + table.replaceAll(".", "-")}
-                icon={<EphemeralIcon />}
-                text={materialization}
-                label="Materialization"
-              />
-            )}
-          </div>
+          <TableHeader
+            nodeType={nodeType as keyof typeof NODE_TYPE_SHORTHAND}
+            label={label}
+            table={table}
+            tests={tests}
+            materialization={materialization}
+          />
           <div className={styles.divider} />
           <div className="w-100 d-flex align-items-center gap-xs">
             <div
