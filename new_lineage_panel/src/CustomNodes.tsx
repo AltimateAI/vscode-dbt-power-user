@@ -130,20 +130,19 @@ const TableNodePill: FunctionComponent<{
 );
 
 export const TableHeader: FunctionComponent<{
-  nodeType: keyof typeof NODE_TYPE_STYLES;
+  nodeType: unknown;
   label: string;
   table: string;
-  tests: string[];
-  materialization: string;
+  tests: { key: string; path: string }[];
+  materialization?: string | undefined;
 }> = ({ nodeType, label, table, tests, materialization }) => {
+  const nType = nodeType as keyof typeof NODE_TYPE_SHORTHAND;
   return (
     <div className="d-flex flex-column align-items-start gap-xs">
       <div className={styles.table_header}>
-        <div
-          className={classNames(styles.node_icon, NODE_TYPE_STYLES[nodeType])}
-        >
-          <NodeTypeIcon nodeType={nodeType} />
-          <div>{NODE_TYPE_SHORTHAND[nodeType]}</div>
+        <div className={classNames(styles.node_icon, NODE_TYPE_STYLES[nType])}>
+          <NodeTypeIcon nodeType={nType} />
+          <div>{NODE_TYPE_SHORTHAND[nType]}</div>
         </div>
         <div className="lines-2">{label}</div>
       </div>
@@ -299,7 +298,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           )}
         >
           <TableHeader
-            nodeType={nodeType as keyof typeof NODE_TYPE_SHORTHAND}
+            nodeType={nodeType}
             label={label}
             table={table}
             tests={tests}
