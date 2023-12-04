@@ -17,7 +17,7 @@ import {
   window,
   workspace,
 } from "vscode";
-import { YAMLError, parse } from "yaml";
+import { parse, YAMLError } from "yaml";
 import {
   DBTCommandFactory,
   RunModelParams,
@@ -66,6 +66,8 @@ interface ResolveReferenceResult {
   database: string;
   schema: string;
   alias: string;
+  resource_type: string;
+  identifier: string;
 }
 
 export class DBTProject implements Disposable {
@@ -625,11 +627,11 @@ export class DBTProject implements Disposable {
     if (!node) {
       return [];
     }
-    return this.getColumsOfRelation(
-      node.database,
-      node.schema,
-      node.alias || tableName,
-    );
+    let _tableName = node.alias || tableName;
+    if (node.resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {
+      _tableName = node.identifier;
+    }
+    return this.getColumsOfRelation(node.database, node.schema, _tableName);
   }
 
   async getColumsOfRelation(
