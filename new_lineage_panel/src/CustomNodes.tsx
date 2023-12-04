@@ -10,7 +10,7 @@ import {
 import styles from "./styles.module.scss";
 import classNames from "classnames";
 import {
-  createNewNodesEdges,
+  expandTableLineage,
   highlightTableConnections,
   layoutElementsOnCanvas,
   mergeCollectColumns,
@@ -19,7 +19,6 @@ import {
   resetTableHighlights,
 } from "./graph";
 import { LineageContext, openFile, isDarkMode } from "./App";
-import { downstreamTables, upstreamTables } from "./service";
 import {
   COLUMNS_SIDEBAR,
   C_NODE_H,
@@ -174,7 +173,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     processed,
     label,
     table,
-    level,
     url,
     upstreamCount,
     downstreamCount,
@@ -214,34 +212,12 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
   const expand = async (right: boolean) => {
     if (processed[right ? 1 : 0]) return;
-    let nodes = flow.getNodes();
-    let edges = flow.getEdges();
-    const getConnectedTables = right ? upstreamTables : downstreamTables;
-    const queue: { table: string; level: number }[] = [{ table, level }];
-    const visited: Record<string, boolean> = {};
-    while (queue.length > 0) {
-      const { table, level } = queue.shift()!;
-      if (visited[table]) continue;
-      visited[table] = true;
-      const { tables } = await getConnectedTables(table);
-      const [_nodes, _edges] = createNewNodesEdges(
-        nodes,
-        edges,
-        tables,
-        table,
-        right,
-        level
-      );
-      nodes = _nodes;
-      edges = _edges;
-      tables.forEach((t) => {
-        if (t.materialization === "ephemeral") {
-          const _t = nodes.find((n) => n.id === t.table);
-          if (!_t) return;
-          queue.push({ table: t.table, level: _t.data.level });
-        }
-      });
-    }
+    let [nodes, edges] = await expandTableLineage(
+      flow.getNodes(),
+      flow.getEdges(),
+      table,
+      right
+    );
     if (selectedColumn.name) {
       const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
         getHelperDataForCLL(nodes, edges);

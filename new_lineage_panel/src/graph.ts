@@ -24,7 +24,13 @@ import {
   T_NODE_W,
   T_NODE_Y_SEPARATION,
 } from "./utils";
-import { ColumnLineage, getConnectedColumns, Table } from "./service";
+import {
+  ColumnLineage,
+  downstreamTables,
+  getConnectedColumns,
+  Table,
+  upstreamTables,
+} from "./service";
 import { Dispatch, SetStateAction } from "react";
 
 export const createNewNodesEdges = (
@@ -392,4 +398,40 @@ export const mergeCollectColumns = (
     }
     return collectColumns;
   });
+};
+
+export const expandTableLineage = async (
+  nodes: Node[],
+  edges: Edge[],
+  table: string,
+  right: boolean,
+): Promise<[Node[], Edge[]]> => {
+  const getConnectedTables = right ? upstreamTables : downstreamTables;
+  const level = nodes.find((n) => n.id === table)?.data?.level;
+  const queue: { table: string; level: number }[] = [{ table, level }];
+  const visited: Record<string, boolean> = {};
+  while (queue.length > 0) {
+    const { table, level } = queue.shift()!;
+    if (visited[table]) continue;
+    visited[table] = true;
+    const { tables } = await getConnectedTables(table);
+    const [_nodes, _edges] = createNewNodesEdges(
+      nodes,
+      edges,
+      tables,
+      table,
+      right,
+      level,
+    );
+    nodes = _nodes;
+    edges = _edges;
+    tables.forEach((t) => {
+      if (t.materialization === "ephemeral") {
+        const _t = nodes.find((n) => n.id === t.table);
+        if (!_t) return;
+        queue.push({ table: t.table, level: _t.data.level });
+      }
+    });
+  }
+  return [nodes, edges];
 };
