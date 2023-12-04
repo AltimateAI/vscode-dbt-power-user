@@ -26,9 +26,9 @@ import {
 import { COLUMNS_SIDEBAR, TABLES_SIDEBAR, getHelperDataForCLL } from "./utils";
 import { SidebarModal } from "./SidebarModal";
 import { MoreTables, TMoreTables } from "./MoreTables";
-import { Table, downstreamTables, upstreamTables } from "./service";
+import { Table } from "./service";
 import {
-  createNewNodesEdges,
+  expandTableLineage,
   highlightTableConnections,
   layoutElementsOnCanvas,
   mergeCollectColumns,
@@ -186,24 +186,13 @@ function App() {
       const existingNode = _flow.getNode(node.table);
       let nodes: Node[] = [];
       let edges: Edge[] = [];
-      const addNodesEdges = async (
-        tables: Table[],
-        table: string,
-        right: boolean,
-        level: number
-      ) => {
-        [nodes, edges] = createNewNodesEdges(
-          nodes,
-          edges,
-          tables,
-          node.table,
-          right,
-          level
-        );
+      const addNodesEdges = async (table: string, right: boolean) => {
+        [nodes, edges] = await expandTableLineage(nodes, edges, table, right);
         if (selectedColumn.name) {
           const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
             getHelperDataForCLL(nodes, edges);
-          const currAnd1HopTables = tables.map((t) => t.table);
+          // const currAnd1HopTables = tables.map((t) => t.table);
+          const currAnd1HopTables = [];
           currAnd1HopTables.push(table);
           const curr = (collectColumns[table] || []).map(
             (c) => [table, c] as [string, string]
@@ -228,20 +217,14 @@ function App() {
         }
       };
       if (existingNode) {
-        const { level, processed } = existingNode.data as {
+        const { processed } = existingNode.data as {
           level: number;
           processed: [boolean, boolean];
         };
         nodes = _flow.getNodes();
         edges = _flow.getEdges();
-        if (!processed[1]) {
-          const { tables } = await upstreamTables(node.table);
-          addNodesEdges(tables, node.table, true, level);
-        }
-        if (!processed[0]) {
-          const { tables } = await downstreamTables(node.table);
-          addNodesEdges(tables, node.table, false, level);
-        }
+        if (!processed[1]) await addNodesEdges(node.table, true);
+        if (!processed[0]) await addNodesEdges(node.table, false);
       } else {
         nodes = [
           {
@@ -263,14 +246,8 @@ function App() {
             type: "table",
           },
         ];
-        if (node.upstreamCount > 0) {
-          const { tables } = await upstreamTables(node.table);
-          addNodesEdges(tables, node.table, true, 0);
-        }
-        if (node.downstreamCount > 0) {
-          const { tables } = await downstreamTables(node.table);
-          addNodesEdges(tables, node.table, false, 0);
-        }
+        if (node.upstreamCount > 0) await addNodesEdges(node.table, true);
+        if (node.downstreamCount > 0) await addNodesEdges(node.table, false);
         setSelectedTable(null);
         setSelectedColumn({ table: "", name: "" });
         setCollectColumns({});
