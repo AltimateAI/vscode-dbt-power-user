@@ -10,14 +10,7 @@ import { useReactFlow } from "reactflow";
 import styles from "./styles.module.scss";
 import classNames from "classnames";
 import { Button } from "reactstrap";
-import {
-  getColumns,
-  Columns,
-  Column,
-  upstreamTables,
-  downstreamTables,
-  Table,
-} from "./service";
+import { getColumns, Columns, Column, Table } from "./service";
 import {
   aiEnabled,
   endProgressBar,
@@ -25,7 +18,7 @@ import {
   startProgressBar,
 } from "./App";
 import {
-  createNewNodesEdges,
+  expandTableLineage,
   layoutElementsOnCanvas,
   mergeCollectColumns,
   mergeNodesEdges,
@@ -266,38 +259,22 @@ const TableDetails = () => {
     console.time();
     let _nodes = flow.getNodes();
     let _edges = flow.getEdges();
-    const addNodesEdges = (tables: Table[], right: boolean, level: number) => {
-      [_nodes, _edges] = createNewNodesEdges(
+    const addNodesEdges = async (right: boolean) => {
+      [_nodes, _edges] = await expandTableLineage(
         _nodes,
         _edges,
-        tables,
         _column.table,
-        right,
-        level
+        right
       );
       layoutElementsOnCanvas(_nodes, _edges);
     };
     const tableNode = flow.getNode(_column.table);
     if (tableNode) {
       const {
-        data: { processed, table, level },
+        data: { processed },
       } = tableNode;
-      if (!processed[1]) {
-        try {
-          const { tables } = await upstreamTables(table);
-          addNodesEdges(tables, true, level);
-        } catch (e) {
-          console.error(e);
-        }
-      }
-      if (!processed[0]) {
-        try {
-          const { tables } = await downstreamTables(table);
-          addNodesEdges(tables, false, level);
-        } catch (e) {
-          console.error(e);
-        }
-      }
+      if (!processed[1]) await addNodesEdges(true);
+      if (!processed[0]) await addNodesEdges(false);
     }
     setSelectedColumn(_column);
     setShowSidebar(false);
