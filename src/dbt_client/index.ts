@@ -226,18 +226,6 @@ export class DBTClient implements Disposable {
       installedVersion !== undefined &&
       latestVersion !== undefined &&
       (installedVersion === latestVersion || message?.includes("ahead"));
-
-    const versionCheck: string = workspace
-      .getConfiguration("dbt")
-      .get<string>("versionCheck", "both");
-
-    if (
-      !upToDate &&
-      message &&
-      (versionCheck === "both" || versionCheck === "error message")
-    ) {
-      window.showErrorMessage(extendErrorWithSupportLinks(message + "."));
-    }
     this.telemetry.sendTelemetryEvent("dbtVersionCheck", {
       installed: `${this.dbtInstalled}`,
       installedVersion: `${installedVersion}`,

@@ -152,23 +152,6 @@
             "default": "base",
             "description": "Set the prefix that is used when generating a model from a source yml file."
           },
-          "dbt.versionCheck": {
-            "type": "string",
-            "enum": [
-              "both",
-              "status bar",
-              "error message",
-              "neither"
-            ],
-            "default": "both",
-            "enumDescriptions": [
-              "Show the outdated version message both in the status bar and as an error message popup.",
-              "Show the outdated version message in the status bar, but not as an error message popup.",
-              "Show the outdated version message as an error message popup, but not in the status bar.",
-              "Do not show the outdated version message in the status bar or as an error message popup."
-            ],
-            "description": "This determines which messages will show when the dbt version is outdated."
-          },
           "dbt.sqlFmtPath": {
             "type": "string",
             "description": "Path to `sqlfmt`. If not set, it will look on your PATH"
