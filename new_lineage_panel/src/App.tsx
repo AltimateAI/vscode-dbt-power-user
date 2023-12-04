@@ -27,12 +27,7 @@ import { COLUMNS_SIDEBAR, TABLES_SIDEBAR, nullColumn } from "./utils";
 import { SidebarModal } from "./SidebarModal";
 import { MoreTables, TMoreTables } from "./MoreTables";
 import { Column, Table } from "./service";
-import {
-  bfsTraversal,
-  expandTableLineage,
-  highlightTableConnections,
-  layoutElementsOnCanvas,
-} from "./graph";
+import { expandTableLineage, layoutElementsOnCanvas } from "./graph";
 import { TableDetails } from "./TableDetails";
 import {
   Button,
@@ -186,24 +181,27 @@ function App() {
       let edges: Edge[] = [];
       const addNodesEdges = async (table: string, right: boolean) => {
         [nodes, edges] = await expandTableLineage(nodes, edges, table, right);
-        if (selectedColumn.name) {
-          await bfsTraversal(
-            nodes,
-            edges,
-            right,
-            [selectedColumn],
-            setConfidence,
-            setMoreTables,
-            setCollectColumns,
-            _flow
-          );
-        } else if (selectedTable) {
-          [nodes, edges] = highlightTableConnections(
-            nodes,
-            edges,
-            selectedTable.table
-          );
-        }
+        // TODO: on opening file, how to handle cll
+        // if (selectedColumn.name) {
+        //   startProgressBar()
+        //   await bfsTraversal(
+        //     nodes,
+        //     edges,
+        //     right,
+        //     [selectedColumn],
+        //     setConfidence,
+        //     setMoreTables,
+        //     setCollectColumns,
+        //     _flow
+        //   );
+        //   endProgressBar()
+        // } else if (selectedTable) {
+        //   [nodes, edges] = highlightTableConnections(
+        //     nodes,
+        //     edges,
+        //     selectedTable.table
+        //   );
+        // }
       };
       if (existingNode) {
         const { processed } = existingNode.data as {
