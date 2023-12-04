@@ -1,0 +1,29 @@
+site_name: dbt Power User
+site_description: the best dbt extension for vscode
+site_author: Altimate Inc
+theme:
+  name: material
+
+markdown_extensions:
+  - markdown.extensions.codehilite:
+      guess_lang: false
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+
+nav:
+  - Home: index.md
+  - Installation and Configuration: installation.md
+  - Learn features:
+      - Develop dbt Models: features/devlop.md
+      - Test dbt Models: features/test.md
+      - Document dbt Models: features/document.md
+      - Debug dbt Models: features/debug.md
+  - Debuging and Trobleshooting Guide: trobleshooting.md
+  - Get Info on Security & Architecture:
+      - Architecture: arch/architecture.md
+      - Security FAQ: arch/faq.md
