@@ -10,21 +10,24 @@ import {
 import styles from "./styles.module.scss";
 import classNames from "classnames";
 import {
+  bfsTraversal,
   expandTableLineage,
   highlightTableConnections,
   layoutElementsOnCanvas,
-  mergeCollectColumns,
-  mergeNodesEdges,
-  processColumnLineage,
   resetTableHighlights,
 } from "./graph";
-import { LineageContext, openFile, isDarkMode } from "./App";
+import {
+  LineageContext,
+  openFile,
+  isDarkMode,
+  startProgressBar,
+  endProgressBar,
+} from "./App";
 import {
   COLUMNS_SIDEBAR,
   C_NODE_H,
   C_PADDING_Y,
   TABLES_SIDEBAR,
-  getHelperDataForCLL,
 } from "./utils";
 import { TMoreTables } from "./MoreTables";
 import ModelIcon from "./assets/icons/model.svg?react";
@@ -191,6 +194,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     selectedColumn,
     setCollectColumns,
     rerender,
+    setConfidence,
+    setMoreTables,
   } = useContext(LineageContext);
 
   const _columnLen = Object.keys(collectColumns[table] || {}).length;
@@ -218,38 +223,35 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
       table,
       right
     );
+    layoutElementsOnCanvas(nodes, edges);
+    flow.setNodes(nodes);
+    flow.setEdges(edges);
+    rerender();
     if (selectedColumn.name) {
-      const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
-        getHelperDataForCLL(nodes, edges);
-        // TODO: instead of doing 1 iteration, append into previous cll from this point
-      // const currAnd1HopTables = tables.map((t) => t.table);
-      const currAnd1HopTables = [];
-      currAnd1HopTables.push(table);
-      const curr = (collectColumns[table] || []).map(
-        (c) => [table, c] as [string, string]
-      );
-      const patchState = await processColumnLineage(
-        levelMap,
-        seeMoreIdTableReverseMap,
-        tableNodes,
-        curr,
+      startProgressBar();
+      await bfsTraversal(
+        nodes,
+        edges,
         right,
-        currAnd1HopTables,
-        selectedColumn
+        collectColumns[table].map((c) => ({ table, name: c })),
+        setConfidence,
+        setMoreTables,
+        setCollectColumns,
+        flow
       );
-      [nodes, edges] = mergeNodesEdges({ nodes, edges }, patchState);
-      mergeCollectColumns(setCollectColumns, patchState.collectColumns);
+      rerender();
+      endProgressBar();
     } else if (selectedTable) {
       [nodes, edges] = highlightTableConnections(
         nodes,
         edges,
         selectedTable.table
       );
+      layoutElementsOnCanvas(nodes, edges);
+      flow.setNodes(nodes);
+      flow.setEdges(edges);
+      rerender();
     }
-    layoutElementsOnCanvas(nodes, edges);
-    flow.setNodes(nodes);
-    flow.setEdges(edges);
-    rerender();
   };
 
   const expandRight = () => expand(true);

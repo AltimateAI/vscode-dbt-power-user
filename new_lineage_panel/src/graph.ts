@@ -27,7 +27,6 @@ import {
   T_NODE_Y_SEPARATION,
 } from "./utils";
 import {
-  Column,
   ColumnLineage,
   downstreamTables,
   getConnectedColumns,
@@ -444,7 +443,7 @@ export const bfsTraversal = async (
   nodes: Node[],
   edges: Edge[],
   right: boolean,
-  _column: Column,
+  columns: { name: string; table: string }[],
   setConfidence: Dispatch<
     SetStateAction<{ confidence: string; operator_list?: string[] | undefined }>
   >,
@@ -456,11 +455,13 @@ export const bfsTraversal = async (
   const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
     getHelperDataForCLL(nodes, edges);
 
+  const _getNode = (id: string) => nodes.find((n) => n.id === id);
+
   const visited: Record<string, boolean> = {};
   const ephemeralAncestors: Record<string, [string, string][]> = {};
-  let currTargetColumns: [string, string][] = [
-    [_column.table, _column.name],
-  ];
+  let currTargetColumns: [string, string][] = columns.map(
+    (c) => [c.table, c.name],
+  );
   let currEphemeralNodes: string[] = [];
   while (true as boolean) {
     currTargetColumns = currTargetColumns.filter(
@@ -487,8 +488,8 @@ export const bfsTraversal = async (
       const srcTable = e[src];
       const dstNode = e[dst];
       const dstTables = tableNodes[dstNode]
-        ? [flow.getNode(dstNode)?.data as Table]
-        : (flow.getNode(dstNode)?.data as TMoreTables)?.tables?.filter(
+        ? [_getNode(dstNode)?.data as Table]
+        : (_getNode(dstNode)?.data as TMoreTables)?.tables?.filter(
           (t) => !tableNodes[t.table],
         );
       dstTables?.forEach(({ table: dstTable, materialization }) => {
@@ -541,7 +542,7 @@ export const bfsTraversal = async (
         currTargetColumns,
         right,
         Array.from(new Set(currAnd1HopTables)),
-        _column,
+        columns[0],
       );
       if (patchState.confidence?.confidence === "low") {
         setConfidence((prev) => {
@@ -564,6 +565,7 @@ export const bfsTraversal = async (
         lineage: [...(prev.lineage || []), ...patchState.seeMoreLineage],
       }));
 
+      layoutElementsOnCanvas(_nodes, _edges);
       flow.setNodes(_nodes);
       flow.setEdges(_edges);
       mergeCollectColumns(setCollectColumns, patchState.collectColumns);

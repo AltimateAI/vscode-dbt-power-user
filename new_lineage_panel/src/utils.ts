@@ -1,5 +1,5 @@
 import { Edge, MarkerType, Node } from "reactflow";
-import { Table } from "./service";
+import { Column, Table } from "./service";
 import React from "react";
 
 // config constants
@@ -218,3 +218,11 @@ export const safeConcat = <T>(
   obj[key] = obj[key] || [];
   obj[key].push(...values);
 };
+
+export const nullColumn = (): Column => ({
+  table: "",
+  name: "",
+  datatype: "",
+  can_lineage_expand: false,
+  description: "",
+});

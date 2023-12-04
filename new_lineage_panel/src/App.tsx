@@ -23,17 +23,15 @@ import {
   SelfConnectingEdge,
   TableNode,
 } from "./CustomNodes";
-import { COLUMNS_SIDEBAR, TABLES_SIDEBAR, getHelperDataForCLL } from "./utils";
+import { COLUMNS_SIDEBAR, TABLES_SIDEBAR, nullColumn } from "./utils";
 import { SidebarModal } from "./SidebarModal";
 import { MoreTables, TMoreTables } from "./MoreTables";
-import { Table } from "./service";
+import { Column, Table } from "./service";
 import {
+  bfsTraversal,
   expandTableLineage,
   highlightTableConnections,
   layoutElementsOnCanvas,
-  mergeCollectColumns,
-  mergeNodesEdges,
-  processColumnLineage,
 } from "./graph";
 import { TableDetails } from "./TableDetails";
 import {
@@ -102,8 +100,8 @@ export const LineageContext = createContext<{
   setMoreTables: Dispatch<SetStateAction<TMoreTables>>;
   sidebarScreen: string;
   setSidebarScreen: Dispatch<string>;
-  selectedColumn: { name: string; table: string };
-  setSelectedColumn: Dispatch<SetStateAction<{ name: string; table: string }>>;
+  selectedColumn: Column;
+  setSelectedColumn: Dispatch<SetStateAction<Column>>;
   collectColumns: Record<string, string[]>;
   setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>;
   rerender: () => void;
@@ -119,7 +117,7 @@ export const LineageContext = createContext<{
   setMoreTables: () => {},
   sidebarScreen: "",
   setSidebarScreen: () => {},
-  selectedColumn: { name: "", table: "" },
+  selectedColumn: nullColumn(),
   setSelectedColumn: () => "",
   collectColumns: {},
   setCollectColumns: () => {},
@@ -145,7 +143,7 @@ function App() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [moreTables, setMoreTables] = useState<TMoreTables>({});
   const [sidebarScreen, setSidebarScreen] = useState("");
-  const [selectedColumn, setSelectedColumn] = useState({ name: "", table: "" });
+  const [selectedColumn, setSelectedColumn] = useState<Column>(nullColumn());
   const [collectColumns, setCollectColumns] = useState<
     Record<string, string[]>
   >({});
@@ -189,25 +187,16 @@ function App() {
       const addNodesEdges = async (table: string, right: boolean) => {
         [nodes, edges] = await expandTableLineage(nodes, edges, table, right);
         if (selectedColumn.name) {
-          const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
-            getHelperDataForCLL(nodes, edges);
-          // const currAnd1HopTables = tables.map((t) => t.table);
-          const currAnd1HopTables = [];
-          currAnd1HopTables.push(table);
-          const curr = (collectColumns[table] || []).map(
-            (c) => [table, c] as [string, string]
-          );
-          const patchState = await processColumnLineage(
-            levelMap,
-            seeMoreIdTableReverseMap,
-            tableNodes,
-            curr,
+          await bfsTraversal(
+            nodes,
+            edges,
             right,
-            currAnd1HopTables,
-            selectedColumn
+            [selectedColumn],
+            setConfidence,
+            setMoreTables,
+            setCollectColumns,
+            _flow
           );
-          [nodes, edges] = mergeNodesEdges({ nodes, edges }, patchState);
-          mergeCollectColumns(setCollectColumns, patchState.collectColumns);
         } else if (selectedTable) {
           [nodes, edges] = highlightTableConnections(
             nodes,
@@ -249,7 +238,7 @@ function App() {
         if (node.upstreamCount > 0) await addNodesEdges(node.table, true);
         if (node.downstreamCount > 0) await addNodesEdges(node.table, false);
         setSelectedTable(null);
-        setSelectedColumn({ table: "", name: "" });
+        setSelectedColumn(nullColumn());
         setCollectColumns({});
         setMoreTables({});
       }
@@ -377,7 +366,7 @@ function App() {
             flow.current?.setNodes([]);
             flow.current?.setEdges([]);
             setSelectedTable(null);
-            setSelectedColumn({ table: "", name: "" });
+            setSelectedColumn(nullColumn());
             setCollectColumns({});
             setMoreTables({});
             vscode.postMessage({ command: "init" });
