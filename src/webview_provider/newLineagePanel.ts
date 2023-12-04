@@ -466,7 +466,7 @@ export class NewLineagePanel implements LineagePanelView {
         database: source.database,
         schema: source.schema,
         name: table.name,
-        alias: table.name,
+        alias: table.identifier,
         uniqueId: key,
         columns: table.columns,
       };
