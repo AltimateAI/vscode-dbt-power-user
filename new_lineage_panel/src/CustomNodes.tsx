@@ -19,7 +19,7 @@ import {
   resetTableHighlights,
 } from "./graph";
 import { LineageContext, openFile, isDarkMode } from "./App";
-import { Table, downstreamTables, upstreamTables } from "./service";
+import { downstreamTables, upstreamTables } from "./service";
 import {
   COLUMNS_SIDEBAR,
   C_NODE_H,
@@ -138,7 +138,7 @@ export const TableHeader: FunctionComponent<{
 }> = ({ nodeType, label, table, tests, materialization }) => {
   const nType = nodeType as keyof typeof NODE_TYPE_SHORTHAND;
   return (
-    <div className="d-flex flex-column align-items-start gap-xs">
+    <div className="d-flex flex-column align-items-start gap-xs w-100">
       <div className={styles.table_header}>
         <div className={classNames(styles.node_icon, NODE_TYPE_STYLES[nType])}>
           <NodeTypeIcon nodeType={nType} />
@@ -212,20 +212,41 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     flow.setEdges(edges);
   };
 
-  const expand = async (tables: Table[], right: boolean) => {
+  const expand = async (right: boolean) => {
     if (processed[right ? 1 : 0]) return;
-    let [nodes, edges] = createNewNodesEdges(
-      flow.getNodes(),
-      flow.getEdges(),
-      tables,
-      table,
-      right,
-      level
-    );
+    let nodes = flow.getNodes();
+    let edges = flow.getEdges();
+    const getConnectedTables = right ? upstreamTables : downstreamTables;
+    const queue: { table: string; level: number }[] = [{ table, level }];
+    const visited: Record<string, boolean> = {};
+    while (queue.length > 0) {
+      const { table, level } = queue.shift()!;
+      if (visited[table]) continue;
+      visited[table] = true;
+      const { tables } = await getConnectedTables(table);
+      const [_nodes, _edges] = createNewNodesEdges(
+        nodes,
+        edges,
+        tables,
+        table,
+        right,
+        level
+      );
+      nodes = _nodes;
+      edges = _edges;
+      tables.forEach((t) => {
+        if (t.materialization === "ephemeral") {
+          const _t = nodes.find((n) => n.id === t.table);
+          if (!_t) return;
+          queue.push({ table: t.table, level: _t.data.level });
+        }
+      });
+    }
     if (selectedColumn.name) {
       const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
         getHelperDataForCLL(nodes, edges);
-      const currAnd1HopTables = tables.map((t) => t.table);
+      // const currAnd1HopTables = tables.map((t) => t.table);
+      const currAnd1HopTables = [];
       currAnd1HopTables.push(table);
       const curr = (collectColumns[table] || []).map(
         (c) => [table, c] as [string, string]
@@ -254,15 +275,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     rerender();
   };
 
-  const expandRight = async () => {
-    const { tables } = await upstreamTables(table);
-    await expand(tables, true);
-  };
-
-  const expandLeft = async () => {
-    const { tables } = await downstreamTables(table);
-    await expand(tables, false);
-  };
+  const expandRight = () => expand(true);
+  const expandLeft = () => expand(false);
 
   const onDetailsClick = (e: React.MouseEvent) => {
     if (!selected) return;
