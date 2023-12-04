@@ -225,7 +225,7 @@ export class DBTClient implements Disposable {
     const upToDate =
       installedVersion !== undefined &&
       latestVersion !== undefined &&
-      (installedVersion === latestVersion || !message?.includes("ahead"));
+      (installedVersion === latestVersion || message?.includes("ahead"));
 
     const versionCheck: string = workspace
       .getConfiguration("dbt")
