@@ -23,10 +23,10 @@ import {
   SelfConnectingEdge,
   TableNode,
 } from "./CustomNodes";
-import { COLUMNS_SIDEBAR, TABLES_SIDEBAR, nullColumn } from "./utils";
+import { COLUMNS_SIDEBAR, TABLES_SIDEBAR } from "./utils";
 import { SidebarModal } from "./SidebarModal";
 import { MoreTables, TMoreTables } from "./MoreTables";
-import { Column, Table } from "./service";
+import { Table } from "./service";
 import { expandTableLineage, layoutElementsOnCanvas } from "./graph";
 import { TableDetails } from "./TableDetails";
 import {
@@ -95,8 +95,8 @@ export const LineageContext = createContext<{
   setMoreTables: Dispatch<SetStateAction<TMoreTables>>;
   sidebarScreen: string;
   setSidebarScreen: Dispatch<string>;
-  selectedColumn: Column;
-  setSelectedColumn: Dispatch<SetStateAction<Column>>;
+  selectedColumn: { name: string; table: string };
+  setSelectedColumn: Dispatch<SetStateAction<{ name: string; table: string }>>;
   collectColumns: Record<string, string[]>;
   setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>;
   rerender: () => void;
@@ -112,7 +112,7 @@ export const LineageContext = createContext<{
   setMoreTables: () => {},
   sidebarScreen: "",
   setSidebarScreen: () => {},
-  selectedColumn: nullColumn(),
+  selectedColumn: { name: "", table: "" },
   setSelectedColumn: () => "",
   collectColumns: {},
   setCollectColumns: () => {},
@@ -138,7 +138,7 @@ function App() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [moreTables, setMoreTables] = useState<TMoreTables>({});
   const [sidebarScreen, setSidebarScreen] = useState("");
-  const [selectedColumn, setSelectedColumn] = useState<Column>(nullColumn());
+  const [selectedColumn, setSelectedColumn] = useState({ name: "", table: "" });
   const [collectColumns, setCollectColumns] = useState<
     Record<string, string[]>
   >({});
@@ -236,7 +236,7 @@ function App() {
         if (node.upstreamCount > 0) await addNodesEdges(node.table, true);
         if (node.downstreamCount > 0) await addNodesEdges(node.table, false);
         setSelectedTable(null);
-        setSelectedColumn(nullColumn());
+        setSelectedColumn({ name: "", table: "" });
         setCollectColumns({});
         setMoreTables({});
       }
@@ -364,7 +364,7 @@ function App() {
             flow.current?.setNodes([]);
             flow.current?.setEdges([]);
             setSelectedTable(null);
-            setSelectedColumn(nullColumn());
+            setSelectedColumn({ name: "", table: "" });
             setCollectColumns({});
             setMoreTables({});
             vscode.postMessage({ command: "init" });

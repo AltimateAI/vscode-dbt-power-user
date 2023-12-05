@@ -34,7 +34,7 @@ import { ColorTag } from "./Tags";
 import ExpandLineageIcon from "./assets/icons/expand_lineage.svg?react";
 import { NodeTypeIcon } from "./CustomNodes";
 import { CustomInput } from "./Form";
-import { defaultEdgeStyle, isNotColumn, nullColumn } from "./utils";
+import { defaultEdgeStyle, isNotColumn } from "./utils";
 
 const ColumnCard: FunctionComponent<{
   column: Column;
@@ -241,7 +241,7 @@ const TableDetails = () => {
       );
       flow.setNodes(_nodes);
       flow.setEdges(_edges);
-      setSelectedColumn(nullColumn());
+      setSelectedColumn({ name: "", table: "" });
       setCollectColumns({});
       setShowSidebar(false);
       return;
