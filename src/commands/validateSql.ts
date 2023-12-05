@@ -15,6 +15,13 @@ import { TelemetryService } from "../telemetry";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { ProgressLocation, window } from "vscode";
 import { DBTProject } from "../manifest/dbtProject";
+import {
+  Diagnostic,
+  DiagnosticSeverity,
+  languages,
+  Position,
+  Range,
+} from "vscode";
 
 @provideSingleton(ValidateSql)
 export class ValidateSql {
@@ -72,11 +79,21 @@ export class ValidateSql {
         const request = {
           sql: compiledQuery,
           adapter: project.getAdapterType(),
-          sources: [], // TODO: we shouldn't need this here
           models: models.map((model) => model!.node),
         };
         const response = await this.altimate.validateSql(request);
         console.log(response);
+        const diagnosticsCollection = languages.createDiagnosticCollection();
+
+        const diagnostic = new Diagnostic(
+          new Range(new Position(10, 10), new Position(11, 11)),
+          response?.error || "",
+          DiagnosticSeverity.Error,
+        );
+
+        diagnosticsCollection.set(window.activeTextEditor?.document.uri, [
+          diagnostic,
+        ]);
       }
     }
   }

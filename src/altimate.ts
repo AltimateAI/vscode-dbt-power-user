@@ -115,11 +115,6 @@ interface ValidateSqlRequest {
 
 interface ValidateSqlParseErrorResponse {
   error_type: string;
-  errors: any[];
-}
-
-interface ValidateSqlParseErrorResponse {
-  error_type: string;
   error: string;
 }
 
@@ -233,9 +228,7 @@ export class AltimateRequest {
   }
 
   async validateSql(req: ValidateSqlRequest) {
-    return this.fetch<
-      ValidateSqlParseErrorResponse | ValidateSqlParseErrorResponse
-    >("dbt/v1/modelvalidation", {
+    return this.fetch<ValidateSqlParseErrorResponse>("dbt/v1/modelvalidation", {
       method: "POST",
       body: JSON.stringify(req),
     });
