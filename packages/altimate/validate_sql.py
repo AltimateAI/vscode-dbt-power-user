@@ -32,7 +32,7 @@ def _build_schemas(
         for column in model["columns"]:
             schema[_get_key(model["columns"][column]["name"], dialect)] = model[
                 "columns"
-            ][column].data_type
+            ][column].get("data_type", "string")
 
         db = _get_key(model["database"], dialect)
         schema_name = _get_key(model["schema"], dialect)
