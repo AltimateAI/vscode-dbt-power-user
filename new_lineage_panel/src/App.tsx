@@ -236,7 +236,7 @@ function App() {
         if (node.upstreamCount > 0) await addNodesEdges(node.table, true);
         if (node.downstreamCount > 0) await addNodesEdges(node.table, false);
         setSelectedTable(null);
-        setSelectedColumn({ name: "", table: "" });
+        setSelectedColumn({ table: "", name: "" });
         setCollectColumns({});
         setMoreTables({});
       }
@@ -364,7 +364,7 @@ function App() {
             flow.current?.setNodes([]);
             flow.current?.setEdges([]);
             setSelectedTable(null);
-            setSelectedColumn({ name: "", table: "" });
+            setSelectedColumn({ table: "", name: "" });
             setCollectColumns({});
             setMoreTables({});
             vscode.postMessage({ command: "init" });

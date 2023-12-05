@@ -241,7 +241,7 @@ const TableDetails = () => {
       );
       flow.setNodes(_nodes);
       flow.setEdges(_edges);
-      setSelectedColumn({ name: "", table: "" });
+      setSelectedColumn({ table: "", name: "" });
       setCollectColumns({});
       setShowSidebar(false);
       return;
