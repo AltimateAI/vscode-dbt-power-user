@@ -334,6 +334,9 @@ export class DBTProject implements Disposable {
       await this.python?.lock(
         (python) => python!`to_dict(project.safe_parse_project(${init}))`,
       );
+      // Add dbt packagesInstallPath in dbt modules
+      const packagesInstallPath = await this.findPackagesInstallPath();
+      DBTProject.DBT_MODULES.push(packagesInstallPath);
       if (init) {
         this.adapterType = (await this.python?.lock(
           (python) => python!`project.config.credentials.type`,
@@ -1009,6 +1012,14 @@ select * from renamed
         : false) ||
       "target"
     );
+  }
+
+  async findPackagesInstallPath() {
+    const packages_install_path = await this.python?.lock(
+      (python) => python!`to_dict(project.config.packages_install_path)`,
+    );
+    console.log(`Packages install path: ${packages_install_path}`);
+    return packages_install_path;
   }
 
   private async refresh() {

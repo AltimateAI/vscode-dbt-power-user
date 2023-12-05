@@ -235,6 +235,7 @@ class DbtProject:
             profile=profile,
             target_path=target_path,
         )
+        self.config = None
 
         # Utilities
         self._sql_parser: Optional[SqlBlockParser] = None
