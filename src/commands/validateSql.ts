@@ -69,17 +69,34 @@ export class ValidateSql {
       if (!parentNodes) {
         return;
       }
-      const models = await Promise.all(
-        parentNodes?.map((parentNode) =>
-          this.getNodeWithDBColumns(parentNode.key),
-        ),
-      );
+      const queue: string[] = parentNodes.map((n) => n.key);
+      const visited: Record<string, boolean> = {};
+      const models: ModelNode[] = [];
+      while (queue.length > 0) {
+        const curr = queue.shift()!;
+        if (visited[curr]) {
+          continue;
+        }
+        visited[curr] = true;
+        const model = await this.getNodeWithDBColumns(curr);
+        if (!model) {
+          continue;
+        }
+        const { node, isEphemeral } = model;
+        if (isEphemeral) {
+          queue.push(
+            ...(graphMetaMap.parents.get(curr)?.nodes?.map((n) => n.key) || []),
+          );
+        } else {
+          models.push(node);
+        }
+      }
       const compiledQuery = await project.compileNode(modelName);
       if (compiledQuery) {
         const request = {
           sql: compiledQuery,
           dialect: project.getAdapterType(),
-          models: models.map((model) => model!.node),
+          models,
         };
         const response = await this.getProject()?.validateSql(request);
         const diagnosticsCollection = languages.createDiagnosticCollection();
@@ -225,133 +242,6 @@ export class ValidateSql {
       this.telemetry.sendTelemetryEvent("columnLineagePossibleStaleSchema");
     }
     return true;
-  }
-
-  private async getColumns(table: string): Promise<
-    | {
-        id: string;
-        purpose: string;
-        columns: {
-          table: string;
-          name: string;
-          datatype: string;
-          can_lineage_expand: boolean;
-          description: string;
-        }[];
-      }
-    | undefined
-  > {
-    const event = this.getEvent();
-    if (!event) {
-      return;
-    }
-    const project = this.getProject();
-    if (!project) {
-      return;
-    }
-    const splits = table.split(".");
-    const nodeType = splits[0];
-    if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
-      const { sourceMetaMap } = event;
-      const sourceName = splits[2];
-      const tableName = splits[3];
-      const node = sourceMetaMap.get(sourceName);
-      if (!node) {
-        return;
-      }
-      const _table = node.tables.find((t) => t.name === tableName);
-      if (!_table) {
-        return;
-      }
-      const ok = await window.withProgress(
-        {
-          title: "Fetching metadata",
-          location: ProgressLocation.Notification,
-          cancellable: false,
-        },
-        async () => {
-          // TODO: the cache should also support sources
-          // this.lruCache.delete(node.name);
-          // this.dbCache.delete(node.name);
-          return await this.addSourceColumnsFromDB(project, node.name, _table);
-        },
-      );
-      if (!ok) {
-        window.showErrorMessage(
-          extendErrorWithSupportLinks(
-            "Unable to get columns from DB for model: " +
-              node.name +
-              " table: " +
-              _table.name +
-              ".",
-          ),
-        );
-        return;
-      }
-      return {
-        id: table,
-        purpose: _table.description,
-        columns: Object.values(_table.columns)
-          .map((c) => ({
-            table,
-            name: c.name,
-            datatype: c.data_type || "",
-            can_lineage_expand: false,
-            description: c.description,
-          }))
-          .sort((a, b) => a.name.localeCompare(b.name)),
-      };
-    }
-    const tableName = splits[2];
-    const { nodeMetaMap } = event;
-    const node = nodeMetaMap.get(tableName);
-    if (!node) {
-      return;
-    }
-    if (node.config.materialized === "ephemeral") {
-      window.showInformationMessage(
-        "Cannot fetch columns for ephemeral models.",
-      );
-      return;
-    }
-    const ok = await window.withProgress(
-      {
-        title: "Fetching metadata",
-        location: ProgressLocation.Notification,
-        cancellable: false,
-      },
-      async () => {
-        // this.lruCache.delete(node.name);
-        // this.dbCache.delete(node.name);
-        return await this.addModelColumnsFromDB(project, node);
-      },
-    );
-    if (!ok) {
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "Unable to get columns from DB for model: " +
-            node.name +
-            " table: " +
-            table +
-            ".",
-        ),
-      );
-      return;
-    }
-
-    return {
-      id: table,
-      purpose: node.description,
-      columns: Object.values(node.columns)
-        .map((c) => ({
-          table,
-          name: c.name,
-          datatype: c.data_type || "",
-          can_lineage_expand: false,
-          description: c.description,
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name)),
-    };
   }
 
   private async getNodeWithDBColumns(
