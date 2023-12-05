@@ -45,6 +45,7 @@ from dbt.parser.sql import SqlBlockParser, SqlMacroParser
 from dbt.task.sql import SqlCompileRunner, SqlExecuteRunner
 from dbt.tracking import disable_tracking
 from dbt.version import __version__ as dbt_version
+from packages.altimate.validate_sql import validate_sql_from_models
 
 
 try:

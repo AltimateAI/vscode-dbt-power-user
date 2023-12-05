@@ -113,9 +113,9 @@ interface ValidateSqlRequest {
   models: ModelNode[];
 }
 
-interface ValidateSqlParseErrorResponse {
+export interface ValidateSqlParseErrorResponse {
   error_type: string;
-  error: string;
+  errors: string[];
 }
 
 @provideSingleton(AltimateRequest)

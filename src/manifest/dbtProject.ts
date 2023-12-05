@@ -42,6 +42,7 @@ import {
 import { TargetWatchersFactory } from "./modules/targetWatchers";
 import { PythonEnvironment } from "./pythonEnvironment";
 import { TelemetryService } from "../telemetry";
+import { ValidateSqlParseErrorResponse } from "../altimate";
 import * as crypto from "crypto";
 
 export interface ExecuteSQLResult {
@@ -506,6 +507,36 @@ export class DBTProject implements Disposable {
       (python) => python!`to_dict(project.compile_sql(${query}))`,
     )) as CompilationResult;
     return output.compiled_sql;
+  }
+
+  public async validateSql(request: {
+    sql: string;
+    dialect: string;
+    models: any[];
+  }) {
+    await this.blockUntilPythonBridgeIsInitalized();
+
+    if (!this.pythonBridgeInitialized) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Could not compile query, because the Python bridge has not been initalized.",
+        ),
+      );
+      this.telemetry.sendTelemetryError(
+        "compileQueryPythonBridgeNotInitializedError",
+      );
+      return;
+    }
+    try {
+      const { sql, dialect, models } = request;
+      const result = await this.python?.lock(
+        (python) =>
+          python!`to_dict(validate_sql_from_models(${sql}, ${dialect}, ${models}))`,
+      );
+      return result as ValidateSqlParseErrorResponse;
+    } catch (exc) {
+      console.log(exc);
+    }
   }
 
   async compileQuery(query: string): Promise<string | undefined> {

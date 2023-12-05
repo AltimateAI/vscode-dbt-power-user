@@ -78,22 +78,25 @@ export class ValidateSql {
       if (compiledQuery) {
         const request = {
           sql: compiledQuery,
-          adapter: project.getAdapterType(),
+          dialect: project.getAdapterType(),
           models: models.map((model) => model!.node),
         };
-        const response = await this.altimate.validateSql(request);
-        console.log(response);
+        const response = await this.getProject()?.validateSql(request);
         const diagnosticsCollection = languages.createDiagnosticCollection();
 
-        const diagnostic = new Diagnostic(
-          new Range(new Position(10, 10), new Position(11, 11)),
-          response?.error || "",
-          DiagnosticSeverity.Error,
+        const diagnostics = response?.errors?.map(
+          (e) =>
+            new Diagnostic(
+              new Range(new Position(10, 10), new Position(11, 11)),
+              e,
+              DiagnosticSeverity.Error,
+            ),
         );
 
-        diagnosticsCollection.set(window.activeTextEditor?.document.uri, [
-          diagnostic,
-        ]);
+        diagnosticsCollection.set(
+          window.activeTextEditor?.document.uri,
+          diagnostics,
+        );
       }
     }
   }
