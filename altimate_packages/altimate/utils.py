@@ -22,7 +22,6 @@ def sql_parse_errors(sql: str, dialect: str):
         sqlglot.transpile(sql, read=dialect)
     except sqlglot.errors.ParseError as e:
         for error in e.errors:
-            raise Exception(str(e.errors))
             errors.append(_build_message(error))
     return errors
 
