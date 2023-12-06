@@ -1,5 +1,9 @@
 import { basename } from "path";
-import { AltimateRequest, ModelNode } from "../altimate";
+import {
+  AltimateRequest,
+  ModelNode,
+  ValidateSqlParseErrorType,
+} from "../altimate";
 import {
   ColumnMetaData,
   NodeMetaData,
@@ -22,6 +26,15 @@ import {
   Position,
   Range,
 } from "vscode";
+
+const ValidateSqlErrorSeverity: Record<
+  ValidateSqlParseErrorType,
+  DiagnosticSeverity
+> = {
+  sql_parse_error: DiagnosticSeverity.Error,
+  sql_invalid_error: DiagnosticSeverity.Error,
+  sql_execute_error: DiagnosticSeverity.Warning,
+};
 
 @provideSingleton(ValidateSql)
 export class ValidateSql {
@@ -112,7 +125,7 @@ export class ValidateSql {
                 new Position(end_position?.[0] || 0, end_position?.[1] || 0),
               ),
               description,
-              DiagnosticSeverity.Error,
+              ValidateSqlErrorSeverity[response?.error_type],
             ),
         );
 

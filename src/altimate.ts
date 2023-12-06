@@ -113,8 +113,13 @@ interface ValidateSqlRequest {
   models: ModelNode[];
 }
 
+export type ValidateSqlParseErrorType =
+  | "sql_parse_error"
+  | "sql_invalid_error"
+  | "sql_execute_error";
+
 export interface ValidateSqlParseErrorResponse {
-  error_type: string;
+  error_type: ValidateSqlParseErrorType;
   errors: {
     description: string;
     start_position?: [number, number];
