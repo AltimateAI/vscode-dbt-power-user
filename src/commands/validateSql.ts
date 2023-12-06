@@ -27,6 +27,7 @@ import {
   Range,
   commands,
 } from "vscode";
+import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 
 const ValidateSqlErrorSeverity: Record<
   ValidateSqlParseErrorType,
@@ -139,6 +140,13 @@ export class ValidateSql {
       await window.showInformationMessage("SQL is valid.");
       return;
     }
+    await commands.executeCommand("dbtPowerUser.sqlPreview");
+    let uri = window.activeTextEditor?.document.uri;
+    if (response.error_type === "sql_parse_error") {
+      uri = window.activeTextEditor?.document.uri.with({
+        scheme: SqlPreviewContentProvider.SCHEME,
+      });
+    }
     commands.executeCommand("workbench.action.problems.focus");
     const diagnosticsCollection = languages.createDiagnosticCollection();
 
@@ -154,10 +162,7 @@ export class ValidateSql {
         ),
     );
 
-    diagnosticsCollection.set(
-      window.activeTextEditor?.document.uri,
-      diagnostics,
-    );
+    diagnosticsCollection.set(uri, diagnostics);
   }
 
   private getProject() {
