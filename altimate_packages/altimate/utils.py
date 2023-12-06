@@ -3,6 +3,31 @@ from sqlglot.optimizer.qualify import qualify
 from sqlglot.executor import execute
 
 
+ADAPTER_MAPPING = {
+    "bigquery": "bigquery",
+    "clickhouse": "clickhouse",
+    "databricks": "databricks",
+    "duckdb": "duckdb",
+    "hive": "hive",
+    "mysql": "mysql",
+    "oracle": "oracle",
+    "postgres": "postgres",
+    "redshift": "redshift",
+    "snowflake": "snowflake",
+    "spark": "spark",
+    "starrocks": "starrocks",
+    "teradata": "teradata",
+    "trino": "trino",
+    "synapse": "tsql",
+    "sqlserver": "tsql",
+    "doris": "doris",
+}
+
+
+def map_adapter_to_dialect(adapter: str):
+    return ADAPTER_MAPPING.get(adapter, adapter)
+
+
 def get_str_position(str, row, col):
     """
     Get the position of a grid position in a string
