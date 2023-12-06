@@ -102,10 +102,16 @@ export class ValidateSql {
         const diagnosticsCollection = languages.createDiagnosticCollection();
 
         const diagnostics = response?.errors?.map(
-          (e) =>
+          ({ description, start_position, end_position }) =>
             new Diagnostic(
-              new Range(new Position(10, 10), new Position(11, 11)),
-              e,
+              new Range(
+                new Position(
+                  start_position?.[0] || 0,
+                  start_position?.[1] || 0,
+                ),
+                new Position(end_position?.[0] || 0, end_position?.[1] || 0),
+              ),
+              description,
               DiagnosticSeverity.Error,
             ),
         );

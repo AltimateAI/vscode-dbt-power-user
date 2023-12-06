@@ -115,7 +115,11 @@ interface ValidateSqlRequest {
 
 export interface ValidateSqlParseErrorResponse {
   error_type: string;
-  errors: string[];
+  errors: {
+    description: string;
+    start_position?: [number, number];
+    end_position?: [number, number];
+  }[];
 }
 
 @provideSingleton(AltimateRequest)
