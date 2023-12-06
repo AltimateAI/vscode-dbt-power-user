@@ -3,63 +3,8 @@ site_description: the best dbt extension for vscode
 site_author: Altimate Inc
 theme:
   name: material
-  custom_dir: docs/overrides
-  features:
-    - announce.dismiss
-    - content.action.edit
-    - content.action.view
-    - content.code.annotate
-    - content.code.copy
-    # - content.code.select
-    # - content.tabs.link
-    - content.tooltips
-    # - header.autohide
-    # - navigation.expand
-    - navigation.footer
-    - navigation.indexes
-    # - navigation.instant
-    # - navigation.instant.prefetch
-    # - navigation.instant.progress
-    # - navigation.prune
-    # - navigation.sections
-    # - navigation.tabs
-    # - navigation.tabs.sticky
-    - navigation.top
-    - navigation.tracking
-    - search.highlight
-    - search.share
-    - search.suggest
-    - toc.follow
-    # - toc.integrate
-  theme:
-  palette:
-    # Palette toggle for automatic mode
-    - media: "(prefers-color-scheme)"
-      toggle:
-        icon: material/brightness-auto
-        name: Switch to light mode
-
-    # Palette toggle for light mode
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
-
-    # Palette toggle for dark mode
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      toggle:
-        icon: material/brightness-4
-        name: Switch to system preference
-
-  font:
-    text: Roboto
-    code: Roboto Mono
-    logo: logo
 
 markdown_extensions:
-  - admonition
   - markdown.extensions.codehilite:
       guess_lang: false
   - pymdownx.highlight:
@@ -72,26 +17,26 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Setup Extension:
+  - Setup Extension: 
       - Install and configure the extension: setup/installation.md
       - Devcontainer (or Codespaces) setup (optional): setup/devcontainer.md
       - Select a custom dbtRunner (optional): setup/customdbtRunner.md
       - Setup environment variables (optional): setup/envvariables.md
       - Configure sqlfmt (optional): setup/sqlfmt.md
       - Skip folders in the project directory (optional): setup/skipproject.md
-  - Develop dbt Models:
+  - Develop dbt Models: 
       - Autocomplete and go to definition: develop/autocomplete.md
       - Click to build parent/child models: develop/clicktorun.md
       - Preview compiled code (SQL): develop/compiledCode.md
       - Generate dbt model from source: develop/genmodelSource.md
       - Generate dbt model from SQL: develop/genmodelSQL.md
       - Query explanation: develop/explanation.md
-  - Test dbt Models:
+  - Test dbt Models: 
       - Run tests: test/runtests.md
       - Preview query results: test/queryResults.md
       - Column Lineage: test/lineage.md
       - Project health check: test/healthcheck.md
-  - Document dbt Models:
+  - Document dbt Models: 
       - Write documentation: document/write.md
       - Generate documentation: document/generatedoc.md
   - Trobleshoot Extension: trobleshooting.md

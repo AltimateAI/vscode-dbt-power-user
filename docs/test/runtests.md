@@ -8,4 +8,4 @@ The toolbar action to test models is present on the top right corner of the VSCo
 
 ### Method 2: Run tests from the side panel
 
-![Run tests in side panel](images/extensionPanel.gif)
+![Run tests in side panel](images/testsPanel.png)

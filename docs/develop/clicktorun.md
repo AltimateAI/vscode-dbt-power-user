@@ -1,5 +1,3 @@
-## Run parent / child models
-
 There are two methods to do it. You can either do it from the top right corner toolbar or from the extension side pane
 
 ### Method 1: Build and run models from the toolbar

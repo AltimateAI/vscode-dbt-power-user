@@ -67,6 +67,7 @@ You can get an API key for free by signing up at [www.altimate.ai](https://www.a
 <div style="position: relative; padding-bottom: calc(51.70312500000001% + 44px); height: 0;"><iframe src=https://app.supademo.com/embed/yanO4l-w5hH0xzXf93w-d frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
 Here's how you add the API key in the VSCode extension:
+
 (First few steps are on how to install the extension)
 
 <Interactive demo to add API key in the extension>

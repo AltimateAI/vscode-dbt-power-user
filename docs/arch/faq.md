@@ -1,7 +1,5 @@
 The extension dbt Power User is owned by our parent entity, [Altimate Inc](https://www.notion.so/Altimate-AI-blurb-f4f12bb022524e6bbc3f9adac454a5f3?pvs=21). We are an early-stage ventured-backed startup based in the San Francisco Bay Area.
 
-## **Security FAQ for dbt Power User AI Doc Gen**
-
 ### **Security Measures & Protocols**
 
 ### 1. **Is my data encrypted during transmission?**
