@@ -17,7 +17,7 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { ProgressLocation, window } from "vscode";
+import { DiagnosticCollection, ProgressLocation, window } from "vscode";
 import { DBTProject } from "../manifest/dbtProject";
 import {
   Diagnostic,
@@ -41,6 +41,7 @@ const ValidateSqlErrorSeverity: Record<
 @provideSingleton(ValidateSql)
 export class ValidateSql {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
+  private diagnosticsCollection: DiagnosticCollection;
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
@@ -49,6 +50,7 @@ export class ValidateSql {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
     );
+    this.diagnosticsCollection = languages.createDiagnosticCollection();
   }
 
   private async onManifestCacheChanged(event: ManifestCacheChangedEvent) {
@@ -148,7 +150,6 @@ export class ValidateSql {
       });
     }
     commands.executeCommand("workbench.action.problems.focus");
-    const diagnosticsCollection = languages.createDiagnosticCollection();
 
     const diagnostics = response?.errors?.map(
       ({ description, start_position, end_position }) =>
@@ -162,7 +163,7 @@ export class ValidateSql {
         ),
     );
 
-    diagnosticsCollection.set(uri, diagnostics);
+    this.diagnosticsCollection.set(uri, diagnostics);
   }
 
   private getProject() {
