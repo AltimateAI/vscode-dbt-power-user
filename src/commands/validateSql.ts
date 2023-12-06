@@ -66,79 +66,96 @@ export class ValidateSql {
     const activedoc = window.activeTextEditor;
     const currentFilePath = activedoc.document.uri;
     const project = this.dbtProjectContainer.findDBTProject(currentFilePath);
-    if (project) {
-      const modelName = basename(currentFilePath.fsPath, ".sql");
+    if (!project) {
+      await window.showErrorMessage("Unable to build project");
+      return;
+    }
+    const modelName = basename(currentFilePath.fsPath, ".sql");
 
-      const event = this.getEvent();
-      if (!event) {
-        return;
-      }
-      const { graphMetaMap } = event;
-      const node = event.nodeMetaMap.get(modelName);
-      if (!node) {
-        return;
-      }
-      const parentNodes = graphMetaMap.parents.get(node.uniqueId)?.nodes;
-      if (!parentNodes) {
-        return;
-      }
-      const queue: string[] = parentNodes.map((n) => n.key);
-      const visited: Record<string, boolean> = {};
-      const models: ModelNode[] = [];
-      while (queue.length > 0) {
-        const curr = queue.shift()!;
-        if (visited[curr]) {
-          continue;
-        }
-        visited[curr] = true;
-        const model = await this.getNodeWithDBColumns(curr);
-        if (!model) {
-          continue;
-        }
-        const { node, isEphemeral } = model;
-        if (isEphemeral) {
-          queue.push(
-            ...(graphMetaMap.parents.get(curr)?.nodes?.map((n) => n.key) || []),
-          );
-        } else {
-          models.push(node);
-        }
-      }
-      const compiledQuery = await project.compileNode(modelName);
-      if (compiledQuery) {
-        const request = {
-          sql: compiledQuery,
-          dialect: project.getAdapterType(),
-          models,
-        };
-        const response = await this.getProject()?.validateSql(request);
-        if (!response || !response?.error_type) {
-          await window.showInformationMessage("SQL is valid.");
+    const event = this.getEvent();
+    if (!event) {
+      return;
+    }
+    const { graphMetaMap } = event;
+    const node = event.nodeMetaMap.get(modelName);
+    if (!node) {
+      return;
+    }
+    const parentNodes = graphMetaMap.parents.get(node.uniqueId)?.nodes;
+    if (!parentNodes) {
+      return;
+    }
+
+    const models: ModelNode[] = [];
+    let compiledQuery: string | undefined;
+    await window.withProgress(
+      {
+        location: ProgressLocation.Notification,
+        title: "Validating SQL",
+        cancellable: false,
+      },
+      async () => {
+        compiledQuery = await project.compileNode(modelName);
+        if (!compiledQuery) {
           return;
         }
-        const diagnosticsCollection = languages.createDiagnosticCollection();
-
-        const diagnostics = response?.errors?.map(
-          ({ description, start_position, end_position }) =>
-            new Diagnostic(
-              new Range(
-                new Position(
-                  start_position?.[0] || 0,
-                  start_position?.[1] || 0,
-                ),
-                new Position(end_position?.[0] || 0, end_position?.[1] || 0),
-              ),
-              description,
-              ValidateSqlErrorSeverity[response.error_type!],
-            ),
-        );
-
-        diagnosticsCollection.set(
-          window.activeTextEditor?.document.uri,
-          diagnostics,
-        );
-      }
+        const queue: string[] = parentNodes.map((n) => n.key);
+        const visited: Record<string, boolean> = {};
+        while (queue.length > 0) {
+          const curr = queue.shift()!;
+          if (visited[curr]) {
+            continue;
+          }
+          visited[curr] = true;
+          const model = await this.getNodeWithDBColumns(curr);
+          if (!model) {
+            continue;
+          }
+          const { node, isEphemeral } = model;
+          if (isEphemeral) {
+            queue.push(
+              ...(graphMetaMap.parents.get(curr)?.nodes?.map((n) => n.key) ||
+                []),
+            );
+          } else {
+            models.push(node);
+          }
+        }
+      },
+    );
+    if (!compiledQuery || models.length === 0) {
+      await window.showErrorMessage("Unable to compile sql query");
+      return;
     }
+
+    const request = {
+      sql: compiledQuery,
+      dialect: project.getAdapterType(),
+      models,
+    };
+    const response = await this.getProject()?.validateSql(request);
+    if (!response || !response?.error_type) {
+      await window.showInformationMessage("SQL is valid.");
+      return;
+    }
+    const diagnosticsCollection = languages.createDiagnosticCollection();
+
+    const diagnostics = response?.errors?.map(
+      ({ description, start_position, end_position }) =>
+        new Diagnostic(
+          new Range(
+            new Position(start_position?.[0] || 0, start_position?.[1] || 0),
+            new Position(end_position?.[0] || 0, end_position?.[1] || 0),
+          ),
+          description,
+          ValidateSqlErrorSeverity[response.error_type!],
+        ),
+    );
+
+    diagnosticsCollection.set(
+      window.activeTextEditor?.document.uri,
+      diagnostics,
+    );
   }
 
   private getProject() {
