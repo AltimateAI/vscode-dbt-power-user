@@ -112,6 +112,10 @@ export class ValidateSql {
           models,
         };
         const response = await this.getProject()?.validateSql(request);
+        if (!response || !response?.error_type) {
+          await window.showInformationMessage("SQL is valid.");
+          return;
+        }
         const diagnosticsCollection = languages.createDiagnosticCollection();
 
         const diagnostics = response?.errors?.map(
@@ -125,7 +129,7 @@ export class ValidateSql {
                 new Position(end_position?.[0] || 0, end_position?.[1] || 0),
               ),
               description,
-              ValidateSqlErrorSeverity[response?.error_type],
+              ValidateSqlErrorSeverity[response.error_type!],
             ),
         );
 

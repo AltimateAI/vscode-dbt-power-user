@@ -119,7 +119,7 @@ export type ValidateSqlParseErrorType =
   | "sql_execute_error";
 
 export interface ValidateSqlParseErrorResponse {
-  error_type: ValidateSqlParseErrorType;
+  error_type?: ValidateSqlParseErrorType;
   errors: {
     description: string;
     start_position?: [number, number];
