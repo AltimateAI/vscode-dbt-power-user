@@ -35,16 +35,15 @@ def get_line_and_column_from_position(sql: str, position: int):
 def _build_message(sql: str, error: dict):
     len_highlight = len(error["highlight"])
     len_prefix = len(error["start_context"])
-    end_position = get_str_position(
-        sql, error["row"], error["col"]
-    )
-    start_position = end_position - len_highlight  - len_prefix
+    end_position = get_str_position(sql, error["row"], error["col"])
+    start_position = end_position - len_highlight - len_prefix
     row, col = get_line_and_column_from_position(sql, start_position)
     return {
         "description": error["description"],
         "start_position": [row, col],
-        "end_position":  [error["row"], error["col"]],
+        "end_position": [error["row"], error["col"]],
     }
+
 
 def sql_parse_errors(sql: str, dialect: str):
     errors = []

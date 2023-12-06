@@ -81,5 +81,5 @@ def validate_sql_from_models(
             return {"error_type": "sql_execute_error", "errors": errors}
 
     except Exception as e:
-        return {"error_type": "sql_unknown_error", "errors": []}
+        return {"error_type": "sql_unknown_error", "errors": [{"description": str(e)}]}
     return {}
