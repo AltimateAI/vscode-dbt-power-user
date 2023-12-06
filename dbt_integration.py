@@ -100,10 +100,13 @@ def validate_sql(
     dialect: str,
     models: List[Dict],
 ):
-    with add_path(ALTIMATE_PACKAGE_PATH):
-        from altimate.validate_sql import validate_sql_from_models
+    try:
+        with add_path(ALTIMATE_PACKAGE_PATH):
+            from altimate.validate_sql import validate_sql_from_models
 
-        return validate_sql_from_models(sql, dialect, models)
+            return validate_sql_from_models(sql, dialect, models)
+    except Exception as e:
+        raise Exception(str(e))
 
 
 def to_dict(obj):
