@@ -627,11 +627,11 @@ export class DBTProject implements Disposable {
     if (!node) {
       return [];
     }
-    let _tableName = node.alias || tableName;
-    if (node.resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {
-      _tableName = node.identifier;
-    }
-    return this.getColumsOfRelation(node.database, node.schema, _tableName);
+    return this.getColumsOfRelation(
+      node.database,
+      node.schema,
+      node.identifier,
+    );
   }
 
   async getColumsOfRelation(
