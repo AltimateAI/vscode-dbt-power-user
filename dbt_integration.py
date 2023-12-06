@@ -15,6 +15,8 @@ dbt.adapters.factory.get_adapter = lambda config: config.adapter
 import os
 import threading
 import uuid
+import sys
+import contextlib
 from collections import UserDict
 from collections.abc import Iterable
 from datetime import date, datetime, time
@@ -45,7 +47,6 @@ from dbt.parser.sql import SqlBlockParser, SqlMacroParser
 from dbt.task.sql import SqlCompileRunner, SqlExecuteRunner
 from dbt.tracking import disable_tracking
 from dbt.version import __version__ as dbt_version
-from packages.altimate.validate_sql import validate_sql_from_models
 
 
 try:
@@ -81,6 +82,28 @@ COMPILED_CODE = (
 JINJA_CONTROL_SEQS = ["{{", "}}", "{%", "%}", "{#", "#}"]
 
 T = TypeVar("T")
+
+ALTIMATE_PACKAGE_PATH = f"{os.path.dirname(os.path.abspath(__file__))}/altimate_packages"
+
+
+@contextlib.contextmanager
+def add_path(path):
+    sys.path.append(path)
+    try:
+        yield
+    finally:
+        sys.path.remove(path)
+
+
+def validate_sql(
+    sql: str,
+    dialect: str,
+    models: List[Dict],
+):
+    with add_path(ALTIMATE_PACKAGE_PATH):
+        from altimate.validate_sql import validate_sql_from_models
+
+        return validate_sql_from_models(sql, dialect, models)
 
 
 def to_dict(obj):
@@ -506,10 +529,14 @@ class DbtProject:
         try:
             self.sql_compiler.node = copy(node)
             if DBT_MAJOR_VER == 1 and DBT_MINOR_VER <= 3:
-                compiled_node = node if isinstance(node, CompiledNode) else self.sql_compiler.compile(self.dbt)
+                compiled_node = (
+                    node
+                    if isinstance(node, CompiledNode)
+                    else self.sql_compiler.compile(self.dbt)
+                )
             else:
                 # this is essentially a convenient wrapper to adapter.get_compiler
-                compiled_node = self.sql_compiler.compile(self.dbt)        
+                compiled_node = self.sql_compiler.compile(self.dbt)
             return DbtAdapterCompilationResult(
                 getattr(compiled_node, RAW_CODE),
                 getattr(compiled_node, COMPILED_CODE),

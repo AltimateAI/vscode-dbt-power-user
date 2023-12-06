@@ -531,7 +531,7 @@ export class DBTProject implements Disposable {
       const { sql, dialect, models } = request;
       const result = await this.python?.lock(
         (python) =>
-          python!`to_dict(validate_sql_from_models(${sql}, ${dialect}, ${models}))`,
+          python!`to_dict(validate_sql(${sql}, ${dialect}, ${models}))`,
       );
       return result as ValidateSqlParseErrorResponse;
     } catch (exc) {
