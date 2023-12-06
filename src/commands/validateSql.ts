@@ -140,9 +140,9 @@ export class ValidateSql {
       await window.showInformationMessage("SQL is valid.");
       return;
     }
-    await commands.executeCommand("dbtPowerUser.sqlPreview");
     let uri = window.activeTextEditor?.document.uri;
     if (response.error_type === "sql_parse_error") {
+      await commands.executeCommand("dbtPowerUser.sqlPreview");
       uri = window.activeTextEditor?.document.uri.with({
         scheme: SqlPreviewContentProvider.SCHEME,
       });
