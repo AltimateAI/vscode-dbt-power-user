@@ -56,27 +56,30 @@ def validate_sql_from_models(
     """
     Validate SQL from models
     """
-    schemas = _build_schemas(models, dialect)
+    try:
+        schemas = _build_schemas(models, dialect)
 
-    errors = sql_parse_errors(sql, dialect)
+        errors = sql_parse_errors(sql, dialect)
 
-    if len(errors) > 0:
-        return {
-            "error_type": "sql_parse_error",
-            "errors": errors,
-        }
+        if len(errors) > 0:
+            return {
+                "error_type": "sql_parse_error",
+                "errors": errors,
+            }
 
-    errors = validate_tables_and_columns(sql, dialect, schemas)
+        errors = validate_tables_and_columns(sql, dialect, schemas)
 
-    if errors:
-        return {
-            "error_type": "sql_invalid_error",
-            "errors": errors,
-        }
+        if errors:
+            return {
+                "error_type": "sql_invalid_error",
+                "errors": errors,
+            }
 
-    errors = sql_execute_errors(sql, dialect, schemas)
+        errors = sql_execute_errors(sql, dialect, schemas)
 
-    if errors:
-        return {"error_type": "sql_execute_error", "errors": errors}
+        if errors:
+            return {"error_type": "sql_execute_error", "errors": errors}
 
+    except Exception as e:
+        return {"error_type": "sql_unknown_error", "errors": []}
     return {}
