@@ -5,7 +5,7 @@ from sqlglot.executor import execute
 
 def get_str_position(str, row, col):
     """
-    Get the position of a string in a string
+    Get the position of a grid position in a string
     """
     lines = str.split("\n")
     position = 0
