@@ -25,6 +25,7 @@ import {
   languages,
   Position,
   Range,
+  commands,
 } from "vscode";
 
 const ValidateSqlErrorSeverity: Record<
@@ -138,6 +139,7 @@ export class ValidateSql {
       await window.showInformationMessage("SQL is valid.");
       return;
     }
+    commands.executeCommand("workbench.action.problems.focus");
     const diagnosticsCollection = languages.createDiagnosticCollection();
 
     const diagnostics = response?.errors?.map(
