@@ -17,13 +17,28 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Installation and Configuration: installation.md
-  - Learn features:
-      - Develop dbt Models: features/devlop.md
-      - Test dbt Models: features/test.md
-      - Document dbt Models: features/document.md
-      - Debug dbt Models: features/debug.md
-  - Debuging and Trobleshooting Guide: trobleshooting.md
-  - Get Info on Security & Architecture:
+  - Setup Extension:
+      - Install and configure the extension: setup/installation.md
+      - Devcontainer (or Codespaces) setup (optional): setup/devcontainer.md
+      - Select a custom dbtRunner (optional): setup/customdbtRunner.md
+      - Setup environment variables (optional): setup/envvariables.md
+      - Configure sqlfmt (optional): setup/sqlfmt.md
+      - Skip folders in the project directory (optional): setup/skipproject.md
+  - Develop dbt Models:
+      - Autocomplete and go to definition: develop/autocomplete.md
+      - Click to build parent/child models: develop/clicktorun.md
+      - Preview compiled code (SQL): develop/compiledCode.md
+      - Generate dbt model from source: develop/genmodelSource.md
+      - Generate dbt model from SQL: develop/genmodelSQL.md
+      - Query explanation: develop/explanation.md
+      - Document models: develop/documentation.md
+  - Test dbt Models:
+      - Run tests: test/runtests.md
+      - Preview query results: test/queryResults.md
+      - Column Lineage: test/lineage.md
+      - Project health check: test/healthcheck.md
+  - Document dbt Models: document.md
+  - Trobleshoot Extension: trobleshooting.md
+  - Security & Architecture:
       - Architecture: arch/architecture.md
       - Security FAQ: arch/faq.md
