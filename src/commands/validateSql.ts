@@ -133,7 +133,10 @@ export class ValidateSql {
       },
       async () => {
         try {
-          compiledQuery = await project.compileNode(modelName);
+          const fileContentBytes = await workspace.fs.readFile(currentFilePath);
+          compiledQuery = await project.compileQuery(
+            fileContentBytes.toString(),
+          );
           if (!compiledQuery) {
             return;
           }
