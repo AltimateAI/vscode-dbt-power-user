@@ -1,11 +1,7 @@
-from typing import List, Dict
+from typing import Dict, List
 
-from altimate.utils import (
-    sql_execute_errors,
-    sql_parse_errors,
-    validate_tables_and_columns,
-    map_adapter_to_dialect,
-)
+from altimate.utils import (map_adapter_to_dialect, sql_execute_errors,
+                            sql_parse_errors, validate_tables_and_columns)
 
 
 def _get_key(
@@ -83,5 +79,5 @@ def validate_sql_from_models(
         #     return {"error_type": "sql_execute_error", "errors": errors}
 
     except Exception as e:
-        return {"error_type": "sql_unknown_error", "errors": [{"description": str(e)}]}
+        return {"error_type": "sql_unknown_error", "errors": [{"description": f"Unknown error. Cannot validate SQL. {str(e)}"}]}
     return {}

@@ -1,7 +1,8 @@
-import sqlglot
-from sqlglot.optimizer.qualify import qualify
-from sqlglot.executor import execute
+import re
 
+import sqlglot
+from sqlglot.executor import execute
+from sqlglot.optimizer.qualify import qualify
 
 ADAPTER_MAPPING = {
     "bigquery": "bigquery",
@@ -24,41 +25,40 @@ ADAPTER_MAPPING = {
 }
 
 
-def extract_text_between_quotes(text):
-    # Find the first occurrence of '"'
-    start_index = text.find('"')
+def extract_column_name(text):
+    # List of regex patterns
+    regex_patterns = [
+        r"Column '\"(\w+)\"' could not be resolved",
+        r"Unknown column: (\w+)",
+        r"Column '(\w+)' could not be resolved",
+        r"Unknown output column: (\w+)",
+        r"Cannot automatically join: (\w+)",
+    ]
 
-    # Check if the first '"' is found
-    if start_index == -1:
-        return None  # or return an appropriate message
+    # Iterate over each regex pattern
+    for regex in regex_patterns:
+        matches = re.findall(regex, text)
+        if matches:
+            return matches[0]
 
-    # Adjust start index to exclude the quotation mark itself and find the next occurrence of '"'
-    end_index = text.find('"', start_index + 1)
-
-    # Check if the second '"' is found
-    if end_index == -1:
-        return None  # or return an appropriate message
-
-    # Extract the text between the two indices
-    extracted_text = text[start_index + 1 : end_index]
-
-    return extracted_text
+    return None
 
 
 def find_single_occurrence_indices(main_string, substring):
-    # Check if the substring occurs only once in the main string
+    # Convert both strings to lowercase for case-insensitive comparison
     main_string = main_string.lower()
-    substring = substring.lower()
+    substring = substring.lower() if substring else ""
+
+    if not substring:
+        return None, None
+
+    # Check if the substring occurs only once in the main string
     if main_string.count(substring) == 1:
         start_index = main_string.find(substring)
+        return start_index, start_index + len(substring)
 
-        # The end index is the start index plus the length of the substring
-        end_index = start_index + len(substring)
-
-        return start_index, end_index
-    else:
-        # Return a message or None if the substring doesn't occur exactly once
-        return None, None
+    # Return None if the substring doesn't occur exactly once
+    return None, None
 
 
 def map_adapter_to_dialect(adapter: str):
@@ -133,7 +133,13 @@ def validate_tables_and_columns(
         error = str(e)
         if "sqlglot" in error:
             error = "Failed to validate the query"
-        invalid_entity = extract_text_between_quotes(error)
+        invalid_entity = extract_column_name(error)
+        if not invalid_entity:
+            return [
+                {
+                    "description": error,
+                }
+            ]
         start, end = find_single_occurrence_indices(sql, invalid_entity)
         if start and end:
             return [
