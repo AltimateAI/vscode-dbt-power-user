@@ -88,7 +88,7 @@ export class ValidateSql {
         ),
       );
       this.telemetry.sendTelemetryError(
-        "columnLineageCompileNodePythonError",
+        "validateSQLCompileNodePythonError",
         exc,
       );
       console.error(
@@ -104,7 +104,7 @@ export class ValidateSql {
       return;
     }
     this.telemetry.sendTelemetryError(
-      "columnLineageCompileNodeUnknownError",
+      "validateSQLCompileNodeUnknownError",
       exc,
     );
     // Unknown error
@@ -337,7 +337,7 @@ export class ValidateSql {
     if (columnsFromDB.length > 100) {
       // Flagging events where more than 100 columns are fetched from db to get a sense of how many of these happen
       this.telemetry.sendTelemetryEvent(
-        "columnLineageExcessiveColumnsFetchedFromDB",
+        "validateSQLExcessiveColumnsFetchedFromDB",
       );
     }
     const columns: Record<string, ColumnMetaData> = {};
@@ -359,7 +359,7 @@ export class ValidateSql {
     });
     if (Object.keys(node.columns).length > columnsFromDB.length) {
       // Flagging events where columns fetched from db are less than the number of columns in the manifest
-      this.telemetry.sendTelemetryEvent("columnLineagePossibleStaleSchema");
+      this.telemetry.sendTelemetryEvent("validateSQLPossibleStaleSchema");
     }
     return true;
   }
@@ -381,7 +381,7 @@ export class ValidateSql {
     if (columnsFromDB.length > 100) {
       // Flagging events where more than 100 columns are fetched from db to get a sense of how many of these happen
       this.telemetry.sendTelemetryEvent(
-        "columnLineageExcessiveColumnsFetchedFromDB",
+        "validateSQLExcessiveColumnsFetchedFromDB",
       );
     }
     const columns: Record<string, ColumnMetaData> = {};
@@ -403,7 +403,7 @@ export class ValidateSql {
     });
     if (Object.keys(table.columns).length > columnsFromDB.length) {
       // Flagging events where columns fetched from db are less than the number of columns in the manifest
-      this.telemetry.sendTelemetryEvent("columnLineagePossibleStaleSchema");
+      this.telemetry.sendTelemetryEvent("validateSQLPossibleStaleSchema");
     }
     return true;
   }
