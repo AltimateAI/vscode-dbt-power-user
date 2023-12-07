@@ -237,14 +237,11 @@ export class ValidateSql {
       ({ description, start_position, end_position }) => {
         let startPos = new Position(0, 1);
         let endPos = new Position(0, 1);
-        if (response.error_type === "sql_parse_error") {
-          if (start_position) {
-            startPos = new Position(start_position[0], start_position[1]);
-          }
-          if (end_position) {
-            endPos = new Position(end_position[0], end_position[1]);
-          }
-        } else {
+        if (start_position) {
+          startPos = new Position(start_position[0], start_position[1]);
+        }
+        if (end_position) {
+          endPos = new Position(end_position[0], end_position[1]);
         }
         return new Diagnostic(
           new Range(startPos, endPos),
