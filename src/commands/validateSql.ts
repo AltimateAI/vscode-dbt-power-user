@@ -29,6 +29,7 @@ import {
   workspace,
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
+import { PythonException } from "python-bridge";
 
 const ValidateSqlErrorSeverity: Record<
   ValidateSqlParseErrorType,
@@ -77,6 +78,45 @@ export class ValidateSql {
     });
   }
 
+  private showError(exc: unknown) {
+    if (exc instanceof PythonException) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          `An error occured while trying to compile your model: ` +
+            exc.exception.message +
+            ".",
+        ),
+      );
+      this.telemetry.sendTelemetryError(
+        "columnLineageCompileNodePythonError",
+        exc,
+      );
+      console.error(
+        "Error encountered while compiling/retrieving schema for model: ",
+      );
+      console.error(
+        "Exception: " +
+          exc.exception.message +
+          "\n\n" +
+          "Detailed error information:\n" +
+          exc,
+      );
+      return;
+    }
+    this.telemetry.sendTelemetryError(
+      "columnLineageCompileNodeUnknownError",
+      exc,
+    );
+    // Unknown error
+    window.showErrorMessage(
+      extendErrorWithSupportLinks(
+        "Encountered an unknown issue: " +
+          exc +
+          " while compiling/retrieving schema for nodes.",
+      ),
+    );
+  }
+
   async validateSql() {
     this.telemetry.sendTelemetryEvent("validateSql");
     if (!window.activeTextEditor) {
@@ -106,6 +146,7 @@ export class ValidateSql {
     }
 
     const models: ModelNode[] = [];
+    const relationsWithoutColumns: string[] = [];
     let compiledQuery: string | undefined;
     await window.withProgress(
       {
@@ -114,31 +155,41 @@ export class ValidateSql {
         cancellable: false,
       },
       async () => {
-        compiledQuery = await project.compileNode(modelName);
-        if (!compiledQuery) {
-          return;
+        try {
+          compiledQuery = await project.compileNode(modelName);
+          if (!compiledQuery) {
+            return;
+          }
+        } catch (exc) {
+          this.showError(exc);
         }
-        const queue: string[] = parentNodes.map((n) => n.key);
-        const visited: Record<string, boolean> = {};
-        while (queue.length > 0) {
-          const curr = queue.shift()!;
-          if (visited[curr]) {
-            continue;
+        try {
+          const queue: string[] = parentNodes.map((n) => n.key);
+          const visited: Record<string, boolean> = {};
+          while (queue.length > 0) {
+            const curr = queue.shift()!;
+            if (visited[curr]) {
+              continue;
+            }
+            visited[curr] = true;
+            const model = await this.getNodeWithDBColumns(curr);
+            if (!model) {
+              continue;
+            }
+            const { node, isEphemeral, dbColumnAdded } = model;
+            if (isEphemeral) {
+              queue.push(
+                ...(graphMetaMap.parents.get(curr)?.nodes?.map((n) => n.key) ||
+                  []),
+              );
+            } else if (dbColumnAdded) {
+              models.push(node);
+            } else {
+              relationsWithoutColumns.push(curr);
+            }
           }
-          visited[curr] = true;
-          const model = await this.getNodeWithDBColumns(curr);
-          if (!model) {
-            continue;
-          }
-          const { node, isEphemeral } = model;
-          if (isEphemeral) {
-            queue.push(
-              ...(graphMetaMap.parents.get(curr)?.nodes?.map((n) => n.key) ||
-                []),
-            );
-          } else {
-            models.push(node);
-          }
+        } catch (exc) {
+          this.showError(exc);
         }
       },
     );
@@ -157,6 +208,16 @@ export class ValidateSql {
         ),
       );
       return;
+    }
+
+    if (relationsWithoutColumns.length !== 0) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Failed to fetch columns for " +
+            relationsWithoutColumns.join(", ") +
+            ". Probably the dbt models are not yet materialized.",
+        ),
+      );
     }
 
     const request = {
