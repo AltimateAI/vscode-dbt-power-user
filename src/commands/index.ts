@@ -50,6 +50,10 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.compileCurrentModel", () =>
         this.runModel.compileModelOnActiveWindow(),
       ),
+      commands.registerCommand(
+        "dbtPowerUser.costEstimate",
+        () => this.getProject()?.validateSQLDryRun(),
+      ),
       commands.registerTextEditorCommand(
         "dbtPowerUser.sqlPreview",
         async (editor: TextEditor) => {
@@ -189,6 +193,14 @@ export class VSCodeCommands implements Disposable {
         );
       }),
     );
+  }
+
+  private getProject() {
+    const currentFilePath = window.activeTextEditor?.document.uri;
+    if (!currentFilePath) {
+      return;
+    }
+    return this.dbtProjectContainer.findDBTProject(currentFilePath);
   }
 
   needExtensionUpdate() {

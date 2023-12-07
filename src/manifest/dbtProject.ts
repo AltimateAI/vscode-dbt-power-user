@@ -557,6 +557,7 @@ export class DBTProject implements Disposable {
       const result = await this.python?.lock(
         (python) => python!`to_dict(project.validate_sql_dry_run())`,
       );
+      console.log(result);
       return result as ValidateSqlParseErrorResponse;
     } catch (exc) {
       console.log(exc);
