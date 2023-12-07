@@ -280,6 +280,10 @@
         "title": "Clear Health Check Results"
       },
       {
+        "command": "dbtPowerUser.costEstimate",
+        "title": "Estimate cost for BigQuery"
+      },
+      {
         "command": "dbtPowerUser.compileCurrentModel",
         "title": "Compile dbt Model",
         "icon": {

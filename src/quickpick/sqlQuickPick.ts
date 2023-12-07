@@ -8,9 +8,20 @@ import {
   window,
 } from "vscode";
 import { provideSingleton } from "../utils";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 
 @provideSingleton(DbtSQLAction)
 export class DbtSQLAction {
+  constructor(private dbtProjectContainer: DBTProjectContainer) {}
+
+  private getProject() {
+    const currentFilePath = window.activeTextEditor?.document.uri;
+    if (!currentFilePath) {
+      return;
+    }
+    return this.dbtProjectContainer.findDBTProject(currentFilePath);
+  }
+
   async openQuickPick() {
     const disposables: Disposable[] = [];
     try {
@@ -19,7 +30,7 @@ export class DbtSQLAction {
           DbtPowerUserControlPanelItem | QuickPickItem
         >();
         dbtpuquickpick.title = "SQL Actions";
-        dbtpuquickpick.items = [
+        const items = [
           new DbtPowerUserControlPanelItem(
             "Explain query",
             "lightbulb-autofix",
@@ -33,6 +44,20 @@ export class DbtSQLAction {
             "dbtPowerUser.validateSql",
           ),
         ];
+
+        const adapter = this.getProject()?.getAdapterType();
+        if (adapter === "bigquery") {
+          items.push(
+            new DbtPowerUserControlPanelItem(
+              "Cost Estimate",
+              "lightbulb-autofix",
+              "Estimate cost for BigQuery",
+              "dbtPowerUser.costEstimate",
+            ),
+          );
+        }
+        dbtpuquickpick.items = items;
+
         disposables.push(
           dbtpuquickpick.onDidChangeValue((value) => {
             dbtpuquickpick.busy = true;
