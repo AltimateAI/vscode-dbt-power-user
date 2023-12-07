@@ -3,7 +3,7 @@ import { provideSingleton } from "../utils";
 import { DbtPowerUserControlCenterAction } from "./puQuickPick";
 import { ProjectQuickPick } from "./projectQuickPick";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { DbtSQLRelatedAction } from "./sqlQuickPick";
+import { DbtSQLAction } from "./sqlQuickPick";
 
 @provideSingleton(DbtPowerUserActionsCenter)
 export class DbtPowerUserActionsCenter implements Disposable {
@@ -13,7 +13,7 @@ export class DbtPowerUserActionsCenter implements Disposable {
     private puLaunchQuickPick: DbtPowerUserControlCenterAction,
     private projectQuickPick: ProjectQuickPick,
     private dbtProjectContainer: DBTProjectContainer,
-    private sqlQuickPick: DbtSQLRelatedAction,
+    private sqlQuickPick: DbtSQLAction,
   ) {
     commands.registerCommand("dbtPowerUser.puQuickPick", async () => {
       await this.puLaunchQuickPick.openPuQuickPick();

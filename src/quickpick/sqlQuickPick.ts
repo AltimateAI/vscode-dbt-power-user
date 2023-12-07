@@ -9,8 +9,8 @@ import {
 } from "vscode";
 import { provideSingleton } from "../utils";
 
-@provideSingleton(DbtSQLRelatedAction)
-export class DbtSQLRelatedAction {
+@provideSingleton(DbtSQLAction)
+export class DbtSQLAction {
   async openQuickPick() {
     const disposables: Disposable[] = [];
     try {
@@ -18,13 +18,19 @@ export class DbtSQLRelatedAction {
         const dbtpuquickpick = window.createQuickPick<
           DbtPowerUserControlPanelItem | QuickPickItem
         >();
-        dbtpuquickpick.title = "SQL related action";
+        dbtpuquickpick.title = "SQL Actions";
         dbtpuquickpick.items = [
           new DbtPowerUserControlPanelItem(
-            "Setup Extension",
-            "debug",
-            "Open the extension setup walkthrough",
-            "dbtPowerUser.openSetupWalkthrough",
+            "Explain query",
+            "lightbulb-autofix",
+            "Explain the sql query",
+            "dbtPowerUser.summarizeQuery",
+          ),
+          new DbtPowerUserControlPanelItem(
+            "Validate SQL",
+            "circuit-board",
+            "Validate the sql query",
+            "dbtPowerUser.validateSql",
           ),
         ];
         disposables.push(
