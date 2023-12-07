@@ -435,11 +435,6 @@
           "group": "navigation@5"
         },
         {
-          "command": "dbtPowerUser.summarizeQuery",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.altimateInstanceName && config.dbt.altimateAiKey",
-          "group": "navigation@1"
-        },
-        {
           "command": "dbtPowerUser.sqlQuickPick",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.altimateInstanceName && config.dbt.altimateAiKey",
           "group": "navigation@1"
