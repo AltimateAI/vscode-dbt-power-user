@@ -40,19 +40,6 @@ const ValidateSqlErrorSeverity: Record<
   sql_execute_error: DiagnosticSeverity.Warning,
 };
 
-const invalidSQLMessagePattern = /Column '(.+)' could not be resolved/;
-const caseInsensitiveStringSearch = (string: string, substring: string) => {
-  const regex = new RegExp(`\\b${substring}\\b`, "i");
-  const match = string.match(regex);
-
-  if (!match) {
-    return { startIndex: -1, endIndex: -1 };
-  }
-  const startIndex = match.index!;
-  const endIndex = startIndex + match[0].length;
-  return { startIndex, endIndex };
-};
-
 @provideSingleton(ValidateSql)
 export class ValidateSql {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
@@ -230,15 +217,19 @@ export class ValidateSql {
       return;
     }
     let uri = window.activeTextEditor?.document.uri;
-    let fileContent = [""];
     if (response.error_type === "sql_parse_error") {
       await commands.executeCommand("dbtPowerUser.sqlPreview");
       uri = window.activeTextEditor?.document.uri.with({
         scheme: SqlPreviewContentProvider.SCHEME,
       });
-    } else {
-      const fileContentBytes = await workspace.fs.readFile(uri);
-      fileContent = fileContentBytes.toString().split("\n");
+    } else if (
+      response.errors.length > 0 &&
+      response.errors[0].start_position
+    ) {
+      await commands.executeCommand("dbtPowerUser.sqlPreview");
+      uri = window.activeTextEditor?.document.uri.with({
+        scheme: SqlPreviewContentProvider.SCHEME,
+      });
     }
     commands.executeCommand("workbench.action.problems.focus");
 
@@ -254,21 +245,6 @@ export class ValidateSql {
             endPos = new Position(end_position[0], end_position[1]);
           }
         } else {
-          const match = description.match(invalidSQLMessagePattern);
-          if (match) {
-            const columnName = match[1].replace(/"/g, "");
-            for (let i = 0; i < fileContent.length; i++) {
-              const { startIndex, endIndex } = caseInsensitiveStringSearch(
-                fileContent[i],
-                columnName,
-              );
-              if (startIndex !== -1) {
-                startPos = new Position(i, startIndex);
-                endPos = new Position(i, endIndex);
-                break;
-              }
-            }
-          }
         }
         return new Diagnostic(
           new Range(startPos, endPos),
