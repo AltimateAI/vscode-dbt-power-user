@@ -49,6 +49,7 @@ export interface SourceMetaData {
 
 export interface SourceTable {
   name: string;
+  identifier: string;
   path: string;
   description: string;
   columns: { [columnName: string]: ColumnMetaData };

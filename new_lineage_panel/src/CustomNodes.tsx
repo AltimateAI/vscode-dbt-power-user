@@ -10,22 +10,24 @@ import {
 import styles from "./styles.module.scss";
 import classNames from "classnames";
 import {
-  createNewNodesEdges,
+  bfsTraversal,
+  expandTableLineage,
   highlightTableConnections,
   layoutElementsOnCanvas,
-  mergeCollectColumns,
-  mergeNodesEdges,
-  processColumnLineage,
   resetTableHighlights,
 } from "./graph";
-import { LineageContext, openFile, isDarkMode } from "./App";
-import { Table, downstreamTables, upstreamTables } from "./service";
+import {
+  LineageContext,
+  openFile,
+  isDarkMode,
+  startProgressBar,
+  endProgressBar,
+} from "./App";
 import {
   COLUMNS_SIDEBAR,
   C_NODE_H,
   C_PADDING_Y,
   TABLES_SIDEBAR,
-  getHelperDataForCLL,
 } from "./utils";
 import { TMoreTables } from "./MoreTables";
 import ModelIcon from "./assets/icons/model.svg?react";
@@ -129,13 +131,51 @@ const TableNodePill: FunctionComponent<{
   </>
 );
 
+export const TableHeader: FunctionComponent<{
+  nodeType: unknown;
+  label: string;
+  table: string;
+  tests: { key: string; path: string }[];
+  materialization?: string | undefined;
+}> = ({ nodeType, label, table, tests, materialization }) => {
+  const nType = nodeType as keyof typeof NODE_TYPE_SHORTHAND;
+  return (
+    <div className="d-flex flex-column align-items-start gap-xs w-100">
+      <div className={styles.table_header}>
+        <div className={classNames(styles.node_icon, NODE_TYPE_STYLES[nType])}>
+          <NodeTypeIcon nodeType={nType} />
+          <div>{NODE_TYPE_SHORTHAND[nType]}</div>
+        </div>
+        <div className="lines-2">{label}</div>
+      </div>
+      <div className={classNames("d-flex gap-xs", styles.node_extra_info)}>
+        {tests?.length > 0 && (
+          <TableNodePill
+            id={"table-node-tests-" + table.replaceAll(".", "-")}
+            icon={<TestsIcon />}
+            text={tests.length.toString()}
+            label="Tests"
+          />
+        )}
+        {materialization && (
+          <TableNodePill
+            id={"table-node-materilization-" + table.replaceAll(".", "-")}
+            icon={<EphemeralIcon />}
+            text={materialization}
+            label="Materialization"
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const {
     shouldExpand,
     processed,
     label,
     table,
-    level,
     url,
     upstreamCount,
     downstreamCount,
@@ -154,6 +194,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     selectedColumn,
     setCollectColumns,
     rerender,
+    setConfidence,
+    setMoreTables,
   } = useContext(LineageContext);
 
   const _columnLen = Object.keys(collectColumns[table] || {}).length;
@@ -173,57 +215,47 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     flow.setEdges(edges);
   };
 
-  const expand = async (tables: Table[], right: boolean) => {
+  const expand = async (right: boolean) => {
     if (processed[right ? 1 : 0]) return;
-    let [nodes, edges] = createNewNodesEdges(
+    let [nodes, edges] = await expandTableLineage(
       flow.getNodes(),
       flow.getEdges(),
-      tables,
       table,
-      right,
-      level
+      right
     );
+    layoutElementsOnCanvas(nodes, edges);
+    flow.setNodes(nodes);
+    flow.setEdges(edges);
+    rerender();
     if (selectedColumn.name) {
-      const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
-        getHelperDataForCLL(nodes, edges);
-      const currAnd1HopTables = tables.map((t) => t.table);
-      currAnd1HopTables.push(table);
-      const curr = (collectColumns[table] || []).map(
-        (c) => [table, c] as [string, string]
-      );
-      const patchState = await processColumnLineage(
-        levelMap,
-        seeMoreIdTableReverseMap,
-        tableNodes,
-        curr,
+      startProgressBar();
+      await bfsTraversal(
+        nodes,
+        edges,
         right,
-        currAnd1HopTables,
-        selectedColumn
+        collectColumns[table].map((c) => ({ table, name: c })),
+        setConfidence,
+        setMoreTables,
+        setCollectColumns,
+        flow
       );
-      [nodes, edges] = mergeNodesEdges({ nodes, edges }, patchState);
-      mergeCollectColumns(setCollectColumns, patchState.collectColumns);
+      rerender();
+      endProgressBar();
     } else if (selectedTable) {
       [nodes, edges] = highlightTableConnections(
         nodes,
         edges,
         selectedTable.table
       );
+      layoutElementsOnCanvas(nodes, edges);
+      flow.setNodes(nodes);
+      flow.setEdges(edges);
+      rerender();
     }
-    layoutElementsOnCanvas(nodes, edges);
-    flow.setNodes(nodes);
-    flow.setEdges(edges);
-    rerender();
   };
 
-  const expandRight = async () => {
-    const { tables } = await upstreamTables(table);
-    await expand(tables, true);
-  };
-
-  const expandLeft = async () => {
-    const { tables } = await downstreamTables(table);
-    await expand(tables, false);
-  };
+  const expandRight = () => expand(true);
+  const expandLeft = () => expand(false);
 
   const onDetailsClick = (e: React.MouseEvent) => {
     if (!selected) return;
@@ -233,7 +265,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   };
 
   const _edges = flow.getEdges();
-  const nType = nodeType as keyof typeof NODE_TYPE_SHORTHAND;
   return (
     <div
       className="position-relative"
@@ -259,33 +290,13 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             }
           )}
         >
-          <div className={styles.table_header}>
-            <div
-              className={classNames(styles.node_icon, NODE_TYPE_STYLES[nType])}
-            >
-              <NodeTypeIcon nodeType={nType} />
-              <div>{NODE_TYPE_SHORTHAND[nType]}</div>
-            </div>
-            <div className="lines-2">{label}</div>
-          </div>
-          <div className={classNames("d-flex gap-xs", styles.node_extra_info)}>
-            {tests?.length > 0 && (
-              <TableNodePill
-                id={"table-node-tests-" + table.replaceAll(".", "-")}
-                icon={<TestsIcon />}
-                text={tests?.length}
-                label="Tests"
-              />
-            )}
-            {materialization && (
-              <TableNodePill
-                id={"table-node-materilization-" + table.replaceAll(".", "-")}
-                icon={<EphemeralIcon />}
-                text={materialization}
-                label="Materialization"
-              />
-            )}
-          </div>
+          <TableHeader
+            nodeType={nodeType}
+            label={label}
+            table={table}
+            tests={tests}
+            materialization={materialization}
+          />
           <div className={styles.divider} />
           <div className="w-100 d-flex align-items-center gap-xs">
             <div

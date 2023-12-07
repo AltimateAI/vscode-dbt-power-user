@@ -466,7 +466,7 @@ export class NewLineagePanel implements LineagePanelView {
         database: source.database,
         schema: source.schema,
         name: table.name,
-        alias: table.name,
+        alias: table.identifier,
         uniqueId: key,
         columns: table.columns,
       };
@@ -513,48 +513,61 @@ export class NewLineagePanel implements LineagePanelView {
     let selected_column: { model_node: ModelNode; column: string } | undefined;
     const parent_models: { model_node: ModelNode }[] = [];
     let auxiliaryTables: string[] = [];
+    currAnd1HopTables = Array.from(new Set(currAnd1HopTables));
     if (upstreamExpansion) {
-      const currTables = targets.map((t) => t[0]);
+      const currTables = new Set(targets.map((t) => t[0]));
       const dependencyNodes = graphMetaMap.parents;
       const parentSet = new Set<string>();
-      currAnd1HopTables.forEach((t) => {
-        if (currTables.includes(t)) {
-          return;
+      const hop1Tables = currAnd1HopTables.filter((t) => !currTables.has(t));
+      const visited: Record<string, boolean> = {};
+      const { nodeMetaMap } = event;
+      while (hop1Tables.length > 0) {
+        const curr = hop1Tables.shift()!;
+        if (visited[curr]) {
+          continue;
         }
-        // now we have 1Hop tables
-        const parent = dependencyNodes.get(t);
+        visited[curr] = true;
+        const parent = dependencyNodes.get(curr);
         if (!parent) {
-          return;
+          continue;
         }
-        parent.nodes.forEach((n) => parentSet.add(n.key));
-      });
+        parent.nodes.forEach((n) => {
+          const splits = n.key.split(".");
+          const nodeType = splits[0];
+          if (nodeType !== DBTProject.RESOURCE_TYPE_MODEL) {
+            parentSet.add(n.key);
+            return;
+          }
+          if (nodeMetaMap.get(splits[2])?.config.materialized === "ephemeral") {
+            hop1Tables.push(n.key);
+          } else {
+            parentSet.add(n.key);
+          }
+        });
+      }
       auxiliaryTables = Array.from(parentSet);
     }
     try {
       await Promise.all([
-        ...Array.from(new Set(currAnd1HopTables)).map(async (key) => {
+        ...currAnd1HopTables.map(async (key) => {
           let compiledSql: string | undefined;
           const result = await this.getNodeWithDBColumns(key);
           if (!result) {
             return;
           }
-          const { node, dbColumnAdded } = result;
+          const { node, dbColumnAdded, isEphemeral } = result;
+          if (isEphemeral) {
+            // ideally should not be taking this code path
+            this.telemetry.sendTelemetryError(
+              "columnLineageProcessingEphemeral",
+            );
+            return;
+          }
           if (!dbColumnAdded) {
             relationsWithoutColumns.push(key);
             return;
           }
           const nodeType = key.split(".")[0];
-          if (
-            nodeType !== DBTProject.RESOURCE_TYPE_SOURCE &&
-            (node as NodeMetaData).config.materialized === "ephemeral"
-          ) {
-            // TODO: add telemetry here
-            // ideally should not be taking this code path
-            // ephemeral nodes can be skipped. they dont have a schema
-            // and their sql makes it into the compiled sql of the models
-            // referring to it.
-            return;
-          }
           if (canCompileSQL(nodeType)) {
             compiledSql = await project.compileNode(node.name);
             if (!compiledSql) {
@@ -657,6 +670,9 @@ export class NewLineagePanel implements LineagePanelView {
         parent_models,
       };
       console.log("cll:request -> ", request);
+      if (targets.length === 0) {
+        return;
+      }
       const result = await this.altimate.getColumnLevelLineage(request);
       console.log("cll:response -> ", result);
       if ((result as DBTColumnLineageResponse).column_lineage) {

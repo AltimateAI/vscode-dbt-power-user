@@ -10,14 +10,7 @@ import { useReactFlow } from "reactflow";
 import styles from "./styles.module.scss";
 import classNames from "classnames";
 import { Button } from "reactstrap";
-import {
-  getColumns,
-  Columns,
-  Column,
-  upstreamTables,
-  downstreamTables,
-  Table,
-} from "./service";
+import { getColumns, Columns, Column, Table } from "./service";
 import {
   aiEnabled,
   endProgressBar,
@@ -25,11 +18,9 @@ import {
   startProgressBar,
 } from "./App";
 import {
-  createNewNodesEdges,
+  bfsTraversal,
+  expandTableLineage,
   layoutElementsOnCanvas,
-  mergeCollectColumns,
-  mergeNodesEdges,
-  processColumnLineage,
   removeColumnNodes,
   resetTableHighlights,
 } from "./graph";
@@ -43,8 +34,7 @@ import { ColorTag } from "./Tags";
 import ExpandLineageIcon from "./assets/icons/expand_lineage.svg?react";
 import { NodeTypeIcon } from "./CustomNodes";
 import { CustomInput } from "./Form";
-import { defaultEdgeStyle, getHelperDataForCLL, isNotColumn } from "./utils";
-import { TMoreTables } from "./MoreTables";
+import { defaultEdgeStyle, isNotColumn } from "./utils";
 
 const ColumnCard: FunctionComponent<{
   column: Column;
@@ -257,41 +247,24 @@ const TableDetails = () => {
       return;
     }
     startProgressBar();
-    console.time();
     let _nodes = flow.getNodes();
     let _edges = flow.getEdges();
-    const addNodesEdges = (tables: Table[], right: boolean, level: number) => {
-      [_nodes, _edges] = createNewNodesEdges(
+    const addNodesEdges = async (right: boolean) => {
+      [_nodes, _edges] = await expandTableLineage(
         _nodes,
         _edges,
-        tables,
         _column.table,
-        right,
-        level
+        right
       );
       layoutElementsOnCanvas(_nodes, _edges);
     };
     const tableNode = flow.getNode(_column.table);
     if (tableNode) {
       const {
-        data: { processed, table, level },
+        data: { processed },
       } = tableNode;
-      if (!processed[1]) {
-        try {
-          const { tables } = await upstreamTables(table);
-          addNodesEdges(tables, true, level);
-        } catch (e) {
-          console.error(e);
-        }
-      }
-      if (!processed[0]) {
-        try {
-          const { tables } = await downstreamTables(table);
-          addNodesEdges(tables, false, level);
-        } catch (e) {
-          console.error(e);
-        }
-      }
+      if (!processed[1]) await addNodesEdges(true);
+      if (!processed[0]) await addNodesEdges(false);
     }
     setSelectedColumn(_column);
     setShowSidebar(false);
@@ -307,128 +280,18 @@ const TableDetails = () => {
     flow.setEdges(edges);
     setConfidence({ confidence: "high" });
     rerender();
-
-    // creating helper data for current lineage once
-    const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
-      getHelperDataForCLL(nodes, edges);
-
-    const bfsTraversal = async (right: boolean) => {
-      const visited: Record<string, boolean> = {};
-      const ephemeralAncestors: Record<string, [string, string][]> = {};
-      let currTargetColumns: [string, string][] = [
-        [_column.table, _column.name],
-      ];
-      let currEphemeralNodes: string[] = [];
-      while (true as boolean) {
-        currTargetColumns = currTargetColumns.filter(
-          (x) => !visited[x.join("/")]
-        );
-        if (currTargetColumns.length === 0 && currEphemeralNodes.length === 0) {
-          break;
-        }
-        const currTargetTables: Record<string, boolean> = {};
-        currTargetColumns.forEach((x) => {
-          visited[x.join("/")] = true;
-          currTargetTables[x[0]] = true;
-        });
-
-        const [src, dst]: ("source" | "target")[] = right
-          ? ["source", "target"]
-          : ["target", "source"];
-        const hop1Tables = [];
-        const _ephemeralNodes: string[] = [];
-        const collectEphemeralAncestors: string[] = [];
-        for (const e of _edges) {
-          const srcTable = e[src];
-          const dstTable = e[dst];
-          const materialization = flow.getNode(dstTable)?.data?.materialization;
-          if (currTargetTables[srcTable]) {
-            if (materialization === "ephemeral") {
-              ephemeralAncestors[dstTable] = ephemeralAncestors[dstTable] || [];
-              ephemeralAncestors[dstTable].push(
-                ...currTargetColumns.filter((c) => c[0] === srcTable)
-              );
-              _ephemeralNodes.push(dstTable);
-            } else {
-              hop1Tables.push(dstTable);
-            }
-          } else if (currEphemeralNodes.includes(srcTable)) {
-            if (materialization === "ephemeral") {
-              ephemeralAncestors[dstTable] = ephemeralAncestors[dstTable] || [];
-              ephemeralAncestors[dstTable].push(
-                ...ephemeralAncestors[srcTable]
-              );
-              _ephemeralNodes.push(dstTable);
-            } else {
-              collectEphemeralAncestors.push(srcTable);
-              hop1Tables.push(dstTable);
-            }
-          }
-        }
-        currEphemeralNodes = _ephemeralNodes;
-
-        const currAnd1HopTables = Object.keys(currTargetTables);
-        for (const nodeId of hop1Tables) {
-          if (currAnd1HopTables.includes(nodeId)) continue;
-          if (tableNodes[nodeId]) {
-            currAnd1HopTables.push(nodeId);
-            continue;
-          }
-          const seeMoreNode = flow.getNode(nodeId);
-          if (!seeMoreNode) continue;
-          const { tables = [] } = seeMoreNode.data as TMoreTables;
-          for (const t of tables) {
-            if (currAnd1HopTables.includes(t.table)) continue;
-            currAnd1HopTables.push(t.table);
-          }
-        }
-
-        collectEphemeralAncestors.forEach((t) => {
-          currTargetColumns.push(...ephemeralAncestors[t]);
-          currAnd1HopTables.push(...ephemeralAncestors[t].map((c) => c[0]));
-        });
-        try {
-          const patchState = await processColumnLineage(
-            levelMap,
-            seeMoreIdTableReverseMap,
-            tableNodes,
-            currTargetColumns,
-            right,
-            currAnd1HopTables,
-            _column
-          );
-          if (patchState.confidence?.confidence === "low") {
-            setConfidence((prev) => {
-              const newConfidence = { ...prev, confidence: "low" };
-              newConfidence.operator_list = newConfidence.operator_list || [];
-              newConfidence.operator_list.push(
-                ...(patchState.confidence?.operator_list || [])
-              );
-              return newConfidence;
-            });
-          }
-          currTargetColumns = patchState.newCurr;
-          const [nodes, edges] = mergeNodesEdges(
-            { nodes: flow.getNodes(), edges: flow.getEdges() },
-            patchState
-          );
-
-          setMoreTables((prev) => ({
-            ...prev,
-            lineage: [...(prev.lineage || []), ...patchState.seeMoreLineage],
-          }));
-
-          flow.setNodes(nodes);
-          flow.setEdges(edges);
-          mergeCollectColumns(setCollectColumns, patchState.collectColumns);
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    };
-
-    await Promise.all([bfsTraversal(true), bfsTraversal(false)]);
-    console.timeEnd();
+    const _bfsTraversal = (right: boolean) =>
+      bfsTraversal(
+        nodes,
+        edges,
+        right,
+        [_column],
+        setConfidence,
+        setMoreTables,
+        setCollectColumns,
+        flow
+      );
+    await Promise.all([_bfsTraversal(true), _bfsTraversal(false)]);
     endProgressBar();
   };
   if (isLoading || !data || !selectedTable) return <ComponentLoader />;
