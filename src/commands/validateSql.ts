@@ -42,16 +42,15 @@ const ValidateSqlErrorSeverity: Record<
 
 const invalidSQLMessagePattern = /Column '(.+)' could not be resolved/;
 const caseInsensitiveStringSearch = (string: string, substring: string) => {
-  const lowercasedSubstring = substring.toLowerCase();
-  const lowercasedString = string.toLowerCase();
-  const startIndex = lowercasedString.indexOf(lowercasedSubstring);
+  const regex = new RegExp(`\\b${substring}\\b`, "i");
+  const match = string.match(regex);
 
-  if (startIndex !== -1) {
-    const endIndex = startIndex + substring.length;
-    return { startIndex, endIndex };
-  } else {
+  if (!match) {
     return { startIndex: -1, endIndex: -1 };
   }
+  const startIndex = match.index!;
+  const endIndex = startIndex + match[0].length;
+  return { startIndex, endIndex };
 };
 
 @provideSingleton(ValidateSql)
