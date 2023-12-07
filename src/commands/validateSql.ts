@@ -20,12 +20,13 @@ import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { DiagnosticCollection, ProgressLocation, window } from "vscode";
 import { DBTProject } from "../manifest/dbtProject";
 import {
+  commands,
   Diagnostic,
   DiagnosticSeverity,
   languages,
   Position,
   Range,
-  commands,
+  workspace,
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 
@@ -36,6 +37,20 @@ const ValidateSqlErrorSeverity: Record<
   sql_parse_error: DiagnosticSeverity.Error,
   sql_invalid_error: DiagnosticSeverity.Error,
   sql_execute_error: DiagnosticSeverity.Warning,
+};
+
+const invalidSQLMessagePattern = /Column '(.+)' could not be resolved/;
+const caseInsensitiveStringSearch = (string: string, substring: string) => {
+  const lowercasedSubstring = substring.toLowerCase();
+  const lowercasedString = string.toLowerCase();
+  const startIndex = lowercasedString.indexOf(lowercasedSubstring);
+
+  if (startIndex !== -1) {
+    const endIndex = startIndex + substring.length;
+    return { startIndex, endIndex };
+  } else {
+    return { startIndex: -1, endIndex: -1 };
+  }
 };
 
 @provideSingleton(ValidateSql)
@@ -143,24 +158,52 @@ export class ValidateSql {
       return;
     }
     let uri = window.activeTextEditor?.document.uri;
+    let fileContent = [""];
     if (response.error_type === "sql_parse_error") {
       await commands.executeCommand("dbtPowerUser.sqlPreview");
       uri = window.activeTextEditor?.document.uri.with({
         scheme: SqlPreviewContentProvider.SCHEME,
       });
+    } else {
+      const fileContentBytes = await workspace.fs.readFile(uri);
+      fileContent = fileContentBytes.toString().split("\n");
     }
     commands.executeCommand("workbench.action.problems.focus");
 
     const diagnostics = response?.errors?.map(
-      ({ description, start_position, end_position }) =>
-        new Diagnostic(
-          new Range(
-            new Position(start_position?.[0] || 0, start_position?.[1] || 0),
-            new Position(end_position?.[0] || 0, end_position?.[1] || 0),
-          ),
+      ({ description, start_position, end_position }) => {
+        let startPos = new Position(0, 1);
+        let endPos = new Position(0, 1);
+        if (response.error_type === "sql_parse_error") {
+          if (start_position) {
+            startPos = new Position(start_position[0], start_position[1]);
+          }
+          if (end_position) {
+            endPos = new Position(end_position[0], end_position[1]);
+          }
+        } else {
+          const match = description.match(invalidSQLMessagePattern);
+          if (match) {
+            const columnName = match[1].replace(/"/g, "");
+            for (let i = 0; i < fileContent.length; i++) {
+              const { startIndex, endIndex } = caseInsensitiveStringSearch(
+                fileContent[i],
+                columnName,
+              );
+              if (startIndex !== -1) {
+                startPos = new Position(i, startIndex);
+                endPos = new Position(i, endIndex);
+                break;
+              }
+            }
+          }
+        }
+        return new Diagnostic(
+          new Range(startPos, endPos),
           description,
           ValidateSqlErrorSeverity[response.error_type!],
-        ),
+        );
+      },
     );
 
     this.diagnosticsCollection.set(uri, diagnostics);
