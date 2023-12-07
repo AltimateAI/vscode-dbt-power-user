@@ -103,11 +103,11 @@ def _build_message(sql: str, error: dict):
         start_position = end_position - len_highlight - len_prefix
         row, col = get_line_and_column_from_position(sql, start_position)
         return {
-            "description": f"Failed to parse sql. Exception: /{error['description']}",
+            "description": "Failed to parse the sql query",
             "start_position": [row, col],
             "end_position": [error["line"], error["col"]],
         }
-    return {"description": error["description"]}
+    return {"description": "Failed to parse the sql query"}
 
 
 def sql_parse_errors(sql: str, dialect: str):
@@ -131,6 +131,8 @@ def validate_tables_and_columns(
         qualify(parsed_sql, dialect=dialect, schema=schemas)
     except sqlglot.errors.OptimizeError as e:
         error = str(e)
+        if "sqlglot" in error:
+            error = "Failed to validate the query"
         invalid_entity = extract_text_between_quotes(error)
         start, end = find_single_occurrence_indices(sql, invalid_entity)
         if start and end:
@@ -145,7 +147,7 @@ def validate_tables_and_columns(
             ]
         return [
             {
-                "description": str(e),
+                "description": error,
             }
         ]
 
