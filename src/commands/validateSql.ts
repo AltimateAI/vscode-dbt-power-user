@@ -110,7 +110,7 @@ export class ValidateSql {
     await window.withProgress(
       {
         location: ProgressLocation.Notification,
-        title: "Validating SQL",
+        title: "Fetching metadata",
         cancellable: false,
       },
       async () => {
@@ -142,8 +142,20 @@ export class ValidateSql {
         }
       },
     );
-    if (!compiledQuery || models.length === 0) {
-      await window.showErrorMessage("Unable to compile sql query");
+    if (!compiledQuery) {
+      await window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Unable to compile query for model: " + node.name,
+        ),
+      );
+      return;
+    }
+    if (models.length === 0) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Unable to get columns from DB for model: " + node.name,
+        ),
+      );
       return;
     }
 
