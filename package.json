@@ -500,6 +500,11 @@
           "command": "dbtPowerUser.validateSql",
           "group": "dbt@4",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        },
+        {
+          "command": "dbtPowerUser.costEstimate",
+          "group": "dbt@4",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
         }
       ],
       "editor/title/run": [
