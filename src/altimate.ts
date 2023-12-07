@@ -116,7 +116,7 @@ interface ValidateSqlRequest {
 export type ValidateSqlParseErrorType =
   | "sql_parse_error"
   | "sql_invalid_error"
-  | "sql_execute_error";
+  | "sql_unknown_error";
 
 export interface ValidateSqlParseErrorResponse {
   error_type?: ValidateSqlParseErrorType;

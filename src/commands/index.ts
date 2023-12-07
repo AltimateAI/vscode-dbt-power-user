@@ -18,6 +18,7 @@ import { WalkthroughCommands } from "./walkthroughCommands";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { ValidateSql } from "./validateSql";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -30,6 +31,7 @@ export class VSCodeCommands implements Disposable {
     private validateSql: ValidateSql,
     private altimateScan: AltimateScan,
     private walkthroughCommands: WalkthroughCommands,
+    private dbtTerminal: DBTTerminal,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -56,7 +58,31 @@ export class VSCodeCommands implements Disposable {
           window.activeTextEditor!.document.fileName,
           ".sql",
         );
-        this.getProject()?.validateSQLDryRun(modelName);
+        this.dbtTerminal.show(true);
+        const result = await this.getProject()?.validateSQLDryRun(modelName);
+        const messageEntries: [string, string][] = [];
+        for (const k in result) {
+          const v = result[k];
+          if (!v || k.startsWith("_")) {
+            continue;
+          }
+          messageEntries.push([k, v]);
+        }
+        const maxKeyLength = Math.max(
+          ...messageEntries.map((item) => item[0].length),
+        );
+        const maxValueLength = Math.max(
+          ...messageEntries.map((item) => item[1].length),
+        );
+        const message = messageEntries
+          .map(
+            (item) =>
+              `|${item[0].padEnd(maxKeyLength + 2)}|${item[1].padEnd(
+                maxValueLength + 2,
+              )}|`,
+          )
+          .join("\r\n");
+        this.dbtTerminal.log(message);
       }),
       commands.registerTextEditorCommand(
         "dbtPowerUser.sqlPreview",

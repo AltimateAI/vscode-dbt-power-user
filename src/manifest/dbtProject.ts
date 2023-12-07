@@ -568,7 +568,7 @@ export class DBTProject implements Disposable {
         (python) => python!`to_dict(project.validate_sql_dry_run(${sql}))`,
       );
       console.log(result);
-      return result as ValidateSqlParseErrorResponse;
+      return result;
     } catch (exc) {
       console.log(exc);
     }

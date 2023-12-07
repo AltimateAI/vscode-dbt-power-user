@@ -31,15 +31,6 @@ import {
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { PythonException } from "python-bridge";
 
-const ValidateSqlErrorSeverity: Record<
-  ValidateSqlParseErrorType,
-  DiagnosticSeverity
-> = {
-  sql_parse_error: DiagnosticSeverity.Error,
-  sql_invalid_error: DiagnosticSeverity.Error,
-  sql_execute_error: DiagnosticSeverity.Warning,
-};
-
 @provideSingleton(ValidateSql)
 export class ValidateSql {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
@@ -212,11 +203,21 @@ export class ValidateSql {
       models,
     };
     const response = await this.getProject()?.validateSql(request);
+    let uri = window.activeTextEditor?.document.uri;
     if (!response || !response?.error_type) {
       await window.showInformationMessage("SQL is valid.");
+      this.diagnosticsCollection.delete(uri);
       return;
     }
-    let uri = window.activeTextEditor?.document.uri;
+    if (response.error_type === "sql_unknown_error") {
+      window.showErrorMessage("Unable to validate SQL.");
+      this.telemetry.sendTelemetryError(
+        "validateSQLError",
+        response.errors[0].description,
+      );
+      this.diagnosticsCollection.delete(uri);
+      return;
+    }
     if (response.error_type === "sql_parse_error") {
       await commands.executeCommand("dbtPowerUser.sqlPreview");
       uri = window.activeTextEditor?.document.uri.with({
@@ -246,7 +247,7 @@ export class ValidateSql {
         return new Diagnostic(
           new Range(startPos, endPos),
           description,
-          ValidateSqlErrorSeverity[response.error_type!],
+          DiagnosticSeverity.Error,
         );
       },
     );
