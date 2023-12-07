@@ -539,7 +539,7 @@ export class DBTProject implements Disposable {
     }
   }
 
-  public async validateSQLDryRun() {
+  public async validateSQLDryRun(modelName: string) {
     await this.blockUntilPythonBridgeIsInitalized();
 
     if (!this.pythonBridgeInitialized) {
@@ -553,9 +553,19 @@ export class DBTProject implements Disposable {
       );
       return;
     }
+    const sql = await this.compileNode(modelName);
+    if (!sql) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          `Could not compile query for model ${modelName}.`,
+        ),
+      );
+      this.telemetry.sendTelemetryError("compileQueryError");
+      return;
+    }
     try {
       const result = await this.python?.lock(
-        (python) => python!`to_dict(project.validate_sql_dry_run())`,
+        (python) => python!`to_dict(project.validate_sql_dry_run(${sql}))`,
       );
       console.log(result);
       return result as ValidateSqlParseErrorResponse;

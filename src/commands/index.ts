@@ -7,6 +7,7 @@ import {
   window,
   workspace,
 } from "vscode";
+import * as path from "path";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { RunModelType } from "../domain";
 import { provideSingleton } from "../utils";
@@ -50,10 +51,13 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.compileCurrentModel", () =>
         this.runModel.compileModelOnActiveWindow(),
       ),
-      commands.registerCommand(
-        "dbtPowerUser.costEstimate",
-        () => this.getProject()?.validateSQLDryRun(),
-      ),
+      commands.registerCommand("dbtPowerUser.costEstimate", async () => {
+        const modelName = path.basename(
+          window.activeTextEditor!.document.fileName,
+          ".sql",
+        );
+        this.getProject()?.validateSQLDryRun(modelName);
+      }),
       commands.registerTextEditorCommand(
         "dbtPowerUser.sqlPreview",
         async (editor: TextEditor) => {
