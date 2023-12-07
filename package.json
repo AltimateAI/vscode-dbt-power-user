@@ -247,7 +247,10 @@
       {
         "command": "dbtPowerUser.sqlQuickPick",
         "title": "SQL Actions",
-        "icon": "$(lightbulb-autofix)"
+        "icon": {
+          "light": "./media/images/sql-action-light.svg",
+          "dark": "./media/images/sql-action-dark.svg"
+        }
       },
       {
         "command": "dbtPowerUser.runCurrentModel",
