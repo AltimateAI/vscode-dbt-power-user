@@ -53,7 +53,7 @@ def find_single_occurrence_indices(main_string, substring):
         start_index = main_string.find(substring)
 
         # The end index is the start index plus the length of the substring
-        end_index = start_index + len(substring) - 1
+        end_index = start_index + len(substring)
 
         return start_index, end_index
     else:
@@ -81,6 +81,7 @@ def get_line_and_column_from_position(sql: str, position: int):
     """
     Get row and column from position in a string
     """
+    position = min(position, len(sql))
     lines = sql.split("\n")
     row = 1
     col = 1
