@@ -17,7 +17,12 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { DiagnosticCollection, ProgressLocation, window } from "vscode";
+import {
+  DiagnosticCollection,
+  ProgressLocation,
+  ViewColumn,
+  window,
+} from "vscode";
 import { DBTProject } from "../manifest/dbtProject";
 import {
   commands,
@@ -207,9 +212,13 @@ export class ValidateSql {
     };
     const response = await this.getProject()?.validateSql(request);
     let uri = window.activeTextEditor?.document.uri;
+    const compileSQLUri = window.activeTextEditor?.document.uri.with({
+      scheme: SqlPreviewContentProvider.SCHEME,
+    });
     if (!response || !response?.error_type) {
       await window.showInformationMessage("SQL is valid.");
-      this.diagnosticsCollection.delete(uri);
+      this.diagnosticsCollection.set(uri, []);
+      this.diagnosticsCollection.set(compileSQLUri, []);
       return;
     }
     if (response.error_type === "sql_unknown_error") {
@@ -218,22 +227,23 @@ export class ValidateSql {
         "validateSQLError",
         response.errors[0].description,
       );
-      this.diagnosticsCollection.delete(uri);
+      this.diagnosticsCollection.set(uri, []);
+      this.diagnosticsCollection.set(compileSQLUri, []);
       return;
     }
-    if (response.error_type === "sql_parse_error") {
-      await commands.executeCommand("dbtPowerUser.sqlPreview");
-      uri = window.activeTextEditor?.document.uri.with({
-        scheme: SqlPreviewContentProvider.SCHEME,
-      });
-    } else if (
-      response.errors.length > 0 &&
-      response.errors[0].start_position
+    if (
+      response.error_type === "sql_parse_error" ||
+      (response.errors.length > 0 && response.errors[0].start_position)
     ) {
-      await commands.executeCommand("dbtPowerUser.sqlPreview");
-      uri = window.activeTextEditor?.document.uri.with({
-        scheme: SqlPreviewContentProvider.SCHEME,
-      });
+      uri = compileSQLUri;
+      const isOpen = window.visibleTextEditors.find(
+        (item) => item.document.uri === compileSQLUri,
+      );
+      if (!isOpen) {
+        const doc = await workspace.openTextDocument(compileSQLUri);
+        await window.showTextDocument(doc, ViewColumn.Beside, true);
+        await languages.setTextDocumentLanguage(doc, "sql");
+      }
     }
     commands.executeCommand("workbench.action.problems.focus");
 
