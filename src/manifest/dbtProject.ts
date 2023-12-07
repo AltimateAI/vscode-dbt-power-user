@@ -17,7 +17,7 @@ import {
   window,
   workspace,
 } from "vscode";
-import { YAMLError, parse } from "yaml";
+import { parse, YAMLError } from "yaml";
 import {
   DBTCommandFactory,
   RunModelParams,
@@ -537,6 +537,55 @@ export class DBTProject implements Disposable {
     } catch (exc) {
       console.log(exc);
     }
+  }
+
+  public async validateSQLDryRun() {
+    await this.blockUntilPythonBridgeIsInitalized();
+
+    if (!this.pythonBridgeInitialized) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Could not compile query, because the Python bridge has not been initalized.",
+        ),
+      );
+      this.telemetry.sendTelemetryError(
+        "compileQueryPythonBridgeNotInitializedError",
+      );
+      return;
+    }
+    try {
+      const result = await this.python?.lock(
+        (python) => python!`to_dict(project.validate_sql_dry_run())`,
+      );
+      return result as ValidateSqlParseErrorResponse;
+    } catch (exc) {
+      console.log(exc);
+    }
+  }
+
+  public async getDBTVersion(): Promise<number[]> {
+    await this.blockUntilPythonBridgeIsInitalized();
+
+    if (!this.pythonBridgeInitialized) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Could not compile query, because the Python bridge has not been initalized.",
+        ),
+      );
+      this.telemetry.sendTelemetryError(
+        "compileQueryPythonBridgeNotInitializedError",
+      );
+      return [0, 0, 0];
+    }
+    try {
+      const result = await this.python?.lock(
+        (python) => python!`to_dict(project.get_dbt_version())`,
+      );
+      return (result as number[]) || [0, 0, 0];
+    } catch (exc) {
+      console.log(exc);
+    }
+    return [0, 0, 0];
   }
 
   async compileQuery(query: string): Promise<string | undefined> {

@@ -25,7 +25,7 @@ export class DbtSQLAction {
   async openQuickPick() {
     const disposables: Disposable[] = [];
     try {
-      return await new Promise<Uri | undefined>((resolve, reject) => {
+      return await new Promise<Uri | undefined>(async (resolve, reject) => {
         const dbtpuquickpick = window.createQuickPick<
           DbtPowerUserControlPanelItem | QuickPickItem
         >();
@@ -45,16 +45,24 @@ export class DbtSQLAction {
           ),
         ];
 
-        const adapter = this.getProject()?.getAdapterType();
-        if (adapter === "bigquery") {
-          items.push(
-            new DbtPowerUserControlPanelItem(
-              "Cost Estimate",
-              "lightbulb-autofix",
-              "Estimate cost for BigQuery",
-              "dbtPowerUser.costEstimate",
-            ),
-          );
+        const project = this.getProject();
+        if (project) {
+          const adapter = await project.getAdapterType();
+          const dbtVersion = await project.getDBTVersion();
+          if (
+            adapter === "bigquery" &&
+            dbtVersion[0] >= 1 &&
+            dbtVersion[1] >= 6
+          ) {
+            items.push(
+              new DbtPowerUserControlPanelItem(
+                "Cost Estimate",
+                "lightbulb-autofix",
+                "Estimate cost for BigQuery",
+                "dbtPowerUser.costEstimate",
+              ),
+            );
+          }
         }
         dbtpuquickpick.items = items;
 

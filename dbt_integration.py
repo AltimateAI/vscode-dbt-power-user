@@ -240,6 +240,18 @@ class DbtAdapterCompilationResult:
         self.compiled_sql = compiled_sql
         self.node = node
 
+VALIDATE_SQL = """
+{% macro validate_sql(sql) -%}
+  {{ return(adapter.dispatch('validate_sql', 'dbt')(sql)) }}
+{% endmacro %}
+
+{% macro default__validate_sql(sql) -%}
+  {% call statement('validate_sql') -%}
+    explain {{ sql }}
+  {% endcall %}
+  {{ return(load_result('validate_sql')) }}
+{% endmacro %}
+"""
 
 class DbtProject:
     """Container for a dbt project. The dbt attribute is the primary interface for
@@ -657,3 +669,13 @@ class DbtProject:
             ),
             auto_begin=True,
         )
+    
+    def get_dbt_version(self):
+        return [DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER]
+    
+    def validate_sql_dry_run(self):
+        if DBT_MAJOR_VER < 1:
+            return None
+        if DBT_MINOR_VER < 6:
+            return None
+        return self.execute_sql(VALIDATE_SQL)
