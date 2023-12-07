@@ -4,7 +4,7 @@ from altimate.utils import (
     sql_execute_errors,
     sql_parse_errors,
     validate_tables_and_columns,
-    map_adapter_to_dialect
+    map_adapter_to_dialect,
 )
 
 

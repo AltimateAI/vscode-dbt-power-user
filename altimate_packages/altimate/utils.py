@@ -24,6 +24,43 @@ ADAPTER_MAPPING = {
 }
 
 
+def extract_text_between_quotes(text):
+    # Find the first occurrence of '"'
+    start_index = text.find('"')
+
+    # Check if the first '"' is found
+    if start_index == -1:
+        return None  # or return an appropriate message
+
+    # Adjust start index to exclude the quotation mark itself and find the next occurrence of '"'
+    end_index = text.find('"', start_index + 1)
+
+    # Check if the second '"' is found
+    if end_index == -1:
+        return None  # or return an appropriate message
+
+    # Extract the text between the two indices
+    extracted_text = text[start_index + 1 : end_index]
+
+    return extracted_text
+
+
+def find_single_occurrence_indices(main_string, substring):
+    # Check if the substring occurs only once in the main string
+    main_string = main_string.lower()
+    substring = substring.lower()
+    if main_string.count(substring) == 1:
+        start_index = main_string.find(substring)
+
+        # The end index is the start index plus the length of the substring
+        end_index = start_index + len(substring) - 1
+
+        return start_index, end_index
+    else:
+        # Return a message or None if the substring doesn't occur exactly once
+        return None, None
+
+
 def map_adapter_to_dialect(adapter: str):
     return ADAPTER_MAPPING.get(adapter, adapter)
 
@@ -92,6 +129,19 @@ def validate_tables_and_columns(
     try:
         qualify(parsed_sql, dialect=dialect, schema=schemas)
     except sqlglot.errors.OptimizeError as e:
+        error = str(e)
+        invalid_entity = extract_text_between_quotes(error)
+        start, end = find_single_occurrence_indices(sql, invalid_entity)
+        if start and end:
+            return [
+                {
+                    "description": error,
+                    "start_position": list(
+                        get_line_and_column_from_position(sql, start)
+                    ),
+                    "end_position": list(get_line_and_column_from_position(sql, end)),
+                }
+            ]
         return [
             {
                 "description": str(e),
@@ -130,8 +180,3 @@ def sql_execute_errors(
             }
         ]
     return None
-
-
-if __name__ == "__main__":
-    sql = """SELECT1 * FROM table1"""
-    e = sql_parse_errors(sql, "bigquery")
