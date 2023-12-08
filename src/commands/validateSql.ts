@@ -127,7 +127,7 @@ export class ValidateSql {
       return;
     }
 
-    const models: ModelNode[] = [];
+    const parentModels: ModelNode[] = [];
     const relationsWithoutColumns: string[] = [];
     let compiledQuery: string | undefined;
     await window.withProgress(
@@ -143,12 +143,13 @@ export class ValidateSql {
             fileContentBytes.toString(),
           );
           if (!compiledQuery) {
+            window.showErrorMessage(
+              extendErrorWithSupportLinks(
+                "Unable to compile query for model: " + node.name,
+              ),
+            );
             return;
           }
-        } catch (exc) {
-          this.showError(exc);
-        }
-        try {
           const queue: string[] = parentNodes.map((n) => n.key);
           const visited: Record<string, boolean> = {};
           while (queue.length > 0) {
@@ -168,7 +169,7 @@ export class ValidateSql {
                   []),
               );
             } else if (dbColumnAdded) {
-              models.push(node);
+              parentModels.push(node);
             } else {
               relationsWithoutColumns.push(curr);
             }
@@ -179,19 +180,6 @@ export class ValidateSql {
       },
     );
     if (!compiledQuery) {
-      await window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "Unable to compile query for model: " + node.name,
-        ),
-      );
-      return;
-    }
-    if (models.length === 0) {
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "Unable to get columns from DB for model: " + node.name,
-        ),
-      );
       return;
     }
 
@@ -208,7 +196,7 @@ export class ValidateSql {
     const request = {
       sql: compiledQuery,
       dialect: project.getAdapterType(),
-      models,
+      models: parentModels,
     };
     const response = await this.getProject()?.validateSql(request);
     let uri = window.activeTextEditor?.document.uri;
