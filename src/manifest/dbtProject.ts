@@ -568,9 +568,9 @@ export class DBTProject implements Disposable {
       );
       return result;
     } catch (exc) {
-      // TODO: show better exception from big query
+      const exception = exc as { exception: { message: string } };
       window.showErrorMessage(
-        extendErrorWithSupportLinks("Could not validate sql with dry run."),
+        exception.exception.message || "Could not validate sql with dry run.",
       );
       this.telemetry.sendTelemetryError("validateSQLDryRunError", {
         error: exc,
