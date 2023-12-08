@@ -5,7 +5,6 @@ import {
   C_OFFSET_X,
   C_OFFSET_Y,
   C_PADDING_Y,
-  COLUMN_PREFIX,
   contains,
   createColumnEdge,
   createColumnNode,
@@ -21,7 +20,6 @@ import {
   P_OFFSET_X,
   P_OFFSET_Y,
   safeConcat,
-  SEE_MORE_PREFIX,
   T_NODE_H,
   T_NODE_W,
   T_NODE_Y_SEPARATION,
@@ -34,6 +32,7 @@ import {
   upstreamTables,
 } from "./service";
 import { Dispatch, SetStateAction } from "react";
+import { COLUMN_PREFIX, SEE_MORE_PREFIX } from "./constants";
 import { TMoreTables } from "./MoreTables";
 
 const createNewNodesEdges = (

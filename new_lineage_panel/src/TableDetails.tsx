@@ -34,7 +34,8 @@ import { ColorTag } from "./Tags";
 import ExpandLineageIcon from "./assets/icons/expand_lineage.svg?react";
 import { NodeTypeIcon } from "./CustomNodes";
 import { CustomInput } from "./Form";
-import { defaultEdgeStyle, isNotColumn } from "./utils";
+import { defaultEdgeStyle,  isNotColumn } from "./utils";
+import PurposeSection from "./components/Purpose";
 
 const ColumnCard: FunctionComponent<{
   column: Column;
@@ -69,23 +70,6 @@ const ColumnCard: FunctionComponent<{
           </div>
         </div>
       )}
-    </div>
-  );
-};
-
-const PurposeSection: FunctionComponent<{
-  purpose: string;
-}> = ({ purpose }) => {
-  return (
-    <div className={classNames(styles.card, "purpose-section")}>
-      <div className="d-flex flex-column gap-sm">
-        <div className="d-flex gap-xs flex-column">
-          <div className="fs-5 fw-semibold">Description</div>
-          <div className={classNames(styles.column_card)}>
-            <div className="font-normal fs-xxs">{purpose}</div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
@@ -225,7 +209,9 @@ const TableDetails = () => {
     }
     getColumns(selectedTable, false).then((_data) => {
       setData(_data);
-      setFilteredColumn(_data.columns);
+      if (selectedTable.nodeType !== "exposure") {
+        setFilteredColumn(_data.columns);
+      }
       setIsLoading(false);
     });
   }, [selectedTable]);

@@ -1,3 +1,4 @@
+import { ExposureMetaData } from "@types";
 import * as path from "path";
 import { MarkdownString } from "vscode";
 
@@ -5,6 +6,7 @@ export type NodeMetaMap = Map<string, NodeMetaData>;
 export type MacroMetaMap = Map<string, MacroMetaData>;
 export type SourceMetaMap = Map<string, SourceMetaData>;
 export type TestMetaMap = Map<string, TestMetaData>;
+export type ExposureMetaMap = Map<string, ExposureMetaData>;
 export type DocMetaMap = Map<string, DocMetaData>;
 export type NodeMetaType = NodeMetaData;
 export type SourceMetaType = SourceTable;
@@ -132,7 +134,7 @@ export class Analysis extends Node {
   displayInModelTree = false;
 }
 export class Exposure extends Node {
-  displayInModelTree = false;
+  displayInModelTree = true;
 }
 export class Snapshot extends Node {}
 export class Source extends Node {

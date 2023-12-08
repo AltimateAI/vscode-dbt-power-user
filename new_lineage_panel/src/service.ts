@@ -1,3 +1,4 @@
+import { ExposureMetaData } from "../../types/domain";
 import { requestExecutor } from "./App";
 
 export type Table = {
@@ -43,6 +44,12 @@ export const downstreamTables = (table: string) => {
   return requestExecutor("downstreamTables", { table }) as Promise<{
     tables: Table[];
   }>;
+};
+
+export const getExposureDetails = (name: string) => {
+  return requestExecutor("getExposureDetails", {
+    name,
+  }) as Promise<ExposureMetaData>;
 };
 
 export const getColumns = (
