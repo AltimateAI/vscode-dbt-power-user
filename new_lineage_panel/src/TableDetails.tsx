@@ -209,9 +209,7 @@ const TableDetails = () => {
     }
     getColumns(selectedTable, false).then((_data) => {
       setData(_data);
-      if (selectedTable.nodeType !== "exposure") {
-        setFilteredColumn(_data.columns);
-      }
+      setFilteredColumn(_data.columns);
       setIsLoading(false);
     });
   }, [selectedTable]);

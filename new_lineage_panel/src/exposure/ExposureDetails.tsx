@@ -14,6 +14,10 @@ enum DependsOnTypes {
   Macros = "macros",
   Sources = "sources",
 }
+
+/**
+ * Component to display exposure details
+ */
 const ExposureDetails = () => {
   const { selectedTable } = useContext(LineageContext);
   const [data, setData] = useState<ExposureMetaData | null>(null);
