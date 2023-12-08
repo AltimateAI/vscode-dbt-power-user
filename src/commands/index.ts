@@ -20,6 +20,41 @@ import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { ValidateSql } from "./validateSql";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
+const formatResult = (modelName: string, result: any): string => {
+  const messageEntries: [string, string][] = [];
+  for (const k in result) {
+    const v = result[k];
+    if (!v || k.startsWith("_")) {
+      continue;
+    }
+    messageEntries.push([k, v]);
+  }
+  const maxKeyLength =
+    Math.max(...messageEntries.map((item) => item[0].length)) + 4;
+  const maxValueLength =
+    Math.max(...messageEntries.map((item) => item[1].length)) + 4;
+  let message = "";
+  message += " " + "_".repeat(maxKeyLength + maxValueLength + 1) + " " + "\r\n";
+  message +=
+    "|" + modelName.padEnd(maxKeyLength + maxValueLength + 1) + "|" + "\r\n";
+  message += "|" + "_".repeat(maxKeyLength + maxValueLength + 1) + "|" + "\r\n";
+  for (const item of messageEntries) {
+    message += `|${item[0].padEnd(maxKeyLength)}|${item[1].padEnd(
+      maxValueLength,
+    )}|\r\n`;
+  }
+  message +=
+    "|" +
+    "_".repeat(maxKeyLength) +
+    "|" +
+    "_".repeat(maxValueLength) +
+    "|" +
+    "\r\n";
+  message += "\r\n";
+
+  return message;
+};
+
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
   private disposables: Disposable[] = [];
@@ -60,29 +95,8 @@ export class VSCodeCommands implements Disposable {
         );
         this.dbtTerminal.show(true);
         const result = await this.getProject()?.validateSQLDryRun(modelName);
-        const messageEntries: [string, string][] = [];
-        for (const k in result) {
-          const v = result[k];
-          if (!v || k.startsWith("_")) {
-            continue;
-          }
-          messageEntries.push([k, v]);
-        }
-        const maxKeyLength = Math.max(
-          ...messageEntries.map((item) => item[0].length),
-        );
-        const maxValueLength = Math.max(
-          ...messageEntries.map((item) => item[1].length),
-        );
-        const message = messageEntries
-          .map(
-            (item) =>
-              `|${item[0].padEnd(maxKeyLength + 2)}|${item[1].padEnd(
-                maxValueLength + 2,
-              )}|`,
-          )
-          .join("\r\n");
-        this.dbtTerminal.log(message);
+
+        this.dbtTerminal.log(formatResult(modelName, result));
       }),
       commands.registerTextEditorCommand(
         "dbtPowerUser.sqlPreview",
