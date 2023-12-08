@@ -7,12 +7,5 @@
     "out": true // set this to false to include "out" folder in search results
   },
   // Turn off tsc task auto detection since we have the necessary tasks as npm scripts
-  "typescript.tsc.autoDetect": "off",
-  "terminal.integrated.profiles.osx": {
-    "zsh": {
-      "path": "zsh",
-      "args": ["-i"]
-    }
-  },
-  "terminal.integrated.defaultProfile.osx": "zsh"
+  "typescript.tsc.autoDetect": "off"
 }
