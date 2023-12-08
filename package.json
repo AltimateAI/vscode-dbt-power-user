@@ -692,7 +692,7 @@
     "vscode:prepublish": "npm run panel:lineage && webpack --mode production",
     "webpack": "npm run panel:lineage && webpack --mode development",
     "webpack-dev": "npm run panel:lineage && webpack --mode development --watch",
-    "test-compile": "tsc -p ./",
+    "test-compile": "npm run webpack; tsc -p ./",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
     "deploy-vscode": "vsce publish",
@@ -700,7 +700,7 @@
     "deploy-openvsx": "ovsx publish",
     "panel:lineage": "npm run build --prefix ./new_lineage_panel",
     "install:panels": "npm install --prefix ./new_lineage_panel",
-    "test": "node ./out/test/runTest.js"
+    "test": "npm run test-compile; node ./out/test/runTest.js"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
@@ -710,7 +710,8 @@
     "@types/which": "^3.0.0",
     "@typescript-eslint/eslint-plugin": "^5.54.1",
     "@typescript-eslint/parser": "^5.62.0",
-    "@vscode/test-electron": "^2.3.5",
+    "@vscode/test-cli": "^0.0.4",
+    "@vscode/test-electron": "^2.3.8",
     "copy-webpack-plugin": "^11.0.0",
     "eslint": "^8.51.0",
     "eslint-config-prettier": "^8.9.0",

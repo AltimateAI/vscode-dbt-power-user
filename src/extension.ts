@@ -9,6 +9,8 @@ export async function activate(context: ExtensionContext) {
   context.subscriptions.push(dbtPowerUserExtension);
 
   await dbtPowerUserExtension.activate(context);
+
+  return container;
 }
 
 export function deactivate() {}

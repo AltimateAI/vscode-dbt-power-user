@@ -12,7 +12,7 @@ async function main() {
   try {
     const python = getPythonExecutable();
     console.log(`Python executable is ${python}`);
-    const version = "1.84.1";
+    const version = "1.85.0";
 
     // The folder containing the Extension Manifest package.json
     // Passed to `--extensionDevelopmentPath`
@@ -23,39 +23,39 @@ async function main() {
     const extensionTestsPath = path.resolve(__dirname, "./suite/index");
 
     // Download VS Code, unzip it and run the integration test
-    // const vscodeExecutablePath = await downloadAndUnzipVSCode(version);
-    // const [cliPath, ...args] =
-    //   resolveCliArgsFromVSCodeExecutablePath(vscodeExecutablePath);
+    const vscodeExecutablePath = await downloadAndUnzipVSCode(version);
+    const [cliPath, ...args] =
+      resolveCliArgsFromVSCodeExecutablePath(vscodeExecutablePath);
 
-    // // Use cp.spawn / cp.exec for custom setup
-    // cp.spawnSync(
-    //   cliPath,
-    //   [...args, "--install-extension", "ms-python.python"],
-    //   {
-    //     encoding: "utf-8",
-    //     stdio: "inherit",
-    //   },
-    // );
-    // cp.spawnSync(
-    //   cliPath,
-    //   [...args, "--install-extension", "samuelcolvin.jinjahtml"],
-    //   {
-    //     encoding: "utf-8",
-    //     stdio: "inherit",
-    //   },
-    // );
+    // Use cp.spawn / cp.exec for custom setup
+    cp.spawnSync(
+      cliPath,
+      [...args, "--install-extension", "ms-python.python"],
+      {
+        encoding: "utf-8",
+        stdio: "inherit",
+      },
+    );
+    cp.spawnSync(
+      cliPath,
+      [...args, "--install-extension", "samuelcolvin.jinjahtml"],
+      {
+        encoding: "utf-8",
+        stdio: "inherit",
+      },
+    );
 
     // Run the extension test
     await runTests({
       // Use the specified `code` executable
-      // vscodeExecutablePath: vscodeExecutablePath,
+      vscodeExecutablePath: vscodeExecutablePath,
       extensionDevelopmentPath: extensionDevelopmentPath,
       extensionTestsPath: extensionTestsPath,
       version: version,
       launchArgs: [
         path.join(
           __dirname,
-          "sample_projects",
+          "../../test/sample_projects",
           "dbt_test_projects.code-workspace",
         ),
       ],
