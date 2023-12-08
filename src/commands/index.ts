@@ -61,9 +61,28 @@ export class VSCodeCommands implements Disposable {
             ".sql",
           );
           this.dbtTerminal.show(true);
-          const result = await this.getProject()?.validateSQLDryRun(modelName);
-
-          this.dbtTerminal.log(this.formatResult(modelName, result));
+          const query = window.activeTextEditor?.document.getText();
+          if (!query) {
+            window.showErrorMessage(
+              "We need a valid query to get a cost estimate.",
+            );
+            return;
+          }
+          const compiledQuery = await this.getProject()?.compileQuery(query);
+          if (!compiledQuery) {
+            window.showErrorMessage(
+              "We need a valid query to get a cost estimate.",
+            );
+            return;
+          }
+          const result =
+            await this.getProject()?.validateSQLDryRun(compiledQuery);
+          if (!result) {
+            return;
+          }
+          this.dbtTerminal.log(
+            `The query for ${modelName} will process ${result.bytes_processed}.\r\n`,
+          );
         },
       ),
       commands.registerTextEditorCommand(
@@ -205,50 +224,6 @@ export class VSCodeCommands implements Disposable {
         );
       }),
     );
-  }
-
-  private formatResult(modelName: string, result: any): string {
-    const msgEntries: [string, string][] = [];
-    for (const k in result) {
-      const v = result[k];
-      if (v === null || k.startsWith("_")) {
-        continue;
-      }
-      msgEntries.push([k, v.toString()]);
-    }
-    const maxKeyLength = Math.max(...msgEntries.map((item) => item[0].length));
-    const maxValueLength = Math.max(
-      ...msgEntries.map((item) => item[1].length),
-    );
-    let keyLength = maxKeyLength + 2;
-    let valueLength = maxValueLength + 2;
-    const n = modelName.length;
-    if (maxKeyLength + maxValueLength + 1 < n) {
-      keyLength = Math.floor(
-        (n * maxKeyLength) / (maxKeyLength + maxValueLength),
-      );
-      valueLength = n - keyLength;
-    }
-    let message = "";
-    message += " " + "_".repeat(keyLength + valueLength + 1) + " " + "\r\n";
-    message +=
-      "|" + modelName.padEnd(keyLength + valueLength + 1) + "|" + "\r\n";
-    message += "|" + "_".repeat(keyLength + valueLength + 1) + "|" + "\r\n";
-    for (const item of msgEntries) {
-      message += `|${item[0].padEnd(keyLength)}|${item[1].padEnd(
-        valueLength,
-      )}|\r\n`;
-    }
-    message +=
-      "|" +
-      "_".repeat(keyLength) +
-      "|" +
-      "_".repeat(valueLength) +
-      "|" +
-      "\r\n";
-    message += "\r\n";
-
-    return message;
   }
 
   private getProject() {

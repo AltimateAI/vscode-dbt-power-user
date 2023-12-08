@@ -548,7 +548,7 @@ export class DBTProject implements Disposable {
     }
   }
 
-  async validateSQLDryRun(modelName: string) {
+  async validateSQLDryRun(query: string) {
     await this.blockUntilPythonBridgeIsInitalized();
 
     if (!this.pythonBridgeInitialized) {
@@ -562,27 +562,15 @@ export class DBTProject implements Disposable {
       );
       return;
     }
-    const sql = await this.compileNode(modelName);
-    if (!sql) {
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          `Could not compile query for model ${modelName}.`,
-        ),
-      );
-      this.telemetry.sendTelemetryError("compileQueryError");
-      return;
-    }
     try {
       const result = await this.python?.lock(
-        (python) => python!`to_dict(project.validate_sql_dry_run(${sql}))`,
+        (python) => python!`to_dict(project.validate_sql_dry_run(${query}))`,
       );
-      console.log(result);
       return result;
     } catch (exc) {
+      // TODO: show better exception from big query
       window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "Could not validate sql wihth dry run." + exc,
-        ),
+        extendErrorWithSupportLinks("Could not validate sql with dry run."),
       );
       this.telemetry.sendTelemetryError("validateSQLDryRunError", {
         error: exc,
