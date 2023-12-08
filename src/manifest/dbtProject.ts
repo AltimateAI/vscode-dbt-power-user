@@ -42,6 +42,7 @@ import {
 import { TargetWatchersFactory } from "./modules/targetWatchers";
 import { PythonEnvironment } from "./pythonEnvironment";
 import { TelemetryService } from "../telemetry";
+import { ValidateSqlParseErrorResponse } from "../altimate";
 import * as crypto from "crypto";
 
 export interface ExecuteSQLResult {
@@ -514,6 +515,94 @@ export class DBTProject implements Disposable {
       (python) => python!`to_dict(project.compile_sql(${query}))`,
     )) as CompilationResult;
     return output.compiled_sql;
+  }
+
+  async validateSql(request: { sql: string; dialect: string; models: any[] }) {
+    await this.blockUntilPythonBridgeIsInitalized();
+
+    if (!this.pythonBridgeInitialized) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Could not compile query, because the Python bridge has not been initalized.",
+        ),
+      );
+      this.telemetry.sendTelemetryError(
+        "compileQueryPythonBridgeNotInitializedError",
+      );
+      return;
+    }
+    try {
+      const { sql, dialect, models } = request;
+      const result = await this.python?.lock(
+        (python) =>
+          python!`to_dict(validate_sql(${sql}, ${dialect}, ${models}))`,
+      );
+      return result as ValidateSqlParseErrorResponse;
+    } catch (exc) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks("Could not validate sql." + exc),
+      );
+      this.telemetry.sendTelemetryError("validateSQLError", {
+        error: exc,
+      });
+    }
+  }
+
+  async validateSQLDryRun(query: string) {
+    await this.blockUntilPythonBridgeIsInitalized();
+
+    if (!this.pythonBridgeInitialized) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Could not compile query, because the Python bridge has not been initalized.",
+        ),
+      );
+      this.telemetry.sendTelemetryError(
+        "compileQueryPythonBridgeNotInitializedError",
+      );
+      return;
+    }
+    try {
+      const result = await this.python?.lock(
+        (python) => python!`to_dict(project.validate_sql_dry_run(${query}))`,
+      );
+      return result;
+    } catch (exc) {
+      const exception = exc as { exception: { message: string } };
+      window.showErrorMessage(
+        exception.exception.message || "Could not validate sql with dry run.",
+      );
+      this.telemetry.sendTelemetryError("validateSQLDryRunError", {
+        error: exc,
+      });
+    }
+  }
+
+  async getDBTVersion(): Promise<number[] | undefined> {
+    await this.blockUntilPythonBridgeIsInitalized();
+
+    if (!this.pythonBridgeInitialized) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Could not compile query, because the Python bridge has not been initalized.",
+        ),
+      );
+      this.telemetry.sendTelemetryError(
+        "compileQueryPythonBridgeNotInitializedError",
+      );
+      return;
+    }
+    try {
+      const result = await this.python?.lock(
+        (python) => python!`to_dict(project.get_dbt_version())`,
+      );
+      return result as number[];
+    } catch (exc) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks("Could not get dbt version." + exc),
+      );
+      this.telemetry.sendTelemetryError("getDBTVersionError", { error: exc });
+    }
   }
 
   async compileQuery(query: string): Promise<string | undefined> {
