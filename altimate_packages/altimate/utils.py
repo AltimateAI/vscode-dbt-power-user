@@ -77,22 +77,33 @@ def get_str_position(str, row, col):
     return position
 
 
-def get_line_and_column_from_position(sql: str, position: int):
+def get_line_and_column_from_position(text, start_index):
     """
-    Get row and column from position in a string
+    Finds the grid position (row and column) in a multiline string given a Python start index.
+    Rows and columns are 1-indexed.
+
+    :param text: Multiline string.
+    :param start_index: Python start index (0-indexed).
+    :return: Tuple of (row, column).
     """
-    position = min(position, len(sql))
-    lines = sql.split("\n")
-    row = 1
-    col = 1
+    row = 0
+    current_length = 0
+
+    # Split the text into lines
+    lines = text.split("\n")
+
     for line in lines:
-        if position <= len(line):
-            col = position + 1
-            break
-        else:
-            position -= len(line) + 1
-            row += 1
-    return row, col
+        # Check if the start_index is in the current line
+        if current_length + len(line) >= start_index:
+            # Column is the difference between start_index and the length of processed characters
+            column = start_index - current_length + 1
+            return row, column
+
+        # Update the row and current length for the next iteration
+        row += 1
+        current_length += len(line) + 1  # +1 for the newline character
+
+    return None, None
 
 
 def _build_message(sql: str, error: dict):
