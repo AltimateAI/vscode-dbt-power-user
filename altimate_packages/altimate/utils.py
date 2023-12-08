@@ -125,6 +125,13 @@ def sql_parse_errors(sql: str, dialect: str):
     errors = []
     try:
         sqlglot.transpile(sql, read=dialect)
+        ast = sqlglot.parse_one(sql, read=dialect)
+        if isinstance(ast, sqlglot.exp.Alias):
+            return [
+                {
+                    "description": "Failed to parse the sql query.",
+                }
+            ]
     except sqlglot.errors.ParseError as e:
         for error in e.errors:
             errors.append(_build_message(sql, error))
@@ -136,9 +143,8 @@ def validate_tables_and_columns(
     dialect: str,
     schemas: dict,
 ):
-    parsed_sql = sqlglot.parse_one(sql, read=dialect)
-
     try:
+        parsed_sql = sqlglot.parse_one(sql, read=dialect)
         qualify(parsed_sql, dialect=dialect, schema=schemas)
     except sqlglot.errors.OptimizeError as e:
         error = str(e)

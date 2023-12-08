@@ -1,7 +1,11 @@
 from typing import Dict, List
 
-from altimate.utils import (map_adapter_to_dialect, sql_execute_errors,
-                            sql_parse_errors, validate_tables_and_columns)
+from altimate.utils import (
+    map_adapter_to_dialect,
+    sql_execute_errors,
+    sql_parse_errors,
+    validate_tables_and_columns,
+)
 
 
 def _get_key(
