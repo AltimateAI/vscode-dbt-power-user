@@ -235,8 +235,6 @@ class DbtProject:
             profile=profile,
             target_path=target_path,
         )
-        self.config = None
-
         # Utilities
         self._sql_parser: Optional[SqlBlockParser] = None
         self._macro_parser: Optional[SqlMacroParser] = None
@@ -247,6 +245,10 @@ class DbtProject:
         self._version: int = 1
         self.mutex = threading.Lock()
 
+        # Set config
+        set_from_args(self.args, self.args)
+        self.config = RuntimeConfig.from_args(self.args)
+
     def get_adapter(self):
         """This inits a new Adapter which is fundamentally different than
         the singleton approach in the core lib"""
@@ -254,8 +256,6 @@ class DbtProject:
         return get_adapter_class_by_name(adapter_name)(self.config)
 
     def init_project(self):
-        set_from_args(self.args, self.args)
-        self.config = RuntimeConfig.from_args(self.args)
         self.adapter = self.get_adapter()
         self.adapter.connections.set_connection_name()
         self.config.adapter = self.adapter

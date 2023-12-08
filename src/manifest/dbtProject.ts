@@ -93,6 +93,7 @@ export class DBTProject implements Disposable {
   private macroPaths: string[];
   private python?: PythonBridge;
   private pythonBridgeInitialized = false;
+  private initializationException: any | null = null;
 
   private _onProjectConfigChanged =
     new EventEmitter<ProjectConfigChangedEvent>();
@@ -195,7 +196,6 @@ export class DBTProject implements Disposable {
       this.pythonBridgeDiagnostics,
       this.projectConfigDiagnostics,
     );
-    this.initializePythonBridge();
   }
 
   public getProjectName() {
@@ -234,6 +234,13 @@ export class DBTProject implements Disposable {
       this.pythonBridgeInitialized = true;
       this.pythonBridgeDiagnostics.clear();
     } catch (exc: any) {
+      this.initializationException = exc;
+    }
+  }
+
+  handlePythonBridgeException() {
+    const exc = this.initializationException;
+    if (exc) {
       if (exc instanceof PythonException) {
         // python errors can be about anything, so we just associate the error with the project file
         //  with a fixed range
@@ -260,7 +267,17 @@ export class DBTProject implements Disposable {
       this.telemetry.sendTelemetryError("pythonBridgeInitError", exc);
       return;
     }
-    // this methods already handle exceptions
+  }
+
+  async closePythonBridge() {
+    await this.python?.end();
+  }
+
+  isPythonBridgeInitialized() {
+    return this.pythonBridgeInitialized;
+  }
+
+  public async initializeDBTProject() {
     await this.tryRefresh();
     await this.rebuildManifest(true);
   }

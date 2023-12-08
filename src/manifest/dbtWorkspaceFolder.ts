@@ -49,10 +49,6 @@ export class DBTWorkspaceFolder implements Disposable {
         this.workspaceFolder,
         `**/${DBTProject.DBT_PROJECT_FILE}`,
       ),
-      new RelativePattern(
-        this.workspaceFolder,
-        `**/{${DBTProject.DBT_MODULES.join(",")}}`,
-      ),
     );
     const allowListFolders = workspace
       .getConfiguration("dbt")
@@ -83,7 +79,34 @@ export class DBTWorkspaceFolder implements Disposable {
       {},
       { numProjects: projectFiles.length },
     );
-    return projectFiles.forEach((uri) => this.registerDBTProject(uri));
+    await Promise.all(
+      projectFiles.map(async (uri) => {
+        await this.registerDBTProject(uri);
+      }),
+    );
+    // Filter projects
+    const packagesInstallPaths =
+      await this.findDBTProjectPackagesInstallPaths();
+    const filteredProjectFiles = projectFiles.filter((uri) => {
+      return packagesInstallPaths.some((path) =>
+        uri.toString().includes("/" + path),
+      );
+    });
+    await Promise.all(
+      filteredProjectFiles.map(async (uri) => {
+        await this.unregisterDBTProject(uri);
+      }),
+    );
+    await Promise.all(
+      this.dbtProjects.map(async (project) => {
+        await project.initializeDBTProject();
+      }),
+    );
+
+    // Exception handling after filtering
+    this.dbtProjects.map((project) => {
+      project.handlePythonBridgeException();
+    });
   }
 
   findDBTProject(uri: Uri): DBTProject | undefined {
@@ -92,6 +115,18 @@ export class DBTWorkspaceFolder implements Disposable {
 
   getProjects(): DBTProject[] {
     return this.dbtProjects;
+  }
+
+  async findDBTProjectPackagesInstallPaths() {
+    const filteredProjects = this.dbtProjects.filter((project) =>
+      project.isPythonBridgeInitialized(),
+    );
+
+    return await Promise.all(
+      filteredProjects.map(async (project) => {
+        return await project.findPackagesInstallPath();
+      }),
+    );
   }
 
   contains(uri: Uri) {
@@ -127,6 +162,7 @@ export class DBTWorkspaceFolder implements Disposable {
         projectConfig,
         this._onManifestChanged,
       );
+      await dbtProject.initializePythonBridge();
       this.dbtProjects.push(dbtProject);
       // sorting the dbt projects descending by path ensures that we find the deepest path first
       this.dbtProjects.sort(
@@ -152,20 +188,23 @@ export class DBTWorkspaceFolder implements Disposable {
     }
   }
 
-  private unregisterDBTProject(uri: Uri) {
+  private async unregisterDBTProject(uri: Uri) {
     const projectToDelete = this.dbtProjects.find(
       (dbtProject) => dbtProject.projectRoot.fsPath === uri.fsPath,
     );
     if (projectToDelete === undefined) {
       return;
     }
+    // Close python bridge
+    await projectToDelete.closePythonBridge();
+
     this._onProjectRegisteredUnregistered.fire({
       root: uri,
       name: projectToDelete.getProjectName(),
       registered: false,
     });
     projectToDelete.dispose();
-    this.dbtProjects.splice(this.dbtProjects.indexOf(projectToDelete));
+    this.dbtProjects.splice(this.dbtProjects.indexOf(projectToDelete), 1);
   }
 
   private createConfigWatcher(): FileSystemWatcher {
