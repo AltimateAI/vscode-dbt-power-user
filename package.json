@@ -280,7 +280,7 @@
         "title": "Clear Health Check Results"
       },
       {
-        "command": "dbtPowerUser.costEstimate",
+        "command": "dbtPowerUser.bigqueryCostEstimate",
         "title": "Estimate cost for BigQuery"
       },
       {
@@ -497,7 +497,7 @@
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
         },
         {
-          "command": "dbtPowerUser.costEstimate",
+          "command": "dbtPowerUser.bigqueryCostEstimate",
           "group": "dbt@4",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
         }

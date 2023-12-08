@@ -20,42 +20,6 @@ import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { ValidateSql } from "./validateSql";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
-const formatResult = (modelName: string, result: any): string => {
-  const msgEntries: [string, string][] = [];
-  for (const k in result) {
-    const v = result[k];
-    if (!v || k.startsWith("_")) {
-      continue;
-    }
-    msgEntries.push([k, v]);
-  }
-  const maxKeyLength = Math.max(...msgEntries.map((item) => item[0].length));
-  const maxValueLength = Math.max(...msgEntries.map((item) => item[1].length));
-  let keyLength = maxKeyLength + 2;
-  let valueLength = maxValueLength + 2;
-  const n = modelName.length;
-  if (maxKeyLength + maxValueLength + 1 < n) {
-    keyLength = Math.floor(
-      (n * maxKeyLength) / (maxKeyLength + maxValueLength),
-    );
-    valueLength = n - keyLength;
-  }
-  let message = "";
-  message += " " + "_".repeat(keyLength + valueLength + 1) + " " + "\r\n";
-  message += "|" + modelName.padEnd(keyLength + valueLength + 1) + "|" + "\r\n";
-  message += "|" + "_".repeat(keyLength + valueLength + 1) + "|" + "\r\n";
-  for (const item of msgEntries) {
-    message += `|${item[0].padEnd(keyLength)}|${item[1].padEnd(
-      valueLength,
-    )}|\r\n`;
-  }
-  message +=
-    "|" + "_".repeat(keyLength) + "|" + "_".repeat(valueLength) + "|" + "\r\n";
-  message += "\r\n";
-
-  return message;
-};
-
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
   private disposables: Disposable[] = [];
@@ -89,16 +53,19 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.compileCurrentModel", () =>
         this.runModel.compileModelOnActiveWindow(),
       ),
-      commands.registerCommand("dbtPowerUser.costEstimate", async () => {
-        const modelName = path.basename(
-          window.activeTextEditor!.document.fileName,
-          ".sql",
-        );
-        this.dbtTerminal.show(true);
-        const result = await this.getProject()?.validateSQLDryRun(modelName);
+      commands.registerCommand(
+        "dbtPowerUser.bigqueryCostEstimate",
+        async () => {
+          const modelName = path.basename(
+            window.activeTextEditor!.document.fileName,
+            ".sql",
+          );
+          this.dbtTerminal.show(true);
+          const result = await this.getProject()?.validateSQLDryRun(modelName);
 
-        this.dbtTerminal.log(formatResult(modelName, result));
-      }),
+          this.dbtTerminal.log(this.formatResult(modelName, result));
+        },
+      ),
       commands.registerTextEditorCommand(
         "dbtPowerUser.sqlPreview",
         async (editor: TextEditor) => {
@@ -238,6 +205,50 @@ export class VSCodeCommands implements Disposable {
         );
       }),
     );
+  }
+
+  private formatResult(modelName: string, result: any): string {
+    const msgEntries: [string, string][] = [];
+    for (const k in result) {
+      const v = result[k];
+      if (!v || k.startsWith("_")) {
+        continue;
+      }
+      msgEntries.push([k, v]);
+    }
+    const maxKeyLength = Math.max(...msgEntries.map((item) => item[0].length));
+    const maxValueLength = Math.max(
+      ...msgEntries.map((item) => item[1].length),
+    );
+    let keyLength = maxKeyLength + 2;
+    let valueLength = maxValueLength + 2;
+    const n = modelName.length;
+    if (maxKeyLength + maxValueLength + 1 < n) {
+      keyLength = Math.floor(
+        (n * maxKeyLength) / (maxKeyLength + maxValueLength),
+      );
+      valueLength = n - keyLength;
+    }
+    let message = "";
+    message += " " + "_".repeat(keyLength + valueLength + 1) + " " + "\r\n";
+    message +=
+      "|" + modelName.padEnd(keyLength + valueLength + 1) + "|" + "\r\n";
+    message += "|" + "_".repeat(keyLength + valueLength + 1) + "|" + "\r\n";
+    for (const item of msgEntries) {
+      message += `|${item[0].padEnd(keyLength)}|${item[1].padEnd(
+        valueLength,
+      )}|\r\n`;
+    }
+    message +=
+      "|" +
+      "_".repeat(keyLength) +
+      "|" +
+      "_".repeat(valueLength) +
+      "|" +
+      "\r\n";
+    message += "\r\n";
+
+    return message;
   }
 
   private getProject() {

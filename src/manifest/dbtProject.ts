@@ -547,7 +547,7 @@ export class DBTProject implements Disposable {
     }
   }
 
-  public async validateSQLDryRun(modelName: string) {
+  async validateSQLDryRun(modelName: string) {
     await this.blockUntilPythonBridgeIsInitalized();
 
     if (!this.pythonBridgeInitialized) {

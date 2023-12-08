@@ -59,7 +59,7 @@ export class DbtSQLAction {
                 "Cost Estimate",
                 "debug",
                 "Estimate cost for BigQuery",
-                "dbtPowerUser.costEstimate",
+                "dbtPowerUser.bigqueryCostEstimate",
               ),
             );
           }
