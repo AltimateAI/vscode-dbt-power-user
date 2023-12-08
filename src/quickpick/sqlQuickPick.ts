@@ -57,7 +57,7 @@ export class DbtSQLAction {
           ) {
             items.push(
               new SQLActionItem(
-                "Cost Estimate",
+                "BigQuery Cost Estimate",
                 "debug",
                 "Estimate cost for BigQuery",
                 "dbtPowerUser.bigqueryCostEstimate",
