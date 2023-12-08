@@ -4,6 +4,7 @@ import {
   workspace,
   window,
   ExtensionContext,
+  ConfigurationTarget,
 } from "vscode";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
@@ -85,5 +86,29 @@ export class DBTPowerUserExtension implements Disposable {
     this.dbtProjectContainer.initializeWalkthrough();
     await this.dbtProjectContainer.detectDBT();
     await this.dbtProjectContainer.initializeDBTProjects();
+    window.registerUriHandler({
+      handleUri(uri) {
+        const params = new URLSearchParams(uri.query);
+        const key = params.get("key");
+        const instance = params.get("instance");
+
+        if (!key || !instance) {
+          return;
+        }
+
+        // Get workspace configuration
+        const config = workspace.getConfiguration();
+
+        // Update configuration values
+        config.update("dbt.altimateAiKey", key, ConfigurationTarget.Workspace);
+        config.update(
+          "dbt.altimateInstanceName",
+          instance,
+          ConfigurationTarget.Workspace,
+        );
+
+        window.showInformationMessage("Configured Altimate AI credentials");
+      },
+    });
   }
 }

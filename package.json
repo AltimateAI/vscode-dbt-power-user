@@ -34,7 +34,8 @@
     "jinja-sql"
   ],
   "activationEvents": [
-    "workspaceContains:**/dbt_project.yml"
+    "workspaceContains:**/dbt_project.yml",
+    "onUriHandler:vscode:extension/innoverio.vscode-dbt-power-user"
   ],
   "main": "./dist/extension",
   "contributes": {
