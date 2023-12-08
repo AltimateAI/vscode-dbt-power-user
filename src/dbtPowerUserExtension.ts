@@ -5,6 +5,7 @@ import {
   window,
   ExtensionContext,
   ConfigurationTarget,
+  Uri,
 } from "vscode";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
@@ -87,7 +88,7 @@ export class DBTPowerUserExtension implements Disposable {
     await this.dbtProjectContainer.detectDBT();
     await this.dbtProjectContainer.initializeDBTProjects();
     window.registerUriHandler({
-      handleUri(uri) {
+      handleUri(uri: Uri) {
         const params = new URLSearchParams(uri.query);
         const key = params.get("key");
         const instance = params.get("instance");

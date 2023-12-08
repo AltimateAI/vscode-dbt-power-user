@@ -35,7 +35,7 @@
   ],
   "activationEvents": [
     "workspaceContains:**/dbt_project.yml",
-    "onUriHandler:vscode:extension/innoverio.vscode-dbt-power-user"
+    "onUriHandler:vscode:customevent/innoverio.vscode-dbt-power-user"
   ],
   "main": "./dist/extension",
   "contributes": {
@@ -244,6 +244,10 @@
       {
         "command": "dbtPowerUser.puQuickPick",
         "title": "dbt Power User Quick Pick"
+      },
+      {
+        "command": "extension.testUriHandler",
+        "title": "Test URI Handler"
       },
       {
         "command": "dbtPowerUser.runCurrentModel",
@@ -783,7 +787,8 @@
     "build-vsix": "vsce package",
     "deploy-openvsx": "ovsx publish",
     "panel:lineage": "npm run build --prefix ./new_lineage_panel",
-    "install:panels": "npm install --prefix ./new_lineage_panel"
+    "install:panels": "npm install --prefix ./new_lineage_panel",
+    "test": "node ./node_modules/vscode-test/bin/test"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
@@ -810,6 +815,7 @@
     "terser-webpack-plugin": "^5.3.9",
     "ts-loader": "^9.4.4",
     "typescript": "^4.9.5",
+    "vscode-test": "^1.6.1",
     "webpack": "^5.88.2",
     "webpack-cli": "^5.1.4"
   },
