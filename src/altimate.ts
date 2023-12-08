@@ -107,6 +107,26 @@ interface QuerySummaryResponse {
   ok: string;
 }
 
+interface ValidateSqlRequest {
+  sql: string;
+  adapter: string;
+  models: ModelNode[];
+}
+
+export type ValidateSqlParseErrorType =
+  | "sql_parse_error"
+  | "sql_invalid_error"
+  | "sql_unknown_error";
+
+export interface ValidateSqlParseErrorResponse {
+  error_type?: ValidateSqlParseErrorType;
+  errors: {
+    description: string;
+    start_position?: [number, number];
+    end_position?: [number, number];
+  }[];
+}
+
 @provideSingleton(AltimateRequest)
 export class AltimateRequest {
   private static ALTIMATE_URL = workspace
@@ -213,6 +233,13 @@ export class AltimateRequest {
     return this.fetch<QuerySummaryResponse>("dbt/v1/query-explain", {
       method: "POST",
       body: JSON.stringify({ compiled_sql, adapter }),
+    });
+  }
+
+  async validateSql(req: ValidateSqlRequest) {
+    return this.fetch<ValidateSqlParseErrorResponse>("dbt/v1/modelvalidation", {
+      method: "POST",
+      body: JSON.stringify(req),
     });
   }
 }

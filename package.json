@@ -245,6 +245,14 @@
         "title": "dbt Power User Quick Pick"
       },
       {
+        "command": "dbtPowerUser.sqlQuickPick",
+        "title": "SQL Actions",
+        "icon": {
+          "light": "./media/images/sql-action-light.svg",
+          "dark": "./media/images/sql-action-dark.svg"
+        }
+      },
+      {
         "command": "dbtPowerUser.runCurrentModel",
         "title": "Run dbt Model",
         "icon": {
@@ -258,6 +266,11 @@
         "icon": "$(circuit-board)"
       },
       {
+        "command": "dbtPowerUser.validateSql",
+        "title": "Validate SQL",
+        "icon": "$(circuit-board)"
+      },
+      {
         "command": "dbtPowerUser.altimateScan",
         "title": "Project Health Check",
         "icon": "$(circuit-board)"
@@ -265,6 +278,10 @@
       {
         "command": "dbtPowerUser.clearAltimateScanResults",
         "title": "Clear Health Check Results"
+      },
+      {
+        "command": "dbtPowerUser.bigqueryCostEstimate",
+        "title": "Estimate cost for BigQuery"
       },
       {
         "command": "dbtPowerUser.compileCurrentModel",
@@ -418,7 +435,7 @@
           "group": "navigation@5"
         },
         {
-          "command": "dbtPowerUser.summarizeQuery",
+          "command": "dbtPowerUser.sqlQuickPick",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.altimateInstanceName && config.dbt.altimateAiKey",
           "group": "navigation@1"
         },
@@ -471,6 +488,16 @@
         },
         {
           "command": "dbtPowerUser.compileCurrentModel",
+          "group": "dbt@4",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        },
+        {
+          "command": "dbtPowerUser.validateSql",
+          "group": "dbt@4",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        },
+        {
+          "command": "dbtPowerUser.bigqueryCostEstimate",
           "group": "dbt@4",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
         }

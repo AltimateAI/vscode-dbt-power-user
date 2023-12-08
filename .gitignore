@@ -6,3 +6,4 @@ dist
 .DS_Store
 .idea
 .history
+__pycache__/
