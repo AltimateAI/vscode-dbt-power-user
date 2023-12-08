@@ -590,7 +590,7 @@ export class DBTProject implements Disposable {
     }
   }
 
-  public async getDBTVersion(): Promise<number[] | undefined> {
+  async getDBTVersion(): Promise<number[] | undefined> {
     await this.blockUntilPythonBridgeIsInitalized();
 
     if (!this.pythonBridgeInitialized) {
