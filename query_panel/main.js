@@ -27,6 +27,11 @@ class Grid {
             useGrouping: false,
           },
         },
+        float: {
+          format: {
+            maximumFractionDigits: 20,
+          },
+        },
       },
     });
     this.elem = document.querySelector("perspective-viewer");

@@ -63,10 +63,18 @@ interface FileNameTemplateMap {
   [key: string]: string;
 }
 
-interface ResolveReferenceResult {
+interface ResolveReferenceNodeResult {
   database: string;
   schema: string;
   alias: string;
+}
+
+interface ResolveReferenceSourceResult {
+  database: string;
+  schema: string;
+  alias: string;
+  resource_type: string;
+  identifier: string;
 }
 
 export class DBTProject implements Disposable {
@@ -680,7 +688,7 @@ export class DBTProject implements Disposable {
     // Get database and schema
     const node = (await this.python?.lock(
       (python) => python!`to_dict(project.get_ref_node(${modelName}))`,
-    )) as ResolveReferenceResult;
+    )) as ResolveReferenceNodeResult;
     // Get columns
     if (!node) {
       return [];
@@ -711,7 +719,7 @@ export class DBTProject implements Disposable {
     const node = (await this.python?.lock(
       (python) =>
         python!`to_dict(project.get_source_node(${sourceName}, ${tableName}))`,
-    )) as ResolveReferenceResult;
+    )) as ResolveReferenceSourceResult;
     // Get columns
     if (!node) {
       return [];
@@ -719,7 +727,7 @@ export class DBTProject implements Disposable {
     return this.getColumsOfRelation(
       node.database,
       node.schema,
-      node.alias || tableName,
+      node.identifier,
     );
   }
 

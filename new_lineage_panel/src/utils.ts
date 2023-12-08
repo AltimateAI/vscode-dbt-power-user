@@ -165,7 +165,9 @@ export const getSourceTargetHandles = (
 
 export const getHelperDataForCLL = (nodes: Node[], edges: Edge[]) => {
   const levelMap: Record<string, number> = {};
-  nodes.forEach((n) => (levelMap[n.id] = n.data.level));
+  nodes.forEach((n) => {
+    if (isNotColumn(n)) levelMap[n.id] = n.data.level;
+  });
   const tableNodes: Record<string, boolean> = {};
   nodes
     .filter((_n) => _n.type === "table")
@@ -206,4 +208,13 @@ export const contains = (arr: [string, string][], x: [string, string]) => {
     if (item[0] === x[0] && item[1] === x[1]) return true;
   }
   return false;
+};
+
+export const safeConcat = <T>(
+  obj: Record<string, T[]>,
+  key: string,
+  values: T[],
+) => {
+  obj[key] = obj[key] || [];
+  obj[key].push(...values);
 };
