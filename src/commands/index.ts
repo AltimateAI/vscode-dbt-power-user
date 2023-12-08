@@ -211,10 +211,10 @@ export class VSCodeCommands implements Disposable {
     const msgEntries: [string, string][] = [];
     for (const k in result) {
       const v = result[k];
-      if (!v || k.startsWith("_")) {
+      if (v === null || k.startsWith("_")) {
         continue;
       }
-      msgEntries.push([k, v]);
+      msgEntries.push([k, v.toString()]);
     }
     const maxKeyLength = Math.max(...msgEntries.map((item) => item[0].length));
     const maxValueLength = Math.max(
