@@ -517,11 +517,7 @@ export class DBTProject implements Disposable {
     return output.compiled_sql;
   }
 
-  public async validateSql(request: {
-    sql: string;
-    dialect: string;
-    models: any[];
-  }) {
+  async validateSql(request: { sql: string; dialect: string; models: any[] }) {
     await this.blockUntilPythonBridgeIsInitalized();
 
     if (!this.pythonBridgeInitialized) {
@@ -543,7 +539,12 @@ export class DBTProject implements Disposable {
       );
       return result as ValidateSqlParseErrorResponse;
     } catch (exc) {
-      console.log(exc);
+      window.showErrorMessage(
+        extendErrorWithSupportLinks("Could not validate sql." + exc),
+      );
+      this.telemetry.sendTelemetryError("validateSQLError", {
+        error: exc,
+      });
     }
   }
 
@@ -578,11 +579,18 @@ export class DBTProject implements Disposable {
       console.log(result);
       return result;
     } catch (exc) {
-      console.log(exc);
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Could not validate sql wihth dry run." + exc,
+        ),
+      );
+      this.telemetry.sendTelemetryError("validateSQLDryRunError", {
+        error: exc,
+      });
     }
   }
 
-  public async getDBTVersion(): Promise<number[]> {
+  public async getDBTVersion(): Promise<number[] | undefined> {
     await this.blockUntilPythonBridgeIsInitalized();
 
     if (!this.pythonBridgeInitialized) {
@@ -594,17 +602,19 @@ export class DBTProject implements Disposable {
       this.telemetry.sendTelemetryError(
         "compileQueryPythonBridgeNotInitializedError",
       );
-      return [0, 0, 0];
+      return;
     }
     try {
       const result = await this.python?.lock(
         (python) => python!`to_dict(project.get_dbt_version())`,
       );
-      return (result as number[]) || [0, 0, 0];
+      return result as number[];
     } catch (exc) {
-      console.log(exc);
+      window.showErrorMessage(
+        extendErrorWithSupportLinks("Could not get dbt version." + exc),
+      );
+      this.telemetry.sendTelemetryError("getDBTVersionError", { error: exc });
     }
-    return [0, 0, 0];
   }
 
   async compileQuery(query: string): Promise<string | undefined> {

@@ -27,17 +27,17 @@ export class DbtSQLAction {
     try {
       return await new Promise<Uri | undefined>(async (resolve, reject) => {
         const dbtpuquickpick = window.createQuickPick<
-          DbtPowerUserControlPanelItem | QuickPickItem
+          SQLActionItem | QuickPickItem
         >();
         dbtpuquickpick.title = "SQL Actions";
         const items = [
-          new DbtPowerUserControlPanelItem(
+          new SQLActionItem(
             "Explain query",
             "lightbulb-autofix",
             "Explain the sql query",
             "dbtPowerUser.summarizeQuery",
           ),
-          new DbtPowerUserControlPanelItem(
+          new SQLActionItem(
             "Validate SQL",
             "circuit-board",
             "Validate the sql query",
@@ -51,11 +51,12 @@ export class DbtSQLAction {
           const dbtVersion = await project.getDBTVersion();
           if (
             adapter === "bigquery" &&
+            dbtVersion &&
             dbtVersion[0] >= 1 &&
             dbtVersion[1] >= 6
           ) {
             items.push(
-              new DbtPowerUserControlPanelItem(
+              new SQLActionItem(
                 "Cost Estimate",
                 "debug",
                 "Estimate cost for BigQuery",
@@ -72,7 +73,7 @@ export class DbtSQLAction {
           }),
           dbtpuquickpick.onDidChangeSelection((items) => {
             const item = items[0];
-            if (item instanceof DbtPowerUserControlPanelItem) {
+            if (item instanceof SQLActionItem) {
               commands.executeCommand(item.command, ...item.commandArgs);
               dbtpuquickpick.hide();
             }
@@ -90,7 +91,7 @@ export class DbtSQLAction {
   }
 }
 
-class DbtPowerUserControlPanelItem implements QuickPickItem {
+class SQLActionItem implements QuickPickItem {
   label: string;
   iconPath?: ThemeIcon | Uri | { light: Uri; dark: Uri } | undefined;
   description?: string | undefined;
