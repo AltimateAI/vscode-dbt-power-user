@@ -351,9 +351,6 @@ export class DBTProject implements Disposable {
       await this.python?.lock(
         (python) => python!`to_dict(project.safe_parse_project(${init}))`,
       );
-      // Add dbt packagesInstallPath in dbt modules
-      const packagesInstallPath = await this.findPackagesInstallPath();
-      DBTProject.DBT_MODULES.push(packagesInstallPath);
       if (init) {
         this.adapterType = (await this.python?.lock(
           (python) => python!`project.config.credentials.type`,
