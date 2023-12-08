@@ -57,7 +57,7 @@ export class DbtSQLAction {
             items.push(
               new DbtPowerUserControlPanelItem(
                 "Cost Estimate",
-                "lightbulb-autofix",
+                "debug",
                 "Estimate cost for BigQuery",
                 "dbtPowerUser.costEstimate",
               ),
