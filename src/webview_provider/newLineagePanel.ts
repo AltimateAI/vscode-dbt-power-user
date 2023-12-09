@@ -187,6 +187,11 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
 
+    if (command === "previewFeature") {
+      this.altimate.handlePreviewFeatures();
+      return;
+    }
+
     console.error("Unsupported mssage", message);
   }
 

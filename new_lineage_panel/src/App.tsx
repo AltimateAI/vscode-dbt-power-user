@@ -76,6 +76,9 @@ export const startProgressBar = () => {
 export const endProgressBar = () => {
   vscode.postMessage({ command: "endProgressBar", args: {} });
 };
+export const previewFeature = () => {
+  vscode.postMessage({ command: "previewFeature", args: {} });
+};
 
 export let isDarkMode = false;
 

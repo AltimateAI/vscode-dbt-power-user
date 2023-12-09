@@ -296,6 +296,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
             break;
           case "generateDocsForModel":
+            if (!this.altimateRequest.handlePreviewFeatures()) {
+              return;
+            }
             this.telemetry.sendTelemetryEvent("altimateGenerateDocsForModel");
             window.withProgress(
               {

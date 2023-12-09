@@ -1,4 +1,4 @@
-import { window, workspace } from "vscode";
+import { env, Uri, window, workspace } from "vscode";
 import { provideSingleton } from "./utils";
 import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
@@ -127,6 +127,10 @@ export interface ValidateSqlParseErrorResponse {
   }[];
 }
 
+enum PromptAnswer {
+  YES = "Sign Up for API Key",
+}
+
 @provideSingleton(AltimateRequest)
 export class AltimateRequest {
   private static ALTIMATE_URL = workspace
@@ -147,6 +151,26 @@ export class AltimateRequest {
 
   public enabled() {
     return !!this.getConfig();
+  }
+
+  private async showAPIKeyMessage() {
+    const answer = await window.showInformationMessage(
+      `You need Altimate AI API Key to use this feature. Get your API Key for free by signing up`,
+      PromptAnswer.YES,
+    );
+    if (answer === PromptAnswer.YES) {
+      env.openExternal(
+        Uri.parse("https://app.myaltimate.com/register?source=extension"),
+      );
+    }
+  }
+
+  handlePreviewFeatures(): boolean {
+    if (this.enabled()) {
+      return true;
+    }
+    this.showAPIKeyMessage();
+    return false;
   }
 
   async fetch<T>(endpoint: string, fetchArgs = {}, timeout: number = 120000) {

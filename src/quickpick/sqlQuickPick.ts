@@ -2,13 +2,13 @@ import {
   commands,
   Disposable,
   QuickPickItem,
-  QuickPickItemKind,
   ThemeIcon,
   Uri,
   window,
 } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import * as path from "path";
 
 @provideSingleton(DbtSQLAction)
 export class DbtSQLAction {
@@ -33,13 +33,26 @@ export class DbtSQLAction {
         const items = [
           new SQLActionItem(
             "Explain query",
-            "lightbulb-autofix",
-            "Explain the sql query",
+            {
+              light: Uri.file(
+                path.join(
+                  path.resolve(__dirname),
+                  "../media/images/lightbulb_light.svg",
+                ),
+              ),
+              dark: Uri.file(
+                path.join(
+                  path.resolve(__dirname),
+                  "../media/images/lightbulb_dark.svg",
+                ),
+              ),
+            },
+            "Explain the sql query (Preview feature)",
             "dbtPowerUser.summarizeQuery",
           ),
           new SQLActionItem(
             "Validate SQL",
-            "circuit-board",
+            new ThemeIcon("circuit-board"),
             "Validate the sql query",
             "dbtPowerUser.validateSql",
           ),
@@ -58,7 +71,7 @@ export class DbtSQLAction {
             items.push(
               new SQLActionItem(
                 "BigQuery Cost Estimate",
-                "dashboard",
+                new ThemeIcon("dashboard"),
                 "Estimate cost for BigQuery",
                 "dbtPowerUser.bigqueryCostEstimate",
               ),
@@ -100,13 +113,13 @@ class SQLActionItem implements QuickPickItem {
 
   constructor(
     label: string,
-    iconPath: string = "",
+    iconPath: ThemeIcon | Uri | { light: Uri; dark: Uri } | undefined,
     description?: string | undefined,
     commandStr?: string,
     commandArgs?: any[],
   ) {
     this.label = label;
-    this.iconPath = new ThemeIcon(iconPath);
+    this.iconPath = iconPath;
     this.description = description || "";
     this.command = commandStr || "";
     this.commandArgs = commandArgs || [];
