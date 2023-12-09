@@ -18,6 +18,7 @@ If you need help with setting up the extension, please check the [documentation]
 | [Click to run parent / child models and tests](#clicktorun) | Just click to do common dbt operations like running tests, parent / child models or previewing data.  |
 | [Compiled query preview and explanation](#queryexplanation) | Get live preview of compiled query as your write code. Also, generate explanations for dbt code written previously (by somebody else) |
 | [Project health check](#healthcheck) | Identify issues in your dbt project like columns not present, models not materialized |
+| [Other features](#otherfeatures) | dbt logs viewer (force tailing), dbt update notifications |
 
 Note: This extension is fully compatible with dev containers, code spaces and remote extension. 
 It’s supported for dbt versions above 1.0
@@ -72,5 +73,12 @@ Identify issues in your dbt project like columns not present, models not materia
 
 ![healthcheck](media/images/healthcheck.gif)
 
+### <a id="otherfeatures"> Other features</a>
+
+**dbt logs view (force tailing)**
+
+![dbt-log](media/images/dbt-log.gif)
+
 For any issues or bugs, please [contact us](https://www.altimate.ai/support) via chat or Slack.
 Additional FAQs are present in our [documentation](https://docs.myaltimate.com/arch/faq/)
+
