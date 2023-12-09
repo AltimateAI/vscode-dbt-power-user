@@ -125,6 +125,7 @@ export interface ValidateSqlParseErrorResponse {
     start_position?: [number, number];
     end_position?: [number, number];
   }[];
+}
 
 enum PromptAnswer {
   YES = "Sign Up for API Key",
