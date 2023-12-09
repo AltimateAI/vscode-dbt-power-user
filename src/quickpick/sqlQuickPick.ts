@@ -33,7 +33,7 @@ export class DbtSQLAction {
         const items = [
           new SQLActionItem(
             "Validate SQL",
-            new ThemeIcon("notebook-state-success"),
+            new ThemeIcon("check-all"),
             "Validate the sql query",
             "dbtPowerUser.validateSql",
           ),
