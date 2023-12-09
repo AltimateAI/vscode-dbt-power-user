@@ -70,5 +70,7 @@ Get live preview of compiled query as your write code. Also, generate explanatio
 
 Identify issues in your dbt project like columns not present, models not materialized. [(docs)](https://docs.myaltimate.com/test/healthcheck/)
 
+![healthcheck](media/images/healthcheck.gif)
+
 For any issues or bugs, please [contact us](https://www.altimate.ai/support) via chat or Slack.
 Additional FAQs are present in our [documentation](https://docs.myaltimate.com/arch/faq/)
