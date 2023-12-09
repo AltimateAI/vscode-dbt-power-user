@@ -333,6 +333,9 @@ export class QueryResultPanel implements WebviewViewProvider {
 
   public async getSummary(query: string, adapter: string) {
     //using id to focus on the webview is more reliable than using the view title
+    if (!this.altimate.handlePreviewFeatures()) {
+      return;
+    }
     await commands.executeCommand("dbtPowerUser.PreviewResults.focus");
     this.telemetry.sendTelemetryEvent("getQuerySummary");
     window.withProgress(
