@@ -56,6 +56,12 @@ export class DbtSQLAction {
             "Validate the sql query",
             "dbtPowerUser.validateSql",
           ),
+          new SQLActionItem(
+            "Model to Sql",
+            new ThemeIcon("circuit-board"),
+            "Convert dbt model to sql",
+            "dbtPowerUser.sqlToModel",
+          ),
         ];
 
         const project = this.getProject();
