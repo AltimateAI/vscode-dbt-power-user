@@ -57,9 +57,9 @@ export class DbtSQLAction {
             "dbtPowerUser.validateSql",
           ),
           new SQLActionItem(
-            "Model to Sql",
+            "Sql to Model",
             new ThemeIcon("circuit-board"),
-            "Convert dbt model to sql",
+            "Convert sql to dbt model",
             "dbtPowerUser.sqlToModel",
           ),
         ];
