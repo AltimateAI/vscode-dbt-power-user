@@ -28,39 +28,43 @@ It’s supported for dbt versions above 1.0
 
 Auto-fill model names, macros, sources and docs. Click on model names, macros, sources to go to definitions. [(docs)](https://docs.myaltimate.com/develop/autocomplete/)
 
-// gif 
+![autocomplete](media/images/autocomplete.gif)
 
 ### <a id="querypreview">Preview query results and Analyze</a>
 
 Generate dbt model / query results. Export as CSV or analyze results by creating graphs, filters, groups. [(docs)](https://docs.myaltimate.com/test/queryResults/)
 
-// gif
+![previewquery](media/images/previewquery.gif)
 
 ### <a id="lineage">Column Lineage</a>
 
 View model lineage as well as column lineage with components like models, seeds, sources, exposures and info like model types, tests, documentation, linkage types. [(docs)](https://docs.myaltimate.com/test/lineage/)
 
-// gif
+![lineage](media/images/lineage.gif)
 
 ### <a id="genmodel"> Generate dbt Models from Source or SQL</a>
 
 Generate dbt models from sources defined in YAML. You can also convert existing SQL to a dbt model where references get populated automatically. [(docs)](https://docs.myaltimate.com/develop/clicktorun/)
 
-// gif
+![genmodel](media/images/genmodel.gif)
 
 ### <a id="gendoc"> Generate documentation</a>
 
 Generate model and column descriptions automatically or write descriptions manually in the UI editor. Your descriptions are automatically formatted and saved in YAML files. [(docs)](https://docs.myaltimate.com/document/generatedoc/) 
 
-// gif
+![gendoc](media/images/gendoc.gif)
 
 ### <a id="clicktorun"> Click to run parent/child models and tests</a>
 
 Just click to do common button operations like executing tests, building or running parent / child models. [(docs)](https://docs.myaltimate.com/develop/clicktorun/) 
 
+![autocomplete](media/images/runmodeltests.gif)
+
 ### <a id="queryexplanation"> Compiled query preview and explanation</a>
 
 Get live preview of compiled query as your write code. Also, generate explanations for dbt code written previously (by somebody else). [(docs)](https://docs.myaltimate.com/develop/explanation/)
+
+![explanation](media/images/explanation.gif)
 
 ### <a id="healthcheck"> Project health check</a>
 
