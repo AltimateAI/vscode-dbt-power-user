@@ -32,6 +32,12 @@ export class DbtSQLAction {
         dbtpuquickpick.title = "SQL Actions";
         const items = [
           new SQLActionItem(
+            "Validate SQL",
+            new ThemeIcon("check-all"),
+            "Validate the sql query",
+            "dbtPowerUser.validateSql",
+          ),
+          new SQLActionItem(
             "Explain query",
             {
               light: Uri.file(
@@ -51,10 +57,23 @@ export class DbtSQLAction {
             "dbtPowerUser.summarizeQuery",
           ),
           new SQLActionItem(
-            "Validate SQL",
-            new ThemeIcon("circuit-board"),
-            "Validate the sql query",
-            "dbtPowerUser.validateSql",
+            "Sql to Model",
+            {
+              light: Uri.file(
+                path.join(
+                  path.resolve(__dirname),
+                  "../media/images/preview-dbt-light.svg",
+                ),
+              ),
+              dark: Uri.file(
+                path.join(
+                  path.resolve(__dirname),
+                  "../media/images/preview-dbt-dark.svg",
+                ),
+              ),
+            },
+            "Convert sql to dbt model (Preview feature)",
+            "dbtPowerUser.sqlToModel",
           ),
         ];
 
