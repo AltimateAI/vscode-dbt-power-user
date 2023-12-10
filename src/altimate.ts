@@ -155,7 +155,7 @@ export class AltimateRequest {
 
   private async showAPIKeyMessage() {
     const answer = await window.showInformationMessage(
-      `You need Altimate AI API Key to use this feature. Get your API Key for free by signing up`,
+      `To use this feature, please add an API key in the settings. Get your free API key by registering at www.altimate.ai`,
       PromptAnswer.YES,
     );
     if (answer === PromptAnswer.YES) {
