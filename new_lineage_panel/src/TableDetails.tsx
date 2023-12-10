@@ -119,8 +119,7 @@ const ColumnSection: FunctionComponent<{
     <div className={classNames(styles.card, "flex-grow column-section")}>
       <div className="d-flex flex-column gap-sm h-100 p-2">
         <div className="d-flex align-items-center gap-xs">
-          <div className="fs-5 fw-semibold">Column</div>
-          <PreviewIcon />
+          <div className="fs-5 fw-semibold">Columns</div>          
           <div className="spacer" />
           <Button
             size="sm"
@@ -149,13 +148,14 @@ const ColumnSection: FunctionComponent<{
             );
           }}
         />
-        <div className="d-flex align-items-center gap-xs">
+        <div className="d-flex align-items-center gap-xs">                             
+          <div className="text-muted fs-xxs">            
+          Select column for lineage
+          </div>
+          <PreviewIcon />
+          <div className="spacer" /> 
           <div className="fs-xxs text-grey">
             {filteredColumn.length} columns
-          </div>
-          <div className="spacer" />
-          <div className="text-muted fs-xxs">
-            {filteredColumn.every((en) => !en.datatype) ? "Needs DB Sync" : ""}
           </div>
         </div>
         <div className="d-flex flex-column gap-sm">
