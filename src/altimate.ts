@@ -128,7 +128,7 @@ export interface ValidateSqlParseErrorResponse {
 }
 
 enum PromptAnswer {
-  YES = "Sign Up for API Key",
+  YES = "Get your free API Key",
 }
 
 @provideSingleton(AltimateRequest)
@@ -155,7 +155,7 @@ export class AltimateRequest {
 
   private async showAPIKeyMessage() {
     const answer = await window.showInformationMessage(
-      `To use this feature, please add an API key in the settings. Get your free API key by registering at www.altimate.ai`,
+      `To use this feature, please add an API key in the settings.`,
       PromptAnswer.YES,
     );
     if (answer === PromptAnswer.YES) {
