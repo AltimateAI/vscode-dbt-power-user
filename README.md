@@ -4,7 +4,8 @@
 
 This [open source](https://github.com/AltimateAI/vscode-dbt-power-user) extension makes VSCode seamlessly work with [dbt](https://www.getdbt.com/).
 
-If you need help with setting up the extension, please check the [documentation](https://docs.myaltimate.com/setup/installation/) For any issues or bugs, please [contact us](https://www.altimate.ai/support) via chat or Slack.
+If you need help with setting up the extension, please check the [documentation](https://docs.myaltimate.com/setup/installation/).
+For any issues or bugs, please [contact us](https://www.altimate.ai/support) via chat or Slack.
 
 **Features:**
 
@@ -22,8 +23,7 @@ If you need help with setting up the extension, please check the [documentation]
 | [Big Query cost estimator](#bqcost)                         | Estimate data that will be processed by dbt model in BigQuery                                                                         |
 | [Other features](#otherfeatures)                            | dbt logs viewer (force tailing)                                                                                                       |
 
-Note: This extension is fully compatible with dev containers, code spaces and remote extension.
-It’s supported for dbt versions above 1.0
+Note: This extension is fully compatible with dev containers, code spaces and remote extension. See [Visual Studio Code Remote - Containers](https://code.visualstudio.com/docs/remote/containers) and [Visual Studio Code Remote - WSL](https://code.visualstudio.com/docs/remote/wsl). The extension is supported for dbt versions above 1.0
 
 ## Features
 
@@ -93,5 +93,5 @@ Estimate data that will be processed by dbt model in BigQuery [(docs)](https://d
 
 ![dbt-log](media/images/dbt-log.gif)
 
+Please check [documentation](https://docs.myaltimate.com/arch/faq/) for additional info.
 For any issues or bugs, please [contact us](https://www.altimate.ai/support) via chat or Slack.
-Additional FAQs are present in our [documentation](https://docs.myaltimate.com/arch/faq/)
