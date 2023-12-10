@@ -2,6 +2,9 @@ import { Disposable, Event, extensions, Uri, workspace } from "vscode";
 import { EnvironmentVariables } from "../domain";
 import { provideSingleton, substituteSettingsVariables } from "../utils";
 import { TelemetryService } from "../telemetry";
+import { PythonExtension } from "@vscode/python-extension";
+import * as path from "path";
+import * as fs from "fs";
 
 interface PythonExecutionDetails {
   getPythonPath: () => string;
@@ -78,9 +81,25 @@ export class PythonEnvironment implements Disposable {
     const api = extension.exports;
 
     return (this.executionDetails = {
-      getPythonPath: () =>
-        api.settings.getExecutionDetails(workspace.workspaceFile)
-          .execCommand[0],
+      getPythonPath: () => {
+        const pythonPath: string = api.settings.getExecutionDetails(
+          workspace.workspaceFile,
+        ).execCommand[0];
+
+        if (!findDBTPath(pythonPath)) {
+          for (const workspaceFolder of workspace.workspaceFolders || []) {
+            const candidatePythonPath = api.settings.getExecutionDetails(
+              workspaceFolder.uri,
+            ).execCommand[0];
+
+            if (findDBTPath(candidatePythonPath)) {
+              return candidatePythonPath;
+            }
+          }
+        }
+
+        return pythonPath;
+      },
       onDidChangeExecutionDetails: api.settings.onDidChangeExecutionDetails,
       getEnvVars: () => {
         const configText = workspace.getConfiguration();
@@ -123,4 +142,9 @@ export class PythonEnvironment implements Disposable {
       },
     });
   }
+}
+
+function findDBTPath(pythonPath: string): boolean {
+  const dbtPath = path.join(path.dirname(pythonPath), "dbt");
+  return fs.existsSync(dbtPath);
 }
