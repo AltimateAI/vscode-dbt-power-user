@@ -33,19 +33,19 @@ Auto-fill model names, macros, sources and docs. Click on model names, macros, s
 
 ![autocomplete](media/images/autocomplete.gif)
 
-### <a id="querypreview">Preview query results and Analyze</a>
+### <a id="querypreview">Preview query results and analyze</a>
 
 Generate dbt model / query results. Export as CSV or analyze results by creating graphs, filters, groups. [(docs)](https://docs.myaltimate.com/test/queryResults/)
 
 ![previewquery](media/images/previewquery.gif)
 
-### <a id="lineage">Column Lineage</a>
+### <a id="lineage">Column lineage</a>
 
 View model lineage as well as column lineage with components like models, seeds, sources, exposures and info like model types, tests, documentation, linkage types. [(docs)](https://docs.myaltimate.com/test/lineage/)
 
 ![lineage](media/images/lineage.gif)
 
-### <a id="genmodel"> Generate dbt Models from Source or SQL</a>
+### <a id="genmodel"> Generate dbt Models from source or SQL</a>
 
 Generate dbt models from sources defined in YAML. You can also convert existing SQL to a dbt model where references get populated automatically. [(docs)](https://docs.myaltimate.com/develop/clicktorun/)
 
@@ -77,11 +77,13 @@ Identify issues in your dbt project like columns not present, models not materia
 
 ### <a id="validateSQL"> SQL validator</a>
 
+Validate SQL to identify issues like mistyped keywords, extra parentheses, columns no present in database [(docs)](https://docs.myaltimate.com/test/sqlvalidation/)
+
 ![sql-validator](media/images/sqlValidation.gif)
 
-### <a id="otherfeatures"> Other features</a>
-
 ### <a id="bqcost"> Big Query cost estimator</a>
+
+Estimate data that will be processed by dbt model in BigQuery [(docs)](https://docs.myaltimate.com/test/bigquerycost/)
 
 ![bqcostestimator](media/images/bqcostestimator.gif)
 
