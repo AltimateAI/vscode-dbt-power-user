@@ -149,7 +149,7 @@ const ColumnSection: FunctionComponent<{
           }}
         />
         <div className="d-flex align-items-center gap-xs">                             
-          <div className="text-muted fs-xxs">            
+          <div className="fs-xxs">            
           Select column for lineage
           </div>
           <PreviewIcon />
