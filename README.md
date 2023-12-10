@@ -23,7 +23,8 @@ For any issues or bugs, please [contact us](https://www.altimate.ai/support) via
 | [Big Query cost estimator](#bqcost)                         | Estimate data that will be processed by dbt model in BigQuery                                                                         |
 | [Other features](#otherfeatures)                            | dbt logs viewer (force tailing)                                                                                                       |
 
-Note: This extension is fully compatible with dev containers, code spaces and remote extension. See [Visual Studio Code Remote - Containers](https://code.visualstudio.com/docs/remote/containers) and [Visual Studio Code Remote - WSL](https://code.visualstudio.com/docs/remote/wsl). The extension is supported for dbt versions above 1.0
+Note: This extension is fully compatible with dev containers, code spaces and remote extension. See [Visual Studio Code Remote - Containers](https://code.visualstudio.com/docs/remote/containers) and [Visual Studio Code Remote - WSL](https://code.visualstudio.com/docs/remote/wsl).
+The extension is supported for dbt versions above 1.0.
 
 ## Features
 
