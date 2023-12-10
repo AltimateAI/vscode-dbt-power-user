@@ -33,17 +33,13 @@ export class DbtPowerUserControlCenterAction {
             "dbtPowerUser.openTutorialWalkthrough",
           ),
           new DbtPowerUserControlPanelItem(
-            "Readme",
+            "Documentation",
             "link-external",
-            "View the detailed ReadMe for the extension",
+            "View the detailed Documentation for the extension",
             // This really is an older interface meant to work with executeCommand.
             // recommended is to use vscode.env.openExternal
             "vscode.open",
-            [
-              Uri.parse(
-                "https://github.com/AltimateAI/vscode-dbt-power-user/blob/master/README.md",
-              ),
-            ],
+            [Uri.parse("https://docs.myaltimate.com")],
           ),
           {
             label: "",
