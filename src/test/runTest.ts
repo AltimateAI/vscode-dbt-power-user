@@ -20,8 +20,8 @@ async function main() {
 
     // The path to the extension test script
     // Passed to --extensionTestsPath
-    const extensionTestsPath = path.resolve(__dirname, "./suite/index");
-
+    const extensionTestsPath = path.resolve(__dirname, "./suite/index.js");
+    console.log(extensionTestsPath, "extensionTestsPath");
     // Download VS Code, unzip it and run the integration test
     const vscodeExecutablePath = await downloadAndUnzipVSCode(version);
     const [cliPath, ...args] =
@@ -45,6 +45,10 @@ async function main() {
       },
     );
 
+    console.log(
+      "VSCode executable path is",
+      path.join(__dirname, "../../src/test/sample_projects"),
+    );
     // Run the extension test
     await runTests({
       // Use the specified `code` executable
@@ -52,13 +56,7 @@ async function main() {
       extensionDevelopmentPath: extensionDevelopmentPath,
       extensionTestsPath: extensionTestsPath,
       version: version,
-      launchArgs: [
-        path.join(
-          __dirname,
-          "../../test/sample_projects",
-          "dbt_test_projects.code-workspace",
-        ),
-      ],
+      launchArgs: [path.join(__dirname, "../../src/test/sample_projects")],
     });
     console.log("Tests passed");
   } catch (err) {

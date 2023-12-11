@@ -9,17 +9,25 @@ const path = require("path");
 /**@type {import('webpack').Configuration}*/
 const config = {
   target: "node",
-  entry: path.resolve(__dirname, "src/extension.ts"),
+  entry: {
+    extension: path.resolve(__dirname, "src/extension.ts"),
+    "test/runTest": path.resolve(__dirname, "test/runTest.ts"),
+    "test/suite/index": path.resolve(__dirname, "test/suite/index.ts"),
+    "test/suite/lineage.test": path.resolve(
+      __dirname,
+      "test/suite/lineage.test.ts",
+    ),
+  },
   output: {
     path: path.resolve(__dirname, "dist"),
-    filename: "extension.js",
+    filename: "[name].js",
     libraryTarget: "commonjs2",
     devtoolModuleFilenameTemplate: "../[resource-path]",
   },
   node: {
     __dirname: false,
   },
-  devtool: "source-map",
+  devtool: "hidden-source-map",
   externals: [
     "vscode",
     "commonjs",
@@ -45,11 +53,19 @@ const config = {
           },
         ],
       },
+      {
+        test: /.node$/,
+        loader: "node-loader",
+      },
     ],
   },
   plugins: [
     new CopyPlugin({
       patterns: [
+        // {
+        //   from: path.resolve(__dirname, 'test/'),
+        //   to: path.resolve(__dirname, 'dist/test/'),
+        // },
         {
           from: path.resolve(__dirname, "dbt_integration.py"),
           to: "dbt_integration.py",
@@ -71,7 +87,7 @@ const config = {
         terserOptions: {
           // https://github.com/webpack-contrib/terser-webpack-plugin#terseroptions
           mangle: false,
-          sourceMap: true,
+          sourceMap: false,
           // compress: false,
           keep_classnames: /AbortSignal/,
           keep_fnames: /AbortSignal/,

@@ -690,9 +690,9 @@
   "scripts": {
     "prepare": "husky install",
     "vscode:prepublish": "npm run panel:lineage && webpack --mode production",
-    "webpack": "npm run panel:lineage && webpack --mode development",
+    "webpack": "rm -Rf dist;npm run panel:lineage && webpack --mode development",
     "webpack-dev": "npm run panel:lineage && webpack --mode development --watch",
-    "test-compile": "npm run webpack; tsc -p ./",
+    "test-compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
     "deploy-vscode": "vsce publish",
@@ -700,7 +700,7 @@
     "deploy-openvsx": "ovsx publish",
     "panel:lineage": "npm run build --prefix ./new_lineage_panel",
     "install:panels": "npm install --prefix ./new_lineage_panel",
-    "test": "npm run test-compile; node ./out/test/runTest.js"
+    "test": "rm -Rf dist; npm run test-compile; node ./dist/test/runTest.js"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
@@ -744,6 +744,7 @@
     "inversify": "^6.0.1",
     "inversify-binding-decorators": "^4.0.0",
     "node-abort-controller": "^3.1.1",
+    "node-loader": "^2.0.0",
     "parse-diff": "^0.11.1",
     "python-bridge": "github:mdesmet/node-python-bridge#feat/detached",
     "reflect-metadata": "^0.1.13",

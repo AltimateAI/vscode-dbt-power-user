@@ -4,10 +4,11 @@ import * as vscode from "vscode";
 // as well as import your extension to test it
 // import { NewLineagePanel } from "../../src/webview_provider/newLineagePanel";
 // import { LineagePanel } from "../../src/webview_provider/lineagePanel";
-import { DBTProjectContainer } from "../../src/manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../../manifest/dbtProjectContainer";
 import path = require("path");
 import { Container } from "inversify";
-import { DBTWorkspaceFolder } from "../../src/manifest/dbtWorkspaceFolder";
+import { DBTWorkspaceFolder } from "../../manifest/dbtWorkspaceFolder";
+import { DBTPowerUserExtension } from "../../dbtPowerUserExtension";
 
 suite("Lineage Test Suite", () => {
   let container: Container;
@@ -22,22 +23,16 @@ suite("Lineage Test Suite", () => {
     const model_uri = vscode.Uri.file(
       path.join(
         vscode.workspace.workspaceFolders![0].uri.path,
-        "models/mart/mart_fullmoon_reviews.sql",
+        "/jaffle_shop_duckdb/models/customers.sql",
       ),
     );
-    const projectContainer: DBTWorkspaceFolder = container.get(
-      "Factory<DBTWorkspaceFolder>",
-    )(
-      model_uri,
-      () => {
-        console.log("manifest changed");
-      },
-      () => {
-        console.log("project registered");
-      },
-    );
+    const document = await vscode.workspace.openTextDocument(model_uri);
+    const editor = await vscode.window.showTextDocument(document);
+    await vscode.commands.executeCommand("dbtPowerUser.Lineage.focus");
 
-    assert.equal(projectContainer.getProjects().length, 1);
+    const dbtProjectContainer = container.get(DBTProjectContainer);
+
+    assert.equal(dbtProjectContainer.getProjects().length, 3);
 
     // const doc = await vscode.workspace.openTextDocument(model_uri);
     // const editor = await vscode.window.showTextDocument(doc);

@@ -13,7 +13,22 @@ export function run(): Promise<void> {
 
   const testsRoot = path.resolve(__dirname, "..");
 
+  console.log("testsRoot", testsRoot);
   return new Promise((resolve, reject) => {
+    // mocha.addFile(path.resolve( "./dist/test/", "suite/lineage.test"));
+    //     try {
+    //       // Run the mocha test
+    //       mocha.run((failures) => {
+    //         if (failures > 0) {
+    //           reject(new Error(`${failures} tests failed.`));
+    //         } else {
+    //         }
+    //       });
+    //     } catch (err) {
+    //       console.error(err);
+    //       reject(err);
+    //     }
+
     glob("**/lineage.test.js", { cwd: testsRoot })
       .then((files: any[]) => {
         //   if (err) {

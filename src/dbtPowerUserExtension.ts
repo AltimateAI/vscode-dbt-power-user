@@ -40,7 +40,7 @@ export class DBTPowerUserExtension implements Disposable {
   private disposables: Disposable[] = [];
 
   constructor(
-    private dbtProjectContainer: DBTProjectContainer,
+    public dbtProjectContainer: DBTProjectContainer,
     private webviewViewProviders: WebviewViewProviders,
     private autocompletionProviders: AutocompletionProviders,
     private definitionProviders: DefinitionProviders,
