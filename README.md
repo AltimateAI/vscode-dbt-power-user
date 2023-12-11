@@ -44,7 +44,7 @@ Generate dbt model / query results. Export as CSV or analyze results by creating
 
 View model lineage as well as column lineage with components like models, seeds, sources, exposures and info like model types, tests, documentation, linkage types. [(docs)](https://docs.myaltimate.com/test/lineage/)
 
-![lineage](https://d2vsad3r6ug0tf.cloudfront.net/clm6whx6e1xkuv519pdcm5g6h/iuLBrPas6932Yw2Gz2.png)
+![lineage](https://app.supademo.com/embed/clpx91zks1231pezy4uhbi0ny)
 
 ### <a id="genmodel"> Generate dbt Models from source or SQL</a>
 
