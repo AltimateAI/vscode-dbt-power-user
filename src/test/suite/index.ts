@@ -8,13 +8,13 @@ export function run(): Promise<void> {
   const mocha = new Mocha({
     ui: "tdd",
     color: true,
-    timeout: 100000,
   });
 
   const testsRoot = path.resolve(__dirname, "..");
 
   console.log("testsRoot", testsRoot);
   return new Promise((resolve, reject) => {
+    // TODO: include all tests
     glob("**/lineage.test.js", { cwd: testsRoot })
       .then((files: any[]) => {
         //   if (err) {

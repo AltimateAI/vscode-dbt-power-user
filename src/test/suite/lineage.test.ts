@@ -7,8 +7,7 @@ import * as vscode from "vscode";
 import { DBTProjectContainer } from "../../manifest/dbtProjectContainer";
 import path = require("path");
 import { Container } from "inversify";
-import { DBTWorkspaceFolder } from "../../manifest/dbtWorkspaceFolder";
-import { DBTPowerUserExtension } from "../../dbtPowerUserExtension";
+import { LineagePanel } from "../../webview_provider/lineagePanel";
 
 suite("Lineage Test Suite", () => {
   let container: Container;
@@ -26,18 +25,16 @@ suite("Lineage Test Suite", () => {
         "/jaffle_shop_duckdb/models/customers.sql",
       ),
     );
-    const document = await vscode.workspace.openTextDocument(model_uri);
-    const editor = await vscode.window.showTextDocument(document);
-    await vscode.commands.executeCommand("dbtPowerUser.Lineage.focus");
-
     const dbtProjectContainer = container.get(DBTProjectContainer);
 
     assert.equal(dbtProjectContainer.getProjects().length, 3);
 
-    // const doc = await vscode.workspace.openTextDocument(model_uri);
-    // const editor = await vscode.window.showTextDocument(doc);
-    // await vscode.commands.executeCommand("dbtPowerUser.Lineage.focus");
-    // const dockeys = projectContainer.eventMap.keys();
+    const lineage_panel = container.get(LineagePanel);
+    const doc = await vscode.workspace.openTextDocument(model_uri);
+    const editor = await vscode.window.showTextDocument(doc);
+    await vscode.commands.executeCommand("dbtPowerUser.Lineage.focus");
+    const dockeys = lineage_panel.eventMap.keys();
     // assert.equal(Array.from(dockeys).length, 1);
+    console.log("dockeys", Array.from(dockeys).length);
   });
 });
