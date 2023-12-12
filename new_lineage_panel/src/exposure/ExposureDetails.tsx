@@ -1,19 +1,12 @@
 import { useContext, useEffect, useState } from "react";
 import { ExposureMetaData } from "@types";
+import classNames from "classnames";
 import { LineageContext } from "../App";
 import { getExposureDetails } from "../service";
 import { ComponentLoader } from "../Loader";
 import { NodeTypeIcon } from "../CustomNodes";
 import styles from "../styles.module.scss";
-import PurposeSection from "../components/Purpose";
-import { Container, Nav, NavItem, NavLink } from "reactstrap";
-import Chip from "../components/Chip";
-
-enum DependsOnTypes {
-  Models = "nodes",
-  Macros = "macros",
-  Sources = "sources",
-}
+import { ColumnRow, Purpose as PurposeSection, Chip } from "../components";
 
 /**
  * Component to display exposure details
@@ -21,9 +14,6 @@ enum DependsOnTypes {
 const ExposureDetails = () => {
   const { selectedTable } = useContext(LineageContext);
   const [data, setData] = useState<ExposureMetaData | null>(null);
-  const [selectedDependsOn, setSelectedDependsOn] = useState(
-    DependsOnTypes.Models
-  );
 
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
@@ -47,39 +37,19 @@ const ExposureDetails = () => {
         </div>
       </div>
       {data.description ? <PurposeSection purpose={data.description} /> : null}
-      <div>
-        <h5>Depends on</h5>
-        <Nav tabs>
-          <NavItem onClick={() => setSelectedDependsOn(DependsOnTypes.Models)}>
-            <NavLink> Models</NavLink>
-          </NavItem>
-          <NavItem onClick={() => setSelectedDependsOn(DependsOnTypes.Macros)}>
-            <NavLink>Macros</NavLink>
-          </NavItem>
-        </Nav>
-        <Container className="">
-          {data.depends_on[selectedDependsOn]?.map((item) => (
-            <Chip label={item} />
+      <div className={classNames(styles.card, "flex-grow column-section")}>
+        <ColumnRow
+          title="Owner"
+          value={`${data.owner.name} - ${data.owner.email}`}
+        />
+        <ColumnRow title="Url" value={data.url} />
+        <ColumnRow
+          title="Tags"
+          value={data.tags.map((tag) => (
+            <Chip label={tag} />
           ))}
-        </Container>
-      </div>
-      <div>
-        <h5>Owner</h5>
-        {data.owner.name} - {data.owner.email}
-      </div>
-      <div>
-        <h5>Url</h5>
-        {data.url}
-      </div>
-      <div>
-        <h5>Tags</h5>
-        {data.tags.map((tag) => (
-          <Chip label={tag} />
-        ))}
-      </div>
-      <div>
-        <h5>Maturity</h5>
-        <div>{data.maturity}</div>
+        />
+        <ColumnRow title="Maturity" value={data.maturity} />
       </div>
     </div>
   );
