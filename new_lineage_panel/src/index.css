@@ -162,3 +162,26 @@ body {
 .cursor-pointer {
   cursor: pointer;
 }
+
+.tooltip-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.tooltip-container:hover .tooltip-text {
+  display: block;
+}
+
+.tooltip-text {
+  display: none;
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px;
+  color: #082247;
+  border-radius: 4px;
+  white-space: nowrap;
+  background: #ffce73;
+}

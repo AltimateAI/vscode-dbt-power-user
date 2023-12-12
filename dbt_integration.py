@@ -15,6 +15,8 @@ dbt.adapters.factory.get_adapter = lambda config: config.adapter
 import os
 import threading
 import uuid
+import sys
+import contextlib
 from collections import UserDict
 from collections.abc import Iterable
 from datetime import date, datetime, time
@@ -49,11 +51,11 @@ from dbt.version import __version__ as dbt_version
 
 try:
     # dbt <= 1.3
-    from dbt.contracts.graph.compiled import ManifestNode  # type: ignore
+    from dbt.contracts.graph.compiled import ManifestNode, CompiledNode  # type: ignore
     from dbt.contracts.graph.parsed import ColumnInfo  # type: ignore
 except Exception:
     # dbt > 1.3
-    from dbt.contracts.graph.nodes import ColumnInfo, ManifestNode  # type: ignore
+    from dbt.contracts.graph.nodes import ColumnInfo, ManifestNode, CompiledNode  # type: ignore
 
 
 if TYPE_CHECKING:
@@ -80,6 +82,31 @@ COMPILED_CODE = (
 JINJA_CONTROL_SEQS = ["{{", "}}", "{%", "%}", "{#", "#}"]
 
 T = TypeVar("T")
+
+ALTIMATE_PACKAGE_PATH = f"{os.path.dirname(os.path.abspath(__file__))}/altimate_packages"
+
+
+@contextlib.contextmanager
+def add_path(path):
+    sys.path.append(path)
+    try:
+        yield
+    finally:
+        sys.path.remove(path)
+
+
+def validate_sql(
+    sql: str,
+    dialect: str,
+    models: List[Dict],
+):
+    try:
+        with add_path(ALTIMATE_PACKAGE_PATH):
+            from altimate.validate_sql import validate_sql_from_models
+
+            return validate_sql_from_models(sql, dialect, models)
+    except Exception as e:
+        raise Exception(str(e))
 
 
 def to_dict(obj):
@@ -499,13 +526,20 @@ class DbtProject:
             raise Exception(str(e))
 
     def _compile_node(
-        self, node: "ManifestNode"
+        self, node: Union["ManifestNode", "CompiledNode"]
     ) -> Optional[DbtAdapterCompilationResult]:
         """Compiles existing node."""
         try:
             self.sql_compiler.node = copy(node)
-            # this is essentially a convenient wrapper to adapter.get_compiler
-            compiled_node = self.sql_compiler.compile(self.dbt)
+            if DBT_MAJOR_VER == 1 and DBT_MINOR_VER <= 3:
+                compiled_node = (
+                    node
+                    if isinstance(node, CompiledNode)
+                    else self.sql_compiler.compile(self.dbt)
+                )
+            else:
+                # this is essentially a convenient wrapper to adapter.get_compiler
+                compiled_node = self.sql_compiler.compile(self.dbt)
             return DbtAdapterCompilationResult(
                 getattr(compiled_node, RAW_CODE),
                 getattr(compiled_node, COMPILED_CODE),
@@ -623,3 +657,16 @@ class DbtProject:
             ),
             auto_begin=True,
         )
+    
+    def get_dbt_version(self):
+        return [DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER]
+    
+    def validate_sql_dry_run(self, compiled_sql: str):
+        if DBT_MAJOR_VER < 1:
+            return None
+        if DBT_MINOR_VER < 6:
+            return None
+        try:
+            return self.adapter.validate_sql(compiled_sql)
+        except Exception as e:
+            raise Exception(str(e))

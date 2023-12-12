@@ -17,7 +17,7 @@ import {
   window,
   workspace,
 } from "vscode";
-import { YAMLError, parse } from "yaml";
+import { parse, YAMLError } from "yaml";
 import {
   DBTCommandFactory,
   RunModelParams,
@@ -42,6 +42,7 @@ import {
 import { TargetWatchersFactory } from "./modules/targetWatchers";
 import { PythonEnvironment } from "./pythonEnvironment";
 import { TelemetryService } from "../telemetry";
+import { ValidateSqlParseErrorResponse } from "../altimate";
 import * as crypto from "crypto";
 
 export interface ExecuteSQLResult {
@@ -62,10 +63,18 @@ interface FileNameTemplateMap {
   [key: string]: string;
 }
 
-interface ResolveReferenceResult {
+interface ResolveReferenceNodeResult {
   database: string;
   schema: string;
   alias: string;
+}
+
+interface ResolveReferenceSourceResult {
+  database: string;
+  schema: string;
+  alias: string;
+  resource_type: string;
+  identifier: string;
 }
 
 export class DBTProject implements Disposable {
@@ -195,20 +204,17 @@ export class DBTProject implements Disposable {
       this.pythonBridgeDiagnostics,
       this.projectConfigDiagnostics,
     );
-    this.initializePythonBridge(
-      this.PythonEnvironment.pythonPath,
-      this.PythonEnvironment.environmentVariables,
-    );
+    this.initializePythonBridge();
   }
 
   public getProjectName() {
     return this.projectName;
   }
 
-  private async initializePythonBridge(
-    pythonPath: string,
-    envVars: EnvironmentVariables,
-  ) {
+  async initializePythonBridge() {
+    let pythonPath = this.PythonEnvironment.pythonPath;
+    const envVars = this.PythonEnvironment.environmentVariables;
+
     if (this.python !== undefined) {
       // Python env has changed
       this.pythonBridgeInitialized = false;
@@ -269,10 +275,7 @@ export class DBTProject implements Disposable {
   }
 
   private async onPythonEnvironmentChanged() {
-    this.initializePythonBridge(
-      this.PythonEnvironment.pythonPath,
-      this.PythonEnvironment.environmentVariables,
-    );
+    this.initializePythonBridge();
   }
 
   private async tryRefresh() {
@@ -459,7 +462,11 @@ export class DBTProject implements Disposable {
 
   async compileNode(modelName: string): Promise<string | undefined> {
     await this.blockUntilPythonBridgeIsInitalized();
-
+    if (
+      await this.dbtProjectContainer.showDbtNotInstalledErrorMessageIfDbtIsNotInstalled()
+    ) {
+      return;
+    }
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
         extendErrorWithSupportLinks(
@@ -478,7 +485,7 @@ export class DBTProject implements Disposable {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
           extendErrorWithSupportLinks(
-            "An error occured while trying to compile your node: " +
+            `An error occured while trying to compile your node: ${modelName}` +
               exc.exception.message +
               ".",
           ),
@@ -510,9 +517,101 @@ export class DBTProject implements Disposable {
     return output.compiled_sql;
   }
 
-  async compileQuery(query: string): Promise<string | undefined> {
+  async validateSql(request: { sql: string; dialect: string; models: any[] }) {
     await this.blockUntilPythonBridgeIsInitalized();
 
+    if (!this.pythonBridgeInitialized) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Could not compile query, because the Python bridge has not been initalized.",
+        ),
+      );
+      this.telemetry.sendTelemetryError(
+        "compileQueryPythonBridgeNotInitializedError",
+      );
+      return;
+    }
+    try {
+      const { sql, dialect, models } = request;
+      const result = await this.python?.lock(
+        (python) =>
+          python!`to_dict(validate_sql(${sql}, ${dialect}, ${models}))`,
+      );
+      return result as ValidateSqlParseErrorResponse;
+    } catch (exc) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks("Could not validate sql." + exc),
+      );
+      this.telemetry.sendTelemetryError("validateSQLError", {
+        error: exc,
+      });
+    }
+  }
+
+  async validateSQLDryRun(query: string) {
+    await this.blockUntilPythonBridgeIsInitalized();
+
+    if (!this.pythonBridgeInitialized) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Could not compile query, because the Python bridge has not been initalized.",
+        ),
+      );
+      this.telemetry.sendTelemetryError(
+        "compileQueryPythonBridgeNotInitializedError",
+      );
+      return;
+    }
+    try {
+      const result = await this.python?.lock(
+        (python) => python!`to_dict(project.validate_sql_dry_run(${query}))`,
+      );
+      return result;
+    } catch (exc) {
+      const exception = exc as { exception: { message: string } };
+      window.showErrorMessage(
+        exception.exception.message || "Could not validate sql with dry run.",
+      );
+      this.telemetry.sendTelemetryError("validateSQLDryRunError", {
+        error: exc,
+      });
+    }
+  }
+
+  async getDBTVersion(): Promise<number[] | undefined> {
+    await this.blockUntilPythonBridgeIsInitalized();
+
+    if (!this.pythonBridgeInitialized) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Could not compile query, because the Python bridge has not been initalized.",
+        ),
+      );
+      this.telemetry.sendTelemetryError(
+        "compileQueryPythonBridgeNotInitializedError",
+      );
+      return;
+    }
+    try {
+      const result = await this.python?.lock(
+        (python) => python!`to_dict(project.get_dbt_version())`,
+      );
+      return result as number[];
+    } catch (exc) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks("Could not get dbt version." + exc),
+      );
+      this.telemetry.sendTelemetryError("getDBTVersionError", { error: exc });
+    }
+  }
+
+  async compileQuery(query: string): Promise<string | undefined> {
+    await this.blockUntilPythonBridgeIsInitalized();
+    if (
+      await this.dbtProjectContainer.showDbtNotInstalledErrorMessageIfDbtIsNotInstalled()
+    ) {
+      return;
+    }
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
         extendErrorWithSupportLinks(
@@ -537,13 +636,7 @@ export class DBTProject implements Disposable {
           ),
         );
         this.telemetry.sendTelemetryError("compileQueryPythonError", exc);
-        return (
-          "Exception: " +
-          exc.exception.message +
-          "\n\n" +
-          "Detailed error information:\n" +
-          exc
-        );
+        return undefined;
       }
       this.telemetry.sendTelemetryError("compileQueryUnknownError", exc);
       // Unknown error
@@ -552,7 +645,7 @@ export class DBTProject implements Disposable {
           "Encountered an unknown issue: " + exc + ".",
         ),
       );
-      return "Detailed error information:\n" + exc;
+      return undefined;
     }
   }
 
@@ -576,7 +669,7 @@ export class DBTProject implements Disposable {
     return yamlString;
   }
 
-  async getColumnsInRelation(
+  async getColumnsOfModel(
     modelName: string,
   ): Promise<{ [key: string]: string }[]> {
     await this.blockUntilPythonBridgeIsInitalized();
@@ -591,18 +684,59 @@ export class DBTProject implements Disposable {
       return [];
     }
     // Get database and schema
-    const refNode = (await this.python?.lock(
+    const node = (await this.python?.lock(
       (python) => python!`to_dict(project.get_ref_node(${modelName}))`,
-    )) as ResolveReferenceResult;
+    )) as ResolveReferenceNodeResult;
     // Get columns
-    if (!refNode) {
+    if (!node) {
       return [];
     }
+    return this.getColumsOfRelation(
+      node.database,
+      node.schema,
+      node.alias || modelName,
+    );
+  }
+
+  async getColumnsOfSource(
+    sourceName: string,
+    tableName: string,
+  ): Promise<{ [key: string]: string }[]> {
+    await this.blockUntilPythonBridgeIsInitalized();
+    if (!this.pythonBridgeInitialized) {
+      window.showErrorMessage(
+        "Could not execute query, because the Python bridge has not been initalized. If the issue persists, please open a Github issue.",
+      );
+      this.telemetry.sendTelemetryError(
+        "getColumnsInRelationPythonBridgeNotInitializedError",
+      );
+      // TODO: improve this, the errors should be captured at a higher level
+      return [];
+    }
+    // Get database and schema
+    const node = (await this.python?.lock(
+      (python) =>
+        python!`to_dict(project.get_source_node(${sourceName}, ${tableName}))`,
+    )) as ResolveReferenceSourceResult;
+    // Get columns
+    if (!node) {
+      return [];
+    }
+    return this.getColumsOfRelation(
+      node.database,
+      node.schema,
+      node.identifier,
+    );
+  }
+
+  async getColumsOfRelation(
+    database: string | undefined,
+    schema: string | undefined,
+    objectName: string,
+  ) {
     return await this.python?.lock(
       (python) =>
-        python!`to_dict(project.get_columns_in_relation(project.create_relation(${
-          refNode.database
-        }, ${refNode.schema}, ${refNode.alias || modelName})))`,
+        python!`to_dict(project.get_columns_in_relation(project.create_relation(${database}, ${schema}, ${objectName})))`,
     );
   }
 
@@ -670,7 +804,7 @@ export class DBTProject implements Disposable {
         this.telemetry.sendTelemetryEvent("generateSchemaYML", {
           adapter: this.adapterType,
         });
-        const columnsInRelation = await this.getColumnsInRelation(modelName);
+        const columnsInRelation = await this.getColumnsOfModel(modelName);
         // Generate yml file content
         const fileContents = this.createYMLContent(
           columnsInRelation,
@@ -814,8 +948,23 @@ select * from renamed
     }
   }
 
+  async getSummary(query: string) {
+    this.telemetry.sendTelemetryEvent("getSummary");
+    const compiledSql = await this.compileQuery(query);
+    if (compiledSql === undefined) {
+      // error handling done inside compileQuery
+      return;
+    }
+    this.queryResultPanel.getSummary(compiledSql, this.adapterType);
+  }
+
   async executeSQL(query: string) {
     await this.blockUntilPythonBridgeIsInitalized();
+    if (
+      await this.dbtProjectContainer.showDbtNotInstalledErrorMessageIfDbtIsNotInstalled()
+    ) {
+      return;
+    }
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
         extendErrorWithSupportLinks(
@@ -861,6 +1010,7 @@ select * from renamed
       this.python?.lock(
         (python) => python!`to_dict(project.execute_sql(${limitQuery}))`,
       ) as Promise<ExecuteSQLResult>,
+      this.adapterType,
     );
   }
 

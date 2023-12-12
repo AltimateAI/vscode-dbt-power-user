@@ -13,7 +13,7 @@ import {
 import { layoutElementsOnCanvas } from "./graph";
 import { LineageContext } from "./App";
 import { ColumnLineage, Table } from "./service";
-import { NodeTypeIcon } from "./CustomNodes";
+import { TableHeader } from "./CustomNodes";
 import { CustomInput } from "./Form";
 
 export type TMoreTables = {
@@ -114,10 +114,13 @@ function MoreTables() {
                   onItemClick(t);
                 }}
               >
-                <NodeTypeIcon nodeType={t.nodeType} />
-                <div className="d-flex flex-column">
-                  <div className="text-overflow">{t.table}</div>
-                </div>
+                <TableHeader
+                  nodeType={t.nodeType}
+                  label={t.label}
+                  table={t.table}
+                  tests={t.tests}
+                  materialization={t.materialization}
+                />
               </div>
             );
           })}

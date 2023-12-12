@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useContext } from "react";
+import React, { FunctionComponent, ReactElement, useContext } from "react";
 import {
   BaseEdge,
   EdgeProps,
@@ -10,29 +10,38 @@ import {
 import styles from "./styles.module.scss";
 import classNames from "classnames";
 import {
-  createNewNodesEdges,
+  bfsTraversal,
+  expandTableLineage,
   highlightTableConnections,
   layoutElementsOnCanvas,
-  mergeCollectColumns,
-  mergeNodesEdges,
-  processColumnLineage,
   resetTableHighlights,
 } from "./graph";
-import { LineageContext, openFile, isDarkMode } from "./App";
-import { Table, downstreamTables, upstreamTables } from "./service";
+import {
+  LineageContext,
+  openFile,
+  isDarkMode,
+  startProgressBar,
+  endProgressBar,
+} from "./App";
 import {
   COLUMNS_SIDEBAR,
   C_NODE_H,
   C_PADDING_Y,
   TABLES_SIDEBAR,
-  getHelperDataForCLL,
 } from "./utils";
 import { TMoreTables } from "./MoreTables";
 import ModelIcon from "./assets/icons/model.svg?react";
 import SeedIcon from "./assets/icons/seed.svg?react";
 import SourceIcon from "./assets/icons/source.svg?react";
+import ExposureIcon from "./assets/icons/exposure.svg?react";
+import SnapshotIcon from "./assets/icons/snapshot.svg?react";
+import MetricsIcon from "./assets/icons/metrics.svg?react";
+import MacrosIcon from "./assets/icons/macros.svg?react";
 import FolderIcon from "./assets/icons/folder.svg?react";
 import FolderDarkIcon from "./assets/icons/folder_dark.svg?react";
+import TestsIcon from "./assets/icons/tests.svg?react";
+import EphemeralIcon from "./assets/icons/ephemeral.svg?react";
+import { UncontrolledTooltip } from "reactstrap";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -80,20 +89,99 @@ export const NodeTypeIcon: FunctionComponent<{ nodeType: string }> = ({
     {nodeType === "seed" && <SeedIcon />}
     {nodeType === "model" && <ModelIcon />}
     {nodeType === "source" && <SourceIcon />}
+    {nodeType === "exposure" && <ExposureIcon />}
+    {nodeType === "snapshot" && <SnapshotIcon />}
+    {nodeType === "metrics" && <MetricsIcon />}
+    {nodeType === "macros" && <MacrosIcon />}
   </div>
 );
+
+const NODE_TYPE_SHORTHAND = {
+  seed: "SED",
+  model: "MDL",
+  source: "SRC",
+  exposure: "EXP",
+  snapshot: "SNP",
+  metrics: "MET",
+  macros: "SEM",
+};
+
+const NODE_TYPE_STYLES = {
+  seed: styles.seed,
+  model: styles.model,
+  source: styles.source,
+  exposure: styles.exposure,
+  snapshot: styles.snapshot,
+  metrics: styles.metrics,
+  macros: styles.macros,
+};
+
+const TableNodePill: FunctionComponent<{
+  id: string;
+  icon: ReactElement;
+  label: string;
+  text: string;
+}> = ({ id, icon, text, label }) => (
+  <>
+    <div className={styles.table_node_pill} id={id}>
+      <div className={styles.icon}>{icon}</div>
+      <div>{text}</div>
+    </div>
+    <UncontrolledTooltip target={id}>{label}</UncontrolledTooltip>
+  </>
+);
+
+export const TableHeader: FunctionComponent<{
+  nodeType: unknown;
+  label: string;
+  table: string;
+  tests: { key: string; path: string }[];
+  materialization?: string | undefined;
+}> = ({ nodeType, label, table, tests, materialization }) => {
+  const nType = nodeType as keyof typeof NODE_TYPE_SHORTHAND;
+  return (
+    <div className="d-flex flex-column align-items-start gap-xs w-100">
+      <div className={styles.table_header}>
+        <div className={classNames(styles.node_icon, NODE_TYPE_STYLES[nType])}>
+          <NodeTypeIcon nodeType={nType} />
+          <div>{NODE_TYPE_SHORTHAND[nType]}</div>
+        </div>
+        <div className="lines-2">{label}</div>
+      </div>
+      <div className={classNames("d-flex gap-xs", styles.node_extra_info)}>
+        {tests?.length > 0 && (
+          <TableNodePill
+            id={"table-node-tests-" + table.replaceAll(".", "-")}
+            icon={<TestsIcon />}
+            text={tests.length.toString()}
+            label="Tests"
+          />
+        )}
+        {materialization && (
+          <TableNodePill
+            id={"table-node-materilization-" + table.replaceAll(".", "-")}
+            icon={<EphemeralIcon />}
+            text={materialization}
+            label="Materialization"
+          />
+        )}
+      </div>
+    </div>
+  );
+};
 
 export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const {
     shouldExpand,
     processed,
+    label,
     table,
-    level,
     url,
     upstreamCount,
     downstreamCount,
-    key,
     nodeType,
+    tests,
+    materialization,
   } = data;
   const flow = useReactFlow();
 
@@ -106,24 +194,15 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     selectedColumn,
     setCollectColumns,
     rerender,
+    setConfidence,
+    setMoreTables,
   } = useContext(LineageContext);
 
   const _columnLen = Object.keys(collectColumns[table] || {}).length;
   const _showColumns = _columnLen > 0;
   const selected = selectedTable?.table === table;
   const toggleTableSelection = () =>
-    setSelectedTable((prev) =>
-      prev?.table === table
-        ? null
-        : {
-            table,
-            key,
-            url,
-            nodeType,
-            upstreamCount,
-            downstreamCount,
-          }
-    );
+    setSelectedTable((prev) => (prev?.table === table ? null : data));
 
   const highlightTable = () => {
     if (selectedColumn.name) return;
@@ -136,57 +215,47 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     flow.setEdges(edges);
   };
 
-  const expand = async (tables: Table[], right: boolean) => {
+  const expand = async (right: boolean) => {
     if (processed[right ? 1 : 0]) return;
-    let [nodes, edges] = createNewNodesEdges(
+    let [nodes, edges] = await expandTableLineage(
       flow.getNodes(),
       flow.getEdges(),
-      tables,
       table,
-      right,
-      level
+      right
     );
+    layoutElementsOnCanvas(nodes, edges);
+    flow.setNodes(nodes);
+    flow.setEdges(edges);
+    rerender();
     if (selectedColumn.name) {
-      const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
-        getHelperDataForCLL(nodes, edges);
-      const currAnd1HopTables = tables.map((t) => t.table);
-      currAnd1HopTables.push(table);
-      const curr = (collectColumns[table] || []).map(
-        (c) => [table, c] as [string, string]
-      );
-      const patchState = await processColumnLineage(
-        levelMap,
-        seeMoreIdTableReverseMap,
-        tableNodes,
-        curr,
+      startProgressBar();
+      await bfsTraversal(
+        nodes,
+        edges,
         right,
-        currAnd1HopTables,
-        selectedColumn
+        collectColumns[table].map((c) => ({ table, name: c })),
+        setConfidence,
+        setMoreTables,
+        setCollectColumns,
+        flow
       );
-      [nodes, edges] = mergeNodesEdges({ nodes, edges }, patchState);
-      mergeCollectColumns(setCollectColumns, patchState.collectColumns);
+      rerender();
+      endProgressBar();
     } else if (selectedTable) {
       [nodes, edges] = highlightTableConnections(
         nodes,
         edges,
         selectedTable.table
       );
+      layoutElementsOnCanvas(nodes, edges);
+      flow.setNodes(nodes);
+      flow.setEdges(edges);
+      rerender();
     }
-    layoutElementsOnCanvas(nodes, edges);
-    flow.setNodes(nodes);
-    flow.setEdges(edges);
-    rerender();
   };
 
-  const expandRight = async () => {
-    const { tables } = await upstreamTables(key);
-    await expand(tables, true);
-  };
-
-  const expandLeft = async () => {
-    const { tables } = await downstreamTables(key);
-    await expand(tables, false);
-  };
+  const expandRight = () => expand(true);
+  const expandLeft = () => expand(false);
 
   const onDetailsClick = (e: React.MouseEvent) => {
     if (!selected) return;
@@ -221,10 +290,13 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             }
           )}
         >
-          <div className={styles.table_header}>
-            <NodeTypeIcon nodeType={nodeType} />
-            <div className="lines-2">{table}</div>
-          </div>
+          <TableHeader
+            nodeType={nodeType}
+            label={label}
+            table={table}
+            tests={tests}
+            materialization={materialization}
+          />
           <div className={styles.divider} />
           <div className="w-100 d-flex align-items-center gap-xs">
             <div

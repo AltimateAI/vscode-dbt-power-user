@@ -1,4 +1,4 @@
-import { window, version, commands } from "vscode";
+import { window, QuickPickItem, ProgressLocation, commands } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
@@ -12,12 +12,14 @@ enum PromptAnswer {
   NO = "No",
 }
 
+enum DbtInstallationPromptAnswer {
+  INSTALL = "Install dbt",
+}
+
 @provideSingleton(WalkthroughCommands)
 export class WalkthroughCommands {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
-    private commandProcessExecutionFactory: CommandProcessExecutionFactory,
-    private terminal: DBTTerminal,
     private telemetry: TelemetryService,
     private dbtCommandFactory: DBTCommandFactory,
   ) {}
@@ -137,5 +139,107 @@ export class WalkthroughCommands {
     const extLatest = await extLatestJson.json();
     const latestVersion = extLatest.tag_name.toString();
     return currentVersion < latestVersion;
+  }
+
+  async installDbt(): Promise<void> {
+    const dbtVersion: QuickPickItem | undefined = await window.showQuickPick(
+      ["1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7"].map((value) => ({
+        label: value,
+      })),
+      {
+        title: "Select your dbt version",
+        canPickMany: false,
+      },
+    );
+    if (dbtVersion) {
+      const adapter: QuickPickItem | undefined = await window.showQuickPick(
+        [
+          "snowflake",
+          "bigquery",
+          "redshift",
+          "postgres",
+          "databricks",
+          "sqlserver",
+          "duckdb",
+          "athena",
+          "spark",
+          "clickhouse",
+          "trino",
+          "synapse",
+        ].map((value) => ({
+          label: value,
+        })),
+        {
+          title: "Select your adapter",
+          canPickMany: false,
+        },
+      );
+      if (adapter && adapter.label) {
+        const packageVersion = dbtVersion.label;
+        const packageName = this.mapToAdapterPackage(adapter.label);
+        let error = undefined;
+        await window.withProgress(
+          {
+            title: `Installing ${packageName} ${packageVersion}...`,
+            location: ProgressLocation.Notification,
+            cancellable: false,
+          },
+          async () => {
+            try {
+              await this.dbtProjectContainer.runCommandAndReturnResults(
+                this.dbtCommandFactory.createDbtInstallCommand(
+                  packageName,
+                  packageVersion,
+                ),
+              );
+              await this.dbtProjectContainer.detectDBT();
+              this.dbtProjectContainer.initializePythonBridges();
+            } catch (err) {
+              console.log(err);
+              error = err;
+            }
+          },
+        );
+        if (error) {
+          const answer = await window.showErrorMessage(
+            "Could not install dbt: " + error,
+            DbtInstallationPromptAnswer.INSTALL,
+          );
+          if (answer === DbtInstallationPromptAnswer.INSTALL) {
+            commands.executeCommand("dbtPowerUser.installDbt");
+          }
+        }
+      }
+    }
+  }
+
+  private mapToAdapterPackage(adapter: string): string {
+    switch (adapter) {
+      case "snowflake":
+        return "dbt-snowflake";
+      case "bigquery":
+        return "dbt-bigquery";
+      case "redshift":
+        return "dbt-redshift";
+      case "postgres":
+        return "dbt-postgres";
+      case "databricks":
+        return "dbt-databricks";
+      case "sqlserver":
+        return "dbt-sqlserver";
+      case "duckdb":
+        return "dbt-duckdb";
+      case "athena":
+        return "dbt-athena-community";
+      case "spark":
+        return "dbt-spark";
+      case "clickhouse":
+        return "dbt-clickhouse";
+      case "trino":
+        return "dbt-trino";
+      case "synapse":
+        return "dbt-synapse";
+    }
+    throw new Error("Adapter is not supported" + adapter);
   }
 }

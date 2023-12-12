@@ -27,6 +27,11 @@ class Grid {
             useGrouping: false,
           },
         },
+        float: {
+          format: {
+            maximumFractionDigits: 20,
+          },
+        },
       },
     });
     this.elem = document.querySelector("perspective-viewer");
@@ -96,6 +101,10 @@ const app = createApp({
       clickTimer: null,
       table: undefined,
       isPerspective: true,
+      summary: undefined,
+      previousSummary: undefined,
+      previousCode: undefined,
+      aiEnabled: false,
     };
   },
   methods: {
@@ -211,10 +220,42 @@ const app = createApp({
       }
       this.isPerspective = data.enableNewQueryPanel;
       this.isDarkMode = data.darkMode;
+      this.aiEnabled = data.aiEnabled || false;
+    },
+    updateSummary(data) {
+      if (data.summary) {
+        // this.summary = data.summary;
+        console.log(data);
+        // If the query we're getting summary for is different from the one
+        // we're currently displaying, clear the data as it will create confusion.
+        let newCompiledCode = data.compiled_sql;
+        try {
+          const queryRegex = new RegExp(
+            this.queryTemplate
+              .replace(/\(/g, "\\(")
+              .replace(/\)/g, "\\)")
+              .replace(/\*/g, "\\*")
+              .replace("{query}", "([\\w\\W]+)")
+              .replace("{limit}", this.limit.toString()),
+            "gm",
+          );
+          const result = queryRegex.exec(data.compiled_sql);
+          newCompiledCode = result[1];
+        } catch (err) {}
+
+        if (this.hasCode && newCompiledCode !== this.compiledCode) {
+          this.clearData();
+        }
+        this.summary = data.summary;
+        this.compiledCode = newCompiledCode;
+      }
+    },
+    focusSummaryTab() {
+      document.querySelector("#panel-manager").activeid = "tab-6";
     },
     updateDispatchedCode(raw_stmt, compiled_stmt) {
       this.rawCode = raw_stmt;
-
+      let newCompiledCode = compiled_stmt;
       try {
         const queryRegex = new RegExp(
           this.queryTemplate
@@ -226,12 +267,19 @@ const app = createApp({
           "gm",
         );
         const result = queryRegex.exec(compiled_stmt);
-        this.compiledCode = result[1];
-        return;
+        newCompiledCode = result[1].trim();
       } catch (err) {}
-      this.compiledCode = compiled_stmt;
+      if (newCompiledCode !== this.previousCode && this.previousSummary) {
+        this.summary = undefined;
+        this.previousCode = undefined;
+        this.previousSummary = undefined;
+      }
+      this.compiledCode = newCompiledCode;
+      this.summary = this.previousSummary;
     },
     clearData() {
+      this.previousCode = this.compiledCode;
+      this.previousSummary = this.summary;
       this.count = 0;
       this.data = undefined;
       this.table = undefined;
@@ -288,6 +336,15 @@ const app = createApp({
     getPerspectiveTheme() {
       return this.isDarkMode ? "Pro Dark" : "Pro Light";
     },
+    onGetSummary() {
+      if (!this.hasCode) {
+        // This will never be the case but adding for type safety
+        return;
+      }
+      executeCommand("getSummary", {
+        compiledSql: this.compiledCode,
+      });
+    },
     onFeedback() {
       const prevTab = document.querySelector("#panel-manager").activeid;
       executeCommand("openUrl", {
@@ -306,6 +363,9 @@ const app = createApp({
     },
     hasData() {
       return !!this.data;
+    },
+    hasSummary() {
+      return !!this.summary;
     },
     hasError() {
       return this.error?.data;
@@ -400,6 +460,10 @@ const app = createApp({
         case "resetState":
           this.clearData();
           break;
+        case "renderSummary":
+          this.updateSummary(event.data);
+          this.focusSummaryTab();
+          break;
       }
     });
     window.addEventListener("resize", this.handleResize);
@@ -412,6 +476,24 @@ const app = createApp({
     clearInterval(this.clickTimer);
   },
 });
+
+const PreviewIcon = {
+  template: `
+<div class="tooltip-container">
+  <svg width="12" height="13" viewBox="0 0 12 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="6" cy="6.5" r="6" fill="#FFCE73" />
+    <path
+        d="M6.0013 7.33073C6.46154 7.33073 6.83464 6.95763 6.83464 6.4974C6.83464 6.03716 6.46154 5.66406 6.0013 5.66406C5.54106 5.66406 5.16797 6.03716 5.16797 6.4974C5.16797 6.95763 5.54106 7.33073 6.0013 7.33073Z"
+        fill="#082247" />
+    <path
+        d="M10.1423 6.3533C9.47099 4.65934 7.82261 3.55656 6.00066 3.58248C4.17871 3.55656 2.53033 4.65934 1.85899 6.3533C1.82565 6.44767 1.82565 6.55062 1.85899 6.64497C2.53033 8.33892 4.17871 9.4417 6.00066 9.41581C7.82261 9.4417 9.47099 8.33892 10.1423 6.64497C10.1757 6.55059 10.1757 6.44767 10.1423 6.3533ZM6.00157 8.16581H6.00066C5.08017 8.16581 4.33399 7.41961 4.33399 6.49914C4.33399 5.57866 5.08017 4.83248 6.00066 4.83248C6.92114 4.83248 7.66732 5.57866 7.66732 6.49914C7.66758 7.41935 6.92181 8.16556 6.00157 8.16581Z"
+        fill="#082247" />
+  </svg>
+  <div class="tooltip-text">Preview Feature</div>
+</div>
+`,
+};
+app.component("PreviewIcon", PreviewIcon);
 
 app.config.errorHandler = (err) => {
   console.log(err);

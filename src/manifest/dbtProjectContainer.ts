@@ -111,8 +111,8 @@ export class DBTProjectContainer implements Disposable {
     this.context = context;
   }
 
-  get dbtDetected(): boolean {
-    return this.dbtClient.dbtDetected || false;
+  showDbtNotInstalledErrorMessageIfDbtIsNotInstalled() {
+    return this.dbtClient.showDbtNotInstalledErrorMessageIfDbtIsNotInstalled();
   }
 
   async initializeDBTProjects(): Promise<void> {
@@ -139,11 +139,12 @@ export class DBTProjectContainer implements Disposable {
     if (answer === PromptAnswer.YES) {
       commands.executeCommand("dbtPowerUser.openSetupWalkthrough");
     }
+    this.setToGlobalState("showSetupWalkthrough", false);
   }
 
   async initializeWalkthrough() {
     // show setup walkthrough if needed
-    const showSetupWalkthrough = this.context!.globalState.get(
+    const showSetupWalkthrough = this.getFromGlobalState(
       "showSetupWalkthrough",
     );
     if (showSetupWalkthrough === undefined || showSetupWalkthrough === true) {
@@ -186,17 +187,17 @@ export class DBTProjectContainer implements Disposable {
   }
 
   setToWorkspaceState(key: string, value: any) {
-    this.context?.workspaceState.update(key, value);
+    this.context!.workspaceState.update(key, value);
   }
   getFromWorkspaceState(key: string): any {
-    return this.context?.workspaceState.get(key);
+    return this.context!.workspaceState.get(key);
   }
   setToGlobalState(key: string, value: any) {
-    this.context?.globalState.update(key, value);
+    this.context!.globalState.update(key, value);
   }
 
   getFromGlobalState(key: string): any {
-    this.context?.globalState.get(key);
+    return this.context!.globalState.get(key);
   }
 
   get extensionId(): string {
@@ -217,8 +218,16 @@ export class DBTProjectContainer implements Disposable {
     await this.dbtClient.detectDBT();
   }
 
+  async initializePythonBridges() {
+    this.getProjects().forEach((project) => project.initializePythonBridge());
+  }
+
   executeSQL(uri: Uri, query: string): void {
     this.findDBTProject(uri)?.executeSQL(query);
+  }
+
+  getSummary(uri: Uri, query: string): void {
+    this.findDBTProject(uri)?.getSummary(query);
   }
 
   runModel(modelPath: Uri, type?: RunModelType) {
@@ -324,8 +333,18 @@ export class DBTProjectContainer implements Disposable {
 
   private createModelParams(modelPath: Uri, type?: RunModelType) {
     const modelName = basename(modelPath.fsPath, ".sql");
-    const plusOperatorLeft = type === RunModelType.PARENTS ? "+" : "";
-    const plusOperatorRight = type === RunModelType.CHILDREN ? "+" : "";
+    const plusOperatorLeft =
+      type === RunModelType.RUN_PARENTS ||
+      type === RunModelType.BUILD_PARENTS ||
+      type === RunModelType.BUILD_CHILDREN_PARENTS
+        ? "+"
+        : "";
+    const plusOperatorRight =
+      type === RunModelType.RUN_CHILDREN ||
+      type === RunModelType.BUILD_CHILDREN ||
+      type === RunModelType.BUILD_CHILDREN_PARENTS
+        ? "+"
+        : "";
     return { plusOperatorLeft, modelName, plusOperatorRight };
   }
 

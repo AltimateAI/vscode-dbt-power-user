@@ -15,9 +15,9 @@ export const SEE_MORE_PREFIX = "see-more-";
 export const P_OFFSET_X = 100;
 export const P_OFFSET_Y = 100;
 export const T_NODE_W = 260;
-export const T_NODE_H = 100;
+export const T_NODE_H = 141;
 export const C_OFFSET_X = 12;
-export const C_OFFSET_Y = 108;
+export const C_OFFSET_Y = 141;
 export const C_NODE_H = 36;
 export const C_PADDING_Y = 16;
 export const LEVEL_SEPARATION = 150;
@@ -86,23 +86,19 @@ export const createTableEdge = (
 };
 
 export const createTableNode = (
-  { table, upstreamCount, downstreamCount, url, nodeType, key }: Table,
+  _table: Table,
   level: number,
   parent: string,
 ): Node => {
+  const { upstreamCount, downstreamCount, table } = _table;
   return {
     id: table,
     data: {
-      key,
-      table,
-      url,
+      ..._table,
       level,
       parent,
       shouldExpand: [downstreamCount > 0, upstreamCount > 0],
       processed: [false, false],
-      upstreamCount,
-      downstreamCount,
-      nodeType,
     },
     position: { x: 100, y: 100 },
     type: "table",
@@ -129,7 +125,7 @@ export const createColumnEdge = (
   srcLevel: number,
   dstLevel: number,
   type: string,
-) => {
+): Edge => {
   const edgeId = getColumnEdgeId(source, target);
   const [sourceHandle, targetHandle] = getSourceTargetHandles(
     srcLevel,
@@ -137,6 +133,7 @@ export const createColumnEdge = (
   );
   return ({
     id: edgeId,
+    data: { type },
     source,
     target,
     sourceHandle,
@@ -168,7 +165,9 @@ export const getSourceTargetHandles = (
 
 export const getHelperDataForCLL = (nodes: Node[], edges: Edge[]) => {
   const levelMap: Record<string, number> = {};
-  nodes.forEach((n) => (levelMap[n.id] = n.data.level));
+  nodes.forEach((n) => {
+    if (isNotColumn(n)) levelMap[n.id] = n.data.level;
+  });
   const tableNodes: Record<string, boolean> = {};
   nodes
     .filter((_n) => _n.type === "table")
@@ -209,4 +208,13 @@ export const contains = (arr: [string, string][], x: [string, string]) => {
     if (item[0] === x[0] && item[1] === x[1]) return true;
   }
   return false;
+};
+
+export const safeConcat = <T>(
+  obj: Record<string, T[]>,
+  key: string,
+  values: T[],
+) => {
+  obj[key] = obj[key] || [];
+  obj[key].push(...values);
 };

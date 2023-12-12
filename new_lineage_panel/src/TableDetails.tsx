@@ -10,26 +10,18 @@ import { useReactFlow } from "reactflow";
 import styles from "./styles.module.scss";
 import classNames from "classnames";
 import { Button } from "reactstrap";
-import {
-  getColumns,
-  Columns,
-  Column,
-  upstreamTables,
-  downstreamTables,
-  Table,
-} from "./service";
+import { getColumns, Columns, Column, Table } from "./service";
 import {
   aiEnabled,
   endProgressBar,
   LineageContext,
+  previewFeature,
   startProgressBar,
 } from "./App";
 import {
-  createNewNodesEdges,
+  bfsTraversal,
+  expandTableLineage,
   layoutElementsOnCanvas,
-  mergeCollectColumns,
-  mergeNodesEdges,
-  processColumnLineage,
   removeColumnNodes,
   resetTableHighlights,
 } from "./graph";
@@ -41,10 +33,19 @@ import { ColorTag } from "./Tags";
 
 // assets
 import ExpandLineageIcon from "./assets/icons/expand_lineage.svg?react";
+import Preview from "./assets/icons/preview.svg?react";
 import { NodeTypeIcon } from "./CustomNodes";
 import { CustomInput } from "./Form";
-import { defaultEdgeStyle, getHelperDataForCLL, isNotColumn } from "./utils";
-import { TMoreTables } from "./MoreTables";
+import { defaultEdgeStyle, isNotColumn } from "./utils";
+
+const PreviewIcon = () => {
+  return (
+    <div className="tooltip-container">
+      <Preview />
+      <div className="tooltip-text">Preview Feature</div>
+    </div>
+  );
+};
 
 const ColumnCard: FunctionComponent<{
   column: Column;
@@ -53,13 +54,10 @@ const ColumnCard: FunctionComponent<{
 }> = ({ column, handleClick, selected }) => {
   return (
     <div
-      className={classNames(styles.column_card, {
+      className={classNames(styles.column_card, "cursor-pointer", {
         [styles.selected]: selected,
-        ["cursor-pointer"]: aiEnabled,
       })}
-      onClick={() => {
-        if (aiEnabled) handleClick();
-      }}
+      onClick={handleClick}
     >
       <div className="d-flex align-items-center gap-xs">
         <ColumnDatatype datatype={column.datatype} />
@@ -121,7 +119,7 @@ const ColumnSection: FunctionComponent<{
     <div className={classNames(styles.card, "flex-grow column-section")}>
       <div className="d-flex flex-column gap-sm h-100 p-2">
         <div className="d-flex align-items-center gap-xs">
-          <div className="fs-5 fw-semibold">Column</div>
+          <div className="fs-5 fw-semibold">Columns</div>          
           <div className="spacer" />
           <Button
             size="sm"
@@ -130,7 +128,7 @@ const ColumnSection: FunctionComponent<{
               if (!selectedTable) {
                 return;
               }
-              getColumns(selectedTable.table, true).then((_data) => {
+              getColumns(selectedTable, true).then((_data) => {
                 setData(_data);
                 setFilteredColumn(_data.columns);
               });
@@ -150,13 +148,14 @@ const ColumnSection: FunctionComponent<{
             );
           }}
         />
-        <div className="d-flex align-items-center gap-xs">
+        <div className="d-flex align-items-center gap-xs">                             
+          <div className="fs-xxs">            
+          Select column for lineage
+          </div>
+          <PreviewIcon />
+          <div className="spacer" /> 
           <div className="fs-xxs text-grey">
             {filteredColumn.length} columns
-          </div>
-          <div className="spacer" />
-          <div className="text-muted fs-xxs">
-            {filteredColumn.every((en) => !en.datatype) ? "Needs DB Sync" : ""}
           </div>
         </div>
         <div className="d-flex flex-column gap-sm">
@@ -177,6 +176,41 @@ const ColumnSection: FunctionComponent<{
   );
 };
 
+const TestSection: FunctionComponent<{
+  tests: { key: string; path: string }[];
+}> = ({ tests }) => {
+  const [filteredTests, setFilteredTests] = useState(tests);
+  return (
+    <div className={classNames(styles.card, "flex-grow column-section")}>
+      <div className="d-flex flex-column gap-sm h-100 p-2">
+        <div className="fs-5 fw-semibold">Tests</div>
+        <CustomInput
+          bsSize="sm"
+          type="text"
+          placeholder="Search by test"
+          onChange={(e) => {
+            const _search = e.target.value.toLowerCase();
+            setFilteredTests(
+              tests.filter((t) => t.key.toLowerCase().includes(_search))
+            );
+          }}
+        />
+        <div className="d-flex align-items-center gap-xs">
+          <div className="fs-xxs text-grey">{filteredTests.length} tests</div>
+        </div>
+        <div className="d-flex flex-column gap-sm">
+          {filteredTests.map((_test) => (
+            <div key={_test.key} className={styles.column_card}>
+              <div className="d-flex align-items-center gap-xs">
+                <div className="lines-2">{_test.key}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 const TableDetails = () => {
   const {
     selectedTable,
@@ -191,13 +225,14 @@ const TableDetails = () => {
   const flow = useReactFlow();
   const [filteredColumn, setFilteredColumn] = useState<Column[]>([]);
   const [data, setData] = useState<Columns | null>(null);
+  const [tab, setTab] = useState(0);
 
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
     if (!selectedTable) {
       return;
     }
-    getColumns(selectedTable.table, false).then((_data) => {
+    getColumns(selectedTable, false).then((_data) => {
       setData(_data);
       setFilteredColumn(_data.columns);
       setIsLoading(false);
@@ -205,6 +240,10 @@ const TableDetails = () => {
   }, [selectedTable]);
 
   const handleColumnClick = async (_column: Column) => {
+    if (!aiEnabled) {
+      previewFeature();
+      return;
+    }
     if (
       selectedColumn.table === _column.table &&
       selectedColumn.name === _column.name
@@ -221,41 +260,24 @@ const TableDetails = () => {
       return;
     }
     startProgressBar();
-    console.time();
     let _nodes = flow.getNodes();
     let _edges = flow.getEdges();
-    const addNodesEdges = (tables: Table[], right: boolean, level: number) => {
-      [_nodes, _edges] = createNewNodesEdges(
+    const addNodesEdges = async (right: boolean) => {
+      [_nodes, _edges] = await expandTableLineage(
         _nodes,
         _edges,
-        tables,
         _column.table,
-        right,
-        level
+        right
       );
       layoutElementsOnCanvas(_nodes, _edges);
     };
     const tableNode = flow.getNode(_column.table);
     if (tableNode) {
       const {
-        data: { processed, key, level },
+        data: { processed },
       } = tableNode;
-      if (!processed[1]) {
-        try {
-          const { tables } = await upstreamTables(key);
-          addNodesEdges(tables, true, level);
-        } catch (e) {
-          console.error(e);
-        }
-      }
-      if (!processed[0]) {
-        try {
-          const { tables } = await downstreamTables(key);
-          addNodesEdges(tables, false, level);
-        } catch (e) {
-          console.error(e);
-        }
-      }
+      if (!processed[1]) await addNodesEdges(true);
+      if (!processed[0]) await addNodesEdges(false);
     }
     setSelectedColumn(_column);
     setShowSidebar(false);
@@ -271,128 +293,18 @@ const TableDetails = () => {
     flow.setEdges(edges);
     setConfidence({ confidence: "high" });
     rerender();
-
-    // creating helper data for current lineage once
-    const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
-      getHelperDataForCLL(nodes, edges);
-
-    const bfsTraversal = async (right: boolean) => {
-      const visited: Record<string, boolean> = {};
-      const ephemeralAncestors: Record<string, [string, string][]> = {};
-      let currTargetColumns: [string, string][] = [
-        [_column.table, _column.name],
-      ];
-      let currEphemeralNodes: string[] = [];
-      while (true as boolean) {
-        currTargetColumns = currTargetColumns.filter(
-          (x) => !visited[x.join("/")]
-        );
-        if (currTargetColumns.length === 0 && currEphemeralNodes.length === 0) {
-          break;
-        }
-        const currTargetTables: Record<string, boolean> = {};
-        currTargetColumns.forEach((x) => {
-          visited[x.join("/")] = true;
-          currTargetTables[x[0]] = true;
-        });
-
-        const [src, dst]: ("source" | "target")[] = right
-          ? ["source", "target"]
-          : ["target", "source"];
-        const hop1Tables = [];
-        const _ephemeralNodes: string[] = [];
-        const collectEphemeralAncestors: string[] = [];
-        for (const e of _edges) {
-          const srcTable = e[src];
-          const dstTable = e[dst];
-          const nodeType = flow.getNode(dstTable)?.data?.nodeType;
-          if (currTargetTables[srcTable]) {
-            if (nodeType === "ephemeral") {
-              ephemeralAncestors[dstTable] = ephemeralAncestors[dstTable] || [];
-              ephemeralAncestors[dstTable].push(
-                ...currTargetColumns.filter((c) => c[0] === srcTable)
-              );
-              _ephemeralNodes.push(dstTable);
-            } else {
-              hop1Tables.push(dstTable);
-            }
-          } else if (currEphemeralNodes.includes(srcTable)) {
-            if (nodeType === "ephemeral") {
-              ephemeralAncestors[dstTable] = ephemeralAncestors[dstTable] || [];
-              ephemeralAncestors[dstTable].push(
-                ...ephemeralAncestors[srcTable]
-              );
-              _ephemeralNodes.push(dstTable);
-            } else {
-              collectEphemeralAncestors.push(srcTable);
-              hop1Tables.push(dstTable);
-            }
-          }
-        }
-        currEphemeralNodes = _ephemeralNodes;
-
-        const currAnd1HopTables = Object.keys(currTargetTables);
-        for (const nodeId of hop1Tables) {
-          if (currAnd1HopTables.includes(nodeId)) continue;
-          if (tableNodes[nodeId]) {
-            currAnd1HopTables.push(nodeId);
-            continue;
-          }
-          const seeMoreNode = flow.getNode(nodeId);
-          if (!seeMoreNode) continue;
-          const { tables = [] } = seeMoreNode.data as TMoreTables;
-          for (const t of tables) {
-            if (currAnd1HopTables.includes(t.table)) continue;
-            currAnd1HopTables.push(t.table);
-          }
-        }
-
-        collectEphemeralAncestors.forEach((t) => {
-          currTargetColumns.push(...ephemeralAncestors[t]);
-          currAnd1HopTables.push(...ephemeralAncestors[t].map((c) => c[0]));
-        });
-        try {
-          const patchState = await processColumnLineage(
-            levelMap,
-            seeMoreIdTableReverseMap,
-            tableNodes,
-            currTargetColumns,
-            right,
-            currAnd1HopTables,
-            _column
-          );
-          if (patchState.confidence?.confidence === "low") {
-            setConfidence((prev) => {
-              const newConfidence = { ...prev, confidence: "low" };
-              newConfidence.operator_list = newConfidence.operator_list || [];
-              newConfidence.operator_list.push(
-                ...(patchState.confidence?.operator_list || [])
-              );
-              return newConfidence;
-            });
-          }
-          currTargetColumns = patchState.newCurr;
-          const [nodes, edges] = mergeNodesEdges(
-            { nodes: flow.getNodes(), edges: flow.getEdges() },
-            patchState
-          );
-
-          setMoreTables((prev) => ({
-            ...prev,
-            lineage: [...(prev.lineage || []), ...patchState.seeMoreLineage],
-          }));
-
-          flow.setNodes(nodes);
-          flow.setEdges(edges);
-          mergeCollectColumns(setCollectColumns, patchState.collectColumns);
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    };
-
-    await Promise.all([bfsTraversal(true), bfsTraversal(false)]);
-    console.timeEnd();
+    const _bfsTraversal = (right: boolean) =>
+      bfsTraversal(
+        nodes,
+        edges,
+        right,
+        [_column],
+        setConfidence,
+        setMoreTables,
+        setCollectColumns,
+        flow
+      );
+    await Promise.all([_bfsTraversal(true), _bfsTraversal(false)]);
     endProgressBar();
   };
   if (isLoading || !data || !selectedTable) return <ComponentLoader />;
@@ -402,19 +314,32 @@ const TableDetails = () => {
       <div className={styles.table_details_header}>
         <NodeTypeIcon nodeType={selectedTable.nodeType} />
         <div className="d-flex align-items-center">
-          <div className="fw-semibold fs-5 lines-2">{selectedTable.table}</div>
+          <div className="fw-semibold fs-5 lines-2">{selectedTable.label}</div>
         </div>
       </div>
       {data.purpose && <PurposeSection purpose={data.purpose} />}
-      <ColumnSection
-        selectedTable={selectedTable}
-        selectedColumn={selectedColumn}
-        filteredColumn={filteredColumn}
-        setFilteredColumn={setFilteredColumn}
-        columns={data.columns}
-        handleColumnClick={handleColumnClick}
-        setData={setData}
-      />
+      <div className={styles.table_details_tabs}>
+        {["Column", "Tests"].map((label, i) => (
+          <div
+            className={classNames(styles.tab, { [styles.selected]: tab === i })}
+            onClick={() => setTab(i)}
+          >
+            {label}
+          </div>
+        ))}
+      </div>
+      {tab === 0 && (
+        <ColumnSection
+          selectedTable={selectedTable}
+          selectedColumn={selectedColumn}
+          filteredColumn={filteredColumn}
+          setFilteredColumn={setFilteredColumn}
+          columns={data.columns}
+          handleColumnClick={handleColumnClick}
+          setData={setData}
+        />
+      )}
+      {tab === 1 && <TestSection tests={selectedTable.tests} />}
     </div>
   );
 };

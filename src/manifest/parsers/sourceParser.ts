@@ -33,6 +33,7 @@ export class SourceParser {
               unique_id,
               description,
               columns,
+              identifier,
             },
           ) => {
             let source = previousValue.get(source_name);
@@ -49,6 +50,7 @@ export class SourceParser {
             const fullPath = path.join(rootPath, original_file_path);
             source.tables.push({
               name,
+              identifier,
               path: fullPath,
               description: description,
               columns: columns,

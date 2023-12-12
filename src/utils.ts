@@ -121,8 +121,8 @@ export function substituteSettingsVariables(value: any): any {
 
 export function extendErrorWithSupportLinks(error: string): string {
   return (
-    error +
-    "If the issue persists, please seek help in our dbt Community Slack channel [#tools-dbt-power-user](https://getdbt.slack.com/archives/C05KPDGRMDW) or report it on [GitHub](https://github.com/innoverio/vscode-dbt-power-user/issues/new?assignees=&labels=bug&projects=&template=bug_report.yml)"
+    (error[-1] === " " ? error : error + " ") +
+    "If the issue persists, please [contact us](https://www.altimate.ai/support) via chat or Slack"
   );
 }
 
