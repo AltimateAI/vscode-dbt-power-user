@@ -33,8 +33,8 @@ suite("Lineage Test Suite", () => {
     const doc = await vscode.workspace.openTextDocument(model_uri);
     const editor = await vscode.window.showTextDocument(doc);
     await vscode.commands.executeCommand("dbtPowerUser.Lineage.focus");
-    const dockeys = lineage_panel.eventMap.keys();
+    // const dockeys = lineage_panel.eventMap.keys();
     // assert.equal(Array.from(dockeys).length, 1);
-    console.log("dockeys", Array.from(dockeys).length);
+    // console.log("dockeys", Array.from(dockeys).length);
   });
 });

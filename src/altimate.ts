@@ -1,6 +1,6 @@
 import { env, Uri, window, workspace } from "vscode";
 import { provideSingleton } from "./utils";
-import fetch from "node-fetch";
+import fetch from "./fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 
 interface AltimateConfig {

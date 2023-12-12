@@ -14,8 +14,7 @@ export function run(): Promise<void> {
 
   console.log("testsRoot", testsRoot);
   return new Promise((resolve, reject) => {
-    // TODO: include all tests
-    glob("**/lineage.test.js", { cwd: testsRoot })
+    glob("**/*.test.js", { cwd: testsRoot })
       .then((files: any[]) => {
         //   if (err) {
         //     return reject(err);

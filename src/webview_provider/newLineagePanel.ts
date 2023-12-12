@@ -31,7 +31,7 @@ import { LineagePanelView } from "./lineagePanel";
 import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { PythonException } from "python-bridge";
-import { AbortError } from "node-fetch";
+import { AbortError } from "../fetch";
 
 type Table = {
   label: string;
