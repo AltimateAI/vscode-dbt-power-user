@@ -154,8 +154,12 @@ const ColumnSection: FunctionComponent<{
           }}
         />
         <div className="d-flex align-items-center gap-xs">
-          <div className="fs-xxs">Select column for lineage</div>
-          <PreviewIcon />
+          {!isEphemeral && (
+            <>
+              <div className="fs-xxs">Select column for lineage</div>
+              <PreviewIcon />
+            </>
+          )}
           <div className="spacer" />
           <div className="fs-xxs text-grey">
             {filteredColumn.length} columns
