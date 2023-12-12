@@ -32,6 +32,9 @@ export class SqlToModel {
   }
 
   async getModelFromSql() {
+    if (!this.altimate.handlePreviewFeatures()) {
+      return;
+    }
     this.telemetry.sendTelemetryEvent("sqlToModel");
     if (!window.activeTextEditor) {
       return;

@@ -107,3 +107,33 @@ td,
 th {
   user-select: text;
 }
+
+.tooltip-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.tooltip-container:hover .tooltip-text {
+  display: block;
+}
+
+.tooltip-text {
+  display: none;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px;
+  color: #082247;
+  border-radius: 4px;
+  white-space: nowrap;
+  background: #ffce73;
+}
+
+.tooltip-text-top {
+  bottom: 125%;
+}
+
+.tooltip-text-bottom {
+  top: 125%;
+}

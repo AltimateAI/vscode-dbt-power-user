@@ -261,7 +261,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 const modelName = path.basename(currentFilePath.fsPath, ".sql");
                 try {
                   const columnsInRelation =
-                    await project.getColumnsInRelation(modelName);
+                    await project.getColumnsOfModel(modelName);
                   const columns = columnsInRelation.map((column) => {
                     return {
                       name: column.column,
@@ -296,6 +296,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
             break;
           case "generateDocsForModel":
+            if (!this.altimateRequest.handlePreviewFeatures()) {
+              return;
+            }
             this.telemetry.sendTelemetryEvent("altimateGenerateDocsForModel");
             window.withProgress(
               {
@@ -540,10 +543,12 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                         if (model.name === message.name) {
                           model.description = message.description;
                           model.columns = message.columns.map((column: any) => {
-                            const existingColumn = model.columns.find(
-                              (yamlColumn: any) =>
-                                yamlColumn.name === column.name,
-                            );
+                            const existingColumn =
+                              model.columns &&
+                              model.columns.find(
+                                (yamlColumn: any) =>
+                                  yamlColumn.name === column.name,
+                              );
                             if (existingColumn !== undefined) {
                               return {
                                 ...existingColumn,

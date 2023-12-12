@@ -7,3 +7,4 @@ dist
 .idea
 .history
 venv
+__pycache__/

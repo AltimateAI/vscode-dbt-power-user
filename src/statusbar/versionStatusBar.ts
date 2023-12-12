@@ -38,7 +38,7 @@ export class VersionStatusBar implements Disposable {
     this.statusBar.dispose();
   }
 
-  private onDBTInstallationVerification(
+  private async onDBTInstallationVerification(
     event: DBTInstallationVerificationEvent,
   ) {
     if (event.inProgress === true) {
@@ -52,25 +52,7 @@ export class VersionStatusBar implements Disposable {
       );
       return;
     }
-
-    const versionCheck: string =
-      workspace.getConfiguration("dbt").get<string>("versionCheck") || "both";
-
     if (event.dbtInstallationFound) {
-      if (
-        !event.dbtInstallationFound.upToDate &&
-        (versionCheck === "both" || versionCheck === "status bar")
-      ) {
-        if (event.dbtInstallationFound.installedVersion !== undefined) {
-          this.showTextInStatusBar(
-            `$(error) dbt ${event.dbtInstallationFound.installedVersion} is not up to date`,
-            // "statusBarItem.warningBackground",
-          );
-        } else {
-          this.showTextInStatusBar(`$(check) dbt`);
-        }
-        return;
-      }
       this.showTextInStatusBar(`$(check) dbt`);
     }
   }

@@ -23,22 +23,20 @@ import {
   SelfConnectingEdge,
   TableNode,
 } from "./CustomNodes";
-import { COLUMNS_SIDEBAR, TABLES_SIDEBAR, getHelperDataForCLL } from "./utils";
+import { COLUMNS_SIDEBAR, TABLES_SIDEBAR } from "./utils";
 import { SidebarModal } from "./SidebarModal";
 import { MoreTables, TMoreTables } from "./MoreTables";
-import { Table, downstreamTables, upstreamTables } from "./service";
-import {
-  createNewNodesEdges,
-  highlightTableConnections,
-  layoutElementsOnCanvas,
-  mergeCollectColumns,
-  mergeNodesEdges,
-  processColumnLineage,
-} from "./graph";
+import { Table } from "./service";
+import { expandTableLineage, layoutElementsOnCanvas } from "./graph";
 import { TableDetails } from "./TableDetails";
-import { Button, Card, CardBody, UncontrolledTooltip } from "reactstrap";
-import DirectEdgeIcon from "./assets/icons/direct_edge.svg?react";
-import IndirectEdgeIcon from "./assets/icons/indirect_edge.svg?react";
+import {
+  Button,
+  Card,
+  CardBody,
+  Input,
+  Label,
+  UncontrolledTooltip,
+} from "reactstrap";
 import AlertCircleIcon from "./assets/icons/alert-circle.svg?react";
 import styles from "./styles.module.scss";
 
@@ -77,6 +75,9 @@ export const startProgressBar = () => {
 };
 export const endProgressBar = () => {
   vscode.postMessage({ command: "endProgressBar", args: {} });
+};
+export const previewFeature = () => {
+  vscode.postMessage({ command: "previewFeature", args: {} });
 };
 
 export let isDarkMode = false;
@@ -151,15 +152,20 @@ function App() {
   const [, _rerender] = useState(0);
   const rerender = () => _rerender((x) => (x + 1) % 100);
 
+  const [selectCheck, setSelectCheck] = useState(false);
+  const [nonSelectCheck, setNonSelectCheck] = useState(false);
+
   useEffect(() => {
     const render = async (args: {
       node: {
         table: string;
-        key: string;
+        label: string;
         url: string;
         nodeType: string;
+        materialization?: string;
         downstreamCount: number;
         upstreamCount: number;
+        tests: { key: string; path: string }[];
       };
       aiEnabled: boolean;
     }) => {
@@ -176,69 +182,46 @@ function App() {
       const existingNode = _flow.getNode(node.table);
       let nodes: Node[] = [];
       let edges: Edge[] = [];
-      const addNodesEdges = async (
-        tables: Table[],
-        table: string,
-        right: boolean,
-        level: number
-      ) => {
-        [nodes, edges] = createNewNodesEdges(
-          nodes,
-          edges,
-          tables,
-          node.table,
-          right,
-          level
-        );
-        if (selectedColumn.name) {
-          const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
-            getHelperDataForCLL(nodes, edges);
-          const currAnd1HopTables = tables.map((t) => t.table);
-          currAnd1HopTables.push(table);
-          const curr = (collectColumns[table] || []).map(
-            (c) => [table, c] as [string, string]
-          );
-          const patchState = await processColumnLineage(
-            levelMap,
-            seeMoreIdTableReverseMap,
-            tableNodes,
-            curr,
-            right,
-            currAnd1HopTables,
-            selectedColumn
-          );
-          [nodes, edges] = mergeNodesEdges({ nodes, edges }, patchState);
-          mergeCollectColumns(setCollectColumns, patchState.collectColumns);
-        } else if (selectedTable) {
-          [nodes, edges] = highlightTableConnections(
-            nodes,
-            edges,
-            selectedTable.table
-          );
-        }
+      const addNodesEdges = async (table: string, right: boolean) => {
+        [nodes, edges] = await expandTableLineage(nodes, edges, table, right);
+        // TODO: on opening file, how to handle cll
+        // if (selectedColumn.name) {
+        //   startProgressBar()
+        //   await bfsTraversal(
+        //     nodes,
+        //     edges,
+        //     right,
+        //     [selectedColumn],
+        //     setConfidence,
+        //     setMoreTables,
+        //     setCollectColumns,
+        //     _flow
+        //   );
+        //   endProgressBar()
+        // } else if (selectedTable) {
+        //   [nodes, edges] = highlightTableConnections(
+        //     nodes,
+        //     edges,
+        //     selectedTable.table
+        //   );
+        // }
       };
       if (existingNode) {
-        const { level, processed } = existingNode.data as {
+        const { processed } = existingNode.data as {
           level: number;
           processed: [boolean, boolean];
         };
         nodes = _flow.getNodes();
         edges = _flow.getEdges();
-        if (!processed[1]) {
-          const { tables } = await upstreamTables(node.key);
-          addNodesEdges(tables, node.table, true, level);
-        }
-        if (!processed[0]) {
-          const { tables } = await downstreamTables(node.key);
-          addNodesEdges(tables, node.table, false, level);
-        }
+        if (!processed[1]) await addNodesEdges(node.table, true);
+        if (!processed[0]) await addNodesEdges(node.table, false);
       } else {
         nodes = [
           {
             id: node.table,
             data: {
               table: node.table,
-              key: node.key,
+              label: node.label,
               url: node.url,
               level: 0,
               shouldExpand: [node.downstreamCount > 0, node.upstreamCount > 0],
@@ -246,19 +229,15 @@ function App() {
               nodeType: node.nodeType,
               upstreamCount: node.upstreamCount,
               downstreamCount: node.downstreamCount,
+              tests: node.tests,
+              materialization: node.materialization,
             },
             position: { x: 100, y: 100 },
             type: "table",
           },
         ];
-        if (node.upstreamCount > 0) {
-          const { tables } = await upstreamTables(node.key);
-          addNodesEdges(tables, node.table, true, 0);
-        }
-        if (node.downstreamCount > 0) {
-          const { tables } = await downstreamTables(node.key);
-          addNodesEdges(tables, node.table, false, 0);
-        }
+        if (node.upstreamCount > 0) await addNodesEdges(node.table, true);
+        if (node.downstreamCount > 0) await addNodesEdges(node.table, false);
         setSelectedTable(null);
         setSelectedColumn({ table: "", name: "" });
         setCollectColumns({});
@@ -301,6 +280,25 @@ function App() {
     vscode.postMessage({ command: "init", args: {} });
   }, []);
 
+  useEffect(() => {
+    const _flow = flow.current;
+    if (!_flow) return;
+    const _edges = _flow.getEdges();
+    if ((selectCheck && nonSelectCheck) || (!selectCheck && !nonSelectCheck)) {
+      for (const e of _edges) e.hidden = false;
+      _flow.setEdges(_edges);
+      return;
+    }
+    for (const e of _edges) {
+      e.hidden = false;
+      const _type = (e.data as { type: string })?.type;
+      if (!_type) continue;
+      if (_type === "direct") e.hidden = !selectCheck;
+      if (_type === "indirect") e.hidden = !nonSelectCheck;
+    }
+    _flow.setEdges(_edges);
+  }, [selectCheck, nonSelectCheck]);
+
   return (
     <div className="position-relative">
       <div className="top-right-container">
@@ -308,17 +306,33 @@ function App() {
           <Card className={styles.menu_card_container}>
             <CardBody className={styles.menu_card}>
               <div className="d-flex gap-sm">
-                <div className="d-flex gap-xxs align-items-center">
-                  <DirectEdgeIcon />
-                  <div>Select</div>
+                <div className={styles.select_node_checkbox}>
+                  <Input
+                    type="checkbox"
+                    id="select-check"
+                    className="mt-0"
+                    checked={selectCheck}
+                    onChange={(e) => setSelectCheck(e.target.checked)}
+                  />
+                  <Label check for="select-check">
+                    Select
+                  </Label>
                   <InfoIcon
                     id="select_lineage"
                     message="Select linkages are shown if there is direct flow of data between columns through select statements."
                   />
                 </div>
-                <div className="d-flex gap-xxs align-items-center">
-                  <IndirectEdgeIcon />
-                  <div>Non-Select</div>
+                <div className={styles.non_select_node_checkbox}>
+                  <Input
+                    type="checkbox"
+                    id="non-select-check"
+                    className="mt-0"
+                    checked={nonSelectCheck}
+                    onChange={(e) => setNonSelectCheck(e.target.checked)}
+                  />
+                  <Label check for="non-select-check">
+                    Non-Select
+                  </Label>
                   <InfoIcon
                     id="non_select_lineage"
                     message="Non-Select linkages are shown if columns appear in condition/clauses like where, join, having, etc."
