@@ -212,25 +212,35 @@ export class AltimateRequest {
         },
       });
       console.log("network:response:", endpoint, ":", response.status);
+      if (response.ok && response.status === 200) {
+        const jsonResponse = await response.json();
+        clearTimeout(timeoutHandler);
+        return jsonResponse as T;
+      }
       if (
+        // response codes when backend authorization fails
         response.status === 401 ||
         response.status === 403 ||
         response.status === 404
       ) {
         window.showErrorMessage("Invalid credentials");
-        const text = await response.text();
-        this.telemetry.sendTelemetryError("invalidCredentialsError", {
-          endpoint,
-          status: response.status,
-          text,
+        this.telemetry.sendTelemetryEvent("invalidCredentials", {
+          instance: config.instance,
+          key: config.key,
         });
       }
+      const textResponse = await response.text();
+      this.telemetry.sendTelemetryError("apiError", {
+        endpoint,
+        status: response.status,
+        textResponse,
+      });
+      clearTimeout(timeoutHandler);
+      return {} as T;
     } catch (e) {
       clearTimeout(timeoutHandler);
       throw e;
     }
-    clearTimeout(timeoutHandler);
-    return (await response.json()) as T;
   }
 
   async isAuthenticated() {
