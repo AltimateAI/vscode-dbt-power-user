@@ -2,6 +2,7 @@ import { env, Uri, window, workspace } from "vscode";
 import { provideSingleton } from "./utils";
 import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
+import { TelemetryService } from "./telemetry";
 
 interface AltimateConfig {
   key: string;
@@ -137,6 +138,8 @@ export class AltimateRequest {
     .getConfiguration("dbt")
     .get<string>("altimateUrl", "https://api.myaltimate.com");
 
+  constructor(private telemetry: TelemetryService) {}
+
   private getConfig(): AltimateConfig | undefined {
     const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
     const instance = workspace
@@ -174,6 +177,7 @@ export class AltimateRequest {
   }
 
   async fetch<T>(endpoint: string, fetchArgs = {}, timeout: number = 120000) {
+    console.log("network:request:", endpoint, ":", fetchArgs);
     const abortController = new AbortController();
     const timeoutHandler = setTimeout(() => {
       abortController.abort();
@@ -207,12 +211,19 @@ export class AltimateRequest {
           "Content-Type": "application/json",
         },
       });
+      console.log("network:response:", endpoint, ":", response.status);
       if (
         response.status === 401 ||
         response.status === 403 ||
         response.status === 404
       ) {
         window.showErrorMessage("Invalid credentials");
+        const text = await response.text();
+        this.telemetry.sendTelemetryError("invalidCredentialsError", {
+          endpoint,
+          status: response.status,
+          text,
+        });
       }
     } catch (e) {
       clearTimeout(timeoutHandler);
