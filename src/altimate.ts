@@ -187,6 +187,13 @@ export class AltimateRequest {
       return;
     }
 
+    if (!config.instance || !config.key) {
+      window.showErrorMessage(
+        "Credentials are not set properly. Please refer to Altimate docs.",
+      );
+      return;
+    }
+
     let response;
     try {
       const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
@@ -200,6 +207,9 @@ export class AltimateRequest {
           "Content-Type": "application/json",
         },
       });
+      if (response.status === 401 || response.status === 403) {
+        window.showErrorMessage("Invalid credentials");
+      }
     } catch (e) {
       clearTimeout(timeoutHandler);
       throw e;
