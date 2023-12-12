@@ -193,7 +193,7 @@ export class AltimateRequest {
 
     if (!config.instance || !config.key) {
       window.showErrorMessage(
-        "Credentials are not set properly. Please refer to Altimate docs.",
+        "Credentials are not set properly. Please refer to Altimate [docs](https://docs.myaltimate.com).",
       );
       return;
     }
