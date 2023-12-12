@@ -36,7 +36,7 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
   private panel: WebviewView | undefined;
   private context: WebviewViewResolveContext<unknown> | undefined;
   private token: CancellationToken | undefined;
-  public eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
+  private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private disposables: Disposable[] = [];
 
   public constructor(
