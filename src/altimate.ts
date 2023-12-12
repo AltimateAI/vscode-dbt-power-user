@@ -207,7 +207,11 @@ export class AltimateRequest {
           "Content-Type": "application/json",
         },
       });
-      if (response.status === 401 || response.status === 403) {
+      if (
+        response.status === 401 ||
+        response.status === 403 ||
+        response.status === 404
+      ) {
         window.showErrorMessage("Invalid credentials");
       }
     } catch (e) {
