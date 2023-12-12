@@ -690,9 +690,9 @@
   "scripts": {
     "prepare": "husky install",
     "vscode:prepublish": "npm run panel:lineage && webpack --mode production",
-    "webpack": "npm run panel:lineage && webpack --mode development",
+    "webpack": "rm -Rf dist; npm run panel:lineage && webpack --mode development",
     "webpack-dev": "npm run panel:lineage && webpack --mode development --watch",
-    "test-compile": "tsc -p ./",
+    "test-compile": "rm -Rf dist; rm -Rf ./new_lineage_panel/dist; npm run panel:lineage; tsc -p ./",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
     "deploy-vscode": "vsce publish",
@@ -700,7 +700,7 @@
     "deploy-openvsx": "ovsx publish",
     "panel:lineage": "npm run build --prefix ./new_lineage_panel",
     "install:panels": "npm install --prefix ./new_lineage_panel",
-    "test": "rm -Rf dist; npm run test-compile; node ./dist/test/runTest.js"
+    "test": "npm run test-compile; node ./dist/test/runTest.js"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
