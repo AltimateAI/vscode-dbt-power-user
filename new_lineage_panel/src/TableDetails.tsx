@@ -51,11 +51,13 @@ const ColumnCard: FunctionComponent<{
   column: Column;
   handleClick: () => void;
   selected: boolean;
-}> = ({ column, handleClick, selected }) => {
+  isSelectable: boolean;
+}> = ({ column, handleClick, selected, isSelectable }) => {
   return (
     <div
-      className={classNames(styles.column_card, "cursor-pointer", {
+      className={classNames(styles.column_card, {
         [styles.selected]: selected,
+        "cursor-pointer": isSelectable,
       })}
       onClick={handleClick}
     >
@@ -115,13 +117,14 @@ const ColumnSection: FunctionComponent<{
   selectedColumn,
   setData,
 }) => {
+  const isEphemeral = selectedTable?.materialization === "ephemeral";
   return (
     <div className={classNames(styles.card, "flex-grow column-section")}>
       <div className="d-flex flex-column gap-sm h-100 p-2">
         <div className="d-flex align-items-center gap-xs">
           <div className="fs-5 fw-semibold">Columns</div>
           <div className="spacer" />
-          {selectedTable?.materialization !== "ephemeral" && (
+          {isEphemeral && (
             <Button
               size="sm"
               color="primary"
@@ -163,11 +166,15 @@ const ColumnSection: FunctionComponent<{
             <ColumnCard
               key={_column.name}
               column={_column}
-              handleClick={() => handleColumnClick(_column)}
+              handleClick={() => {
+                if (isEphemeral) return;
+                handleColumnClick(_column);
+              }}
               selected={
                 _column.name === selectedColumn.name &&
                 _column.table === selectedColumn.table
               }
+              isSelectable={!isEphemeral}
             />
           ))}
         </div>
