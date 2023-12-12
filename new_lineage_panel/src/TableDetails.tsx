@@ -124,7 +124,7 @@ const ColumnSection: FunctionComponent<{
         <div className="d-flex align-items-center gap-xs">
           <div className="fs-5 fw-semibold">Columns</div>
           <div className="spacer" />
-          {isEphemeral && (
+          {!isEphemeral && (
             <Button
               size="sm"
               color="primary"
