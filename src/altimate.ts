@@ -253,8 +253,8 @@ export class AltimateRequest {
       clearTimeout(timeoutHandler);
       return {} as T;
     } catch (e) {
-      console.log("network:response:catchAllerror", e);
-      this.telemetry.sendTelemetryError("apiCatchAllerror", {
+      console.log("network:response:catchAllError", e);
+      this.telemetry.sendTelemetryError("apiCatchAllError", {
         endpoint,
         error: e,
       });
