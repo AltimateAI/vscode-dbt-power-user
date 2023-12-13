@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as assert from "assert";
 
-import { DBTProjectContainer } from "../../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../../../manifest/dbtProjectContainer";
 import { Container } from "inversify";
 
 suite("Extension setup healthcheck Suite", () => {
@@ -14,7 +14,7 @@ suite("Extension setup healthcheck Suite", () => {
     console.log("extension activated");
   });
 
-  test("Can verify extension init", async () => {
+  test("if vscode loaded all dbt projects", async () => {
     const dbtProjectContainer = container.get(DBTProjectContainer);
     // assert.equal(dbtProjectContainer.dbtDetected, true);
     const projCount = dbtProjectContainer.getProjects().length;

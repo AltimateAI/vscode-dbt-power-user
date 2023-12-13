@@ -1,13 +1,9 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
-// You can import and use all API from the 'vscode' module
-// as well as import your extension to test it
-// import { NewLineagePanel } from "../../src/webview_provider/newLineagePanel";
-// import { LineagePanel } from "../../src/webview_provider/lineagePanel";
-import { DBTProjectContainer } from "../../manifest/dbtProjectContainer";
+import { DBTProjectContainer } from "../../../manifest/dbtProjectContainer";
 import path = require("path");
 import { Container } from "inversify";
-import { LineagePanel } from "../../webview_provider/lineagePanel";
+import { LineagePanel } from "../../../webview_provider/lineagePanel";
 
 suite("Lineage Test Suite", () => {
   let container: Container;

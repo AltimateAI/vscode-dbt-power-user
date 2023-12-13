@@ -4,7 +4,7 @@ import * as vscode from "vscode";
 // as well as import your extension to test it
 import path = require("path");
 import { Container } from "inversify";
-import { ModelAutocompletionProvider } from "../../autocompletion_provider/modelAutocompletionProvider";
+import { ModelAutocompletionProvider } from "../../../autocompletion_provider/modelAutocompletionProvider";
 
 suite("Auto complete Test Suite", () => {
   let container: Container;

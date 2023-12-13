@@ -809,7 +809,7 @@
     "vscode:prepublish": "npm run panel:lineage && webpack --mode production",
     "webpack": "rm -Rf dist; npm run panel:lineage && webpack --mode development",
     "webpack-dev": "npm run panel:lineage && webpack --mode development --watch",
-    "test-compile": "rm -Rf dist; rm -Rf ./new_lineage_panel/dist; npm run panel:lineage; tsc -p ./",
+    "test-compile": "rm -Rf ./.vscode-test/extensions;rm -Rf dist; rm -Rf ./new_lineage_panel/dist; npm run panel:lineage; tsc -p ./",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
     "deploy-vscode": "vsce publish",

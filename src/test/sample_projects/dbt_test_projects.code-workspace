@@ -1,19 +1,22 @@
 {
-    "folders": [
-        {
-            "path": "jaffle_shop_duckdb"
-        },
-        {
-            "path": "problematic_folders/incorrect_target"
-        },
-        {
-            "path": "problematic_folders/missing_profile"
-        },
-        {
-            "path": "venv"
-        }
-    ],
-    "settings": {
-        "python.defaultInterpreterPath": "venv/bin/python",
+  "folders": [
+    {
+      "path": "jaffle_shop_duckdb"
+    },
+    {
+      "path": "problematic_folders/incorrect_target"
+    },
+    {
+      "path": "problematic_folders/missing_profile"
+    },
+    {
+      "path": "venv"
+    },
+    {
+      "path": "empty_project"
     }
+  ],
+  "settings": {
+    "python.defaultInterpreterPath": "venv/bin/python"
+  }
 }

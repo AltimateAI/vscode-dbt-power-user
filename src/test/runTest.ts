@@ -6,35 +6,32 @@ import {
   resolveCliArgsFromVSCodeExecutablePath,
   runTests,
 } from "@vscode/test-electron";
-import { getPythonExecutable } from "./utils/environment";
+import { TestTypes } from "./constants";
 
 async function main() {
   try {
-    const python = getPythonExecutable();
-    console.log(`Python executable is ${python}`);
-    const version = "1.85.0";
-
     // The folder containing the Extension Manifest package.json
     // Passed to `--extensionDevelopmentPath`
     const extensionDevelopmentPath = path.resolve(__dirname, "../../");
 
-    // The path to the extension test script
-    // Passed to --extensionTestsPath
-    const extensionTestsPath = path.resolve(__dirname, "./suite/index.js");
+    const version = "1.85.0";
+
     // Download VS Code, unzip it and run the integration test
     const vscodeExecutablePath = await downloadAndUnzipVSCode(version);
     const [cliPath, ...args] =
       resolveCliArgsFromVSCodeExecutablePath(vscodeExecutablePath);
 
-    // Use cp.spawn / cp.exec for custom setup
-    cp.spawnSync(
-      cliPath,
-      [...args, "--install-extension", "ms-python.python"],
-      {
-        encoding: "utf-8",
-        stdio: "inherit",
-      },
-    );
+    // Without python and jinja extensions
+    await runTests({
+      // Use the specified `code` executable
+      vscodeExecutablePath: vscodeExecutablePath,
+      extensionDevelopmentPath: extensionDevelopmentPath,
+      extensionTestsPath: path.resolve(__dirname, "./suite/index.js"),
+      version: version,
+      launchArgs: [path.join(__dirname, "../../src/test/sample_projects")],
+      extensionTestsEnv: { testType: TestTypes.NoExtensions },
+    });
+
     cp.spawnSync(
       cliPath,
       [...args, "--install-extension", "samuelcolvin.jinjahtml"],
@@ -44,14 +41,35 @@ async function main() {
       },
     );
 
-    // Run the extension test
+    // Run the extension test without python extension
     await runTests({
       // Use the specified `code` executable
       vscodeExecutablePath: vscodeExecutablePath,
       extensionDevelopmentPath: extensionDevelopmentPath,
-      extensionTestsPath: extensionTestsPath,
+      extensionTestsPath: path.resolve(__dirname, "./suite/index.js"),
       version: version,
       launchArgs: [path.join(__dirname, "../../src/test/sample_projects")],
+      extensionTestsEnv: { testType: TestTypes.MissingPythonExtension },
+    });
+
+    // install python extension
+    cp.spawnSync(
+      cliPath,
+      [...args, "--install-extension", "ms-python.python"],
+      {
+        encoding: "utf-8",
+        stdio: "inherit",
+      },
+    );
+    // Run the extension test without python extension
+    await runTests({
+      // Use the specified `code` executable
+      vscodeExecutablePath: vscodeExecutablePath,
+      extensionDevelopmentPath: extensionDevelopmentPath,
+      extensionTestsPath: path.resolve(__dirname, "./suite/index.js"),
+      version: version,
+      launchArgs: [path.join(__dirname, "../../src/test/sample_projects")],
+      extensionTestsEnv: { testType: TestTypes.All },
     });
     console.log("Tests passed");
   } catch (err) {
