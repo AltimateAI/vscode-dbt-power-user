@@ -675,7 +675,7 @@ export class NewLineagePanel implements LineagePanelView {
         parent_models,
       };
       console.log("cll:request -> ", request);
-      if (targets.length === 0 || modelInfos.length === 0) {
+      if (targets.length === 0) {
         return;
       }
       const result = await this.altimate.getColumnLevelLineage(request);
