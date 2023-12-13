@@ -214,6 +214,7 @@ export class AltimateRequest {
     let response;
     try {
       const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
+      console.log("network:url:", url);
       response = await fetch(url, {
         method: "GET",
         ...fetchArgs,
@@ -243,6 +244,7 @@ export class AltimateRequest {
         });
       }
       const textResponse = await response.text();
+      console.log("network:response:error", textResponse);
       this.telemetry.sendTelemetryError("apiError", {
         endpoint,
         status: response.status,
@@ -251,6 +253,11 @@ export class AltimateRequest {
       clearTimeout(timeoutHandler);
       return {} as T;
     } catch (e) {
+      console.log("network:response:catchAllerror", e);
+      this.telemetry.sendTelemetryError("apiCatchAllerror", {
+        endpoint,
+        error: e,
+      });
       clearTimeout(timeoutHandler);
       throw e;
     }
