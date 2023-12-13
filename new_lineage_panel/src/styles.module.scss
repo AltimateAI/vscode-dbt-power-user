@@ -185,17 +185,6 @@ $size: 1.2em;
   }
 }
 
-.open_file_button {
-  display: flex;
-  gap: 0.5em;
-  align-items: center;
-  svg {
-    $size: 1.5rem;
-    width: $size;
-    height: $size;
-  }
-}
-
 .processing_div {
   background-color: #ffffff;
   .gif_img {

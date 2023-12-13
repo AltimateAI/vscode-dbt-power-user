@@ -277,6 +277,7 @@ export const processColumnLineage = async (
   right: boolean,
   currAnd1HopTables: string[],
   selectedColumn: { name: string; table: string },
+  sessionId: string,
 ) => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
@@ -286,6 +287,7 @@ export const processColumnLineage = async (
     upstreamExpansion: right,
     currAnd1HopTables,
     selectedColumn,
+    sessionId,
   });
   const columnLineage = column_lineage.filter((e) =>
     right ? contains(curr, e.source) : contains(curr, e.target)
@@ -449,7 +451,9 @@ export const bfsTraversal = async (
   setMoreTables: Dispatch<SetStateAction<TMoreTables>>,
   setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>,
   flow: ReactFlowInstance,
+  sessionId: string,
 ) => {
+  let isLineage = false;
   // creating helper data for current lineage once
   const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
     getHelperDataForCLL(nodes, edges);
@@ -533,43 +537,44 @@ export const bfsTraversal = async (
       currTargetColumns.push(...ephemeralAncestors[t]);
       currAnd1HopTables.push(...ephemeralAncestors[t].map((c) => c[0]));
     });
-    try {
-      const patchState = await processColumnLineage(
-        levelMap,
-        seeMoreIdTableReverseMap,
-        tableNodes,
-        currTargetColumns,
-        right,
-        Array.from(new Set(currAnd1HopTables)),
-        columns[0],
-      );
-      if (patchState.confidence?.confidence === "low") {
-        setConfidence((prev) => {
-          const newConfidence = { ...prev, confidence: "low" };
-          newConfidence.operator_list = newConfidence.operator_list || [];
-          newConfidence.operator_list.push(
-            ...(patchState.confidence?.operator_list || []),
-          );
-          return newConfidence;
-        });
-      }
-      currTargetColumns = patchState.newCurr;
-      const [_nodes, _edges] = mergeNodesEdges({
-        nodes: flow.getNodes(),
-        edges: flow.getEdges(),
-      }, patchState);
-
-      setMoreTables((prev) => ({
-        ...prev,
-        lineage: [...(prev.lineage || []), ...patchState.seeMoreLineage],
-      }));
-
-      layoutElementsOnCanvas(_nodes, _edges);
-      flow.setNodes(_nodes);
-      flow.setEdges(_edges);
-      mergeCollectColumns(setCollectColumns, patchState.collectColumns);
-    } catch (e) {
-      console.error(e);
+    const patchState = await processColumnLineage(
+      levelMap,
+      seeMoreIdTableReverseMap,
+      tableNodes,
+      currTargetColumns,
+      right,
+      Array.from(new Set(currAnd1HopTables)),
+      columns[0],
+      sessionId,
+    );
+    if (patchState.confidence?.confidence === "low") {
+      setConfidence((prev) => {
+        const newConfidence = { ...prev, confidence: "low" };
+        newConfidence.operator_list = newConfidence.operator_list || [];
+        newConfidence.operator_list.push(
+          ...(patchState.confidence?.operator_list || []),
+        );
+        return newConfidence;
+      });
     }
+    currTargetColumns = patchState.newCurr;
+    if (!isLineage && currTargetColumns.length > 0) {
+      isLineage = true;
+    }
+    const [_nodes, _edges] = mergeNodesEdges({
+      nodes: flow.getNodes(),
+      edges: flow.getEdges(),
+    }, patchState);
+
+    setMoreTables((prev) => ({
+      ...prev,
+      lineage: [...(prev.lineage || []), ...patchState.seeMoreLineage],
+    }));
+
+    layoutElementsOnCanvas(_nodes, _edges);
+    flow.setNodes(_nodes);
+    flow.setEdges(_edges);
+    mergeCollectColumns(setCollectColumns, patchState.collectColumns);
   }
+  return isLineage;
 };

@@ -1,15 +1,6 @@
 import { basename } from "path";
-import {
-  AltimateRequest,
-  ModelNode,
-  ValidateSqlParseErrorType,
-} from "../altimate";
-import {
-  ColumnMetaData,
-  NodeMetaData,
-  SourceMetaData,
-  SourceTable,
-} from "../domain";
+import { AltimateRequest, ModelNode } from "../altimate";
+import { ColumnMetaData, NodeMetaData, SourceTable } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
@@ -20,6 +11,7 @@ import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import {
   DiagnosticCollection,
   ProgressLocation,
+  Uri,
   ViewColumn,
   window,
 } from "vscode";
@@ -203,13 +195,27 @@ export class ValidateSql {
       models: parentModels,
     };
     const response = await this.getProject()?.validateSql(request);
-    let uri = window.activeTextEditor?.document.uri;
-    const compileSQLUri = window.activeTextEditor?.document.uri.with({
+    const activeUri = window.activeTextEditor?.document.uri;
+    if (activeUri.scheme === SqlPreviewContentProvider.SCHEME) {
+      // current focus on compiled sql document
+      return;
+    }
+    const compileSQLUri = activeUri.with({
       scheme: SqlPreviewContentProvider.SCHEME,
     });
+    const isOpen = !!window.visibleTextEditors.find(
+      (item) => item.document.uri === compileSQLUri,
+    );
     if (!response || !response?.error_type) {
-      await window.showInformationMessage("SQL is valid.");
-      this.diagnosticsCollection.set(uri, []);
+      const tabGroup = window.tabGroups.all.find(
+        (tabGroup) =>
+          (tabGroup.activeTab?.input as { uri: Uri })?.uri.toString() ===
+          compileSQLUri.toString(),
+      );
+      if (tabGroup) {
+        await window.tabGroups.close(tabGroup);
+      }
+      window.showInformationMessage("SQL is valid.");
       this.diagnosticsCollection.set(compileSQLUri, []);
       return;
     }
@@ -219,7 +225,6 @@ export class ValidateSql {
         "validateSQLError",
         response.errors[0].description,
       );
-      this.diagnosticsCollection.set(uri, []);
       this.diagnosticsCollection.set(compileSQLUri, []);
       return;
     }
@@ -227,10 +232,6 @@ export class ValidateSql {
       response.error_type === "sql_parse_error" ||
       (response.errors.length > 0 && response.errors[0].start_position)
     ) {
-      uri = compileSQLUri;
-      const isOpen = window.visibleTextEditors.find(
-        (item) => item.document.uri === compileSQLUri,
-      );
       if (!isOpen) {
         const doc = await workspace.openTextDocument(compileSQLUri);
         await window.showTextDocument(doc, ViewColumn.Beside, true);
@@ -257,7 +258,7 @@ export class ValidateSql {
       },
     );
 
-    this.diagnosticsCollection.set(uri, diagnostics);
+    this.diagnosticsCollection.set(compileSQLUri, diagnostics);
   }
 
   private getProject() {
