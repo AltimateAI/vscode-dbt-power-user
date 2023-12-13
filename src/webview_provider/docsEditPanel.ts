@@ -18,7 +18,7 @@ import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
-import { provideSingleton } from "../utils";
+import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import path = require("path");
 import { PythonException } from "python-bridge";
 import { TelemetryService } from "../telemetry";
@@ -345,8 +345,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 } catch (error) {
                   this.transmitError();
                   window.showErrorMessage(
-                    "An unexpected error occurred while generating documentation: " +
-                      error,
+                    extendErrorWithSupportLinks(
+                      "An unexpected error occurred while generating documentation: " +
+                        error,
+                    ),
                   );
                   this.telemetry.sendTelemetryError(
                     "generateDocsForModelError",
@@ -405,8 +407,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 } catch (error) {
                   this.transmitError();
                   window.showErrorMessage(
-                    "An unexpected error occurred while generating documentation: " +
-                      error,
+                    extendErrorWithSupportLinks(
+                      "An unexpected error occurred while generating documentation: " +
+                        error,
+                    ),
                   );
                   this.telemetry.sendTelemetryError(
                     "generateDocsForColumnError",
@@ -451,8 +455,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 } catch (error) {
                   this.transmitError();
                   window.showErrorMessage(
-                    "An unexpected error occurred while sending feedback: " +
-                      error,
+                    extendErrorWithSupportLinks(
+                      "An unexpected error occurred while sending feedback: " +
+                        error,
+                    ),
                   );
                   this.telemetry.sendTelemetryError(
                     "altimateGenerateDocsSendFeedbackError",

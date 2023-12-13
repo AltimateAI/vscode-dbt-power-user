@@ -29,14 +29,7 @@ import { MoreTables, TMoreTables } from "./MoreTables";
 import { Table } from "./service";
 import { expandTableLineage, layoutElementsOnCanvas } from "./graph";
 import { TableDetails } from "./TableDetails";
-import {
-  Button,
-  Card,
-  CardBody,
-  Input,
-  Label,
-  UncontrolledTooltip,
-} from "reactstrap";
+import { Button, Card, CardBody, Input, Label, Tooltip } from "reactstrap";
 import AlertCircleIcon from "./assets/icons/alert-circle.svg?react";
 import styles from "./styles.module.scss";
 
@@ -127,10 +120,18 @@ const InfoIcon: FunctionComponent<{ id: string; message: string }> = ({
   id,
   message,
 }) => {
+  const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className={styles.alert_icon} id={id}>
+    <div
+      className={styles.alert_icon}
+      id={id}
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
+    >
       <AlertCircleIcon />
-      <UncontrolledTooltip target={id}>{message}</UncontrolledTooltip>
+      <Tooltip target={id} isOpen={isOpen}>
+        {message}
+      </Tooltip>
     </div>
   );
 };
