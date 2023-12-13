@@ -238,10 +238,7 @@ export class AltimateRequest {
         response.status === 404
       ) {
         window.showErrorMessage("Invalid credentials");
-        this.telemetry.sendTelemetryEvent("invalidCredentials", {
-          instance: config.instance,
-          key: config.key,
-        });
+        this.telemetry.sendTelemetryEvent("invalidCredentials");
       }
       const textResponse = await response.text();
       console.log("network:response:error:", textResponse);
@@ -254,9 +251,8 @@ export class AltimateRequest {
       return {} as T;
     } catch (e) {
       console.log("network:response:catchAllError:", e);
-      this.telemetry.sendTelemetryError("apiCatchAllError", {
+      this.telemetry.sendTelemetryError("apiCatchAllError", e, {
         endpoint,
-        error: e,
       });
       clearTimeout(timeoutHandler);
       throw e;

@@ -17,12 +17,9 @@ export class TelemetryService implements vscode.Disposable {
     properties?: { [key: string]: string },
     measurements?: { [key: string]: number },
   ) {
-    if (properties && this.instanceName) {
-      properties["instanceName"] = this.instanceName;
-    }
     this.telemetryReporter.sendTelemetryEvent(
       eventName,
-      properties,
+      { ...properties, instanceName: this.instanceName },
       measurements,
     );
   }
@@ -33,13 +30,11 @@ export class TelemetryService implements vscode.Disposable {
     properties?: { [key: string]: string },
     measurements?: { [key: string]: number },
   ) {
-    if (properties && this.instanceName) {
-      properties["instanceName"] = this.instanceName;
-    }
     this.telemetryReporter.sendTelemetryErrorEvent(
       eventName,
       {
         ...properties,
+        instanceName: this.instanceName,
         stack:
           error !== undefined && error instanceof Error
             ? error.stack
