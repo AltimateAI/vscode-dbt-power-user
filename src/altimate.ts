@@ -179,11 +179,11 @@ export class AltimateRequest {
     }
     let message = "";
     if (!key && !instance) {
-      message = `To use this feature, please add instance and API key in the settings.`;
+      message = `To use this feature, please add an API Key and an instance name in the settings.`;
     } else if (!key) {
-      message = `To use this feature, please add API key in the settings.`;
+      message = `To use this feature, please add an API key in the settings.`;
     } else {
-      message = `To use this feature, please add instance in the settings.`;
+      message = `To use this feature, please add an instance name in the settings.`;
     }
     this.showAPIKeyMessage(message);
     return false;
