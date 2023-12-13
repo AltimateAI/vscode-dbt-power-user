@@ -156,9 +156,9 @@ export class AltimateRequest {
     return !!this.getConfig();
   }
 
-  private async showAPIKeyMessage() {
+  private async showAPIKeyMessage(message: string) {
     const answer = await window.showInformationMessage(
-      `To use this feature, please add an API key in the settings.`,
+      message,
       PromptAnswer.YES,
     );
     if (answer === PromptAnswer.YES) {
@@ -169,10 +169,23 @@ export class AltimateRequest {
   }
 
   handlePreviewFeatures(): boolean {
-    if (this.enabled()) {
+    const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
+    const instance = workspace
+      .getConfiguration("dbt")
+      .get<string>("altimateInstanceName");
+
+    if (key && instance) {
       return true;
     }
-    this.showAPIKeyMessage();
+    let message = "";
+    if (!key && !instance) {
+      message = `To use this feature, please add instance and API key in the settings.`;
+    } else if (!key) {
+      message = `To use this feature, please add API key in the settings.`;
+    } else {
+      message = `To use this feature, please add instance in the settings.`;
+    }
+    this.showAPIKeyMessage(message);
     return false;
   }
 
