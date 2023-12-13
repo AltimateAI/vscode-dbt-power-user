@@ -8,11 +8,18 @@ export class TelemetryService implements vscode.Disposable {
     "50598369-dd83-4f9a-9a65-ca1fa6f1785c",
   );
 
+  private instanceName = vscode.workspace
+    .getConfiguration("dbt")
+    .get<string>("altimateInstanceName");
+
   sendTelemetryEvent(
     eventName: string,
     properties?: { [key: string]: string },
     measurements?: { [key: string]: number },
   ) {
+    if (properties && this.instanceName) {
+      properties["instanceName"] = this.instanceName;
+    }
     this.telemetryReporter.sendTelemetryEvent(
       eventName,
       properties,
@@ -26,6 +33,9 @@ export class TelemetryService implements vscode.Disposable {
     properties?: { [key: string]: string },
     measurements?: { [key: string]: number },
   ) {
+    if (properties && this.instanceName) {
+      properties["instanceName"] = this.instanceName;
+    }
     this.telemetryReporter.sendTelemetryErrorEvent(
       eventName,
       {
