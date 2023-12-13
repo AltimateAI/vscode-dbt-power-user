@@ -19,7 +19,6 @@ import {
 import {
   LineageContext,
   openFile,
-  isDarkMode,
   startProgressBar,
   endProgressBar,
 } from "./App";
@@ -32,8 +31,6 @@ import ExposureIcon from "./assets/icons/exposure.svg?react";
 import SnapshotIcon from "./assets/icons/snapshot.svg?react";
 import MetricsIcon from "./assets/icons/metrics.svg?react";
 import MacrosIcon from "./assets/icons/macros.svg?react";
-import FolderIcon from "./assets/icons/folder.svg?react";
-import FolderDarkIcon from "./assets/icons/folder_dark.svg?react";
 import TestsIcon from "./assets/icons/tests.svg?react";
 import EphemeralIcon from "./assets/icons/ephemeral.svg?react";
 import { UncontrolledTooltip } from "reactstrap";
@@ -233,7 +230,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
         setConfidence,
         setMoreTables,
         setCollectColumns,
-        flow
+        flow,
+        selectedColumn.sessionId
       );
       rerender();
       endProgressBar();
@@ -278,6 +276,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           e.stopPropagation();
           toggleTableSelection();
           highlightTable();
+          openFile(url);
         }}
       >
         <div
@@ -325,13 +324,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
               data-testid={"view-details-btn-" + table}
             >
               View Details
-            </div>
-
-            <div
-              className={classNames("nodrag", styles.open_file_button)}
-              onClick={() => openFile(url)}
-            >
-              {isDarkMode ? <FolderDarkIcon /> : <FolderIcon />}
             </div>
             <div className="spacer" />
 

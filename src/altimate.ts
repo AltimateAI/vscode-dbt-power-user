@@ -3,6 +3,7 @@ import { provideSingleton } from "./utils";
 import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
+import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
 
 interface AltimateConfig {
   key: string;
@@ -44,6 +45,7 @@ export interface DBTColumnLineageRequest {
   parent_models: {
     model_node: ModelNode;
   }[];
+  session_id: string;
 }
 
 export interface DBTColumnLineageResponse {
@@ -138,7 +140,10 @@ export class AltimateRequest {
     .getConfiguration("dbt")
     .get<string>("altimateUrl", "https://api.myaltimate.com");
 
-  constructor(private telemetry: TelemetryService) {}
+  constructor(
+    private dbtProjectContainer: DBTProjectContainer,
+    private telemetry: TelemetryService,
+  ) {}
 
   getConfig(): AltimateConfig | undefined {
     const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
@@ -168,22 +173,28 @@ export class AltimateRequest {
     }
   }
 
-  handlePreviewFeatures(): boolean {
+  private getCredentialsMessage(): string | undefined {
     const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
     const instance = workspace
       .getConfiguration("dbt")
       .get<string>("altimateInstanceName");
 
-    if (key && instance) {
-      return true;
-    }
-    let message = "";
     if (!key && !instance) {
-      message = `To use this feature, please add an API Key and an instance name in the settings.`;
-    } else if (!key) {
-      message = `To use this feature, please add an API key in the settings.`;
-    } else {
-      message = `To use this feature, please add an instance name in the settings.`;
+      return `To use this feature, please add an API Key and an instance name in the settings.`;
+    }
+    if (!key) {
+      return `To use this feature, please add an API key in the settings.`;
+    }
+    if (!instance) {
+      return `To use this feature, please add an instance name in the settings.`;
+    }
+    return;
+  }
+
+  handlePreviewFeatures(): boolean {
+    const message = this.getCredentialsMessage();
+    if (!message) {
+      return true;
     }
     this.showAPIKeyMessage(message);
     return false;
@@ -196,26 +207,17 @@ export class AltimateRequest {
       abortController.abort();
     }, timeout);
 
-    const config = this.getConfig();
-    if (config === undefined) {
-      this.showAPIKeyMessage(
-        "To use this feature, please add an API Key and an instance name in the settings.",
-      );
+    const message = this.getCredentialsMessage();
+    if (message) {
+      window.showErrorMessage(message);
       return;
     }
+    const config = this.getConfig()!;
 
-    if (!config.instance || !config.key) {
-      window.showErrorMessage(
-        "Credentials are not set properly. Please refer to Altimate [docs](https://docs.myaltimate.com).",
-      );
-      return;
-    }
-
-    let response;
     try {
       const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
       console.log("network:url:", url);
-      response = await fetch(url, {
+      const response = await fetch(url, {
         method: "GET",
         ...fetchArgs,
         signal: abortController.signal,
@@ -223,6 +225,7 @@ export class AltimateRequest {
           "x-tenant": config.instance,
           Authorization: "Bearer " + config.key,
           "Content-Type": "application/json",
+          "extension-version": this.dbtProjectContainer.extensionVersion,
         },
       });
       console.log("network:response:", endpoint, ":", response.status);
