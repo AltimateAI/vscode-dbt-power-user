@@ -162,7 +162,11 @@ export class DBTWorkspaceFolder implements Disposable {
         projectConfig,
         this._onManifestChanged,
       );
-      await dbtProject.initializePythonBridge();
+      try {
+        await dbtProject.initializePythonBridge();
+      } catch (exc: any) {
+        dbtProject.initializationException = exc;
+      }
       this.dbtProjects.push(dbtProject);
       // sorting the dbt projects descending by path ensures that we find the deepest path first
       this.dbtProjects.sort(

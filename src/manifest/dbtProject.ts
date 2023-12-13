@@ -93,7 +93,7 @@ export class DBTProject implements Disposable {
   private macroPaths: string[];
   private python?: PythonBridge;
   private pythonBridgeInitialized = false;
-  private initializationException: any | null = null;
+  public initializationException: any | null = null;
 
   private _onProjectConfigChanged =
     new EventEmitter<ProjectConfigChangedEvent>();
@@ -227,15 +227,11 @@ export class DBTProject implements Disposable {
       },
       detached: true,
     });
-    try {
-      await this.python.ex`from dbt_integration import *`;
-      await this.python
-        .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir}, target_path=${this.targetPath})`;
-      this.pythonBridgeInitialized = true;
-      this.pythonBridgeDiagnostics.clear();
-    } catch (exc: any) {
-      this.initializationException = exc;
-    }
+    await this.python.ex`from dbt_integration import *`;
+    await this.python
+      .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir}, target_path=${this.targetPath})`;
+    this.pythonBridgeInitialized = true;
+    this.pythonBridgeDiagnostics.clear();
   }
 
   handlePythonBridgeException() {
