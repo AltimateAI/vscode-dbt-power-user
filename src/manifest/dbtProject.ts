@@ -93,7 +93,7 @@ export class DBTProject implements Disposable {
   private macroPaths: string[];
   private python?: PythonBridge;
   private pythonBridgeInitialized = false;
-  public initializationException: any | null = null;
+  private initializationException?: Error;
 
   private _onProjectConfigChanged =
     new EventEmitter<ProjectConfigChangedEvent>();
@@ -203,35 +203,39 @@ export class DBTProject implements Disposable {
   }
 
   async initializePythonBridge() {
-    let pythonPath = this.PythonEnvironment.pythonPath;
-    const envVars = this.PythonEnvironment.environmentVariables;
+    try {
+      let pythonPath = this.PythonEnvironment.pythonPath;
+      const envVars = this.PythonEnvironment.environmentVariables;
 
-    if (this.python !== undefined) {
-      // Python env has changed
-      this.pythonBridgeInitialized = false;
-      this.python.end();
-    }
-    if (pythonPath.endsWith("python.exe")) {
-      // replace python.exe with pythonw.exe if path exists
-      const pythonwPath = pythonPath.replace("python.exe", "pythonw.exe");
-      if (existsSync(pythonwPath)) {
-        pythonPath = pythonwPath;
+      if (this.python !== undefined) {
+        // Python env has changed
+        this.pythonBridgeInitialized = false;
+        this.python.end();
       }
+      if (pythonPath.endsWith("python.exe")) {
+        // replace python.exe with pythonw.exe if path exists
+        const pythonwPath = pythonPath.replace("python.exe", "pythonw.exe");
+        if (existsSync(pythonwPath)) {
+          pythonPath = pythonwPath;
+        }
+      }
+      this.python = pythonBridge({
+        python: pythonPath,
+        cwd: this.projectRoot.fsPath,
+        env: {
+          ...envVars,
+          PYTHONPATH: __dirname,
+        },
+        detached: true,
+      });
+      await this.python.ex`from dbt_integration import *`;
+      await this.python
+        .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir}, target_path=${this.targetPath})`;
+      this.pythonBridgeInitialized = true;
+      this.pythonBridgeDiagnostics.clear();
+    } catch (exc: any) {
+      this.initializationException = exc;
     }
-    this.python = pythonBridge({
-      python: pythonPath,
-      cwd: this.projectRoot.fsPath,
-      env: {
-        ...envVars,
-        PYTHONPATH: __dirname,
-      },
-      detached: true,
-    });
-    await this.python.ex`from dbt_integration import *`;
-    await this.python
-      .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir}, target_path=${this.targetPath})`;
-    this.pythonBridgeInitialized = true;
-    this.pythonBridgeDiagnostics.clear();
   }
 
   handlePythonBridgeException() {
@@ -930,7 +934,19 @@ select * from renamed
     );
   }
 
-  dispose() {
+  async dispose() {
+    try {
+      await this.closePythonBridge();
+    } catch (error) {
+      console.warn(
+        "An error occurred while trying to close Python bridge on dispose",
+        error,
+      );
+      this.terminal.log(
+        `An error occurred while trying to close Python bridge on dispose: ${error}`,
+      );
+      this.telemetry.sendTelemetryError("projectPythonBridgeCloseError", error);
+    }
     while (this.disposables.length) {
       const x = this.disposables.pop();
       if (x) {

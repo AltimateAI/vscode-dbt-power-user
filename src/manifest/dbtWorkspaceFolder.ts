@@ -104,7 +104,7 @@ export class DBTWorkspaceFolder implements Disposable {
     );
 
     // Exception handling after filtering
-    this.dbtProjects.map((project) => {
+    this.dbtProjects.forEach((project) => {
       project.handlePythonBridgeException();
     });
   }
@@ -162,11 +162,7 @@ export class DBTWorkspaceFolder implements Disposable {
         projectConfig,
         this._onManifestChanged,
       );
-      try {
-        await dbtProject.initializePythonBridge();
-      } catch (exc: any) {
-        dbtProject.initializationException = exc;
-      }
+      await dbtProject.initializePythonBridge();
       this.dbtProjects.push(dbtProject);
       // sorting the dbt projects descending by path ensures that we find the deepest path first
       this.dbtProjects.sort(
@@ -199,15 +195,13 @@ export class DBTWorkspaceFolder implements Disposable {
     if (projectToDelete === undefined) {
       return;
     }
-    // Close python bridge
-    await projectToDelete.closePythonBridge();
 
     this._onProjectRegisteredUnregistered.fire({
       root: uri,
       name: projectToDelete.getProjectName(),
       registered: false,
     });
-    projectToDelete.dispose();
+    await projectToDelete.dispose();
     this.dbtProjects.splice(this.dbtProjects.indexOf(projectToDelete), 1);
   }
 
