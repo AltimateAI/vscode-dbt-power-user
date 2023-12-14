@@ -1,4 +1,3 @@
-import { ExposureMetaData } from "@types";
 import * as path from "path";
 import { MarkdownString } from "vscode";
 
@@ -70,6 +69,24 @@ interface TestMetaData {
   alias: string;
   raw_sql: string;
   column_name?: string;
+}
+
+export interface ExposureMetaData {
+  description?: string;
+  depends_on: { macros: [string]; nodes: [string]; sources: [string] };
+  label?: string;
+  maturity?: "high" | "medium" | "low";
+  name: string;
+  owner: { email: string; name: string };
+  tags: [string];
+  url?: string;
+  type: "dashboard" | "notebook" | "analysis" | "ml" | "application";
+  config: { enabled: boolean };
+  path: string;
+  unique_id: string;
+  sources?: [string];
+  metrics?: unknown[];
+  meta?: Record<string, unknown>;
 }
 
 interface NodeGraphMetaData {

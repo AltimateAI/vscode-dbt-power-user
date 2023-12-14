@@ -1,8 +1,7 @@
 import { useContext, useEffect, useState } from "react";
-import { ExposureMetaData } from "@types";
 import classNames from "classnames";
 import { LineageContext } from "../App";
-import { getExposureDetails } from "../service";
+import { ExposureMetaData, getExposureDetails } from "../service";
 import { ComponentLoader } from "../Loader";
 import { NodeTypeIcon } from "../CustomNodes";
 import styles from "../styles.module.scss";

@@ -19,6 +19,7 @@ import {
 } from "../altimate";
 import {
   ColumnMetaData,
+  ExposureMetaData,
   GraphMetaMap,
   NodeGraphMap,
   NodeMetaData,
@@ -32,7 +33,6 @@ import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { PythonException } from "python-bridge";
 import { AbortError } from "node-fetch";
-import { ExposureMetaData } from "../../types/domain";
 
 type Table = {
   label: string;

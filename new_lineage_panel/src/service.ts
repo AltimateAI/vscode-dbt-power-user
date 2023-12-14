@@ -1,4 +1,3 @@
-import { ExposureMetaData } from "../../types/domain";
 import { requestExecutor } from "./App";
 
 export type Table = {
@@ -29,6 +28,23 @@ export type ColumnLineage = {
   target: [string, string];
   type: string;
 };
+
+export type ExposureMetaData = {
+  description?: string;
+  depends_on: { macros: [string]; nodes: [string]; sources: [string] };
+  label?: string;
+  maturity?: "high" | "medium" | "low";
+  name: string;
+  owner: { email: string; name: string };
+  tags: [string];
+  url?: string;
+  type: "dashboard" | "notebook" | "analysis" | "ml" | "application";
+  config: { enabled: boolean };path: string;
+  unique_id: string;
+  sources?: [string];
+  metrics?: unknown[];
+  meta?: Record<string, unknown>;
+}
 interface ColumnLineageResponse {
   column_lineage: ColumnLineage[];
   confidence?: { confidence: string; operator_list?: string[] };
