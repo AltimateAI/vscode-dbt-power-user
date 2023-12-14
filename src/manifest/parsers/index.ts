@@ -12,6 +12,7 @@ import { NodeParser } from "./nodeParser";
 import { SourceParser } from "./sourceParser";
 import { TestParser } from "./testParser";
 import { TelemetryService } from "../../telemetry";
+import { ExposureParser } from "./exposureParser";
 
 @provide(ManifestParser)
 export class ManifestParser {
@@ -23,6 +24,7 @@ export class ManifestParser {
     private graphParser: GraphParser,
     private sourceParser: SourceParser,
     private testParser: TestParser,
+    private exposureParser: ExposureParser,
     private docParser: DocParser,
     private terminal: DBTTerminal,
     private telemetry: TelemetryService,
@@ -50,13 +52,15 @@ export class ManifestParser {
               tests: new Map(),
             },
             docMetaMap: new Map(),
+            exposureMetaMap: new Map(),
           },
         ],
       };
       return event;
     }
 
-    const { nodes, sources, macros, parent_map, child_map, docs } = manifest;
+    const { nodes, sources, macros, parent_map, child_map, docs, exposures } =
+      manifest;
     const rootPath = projectRoot.fsPath;
 
     const nodeMetaMapPromise = this.nodeParser.createNodeMetaMap(
@@ -77,20 +81,32 @@ export class ManifestParser {
       nodes,
       rootPath,
     );
+    const exposuresMetaMapPromise = this.exposureParser.createExposureMetaMap(
+      exposures,
+      rootPath,
+    );
+
     const docMetaMapPromise = this.docParser.createDocMetaMap(
       docs,
       projectName,
       rootPath,
     );
 
-    const [nodeMetaMap, macroMetaMap, sourceMetaMap, testMetaMap, docMetaMap] =
-      await Promise.all([
-        nodeMetaMapPromise,
-        macroMetaMapPromise,
-        sourceMetaMapPromise,
-        testMetaMapPromise,
-        docMetaMapPromise,
-      ]);
+    const [
+      nodeMetaMap,
+      macroMetaMap,
+      sourceMetaMap,
+      testMetaMap,
+      docMetaMap,
+      exposureMetaMap,
+    ] = await Promise.all([
+      nodeMetaMapPromise,
+      macroMetaMapPromise,
+      sourceMetaMapPromise,
+      testMetaMapPromise,
+      docMetaMapPromise,
+      exposuresMetaMapPromise,
+    ]);
 
     const graphMetaMap = this.graphParser.createGraphMetaMap(
       parent_map,
@@ -140,6 +156,7 @@ export class ManifestParser {
           graphMetaMap: graphMetaMap,
           testMetaMap: testMetaMap,
           docMetaMap: docMetaMap,
+          exposureMetaMap: exposureMetaMap,
         },
       ],
     };

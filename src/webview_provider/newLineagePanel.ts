@@ -19,6 +19,7 @@ import {
 } from "../altimate";
 import {
   ColumnMetaData,
+  ExposureMetaData,
   GraphMetaMap,
   NodeGraphMap,
   NodeMetaData,
@@ -150,6 +151,15 @@ export class NewLineagePanel implements LineagePanelView {
 
     if (command === "getColumns") {
       const body = await this.getColumns(params);
+      this._panel?.webview.postMessage({
+        command: "response",
+        args: { id, body, status: true },
+      });
+      return;
+    }
+
+    if (command === "getExposureDetails") {
+      const body = await this.getExposureDetails(params);
       this._panel?.webview.postMessage({
         command: "response",
         args: { id, body, status: true },
@@ -292,6 +302,25 @@ export class NewLineagePanel implements LineagePanelView {
       this.telemetry.sendTelemetryEvent("columnLineagePossibleStaleSchema");
     }
     return true;
+  }
+
+  private async getExposureDetails({
+    name,
+  }: {
+    name: string;
+  }): Promise<ExposureMetaData | undefined> {
+    const event = this.getEvent();
+    if (!event) {
+      return;
+    }
+    const project = this.getProject();
+    if (!project) {
+      return;
+    }
+
+    const { exposureMetaMap } = event;
+
+    return exposureMetaMap.get(name);
   }
 
   private async getColumns({
@@ -796,6 +825,23 @@ export class NewLineagePanel implements LineagePanelView {
 
     const splits = key.split(".");
     const table = splits[2];
+
+    if (nodeType === DBTProject.RESOURCE_TYPE_EXPOSURE) {
+      return {
+        table: key,
+        label: table,
+        url: tableUrl,
+        upstreamCount,
+        downstreamCount,
+        nodeType,
+        materialization: undefined,
+        tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
+          const testKey = n.label.split(".")[0];
+          return { ...testMetaMap.get(testKey), key: testKey };
+        }),
+      };
+    }
+
     const node = nodeMetaMap.get(table);
     if (!node) {
       return;

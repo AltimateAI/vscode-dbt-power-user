@@ -1,15 +1,10 @@
 import { Edge, MarkerType, Node } from "reactflow";
 import { Table } from "./service";
 import React from "react";
+import { COLUMN_PREFIX, SEE_MORE_PREFIX } from "./constants";
 
 // config constants
 export const MAX_EXPAND_TABLE = 5;
-
-// value constants
-export const COLUMNS_SIDEBAR = "columns";
-export const TABLES_SIDEBAR = "tables";
-export const COLUMN_PREFIX = "column-";
-export const SEE_MORE_PREFIX = "see-more-";
 
 // dimensions
 export const P_OFFSET_X = 100;

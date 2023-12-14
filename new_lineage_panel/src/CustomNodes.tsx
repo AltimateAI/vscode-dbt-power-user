@@ -16,19 +16,8 @@ import {
   layoutElementsOnCanvas,
   resetTableHighlights,
 } from "./graph";
-import {
-  LineageContext,
-  openFile,
-  isDarkMode,
-  startProgressBar,
-  endProgressBar,
-} from "./App";
-import {
-  COLUMNS_SIDEBAR,
-  C_NODE_H,
-  C_PADDING_Y,
-  TABLES_SIDEBAR,
-} from "./utils";
+import { LineageContext, openFile, isDarkMode, startProgressBar, endProgressBar } from "./App";
+import { C_NODE_H, C_PADDING_Y } from "./utils";
 import { TMoreTables } from "./MoreTables";
 import ModelIcon from "./assets/icons/model.svg?react";
 import SeedIcon from "./assets/icons/seed.svg?react";
@@ -42,6 +31,7 @@ import FolderDarkIcon from "./assets/icons/folder_dark.svg?react";
 import TestsIcon from "./assets/icons/tests.svg?react";
 import EphemeralIcon from "./assets/icons/ephemeral.svg?react";
 import { UncontrolledTooltip } from "reactstrap";
+import { COLUMNS_SIDEBAR, EXPOSURE_SIDEBAR, TABLES_SIDEBAR } from "./constants";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -261,6 +251,10 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     if (!selected) return;
     e.stopPropagation();
     setShowSidebar(true);
+    if (selectedTable?.nodeType === "exposure") {
+      setSidebarScreen(EXPOSURE_SIDEBAR);
+      return;
+    }
     setSidebarScreen(COLUMNS_SIDEBAR);
   };
 

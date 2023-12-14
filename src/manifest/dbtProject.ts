@@ -89,6 +89,7 @@ export class DBTProject implements Disposable {
 
   static RESOURCE_TYPE_MODEL = "model";
   static RESOURCE_TYPE_SOURCE = "source";
+  static RESOURCE_TYPE_EXPOSURE = "exposure";
   static RESOURCE_TYPE_SEED = "seed";
   static RESOURCE_TYPE_SNAPSHOT = "snapshot";
   static RESOURCE_TYPE_TEST = "test";

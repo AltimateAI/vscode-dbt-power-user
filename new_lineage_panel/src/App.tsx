@@ -23,7 +23,6 @@ import {
   SelfConnectingEdge,
   TableNode,
 } from "./CustomNodes";
-import { COLUMNS_SIDEBAR, TABLES_SIDEBAR } from "./utils";
 import { SidebarModal } from "./SidebarModal";
 import { MoreTables, TMoreTables } from "./MoreTables";
 import { Table } from "./service";
@@ -32,6 +31,8 @@ import { TableDetails } from "./TableDetails";
 import { Button, Card, CardBody, Input, Label, Tooltip } from "reactstrap";
 import AlertCircleIcon from "./assets/icons/alert-circle.svg?react";
 import styles from "./styles.module.scss";
+import { TABLES_SIDEBAR, COLUMNS_SIDEBAR, EXPOSURE_SIDEBAR } from "./constants";
+import ExposureDetails from "./exposure/ExposureDetails";
 
 declare const acquireVsCodeApi: () => { postMessage: (v: unknown) => void };
 
@@ -438,6 +439,7 @@ function App() {
           >
             {sidebarScreen === TABLES_SIDEBAR && <MoreTables />}
             {sidebarScreen === COLUMNS_SIDEBAR && <TableDetails />}
+            {sidebarScreen === EXPOSURE_SIDEBAR && <ExposureDetails />}
           </SidebarModal>
         </ReactFlowProvider>
       </LineageContext.Provider>
