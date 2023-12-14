@@ -1,3 +1,4 @@
+// @ts-nocheck
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
