@@ -2,6 +2,7 @@ import { env, Uri, window, workspace } from "vscode";
 import { provideSingleton } from "./utils";
 import fetch from "./fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
+import { TelemetryService } from "./telemetry";
 
 interface AltimateConfig {
   key: string;
@@ -137,6 +138,8 @@ export class AltimateRequest {
     .getConfiguration("dbt")
     .get<string>("altimateUrl", "https://api.myaltimate.com");
 
+  constructor(private telemetry: TelemetryService) {}
+
   private getConfig(): AltimateConfig | undefined {
     const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
     const instance = workspace
@@ -153,9 +156,9 @@ export class AltimateRequest {
     return !!this.getConfig();
   }
 
-  private async showAPIKeyMessage() {
+  private async showAPIKeyMessage(message: string) {
     const answer = await window.showInformationMessage(
-      `To use this feature, please add an API key in the settings.`,
+      message,
       PromptAnswer.YES,
     );
     if (answer === PromptAnswer.YES) {
@@ -166,14 +169,28 @@ export class AltimateRequest {
   }
 
   handlePreviewFeatures(): boolean {
-    if (this.enabled()) {
+    const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
+    const instance = workspace
+      .getConfiguration("dbt")
+      .get<string>("altimateInstanceName");
+
+    if (key && instance) {
       return true;
     }
-    this.showAPIKeyMessage();
+    let message = "";
+    if (!key && !instance) {
+      message = `To use this feature, please add an API Key and an instance name in the settings.`;
+    } else if (!key) {
+      message = `To use this feature, please add an API key in the settings.`;
+    } else {
+      message = `To use this feature, please add an instance name in the settings.`;
+    }
+    this.showAPIKeyMessage(message);
     return false;
   }
 
   async fetch<T>(endpoint: string, fetchArgs = {}, timeout: number = 120000) {
+    console.log("network:request:", endpoint, ":", fetchArgs);
     const abortController = new AbortController();
     const timeoutHandler = setTimeout(() => {
       abortController.abort();
@@ -187,9 +204,17 @@ export class AltimateRequest {
       return;
     }
 
+    if (!config.instance || !config.key) {
+      window.showErrorMessage(
+        "Credentials are not set properly. Please refer to Altimate [docs](https://docs.myaltimate.com).",
+      );
+      return;
+    }
+
     let response;
     try {
       const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
+      console.log("network:url:", url);
       response = await fetch(url, {
         method: "GET",
         ...fetchArgs,
@@ -200,12 +225,38 @@ export class AltimateRequest {
           "Content-Type": "application/json",
         },
       });
+      console.log("network:response:", endpoint, ":", response.status);
+      if (response.ok && response.status === 200) {
+        const jsonResponse = await response.json();
+        clearTimeout(timeoutHandler);
+        return jsonResponse as T;
+      }
+      if (
+        // response codes when backend authorization fails
+        response.status === 401 ||
+        response.status === 403 ||
+        response.status === 404
+      ) {
+        window.showErrorMessage("Invalid credentials");
+        this.telemetry.sendTelemetryEvent("invalidCredentials");
+      }
+      const textResponse = await response.text();
+      console.log("network:response:error:", textResponse);
+      this.telemetry.sendTelemetryError("apiError", {
+        endpoint,
+        status: response.status,
+        textResponse,
+      });
+      clearTimeout(timeoutHandler);
+      return {} as T;
     } catch (e) {
+      console.log("network:response:catchAllError:", e);
+      this.telemetry.sendTelemetryError("apiCatchAllError", e, {
+        endpoint,
+      });
       clearTimeout(timeoutHandler);
       throw e;
     }
-    clearTimeout(timeoutHandler);
-    return (await response.json()) as T;
   }
 
   async isAuthenticated() {

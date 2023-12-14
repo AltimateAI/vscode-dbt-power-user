@@ -15,7 +15,12 @@ export class TelemetryService implements vscode.Disposable {
   ) {
     this.telemetryReporter.sendTelemetryEvent(
       eventName,
-      properties,
+      {
+        ...properties,
+        instanceName: vscode.workspace
+          .getConfiguration("dbt")
+          .get<string>("altimateInstanceName"),
+      },
       measurements,
     );
   }
@@ -30,6 +35,9 @@ export class TelemetryService implements vscode.Disposable {
       eventName,
       {
         ...properties,
+        instanceName: vscode.workspace
+          .getConfiguration("dbt")
+          .get<string>("altimateInstanceName"),
         stack:
           error !== undefined && error instanceof Error
             ? error.stack
