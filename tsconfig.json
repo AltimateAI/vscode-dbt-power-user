@@ -2,6 +2,8 @@
   "compilerOptions": {
     "module": "commonjs",
     "target": "es6",
+    // should be dist - for automation testing, both extension and tests should be compiled by tsc
+    // so that we will be able to use inversify container to get component instances
     "outDir": "dist",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
