@@ -28,6 +28,23 @@ export type ColumnLineage = {
   target: [string, string];
   type: string;
 };
+
+export type ExposureMetaData = {
+  description?: string;
+  depends_on: { macros: [string]; nodes: [string]; sources: [string] };
+  label?: string;
+  maturity?: string;
+  name: string;
+  owner: { email: string; name: string };
+  tags: [string];
+  url?: string;
+  type: string;
+  config: { enabled: boolean };path: string;
+  unique_id: string;
+  sources?: [string];
+  metrics?: unknown[];
+  meta?: Record<string, unknown>;
+}
 interface ColumnLineageResponse {
   column_lineage: ColumnLineage[];
   confidence?: { confidence: string; operator_list?: string[] };
@@ -43,6 +60,12 @@ export const downstreamTables = (table: string) => {
   return requestExecutor("downstreamTables", { table }) as Promise<{
     tables: Table[];
   }>;
+};
+
+export const getExposureDetails = (name: string) => {
+  return requestExecutor("getExposureDetails", {
+    name,
+  }) as Promise<ExposureMetaData>;
 };
 
 export const getColumns = (

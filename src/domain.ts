@@ -5,6 +5,7 @@ export type NodeMetaMap = Map<string, NodeMetaData>;
 export type MacroMetaMap = Map<string, MacroMetaData>;
 export type SourceMetaMap = Map<string, SourceMetaData>;
 export type TestMetaMap = Map<string, TestMetaData>;
+export type ExposureMetaMap = Map<string, ExposureMetaData>;
 export type DocMetaMap = Map<string, DocMetaData>;
 export type NodeMetaType = NodeMetaData;
 export type SourceMetaType = SourceTable;
@@ -70,6 +71,24 @@ interface TestMetaData {
   column_name?: string;
 }
 
+export interface ExposureMetaData {
+  description?: string;
+  depends_on: { macros: [string]; nodes: [string]; sources: [string] };
+  label?: string;
+  maturity?: string;
+  name: string;
+  owner: { email: string; name: string };
+  tags: [string];
+  url?: string;
+  type: string;
+  config: { enabled: boolean };
+  path: string;
+  unique_id: string;
+  sources?: [string];
+  metrics?: unknown[];
+  meta?: Record<string, unknown>;
+}
+
 interface NodeGraphMetaData {
   currentNode: Node;
   nodes: Node[];
@@ -132,7 +151,7 @@ export class Analysis extends Node {
   displayInModelTree = false;
 }
 export class Exposure extends Node {
-  displayInModelTree = false;
+  displayInModelTree = true;
 }
 export class Snapshot extends Node {}
 export class Source extends Node {
