@@ -96,3 +96,6 @@ Estimate data that will be processed by dbt model in BigQuery [(docs)](https://d
 
 Please check [documentation](https://docs.myaltimate.com/arch/faq/) for additional info.
 For any issues or bugs, please [contact us](https://www.altimate.ai/support) via chat or Slack.
+
+**Testing**
+Automated tests could be run using this command: `npm test` from root directory. This loads extension with sample dbt projects located [here](./src/test/sample_projects/)
