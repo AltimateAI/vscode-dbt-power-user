@@ -198,7 +198,7 @@ export class AltimateRequest {
 
     const config = this.getConfig();
     if (config === undefined) {
-      window.showErrorMessage(
+      this.showAPIKeyMessage(
         "To use this feature, please add an API Key and an instance name in the settings.",
       );
       return;
