@@ -132,6 +132,8 @@ enum PromptAnswer {
   YES = "Get your free API Key",
 }
 
+const validTenantRegex = new RegExp(/^[a-z_][a-z0-9_]*$/);
+
 @provideSingleton(AltimateRequest)
 export class AltimateRequest {
   private static ALTIMATE_URL = workspace
@@ -316,5 +318,37 @@ export class AltimateRequest {
       method: "POST",
       body: JSON.stringify(req),
     });
+  }
+
+  async validateCredentials() {
+    const config = this.getConfig();
+    if (!config) {
+      return;
+    }
+    const { key, instance } = config;
+    if (!key && !instance) {
+      // ignore if nothing is set
+      return;
+    }
+    let message = "";
+    if (!instance) {
+      message = "Instance name must be set.";
+    } else if (!validTenantRegex.exec(instance)) {
+      message = "Instace name must not be URL.";
+    } else if (!key) {
+      message = "API key must be set";
+    } else if (key.length !== 32) {
+      message = "API key is not valid";
+    }
+    if (message) {
+      window.showErrorMessage(message);
+      return;
+    }
+    const result = await this.fetch<{ ok: boolean }>(
+      "dbt/v3/validate-credentials",
+    );
+    if (!result?.ok) {
+      window.showErrorMessage("Credentials are invalid.");
+    }
   }
 }
