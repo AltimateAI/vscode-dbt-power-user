@@ -820,6 +820,7 @@
     "install:panels": "npm install --prefix ./new_lineage_panel"
   },
   "devDependencies": {
+    "@playwright/test": "^1.40.1",
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.1",
     "@types/node": "^20.9.1",
@@ -857,6 +858,7 @@
     "@vscode/vsce": "^2.21.1",
     "@vscode/webview-ui-toolkit": "^1.2.2",
     "dayjs": "^1.11.10",
+    "dotenv": "^16.3.1",
     "inversify": "^6.0.1",
     "inversify-binding-decorators": "^4.0.0",
     "node-abort-controller": "^3.1.1",

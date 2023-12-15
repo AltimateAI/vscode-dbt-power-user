@@ -7,3 +7,9 @@ dist
 .idea
 .history
 __pycache__/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+.env
+.auth
