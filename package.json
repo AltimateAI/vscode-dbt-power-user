@@ -124,7 +124,8 @@
           "dbt.queryLimit": {
             "type": "integer",
             "description": "The maximum number of rows the `Preview SQL Query` command returns.",
-            "default": 500
+            "default": 500,
+            "minimum": 1
           },
           "dbt.queryTemplate": {
             "type": "string",
