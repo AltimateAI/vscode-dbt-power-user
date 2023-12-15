@@ -983,6 +983,10 @@ select * from renamed
       .getConfiguration("dbt")
       .get<number>("queryLimit", 500);
 
+    if (limit <= 0) {
+      window.showErrorMessage("Please enter a positive number for query limit");
+      return;
+    }
     const queryTemplate = workspace
       .getConfiguration("dbt")
       .get<string>(

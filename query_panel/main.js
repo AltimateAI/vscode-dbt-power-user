@@ -406,6 +406,9 @@ const app = createApp({
         "javascript",
       );
     },
+    isQueryLimitValid() {
+      return this.limit <= 0;
+    },
   },
   watch: {
     async limit(limit) {
