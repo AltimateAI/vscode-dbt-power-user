@@ -199,7 +199,7 @@ export class AltimateRequest {
     const config = this.getConfig();
     if (config === undefined) {
       window.showErrorMessage(
-        "This is an Altimate freemium feature. Please sign up for a free Altimate account to use this.",
+        "To use this feature, please add an API Key and an instance name in the settings.",
       );
       return;
     }
