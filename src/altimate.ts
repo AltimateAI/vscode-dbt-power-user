@@ -344,11 +344,18 @@ export class AltimateRequest {
       window.showErrorMessage(message);
       return;
     }
-    const result = await this.fetch<{ ok: boolean }>(
-      "dbt/v3/validate-credentials",
-    );
+    const url = `${AltimateRequest.ALTIMATE_URL}/dbt/v3/validate-credentials`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "x-tenant": instance,
+        Authorization: "Bearer " + key,
+        "Content-Type": "application/json",
+      },
+    });
+    const result = (await response.json()) as Record<string, any> | undefined;
     if (!result?.ok) {
-      window.showErrorMessage("Credentials are invalid.");
+      window.showErrorMessage("Credentials are invalid. " + result?.detail);
     }
   }
 }
