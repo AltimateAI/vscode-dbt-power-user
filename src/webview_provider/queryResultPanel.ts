@@ -166,7 +166,7 @@ export class QueryResultPanel implements WebviewViewProvider {
             break;
           case InboundCommand.UpdateConfig:
             const configMessage = message as RecConfig;
-            if (configMessage.limit) {
+            if (configMessage.limit !== undefined) {
               workspace
                 .getConfiguration("dbt")
                 .update("queryLimit", configMessage.limit);

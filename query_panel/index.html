@@ -177,6 +177,9 @@
             <vscode-text-field v-model.number="limit" type="number"
               >Query Limit</vscode-text-field
             >
+            <div class="error-title" v-show="isQueryLimitValid">
+              Query limit should be positive value
+            </div>
             <br /><br />
             <label>Table Scale: {{ scale }}</label><br />
             <input
