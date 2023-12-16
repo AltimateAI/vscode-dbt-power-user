@@ -252,7 +252,6 @@ class DbtProject:
         project_dir: Optional[str] = None,
         threads: Optional[int] = 1,
         profile: Optional[str] = None,
-        target_path: Optional[str] = None,
     ):
         self.args = ConfigInterface(
             threads=threads,
@@ -260,7 +259,6 @@ class DbtProject:
             profiles_dir=profiles_dir,
             project_dir=project_dir,
             profile=profile,
-            target_path=target_path,
         )
 
         # Utilities
@@ -273,6 +271,12 @@ class DbtProject:
         self._version: int = 1
         self.mutex = threading.Lock()
 
+        # Set config
+        set_from_args(self.args, self.args)
+        self.config = RuntimeConfig.from_args(self.args)
+        if hasattr(self.config, "source_paths"):
+            self.config.model_paths = self.config.source_paths
+
     def get_adapter(self):
         """This inits a new Adapter which is fundamentally different than
         the singleton approach in the core lib"""
@@ -280,8 +284,6 @@ class DbtProject:
         return get_adapter_class_by_name(adapter_name)(self.config)
 
     def init_project(self):
-        set_from_args(self.args, self.args)
-        self.config = RuntimeConfig.from_args(self.args)
         self.adapter = self.get_adapter()
         self.adapter.connections.set_connection_name()
         self.config.adapter = self.adapter

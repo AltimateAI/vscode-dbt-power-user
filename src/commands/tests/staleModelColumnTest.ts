@@ -2,8 +2,8 @@ import { Diagnostic, DiagnosticSeverity, Range, Uri } from "vscode";
 import { ScanContext } from "./scanContext";
 import { AltimateScanStep } from "./step";
 import { readFileSync } from "fs";
-import { createFullPathForNode } from "../../manifest/parsers";
 import { provideSingleton } from "../../utils";
+import { createFullPathForNode } from "../../manifest/parsers";
 
 @provideSingleton(StaleModelColumnTest)
 export class StaleModelColumnTest implements AltimateScanStep {
@@ -90,6 +90,10 @@ export class StaleModelColumnTest implements AltimateScanStep {
         const allDBColumns = modelDict.map(({ column_name }) =>
           column_name.toLowerCase(),
         );
+        const packagePath = project.getPackageInstallPath();
+        if (packagePath === undefined) {
+          throw new Error("packagePath is not defined");
+        }
         for (const existingCol of Object.keys(value.columns)) {
           if (!allDBColumns.includes(existingCol.toLowerCase())) {
             const errMessage = `Column ${existingCol} listed in model ${value.name} is not found in the database.
@@ -102,6 +106,7 @@ export class StaleModelColumnTest implements AltimateScanStep {
                 projectName,
                 projectRootUri.fsPath,
                 value.package_name,
+                packagePath,
                 value.patch_path.split("://")[1],
               ) ||
               Uri.joinPath(

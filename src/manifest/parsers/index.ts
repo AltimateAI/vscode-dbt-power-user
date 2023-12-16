@@ -13,6 +13,7 @@ import { SourceParser } from "./sourceParser";
 import { TestParser } from "./testParser";
 import { TelemetryService } from "../../telemetry";
 import { ExposureParser } from "./exposureParser";
+import { DBTProjectContainer } from "../dbtProjectContainer";
 
 @provide(ManifestParser)
 export class ManifestParser {
@@ -28,6 +29,7 @@ export class ManifestParser {
     private docParser: DocParser,
     private terminal: DBTTerminal,
     private telemetry: TelemetryService,
+    private dbtProjectContainer: DBTProjectContainer,
   ) {}
 
   public async parseManifest(
@@ -62,35 +64,33 @@ export class ManifestParser {
     const { nodes, sources, macros, parent_map, child_map, docs, exposures } =
       manifest;
     const rootPath = projectRoot.fsPath;
+    const project = this.dbtProjectContainer.findDBTProject(projectRoot);
+    if (project === undefined) {
+      throw new Error("project is undefined");
+    }
 
     const nodeMetaMapPromise = this.nodeParser.createNodeMetaMap(
-      projectName,
       nodes,
-      rootPath,
+      project,
     );
     const macroMetaMapPromise = this.macroParser.createMacroMetaMap(
-      projectName,
       macros,
-      rootPath,
+      project,
     );
     const sourceMetaMapPromise = this.sourceParser.createSourceMetaMap(
       sources,
-      rootPath,
+      project,
     );
     const testMetaMapPromise = this.testParser.createTestMetaMap(
       nodes,
-      rootPath,
+      project,
     );
     const exposuresMetaMapPromise = this.exposureParser.createExposureMetaMap(
       exposures,
       rootPath,
     );
 
-    const docMetaMapPromise = this.docParser.createDocMetaMap(
-      docs,
-      projectName,
-      rootPath,
-    );
+    const docMetaMapPromise = this.docParser.createDocMetaMap(docs, project);
 
     const [
       nodeMetaMap,
@@ -185,24 +185,23 @@ export const createFullPathForNode: (
   projectName: string,
   rootPath: string,
   packageName: string,
+  packagePath: string,
   relativeFilePath: string,
 ) => string | undefined = (
   projectName,
   rootPath,
   packageName,
+  packagePath,
   relativeFilePath,
 ) => {
   if (packageName !== projectName) {
-    for (const modulePathVariant of DBTProject.DBT_MODULES) {
-      const rootPathWithPackage = path.join(
-        rootPath,
-        modulePathVariant,
-        packageName,
-        relativeFilePath,
-      );
-      if (existsSync(rootPathWithPackage)) {
-        return rootPathWithPackage;
-      }
+    const rootPathWithPackage = path.join(
+      packagePath,
+      packageName,
+      relativeFilePath,
+    );
+    if (existsSync(rootPathWithPackage)) {
+      return rootPathWithPackage;
     }
     return undefined;
   }

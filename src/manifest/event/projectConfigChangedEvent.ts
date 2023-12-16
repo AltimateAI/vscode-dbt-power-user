@@ -1,10 +1,4 @@
-import { Uri } from "vscode";
+import { DBTProject } from "../dbtProject";
 export class ProjectConfigChangedEvent {
-  constructor(
-    public projectRoot: Uri,
-    public projectName: string,
-    public targetPath: string,
-    public sourcePaths: string[],
-    public macroPaths: string[],
-  ) {}
+  constructor(public project: DBTProject) {}
 }

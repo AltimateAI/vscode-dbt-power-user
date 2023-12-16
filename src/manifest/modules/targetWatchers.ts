@@ -64,7 +64,13 @@ export class TargetWatchers implements Disposable {
   }
 
   private async onProjectConfigChanged(event: ProjectConfigChangedEvent) {
-    const { targetPath, projectName, projectRoot } = event;
+    const projectRoot = event.project.projectRoot;
+    const projectName = event.project.getProjectName();
+    const targetPath = event.project.getTargetPath();
+    if (targetPath === undefined) {
+      console.error("targetPath should be defined at this stage!");
+      return;
+    }
     if (
       this.currentTargetPath === undefined ||
       this.currentTargetPath !== targetPath ||
@@ -107,7 +113,12 @@ export class TargetWatchers implements Disposable {
   private createManifestWatcher(
     event: ProjectConfigChangedEvent,
   ): FileSystemWatcher {
-    const { targetPath, projectRoot } = event;
+    const targetPath = event.project.getTargetPath();
+    if (targetPath === undefined) {
+      console.error("targetPath is undefined");
+      throw new Error("targetPath is undefined");
+    }
+    const projectRoot = event.project.projectRoot;
     const manifestWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(
         join(projectRoot.path, targetPath),
@@ -120,7 +131,12 @@ export class TargetWatchers implements Disposable {
   private createTargetFolderWatcher(
     event: ProjectConfigChangedEvent,
   ): FileSystemWatcher {
-    const { targetPath, projectRoot } = event;
+    const targetPath = event.project.getTargetPath();
+    if (targetPath === undefined) {
+      console.error("targetPath is undefined");
+      throw new Error("targetPath is undefined");
+    }
+    const projectRoot = event.project.projectRoot;
     const targetFolderWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(join(projectRoot.path, targetPath), "*"),
     );

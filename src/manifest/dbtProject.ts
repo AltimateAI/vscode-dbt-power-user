@@ -23,7 +23,6 @@ import {
   RunModelParams,
 } from "../dbt_client/dbtCommandFactory";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { EnvironmentVariables } from "../domain";
 import {
   debounce,
   extendErrorWithSupportLinks,
@@ -80,7 +79,6 @@ interface ResolveReferenceSourceResult {
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
   static DBT_PROFILES_FILE = "profiles.yml";
-  static DBT_MODULES = ["dbt_modules", "dbt_packages"];
   static MANIFEST_FILE = "manifest.json";
   static RUN_RESULTS_FILE = "run_results.json";
   static TARGET_PATH_VAR = "target-path";
@@ -98,11 +96,13 @@ export class DBTProject implements Disposable {
   readonly dbtProfilesDir: string; // vscode.Uri doesn't support relative urls
   private adapterType: string = "unknown";
   private projectName: string;
-  private targetPath: string;
-  private sourcePaths: string[];
-  private macroPaths: string[];
+  private targetPath?: string;
+  private packagesInstallPath?: string;
+  private modelPaths?: string[];
+  private macroPaths?: string[];
   private python?: PythonBridge;
   private pythonBridgeInitialized = false;
+  private initializationException?: Error;
 
   private _onProjectConfigChanged =
     new EventEmitter<ProjectConfigChangedEvent>();
@@ -151,32 +151,7 @@ export class DBTProject implements Disposable {
     // remove the trailing slashes if they exists,
     // causes the quote to be escaped when passing to python
     this.dbtProfilesDir = this.dbtProfilesDir.replace(/\\+$/, "");
-    console.log("Using profile directory " + this.dbtProfilesDir);
     this.projectName = projectConfig.name;
-    this.targetPath = this.findTargetPath(projectConfig);
-    console.log("Using target path " + this.targetPath);
-    this.sourcePaths = this.findSourcePaths(projectConfig);
-    this.macroPaths = this.findMacroPaths(projectConfig);
-
-    console.log(
-      `Registering project ${this.projectName} at ${this.projectRoot}`,
-    );
-
-    const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
-      new RelativePattern(path, DBTProject.DBT_PROJECT_FILE),
-    );
-
-    const dbtProfileWatcher = workspace.createFileSystemWatcher(
-      new RelativePattern(this.dbtProfilesDir, DBTProject.DBT_PROFILES_FILE),
-    );
-
-    const fireProjectChanged = debounce(
-      async () => await this.rebuildManifest(),
-      2000,
-    );
-
-    setupWatcherHandler(dbtProjectConfigWatcher, () => this.tryRefresh());
-    setupWatcherHandler(dbtProfileWatcher, () => this.rebuildManifest(true));
 
     this.sourceFileWatchers =
       this.sourceFileWatchersFactory.createSourceFileWatchers(
@@ -188,8 +163,8 @@ export class DBTProject implements Disposable {
       this.onProjectConfigChanged,
     );
 
-    this.PythonEnvironment.onPythonEnvironmentChanged(() =>
-      this.onPythonEnvironmentChanged(),
+    console.log(
+      `Registering project ${this.projectName} at ${this.projectRoot} with profile directory ${this.dbtProfilesDir}`,
     );
 
     this.disposables.push(
@@ -197,65 +172,120 @@ export class DBTProject implements Disposable {
         _onManifestChanged,
         this.onProjectConfigChanged,
       ),
-      dbtProjectConfigWatcher,
-      this.onSourceFileChanged(fireProjectChanged),
+      this.PythonEnvironment.onPythonEnvironmentChanged(() =>
+        this.onPythonEnvironmentChanged(),
+      ),
       this.sourceFileWatchers,
-      this.dbtProjectLog,
       this.rebuildManifestDiagnostics,
       this.pythonBridgeDiagnostics,
       this.projectConfigDiagnostics,
     );
-    this.initializePythonBridge();
   }
 
   public getProjectName() {
     return this.projectName;
   }
 
-  async initializePythonBridge() {
-    let pythonPath = this.PythonEnvironment.pythonPath;
-    const envVars = this.PythonEnvironment.environmentVariables;
+  getTargetPath() {
+    return this.targetPath;
+  }
 
-    if (this.python !== undefined) {
-      // Python env has changed
-      this.pythonBridgeInitialized = false;
-      this.python.end();
-    }
-    if (pythonPath.endsWith("python.exe")) {
-      // replace python.exe with pythonw.exe if path exists
-      const pythonwPath = pythonPath.replace("python.exe", "pythonw.exe");
-      if (existsSync(pythonwPath)) {
-        pythonPath = pythonwPath;
-      }
-    }
-    this.python = pythonBridge({
-      python: pythonPath,
-      cwd: this.projectRoot.fsPath,
-      env: {
-        ...envVars,
-        PYTHONPATH: __dirname,
-      },
-      detached: true,
-    });
+  getPackageInstallPath() {
+    return this.packagesInstallPath;
+  }
+
+  getModelPaths() {
+    return this.modelPaths;
+  }
+
+  getMacroPaths() {
+    return this.macroPaths;
+  }
+
+  async initializePythonBridge() {
+    this.initializationException = undefined;
     try {
+      let pythonPath = this.PythonEnvironment.pythonPath;
+      const envVars = this.PythonEnvironment.environmentVariables;
+
+      if (this.python !== undefined) {
+        // Python env has changed
+        this.pythonBridgeInitialized = false;
+        this.python.end();
+      }
+      if (pythonPath.endsWith("python.exe")) {
+        // replace python.exe with pythonw.exe if path exists
+        const pythonwPath = pythonPath.replace("python.exe", "pythonw.exe");
+        if (existsSync(pythonwPath)) {
+          pythonPath = pythonwPath;
+        }
+      }
+      this.python = pythonBridge({
+        python: pythonPath,
+        cwd: this.projectRoot.fsPath,
+        env: {
+          ...envVars,
+          PYTHONPATH: __dirname,
+        },
+        detached: true,
+      });
       await this.python.ex`from dbt_integration import *`;
       await this.python
-        .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir}, target_path=${this.targetPath})`;
+        .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir})`;
+
+      await this.initializePaths();
       this.pythonBridgeInitialized = true;
+      console.log(`Initialized Python bridge for project ${this.projectName}`);
       this.pythonBridgeDiagnostics.clear();
+
+      const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
+        new RelativePattern(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+      );
+
+      const dbtProfileWatcher = workspace.createFileSystemWatcher(
+        new RelativePattern(this.dbtProfilesDir, DBTProject.DBT_PROFILES_FILE),
+      );
+
+      const fireProjectChanged = debounce(
+        async () => await this.rebuildManifest(),
+        2000,
+      );
+
+      setupWatcherHandler(dbtProjectConfigWatcher, () => this.tryRefresh());
+      setupWatcherHandler(dbtProfileWatcher, () => this.rebuildManifest(true));
+
+      this.disposables.push(
+        this.dbtProjectLog,
+        dbtProjectConfigWatcher,
+        this.onSourceFileChanged(fireProjectChanged),
+      );
     } catch (exc: any) {
+      console.error(
+        `Python bridge throw error for project ${this.projectName}`,
+        exc,
+      );
+      this.initializationException = exc;
+    }
+  }
+
+  handlePythonBridgeException() {
+    const exc = this.initializationException;
+    if (exc) {
       if (exc instanceof PythonException) {
         // python errors can be about anything, so we just associate the error with the project file
         //  with a fixed range
+        let errorMessage =
+          "An error occured while initializing the dbt project, probably the Python interpreter is not correctly setup: " +
+          exc.exception.message;
+        if (exc.exception.type.module === "dbt.exceptions") {
+          // TODO: we can do provide solutions per type of dbt exception
+          errorMessage =
+            "An error occured while initializing the dbt project, dbt found following issue: " +
+            exc.exception.message;
+        }
         this.pythonBridgeDiagnostics.set(
           Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
-          [
-            new Diagnostic(
-              new Range(0, 0, 999, 999),
-              "An error occured while initializing the dbt project, probably the Python interpreter is not correctly setup: " +
-                exc.exception.message,
-            ),
-          ],
+          [new Diagnostic(new Range(0, 0, 999, 999), errorMessage)],
         );
         this.telemetry.sendTelemetryError("pythonBridgeInitPythonError", exc);
         return;
@@ -270,13 +300,27 @@ export class DBTProject implements Disposable {
       this.telemetry.sendTelemetryError("pythonBridgeInitError", exc);
       return;
     }
-    // this methods already handle exceptions
-    await this.tryRefresh();
-    await this.rebuildManifest(true);
+  }
+
+  async closePythonBridge() {
+    await this.python?.disconnect();
+    await this.python?.end();
+  }
+
+  isPythonBridgeInitialized() {
+    return this.pythonBridgeInitialized;
+  }
+
+  public async initializeDBTProject() {
+    if (this.isPythonBridgeInitialized()) {
+      await this.tryRefresh();
+      await this.rebuildManifest(true);
+    }
   }
 
   private async onPythonEnvironmentChanged() {
-    this.initializePythonBridge();
+    await this.initializePythonBridge();
+    await this.initializeDBTProject();
   }
 
   private async tryRefresh() {
@@ -291,11 +335,15 @@ export class DBTProject implements Disposable {
         );
       }
       console.warn(
-        "An error occurred while trying to refresh the project configuration",
+        `An error occurred while trying to refresh the project "${this.getProjectName()}" at ${
+          this.projectRoot
+        } configuration`,
         error,
       );
       this.terminal.log(
-        `An error occurred while trying to refresh the project configuration: ${error}`,
+        `An error occurred while trying to refresh the project "${this.getProjectName()}" at ${
+          this.projectRoot
+        } configuration: ${error}`,
       );
       this.telemetry.sendTelemetryError("projectConfigRefreshError", error);
     }
@@ -311,11 +359,10 @@ export class DBTProject implements Disposable {
       .replace(new RegExp(this.projectRoot.path + "/", "g"), "")
       .split("/");
 
-    const insidePackage =
-      pathSegments.length > 1 &&
-      DBTProject.DBT_MODULES.includes(pathSegments[0]);
-
-    if (insidePackage) {
+    if (
+      this.packagesInstallPath &&
+      uri.fsPath.startsWith(this.packagesInstallPath)
+    ) {
       return pathSegments[1];
     }
     return undefined;
@@ -332,7 +379,9 @@ export class DBTProject implements Disposable {
     if (!this.pythonBridgeInitialized) {
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "The dbt manifest can't be rebuilt right now as the Python environment has not yet been initialized, check the problems panel for any detected problems.",
+          `The dbt manifest for project "${this.getProjectName()}" at ${
+            this.projectRoot.fsPath
+          } can't be rebuilt right now as the Python environment has not yet been initialized, check the problems panel for any detected problems.`,
         ),
       );
       this.telemetry.sendTelemetryError("pythonBridgeNotYetInitializedError", {
@@ -1019,15 +1068,18 @@ select * from renamed
     );
   }
 
-  dispose() {
+  async dispose() {
+    console.log(
+      `Disposing project ${this.projectName} at ${this.projectRoot} with profile directory ${this.dbtProfilesDir}`,
+    );
+    try {
+      await this.closePythonBridge();
+    } catch (error) {} // We don't care about errors here.
     while (this.disposables.length) {
       const x = this.disposables.pop();
       if (x) {
         x.dispose();
       }
-    }
-    if (this.python !== undefined) {
-      this.python.end();
     }
   }
 
@@ -1076,41 +1128,53 @@ select * from renamed
     }
   }
 
-  private findSourcePaths(projectConfig: any): string[] {
-    return DBTProject.SOURCE_PATHS_VAR.reduce(
-      (prev: string[], current: string) => {
-        if (projectConfig[current] !== undefined) {
-          return projectConfig[current] as string[];
-        } else {
-          return prev;
-        }
-      },
-      ["models"],
+  private async findModelPaths(): Promise<string[]> {
+    let modelPaths = await this.python?.lock(
+      (python) => python!`to_dict(project.config.model_paths)`,
     );
+    modelPaths = modelPaths.map((modelPath: string) => {
+      if (!path.isAbsolute(modelPath)) {
+        return path.join(this.projectRoot.fsPath, modelPath);
+      }
+      return modelPath;
+    });
+    return modelPaths;
   }
 
-  private findMacroPaths(projectConfig: any): string[] {
-    if (projectConfig[DBTProject.MACRO_PATH_VAR] !== undefined) {
-      return projectConfig[DBTProject.MACRO_PATH_VAR] as string[];
+  private async findMacroPaths(): Promise<string[]> {
+    let macroPaths = await this.python?.lock(
+      (python) => python!`to_dict(project.config.macro_paths)`,
+    );
+    macroPaths = macroPaths.map((macroPath: string) => {
+      if (!path.isAbsolute(macroPath)) {
+        return path.join(this.projectRoot.fsPath, macroPath);
+      }
+      return macroPath;
+    });
+    return macroPaths;
+  }
+
+  private async findTargetPath(): Promise<string> {
+    let targetPath = await this.python?.lock(
+      (python) => python!`to_dict(project.config.target_path)`,
+    );
+    if (!path.isAbsolute(targetPath)) {
+      targetPath = path.join(this.projectRoot.fsPath, targetPath);
     }
-    return ["macros"];
+    return targetPath;
   }
 
-  private findTargetPath(projectConfig: any): string {
-    const targetPathOverride = workspace
-      .getConfiguration("dbt")
-      .get<string>("targetPathOverride");
-
-    return (
-      (targetPathOverride
-        ? substituteSettingsVariables(targetPathOverride)
-        : false) ||
-      this.PythonEnvironment.environmentVariables.DBT_TARGET_PATH ||
-      (projectConfig[DBTProject.TARGET_PATH_VAR]
-        ? (projectConfig[DBTProject.TARGET_PATH_VAR] as string)
-        : false) ||
-      "target"
+  private async findPackagesInstallPath(): Promise<string> {
+    let packageInstallPath = await this.python?.lock(
+      (python) => python!`to_dict(project.config.packages_install_path)`,
     );
+    if (!path.isAbsolute(packageInstallPath)) {
+      packageInstallPath = path.join(
+        this.projectRoot.fsPath,
+        packageInstallPath,
+      );
+    }
+    return packageInstallPath;
   }
 
   private async refresh() {
@@ -1118,16 +1182,15 @@ select * from renamed
       this.projectRoot,
     );
     this.projectName = projectConfig.name;
-    this.targetPath = this.findTargetPath(projectConfig);
-    this.sourcePaths = this.findSourcePaths(projectConfig);
-    this.macroPaths = this.findMacroPaths(projectConfig);
-    const event = new ProjectConfigChangedEvent(
-      this.projectRoot,
-      this.projectName as string,
-      this.targetPath,
-      this.sourcePaths,
-      this.macroPaths,
-    );
+    await this.initializePaths();
+    const event = new ProjectConfigChangedEvent(this);
     this._onProjectConfigChanged.fire(event);
+  }
+
+  private async initializePaths() {
+    this.targetPath = await this.findTargetPath();
+    this.modelPaths = await this.findModelPaths();
+    this.macroPaths = await this.findMacroPaths();
+    this.packagesInstallPath = await this.findPackagesInstallPath();
   }
 }
