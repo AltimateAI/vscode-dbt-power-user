@@ -64,7 +64,7 @@ export class DBTClient implements Disposable {
   }
 
   async detectDBT(): Promise<void> {
-    await this.pythonEnvironment.initialize();
+    await this.pythonEnvironment.initialize(this);
     this.disposables.push(
       this.pythonEnvironment.onPythonEnvironmentChanged(() => {
         this.checkAllInstalled();
