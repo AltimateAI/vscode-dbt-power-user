@@ -379,7 +379,11 @@ export class DBTProjectContainer implements Disposable {
 
   validateCredentialsOnConfigurationChange() {
     workspace.onDidChangeConfiguration(
-      () => this.altimate.validateCredentials(),
+      (e) => {
+        if (e.affectsConfiguration("dbt")) {
+          this.altimate.validateCredentials();
+        }
+      },
       this,
       this.disposables,
     );

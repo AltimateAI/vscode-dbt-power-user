@@ -326,17 +326,13 @@ export class AltimateRequest {
       return;
     }
     const { key, instance } = config;
-    if (!key && !instance) {
-      // ignore if nothing is set
+    if (!key || !instance) {
+      // only validate when both are set
       return;
     }
     let message = "";
-    if (!instance) {
-      message = "Instance name must be set.";
-    } else if (!validTenantRegex.exec(instance)) {
+    if (!validTenantRegex.exec(instance)) {
       message = "Instace name must not be URL.";
-    } else if (!key) {
-      message = "API key must be set";
     } else if (key.length !== 32) {
       message = "API key is not valid";
     }
