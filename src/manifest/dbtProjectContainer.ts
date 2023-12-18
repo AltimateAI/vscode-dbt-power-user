@@ -376,16 +376,4 @@ export class DBTProjectContainer implements Disposable {
   private findDBTWorkspaceFolder(uri: Uri): DBTWorkspaceFolder | undefined {
     return this.dbtWorkspaceFolders.find((folder) => folder.contains(uri));
   }
-
-  validateCredentialsOnConfigurationChange() {
-    workspace.onDidChangeConfiguration(
-      (e) => {
-        if (e.affectsConfiguration("dbt")) {
-          this.altimate.validateCredentials();
-        }
-      },
-      this,
-      this.disposables,
-    );
-  }
 }
