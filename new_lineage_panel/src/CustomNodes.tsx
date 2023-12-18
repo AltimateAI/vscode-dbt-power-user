@@ -11,6 +11,7 @@ import styles from "./styles.module.scss";
 import classNames from "classnames";
 import {
   bfsTraversal,
+  collapse,
   expandTableLineage,
   highlightTableConnections,
   layoutElementsOnCanvas,
@@ -170,8 +171,6 @@ export const TableHeader: FunctionComponent<{
 
 export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const {
-    shouldExpand,
-    processed,
     label,
     table,
     url,
@@ -180,6 +179,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     nodeType,
     tests,
     materialization,
+    mark,
   } = data;
   const flow = useReactFlow();
 
@@ -214,7 +214,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   };
 
   const expand = async (right: boolean) => {
-    if (processed[right ? 1 : 0]) return;
     let [nodes, edges] = await expandTableLineage(
       flow.getNodes(),
       flow.getEdges(),
@@ -256,6 +255,18 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const expandRight = () => expand(true);
   const expandLeft = () => expand(false);
 
+  const _collapse = (right: boolean) => {
+    const [_nodes, _edges] = collapse(
+      flow.getNodes(),
+      flow.getEdges(),
+      table,
+      right
+    );
+    flow.setNodes(_nodes);
+    flow.setEdges(_edges);
+    rerender();
+  };
+
   const onDetailsClick = (e: React.MouseEvent) => {
     if (!selected) return;
     e.stopPropagation();
@@ -268,6 +279,10 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   };
 
   const _edges = flow.getEdges();
+  const processed = [
+    downstreamCount === _edges.filter((e) => e.target === table).length,
+    upstreamCount === _edges.filter((e) => e.source === table).length,
+  ];
   return (
     <div
       className="position-relative"
@@ -305,19 +320,16 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           <div className="w-100 d-flex align-items-center gap-xs">
             <div
               className={classNames("nodrag", styles.table_handle, {
-                invisible:
-                  !shouldExpand[0] ||
-                  processed[0] ||
-                  downstreamCount ===
-                    _edges.filter((e) => e.target === table).length,
+                invisible: downstreamCount === 0 || (processed[0] && !mark[0]),
               })}
               onClick={(e) => {
                 e.stopPropagation();
-                expandLeft();
+                processed[0] ? _collapse(false) : expandLeft();
               }}
               data-testid={"expand-left-btn-" + table}
             >
-              {processed[0] ? "-" : "+"}
+              {!processed[0] && "+"}
+              {processed[0] && mark[0] && "-"}
             </div>
 
             <div
@@ -334,19 +346,16 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
             <div
               className={classNames("nodrag", styles.table_handle, {
-                invisible:
-                  !shouldExpand[1] ||
-                  processed[1] ||
-                  upstreamCount ===
-                    _edges.filter((e) => e.source === table).length,
+                invisible: upstreamCount === 0 || (processed[1] && !mark[1]),
               })}
               onClick={(e) => {
                 e.stopPropagation();
-                expandRight();
+                processed[1] ? _collapse(true) : expandRight();
               }}
               data-testid={"expand-right-btn-" + table}
             >
-              {processed[1] ? "-" : "+"}
+              {!processed[1] && "+"}
+              {processed[1] && mark[1] && "-"}
             </div>
           </div>
         </div>

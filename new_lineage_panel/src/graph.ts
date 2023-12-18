@@ -46,8 +46,8 @@ const createNewNodesEdges = (
   const newNodes = [...prevNodes];
   const newEdges = [...prevEdges];
   const newLevel = right ? level + 1 : level - 1;
-  const _node = newNodes.find((_n) => _n.id === t);
-  if (_node) _node.data.processed[right ? 1 : 0] = true;
+  // const _node = newNodes.find((_n) => _n.id === t);
+  // if (_node) _node.data.processed[right ? 1 : 0] = true;
 
   const addUniqueEdge = (to: string) => {
     const toLevel = newNodes.find((n) => n.id === to)?.data?.level;
@@ -190,67 +190,58 @@ export const highlightTableConnections = (
   return [newNodes, newEdges];
 };
 
-// TODO: fix member_profile-> expand left, expand right, collapse left, collapse right
-export const removeRelatedNodesEdges = (
+export const collapse = (
   prevNodes: Node[],
   prevEdges: Edge[],
   table: string,
   right: boolean,
-  level: number,
 ): [Node[], Edge[]] => {
-  const nodesToRemove: Record<string, boolean> = {};
-  const edgesToRemove: Record<string, boolean> = {};
+  // const nodes = [...prevNodes];
+  // const edges = [...prevEdges];
+
   const src = right ? "source" : "target";
   const dst = !right ? "source" : "target";
+  const nodesToRemove: Record<string, boolean> = {};
+  const edgesToRemove: Record<string, boolean> = {};
 
-  const nodesIdMap: Record<string, Node> = {};
-  for (const n of prevNodes) {
-    if (isColumn(n)) continue;
-    nodesIdMap[n.id] = n;
-  }
-
-  // TODO: check visited == nodesToRemove
-  const queue = [table];
   const visited: Record<string, boolean> = {};
-  while (queue.length > 0) {
-    const curr = queue.shift()!;
+  const dfsTraversal = (curr: string): number => {
     visited[curr] = true;
-    prevEdges.forEach((e) => {
-      const performVisit = (
-        src: "source" | "target",
-        dst: "source" | "target",
-      ) => {
-        if (e[src] !== curr) return;
-        const _t = e[dst];
-        if (visited[_t]) return;
-        const _level = nodesIdMap[_t].data.level;
-        if ((right && _level > level) || (!right && _level < level)) {
-          queue.push(_t);
-          nodesToRemove[_t] = true;
-        }
-      };
-      performVisit(src, dst);
-      performVisit(dst, src);
-    });
-  }
+    const currNode = prevNodes.find((n) => n.id === curr)!;
+    const currLevel = currNode.data.level;
+    let maxHeight = 0;
+    for (const e of prevEdges) {
+      if (isColumn(e)) continue;
+      if (e[src] !== curr) continue;
+      const n = prevNodes.find((n) => n.id === e[dst])!;
+      if (right && n.data.level < currLevel) continue;
+      if (!right && n.data.level > currLevel) continue;
+      if (visited[e[dst]]) continue;
+      nodesToRemove[e[dst]] = true;
+      const h = dfsTraversal(e[dst]);
+      maxHeight = Math.max(maxHeight, h);
+    }
+    return maxHeight + 1;
+  };
+  dfsTraversal(table);
 
   const columnNodesToRemove: Record<string, boolean> = {};
   const columnEdgesToRemove: Record<string, boolean> = {};
 
-  prevNodes.forEach((n) => {
-    if (!nodesToRemove[n.parentNode || ""]) return;
+  for (const n of prevNodes) {
+    if (!nodesToRemove[n.parentNode || ""]) continue;
     columnNodesToRemove[n.id] = true;
-  });
+  }
 
-  prevEdges.forEach((e) => {
+  for (const e of prevEdges) {
     if (isNotColumn(e)) {
       edgesToRemove[e.id] = nodesToRemove[e.source] ||
-        nodesToRemove[e.target] || e[src] === table;
+        nodesToRemove[e.target];
     } else {
       columnEdgesToRemove[e.id] = columnNodesToRemove[e.source] ||
         columnNodesToRemove[e.target];
     }
-  });
+  }
 
   const remove =
     (dict: Record<string, boolean>) => (x: { id: string | number }) =>
@@ -263,10 +254,98 @@ export const removeRelatedNodesEdges = (
     .filter(remove(columnEdgesToRemove))
     .filter(remove(edgesToRemove));
 
-  const _node = newNodes.find((_n) => _n.id === table);
-  if (_node) _node.data.processed[right ? 1 : 0] = false;
-
+  markNodesForRemoval(newNodes, newEdges);
   return [newNodes, newEdges];
+};
+
+export const markLastSecondNode = (
+  prevNodes: Node[],
+  prevEdges: Edge[],
+  right: boolean,
+) => {
+  const nodeHeights: Record<string, number> = {};
+  const src = right ? "source" : "target";
+  const dst = !right ? "source" : "target";
+  for (const n of prevNodes) {
+    if (isColumn(n)) continue;
+    nodeHeights[n.id] = -1;
+  }
+  const dfsTraversal = (curr: string) => {
+    if (nodeHeights[curr] !== -1) return;
+    const currNode = prevNodes.find((n) => n.id === curr)!;
+    const currLevel = currNode.data.level;
+    let maxHeight = 0;
+    for (const e of prevEdges) {
+      if (isColumn(e)) continue;
+      if (e[src] !== curr) continue;
+      const n = prevNodes.find((n) => n.id === e[dst])!;
+      if (right && n.data.level < currLevel) continue;
+      if (!right && n.data.level > currLevel) continue;
+      if (nodeHeights[e[dst]] === -1) {
+        dfsTraversal(e[dst]);
+      }
+      maxHeight = Math.max(maxHeight, nodeHeights[e[dst]]);
+    }
+    // as ephemeral nodes are auto expanded
+    nodeHeights[curr] = currNode.data.materialization === "ephemeral"
+      ? maxHeight
+      : maxHeight + 1;
+  };
+
+  for (const n of prevNodes) {
+    if (isColumn(n)) continue;
+    dfsTraversal(n.id);
+  }
+
+  console.log("dfsTraversal:result:", right, nodeHeights);
+  const lastSecondLeafNodes = Object.entries(nodeHeights)
+    .filter(([, v]) => v === 2).map(([k]) => k);
+  const calculateAncestors = (lastSecondLeafNodes: string[]) => {
+    const ancestors: Record<string, string[]> = {};
+    const visited: Record<string, boolean> = {};
+    for (const n of lastSecondLeafNodes) ancestors[n] = [];
+    for (const candidate of lastSecondLeafNodes) {
+      const queue = [candidate];
+      while (queue.length > 0) {
+        const curr = queue.shift()!;
+        if (visited[curr]) continue; // maybe cycle, should ignore candidate??
+        visited[curr] = true;
+        for (const e of prevEdges) {
+          if (isColumn(e)) continue;
+          if (e[src] !== curr) continue;
+          const target = e[dst];
+          ancestors[target] = ancestors[target] || [];
+          ancestors[target].push(curr);
+          ancestors[target].push(...(ancestors[curr] || []));
+          queue.push(target);
+        }
+      }
+    }
+    return ancestors;
+  };
+  const calculateCandidates = (
+    lastSecondLeafNodes: string[],
+    ancestors: Record<string, string[]>,
+  ) => {
+    const potentialCandidates: Record<string, boolean> = {};
+    for (const n of lastSecondLeafNodes) potentialCandidates[n] = true;
+    for (const k in ancestors) {
+      if (lastSecondLeafNodes.includes(k)) continue;
+      let count = 0;
+      for (const a of ancestors[k]) {
+        if (lastSecondLeafNodes.includes(a)) count++;
+        if (count > 1) {
+          for (const v of ancestors[k]) potentialCandidates[v] = false;
+        }
+      }
+    }
+    return Object.entries(potentialCandidates).filter(([, v]) => v).map((
+      [k],
+    ) => k);
+  };
+  const ancestors = calculateAncestors(lastSecondLeafNodes);
+  const candidates = calculateCandidates(lastSecondLeafNodes, ancestors);
+  return candidates;
 };
 
 export const processColumnLineage = async (
@@ -437,7 +516,19 @@ export const expandTableLineage = async (
       }
     });
   }
+  markNodesForRemoval(nodes, edges);
   return [nodes, edges];
+};
+
+export const markNodesForRemoval = (nodes: Node[], edges: Edge[]) => {
+  const rightNodes = markLastSecondNode(nodes, edges, true);
+  const leftNodes = markLastSecondNode(nodes, edges, false);
+  for (const n of nodes) {
+    if (isColumn(n)) continue;
+    if (n.data.materialization === "ephemeral") continue;
+    n.data["mark"][1] = rightNodes.includes(n.id);
+    n.data["mark"][0] = leftNodes.includes(n.id);
+  }
 };
 
 export const bfsTraversal = async (
