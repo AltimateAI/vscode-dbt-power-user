@@ -26,7 +26,8 @@ ADAPTER_MAPPING = {
     "doris": "doris",
 }
 
-MULTIPLE_OCCURENCES_STR = "We could not uniquely map '{invalid_entity}' to the SQL"
+MULTIPLE_OCCURENCES_STR = "Unable to highlight the exact location in the SQL code due to multiple occurrences."
+MAPPING_FAILED_STR = "Unable to highlight the exact location in the SQL code."
 
 
 def extract_column_name(text):
@@ -159,15 +160,18 @@ def form_error(
 ):
     if num_occurences > 1:
         error = (
-            f"{error}. {MULTIPLE_OCCURENCES_STR.format(invalid_entity=invalid_entity)}"
+            f"{error}\n {MULTIPLE_OCCURENCES_STR.format(invalid_entity=invalid_entity)}"
         )
         return {
             "description": error,
         }
-    
+
     if not start_position or not end_position:
-        if invalid_entity:
-            error = f"{error}. Failed to map '{invalid_entity}' in the query."
+        error = (
+            f"{error}\n {MAPPING_FAILED_STR.format(invalid_entity=invalid_entity)}"
+            if invalid_entity
+            else error
+        )
         return {
             "description": error,
         }
@@ -190,7 +194,7 @@ def validate_tables_and_columns(
     except sqlglot.errors.OptimizeError as e:
         error = str(e)
         if "sqlglot" in error:
-            error = "Failed to validate the query"
+            error = "Failed to validate the query."
         invalid_entity = extract_column_name(error)
         if not invalid_entity:
             return [
@@ -201,7 +205,7 @@ def validate_tables_and_columns(
         start_position, end_position, num_occurences = get_start_and_end_position(
             sql, invalid_entity
         )
-
+        error = error if error[-1] == "." else error + "."
         return [
             form_error(
                 error, invalid_entity, start_position, end_position, num_occurences
@@ -290,7 +294,7 @@ def get_columns_used(sql_query, dialect):
     return extract_physical_columns(qualified_ast)
 
 
-def validate_columns_present_in_schema(sql_query, dialect, schemas):
+def validate_columns_present_in_schema(sql_query, dialect, schemas, model_mapping):
     """
     Validate that the columns in the SQL query are present in the schema.
     """
@@ -314,8 +318,7 @@ def validate_columns_present_in_schema(sql_query, dialect, schemas):
                     end_position,
                     num_occurences,
                 ) = get_start_and_end_position(sql_query, table)
-                error = f"Error: Table '{table}' not found. This issue often occurs when a table is used directly in dbt instead of being referenced through the appropriate syntax."
-                f"To resolve this, ensure that '{table}' is properly defined in your project and use the 'ref()' function to reference it in your models."
+                error = f"Error: Table '{table}' not found. This issue often occurs when a table is used directly\n in dbt instead of being referenced through the appropriate syntax.\n To resolve this, ensure that '{table}' is propaerly defined in your project and use the 'ref()' function to reference it in your models."
 
                 errors.append(
                     form_error(
@@ -332,8 +335,8 @@ def validate_columns_present_in_schema(sql_query, dialect, schemas):
                         end_position,
                         num_occurences,
                     ) = get_start_and_end_position(sql_query, column)
-                    error = f"Error: Column '{column}' not found in '{table}'."
-                    f"Possible causes: 1) Typo in column name. 2) Column not materialized."
+                    table = model_mapping.get(table, table)
+                    error = f"Error: Column '{column}' not found in '{table}'. \nPossible causes: 1) Typo in column name. 2) Column not materialized. 3) Column not selected in parent cte."
                     errors.append(
                         form_error(
                             error,
