@@ -4,6 +4,7 @@ from altimate.utils import (
     map_adapter_to_dialect,
     sql_execute_errors,
     sql_parse_errors,
+    validate_columns_present_in_schema,
     validate_tables_and_columns,
 )
 
@@ -66,6 +67,13 @@ def validate_sql_from_models(
         if len(errors) > 0:
             return {
                 "error_type": "sql_parse_error",
+                "errors": errors,
+            }
+
+        errors = validate_columns_present_in_schema(sql, dialect, schemas)
+        if len(errors) > 0:
+            return {
+                "error_type": "sql_invalid_error",
                 "errors": errors,
             }
 
