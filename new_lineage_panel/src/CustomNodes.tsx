@@ -102,7 +102,7 @@ const NODE_TYPE_SHORTHAND = {
   snapshot: "SNP",
   metrics: "MET",
   macros: "SEM",
-  analysis: "ANY",
+  analysis: "ANS",
 };
 
 const NODE_TYPE_STYLES = {
