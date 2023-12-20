@@ -23,7 +23,12 @@ import path = require("path");
 import { PythonException } from "python-bridge";
 import { TelemetryService } from "../telemetry";
 import { AltimateRequest } from "../altimate";
-import { stringify, parse } from "yaml";
+import { parse, stringify } from "yaml";
+import {
+  CustomPythonException,
+  CustomUnknownException,
+} from "../dbt_client/exception";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 enum Source {
   YAML = "YAML",
@@ -68,6 +73,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     private dbtProjectContainer: DBTProjectContainer,
     private altimateRequest: AltimateRequest,
     private telemetry: TelemetryService,
+    private terminal: DBTTerminal,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
@@ -272,23 +278,23 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 } catch (exc) {
                   this.transmitError();
                   if (exc instanceof PythonException) {
-                    window.showErrorMessage(
-                      `An error occured while fetching metadata for ${modelName} from the database: ` +
-                        exc.exception.message,
-                    );
-                    this.telemetry.sendTelemetryError(
-                      "docsEditPanelLoadPythonError",
-                      exc,
+                    this.terminal.error(
+                      new CustomPythonException(
+                        "docsEditPanelLoadPythonError",
+                        `An error occured while fetching metadata for ${modelName} from the database`,
+                        exc,
+                      ),
+                      true,
                     );
                     return;
                   }
-                  window.showErrorMessage(
-                    `An error occured while fetching metadata for ${modelName} from the database: ` +
+                  this.terminal.error(
+                    new CustomUnknownException(
+                      "docsEditPanelLoadPythonError",
+                      `An error occured while fetching metadata for ${modelName} from the database`,
                       exc,
-                  );
-                  this.telemetry.sendTelemetryError(
-                    "docsEditPanelLoadError",
-                    exc,
+                    ),
+                    true,
                   );
                 }
               },
@@ -344,15 +350,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   );
                 } catch (error) {
                   this.transmitError();
-                  window.showErrorMessage(
-                    extendErrorWithSupportLinks(
-                      "An unexpected error occurred while generating documentation: " +
-                        error,
+                  this.terminal.error(
+                    new CustomUnknownException(
+                      "generateDocsForModelError",
+                      "An unexpected error occurred while generating documentation",
+                      error,
                     ),
-                  );
-                  this.telemetry.sendTelemetryError(
-                    "generateDocsForModelError",
-                    error,
+                    true,
                   );
                 }
               },
@@ -406,15 +410,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   );
                 } catch (error) {
                   this.transmitError();
-                  window.showErrorMessage(
-                    extendErrorWithSupportLinks(
-                      "An unexpected error occurred while generating documentation: " +
-                        error,
+                  this.terminal.error(
+                    new CustomUnknownException(
+                      "generateDocsForColumnError",
+                      "An unexpected error occurred while generating documentation",
+                      error,
                     ),
-                  );
-                  this.telemetry.sendTelemetryError(
-                    "generateDocsForColumnError",
-                    error,
+                    true,
                   );
                 }
               },
@@ -454,15 +456,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   });
                 } catch (error) {
                   this.transmitError();
-                  window.showErrorMessage(
-                    extendErrorWithSupportLinks(
-                      "An unexpected error occurred while sending feedback: " +
-                        error,
+                  this.terminal.error(
+                    new CustomUnknownException(
+                      "altimateGenerateDocsSendFeedbackError",
+                      "An unexpected error occurred while sending feedback",
+                      error,
                     ),
-                  );
-                  this.telemetry.sendTelemetryError(
-                    "altimateGenerateDocsSendFeedbackError",
-                    error,
+                    true,
                   );
                 }
               },
@@ -585,12 +585,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   this.documentation = await this.getDocumentation();
                 } catch (error) {
                   this.transmitError();
-                  window.showErrorMessage(
-                    `Could not save documentation to ${patchPath}: ${error}`,
-                  );
-                  this.telemetry.sendTelemetryError(
-                    "saveDocumentationError",
-                    error,
+                  this.terminal.error(
+                    new CustomUnknownException(
+                      "saveDocumentationError",
+                      `Could not save documentation to ${patchPath}: ${error}`,
+                      error,
+                    ),
+                    true,
                   );
                 }
               },
