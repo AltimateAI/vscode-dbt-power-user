@@ -1,4 +1,4 @@
-import { statSync } from "fs";
+import { existsSync, statSync } from "fs";
 import { inject } from "inversify";
 import * as path from "path";
 import {
@@ -43,6 +43,30 @@ export class DBTWorkspaceFolder implements Disposable {
     this.disposables.push(this.watcher);
   }
 
+  private getAllowListFolders() {
+    const nonFilteredAlolowListFolders = workspace
+      .getConfiguration("dbt")
+      .get<string[]>("allowListFolders", [])
+      .map((folder) => {
+        if (!path.isAbsolute(folder)) {
+          return path.join(this.workspaceFolder.uri.fsPath, folder);
+        }
+        return folder;
+      });
+    const allowListFolders = nonFilteredAlolowListFolders.filter((folder) =>
+      existsSync(folder),
+    );
+    if (nonFilteredAlolowListFolders.length === allowListFolders.length) {
+      console.warn(
+        "filtered out non-existing allowListFolders",
+        allowListFolders,
+        nonFilteredAlolowListFolders,
+      );
+      this.telemetry.sendTelemetryEvent("nonExistingAllowListFolders");
+    }
+    return allowListFolders;
+  }
+
   async discoverProjects() {
     const dbtProjectFiles = await workspace.findFiles(
       new RelativePattern(
@@ -54,22 +78,17 @@ export class DBTWorkspaceFolder implements Disposable {
         `**/{${DBTProject.DBT_MODULES.join(",")}}`,
       ),
     );
-    const allowListFolders = workspace
-      .getConfiguration("dbt")
-      .get<string[]>("allowListFolders", [])
-      .map(
-        (folder) =>
-          Uri.joinPath(Uri.file(this.workspaceFolder.uri.path), folder).fsPath,
-      );
 
+    const allowListFolders = this.getAllowListFolders();
     const projectFiles = dbtProjectFiles
       .filter((uri) => statSync(uri.fsPath).isFile())
       .filter((uri) => this.notInVenv(uri.fsPath))
-      .filter(
-        (uri) =>
+      .filter((uri) => {
+        return (
           allowListFolders.length === 0 ||
-          allowListFolders.some((folder) => uri.toString().includes(folder)),
-      )
+          allowListFolders.some((folder) => uri.fsPath.startsWith(folder))
+        );
+      })
       // TODO: also filter out projects within the target folder of another project
       //  This is somewhat difficult as we would need to parse the target-path variable of the project.
       .map((uri) => Uri.file(uri.path.split("/")!.slice(0, -1).join("/")));
@@ -179,13 +198,16 @@ export class DBTWorkspaceFolder implements Disposable {
     const dirName = (uri: Uri) => Uri.file(path.dirname(uri.fsPath));
 
     watcher.onDidCreate((uri) => {
+      const allowListFolders = this.getAllowListFolders();
       if (
         statSync(uri.fsPath).isFile() &&
         this.notInVenv(uri.fsPath) &&
         this.notInDBtPackages(
           uri.fsPath,
           this.dbtProjects.map((project) => project.projectRoot),
-        )
+        ) &&
+        (allowListFolders.length === 0 ||
+          allowListFolders.some((folder) => uri.fsPath.startsWith(folder)))
         // TODO: also filter out projects within the target folder of another project
         //  This is somewhat difficult as we would need to parse the target-path variable of the project.
       ) {
