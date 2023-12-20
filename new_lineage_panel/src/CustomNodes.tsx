@@ -80,6 +80,7 @@ export const NodeTypeIcon: FunctionComponent<{ nodeType: string }> = ({
     {nodeType === "model" && <ModelIcon />}
     {nodeType === "source" && <SourceIcon />}
     {nodeType === "exposure" && <ExposureIcon />}
+    {nodeType === "analysis" && <ExposureIcon />}
     {nodeType === "snapshot" && <SnapshotIcon />}
     {nodeType === "metrics" && <MetricsIcon />}
     {nodeType === "macros" && <MacrosIcon />}
@@ -94,6 +95,7 @@ const NODE_TYPE_SHORTHAND = {
   snapshot: "SNP",
   metrics: "MET",
   macros: "SEM",
+  analysis: "ANS",
 };
 
 const NODE_TYPE_STYLES = {
@@ -104,6 +106,7 @@ const NODE_TYPE_STYLES = {
   snapshot: styles.snapshot,
   metrics: styles.metrics,
   macros: styles.macros,
+  analysis: styles.analysis,
 };
 
 const TableNodePill: FunctionComponent<{
