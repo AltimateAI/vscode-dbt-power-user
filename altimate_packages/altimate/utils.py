@@ -305,7 +305,7 @@ def validate_columns_present_in_schema(sql_query, dialect, schemas, model_mappin
             for table in schemas[db][schema]:
                 path = f"{db}.{schema}.{table}".lower()
                 new_schemas.setdefault(path, set()).update(
-                    list(schemas[db][schema][table].keys())
+                    [column.lower() for column in schemas[db][schema][table].keys()]
                 )
     schemas = new_schemas
     try:
@@ -329,7 +329,7 @@ def validate_columns_present_in_schema(sql_query, dialect, schemas, model_mappin
 
             columns = schemas[table]
             for column in columns_set:
-                if column not in columns:
+                if column.lower() not in columns:
                     (
                         start_position,
                         end_position,
