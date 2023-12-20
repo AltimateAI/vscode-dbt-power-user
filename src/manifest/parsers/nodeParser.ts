@@ -7,7 +7,7 @@ import { createFullPathForNode } from ".";
 export class NodeParser {
   createNodeMetaMap(
     nodesMap: any[],
-    project: DBTProject,
+    project: DBTProject
   ): Promise<NodeMetaMap> {
     return new Promise(async (resolve) => {
       const modelMetaMap: NodeMetaMap = new Map();
@@ -18,7 +18,8 @@ export class NodeParser {
         (model) =>
           model.resource_type === DBTProject.RESOURCE_TYPE_MODEL ||
           model.resource_type === DBTProject.RESOURCE_TYPE_SEED ||
-          model.resource_type === DBTProject.RESOURCE_TYPE_SNAPSHOT,
+          model.resource_type === DBTProject.RESOURCE_TYPE_ANALYSIS ||
+          model.resource_type === DBTProject.RESOURCE_TYPE_SNAPSHOT
       );
       const rootPath = project.projectRoot.fsPath;
       // TODO: these things can change so we should recreate them if project config changes
@@ -46,7 +47,7 @@ export class NodeParser {
           rootPath,
           package_name,
           packagePath,
-          original_file_path,
+          original_file_path
         );
         if (!fullPath) {
           return;
