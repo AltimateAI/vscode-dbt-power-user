@@ -88,6 +88,7 @@ export class DBTProject implements Disposable {
   static MACRO_PATH_VAR = "macro-paths";
 
   static RESOURCE_TYPE_MODEL = "model";
+  static RESOURCE_TYPE_ANALYSIS = "analysis";
   static RESOURCE_TYPE_SOURCE = "source";
   static RESOURCE_TYPE_EXPOSURE = "exposure";
   static RESOURCE_TYPE_SEED = "seed";
