@@ -4,6 +4,7 @@ from altimate.utils import (
     map_adapter_to_dialect,
     sql_execute_errors,
     sql_parse_errors,
+    validate_columns_present_in_schema,
     validate_tables_and_columns,
 )
 
@@ -49,6 +50,18 @@ def _build_schemas(
     return schemas
 
 
+def _build_model_mapping(
+    models: List[Dict],
+):
+    map = {}
+    for model in models:
+        db = model["database"]
+        schema = model["schema"]
+        table = model["alias"]
+        map[f"{db}.{schema}.{table}".lower()] = model["name"]
+    return map
+
+
 def validate_sql_from_models(
     sql: str,
     dialect: str,
@@ -60,12 +73,21 @@ def validate_sql_from_models(
     try:
         dialect = map_adapter_to_dialect(dialect)
         schemas = _build_schemas(models, dialect)
-
+        model_mapping = _build_model_mapping(models)
         errors = sql_parse_errors(sql, dialect)
 
         if len(errors) > 0:
             return {
                 "error_type": "sql_parse_error",
+                "errors": errors,
+            }
+
+        errors = validate_columns_present_in_schema(
+            sql, dialect, schemas, model_mapping
+        )
+        if len(errors) > 0:
+            return {
+                "error_type": "sql_invalid_error",
                 "errors": errors,
             }
 
