@@ -140,7 +140,7 @@ export class AltimateRequest {
 
   constructor(private telemetry: TelemetryService) {}
 
-  private getConfig(): AltimateConfig | undefined {
+  getConfig(): AltimateConfig | undefined {
     const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
     const instance = workspace
       .getConfiguration("dbt")
@@ -316,5 +316,18 @@ export class AltimateRequest {
       method: "POST",
       body: JSON.stringify(req),
     });
+  }
+
+  async validateCredentials(instance: string, key: string) {
+    const url = `${AltimateRequest.ALTIMATE_URL}/dbt/v3/validate-credentials`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "x-tenant": instance,
+        Authorization: "Bearer " + key,
+        "Content-Type": "application/json",
+      },
+    });
+    return (await response.json()) as Record<string, any> | undefined;
   }
 }

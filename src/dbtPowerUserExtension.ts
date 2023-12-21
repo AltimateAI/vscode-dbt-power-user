@@ -19,6 +19,7 @@ import { WebviewViewProviders } from "./webview_provider";
 import { TelemetryService } from "./telemetry";
 import { HoverProviders } from "./hover_provider";
 import { DbtPowerUserActionsCenter } from "./quickpick";
+import { ValidationProvider } from "./validation_provider";
 
 @provideSingleton(DBTPowerUserExtension)
 export class DBTPowerUserExtension implements Disposable {
@@ -53,6 +54,7 @@ export class DBTPowerUserExtension implements Disposable {
     private puStatusBars: DbtPowerUserActionsCenter,
     private telemetry: TelemetryService,
     private hoverProviders: HoverProviders,
+    private validationProvider: ValidationProvider,
   ) {
     this.disposables.push(
       this.dbtProjectContainer,
@@ -68,6 +70,7 @@ export class DBTPowerUserExtension implements Disposable {
       this.puStatusBars,
       this.telemetry,
       this.hoverProviders,
+      this.validationProvider,
     );
   }
 
