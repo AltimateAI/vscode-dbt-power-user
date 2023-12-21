@@ -2,6 +2,8 @@ import re
 
 import sqlglot
 from sqlglot.executor import execute
+from sqlglot.expressions import Table
+from sqlglot.optimizer import traverse_scope
 from sqlglot.optimizer.qualify import qualify
 
 ADAPTER_MAPPING = {
@@ -23,6 +25,9 @@ ADAPTER_MAPPING = {
     "sqlserver": "tsql",
     "doris": "doris",
 }
+
+MULTIPLE_OCCURENCES_STR = "Unable to highlight the exact location in the SQL code due to multiple occurrences."
+MAPPING_FAILED_STR = "Unable to highlight the exact location in the SQL code."
 
 
 def extract_column_name(text):
@@ -52,13 +57,14 @@ def find_single_occurrence_indices(main_string, substring):
     if not substring:
         return None, None
 
+    num_occurrences = main_string.count(substring)
     # Check if the substring occurs only once in the main string
-    if main_string.count(substring) == 1:
+    if num_occurrences == 1:
         start_index = main_string.find(substring)
-        return start_index, start_index + len(substring)
+        return start_index, start_index + len(substring), num_occurrences
 
     # Return None if the substring doesn't occur exactly once
-    return None, None
+    return None, None, num_occurrences
 
 
 def map_adapter_to_dialect(adapter: str):
@@ -138,6 +144,45 @@ def sql_parse_errors(sql: str, dialect: str):
     return errors
 
 
+def get_start_and_end_position(sql: str, invalid_string: str):
+    start, end, num_occurences = find_single_occurrence_indices(sql, invalid_string)
+    if start and end:
+        return (
+            list(get_line_and_column_from_position(sql, start)),
+            list(get_line_and_column_from_position(sql, end)),
+            num_occurences,
+        )
+    return None, None, num_occurences
+
+
+def form_error(
+    error: str, invalid_entity: str, start_position, end_position, num_occurences
+):
+    if num_occurences > 1:
+        error = (
+            f"{error}\n {MULTIPLE_OCCURENCES_STR.format(invalid_entity=invalid_entity)}"
+        )
+        return {
+            "description": error,
+        }
+
+    if not start_position or not end_position:
+        error = (
+            f"{error}\n {MAPPING_FAILED_STR.format(invalid_entity=invalid_entity)}"
+            if invalid_entity
+            else error
+        )
+        return {
+            "description": error,
+        }
+
+    return {
+        "description": error,
+        "start_position": start_position,
+        "end_position": end_position,
+    }
+
+
 def validate_tables_and_columns(
     sql: str,
     dialect: str,
@@ -149,7 +194,7 @@ def validate_tables_and_columns(
     except sqlglot.errors.OptimizeError as e:
         error = str(e)
         if "sqlglot" in error:
-            error = "Failed to validate the query"
+            error = "Failed to validate the query."
         invalid_entity = extract_column_name(error)
         if not invalid_entity:
             return [
@@ -157,21 +202,14 @@ def validate_tables_and_columns(
                     "description": error,
                 }
             ]
-        start, end = find_single_occurrence_indices(sql, invalid_entity)
-        if start and end:
-            return [
-                {
-                    "description": error,
-                    "start_position": list(
-                        get_line_and_column_from_position(sql, start)
-                    ),
-                    "end_position": list(get_line_and_column_from_position(sql, end)),
-                }
-            ]
+        start_position, end_position, num_occurences = get_start_and_end_position(
+            sql, invalid_entity
+        )
+        error = error if error[-1] == "." else error + "."
         return [
-            {
-                "description": error,
-            }
+            form_error(
+                error, invalid_entity, start_position, end_position, num_occurences
+            )
         ]
 
     return None
@@ -206,3 +244,108 @@ def sql_execute_errors(
             }
         ]
     return None
+
+
+def qualify_columns(expression):
+    """
+    Qualify the columns in the given SQL expression.
+    """
+    try:
+        return qualify(
+            expression,
+            qualify_columns=True,
+            isolate_tables=True,
+            validate_qualify_columns=False,
+        )
+    except sqlglot.errors.OptimizeError as error:
+        return expression
+
+
+def parse_sql_query(sql_query, dialect):
+    """
+    Parses the SQL query and returns an AST.
+    """
+    return sqlglot.parse_one(sql_query, read=dialect)
+
+
+def extract_physical_columns(ast):
+    """
+    Extracts physical columns from the given AST.
+    """
+    physical_columns = {}
+    for scope in traverse_scope(ast):
+        for column in scope.columns:
+            table = scope.sources.get(column.table)
+            if isinstance(table, Table):
+                db, schema, table_name = table.catalog, table.db, table.name
+                if db is None or schema is None:
+                    continue
+                path = f"{db}.{schema}.{table_name}".lower()
+                physical_columns.setdefault(path, set()).add(column.name)
+    return physical_columns
+
+
+def get_columns_used(sql_query, dialect):
+    """
+    Process the SQL query to extract physical columns.
+    """
+    ast = parse_sql_query(sql_query, dialect)
+    qualified_ast = qualify_columns(ast)
+    return extract_physical_columns(qualified_ast)
+
+
+def validate_columns_present_in_schema(sql_query, dialect, schemas, model_mapping):
+    """
+    Validate that the columns in the SQL query are present in the schema.
+    """
+    errors = []
+    new_schemas = {}
+    for db in schemas:
+        for schema in schemas[db]:
+            for table in schemas[db][schema]:
+                path = f"{db}.{schema}.{table}".lower()
+                new_schemas.setdefault(path, set()).update(
+                    [column.lower() for column in schemas[db][schema][table].keys()]
+                )
+    schemas = new_schemas
+    try:
+        columns_used = get_columns_used(sql_query, dialect)
+
+        for table, columns_set in columns_used.items():
+            if table not in schemas:
+                (
+                    start_position,
+                    end_position,
+                    num_occurences,
+                ) = get_start_and_end_position(sql_query, table)
+                error = f"Error: Table '{table}' not found. This issue often occurs when a table is used directly\n in dbt instead of being referenced through the appropriate syntax.\n To resolve this, ensure that '{table}' is propaerly defined in your project and use the 'ref()' function to reference it in your models."
+
+                errors.append(
+                    form_error(
+                        error, table, start_position, end_position, num_occurences
+                    )
+                )
+                continue
+
+            columns = schemas[table]
+            for column in columns_set:
+                if column.lower() not in columns:
+                    (
+                        start_position,
+                        end_position,
+                        num_occurences,
+                    ) = get_start_and_end_position(sql_query, column)
+                    table = model_mapping.get(table, table)
+                    error = f"Error: Column '{column}' not found in '{table}'. \nPossible causes: 1) Typo in column name. 2) Column not materialized. 3) Column not selected in parent cte."
+                    errors.append(
+                        form_error(
+                            error,
+                            column,
+                            start_position,
+                            end_position,
+                            num_occurences,
+                        )
+                    )
+    except Exception as e:
+        pass
+    return errors
