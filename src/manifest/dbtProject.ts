@@ -469,45 +469,49 @@ export class DBTProject implements Disposable {
       return;
     }
     if (!this.pythonBridgeInitialized) {
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "Could not compile node, because the Python bridge has not been initalized.",
-        ),
-      );
-      this.telemetry.sendTelemetryError(
-        "compileNodePythonBridgeNotInitializedError",
-      );
-      return;
+      if (!this.checkAndShowDiagnosticsErrors()) {
+        window.showErrorMessage(
+          extendErrorWithSupportLinks(
+            "Could not compile node, because the Python bridge has not been initalized.",
+          ),
+        );
+        this.telemetry.sendTelemetryError(
+          "compileNodePythonBridgeNotInitializedError",
+        );
+        return;
+      }
     }
     this.telemetry.sendTelemetryEvent("compileNode");
     try {
       return this.unsafeCompileNode(modelName);
     } catch (exc: any) {
-      if (exc instanceof PythonException) {
+      if (!this.checkAndShowDiagnosticsErrors()) {
+        if (exc instanceof PythonException) {
+          window.showErrorMessage(
+            extendErrorWithSupportLinks(
+              `An error occured while trying to compile your node: ${modelName}` +
+                exc.exception.message +
+                ".",
+            ),
+          );
+          this.telemetry.sendTelemetryError("compileNodePythonError", exc);
+          return (
+            "Exception: " +
+            exc.exception.message +
+            "\n\n" +
+            "Detailed error information:\n" +
+            exc
+          );
+        }
+        this.telemetry.sendTelemetryError("compileNodeUnknownError", exc);
+        // Unknown error
         window.showErrorMessage(
           extendErrorWithSupportLinks(
-            `An error occured while trying to compile your node: ${modelName}` +
-              exc.exception.message +
-              ".",
+            "Encountered an unknown issue: " + exc + ".",
           ),
         );
-        this.telemetry.sendTelemetryError("compileNodePythonError", exc);
-        return (
-          "Exception: " +
-          exc.exception.message +
-          "\n\n" +
-          "Detailed error information:\n" +
-          exc
-        );
+        return "Detailed error information:\n" + exc;
       }
-      this.telemetry.sendTelemetryError("compileNodeUnknownError", exc);
-      // Unknown error
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "Encountered an unknown issue: " + exc + ".",
-        ),
-      );
-      return "Detailed error information:\n" + exc;
     }
   }
 
@@ -1111,6 +1115,30 @@ select * from renamed
         : false) ||
       "target"
     );
+  }
+
+  checkAndShowDiagnosticsErrors() {
+    const allDiagnostics = [
+      this.rebuildManifestDiagnostics,
+      this.pythonBridgeDiagnostics,
+      this.projectConfigDiagnostics,
+    ];
+
+    let isErrorPresent = false;
+
+    for (const diagnosticCollection of allDiagnostics) {
+      diagnosticCollection.forEach((uri, diagnostics) => {
+        if (diagnostics.length > 0) {
+          isErrorPresent = true;
+          diagnostics.forEach((diagnostic) => {
+            window.showErrorMessage(diagnostic.message, {
+              modal: true,
+            });
+          });
+        }
+      });
+    }
+    return isErrorPresent;
   }
 
   private async refresh() {
