@@ -44,6 +44,7 @@ import { PythonEnvironment } from "./pythonEnvironment";
 import { TelemetryService } from "../telemetry";
 import { ValidateSqlParseErrorResponse } from "../altimate";
 import * as crypto from "crypto";
+import { DefaultQueryTemplate } from "../webview_provider/constants";
 
 export interface ExecuteSQLResult {
   table: {
@@ -958,7 +959,54 @@ select * from renamed
     }
     this.queryResultPanel.getSummary(compiledSql, this.adapterType);
   }
+  private getLimitQuery(queryTemplate: string, query: string, limit: number) {
+    return queryTemplate
+      .replace("{query}", () => query)
+      .replace("{limit}", () => limit.toString());
+  }
+  private async getQuery(
+    query: string,
+    limit: number,
+  ): Promise<{ queryTemplate: string; limitQuery: string }> {
+    const queryTemplate = workspace
+      .getConfiguration("dbt")
+      .get<string>("queryTemplate");
 
+    if (queryTemplate && queryTemplate !== DefaultQueryTemplate) {
+      console.log("Using user provided query template", queryTemplate);
+      const limitQuery = this.getLimitQuery(queryTemplate, query, limit);
+
+      return { queryTemplate, limitQuery };
+    }
+
+    try {
+      const dbtVersion = await this.getDBTVersion();
+      //dbt supports limit macro after v1.5
+      if (dbtVersion && dbtVersion[0] >= 1 && dbtVersion[1] >= 5) {
+        const args = { sql: query, limit };
+        const queryTemplateFromMacro = await this.python?.lock(
+          (python) =>
+            python!`to_dict(project.execute_macro('get_limit_subquery_sql', ${args}))`,
+        );
+
+        console.log("Using query template from macro", queryTemplateFromMacro);
+        return {
+          queryTemplate: queryTemplateFromMacro,
+          limitQuery: queryTemplateFromMacro,
+        };
+      }
+    } catch (err) {
+      this.telemetry.sendTelemetryError(
+        "executeMacroGetLimitSubquerySQLError",
+        err,
+        { adapter: this.adapterType },
+      );
+    }
+    return {
+      queryTemplate: DefaultQueryTemplate,
+      limitQuery: this.getLimitQuery(DefaultQueryTemplate, query, limit),
+    };
+  }
   async executeSQL(query: string) {
     await this.blockUntilPythonBridgeIsInitalized();
     if (
@@ -987,16 +1035,7 @@ select * from renamed
       window.showErrorMessage("Please enter a positive number for query limit");
       return;
     }
-    const queryTemplate = workspace
-      .getConfiguration("dbt")
-      .get<string>(
-        "queryTemplate",
-        "select * from ({query}\n) as query limit {limit}",
-      );
-
-    const limitQuery = queryTemplate
-      .replace("{query}", () => query)
-      .replace("{limit}", () => limit.toString());
+    const { queryTemplate, limitQuery } = await this.getQuery(query, limit);
 
     this.telemetry.sendTelemetryEvent(
       "executeSQL",
