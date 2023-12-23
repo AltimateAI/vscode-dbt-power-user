@@ -1,7 +1,10 @@
-import { Disposable, Event, extensions, Uri, workspace } from "vscode";
+import { Disposable, Event, extensions, Uri, window, workspace } from "vscode";
 import { EnvironmentVariables } from "../domain";
 import { provideSingleton, substituteSettingsVariables } from "../utils";
 import { TelemetryService } from "../telemetry";
+import { DBTClient } from "../dbt_client";
+import { CommandProcessExecutionFactory } from "../commandProcessExecution";
+import { DBTCommandFactory } from "../dbt_client/dbtCommandFactory";
 
 interface PythonExecutionDetails {
   getPythonPath: () => string;
@@ -14,7 +17,11 @@ export class PythonEnvironment implements Disposable {
   private executionDetails?: PythonExecutionDetails;
   private disposables: Disposable[] = [];
 
-  constructor(private telemetry: TelemetryService) {}
+  constructor(
+    private telemetry: TelemetryService,
+    private dbtCommandFactory: DBTCommandFactory,
+    private commandProcessExecutionFactory: CommandProcessExecutionFactory,
+  ) {}
 
   dispose() {
     while (this.disposables.length) {
@@ -39,12 +46,12 @@ export class PythonEnvironment implements Disposable {
     return this.executionDetails!.onDidChangeExecutionDetails;
   }
 
-  async initialize(): Promise<void> {
+  async initialize(client: DBTClient): Promise<void> {
     if (this.executionDetails !== undefined) {
       return;
     }
 
-    this.executionDetails = await this.activatePythonExtension();
+    this.executionDetails = await this.activatePythonExtension(client);
   }
 
   private getPythonPathFromConfig(): string | undefined {
@@ -67,7 +74,9 @@ export class PythonEnvironment implements Disposable {
     );
   };
 
-  private async activatePythonExtension(): Promise<PythonExecutionDetails> {
+  private async activatePythonExtension(
+    client: DBTClient,
+  ): Promise<PythonExecutionDetails> {
     const extension = extensions.getExtension("ms-python.python")!;
 
     if (!extension.isActive) {
@@ -77,10 +86,38 @@ export class PythonEnvironment implements Disposable {
 
     const api = extension.exports;
 
+    const dbtInstalledPythonPath: string[] = [];
+    for (const workspaceFolder of workspace.workspaceFolders || []) {
+      const candidatePythonPath = api.settings.getExecutionDetails(
+        workspaceFolder.uri,
+      ).execCommand[0];
+
+      const dbtInstalledCommand =
+        this.dbtCommandFactory.createVerifyDbtInstalledCommand();
+      const checkDBTInstalledProcess =
+        this.commandProcessExecutionFactory.createCommandProcessExecution({
+          command: candidatePythonPath,
+          args: dbtInstalledCommand.processExecutionParams.args,
+        });
+
+      try {
+        await checkDBTInstalledProcess.complete();
+      } catch {
+        continue;
+      }
+
+      dbtInstalledPythonPath.push(candidatePythonPath);
+    }
+
     return (this.executionDetails = {
-      getPythonPath: () =>
-        api.settings.getExecutionDetails(workspace.workspaceFile)
-          .execCommand[0],
+      getPythonPath: () => {
+        if (dbtInstalledPythonPath.length > 0) {
+          return dbtInstalledPythonPath[0];
+        } else {
+          return api.settings.getExecutionDetails(workspace.workspaceFile)
+            .execCommand[0];
+        }
+      },
       onDidChangeExecutionDetails: api.settings.onDidChangeExecutionDetails,
       getEnvVars: () => {
         const configText = workspace.getConfiguration();
