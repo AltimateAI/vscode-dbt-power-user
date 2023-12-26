@@ -23,7 +23,7 @@ import {
   RunModelParams,
 } from "../dbt_client/dbtCommandFactory";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { EnvironmentVariables } from "../domain";
+import { DefaultQueryTemplate } from "../domain";
 import {
   debounce,
   extendErrorWithSupportLinks,
@@ -44,7 +44,6 @@ import { PythonEnvironment } from "./pythonEnvironment";
 import { TelemetryService } from "../telemetry";
 import { ValidateSqlParseErrorResponse } from "../altimate";
 import * as crypto from "crypto";
-import { DefaultQueryTemplate } from "../webview_provider/constants";
 
 export interface ExecuteSQLResult {
   table: {
@@ -959,11 +958,13 @@ select * from renamed
     }
     this.queryResultPanel.getSummary(compiledSql, this.adapterType);
   }
+
   private getLimitQuery(queryTemplate: string, query: string, limit: number) {
     return queryTemplate
       .replace("{query}", () => query)
       .replace("{limit}", () => limit.toString());
   }
+
   private async getQuery(
     query: string,
     limit: number,
@@ -972,7 +973,7 @@ select * from renamed
       .getConfiguration("dbt")
       .get<string>("queryTemplate");
 
-    if (queryTemplate && queryTemplate !== DefaultQueryTemplate) {
+    if (queryTemplate) {
       console.log("Using user provided query template", queryTemplate);
       const limitQuery = this.getLimitQuery(queryTemplate, query, limit);
 
@@ -1007,6 +1008,7 @@ select * from renamed
       limitQuery: this.getLimitQuery(DefaultQueryTemplate, query, limit),
     };
   }
+
   async executeSQL(query: string) {
     await this.blockUntilPythonBridgeIsInitalized();
     if (

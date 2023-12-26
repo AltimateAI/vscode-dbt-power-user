@@ -22,7 +22,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { AltimateRequest } from "../altimate";
-import { DefaultQueryTemplate } from "./constants";
+import { DefaultQueryTemplate } from "../domain";
 
 interface JsonObj {
   [key: string]: string | number | undefined;

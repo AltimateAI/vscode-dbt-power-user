@@ -177,3 +177,6 @@ export enum RunModelType {
 export interface EnvironmentVariables {
   [key: string]: string | undefined;
 }
+
+export const DefaultQueryTemplate =
+  "select * from ({query}\n) as query limit {limit}";
