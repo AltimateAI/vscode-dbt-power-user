@@ -37,19 +37,25 @@ export class InsightsPanel implements WebviewViewProvider {
     );
   }
 
-  async handleCommand(message: { command: string; args: Record<string, unknown> }): Promise<unknown> {
+  async handleCommand(message: { command: string; args: Record<string, unknown> }): Promise<void> {
     const { command, args } = message;
     const { id, params} = args;
 
-    if (command === "bigqueryCostEstimate") {
-      console.log("insights_panel:handleCommand -> bigqueryCostEstimate");
-      const result = await commands.executeCommand("dbtPowerUser.bigqueryCostEstimate", {returnResult: true});
+    switch (command) {
+      case "bigqueryCostEstimate":
+        console.log("insights_panel:handleCommand -> bigqueryCostEstimate");
+        const result = await commands.executeCommand("dbtPowerUser.bigqueryCostEstimate", {returnResult: true});
 
-      this._panel!.webview.postMessage({
-        command: "response",
-        args: { id, body: result, status: true},
-      });
-      return;
+        this._panel!.webview.postMessage({
+          command: "response",
+          args: { id, body: result, status: true},
+        });
+        break;
+      case "altimateScan":
+        commands.executeCommand("dbtPowerUser.altimateScan", {});
+        break;
+      default:
+        break;
     }
   }
   resolveWebviewView(
