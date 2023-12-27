@@ -102,13 +102,14 @@ const ColumnSection: FunctionComponent<{
   setData,
 }) => {
   const isEphemeral = selectedTable?.materialization === "ephemeral";
+  const isAnalysis = selectedTable?.nodeType === "analysis";
   return (
     <div className={classNames(styles.card, "flex-grow column-section")}>
       <div className="d-flex flex-column gap-sm h-100 p-2">
         <div className="d-flex align-items-center gap-xs">
           <div className="fs-5 fw-semibold">Columns</div>
           <div className="spacer" />
-          {!isEphemeral && (
+          {(!isEphemeral && !isAnalysis) && (
             <Button
               size="sm"
               color="primary"
