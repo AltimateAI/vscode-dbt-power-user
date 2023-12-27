@@ -13,6 +13,7 @@ import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
 import { readFileSync, writeFileSync } from "fs";
+import path = require("path");
 
 @provideSingleton(InsightsPanel)
 export class InsightsPanel implements WebviewViewProvider {
@@ -27,7 +28,10 @@ export class InsightsPanel implements WebviewViewProvider {
 
   private renderWebviewView(context: WebviewViewResolveContext) {
     const webview = this._panel!.webview!;
-    webview.html = getHtml(webview, this.dbtProjectContainer.extensionUri);
+    webview.html = getHtml(
+      webview,
+      this.dbtProjectContainer.getExtensionPath(),
+    );
   }
 
   resolveWebviewView(
@@ -43,33 +47,54 @@ export class InsightsPanel implements WebviewViewProvider {
 
   private setupWebviewOptions(context: WebviewViewResolveContext) {
     this._panel!.description = "Toggle Defer to prod and other features";
-    this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
+    this._panel!.webview.options = <WebviewOptions>{
+      enableScripts: true,
+      localResourceRoots: [
+        Uri.file(
+          path.join(
+            this.dbtProjectContainer.getExtensionPath(),
+            "webview_panels",
+            "dist",
+            "assets",
+          ),
+        ),
+      ],
+    };
   }
 }
 
-function getHtml(webview: Webview, extensionUri: Uri) {
-  const indexJs = getUri(webview, extensionUri, [
-    "webview_panels",
-    "dist",
-    "assets",
-    "index.js",
-  ]);
-  const resourceDir = getUri(webview, extensionUri, [
-    "webview_panels",
-    "dist",
-  ]).toString();
-  replaceInFile(indexJs, "/__ROOT__/", resourceDir + "/");
-  const indexPath = getUri(webview, extensionUri, [
-    "webview_panels",
-    "dist",
-    "index.html",
-  ]);
-  return readFileSync(indexPath.fsPath)
-    .toString()
-    .replace(/\/__ROOT__/g, resourceDir)
-    .replace(/__ROOT__/g, resourceDir)
-    .replace(/__NONCE__/g, getNonce())
-    .replace(/__CSPSOURCE__/g, webview.cspSource);
+function getHtml(webview: Webview, extensionUri: string) {
+  // const indexJs = getUri(webview, extensionUri, [
+  //   "webview_panels",
+  //   "dist",
+  //   "assets",
+  //   "main.js",
+  // ]);
+  const indexJs = webview.asWebviewUri(
+    Uri.file(
+      path.join(extensionUri, "webview_panels", "dist", "assets", "main.js"),
+    ),
+  );
+  return `
+      <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>React App</title>
+        </head>
+    
+        <body>
+          <div id="root"></div>
+          <script>
+            const vscode = acquireVsCodeApi();
+            window.viewPath = "/insights";
+          </script>
+          
+          <script type="module" src="${indexJs}"></script>
+        </body>
+      </html>
+    `;
 }
 
 function getNonce() {

@@ -8,10 +8,11 @@ export default defineConfig({
     rollupOptions: {
       input: "./src/main.tsx",
       output: {
-        entryFileNames: `assets/[name].js`,
-        chunkFileNames: `assets/[name].js`,
-        assetFileNames: `assets/[name].[ext]`,
+        entryFileNames: "assets/[name].js",
+        chunkFileNames: "assets/[name].js",
+        assetFileNames: "assets/[name].[ext]",
       },
     },
   },
 });
+//# sourceMappingURL=vite.config.js.map
