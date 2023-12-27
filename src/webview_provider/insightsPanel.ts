@@ -1,5 +1,6 @@
 import {
   CancellationToken,
+  commands,
   Disposable,
   Uri,
   Webview,
@@ -28,7 +29,7 @@ export class InsightsPanel implements WebviewViewProvider {
 
   private renderWebviewView(context: WebviewViewResolveContext) {
     const webview = this._panel!.webview!;
-    this._panel!.webview.onDidReceiveMessage(this.handleCommand, null, []);
+    this._panel!.webview.onDidReceiveMessage(this.handleCommand, this, []);
 
     webview.html = getHtml(
       webview,
@@ -36,12 +37,18 @@ export class InsightsPanel implements WebviewViewProvider {
     );
   }
 
-  async handleCommand(message: { command: string; args: Record<string, unknown> }): Promise<void> {
+  async handleCommand(message: { command: string; args: Record<string, unknown> }): Promise<unknown> {
     const { command, args } = message;
-    const { } = args;
+    const { id, params} = args;
 
     if (command === "bigqueryCostEstimate") {
       console.log("insights_panel:handleCommand -> bigqueryCostEstimate");
+      const result = await commands.executeCommand("dbtPowerUser.bigqueryCostEstimate", {returnResult: true});
+
+      this._panel!.webview.postMessage({
+        command: "response",
+        args: { id, body: result, status: true},
+      });
       return;
     }
   }
