@@ -192,6 +192,11 @@
           "id": "docs_edit_view",
           "title": "Documentation Editor",
           "icon": "./media/images/dbt_icon.svg"
+        },
+        {
+          "id": "insights_view",
+          "title": "Insights",
+          "icon": "./media/images/dbt_icon.svg"
         }
       ]
     },
@@ -238,12 +243,23 @@
           "name": "",
           "type": "webview"
         }
+      ],
+      "insights_view": [
+        {
+          "id": "dbtPowerUser.Insights",
+          "name": "",
+          "type": "webview"
+        }
       ]
     },
     "commands": [
       {
         "command": "dbtPowerUser.puQuickPick",
         "title": "dbt Power User Quick Pick"
+      },
+      {
+        "command": "dbtPowerUser.openInsights",
+        "title": "Open dbt Power User insights panel"
       },
       {
         "command": "dbtPowerUser.sqlQuickPick",
@@ -808,14 +824,15 @@
   "scripts": {
     "prepare": "husky install",
     "vscode:prepublish": "npm run panel:lineage && webpack --mode production",
-    "webpack": "npm run panel:lineage && webpack --mode development",
-    "webpack-dev": "npm run panel:lineage && webpack --mode development --watch",
+    "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
+    "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "test-compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
     "deploy-vscode": "vsce publish",
     "build-vsix": "vsce package",
     "deploy-openvsx": "ovsx publish",
+    "panel:webviews": "npm run build --prefix ./webview_panels",
     "panel:lineage": "npm run build --prefix ./new_lineage_panel",
     "install:panels": "npm install --prefix ./new_lineage_panel"
   },
