@@ -1,5 +1,3 @@
-const Insights = () => {
-  return <div>insights</div>;
-};
+const Insights = (): JSX.Element => <div>insights</div>;
 
 export default Insights;

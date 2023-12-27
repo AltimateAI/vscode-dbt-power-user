@@ -1,5 +1,3 @@
-const DocumentationEditor = () => {
-  return <div>DocumentationEditor</div>;
-};
+const DocumentationEditor = (): JSX.Element => <div>DocumentationEditor</div>;
 
 export default DocumentationEditor;
