@@ -83,7 +83,7 @@ $node-width: 260px;
   }
 
   .analysis {
-    @include node_type_color(red);
+    @include node_type_color(#ff8488);
   }
 
   .node_icon {
