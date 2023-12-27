@@ -28,12 +28,23 @@ export class InsightsPanel implements WebviewViewProvider {
 
   private renderWebviewView(context: WebviewViewResolveContext) {
     const webview = this._panel!.webview!;
+    this._panel!.webview.onDidReceiveMessage(this.handleCommand, null, []);
+
     webview.html = getHtml(
       webview,
       this.dbtProjectContainer.getExtensionPath(),
     );
   }
 
+  async handleCommand(message: { command: string; args: Record<string, unknown> }): Promise<void> {
+    const { command, args } = message;
+    const { } = args;
+
+    if (command === "bigqueryCostEstimate") {
+      console.log("insights_panel:handleCommand -> bigqueryCostEstimate");
+      return;
+    }
+  }
   resolveWebviewView(
     panel: WebviewView,
     context: WebviewViewResolveContext<unknown>,
@@ -75,6 +86,11 @@ function getHtml(webview: Webview, extensionUri: string) {
       path.join(extensionUri, "webview_panels", "dist", "assets", "main.js"),
     ),
   );
+  const indexCss = webview.asWebviewUri(
+    Uri.file(
+      path.join(extensionUri, "webview_panels", "dist", "assets", "main.css"),
+    ),
+  );
   return `
       <!DOCTYPE html>
         <html lang="en">
@@ -82,16 +98,16 @@ function getHtml(webview: Webview, extensionUri: string) {
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>React App</title>
+          <link rel="stylesheet" type="text/css" href="${indexCss}">
         </head>
     
         <body>
           <div id="root"></div>
           <script>
-            const vscode = acquireVsCodeApi();
             window.viewPath = "/insights";
           </script>
           
-          <script type="module" src="${indexJs}"></script>
+          <script nonce="${getNonce()}" type="module" src="${indexJs}"></script>
         </body>
       </html>
     `;
