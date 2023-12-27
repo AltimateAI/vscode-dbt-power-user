@@ -19,7 +19,6 @@ import {
 import {
   LineageContext,
   openFile,
-  isDarkMode,
   startProgressBar,
   endProgressBar,
 } from "./App";
@@ -29,11 +28,12 @@ import ModelIcon from "./assets/icons/model.svg?react";
 import SeedIcon from "./assets/icons/seed.svg?react";
 import SourceIcon from "./assets/icons/source.svg?react";
 import ExposureIcon from "./assets/icons/exposure.svg?react";
+import AnalysisIcon from "./assets/icons/analysis.svg?react";
 import SnapshotIcon from "./assets/icons/snapshot.svg?react";
 import MetricsIcon from "./assets/icons/metrics.svg?react";
 import MacrosIcon from "./assets/icons/macros.svg?react";
-import FolderIcon from "./assets/icons/folder.svg?react";
-import FolderDarkIcon from "./assets/icons/folder_dark.svg?react";
+// import FolderIcon from "./assets/icons/folder.svg?react";
+// import FolderDarkIcon from "./assets/icons/folder_dark.svg?react";
 import TestsIcon from "./assets/icons/tests.svg?react";
 import EphemeralIcon from "./assets/icons/ephemeral.svg?react";
 import { UncontrolledTooltip } from "reactstrap";
@@ -86,7 +86,7 @@ export const NodeTypeIcon: FunctionComponent<{ nodeType: string }> = ({
     {nodeType === "model" && <ModelIcon />}
     {nodeType === "source" && <SourceIcon />}
     {nodeType === "exposure" && <ExposureIcon />}
-    {nodeType === "analysis" && <ExposureIcon />}
+    {nodeType === "analysis" && <AnalysisIcon />}
     {nodeType === "snapshot" && <SnapshotIcon />}
     {nodeType === "metrics" && <MetricsIcon />}
     {nodeType === "macros" && <MacrosIcon />}
@@ -101,7 +101,7 @@ const NODE_TYPE_SHORTHAND = {
   snapshot: "SNP",
   metrics: "MET",
   macros: "SEM",
-  analysis: "ANS",
+  analysis: "ANY",
 };
 
 const NODE_TYPE_STYLES = {
@@ -281,6 +281,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           e.stopPropagation();
           toggleTableSelection();
           highlightTable();
+          openFile(url);
         }}
       >
         <div
@@ -330,12 +331,12 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
               View Details
             </div>
 
-            <div
+            {/* <div
               className={classNames("nodrag", styles.open_file_button)}
               onClick={() => openFile(url)}
             >
               {isDarkMode ? <FolderDarkIcon /> : <FolderIcon />}
-            </div>
+            </div> */}
             <div className="spacer" />
 
             <div
