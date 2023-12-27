@@ -7,9 +7,13 @@ import {
   Button,
   Col,
 } from "reactstrap";
+import { executeRequestInAsync } from "../app/requestExecutor";
 
-const ProjectHealthChecker = (): JSX.Element => (
-  <>
+const ProjectHealthChecker = (): JSX.Element => {
+  const handleHealthCheck = () => {
+    executeRequestInAsync("altimateScan", {});
+  };
+  return (
     <Col>
       <Card>
         <CardTitle tag="h5">
@@ -18,12 +22,13 @@ const ProjectHealthChecker = (): JSX.Element => (
         </CardTitle>
         <CardBody>
           <CardText>Run project health check</CardText>
-          <Button color="primary">Start scan</Button>
+          <Button color="primary" onClick={handleHealthCheck}>
+            Start scan
+          </Button>
         </CardBody>
       </Card>
     </Col>
-    <Col>hi</Col>
-  </>
-);
+  );
+};
 
 export default ProjectHealthChecker;
