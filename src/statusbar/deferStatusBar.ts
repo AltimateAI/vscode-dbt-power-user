@@ -34,7 +34,7 @@ export class DeferStatusBar implements Disposable {
     this.statusBar.text = text;
     this.statusBar.command = {
       title: "Open Insights Panel",
-      command: "dbtPowerUser.puOpenInsightsPanel",
+      command: "dbtPowerUser.openInsights",
     };
     this.statusBar.show();
   }
