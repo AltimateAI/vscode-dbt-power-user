@@ -1,5 +1,5 @@
 const NoMatch = () => {
-    return (<div>Panel not found!</div>)
-}
+  return <div>Panel not found!</div>;
+};
 
 export default NoMatch;
