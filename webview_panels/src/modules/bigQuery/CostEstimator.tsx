@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Card,
   CardTitle,
@@ -7,14 +8,25 @@ import {
   Button,
   Col,
 } from "reactstrap";
-import { vscode } from "../vscode";
+import { executeRequestInSync } from "../app/requestExecutor";
 
+type BigQueryCostEstimateResponse = {
+  modelName: string;
+  result: {
+    bytes_processed: string;
+  };
+};
 const BigQueryCostEstimator = (): JSX.Element => {
-  const triggerCostEstimate = () => {
-    vscode.postMessage({
-      command: "bigqueryCostEstimate",
-      args: {},
-    });
+  const [isEstimating, setIsEstimating] = useState(false);
+  const [estimatedCost, setEstimatedCost] =
+    useState<BigQueryCostEstimateResponse | null>(null);
+
+  const triggerCostEstimate = async () => {
+    setIsEstimating(true);
+    setEstimatedCost(null);
+    const result = await executeRequestInSync("bigqueryCostEstimate", {});
+    setIsEstimating(false);
+    setEstimatedCost(result as BigQueryCostEstimateResponse);
   };
   return (
     <>
@@ -26,19 +38,29 @@ const BigQueryCostEstimator = (): JSX.Element => {
           </CardTitle>
           <CardBody>
             <CardText>Estimate the cost of a BigQuery query</CardText>
-            <Button onClick={triggerCostEstimate} color="primary">
+            <Button
+              disabled={isEstimating}
+              onClick={triggerCostEstimate}
+              color="primary"
+            >
               Estimate cost
             </Button>
           </CardBody>
         </Card>
       </Col>
       <Col>
-        <Card>
-          <CardTitle tag="h5">Estimated BigQuery Cost</CardTitle>
-          <CardBody>
-            <CardText>The query for stg_orders will process 2.2KiB</CardText>
-          </CardBody>
-        </Card>
+        {estimatedCost || isEstimating ? (
+          <Card>
+            <CardTitle tag="h5">Estimated BigQuery Cost</CardTitle>
+            <CardBody>
+              <CardText>
+                {isEstimating
+                  ? "Estimating..."
+                  : `The query for ${estimatedCost?.modelName} will process ${estimatedCost?.result.bytes_processed}`}
+              </CardText>
+            </CardBody>
+          </Card>
+        ) : null}
       </Col>
     </>
   );
