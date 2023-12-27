@@ -184,6 +184,10 @@ export class DBTProjectContainer implements Disposable {
     return this.context!.extensionUri;
   }
 
+  public getExtensionPath() {
+    return this.context!.extensionPath;
+  }
+
   get extensionVersion() {
     return this.context!.extension.packageJSON.version;
   }
