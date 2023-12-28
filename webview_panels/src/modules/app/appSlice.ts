@@ -1,8 +1,10 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { AppStateProps } from "./types";
 
-const initialState = {
+export const initialState = {
   theme: "",
-};
+} as AppStateProps;
+
 const appSlice = createSlice({
   name: "appState",
   initialState,

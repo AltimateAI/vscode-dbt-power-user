@@ -1,19 +1,16 @@
 import { useCallback, useEffect } from "react";
-import { getReducerByName } from "../store";
-import { useAppDispatch } from "../store/hooks";
 import { updateTheme } from "./appSlice";
 import { handleIncomingResponse } from "./requestExecutor";
+import { ContextProps } from "./types";
 
 type InjectConfigProps = { reducer: string; state: Record<string, unknown> }[];
 
-const useListeners = (): void => {
-  const dispatch = useAppDispatch();
-
+const useListeners = (dispatch: ContextProps["dispatch"]): void => {
   const setTheme = useCallback(
     ({ theme }: { theme: string }) => {
       dispatch(updateTheme(theme));
     },
-    [dispatch]
+    [dispatch],
   );
 
   const handleInjectConfig = useCallback(
@@ -26,10 +23,10 @@ const useListeners = (): void => {
           if (myReducer) {
             dispatch(myReducer.actions.updateState(state));
           }
-        }
+        },
       );
     },
-    [dispatch]
+    [dispatch],
   );
 
   const onMesssage = useCallback(
@@ -49,7 +46,7 @@ const useListeners = (): void => {
           break;
       }
     },
-    [handleInjectConfig, setTheme]
+    [handleInjectConfig, setTheme],
   );
 
   useEffect(() => {
