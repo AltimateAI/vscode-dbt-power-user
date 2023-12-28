@@ -1,5 +1,6 @@
 import {
   CancellationToken,
+  ColorThemeKind,
   commands,
   Disposable,
   Uri,
@@ -9,6 +10,7 @@ import {
   WebviewViewProvider,
   WebviewViewResolveContext,
   window,
+  workspace,
 } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -16,6 +18,22 @@ import { TelemetryService } from "../telemetry";
 import { readFileSync, writeFileSync } from "fs";
 import path = require("path");
 
+type UpdateConfigProps = {
+  key: string;
+  value: string | boolean | number;
+}
+
+enum OutboundCommand{
+  InjectConfig = "injectConfig",
+}
+type InjectConfig = {
+  reducer: string;
+  state: {
+    defer: boolean;
+    favorState: boolean;
+    manifestPathForDeferral: string;
+  }
+}
 @provideSingleton(InsightsPanel)
 export class InsightsPanel implements WebviewViewProvider {
   public static readonly viewType = "dbtPowerUser.Insights";
@@ -54,10 +72,34 @@ export class InsightsPanel implements WebviewViewProvider {
       case "altimateScan":
         commands.executeCommand("dbtPowerUser.altimateScan", {});
         break;
+      case "clearAltimateScanResults":
+        commands.executeCommand("dbtPowerUser.clearAltimateScanResults", {});
+        break;
+      case "updateConfig":
+        workspace
+          .getConfiguration("dbt")
+          .update((params as UpdateConfigProps).key, (params as UpdateConfigProps).value);
       default:
         break;
     }
   }
+
+  /** Sends VSCode config data to webview */
+  private transmitConfig() {
+    
+    if (this._panel) {
+      this._panel.webview.postMessage({
+        command: OutboundCommand.InjectConfig,
+        args: [(<InjectConfig>{
+          reducer: "deferState",
+          state: {defer: workspace.getConfiguration("dbt").get<boolean>("defer"),
+          favorState: workspace.getConfiguration("dbt").get<boolean>("favorState"),
+          manifestPathForDeferral: workspace.getConfiguration("dbt").get<string>("manifestPathForDeferral"),}
+        })],
+      });
+    }
+  }
+  
   resolveWebviewView(
     panel: WebviewView,
     context: WebviewViewResolveContext<unknown>,
@@ -67,6 +109,30 @@ export class InsightsPanel implements WebviewViewProvider {
     this._panel = panel;
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
+    setTimeout(() => {
+      this.initWebView();
+    }, 1000);
+  }
+
+  changedActiveColorTheme() {
+    if (!this._panel) {
+      return;
+    }
+    const theme = [
+      ColorThemeKind.Light,
+      ColorThemeKind.HighContrastLight,
+    ].includes(window.activeColorTheme.kind)
+      ? "light"
+      : "dark";
+    this._panel.webview.postMessage({
+      command: "setTheme",
+      args: { theme },
+    });
+  }
+
+  private initWebView() {
+    this.changedActiveColorTheme();
+    this.transmitConfig();
   }
 
   private setupWebviewOptions(context: WebviewViewResolveContext) {

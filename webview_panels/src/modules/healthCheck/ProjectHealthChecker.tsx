@@ -13,6 +13,9 @@ const ProjectHealthChecker = (): JSX.Element => {
   const handleHealthCheck = () => {
     executeRequestInAsync("altimateScan", {});
   };
+  const handleClearProblems = () => {
+    executeRequestInAsync("clearAltimateScanResults", {});
+  };
   return (
     <Col>
       <Card>
@@ -24,6 +27,9 @@ const ProjectHealthChecker = (): JSX.Element => {
           <CardText>Run project health check</CardText>
           <Button color="primary" onClick={handleHealthCheck}>
             Start scan
+          </Button>
+          <Button color="primary" onClick={handleClearProblems}>
+            Clear problems
           </Button>
         </CardBody>
       </Card>
