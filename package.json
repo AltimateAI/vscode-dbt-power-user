@@ -164,6 +164,21 @@
             },
             "default": [],
             "description": "Add additional params to `sqlfmt`"
+          },
+          "dbt.defer": {
+            "type": "boolean",
+            "description": "Run subset of models without building their parent models",
+            "default": false
+          },
+          "dbt.manifestPathForDeferral": {
+            "type": "string",
+            "description": "Manifest path to defer the parent models",
+            "default": ""
+          },
+          "dbt.favorState": {
+            "type": "boolean",
+            "description": "If a given model exists in both the current environment and the defined defer state, turn this flag on to use the latter always",
+            "default": false
           }
         }
       }
@@ -827,7 +842,7 @@
     "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "test-compile": "tsc -p ./",
-    "lint": "eslint src --ext ts",
+    "lint": "eslint src --ext ts --max-warnings=3",
     "lint:fix": "eslint src --ext ts --fix",
     "deploy-vscode": "vsce publish",
     "build-vsix": "vsce package",

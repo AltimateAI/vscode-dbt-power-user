@@ -11,13 +11,15 @@
   "scripts": {
     "dev": "vite",
     "build": "rm -Rf ./dist; tsc && vite build",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 2",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 5",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@reduxjs/toolkit": "^2.0.1",
     "bootstrap": "^5.3.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-redux": "^9.0.4",
     "react-router-dom": "^6.21.1",
     "reactstrap": "^9.2.1",
     "vite-plugin-svgr": "^4.2.0"

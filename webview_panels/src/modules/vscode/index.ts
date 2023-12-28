@@ -1,3 +1,7 @@
 declare const acquireVsCodeApi: () => { postMessage: (v: unknown) => void };
 
-export const vscode = acquireVsCodeApi();
+// Just for handling web
+export const vscode =
+  typeof acquireVsCodeApi === "undefined"
+    ? { postMessage: (_v: unknown) => {} }
+    : acquireVsCodeApi();
