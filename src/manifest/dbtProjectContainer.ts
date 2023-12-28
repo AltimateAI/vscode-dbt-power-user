@@ -184,7 +184,7 @@ export class DBTProjectContainer implements Disposable {
     return this.context!.extensionUri;
   }
 
-  public getExtensionPath() {
+  get extensionPath() {
     return this.context!.extensionPath;
   }
 
