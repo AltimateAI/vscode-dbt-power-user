@@ -22,7 +22,7 @@ const getInitialIndex = (): number => {
   const viewPath =
     window.viewPath || // This will be set from extension
     new URL(window.location.href).searchParams.get("viewPath") || // this will be set as query param in web page
-    "";
+    "/";
   const index = availableRoutes.indexOf(viewPath);
   if (index === -1) {
     return 0;

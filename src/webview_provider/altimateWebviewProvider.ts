@@ -42,7 +42,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     webview.html = this.getHtml(
       webview,
-      this.dbtProjectContainer.getExtensionPath(),
+      this.dbtProjectContainer.extensionPath,
     );
   }
 
@@ -108,7 +108,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
       localResourceRoots: [
         Uri.file(
           path.join(
-            this.dbtProjectContainer.getExtensionPath(),
+            this.dbtProjectContainer.extensionPath,
             "webview_panels",
             "dist",
             "assets",
@@ -129,23 +129,29 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         path.join(extensionUri, "webview_panels", "dist", "assets", "main.css"),
       ),
     );
+    const nonce = getNonce();
     return `
         <!DOCTYPE html>
           <html lang="en">
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <!--
+              Use a content security policy to only allow loading images from https or from our extension directory,
+              and only allow scripts that have a specific nonce.
+            -->
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}';">
             <title>VSCode DBT Power user extension</title>
             <link rel="stylesheet" type="text/css" href="${indexCss}">
           </head>
       
           <body>
             <div id="root"></div>
-            <script>
+            <script nonce="${nonce}" >
               window.viewPath = "${this.viewPath}";
             </script>
             
-            <script nonce="${getNonce()}" type="module" src="${indexJs}"></script>
+            <script nonce="${nonce}" type="module" src="${indexJs}"></script>
           </body>
         </html>
       `;
