@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Badge,
   Button,
@@ -13,23 +13,51 @@ import {
   Label,
 } from "reactstrap";
 import { SettingsIcon } from "../../assets/icons";
-import { executeRequestInAsync } from "../app/requestExecutor";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { selectDeferState } from "./deferSelectors";
-import { updateDeferAndFavorState } from "./deferSlice";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "../app/requestExecutor";
 
+type DeferToProductionProps = {
+  defer: boolean;
+  favorState: boolean;
+  manifestPathForDeferral: string;
+};
 const DeferToProduction = (): JSX.Element => {
-  const dispatch = useAppDispatch();
-  const { defer, favorState, manifestPathForDeferral } =
-    useAppSelector(selectDeferState);
+  const [{ defer, favorState, manifestPathForDeferral }, setDeferState] =
+    useState<DeferToProductionProps>({
+      defer: false,
+      favorState: false,
+      manifestPathForDeferral: "",
+    });
   const [hideBody, setHideBody] = useState(true);
 
+  const loadDeferConfig = async () => {
+    const config = await executeRequestInSync("getDeferConfig", {});
+    if (config) {
+      setDeferState(config as DeferToProductionProps);
+    }
+  };
+  useEffect(() => {
+    loadDeferConfig();
+  }, []);
+
   const toggleBody = () => setHideBody(!hideBody);
+
+  const updateDeferAndFavorState = ({
+    key,
+    value,
+  }: {
+    key: string;
+    value: boolean;
+  }) => {
+    setDeferState((prevState) => ({ ...prevState, [key]: value }));
+  };
 
   const handleStateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { checked, name } = event.target;
     executeRequestInAsync("updateConfig", { key: name, value: checked });
-    dispatch(updateDeferAndFavorState({ key: name, value: checked }));
+    updateDeferAndFavorState({ key: name, value: checked });
   };
 
   return (
