@@ -13,6 +13,7 @@ module.exports = {
     "plugin:@typescript-eslint/stylistic-type-checked",
     "prettier",
     "plugin:you-dont-need-lodash-underscore/compatible",
+    "plugin:storybook/recommended",
   ],
   ignorePatterns: ["dist", ".eslintrc.cjs"],
   parser: "@typescript-eslint/parser",
