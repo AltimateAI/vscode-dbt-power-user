@@ -18,6 +18,5 @@
     "eqeqeq": "warn",
     "no-throw-literal": "warn",
     "indent": "off"
-  },
-  "ignorePatterns": ["webview_panels"]
+  }
 }
