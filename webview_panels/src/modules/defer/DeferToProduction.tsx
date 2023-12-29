@@ -66,6 +66,20 @@ const DeferToProduction = (): JSX.Element => {
     updateDeferAndFavorState({ key: name, value: checked });
   };
 
+  const handleManifestPathChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const { value, name } = event.target;
+    setDeferState((prevState) => ({ ...prevState, [name]: value }));
+  };
+
+  const onManifestBlur = () => {
+    executeRequestInAsync("updateConfig", {
+      key: "manifestPathForDeferral",
+      value: manifestPathForDeferral,
+    });
+  };
+
   return (
     <Col lg={6}>
       <Card>
@@ -99,10 +113,12 @@ const DeferToProduction = (): JSX.Element => {
                 </Label>
                 <Input
                   id="manifestPath"
-                  name="manifestPath"
+                  name="manifestPathForDeferral"
                   placeholder=""
                   type="text"
                   value={manifestPathForDeferral}
+                  onChange={handleManifestPathChange}
+                  onBlur={onManifestBlur}
                 />
               </Stack>
             </FormGroup>
