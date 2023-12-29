@@ -1,13 +1,5 @@
 import { useState } from "react";
-import {
-  Card,
-  CardTitle,
-  Badge,
-  CardBody,
-  CardText,
-  Button,
-  Col,
-} from "reactstrap";
+import { Col, Card, CardTitle, CardBody, CardText, Button, Tag } from "@uicore";
 import { executeRequestInSync } from "../app/requestExecutor";
 
 interface BigQueryCostEstimateResponse {
@@ -30,11 +22,11 @@ const BigQueryCostEstimator = (): JSX.Element => {
   };
   return (
     <>
-      <Col>
+      <Col lg={6}>
         <Card>
-          <CardTitle tag="h5">
+          <CardTitle tag="h6">
             BigQuery Cost Estimator
-            <Badge color="primary">Performance</Badge>
+            <Tag color="primary">Performance</Tag>
           </CardTitle>
           <CardBody>
             <CardText>Estimate the cost of a BigQuery query</CardText>

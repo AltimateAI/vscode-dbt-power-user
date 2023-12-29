@@ -1,3 +1,6 @@
+:root {
+  --bs-body-font-family: "Lexend", var(--bs-font-sans-serif);
+}
 html {
   --bg-color: #f5f5f7;
   --primary-accent: #247efe;
@@ -19,6 +22,7 @@ html {
   --input-bg: #ffffff;
   --input-text-color: #212529;
   --input-border-color: #dee2e6;
+  --Text-Neutral: #c4cad2;
 }
 
 html[data-theme="dark"] {
@@ -27,7 +31,7 @@ html[data-theme="dark"] {
   --column-node-bg: rgba(131, 144, 163, 0.2);
   --column-node-color: #ffffff;
   --text-color: #ffffff;
-  --card-bg: #252526;
+  --card-bg: #27292c;
   --card-border-color: #d5dbe433;
   --table-node-border-color: rgba(213, 219, 228, 0.1);
   --table-node-expand-bg: #494e56;
@@ -47,6 +51,11 @@ html[data-theme="dark"] {
 body {
   padding: 0;
   color: var(--text-color);
+  background: var(--bg-color);
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-top: 25px;
+  padding-bottom: 25px;
 }
 
 .position-relative {

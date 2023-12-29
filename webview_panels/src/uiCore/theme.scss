@@ -1,0 +1,41 @@
+.card {
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--card-bg);
+
+  & .card-title {
+    font-size: 12px;
+    color: var(--text-color);
+  }
+  & .card-body {
+    margin-top: 0.75rem;
+    padding: 0;
+    & .card-text {
+      font-size: 12px;
+      font-style: normal;
+      font-weight: 300;
+      line-height: 18px;
+      color: var(--Text-Neutral, #c4cad2);
+    }
+  }
+}
+
+.btn.btn-primary {
+  background: #3376cd;
+  border-radius: 2px;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.form-label,
+.col-form-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+input.form-control {
+  padding: 2px 10px 2px 8px;
+  border-radius: 3px;
+  border: 1px solid var(--card-border-color);
+}
