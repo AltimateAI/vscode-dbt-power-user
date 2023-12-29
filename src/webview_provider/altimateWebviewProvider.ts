@@ -88,15 +88,10 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     if (!this._panel) {
       return;
     }
-    const theme = [
-      ColorThemeKind.Light,
-      ColorThemeKind.HighContrastLight,
-    ].includes(window.activeColorTheme.kind)
-      ? "light"
-      : "dark";
+
     this._panel.webview.postMessage({
       command: "setTheme",
-      args: { theme },
+      args: { theme: this.getTheme() },
     });
   }
 
@@ -121,6 +116,13 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     };
   }
 
+  private getTheme() {
+    return [ColorThemeKind.Light, ColorThemeKind.HighContrastLight].includes(
+      window.activeColorTheme.kind,
+    )
+      ? "light"
+      : "dark";
+  }
   private getHtml(webview: Webview, extensionUri: string) {
     const indexJs = webview.asWebviewUri(
       Uri.file(
@@ -146,7 +148,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     const nonce = getNonce();
     return `
         <!DOCTYPE html>
-          <html lang="en">
+          <html lang="en" data-theme="${this.getTheme()}">
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -154,7 +156,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               Use a content security policy to only allow loading images from https or from our extension directory,
               and only allow scripts that have a specific nonce.
               -->
-              <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}';">
+              <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${
+                webview.cspSource
+              }; img-src ${
+                webview.cspSource
+              } https: data:; script-src 'nonce-${nonce}';">
             <title>VSCode DBT Power user extension</title>
             <link rel="stylesheet" type="text/css" href="${indexCss}">
             <link rel="stylesheet" type="text/css" href="${insightsCss}">
