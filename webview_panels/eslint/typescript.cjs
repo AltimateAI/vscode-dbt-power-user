@@ -25,6 +25,12 @@ module.exports = {
   "@typescript-eslint/no-loop-func": "warn", // on because it's good
   "@typescript-eslint/no-inferrable-types": "warn", // on because it's good
   "@typescript-eslint/no-var-requires": "off", // allow top level require,
+  "@typescript-eslint/no-misused-promises": [
+    "error",
+    {
+      checksVoidReturn: false,
+    },
+  ],
   "@typescript-eslint/ban-types": [
     "warn",
     {

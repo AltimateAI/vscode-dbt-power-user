@@ -278,8 +278,7 @@ function App() {
         commandMap[command as keyof typeof commandMap](args);
       }
     });
-    console.log("lineage:onload -> ", window.crypto.randomUUID()
-    );
+    console.log("lineage:onload -> ");
     vscode.postMessage({ command: "init", args: {} });
   }, []);
 

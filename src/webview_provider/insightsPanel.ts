@@ -1,7 +1,4 @@
-import {
-  commands,
-  workspace,
-} from "vscode";
+import { commands, workspace } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
@@ -46,13 +43,15 @@ export class InsightsPanel extends AltimateWebviewProvider {
       case "clearAltimateScanResults":
         commands.executeCommand("dbtPowerUser.clearAltimateScanResults", {});
         break;
-      case "getDeferConfig":
+      case "getDeferToProductionConfig":
         this._panel!.webview.postMessage({
           command: "response",
           args: {
             id,
             body: {
-              defer: workspace.getConfiguration("dbt").get<boolean>("defer"),
+              deferToProduction: workspace
+                .getConfiguration("dbt")
+                .get<boolean>("deferToProduction"),
               favorState: workspace
                 .getConfiguration("dbt")
                 .get<boolean>("favorState"),

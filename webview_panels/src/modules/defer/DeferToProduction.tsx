@@ -18,28 +18,32 @@ import {
   executeRequestInSync,
 } from "../app/requestExecutor";
 
-type DeferToProductionProps = {
-  defer: boolean;
+interface DeferToProductionProps {
+  deferToProduction: boolean;
   favorState: boolean;
   manifestPathForDeferral: string;
-};
+}
 const DeferToProduction = (): JSX.Element => {
-  const [{ defer, favorState, manifestPathForDeferral }, setDeferState] =
-    useState<DeferToProductionProps>({
-      defer: false,
-      favorState: false,
-      manifestPathForDeferral: "",
-    });
+  const [
+    { deferToProduction, favorState, manifestPathForDeferral },
+    setDeferState,
+  ] = useState<DeferToProductionProps>({
+    deferToProduction: false,
+    favorState: false,
+    manifestPathForDeferral: "",
+  });
   const [hideBody, setHideBody] = useState(true);
 
   const loadDeferConfig = async () => {
-    const config = await executeRequestInSync("getDeferConfig", {});
+    const config = await executeRequestInSync("getDeferToProductionConfig", {});
     if (config) {
       setDeferState(config as DeferToProductionProps);
     }
   };
   useEffect(() => {
-    loadDeferConfig();
+    loadDeferConfig().catch(() => {
+      return;
+    });
   }, []);
 
   const toggleBody = () => setHideBody(!hideBody);
@@ -81,8 +85,8 @@ const DeferToProduction = (): JSX.Element => {
                 <Input
                   type="switch"
                   onChange={handleStateChange}
-                  name="defer"
-                  checked={defer}
+                  name="deferToProduction"
+                  checked={deferToProduction}
                 />
               </Label>
             </FormGroup>

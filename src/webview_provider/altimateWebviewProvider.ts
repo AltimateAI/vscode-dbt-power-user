@@ -14,7 +14,6 @@ import {
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
-import { readFileSync, writeFileSync } from "fs";
 import path = require("path");
 
 type UpdateConfigProps = {
@@ -22,6 +21,10 @@ type UpdateConfigProps = {
   value: string | boolean | number;
 };
 
+/**
+ * This class is responsible for rendering the webview
+ * Each panel needs to have its own provider which extends this class with correct viewPath and description
+ */
 @provideSingleton(AltimateWebviewProvider)
 export class AltimateWebviewProvider implements WebviewViewProvider {
   public viewType = "dbtPowerUser.Default";
@@ -166,17 +169,4 @@ function getNonce() {
     text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
   return text;
-}
-
-function getUri(webview: Webview, extensionUri: Uri, pathList: string[]) {
-  return webview.asWebviewUri(Uri.joinPath(extensionUri, ...pathList));
-}
-async function replaceInFile(
-  filename: Uri,
-  searchString: string,
-  replacementString: string,
-) {
-  const contents = readFileSync(filename.fsPath, "utf8");
-  const replacedContents = contents.replace(searchString, replacementString);
-  writeFileSync(filename.fsPath, replacedContents, "utf8");
 }

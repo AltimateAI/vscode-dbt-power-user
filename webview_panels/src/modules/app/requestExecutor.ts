@@ -1,4 +1,5 @@
 import { vscode } from "../vscode";
+import { IncomingSyncResponse } from "./types";
 
 let id = 0;
 
@@ -9,7 +10,7 @@ const requestMap: Record<
 
 export const executeRequestInSync = (
   url: string,
-  params: unknown
+  params: unknown,
 ): Promise<unknown> =>
   new Promise((resolve, reject) => {
     requestMap[id] = { resolve, reject };
@@ -20,12 +21,7 @@ export const executeRequestInSync = (
 export const executeRequestInAsync = (url: string, params: unknown): void => {
   vscode.postMessage({ command: url, args: { params } });
 };
-export const handleIncomingResponse = (args: {
-  id: number;
-  body: unknown;
-  status: boolean;
-  error: string;
-}): void => {
+export const handleIncomingResponse = (args: IncomingSyncResponse): void => {
   const { resolve, reject } = requestMap[args.id];
   if (args.status) {
     resolve(args.body);
@@ -33,14 +29,4 @@ export const handleIncomingResponse = (args: {
     reject(args.error);
   }
   delete requestMap[args.id];
-};
-
-export const updateState = (
-  state: Record<string, unknown>,
-  action: { payload: Record<string, unknown>; type: string }
-): Record<string, unknown> => {
-  Object.keys(action.payload).forEach((key) => {
-    state[key] = action.payload[key];
-  });
-  return state;
 };

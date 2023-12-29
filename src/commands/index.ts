@@ -55,12 +55,12 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand(
         "dbtPowerUser.bigqueryCostEstimate",
-        async ({returnResult}: {returnResult?: boolean}) => {
+        async ({ returnResult }: { returnResult?: boolean }) => {
           const modelName = path.basename(
             window.activeTextEditor!.document.fileName,
             ".sql",
           );
-          if (!returnResult){
+          if (!returnResult) {
             this.dbtTerminal.show(true);
           }
           const query = window.activeTextEditor?.document.getText();
@@ -85,8 +85,8 @@ export class VSCodeCommands implements Disposable {
           this.dbtTerminal.log(
             `The query for ${modelName} will process ${result.bytes_processed}.\r\n`,
           );
-          if (returnResult){
-            return {modelName, result};
+          if (returnResult) {
+            return { modelName, result };
           }
         },
       ),
