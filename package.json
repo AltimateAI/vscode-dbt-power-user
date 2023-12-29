@@ -165,7 +165,7 @@
             "default": [],
             "description": "Add additional params to `sqlfmt`"
           },
-          "dbt.defer": {
+          "dbt.deferToProduction": {
             "type": "boolean",
             "description": "Run subset of models without building their parent models",
             "default": false
@@ -842,7 +842,7 @@
     "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "test-compile": "tsc -p ./",
-    "lint": "eslint src --ext ts --max-warnings=3",
+    "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
     "deploy-vscode": "vsce publish",
     "build-vsix": "vsce package",

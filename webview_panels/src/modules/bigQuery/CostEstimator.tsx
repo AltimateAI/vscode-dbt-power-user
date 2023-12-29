@@ -10,12 +10,12 @@ import {
 } from "reactstrap";
 import { executeRequestInSync } from "../app/requestExecutor";
 
-type BigQueryCostEstimateResponse = {
+interface BigQueryCostEstimateResponse {
   modelName: string;
   result: {
     bytes_processed: string;
   };
-};
+}
 const BigQueryCostEstimator = (): JSX.Element => {
   const [isEstimating, setIsEstimating] = useState(false);
   const [estimatedCost, setEstimatedCost] =
@@ -49,7 +49,7 @@ const BigQueryCostEstimator = (): JSX.Element => {
         </Card>
       </Col>
       <Col>
-        {estimatedCost || isEstimating ? (
+        {estimatedCost ?? isEstimating ? (
           <Card>
             <CardTitle tag="h5">Estimated BigQuery Cost</CardTitle>
             <CardBody>

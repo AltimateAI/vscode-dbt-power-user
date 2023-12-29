@@ -7,8 +7,8 @@ import {
 } from "vscode";
 import { provideSingleton } from "../utils";
 
-@provideSingleton(DeferStatusBar)
-export class DeferStatusBar implements Disposable {
+@provideSingleton(DeferToProductionStatusBar)
+export class DeferToProductionStatusBar implements Disposable {
   readonly statusBar: StatusBarItem = window.createStatusBarItem(
     StatusBarAlignment.Left,
     9,

@@ -1,9 +1,11 @@
 import { useCallback, useEffect } from "react";
 import { updateTheme } from "./appSlice";
 import { handleIncomingResponse } from "./requestExecutor";
-import { ContextProps } from "./types";
-
-type InjectConfigProps = { reducer: string; state: Record<string, unknown> }[];
+import {
+  ContextProps,
+  IncomingMessageProps,
+  IncomingSyncResponse,
+} from "./types";
 
 const useListeners = (dispatch: ContextProps["dispatch"]): void => {
   const setTheme = useCallback(
@@ -13,40 +15,21 @@ const useListeners = (dispatch: ContextProps["dispatch"]): void => {
     [dispatch],
   );
 
-  const handleInjectConfig = useCallback(
-    (args: InjectConfigProps) => {
-      args.forEach(
-        (arg: { reducer: string; state: Record<string, unknown> }) => {
-          const { reducer, state } = arg;
-          // @ts-expect-error TODO fix this type
-          const myReducer = getReducerByName(reducer);
-          if (myReducer) {
-            dispatch(myReducer.actions.updateState(state));
-          }
-        },
-      );
-    },
-    [dispatch],
-  );
-
   const onMesssage = useCallback(
-    (event: MessageEvent) => {
+    (event: MessageEvent<IncomingMessageProps>) => {
       const { command, args } = event.data;
       switch (command) {
-        case "injectConfig":
-          handleInjectConfig(args);
-          break;
         case "response":
-          handleIncomingResponse(args);
+          handleIncomingResponse(args as unknown as IncomingSyncResponse);
           break;
         case "setTheme":
-          setTheme(args);
+          setTheme(args as unknown as { theme: string });
           break;
         default:
           break;
       }
     },
-    [handleInjectConfig, setTheme],
+    [setTheme],
   );
 
   useEffect(() => {

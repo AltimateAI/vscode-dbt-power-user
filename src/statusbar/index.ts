@@ -1,7 +1,7 @@
 import { Disposable } from "vscode";
 import { provideSingleton } from "../utils";
 import { VersionStatusBar } from "./versionStatusBar";
-import { DeferStatusBar } from "./deferStatusBar";
+import { DeferToProductionStatusBar } from "./deferToProductionStatusBar";
 
 @provideSingleton(StatusBars)
 export class StatusBars implements Disposable {
@@ -9,10 +9,10 @@ export class StatusBars implements Disposable {
 
   constructor(
     private dbtStatusBar: VersionStatusBar,
-    private deferStatusBar: DeferStatusBar,
+    private deferToProductionStatusBar: DeferToProductionStatusBar,
   ) {
     this.disposables.push(this.dbtStatusBar);
-    this.disposables.push(this.deferStatusBar);
+    this.disposables.push(this.deferToProductionStatusBar);
   }
 
   dispose() {
