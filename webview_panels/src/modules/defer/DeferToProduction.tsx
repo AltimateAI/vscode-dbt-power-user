@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
 import {
-  Badge,
+  Tag,
   Button,
   Card,
   CardBody,
@@ -11,12 +10,15 @@ import {
   FormGroup,
   Input,
   Label,
-} from "reactstrap";
-import { SettingsIcon } from "../../assets/icons";
+  Stack,
+} from "@uicore";
+import { useEffect, useState } from "react";
+import { SettingsIcon } from "@assets/icons";
 import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "../app/requestExecutor";
+import classes from "./defer.module.scss";
 
 interface DeferToProductionProps {
   deferToProduction: boolean;
@@ -65,12 +67,12 @@ const DeferToProduction = (): JSX.Element => {
   };
 
   return (
-    <Col className="col-6">
+    <Col lg={6}>
       <Card>
-        <CardTitle tag="h5">
+        <CardTitle className={classes.cardTitle} tag="h5">
           Enable defer_to_production
-          <Badge color="primary">Performance</Badge>
-          <Button onClick={toggleBody}>
+          <Tag color="primary">Performance</Tag>
+          <Button outline onClick={toggleBody}>
             <SettingsIcon />
           </Button>
         </CardTitle>
@@ -79,7 +81,7 @@ const DeferToProduction = (): JSX.Element => {
             Run subset of models without building their parent models
           </CardText>
           <Form>
-            <FormGroup switch>
+            <FormGroup switch className={classes.formSwitch}>
               <Label>
                 Defer_to_production
                 <Input
@@ -90,19 +92,21 @@ const DeferToProduction = (): JSX.Element => {
                 />
               </Label>
             </FormGroup>
-            <FormGroup row>
-              <Label for="manifestPath" sm={2}>
-                Path to manifest file
-              </Label>
-              <Input
-                id="manifestPath"
-                name="manifestPath"
-                placeholder=""
-                type="text"
-                value={manifestPathForDeferral}
-              />
+            <FormGroup>
+              <Stack>
+                <Label for="manifestPath" sm={2}>
+                  Path to manifest file
+                </Label>
+                <Input
+                  id="manifestPath"
+                  name="manifestPath"
+                  placeholder=""
+                  type="text"
+                  value={manifestPathForDeferral}
+                />
+              </Stack>
             </FormGroup>
-            <FormGroup switch>
+            <FormGroup switch className={classes.formSwitch}>
               <Label>
                 Favor-state
                 <Input

@@ -132,6 +132,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         path.join(extensionUri, "webview_panels", "dist", "assets", "main.css"),
       ),
     );
+    const insightsCss = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri,
+          "webview_panels",
+          "dist",
+          "assets",
+          "Insights.css",
+        ),
+      ),
+    );
     const nonce = getNonce();
     return `
         <!DOCTYPE html>
@@ -142,10 +153,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             <!--
               Use a content security policy to only allow loading images from https or from our extension directory,
               and only allow scripts that have a specific nonce.
-            -->
-            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}';">
+              -->
+              <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}';">
             <title>VSCode DBT Power user extension</title>
             <link rel="stylesheet" type="text/css" href="${indexCss}">
+            <link rel="stylesheet" type="text/css" href="${insightsCss}">
           </head>
       
           <body>

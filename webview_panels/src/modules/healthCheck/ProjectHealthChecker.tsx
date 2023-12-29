@@ -1,12 +1,13 @@
 import {
   Card,
   CardTitle,
-  Badge,
+  Tag,
   CardBody,
   CardText,
   Button,
   Col,
-} from "reactstrap";
+  Stack,
+} from "@uicore";
 import { executeRequestInAsync } from "../app/requestExecutor";
 
 const ProjectHealthChecker = (): JSX.Element => {
@@ -17,20 +18,22 @@ const ProjectHealthChecker = (): JSX.Element => {
     executeRequestInAsync("clearAltimateScanResults", {});
   };
   return (
-    <Col>
+    <Col lg={6}>
       <Card>
         <CardTitle tag="h5">
           Perform project health check
-          <Badge color="primary">Performance</Badge>
+          <Tag color="primary">Performance</Tag>
         </CardTitle>
         <CardBody>
           <CardText>Run project health check</CardText>
-          <Button color="primary" onClick={handleHealthCheck}>
-            Start scan
-          </Button>
-          <Button color="primary" onClick={handleClearProblems}>
-            Clear problems
-          </Button>
+          <Stack>
+            <Button color="primary" onClick={handleHealthCheck}>
+              Start scan
+            </Button>
+            <Button color="primary" onClick={handleClearProblems}>
+              Clear problems
+            </Button>
+          </Stack>
         </CardBody>
       </Card>
     </Col>

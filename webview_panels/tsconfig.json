@@ -21,7 +21,13 @@
     "strictNullChecks": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@uicore": ["src/uiCore/index.ts"],
+      "@assets/*": ["src/assets/*"],
+      "@modules/*": ["src/modules/*"]
+    }
   },
   "include": ["src", "vite.config.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]

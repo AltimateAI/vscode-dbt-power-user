@@ -23,6 +23,9 @@ const AppProvider = ({ children }: { children: ReactNode }): JSX.Element => {
   useListeners(dispatch);
 
   useEffect(() => {
+    if (!state.theme) {
+      return;
+    }
     document.documentElement.setAttribute("data-theme", state.theme);
   }, [state.theme]);
 
