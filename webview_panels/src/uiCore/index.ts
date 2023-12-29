@@ -1,6 +1,5 @@
 export {
   Button,
-  Badge,
   Input,
   Card,
   CardTitle,
