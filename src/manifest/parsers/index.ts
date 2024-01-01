@@ -13,7 +13,6 @@ import { SourceParser } from "./sourceParser";
 import { TestParser } from "./testParser";
 import { TelemetryService } from "../../telemetry";
 import { ExposureParser } from "./exposureParser";
-import { DBTProjectContainer } from "../dbtProjectContainer";
 
 @provide(ManifestParser)
 export class ManifestParser {
@@ -29,14 +28,16 @@ export class ManifestParser {
     private docParser: DocParser,
     private terminal: DBTTerminal,
     private telemetry: TelemetryService,
-    private dbtProjectContainer: DBTProjectContainer,
   ) {}
 
-  public async parseManifest(
-    projectRoot: Uri,
-    projectName: string,
-    targetPath: string,
-  ) {
+  public async parseManifest(project: DBTProject) {
+    const projectName = project.getProjectName();
+    const targetPath = project.getTargetPath();
+    if (targetPath === undefined) {
+      console.error("targetPath should be defined at this stage!");
+      return;
+    }
+    const projectRoot = project.projectRoot;
     const manifest = this.readAndParseManifest(projectRoot, targetPath);
     if (manifest === undefined) {
       const event: ManifestCacheChangedEvent = {
@@ -64,10 +65,6 @@ export class ManifestParser {
     const { nodes, sources, macros, parent_map, child_map, docs, exposures } =
       manifest;
     const rootPath = projectRoot.fsPath;
-    const project = this.dbtProjectContainer.findDBTProject(projectRoot);
-    if (project === undefined) {
-      throw new Error("project is undefined");
-    }
 
     const nodeMetaMapPromise = this.nodeParser.createNodeMetaMap(
       nodes,

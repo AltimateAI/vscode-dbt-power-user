@@ -120,12 +120,6 @@ export class DBTWorkspaceFolder implements Disposable {
         await this.unregisterDBTProject(uri);
       }),
     );
-    await Promise.all(
-      this.dbtProjects.map(async (project) => {
-        await project.initializeDBTProject();
-        project.handlePythonBridgeException();
-      }),
-    );
   }
 
   findDBTProject(uri: Uri): DBTProject | undefined {
@@ -133,12 +127,8 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   private async findDBTProjectPackagesInstallPaths() {
-    const filteredProjects = this.dbtProjects.filter((project) =>
-      project.isPythonBridgeInitialized(),
-    );
-
     return await Promise.all(
-      filteredProjects.map(async (project) => {
+      this.dbtProjects.map(async (project) => {
         return await project.getPackageInstallPath();
       }),
     );
@@ -181,7 +171,7 @@ export class DBTWorkspaceFolder implements Disposable {
         projectConfig,
         this._onManifestChanged,
       );
-      await dbtProject.initializePythonBridge();
+      await dbtProject.initialize();
       this.dbtProjects.push(dbtProject);
       // sorting the dbt projects descending by path ensures that we find the deepest path first
       this.dbtProjects.sort(

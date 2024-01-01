@@ -83,10 +83,6 @@ export class CommandProcessExecution {
       );
 
       commandProcess.once("close", () => {
-        if (!stdoutBuffer) {
-          console.warn(stderrBuffer);
-          reject(`${stderrBuffer}`);
-        }
         resolve(stdoutBuffer);
       });
 

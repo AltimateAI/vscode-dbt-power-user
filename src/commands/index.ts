@@ -38,7 +38,7 @@ export class VSCodeCommands implements Disposable {
         "dbtPowerUser.checkIfDbtIsInstalled",
         async () => {
           await this.dbtProjectContainer.detectDBT();
-          this.dbtProjectContainer.initializePythonBridges();
+          this.dbtProjectContainer.initialize();
         },
       ),
       commands.registerCommand("dbtPowerUser.installDbt", () =>
@@ -232,10 +232,6 @@ export class VSCodeCommands implements Disposable {
       return;
     }
     return this.dbtProjectContainer.findDBTProject(currentFilePath);
-  }
-
-  needExtensionUpdate() {
-    return this.walkthroughCommands.isExtensionOutdated();
   }
 
   dispose() {

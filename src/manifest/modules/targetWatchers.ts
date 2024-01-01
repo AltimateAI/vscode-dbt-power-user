@@ -64,7 +64,6 @@ export class TargetWatchers implements Disposable {
   }
 
   private async onProjectConfigChanged(event: ProjectConfigChangedEvent) {
-    const projectRoot = event.project.projectRoot;
     const projectName = event.project.getProjectName();
     const targetPath = event.project.getTargetPath();
     if (targetPath === undefined) {
@@ -82,12 +81,10 @@ export class TargetWatchers implements Disposable {
 
       const handler = async () => {
         const manifestCacheChangedEvent =
-          await this.manifestParser.parseManifest(
-            projectRoot,
-            projectName,
-            targetPath,
-          );
-        this._onManifestChanged.fire(manifestCacheChangedEvent);
+          await this.manifestParser.parseManifest(event.project);
+        if (manifestCacheChangedEvent) {
+          this._onManifestChanged.fire(manifestCacheChangedEvent);
+        }
       };
 
       this.manifestWatcher = this.createManifestWatcher(event);
@@ -102,11 +99,11 @@ export class TargetWatchers implements Disposable {
       this.watchers.push(this.manifestWatcher, this.targetFolderWatcher);
 
       const manifestCacheChangedEvent = await this.manifestParser.parseManifest(
-        projectRoot,
-        projectName,
-        targetPath,
+        event.project,
       );
-      this._onManifestChanged.fire(manifestCacheChangedEvent);
+      if (manifestCacheChangedEvent) {
+        this._onManifestChanged.fire(manifestCacheChangedEvent);
+      }
     }
   }
 

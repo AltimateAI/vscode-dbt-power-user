@@ -1,7 +1,6 @@
 import { Container, interfaces } from "inversify";
 import { buildProviderModule } from "inversify-binding-decorators";
 import { EventEmitter, Uri, WorkspaceFolder } from "vscode";
-import { DBTCommandFactory } from "./dbt_client/dbtCommandFactory";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
 import { EnvironmentVariables } from "./domain";
 import { DBTProject } from "./manifest/dbtProject";
@@ -17,6 +16,11 @@ import { TargetWatchersFactory } from "./manifest/modules/targetWatchers";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
 import { QueryResultPanel } from "./webview_provider/queryResultPanel";
 import { TelemetryService } from "./telemetry";
+import { DBTCoreProjectIntegration } from "./dbt_client/dbtCoreIntegration";
+import {
+  DBTCommandExecutionInfrastructure,
+  DBTCommandFactory,
+} from "./dbt_client/dbtIntegration";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -50,6 +54,24 @@ container
   });
 
 container
+  .bind<interfaces.Factory<DBTCoreProjectIntegration>>(
+    "Factory<DBTCoreProjectIntegration>",
+  )
+  .toFactory<DBTCoreProjectIntegration, [Uri]>(
+    (context: interfaces.Context) => {
+      return (projectRoot: Uri) => {
+        const { container } = context;
+        return new DBTCoreProjectIntegration(
+          container.get(DBTCommandExecutionInfrastructure),
+          container.get(PythonEnvironment),
+          container.get(TelemetryService),
+          projectRoot,
+        );
+      };
+    },
+  );
+
+container
   .bind<interfaces.Factory<DBTProject>>("Factory<DBTProject>")
   .toFactory<DBTProject, [Uri, any, EventEmitter<ManifestCacheChangedEvent>]>(
     (context: interfaces.Context) => {
@@ -60,7 +82,6 @@ container
       ) => {
         const { container } = context;
         return new DBTProject(
-          container.get(DBTProjectContainer),
           container.get(PythonEnvironment),
           container.get(SourceFileWatchersFactory),
           container.get(DBTProjectLogFactory),
@@ -69,6 +90,7 @@ container
           container.get(DBTTerminal),
           container.get(QueryResultPanel),
           container.get(TelemetryService),
+          container.get("Factory<DBTCoreProjectIntegration>"),
           path,
           projectConfig,
           _onManifestChanged,
