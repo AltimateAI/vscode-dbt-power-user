@@ -2,6 +2,7 @@ import {
   CancellationToken,
   Disposable,
   ProgressLocation,
+  Uri,
   window,
   workspace,
 } from "vscode";
@@ -41,6 +42,7 @@ export class CLIDBTCommandExecutionStrategy
     private pythonEnvironment: PythonEnvironment,
     private terminal: DBTTerminal,
     private telemetry: TelemetryService,
+    private cwd: Uri,
   ) {}
 
   execute(command: DBTCommand, token?: CancellationToken): Promise<string> {
@@ -75,7 +77,7 @@ export class CLIDBTCommandExecutionStrategy
       command: "dbt",
       args,
       token,
-      cwd: getFirstWorkspacePath(),
+      cwd: this.cwd.fsPath,
       envVars: this.pythonEnvironment.environmentVariables,
     });
   }
@@ -341,6 +343,10 @@ export class DBTCommandExecutionInfrastructure {
 export class DBTCommandFactory {
   createVersionCommand(): DBTCommand {
     return new DBTCommand("Detecting dbt version...", ["--version"]);
+  }
+
+  createParseCommand(): DBTCommand {
+    return new DBTCommand("Parsing dbt project...", ["parse"]);
   }
 
   createRunModelCommand(params: RunModelParams): DBTCommand {

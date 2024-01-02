@@ -164,6 +164,15 @@
             },
             "default": [],
             "description": "Add additional params to `sqlfmt`"
+          },
+          "dbt.dbtIntegration": {
+            "type": "string",
+            "enum": [
+              "core",
+              "cloud"
+            ],
+            "default": "core",
+            "description": "Use dbt core or cloud"
           }
         }
       }

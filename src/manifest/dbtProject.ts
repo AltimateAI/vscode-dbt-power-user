@@ -41,6 +41,7 @@ import {
   RunModelParams,
 } from "../dbt_client/dbtIntegration";
 import { DBTCoreProjectIntegration } from "../dbt_client/dbtCoreIntegration";
+import { DBTCloudProjectIntegration } from "../dbt_client/dbtCloudIntegration";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -82,6 +83,9 @@ export class DBTProject implements Disposable {
     private queryResultPanel: QueryResultPanel,
     private telemetry: TelemetryService,
     private dbtCoreIntegrationFactory: (path: Uri) => DBTCoreProjectIntegration,
+    private dbtCloudIntegrationFactory: (
+      path: Uri,
+    ) => DBTCloudProjectIntegration,
     path: Uri,
     projectConfig: any,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
@@ -95,9 +99,22 @@ export class DBTProject implements Disposable {
       );
     this.onSourceFileChanged = this.sourceFileWatchers.onSourceFileChanged;
 
-    this.dbtProjectIntegration = this.dbtCoreIntegrationFactory(
-      this.projectRoot,
-    );
+    const dbtIntegrationMode = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+
+    switch (dbtIntegrationMode) {
+      case "cloud":
+        this.dbtProjectIntegration = this.dbtCloudIntegrationFactory(
+          this.projectRoot,
+        );
+        break;
+      default:
+        this.dbtProjectIntegration = this.dbtCoreIntegrationFactory(
+          this.projectRoot,
+        );
+        break;
+    }
 
     this.disposables.push(
       this.dbtProjectIntegration,

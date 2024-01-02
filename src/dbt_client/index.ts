@@ -1,9 +1,11 @@
-import { commands, Disposable, EventEmitter, window } from "vscode";
+import { commands, Disposable, EventEmitter, window, workspace } from "vscode";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { provideSingleton } from "../utils";
 import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
 import { existsSync } from "fs";
 import { DBTCoreDetection } from "./dbtCoreIntegration";
+import { DBTCloudDetection } from "./dbtCloudIntegration";
+import { DBTDetection } from "./dbtIntegration";
 
 enum DbtInstallationPromptAnswer {
   INSTALL = "Install dbt",
@@ -25,11 +27,26 @@ export class DBTClient implements Disposable {
     this._onDBTInstallationVerificationEvent,
   ];
   private shownError = false;
+  private dbtDetection: DBTDetection;
 
   constructor(
     private pythonEnvironment: PythonEnvironment,
     private dbtCoreDetection: DBTCoreDetection,
-  ) {}
+    private dbtCloudDetection: DBTCloudDetection,
+  ) {
+    const dbtIntegrationMode = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+
+    switch (dbtIntegrationMode) {
+      case "cloud":
+        this.dbtDetection = this.dbtCloudDetection;
+        break;
+      default:
+        this.dbtDetection = this.dbtCoreDetection;
+        break;
+    }
+  }
 
   dispose() {
     while (this.disposables.length) {
@@ -57,7 +74,7 @@ export class DBTClient implements Disposable {
     this.shownError = false;
     this.dbtInstalled = undefined;
     this.pythonInstalled = this.pythonPathExists();
-    this.dbtInstalled = await this.dbtCoreDetection.detectDBT();
+    this.dbtInstalled = await this.dbtDetection.detectDBT();
     this._onDBTInstallationVerificationEvent.fire({
       inProgress: false,
       installed: this.dbtInstalled,
