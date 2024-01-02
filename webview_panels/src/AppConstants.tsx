@@ -16,5 +16,5 @@ import Home from "./modules/home/Home";
 export const AvailableRoutes = {
   "/": { component: <Home /> },
   "/insights": { component: <Insights /> },
-  "/documentation-editor": { component: <DocumentationEditor /> },
+  "/docs-generator": { component: <DocumentationEditor /> },
 };

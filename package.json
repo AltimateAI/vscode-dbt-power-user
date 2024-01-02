@@ -212,6 +212,11 @@
           "id": "insights_view",
           "title": "Insights",
           "icon": "./media/images/dbt_icon.svg"
+        },
+        {
+          "id": "docs_generator_view",
+          "title": "Docs Generator",
+          "icon": "./media/images/dbt_icon.svg"
         }
       ]
     },
@@ -255,6 +260,13 @@
       "docs_edit_view": [
         {
           "id": "dbtPowerUser.DocsEdit",
+          "name": "",
+          "type": "webview"
+        }
+      ],
+      "docs_generator_view": [
+        {
+          "id": "dbtPowerUser.DocsGenerator",
           "name": "",
           "type": "webview"
         }
