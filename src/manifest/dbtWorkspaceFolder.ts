@@ -20,6 +20,7 @@ import { TelemetryService } from "../telemetry";
 import { YAMLError } from "yaml";
 import { ProjectRegisteredUnregisteredEvent } from "./dbtProjectContainer";
 import { DBTCoreProjectDetection } from "../dbt_client/dbtCoreIntegration";
+import { DBTCloudProjectDetection } from "../dbt_client/dbtCloudIntegration";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
@@ -36,6 +37,7 @@ export class DBTWorkspaceFolder implements Disposable {
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
     ) => DBTProject,
     private dbtCoreProjectDetection: DBTCoreProjectDetection,
+    private dbtCloudProjectDetection: DBTCloudProjectDetection,
     private telemetry: TelemetryService,
     private workspaceFolder: WorkspaceFolder,
     private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
@@ -94,8 +96,23 @@ export class DBTWorkspaceFolder implements Disposable {
       {},
       { numProjects: projectDirectories.length },
     );
+
+    const dbtIntegrationMode = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+
+    let dbtProjectDetection;
+    switch (dbtIntegrationMode) {
+      case "cloud":
+        dbtProjectDetection = this.dbtCloudProjectDetection;
+        break;
+      default:
+        dbtProjectDetection = this.dbtCoreProjectDetection;
+        break;
+    }
+
     const filteredProjects =
-      await this.dbtCoreProjectDetection.discoverProjects(projectDirectories);
+      await dbtProjectDetection.discoverProjects(projectDirectories);
 
     await Promise.all(
       filteredProjects.map(async (uri) => {

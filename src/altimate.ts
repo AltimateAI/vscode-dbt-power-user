@@ -3,7 +3,6 @@ import { provideSingleton, processStreamResponse } from "./utils";
 import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
-import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
 import { RateLimitException } from "./exceptions";
 
 interface AltimateConfig {
@@ -195,10 +194,7 @@ export class AltimateRequest {
     .getConfiguration("dbt")
     .get<string>("altimateUrl", "https://api.myaltimate.com");
 
-  constructor(
-    private dbtProjectContainer: DBTProjectContainer,
-    private telemetry: TelemetryService,
-  ) {}
+  constructor(private telemetry: TelemetryService) {}
 
   getConfig(): AltimateConfig | undefined {
     const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
@@ -323,7 +319,6 @@ export class AltimateRequest {
           "x-tenant": config.instance,
           Authorization: "Bearer " + config.key,
           "Content-Type": "application/json",
-          "extension-version": this.dbtProjectContainer.extensionVersion,
         },
       });
       console.log("network:response:", endpoint, ":", response.status);
@@ -366,17 +361,6 @@ export class AltimateRequest {
       clearTimeout(timeoutHandler);
       throw e;
     }
-  }
-
-  async isAuthenticated() {
-    try {
-      await this.fetch<void>("auth_health", {
-        method: "POST",
-      });
-    } catch (error) {
-      return false;
-    }
-    return true;
   }
 
   async generateModelDocs(docsGenerate: DocsGenerateModelRequest) {
