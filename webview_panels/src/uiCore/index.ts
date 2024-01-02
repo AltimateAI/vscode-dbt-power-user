@@ -15,3 +15,4 @@ export {
 
 export { default as Tag } from "./components/tag/Tag";
 export { default as Stack } from "./components/stack/Stack";
+export { default as Select } from "./components/select";

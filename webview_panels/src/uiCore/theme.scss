@@ -1,6 +1,6 @@
 .card {
   padding: 16px;
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--card-bg);
 
   & .card-title {
@@ -20,11 +20,17 @@
   }
 }
 
-.btn.btn-primary {
-  background: #3376cd;
+.btn {
   border-radius: 2px;
   font-size: 12px;
   font-weight: 400;
+  border: none;
+}
+.btn.btn-primary {
+  background: var(--primary-accent);
+}
+.btn.btn-danger {
+  background: var(--Action-Red);
 }
 
 .form-label,
@@ -38,4 +44,19 @@ input.form-control {
   padding: 2px 10px 2px 8px;
   border-radius: 3px;
   border: 1px solid var(--card-border-color);
+}
+
+.dropdown-toggle {
+  background-color: var(--dropdown-toggle-color);
+}
+.dropdown-menu {
+  --bs-border-radius: 0 0 4px 4px;
+  background: var(--card-bg);
+  border-color: var(--card-border-color);
+
+  & .dropdown-item,
+  & .dropdown-item-text {
+    color: var(--text-color);
+    font-size: 14px;
+  }
 }

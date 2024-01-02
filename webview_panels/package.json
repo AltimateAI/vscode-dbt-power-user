@@ -22,6 +22,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.21.1",
+    "react-select": "^5.8.0",
     "reactstrap": "^9.2.1",
     "vite-plugin-svgr": "^4.2.0"
   },
