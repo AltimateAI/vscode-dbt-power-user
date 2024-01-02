@@ -19,6 +19,7 @@ import {
 import {
   LineageContext,
   openFile,
+  isDarkMode,
   startProgressBar,
   endProgressBar,
 } from "./App";
@@ -32,8 +33,8 @@ import AnalysisIcon from "./assets/icons/analysis.svg?react";
 import SnapshotIcon from "./assets/icons/snapshot.svg?react";
 import MetricsIcon from "./assets/icons/metrics.svg?react";
 import MacrosIcon from "./assets/icons/macros.svg?react";
-// import FolderIcon from "./assets/icons/folder.svg?react";
-// import FolderDarkIcon from "./assets/icons/folder_dark.svg?react";
+import FolderIcon from "./assets/icons/folder.svg?react";
+import FolderDarkIcon from "./assets/icons/folder_dark.svg?react";
 import TestsIcon from "./assets/icons/tests.svg?react";
 import EphemeralIcon from "./assets/icons/ephemeral.svg?react";
 import { UncontrolledTooltip } from "reactstrap";
@@ -331,12 +332,12 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
               View Details
             </div>
 
-            {/* <div
+            <div
               className={classNames("nodrag", styles.open_file_button)}
               onClick={() => openFile(url)}
             >
               {isDarkMode ? <FolderDarkIcon /> : <FolderIcon />}
-            </div> */}
+            </div>
             <div className="spacer" />
 
             <div
