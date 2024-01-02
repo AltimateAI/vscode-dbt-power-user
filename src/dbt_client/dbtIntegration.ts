@@ -4,6 +4,7 @@ import {
   window,
   workspace,
   Disposable,
+  Uri,
 } from "vscode";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { PythonBridge, pythonBridge } from "python-bridge";
@@ -18,7 +19,164 @@ import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./dbtTerminal";
 import { ValidateSqlParseErrorResponse } from "../altimate";
 
+interface DBTCommandExecution {
+  command: (token: CancellationToken) => Promise<void>;
+  statusMessage: string;
+  focus?: boolean;
+}
+
+export interface DBTCommandExecutionStrategy {
+  execute(command: DBTCommand, token?: CancellationToken): Promise<void>;
+}
+
+@provideSingleton(CLIDBTCommandExecutionStrategy)
+export class CLIDBTCommandExecutionStrategy
+  implements DBTCommandExecutionStrategy
+{
+  constructor(
+    private commandProcessExecutionFactory: CommandProcessExecutionFactory,
+    private pythonEnvironment: PythonEnvironment,
+    private terminal: DBTTerminal,
+    private telemetry: TelemetryService,
+  ) {}
+
+  execute(command: DBTCommand, token?: CancellationToken): Promise<void> {
+    return this.executeCommand(command, token).completeWithTerminalOutput(
+      this.terminal,
+    );
+  }
+
+  private executeCommand(
+    command: DBTCommand,
+    token?: CancellationToken,
+  ): CommandProcessExecution {
+    this.terminal.log(`> Executing task: ${command.getCommandAsString()}\n\r`);
+    this.telemetry.sendTelemetryEvent("dbtCommand", {
+      command: command.getCommandAsString(),
+    });
+    if (command.focus) {
+      this.terminal.show(true);
+    }
+
+    const { args } = command!;
+    if (
+      !this.pythonEnvironment.pythonPath ||
+      !this.pythonEnvironment.environmentVariables
+    ) {
+      throw Error(
+        "Could not launch command as python environment is not available",
+      );
+    }
+
+    return this.commandProcessExecutionFactory.createCommandProcessExecution({
+      command: "dbt",
+      args,
+      token,
+      cwd: this.getFirstWorkspacePath(),
+      envVars: this.pythonEnvironment.environmentVariables,
+    });
+  }
+
+  private getFirstWorkspacePath(): string {
+    // If we are executing python via a wrapper like Meltano,
+    // we need to execute it from a (any) project directory
+    // By default, Command execution is in an ext dir context
+    const folders = workspace.workspaceFolders;
+    if (folders) {
+      return folders[0].uri.fsPath;
+    } else {
+      // TODO: this shouldn't happen but we should make sure this is valid fallback
+      return Uri.file("./").fsPath;
+    }
+  }
+}
+
+@provideSingleton(PythonDBTCommandExecutionStrategy)
+export class PythonDBTCommandExecutionStrategy
+  implements DBTCommandExecutionStrategy
+{
+  constructor(
+    private commandProcessExecutionFactory: CommandProcessExecutionFactory,
+    private pythonEnvironment: PythonEnvironment,
+    private terminal: DBTTerminal,
+    private telemetry: TelemetryService,
+  ) {}
+
+  execute(command: DBTCommand, token?: CancellationToken): Promise<void> {
+    return this.executeCommand(command, token).completeWithTerminalOutput(
+      this.terminal,
+    );
+  }
+
+  private executeCommand(
+    command: DBTCommand,
+    token?: CancellationToken,
+  ): CommandProcessExecution {
+    this.terminal.log(`> Executing task: ${command.getCommandAsString()}\n\r`);
+    this.telemetry.sendTelemetryEvent("dbtCommand", {
+      command: command.getCommandAsString(),
+    });
+    if (command.focus) {
+      this.terminal.show(true);
+    }
+
+    const { args } = command!;
+    if (
+      !this.pythonEnvironment.pythonPath ||
+      !this.pythonEnvironment.environmentVariables
+    ) {
+      throw Error(
+        "Could not launch command as python environment is not available",
+      );
+    }
+
+    return this.commandProcessExecutionFactory.createCommandProcessExecution({
+      command: this.pythonEnvironment.pythonPath,
+      args: ["-c", this.dbtCommand(args)],
+      token,
+      cwd: this.getFirstWorkspacePath(),
+      envVars: this.pythonEnvironment.environmentVariables,
+    });
+  }
+
+  private dbtCommand(args: string[]): string {
+    args = args.map((arg) => `'${arg}'`);
+    const dbtCustomRunnerImport = workspace
+      .getConfiguration("dbt")
+      .get<string>(
+        "dbtCustomRunnerImport",
+        "from dbt.cli.main import dbtRunner",
+      );
+    return `has_dbt_runner = True
+try: 
+    ${dbtCustomRunnerImport}
+except:
+    has_dbt_runner = False
+if has_dbt_runner:
+    dbt_cli = dbtRunner()
+    dbt_cli.invoke([${args}])
+else:
+    import dbt.main
+    dbt.main.main([${args}])`;
+  }
+
+  private getFirstWorkspacePath(): string {
+    // If we are executing python via a wrapper like Meltano,
+    // we need to execute it from a (any) project directory
+    // By default, Command execution is in an ext dir context
+    const folders = workspace.workspaceFolders;
+    if (folders) {
+      return folders[0].uri.fsPath;
+    } else {
+      // TODO: this shouldn't happen but we should make sure this is valid fallback
+      return Uri.file("./").fsPath;
+    }
+  }
+}
+
 export class DBTCommand {
+  private executionStrategy?: DBTCommandExecutionStrategy;
+
   constructor(
     public statusMessage: string,
     public args: string[],
@@ -31,6 +189,17 @@ export class DBTCommand {
 
   getCommandAsString() {
     return "dbt " + this.args.join(" ");
+  }
+
+  setExecutionStrategy(executionStrategy: DBTCommandExecutionStrategy) {
+    this.executionStrategy = executionStrategy;
+  }
+
+  execute(token?: CancellationToken) {
+    if (this.executionStrategy === undefined) {
+      throw new Error("Execution strategy is required to run dbt commands");
+    }
+    return this.executionStrategy.execute(this, token);
   }
 }
 
@@ -107,21 +276,13 @@ export interface DBTProjectIntegration extends Disposable {
   getCatalog(): Promise<{ [key: string]: string }[]>; // TODO: this should be typed
 }
 
-interface Command {
-  command: (token: CancellationToken) => Promise<void>;
-  statusMessage: string;
-  focus?: boolean;
-}
-
 @provide(DBTCommandExecutionInfrastructure)
 export class DBTCommandExecutionInfrastructure {
-  private queue: Command[] = [];
+  private queue: DBTCommandExecution[] = [];
   private running = false;
 
   constructor(
-    private commandProcessExecutionFactory: CommandProcessExecutionFactory,
     private pythonEnvironment: PythonEnvironment,
-    private terminal: DBTTerminal,
     private telemetry: TelemetryService,
   ) {}
 
@@ -156,7 +317,7 @@ export class DBTCommandExecutionInfrastructure {
 
   async addCommandToQueue(command: DBTCommand) {
     this.queue.push({
-      command: (token) => this.executeCommandImmediately(command, token),
+      command: (token) => command.execute(token),
       statusMessage: command.statusMessage,
       focus: command.focus,
     });
@@ -195,44 +356,6 @@ export class DBTCommandExecutionInfrastructure {
       this.running = false;
       this.pickCommandToRun();
     }
-  }
-
-  private async executeCommandImmediately(
-    command: DBTCommand,
-    token?: CancellationToken,
-  ) {
-    const completedProcess = await this.executeCommand(command, token);
-    completedProcess.completeWithTerminalOutput(this.terminal);
-  }
-
-  public async executeCommand(
-    command: DBTCommand,
-    token?: CancellationToken,
-  ): Promise<CommandProcessExecution> {
-    this.terminal.log(`> Executing task: ${command.getCommandAsString()}\n\r`);
-    this.telemetry.sendTelemetryEvent("dbtCommand", {
-      command: command.getCommandAsString(),
-    });
-    if (command.focus) {
-      this.terminal.show(true);
-    }
-
-    const { args } = command!;
-    if (
-      !this.pythonEnvironment.pythonPath ||
-      !this.pythonEnvironment.environmentVariables
-    ) {
-      throw Error(
-        "Could not launch command as python environment is not available",
-      );
-    }
-
-    return this.commandProcessExecutionFactory.createCommandProcessExecution({
-      command: "dbt",
-      args,
-      token,
-      envVars: this.pythonEnvironment.environmentVariables,
-    });
   }
 }
 

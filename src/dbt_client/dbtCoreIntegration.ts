@@ -22,6 +22,7 @@ import {
   DBTDetection,
   DBTProjectIntegration,
   ExecuteSQLResult,
+  PythonDBTCommandExecutionStrategy,
 } from "./dbtIntegration";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
@@ -108,6 +109,7 @@ export class DBTCoreProjectIntegration
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
     private pythonEnvironment: PythonEnvironment,
     private telemetry: TelemetryService,
+    private pythonDBTCommandExecutionStrategy: PythonDBTCommandExecutionStrategy,
     private projectRoot: Uri,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
@@ -143,27 +145,6 @@ export class DBTCoreProjectIntegration
 
   async refreshProjectConfig(): Promise<void> {
     await this.initializePaths();
-  }
-
-  executeDBTCommand(command: DBTCommand): Promise<void> {
-    // TODO: add dbt core specific params
-    const dbtCustomRunnerImport = workspace
-      .getConfiguration("dbt")
-      .get<string>(
-        "dbtCustomRunnerImport",
-        "from dbt.cli.main import dbtRunner",
-      );
-    return this.python.ex`has_dbt_runner = True
-  try: 
-      ${dbtCustomRunnerImport}
-  except:
-      has_dbt_runner = False
-  if has_dbt_runner:
-      dbt_cli = dbtRunner()
-      dbt_cli.invoke(${command.args})
-  else:
-      import dbt.main
-      dbt.main.main(${command.args})`;
   }
 
   executeSQL(query: string): Promise<ExecuteSQLResult> {
@@ -304,67 +285,60 @@ export class DBTCoreProjectIntegration
   }
 
   async runModel(command: DBTCommand) {
-    command.addArgument("--profiles-dir");
-    command.addArgument(this.dbtProfilesDir);
-    command.addArgument("--project-dir");
-    command.addArgument(this.projectRoot.fsPath);
-    this.executionInfrastructure.addCommandToQueue(command);
+    this.executionInfrastructure.addCommandToQueue(
+      this.dbtCoreCommand(command),
+    );
   }
 
   async buildModel(command: DBTCommand) {
-    command.addArgument("--profiles-dir");
-    command.addArgument(this.dbtProfilesDir);
-    command.addArgument("--project-dir");
-    command.addArgument(this.projectRoot.fsPath);
-    this.executionInfrastructure.addCommandToQueue(command);
+    this.executionInfrastructure.addCommandToQueue(
+      this.dbtCoreCommand(command),
+    );
   }
 
   async runTest(command: DBTCommand) {
-    command.addArgument("--profiles-dir");
-    command.addArgument(this.dbtProfilesDir);
-    command.addArgument("--project-dir");
-    command.addArgument(this.projectRoot.fsPath);
-    this.executionInfrastructure.addCommandToQueue(command);
+    this.executionInfrastructure.addCommandToQueue(
+      this.dbtCoreCommand(command),
+    );
   }
 
   async runModelTest(command: DBTCommand) {
-    command.addArgument("--profiles-dir");
-    command.addArgument(this.dbtProfilesDir);
-    command.addArgument("--project-dir");
-    command.addArgument(this.projectRoot.fsPath);
-    this.executionInfrastructure.addCommandToQueue(command);
+    this.executionInfrastructure.addCommandToQueue(
+      this.dbtCoreCommand(command),
+    );
   }
 
   async compileModel(command: DBTCommand) {
-    command.addArgument("--profiles-dir");
-    command.addArgument(this.dbtProfilesDir);
-    command.addArgument("--project-dir");
-    command.addArgument(this.projectRoot.fsPath);
-    this.executionInfrastructure.addCommandToQueue(command);
+    this.executionInfrastructure.addCommandToQueue(
+      this.dbtCoreCommand(command),
+    );
   }
 
   async generateDocs(command: DBTCommand) {
-    command.addArgument("--profiles-dir");
-    command.addArgument(this.dbtProfilesDir);
-    command.addArgument("--project-dir");
-    command.addArgument(this.projectRoot.fsPath);
-    this.executionInfrastructure.addCommandToQueue(command);
+    this.executionInfrastructure.addCommandToQueue(
+      this.dbtCoreCommand(command),
+    );
   }
 
   async deps(command: DBTCommand) {
-    command.addArgument("--profiles-dir");
-    command.addArgument(this.dbtProfilesDir);
-    command.addArgument("--project-dir");
-    command.addArgument(this.projectRoot.fsPath);
-    this.executionInfrastructure.addCommandToQueue(command);
+    this.executionInfrastructure.addCommandToQueue(
+      this.dbtCoreCommand(command),
+    );
   }
 
   async debug(command: DBTCommand) {
+    this.executionInfrastructure.addCommandToQueue(
+      this.dbtCoreCommand(command),
+    );
+  }
+
+  private dbtCoreCommand(command: DBTCommand) {
     command.addArgument("--profiles-dir");
     command.addArgument(this.dbtProfilesDir);
     command.addArgument("--project-dir");
     command.addArgument(this.projectRoot.fsPath);
-    this.executionInfrastructure.addCommandToQueue(command);
+    command.setExecutionStrategy(this.pythonDBTCommandExecutionStrategy);
+    return command;
   }
 
   // internal commands
