@@ -23,6 +23,8 @@ html {
   --input-text-color: #212529;
   --input-border-color: #dee2e6;
   --Text-Neutral: #c4cad2;
+  --Action-Red: #EE140F;
+  --dropdown-toggle-color: #1c1c1c;
 }
 
 html[data-theme="dark"] {
@@ -46,6 +48,8 @@ html[data-theme="dark"] {
   --input-bg: rgba(131, 144, 163, 0.2);
   --input-text-color: #ffffff;
   --input-border-color: rgba(131, 144, 163, 0.1);
+  --Action-Red: #EE140F;
+  --dropdown-toggle-color: #1c1c1c;
 }
 
 body {
