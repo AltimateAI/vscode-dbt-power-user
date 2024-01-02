@@ -1,7 +1,7 @@
 import { Suspense } from "react";
-import { AppRoutes } from "./AppRoutes";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "@uicore/theme.scss";
+import { AppRoutes } from "./AppRoutes";
 import AppProvider from "./modules/app/AppProvider";
 
 const Loader = () => <div>Loading...</div>;
