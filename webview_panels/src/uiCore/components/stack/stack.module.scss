@@ -3,7 +3,7 @@
   flex-direction: row;
   gap: 10px;
 
-  &:global.column {
+  &:global.stack-column {
     flex-direction: column;
   }
 }

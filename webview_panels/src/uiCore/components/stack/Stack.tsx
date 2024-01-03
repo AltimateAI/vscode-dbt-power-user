@@ -3,13 +3,13 @@ import classes from "./stack.module.scss";
 
 const Stack = ({
   children,
-  direction,
+  direction = "row",
   ...rest
 }: {
   children: ReactNode;
   direction?: "row" | "column";
 } & HTMLAttributes<HTMLDivElement>): JSX.Element => (
-  <div {...rest} className={`${classes.stack} ${direction}`}>
+  <div {...rest} className={`${classes.stack} stack-${direction}`}>
     {children}
   </div>
 );

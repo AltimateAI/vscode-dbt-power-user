@@ -1,6 +1,5 @@
+import { LikeIcon, SettingsIcon } from "@assets/icons";
 import type { Meta } from "@storybook/react";
-import "bootstrap/dist/css/bootstrap.min.css";
-import "./theme.scss";
 import {
   Button,
   Card,
@@ -10,6 +9,7 @@ import {
   Container,
   Form,
   FormGroup,
+  IconButton,
   Input,
   Label,
   Select,
@@ -50,6 +50,15 @@ export const UIKit = {
           <Button color="warning">warning</Button>{" "}
           <Button color="danger">danger</Button>{" "}
           <Button color="link">link</Button>
+        </div>
+        <div>
+          <h5>Icon buttons</h5>
+          <IconButton title="Like">
+            <LikeIcon />
+          </IconButton>
+          <IconButton>
+            <SettingsIcon />
+          </IconButton>
         </div>
         <br />
         <div>
