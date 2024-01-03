@@ -1,10 +1,10 @@
 import {
   CancellationToken,
+  Disposable,
   ProgressLocation,
+  Uri,
   window,
   workspace,
-  Disposable,
-  Uri,
 } from "vscode";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { PythonBridge, pythonBridge } from "python-bridge";
@@ -26,7 +26,7 @@ interface DBTCommandExecution {
 }
 
 export interface DBTCommandExecutionStrategy {
-  execute(command: DBTCommand, token?: CancellationToken): Promise<void>;
+  execute(command: DBTCommand, token?: CancellationToken): Promise<string>;
 }
 
 @provideSingleton(CLIDBTCommandExecutionStrategy)
@@ -40,7 +40,7 @@ export class CLIDBTCommandExecutionStrategy
     private telemetry: TelemetryService,
   ) {}
 
-  execute(command: DBTCommand, token?: CancellationToken): Promise<void> {
+  execute(command: DBTCommand, token?: CancellationToken): Promise<string> {
     return this.executeCommand(command, token).completeWithTerminalOutput(
       this.terminal,
     );
@@ -102,7 +102,7 @@ export class PythonDBTCommandExecutionStrategy
     private telemetry: TelemetryService,
   ) {}
 
-  execute(command: DBTCommand, token?: CancellationToken): Promise<void> {
+  execute(command: DBTCommand, token?: CancellationToken): Promise<string> {
     return this.executeCommand(command, token).completeWithTerminalOutput(
       this.terminal,
     );
@@ -255,8 +255,8 @@ export interface DBTProjectIntegration extends Disposable {
   runModelTest(command: DBTCommand): Promise<void>;
   compileModel(command: DBTCommand): Promise<void>;
   generateDocs(command: DBTCommand): Promise<void>;
-  deps(command: DBTCommand): Promise<void>;
-  debug(command: DBTCommand): Promise<void>;
+  deps(command: DBTCommand): Promise<string>;
+  debug(command: DBTCommand): Promise<string>;
   // altimate commands
   unsafeCompileNode(modelName: string): Promise<string | undefined>;
   unsafeCompileQuery(query: string): Promise<string | undefined>;
@@ -317,7 +317,9 @@ export class DBTCommandExecutionInfrastructure {
 
   async addCommandToQueue(command: DBTCommand) {
     this.queue.push({
-      command: (token) => command.execute(token),
+      command: async (token) => {
+        await command.execute(token);
+      },
       statusMessage: command.statusMessage,
       focus: command.focus,
     });
