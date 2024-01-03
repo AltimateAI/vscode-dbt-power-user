@@ -62,7 +62,7 @@ export class DBTCoreDetection implements DBTDetection {
         this.commandProcessExecutionFactory.createCommandProcessExecution({
           command: this.pythonEnvironment.pythonPath,
           args: ["-c", "import dbt"],
-          cwd: this.getFirstWorkspacePath(),
+          cwd: DBTCoreDetection.getFirstWorkspacePath(),
           envVars: this.pythonEnvironment.environmentVariables,
         });
       await checkDBTInstalledProcess.complete();
@@ -72,7 +72,7 @@ export class DBTCoreDetection implements DBTDetection {
     }
   }
 
-  private getFirstWorkspacePath(): string {
+  static getFirstWorkspacePath(): string {
     // If we are executing python via a wrapper like Meltano,
     // we need to execute it from a (any) project directory
     // By default, Command execution is in an ext dir context
