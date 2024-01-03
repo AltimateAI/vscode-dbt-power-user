@@ -45,28 +45,18 @@ export class WalkthroughCommands {
           );
           return;
         }
-        project.debug();
-        // TODO: make above Promise<string>
-
-        // try {
-        //   const runModelOutput: string =
-        //     await this.dbtProjectContainer.runCommandAndReturnResults(
-        //       runModelCommand,
-        //     );
-        //   if (runModelOutput.includes("ERROR")) {
-        //     throw new Error();
-        //   }
-        // } catch (runError) {
-        //   console.log(runError);
-        //   window.showErrorMessage(
-        //     "Error running dbt debug for project " +
-        //       projectContext.label +
-        //       ". Please check the output tab for more details.",
-        //   );
-        // }
+        const runModelOutput = await project.debug();
+        if (runModelOutput.includes("ERROR")) {
+          throw new Error();
+        }
       } catch (err) {
         console.log(err);
         this.telemetry.sendTelemetryError("validateProjectError", err);
+        window.showErrorMessage(
+          "Error running dbt debug for project " +
+            projectContext.label +
+            ". Please check the output tab for more details.",
+        );
       }
     }
   }
@@ -96,7 +86,7 @@ export class WalkthroughCommands {
           return;
         }
 
-        const result = await project.installDeps();
+        await project.installDeps();
       } catch (err) {
         console.log(err);
         this.telemetry.sendTelemetryError("installDepsError", err);

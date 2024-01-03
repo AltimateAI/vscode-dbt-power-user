@@ -257,8 +257,8 @@ export class DBTProject implements Disposable {
 
   debug() {
     const debugCommand = this.dbtCommandFactory.createDebugCommand();
-    this.dbtProjectIntegration.debug(debugCommand);
     this.telemetry.sendTelemetryEvent("debug");
+    return this.dbtProjectIntegration.debug(debugCommand);
   }
 
   installDeps() {
