@@ -109,8 +109,12 @@ export class DBTProjectContainer implements Disposable {
     this.context = context;
   }
 
-  showDbtNotInstalledErrorMessageIfDbtIsNotInstalled() {
-    return this.dbtClient.showDbtNotInstalledErrorMessageIfDbtIsNotInstalled();
+  showErrorIfDbtOrPythonNotInstalled() {
+    return this.dbtClient.showErrorIfDbtOrPythonNotInstalled();
+  }
+
+  showErrorIfDbtIsNotInstalled() {
+    return this.dbtClient.showErrorIfDbtIsNotInstalled();
   }
 
   async initializeDBTProjects(): Promise<void> {

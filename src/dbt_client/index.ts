@@ -24,6 +24,7 @@ export class DBTClient implements Disposable {
   private disposables: Disposable[] = [
     this._onDBTInstallationVerificationEvent,
   ];
+  private shownError = false;
 
   constructor(
     private pythonEnvironment: PythonEnvironment,
@@ -53,6 +54,7 @@ export class DBTClient implements Disposable {
     this._onDBTInstallationVerificationEvent.fire({
       inProgress: true,
     });
+    this.shownError = false;
     this.dbtInstalled = undefined;
     this.pythonInstalled = this.pythonPathExists();
     this.dbtInstalled = await this.dbtCoreDetection.detectDBT();
@@ -67,28 +69,40 @@ export class DBTClient implements Disposable {
     );
   }
 
-  async showDbtNotInstalledErrorMessageIfDbtIsNotInstalled() {
+  async showErrorIfDbtOrPythonNotInstalled() {
     if (!this.pythonInstalled) {
-      const answer = await window.showErrorMessage(
-        "No Python interpreter is selected or Python is not installed",
-        PythonInterpreterPromptAnswer.SELECT,
-      );
-      if (answer === PythonInterpreterPromptAnswer.SELECT) {
-        commands.executeCommand("python.setInterpreter");
+      if (!this.shownError) {
+        // We don't want to flood the user with errors
+        this.shownError = true;
+        const answer = await window.showErrorMessage(
+          "No Python interpreter is selected or Python is not installed",
+          PythonInterpreterPromptAnswer.SELECT,
+        );
+        if (answer === PythonInterpreterPromptAnswer.SELECT) {
+          commands.executeCommand("python.setInterpreter");
+        }
       }
-      return true;
+      return false;
     }
+    return this.showErrorIfDbtIsNotInstalled();
+  }
+
+  async showErrorIfDbtIsNotInstalled() {
     if (!this.dbtInstalled) {
-      const answer = await window.showErrorMessage(
-        "Please ensure dbt is installed in your selected Python environment.",
-        DbtInstallationPromptAnswer.INSTALL,
-      );
-      if (answer === DbtInstallationPromptAnswer.INSTALL) {
-        commands.executeCommand("dbtPowerUser.installDbt");
+      if (!this.shownError) {
+        // We don't want to flood the user with errors
+        this.shownError = true;
+        const answer = await window.showErrorMessage(
+          "Please ensure dbt is installed.",
+          DbtInstallationPromptAnswer.INSTALL,
+        );
+        if (answer === DbtInstallationPromptAnswer.INSTALL) {
+          commands.executeCommand("dbtPowerUser.installDbt");
+        }
       }
-      return true;
+      return false;
     }
-    return false;
+    return true;
   }
 
   getPythonEnvironment() {

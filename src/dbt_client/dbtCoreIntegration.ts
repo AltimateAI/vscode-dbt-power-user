@@ -17,6 +17,7 @@ import {
   substituteSettingsVariables,
 } from "../utils";
 import {
+  CLIDBTCommandExecutionStrategy,
   CompilationResult,
   DBTCommand,
   DBTCommandExecutionInfrastructure,
@@ -34,6 +35,7 @@ import { existsSync } from "fs";
 import { join } from "path";
 import { TelemetryService } from "../telemetry";
 import { ValidateSqlParseErrorResponse } from "../altimate";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 
 // TODO: we shouold really get these from manifest directly
 interface ResolveReferenceNodeResult {
@@ -98,6 +100,7 @@ export class DBTCoreProjectIntegration
     private pythonEnvironment: PythonEnvironment,
     private telemetry: TelemetryService,
     private pythonDBTCommandExecutionStrategy: PythonDBTCommandExecutionStrategy,
+    private dbtProjectContainer: DBTProjectContainer,
     private projectRoot: Uri,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
@@ -273,39 +276,27 @@ export class DBTCoreProjectIntegration
   }
 
   async runModel(command: DBTCommand) {
-    this.executionInfrastructure.addCommandToQueue(
-      this.dbtCoreCommand(command),
-    );
+    this.addCommandToQueue(this.dbtCoreCommand(command));
   }
 
   async buildModel(command: DBTCommand) {
-    this.executionInfrastructure.addCommandToQueue(
-      this.dbtCoreCommand(command),
-    );
+    this.addCommandToQueue(this.dbtCoreCommand(command));
   }
 
   async runTest(command: DBTCommand) {
-    this.executionInfrastructure.addCommandToQueue(
-      this.dbtCoreCommand(command),
-    );
+    this.addCommandToQueue(this.dbtCoreCommand(command));
   }
 
   async runModelTest(command: DBTCommand) {
-    this.executionInfrastructure.addCommandToQueue(
-      this.dbtCoreCommand(command),
-    );
+    this.addCommandToQueue(this.dbtCoreCommand(command));
   }
 
   async compileModel(command: DBTCommand) {
-    this.executionInfrastructure.addCommandToQueue(
-      this.dbtCoreCommand(command),
-    );
+    this.addCommandToQueue(this.dbtCoreCommand(command));
   }
 
   async generateDocs(command: DBTCommand) {
-    this.executionInfrastructure.addCommandToQueue(
-      this.dbtCoreCommand(command),
-    );
+    this.addCommandToQueue(this.dbtCoreCommand(command));
   }
 
   deps(command: DBTCommand) {
@@ -314,6 +305,15 @@ export class DBTCoreProjectIntegration
 
   debug(command: DBTCommand) {
     return this.dbtCoreCommand(command).execute();
+  }
+
+  private addCommandToQueue(command: DBTCommand) {
+    const isInstalled =
+      this.dbtProjectContainer.showErrorIfDbtOrPythonNotInstalled();
+    if (!isInstalled) {
+      return;
+    }
+    this.executionInfrastructure.addCommandToQueue(command);
   }
 
   private dbtCoreCommand(command: DBTCommand) {
@@ -327,6 +327,7 @@ export class DBTCoreProjectIntegration
 
   // internal commands
   async unsafeCompileNode(modelName: string): Promise<string | undefined> {
+    this.throwBridgeErrorIfAvalable();
     const output = await this.python?.lock<CompilationResult>(
       (python) =>
         python!`to_dict(project.compile_node(project.get_ref_node(${modelName})))`,
@@ -335,6 +336,7 @@ export class DBTCoreProjectIntegration
   }
 
   async unsafeCompileQuery(query: string): Promise<string | undefined> {
+    this.throwBridgeErrorIfAvalable();
     const output = await this.python?.lock<CompilationResult>(
       (python) => python!`to_dict(project.compile_sql(${query}))`,
     );
@@ -342,6 +344,7 @@ export class DBTCoreProjectIntegration
   }
 
   async validateSql(query: string, dialect: string, models: any) {
+    this.throwBridgeErrorIfAvalable();
     const result = await this.python?.lock<ValidateSqlParseErrorResponse>(
       (python) =>
         python!`to_dict(validate_sql(${query}, ${dialect}, ${models}))`,
@@ -350,6 +353,7 @@ export class DBTCoreProjectIntegration
   }
 
   async validateSQLDryRun(query: string) {
+    this.throwBridgeErrorIfAvalable();
     const result = await this.python?.lock<{ bytes_processed: string }>(
       (python) => python!`to_dict(project.validate_sql_dry_run(${query}))`,
     );
@@ -357,6 +361,7 @@ export class DBTCoreProjectIntegration
   }
 
   async getColumnsOfModel(modelName: string) {
+    this.throwBridgeErrorIfAvalable();
     // Get database and schema
     const node = (await this.python?.lock(
       (python) => python!`to_dict(project.get_ref_node(${modelName}))`,
@@ -373,6 +378,7 @@ export class DBTCoreProjectIntegration
   }
 
   async getColumnsOfSource(sourceName: string, tableName: string) {
+    this.throwBridgeErrorIfAvalable();
     // Get database and schema
     const node = (await this.python?.lock(
       (python) =>
@@ -394,6 +400,7 @@ export class DBTCoreProjectIntegration
     schema: string | undefined,
     objectName: string,
   ) {
+    this.throwBridgeErrorIfAvalable();
     return this.python?.lock<{ [key: string]: string }[]>(
       (python) =>
         python!`to_dict(project.get_columns_in_relation(project.create_relation(${database}, ${schema}, ${objectName})))`,
@@ -401,6 +408,7 @@ export class DBTCoreProjectIntegration
   }
 
   async getCatalog() {
+    this.throwBridgeErrorIfAvalable();
     return await this.python?.lock<{ [key: string]: string }[]>(
       (python) => python!`to_dict(project.get_catalog())`,
     );
@@ -461,6 +469,22 @@ export class DBTCoreProjectIntegration
     this.modelPaths = await this.findModelPaths();
     this.macroPaths = await this.findMacroPaths();
     this.packagesInstallPath = await this.findPackagesInstallPath();
+  }
+
+  private throwBridgeErrorIfAvalable() {
+    const allDiagnostics = [
+      this.pythonBridgeDiagnostics,
+      this.rebuildManifestDiagnostics,
+    ];
+
+    for (const diagnosticCollection of allDiagnostics) {
+      for (const [_, diagnostics] of diagnosticCollection) {
+        if (diagnostics.length > 0) {
+          const firstError = diagnostics[0];
+          throw new Error(firstError.message);
+        }
+      }
+    }
   }
 
   async dispose() {

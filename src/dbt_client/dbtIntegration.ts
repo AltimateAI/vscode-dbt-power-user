@@ -152,12 +152,11 @@ else:
 }
 
 export class DBTCommand {
-  private executionStrategy?: DBTCommandExecutionStrategy;
-
   constructor(
     public statusMessage: string,
     public args: string[],
     public focus: boolean = false,
+    public executionStrategy?: DBTCommandExecutionStrategy,
   ) {}
 
   addArgument(arg: string) {

@@ -4,7 +4,10 @@ import { EventEmitter, Uri, WorkspaceFolder } from "vscode";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
 import { EnvironmentVariables } from "./domain";
 import { DBTProject } from "./manifest/dbtProject";
-import { ProjectRegisteredUnregisteredEvent } from "./manifest/dbtProjectContainer";
+import {
+  DBTProjectContainer,
+  ProjectRegisteredUnregisteredEvent,
+} from "./manifest/dbtProjectContainer";
 import { DBTWorkspaceFolder } from "./manifest/dbtWorkspaceFolder";
 import { ManifestCacheChangedEvent } from "./manifest/event/manifestCacheChangedEvent";
 import { DBTProjectLogFactory } from "./manifest/modules/dbtProjectLog";
@@ -64,6 +67,7 @@ container
           container.get(PythonEnvironment),
           container.get(TelemetryService),
           container.get(PythonDBTCommandExecutionStrategy),
+          container.get(DBTProjectContainer),
           projectRoot,
         );
       };
