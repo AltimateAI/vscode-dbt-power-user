@@ -98,18 +98,24 @@ export class CommandProcessExecution {
     });
   }
 
-  async completeWithTerminalOutput(terminal: DBTTerminal): Promise<void> {
+  async completeWithTerminalOutput(terminal: DBTTerminal): Promise<string> {
     return new Promise((resolve, reject) => {
       const commandProcess = this.spawn();
+      let stdoutBuffer = "";
+      let stderrBuffer = "";
       commandProcess.stdout!.on("data", (chunk) => {
-        terminal.log(`${this.formatText(chunk.toString())}`);
+        const line = `${this.formatText(chunk.toString())}`;
+        stdoutBuffer += line;
+        terminal.log(line);
       });
       commandProcess.stderr!.on("data", (chunk) => {
-        terminal.log(`${this.formatText(chunk.toString())}`);
+        const line = `${this.formatText(chunk.toString())}`;
+        stderrBuffer += line;
+        terminal.log(line);
       });
       commandProcess.once("close", () => {
         terminal.log("");
-        resolve();
+        resolve(stdoutBuffer);
         this.dispose();
       });
       commandProcess.once("error", (error) => {

@@ -154,6 +154,7 @@ export class WalkthroughCommands {
           },
           async () => {
             try {
+              // TODO: change here
               // await this.dbtProjectContainer.runCommandAndReturnResults(
               //   this.dbtCommandFactory.createDbtInstallCommand(
               //     packageName,

@@ -18,7 +18,6 @@ import {
   DBTCommandExecutionInfrastructure,
   DBTCommandFactory,
   PythonDBTCommandExecutionStrategy,
-  PythonDBTCommandImmediateExecutionStrategy,
 } from "./dbt_client/dbtIntegration";
 
 export const container = new Container();
@@ -65,7 +64,6 @@ container
           container.get(PythonEnvironment),
           container.get(TelemetryService),
           container.get(PythonDBTCommandExecutionStrategy),
-          container.get(PythonDBTCommandImmediateExecutionStrategy),
           projectRoot,
         );
       };
