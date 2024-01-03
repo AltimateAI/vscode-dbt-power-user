@@ -9,7 +9,10 @@ const Stack = ({
   children: ReactNode;
   direction?: "row" | "column";
 } & HTMLAttributes<HTMLDivElement>): JSX.Element => (
-  <div {...rest} className={`${classes.stack} stack-${direction}`}>
+  <div
+    {...rest}
+    className={`${rest.className} ${classes.stack} stack-${direction}`}
+  >
     {children}
   </div>
 );

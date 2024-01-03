@@ -2,7 +2,10 @@ import { HTMLAttributes, useRef, useState } from "react";
 import { Tooltip } from "../../";
 import classes from "./styles.module.scss";
 
-const IconButton = (props: HTMLAttributes<HTMLButtonElement>): JSX.Element => {
+interface Props extends HTMLAttributes<HTMLButtonElement> {
+  color?: string;
+}
+const IconButton = (props: Props): JSX.Element => {
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const toggle = () => setTooltipOpen(!tooltipOpen);
   const idRef = useRef(
@@ -14,7 +17,9 @@ const IconButton = (props: HTMLAttributes<HTMLButtonElement>): JSX.Element => {
       <button
         {...props}
         id={idRef.current}
-        className={`btn ${props.className ?? ""} ${classes.iconButton}`}
+        className={`btn ${props.color ? `btn-${props.color}` : ""} ${
+          props.className ?? ""
+        } ${classes.iconButton}`}
       >
         {props.children}
       </button>

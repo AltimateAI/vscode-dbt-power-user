@@ -26,6 +26,7 @@ html {
   --Action-Red: #ee140f;
   --dropdown-toggle-color: #1c1c1c;
   font-size: 14px;
+  --Action-Brand-dark: #004fbf;
 }
 
 html[data-theme="dark"] {

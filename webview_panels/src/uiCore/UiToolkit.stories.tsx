@@ -1,4 +1,9 @@
-import { LikeIcon, SettingsIcon } from "@assets/icons";
+import {
+  LikeIcon,
+  SettingsIcon,
+  ShinesIcon,
+  YellowEyeIcon,
+} from "@assets/icons";
 import type { Meta } from "@storybook/react";
 import {
   Button,
@@ -7,6 +12,7 @@ import {
   CardText,
   CardTitle,
   Container,
+  DropdownButton,
   Form,
   FormGroup,
   IconButton,
@@ -44,13 +50,20 @@ export const UIKit = {
         </CardTitle>
         <br />
         <div>
-          <Button color="primary">primary</Button> <Button>secondary</Button>{" "}
+          <Button color="primary">primary</Button>
+          <Button>secondary</Button>
           <Button color="success">success</Button>{" "}
           <Button color="info">info</Button>{" "}
           <Button color="warning">warning</Button>{" "}
           <Button color="danger">danger</Button>{" "}
           <Button color="link">link</Button>
+          <br />
+          <br />
+          <DropdownButton onToggleClick={() => null}>
+            <ShinesIcon /> Generate All <YellowEyeIcon />
+          </DropdownButton>
         </div>
+        <br />
         <div>
           <h5>Icon buttons</h5>
           <IconButton title="Like">
