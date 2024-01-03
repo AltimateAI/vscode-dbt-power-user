@@ -103,12 +103,8 @@ export class DBTWorkspaceFolder implements Disposable {
         await this.registerDBTProject(uri);
       }),
     );
-    // Filter projects
-    let packagesInstallPaths = await this.findDBTProjectPackagesInstallPaths();
-
-    packagesInstallPaths = packagesInstallPaths.filter(
-      (packageInstallPath) => packageInstallPath !== undefined,
-    );
+    // Unregister projects that are in the packages folder of other projects
+    const packagesInstallPaths = this.findDBTProjectPackagesInstallPaths();
 
     const filteredProjectFiles = projectFiles.filter((uri) => {
       return packagesInstallPaths.some((packageInstallPath) => {
@@ -126,12 +122,12 @@ export class DBTWorkspaceFolder implements Disposable {
     return this.dbtProjects.find((project) => project.contains(uri));
   }
 
-  private async findDBTProjectPackagesInstallPaths() {
-    return await Promise.all(
-      this.dbtProjects.map(async (project) => {
-        return await project.getPackageInstallPath();
-      }),
-    );
+  private findDBTProjectPackagesInstallPaths() {
+    return this.dbtProjects
+      .map((project) => {
+        return project.getPackageInstallPath();
+      })
+      .filter((packageInstallPath) => packageInstallPath !== undefined);
   }
 
   getProjects(): DBTProject[] {
