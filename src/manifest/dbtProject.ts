@@ -262,10 +262,10 @@ export class DBTProject implements Disposable {
   }
 
   installDeps() {
+    this.telemetry.sendTelemetryEvent("installDeps");
     const installDepsCommand =
       this.dbtCommandFactory.createInstallDepsCommand();
-    this.dbtProjectIntegration.debug(installDepsCommand);
-    this.telemetry.sendTelemetryEvent("installDeps");
+    return this.dbtProjectIntegration.deps(installDepsCommand);
   }
 
   async compileNode(modelName: string): Promise<string | undefined> {

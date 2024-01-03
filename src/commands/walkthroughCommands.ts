@@ -96,28 +96,15 @@ export class WalkthroughCommands {
           return;
         }
 
-        project.installDeps();
-        // TODO: make above Promise<string>
-
-        // const depsCommand = this.dbtCommandFactory.createInstallDepsCommand(
-        //   project.projectRoot,
-        //   project.dbtProfilesDir,
-        // );
-        // try {
-        //   await this.dbtProjectContainer.runCommandAndReturnResults(
-        //     depsCommand,
-        //   );
-        // } catch (depsError) {
-        //   console.log(depsError);
-        //   window.showErrorMessage(
-        //     "Error installing dbt dependencies for project " +
-        //       projectContext.label +
-        //       ". Please check the output tab for more details.",
-        //   );
-        // }
+        const result = await project.installDeps();
       } catch (err) {
         console.log(err);
         this.telemetry.sendTelemetryError("installDepsError", err);
+        window.showErrorMessage(
+          "Error installing dbt dependencies for project " +
+            projectContext.label +
+            ". Please check the output tab for more details.",
+        );
       }
     }
   }

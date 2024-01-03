@@ -444,7 +444,7 @@ export class DBTCommandFactory {
     return new DBTCommand("Detecting dbt version...", ["--version"]);
   }
 
-  createRunModelCommand(params: RunModelParams): DBTCommand<string> {
+  createRunModelCommand(params: RunModelParams): DBTCommand<void> {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     const buildModelCommandAdditionalParams = workspace
       .getConfiguration("dbt")
@@ -462,7 +462,7 @@ export class DBTCommandFactory {
     );
   }
 
-  createBuildModelCommand(params: RunModelParams): DBTCommand<string> {
+  createBuildModelCommand(params: RunModelParams): DBTCommand<void> {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     const buildModelCommandAdditionalParams = workspace
       .getConfiguration("dbt")
@@ -480,7 +480,7 @@ export class DBTCommandFactory {
     );
   }
 
-  createTestModelCommand(testName: string): DBTCommand<string> {
+  createTestModelCommand(testName: string): DBTCommand<void> {
     const testModelCommandAdditionalParams = workspace
       .getConfiguration("dbt")
       .get<string[]>("testModelCommandAdditionalParams", []);
@@ -492,7 +492,7 @@ export class DBTCommandFactory {
     ]);
   }
 
-  createCompileModelCommand(params: RunModelParams): DBTCommand<string> {
+  createCompileModelCommand(params: RunModelParams): DBTCommand<void> {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     return new DBTCommand(
       "Compiling dbt models...",
@@ -505,7 +505,7 @@ export class DBTCommandFactory {
     );
   }
 
-  createDocsGenerateCommand(): DBTCommand<string> {
+  createDocsGenerateCommand(): DBTCommand<void> {
     return new DBTCommand("Generating dbt Docs...", ["docs", "generate"], true);
   }
 
