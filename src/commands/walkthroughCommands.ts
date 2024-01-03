@@ -52,7 +52,7 @@ export class WalkthroughCommands {
         }
         const runModelOutput = await project.debug();
         if (runModelOutput.includes("ERROR")) {
-          throw new Error();
+          throw new Error(runModelOutput);
         }
       } catch (err) {
         console.log(err);
