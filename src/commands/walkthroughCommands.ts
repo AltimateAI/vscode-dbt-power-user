@@ -1,5 +1,5 @@
 import { window, QuickPickItem, ProgressLocation, commands } from "vscode";
-import { provideSingleton } from "../utils";
+import { getFirstWorkspacePath, provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
@@ -160,7 +160,7 @@ export class WalkthroughCommands {
                 "install",
                 `${packageName}==${packageVersion}`,
               ],
-              cwd: DBTCoreDetection.getFirstWorkspacePath(),
+              cwd: getFirstWorkspacePath(),
               envVars: this.pythonEnvironment.environmentVariables,
             })
             .complete();

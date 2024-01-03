@@ -6,7 +6,11 @@ import {
   window,
   workspace,
 } from "vscode";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
+import {
+  extendErrorWithSupportLinks,
+  getFirstWorkspacePath,
+  provideSingleton,
+} from "../utils";
 import { PythonBridge, pythonBridge } from "python-bridge";
 import { provide } from "inversify-binding-decorators";
 import {
@@ -72,22 +76,9 @@ export class CLIDBTCommandExecutionStrategy
       command: "dbt",
       args,
       token,
-      cwd: this.getFirstWorkspacePath(),
+      cwd: getFirstWorkspacePath(),
       envVars: this.pythonEnvironment.environmentVariables,
     });
-  }
-
-  private getFirstWorkspacePath(): string {
-    // If we are executing python via a wrapper like Meltano,
-    // we need to execute it from a (any) project directory
-    // By default, Command execution is in an ext dir context
-    const folders = workspace.workspaceFolders;
-    if (folders) {
-      return folders[0].uri.fsPath;
-    } else {
-      // TODO: this shouldn't happen but we should make sure this is valid fallback
-      return Uri.file("./").fsPath;
-    }
   }
 }
 
@@ -134,7 +125,7 @@ export class PythonDBTCommandExecutionStrategy
       command: this.pythonEnvironment.pythonPath,
       args: ["-c", this.dbtCommand(args)],
       token,
-      cwd: this.getFirstWorkspacePath(),
+      cwd: getFirstWorkspacePath(),
       envVars: this.pythonEnvironment.environmentVariables,
     });
   }
@@ -158,19 +149,6 @@ if has_dbt_runner:
 else:
     import dbt.main
     dbt.main.main([${args}])`;
-  }
-
-  private getFirstWorkspacePath(): string {
-    // If we are executing python via a wrapper like Meltano,
-    // we need to execute it from a (any) project directory
-    // By default, Command execution is in an ext dir context
-    const folders = workspace.workspaceFolders;
-    if (folders) {
-      return folders[0].uri.fsPath;
-    } else {
-      // TODO: this shouldn't happen but we should make sure this is valid fallback
-      return Uri.file("./").fsPath;
-    }
   }
 }
 

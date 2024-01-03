@@ -11,6 +11,7 @@ import {
 import * as os from "os";
 import {
   extendErrorWithSupportLinks,
+  getFirstWorkspacePath,
   provideSingleton,
   setupWatcherHandler,
   substituteSettingsVariables,
@@ -62,26 +63,13 @@ export class DBTCoreDetection implements DBTDetection {
         this.commandProcessExecutionFactory.createCommandProcessExecution({
           command: this.pythonEnvironment.pythonPath,
           args: ["-c", "import dbt"],
-          cwd: DBTCoreDetection.getFirstWorkspacePath(),
+          cwd: getFirstWorkspacePath(),
           envVars: this.pythonEnvironment.environmentVariables,
         });
       await checkDBTInstalledProcess.complete();
       return true;
     } catch (error) {
       return false;
-    }
-  }
-
-  static getFirstWorkspacePath(): string {
-    // If we are executing python via a wrapper like Meltano,
-    // we need to execute it from a (any) project directory
-    // By default, Command execution is in an ext dir context
-    const folders = workspace.workspaceFolders;
-    if (folders) {
-      return folders[0].uri.fsPath;
-    } else {
-      // TODO: this shouldn't happen but we should make sure this is valid fallback
-      return Uri.file("./").fsPath;
     }
   }
 }
