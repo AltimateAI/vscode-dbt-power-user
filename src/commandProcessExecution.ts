@@ -83,7 +83,11 @@ export class CommandProcessExecution {
       );
 
       commandProcess.once("close", () => {
-        resolve(stdoutBuffer);
+        if (stderrBuffer) {
+          reject(stderrBuffer);
+        } else {
+          resolve(stdoutBuffer);
+        }
       });
 
       commandProcess.once("error", (error) => {
@@ -114,8 +118,12 @@ export class CommandProcessExecution {
         terminal.log(line);
       });
       commandProcess.once("close", () => {
-        terminal.log("");
-        resolve(stdoutBuffer);
+        if (stderrBuffer) {
+          reject(stderrBuffer);
+        } else {
+          terminal.log("");
+          resolve(stdoutBuffer);
+        }
         this.dispose();
       });
       commandProcess.once("error", (error) => {
