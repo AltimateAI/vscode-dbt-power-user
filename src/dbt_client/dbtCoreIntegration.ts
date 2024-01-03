@@ -286,36 +286,51 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  runModel(command: DBTCommand<string>) {
-    return this.dbtCoreCommand(command).execute();
-  }
-  buildModel(command: DBTCommand<string>) {
-    return this.dbtCoreCommand(command).execute();
-  }
-
-  runTest(command: DBTCommand<string>) {
-    return this.dbtCoreCommand(command).execute();
+  async runModel(command: DBTCommand<void>) {
+    this.executionInfrastructure.addCommandToQueue(
+      this.dbtCoreCommand(command),
+    );
   }
 
-  runModelTest(command: DBTCommand<string>) {
-    return this.dbtCoreCommand(command).execute();
-  }
-  compileModel(command: DBTCommand<string>) {
-    return this.dbtCoreCommand(command).execute();
+  async buildModel(command: DBTCommand<void>) {
+    this.executionInfrastructure.addCommandToQueue(
+      this.dbtCoreCommand(command),
+    );
   }
 
-  generateDocs(command: DBTCommand<string>) {
-    return this.dbtCoreCommand(command).execute();
+  async runTest(command: DBTCommand<void>) {
+    this.executionInfrastructure.addCommandToQueue(
+      this.dbtCoreCommand(command),
+    );
   }
+
+  async runModelTest(command: DBTCommand<void>) {
+    this.executionInfrastructure.addCommandToQueue(
+      this.dbtCoreCommand(command),
+    );
+  }
+
+  async compileModel(command: DBTCommand<void>) {
+    this.executionInfrastructure.addCommandToQueue(
+      this.dbtCoreCommand(command),
+    );
+  }
+
+  async generateDocs(command: DBTCommand<void>) {
+    this.executionInfrastructure.addCommandToQueue(
+      this.dbtCoreCommand(command),
+    );
+  }
+
   deps(command: DBTCommand<string>) {
-    return this.dbtCoreCommand(command).execute();
+    return this.dbtCoreCommandImmediate(command).execute();
   }
 
   debug(command: DBTCommand<string>) {
-    return this.dbtCoreCommand(command).execute();
+    return this.dbtCoreCommandImmediate(command).execute();
   }
 
-  private dbtCoreCommand(command: DBTCommand<string>) {
+  private dbtCoreCommandImmediate(command: DBTCommand<string>) {
     command.addArgument("--profiles-dir");
     command.addArgument(this.dbtProfilesDir);
     command.addArgument("--project-dir");
@@ -323,6 +338,15 @@ export class DBTCoreProjectIntegration
     command.setExecutionStrategy(
       this.pythonDBTCommandImmediateExecutionStrategy,
     );
+    return command;
+  }
+
+  private dbtCoreCommand(command: DBTCommand<void>) {
+    command.addArgument("--profiles-dir");
+    command.addArgument(this.dbtProfilesDir);
+    command.addArgument("--project-dir");
+    command.addArgument(this.projectRoot.fsPath);
+    command.setExecutionStrategy(this.pythonDBTCommandExecutionStrategy);
     return command;
   }
 

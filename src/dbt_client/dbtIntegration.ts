@@ -328,12 +328,12 @@ export interface DBTProjectIntegration extends Disposable {
   // execute queries
   executeSQL(query: string): Promise<ExecuteSQLResult>;
   // dbt commands
-  runModel(command: DBTCommand<string>): Promise<string>;
-  buildModel(command: DBTCommand<string>): Promise<string>;
-  runTest(command: DBTCommand<string>): Promise<string>;
-  runModelTest(command: DBTCommand<string>): Promise<string>;
-  compileModel(command: DBTCommand<string>): Promise<string>;
-  generateDocs(command: DBTCommand<string>): Promise<string>;
+  runModel(command: DBTCommand<void>): Promise<void>;
+  buildModel(command: DBTCommand<void>): Promise<void>;
+  runTest(command: DBTCommand<void>): Promise<void>;
+  runModelTest(command: DBTCommand<void>): Promise<void>;
+  compileModel(command: DBTCommand<void>): Promise<void>;
+  generateDocs(command: DBTCommand<void>): Promise<void>;
   deps(command: DBTCommand<string>): Promise<string>;
   debug(command: DBTCommand<string>): Promise<string>;
   // altimate commands
