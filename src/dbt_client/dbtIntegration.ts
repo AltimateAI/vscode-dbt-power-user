@@ -25,13 +25,13 @@ interface DBTCommandExecution {
   focus?: boolean;
 }
 
-export interface DBTCommandExecutionStrategy {
-  execute(command: DBTCommand, token?: CancellationToken): Promise<void>;
+export interface DBTCommandExecutionStrategy<T> {
+  execute(command: DBTCommand<T>, token?: CancellationToken): Promise<T>;
 }
 
 @provideSingleton(CLIDBTCommandExecutionStrategy)
 export class CLIDBTCommandExecutionStrategy
-  implements DBTCommandExecutionStrategy
+  implements DBTCommandExecutionStrategy<void>
 {
   constructor(
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
@@ -40,14 +40,14 @@ export class CLIDBTCommandExecutionStrategy
     private telemetry: TelemetryService,
   ) {}
 
-  execute(command: DBTCommand, token?: CancellationToken): Promise<void> {
+  execute(command: DBTCommand<void>, token?: CancellationToken): Promise<void> {
     return this.executeCommand(command, token).completeWithTerminalOutput(
       this.terminal,
     );
   }
 
   private executeCommand(
-    command: DBTCommand,
+    command: DBTCommand<void>,
     token?: CancellationToken,
   ): CommandProcessExecution {
     this.terminal.log(`> Executing task: ${command.getCommandAsString()}\n\r`);
@@ -93,7 +93,7 @@ export class CLIDBTCommandExecutionStrategy
 
 @provideSingleton(PythonDBTCommandExecutionStrategy)
 export class PythonDBTCommandExecutionStrategy
-  implements DBTCommandExecutionStrategy
+  implements DBTCommandExecutionStrategy<void>
 {
   constructor(
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
@@ -102,14 +102,14 @@ export class PythonDBTCommandExecutionStrategy
     private telemetry: TelemetryService,
   ) {}
 
-  execute(command: DBTCommand, token?: CancellationToken): Promise<void> {
+  execute(command: DBTCommand<void>, token?: CancellationToken): Promise<void> {
     return this.executeCommand(command, token).completeWithTerminalOutput(
       this.terminal,
     );
   }
 
   private executeCommand(
-    command: DBTCommand,
+    command: DBTCommand<void>,
     token?: CancellationToken,
   ): CommandProcessExecution {
     this.terminal.log(`> Executing task: ${command.getCommandAsString()}\n\r`);
@@ -174,8 +174,87 @@ else:
   }
 }
 
-export class DBTCommand {
-  private executionStrategy?: DBTCommandExecutionStrategy;
+@provideSingleton(PythonDBTCommandImmediateExecutionStrategy)
+export class PythonDBTCommandImmediateExecutionStrategy
+  implements DBTCommandExecutionStrategy<string>
+{
+  constructor(
+    private commandProcessExecutionFactory: CommandProcessExecutionFactory,
+    private pythonEnvironment: PythonEnvironment,
+    private telemetry: TelemetryService,
+  ) {}
+
+  execute(
+    command: DBTCommand<string>,
+    token?: CancellationToken,
+  ): Promise<string> {
+    return this.executeCommand(command, token).complete();
+  }
+
+  private executeCommand(
+    command: DBTCommand<string>,
+    token?: CancellationToken,
+  ): CommandProcessExecution {
+    this.telemetry.sendTelemetryEvent("dbtCommand", {
+      command: command.getCommandAsString(),
+    });
+
+    const { args } = command!;
+    if (
+      !this.pythonEnvironment.pythonPath ||
+      !this.pythonEnvironment.environmentVariables
+    ) {
+      throw Error(
+        "Could not launch command as python environment is not available",
+      );
+    }
+
+    return this.commandProcessExecutionFactory.createCommandProcessExecution({
+      command: this.pythonEnvironment.pythonPath,
+      args: ["-c", this.dbtCommand(args)],
+      token,
+      cwd: this.getFirstWorkspacePath(),
+      envVars: this.pythonEnvironment.environmentVariables,
+    });
+  }
+
+  private dbtCommand(args: string[]): string {
+    args = args.map((arg) => `'${arg}'`);
+    const dbtCustomRunnerImport = workspace
+      .getConfiguration("dbt")
+      .get<string>(
+        "dbtCustomRunnerImport",
+        "from dbt.cli.main import dbtRunner",
+      );
+    return `has_dbt_runner = True
+try: 
+    ${dbtCustomRunnerImport}
+except:
+    has_dbt_runner = False
+if has_dbt_runner:
+    dbt_cli = dbtRunner()
+    dbt_cli.invoke([${args}])
+else:
+    import dbt.main
+    dbt.main.main([${args}])`;
+  }
+
+  private getFirstWorkspacePath(): string {
+    // If we are executing python via a wrapper like Meltano,
+    // we need to execute it from a (any) project directory
+    // By default, Command execution is in an ext dir context
+    const folders = workspace.workspaceFolders;
+    if (folders) {
+      return folders[0].uri.fsPath;
+    } else {
+      // TODO: this shouldn't happen but we should make sure this is valid fallback
+      return Uri.file("./").fsPath;
+    }
+  }
+}
+
+export class DBTCommand<T> {
+  private executionStrategy?: DBTCommandExecutionStrategy<T>;
 
   constructor(
     public statusMessage: string,
@@ -191,7 +270,7 @@ export class DBTCommand {
     return "dbt " + this.args.join(" ");
   }
 
-  setExecutionStrategy(executionStrategy: DBTCommandExecutionStrategy) {
+  setExecutionStrategy(executionStrategy: DBTCommandExecutionStrategy<T>) {
     this.executionStrategy = executionStrategy;
   }
 
@@ -249,14 +328,14 @@ export interface DBTProjectIntegration extends Disposable {
   // execute queries
   executeSQL(query: string): Promise<ExecuteSQLResult>;
   // dbt commands
-  runModel(command: DBTCommand): Promise<void>;
-  buildModel(command: DBTCommand): Promise<void>;
-  runTest(command: DBTCommand): Promise<void>;
-  runModelTest(command: DBTCommand): Promise<void>;
-  compileModel(command: DBTCommand): Promise<void>;
-  generateDocs(command: DBTCommand): Promise<void>;
-  deps(command: DBTCommand): Promise<void>;
-  debug(command: DBTCommand): Promise<void>;
+  runModel(command: DBTCommand<string>): Promise<string>;
+  buildModel(command: DBTCommand<string>): Promise<string>;
+  runTest(command: DBTCommand<string>): Promise<string>;
+  runModelTest(command: DBTCommand<string>): Promise<string>;
+  compileModel(command: DBTCommand<string>): Promise<string>;
+  generateDocs(command: DBTCommand<string>): Promise<string>;
+  deps(command: DBTCommand<string>): Promise<string>;
+  debug(command: DBTCommand<string>): Promise<string>;
   // altimate commands
   unsafeCompileNode(modelName: string): Promise<string | undefined>;
   unsafeCompileQuery(query: string): Promise<string | undefined>;
@@ -315,7 +394,7 @@ export class DBTCommandExecutionInfrastructure {
     } catch (_) {}
   }
 
-  async addCommandToQueue(command: DBTCommand) {
+  async addCommandToQueue(command: DBTCommand<void>) {
     this.queue.push({
       command: (token) => command.execute(token),
       statusMessage: command.statusMessage,
@@ -361,11 +440,11 @@ export class DBTCommandExecutionInfrastructure {
 
 @provideSingleton(DBTCommandFactory)
 export class DBTCommandFactory {
-  createVersionCommand(): DBTCommand {
+  createVersionCommand(): DBTCommand<string> {
     return new DBTCommand("Detecting dbt version...", ["--version"]);
   }
 
-  createRunModelCommand(params: RunModelParams): DBTCommand {
+  createRunModelCommand(params: RunModelParams): DBTCommand<string> {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     const buildModelCommandAdditionalParams = workspace
       .getConfiguration("dbt")
@@ -383,7 +462,7 @@ export class DBTCommandFactory {
     );
   }
 
-  createBuildModelCommand(params: RunModelParams): DBTCommand {
+  createBuildModelCommand(params: RunModelParams): DBTCommand<string> {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     const buildModelCommandAdditionalParams = workspace
       .getConfiguration("dbt")
@@ -401,7 +480,7 @@ export class DBTCommandFactory {
     );
   }
 
-  createTestModelCommand(testName: string): DBTCommand {
+  createTestModelCommand(testName: string): DBTCommand<string> {
     const testModelCommandAdditionalParams = workspace
       .getConfiguration("dbt")
       .get<string[]>("testModelCommandAdditionalParams", []);
@@ -413,7 +492,7 @@ export class DBTCommandFactory {
     ]);
   }
 
-  createCompileModelCommand(params: RunModelParams): DBTCommand {
+  createCompileModelCommand(params: RunModelParams): DBTCommand<string> {
     const { plusOperatorLeft, modelName, plusOperatorRight } = params;
     return new DBTCommand(
       "Compiling dbt models...",
@@ -426,15 +505,15 @@ export class DBTCommandFactory {
     );
   }
 
-  createDocsGenerateCommand(): DBTCommand {
+  createDocsGenerateCommand(): DBTCommand<string> {
     return new DBTCommand("Generating dbt Docs...", ["docs", "generate"], true);
   }
 
-  createInstallDepsCommand(): DBTCommand {
+  createInstallDepsCommand(): DBTCommand<string> {
     return new DBTCommand("Installing packages...", ["deps"], true);
   }
 
-  createDebugCommand(): DBTCommand {
+  createDebugCommand(): DBTCommand<string> {
     return new DBTCommand("Debugging...", ["debug"], true);
   }
 }

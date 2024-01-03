@@ -1,12 +1,12 @@
 import {
-  workspace,
-  Uri,
-  RelativePattern,
-  languages,
   Diagnostic,
   Disposable,
+  languages,
   Range,
+  RelativePattern,
+  Uri,
   window,
+  workspace,
 } from "vscode";
 import * as os from "os";
 import {
@@ -23,6 +23,7 @@ import {
   DBTProjectIntegration,
   ExecuteSQLResult,
   PythonDBTCommandExecutionStrategy,
+  PythonDBTCommandImmediateExecutionStrategy,
 } from "./dbtIntegration";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
@@ -110,6 +111,7 @@ export class DBTCoreProjectIntegration
     private pythonEnvironment: PythonEnvironment,
     private telemetry: TelemetryService,
     private pythonDBTCommandExecutionStrategy: PythonDBTCommandExecutionStrategy,
+    private pythonDBTCommandImmediateExecutionStrategy: PythonDBTCommandImmediateExecutionStrategy,
     private projectRoot: Uri,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
@@ -284,60 +286,43 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  async runModel(command: DBTCommand) {
-    this.executionInfrastructure.addCommandToQueue(
-      this.dbtCoreCommand(command),
-    );
+  runModel(command: DBTCommand<string>) {
+    return this.dbtCoreCommand(command).execute();
+  }
+  buildModel(command: DBTCommand<string>) {
+    return this.dbtCoreCommand(command).execute();
   }
 
-  async buildModel(command: DBTCommand) {
-    this.executionInfrastructure.addCommandToQueue(
-      this.dbtCoreCommand(command),
-    );
+  runTest(command: DBTCommand<string>) {
+    return this.dbtCoreCommand(command).execute();
   }
 
-  async runTest(command: DBTCommand) {
-    this.executionInfrastructure.addCommandToQueue(
-      this.dbtCoreCommand(command),
-    );
+  runModelTest(command: DBTCommand<string>) {
+    return this.dbtCoreCommand(command).execute();
+  }
+  compileModel(command: DBTCommand<string>) {
+    return this.dbtCoreCommand(command).execute();
   }
 
-  async runModelTest(command: DBTCommand) {
-    this.executionInfrastructure.addCommandToQueue(
-      this.dbtCoreCommand(command),
-    );
+  generateDocs(command: DBTCommand<string>) {
+    return this.dbtCoreCommand(command).execute();
+  }
+  deps(command: DBTCommand<string>) {
+    return this.dbtCoreCommand(command).execute();
   }
 
-  async compileModel(command: DBTCommand) {
-    this.executionInfrastructure.addCommandToQueue(
-      this.dbtCoreCommand(command),
-    );
+  debug(command: DBTCommand<string>) {
+    return this.dbtCoreCommand(command).execute();
   }
 
-  async generateDocs(command: DBTCommand) {
-    this.executionInfrastructure.addCommandToQueue(
-      this.dbtCoreCommand(command),
-    );
-  }
-
-  async deps(command: DBTCommand) {
-    this.executionInfrastructure.addCommandToQueue(
-      this.dbtCoreCommand(command),
-    );
-  }
-
-  async debug(command: DBTCommand) {
-    this.executionInfrastructure.addCommandToQueue(
-      this.dbtCoreCommand(command),
-    );
-  }
-
-  private dbtCoreCommand(command: DBTCommand) {
+  private dbtCoreCommand(command: DBTCommand<string>) {
     command.addArgument("--profiles-dir");
     command.addArgument(this.dbtProfilesDir);
     command.addArgument("--project-dir");
     command.addArgument(this.projectRoot.fsPath);
-    command.setExecutionStrategy(this.pythonDBTCommandExecutionStrategy);
+    command.setExecutionStrategy(
+      this.pythonDBTCommandImmediateExecutionStrategy,
+    );
     return command;
   }
 
