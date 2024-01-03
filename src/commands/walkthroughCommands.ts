@@ -5,7 +5,6 @@ import { TelemetryService } from "../telemetry";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { DBTCoreDetection } from "../dbt_client/dbtCoreIntegration";
 
 enum PromptAnswer {
   YES = "Yes",

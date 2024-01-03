@@ -2,7 +2,6 @@ import {
   CancellationToken,
   Disposable,
   ProgressLocation,
-  Uri,
   window,
   workspace,
 } from "vscode";
