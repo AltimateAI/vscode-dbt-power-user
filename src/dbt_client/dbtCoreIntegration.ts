@@ -327,7 +327,7 @@ export class DBTCoreProjectIntegration
 
   // internal commands
   async unsafeCompileNode(modelName: string): Promise<string | undefined> {
-    this.throwBridgeErrorIfAvalable();
+    this.throwBridgeErrorIfAvailable();
     const output = await this.python?.lock<CompilationResult>(
       (python) =>
         python!`to_dict(project.compile_node(project.get_ref_node(${modelName})))`,
@@ -336,7 +336,7 @@ export class DBTCoreProjectIntegration
   }
 
   async unsafeCompileQuery(query: string): Promise<string | undefined> {
-    this.throwBridgeErrorIfAvalable();
+    this.throwBridgeErrorIfAvailable();
     const output = await this.python?.lock<CompilationResult>(
       (python) => python!`to_dict(project.compile_sql(${query}))`,
     );
@@ -344,7 +344,7 @@ export class DBTCoreProjectIntegration
   }
 
   async validateSql(query: string, dialect: string, models: any) {
-    this.throwBridgeErrorIfAvalable();
+    this.throwBridgeErrorIfAvailable();
     const result = await this.python?.lock<ValidateSqlParseErrorResponse>(
       (python) =>
         python!`to_dict(validate_sql(${query}, ${dialect}, ${models}))`,
@@ -353,7 +353,7 @@ export class DBTCoreProjectIntegration
   }
 
   async validateSQLDryRun(query: string) {
-    this.throwBridgeErrorIfAvalable();
+    this.throwBridgeErrorIfAvailable();
     const result = await this.python?.lock<{ bytes_processed: string }>(
       (python) => python!`to_dict(project.validate_sql_dry_run(${query}))`,
     );
@@ -361,7 +361,7 @@ export class DBTCoreProjectIntegration
   }
 
   async getColumnsOfModel(modelName: string) {
-    this.throwBridgeErrorIfAvalable();
+    this.throwBridgeErrorIfAvailable();
     // Get database and schema
     const node = (await this.python?.lock(
       (python) => python!`to_dict(project.get_ref_node(${modelName}))`,
@@ -378,7 +378,7 @@ export class DBTCoreProjectIntegration
   }
 
   async getColumnsOfSource(sourceName: string, tableName: string) {
-    this.throwBridgeErrorIfAvalable();
+    this.throwBridgeErrorIfAvailable();
     // Get database and schema
     const node = (await this.python?.lock(
       (python) =>
@@ -400,7 +400,7 @@ export class DBTCoreProjectIntegration
     schema: string | undefined,
     objectName: string,
   ) {
-    this.throwBridgeErrorIfAvalable();
+    this.throwBridgeErrorIfAvailable();
     return this.python?.lock<{ [key: string]: string }[]>(
       (python) =>
         python!`to_dict(project.get_columns_in_relation(project.create_relation(${database}, ${schema}, ${objectName})))`,
@@ -408,7 +408,7 @@ export class DBTCoreProjectIntegration
   }
 
   async getCatalog() {
-    this.throwBridgeErrorIfAvalable();
+    this.throwBridgeErrorIfAvailable();
     return await this.python?.lock<{ [key: string]: string }[]>(
       (python) => python!`to_dict(project.get_catalog())`,
     );
@@ -471,7 +471,7 @@ export class DBTCoreProjectIntegration
     this.packagesInstallPath = await this.findPackagesInstallPath();
   }
 
-  private throwBridgeErrorIfAvalable() {
+  private throwBridgeErrorIfAvailable() {
     const allDiagnostics = [
       this.pythonBridgeDiagnostics,
       this.rebuildManifestDiagnostics,

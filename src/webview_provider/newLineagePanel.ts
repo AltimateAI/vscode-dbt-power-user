@@ -645,7 +645,7 @@ export class NewLineagePanel implements LineagePanelView {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
           extendErrorWithSupportLinks(
-            `An error occured while trying to compile your model: ` +
+            `An error occured while trying to compute lineage of your model: ` +
               exc.exception.message +
               ".",
           ),

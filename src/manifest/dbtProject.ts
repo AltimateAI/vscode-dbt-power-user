@@ -517,11 +517,10 @@ export class DBTProject implements Disposable {
       // Create filePath based on source.yml location
       const location = path.join(sourcePath, fileName + ".sql");
       if (!existsSync(location)) {
-        const columnsInRelation =
-          await this.dbtProjectIntegration.getColumnsOfSource(
-            sourceName,
-            tableName,
-          );
+        const columnsInRelation = await this.getColumnsOfSource(
+          sourceName,
+          tableName,
+        );
         console.log(columnsInRelation);
 
         const fileContents = `with source as (
@@ -561,7 +560,7 @@ select * from renamed
       });
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Encountered an unknown issue:" + exc + ".",
+          "An error occured while trying to generate the model:" + exc + ".",
         ),
       );
     }

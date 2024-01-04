@@ -139,13 +139,17 @@ export class ValidateSql {
       async () => {
         try {
           const fileContentBytes = await workspace.fs.readFile(currentFilePath);
-          compiledQuery = await project.compileQuery(
-            fileContentBytes.toString(),
-          );
-          if (!compiledQuery) {
+          try {
+            compiledQuery = await project.unsafeCompileQuery(
+              fileContentBytes.toString(),
+            );
+          } catch (error) {
             window.showErrorMessage(
               extendErrorWithSupportLinks(
-                "Unable to compile query for model: " + node.name,
+                "Unable to compile query for model " +
+                  node.name +
+                  " : " +
+                  error,
               ),
             );
             return;

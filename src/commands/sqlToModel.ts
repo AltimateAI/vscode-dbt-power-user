@@ -72,13 +72,19 @@ export class SqlToModel {
     }
 
     const fileText = activedoc.document.getText();
-    const compiled_sql = await project.compileQuery(fileText);
+    let compiledSql;
+    try {
+      compiledSql = await project.unsafeCompileQuery(fileText);
+    } catch (error) {
+      window.showErrorMessage("Could not compile the SQL: " + error);
+      return;
+    }
 
     const retobj = await this.altimate
       .runModeller({
         // if we can run this through compile sql, we can also do
         // conversions that were half done. if it fails, just send the text as is.
-        sql: compiled_sql || fileText,
+        sql: compiledSql || fileText,
         adapter: project.getAdapterType(),
         models: allmodels,
         sources: allsources,
