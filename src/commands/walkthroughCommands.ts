@@ -168,7 +168,6 @@ export class WalkthroughCommands {
           await this.dbtProjectContainer.detectDBT();
           this.dbtProjectContainer.initialize();
         } catch (err) {
-          console.log(err);
           error = err;
         }
       },
