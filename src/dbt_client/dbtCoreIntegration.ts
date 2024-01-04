@@ -134,7 +134,7 @@ export class DBTCoreProjectIntegration
   }
 
   async refreshProjectConfig(): Promise<void> {
-    await this.initializePaths();
+    await this.rebuildManifest(true);
   }
 
   executeSQL(query: string): Promise<ExecuteSQLResult> {
@@ -156,7 +156,6 @@ export class DBTCoreProjectIntegration
         .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir})`;
       await this.initializePaths();
       this.pythonBridgeDiagnostics.clear();
-      await this.rebuildManifest(true);
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         // python errors can be about anything, so we just associate the error with the project file
@@ -186,6 +185,8 @@ export class DBTCoreProjectIntegration
         this.telemetry.sendTelemetryError("pythonBridgeInitError", exc);
       }
     }
+    // don't await on rebuild manifest
+    this.rebuildManifest(true);
     this.disposables.push(
       // when the project config changes we need to re-init the dbt project
       ...setupWatcherHandler(dbtProfileWatcher, () =>
@@ -226,6 +227,7 @@ export class DBTCoreProjectIntegration
         (python) => python`to_dict(project.safe_parse_project(${init}))`,
       );
       if (init) {
+        await this.initializePaths();
         this.adapterType = (await this.findAdapterType()) || "unknown";
       }
       this.rebuildManifestDiagnostics.clear();
