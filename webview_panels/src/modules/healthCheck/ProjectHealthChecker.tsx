@@ -18,7 +18,7 @@ const ProjectHealthChecker = (): JSX.Element => {
     executeRequestInAsync("clearAltimateScanResults", {});
   };
   return (
-    <Col lg={6}>
+    <Col lg={7}>
       <Card>
         <CardTitle tag="h5">
           Perform project health check

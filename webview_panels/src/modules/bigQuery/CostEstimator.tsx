@@ -22,7 +22,7 @@ const BigQueryCostEstimator = (): JSX.Element => {
   };
   return (
     <>
-      <Col lg={6}>
+      <Col lg={7}>
         <Card>
           <CardTitle tag="h6">
             BigQuery Cost Estimator
