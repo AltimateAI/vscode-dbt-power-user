@@ -384,11 +384,11 @@ export class DBTCommandFactory {
       .getConfiguration("dbt")
       .get<string[]>("testModelCommandAdditionalParams", []);
 
-    return new DBTCommand("Testing dbt model...", [
-      "test",
-      "--select",
-      ...testModelCommandAdditionalParams,
-    ]);
+    return new DBTCommand(
+      "Testing dbt model...",
+      ["test", "--select", testName, ...testModelCommandAdditionalParams],
+      true,
+    );
   }
 
   createCompileModelCommand(params: RunModelParams): DBTCommand {

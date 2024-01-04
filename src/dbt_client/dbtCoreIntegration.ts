@@ -17,7 +17,6 @@ import {
   substituteSettingsVariables,
 } from "../utils";
 import {
-  CLIDBTCommandExecutionStrategy,
   CompilationResult,
   DBTCommand,
   DBTCommandExecutionInfrastructure,
