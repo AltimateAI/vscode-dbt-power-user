@@ -30,26 +30,29 @@ export class DBTCommandFactory {
     return dbtProfilesDir ? ["'--profiles-dir'", `r'${dbtProfilesDir}'`] : [];
   }
 
-  private getDeferParams(): string {
+  private getDeferParams(): string[] {
     const deferToProduction = workspace
       .getConfiguration("dbt")
       .get<boolean>("deferToProduction", false);
     if (!deferToProduction) {
-      return "";
+      return [];
     }
     const manifestPathForDeferral = workspace
       .getConfiguration("dbt")
       .get<string>("manifestPathForDeferral");
     if (!manifestPathForDeferral) {
-      return "";
+      return [];
     }
     const favorState = workspace
       .getConfiguration("dbt")
       .get<boolean>("favorState", false);
 
-    return `--defer --state ${manifestPathForDeferral} ${
-      favorState ? "--favor-state" : ""
-    }`;
+    return [
+      "--defer",
+      "--state",
+      manifestPathForDeferral,
+      favorState ? "--favor-state" : "",
+    ];
   }
   private getFirstWorkspacePath(): string {
     // If we are executing python via a wrapper like Meltano,
@@ -142,7 +145,7 @@ export class DBTCommandFactory {
         buildModelCommandAdditionalParams.length > 0
           ? " " + buildModelCommandAdditionalParams.join(" ")
           : ""
-      } ${deferParams}`,
+      } ${deferParams.length > 0 ? " " + deferParams.join(" ") : ""}`,
       statusMessage: "Building dbt models...",
       processExecutionParams: {
         cwd: projectRoot.fsPath,
@@ -154,7 +157,7 @@ export class DBTCommandFactory {
             `'${plusOperatorLeft}${modelName}${plusOperatorRight}'`,
             ...buildModelCommandAdditionalParams.map((param) => `'${param}'`),
             ...profilesDirParams,
-            deferParams,
+            ...deferParams.map((param) => `'${param}'`),
           ]),
         ],
       },
