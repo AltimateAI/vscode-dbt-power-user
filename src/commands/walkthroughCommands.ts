@@ -5,6 +5,7 @@ import { TelemetryService } from "../telemetry";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -22,6 +23,7 @@ export class WalkthroughCommands {
     private telemetry: TelemetryService,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
     private pythonEnvironment: PythonEnvironment,
+    private dbtTerminal: DBTTerminal,
   ) {}
 
   async validateProjects(projectContext: ProjectQuickPickItem | undefined) {
@@ -162,8 +164,7 @@ export class WalkthroughCommands {
               cwd: getFirstWorkspacePath(),
               envVars: this.pythonEnvironment.environmentVariables,
             })
-            .complete();
-          console.log(result);
+            .completeWithTerminalOutput(this.dbtTerminal);
           await this.dbtProjectContainer.detectDBT();
           this.dbtProjectContainer.initialize();
         } catch (err) {
