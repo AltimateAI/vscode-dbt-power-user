@@ -26,11 +26,20 @@
   font-weight: 400;
   border: none;
 }
+.btn-outline-secondary,
+.btn-outline-primary {
+  border: var(--bs-btn-border-width) solid var(--bs-btn-border-color);
+}
+
 .btn.btn-primary {
   background: var(--primary-accent);
 }
 .btn.btn-danger {
   background: var(--Action-Red);
+}
+.btn.btn-warning {
+  background: var(--Stroke-Orange);
+  color: #fff;
 }
 
 .form-label,
@@ -59,4 +68,44 @@ input.form-control {
     color: var(--text-color);
     font-size: 14px;
   }
+}
+
+.h1,
+h1 {
+  font-size: 1.714rem;
+}
+.h2,
+h2 {
+  font-size: 1.429rem;
+}
+.h3,
+h3 {
+  font-size: 1.286rem;
+}
+.h4,
+h4 {
+  font-size: 1.143rem;
+}
+.h5,
+h5 {
+  font-size: 1rem;
+}
+.h6,
+h6 {
+  font-size: 0.857rem;
+}
+
+p,
+.p1 {
+  font-size: 1.143rem;
+}
+caption,
+.p3 {
+  font-size: 0.857rem;
+}
+.p4 {
+  font-size: 0.714rem;
+}
+.p5 {
+  font-size: 0.571rem;
 }

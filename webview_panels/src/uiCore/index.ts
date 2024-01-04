@@ -1,6 +1,8 @@
 export {
+  Alert,
   Button,
   Input,
+  InputGroup,
   Card,
   CardTitle,
   CardBody,

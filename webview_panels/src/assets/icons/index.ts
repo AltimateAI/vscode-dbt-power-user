@@ -6,3 +6,6 @@ export { default as CopyToClipboardIcon } from "./copyToClipboard.svg?react";
 export { default as ShinesIcon } from "./shines.svg?react";
 export { default as YellowEyeIcon } from "./eye-yellow.svg?react";
 export { default as ChevronDownIcon } from "./chevron-down.svg?react";
+export { default as HelpIcon } from "./help.svg?react";
+export { default as FeedbackIcon } from "./feedback.svg?react";
+export { default as EditIcon } from "./edit.svg?react";

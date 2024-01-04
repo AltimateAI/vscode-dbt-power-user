@@ -49,7 +49,24 @@ export const UIKit = {
           UI toolkit for VSCode Power user extension
         </CardTitle>
         <br />
-        <div>
+        <Stack direction="column">
+          <h5>Typography</h5>
+          <h1>Heading 1 24px 500</h1>
+          <h2>Heading 2 20px 500</h2>
+          <h3>Heading 3 15px 500</h3>
+          <h4>Heading 4 16px 500</h4>
+          <h5>Heading 5 14px 500</h5>
+          <h6>Heading 6 12px 500</h6>
+          <p>Paragraph P1 16px 400</p>
+          <div className="p1">.P1 16px 400</div>
+          <div>.P2 (default) 14px 400</div>
+          <caption>Caption P3 12px 400</caption>
+          <div className="p3">Caption .P3 12px 400</div>
+          <div className="p4">.P4 10px 400</div>
+          <div className="p5">.P5 8px 400</div>
+        </Stack>
+        <br />
+        <Stack>
           <Button color="primary">primary</Button>
           <Button>secondary</Button>
           <Button color="success">success</Button>{" "}
@@ -57,12 +74,11 @@ export const UIKit = {
           <Button color="warning">warning</Button>{" "}
           <Button color="danger">danger</Button>{" "}
           <Button color="link">link</Button>
-          <br />
-          <br />
+          <Button outline>Settings</Button>
           <DropdownButton onToggleClick={() => null}>
             <ShinesIcon /> Generate All <YellowEyeIcon />
           </DropdownButton>
-        </div>
+        </Stack>
         <br />
         <div>
           <h5>Icon buttons</h5>

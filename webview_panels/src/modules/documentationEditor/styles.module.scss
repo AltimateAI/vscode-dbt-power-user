@@ -1,0 +1,11 @@
+.doc-generator {
+  & .head {
+    justify-content: space-between;
+    & p {
+      text-decoration: underline;
+    }
+  }
+  & .body {
+    width: 60%;
+  }
+}

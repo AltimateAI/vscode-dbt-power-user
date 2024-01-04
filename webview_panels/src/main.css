@@ -27,6 +27,7 @@ html {
   --dropdown-toggle-color: #1c1c1c;
   font-size: 14px;
   --Action-Brand-dark: #004fbf;
+  --Stroke-Orange: #e38e00;
 }
 
 html[data-theme="dark"] {
@@ -69,7 +70,7 @@ strong {
   font-weight: 600;
 }
 
-.h5,
-h5 {
-  font-size: 1.15rem;
+.App > .container {
+  max-width: 100%;
+  padding-left: 0;
 }
