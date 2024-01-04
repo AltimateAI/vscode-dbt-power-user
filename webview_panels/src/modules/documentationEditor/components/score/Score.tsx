@@ -4,7 +4,7 @@ interface Props {
   percentage: number;
 }
 const radius = 20.2;
-const Score = ({ percentage }: Props) => {
+const Score = ({ percentage }: Props): JSX.Element => {
   const getColor = () => {
     if (percentage > 60 && percentage < 75) {
       return "blue";

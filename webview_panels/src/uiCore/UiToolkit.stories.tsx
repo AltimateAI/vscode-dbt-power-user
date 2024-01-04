@@ -37,7 +37,7 @@ const meta = {
 export default meta;
 
 export const UIKit = {
-  render: () => {
+  render: (): JSX.Element => {
     const options = [
       { value: "chocolate", label: "Chocolate" },
       { value: "strawberry", label: "Strawberry" },
