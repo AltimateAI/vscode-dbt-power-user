@@ -7,7 +7,6 @@ import {
   window,
   workspace,
 } from "vscode";
-import * as path from "path";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { RunModelType } from "../domain";
 import { provideSingleton } from "../utils";
@@ -18,7 +17,7 @@ import { WalkthroughCommands } from "./walkthroughCommands";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { ValidateSql } from "./validateSql";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -31,7 +30,7 @@ export class VSCodeCommands implements Disposable {
     private validateSql: ValidateSql,
     private altimateScan: AltimateScan,
     private walkthroughCommands: WalkthroughCommands,
-    private dbtTerminal: DBTTerminal,
+    private bigQueryCostEstimate: BigQueryCostEstimate,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -53,37 +52,8 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.compileCurrentModel", () =>
         this.runModel.compileModelOnActiveWindow(),
       ),
-      commands.registerCommand(
-        "dbtPowerUser.bigqueryCostEstimate",
-        async () => {
-          const modelName = path.basename(
-            window.activeTextEditor!.document.fileName,
-            ".sql",
-          );
-          this.dbtTerminal.show(true);
-          const query = window.activeTextEditor?.document.getText();
-          if (!query) {
-            window.showErrorMessage(
-              "We need a valid query to get a cost estimate.",
-            );
-            return;
-          }
-          const compiledQuery = await this.getProject()?.compileQuery(query);
-          if (!compiledQuery) {
-            window.showErrorMessage(
-              "We need a valid query to get a cost estimate.",
-            );
-            return;
-          }
-          const result =
-            await this.getProject()?.validateSQLDryRun(compiledQuery);
-          if (!result) {
-            return;
-          }
-          this.dbtTerminal.log(
-            `The query for ${modelName} will process ${result.bytes_processed}.\r\n`,
-          );
-        },
+      commands.registerCommand("dbtPowerUser.bigqueryCostEstimate", () =>
+        this.bigQueryCostEstimate.estimateCost(),
       ),
       commands.registerTextEditorCommand(
         "dbtPowerUser.sqlPreview",
@@ -224,14 +194,6 @@ export class VSCodeCommands implements Disposable {
         );
       }),
     );
-  }
-
-  private getProject() {
-    const currentFilePath = window.activeTextEditor?.document.uri;
-    if (!currentFilePath) {
-      return;
-    }
-    return this.dbtProjectContainer.findDBTProject(currentFilePath);
   }
 
   dispose() {

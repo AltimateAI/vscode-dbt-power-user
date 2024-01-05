@@ -234,8 +234,8 @@ export interface DBTProjectIntegration extends Disposable {
   deps(command: DBTCommand): Promise<string>;
   debug(command: DBTCommand): Promise<string>;
   // altimate commands
-  unsafeCompileNode(modelName: string): Promise<string | undefined>;
-  unsafeCompileQuery(query: string): Promise<string | undefined>;
+  unsafeCompileNode(modelName: string): Promise<string | undefined>; // TODO: figure out when this is undefined
+  unsafeCompileQuery(query: string): Promise<string | undefined>; // TODO: figure out when this is undefined
   validateSql(
     query: string,
     dialect: string,
