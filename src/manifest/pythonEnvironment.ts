@@ -82,27 +82,27 @@ export class PythonEnvironment implements Disposable {
     const api = extension.exports;
 
     const dbtInstalledPythonPath: string[] = [];
-    for (const workspaceFolder of workspace.workspaceFolders || []) {
-      const candidatePythonPath = api.settings.getExecutionDetails(
-        workspaceFolder.uri,
-      ).execCommand[0];
+    // for (const workspaceFolder of workspace.workspaceFolders || []) {
+    //   const candidatePythonPath = api.settings.getExecutionDetails(
+    //     workspaceFolder.uri,
+    //   ).execCommand[0];
 
-      // const dbtInstalledCommand =
-      //   this.dbtCommandFactory.createVerifyDbtInstalledCommand();
-      // const checkDBTInstalledProcess =
-      //   this.commandProcessExecutionFactory.createCommandProcessExecution({
-      //     command: candidatePythonPath,
-      //     args: dbtInstalledCommand.processExecutionParams.args,
-      //   });
+    //   const dbtInstalledCommand =
+    //     this.dbtCommandFactory.createVerifyDbtInstalledCommand();
+    //   const checkDBTInstalledProcess =
+    //     this.commandProcessExecutionFactory.createCommandProcessExecution({
+    //       command: candidatePythonPath,
+    //       args: dbtInstalledCommand.processExecutionParams.args,
+    //     });
 
-      // try {
-      //   await checkDBTInstalledProcess.complete();
-      // } catch {
-      //   continue;
-      // }
+    //   try {
+    //     await checkDBTInstalledProcess.complete();
+    //   } catch {
+    //     continue;
+    //   }
 
-      dbtInstalledPythonPath.push(candidatePythonPath);
-    }
+    //   dbtInstalledPythonPath.push(candidatePythonPath);
+    // }
 
     return (this.executionDetails = {
       getPythonPath: () => {
