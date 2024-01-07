@@ -207,6 +207,10 @@ export interface DBTDetection {
   detectDBT(): Promise<boolean>;
 }
 
+export interface DBTInstallion {
+  installDBT(): Promise<void>;
+}
+
 export interface DBTProjectIntegration extends Disposable {
   // initialize execution infrastructure
   initializeProject(): Promise<void>;

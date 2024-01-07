@@ -67,6 +67,9 @@ export class DBTClient implements Disposable {
       "dbtPowerUser.dbtInstalled",
       this.dbtInstalled,
     );
+    if (!this.dbtInstalled) {
+      this.showErrorIfDbtOrPythonNotInstalled();
+    }
   }
 
   async showErrorIfDbtOrPythonNotInstalled() {
