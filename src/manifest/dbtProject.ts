@@ -58,7 +58,7 @@ export class DBTProject implements Disposable {
   static RESOURCE_TYPE_TEST = "test";
 
   readonly projectRoot: Uri;
-  private projectName: string;
+  private projectConfig: any; // TODO: typing
   private dbtProjectIntegration: DBTProjectIntegration;
 
   private _onProjectConfigChanged =
@@ -87,7 +87,7 @@ export class DBTProject implements Disposable {
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
   ) {
     this.projectRoot = path;
-    this.projectName = projectConfig.name;
+    this.projectConfig = projectConfig;
 
     this.sourceFileWatchers =
       this.sourceFileWatchersFactory.createSourceFileWatchers(
@@ -114,7 +114,7 @@ export class DBTProject implements Disposable {
   }
 
   public getProjectName() {
-    return this.projectName;
+    return this.projectConfig.name;
   }
 
   getTargetPath() {
@@ -184,6 +184,8 @@ export class DBTProject implements Disposable {
       );
       this.telemetry.sendTelemetryError("projectConfigRefreshError", error);
     }
+    const event = new ProjectConfigChangedEvent(this);
+    this._onProjectConfigChanged.fire(event);
   }
 
   getAdapterType() {
@@ -410,7 +412,7 @@ export class DBTProject implements Disposable {
         });
         window.showErrorMessage(
           "Some of the scans could not run as connectivity to database for the project " +
-            this.projectName +
+            this.getProjectName() +
             " is not available. ",
         );
         return [];
@@ -421,7 +423,7 @@ export class DBTProject implements Disposable {
       });
       window.showErrorMessage(
         "Some of the scans could not run as connectivity to database for the project " +
-          this.projectName +
+          this.getProjectName() +
           " is not available. ",
       );
       return [];
@@ -663,12 +665,7 @@ select * from renamed
   }
 
   private async refresh() {
-    const projectConfig = DBTProject.readAndParseProjectConfig(
-      this.projectRoot,
-    );
-    this.projectName = projectConfig.name;
+    this.projectConfig = DBTProject.readAndParseProjectConfig(this.projectRoot);
     await this.dbtProjectIntegration.refreshProjectConfig();
-    const event = new ProjectConfigChangedEvent(this);
-    this._onProjectConfigChanged.fire(event);
   }
 }

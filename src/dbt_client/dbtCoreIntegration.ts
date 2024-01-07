@@ -145,6 +145,7 @@ export class DBTCoreProjectIntegration
   }
 
   private async createPythonDbtProject() {
+    await this.python.ex`from dbt_integration import *`;
     await this.python
       .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir})`;
     this.targetPath = await this.findTargetPath();
@@ -163,15 +164,19 @@ export class DBTCoreProjectIntegration
       ),
     );
     try {
-      await this.python.ex`from dbt_integration import *`;
       await this.createPythonDbtProject();
       this.pythonBridgeDiagnostics.clear();
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         // python errors can be about anything, so we just associate the error with the project file
         //  with a fixed range
+        if (exc.message.includes("No module named 'dbt'")) {
+          // Let's not create an error for each project if dbt is not detected
+          //  This is already displayed in the status bar
+          return;
+        }
         let errorMessage =
-          "An error occured while initializing the dbt project, probably the Python interpreter is not correctly setup: " +
+          "An error occured while initializing the dbt project: " +
           exc.exception.message;
         if (exc.exception.type.module === "dbt.exceptions") {
           // TODO: we can do provide solutions per type of dbt exception
