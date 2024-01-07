@@ -26,12 +26,6 @@ export class MacroParser {
         throw new Error("packagePath is not defined");
       }
       if (typeof macros[Symbol.iterator] !== "function") {
-        console.warn(
-          `macros is not iterable in project "${project.getProjectName()}" at ${
-            project.projectRoot
-          }`,
-          macros,
-        );
         resolve(macroMetaMap);
         return;
       }

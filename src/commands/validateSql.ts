@@ -53,7 +53,7 @@ export class ValidateSql {
 
   private async onManifestCacheChanged(event: ManifestCacheChangedEvent) {
     event.added?.forEach((added) => {
-      this.eventMap.set(added.projectRoot.fsPath, added);
+      this.eventMap.set(added.project.projectRoot.fsPath, added);
     });
     event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);

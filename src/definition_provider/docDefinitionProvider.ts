@@ -81,7 +81,10 @@ export class DocDefinitionProvider implements DefinitionProvider, Disposable {
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
-      this.docToLocationMap.set(added.projectRoot.fsPath, added.docMetaMap);
+      this.docToLocationMap.set(
+        added.project.projectRoot.fsPath,
+        added.docMetaMap,
+      );
     });
     event.removed?.forEach((removed) => {
       this.docToLocationMap.delete(removed.projectRoot.fsPath);

@@ -82,7 +82,8 @@ export class DBTCoreProjectIntegration
   static DBT_PROFILES_FILE = "profiles.yml";
 
   private targetPath?: string;
-  private adapterType: string = "unknown";
+  private adapterType?: string;
+  private version?: number[];
   private packagesInstallPath?: string;
   private modelPaths?: string[];
   private macroPaths?: string[];
@@ -134,13 +135,24 @@ export class DBTCoreProjectIntegration
   }
 
   async refreshProjectConfig(): Promise<void> {
-    await this.rebuildManifest(true);
+    await this.createPythonDbtProject();
   }
 
   executeSQL(query: string): Promise<ExecuteSQLResult> {
     return this.python!.lock<ExecuteSQLResult>(
       (python) => python`to_dict(project.execute_sql(${query}))`,
     );
+  }
+
+  private async createPythonDbtProject() {
+    await this.python
+      .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir})`;
+    this.targetPath = await this.findTargetPath();
+    this.modelPaths = await this.findModelPaths();
+    this.macroPaths = await this.findMacroPaths();
+    this.packagesInstallPath = await this.findPackagesInstallPath();
+    this.version = await this.findVersion();
+    this.adapterType = await this.findAdapterType();
   }
 
   async initializeProject(): Promise<void> {
@@ -152,9 +164,7 @@ export class DBTCoreProjectIntegration
     );
     try {
       await this.python.ex`from dbt_integration import *`;
-      await this.python
-        .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir})`;
-      await this.initializePaths();
+      await this.createPythonDbtProject();
       this.pythonBridgeDiagnostics.clear();
     } catch (exc: any) {
       if (exc instanceof PythonException) {
@@ -186,12 +196,10 @@ export class DBTCoreProjectIntegration
       }
     }
     // don't await on rebuild manifest
-    this.rebuildManifest(true);
+    this.rebuildManifest();
     this.disposables.push(
       // when the project config changes we need to re-init the dbt project
-      ...setupWatcherHandler(dbtProfileWatcher, () =>
-        this.rebuildManifest(true),
-      ),
+      ...setupWatcherHandler(dbtProfileWatcher, () => this.rebuildManifest()),
     );
   }
 
@@ -211,8 +219,12 @@ export class DBTCoreProjectIntegration
     return this.packagesInstallPath;
   }
 
-  getAdapterType(): string {
+  getAdapterType(): string | undefined {
     return this.adapterType;
+  }
+
+  getVersion(): number[] | undefined {
+    return this.version;
   }
 
   async findAdapterType(): Promise<string | undefined> {
@@ -221,15 +233,11 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  async rebuildManifest(init: boolean): Promise<void> {
+  async rebuildManifest(): Promise<void> {
     try {
       await this.python.lock(
-        (python) => python`to_dict(project.safe_parse_project(${init}))`,
+        (python) => python`to_dict(project.safe_parse_project())`,
       );
-      if (init) {
-        await this.initializePaths();
-        this.adapterType = (await this.findAdapterType()) || "unknown";
-      }
       this.rebuildManifestDiagnostics.clear();
     } catch (exc) {
       if (exc instanceof PythonException) {
@@ -249,7 +257,7 @@ export class DBTCoreProjectIntegration
           "pythonBridgeCannotParseProjectUserError",
           {
             error: exc.exception.message,
-            adapter: this.adapterType,
+            adapter: this.getAdapterType() || "unknown", // TODO: this should be moved to dbtProject
           },
         );
         return;
@@ -259,7 +267,7 @@ export class DBTCoreProjectIntegration
         "pythonBridgeCannotParseProjectUnknownError",
         exc,
         {
-          adapter: this.adapterType,
+          adapter: this.adapterType || "unknown", // TODO: this should be moved to dbtProject
         },
       );
       window.showErrorMessage(
@@ -268,12 +276,6 @@ export class DBTCoreProjectIntegration
         ),
       );
     }
-  }
-
-  async findVersion(): Promise<number[]> {
-    return this.python?.lock<number[]>(
-      (python) => python!`to_dict(project.get_dbt_version())`,
-    );
   }
 
   async runModel(command: DBTCommand) {
@@ -465,11 +467,10 @@ export class DBTCoreProjectIntegration
     return packageInstallPath;
   }
 
-  private async initializePaths() {
-    this.targetPath = await this.findTargetPath();
-    this.modelPaths = await this.findModelPaths();
-    this.macroPaths = await this.findMacroPaths();
-    this.packagesInstallPath = await this.findPackagesInstallPath();
+  private async findVersion(): Promise<number[]> {
+    return this.python?.lock<number[]>(
+      (python) => python!`to_dict(project.get_dbt_version())`,
+    );
   }
 
   private throwBridgeErrorIfAvailable() {

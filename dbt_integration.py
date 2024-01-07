@@ -276,6 +276,7 @@ class DbtProject:
         self.config = RuntimeConfig.from_args(self.args)
         if hasattr(self.config, "source_paths"):
             self.config.model_paths = self.config.source_paths
+        self.init_project()
 
     def get_adapter(self):
         """This inits a new Adapter which is fundamentally different than
@@ -292,9 +293,6 @@ class DbtProject:
     def parse_project(self, init: bool = False) -> None:
         """Parses project on disk from `ConfigInterface` in args attribute, verifies connection
         to adapters database, mutates config, adapter, and dbt attributes"""
-        if init:
-            self.init_project()
-
         project_parser = ManifestLoader(
             self.config,
             self.config.load_dependencies(),

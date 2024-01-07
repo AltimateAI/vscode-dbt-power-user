@@ -17,12 +17,6 @@ export class DocParser {
         return;
       }
       if (typeof docs[Symbol.iterator] !== "function") {
-        console.warn(
-          `docs is not iterable in project "${project.getProjectName()}" at ${
-            project.projectRoot
-          }`,
-          docs,
-        );
         resolve(docMetaMap);
         return;
       }

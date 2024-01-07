@@ -187,7 +187,7 @@ export class DBTProject implements Disposable {
   }
 
   getAdapterType() {
-    return this.dbtProjectIntegration.getAdapterType();
+    return this.dbtProjectIntegration.getAdapterType() || "unknown";
   }
 
   findPackageName(uri: Uri): string | undefined {
@@ -209,8 +209,8 @@ export class DBTProject implements Disposable {
     );
   }
 
-  private async rebuildManifest(init: boolean = false) {
-    this.dbtProjectIntegration.rebuildManifest(init);
+  private async rebuildManifest() {
+    this.dbtProjectIntegration.rebuildManifest();
   }
 
   runModel(runModelParams: RunModelParams) {
@@ -332,7 +332,7 @@ export class DBTProject implements Disposable {
   async getDBTVersion(): Promise<number[] | undefined> {
     // TODO: do this when config or python env changes and cache value
     try {
-      return this.dbtProjectIntegration.findVersion();
+      return this.dbtProjectIntegration.getVersion();
     } catch (exc) {
       window.showErrorMessage(
         extendErrorWithSupportLinks("Could not get dbt version." + exc),

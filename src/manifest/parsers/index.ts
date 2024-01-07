@@ -43,8 +43,7 @@ export class ManifestParser {
       const event: ManifestCacheChangedEvent = {
         added: [
           {
-            projectName: projectName,
-            projectRoot: projectRoot,
+            project,
             nodeMetaMap: new Map(),
             macroMetaMap: new Map(),
             sourceMetaMap: new Map(),
@@ -145,8 +144,7 @@ export class ManifestParser {
     const event: ManifestCacheChangedEvent = {
       added: [
         {
-          projectName: projectName,
-          projectRoot: projectRoot,
+          project,
           nodeMetaMap: nodeMetaMap,
           macroMetaMap: macroMetaMap,
           sourceMetaMap: sourceMetaMap,

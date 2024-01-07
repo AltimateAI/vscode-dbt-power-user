@@ -217,11 +217,10 @@ export interface DBTProjectIntegration extends Disposable {
   getModelPaths(): string[] | undefined;
   getMacroPaths(): string[] | undefined;
   getPackageInstallPath(): string | undefined;
-  getAdapterType(): string;
-  findAdapterType(): Promise<string | undefined>;
-  findVersion(): Promise<number[]>;
+  getAdapterType(): string | undefined;
+  getVersion(): number[] | undefined;
   // parse manifest
-  rebuildManifest(init: boolean): Promise<void>;
+  rebuildManifest(): Promise<void>;
   // execute queries
   executeSQL(query: string): Promise<ExecuteSQLResult>;
   // dbt commands
