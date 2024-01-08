@@ -288,19 +288,18 @@ class DbtProject:
         self.adapter = self.get_adapter()
         self.adapter.connections.set_connection_name()
         self.config.adapter = self.adapter
-        self.dbt = None
-
-    def parse_project(self, init: bool = False) -> None:
-        """Parses project on disk from `ConfigInterface` in args attribute, verifies connection
-        to adapters database, mutates config, adapter, and dbt attributes"""
         project_parser = ManifestLoader(
             self.config,
             self.config.load_dependencies(),
             self.adapter.connections.set_query_header,
         )
         self.dbt = project_parser.load()
-        self.dbt.build_flat_graph()
         project_parser.save_macros_to_adapter(self.adapter)
+
+    def parse_project(self) -> None:
+        """Parses project on disk from `ConfigInterface` in args attribute, verifies connection
+        to adapters database, mutates config, adapter, and dbt attributes"""
+        self.dbt.build_flat_graph()
         self._sql_parser = None
         self._macro_parser = None
         self._sql_compiler = None
@@ -371,7 +370,7 @@ class DbtProject:
         """dbt manifest dict"""
         return ManifestProxy(self.dbt.flat_graph)
 
-    def safe_parse_project(self, reinit: bool = False) -> None:
+    def safe_parse_project(self) -> None:
         self.clear_caches()
         # doing this so that we can allow inits to fail when config is
         # bad and restart after the user sets it up correctly
@@ -380,7 +379,7 @@ class DbtProject:
         else:
             _config_pointer = None
         try:
-            self.parse_project(init=reinit)
+            self.parse_project()
             self.write_manifest_artifact()
         except Exception as e:
             self.config = _config_pointer
