@@ -129,6 +129,11 @@ export class DBTCoreProjectIntegration
     );
 
     this.disposables.push(
+      this.pythonEnvironment.onPythonEnvironmentChanged(() => {
+        this.python = this.executionInfrastructure.createPythonBridge(
+          this.projectRoot.fsPath,
+        );
+      }),
       this.rebuildManifestDiagnostics,
       this.pythonBridgeDiagnostics,
     );
