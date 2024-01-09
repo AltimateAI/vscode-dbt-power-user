@@ -57,6 +57,7 @@ const AltimateSelect = (props: Parameters<typeof Select>[0]): JSX.Element => {
       components={{
         ...props.components,
         Option: (optionProps) => (
+          // @ts-expect-error TODO fix this type
           <IconOption {...optionProps} selectName={selectName} />
         ),
       }}

@@ -42,6 +42,9 @@
 
       <vscode-panel-view v-if="hasData">
         <section id="docs-form">
+          <vscode-button @click="showBetaUX()" class="btn-new-ux"
+            >Show New UX (Beta)</vscode-button
+          >
           <Documentation
             :ai-enabled="aiEnabled"
             :generated="generated"

@@ -12,6 +12,7 @@ import {
   WebviewViewProvider,
   WebviewViewResolveContext,
   window,
+  workspace,
 } from "vscode";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
@@ -24,6 +25,7 @@ import { PythonException } from "python-bridge";
 import { TelemetryService } from "../telemetry";
 import { AltimateRequest } from "../altimate";
 import { stringify, parse } from "yaml";
+import { NewDocsGenPanel } from "./newDocsGenPanel";
 
 enum Source {
   YAML = "YAML",
@@ -55,19 +57,33 @@ interface AIColumnDescription {
   description: string;
 }
 
+export interface DocsGenPanelView extends WebviewViewProvider {
+  handleCommand(message: { command: string; args: any }): Promise<void> | void;
+  resolveWebview(
+    panel: WebviewView,
+    context: WebviewViewResolveContext,
+    token: CancellationToken,
+  ): void;
+}
+
 @provideSingleton(DocsEditViewPanel)
 export class DocsEditViewPanel implements WebviewViewProvider {
   public static readonly viewType = "dbtPowerUser.DocsEdit";
+  private panel: WebviewView | undefined;
+  private context: WebviewViewResolveContext<unknown> | undefined;
+  private token: CancellationToken | undefined;
   private _panel: WebviewView | undefined = undefined;
   private documentation?: DBTDocumentation;
   private loadedFromManifest = false;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private _disposables: Disposable[] = [];
+  private legacyDocsPanel = this;
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private altimateRequest: AltimateRequest,
     private telemetry: TelemetryService,
+    private newDocsPanel: NewDocsGenPanel,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
@@ -94,6 +110,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         }
       },
     );
+  }
+
+  private getPanel() {
+    const enableNewDocsPanel = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("enableNewDocsPanel", false);
+    return enableNewDocsPanel ? this.newDocsPanel : this.legacyDocsPanel;
   }
 
   private async getDocumentation(): Promise<DBTDocumentation | undefined> {
@@ -204,8 +227,23 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       });
     }
   }
-
   public async resolveWebviewView(
+    panel: WebviewView,
+    context: WebviewViewResolveContext,
+    token: CancellationToken,
+  ) {
+    this.panel = panel;
+    this.context = context;
+    this.token = token;
+    this._panel = panel;
+    this.getPanel().resolveWebview(panel, context, token);
+    this.setupWebviewHooks(context);
+    this.transmitConfig();
+    this.documentation = await this.getDocumentation();
+    this.transmitData();
+  }
+
+  public async resolveWebview(
     panel: WebviewView,
     context: WebviewViewResolveContext,
     _token: CancellationToken,
@@ -213,10 +251,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     this._panel = panel;
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
-    this.setupWebviewHooks(context);
-    this.transmitConfig();
-    this.documentation = await this.getDocumentation();
-    this.transmitData();
     this.updateGraphStyle();
   }
 
@@ -230,6 +264,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     this._panel!.description = "Edit model documentation";
     this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
   }
+
+  private init = async () => {
+    await this.resolveWebviewView(this.panel!, this.context!, this.token!);
+  };
 
   private setupWebviewHooks(context: WebviewViewResolveContext) {
     this._panel!.webview.onDidReceiveMessage(
@@ -249,6 +287,15 @@ export class DocsEditViewPanel implements WebviewViewProvider {
           return undefined;
         }
         switch (message.command) {
+          case "enableNewDocsPanel":
+            await workspace
+              .getConfiguration("dbt")
+              .update("enableNewDocsPanel", message.enable);
+            this.init();
+            this.telemetry.sendTelemetryEvent(
+              message.enable ? "NewDocsPanelEnabled" : "NewDocsPanelDisabled",
+            );
+            break;
           case "fetchMetadataFromDatabase":
             this.telemetry.sendTelemetryEvent("syncColumnsFromDatabaseForDocs");
             window.withProgress(
@@ -329,6 +376,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                         adapter: project.getAdapterType(),
                       },
                       prompt_hint: message.promptHint || "generate",
+                      user_instructions: message.user_instructions,
                       gen_model_description: true,
                     });
 

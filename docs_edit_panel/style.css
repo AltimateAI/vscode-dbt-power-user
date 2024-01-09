@@ -9,6 +9,7 @@
   display: grid;
   grid-auto-flow: row;
   grid-row-gap: 1.5rem;
+  position: relative;
 }
 
 .documentation {
@@ -96,4 +97,10 @@
   border-radius: 4px;
   white-space: nowrap;
   background: #ffce73;
+}
+
+.btn-new-ux {
+  position: absolute;
+  top: 15px;
+  right: 0;
 }
