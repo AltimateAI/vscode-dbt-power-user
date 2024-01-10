@@ -82,6 +82,7 @@ export class PythonEnvironment implements Disposable {
     const api = extension.exports;
 
     const dbtInstalledPythonPath: string[] = [];
+    // TODO: support multiple workspacefolders for python detection
     // for (const workspaceFolder of workspace.workspaceFolders || []) {
     //   const candidatePythonPath = api.settings.getExecutionDetails(
     //     workspaceFolder.uri,

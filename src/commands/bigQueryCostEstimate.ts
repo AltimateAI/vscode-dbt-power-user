@@ -58,7 +58,7 @@ export class BigQueryCostEstimate {
         return;
       }
       window.showErrorMessage(
-        "Could not perform bigquery cost estimate: " + error,
+        "Could not perform bigquery cost estimate: " + (error as Error).message,
       );
     }
   }

@@ -32,7 +32,7 @@ export class ManifestParser {
 
   public async parseManifest(project: DBTProject) {
     const targetPath = project.getTargetPath();
-    if (targetPath === undefined) {
+    if (!targetPath) {
       console.error("targetPath should be defined at this stage!");
       return;
     }

@@ -66,7 +66,7 @@ export class TargetWatchers implements Disposable {
   private async onProjectConfigChanged(event: ProjectConfigChangedEvent) {
     const projectName = event.project.getProjectName();
     const targetPath = event.project.getTargetPath();
-    if (targetPath === undefined) {
+    if (!targetPath) {
       console.error("targetPath should be defined at this stage!");
       return;
     }
@@ -111,7 +111,7 @@ export class TargetWatchers implements Disposable {
     event: ProjectConfigChangedEvent,
   ): FileSystemWatcher {
     const targetPath = event.project.getTargetPath();
-    if (targetPath === undefined) {
+    if (!targetPath) {
       console.error("targetPath is undefined");
       throw new Error("targetPath is undefined");
     }
@@ -129,7 +129,7 @@ export class TargetWatchers implements Disposable {
     event: ProjectConfigChangedEvent,
   ): FileSystemWatcher {
     const targetPath = event.project.getTargetPath();
-    if (targetPath === undefined) {
+    if (!targetPath) {
       console.error("targetPath is undefined");
       throw new Error("targetPath is undefined");
     }

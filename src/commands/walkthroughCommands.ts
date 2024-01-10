@@ -174,7 +174,7 @@ export class WalkthroughCommands {
     );
     if (error) {
       const answer = await window.showErrorMessage(
-        "Could not install dbt: " + error,
+        "Could not install dbt: " + (error as Error).message,
         DbtInstallationPromptAnswer.INSTALL,
       );
       if (answer === DbtInstallationPromptAnswer.INSTALL) {

@@ -324,7 +324,9 @@ export class DBTCommandExecutionInfrastructure {
           } catch (error) {
             window.showErrorMessage(
               extendErrorWithSupportLinks(
-                `Could not run command '${statusMessage}': ` + error + ".",
+                `Could not run command '${statusMessage}': ` +
+                  (error as Error).message +
+                  ".",
               ),
             );
             this.telemetry.sendTelemetryError("queueRunCommandError", error, {

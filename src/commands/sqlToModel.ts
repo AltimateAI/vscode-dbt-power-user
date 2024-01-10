@@ -76,7 +76,9 @@ export class SqlToModel {
     try {
       compiledSql = await project.unsafeCompileQuery(fileText);
     } catch (error) {
-      window.showErrorMessage("Could not compile the SQL: " + error);
+      window.showErrorMessage(
+        "Could not compile the SQL: " + (error as Error).message,
+      );
       return;
     }
 

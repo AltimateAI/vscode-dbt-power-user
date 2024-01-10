@@ -645,7 +645,7 @@ select * from renamed
 
   private async findModelInTargetfolder(modelPath: Uri, type: string) {
     const targetPath = this.getTargetPath();
-    if (targetPath === undefined) {
+    if (!targetPath) {
       return;
     }
     const baseName = path.basename(modelPath.fsPath);
