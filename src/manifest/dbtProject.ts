@@ -650,10 +650,7 @@ select * from renamed
     }
     const baseName = path.basename(modelPath.fsPath);
     const targetModels = await workspace.findFiles(
-      new RelativePattern(
-        path.join(this.projectRoot.fsPath, targetPath),
-        `${type}/**/${baseName}`,
-      ),
+      new RelativePattern(targetPath, `${type}/**/${baseName}`),
     );
     if (targetModels.length > 0) {
       commands.executeCommand("vscode.open", targetModels[0], {
