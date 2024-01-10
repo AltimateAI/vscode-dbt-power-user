@@ -17,7 +17,7 @@ import {
   OptionType,
   Select,
 } from "@uicore";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Languages, Options, Persona } from "./constants";
 import classes from "./generateAll.module.scss";
@@ -62,6 +62,20 @@ const GenerateAllButton = ({
     onSubmit({ columns, user_instructions: rest });
   };
 
+  const columnOptions = useMemo(() => {
+    const options = [{ label: "Select all", value: "all" }];
+    if (!currentDocsData?.columns) {
+      return options;
+    }
+    return [
+      ...options,
+      ...currentDocsData.columns.map((l) => ({
+        label: l.name,
+        value: l.name,
+      })),
+    ];
+  }, [currentDocsData?.columns]);
+
   const getCustomOptions = () => {
     return (
       <Card className={classes.optionsCard}>
@@ -90,18 +104,30 @@ const GenerateAllButton = ({
                   <Controller
                     control={control}
                     name="columns"
-                    render={({ field: { onChange: onSelectChange } }) => (
+                    render={({
+                      field: { onChange: onSelectChange, value },
+                    }) => (
                       <Select
                         isMulti
-                        onChange={(val) =>
-                          onSelectChange(
-                            (val as OptionType[]).map((v) => v.value),
-                          )
-                        }
-                        options={currentDocsData?.columns.map((l) => ({
-                          label: l.name,
-                          value: l.name,
-                        }))}
+                        value={value?.map((v) => ({ label: v, value: v }))}
+                        onChange={(selectedOptions) => {
+                          (selectedOptions as OptionType[]).map((option) => {
+                            if (option.value == "all") {
+                              onSelectChange(
+                                columnOptions
+                                  .filter((c) => c.value !== "all")
+                                  .map((c) => c.value),
+                              );
+                            } else {
+                              onSelectChange(
+                                (selectedOptions as OptionType[]).map(
+                                  (v) => v.value,
+                                ),
+                              );
+                            }
+                          });
+                        }}
+                        options={columnOptions}
                       />
                     )}
                   />
