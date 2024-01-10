@@ -69,6 +69,28 @@ interface OnewayFeedback {
   data: any;
 }
 
+interface DocsGenerateModelRequestV2 {
+  columns: string[];
+  dbt_model: {
+    model_name: string;
+    model_description?: string;
+    compiled_sql?: string;
+    columns: {
+      column_name: string;
+      description?: string;
+      data_type?: string;
+    }[];
+    adapter?: string;
+  };
+  user_instructions?: {
+    prompt_hint: string;
+    language: string;
+    persona: string;
+  };
+
+  gen_model_description: boolean;
+}
+
 interface DocsGenerateModelRequest {
   columns: string[];
   dbt_model: {
@@ -272,6 +294,13 @@ export class AltimateRequest {
 
   async generateModelDocs(docsGenerate: DocsGenerateModelRequest) {
     return this.fetch<DocsGenerateResponse>("dbt/v1", {
+      method: "POST",
+      body: JSON.stringify(docsGenerate),
+    });
+  }
+
+  async generateModelDocsV2(docsGenerate: DocsGenerateModelRequestV2) {
+    return this.fetch<DocsGenerateResponse>("dbt/v2", {
       method: "POST",
       body: JSON.stringify(docsGenerate),
     });

@@ -2,6 +2,7 @@
 import DocumentationEditor from "./modules/documentationEditor/DocumentationEditor";
 import Insights from "./modules/insights/Insights";
 import Home from "./modules/home/Home";
+import DocumentationProvider from "@modules/documentationEditor/DocumentationProvider";
 
 // TODO: lazy loading breaks loading dynamic webviews when having css because of vite dynamic loading
 // research on how to fix that and then use lazy loading
@@ -16,5 +17,11 @@ import Home from "./modules/home/Home";
 export const AvailableRoutes = {
   "/": { component: <Home /> },
   "/insights": { component: <Insights /> },
-  "/docs-generator": { component: <DocumentationEditor /> },
+  "/docs-generator": {
+    component: (
+      <DocumentationProvider>
+        <DocumentationEditor />
+      </DocumentationProvider>
+    ),
+  },
 };

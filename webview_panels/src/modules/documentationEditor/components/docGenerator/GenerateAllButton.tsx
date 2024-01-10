@@ -1,4 +1,11 @@
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as Yup from "yup";
+import { Controller, SubmitHandler, useForm } from "react-hook-form";
 import { ShinesIcon, YellowEyeIcon } from "@assets/icons";
+import {
+  DocsGenerateModelRequestV2,
+  DocsGenerateUserInstructions,
+} from "@modules/documentationEditor/state/types";
 import {
   Button,
   Card,
@@ -6,64 +13,156 @@ import {
   DropdownButton,
   Form,
   FormGroup,
-  Input,
   Label,
+  OptionType,
   Select,
 } from "@uicore";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Languages, Options, Persona } from "./constants";
 import classes from "./generateAll.module.scss";
+import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 
+const schema = Yup.object({
+  prompt_hint: Yup.string().optional(),
+  persona: Yup.string().optional(),
+  language: Yup.string().optional(),
+  columns: Yup.array().of(Yup.string().required()).optional(),
+}).required();
+
+interface FormProps extends DocsGenerateUserInstructions {
+  columns?: string[];
+}
 interface Props {
   container?: HTMLElement | null;
+  buttonText?: string;
+  showColumns?: boolean;
+  onSubmit: (data: DocsGenerateModelRequestV2) => void;
 }
-const GenerateAllButton = ({ container }: Props): JSX.Element => {
+
+const GenerateAllButton = ({
+  showColumns,
+  container,
+  buttonText = "Generate",
+  onSubmit,
+}: Props): JSX.Element => {
+  const {
+    state: { currentDocsData },
+  } = useDocumentationContext();
+  const { control, handleSubmit } = useForm<FormProps>({
+    resolver: yupResolver(schema),
+  });
+
   const [showCustomOptions, setShowCustomOptions] = useState(false);
   const onToggleClick = () => {
     setShowCustomOptions((prev) => !prev);
+  };
+
+  const onFormSubmit: SubmitHandler<FormProps> = ({ columns, ...rest }) => {
+    onSubmit({ columns, user_instructions: rest });
   };
 
   const getCustomOptions = () => {
     return (
       <Card className={classes.optionsCard}>
         <CardBody>
-          <Form>
-            <FormGroup>
+          <Form onSubmit={handleSubmit(onFormSubmit)}>
+            {/* <FormGroup>
               <Label>
                 Custom hint
-                <Input
-                  name="hint"
-                  placeholder="Describe your model"
-                  type="textarea"
+                <Controller
+                  name="prompt_hint"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      placeholder="Describe your model"
+                      type="textarea"
+                      {...field}
+                    />
+                  )}
+                />
+              </Label>
+            </FormGroup> */}
+            {showColumns ? (
+              <FormGroup>
+                <Label>
+                  Select column
+                  <Controller
+                    control={control}
+                    name="columns"
+                    render={({ field: { onChange: onSelectChange } }) => (
+                      <Select
+                        isMulti
+                        onChange={(val) =>
+                          onSelectChange(
+                            (val as OptionType[]).map((v) => v.value),
+                          )
+                        }
+                        options={currentDocsData?.columns.map((l) => ({
+                          label: l.name,
+                          value: l.name,
+                        }))}
+                      />
+                    )}
+                  />
+                </Label>
+              </FormGroup>
+            ) : null}
+            <FormGroup>
+              <Label>
+                Language
+                <Controller
+                  control={control}
+                  defaultValue={""}
+                  name="language"
+                  render={({ field: { onChange: onSelectChange } }) => (
+                    <Select
+                      onChange={(val) =>
+                        onSelectChange((val as OptionType).value)
+                      }
+                      options={Languages.map((l) => ({ label: l, value: l }))}
+                    />
+                  )}
                 />
               </Label>
             </FormGroup>
             <FormGroup>
               <Label>
-                Select column
-                <Select options={[]} />
-              </Label>
-            </FormGroup>
-            <FormGroup>
-              <Label>
-                Language
-                <Select options={Languages} />
-              </Label>
-            </FormGroup>
-            <FormGroup>
-              <Label>
                 Options
-                <Select options={Options} />
+                <Controller
+                  control={control}
+                  defaultValue={""}
+                  name="prompt_hint"
+                  render={({ field: { onChange: onSelectChange } }) => (
+                    <Select
+                      onChange={(val) =>
+                        onSelectChange((val as OptionType).value)
+                      }
+                      options={Options.map((l) => ({ label: l, value: l }))}
+                    />
+                  )}
+                />
               </Label>
             </FormGroup>
             <FormGroup>
               <Label>
                 Persona
-                <Select options={Persona} />
+                <Controller
+                  control={control}
+                  defaultValue={""}
+                  name="persona"
+                  render={({ field: { onChange: onSelectChange } }) => (
+                    <Select
+                      onChange={(val) =>
+                        onSelectChange((val as OptionType).value)
+                      }
+                      options={Persona.map((l) => ({ label: l, value: l }))}
+                    />
+                  )}
+                />
               </Label>
             </FormGroup>
-            <Button color="primary">
+            <Button color="primary" type="submit">
               Generate <YellowEyeIcon />
             </Button>
           </Form>
@@ -74,8 +173,11 @@ const GenerateAllButton = ({ container }: Props): JSX.Element => {
 
   return (
     <>
-      <DropdownButton onToggleClick={onToggleClick}>
-        <ShinesIcon /> Generate All <YellowEyeIcon />
+      <DropdownButton
+        onToggleClick={onToggleClick}
+        // onClick={() => onSubmit({})}
+      >
+        <ShinesIcon /> {buttonText} <YellowEyeIcon />
       </DropdownButton>
       {showCustomOptions
         ? createPortal(getCustomOptions(), container ?? document.body)

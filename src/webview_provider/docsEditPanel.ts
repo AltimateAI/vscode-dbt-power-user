@@ -183,23 +183,43 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     }
   }
 
-  private async transmitAIGeneratedModelDocs(description: string) {
+  private async transmitAIGeneratedModelDocs(
+    description: string,
+    syncRequestId?: string,
+  ) {
     if (this._panel) {
-      await this._panel.webview.postMessage({
-        command: "renderAIGeneratedModelDocs",
-        description,
-      });
+      const result = syncRequestId
+        ? {
+            command: "response",
+            args: { body: { description }, syncRequestId, status: true },
+          }
+        : {
+            command: "renderAIGeneratedModelDocs",
+            description,
+          };
+      await this._panel.webview.postMessage(result);
     }
   }
 
   private async transmitAIGeneratedColumnDocs(
     generatedColumnDescriptions: AIColumnDescription[],
+    syncRequestId?: string,
   ) {
     if (this._panel) {
-      await this._panel.webview.postMessage({
-        command: "renderAIGeneratedColumnDocs",
-        columns: generatedColumnDescriptions,
-      });
+      const result = syncRequestId
+        ? {
+            command: "response",
+            args: {
+              body: { columns: generatedColumnDescriptions },
+              syncRequestId,
+              status: true,
+            },
+          }
+        : {
+            command: "renderAIGeneratedColumnDocs",
+            columns: generatedColumnDescriptions,
+          };
+      await this._panel.webview.postMessage(result);
     }
   }
 
@@ -269,6 +289,46 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     await this.resolveWebviewView(this.panel!, this.context!, this.token!);
   };
 
+  private async generateDocs(
+    compiledSql: string | undefined,
+    adapter: string,
+    message: any,
+  ) {
+    const enableNewDocsPanel = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("enableNewDocsPanel", false);
+
+    const baseRequest = {
+      columns: [],
+      dbt_model: {
+        model_name: this.documentation?.name,
+        model_description: message.description,
+        compiled_sql: compiledSql,
+        columns: message.columns.map((column: any) => ({
+          column_name: column.name,
+          description: column.description,
+          data_type: column.type,
+          modelName: this.documentation?.name,
+        })),
+        adapter,
+      },
+      prompt_hint: message.promptHint || "generate",
+      gen_model_description: true,
+    } as unknown as Parameters<
+      typeof this.altimateRequest.generateModelDocs
+    >["0"];
+    const generateDocsForModel = enableNewDocsPanel
+      ? await this.altimateRequest.generateModelDocsV2({
+          ...baseRequest,
+          user_instructions: {
+            ...message.user_instructions,
+            prompt_hint: message.user_instructions.prompt_hint || "generate",
+          },
+        })
+      : await this.altimateRequest.generateModelDocs(baseRequest);
+
+    return generateDocsForModel;
+  }
   private setupWebviewHooks(context: WebviewViewResolveContext) {
     this._panel!.webview.onDidReceiveMessage(
       async (message) => {
@@ -286,7 +346,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         if (project === undefined) {
           return undefined;
         }
-        switch (message.command) {
+
+        const { command, args } = message;
+        switch (command) {
           case "enableNewDocsPanel":
             await workspace
               .getConfiguration("dbt")
@@ -360,25 +422,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 try {
                   const compiledSql =
                     await project.unsafeCompileQuery(queryText);
-                  const generateDocsForModel =
-                    await this.altimateRequest.generateModelDocs({
-                      columns: [],
-                      dbt_model: {
-                        model_name: this.documentation?.name,
-                        model_description: message.description,
-                        compiled_sql: compiledSql,
-                        columns: message.columns.map((column: any) => ({
-                          column_name: column.name,
-                          description: column.description,
-                          data_type: column.type,
-                          modelName: this.documentation?.name,
-                        })),
-                        adapter: project.getAdapterType(),
-                      },
-                      prompt_hint: message.promptHint || "generate",
-                      user_instructions: message.user_instructions,
-                      gen_model_description: true,
-                    });
+                  const generateDocsForModel = await this.generateDocs(
+                    compiledSql,
+                    project.getAdapterType(),
+                    message,
+                  );
 
                   if (
                     !generateDocsForModel ||
@@ -389,6 +437,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   }
                   this.transmitAIGeneratedModelDocs(
                     generateDocsForModel.model_description,
+                    message.syncRequestId,
                   );
                 } catch (error) {
                   this.transmitError();
@@ -451,6 +500,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       name: entry.column_name,
                       description: entry.column_description,
                     })),
+                    message.syncRequestId,
                   );
                 } catch (error) {
                   this.transmitError();

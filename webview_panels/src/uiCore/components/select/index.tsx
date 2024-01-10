@@ -8,7 +8,7 @@ import { FormGroup, Input, Label } from "../../index";
 
 const { Option } = components;
 
-interface OptionType {
+export interface OptionType {
   label: string;
   value: string;
 }

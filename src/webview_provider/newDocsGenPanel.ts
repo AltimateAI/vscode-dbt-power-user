@@ -39,7 +39,6 @@ export class NewDocsGenPanel
     args: Record<string, unknown>;
   }): Promise<void> {
     const { command, args } = message;
-    const { id, params } = args;
 
     switch (command) {
       case "enableNewDocsPanel":
