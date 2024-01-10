@@ -61,6 +61,7 @@ const ColumnCard: FunctionComponent<{
         "cursor-pointer": isSelectable,
       })}
       onClick={handleClick}
+      data-testid={"table-details-" + column.name}
     >
       <div className="d-flex align-items-center gap-xs">
         <ColumnDatatype datatype={column.datatype} />
