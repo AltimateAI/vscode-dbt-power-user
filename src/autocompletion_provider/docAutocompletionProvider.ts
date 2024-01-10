@@ -73,7 +73,7 @@ export class DocAutocompletionProvider
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
       this.docAutocompleteNameItemsMap.set(
-        added.projectRoot.fsPath,
+        added.project.projectRoot.fsPath,
         Array.from(added.docMetaMap.keys()).map(
           (docName) => new CompletionItem(docName, CompletionItemKind.File),
         ),

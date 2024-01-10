@@ -59,7 +59,7 @@ export class MacroAutocompletionProvider
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
       this.macrosAutocompleteMap.set(
-        added.projectRoot.fsPath,
+        added.project.projectRoot.fsPath,
         Array.from(added.macroMetaMap.keys()).map((macro) => ({
           label: macro,
           insertText: macro,
