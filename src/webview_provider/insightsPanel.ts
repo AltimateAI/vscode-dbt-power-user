@@ -2,7 +2,10 @@ import { commands, workspace } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
-import { AltimateWebviewProvider } from "./altimateWebviewProvider";
+import {
+  AltimateWebviewProvider,
+  HandleCommandProps,
+} from "./altimateWebviewProvider";
 
 @provideSingleton(InsightsPanel)
 export class InsightsPanel extends AltimateWebviewProvider {
@@ -17,12 +20,8 @@ export class InsightsPanel extends AltimateWebviewProvider {
     super(dbtProjectContainer, telemetry);
   }
 
-  async handleCommand(message: {
-    command: string;
-    args: Record<string, unknown>;
-  }): Promise<void> {
-    const { command, args } = message;
-    const { id, params } = args;
+  async handleCommand(message: HandleCommandProps): Promise<void> {
+    const { command, syncRequestId, ...params } = message;
 
     switch (command) {
       case "bigqueryCostEstimate":
@@ -34,7 +33,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
 
         this._panel!.webview.postMessage({
           command: "response",
-          args: { id, body: result, status: true },
+          args: { syncRequestId, body: result, status: true },
         });
         break;
       case "altimateScan":
@@ -47,7 +46,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
         this._panel!.webview.postMessage({
           command: "response",
           args: {
-            id,
+            syncRequestId,
             body: {
               deferToProduction: workspace
                 .getConfiguration("dbt")

@@ -16,6 +16,11 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
 import path = require("path");
 
+export interface HandleCommandProps extends Record<string, unknown> {
+  command: string;
+  syncRequestId?: string;
+}
+
 type UpdateConfigProps = {
   key: string;
   value: string | boolean | number;
@@ -49,12 +54,8 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     );
   }
 
-  protected async handleCommand(message: {
-    command: string;
-    args: Record<string, unknown>;
-  }): Promise<void> {
-    const { command, args } = message;
-    const { id, params } = args;
+  protected async handleCommand(message: HandleCommandProps): Promise<void> {
+    const { command, syncRequestId, ...params } = message;
 
     switch (command) {
       case "updateConfig":

@@ -1,32 +1,33 @@
 import { vscode } from "../vscode";
 import { IncomingSyncResponse } from "./types";
 
-let id = 0;
-
 const requestMap: Record<
-  number,
+  string,
   { resolve: (k: unknown) => void; reject: (reason?: string) => void }
 > = {};
 
 export const executeRequestInSync = (
   url: string,
-  params: unknown,
+  params: Record<string, unknown>,
 ): Promise<unknown> =>
   new Promise((resolve, reject) => {
+    const id = crypto.randomUUID();
     requestMap[id] = { resolve, reject };
-    vscode.postMessage({ command: url, args: { id, params } });
-    id += 1;
+    vscode.postMessage({ command: url, ...params, syncRequestId: id });
   });
 
 export const executeRequestInAsync = (url: string, params: unknown): void => {
   vscode.postMessage({ command: url, args: { params } });
 };
 export const handleIncomingResponse = (args: IncomingSyncResponse): void => {
-  const { resolve, reject } = requestMap[args.id];
+  if (!requestMap[args.syncRequestId]) {
+    return;
+  }
+  const { resolve, reject } = requestMap[args.syncRequestId];
   if (args.status) {
     resolve(args.body);
   } else {
     reject(args.error);
   }
-  delete requestMap[args.id];
+  delete requestMap[args.syncRequestId];
 };
