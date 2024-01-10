@@ -374,6 +374,7 @@ function App() {
             setMoreTables({});
             vscode.postMessage({ command: "init" });
           }}
+          data-testid="reset-btn"
         >
           Reset
         </Button>
