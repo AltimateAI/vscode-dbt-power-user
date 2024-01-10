@@ -101,7 +101,10 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
-      this.modelToLocationMap.set(added.projectRoot.fsPath, added.nodeMetaMap);
+      this.modelToLocationMap.set(
+        added.project.projectRoot.fsPath,
+        added.nodeMetaMap,
+      );
     });
     event.removed?.forEach((removed) => {
       this.modelToLocationMap.delete(removed.projectRoot.fsPath);

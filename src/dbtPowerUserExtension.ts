@@ -1,10 +1,4 @@
-import {
-  Disposable,
-  commands,
-  workspace,
-  window,
-  ExtensionContext,
-} from "vscode";
+import { Disposable, ExtensionContext } from "vscode";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";

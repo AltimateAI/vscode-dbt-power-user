@@ -37,7 +37,8 @@ export class DBTProjectLog implements Disposable {
   }
 
   private onProjectConfigChanged(event: ProjectConfigChangedEvent) {
-    const { projectName, projectRoot } = event;
+    const projectRoot = event.project.projectRoot;
+    const projectName = event.project.getProjectName();
     if (this.outputChannel === undefined) {
       this.outputChannel = window.createOutputChannel(
         `${projectName} dbt logs`,
@@ -67,7 +68,9 @@ export class DBTProjectLog implements Disposable {
   }
 
   private readLogFileFromLastPosition(event: ProjectConfigChangedEvent): void {
-    const { projectRoot } = event;
+    const {
+      project: { projectRoot },
+    } = event;
     const logPath = path.join(
       projectRoot.fsPath,
       DBTProjectLog.LOG_PATH,

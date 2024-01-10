@@ -10,12 +10,19 @@ export class SourceParser {
 
   createSourceMetaMap(
     sourcesMap: any[],
-    rootPath: string,
+    project: DBTProject,
   ): Promise<SourceMetaMap> {
     return new Promise((resolve) => {
       const sourceMetaMap: SourceMetaMap = new Map();
       if (sourcesMap === null || sourcesMap === undefined) {
         resolve(sourceMetaMap);
+      }
+      const rootPath = project.projectRoot.fsPath;
+      // TODO: these things can change so we should recreate them if project config changes
+      const projectName = project.getProjectName();
+      const packagePath = project.getPackageInstallPath();
+      if (packagePath === undefined) {
+        throw new Error("packagePath is not defined");
       }
       Object.values(sourcesMap)
         .filter(

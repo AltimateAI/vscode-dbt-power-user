@@ -99,21 +99,11 @@ export class ModelAutocompletionProvider
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
-      const projectRoot = added.projectRoot.fsPath;
-      const project = this.dbtProjectContainer.findDBTProject(
-        Uri.file(projectRoot),
-      );
-      if (!project) {
-        console.error(
-          "Could not load autocompletes, project not found in container for " +
-            projectRoot,
-        );
-        return;
-      }
+      const project = added.project;
       const projectName = project.getProjectName();
       const models = added.nodeMetaMap.entries();
       this.modelAutocompleteMap.set(
-        added.projectRoot.fsPath,
+        added.project.projectRoot.fsPath,
         Array.from(models).map(([key, model]) => ({
           label: `(${model.package_name}) ${key}`,
           insertText:

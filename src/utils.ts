@@ -5,6 +5,7 @@ import {
   Position,
   Range,
   TextDocument,
+  Uri,
   workspace,
 } from "vscode";
 
@@ -131,4 +132,17 @@ export function stripANSI(src: string): string {
     /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
     "",
   );
+}
+
+export function getFirstWorkspacePath(): string {
+  // If we are executing python via a wrapper like Meltano,
+  // we need to execute it from a (any) project directory
+  // By default, Command execution is in an ext dir context
+  const folders = workspace.workspaceFolders;
+  if (folders) {
+    return folders[0].uri.fsPath;
+  } else {
+    // TODO: this shouldn't happen but we should make sure this is valid fallback
+    return Uri.file("./").fsPath;
+  }
 }
