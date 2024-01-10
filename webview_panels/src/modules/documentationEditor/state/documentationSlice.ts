@@ -21,8 +21,29 @@ const documentationSlice = createSlice({
       // @ts-expect-error TODO fix this type
       state.currentDocsData = { ...state.currentDocsData, ...action.payload };
     },
+    updateColumnInCurrentDocsData: (
+      state,
+      {
+        payload: { column, columnName },
+      }: PayloadAction<{
+        columnName: string;
+        column: Partial<DBTDocumentation["columns"]["0"]>;
+      }>,
+    ) => {
+      if (!state.currentDocsData) {
+        return;
+      }
+      state.currentDocsData.columns = state.currentDocsData.columns.map((c) => {
+        if (c.name !== columnName) {
+          return c;
+        }
+
+        return { ...c, ...column };
+      });
+    },
   },
 });
 
-export const { updateCurrentDocsData } = documentationSlice.actions;
+export const { updateCurrentDocsData, updateColumnInCurrentDocsData } =
+  documentationSlice.actions;
 export default documentationSlice;

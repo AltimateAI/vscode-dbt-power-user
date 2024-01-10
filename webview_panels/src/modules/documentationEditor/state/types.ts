@@ -8,7 +8,7 @@ interface MetadataColumn {
   type?: string;
 }
 
-interface DBTDocumentationColumn extends MetadataColumn {
+export interface DBTDocumentationColumn extends MetadataColumn {
   description?: string;
   generated: boolean;
   source: Source;
@@ -37,4 +37,10 @@ export interface DocsGenerateModelRequestV2 {
   user_instructions: DocsGenerateUserInstructions;
   description?: string;
   columns?: string[];
+}
+
+export interface DocsGenerateColumnRequestV2 {
+  user_instructions: DocsGenerateUserInstructions;
+  description?: string;
+  columnName: string;
 }

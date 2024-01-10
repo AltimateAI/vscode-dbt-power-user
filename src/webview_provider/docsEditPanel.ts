@@ -289,7 +289,49 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     await this.resolveWebviewView(this.panel!, this.context!, this.token!);
   };
 
-  private async generateDocs(
+  private async generateDocsForColumn(
+    compiledSql: string | undefined,
+    adapter: string,
+    message: any,
+  ) {
+    if (!this.documentation) {
+      return null;
+    }
+    const enableNewDocsPanel = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("enableNewDocsPanel", false);
+
+    const baseRequest = {
+      columns: [message.columnName],
+      dbt_model: {
+        model_name: this.documentation.name,
+        model_description: message.description,
+        compiled_sql: compiledSql,
+        columns: message.columns.map((column: any) => ({
+          column_name: column.name,
+          description: column.description,
+          data_type: column.type,
+        })),
+        adapter,
+      },
+      gen_model_description: false,
+    } as unknown as Parameters<
+      typeof this.altimateRequest.generateModelDocs
+    >["0"];
+
+    const result = enableNewDocsPanel
+      ? await this.altimateRequest.generateModelDocsV2({
+          ...baseRequest,
+          user_instructions: {
+            ...message.user_instructions,
+            prompt_hint: message.user_instructions.prompt_hint || "generate",
+          },
+        })
+      : await this.altimateRequest.generateModelDocs(baseRequest);
+
+    return result;
+  }
+  private async generateDocsForModel(
     compiledSql: string | undefined,
     adapter: string,
     message: any,
@@ -422,7 +464,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 try {
                   const compiledSql =
                     await project.unsafeCompileQuery(queryText);
-                  const generateDocsForModel = await this.generateDocs(
+                  const generateDocsForModel = await this.generateDocsForModel(
                     compiledSql,
                     project.getAdapterType(),
                     message,
@@ -470,33 +512,22 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 try {
                   const compiledSql =
                     await project.unsafeCompileQuery(queryText);
-                  const generateDocsForColumn =
-                    await this.altimateRequest.generateModelDocs({
-                      columns: [message.columnName],
-                      dbt_model: {
-                        model_name: this.documentation.name,
-                        model_description: message.description,
-                        compiled_sql: compiledSql,
-                        columns: message.columns.map((column: any) => ({
-                          column_name: column.name,
-                          description: column.description,
-                          data_type: column.type,
-                        })),
-                        adapter: project.getAdapterType(),
-                      },
-                      prompt_hint: message.promptHint || "generate",
-                      gen_model_description: false,
-                    });
+                  const generatedDocsForColumn =
+                    await this.generateDocsForColumn(
+                      compiledSql,
+                      project.getAdapterType(),
+                      message,
+                    );
 
                   if (
-                    !generateDocsForColumn ||
-                    !generateDocsForColumn.column_descriptions
+                    !generatedDocsForColumn ||
+                    !generatedDocsForColumn.column_descriptions
                   ) {
                     // nothing to do if nothing happened
                     return;
                   }
                   this.transmitAIGeneratedColumnDocs(
-                    generateDocsForColumn.column_descriptions.map((entry) => ({
+                    generatedDocsForColumn.column_descriptions.map((entry) => ({
                       name: entry.column_name,
                       description: entry.column_description,
                     })),
