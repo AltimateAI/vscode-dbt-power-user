@@ -81,7 +81,7 @@ const DeferToProduction = (): JSX.Element => {
   };
 
   return (
-    <Col lg={6}>
+    <Col lg={7}>
       <Card className={classes.insightsCard}>
         <CardTitle className={classes.cardTitle} tag="h5">
           Enable defer_to_production
