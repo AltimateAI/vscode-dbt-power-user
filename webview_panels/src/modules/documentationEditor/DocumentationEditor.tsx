@@ -57,7 +57,6 @@ const DocumentationEditor = (): JSX.Element => {
             <DocGeneratorInput
               value={currentDocsData.description}
               onSubmit={onModelDocSubmit}
-              showColumns
             />
           </Stack>
           <DocGeneratorColumnsList />

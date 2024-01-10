@@ -1,5 +1,5 @@
 import { executeRequestInSync } from "@modules/app/requestExecutor";
-import { updateColumnInCurrentDocsData } from "@modules/documentationEditor/state/documentationSlice";
+import { updateColumnsInCurrentDocsData } from "@modules/documentationEditor/state/documentationSlice";
 import {
   DocsGenerateModelRequestV2,
   DBTDocumentationColumn,
@@ -24,11 +24,9 @@ const DocGeneratorColumn = ({ column }: Props): JSX.Element => {
       columns: currentDocsData?.columns,
     });
     dispatch(
-      updateColumnInCurrentDocsData({
-        column: (result as { columns: Partial<DBTDocumentationColumn>[] })
-          .columns[0],
-        columnName: column.name,
-      }),
+      updateColumnsInCurrentDocsData(
+        result as { columns: Partial<DBTDocumentationColumn>[] },
+      ),
     );
   };
   return (

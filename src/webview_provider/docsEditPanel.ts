@@ -301,8 +301,12 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       .getConfiguration("dbt")
       .get<boolean>("enableNewDocsPanel", false);
 
+    const columns = message.columnName
+      ? [message.columnName]
+      : message.columnNames;
+
     const baseRequest = {
-      columns: [message.columnName],
+      columns,
       dbt_model: {
         model_name: this.documentation.name,
         model_description: message.description,

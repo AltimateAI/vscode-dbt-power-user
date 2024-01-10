@@ -1,6 +1,10 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { DATA } from "./sampleData";
-import { DBTDocumentation, DocumentationStateProps } from "./types";
+import {
+  DBTDocumentation,
+  DBTDocumentationColumn,
+  DocumentationStateProps,
+} from "./types";
 
 export const initialState = {
   currentDocsData: DATA,
@@ -21,29 +25,28 @@ const documentationSlice = createSlice({
       // @ts-expect-error TODO fix this type
       state.currentDocsData = { ...state.currentDocsData, ...action.payload };
     },
-    updateColumnInCurrentDocsData: (
+    updateColumnsInCurrentDocsData: (
       state,
       {
-        payload: { column, columnName },
+        payload: { columns },
       }: PayloadAction<{
-        columnName: string;
-        column: Partial<DBTDocumentation["columns"]["0"]>;
+        columns: Partial<DBTDocumentationColumn>[];
       }>,
     ) => {
       if (!state.currentDocsData) {
         return;
       }
       state.currentDocsData.columns = state.currentDocsData.columns.map((c) => {
-        if (c.name !== columnName) {
-          return c;
+        const updatedColumn = columns.find((column) => c.name === column.name);
+        if (updatedColumn) {
+          return { ...c, ...updatedColumn };
         }
-
-        return { ...c, ...column };
+        return c;
       });
     },
   },
 });
 
-export const { updateCurrentDocsData, updateColumnInCurrentDocsData } =
+export const { updateCurrentDocsData, updateColumnsInCurrentDocsData } =
   documentationSlice.actions;
 export default documentationSlice;
