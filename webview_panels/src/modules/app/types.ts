@@ -15,7 +15,7 @@ export interface IncomingMessageProps {
 }
 
 export interface IncomingSyncResponse {
-  id: number;
+  syncRequestId: string;
   body: unknown;
   status: boolean;
   error: string;
