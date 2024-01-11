@@ -51,6 +51,9 @@ const GenerateAllButton = ({
   } = useDocumentationContext();
   const { control, handleSubmit } = useForm<FormProps>({
     resolver: yupResolver(schema),
+    defaultValues: {
+      columns: showColumns ? currentDocsData?.columns.map((l) => l.name) : [],
+    },
   });
 
   const [showCustomOptions, setShowCustomOptions] = useState(false);

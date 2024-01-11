@@ -2,6 +2,7 @@ import useDocumentationContext from "@modules/documentationEditor/state/useDocum
 import { vscode } from "@modules/vscode";
 import { Button, Input, Stack } from "@uicore";
 import { ChangeEvent, useEffect, useState } from "react";
+import classes from "../../styles.module.scss";
 
 const SaveDocumentation = (): JSX.Element => {
   const [patchPath, setPatchPath] = useState("");
@@ -30,7 +31,7 @@ const SaveDocumentation = (): JSX.Element => {
   };
 
   return (
-    <Stack direction="column" style={{ alignItems: "flex-start" }}>
+    <Stack direction="row" className={classes.save}>
       <h5>Save documentation</h5>
       <Input value={patchPath} onChange={handleChange} />
       <Button onClick={saveDocumentation}>Save documentation</Button>

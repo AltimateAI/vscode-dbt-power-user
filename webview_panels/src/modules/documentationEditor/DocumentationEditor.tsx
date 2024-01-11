@@ -43,24 +43,26 @@ const DocumentationEditor = (): JSX.Element => {
         <p>Documentation for {currentDocsData.name}</p>
         <CommonActionButtons />
       </Stack>
-      <Stack>
-        <div className={classes.body}>
+      <Stack className={classes.bodyWrap}>
+        <Stack direction="column" className={classes.body}>
           <Stack>
             <h1>
               Documentation for {currentDocsData.name}{" "}
               <Tag color="">DATAPILOT</Tag>
             </h1>
           </Stack>
-          <SaveDocumentation />
           <Stack direction="column">
-            <h4>Description for {currentDocsData.name}</h4>
-            <DocGeneratorInput
-              value={currentDocsData.description}
-              onSubmit={onModelDocSubmit}
-            />
+            <Stack direction="column" style={{ margin: "30px 0" }}>
+              <h4>Description for {currentDocsData.name}</h4>
+              <DocGeneratorInput
+                value={currentDocsData.description}
+                onSubmit={onModelDocSubmit}
+              />
+            </Stack>
+            <DocGeneratorColumnsList />
           </Stack>
-          <DocGeneratorColumnsList />
-        </div>
+          <SaveDocumentation />
+        </Stack>
         <DocGenerationResult />
       </Stack>
     </Container>

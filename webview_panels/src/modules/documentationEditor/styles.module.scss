@@ -1,4 +1,8 @@
 .doc-generator {
+  max-height: calc(100vh - 50px);
+  display: flex;
+  flex-direction: column;
+
   & .head {
     justify-content: space-between;
     margin-bottom: 1rem;
@@ -6,7 +10,42 @@
       text-decoration: underline;
     }
   }
-  & .body {
-    width: 60%;
+  & .body-wrap {
+    overflow: hidden;
+    & .body {
+      width: 60%;
+      overflow: overlay;
+
+      & :global .alert {
+        margin-top: 10px;
+      }
+      & .column-header {
+        & div:last-of-type {
+          margin-left: auto;
+        }
+      }
+      & .save {
+        align-items: center;
+        position: sticky;
+        z-index: 2;
+        bottom: 0;
+        border-top: 1px solid var(--Stroke-Disable, #424750);
+        background: var(--Backgrounds-02, #28292c);
+        padding: 10px 20px;
+
+        h5 {
+          margin-right: 10px;
+        }
+
+        h5,
+        button {
+          text-wrap: nowrap;
+        }
+      }
+    }
+    & .result-body {
+      width: 40%;
+      overflow: overlay;
+    }
   }
 }
