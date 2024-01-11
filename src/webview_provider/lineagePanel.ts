@@ -168,7 +168,7 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
       return;
     }
 
-    if (command === "openDocs") {
+    if (command === "openURL") {
       if (!args.url) {
         return;
       }

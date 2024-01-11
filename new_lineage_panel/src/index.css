@@ -11,6 +11,7 @@ html {
   --table-node-collapse-bg: #ffffff;
   --table-node-content-bg: #ffffff;
   --text-grey-color: #8390a3;
+  --text-grey2-color: #c4cad2;
   --purpose-section-bg: #eaf3ff;
   --column-section-bg: #f5f6f7;
   --tag-bg: rgba(63, 140, 255, 0.1);
@@ -34,6 +35,7 @@ html[data-theme="dark"] {
   --table-node-collapse-bg: #3a3d41;
   --table-node-content-bg: #3a3d41;
   --text-grey-color: #66768d;
+  --text-grey2-color: #c4cad2;
   --purpose-section-bg: #3c3c3c;
   --column-section-bg: #3c3c3c;
   --tag-bg: rgba(255, 255, 255, 0.1);
@@ -184,4 +186,14 @@ body {
   border-radius: 4px;
   white-space: nowrap;
   background: #ffce73;
+}
+
+.bottom-right-container {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  gap: 8px;
+  z-index: 101;
+  align-items: center;
 }

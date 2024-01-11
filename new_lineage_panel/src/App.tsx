@@ -1,6 +1,7 @@
 import {
   Dispatch,
   FunctionComponent,
+  PropsWithChildren,
   SetStateAction,
   createContext,
   useEffect,
@@ -23,7 +24,7 @@ import {
   SelfConnectingEdge,
   TableNode,
 } from "./CustomNodes";
-import { SidebarModal } from "./SidebarModal";
+import { Modal, SidebarModal } from "./Modal";
 import { MoreTables, TMoreTables } from "./MoreTables";
 import { Table } from "./service";
 import {
@@ -34,9 +35,23 @@ import {
 import { TableDetails } from "./TableDetails";
 import { Button, Card, CardBody, Input, Label, Tooltip } from "reactstrap";
 import AlertCircleIcon from "./assets/icons/alert-circle.svg?react";
+import PlayCircleIcon from "./assets/icons/play-circle.svg?react";
+import ResetIcon from "./assets/icons/reset.svg?react";
+import HelpIcon from "./assets/icons/help.svg?react";
+import FeedbackIcon from "./assets/icons/feedback.svg?react";
+import CloseIcon from "./assets/icons/x-close.svg?react";
 import styles from "./styles.module.scss";
-import { TABLES_SIDEBAR, COLUMNS_SIDEBAR, EXPOSURE_SIDEBAR } from "./constants";
+import {
+  TABLES_SIDEBAR,
+  COLUMNS_SIDEBAR,
+  EXPOSURE_SIDEBAR,
+  FEEDBACK_SIDEBAR,
+  HELP_SIDEBAR,
+} from "./constants";
 import ExposureDetails from "./exposure/ExposureDetails";
+import { Feedback } from "./Feedback";
+import { Help } from "./Help";
+import { Demo } from "./Demo";
 
 declare const acquireVsCodeApi: () => { postMessage: (v: unknown) => void };
 
@@ -58,16 +73,13 @@ export const requestExecutor = (url: string, params: unknown) => {
 export const openFile = (url: string) => {
   vscode.postMessage({ command: "openFile", args: { url } });
 };
-export const openDocs = () => {
+const openURL = (url: string) => {
   vscode.postMessage({
-    command: "openDocs",
-    args: {
-      url: aiEnabled
-        ? "https://docs.google.com/forms/d/e/1FAIpQLScsvmEdZ56F1GAFZq_SW7ejYe0dwpHe-N69qiQBz4ekN4gPNQ/viewform"
-        : "https://docs.google.com/forms/d/10_YT2XDwpbkDXio-7TEYPQXsJfCBFqYUa7t0ImzyZvE/viewform",
-    },
+    command: "openURL",
+    args: { url },
   });
 };
+export const openChat = () => openURL("https://app.myaltimate.com/contactus");
 export const startProgressBar = () => {
   vscode.postMessage({ command: "startProgressBar", args: {} });
 };
@@ -146,12 +158,32 @@ const InfoIcon: FunctionComponent<{ id: string; message: string }> = ({
   );
 };
 
+const ActionButton = ({
+  onClick,
+  children,
+}: PropsWithChildren<{
+  onClick: React.MouseEventHandler<HTMLButtonElement>;
+}>) => {
+  return (
+    <Button
+      size="sm"
+      outline
+      color="secondary"
+      onClick={onClick}
+      className="d-flex align-items-center gap-sm"
+    >
+      {children}
+    </Button>
+  );
+};
+
 function App() {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [moreTables, setMoreTables] = useState<TMoreTables>({});
   const [sidebarScreen, setSidebarScreen] = useState("");
+  const [showDemoModal, setShowDemoModal] = useState(false);
   const [selectedColumn, setSelectedColumn] = useState({
     name: "",
     table: "",
@@ -325,7 +357,10 @@ function App() {
                   </Label>
                   <InfoIcon
                     id="non_select_lineage"
-                    message="Non-Select linkages are shown if columns appear in condition/clauses like where, join, having, etc."
+                    message={
+                      "Non-Select linkages are shown if columns appear " +
+                      "in condition/clauses like where, join, having, etc."
+                    }
                   />
                 </div>
                 {confidence.confidence === "low" && (
@@ -333,14 +368,14 @@ function App() {
                     <div className={styles.verticle_divider} />
                     <div className="d-flex gap-xxs align-items-center">
                       <div>Confidence</div>
-                      {confidence.operator_list && (
-                        <InfoIcon
-                          id="confidence"
-                          message={`The confidence of lineage for indirect links is low because of the presence of the following in the sql: ${Array.from(
-                            new Set(confidence.operator_list)
-                          ).join(", ")}`}
-                        />
-                      )}
+                      <InfoIcon
+                        id="confidence"
+                        message={
+                          "Depending on the SQL dialect and complexity of queries, " +
+                          "there may be situations where we are not completely " +
+                          "confident about the lineage shown in this view"
+                        }
+                      />
                       <div className={styles.low_confidence}>Low</div>
                     </div>
                   </>
@@ -351,7 +386,25 @@ function App() {
         )}
         <Button
           size="sm"
-          color="secondary"
+          color="primary"
+          onClick={(e) => {
+            e.stopPropagation();
+            vscode.postMessage({ command: "setLegacyLineageView" });
+          }}
+        >
+          Show Legacy UX
+        </Button>
+        <ActionButton
+          onClick={(e) => {
+            e.stopPropagation();
+            setSidebarScreen(HELP_SIDEBAR);
+            setShowSidebar(true);
+          }}
+        >
+          <HelpIcon />
+          <span>Help</span>
+        </ActionButton>
+        <ActionButton
           onClick={(e) => {
             e.stopPropagation();
             flow.current?.setNodes([]);
@@ -364,27 +417,40 @@ function App() {
           }}
           data-testid="reset-btn"
         >
-          Reset
-        </Button>
+          <ResetIcon />
+          <span>Reset</span>
+        </ActionButton>
+        <ActionButton
+          onClick={(e) => {
+            e.stopPropagation();
+            setSidebarScreen(FEEDBACK_SIDEBAR);
+            setShowSidebar(true);
+          }}
+        >
+          <FeedbackIcon />
+          <span>Feedback</span>
+        </ActionButton>
+      </div>
+      <div className="bottom-right-container">
         <Button
-          size="sm"
           color="primary"
+          className="d-flex gap-sm align-items-center"
           onClick={(e) => {
             e.stopPropagation();
-            vscode.postMessage({ command: "setLegacyLineageView" });
+            setShowDemoModal((b) => !b);
           }}
         >
-          Show Legacy UX
-        </Button>
-        <Button
-          size="sm"
-          color="link"
-          onClick={(e) => {
-            e.stopPropagation();
-            openDocs();
-          }}
-        >
-          Feedback
+          {!showDemoModal ? (
+            <>
+              Quick demo of Column Lineage
+              <PlayCircleIcon />
+            </>
+          ) : (
+            <>
+              Close
+              <CloseIcon />
+            </>
+          )}
         </Button>
       </div>
       <LineageContext.Provider
@@ -429,7 +495,19 @@ function App() {
             {sidebarScreen === TABLES_SIDEBAR && <MoreTables />}
             {sidebarScreen === COLUMNS_SIDEBAR && <TableDetails />}
             {sidebarScreen === EXPOSURE_SIDEBAR && <ExposureDetails />}
+            {sidebarScreen === FEEDBACK_SIDEBAR && (
+              <Feedback
+                close={() => {
+                  setSidebarScreen("");
+                  setShowSidebar(false);
+                }}
+              />
+            )}
+            {sidebarScreen === HELP_SIDEBAR && <Help />}
           </SidebarModal>
+          <Modal isOpen={showDemoModal}>
+            <Demo />
+          </Modal>
         </ReactFlowProvider>
       </LineageContext.Provider>
     </div>
