@@ -80,3 +80,4 @@ classDiagram
 - UI components are built in [./src/uiCore](./src/uiCore/index.ts) package. Any new UI component should be imported only from this package. This will enable us to apply consistent styling, create ui toolkit and ability to switch to new UI library easily if needed
 - `reactstrap` (which is the current ui library) import is restricted in components in `src/modules`, to avoid importing the ui components directly from reactstrap. Instead export the necessary component from [./src/uiCore](./src/uiCore/index.ts) and use it in components
 - [Storybook](https://storybook.js.org/) is integrated and [ui tool kit](./src/uiCore/UiToolkit.stories.tsx) is built in storybook to check the available UI components. If you add any new component to uiCore, add that component to above storybook.
+- use `panelLogger` for logging from webview panels. We can make this to use console or any logger in future

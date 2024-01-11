@@ -28,7 +28,7 @@ const DocumentationResult = ({ history }: Props): JSX.Element => {
             </Stack>
             <Stack style={{ justifyContent: "space-between" }}>
               <Stack>
-                <ResultFeedbackButtons />
+                <ResultFeedbackButtons history={history} />
               </Stack>
             </Stack>
           </Stack>
