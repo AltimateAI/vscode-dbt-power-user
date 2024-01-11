@@ -326,3 +326,16 @@ $size: 1.2em;
 .node_extra_info {
   height: 1.6em;
 }
+
+.help_body {
+  color: var(--text-grey2-color);
+}
+
+.feedback_body {
+  color: var(--text-grey2-color);
+
+  .cancel_btn {
+    color: var(--text-grey-color);
+    text-decoration: none;
+  }
+}

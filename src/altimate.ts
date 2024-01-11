@@ -281,7 +281,7 @@ export class AltimateRequest {
   }
 
   async sendFeedback(feedback: OnewayFeedback) {
-    await this.fetch<void>("feedbacks/ai/fb", {
+    return await this.fetch<{ ok: boolean }>("feedbacks/ai/fb", {
       method: "POST",
       body: JSON.stringify(feedback),
     });

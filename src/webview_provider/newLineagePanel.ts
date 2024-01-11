@@ -176,6 +176,20 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
 
+    if (command === "sendFeedback") {
+      const body = await this.altimate.sendFeedback({
+        feedback_src: "dbtpu-extension",
+        feedback_text: params.feedback_text,
+        feedback_value: params.feedback_value,
+        data: {},
+      });
+      this._panel?.webview.postMessage({
+        command: "response",
+        args: { id, body, status: !!body },
+      });
+      return;
+    }
+
     if (command === "startProgressBar") {
       window.withProgress(
         {
