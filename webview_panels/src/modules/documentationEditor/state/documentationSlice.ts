@@ -3,8 +3,8 @@ import { GenerationDBDataProps } from "../types";
 import { DATA, PROJECT } from "./sampleData";
 import {
   DBTDocumentation,
-  DBTDocumentationColumn,
   DocumentationStateProps,
+  MetadataColumn,
 } from "./types";
 
 export const initialState = {
@@ -17,15 +17,18 @@ const documentationSlice = createSlice({
   name: "documentationState",
   initialState,
   reducers: {
-    setProject: (state, action: PayloadAction<string | null>) => {
+    setProject: (
+      state,
+      action: PayloadAction<DocumentationStateProps["project"]>,
+    ) => {
       state.project = action.payload;
     },
     updateCurrentDocsData: (
       state,
-      action: PayloadAction<Partial<DBTDocumentation> | null>,
+      action: PayloadAction<Partial<DBTDocumentation> | undefined>,
     ) => {
       if (!action.payload) {
-        state.currentDocsData = null;
+        state.currentDocsData = undefined;
         return;
       }
       // @ts-expect-error TODO fix this type
@@ -36,7 +39,7 @@ const documentationSlice = createSlice({
       {
         payload: { columns },
       }: PayloadAction<{
-        columns: Partial<DBTDocumentationColumn>[];
+        columns: Partial<MetadataColumn>[];
       }>,
     ) => {
       if (!state.currentDocsData) {

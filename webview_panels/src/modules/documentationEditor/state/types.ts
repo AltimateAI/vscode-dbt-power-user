@@ -5,7 +5,7 @@ enum Source {
   YAML = "YAML",
 }
 
-interface MetadataColumn {
+export interface MetadataColumn {
   name: string;
   type?: string;
 }
@@ -26,8 +26,8 @@ export interface DBTDocumentation {
 }
 
 export interface DocumentationStateProps {
-  currentDocsData: DBTDocumentation | null;
-  project: string | null;
+  currentDocsData?: DBTDocumentation;
+  project?: string;
   generationHistory: GenerationDBDataProps[];
 }
 

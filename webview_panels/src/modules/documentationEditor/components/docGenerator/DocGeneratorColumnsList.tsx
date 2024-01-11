@@ -6,6 +6,7 @@ import {
   DocsGenerateModelRequestV2,
 } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
+import { panelLogger } from "@modules/logger";
 import { Alert, Button, Stack } from "@uicore";
 import { useEffect, useRef, useState } from "react";
 import DocGeneratorColumn from "./DocGeneratorColumn";
@@ -44,12 +45,19 @@ const DocGeneratorColumnsList = (): JSX.Element => {
       ),
     );
   };
+
+  const onSyncBtnClick = () => {
+    executeRequestInSync("fetchMetadataFromDatabase", {}).catch((err) =>
+      panelLogger.error("error while syncing with db", err),
+    );
+  };
+
   return (
     <div>
       <div ref={ref}>
         <Stack>
           <h1>Columns</h1>
-          <Button color="warning">
+          <Button color="warning" onClick={onSyncBtnClick}>
             <RefreshIcon /> Sync with the Database
           </Button>
           {ref.current ? (

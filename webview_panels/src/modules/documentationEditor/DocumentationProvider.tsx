@@ -12,9 +12,10 @@ import documentationSlice, {
   initialState,
   setGenerationsHistory,
   setProject,
+  updateColumnsInCurrentDocsData,
   updateCurrentDocsData,
 } from "./state/documentationSlice";
-import { DBTDocumentation } from "./state/types";
+import { DBTDocumentation, MetadataColumn } from "./state/types";
 import { ContextProps } from "./types";
 import { getGenerationsInModel } from "./utils";
 
@@ -37,8 +38,9 @@ const DocumentationProvider = ({
     (
       event: MessageEvent<
         IncomingMessageProps & {
-          docs: DBTDocumentation;
-          project: string | null;
+          docs?: DBTDocumentation;
+          project?: string;
+          columns?: MetadataColumn[];
         }
       >,
     ) => {
@@ -47,6 +49,13 @@ const DocumentationProvider = ({
         case "renderDocumentation":
           dispatch(updateCurrentDocsData(event.data.docs));
           dispatch(setProject(event.data.project));
+          break;
+        case "renderColumnsFromMetadataFetch":
+          if (event.data.columns) {
+            dispatch(
+              updateColumnsInCurrentDocsData({ columns: event.data.columns }),
+            );
+          }
           break;
         default:
           break;
