@@ -156,8 +156,9 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             <!--
               Use a content security policy to only allow loading images from https or from our extension directory,
               and only allow scripts that have a specific nonce.
+              Added unsafe-inline for css due to csp issue: https://github.com/JedWatson/react-select/issues/4631
               -->
-              <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${
+              <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' ${
                 webview.cspSource
               }; img-src ${
                 webview.cspSource

@@ -204,7 +204,7 @@ const GenerateAllButton = ({
     <>
       <DropdownButton
         onToggleClick={onToggleClick}
-        // onClick={() => onSubmit({})}
+        onClick={handleSubmit(onFormSubmit)}
       >
         <ShinesIcon /> {buttonText} <YellowEyeIcon />
       </DropdownButton>
