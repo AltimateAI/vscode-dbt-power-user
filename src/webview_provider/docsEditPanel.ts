@@ -26,6 +26,7 @@ import { TelemetryService } from "../telemetry";
 import { AltimateRequest } from "../altimate";
 import { stringify, parse } from "yaml";
 import { NewDocsGenPanel } from "./newDocsGenPanel";
+import { DBTProject } from "../manifest/dbtProject";
 
 enum Source {
   YAML = "YAML",
@@ -119,13 +120,20 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     return enableNewDocsPanel ? this.newDocsPanel : this.legacyDocsPanel;
   }
 
+  private getProject(): DBTProject | undefined {
+    if (!window.activeTextEditor) {
+      return undefined;
+    }
+    const currentFilePath = window.activeTextEditor.document.uri;
+    return this.dbtProjectContainer.findDBTProject(currentFilePath);
+  }
   private async getDocumentation(): Promise<DBTDocumentation | undefined> {
     if (window.activeTextEditor === undefined || this.eventMap === undefined) {
       return undefined;
     }
 
     const currentFilePath = window.activeTextEditor.document.uri;
-    const project = this.dbtProjectContainer.findDBTProject(currentFilePath);
+    const project = this.getProject();
     if (project === undefined) {
       return undefined;
     }
@@ -170,6 +178,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       await this._panel.webview.postMessage({
         command: "renderDocumentation",
         docs: this.documentation,
+        project: this.getProject()?.getProjectName(),
       });
     }
   }
@@ -387,8 +396,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         }
         const queryText = window.activeTextEditor.document.getText();
         const currentFilePath = window.activeTextEditor.document.uri;
-        const project =
-          this.dbtProjectContainer.findDBTProject(currentFilePath);
+        const project = this.getProject();
         if (project === undefined) {
           return undefined;
         }

@@ -1,4 +1,5 @@
 import { IncomingMessageProps } from "@modules/app/types";
+import { panelLogger } from "@modules/logger";
 import {
   createContext,
   ReactNode,
@@ -9,10 +10,13 @@ import {
 } from "react";
 import documentationSlice, {
   initialState,
+  setGenerationsHistory,
+  setProject,
   updateCurrentDocsData,
 } from "./state/documentationSlice";
 import { DBTDocumentation } from "./state/types";
 import { ContextProps } from "./types";
+import { getGenerationsInModel } from "./utils";
 
 export const DocumentationContext = createContext<ContextProps>({
   state: initialState,
@@ -31,12 +35,18 @@ const DocumentationProvider = ({
 
   const onMesssage = useCallback(
     (
-      event: MessageEvent<IncomingMessageProps & { docs: DBTDocumentation }>,
+      event: MessageEvent<
+        IncomingMessageProps & {
+          docs: DBTDocumentation;
+          project: string | null;
+        }
+      >,
     ) => {
       const { command } = event.data;
       switch (command) {
         case "renderDocumentation":
           dispatch(updateCurrentDocsData(event.data.docs));
+          dispatch(setProject(event.data.project));
           break;
         default:
           break;
@@ -44,6 +54,24 @@ const DocumentationProvider = ({
     },
     [],
   );
+
+  const loadGenerationsHistory = (project: string, model: string) => {
+    getGenerationsInModel(project, model)
+      .then((data) => {
+        dispatch(setGenerationsHistory(data));
+      })
+      .catch((err) =>
+        panelLogger.error("error while loading generations history", err),
+      );
+  };
+
+  useEffect(() => {
+    if (!state.project || !state.currentDocsData?.name) {
+      return;
+    }
+
+    loadGenerationsHistory(state.project, state.currentDocsData.name);
+  }, [state.project, state.currentDocsData?.name]);
 
   useEffect(() => {
     window.addEventListener("message", onMesssage);

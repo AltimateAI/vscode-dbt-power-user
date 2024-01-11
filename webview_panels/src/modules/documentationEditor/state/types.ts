@@ -1,3 +1,5 @@
+import { GenerationDBDataProps } from "../types";
+
 enum Source {
   DATABASE = "DATABASE",
   YAML = "YAML",
@@ -25,6 +27,8 @@ export interface DBTDocumentation {
 
 export interface DocumentationStateProps {
   currentDocsData: DBTDocumentation | null;
+  project: string | null;
+  generationHistory: GenerationDBDataProps[];
 }
 
 export interface DocsGenerateUserInstructions {

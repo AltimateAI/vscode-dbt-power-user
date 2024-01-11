@@ -1,5 +1,6 @@
 /* eslint-disable */
 // https://github.com/microsoft/vscode-webview-ui-toolkit-samples/blob/main/frameworks/hello-world-react-vite/webview-ui/src/utilities/vscode.ts
+import { panelLogger } from "@modules/logger";
 import type { WebviewApi } from "vscode-webview";
 
 /**
@@ -34,7 +35,7 @@ class VSCodeAPIWrapper {
     if (this.vsCodeApi) {
       this.vsCodeApi.postMessage(message);
     } else {
-      console.log(message);
+      panelLogger.log(message);
     }
   }
 
