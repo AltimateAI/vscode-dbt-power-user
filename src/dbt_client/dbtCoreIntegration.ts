@@ -213,31 +213,6 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  async findLimitQuery(query: string, limit: number) {
-    try {
-      const dbtVersion = this.version;
-      //dbt supports limit macro after v1.5
-      if (dbtVersion && dbtVersion[0] >= 1 && dbtVersion[1] >= 5) {
-        const args = { sql: query, limit };
-        const queryTemplateFromMacro = await this.python?.lock(
-          (python) =>
-            python!`to_dict(project.execute_macro('get_limit_subquery_sql', ${args}))`,
-        );
-
-        console.log("Using query template from macro", queryTemplateFromMacro);
-        return queryTemplateFromMacro;
-      }
-    } catch (err) {
-      this.telemetry.sendTelemetryError(
-        "executeMacroGetLimitSubquerySQLError",
-        err,
-        { adapter: this.adapterType || "" },
-      );
-    }
-
-    return null;
-  }
-
   private async createPythonDbtProject() {
     await this.python.ex`from dbt_integration import *`;
     await this.python
