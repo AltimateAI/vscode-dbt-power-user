@@ -1,5 +1,4 @@
 import * as path from "path";
-import { MarkdownString } from "vscode";
 
 export type NodeMetaMap = Map<string, NodeMetaData>;
 export type MacroMetaMap = Map<string, MacroMetaData>;

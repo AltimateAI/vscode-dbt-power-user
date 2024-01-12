@@ -1,11 +1,11 @@
 import { window, QuickPickItem, ProgressLocation, commands } from "vscode";
-import { provideSingleton } from "../utils";
+import { getFirstWorkspacePath, provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { TelemetryService } from "../telemetry";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { DBTCommandFactory } from "../dbt_client/dbtCommandFactory";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
+import { CommandProcessExecutionFactory } from "../commandProcessExecution";
+import { PythonEnvironment } from "../manifest/pythonEnvironment";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -21,7 +21,9 @@ export class WalkthroughCommands {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
-    private dbtCommandFactory: DBTCommandFactory,
+    private commandProcessExecutionFactory: CommandProcessExecutionFactory,
+    private pythonEnvironment: PythonEnvironment,
+    private dbtTerminal: DBTTerminal,
   ) {}
 
   async validateProjects(projectContext: ProjectQuickPickItem | undefined) {
@@ -49,29 +51,18 @@ export class WalkthroughCommands {
           );
           return;
         }
-        const runModelCommand = this.dbtCommandFactory.createDebugCommand(
-          project.projectRoot,
-          project.dbtProfilesDir,
-        );
-        try {
-          const runModelOutput: string =
-            await this.dbtProjectContainer.runCommandAndReturnResults(
-              runModelCommand,
-            );
-          if (runModelOutput.includes("ERROR")) {
-            throw new Error();
-          }
-        } catch (runError) {
-          console.log(runError);
-          window.showErrorMessage(
-            "Error running dbt debug for project " +
-              projectContext.label +
-              ". Please check the output tab for more details.",
-          );
+        const runModelOutput = await project.debug();
+        if (runModelOutput.includes("ERROR")) {
+          throw new Error(runModelOutput);
         }
       } catch (err) {
         console.log(err);
         this.telemetry.sendTelemetryError("validateProjectError", err);
+        window.showErrorMessage(
+          "Error running dbt debug for project " +
+            projectContext.label +
+            ". Please check the output tab for more details.",
+        );
       }
     }
   }
@@ -101,44 +92,17 @@ export class WalkthroughCommands {
           return;
         }
 
-        const depsCommand = this.dbtCommandFactory.createInstallDepsCommand(
-          project.projectRoot,
-          project.dbtProfilesDir,
-        );
-        try {
-          await this.dbtProjectContainer.runCommandAndReturnResults(
-            depsCommand,
-          );
-        } catch (depsError) {
-          console.log(depsError);
-          window.showErrorMessage(
-            "Error installing dbt dependencies for project " +
-              projectContext.label +
-              ". Please check the output tab for more details.",
-          );
-        }
+        await project.installDeps();
       } catch (err) {
         console.log(err);
         this.telemetry.sendTelemetryError("installDepsError", err);
+        window.showErrorMessage(
+          "Error installing dbt dependencies for project " +
+            projectContext.label +
+            ". Please check the output tab for more details.",
+        );
       }
     }
-  }
-
-  async isExtensionOutdated() {
-    this.telemetry.sendTelemetryEvent("versionOutdatedStep");
-    const currentVersion = this.dbtProjectContainer.extensionVersion.toString();
-    const extLatestJson = await fetch(
-      "https://api.github.com/repos/AltimateAI/vscode-dbt-power-user/releases/latest",
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    );
-    const extLatest = await extLatestJson.json();
-    const latestVersion = extLatest.tag_name.toString();
-    return currentVersion < latestVersion;
   }
 
   async installDbt(): Promise<void> {
@@ -151,64 +115,70 @@ export class WalkthroughCommands {
         canPickMany: false,
       },
     );
-    if (dbtVersion) {
-      const adapter: QuickPickItem | undefined = await window.showQuickPick(
-        [
-          "snowflake",
-          "bigquery",
-          "redshift",
-          "postgres",
-          "databricks",
-          "sqlserver",
-          "duckdb",
-          "athena",
-          "spark",
-          "clickhouse",
-          "trino",
-          "synapse",
-        ].map((value) => ({
-          label: value,
-        })),
-        {
-          title: "Select your adapter",
-          canPickMany: false,
-        },
-      );
-      if (adapter && adapter.label) {
-        const packageVersion = dbtVersion.label;
-        const packageName = this.mapToAdapterPackage(adapter.label);
-        let error = undefined;
-        await window.withProgress(
-          {
-            title: `Installing ${packageName} ${packageVersion}...`,
-            location: ProgressLocation.Notification,
-            cancellable: false,
-          },
-          async () => {
-            try {
-              await this.dbtProjectContainer.runCommandAndReturnResults(
-                this.dbtCommandFactory.createDbtInstallCommand(
-                  packageName,
-                  packageVersion,
-                ),
-              );
-              await this.dbtProjectContainer.detectDBT();
-              this.dbtProjectContainer.initializePythonBridges();
-            } catch (err) {
-              console.log(err);
-              error = err;
-            }
-          },
-        );
-        if (error) {
-          const answer = await window.showErrorMessage(
-            "Could not install dbt: " + error,
-            DbtInstallationPromptAnswer.INSTALL,
-          );
-          if (answer === DbtInstallationPromptAnswer.INSTALL) {
-            commands.executeCommand("dbtPowerUser.installDbt");
-          }
+    if (!dbtVersion) {
+      return;
+    }
+    const adapter: QuickPickItem | undefined = await window.showQuickPick(
+      [
+        "snowflake",
+        "bigquery",
+        "redshift",
+        "postgres",
+        "databricks",
+        "sqlserver",
+        "duckdb",
+        "athena",
+        "spark",
+        "clickhouse",
+        "trino",
+        "synapse",
+      ].map((value) => ({ label: value })),
+      {
+        title: "Select your adapter",
+        canPickMany: false,
+      },
+    );
+    if (!adapter || !adapter.label) {
+      return;
+    }
+    const packageVersion = dbtVersion.label;
+    const packageName = this.mapToAdapterPackage(adapter.label);
+    let error = undefined;
+    await window.withProgress(
+      {
+        title: `Installing ${packageName} ${packageVersion}...`,
+        location: ProgressLocation.Notification,
+        cancellable: false,
+      },
+      async () => {
+        try {
+          const result = await this.commandProcessExecutionFactory
+            .createCommandProcessExecution({
+              command: this.pythonEnvironment.pythonPath,
+              args: [
+                "-m",
+                "pip",
+                "install",
+                `${packageName}==${packageVersion}`,
+              ],
+              cwd: getFirstWorkspacePath(),
+              envVars: this.pythonEnvironment.environmentVariables,
+            })
+            .completeWithTerminalOutput(this.dbtTerminal);
+          await this.dbtProjectContainer.detectDBT();
+          this.dbtProjectContainer.initialize();
+        } catch (err) {
+          error = err;
         }
+      },
+    );
+    if (error) {
+      const answer = await window.showErrorMessage(
+        "Could not install dbt: " + (error as Error).message,
+        DbtInstallationPromptAnswer.INSTALL,
+      );
+      if (answer === DbtInstallationPromptAnswer.INSTALL) {
+        commands.executeCommand("dbtPowerUser.installDbt");
       }
     }
   }

@@ -2,6 +2,7 @@ import { Disposable, Event, extensions, Uri, workspace } from "vscode";
 import { EnvironmentVariables } from "../domain";
 import { provideSingleton, substituteSettingsVariables } from "../utils";
 import { TelemetryService } from "../telemetry";
+import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 
 interface PythonExecutionDetails {
   getPythonPath: () => string;
@@ -14,7 +15,10 @@ export class PythonEnvironment implements Disposable {
   private executionDetails?: PythonExecutionDetails;
   private disposables: Disposable[] = [];
 
-  constructor(private telemetry: TelemetryService) {}
+  constructor(
+    private telemetry: TelemetryService,
+    private commandProcessExecutionFactory: CommandProcessExecutionFactory,
+  ) {}
 
   dispose() {
     while (this.disposables.length) {
@@ -77,10 +81,39 @@ export class PythonEnvironment implements Disposable {
 
     const api = extension.exports;
 
+    const dbtInstalledPythonPath: string[] = [];
+    // TODO: support multiple workspacefolders for python detection
+    // for (const workspaceFolder of workspace.workspaceFolders || []) {
+    //   const candidatePythonPath = api.settings.getExecutionDetails(
+    //     workspaceFolder.uri,
+    //   ).execCommand[0];
+
+    //   const dbtInstalledCommand =
+    //     this.dbtCommandFactory.createVerifyDbtInstalledCommand();
+    //   const checkDBTInstalledProcess =
+    //     this.commandProcessExecutionFactory.createCommandProcessExecution({
+    //       command: candidatePythonPath,
+    //       args: dbtInstalledCommand.processExecutionParams.args,
+    //     });
+
+    //   try {
+    //     await checkDBTInstalledProcess.complete();
+    //   } catch {
+    //     continue;
+    //   }
+
+    //   dbtInstalledPythonPath.push(candidatePythonPath);
+    // }
+
     return (this.executionDetails = {
-      getPythonPath: () =>
-        api.settings.getExecutionDetails(workspace.workspaceFile)
-          .execCommand[0],
+      getPythonPath: () => {
+        if (dbtInstalledPythonPath.length > 0) {
+          return dbtInstalledPythonPath[0];
+        } else {
+          return api.settings.getExecutionDetails(workspace.workspaceFile)
+            .execCommand[0];
+        }
+      },
       onDidChangeExecutionDetails: api.settings.onDidChangeExecutionDetails,
       getEnvVars: () => {
         const configText = workspace.getConfiguration();

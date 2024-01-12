@@ -89,7 +89,7 @@ export class SourceAutocompletionProvider
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
       this.sourceAutocompleteNameItemsMap.set(
-        added.projectRoot.fsPath,
+        added.project.projectRoot.fsPath,
         Array.from(added.sourceMetaMap.keys()).map(
           (source) => new CompletionItem(source, CompletionItemKind.File),
         ),
@@ -102,7 +102,7 @@ export class SourceAutocompletionProvider
         sourceTableMap.set(key, autocompleteItems);
       });
       this.sourceAutocompleteTableMap.set(
-        added.projectRoot.fsPath,
+        added.project.projectRoot.fsPath,
         sourceTableMap,
       );
     });

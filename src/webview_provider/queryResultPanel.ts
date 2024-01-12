@@ -17,12 +17,12 @@ import {
 
 import { readFileSync } from "fs";
 import { PythonException } from "python-bridge";
-import { ExecuteSQLResult } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { AltimateRequest } from "../altimate";
 import { DefaultQueryTemplate } from "../domain";
+import { ExecuteSQLResult } from "../dbt_client/dbtIntegration";
 
 interface JsonObj {
   [key: string]: string | number | undefined;

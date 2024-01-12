@@ -73,10 +73,6 @@ export class DBTWorkspaceFolder implements Disposable {
         this.workspaceFolder,
         `**/${DBTProject.DBT_PROJECT_FILE}`,
       ),
-      new RelativePattern(
-        this.workspaceFolder,
-        `**/{${DBTProject.DBT_MODULES.join(",")}}`,
-      ),
     );
 
     const allowListFolders = this.getAllowListFolders();
@@ -102,11 +98,36 @@ export class DBTWorkspaceFolder implements Disposable {
       {},
       { numProjects: projectFiles.length },
     );
-    return projectFiles.forEach((uri) => this.registerDBTProject(uri));
+    await Promise.all(
+      projectFiles.map(async (uri) => {
+        await this.registerDBTProject(uri);
+      }),
+    );
+    // Unregister projects that are in the packages folder of other projects
+    const packagesInstallPaths = this.findDBTProjectPackagesInstallPaths();
+
+    const filteredProjectFiles = projectFiles.filter((uri) => {
+      return packagesInstallPaths.some((packageInstallPath) => {
+        return uri.fsPath.startsWith(packageInstallPath!);
+      });
+    });
+    await Promise.all(
+      filteredProjectFiles.map(async (uri) => {
+        await this.unregisterDBTProject(uri);
+      }),
+    );
   }
 
   findDBTProject(uri: Uri): DBTProject | undefined {
     return this.dbtProjects.find((project) => project.contains(uri));
+  }
+
+  private findDBTProjectPackagesInstallPaths() {
+    return this.dbtProjects
+      .map((project) => {
+        return project.getPackageInstallPath();
+      })
+      .filter((packageInstallPath) => packageInstallPath !== undefined);
   }
 
   getProjects(): DBTProject[] {
@@ -146,6 +167,7 @@ export class DBTWorkspaceFolder implements Disposable {
         projectConfig,
         this._onManifestChanged,
       );
+      await dbtProject.initialize();
       this.dbtProjects.push(dbtProject);
       // sorting the dbt projects descending by path ensures that we find the deepest path first
       this.dbtProjects.sort(
@@ -171,20 +193,20 @@ export class DBTWorkspaceFolder implements Disposable {
     }
   }
 
-  private unregisterDBTProject(uri: Uri) {
+  private async unregisterDBTProject(uri: Uri) {
     const projectToDelete = this.dbtProjects.find(
       (dbtProject) => dbtProject.projectRoot.fsPath === uri.fsPath,
     );
     if (projectToDelete === undefined) {
       return;
     }
+    this.dbtProjects.splice(this.dbtProjects.indexOf(projectToDelete), 1);
     this._onProjectRegisteredUnregistered.fire({
       root: uri,
       name: projectToDelete.getProjectName(),
       registered: false,
     });
-    projectToDelete.dispose();
-    this.dbtProjects.splice(this.dbtProjects.indexOf(projectToDelete));
+    await projectToDelete.dispose();
   }
 
   private createConfigWatcher(): FileSystemWatcher {
@@ -204,7 +226,7 @@ export class DBTWorkspaceFolder implements Disposable {
         this.notInVenv(uri.fsPath) &&
         this.notInDBtPackages(
           uri.fsPath,
-          this.dbtProjects.map((project) => project.projectRoot),
+          this.dbtProjects.map((project) => project.getPackageInstallPath()),
         ) &&
         (allowListFolders.length === 0 ||
           allowListFolders.some((folder) => uri.fsPath.startsWith(folder)))
@@ -223,11 +245,13 @@ export class DBTWorkspaceFolder implements Disposable {
     return !path.includes("site-packages");
   }
 
-  private notInDBtPackages(uri: string, projectRoots: Uri[]) {
-    for (const projectRoot of projectRoots) {
-      const projectFsPath = projectRoot.fsPath;
-      for (const dbtModulesPath of DBTProject.DBT_MODULES) {
-        if (uri.startsWith(path.join(projectFsPath, dbtModulesPath))) {
+  private notInDBtPackages(
+    uri: string,
+    packagesInstallPaths: (string | undefined)[],
+  ) {
+    for (const packagesInstallPath of packagesInstallPaths) {
+      if (packagesInstallPath) {
+        if (uri.startsWith(packagesInstallPath)) {
           return false;
         }
       }

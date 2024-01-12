@@ -8,9 +8,10 @@ import {
   SourceMetaMap,
   TestMetaMap,
 } from "../../domain";
+import { DBTProject } from "../dbtProject";
 
 export interface ManifestCacheProjectAddedEvent {
-  projectName: string;
+  project: DBTProject;
   nodeMetaMap: NodeMetaMap;
   macroMetaMap: MacroMetaMap;
   sourceMetaMap: SourceMetaMap;
@@ -18,7 +19,6 @@ export interface ManifestCacheProjectAddedEvent {
   testMetaMap: TestMetaMap;
   docMetaMap: DocMetaMap;
   exposureMetaMap: ExposureMetaMap;
-  projectRoot: Uri;
 }
 
 export interface ManifestCacheProjectRemovedEvent {
