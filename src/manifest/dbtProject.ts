@@ -600,28 +600,13 @@ select * from renamed
       return { queryTemplate, limitQuery };
     }
 
-    try {
-      const dbtVersion = await this.getDBTVersion();
-      //dbt supports limit macro after v1.5
-      if (dbtVersion && dbtVersion[0] >= 1 && dbtVersion[1] >= 5) {
-        const args = { sql: query, limit };
-        const queryTemplateFromMacro = await this.python?.lock(
-          (python) =>
-            python!`to_dict(project.execute_macro('get_limit_subquery_sql', ${args}))`,
-        );
-
-        console.log("Using query template from macro", queryTemplateFromMacro);
-        return {
-          queryTemplate: queryTemplateFromMacro,
-          limitQuery: queryTemplateFromMacro,
-        };
-      }
-    } catch (err) {
-      this.telemetry.sendTelemetryError(
-        "executeMacroGetLimitSubquerySQLError",
-        err,
-        { adapter: this.adapterType },
-      );
+    const queryTemplateFroMacro =
+      await this.dbtProjectIntegration.getLimitQueryFromMacro(query, limit);
+    if (queryTemplateFroMacro) {
+      return {
+        queryTemplate: queryTemplateFroMacro,
+        limitQuery: queryTemplateFroMacro,
+      };
     }
     return {
       queryTemplate: DefaultQueryTemplate,
