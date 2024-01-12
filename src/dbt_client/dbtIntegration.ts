@@ -21,6 +21,7 @@ import { existsSync } from "fs";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./dbtTerminal";
 import { ValidateSqlParseErrorResponse } from "../altimate";
+import { getDeferParams } from "./dbtCommandUtils";
 
 interface DBTCommandExecution {
   command: (token: CancellationToken) => Promise<void>;
@@ -371,6 +372,7 @@ export class DBTCommandFactory {
     const buildModelCommandAdditionalParams = workspace
       .getConfiguration("dbt")
       .get<string[]>("buildModelCommandAdditionalParams", []);
+    const deferParams = getDeferParams();
 
     return new DBTCommand(
       "Building dbt model...",
@@ -379,6 +381,7 @@ export class DBTCommandFactory {
         "--select",
         `${plusOperatorLeft}${modelName}${plusOperatorRight}`,
         ...buildModelCommandAdditionalParams,
+        deferParams.length > 0 ? " " + deferParams.join(" ") : "",
       ],
       true,
     );

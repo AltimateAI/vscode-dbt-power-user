@@ -57,17 +57,26 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
   protected async handleCommand(message: HandleCommandProps): Promise<void> {
     const { command, syncRequestId, ...params } = message;
 
-    switch (command) {
-      case "updateConfig":
-        workspace
-          .getConfiguration("dbt")
-          .update(
+    try {
+      switch (command) {
+        case "updateConfig":
+          console.log(
+            "Updating config",
             (params as UpdateConfigProps).key,
             (params as UpdateConfigProps).value,
           );
-        break;
-      default:
-        break;
+          await workspace
+            .getConfiguration("dbt")
+            .update(
+              (params as UpdateConfigProps).key,
+              (params as UpdateConfigProps).value,
+            );
+          break;
+        default:
+          break;
+      }
+    } catch (err) {
+      console.error("error while handling command", err);
     }
   }
 
