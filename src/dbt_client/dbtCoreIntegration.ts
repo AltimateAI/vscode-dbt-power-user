@@ -144,12 +144,13 @@ export class DBTCoreProjectIntegration
   }
 
   async executeSQL(query: string, limit?: number): Promise<ExecuteSQLResult> {
+    // If dbt core provides limit query macro for this adapter, use that query
     const limitQueryFromMacro =
       limit !== undefined ? await this.findLimitQuery(query, limit) : null;
-    const finalQuery = limitQueryFromMacro || query;
 
     return this.python!.lock<ExecuteSQLResult>(
-      (python) => python`to_dict(project.execute_sql(${finalQuery}))`,
+      (python) =>
+        python`to_dict(project.execute_sql(${limitQueryFromMacro || query}))`,
     );
   }
 

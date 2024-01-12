@@ -18,7 +18,6 @@ import {
 } from "vscode";
 import { parse, YAMLError } from "yaml";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { DEFAULT_QUERY_TEMPLATE } from "../domain";
 import {
   debounce,
   extendErrorWithSupportLinks,
@@ -42,6 +41,7 @@ import {
   RunModelParams,
 } from "../dbt_client/dbtIntegration";
 import { DBTCoreProjectIntegration } from "../dbt_client/dbtCoreIntegration";
+import { DEFAULT_QUERY_TEMPLATE } from "../domain";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -591,7 +591,7 @@ select * from renamed
 
     const queryTemplate =
       workspace.getConfiguration("dbt").get<string>("queryTemplate") ||
-      "select * from ({query}\n) as query";
+      DEFAULT_QUERY_TEMPLATE;
 
     const limitQuery = queryTemplate
       .replace("{query}", () => query)
