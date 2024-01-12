@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { GenerationDBDataProps } from "../types";
-import { DATA, PROJECT } from "./sampleData";
 import {
   DBTDocumentation,
   DocumentationStateProps,
@@ -8,8 +7,8 @@ import {
 } from "./types";
 
 export const initialState = {
-  currentDocsData: DATA,
-  project: PROJECT,
+  currentDocsData: undefined,
+  project: undefined,
   generationHistory: [],
 } as DocumentationStateProps;
 

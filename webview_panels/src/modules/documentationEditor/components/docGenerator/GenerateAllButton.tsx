@@ -53,6 +53,9 @@ const GenerateAllButton = ({
     resolver: yupResolver(schema),
     defaultValues: {
       columns: showColumns ? currentDocsData?.columns.map((l) => l.name) : [],
+      prompt_hint: Options[0],
+      language: Languages[0],
+      persona: Persona[0],
     },
   });
 
