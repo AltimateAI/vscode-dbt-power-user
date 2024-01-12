@@ -601,7 +601,7 @@ select * from renamed
     }
 
     const queryTemplateFroMacro =
-      await this.dbtProjectIntegration.getLimitQueryFromMacro(query, limit);
+      await this.dbtProjectIntegration.findLimitQuery(query, limit);
     if (queryTemplateFroMacro) {
       return {
         queryTemplate: queryTemplateFroMacro,

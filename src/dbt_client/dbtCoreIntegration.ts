@@ -149,7 +149,7 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  async getLimitQueryFromMacro(query: string, limit: number) {
+  async findLimitQuery(query: string, limit: number) {
     try {
       const dbtVersion = this.version;
       //dbt supports limit macro after v1.5
