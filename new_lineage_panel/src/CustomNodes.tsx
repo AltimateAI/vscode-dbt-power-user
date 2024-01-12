@@ -16,7 +16,13 @@ import {
   layoutElementsOnCanvas,
   resetTableHighlights,
 } from "./graph";
-import { LineageContext, openFile, isDarkMode, startProgressBar, endProgressBar } from "./App";
+import {
+  LineageContext,
+  openFile,
+  isDarkMode,
+  startProgressBar,
+  endProgressBar,
+} from "./App";
 import { C_NODE_H, C_PADDING_Y } from "./utils";
 import { TMoreTables } from "./MoreTables";
 import ModelIcon from "./assets/icons/model.svg?react";
@@ -305,6 +311,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                 e.stopPropagation();
                 expandLeft();
               }}
+              data-testid={"expand-left-btn-" + table}
             >
               {processed[0] ? "-" : "+"}
             </div>
@@ -315,6 +322,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                 selected ? "text-blue" : "text-grey"
               )}
               onClick={onDetailsClick}
+              data-testid={"view-details-btn-" + table}
             >
               View Details
             </div>
@@ -339,6 +347,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                 e.stopPropagation();
                 expandRight();
               }}
+              data-testid={"expand-right-btn-" + table}
             >
               {processed[1] ? "-" : "+"}
             </div>

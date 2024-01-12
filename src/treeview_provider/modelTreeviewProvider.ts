@@ -59,7 +59,7 @@ abstract class ModelTreeviewProvider
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
-      this.eventMap.set(added.projectRoot.fsPath, added);
+      this.eventMap.set(added.project.projectRoot.fsPath, added);
     });
     event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);
@@ -96,13 +96,14 @@ abstract class ModelTreeviewProvider
       return Promise.resolve(this.getTreeItems(element.key, event));
     }
 
-    const { projectName } = event;
+    const { project } = event;
     const fileName = path.basename(
       window.activeTextEditor!.document.fileName,
       ".sql",
     );
     const packageName =
-      this.dbtProjectContainer.getPackageName(currentFilePath) || projectName;
+      this.dbtProjectContainer.getPackageName(currentFilePath) ||
+      project.getProjectName();
     return Promise.resolve(
       this.getTreeItems(`model.${packageName}.${fileName}`, event),
     );
@@ -165,7 +166,7 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
-      this.eventMap.set(added.projectRoot.fsPath, added);
+      this.eventMap.set(added.project.projectRoot.fsPath, added);
     });
     event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);

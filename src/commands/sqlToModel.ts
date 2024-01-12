@@ -24,7 +24,7 @@ export class SqlToModel {
 
   private async onManifestCacheChanged(event: ManifestCacheChangedEvent) {
     event.added?.forEach((added) => {
-      this.eventMap.set(added.projectRoot.fsPath, added);
+      this.eventMap.set(added.project.projectRoot.fsPath, added);
     });
     event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);
@@ -72,13 +72,21 @@ export class SqlToModel {
     }
 
     const fileText = activedoc.document.getText();
-    const compiled_sql = await project.compileQuery(fileText);
+    let compiledSql;
+    try {
+      compiledSql = await project.unsafeCompileQuery(fileText);
+    } catch (error) {
+      window.showErrorMessage(
+        "Could not compile the SQL: " + (error as Error).message,
+      );
+      return;
+    }
 
     const retobj = await this.altimate
       .runModeller({
         // if we can run this through compile sql, we can also do
         // conversions that were half done. if it fails, just send the text as is.
-        sql: compiled_sql || fileText,
+        sql: compiledSql || fileText,
         adapter: project.getAdapterType(),
         models: allmodels,
         sources: allsources,

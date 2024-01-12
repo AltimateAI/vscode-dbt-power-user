@@ -11,7 +11,6 @@ import {
   WorkspaceFolder,
 } from "vscode";
 import { DBTClient } from "../dbt_client";
-import { DBTCommand } from "../dbt_client/dbtCommandFactory";
 import { EnvironmentVariables, RunModelType } from "../domain";
 import { provideSingleton } from "../utils";
 import { DBTProject } from "./dbtProject";
@@ -48,7 +47,6 @@ export class DBTProjectContainer implements Disposable {
 
   constructor(
     private dbtClient: DBTClient,
-    private terminal: DBTTerminal,
     @inject("Factory<DBTWorkspaceFolder>")
     private dbtWorkspaceFolderFactory: (
       workspaceFolder: WorkspaceFolder,
@@ -111,8 +109,12 @@ export class DBTProjectContainer implements Disposable {
     this.context = context;
   }
 
-  showDbtNotInstalledErrorMessageIfDbtIsNotInstalled() {
-    return this.dbtClient.showDbtNotInstalledErrorMessageIfDbtIsNotInstalled();
+  showErrorIfDbtOrPythonNotInstalled() {
+    return this.dbtClient.showErrorIfDbtOrPythonNotInstalled();
+  }
+
+  showErrorIfDbtIsNotInstalled() {
+    return this.dbtClient.showErrorIfDbtIsNotInstalled();
   }
 
   async initializeDBTProjects(): Promise<void> {
@@ -222,8 +224,8 @@ export class DBTProjectContainer implements Disposable {
     await this.dbtClient.detectDBT();
   }
 
-  async initializePythonBridges() {
-    this.getProjects().forEach((project) => project.initializePythonBridge());
+  async initialize() {
+    this.getProjects().forEach((project) => project.initialize());
   }
 
   executeSQL(uri: Uri, query: string): void {
@@ -260,7 +262,7 @@ export class DBTProjectContainer implements Disposable {
     );
   }
 
-  generateDocs(modelPath: Uri, type?: RunModelType) {
+  generateDocs(modelPath: Uri) {
     this.findDBTProject(modelPath)?.generateDocs();
   }
 
@@ -288,25 +290,6 @@ export class DBTProjectContainer implements Disposable {
     return this.dbtWorkspaceFolders.flatMap((workspaceFolder) =>
       workspaceFolder.getProjects(),
     );
-  }
-
-  async runCommandAndReturnResults(command: DBTCommand): Promise<string> {
-    const commandProcess = await this.dbtClient?.executeCommand(command);
-    const commandOutput: string = await commandProcess.complete();
-    this.terminal.log(`${commandProcess.formatText(commandOutput.toString())}`);
-    return (commandOutput || "").toString();
-  }
-
-  addCommandToQueue(command: DBTCommand) {
-    if (this.dbtClient === undefined) {
-      if (command.focus) {
-        window.showErrorMessage(
-          "Can't run the command. Please ensure you have selected a Python interpreter with DBT installed.",
-        );
-      }
-      return;
-    }
-    this.dbtClient.addCommandToQueue(command);
   }
 
   getAdapters(): string[] {

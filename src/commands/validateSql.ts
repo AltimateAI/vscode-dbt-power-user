@@ -53,7 +53,7 @@ export class ValidateSql {
 
   private async onManifestCacheChanged(event: ManifestCacheChangedEvent) {
     event.added?.forEach((added) => {
-      this.eventMap.set(added.projectRoot.fsPath, added);
+      this.eventMap.set(added.project.projectRoot.fsPath, added);
     });
     event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);
@@ -139,13 +139,17 @@ export class ValidateSql {
       async () => {
         try {
           const fileContentBytes = await workspace.fs.readFile(currentFilePath);
-          compiledQuery = await project.compileQuery(
-            fileContentBytes.toString(),
-          );
-          if (!compiledQuery) {
+          try {
+            compiledQuery = await project.unsafeCompileQuery(
+              fileContentBytes.toString(),
+            );
+          } catch (error) {
             window.showErrorMessage(
               extendErrorWithSupportLinks(
-                "Unable to compile query for model: " + node.name,
+                "Unable to compile query for model " +
+                  node.name +
+                  " : " +
+                  error,
               ),
             );
             return;

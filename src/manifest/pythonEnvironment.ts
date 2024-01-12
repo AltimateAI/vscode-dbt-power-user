@@ -1,10 +1,8 @@
-import { Disposable, Event, extensions, Uri, window, workspace } from "vscode";
+import { Disposable, Event, extensions, Uri, workspace } from "vscode";
 import { EnvironmentVariables } from "../domain";
 import { provideSingleton, substituteSettingsVariables } from "../utils";
 import { TelemetryService } from "../telemetry";
-import { DBTClient } from "../dbt_client";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
-import { DBTCommandFactory } from "../dbt_client/dbtCommandFactory";
 
 interface PythonExecutionDetails {
   getPythonPath: () => string;
@@ -19,7 +17,6 @@ export class PythonEnvironment implements Disposable {
 
   constructor(
     private telemetry: TelemetryService,
-    private dbtCommandFactory: DBTCommandFactory,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
   ) {}
 
@@ -46,12 +43,12 @@ export class PythonEnvironment implements Disposable {
     return this.executionDetails!.onDidChangeExecutionDetails;
   }
 
-  async initialize(client: DBTClient): Promise<void> {
+  async initialize(): Promise<void> {
     if (this.executionDetails !== undefined) {
       return;
     }
 
-    this.executionDetails = await this.activatePythonExtension(client);
+    this.executionDetails = await this.activatePythonExtension();
   }
 
   private getPythonPathFromConfig(): string | undefined {
@@ -74,9 +71,7 @@ export class PythonEnvironment implements Disposable {
     );
   };
 
-  private async activatePythonExtension(
-    client: DBTClient,
-  ): Promise<PythonExecutionDetails> {
+  private async activatePythonExtension(): Promise<PythonExecutionDetails> {
     const extension = extensions.getExtension("ms-python.python")!;
 
     if (!extension.isActive) {
@@ -87,27 +82,28 @@ export class PythonEnvironment implements Disposable {
     const api = extension.exports;
 
     const dbtInstalledPythonPath: string[] = [];
-    for (const workspaceFolder of workspace.workspaceFolders || []) {
-      const candidatePythonPath = api.settings.getExecutionDetails(
-        workspaceFolder.uri,
-      ).execCommand[0];
+    // TODO: support multiple workspacefolders for python detection
+    // for (const workspaceFolder of workspace.workspaceFolders || []) {
+    //   const candidatePythonPath = api.settings.getExecutionDetails(
+    //     workspaceFolder.uri,
+    //   ).execCommand[0];
 
-      const dbtInstalledCommand =
-        this.dbtCommandFactory.createVerifyDbtInstalledCommand();
-      const checkDBTInstalledProcess =
-        this.commandProcessExecutionFactory.createCommandProcessExecution({
-          command: candidatePythonPath,
-          args: dbtInstalledCommand.processExecutionParams.args,
-        });
+    //   const dbtInstalledCommand =
+    //     this.dbtCommandFactory.createVerifyDbtInstalledCommand();
+    //   const checkDBTInstalledProcess =
+    //     this.commandProcessExecutionFactory.createCommandProcessExecution({
+    //       command: candidatePythonPath,
+    //       args: dbtInstalledCommand.processExecutionParams.args,
+    //     });
 
-      try {
-        await checkDBTInstalledProcess.complete();
-      } catch {
-        continue;
-      }
+    //   try {
+    //     await checkDBTInstalledProcess.complete();
+    //   } catch {
+    //     continue;
+    //   }
 
-      dbtInstalledPythonPath.push(candidatePythonPath);
-    }
+    //   dbtInstalledPythonPath.push(candidatePythonPath);
+    // }
 
     return (this.executionDetails = {
       getPythonPath: () => {
