@@ -226,7 +226,7 @@ export interface DBTProjectIntegration extends Disposable {
   // parse manifest
   rebuildManifest(): Promise<void>;
   // execute queries
-  executeSQL(query: string): Promise<ExecuteSQLResult>;
+  executeSQL(query: string, limit?: number): Promise<ExecuteSQLResult>;
   // dbt commands
   runModel(command: DBTCommand): Promise<void>;
   buildModel(command: DBTCommand): Promise<void>;
@@ -253,7 +253,6 @@ export interface DBTProjectIntegration extends Disposable {
   ): Promise<{ [key: string]: string }[]>; // TODO: this should be typed
   getColumnsOfModel(modelName: string): Promise<{ [key: string]: string }[]>; // TODO: this should be typed
   getCatalog(): Promise<{ [key: string]: string }[]>; // TODO: this should be typed
-  findLimitQuery(query: string, limit: number): Promise<string | null>;
 }
 
 @provide(DBTCommandExecutionInfrastructure)

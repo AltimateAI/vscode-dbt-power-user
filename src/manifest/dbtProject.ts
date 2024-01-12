@@ -579,41 +579,6 @@ select * from renamed
     this.queryResultPanel.getSummary(compiledSql, this.getAdapterType());
   }
 
-  private getLimitQuery(queryTemplate: string, query: string, limit: number) {
-    return queryTemplate
-      .replace("{query}", () => query)
-      .replace("{limit}", () => limit.toString());
-  }
-
-  private async getQuery(
-    query: string,
-    limit: number,
-  ): Promise<{ queryTemplate: string; limitQuery: string }> {
-    const queryTemplate = workspace
-      .getConfiguration("dbt")
-      .get<string>("queryTemplate");
-
-    if (queryTemplate) {
-      console.log("Using user provided query template", queryTemplate);
-      const limitQuery = this.getLimitQuery(queryTemplate, query, limit);
-
-      return { queryTemplate, limitQuery };
-    }
-
-    const queryTemplateFroMacro =
-      await this.dbtProjectIntegration.findLimitQuery(query, limit);
-    if (queryTemplateFroMacro) {
-      return {
-        queryTemplate: queryTemplateFroMacro,
-        limitQuery: queryTemplateFroMacro,
-      };
-    }
-    return {
-      queryTemplate: DEFAULT_QUERY_TEMPLATE,
-      limitQuery: this.getLimitQuery(DEFAULT_QUERY_TEMPLATE, query, limit),
-    };
-  }
-
   async executeSQL(query: string) {
     const limit = workspace
       .getConfiguration("dbt")
@@ -623,7 +588,14 @@ select * from renamed
       window.showErrorMessage("Please enter a positive number for query limit");
       return;
     }
-    const { queryTemplate, limitQuery } = await this.getQuery(query, limit);
+
+    const queryTemplate =
+      workspace.getConfiguration("dbt").get<string>("queryTemplate") ||
+      "select * from ({query}\n) as query";
+
+    const limitQuery = queryTemplate
+      .replace("{query}", () => query)
+      .replace("{limit}", () => limit.toString());
 
     this.telemetry.sendTelemetryEvent(
       "executeSQL",
@@ -639,7 +611,7 @@ select * from renamed
     // TODO: this should generate an event instead of directly going to the panel
     this.queryResultPanel.executeQuery(
       query,
-      this.dbtProjectIntegration.executeSQL(limitQuery),
+      this.dbtProjectIntegration.executeSQL(limitQuery, limit),
       this.getAdapterType(),
     );
   }

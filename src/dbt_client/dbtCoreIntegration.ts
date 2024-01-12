@@ -143,9 +143,13 @@ export class DBTCoreProjectIntegration
     await this.createPythonDbtProject();
   }
 
-  executeSQL(query: string): Promise<ExecuteSQLResult> {
+  async executeSQL(query: string, limit?: number): Promise<ExecuteSQLResult> {
+    const limitQueryFromMacro =
+      limit !== undefined ? await this.findLimitQuery(query, limit) : null;
+    const finalQuery = limitQueryFromMacro || query;
+
     return this.python!.lock<ExecuteSQLResult>(
-      (python) => python`to_dict(project.execute_sql(${query}))`,
+      (python) => python`to_dict(project.execute_sql(${finalQuery}))`,
     );
   }
 
