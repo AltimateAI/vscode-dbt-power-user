@@ -2,7 +2,7 @@
 import { GenerationDBDataProps } from "@modules/documentationEditor/types";
 import { DBSchema, IDBPDatabase, openDB } from "idb";
 
-interface AltimateDB extends DBSchema {
+export interface AltimateDB extends DBSchema {
   generations: {
     value: GenerationDBDataProps;
     key: string;

@@ -1,3 +1,4 @@
+import { differenceInHours } from "date-fns";
 import IndexedDBHelper from "@modules/app/indexedDb";
 import { panelLogger } from "@modules/logger";
 import { DBTDocumentationColumn } from "./state/types";
@@ -27,7 +28,7 @@ export const getGenerationsInModel = async (
   model: string,
 ): Promise<GenerationDBDataProps[]> => {
   const db = await IndexedDBHelper.getDb();
-  const transaction = db.transaction(["generations"], "readonly");
+  const transaction = db.transaction(["generations"], "readwrite");
   const generationstore = transaction.objectStore("generations");
   const projectIndex = generationstore.index("projectIndex");
 
@@ -40,7 +41,12 @@ export const getGenerationsInModel = async (
     function iterateCursor() {
       if (cursor) {
         if (cursor.value.model === model) {
-          generations.push(cursor.value);
+          const generation = cursor.value;
+          if (
+            differenceInHours(new Date(), new Date(generation.timestamp)) < 24
+          ) {
+            generations.push(generation);
+          }
         }
         cursor
           .continue()
