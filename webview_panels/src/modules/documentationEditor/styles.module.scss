@@ -35,17 +35,53 @@
 
         h5 {
           margin-right: 10px;
+          margin-bottom: 0;
         }
 
         h5,
         button {
           text-wrap: nowrap;
         }
+
+        & p {
+          border-radius: 2px;
+          border: 1px solid var(--Stroke-Disable, #424750);
+          background: var(--Backgrounds-Base, #1e1e1e);
+          margin-bottom: 0;
+          flex: 1;
+          font-size: 1rem;
+          padding: 8px 12px;
+        }
+        & :global #file-path {
+          background: var(--Backgrounds-Base, #1e1e1e);
+        }
       }
     }
     & .result-body {
       width: 40%;
       overflow: overlay;
+    }
+  }
+}
+
+.popover-body {
+  padding: 0;
+
+  &  ul {
+    padding: 0.5rem 0;
+    margin: 0;
+    list-style: none;
+    li{
+      :global .btn-link {
+        text-decoration: none;
+        color: #1e1e1e;
+        width: 100%;
+        &:hover,
+        &.active {
+        color: var(--primary-accent);
+          background-color: #eee;
+        }
+      }
     }
   }
 }
