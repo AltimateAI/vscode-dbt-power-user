@@ -226,7 +226,7 @@ export interface DBTProjectIntegration extends Disposable {
   // parse manifest
   rebuildManifest(): Promise<void>;
   // execute queries
-  executeSQL(query: string, limit?: number): Promise<ExecuteSQLResult>;
+  executeSQL(query: string, limit: number): Promise<ExecuteSQLResult>;
   // dbt commands
   runModel(command: DBTCommand): Promise<void>;
   buildModel(command: DBTCommand): Promise<void>;

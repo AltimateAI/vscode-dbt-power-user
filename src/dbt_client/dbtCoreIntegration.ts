@@ -35,6 +35,7 @@ import { join } from "path";
 import { TelemetryService } from "../telemetry";
 import { ValidateSqlParseErrorResponse } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DEFAULT_QUERY_TEMPLATE } from "../domain";
 
 // TODO: we shouold really get these from manifest directly
 interface ResolveReferenceNodeResult {
@@ -143,14 +144,72 @@ export class DBTCoreProjectIntegration
     await this.createPythonDbtProject();
   }
 
-  async executeSQL(query: string, limit?: number): Promise<ExecuteSQLResult> {
-    // If dbt core provides limit query macro for this adapter, use that query
-    const limitQueryFromMacro =
-      limit !== undefined ? await this.findLimitQuery(query, limit) : null;
+  private getLimitQuery(queryTemplate: string, query: string, limit: number) {
+    return queryTemplate
+      .replace("{query}", () => query)
+      .replace("{limit}", () => limit.toString());
+  }
+
+  private async getQuery(
+    query: string,
+    limit: number,
+  ): Promise<{ queryTemplate: string; limitQuery: string }> {
+    const queryTemplate = workspace
+      .getConfiguration("dbt")
+      .get<string>("queryTemplate");
+
+    if (queryTemplate) {
+      console.log("Using user provided query template", queryTemplate);
+      const limitQuery = this.getLimitQuery(queryTemplate, query, limit);
+
+      return { queryTemplate, limitQuery };
+    }
+
+    try {
+      const dbtVersion = await this.version;
+      //dbt supports limit macro after v1.5
+      if (dbtVersion && dbtVersion[0] >= 1 && dbtVersion[1] >= 5) {
+        const args = { sql: query, limit };
+        const queryTemplateFromMacro = await this.python?.lock(
+          (python) =>
+            python!`to_dict(project.execute_macro('get_limit_subquery_sql', ${args}))`,
+        );
+
+        console.log("Using query template from macro", queryTemplateFromMacro);
+        return {
+          queryTemplate: queryTemplateFromMacro,
+          limitQuery: queryTemplateFromMacro,
+        };
+      }
+    } catch (err) {
+      this.telemetry.sendTelemetryError(
+        "executeMacroGetLimitSubquerySQLError",
+        err,
+        { adapter: this.adapterType || "unknown" },
+      );
+    }
+    return {
+      queryTemplate: DEFAULT_QUERY_TEMPLATE,
+      limitQuery: this.getLimitQuery(DEFAULT_QUERY_TEMPLATE, query, limit),
+    };
+  }
+
+  async executeSQL(query: string, limit: number): Promise<ExecuteSQLResult> {
+    const { queryTemplate, limitQuery } = await this.getQuery(query, limit);
+
+    this.telemetry.sendTelemetryEvent(
+      "executeSQL",
+      {
+        queryTemplate: queryTemplate,
+        adapter: this.adapterType || "unknown",
+      },
+      {
+        limit: limit,
+      },
+    );
 
     return this.python!.lock<ExecuteSQLResult>(
-      (python) =>
-        python`to_dict(project.execute_sql(${limitQueryFromMacro || query}))`,
+      (python) => python`to_dict(project.execute_sql(${limitQuery}))`,
     );
   }
 

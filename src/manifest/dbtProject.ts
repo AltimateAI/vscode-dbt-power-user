@@ -589,29 +589,10 @@ select * from renamed
       return;
     }
 
-    const queryTemplate =
-      workspace.getConfiguration("dbt").get<string>("queryTemplate") ||
-      DEFAULT_QUERY_TEMPLATE;
-
-    const limitQuery = queryTemplate
-      .replace("{query}", () => query)
-      .replace("{limit}", () => limit.toString());
-
-    this.telemetry.sendTelemetryEvent(
-      "executeSQL",
-      {
-        queryTemplate: queryTemplate,
-        adapter: this.getAdapterType(),
-      },
-      {
-        limit: limit,
-      },
-    );
-
     // TODO: this should generate an event instead of directly going to the panel
     this.queryResultPanel.executeQuery(
       query,
-      this.dbtProjectIntegration.executeSQL(limitQuery, limit),
+      this.dbtProjectIntegration.executeSQL(query, limit),
       this.getAdapterType(),
     );
   }
