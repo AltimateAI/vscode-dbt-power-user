@@ -18,7 +18,7 @@ import {
 } from "vscode";
 import { parse, YAMLError } from "yaml";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { DefaultQueryTemplate } from "../domain";
+import { DEFAULT_QUERY_TEMPLATE } from "../domain";
 import {
   debounce,
   extendErrorWithSupportLinks,
@@ -609,8 +609,8 @@ select * from renamed
       };
     }
     return {
-      queryTemplate: DefaultQueryTemplate,
-      limitQuery: this.getLimitQuery(DefaultQueryTemplate, query, limit),
+      queryTemplate: DEFAULT_QUERY_TEMPLATE,
+      limitQuery: this.getLimitQuery(DEFAULT_QUERY_TEMPLATE, query, limit),
     };
   }
 

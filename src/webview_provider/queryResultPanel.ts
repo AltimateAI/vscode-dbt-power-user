@@ -21,7 +21,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { AltimateRequest } from "../altimate";
-import { DefaultQueryTemplate } from "../domain";
+import { DEFAULT_QUERY_TEMPLATE } from "../domain";
 import { ExecuteSQLResult } from "../dbt_client/dbtIntegration";
 
 interface JsonObj {
@@ -274,7 +274,7 @@ export class QueryResultPanel implements WebviewViewProvider {
       .get<boolean>("enableNewQueryPanel", true);
     const queryTemplate = workspace
       .getConfiguration("dbt")
-      .get<string>("queryTemplate", DefaultQueryTemplate);
+      .get<string>("queryTemplate", DEFAULT_QUERY_TEMPLATE);
     if (this._panel) {
       this._panel.webview.postMessage({
         command: OutboundCommand.InjectConfig,
