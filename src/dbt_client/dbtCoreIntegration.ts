@@ -158,7 +158,7 @@ export class DBTCoreProjectIntegration
       .getConfiguration("dbt")
       .get<string>("queryTemplate");
 
-    if (queryTemplate) {
+    if (queryTemplate && queryTemplate !== DEFAULT_QUERY_TEMPLATE) {
       console.log("Using user provided query template", queryTemplate);
       const limitQuery = this.getLimitQuery(queryTemplate, query, limit);
 
