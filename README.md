@@ -1,7 +1,7 @@
 # vscode-dbt-power-user
 
 ![Last updated](https://img.shields.io/visual-studio-marketplace/last-updated/innoverio.vscode-dbt-power-user) ![Version](https://img.shields.io/visual-studio-marketplace/v/innoverio.vscode-dbt-power-user) ![Installs](https://img.shields.io/visual-studio-marketplace/i/innoverio.vscode-dbt-power-user) ![Build passing](https://github.com/innoverio/vscode-dbt-power-user/workflows/.github/workflows/ci.yml/badge.svg)
-
+[![Known Vulnerabilities](https://snyk.io/test/github/AltimateAI/vscode-dbt-power-user/badge.svg)](https://snyk.io/test/github/AltimateAI/vscode-dbt-power-user)
 This [open source](https://github.com/AltimateAI/vscode-dbt-power-user) extension makes VSCode seamlessly work with [dbt](https://www.getdbt.com/).
 
 If you need help with setting up the extension, please check the [documentation](https://docs.myaltimate.com/setup/installation/).
