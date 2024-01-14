@@ -863,7 +863,7 @@
     "node-fetch": "^3.3.2",
     "parse-diff": "^0.11.1",
     "python-bridge": "github:mdesmet/node-python-bridge#feat/detached",
-    "reflect-metadata": "^0.1.13",
+    "reflect-metadata": "^0.2.1",
     "which": "^4.0.0",
     "yaml": "^2.3.4"
   },
