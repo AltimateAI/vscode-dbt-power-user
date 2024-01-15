@@ -82,6 +82,10 @@ $node-width: 260px;
     @include node_type_color(#dd9da5);
   }
 
+  .analysis {
+    @include node_type_color(#ff8488);
+  }
+
   .node_icon {
     display: flex;
     flex-direction: column;
