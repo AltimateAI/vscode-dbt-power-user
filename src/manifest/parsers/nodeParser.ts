@@ -18,6 +18,7 @@ export class NodeParser {
         (model) =>
           model.resource_type === DBTProject.RESOURCE_TYPE_MODEL ||
           model.resource_type === DBTProject.RESOURCE_TYPE_SEED ||
+          model.resource_type === DBTProject.RESOURCE_TYPE_ANALYSIS ||
           model.resource_type === DBTProject.RESOURCE_TYPE_SNAPSHOT,
       );
       const rootPath = project.projectRoot.fsPath;

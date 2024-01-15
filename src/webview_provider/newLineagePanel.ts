@@ -51,6 +51,7 @@ const CACHE_VALID_TIME = 24 * 60 * 60 * 1000;
 const CAN_COMPILE_SQL_NODE = [
   DBTProject.RESOURCE_TYPE_MODEL,
   DBTProject.RESOURCE_TYPE_SNAPSHOT,
+  DBTProject.RESOURCE_TYPE_ANALYSIS,
 ];
 const canCompileSQL = (nodeType: string) =>
   CAN_COMPILE_SQL_NODE.includes(nodeType);
