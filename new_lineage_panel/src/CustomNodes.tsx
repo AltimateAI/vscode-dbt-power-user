@@ -29,6 +29,7 @@ import ModelIcon from "./assets/icons/model.svg?react";
 import SeedIcon from "./assets/icons/seed.svg?react";
 import SourceIcon from "./assets/icons/source.svg?react";
 import ExposureIcon from "./assets/icons/exposure.svg?react";
+import AnalysisIcon from "./assets/icons/analysis.svg?react";
 import SnapshotIcon from "./assets/icons/snapshot.svg?react";
 import MetricsIcon from "./assets/icons/metrics.svg?react";
 import MacrosIcon from "./assets/icons/macros.svg?react";
@@ -86,6 +87,7 @@ export const NodeTypeIcon: FunctionComponent<{ nodeType: string }> = ({
     {nodeType === "model" && <ModelIcon />}
     {nodeType === "source" && <SourceIcon />}
     {nodeType === "exposure" && <ExposureIcon />}
+    {nodeType === "analysis" && <AnalysisIcon />}
     {nodeType === "snapshot" && <SnapshotIcon />}
     {nodeType === "metrics" && <MetricsIcon />}
     {nodeType === "macros" && <MacrosIcon />}
@@ -100,6 +102,7 @@ const NODE_TYPE_SHORTHAND = {
   snapshot: "SNP",
   metrics: "MET",
   macros: "SEM",
+  analysis: "ANY",
 };
 
 const NODE_TYPE_STYLES = {
@@ -110,6 +113,7 @@ const NODE_TYPE_STYLES = {
   snapshot: styles.snapshot,
   metrics: styles.metrics,
   macros: styles.macros,
+  analysis: styles.analysis,
 };
 
 const TableNodePill: FunctionComponent<{
@@ -278,6 +282,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           e.stopPropagation();
           toggleTableSelection();
           highlightTable();
+          openFile(url);
         }}
       >
         <div
