@@ -27,7 +27,9 @@ export class DocParser {
         const projectName = project.getProjectName();
         const packagePath = project.getPackageInstallPath();
         if (packagePath === undefined) {
-          throw new Error("packagePath is not defined");
+          throw new Error(
+            "packagePath is not defined in " + project.projectRoot.fsPath,
+          );
         }
         const docName =
           packageName === projectName ? name : `${packageName}.${name}`;

@@ -23,7 +23,9 @@ export class MacroParser {
       const projectName = project.getProjectName();
       const packagePath = project.getPackageInstallPath();
       if (packagePath === undefined) {
-        throw new Error("packagePath is not defined");
+        throw new Error(
+          "packagePath is not defined in " + project.projectRoot.fsPath,
+        );
       }
       if (typeof macros[Symbol.iterator] !== "function") {
         resolve(macroMetaMap);

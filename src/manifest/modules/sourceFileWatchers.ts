@@ -48,15 +48,19 @@ export class SourceFileWatchers implements Disposable {
 
   private onProjectConfigChanged(event: ProjectConfigChangedEvent) {
     const project = event.project;
-    const rootPath = project.projectRoot.fsPath;
     // TODO: these things can change so we should recreate them if project config changes
     const sourcePaths = project.getModelPaths();
     if (sourcePaths === undefined) {
-      throw new Error("sourcePaths is not defined");
+      throw new Error(
+        "sourcePaths is not defined in project in " +
+          project.projectRoot.fsPath,
+      );
     }
     const macroPaths = project.getMacroPaths();
     if (macroPaths === undefined) {
-      throw new Error("macroPaths is not defined");
+      throw new Error(
+        "macroPaths is not defined in " + project.projectRoot.fsPath,
+      );
     }
     const paths = sourcePaths.concat(macroPaths);
     if (

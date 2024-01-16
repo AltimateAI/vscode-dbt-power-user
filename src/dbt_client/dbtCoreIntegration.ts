@@ -153,6 +153,7 @@ export class DBTCoreProjectIntegration
     await this.python.ex`from dbt_integration import *`;
     await this.python
       .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir})`;
+    await this.python.ex`project.init_project()`;
     this.targetPath = await this.findTargetPath();
     this.modelPaths = await this.findModelPaths();
     this.macroPaths = await this.findMacroPaths();

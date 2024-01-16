@@ -25,7 +25,9 @@ export class NodeParser {
       const projectName = project.getProjectName();
       const packagePath = project.getPackageInstallPath();
       if (packagePath === undefined) {
-        throw new Error("packagePath is not defined");
+        throw new Error(
+          "packagePath is not defined " + project.projectRoot.fsPath,
+        );
       }
       for (const nodesMap of nodesMaps) {
         const {
