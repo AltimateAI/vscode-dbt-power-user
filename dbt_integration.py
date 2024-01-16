@@ -285,6 +285,7 @@ class DbtProject:
         self.adapter = self.get_adapter()
         self.adapter.connections.set_connection_name()
         self.config.adapter = self.adapter
+        self.parse_project()
 
     def parse_project(self) -> None:
         project_parser = ManifestLoader(
