@@ -67,7 +67,10 @@ export class TargetWatchers implements Disposable {
     const projectName = event.project.getProjectName();
     const targetPath = event.project.getTargetPath();
     if (!targetPath) {
-      console.error("targetPath should be defined at this stage!");
+      console.error(
+        "targetPath should be defined at this stage for project " +
+          event.project.projectRoot.fsPath,
+      );
       return;
     }
     if (
@@ -113,7 +116,9 @@ export class TargetWatchers implements Disposable {
     const targetPath = event.project.getTargetPath();
     if (!targetPath) {
       console.error("targetPath is undefined");
-      throw new Error("targetPath is undefined");
+      throw new Error(
+        "targetPath is undefined in " + event.project.projectRoot.fsPath,
+      );
     }
     const projectRoot = event.project.projectRoot;
     const manifestWatcher = workspace.createFileSystemWatcher(
@@ -128,7 +133,9 @@ export class TargetWatchers implements Disposable {
     const targetPath = event.project.getTargetPath();
     if (!targetPath) {
       console.error("targetPath is undefined");
-      throw new Error("targetPath is undefined");
+      throw new Error(
+        "targetPath is undefined in " + event.project.projectRoot.fsPath,
+      );
     }
     const targetFolderWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(targetPath, "*"),

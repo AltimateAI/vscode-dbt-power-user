@@ -22,7 +22,9 @@ export class SourceParser {
       const projectName = project.getProjectName();
       const packagePath = project.getPackageInstallPath();
       if (packagePath === undefined) {
-        throw new Error("packagePath is not defined");
+        throw new Error(
+          "packagePath is not defined in " + project.projectRoot.fsPath,
+        );
       }
       Object.values(sourcesMap)
         .filter(

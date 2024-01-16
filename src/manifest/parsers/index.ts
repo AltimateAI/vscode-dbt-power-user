@@ -33,7 +33,10 @@ export class ManifestParser {
   public async parseManifest(project: DBTProject) {
     const targetPath = project.getTargetPath();
     if (!targetPath) {
-      console.error("targetPath should be defined at this stage!");
+      console.error(
+        "targetPath should be defined at this stage for project " +
+          project.projectRoot.fsPath,
+      );
       return;
     }
     const projectRoot = project.projectRoot;
