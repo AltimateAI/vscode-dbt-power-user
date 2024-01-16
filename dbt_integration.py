@@ -83,8 +83,6 @@ JINJA_CONTROL_SEQS = ["{{", "}}", "{%", "%}", "{#", "#}"]
 
 T = TypeVar("T")
 
-ALTIMATE_PACKAGE_PATH = f"{os.path.dirname(os.path.abspath(__file__))}/altimate_packages"
-
 
 @contextlib.contextmanager
 def add_path(path):
@@ -101,6 +99,9 @@ def validate_sql(
     models: List[Dict],
 ):
     try:
+        ALTIMATE_PACKAGE_PATH = (
+            f"{os.path.dirname(os.path.abspath(__file__))}/altimate_packages"
+        )
         with add_path(ALTIMATE_PACKAGE_PATH):
             from altimate.validate_sql import validate_sql_from_models
 
