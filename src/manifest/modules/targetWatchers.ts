@@ -117,10 +117,7 @@ export class TargetWatchers implements Disposable {
     }
     const projectRoot = event.project.projectRoot;
     const manifestWatcher = workspace.createFileSystemWatcher(
-      new RelativePattern(
-        join(projectRoot.path, targetPath),
-        DBTProject.MANIFEST_FILE,
-      ),
+      new RelativePattern(targetPath, DBTProject.MANIFEST_FILE),
     );
     return manifestWatcher;
   }
@@ -133,9 +130,8 @@ export class TargetWatchers implements Disposable {
       console.error("targetPath is undefined");
       throw new Error("targetPath is undefined");
     }
-    const projectRoot = event.project.projectRoot;
     const targetFolderWatcher = workspace.createFileSystemWatcher(
-      new RelativePattern(join(projectRoot.path, targetPath), "*"),
+      new RelativePattern(targetPath, "*"),
     );
     return targetFolderWatcher;
   }

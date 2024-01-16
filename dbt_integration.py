@@ -276,7 +276,6 @@ class DbtProject:
         self.config = RuntimeConfig.from_args(self.args)
         if hasattr(self.config, "source_paths"):
             self.config.model_paths = self.config.source_paths
-        self.init_project()
 
     def get_adapter(self):
         """This inits a new Adapter which is fundamentally different than
