@@ -48,7 +48,6 @@ export class SourceFileWatchers implements Disposable {
 
   private onProjectConfigChanged(event: ProjectConfigChangedEvent) {
     const project = event.project;
-    const rootPath = project.projectRoot.fsPath;
     // TODO: these things can change so we should recreate them if project config changes
     const sourcePaths = project.getModelPaths();
     if (sourcePaths === undefined) {
