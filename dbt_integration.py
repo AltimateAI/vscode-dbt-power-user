@@ -99,8 +99,9 @@ def validate_sql(
     models: List[Dict],
 ):
     try:
-        ALTIMATE_PACKAGE_PATH = (
-            f"{os.path.dirname(os.path.abspath(__file__))}/altimate_packages"
+        ALTIMATE_PACKAGE_PATH = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "altimate_packages"
         )
         with add_path(ALTIMATE_PACKAGE_PATH):
             from altimate.validate_sql import validate_sql_from_models
