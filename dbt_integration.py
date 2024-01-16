@@ -271,12 +271,6 @@ class DbtProject:
         self._version: int = 1
         self.mutex = threading.Lock()
 
-        # Set config
-        set_from_args(self.args, self.args)
-        self.config = RuntimeConfig.from_args(self.args)
-        if hasattr(self.config, "source_paths"):
-            self.config.model_paths = self.config.source_paths
-
     def get_adapter(self):
         """This inits a new Adapter which is fundamentally different than
         the singleton approach in the core lib"""
@@ -284,9 +278,15 @@ class DbtProject:
         return get_adapter_class_by_name(adapter_name)(self.config)
 
     def init_project(self):
+        set_from_args(self.args, self.args)
+        self.config = RuntimeConfig.from_args(self.args)
+        if hasattr(self.config, "source_paths"):
+            self.config.model_paths = self.config.source_paths
         self.adapter = self.get_adapter()
         self.adapter.connections.set_connection_name()
         self.config.adapter = self.adapter
+
+    def parse_project(self) -> None:
         project_parser = ManifestLoader(
             self.config,
             self.config.load_dependencies(),
@@ -294,10 +294,6 @@ class DbtProject:
         )
         self.dbt = project_parser.load()
         project_parser.save_macros_to_adapter(self.adapter)
-
-    def parse_project(self) -> None:
-        """Parses project on disk from `ConfigInterface` in args attribute, verifies connection
-        to adapters database, mutates config, adapter, and dbt attributes"""
         self.dbt.build_flat_graph()
         self._sql_parser = None
         self._macro_parser = None
