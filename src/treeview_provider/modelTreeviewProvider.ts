@@ -394,22 +394,32 @@ class ModelTreeItem extends NodeTreeItem {
 }
 
 class SourceTreeItem extends NodeTreeItem {
-  collapsibleState = TreeItemCollapsibleState.None;
+  iconPath = {
+    light: path.join(
+      path.resolve(__dirname),
+      "../media/images/source_light.svg",
+    ),
+    dark: path.join(path.resolve(__dirname), "../media/images/source_dark.svg"),
+  };
   contextValue = "source";
 }
 
 class SeedTreeItem extends NodeTreeItem {
-  collapsibleState = TreeItemCollapsibleState.None;
+  iconPath = {
+    light: path.join(
+      path.resolve(__dirname),
+      "../media/images/source_light.svg",
+    ),
+    dark: path.join(path.resolve(__dirname), "../media/images/source_dark.svg"),
+  };
   contextValue = "seed";
 }
 
 class SnapshotTreeItem extends NodeTreeItem {
-  collapsibleState = TreeItemCollapsibleState.None;
   contextValue = "snapshot";
 }
 
 class TestTreeItem extends NodeTreeItem {
-  collapsibleState = TreeItemCollapsibleState.None;
   iconPath = {
     light: path.join(
       path.resolve(__dirname),
@@ -421,21 +431,6 @@ class TestTreeItem extends NodeTreeItem {
     ),
   };
   contextValue = "test";
-}
-
-class DashboardTreeItem extends NodeTreeItem {
-  collapsibleState = TreeItemCollapsibleState.None;
-  iconPath = {
-    light: path.join(
-      path.resolve(__dirname),
-      "../media/images/dashboard_light.svg",
-    ),
-    dark: path.join(
-      path.resolve(__dirname),
-      "../media/images/dashboard_dark.svg",
-    ),
-  };
-  contextValue = "dashboard";
 }
 
 @provideSingleton(ModelTestTreeview)
