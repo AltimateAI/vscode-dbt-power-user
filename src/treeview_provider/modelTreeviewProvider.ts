@@ -15,14 +15,14 @@ import {
   window,
 } from "vscode";
 import {
+  Analysis,
+  Exposure,
   GraphMetaMap,
   Node,
   Seed,
   Snapshot,
   Source,
   Test,
-  Exposure,
-  Analysis,
 } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
@@ -423,21 +423,38 @@ class SourceTreeItem extends NodeTreeItem {
 
 class SeedTreeItem extends NodeTreeItem {
   iconPath = {
-    light: path.join(
-      path.resolve(__dirname),
-      "../media/images/source_light.svg",
-    ),
-    dark: path.join(path.resolve(__dirname), "../media/images/source_dark.svg"),
+    light: path.join(path.resolve(__dirname), "../media/images/seed_light.svg"),
+    dark: path.join(path.resolve(__dirname), "../media/images/seed_dark.svg"),
   };
   contextValue = "seed";
 }
 
 class SnapshotTreeItem extends NodeTreeItem {
   contextValue = "snapshot";
+  iconPath = {
+    light: path.join(
+      path.resolve(__dirname),
+      "../media/images/snapshot_light.svg",
+    ),
+    dark: path.join(
+      path.resolve(__dirname),
+      "../media/images/snapshot_dark.svg",
+    ),
+  };
 }
 
 class ExposureTreeItem extends NodeTreeItem {
   contextValue = "exposure";
+  iconPath = {
+    light: path.join(
+      path.resolve(__dirname),
+      "../media/images/exposure_light.svg",
+    ),
+    dark: path.join(
+      path.resolve(__dirname),
+      "../media/images/exposure_dark.svg",
+    ),
+  };
 }
 
 class AnalysisTreeItem extends NodeTreeItem {
@@ -448,12 +465,9 @@ class TestTreeItem extends NodeTreeItem {
   iconPath = {
     light: path.join(
       path.resolve(__dirname),
-      "../media/images/dashboard_light.svg",
+      "../media/images/tests_light.svg",
     ),
-    dark: path.join(
-      path.resolve(__dirname),
-      "../media/images/dashboard_dark.svg",
-    ),
+    dark: path.join(path.resolve(__dirname), "../media/images/tests_dark.svg"),
   };
   contextValue = "test";
 }
