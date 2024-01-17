@@ -323,11 +323,13 @@ export class NodeTreeItem extends TreeItem {
     if (node.iconPath !== undefined) {
       this.iconPath = node.iconPath;
     }
-    this.command = {
-      command: "vscode.open",
-      title: "Select Node",
-      arguments: [Uri.file(node.url)],
-    };
+    if (node.url) {
+      this.command = {
+        command: "vscode.open",
+        title: "Select Node",
+        arguments: [Uri.file(node.url)],
+      };
+    }
   }
 }
 
