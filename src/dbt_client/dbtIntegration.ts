@@ -2,6 +2,7 @@ import {
   CancellationToken,
   Disposable,
   ProgressLocation,
+  Uri,
   window,
   workspace,
 } from "vscode";
@@ -21,6 +22,7 @@ import { existsSync } from "fs";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./dbtTerminal";
 import { ValidateSqlParseErrorResponse } from "../altimate";
+import { DBTProject } from "../manifest/dbtProject";
 
 interface DBTCommandExecution {
   command: (token: CancellationToken) => Promise<void>;
@@ -209,6 +211,10 @@ export interface DBTDetection {
 
 export interface DBTInstallion {
   installDBT(): Promise<void>;
+}
+
+export interface DBTProjectDetection extends Disposable {
+  discoverProjects(projectConfigFiles: Uri[]): Promise<Uri[]>;
 }
 
 export interface DBTProjectIntegration extends Disposable {

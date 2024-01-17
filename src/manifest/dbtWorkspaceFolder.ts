@@ -19,6 +19,7 @@ import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
 import { YAMLError } from "yaml";
 import { ProjectRegisteredUnregisteredEvent } from "./dbtProjectContainer";
+import { DBTCoreProjectDetection } from "../dbt_client/dbtCoreIntegration";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
@@ -34,6 +35,7 @@ export class DBTWorkspaceFolder implements Disposable {
       projectConfig: any,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
     ) => DBTProject,
+    private dbtCoreProjectDetection: DBTCoreProjectDetection,
     private telemetry: TelemetryService,
     private workspaceFolder: WorkspaceFolder,
     private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
@@ -76,7 +78,7 @@ export class DBTWorkspaceFolder implements Disposable {
     );
 
     const allowListFolders = this.getAllowListFolders();
-    const projectFiles = dbtProjectFiles
+    const projectDirectories = dbtProjectFiles
       .filter((uri) => statSync(uri.fsPath).isFile())
       .filter((uri) => this.notInVenv(uri.fsPath))
       .filter((uri) => {
@@ -85,49 +87,25 @@ export class DBTWorkspaceFolder implements Disposable {
           allowListFolders.some((folder) => uri.fsPath.startsWith(folder))
         );
       })
-      // TODO: also filter out projects within the target folder of another project
-      //  This is somewhat difficult as we would need to parse the target-path variable of the project.
       .map((uri) => Uri.file(uri.path.split("/")!.slice(0, -1).join("/")));
-    if (projectFiles.length > 20) {
-      window.showWarningMessage(
-        `dbt Power User detected ${projectFiles.length} projects in your work space, this will negatively affect performance.`,
-      );
-    }
+
     this.telemetry.sendTelemetryEvent(
       "discoverProjects",
       {},
-      { numProjects: projectFiles.length },
+      { numProjects: projectDirectories.length },
     );
-    await Promise.all(
-      projectFiles.map(async (uri) => {
-        await this.registerDBTProject(uri);
-      }),
-    );
-    // Unregister projects that are in the packages folder of other projects
-    const packagesInstallPaths = this.findDBTProjectPackagesInstallPaths();
+    const filteredProjects =
+      await this.dbtCoreProjectDetection.discoverProjects(projectDirectories);
 
-    const filteredProjectFiles = projectFiles.filter((uri) => {
-      return packagesInstallPaths.some((packageInstallPath) => {
-        return uri.fsPath.startsWith(packageInstallPath!);
-      });
-    });
     await Promise.all(
-      filteredProjectFiles.map(async (uri) => {
-        await this.unregisterDBTProject(uri);
+      filteredProjects.map(async (uri) => {
+        await this.registerDBTProject(uri);
       }),
     );
   }
 
   findDBTProject(uri: Uri): DBTProject | undefined {
     return this.dbtProjects.find((project) => project.contains(uri));
-  }
-
-  private findDBTProjectPackagesInstallPaths() {
-    return this.dbtProjects
-      .map((project) => {
-        return project.getPackageInstallPath();
-      })
-      .filter((packageInstallPath) => packageInstallPath !== undefined);
   }
 
   getProjects(): DBTProject[] {
@@ -230,8 +208,6 @@ export class DBTWorkspaceFolder implements Disposable {
         ) &&
         (allowListFolders.length === 0 ||
           allowListFolders.some((folder) => uri.fsPath.startsWith(folder)))
-        // TODO: also filter out projects within the target folder of another project
-        //  This is somewhat difficult as we would need to parse the target-path variable of the project.
       ) {
         this.registerDBTProject(dirName(uri));
       }
