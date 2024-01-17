@@ -135,7 +135,7 @@ export const TableHeader: FunctionComponent<{
   materialization?: string | undefined;
 }> = ({ nodeType, label, table, tests, materialization }) => {
   const nType = nodeType as keyof typeof NODE_TYPE_SHORTHAND;
-  const tableId = table.replaceAll(".", "-").replaceAll(/\s/g, "-")
+  const tableId = table.replace(/[^a-zA-Z0-9]/g, "-");
   return (
     <div className="d-flex flex-column align-items-start gap-xs w-100">
       <div className={styles.table_header}>
