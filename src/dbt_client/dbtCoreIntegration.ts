@@ -21,6 +21,7 @@ import {
   DBTCommand,
   DBTCommandExecutionInfrastructure,
   DBTDetection,
+  DBTProjectDetection,
   DBTProjectIntegration,
   ExecuteSQLResult,
   PythonDBTCommandExecutionStrategy,
@@ -73,6 +74,68 @@ export class DBTCoreDetection implements DBTDetection {
       return false;
     }
   }
+}
+
+@provideSingleton(DBTCoreProjectDetection)
+export class DBTCoreProjectDetection
+  implements DBTProjectDetection, Disposable
+{
+  constructor(
+    private executionInfrastructure: DBTCommandExecutionInfrastructure,
+  ) {}
+
+  async discoverProjects(projectDirectories: Uri[]): Promise<Uri[]> {
+    let packagesInstallPaths = projectDirectories.map((projectDirectory) =>
+      path.join(projectDirectory.fsPath, "dbt_packages"),
+    );
+    const profilesDirOverrideSetting = workspace
+      .getConfiguration("dbt")
+      .get<string>("profilesDirOverride");
+    let python: PythonBridge | undefined;
+    try {
+      python = this.executionInfrastructure.createPythonBridge(
+        getFirstWorkspacePath(),
+      );
+
+      await python.ex`from dbt_integration import *`;
+      const packagesInstallPathsFromPython = await python.lock<string[]>(
+        (python) =>
+          python`to_dict(find_package_paths(${projectDirectories.map(
+            (projectDirectory) => projectDirectory.fsPath,
+          )}, ${profilesDirOverrideSetting}))`,
+      );
+      packagesInstallPaths = packagesInstallPaths.map(
+        (packageInstallPath, index) => {
+          const packageInstallPathFromPython =
+            packagesInstallPathsFromPython[index];
+          if (packageInstallPathFromPython) {
+            return Uri.parse(packageInstallPathFromPython).fsPath;
+          }
+          return packageInstallPath;
+        },
+      );
+    } catch (error) {
+      console.log("An error occured while finding package paths: " + error);
+    } finally {
+      if (python) {
+        this.executionInfrastructure.closePythonBridge(python);
+      }
+    }
+
+    const filteredProjectFiles = projectDirectories.filter((uri) => {
+      return !packagesInstallPaths.some((packageInstallPath) => {
+        return uri.fsPath.startsWith(packageInstallPath!);
+      });
+    });
+    if (filteredProjectFiles.length > 20) {
+      window.showWarningMessage(
+        `dbt Power User detected ${filteredProjectFiles.length} projects in your work space, this will negatively affect performance.`,
+      );
+    }
+    return filteredProjectFiles;
+  }
+
+  async dispose() {}
 }
 
 @provideSingleton(DBTCoreProjectIntegration)

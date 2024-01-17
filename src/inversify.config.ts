@@ -16,7 +16,10 @@ import { TargetWatchersFactory } from "./manifest/modules/targetWatchers";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
 import { QueryResultPanel } from "./webview_provider/queryResultPanel";
 import { TelemetryService } from "./telemetry";
-import { DBTCoreProjectIntegration } from "./dbt_client/dbtCoreIntegration";
+import {
+  DBTCoreProjectDetection,
+  DBTCoreProjectIntegration,
+} from "./dbt_client/dbtCoreIntegration";
 import {
   DBTCommandExecutionInfrastructure,
   DBTCommandFactory,
@@ -46,6 +49,7 @@ container
       const { container } = context;
       return new DBTWorkspaceFolder(
         container.get("Factory<DBTProject>"),
+        container.get(DBTCoreProjectDetection),
         container.get(TelemetryService),
         workspaceFolder,
         _onManifestChanged,

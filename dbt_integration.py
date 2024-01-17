@@ -1,4 +1,5 @@
 from decimal import Decimal
+from pathlib import Path
 import dbt.adapters.factory
 
 # This is critical because `get_adapter` is all over dbt-core
@@ -168,6 +169,26 @@ def memoize_get_rendered(function):
 
     return wrapper
 
+def default_profiles_dir(project_dir) -> Path:
+    if "DBT_PROFILES_DIR" in os.environ:
+        return Path(os.environ["DBT_PROFILES_DIR"]).resolve()
+    return project_dir if (project_dir / "profiles.yml").exists() else Path.home() / ".dbt"
+
+def find_package_paths(project_directories, profiles_dir_override):
+    def get_package_path(project_dir):
+        try:
+            project = DbtProject(project_dir=project_dir, profiles_dir=profiles_dir_override if Path(profiles_dir_override).exists() and profiles_dir_override.strip() != ""  else default_profiles_dir(Path(project_dir)))
+            project.init_config()
+            packages_path = Path(project.config.packages_install_path)
+            if packages_path.is_absolute():
+                return packages_path.resolve().as_uri()
+            return (Path(project_dir) / packages_path).as_uri()
+        except Exception as e:
+            # We don't care about exceptions here, that is dealt with later when the project is loaded
+            pass
+
+    return list(map(lambda project_dir: get_package_path(project_dir), project_directories))
+
 
 # Performance hacks
 # jinja.get_rendered = memoize_get_rendered(jinja.get_rendered)
@@ -278,12 +299,15 @@ class DbtProject:
         the singleton approach in the core lib"""
         adapter_name = self.config.credentials.type
         return get_adapter_class_by_name(adapter_name)(self.config)
-
-    def init_project(self):
+    
+    def init_config(self):
         set_from_args(self.args, self.args)
         self.config = RuntimeConfig.from_args(self.args)
         if hasattr(self.config, "source_paths"):
             self.config.model_paths = self.config.source_paths
+
+    def init_project(self):
+        self.init_config()
         self.adapter = self.get_adapter()
         self.adapter.connections.set_connection_name()
         self.config.adapter = self.adapter
