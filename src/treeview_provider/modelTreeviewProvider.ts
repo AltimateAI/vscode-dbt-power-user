@@ -14,7 +14,7 @@ import {
   Uri,
   window,
 } from "vscode";
-import { GraphMetaMap, Model, Node, Snapshot, Source, Test } from "../domain";
+import { GraphMetaMap, Node, Seed, Snapshot, Source, Test } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
@@ -109,6 +109,22 @@ abstract class ModelTreeviewProvider
     );
   }
 
+  private _getTreeItem(node: Node): NodeTreeItem {
+    if (node instanceof Snapshot) {
+      return new SnapshotTreeItem(node);
+    }
+    if (node instanceof Test) {
+      return new TestTreeItem(node);
+    }
+    if (node instanceof Source) {
+      return new SourceTreeItem(node);
+    }
+    if (node instanceof Seed) {
+      return new SeedTreeItem(node);
+    }
+    return new ModelTreeItem(node);
+  }
+
   private getTreeItems(
     elementName: string,
     event: ManifestCacheProjectAddedEvent,
@@ -125,21 +141,12 @@ abstract class ModelTreeviewProvider
           .get(node.key)
           ?.nodes.filter((node) => node.displayInModelTree);
 
-        if (
-          (node instanceof Model || node instanceof Snapshot) &&
-          childNodes?.filter(
-            (node) => node instanceof Model || node instanceof Snapshot,
-          ).length === 0
-        ) {
-          return new DashboardTreeItem(node);
-        }
-        if (node instanceof Test) {
-          return new TestTreeItem(node);
-        }
-        if (node instanceof Source) {
-          return new SourceTreeItem(node);
-        }
-        return new ModelTreeItem(node);
+        const treeItem = this._getTreeItem(node);
+        treeItem.collapsibleState =
+          childNodes?.length !== 0
+            ? TreeItemCollapsibleState.Collapsed
+            : TreeItemCollapsibleState.None;
+        return treeItem;
       });
   }
 }
@@ -391,6 +398,16 @@ class SourceTreeItem extends NodeTreeItem {
   contextValue = "source";
 }
 
+class SeedTreeItem extends NodeTreeItem {
+  collapsibleState = TreeItemCollapsibleState.None;
+  contextValue = "seed";
+}
+
+class SnapshotTreeItem extends NodeTreeItem {
+  collapsibleState = TreeItemCollapsibleState.None;
+  contextValue = "snapshot";
+}
+
 class TestTreeItem extends NodeTreeItem {
   collapsibleState = TreeItemCollapsibleState.None;
   iconPath = {
@@ -403,7 +420,7 @@ class TestTreeItem extends NodeTreeItem {
       "../media/images/dashboard_dark.svg",
     ),
   };
-  contextValue = "dashboard";
+  contextValue = "test";
 }
 
 class DashboardTreeItem extends NodeTreeItem {
