@@ -14,7 +14,16 @@ import {
   Uri,
   window,
 } from "vscode";
-import { GraphMetaMap, Node, Seed, Snapshot, Source, Test } from "../domain";
+import {
+  GraphMetaMap,
+  Node,
+  Seed,
+  Snapshot,
+  Source,
+  Test,
+  Exposure,
+  Analysis,
+} from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
@@ -109,9 +118,15 @@ abstract class ModelTreeviewProvider
     );
   }
 
-  private _getTreeItem(node: Node): NodeTreeItem {
+  private getNodeTreeItem(node: Node): NodeTreeItem {
     if (node instanceof Snapshot) {
       return new SnapshotTreeItem(node);
+    }
+    if (node instanceof Exposure) {
+      return new ExposureTreeItem(node);
+    }
+    if (node instanceof Analysis) {
+      return new AnalysisTreeItem(node);
     }
     if (node instanceof Test) {
       return new TestTreeItem(node);
@@ -141,7 +156,7 @@ abstract class ModelTreeviewProvider
           .get(node.key)
           ?.nodes.filter((node) => node.displayInModelTree);
 
-        const treeItem = this._getTreeItem(node);
+        const treeItem = this.getNodeTreeItem(node);
         treeItem.collapsibleState =
           childNodes?.length !== 0
             ? TreeItemCollapsibleState.Collapsed
@@ -417,6 +432,14 @@ class SeedTreeItem extends NodeTreeItem {
 
 class SnapshotTreeItem extends NodeTreeItem {
   contextValue = "snapshot";
+}
+
+class ExposureTreeItem extends NodeTreeItem {
+  contextValue = "exposure";
+}
+
+class AnalysisTreeItem extends NodeTreeItem {
+  contextValue = "analysis";
 }
 
 class TestTreeItem extends NodeTreeItem {
