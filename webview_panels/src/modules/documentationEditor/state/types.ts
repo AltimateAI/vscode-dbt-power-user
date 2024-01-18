@@ -30,6 +30,7 @@ export interface DocumentationStateProps {
   project?: string;
   generationHistory: GenerationDBDataProps[];
   userInstructions: DocsGenerateUserInstructions;
+  isDocGeneratedForAnyColumn: boolean;
 }
 
 export interface DocsGenerateUserInstructions {

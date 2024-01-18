@@ -56,7 +56,12 @@ const BulkGenerateButton = () => {
       .map((d) => d.columns)
       .flat();
 
-    dispatch(updateColumnsInCurrentDocsData({ columns: allColumnsData }));
+    dispatch(
+      updateColumnsInCurrentDocsData({
+        columns: allColumnsData,
+        isNewGeneration: true,
+      }),
+    );
   };
   const onOptionSelect = (value: string) => {
     if (value === "all") {

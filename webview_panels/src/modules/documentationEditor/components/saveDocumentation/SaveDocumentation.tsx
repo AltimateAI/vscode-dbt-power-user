@@ -5,12 +5,12 @@ import { Button, IconButton, Popover, PopoverBody, List, Stack } from "@uicore";
 import { useEffect, useState } from "react";
 import classes from "../../styles.module.scss";
 
-const SaveDocumentation = (): JSX.Element => {
+const SaveDocumentation = (): JSX.Element | null => {
   const [patchPath, setPatchPath] = useState("");
   const [dialogType, setDialogType] = useState("");
   const [openPopover, setOpenPopover] = useState(false);
   const {
-    state: { currentDocsData },
+    state: { currentDocsData, isDocGeneratedForAnyColumn },
   } = useDocumentationContext();
 
   const saveDocumentation = () => {
@@ -43,6 +43,10 @@ const SaveDocumentation = (): JSX.Element => {
     { label: "Existing file", value: "Existing file" },
     { label: "New file", value: "New file" },
   ];
+
+  if (!isDocGeneratedForAnyColumn) {
+    return null;
+  }
 
   return (
     <Stack direction="row" className={classes.save}>

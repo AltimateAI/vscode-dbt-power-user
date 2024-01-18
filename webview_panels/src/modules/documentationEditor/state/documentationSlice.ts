@@ -17,6 +17,7 @@ export const initialState = {
   currentDocsData: DATA,
   project: PROJECT,
   generationHistory: [],
+  isDocGeneratedForAnyColumn: false,
   userInstructions: {
     language: Languages[0],
     persona: Persona[0],
@@ -48,9 +49,10 @@ const documentationSlice = createSlice({
     updateColumnsInCurrentDocsData: (
       state,
       {
-        payload: { columns },
+        payload: { columns, isNewGeneration },
       }: PayloadAction<{
         columns: Partial<MetadataColumn>[];
+        isNewGeneration?: boolean;
       }>,
     ) => {
       if (!state.currentDocsData) {
@@ -63,6 +65,9 @@ const documentationSlice = createSlice({
         }
         return c;
       });
+      if (isNewGeneration !== undefined) {
+        state.isDocGeneratedForAnyColumn = isNewGeneration;
+      }
     },
     addToGenerationsHistory: (
       state,
@@ -77,6 +82,9 @@ const documentationSlice = createSlice({
       action: PayloadAction<GenerationDBDataProps[]>,
     ) => {
       state.generationHistory = action.payload;
+    },
+    setIsDocGeneratedForAnyColumn: (state, action: PayloadAction<boolean>) => {
+      state.isDocGeneratedForAnyColumn = action.payload;
     },
     resetGenerationsHistory: (state, _action: PayloadAction<undefined>) => {
       state.generationHistory = [];
@@ -98,5 +106,6 @@ export const {
   resetGenerationsHistory,
   setGenerationsHistory,
   updateUserInstructions,
+  setIsDocGeneratedForAnyColumn,
 } = documentationSlice.actions;
 export default documentationSlice;

@@ -3,7 +3,6 @@ import CommonActionButtons from "@modules/commonActionButtons/CommonActionButton
 import { Container, Stack, Tag } from "@uicore";
 import DocGeneratorColumnsList from "./components/docGenerator/DocGeneratorColumnsList";
 import DocGeneratorInput from "./components/docGenerator/DocGeneratorInput";
-import DocGenerationResult from "./components/result/DocGenerationResult";
 import SaveDocumentation from "./components/saveDocumentation/SaveDocumentation";
 import { updateCurrentDocsData } from "./state/documentationSlice";
 import { DocsGenerateModelRequestV2 } from "./state/types";
@@ -63,7 +62,6 @@ const DocumentationEditor = (): JSX.Element => {
           </Stack>
           <SaveDocumentation />
         </Stack>
-        <DocGenerationResult />
       </Stack>
     </Container>
   );

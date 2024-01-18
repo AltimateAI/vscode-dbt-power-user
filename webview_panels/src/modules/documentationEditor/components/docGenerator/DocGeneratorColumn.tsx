@@ -29,9 +29,10 @@ const DocGeneratorColumn = ({ column }: Props): JSX.Element => {
       columns: currentDocsData?.columns,
     });
     dispatch(
-      updateColumnsInCurrentDocsData(
-        result as { columns: Partial<DBTDocumentationColumn>[] },
-      ),
+      updateColumnsInCurrentDocsData({
+        ...(result as { columns: Partial<DBTDocumentationColumn>[] }),
+        isNewGeneration: true,
+      }),
     );
     await addDocGeneration(
       project,
