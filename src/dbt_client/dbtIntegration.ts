@@ -378,7 +378,6 @@ export class DBTCommandFactory {
     const buildModelCommandAdditionalParams = workspace
       .getConfiguration("dbt")
       .get<string[]>("buildModelCommandAdditionalParams", []);
-    const deferParams = getDeferParams();
 
     return new DBTCommand(
       "Building dbt model...",
@@ -387,7 +386,6 @@ export class DBTCommandFactory {
         "--select",
         `${plusOperatorLeft}${modelName}${plusOperatorRight}`,
         ...buildModelCommandAdditionalParams,
-        deferParams.length > 0 ? " " + deferParams.join(" ") : "",
       ],
       true,
     );
