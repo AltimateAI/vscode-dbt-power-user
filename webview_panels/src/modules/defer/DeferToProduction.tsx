@@ -108,7 +108,11 @@ const DeferToProduction = (): JSX.Element => {
             </FormGroup>
             <FormGroup>
               <Stack>
-                <Label for="manifestPath" sm={2}>
+                <Label
+                  for="manifestPath"
+                  sm={2}
+                  style={{ whiteSpace: "nowrap" }}
+                >
                   Path to manifest file
                 </Label>
                 <Input
