@@ -1,4 +1,5 @@
-import { FeedbackIcon, HelpIcon, SettingsIcon } from "@assets/icons";
+import { FeedbackIcon, HelpIcon } from "@assets/icons";
+import DocGeneratorSettings from "@modules/documentationEditor/components/settings/DocGeneratorSettings";
 import { Button, Stack } from "@uicore";
 import { executeRequestInAsync } from "../app/requestExecutor";
 
@@ -10,11 +11,10 @@ const CommonActionButtons = (): JSX.Element => {
   return (
     <Stack>
       <Button outline onClick={showOldUx}>
-        Show old UX
+        Show legacy UX
       </Button>
-      <Button outline>
-        <SettingsIcon /> Settings
-      </Button>
+      <DocGeneratorSettings />
+
       <Button outline>
         <HelpIcon /> Help
       </Button>

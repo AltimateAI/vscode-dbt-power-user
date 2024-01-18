@@ -29,6 +29,7 @@ export interface DocumentationStateProps {
   currentDocsData?: DBTDocumentation;
   project?: string;
   generationHistory: GenerationDBDataProps[];
+  userInstructions: DocsGenerateUserInstructions;
 }
 
 export interface DocsGenerateUserInstructions {

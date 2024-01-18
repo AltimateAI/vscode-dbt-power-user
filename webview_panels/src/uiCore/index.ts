@@ -18,6 +18,9 @@ export {
   PopoverBody,
   PopoverHeader,
   List,
+  Offcanvas,
+  OffcanvasHeader,
+  OffcanvasBody,
 } from "reactstrap";
 
 export { default as Tag } from "./components/tag/Tag";

@@ -1,15 +1,27 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import {
+  Languages,
+  Options,
+  Persona,
+} from "../components/docGenerator/constants";
 import { GenerationDBDataProps } from "../types";
+import { DATA, PROJECT } from "./sampleData";
 import {
   DBTDocumentation,
+  DocsGenerateUserInstructions,
   DocumentationStateProps,
   MetadataColumn,
 } from "./types";
 
 export const initialState = {
-  currentDocsData: undefined,
-  project: undefined,
+  currentDocsData: DATA,
+  project: PROJECT,
   generationHistory: [],
+  userInstructions: {
+    language: Languages[0],
+    persona: Persona[0],
+    prompt_hint: Options[0],
+  },
 } as DocumentationStateProps;
 
 const documentationSlice = createSlice({
@@ -69,6 +81,12 @@ const documentationSlice = createSlice({
     resetGenerationsHistory: (state, _action: PayloadAction<undefined>) => {
       state.generationHistory = [];
     },
+    updateUserInstructions: (
+      state,
+      action: PayloadAction<DocsGenerateUserInstructions>,
+    ) => {
+      state.userInstructions = { ...state.userInstructions, ...action.payload };
+    },
   },
 });
 
@@ -79,5 +97,6 @@ export const {
   addToGenerationsHistory,
   resetGenerationsHistory,
   setGenerationsHistory,
+  updateUserInstructions,
 } = documentationSlice.actions;
 export default documentationSlice;
