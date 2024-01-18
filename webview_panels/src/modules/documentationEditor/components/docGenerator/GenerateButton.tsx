@@ -12,7 +12,7 @@ interface Props {
   onSubmit: () => void;
 }
 
-const GenerateAllButton = ({
+const GenerateButton = ({
   variant = Variants.ICON,
   buttonText = "Generate",
   onSubmit,
@@ -42,4 +42,4 @@ const GenerateAllButton = ({
   );
 };
 
-export default GenerateAllButton;
+export default GenerateButton;

@@ -2,7 +2,7 @@ import { DocsGenerateModelRequestV2 } from "@modules/documentationEditor/state/t
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { Input, InputGroup, Stack } from "@uicore";
 import { ChangeEvent, useCallback, useEffect, useState } from "react";
-import GenerateAllButton, { Variants } from "./GenerateAllButton";
+import GenerateButton, { Variants } from "./GenerateButton";
 
 interface Props {
   value: string;
@@ -12,6 +12,7 @@ const DocGeneratorInput = ({ onSubmit, value }: Props): JSX.Element => {
   const {
     state: { userInstructions },
   } = useDocumentationContext();
+  const [showButton, setShowButton] = useState(true);
   const [description, setDescription] = useState("");
 
   useEffect(() => {
@@ -26,14 +27,24 @@ const DocGeneratorInput = ({ onSubmit, value }: Props): JSX.Element => {
     setDescription(e.target.value);
   };
 
+  const handleHideButton = () => setShowButton(false);
+  const handleShowButton = () => setShowButton(true);
+
   const variant = value ? Variants.ICON : Variants.ICON_WITH_TEXT;
 
   return (
     <Stack>
       <InputGroup>
-        <Input value={description} onChange={onChange} />
+        <Input
+          value={description}
+          onChange={onChange}
+          onFocus={handleHideButton}
+          onBlur={handleShowButton}
+        />
 
-        <GenerateAllButton onSubmit={handleSubmit} variant={variant} />
+        {showButton ? (
+          <GenerateButton onSubmit={handleSubmit} variant={variant} />
+        ) : null}
       </InputGroup>
     </Stack>
   );
