@@ -27,11 +27,8 @@ export class MacroParser {
           "packagePath is not defined in " + project.projectRoot.fsPath,
         );
       }
-      if (typeof macros[Symbol.iterator] !== "function") {
-        resolve(macroMetaMap);
-        return;
-      }
-      for (const macro of macros) {
+      for (const key in macros) {
+        const macro = macros[key];
         const { package_name, name, original_file_path } = macro;
         const packageName = package_name;
         const macroName =
@@ -44,7 +41,7 @@ export class MacroParser {
           original_file_path,
         );
         if (!fullPath) {
-          return;
+          continue;
         }
         try {
           const macroFile: string = readFileSync(fullPath).toString("utf8");
