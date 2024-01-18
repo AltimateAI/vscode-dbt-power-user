@@ -135,6 +135,7 @@ export const TableHeader: FunctionComponent<{
   materialization?: string | undefined;
 }> = ({ nodeType, label, table, tests, materialization }) => {
   const nType = nodeType as keyof typeof NODE_TYPE_SHORTHAND;
+  const tableId = table.replace(/[^a-zA-Z0-9]/g, "-");
   return (
     <div className="d-flex flex-column align-items-start gap-xs w-100">
       <div className={styles.table_header}>
@@ -147,7 +148,7 @@ export const TableHeader: FunctionComponent<{
       <div className={classNames("d-flex gap-xs", styles.node_extra_info)}>
         {tests?.length > 0 && (
           <TableNodePill
-            id={"table-node-tests-" + table.replaceAll(".", "-")}
+            id={"table-node-tests-" + tableId}
             icon={<TestsIcon />}
             text={tests.length.toString()}
             label="Tests"
@@ -155,7 +156,7 @@ export const TableHeader: FunctionComponent<{
         )}
         {materialization && (
           <TableNodePill
-            id={"table-node-materilization-" + table.replaceAll(".", "-")}
+            id={"table-node-materilization-" + tableId}
             icon={<EphemeralIcon />}
             text={materialization}
             label="Materialization"
