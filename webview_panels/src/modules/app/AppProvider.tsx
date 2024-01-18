@@ -1,3 +1,4 @@
+import CopilotProvider from "@modules/copilot/CopilotProvider";
 import {
   createContext,
   ReactNode,
@@ -39,7 +40,9 @@ const AppProvider = ({ children }: { children: ReactNode }): JSX.Element => {
 
   return (
     <AppContext.Provider value={values}>
-      <div className="App">{children}</div>
+      <CopilotProvider>
+        <div className="App">{children}</div>
+      </CopilotProvider>
     </AppContext.Provider>
   );
 };
