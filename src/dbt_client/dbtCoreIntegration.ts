@@ -261,7 +261,9 @@ export class DBTCoreProjectIntegration
       } else {
         window.showErrorMessage(
           extendErrorWithSupportLinks(
-            "An unexpected error occured while initializing the dbt project: " +
+            "An unexpected error occured while initializing the dbt project at " +
+              this.projectRoot +
+              ": " +
               exc +
               ".",
           ),
