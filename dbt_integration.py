@@ -182,7 +182,7 @@ def find_package_paths(project_directories, profiles_dir_override):
             packages_path = Path(project.config.packages_install_path)
             if packages_path.is_absolute():
                 return packages_path.resolve().as_uri()
-            return (Path(project_dir) / packages_path).as_uri()
+            return (Path(project_dir) / packages_path).resolve().as_uri()
         except Exception as e:
             # We don't care about exceptions here, that is dealt with later when the project is loaded
             pass
