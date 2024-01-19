@@ -1,6 +1,7 @@
 import {
   CancellationToken,
   ColorThemeKind,
+  commands,
   Disposable,
   Uri,
   Webview,
@@ -15,6 +16,7 @@ import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
 import path = require("path");
+import { sharedStateManager } from "./sharedStateManager";
 
 export interface HandleCommandProps extends Record<string, unknown> {
   command: string;
@@ -58,6 +60,15 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     const { command, syncRequestId, ...params } = message;
 
     switch (command) {
+      case "datapilot:toggle":
+        if (params.open) {
+          await commands.executeCommand("dbtPowerUser.datapilot-webview.focus");
+        }
+        break;
+      case "datapilot:message":
+        sharedStateManager.postMessage(message);
+
+        break;
       case "updateConfig":
         workspace
           .getConfiguration("dbt")

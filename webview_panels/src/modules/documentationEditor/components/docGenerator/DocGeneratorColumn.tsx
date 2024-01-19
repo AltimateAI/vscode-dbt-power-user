@@ -7,6 +7,7 @@ import {
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { addDocGeneration } from "@modules/documentationEditor/utils";
 import DocGeneratorInput from "./DocGeneratorInput";
+import useAppContext from "@modules/app/useAppContext";
 
 interface Props {
   column: DBTDocumentationColumn;
@@ -17,11 +18,14 @@ const DocGeneratorColumn = ({ column }: Props): JSX.Element => {
     dispatch,
   } = useDocumentationContext();
 
+  const { toggleDataPilot, postMessageToDataPilot } = useAppContext();
   const handleColumnSubmit = async (data: DocsGenerateModelRequestV2) => {
     if (!currentDocsData || !project) {
       return;
     }
 
+    toggleDataPilot(true);
+    postMessageToDataPilot({ test: 123 });
     const result = await executeRequestInSync("generateDocsForColumn", {
       description: data.description,
       user_instructions: data.user_instructions,

@@ -49,6 +49,7 @@ export class NewDocsGenPanel
         break;
 
       default:
+        super.handleCommand(message);
         break;
     }
   }

@@ -194,6 +194,12 @@
           "title": "dbt Power User",
           "icon": "./media/images/dbt_icon.svg",
           "contextualTitle": "dbt Power User"
+        },
+        {
+          "id": "datapilot_view",
+          "title": "Altimate Data pilot",
+          "icon": "./media/images/dbt_icon.svg",
+          "contextualTitle": "Altimate Data pilot"
         }
       ],
       "panel": [
@@ -268,6 +274,14 @@
           "id": "dbtPowerUser.Insights",
           "name": "",
           "type": "webview"
+        }
+      ],
+      "datapilot_view": [
+        {
+          "type": "webview",
+          "id": "dbtPowerUser.datapilot-webview",
+          "name": "",
+          "icon": "./media/images/dbt_icon.svg"
         }
       ]
     },

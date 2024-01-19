@@ -7,12 +7,15 @@ import {
   useReducer,
 } from "react";
 import appSlice, { initialState } from "./appSlice";
+import { executeRequestInAsync } from "./requestExecutor";
 import { ContextProps } from "./types";
 import useListeners from "./useListeners";
 
 export const AppContext = createContext<ContextProps>({
   state: initialState,
   dispatch: () => null,
+  postMessageToDataPilot: (_data) => null,
+  toggleDataPilot: (_open) => null,
 });
 
 const AppProvider = ({ children }: { children: ReactNode }): JSX.Element => {
@@ -20,6 +23,14 @@ const AppProvider = ({ children }: { children: ReactNode }): JSX.Element => {
     appSlice.reducer,
     appSlice.getInitialState(),
   );
+
+  const postMessageToDataPilot = (data: Record<string, unknown>) => {
+    executeRequestInAsync("datapilot:message", data);
+  };
+
+  const toggleDataPilot = (open: boolean) => {
+    executeRequestInAsync("datapilot:toggle", { open });
+  };
 
   useListeners(dispatch);
 
@@ -34,6 +45,8 @@ const AppProvider = ({ children }: { children: ReactNode }): JSX.Element => {
     () => ({
       state,
       dispatch,
+      postMessageToDataPilot,
+      toggleDataPilot,
     }),
     [state, dispatch],
   );

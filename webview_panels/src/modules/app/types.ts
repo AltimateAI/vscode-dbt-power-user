@@ -7,6 +7,8 @@ export interface AppStateProps {
 export interface ContextProps {
   state: AppStateProps;
   dispatch: React.Dispatch<UnknownAction>;
+  toggleDataPilot: (open: boolean) => void;
+  postMessageToDataPilot: (message: Record<string, unknown>) => void;
 }
 
 export interface IncomingMessageProps {

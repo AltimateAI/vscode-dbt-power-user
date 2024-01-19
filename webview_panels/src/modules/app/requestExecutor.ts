@@ -16,8 +16,11 @@ export const executeRequestInSync = (
     vscode.postMessage({ command: url, ...params, syncRequestId: id });
   });
 
-export const executeRequestInAsync = (url: string, params: unknown): void => {
-  vscode.postMessage({ command: url, args: { params } });
+export const executeRequestInAsync = (
+  url: string,
+  params: Record<string, unknown>,
+): void => {
+  vscode.postMessage({ command: url, ...params });
 };
 export const handleIncomingResponse = (args: IncomingSyncResponse): void => {
   if (!requestMap[args.syncRequestId]) {

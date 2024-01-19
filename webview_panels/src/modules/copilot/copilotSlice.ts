@@ -3,6 +3,7 @@ import { CopilotStateProps } from "./types";
 
 export const initialState = {
   isCopilotOpen: false,
+  items: [],
 } as CopilotStateProps;
 
 const copilotSlice = createSlice({

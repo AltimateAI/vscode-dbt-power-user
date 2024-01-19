@@ -3,8 +3,7 @@ import { AppContext } from "./AppProvider";
 import { ContextProps } from "./types";
 
 const useAppContext = (): ContextProps => {
-  const { state, dispatch } = useContext(AppContext);
-  return { state, dispatch };
+  return useContext(AppContext);
 };
 
 export default useAppContext;
