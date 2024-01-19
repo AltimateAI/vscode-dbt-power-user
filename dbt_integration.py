@@ -314,11 +314,14 @@ class DbtProject:
         self.parse_project()
 
     def parse_project(self) -> None:
-        project_parser = ManifestLoader(
-            self.config,
-            self.config.load_dependencies(),
-            self.adapter.connections.set_query_header,
-        )
+        try:
+            project_parser = ManifestLoader(
+                self.config,
+                self.config.load_dependencies(),
+                self.adapter.connections.set_query_header,
+            )
+        except Exception as e:
+            raise Exception(str(e))
         self.dbt = project_parser.load()
         project_parser.save_macros_to_adapter(self.adapter)
         self.dbt.build_flat_graph()
