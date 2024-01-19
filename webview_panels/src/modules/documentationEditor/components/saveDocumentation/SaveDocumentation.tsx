@@ -51,34 +51,39 @@ const SaveDocumentation = (): JSX.Element | null => {
   return (
     <Stack direction="row" className={classes.save}>
       <h5>Save documentation</h5>
-      <p>Write path</p>
+      <p>{currentDocsData?.patchPath ?? "Write path"}</p>
 
-      <IconButton id="file-path" onClick={onClick}>
-        <MoreIcon />
-      </IconButton>
-      <Popover
-        isOpen={openPopover}
-        target="file-path"
-        placement="top"
-        hideArrow
-      >
-        <PopoverBody className={classes.popoverBody}>
-          <List>
-            {options.map((option) => (
-              <li key={option.label}>
-                <Button
-                  color="link"
-                  className={`${dialogType === option.value ? "active" : ""}`}
-                  onClick={() => handleChange(option.value)}
-                >
-                  {option.label}
-                </Button>
-              </li>
-            ))}
-          </List>
-        </PopoverBody>
-      </Popover>
-
+      {currentDocsData?.patchPath ? null : (
+        <>
+          <IconButton id="file-path" onClick={onClick}>
+            <MoreIcon />
+          </IconButton>
+          <Popover
+            isOpen={openPopover}
+            target="file-path"
+            placement="top"
+            hideArrow
+          >
+            <PopoverBody className={classes.popoverBody}>
+              <List>
+                {options.map((option) => (
+                  <li key={option.label}>
+                    <Button
+                      color="link"
+                      className={`${
+                        dialogType === option.value ? "active" : ""
+                      }`}
+                      onClick={() => handleChange(option.value)}
+                    >
+                      {option.label}
+                    </Button>
+                  </li>
+                ))}
+              </List>
+            </PopoverBody>
+          </Popover>
+        </>
+      )}
       <Button onClick={saveDocumentation}>Save documentation</Button>
     </Stack>
   );

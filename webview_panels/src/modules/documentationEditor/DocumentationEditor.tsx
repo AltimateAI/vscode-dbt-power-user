@@ -1,6 +1,7 @@
+import { ShinesIcon } from "@assets/icons";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import CommonActionButtons from "@modules/commonActionButtons/CommonActionButtons";
-import { Container, Stack, Tag } from "@uicore";
+import { Alert, Container, Stack } from "@uicore";
 import DocGeneratorColumnsList from "./components/docGenerator/DocGeneratorColumnsList";
 import DocGeneratorInput from "./components/docGenerator/DocGeneratorInput";
 import SaveDocumentation from "./components/saveDocumentation/SaveDocumentation";
@@ -44,15 +45,14 @@ const DocumentationEditor = (): JSX.Element => {
       </Stack>
       <Stack className={classes.bodyWrap}>
         <Stack direction="column" className={classes.body}>
-          <Stack>
-            <h1>
-              Documentation for {currentDocsData.name}{" "}
-              <Tag color="">DATAPILOT</Tag>
-            </h1>
+          <Stack direction="column">
+            <h1>Documentation for {currentDocsData.name}</h1>
+            <Alert color="warning">
+              Doc Generation using AI <ShinesIcon /> is a preview feature.
+            </Alert>
           </Stack>
           <Stack direction="column">
             <Stack direction="column" style={{ margin: "30px 0" }}>
-              <h4>Description for {currentDocsData.name}</h4>
               <DocGeneratorInput
                 value={currentDocsData.description}
                 onSubmit={onModelDocSubmit}

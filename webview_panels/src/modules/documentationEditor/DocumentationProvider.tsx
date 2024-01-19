@@ -14,8 +14,13 @@ import documentationSlice, {
   setProject,
   updateColumnsInCurrentDocsData,
   updateCurrentDocsData,
+  updateUserInstructions,
 } from "./state/documentationSlice";
-import { DBTDocumentation, MetadataColumn } from "./state/types";
+import {
+  DBTDocumentation,
+  DocsGenerateUserInstructions,
+  MetadataColumn,
+} from "./state/types";
 import { ContextProps } from "./types";
 import { getGenerationsInModel } from "./utils";
 
@@ -79,6 +84,14 @@ const DocumentationProvider = ({
       return;
     }
 
+    const userInstructions = localStorage.getItem("userInstructions");
+    if (userInstructions) {
+      dispatch(
+        updateUserInstructions(
+          JSON.parse(userInstructions) as DocsGenerateUserInstructions,
+        ),
+      );
+    }
     loadGenerationsHistory(state.project, state.currentDocsData.name);
   }, [state.project, state.currentDocsData?.name]);
 
@@ -88,6 +101,13 @@ const DocumentationProvider = ({
       window.removeEventListener("message", onMesssage);
     };
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "userInstructions",
+      JSON.stringify(state.userInstructions),
+    );
+  }, [state.userInstructions]);
 
   const values = useMemo(
     () => ({

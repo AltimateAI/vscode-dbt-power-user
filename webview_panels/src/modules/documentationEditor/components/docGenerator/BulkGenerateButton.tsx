@@ -30,20 +30,17 @@ const BulkGenerateButton = () => {
       a.slice(n * i, n + n * i),
     );
 
-  const generateForAll = async () => {
-    if (!currentDocsData) {
-      return;
-    }
+  const bulkGenerateDocs = async (columns: DBTDocumentationColumn[]) => {
     const chunks = chunk(
-      currentDocsData.columns.map((c) => c.name),
+      columns.map((c) => c.name),
       2,
     );
     const result = await Promise.all(
-      chunks.map((columns) =>
+      chunks.map((chunkedColumns) =>
         executeRequestInSync("generateDocsForColumn", {
           description: "",
           user_instructions: userInstructions,
-          columnNames: columns,
+          columnNames: chunkedColumns,
           columns: currentDocsData?.columns,
         }),
       ),
@@ -63,11 +60,35 @@ const BulkGenerateButton = () => {
       }),
     );
   };
+  const generateDocsForMissingColumns = async () => {
+    if (!currentDocsData) {
+      return;
+    }
+
+    const columnsWithoutDescription = currentDocsData.columns.filter(
+      (column) => !column.description,
+    );
+    return bulkGenerateDocs(columnsWithoutDescription);
+  };
+  const generateForAll = async () => {
+    if (!currentDocsData) {
+      return;
+    }
+    return bulkGenerateDocs(currentDocsData.columns);
+  };
   const onOptionSelect = (value: string) => {
     if (value === "all") {
       generateForAll().catch((err) =>
         panelLogger.error("error generating for all columns", err),
       );
+      return;
+    }
+
+    if (value === "missing") {
+      generateDocsForMissingColumns().catch((err) =>
+        panelLogger.error("error generating for missing columns", err),
+      );
+      return;
     }
   };
 

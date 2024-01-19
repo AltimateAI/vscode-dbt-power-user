@@ -10,7 +10,7 @@ interface Props {
 }
 const DocGeneratorInput = ({ onSubmit, value }: Props): JSX.Element => {
   const {
-    state: { userInstructions },
+    state: { userInstructions, currentDocsData },
   } = useDocumentationContext();
   const [showButton, setShowButton] = useState(true);
   const [description, setDescription] = useState("");
@@ -20,7 +20,8 @@ const DocGeneratorInput = ({ onSubmit, value }: Props): JSX.Element => {
   }, [value]);
 
   const handleSubmit = useCallback(() => {
-    onSubmit({ user_instructions: userInstructions, description });
+    const columns = currentDocsData?.columns.map((c) => c.name) ?? [];
+    onSubmit({ user_instructions: userInstructions, description, columns });
   }, [description]);
 
   const onChange = (e: ChangeEvent<HTMLInputElement>) => {

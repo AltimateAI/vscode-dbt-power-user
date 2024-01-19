@@ -31,7 +31,10 @@ const DocGeneratorSettings = (): JSX.Element => {
         <SettingsIcon /> Settings
       </Button>
       {showSettingsPanel ? (
-        <RightSidePanel title="Settings">
+        <RightSidePanel
+          title="Settings"
+          onClose={() => setShowSettingsPanel(false)}
+        >
           <Stack direction="column">
             <h3>Configure your doc generation with options</h3>
             <Stack direction="column">

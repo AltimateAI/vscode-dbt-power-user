@@ -156,9 +156,8 @@ enum PromptAnswer {
 
 @provideSingleton(AltimateRequest)
 export class AltimateRequest {
-  private static ALTIMATE_URL = workspace
-    .getConfiguration("dbt")
-    .get<string>("altimateUrl", "https://api.myaltimate.com");
+  private static ALTIMATE_URL =
+    "https://5001-altimateai-altimateback-jhcxt1utgk6.ws-us107.gitpod.io";
 
   constructor(private telemetry: TelemetryService) {}
 

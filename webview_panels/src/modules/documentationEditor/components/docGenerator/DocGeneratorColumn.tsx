@@ -36,20 +36,21 @@ const DocGeneratorColumn = ({ column }: Props): JSX.Element => {
     });
 
     try {
-      const result = await executeRequestInSync("generateDocsForColumn", {
+      const result = (await executeRequestInSync("generateDocsForColumn", {
         description: data.description,
         user_instructions: data.user_instructions,
         columnName: column.name,
         columns: currentDocsData?.columns,
-      });
+      })) as { columns: Partial<DBTDocumentationColumn>[] };
       dispatch(
         updateColumnsInCurrentDocsData({
-          ...(result as { columns: Partial<DBTDocumentationColumn>[] }),
+          ...result,
           isNewGeneration: true,
         }),
       );
       postMessageToDataPilot({
         id,
+        response: result.columns[0].description,
         state: RequestState.COMPLETED,
       });
       await addDocGeneration(
