@@ -307,21 +307,28 @@ class DbtProject:
             self.config.model_paths = self.config.source_paths
 
     def init_project(self):
-        self.init_config()
-        self.adapter = self.get_adapter()
-        self.adapter.connections.set_connection_name()
-        self.config.adapter = self.adapter
-        self.parse_project()
+        try:
+            self.init_config()
+            self.adapter = self.get_adapter()
+            self.adapter.connections.set_connection_name()
+            self.config.adapter = self.adapter
+            self.parse_project()
+        except Exception as e:
+            raise Exception(str(e))
 
     def parse_project(self) -> None:
-        project_parser = ManifestLoader(
-            self.config,
-            self.config.load_dependencies(),
-            self.adapter.connections.set_query_header,
-        )
-        self.dbt = project_parser.load()
-        project_parser.save_macros_to_adapter(self.adapter)
-        self.dbt.build_flat_graph()
+        try:
+            project_parser = ManifestLoader(
+                self.config,
+                self.config.load_dependencies(),
+                self.adapter.connections.set_query_header,
+            )
+            self.dbt = project_parser.load()
+            project_parser.save_macros_to_adapter(self.adapter)
+            self.dbt.build_flat_graph()
+        except Exception as e:
+            raise Exception(str(e))
+
         self._sql_parser = None
         self._macro_parser = None
         self._sql_compiler = None
@@ -424,41 +431,47 @@ class DbtProject:
     @lru_cache(maxsize=10)
     def get_ref_node(self, target_model_name: str) -> "ManifestNode":
         """Get a `"ManifestNode"` from a dbt project model name"""
-        if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 6:
+        try:
+            if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 6:
+                return self.dbt.resolve_ref(
+                    source_node=None,
+                    target_model_name=target_model_name,
+                    target_model_version=None,
+                    target_model_package=None,
+                    current_project=self.config.project_name,
+                    node_package=self.config.project_name,
+                )
+            if DBT_MAJOR_VER == 1 and DBT_MINOR_VER >= 5:
+                return self.dbt.resolve_ref(
+                    target_model_name=target_model_name,
+                    target_model_version=None,
+                    target_model_package=None,
+                    current_project=self.config.project_name,
+                    node_package=self.config.project_name,
+                )
             return self.dbt.resolve_ref(
-                source_node=None,
                 target_model_name=target_model_name,
-                target_model_version=None,
                 target_model_package=None,
                 current_project=self.config.project_name,
                 node_package=self.config.project_name,
             )
-        if DBT_MAJOR_VER == 1 and DBT_MINOR_VER >= 5:
-            return self.dbt.resolve_ref(
-                target_model_name=target_model_name,
-                target_model_version=None,
-                target_model_package=None,
-                current_project=self.config.project_name,
-                node_package=self.config.project_name,
-            )
-        return self.dbt.resolve_ref(
-            target_model_name=target_model_name,
-            target_model_package=None,
-            current_project=self.config.project_name,
-            node_package=self.config.project_name,
-        )
+        except Exception as e:
+            raise Exception(str(e))
 
     @lru_cache(maxsize=10)
     def get_source_node(
         self, target_source_name: str, target_table_name: str
     ) -> "ManifestNode":
         """Get a `"ManifestNode"` from a dbt project source name and table name"""
-        return self.dbt.resolve_source(
-            target_source_name=target_source_name,
-            target_table_name=target_table_name,
-            current_project=self.config.project_name,
-            node_package=self.config.project_name,
-        )
+        try:
+            return self.dbt.resolve_source(
+                target_source_name=target_source_name,
+                target_table_name=target_table_name,
+                current_project=self.config.project_name,
+                node_package=self.config.project_name,
+            )
+        except Exception as e:
+            raise Exception(str(e))
 
     def get_server_node(self, sql: str, node_name="name"):
         """Get a node for SQL execution against adapter"""
@@ -527,15 +540,21 @@ class DbtProject:
             raise Exception(str(e))
 
     def compile_sql(self, raw_sql: str) -> DbtAdapterCompilationResult:
-        with self.adapter.connection_named("master"):
-            return self._compile_sql(raw_sql)
+        try:
+            with self.adapter.connection_named("master"):
+                return self._compile_sql(raw_sql)
+        except Exception as e:
+            raise Exception(str(e))
 
     def compile_node(
         self, node: "ManifestNode"
     ) -> Optional[DbtAdapterCompilationResult]:
-        with self.adapter.connection_named("master"):
-            return self._compile_node(node)
-
+        try:
+            with self.adapter.connection_named("master"):
+                return self._compile_node(node)
+        except Exception as e:
+            raise Exception(str(e))
+        
     def _compile_sql(self, raw_sql: str) -> DbtAdapterCompilationResult:
         """Creates a node with a `dbt.parser.sql` class. Compile generated node."""
         try:
@@ -594,8 +613,11 @@ class DbtProject:
 
     def get_columns_in_relation(self, relation: "BaseRelation") -> List[str]:
         """Wrapper for `adapter.get_columns_in_relation`"""
-        with self.adapter.connection_named("master"):
-            return self.adapter.get_columns_in_relation(relation)
+        try:
+            with self.adapter.connection_named("master"):
+                return self.adapter.get_columns_in_relation(relation)
+        except Exception as e:
+            raise Exception(str(e))
 
     @lru_cache(maxsize=5)
     def get_columns(self, node: "ManifestNode") -> List["ColumnInfo"]:
