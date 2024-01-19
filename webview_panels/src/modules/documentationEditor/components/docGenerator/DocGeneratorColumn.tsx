@@ -8,6 +8,8 @@ import useDocumentationContext from "@modules/documentationEditor/state/useDocum
 import { addDocGeneration } from "@modules/documentationEditor/utils";
 import DocGeneratorInput from "./DocGeneratorInput";
 import useAppContext from "@modules/app/useAppContext";
+import { RequestState, RequestTypes } from "@modules/dataPilot/types";
+import { panelLogger } from "@modules/logger";
 
 interface Props {
   column: DBTDocumentationColumn;
@@ -25,24 +27,44 @@ const DocGeneratorColumn = ({ column }: Props): JSX.Element => {
     }
 
     toggleDataPilot(true);
-    postMessageToDataPilot({ test: 123 });
-    const result = await executeRequestInSync("generateDocsForColumn", {
-      description: data.description,
-      user_instructions: data.user_instructions,
-      columnName: column.name,
-      columns: currentDocsData?.columns,
+    const id = crypto.randomUUID();
+    postMessageToDataPilot({
+      id,
+      query: `Generate Documentation for “${column.name}” using settings`,
+      requestType: RequestTypes.AI_DOC_GENERATION,
+      state: RequestState.LOADING,
     });
-    dispatch(
-      updateColumnsInCurrentDocsData({
-        ...(result as { columns: Partial<DBTDocumentationColumn>[] }),
-        isNewGeneration: true,
-      }),
-    );
-    await addDocGeneration(
-      project,
-      currentDocsData.name,
-      (result as { columns: Partial<DBTDocumentationColumn>[] }).columns[0],
-    );
+
+    try {
+      const result = await executeRequestInSync("generateDocsForColumn", {
+        description: data.description,
+        user_instructions: data.user_instructions,
+        columnName: column.name,
+        columns: currentDocsData?.columns,
+      });
+      dispatch(
+        updateColumnsInCurrentDocsData({
+          ...(result as { columns: Partial<DBTDocumentationColumn>[] }),
+          isNewGeneration: true,
+        }),
+      );
+      postMessageToDataPilot({
+        id,
+        state: RequestState.COMPLETED,
+      });
+      await addDocGeneration(
+        project,
+        currentDocsData.name,
+        (result as { columns: Partial<DBTDocumentationColumn>[] }).columns[0],
+      );
+    } catch (error) {
+      panelLogger.error("error while generating doc for colum", error);
+      postMessageToDataPilot({
+        id,
+        response: (error as Error).message,
+        state: RequestState.ERROR,
+      });
+    }
   };
   return (
     <div>

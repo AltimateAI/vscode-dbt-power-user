@@ -1,4 +1,5 @@
-import CopilotProvider from "@modules/copilot/CopilotProvider";
+import DataPilotProvider from "@modules/dataPilot/DataPilotProvider";
+import { DataPilotChat } from "@modules/dataPilot/types";
 import {
   createContext,
   ReactNode,
@@ -24,7 +25,9 @@ const AppProvider = ({ children }: { children: ReactNode }): JSX.Element => {
     appSlice.getInitialState(),
   );
 
-  const postMessageToDataPilot = (data: Record<string, unknown>) => {
+  const postMessageToDataPilot = (
+    data: Partial<DataPilotChat> & { id: DataPilotChat["id"] },
+  ) => {
     executeRequestInAsync("datapilot:message", data);
   };
 
@@ -53,9 +56,9 @@ const AppProvider = ({ children }: { children: ReactNode }): JSX.Element => {
 
   return (
     <AppContext.Provider value={values}>
-      <CopilotProvider>
+      <DataPilotProvider>
         <div className="App">{children}</div>
-      </CopilotProvider>
+      </DataPilotProvider>
     </AppContext.Provider>
   );
 };

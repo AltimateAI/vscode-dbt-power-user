@@ -20,9 +20,13 @@ export class DataPilotPanel extends AltimateWebviewProvider {
   ) {
     super(dbtProjectContainer, telemetry);
     sharedStateManager.addListener((message) => {
-      this._panel!.webview.postMessage({
+      const { command, ...item } = message;
+      if (!this._panel) {
+        return;
+      }
+      this._panel.webview.postMessage({
         command: "datapilot:message",
-        args: message,
+        args: item,
       });
     });
   }

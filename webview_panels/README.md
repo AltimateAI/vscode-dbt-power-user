@@ -81,3 +81,9 @@ classDiagram
 - `reactstrap` (which is the current ui library) import is restricted in components in `src/modules`, to avoid importing the ui components directly from reactstrap. Instead export the necessary component from [./src/uiCore](./src/uiCore/index.ts) and use it in components
 - [Storybook](https://storybook.js.org/) is integrated and [ui tool kit](./src/uiCore/UiToolkit.stories.tsx) is built in storybook to check the available UI components. If you add any new component to uiCore, add that component to above storybook.
 - use `panelLogger` for logging from webview panels. We can make this to use console or any logger in future
+
+### Communication with DataPilot
+
+- From webview react app, call `postMessageToDataPilot({ test: '123' });` in `useAppContext`
+- This message will be received by `altimateWebviewProvider` and posted to `sharedStateManager`
+- `datapilotPanel` will listen for message from `sharedStateManager` and relays that to webview panel for data pilot

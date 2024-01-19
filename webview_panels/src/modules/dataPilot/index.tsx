@@ -1,29 +1,42 @@
-import { IncomingMessageProps } from "@modules/app/types";
-import { useCallback, useEffect, useState } from "react";
+import { useMemo } from "react";
+import { List } from "@uicore";
+import useDataPilotContext from "./useDataPilotContext";
+import { DataPilotChat, RequestTypes } from "./types";
+import AiDocChat from "./components/AiDocChat";
+import classes from "./datapilot.module.scss";
 
 const DataPilotPanel = () => {
-  const [message, setMessage] = useState({});
-  const onMesssage = useCallback(
-    (event: MessageEvent<IncomingMessageProps>) => {
-      const { command, args } = event.data;
-      switch (command) {
-        case "datapilot:message":
-          setMessage(args);
-          break;
-        default:
-          break;
-      }
-    },
-    [],
-  );
+  const {
+    state: { items },
+  } = useDataPilotContext();
 
-  useEffect(() => {
-    window.addEventListener("message", onMesssage);
-    return () => {
-      window.removeEventListener("message", onMesssage);
-    };
-  }, []);
-  return <div>DataPilotLeftPanel3 {JSON.stringify(message)}</div>;
+  const chats = useMemo(() => {
+    return Object.values(items).sort((a, b) =>
+      a.updatedAt && b.updatedAt && a.updatedAt > b.updatedAt ? 1 : -1,
+    );
+  }, [items]);
+
+  const renderChat = (chat: DataPilotChat) => {
+    switch (chat.requestType) {
+      case RequestTypes.AI_DOC_GENERATION:
+        return <AiDocChat chat={chat} />;
+      default:
+        break;
+    }
+    return null;
+  };
+
+  if (!chats.length) {
+    return null;
+  }
+
+  return (
+    <List className={classes.chatList}>
+      {chats.map((chat) => (
+        <li key={chat.id}>{renderChat(chat)}</li>
+      ))}
+    </List>
+  );
 };
 
 export default DataPilotPanel;
