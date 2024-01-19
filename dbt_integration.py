@@ -702,10 +702,7 @@ class DbtProject:
         )
     
     def get_dbt_version(self):
-        try:
-            return [DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER]
-        except Exception as e:
-            raise Exception(str(e))
+        return [DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER]
     
     def validate_sql_dry_run(self, compiled_sql: str):
         if DBT_MAJOR_VER < 1:
