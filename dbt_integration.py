@@ -321,11 +321,11 @@ class DbtProject:
                 self.adapter.connections.set_query_header,
             )
             self.dbt = project_parser.load()
+            project_parser.save_macros_to_adapter(self.adapter)
+            self.dbt.build_flat_graph()
         except Exception as e:
             raise Exception(str(e))
 
-        project_parser.save_macros_to_adapter(self.adapter)
-        self.dbt.build_flat_graph()
         self._sql_parser = None
         self._macro_parser = None
         self._sql_compiler = None
