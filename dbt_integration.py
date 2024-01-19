@@ -1,6 +1,7 @@
 from decimal import Decimal
 from pathlib import Path
 import dbt.adapters.factory
+import traceback
 
 # This is critical because `get_adapter` is all over dbt-core
 # as they expect a singleton adapter instance per plugin,
@@ -24,6 +25,10 @@ from datetime import date, datetime, time
 from copy import copy
 from functools import lru_cache, partial
 from hashlib import md5
+import logging
+from logging.handlers import RotatingFileHandler
+
+
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -101,8 +106,7 @@ def validate_sql(
 ):
     try:
         ALTIMATE_PACKAGE_PATH = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "altimate_packages"
+            os.path.dirname(os.path.abspath(__file__)), "altimate_packages"
         )
         with add_path(ALTIMATE_PACKAGE_PATH):
             from altimate.validate_sql import validate_sql_from_models
@@ -169,15 +173,25 @@ def memoize_get_rendered(function):
 
     return wrapper
 
+
 def default_profiles_dir(project_dir) -> Path:
     if "DBT_PROFILES_DIR" in os.environ:
         return Path(os.environ["DBT_PROFILES_DIR"]).resolve()
-    return project_dir if (project_dir / "profiles.yml").exists() else Path.home() / ".dbt"
+    return (
+        project_dir if (project_dir / "profiles.yml").exists() else Path.home() / ".dbt"
+    )
+
 
 def find_package_paths(project_directories, profiles_dir_override):
     def get_package_path(project_dir):
         try:
-            project = DbtProject(project_dir=project_dir, profiles_dir=profiles_dir_override if Path(profiles_dir_override).exists() and profiles_dir_override.strip() != ""  else default_profiles_dir(Path(project_dir)))
+            project = DbtProject(
+                project_dir=project_dir,
+                profiles_dir=profiles_dir_override
+                if Path(profiles_dir_override).exists()
+                and profiles_dir_override.strip() != ""
+                else default_profiles_dir(Path(project_dir)),
+            )
             project.init_config()
             packages_path = Path(project.config.packages_install_path)
             if packages_path.is_absolute():
@@ -187,13 +201,60 @@ def find_package_paths(project_directories, profiles_dir_override):
             # We don't care about exceptions here, that is dealt with later when the project is loaded
             pass
 
-    return list(map(lambda project_dir: get_package_path(project_dir), project_directories))
+    return list(
+        map(lambda project_dir: get_package_path(project_dir), project_directories)
+    )
 
 
 # Performance hacks
 # jinja.get_rendered = memoize_get_rendered(jinja.get_rendered)
 disable_tracking()
 fire_event = lambda e: None
+
+
+# Configure logging
+def setup_logging(
+    log_file="dbtpoweruser.log", max_size=1024 * 1024 * 5, backup_count=3
+):
+    """
+    Set up logging with rotation.
+    :param log_file: Path to the log file.
+    :param max_size: Maximum size in bytes before rotating the log.
+    :param backup_count: Number of backup files to keep.
+    """
+    logger = logging.getLogger("my_logger")
+    logger.setLevel(logging.DEBUG)  # Set this to logging.ERROR for less verbose logs
+
+    # Create rotating file handler
+    handler = RotatingFileHandler(log_file, maxBytes=max_size, backupCount=backup_count)
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    handler.setFormatter(formatter)
+
+    # Add the handler to the logger
+    logger.addHandler(handler)
+
+    return logger
+
+
+# Exception hook function
+def exception_hook(exc_type, exc_value, exc_traceback):
+    """
+    Log uncaught exceptions with detailed traceback.
+    """
+    # Format traceback
+    traceback_details = "".join(
+        traceback.format_exception(exc_type, exc_value, exc_traceback)
+    )
+    logger.error(f"Uncaught exception: {traceback_details}")
+
+
+# Set the exception hook
+sys.excepthook = exception_hook
+
+# Initialize logger
+logger = setup_logging()
 
 
 class ConfigInterface:
@@ -299,7 +360,7 @@ class DbtProject:
         the singleton approach in the core lib"""
         adapter_name = self.config.credentials.type
         return get_adapter_class_by_name(adapter_name)(self.config)
-    
+
     def init_config(self):
         set_from_args(self.args, self.args)
         self.config = RuntimeConfig.from_args(self.args)
@@ -311,16 +372,31 @@ class DbtProject:
         self.adapter = self.get_adapter()
         self.adapter.connections.set_connection_name()
         self.config.adapter = self.adapter
+        # self.parse_project()
+        try:
+            project_parser = ManifestLoader(
+                self.config,
+                self.config.load_dependencies(),
+                self.adapter.connections.set_query_header,
+            )
+            self.dbt = project_parser.load()
+        except Exception as e:
+            logger.error(f"Error during init_project: {e}", exc_info=True)
+            raise Exception(str(e))
 
     def parse_project(self) -> None:
-        project_parser = ManifestLoader(
-            self.config,
-            self.config.load_dependencies(),
-            self.adapter.connections.set_query_header,
-        )
-        self.dbt = project_parser.load()
-        project_parser.save_macros_to_adapter(self.adapter)
-        self.dbt.build_flat_graph()
+        try:
+            project_parser = ManifestLoader(
+                self.config,
+                self.config.load_dependencies(),
+                self.adapter.connections.set_query_header,
+            )
+            self.dbt = project_parser.load()
+            project_parser.save_macros_to_adapter(self.adapter)
+            self.dbt.build_flat_graph()
+        except Exception as e:
+            logger.error(f"Error during parse_project: {e}", exc_info=True)
+            raise Exception(str(e))
         self._sql_parser = None
         self._macro_parser = None
         self._sql_compiler = None
@@ -404,6 +480,7 @@ class DbtProject:
             self.write_manifest_artifact()
         except Exception as e:
             self.config = _config_pointer
+            logger.error(f"Error during safe_parse_project: {e}", exc_info=True)
             raise Exception(str(e))
 
     def write_manifest_artifact(self) -> None:
@@ -639,6 +716,7 @@ class DbtProject:
             ]
 
         except Exception as e:
+            logger.error(f"Error during get_catalog: {e}", exc_info=True)
             raise Exception(str(e))
         return catalog_data
 
@@ -677,10 +755,10 @@ class DbtProject:
             ),
             auto_begin=True,
         )
-    
+
     def get_dbt_version(self):
         return [DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER]
-    
+
     def validate_sql_dry_run(self, compiled_sql: str):
         if DBT_MAJOR_VER < 1:
             return None
@@ -689,4 +767,5 @@ class DbtProject:
         try:
             return self.adapter.validate_sql(compiled_sql)
         except Exception as e:
+            logger.error(f"Error during validate_sql_dry_run: {e}", exc_info=True)
             raise Exception(str(e))
