@@ -320,9 +320,10 @@ class DbtProject:
                 self.config.load_dependencies(),
                 self.adapter.connections.set_query_header,
             )
+            self.dbt = project_parser.load()
         except Exception as e:
             raise Exception(str(e))
-        self.dbt = project_parser.load()
+
         project_parser.save_macros_to_adapter(self.adapter)
         self.dbt.build_flat_graph()
         self._sql_parser = None
