@@ -186,7 +186,7 @@ export class NewLineagePanel implements LineagePanelView {
       });
       this._panel?.webview.postMessage({
         command: "response",
-        args: { id, body, status: !!body },
+        args: { id, body, status: true },
       });
       return;
     }
