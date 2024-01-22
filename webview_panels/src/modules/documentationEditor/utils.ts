@@ -14,7 +14,19 @@ export const addDefaultActions = (
       data,
     },
     {
-      title: "Make it short",
+      title: "Make it shorter",
+      data,
+    },
+    {
+      title: "Make it longer",
+      data,
+    },
+    {
+      title: "Make it fun",
+      data,
+    },
+    {
+      title: "Generate for business user",
       data,
     },
   ];

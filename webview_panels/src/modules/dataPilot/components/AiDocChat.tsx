@@ -27,7 +27,7 @@ const AiDocChat = ({ chat }: Props): JSX.Element => {
       ) : null}
       {chat.state === RequestState.LOADING ? <div>Loading...</div> : null}
       <NewGenerationResults generatedResults={generatedResults} />
-      <Stack>
+      <Stack style={{ flexWrap: "wrap" }}>
         {chat.actions?.map((action) => (
           <AiDocActionButton
             onNewGeneration={onNewGeneration}
