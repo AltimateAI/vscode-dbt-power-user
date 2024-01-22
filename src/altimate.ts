@@ -130,6 +130,10 @@ export interface ValidateSqlParseErrorResponse {
   }[];
 }
 
+interface FeedbackResponse {
+  ok: boolean;
+}
+
 enum PromptAnswer {
   YES = "Get your free API Key",
 }
@@ -281,7 +285,7 @@ export class AltimateRequest {
   }
 
   async sendFeedback(feedback: OnewayFeedback) {
-    await this.fetch<void>("feedbacks/ai/fb", {
+    return await this.fetch<FeedbackResponse>("feedbacks/ai/fb", {
       method: "POST",
       body: JSON.stringify(feedback),
     });

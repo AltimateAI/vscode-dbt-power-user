@@ -177,6 +177,36 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
 
+    if (command === "sendFeedback") {
+      try {
+        await this.altimate.sendFeedback({
+          feedback_src: "dbtpu-extension",
+          feedback_text: params.feedback_text,
+          feedback_value: params.feedback_value,
+          data: {},
+        });
+        this._panel?.webview.postMessage({
+          command: "response",
+          args: { id, status: true },
+        });
+      } catch (error) {
+        this._panel?.webview.postMessage({
+          command: "response",
+          args: { id, status: false },
+        });
+        window.showErrorMessage(
+          extendErrorWithSupportLinks(
+            "An unexpected error occurred while sending feedback: " + error,
+          ),
+        );
+        this.telemetry.sendTelemetryError(
+          "altimateLineageSendFeedbackError",
+          error,
+        );
+      }
+      return;
+    }
+
     if (command === "startProgressBar") {
       window.withProgress(
         {
