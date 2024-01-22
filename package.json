@@ -185,7 +185,7 @@
         },
         {
           "id": "lineage_view",
-          "title": "Column Lineage",
+          "title": "Lineage",
           "icon": "./media/images/dbt_icon.svg"
         },
         {
