@@ -27,8 +27,9 @@ import { AltimateRequest } from "../altimate";
 import { stringify, parse } from "yaml";
 import { NewDocsGenPanel } from "./newDocsGenPanel";
 import { DBTProject } from "../manifest/dbtProject";
+import { DocGenService } from "../services/docGenService";
 
-enum Source {
+export enum Source {
   YAML = "YAML",
   DATABASE = "DATABASE",
 }
@@ -44,7 +45,7 @@ interface DBTDocumentationColumn extends MetadataColumn {
   source: Source;
 }
 
-interface DBTDocumentation {
+export interface DBTDocumentation {
   name: string;
   description: string;
   columns: DBTDocumentationColumn[];
@@ -53,7 +54,7 @@ interface DBTDocumentation {
   patchPath?: string;
 }
 
-interface AIColumnDescription {
+export interface AIColumnDescription {
   name: string;
   description: string;
 }
@@ -85,6 +86,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     private altimateRequest: AltimateRequest,
     private telemetry: TelemetryService,
     private newDocsPanel: NewDocsGenPanel,
+    private docGenService: DocGenService,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
@@ -104,7 +106,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         if (event === undefined) {
           return;
         }
-        this.documentation = await this.getDocumentation();
+        this.documentation = await this.docGenService.getDocumentation(
+          this.eventMap,
+        );
         if (this._panel) {
           this.transmitData();
           this.updateGraphStyle();
@@ -126,43 +130,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     }
     const currentFilePath = window.activeTextEditor.document.uri;
     return this.dbtProjectContainer.findDBTProject(currentFilePath);
-  }
-  private async getDocumentation(): Promise<DBTDocumentation | undefined> {
-    if (window.activeTextEditor === undefined || this.eventMap === undefined) {
-      return undefined;
-    }
-
-    const currentFilePath = window.activeTextEditor.document.uri;
-    const project = this.getProject();
-    if (project === undefined) {
-      return undefined;
-    }
-    const event = this.eventMap.get(project.projectRoot.fsPath);
-    if (event === undefined) {
-      return undefined;
-    }
-    const modelName = path.basename(currentFilePath.fsPath, ".sql");
-    const currentNode = event.nodeMetaMap.get(modelName);
-    if (currentNode === undefined) {
-      return undefined;
-    }
-
-    const docColumns = currentNode.columns;
-    return {
-      aiEnabled: this.altimateRequest.enabled(),
-      name: modelName,
-      patchPath: currentNode.patch_path,
-      description: currentNode.description,
-      generated: false,
-      columns: Object.values(docColumns).map((column) => {
-        return {
-          name: column.name,
-          description: column.description,
-          generated: false,
-          source: Source.YAML,
-        };
-      }),
-    } as DBTDocumentation;
   }
 
   private async transmitError() {
@@ -268,7 +235,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     this.getPanel().resolveWebview(panel, context, token);
     this.setupWebviewHooks(context);
     this.transmitConfig();
-    this.documentation = await this.getDocumentation();
+    this.documentation = await this.docGenService.getDocumentation(
+      this.eventMap,
+    );
     this.transmitData();
   }
 
@@ -298,52 +267,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     await this.resolveWebviewView(this.panel!, this.context!, this.token!);
   };
 
-  private async generateDocsForColumn(
-    compiledSql: string | undefined,
-    adapter: string,
-    message: any,
-  ) {
-    if (!this.documentation) {
-      return null;
-    }
-    const enableNewDocsPanel = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("enableNewDocsPanel", false);
-
-    const columns = message.columnName
-      ? [message.columnName]
-      : message.columnNames;
-
-    const baseRequest = {
-      columns,
-      dbt_model: {
-        model_name: this.documentation.name,
-        model_description: message.description,
-        compiled_sql: compiledSql,
-        columns: message.columns.map((column: any) => ({
-          column_name: column.name,
-          description: column.description,
-          data_type: column.type,
-        })),
-        adapter,
-      },
-      gen_model_description: false,
-    } as unknown as Parameters<
-      typeof this.altimateRequest.generateModelDocs
-    >["0"];
-
-    const result = enableNewDocsPanel
-      ? await this.altimateRequest.generateModelDocsV2({
-          ...baseRequest,
-          user_instructions: {
-            ...message.user_instructions,
-            prompt_hint: message.user_instructions.prompt_hint || "generate",
-          },
-        })
-      : await this.altimateRequest.generateModelDocs(baseRequest);
-
-    return result;
-  }
   private async generateDocsForModel(
     compiledSql: string | undefined,
     adapter: string,
@@ -510,56 +433,12 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             );
             break;
           case "generateDocsForColumn":
-            this.telemetry.sendTelemetryEvent("altimateGenerateDocsForColumn");
-            window.withProgress(
-              {
-                title: "Generating column documentation",
-                location: ProgressLocation.Notification,
-                cancellable: false,
-              },
-              async () => {
-                if (this.documentation === undefined) {
-                  return;
-                }
-                try {
-                  const compiledSql =
-                    await project.unsafeCompileQuery(queryText);
-                  const generatedDocsForColumn =
-                    await this.generateDocsForColumn(
-                      compiledSql,
-                      project.getAdapterType(),
-                      message,
-                    );
-
-                  if (
-                    !generatedDocsForColumn ||
-                    !generatedDocsForColumn.column_descriptions
-                  ) {
-                    // nothing to do if nothing happened
-                    return;
-                  }
-                  this.transmitAIGeneratedColumnDocs(
-                    generatedDocsForColumn.column_descriptions.map((entry) => ({
-                      name: entry.column_name,
-                      description: entry.column_description,
-                    })),
-                    message.syncRequestId,
-                  );
-                } catch (error) {
-                  this.transmitError();
-                  window.showErrorMessage(
-                    extendErrorWithSupportLinks(
-                      "An unexpected error occurred while generating documentation: " +
-                        error,
-                    ),
-                  );
-                  this.telemetry.sendTelemetryError(
-                    "generateDocsForColumnError",
-                    error,
-                  );
-                }
-              },
-            );
+            await this.docGenService.generateDocsForColumns({
+              documentation: this.documentation,
+              panel: this._panel,
+              message,
+              project,
+            });
             break;
           case "sendFeedback":
             this.telemetry.sendTelemetryEvent(
@@ -716,7 +595,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   // Force reload from manifest after manifest refresh
                   this.loadedFromManifest = false;
                   writeFileSync(patchPath, stringify(parsedDocFile));
-                  this.documentation = await this.getDocumentation();
+                  this.documentation =
+                    await this.docGenService.getDocumentation(this.eventMap);
                 } catch (error) {
                   this.transmitError();
                   window.showErrorMessage(
@@ -756,7 +636,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       //  documentation will be overwritten by the one coming from the manifest
       return;
     }
-    this.documentation = await this.getDocumentation();
+    this.documentation = await this.docGenService.getDocumentation(
+      this.eventMap,
+    );
     this.loadedFromManifest = true;
     if (this._panel) {
       this.transmitData();

@@ -10,6 +10,7 @@ import { TelemetryService } from "../telemetry";
 import { provideSingleton } from "../utils";
 import { AltimateWebviewProvider } from "./altimateWebviewProvider";
 import { DocsGenPanelView } from "./docsEditPanel";
+import { sharedStateManager } from "./sharedStateManager";
 
 @provideSingleton(NewDocsGenPanel)
 export class NewDocsGenPanel
@@ -32,6 +33,15 @@ export class NewDocsGenPanel
     token: CancellationToken,
   ): void {
     super.resolveWebviewView(panel, context, token);
+    sharedStateManager.addListener((message) => {
+      const { command, ...item } = message;
+      if (!this._panel) {
+        return;
+      }
+      if (command === "docgen:insert") {
+        this._panel.webview.postMessage(message);
+      }
+    });
   }
 
   async handleCommand(message: {

@@ -7,6 +7,7 @@ import {
   HandleCommandProps,
 } from "./altimateWebviewProvider";
 import { sharedStateManager } from "./sharedStateManager";
+import { DocGenService } from "../services/docGenService";
 
 @provideSingleton(DataPilotPanel)
 export class DataPilotPanel extends AltimateWebviewProvider {
@@ -17,6 +18,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
   public constructor(
     dbtProjectContainer: DBTProjectContainer,
     telemetry: TelemetryService,
+    private docGenService: DocGenService,
   ) {
     super(dbtProjectContainer, telemetry);
     sharedStateManager.addListener((message) => {
@@ -35,6 +37,18 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     const { command, syncRequestId, ...params } = message;
 
     switch (command) {
+      case "generateDocsForColumn":
+        await this.docGenService.generateDocsForColumns({
+          documentation: await this.docGenService.getDocumentation(
+            this.eventMap,
+          ),
+          panel: this._panel,
+          message,
+          project: this.docGenService.getProject(),
+        });
+        break;
+      case "docgen:insert":
+        sharedStateManager.postMessage(message);
       default:
         super.handleCommand(message);
         break;

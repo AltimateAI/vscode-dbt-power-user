@@ -17,6 +17,10 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
 import path = require("path");
 import { sharedStateManager } from "./sharedStateManager";
+import {
+  ManifestCacheProjectAddedEvent,
+  ManifestCacheChangedEvent,
+} from "../manifest/event/manifestCacheChangedEvent";
 
 export interface HandleCommandProps extends Record<string, unknown> {
   command: string;
@@ -40,11 +44,25 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
   protected _panel: WebviewView | undefined = undefined;
   protected _disposables: Disposable[] = [];
+  protected eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
     protected telemetry: TelemetryService,
-  ) {}
+  ) {
+    dbtProjectContainer.onManifestChanged((event) =>
+      this.onManifestCacheChanged(event),
+    );
+  }
+
+  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+    event.added?.forEach((added) => {
+      this.eventMap.set(added.projectRoot.fsPath, added);
+    });
+    event.removed?.forEach((removed) => {
+      this.eventMap.delete(removed.projectRoot.fsPath);
+    });
+  }
 
   protected renderWebviewView(context: WebviewViewResolveContext) {
     const webview = this._panel!.webview!;
@@ -66,8 +84,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         }
         break;
       case "datapilot:message":
-        sharedStateManager.postMessage(message);
-
+        await commands.executeCommand("dbtPowerUser.datapilot-webview.focus");
+        // Adding timeout to let the webapp to complete rendering
+        setTimeout(() => {
+          sharedStateManager.postMessage(message);
+        }, 100);
         break;
       case "updateConfig":
         workspace
