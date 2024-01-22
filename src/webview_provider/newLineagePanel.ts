@@ -178,16 +178,32 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     if (command === "sendFeedback") {
-      const body = await this.altimate.sendFeedback({
-        feedback_src: "dbtpu-extension",
-        feedback_text: params.feedback_text,
-        feedback_value: params.feedback_value,
-        data: {},
-      });
-      this._panel?.webview.postMessage({
-        command: "response",
-        args: { id, body, status: true },
-      });
+      try {
+        await this.altimate.sendFeedback({
+          feedback_src: "dbtpu-extension",
+          feedback_text: params.feedback_text,
+          feedback_value: params.feedback_value,
+          data: {},
+        });
+        this._panel?.webview.postMessage({
+          command: "response",
+          args: { id, status: true },
+        });
+      } catch (error) {
+        this._panel?.webview.postMessage({
+          command: "response",
+          args: { id, status: false },
+        });
+        window.showErrorMessage(
+          extendErrorWithSupportLinks(
+            "An unexpected error occurred while sending feedback: " + error,
+          ),
+        );
+        this.telemetry.sendTelemetryError(
+          "altimateLineageSendFeedbackError",
+          error,
+        );
+      }
       return;
     }
 
