@@ -7,7 +7,7 @@ function Demo() {
       <div className="mb-2 d-flex">
         <div className="fw-semibold fs-5">Quick Demo of Column Lineage</div>
         <div className="spacer"></div>
-        <Button size="sm" color="primary">
+        <Button size="sm" color="primary" href="https://docs.myaltimate.com">
           Documentation
         </Button>
       </div>
