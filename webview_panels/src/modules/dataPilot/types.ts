@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 
 export enum RequestTypes {
   AI_DOC_GENERATION,
+  AI_DOC_REGENERATION,
 }
 
 export enum RequestState {
@@ -11,9 +12,9 @@ export enum RequestState {
   COMPLETED,
 }
 
-interface DataPilotChatActions {
+export interface DataPilotChatAction {
   title: string | ReactNode;
-  onClick: () => void;
+  data: Record<string, unknown>;
 }
 
 export interface DataPilotChat {
@@ -22,7 +23,7 @@ export interface DataPilotChat {
   state: RequestState;
   requestType: RequestTypes;
   response?: string;
-  actions?: DataPilotChatActions[];
+  actions?: DataPilotChatAction[];
   updatedAt?: Date;
 }
 

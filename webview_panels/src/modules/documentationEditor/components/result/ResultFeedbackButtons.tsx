@@ -6,10 +6,9 @@ import { Button, Form, IconButton, Input, Stack } from "@uicore";
 import { useState } from "react";
 import { panelLogger } from "@modules/logger";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
-import { GenerationDBDataProps } from "@modules/documentationEditor/types";
 
 interface Props {
-  history: GenerationDBDataProps;
+  data: { columnName: string; columnDescription: string; model: string };
 }
 
 enum Rating {
@@ -25,23 +24,23 @@ interface FormProps {
   rating: Rating;
   comment: string;
 }
-const ResultFeedbackButtons = ({ history }: Props): JSX.Element => {
+const ResultFeedbackButtons = ({ data }: Props): JSX.Element => {
   const [showForm, setShowForm] = useState(false);
 
   const { control, handleSubmit, setValue } = useForm<FormProps>({
     resolver: yupResolver(schema),
   });
 
-  const onSubmit: SubmitHandler<FormProps> = async (data) => {
-    panelLogger.info("feedback submitted", data);
+  const onSubmit: SubmitHandler<FormProps> = async (feedbackData) => {
+    panelLogger.info("feedback submitted", feedbackData);
 
     await executeRequestInSync("sendFeedback", {
       data: {
-        column: history.data.name,
-        description: history.data.description,
-        model: history.model,
+        column: data.columnName,
+        description: data.columnDescription,
+        model: data.model,
       },
-      ...data,
+      ...feedbackData,
     });
   };
 

@@ -87,6 +87,9 @@ interface DocsGenerateModelRequestV2 {
     language: string;
     persona: string;
   };
+  follow_up_instructions?: {
+    instruction: string;
+  };
 
   gen_model_description: boolean;
 }

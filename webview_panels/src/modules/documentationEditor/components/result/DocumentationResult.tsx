@@ -1,7 +1,7 @@
 import { formatDistance } from "date-fns";
 import { GenerationDBDataProps } from "@modules/documentationEditor/types";
 import { Card, CardBody, Stack, Avatar } from "@uicore";
-import ResultFeedbackButtons from "./ResultFeedbackButtons";
+// import ResultFeedbackButtons from "./ResultFeedbackButtons";
 import { AltimateIcon } from "@assets/icons";
 
 interface Props {
@@ -26,11 +26,11 @@ const DocumentationResult = ({ history }: Props): JSX.Element => {
             <Stack>
               <p>{history.data.description}</p>
             </Stack>
-            <Stack style={{ justifyContent: "space-between" }}>
+            {/* <Stack style={{ justifyContent: "space-between" }}>
               <Stack>
                 <ResultFeedbackButtons history={history} />
               </Stack>
-            </Stack>
+            </Stack> */}
           </Stack>
         </Stack>
       </CardBody>

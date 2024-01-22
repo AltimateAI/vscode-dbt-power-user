@@ -1,9 +1,4 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import {
-  Languages,
-  Options,
-  Persona,
-} from "../components/docGenerator/constants";
 import { GenerationDBDataProps } from "../types";
 import { DATA, PROJECT } from "./sampleData";
 import {
@@ -19,9 +14,9 @@ export const initialState = {
   generationHistory: [],
   isDocGeneratedForAnyColumn: false,
   userInstructions: {
-    language: Languages[0],
-    persona: Persona[0],
-    prompt_hint: Options[0],
+    language: undefined,
+    persona: undefined,
+    prompt_hint: undefined,
   },
 } as DocumentationStateProps;
 

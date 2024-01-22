@@ -49,7 +49,7 @@ const DocumentationProvider = ({
         }
       >,
     ) => {
-      const { command } = event.data;
+      const { command, ...params } = event.data;
       switch (command) {
         case "renderDocumentation":
           dispatch(updateCurrentDocsData(event.data.docs));
@@ -61,6 +61,14 @@ const DocumentationProvider = ({
               updateColumnsInCurrentDocsData({ columns: event.data.columns }),
             );
           }
+          break;
+        case "docgen:insert":
+          panelLogger.info("received new doc gen", event.data);
+          dispatch(
+            updateColumnsInCurrentDocsData({
+              columns: [params as Partial<MetadataColumn>],
+            }),
+          );
           break;
         default:
           break;

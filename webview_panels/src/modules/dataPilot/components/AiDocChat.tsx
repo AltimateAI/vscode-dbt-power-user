@@ -1,10 +1,22 @@
-import { Button, Card, CardBody, Stack } from "@uicore";
+import { Card, CardBody, Stack } from "@uicore";
+import { useState } from "react";
 import { DataPilotChat, RequestState } from "../types";
+import AiDocActionButton from "./AiDocActionButton";
+import NewGenerationResults from "./NewGenerationResults";
+import { GeneratedResult } from "./types";
 
 interface Props {
   chat: DataPilotChat;
 }
-const AiDocChat = ({ chat }: Props) => {
+const AiDocChat = ({ chat }: Props): JSX.Element => {
+  const [generatedResults, setGeneratedResults] = useState<GeneratedResult[]>(
+    [],
+  );
+
+  const onNewGeneration = (result: GeneratedResult) => {
+    setGeneratedResults((prev) => [...prev, result]);
+  };
+
   return (
     <Stack direction="column">
       <h5>{chat.query}</h5>
@@ -14,9 +26,14 @@ const AiDocChat = ({ chat }: Props) => {
         </Card>
       ) : null}
       {chat.state === RequestState.LOADING ? <div>Loading...</div> : null}
+      <NewGenerationResults generatedResults={generatedResults} />
       <Stack>
         {chat.actions?.map((action) => (
-          <Button key={action.title?.toString()}>{action.title}</Button>
+          <AiDocActionButton
+            onNewGeneration={onNewGeneration}
+            key={action.title?.toString()}
+            action={action}
+          />
         ))}
       </Stack>
     </Stack>

@@ -22,7 +22,7 @@ const DocGeneratorInput = ({ onSubmit, value }: Props): JSX.Element => {
   const handleSubmit = useCallback(() => {
     const columns = currentDocsData?.columns.map((c) => c.name) ?? [];
     onSubmit({ user_instructions: userInstructions, description, columns });
-  }, [description]);
+  }, [description, userInstructions, currentDocsData?.columns]);
 
   const onChange = (e: ChangeEvent<HTMLInputElement>) => {
     setDescription(e.target.value);

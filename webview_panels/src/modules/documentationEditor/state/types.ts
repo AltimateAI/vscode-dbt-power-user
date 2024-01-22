@@ -33,6 +33,10 @@ export interface DocumentationStateProps {
   isDocGeneratedForAnyColumn: boolean;
 }
 
+export interface DocsGenerateFollowupInstructions {
+  instruction?: string;
+}
+
 export interface DocsGenerateUserInstructions {
   prompt_hint?: string;
   language?: string;
@@ -40,7 +44,8 @@ export interface DocsGenerateUserInstructions {
 }
 
 export interface DocsGenerateModelRequestV2 {
-  user_instructions: DocsGenerateUserInstructions;
+  user_instructions?: DocsGenerateUserInstructions;
+  follow_up_instructions?: DocsGenerateFollowupInstructions;
   description?: string;
   columns?: string[];
 }

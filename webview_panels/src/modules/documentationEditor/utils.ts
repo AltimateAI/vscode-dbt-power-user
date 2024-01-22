@@ -3,6 +3,22 @@ import IndexedDBHelper from "@modules/app/indexedDb";
 import { panelLogger } from "@modules/logger";
 import { DBTDocumentationColumn } from "./state/types";
 import { GenerationDBDataProps } from "./types";
+import { DataPilotChatAction } from "../dataPilot/types";
+
+export const addDefaultActions = (
+  data: Record<string, unknown>,
+): DataPilotChatAction[] => {
+  return [
+    {
+      title: "Regenerate",
+      data,
+    },
+    {
+      title: "Make it short",
+      data,
+    },
+  ];
+};
 
 export const addDocGeneration = async (
   project: string,
