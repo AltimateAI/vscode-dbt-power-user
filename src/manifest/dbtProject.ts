@@ -140,9 +140,12 @@ export class DBTProject implements Disposable {
     const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
     );
-    setupWatcherHandler(dbtProjectConfigWatcher, () => this.tryRefresh());
+    setupWatcherHandler(dbtProjectConfigWatcher, () =>
+      this.refreshProjectConfig(),
+    );
     await this.dbtProjectIntegration.initializeProject();
-    await this.tryRefresh();
+    await this.refreshProjectConfig();
+    this.rebuildManifest();
     this.dbtProjectLog = this.dbtProjectLogFactory.createDBTProjectLog(
       this.onProjectConfigChanged,
     );
@@ -161,9 +164,12 @@ export class DBTProject implements Disposable {
     await this.initialize();
   }
 
-  private async tryRefresh() {
+  private async refreshProjectConfig() {
     try {
-      await this.refresh();
+      this.projectConfig = DBTProject.readAndParseProjectConfig(
+        this.projectRoot,
+      );
+      await this.dbtProjectIntegration.refreshProjectConfig();
       this.projectConfigDiagnostics.clear();
     } catch (error) {
       if (error instanceof YAMLError) {
@@ -213,6 +219,14 @@ export class DBTProject implements Disposable {
   }
 
   private async rebuildManifest() {
+    if (
+      !this.projectConfigDiagnostics.get(
+        Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+      )
+    ) {
+      // No point in trying to rebuild the manifest if the config is not valid
+      return;
+    }
     this.dbtProjectIntegration.rebuildManifest();
   }
 
@@ -660,10 +674,5 @@ select * from renamed
         viewColumn: ViewColumn.Beside,
       });
     }
-  }
-
-  private async refresh() {
-    this.projectConfig = DBTProject.readAndParseProjectConfig(this.projectRoot);
-    await this.dbtProjectIntegration.refreshProjectConfig();
   }
 }

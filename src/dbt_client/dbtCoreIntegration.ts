@@ -204,6 +204,13 @@ export class DBTCoreProjectIntegration
 
   async refreshProjectConfig(): Promise<void> {
     await this.createPythonDbtProject();
+    await this.python.ex`project.init_project()`;
+    this.targetPath = await this.findTargetPath();
+    this.modelPaths = await this.findModelPaths();
+    this.macroPaths = await this.findMacroPaths();
+    this.packagesInstallPath = await this.findPackagesInstallPath();
+    this.version = await this.findVersion();
+    this.adapterType = await this.findAdapterType();
   }
 
   executeSQL(query: string): Promise<ExecuteSQLResult> {
@@ -215,14 +222,7 @@ export class DBTCoreProjectIntegration
   private async createPythonDbtProject() {
     await this.python.ex`from dbt_integration import *`;
     await this.python
-      .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir})`;
-    await this.python.ex`project.init_project()`;
-    this.targetPath = await this.findTargetPath();
-    this.modelPaths = await this.findModelPaths();
-    this.macroPaths = await this.findMacroPaths();
-    this.packagesInstallPath = await this.findPackagesInstallPath();
-    this.version = await this.findVersion();
-    this.adapterType = await this.findAdapterType();
+      .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir}) if 'project' not in locals() else project`;
   }
 
   async initializeProject(): Promise<void> {
@@ -261,7 +261,9 @@ export class DBTCoreProjectIntegration
       } else {
         window.showErrorMessage(
           extendErrorWithSupportLinks(
-            "An unexpected error occured while initializing the dbt project: " +
+            "An unexpected error occured while initializing the dbt project at " +
+              this.projectRoot +
+              ": " +
               exc +
               ".",
           ),
@@ -269,8 +271,6 @@ export class DBTCoreProjectIntegration
         this.telemetry.sendTelemetryError("pythonBridgeInitError", exc);
       }
     }
-    // don't await on rebuild manifest
-    this.rebuildManifest();
     this.disposables.push(
       // when the project config changes we need to re-init the dbt project
       ...setupWatcherHandler(dbtProfileWatcher, () => this.rebuildManifest()),
