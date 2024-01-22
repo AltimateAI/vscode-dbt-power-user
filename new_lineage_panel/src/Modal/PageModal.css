@@ -25,3 +25,11 @@
   background-color: #ffffff;
   border-radius: 1em;
 }
+
+.close-btn {
+  position: absolute;
+  top: 0px;
+  right: 4px;
+  color: black;
+  cursor: pointer;
+}

@@ -39,7 +39,6 @@ import PlayCircleIcon from "./assets/icons/play-circle.svg?react";
 import ResetIcon from "./assets/icons/reset.svg?react";
 import HelpIcon from "./assets/icons/help.svg?react";
 import FeedbackIcon from "./assets/icons/feedback.svg?react";
-import CloseIcon from "./assets/icons/x-close.svg?react";
 import styles from "./styles.module.scss";
 import {
   TABLES_SIDEBAR,
@@ -184,6 +183,7 @@ function App() {
   const [moreTables, setMoreTables] = useState<TMoreTables>({});
   const [sidebarScreen, setSidebarScreen] = useState("");
   const [showDemoModal, setShowDemoModal] = useState(false);
+  const [showDemoButton, setShowDemoButton] = useState(true);
   const [selectedColumn, setSelectedColumn] = useState({
     name: "",
     table: "",
@@ -300,6 +300,11 @@ function App() {
     });
     console.log("lineage:onload -> ");
     vscode.postMessage({ command: "init", args: {} });
+
+    // hide demo button after 10s
+    setTimeout(() => {
+      setShowDemoButton(false);
+    }, 10000);
   }, []);
 
   useEffect(() => {
@@ -438,26 +443,19 @@ function App() {
         </ActionButton>
       </div>
       <div className="bottom-right-container">
-        <Button
-          color="primary"
-          className="d-flex gap-sm align-items-center"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowDemoModal((b) => !b);
-          }}
-        >
-          {!showDemoModal ? (
-            <>
-              Quick demo of Column Lineage
-              <PlayCircleIcon />
-            </>
-          ) : (
-            <>
-              Close
-              <CloseIcon />
-            </>
-          )}
-        </Button>
+        {showDemoButton && (
+          <Button
+            color="primary"
+            className="d-flex gap-sm align-items-center"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDemoModal((b) => !b);
+            }}
+          >
+            Quick demo of Column Lineage
+            <PlayCircleIcon />
+          </Button>
+        )}
       </div>
       <LineageContext.Provider
         value={{
@@ -511,7 +509,7 @@ function App() {
             )}
             {sidebarScreen === HELP_SIDEBAR && <Help />}
           </SidebarModal>
-          <Modal isOpen={showDemoModal}>
+          <Modal isOpen={showDemoModal} close={() => setShowDemoModal(false)}>
             <Demo />
           </Modal>
         </ReactFlowProvider>
