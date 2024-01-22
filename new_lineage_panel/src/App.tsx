@@ -26,7 +26,11 @@ import {
 import { SidebarModal } from "./SidebarModal";
 import { MoreTables, TMoreTables } from "./MoreTables";
 import { Table } from "./service";
-import { expandTableLineage, layoutElementsOnCanvas } from "./graph";
+import {
+  expandTableLineage,
+  highlightTableConnections,
+  layoutElementsOnCanvas,
+} from "./graph";
 import { TableDetails } from "./TableDetails";
 import { Button, Card, CardBody, Input, Label, Tooltip } from "reactstrap";
 import AlertCircleIcon from "./assets/icons/alert-circle.svg?react";
@@ -73,6 +77,9 @@ export const endProgressBar = () => {
 export const previewFeature = () => {
   vscode.postMessage({ command: "previewFeature", args: {} });
 };
+export const showNoLineage = (params: { table: string; name: string }) => {
+  vscode.postMessage({ command: "showNoLineage", args: { params } });
+};
 
 export let isDarkMode = false;
 
@@ -92,8 +99,10 @@ export const LineageContext = createContext<{
   setMoreTables: Dispatch<SetStateAction<TMoreTables>>;
   sidebarScreen: string;
   setSidebarScreen: Dispatch<string>;
-  selectedColumn: { name: string; table: string };
-  setSelectedColumn: Dispatch<SetStateAction<{ name: string; table: string }>>;
+  selectedColumn: { name: string; table: string; sessionId: string };
+  setSelectedColumn: Dispatch<
+    SetStateAction<{ name: string; table: string; sessionId: string }>
+  >;
   collectColumns: Record<string, string[]>;
   setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>;
   rerender: () => void;
@@ -109,7 +118,7 @@ export const LineageContext = createContext<{
   setMoreTables: () => {},
   sidebarScreen: "",
   setSidebarScreen: () => {},
-  selectedColumn: { name: "", table: "" },
+  selectedColumn: { name: "", table: "", sessionId: "" },
   setSelectedColumn: () => "",
   collectColumns: {},
   setCollectColumns: () => {},
@@ -143,7 +152,11 @@ function App() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [moreTables, setMoreTables] = useState<TMoreTables>({});
   const [sidebarScreen, setSidebarScreen] = useState("");
-  const [selectedColumn, setSelectedColumn] = useState({ name: "", table: "" });
+  const [selectedColumn, setSelectedColumn] = useState({
+    name: "",
+    table: "",
+    sessionId: "",
+  });
   const [collectColumns, setCollectColumns] = useState<
     Record<string, string[]>
   >({});
@@ -172,79 +185,54 @@ function App() {
       aiEnabled: boolean;
     }) => {
       setShowSidebar(false);
-      if (!args) {
-        return;
-      }
-      const { node, aiEnabled: _aiEnabled } = args;
-      aiEnabled = _aiEnabled;
+      if (!args) return;
+      aiEnabled = args.aiEnabled;
+      const { node } = args;
       const _flow = flow.current;
-      if (!_flow) {
+      if (!_flow) return;
+      const existingNode = _flow.getNode(node.table);
+      if (existingNode) {
+        setSelectedTable(existingNode.data as Table);
+        const [nodes, edges] = highlightTableConnections(
+          _flow.getNodes(),
+          _flow.getEdges(),
+          node.table
+        );
+        _flow.setNodes(nodes);
+        _flow.setEdges(edges);
         return;
       }
-      const existingNode = _flow.getNode(node.table);
       let nodes: Node[] = [];
       let edges: Edge[] = [];
       const addNodesEdges = async (table: string, right: boolean) => {
         [nodes, edges] = await expandTableLineage(nodes, edges, table, right);
-        // TODO: on opening file, how to handle cll
-        // if (selectedColumn.name) {
-        //   startProgressBar()
-        //   await bfsTraversal(
-        //     nodes,
-        //     edges,
-        //     right,
-        //     [selectedColumn],
-        //     setConfidence,
-        //     setMoreTables,
-        //     setCollectColumns,
-        //     _flow
-        //   );
-        //   endProgressBar()
-        // } else if (selectedTable) {
-        //   [nodes, edges] = highlightTableConnections(
-        //     nodes,
-        //     edges,
-        //     selectedTable.table
-        //   );
-        // }
       };
-      if (existingNode) {
-        const { processed } = existingNode.data as {
-          level: number;
-          processed: [boolean, boolean];
-        };
-        nodes = _flow.getNodes();
-        edges = _flow.getEdges();
-        if (!processed[1]) await addNodesEdges(node.table, true);
-        if (!processed[0]) await addNodesEdges(node.table, false);
-      } else {
-        nodes = [
-          {
-            id: node.table,
-            data: {
-              table: node.table,
-              label: node.label,
-              url: node.url,
-              level: 0,
-              shouldExpand: [node.downstreamCount > 0, node.upstreamCount > 0],
-              processed: [node.downstreamCount > 0, node.upstreamCount > 0],
-              nodeType: node.nodeType,
-              upstreamCount: node.upstreamCount,
-              downstreamCount: node.downstreamCount,
-              tests: node.tests,
-              materialization: node.materialization,
-            },
-            position: { x: 100, y: 100 },
-            type: "table",
+      nodes = [
+        {
+          id: node.table,
+          data: {
+            table: node.table,
+            label: node.label,
+            url: node.url,
+            level: 0,
+            shouldExpand: [node.downstreamCount > 0, node.upstreamCount > 0],
+            processed: [node.downstreamCount > 0, node.upstreamCount > 0],
+            nodeType: node.nodeType,
+            upstreamCount: node.upstreamCount,
+            downstreamCount: node.downstreamCount,
+            tests: node.tests,
+            materialization: node.materialization,
           },
-        ];
-        if (node.upstreamCount > 0) await addNodesEdges(node.table, true);
-        if (node.downstreamCount > 0) await addNodesEdges(node.table, false);
-        setSelectedTable(null);
-        setSelectedColumn({ table: "", name: "" });
-        setCollectColumns({});
-        setMoreTables({});
-      }
+          position: { x: 100, y: 100 },
+          type: "table",
+        },
+      ];
+      if (node.upstreamCount > 0) await addNodesEdges(node.table, true);
+      if (node.downstreamCount > 0) await addNodesEdges(node.table, false);
+      setSelectedTable(null);
+      setSelectedColumn({ table: "", name: "", sessionId: "" });
+      setCollectColumns({});
+      setMoreTables({});
 
       layoutElementsOnCanvas(nodes, edges);
       _flow.setNodes(nodes);
@@ -369,7 +357,7 @@ function App() {
             flow.current?.setNodes([]);
             flow.current?.setEdges([]);
             setSelectedTable(null);
-            setSelectedColumn({ table: "", name: "" });
+            setSelectedColumn({ table: "", name: "", sessionId: "" });
             setCollectColumns({});
             setMoreTables({});
             vscode.postMessage({ command: "init" });
