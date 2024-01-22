@@ -15,6 +15,7 @@
     & .body {
       width: 80%;
       overflow: overlay;
+      padding-right: 1rem;
 
       & :global .alert {
         margin-top: 10px;

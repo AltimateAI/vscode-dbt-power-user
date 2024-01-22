@@ -28,29 +28,33 @@ const NewGenerationResults = ({
   return (
     <List className={classes.chatList}>
       {generatedResults.map((result) => (
-        <Card key={result.description}>
-          <CardTitle>Regenerated</CardTitle>
-          <CardBody>
-            {result.description}
-            <Stack>
+        <li key={result.name}>
+          <Card>
+            <CardTitle>Regenerated</CardTitle>
+            <CardBody>
+              {result.description}
               <Stack>
-                <Button onClick={() => handleDocInsert(result)}>Insert</Button>
-                <IconButton>
-                  <RefreshIcon />
-                </IconButton>
+                <Stack>
+                  <Button onClick={() => handleDocInsert(result)}>
+                    Insert
+                  </Button>
+                  <IconButton>
+                    <RefreshIcon />
+                  </IconButton>
+                </Stack>
+                <Stack>
+                  <ResultFeedbackButtons
+                    data={{
+                      columnDescription: result.description ?? "",
+                      columnName: result.name ?? "",
+                      model: result.model,
+                    }}
+                  />
+                </Stack>
               </Stack>
-              <Stack>
-                <ResultFeedbackButtons
-                  data={{
-                    columnDescription: result.description ?? "",
-                    columnName: result.name ?? "",
-                    model: result.model,
-                  }}
-                />
-              </Stack>
-            </Stack>
-          </CardBody>
-        </Card>
+            </CardBody>
+          </Card>
+        </li>
       ))}
     </List>
   );
