@@ -199,8 +199,8 @@ function App() {
   const [, _rerender] = useState(0);
   const rerender = () => _rerender((x) => (x + 1) % 100);
 
-  const [selectCheck, setSelectCheck] = useState(false);
-  const [nonSelectCheck, setNonSelectCheck] = useState(false);
+  const [selectCheck, setSelectCheck] = useState(true);
+  const [nonSelectCheck, setNonSelectCheck] = useState(true);
 
   useEffect(() => {
     const render = async (args: {
@@ -423,8 +423,14 @@ function App() {
         <ActionButton
           onClick={(e) => {
             e.stopPropagation();
-            setSidebarScreen(FEEDBACK_SIDEBAR);
-            setShowSidebar(true);
+            // setSidebarScreen(FEEDBACK_SIDEBAR);
+            // setShowSidebar(true);
+            // TODO: going to be deprecated
+            openURL(
+              aiEnabled
+                ? "https://docs.google.com/forms/d/e/1FAIpQLScsvmEdZ56F1GAFZq_SW7ejYe0dwpHe-N69qiQBz4ekN4gPNQ/viewform"
+                : "https://docs.google.com/forms/d/10_YT2XDwpbkDXio-7TEYPQXsJfCBFqYUa7t0ImzyZvE/viewform"
+            );
           }}
         >
           <FeedbackIcon />
