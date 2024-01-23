@@ -1,4 +1,5 @@
 import { Uri, workspace } from "vscode";
+import { getProjectRelativePath } from "../utils";
 
 interface DeferConfig {
   deferToProduction: boolean;
@@ -10,7 +11,8 @@ export const getDeferParams = async (projectRoot: Uri): Promise<string[]> => {
   const currentConfig: Record<string, DeferConfig> = await workspace
     .getConfiguration("dbt")
     .get("deferConfigPerProject", {});
-  const deferConfigInProject = currentConfig[projectRoot.path];
+  const deferConfigInProject =
+    currentConfig[getProjectRelativePath(projectRoot)];
   if (!deferConfigInProject) {
     return [];
   }

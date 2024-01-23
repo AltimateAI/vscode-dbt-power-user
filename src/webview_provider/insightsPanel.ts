@@ -1,5 +1,5 @@
 import { commands, TextEditor, window, workspace } from "vscode";
-import { provideSingleton } from "../utils";
+import { getProjectRelativePath, provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
@@ -61,7 +61,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       throw new Error("Invalid current project root");
     }
 
-    return currentProject.projectRoot.path;
+    return getProjectRelativePath(currentProject.projectRoot);
   }
   private async updateDeferConfig(
     syncRequestId: string | undefined,
