@@ -6,6 +6,7 @@ import {
   AltimateWebviewProvider,
   HandleCommandProps,
 } from "./altimateWebviewProvider";
+import { AltimateRequest } from "../altimate";
 
 @provideSingleton(InsightsPanel)
 export class InsightsPanel extends AltimateWebviewProvider {
@@ -15,9 +16,10 @@ export class InsightsPanel extends AltimateWebviewProvider {
 
   public constructor(
     dbtProjectContainer: DBTProjectContainer,
+    protected altimateRequest: AltimateRequest,
     telemetry: TelemetryService,
   ) {
-    super(dbtProjectContainer, telemetry);
+    super(dbtProjectContainer, altimateRequest, telemetry);
   }
 
   async handleCommand(message: HandleCommandProps): Promise<void> {
