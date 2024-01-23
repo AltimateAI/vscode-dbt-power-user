@@ -4,7 +4,7 @@ import { openURL } from "./App";
 
 function Demo() {
   return (
-    <div className="p-4 h-100 d-flex flex-column overflow-y">
+    <div className="p-3 h-100 d-flex flex-column overflow-y">
       <div className="mb-2 d-flex">
         <div className="fw-semibold fs-5">Quick Demo of Column Lineage</div>
         <div className="spacer"></div>
