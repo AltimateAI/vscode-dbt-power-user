@@ -43,6 +43,7 @@ export class NodeParser {
           description,
           patch_path,
           config,
+          resource_type,
         } = nodesMap;
         const fullPath = createFullPathForNode(
           projectName,
@@ -66,6 +67,7 @@ export class NodeParser {
           description,
           patch_path,
           config,
+          resource_type,
         });
       }
       resolve(modelMetaMap);
