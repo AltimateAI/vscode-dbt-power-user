@@ -290,19 +290,27 @@ export class DBTCoreProjectIntegration
   }
 
   async runModel(command: DBTCommand) {
-    this.addCommandToQueue(this.addDeferParams(this.dbtCoreCommand(command)));
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
+    );
   }
 
   async buildModel(command: DBTCommand) {
-    this.addCommandToQueue(this.addDeferParams(this.dbtCoreCommand(command)));
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
+    );
   }
 
   async runTest(command: DBTCommand) {
-    this.addCommandToQueue(this.addDeferParams(this.dbtCoreCommand(command)));
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
+    );
   }
 
   async runModelTest(command: DBTCommand) {
-    this.addCommandToQueue(this.addDeferParams(this.dbtCoreCommand(command)));
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
+    );
   }
 
   async compileModel(command: DBTCommand) {
@@ -330,8 +338,8 @@ export class DBTCoreProjectIntegration
     this.executionInfrastructure.addCommandToQueue(command);
   }
 
-  private addDeferParams(command: DBTCommand) {
-    const deferParams = getDeferParams();
+  private async addDeferParams(command: DBTCommand) {
+    const deferParams = await getDeferParams(this.projectRoot);
     deferParams.forEach((param) => command.addArgument(param));
     return command;
   }

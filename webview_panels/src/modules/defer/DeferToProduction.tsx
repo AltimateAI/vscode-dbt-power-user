@@ -12,10 +12,11 @@ import {
   Label,
   Stack,
 } from "@uicore";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SettingsIcon } from "@assets/icons";
 import { executeRequestInSync } from "../app/requestExecutor";
 import classes from "./defer.module.scss";
+import { IncomingMessageProps } from "@modules/app/types";
 
 interface DeferToProductionProps {
   deferToProduction: boolean;
@@ -32,6 +33,27 @@ const DeferToProduction = (): JSX.Element => {
     manifestPathForDeferral: "",
   });
   const [hideBody, setHideBody] = useState(true);
+
+  const onMesssage = useCallback(
+    (event: MessageEvent<IncomingMessageProps>) => {
+      const { command, args } = event.data;
+      switch (command) {
+        case "updateDeferConfig":
+          setDeferState(args as unknown as DeferToProductionProps);
+          break;
+        default:
+          break;
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    window.addEventListener("message", onMesssage);
+    return () => {
+      window.removeEventListener("message", onMesssage);
+    };
+  }, [onMesssage]);
 
   const loadDeferConfig = async () => {
     const config = await executeRequestInSync("getDeferToProductionConfig", {});
@@ -61,7 +83,7 @@ const DeferToProduction = (): JSX.Element => {
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const { checked, name } = event.target;
-    const response = await executeRequestInSync("updateConfig", {
+    const response = await executeRequestInSync("updateDeferConfig", {
       key: name,
       value: checked,
       isPreviewFeature: true,
@@ -79,7 +101,7 @@ const DeferToProduction = (): JSX.Element => {
   };
 
   const onManifestBlur = async () => {
-    const response = await executeRequestInSync("updateConfig", {
+    const response = await executeRequestInSync("updateDeferConfig", {
       key: "manifestPathForDeferral",
       value: manifestPathForDeferral,
       isPreviewFeature: true,

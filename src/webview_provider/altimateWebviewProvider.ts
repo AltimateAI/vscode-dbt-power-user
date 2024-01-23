@@ -16,17 +16,12 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
 import path = require("path");
 import { AltimateRequest } from "../altimate";
+import { UpdateConfigProps } from "./types";
 
 export interface HandleCommandProps extends Record<string, unknown> {
   command: string;
   syncRequestId?: string;
 }
-
-type UpdateConfigProps = {
-  key: string;
-  value: string | boolean | number;
-  isPreviewFeature?: boolean;
-};
 
 /**
  * This class is responsible for rendering the webview
