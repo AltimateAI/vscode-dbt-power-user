@@ -20,6 +20,7 @@ html {
   --input-bg: #ffffff;
   --input-text-color: #212529;
   --input-border-color: #dee2e6;
+  --modal-bg: #ffffff;
 }
 
 html[data-theme="dark"] {
@@ -44,6 +45,7 @@ html[data-theme="dark"] {
   --input-bg: rgba(131, 144, 163, 0.2);
   --input-text-color: #ffffff;
   --input-border-color: rgba(131, 144, 163, 0.1);
+  --modal-bg: #484e55;
 }
 
 body {

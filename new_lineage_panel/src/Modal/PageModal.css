@@ -22,7 +22,8 @@
   width: 84%;
   height: 94%;
   display: block;
-  background-color: #ffffff;
+  background-color: var(--modal-bg);
+  color: var(--text-color);
   border-radius: 0.5em 0rem 0.5em 0.5rem;
 }
 
