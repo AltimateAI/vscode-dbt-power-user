@@ -14,10 +14,7 @@ import {
 } from "@uicore";
 import { useEffect, useState } from "react";
 import { SettingsIcon } from "@assets/icons";
-import {
-  executeRequestInAsync,
-  executeRequestInSync,
-} from "../app/requestExecutor";
+import { executeRequestInSync } from "../app/requestExecutor";
 import classes from "./defer.module.scss";
 
 interface DeferToProductionProps {
@@ -60,10 +57,18 @@ const DeferToProduction = (): JSX.Element => {
     setDeferState((prevState) => ({ ...prevState, [key]: value }));
   };
 
-  const handleStateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleStateChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const { checked, name } = event.target;
-    executeRequestInAsync("updateConfig", { key: name, value: checked });
-    updateDeferAndFavorState({ key: name, value: checked });
+    const response = await executeRequestInSync("updateConfig", {
+      key: name,
+      value: checked,
+      isPreviewFeature: true,
+    });
+    if ((response as { updated: boolean }).updated) {
+      updateDeferAndFavorState({ key: name, value: checked });
+    }
   };
 
   const handleManifestPathChange = (
@@ -73,11 +78,18 @@ const DeferToProduction = (): JSX.Element => {
     setDeferState((prevState) => ({ ...prevState, [name]: value }));
   };
 
-  const onManifestBlur = () => {
-    executeRequestInAsync("updateConfig", {
+  const onManifestBlur = async () => {
+    const response = await executeRequestInSync("updateConfig", {
       key: "manifestPathForDeferral",
       value: manifestPathForDeferral,
+      isPreviewFeature: true,
     });
+    if (!(response as { updated: boolean }).updated) {
+      setDeferState((prevState) => ({
+        ...prevState,
+        manifestPathForDeferral: "",
+      }));
+    }
   };
 
   return (

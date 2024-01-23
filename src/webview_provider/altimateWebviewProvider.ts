@@ -15,6 +15,7 @@ import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
 import path = require("path");
+import { AltimateRequest } from "../altimate";
 
 export interface HandleCommandProps extends Record<string, unknown> {
   command: string;
@@ -24,6 +25,7 @@ export interface HandleCommandProps extends Record<string, unknown> {
 type UpdateConfigProps = {
   key: string;
   value: string | boolean | number;
+  isPreviewFeature?: boolean;
 };
 
 /**
@@ -41,6 +43,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
+    protected altimateRequest: AltimateRequest,
     protected telemetry: TelemetryService,
   ) {}
 
@@ -65,12 +68,30 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             (params as UpdateConfigProps).key,
             (params as UpdateConfigProps).value,
           );
-          await workspace
-            .getConfiguration("dbt")
-            .update(
-              (params as UpdateConfigProps).key,
-              (params as UpdateConfigProps).value,
-            );
+          // If config is for preview feature, then check keys
+          const shouldUpdate =
+            !(params as UpdateConfigProps).isPreviewFeature ||
+            this.altimateRequest.handlePreviewFeatures();
+          if (shouldUpdate) {
+            await workspace
+              .getConfiguration("dbt")
+              .update(
+                (params as UpdateConfigProps).key,
+                (params as UpdateConfigProps).value,
+              );
+          }
+          if (syncRequestId) {
+            this._panel!.webview.postMessage({
+              command: "response",
+              args: {
+                syncRequestId,
+                body: {
+                  updated: shouldUpdate,
+                },
+                status: true,
+              },
+            });
+          }
           break;
         default:
           break;
