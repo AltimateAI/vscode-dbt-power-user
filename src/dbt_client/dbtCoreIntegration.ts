@@ -35,7 +35,9 @@ import { join } from "path";
 import { TelemetryService } from "../telemetry";
 import { ValidateSqlParseErrorResponse } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { DEFAULT_QUERY_TEMPLATE } from "../domain";
+
+const DEFAULT_QUERY_TEMPLATE =
+  "select * from ({query}\n) as query limit {limit}";
 
 // TODO: we shouold really get these from manifest directly
 interface ResolveReferenceNodeResult {

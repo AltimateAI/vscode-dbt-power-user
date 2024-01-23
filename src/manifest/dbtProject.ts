@@ -41,7 +41,6 @@ import {
   RunModelParams,
 } from "../dbt_client/dbtIntegration";
 import { DBTCoreProjectIntegration } from "../dbt_client/dbtCoreIntegration";
-import { DEFAULT_QUERY_TEMPLATE } from "../domain";
 
 interface FileNameTemplateMap {
   [key: string]: string;
