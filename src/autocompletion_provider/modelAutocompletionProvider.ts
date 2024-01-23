@@ -15,6 +15,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { isEnclosedWithinCodeBlock, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
+import { DBTProject } from "../manifest/dbtProject";
 
 @provideSingleton(ModelAutocompletionProvider) // TODO autocomplete doesn't work when mistype, delete and retype
 export class ModelAutocompletionProvider
@@ -104,15 +105,20 @@ export class ModelAutocompletionProvider
       const models = added.nodeMetaMap.entries();
       this.modelAutocompleteMap.set(
         added.project.projectRoot.fsPath,
-        Array.from(models).map(([key, model]) => ({
-          label: `(${model.package_name}) ${key}`,
-          insertText:
-            model.package_name === projectName
-              ? key
-              : `${model.package_name}, ${key}`,
-          kind: CompletionItemKind.Value,
-          detail: "Model",
-        })),
+        Array.from(models)
+          .filter(
+            ([key, model]) =>
+              !model.uniqueId.includes(`${DBTProject.RESOURCE_TYPE_ANALYSIS}.`),
+          )
+          .map(([key, model]) => ({
+            label: `(${model.package_name}) ${key}`,
+            insertText:
+              model.package_name === projectName
+                ? key
+                : `${model.package_name}, ${key}`,
+            kind: CompletionItemKind.Value,
+            detail: "Model",
+          })),
       );
     });
     event.removed?.forEach((removed) => {
