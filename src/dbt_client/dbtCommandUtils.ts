@@ -1,22 +1,27 @@
-import { workspace } from "vscode";
+import { Uri, workspace } from "vscode";
 
-export const getDeferParams = (): string[] => {
-  const deferToProduction = workspace
+interface DeferConfig {
+  deferToProduction: boolean;
+  favorState: boolean;
+  manifestPathForDeferral: string;
+}
+
+export const getDeferParams = async (projectRoot: Uri): Promise<string[]> => {
+  const currentConfig: Record<string, DeferConfig> = await workspace
     .getConfiguration("dbt")
-    .get<boolean>("deferToProduction", false);
+    .get("deferConfigPerProject", {});
+  const deferConfigInProject = currentConfig[projectRoot.path];
+  if (!deferConfigInProject) {
+    return [];
+  }
+  const { deferToProduction, manifestPathForDeferral, favorState } =
+    deferConfigInProject;
   if (!deferToProduction) {
     return [];
   }
-  const manifestPathForDeferral = workspace
-    .getConfiguration("dbt")
-    .get<string>("manifestPathForDeferral");
   if (!manifestPathForDeferral) {
     return [];
   }
-  const favorState = workspace
-    .getConfiguration("dbt")
-    .get<boolean>("favorState", false);
-
   return [
     "--defer",
     "--state",
