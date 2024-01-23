@@ -72,7 +72,7 @@ export const requestExecutor = (url: string, params: unknown) => {
 export const openFile = (url: string) => {
   vscode.postMessage({ command: "openFile", args: { url } });
 };
-const openURL = (url: string) => {
+export const openURL = (url: string) => {
   vscode.postMessage({
     command: "openURL",
     args: { url },
