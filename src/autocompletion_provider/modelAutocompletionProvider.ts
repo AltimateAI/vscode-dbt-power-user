@@ -108,9 +108,7 @@ export class ModelAutocompletionProvider
         Array.from(models)
           .filter(
             ([key, model]) =>
-              !model.uniqueId.startsWith(
-                `${DBTProject.RESOURCE_TYPE_ANALYSIS}.`,
-              ),
+              model.resource_type !== DBTProject.RESOURCE_TYPE_ANALYSIS,
           )
           .map(([key, model]) => ({
             label: `(${model.package_name}) ${key}`,
