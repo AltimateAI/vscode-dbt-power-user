@@ -5,6 +5,7 @@ import { PythonException } from "python-bridge";
 import {
   commands,
   Diagnostic,
+  DiagnosticCollection,
   Disposable,
   Event,
   EventEmitter,
@@ -82,7 +83,10 @@ export class DBTProject implements Disposable {
     private terminal: DBTTerminal,
     private queryResultPanel: QueryResultPanel,
     private telemetry: TelemetryService,
-    private dbtCoreIntegrationFactory: (path: Uri) => DBTCoreProjectIntegration,
+    private dbtCoreIntegrationFactory: (
+      path: Uri,
+      projectConfigDiagnostics: DiagnosticCollection,
+    ) => DBTCoreProjectIntegration,
     path: Uri,
     projectConfig: any,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
@@ -98,6 +102,7 @@ export class DBTProject implements Disposable {
 
     this.dbtProjectIntegration = this.dbtCoreIntegrationFactory(
       this.projectRoot,
+      this.projectConfigDiagnostics,
     );
 
     this.disposables.push(
@@ -140,9 +145,10 @@ export class DBTProject implements Disposable {
     const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
     );
-    setupWatcherHandler(dbtProjectConfigWatcher, () =>
-      this.refreshProjectConfig(),
-    );
+    setupWatcherHandler(dbtProjectConfigWatcher, async () => {
+      await this.refreshProjectConfig();
+      this.rebuildManifest();
+    });
     await this.dbtProjectIntegration.initializeProject();
     await this.refreshProjectConfig();
     this.rebuildManifest();
@@ -175,7 +181,22 @@ export class DBTProject implements Disposable {
       if (error instanceof YAMLError) {
         this.projectConfigDiagnostics.set(
           Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
-          [new Diagnostic(new Range(0, 0, 999, 999), error.message)],
+          [
+            new Diagnostic(
+              new Range(0, 0, 999, 999),
+              "dbt_project.yml is invalid : " + error.message,
+            ),
+          ],
+        );
+      } else if (error instanceof PythonException) {
+        this.projectConfigDiagnostics.set(
+          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+          [
+            new Diagnostic(
+              new Range(0, 0, 999, 999),
+              "dbt configuration is invalid : " + error.exception.message,
+            ),
+          ],
         );
       }
       console.warn(
@@ -219,14 +240,6 @@ export class DBTProject implements Disposable {
   }
 
   private async rebuildManifest() {
-    if (
-      !this.projectConfigDiagnostics.get(
-        Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
-      )
-    ) {
-      // No point in trying to rebuild the manifest if the config is not valid
-      return;
-    }
     this.dbtProjectIntegration.rebuildManifest();
   }
 

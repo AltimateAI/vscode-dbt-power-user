@@ -1,5 +1,6 @@
 import {
   Diagnostic,
+  DiagnosticCollection,
   Disposable,
   languages,
   Range,
@@ -165,6 +166,7 @@ export class DBTCoreProjectIntegration
     private pythonDBTCommandExecutionStrategy: PythonDBTCommandExecutionStrategy,
     private dbtProjectContainer: DBTProjectContainer,
     private projectRoot: Uri,
+    private projectConfigDiagnostics: DiagnosticCollection,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
@@ -308,6 +310,11 @@ export class DBTCoreProjectIntegration
   }
 
   async rebuildManifest(): Promise<void> {
+    const p = Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE);
+    if (this.projectConfigDiagnostics.get(p)) {
+      // No point in trying to rebuild the manifest if the config is not valid
+      return;
+    }
     try {
       await this.python.lock(
         (python) => python`to_dict(project.safe_parse_project())`,
