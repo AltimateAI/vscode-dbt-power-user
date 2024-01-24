@@ -140,6 +140,7 @@ export class DBTCoreProjectIntegration
   static DBT_PROFILES_FILE = "profiles.yml";
 
   private profilesDir?: string;
+  private hasManifest: boolean = false;
   private targetPath?: string;
   private adapterType?: string;
   private version?: number[];
@@ -185,6 +186,7 @@ export class DBTCoreProjectIntegration
   }
 
   async refreshProjectConfig(): Promise<void> {
+    this.hasManifest = false;
     await this.createPythonDbtProject();
     await this.python.ex`project.init_project()`;
     this.targetPath = await this.findTargetPath();
@@ -318,6 +320,7 @@ export class DBTCoreProjectIntegration
         (python) => python`to_dict(project.safe_parse_project())`,
       );
       this.rebuildManifestDiagnostics.clear();
+      this.hasManifest = true;
     } catch (exc) {
       if (exc instanceof PythonException) {
         // dbt errors can be about anything, so we just associate the error with the project file
@@ -554,7 +557,7 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  private throwBridgeErrorIfAvailable() {
+  throwBridgeErrorIfAvailable() {
     const allDiagnostics = [
       this.pythonBridgeDiagnostics,
       this.rebuildManifestDiagnostics,
@@ -567,6 +570,11 @@ export class DBTCoreProjectIntegration
           throw new Error(firstError.message);
         }
       }
+    }
+    if (!this.hasManifest) {
+      throw new Error(
+        "The dbt project is still initializing, please try again later.",
+      );
     }
   }
 

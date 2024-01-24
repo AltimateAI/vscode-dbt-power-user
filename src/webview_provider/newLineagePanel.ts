@@ -84,7 +84,6 @@ export class NewLineagePanel implements LineagePanelView {
 
   eventMapChanged(eventMap: Map<string, ManifestCacheProjectAddedEvent>): void {
     this.eventMap = eventMap;
-    this.init();
   }
 
   changedActiveColorTheme() {
@@ -106,7 +105,21 @@ export class NewLineagePanel implements LineagePanelView {
   init() {
     console.log("lineage:init -> ", this._panel);
     this.changedActiveColorTheme();
-    this.renderStartingNode();
+    try {
+      const project = this.getProject();
+      if (!project) {
+        return;
+      }
+      project.throwPythonBridgeError();
+      this.renderStartingNode();
+    } catch (error) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "An unexpected error occurred while initializing lineage: " + error,
+        ),
+      );
+      this.telemetry.sendTelemetryError("showLineageInitError", error);
+    }
   }
 
   private renderStartingNode() {

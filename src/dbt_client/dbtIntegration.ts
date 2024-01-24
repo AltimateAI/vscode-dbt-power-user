@@ -259,6 +259,7 @@ export interface DBTProjectIntegration extends Disposable {
   ): Promise<{ [key: string]: string }[]>; // TODO: this should be typed
   getColumnsOfModel(modelName: string): Promise<{ [key: string]: string }[]>; // TODO: this should be typed
   getCatalog(): Promise<{ [key: string]: string }[]>; // TODO: this should be typed
+  throwBridgeErrorIfAvailable(): void;
 }
 
 @provide(DBTCommandExecutionInfrastructure)

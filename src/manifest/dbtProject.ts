@@ -374,7 +374,7 @@ export class DBTProject implements Disposable {
   async compileQuery(query: string): Promise<string | undefined> {
     this.telemetry.sendTelemetryEvent("compileQuery");
     try {
-      return this.dbtProjectIntegration.unsafeCompileQuery(query);
+      return await this.dbtProjectIntegration.unsafeCompileQuery(query);
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
@@ -428,6 +428,10 @@ export class DBTProject implements Disposable {
 
   async getColumnsOfSource(sourceName: string, tableName: string) {
     return this.dbtProjectIntegration.getColumnsOfSource(sourceName, tableName);
+  }
+
+  throwPythonBridgeError() {
+    return this.dbtProjectIntegration.throwBridgeErrorIfAvailable();
   }
 
   async getCatalog(): Promise<{ [key: string]: string }[]> {
