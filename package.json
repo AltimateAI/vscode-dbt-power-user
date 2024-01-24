@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.28.4",
+  "version": "0.30.0",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -168,6 +168,32 @@
             },
             "default": [],
             "description": "Add additional params to `sqlfmt`"
+          },
+          "dbt.deferConfigPerProject": {
+            "type": "object",
+            "description": "Run subset of models without building their parent models",
+            "patternProperties": {
+              ".*": {
+                "type": "object",
+                "properties": {
+                  "deferToProduction": {
+                    "type": "boolean",
+                    "description": "Run subset of models without building their parent models",
+                    "default": false
+                  },
+                  "manifestPathForDeferral": {
+                    "type": "string",
+                    "description": "Manifest path to defer the parent models",
+                    "default": ""
+                  },
+                  "favorState": {
+                    "type": "boolean",
+                    "description": "If a given model exists in both the current environment and the defined defer state, turn this flag on to use the latter always",
+                    "default": false
+                  }
+                }
+              }
+            }
           },
           "dbt.deferToProduction": {
             "type": "boolean",

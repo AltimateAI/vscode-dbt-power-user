@@ -45,16 +45,14 @@ export class VersionStatusBar implements Disposable {
       this.showTextInStatusBar("$(sync~spin) Detecting dbt");
       return;
     }
-    if (!event.dbtInstallationFound!.installed) {
+    if (!event.installed) {
       this.showTextInStatusBar(
         "$(error) dbt is not installed",
         // "statusBarItem.errorBackground",
       );
       return;
     }
-    if (event.dbtInstallationFound) {
-      this.showTextInStatusBar(`$(check) dbt`);
-    }
+    this.showTextInStatusBar(`$(check) dbt`);
   }
 
   private showTextInStatusBar(

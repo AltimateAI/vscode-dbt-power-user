@@ -19,6 +19,7 @@ import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
 import { YAMLError } from "yaml";
 import { ProjectRegisteredUnregisteredEvent } from "./dbtProjectContainer";
+import { DBTCoreProjectDetection } from "../dbt_client/dbtCoreIntegration";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
@@ -34,6 +35,7 @@ export class DBTWorkspaceFolder implements Disposable {
       projectConfig: any,
       _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
     ) => DBTProject,
+    private dbtCoreProjectDetection: DBTCoreProjectDetection,
     private telemetry: TelemetryService,
     private workspaceFolder: WorkspaceFolder,
     private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
@@ -73,14 +75,10 @@ export class DBTWorkspaceFolder implements Disposable {
         this.workspaceFolder,
         `**/${DBTProject.DBT_PROJECT_FILE}`,
       ),
-      new RelativePattern(
-        this.workspaceFolder,
-        `**/{${DBTProject.DBT_MODULES.join(",")}}`,
-      ),
     );
 
     const allowListFolders = this.getAllowListFolders();
-    const projectFiles = dbtProjectFiles
+    const projectDirectories = dbtProjectFiles
       .filter((uri) => statSync(uri.fsPath).isFile())
       .filter((uri) => this.notInVenv(uri.fsPath))
       .filter((uri) => {
@@ -89,20 +87,21 @@ export class DBTWorkspaceFolder implements Disposable {
           allowListFolders.some((folder) => uri.fsPath.startsWith(folder))
         );
       })
-      // TODO: also filter out projects within the target folder of another project
-      //  This is somewhat difficult as we would need to parse the target-path variable of the project.
       .map((uri) => Uri.file(uri.path.split("/")!.slice(0, -1).join("/")));
-    if (projectFiles.length > 20) {
-      window.showWarningMessage(
-        `dbt Power User detected ${projectFiles.length} projects in your work space, this will negatively affect performance.`,
-      );
-    }
+
     this.telemetry.sendTelemetryEvent(
       "discoverProjects",
       {},
-      { numProjects: projectFiles.length },
+      { numProjects: projectDirectories.length },
     );
-    return projectFiles.forEach((uri) => this.registerDBTProject(uri));
+    const filteredProjects =
+      await this.dbtCoreProjectDetection.discoverProjects(projectDirectories);
+
+    await Promise.all(
+      filteredProjects.map(async (uri) => {
+        await this.registerDBTProject(uri);
+      }),
+    );
   }
 
   findDBTProject(uri: Uri): DBTProject | undefined {
@@ -146,6 +145,7 @@ export class DBTWorkspaceFolder implements Disposable {
         projectConfig,
         this._onManifestChanged,
       );
+      await dbtProject.initialize();
       this.dbtProjects.push(dbtProject);
       // sorting the dbt projects descending by path ensures that we find the deepest path first
       this.dbtProjects.sort(
@@ -171,20 +171,20 @@ export class DBTWorkspaceFolder implements Disposable {
     }
   }
 
-  private unregisterDBTProject(uri: Uri) {
+  private async unregisterDBTProject(uri: Uri) {
     const projectToDelete = this.dbtProjects.find(
       (dbtProject) => dbtProject.projectRoot.fsPath === uri.fsPath,
     );
     if (projectToDelete === undefined) {
       return;
     }
+    this.dbtProjects.splice(this.dbtProjects.indexOf(projectToDelete), 1);
     this._onProjectRegisteredUnregistered.fire({
       root: uri,
       name: projectToDelete.getProjectName(),
       registered: false,
     });
-    projectToDelete.dispose();
-    this.dbtProjects.splice(this.dbtProjects.indexOf(projectToDelete));
+    await projectToDelete.dispose();
   }
 
   private createConfigWatcher(): FileSystemWatcher {
@@ -204,12 +204,10 @@ export class DBTWorkspaceFolder implements Disposable {
         this.notInVenv(uri.fsPath) &&
         this.notInDBtPackages(
           uri.fsPath,
-          this.dbtProjects.map((project) => project.projectRoot),
+          this.dbtProjects.map((project) => project.getPackageInstallPath()),
         ) &&
         (allowListFolders.length === 0 ||
           allowListFolders.some((folder) => uri.fsPath.startsWith(folder)))
-        // TODO: also filter out projects within the target folder of another project
-        //  This is somewhat difficult as we would need to parse the target-path variable of the project.
       ) {
         this.registerDBTProject(dirName(uri));
       }
@@ -223,11 +221,13 @@ export class DBTWorkspaceFolder implements Disposable {
     return !path.includes("site-packages");
   }
 
-  private notInDBtPackages(uri: string, projectRoots: Uri[]) {
-    for (const projectRoot of projectRoots) {
-      const projectFsPath = projectRoot.fsPath;
-      for (const dbtModulesPath of DBTProject.DBT_MODULES) {
-        if (uri.startsWith(path.join(projectFsPath, dbtModulesPath))) {
+  private notInDBtPackages(
+    uri: string,
+    packagesInstallPaths: (string | undefined)[],
+  ) {
+    for (const packagesInstallPath of packagesInstallPaths) {
+      if (packagesInstallPath) {
+        if (uri.startsWith(packagesInstallPath)) {
           return false;
         }
       }

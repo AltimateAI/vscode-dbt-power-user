@@ -1,10 +1,12 @@
 import { fluentProvide } from "inversify-binding-decorators";
+import * as path from "path";
 import {
   Disposable,
   FileSystemWatcher,
   Position,
   Range,
   TextDocument,
+  Uri,
   workspace,
 } from "vscode";
 
@@ -132,3 +134,21 @@ export function stripANSI(src: string): string {
     "",
   );
 }
+
+export function getFirstWorkspacePath(): string {
+  // If we are executing python via a wrapper like Meltano,
+  // we need to execute it from a (any) project directory
+  // By default, Command execution is in an ext dir context
+  const folders = workspace.workspaceFolders;
+  if (folders) {
+    return folders[0].uri.fsPath;
+  } else {
+    // TODO: this shouldn't happen but we should make sure this is valid fallback
+    return Uri.file("./").fsPath;
+  }
+}
+
+export const getProjectRelativePath = (projectRoot: Uri) => {
+  const ws = workspace.getWorkspaceFolder(projectRoot);
+  return path.relative(ws?.uri.fsPath || "", projectRoot.fsPath);
+};

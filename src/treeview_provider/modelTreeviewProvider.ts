@@ -14,7 +14,16 @@ import {
   Uri,
   window,
 } from "vscode";
-import { GraphMetaMap, Model, Node, Snapshot, Source, Test } from "../domain";
+import {
+  Analysis,
+  Exposure,
+  GraphMetaMap,
+  Node,
+  Seed,
+  Snapshot,
+  Source,
+  Test,
+} from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
@@ -59,7 +68,7 @@ abstract class ModelTreeviewProvider
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
-      this.eventMap.set(added.projectRoot.fsPath, added);
+      this.eventMap.set(added.project.projectRoot.fsPath, added);
     });
     event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);
@@ -96,16 +105,39 @@ abstract class ModelTreeviewProvider
       return Promise.resolve(this.getTreeItems(element.key, event));
     }
 
-    const { projectName } = event;
+    const { project } = event;
     const fileName = path.basename(
       window.activeTextEditor!.document.fileName,
       ".sql",
     );
     const packageName =
-      this.dbtProjectContainer.getPackageName(currentFilePath) || projectName;
+      this.dbtProjectContainer.getPackageName(currentFilePath) ||
+      project.getProjectName();
     return Promise.resolve(
       this.getTreeItems(`model.${packageName}.${fileName}`, event),
     );
+  }
+
+  private getNodeTreeItem(node: Node): NodeTreeItem {
+    if (node instanceof Snapshot) {
+      return new SnapshotTreeItem(node);
+    }
+    if (node instanceof Exposure) {
+      return new ExposureTreeItem(node);
+    }
+    if (node instanceof Analysis) {
+      return new AnalysisTreeItem(node);
+    }
+    if (node instanceof Test) {
+      return new TestTreeItem(node);
+    }
+    if (node instanceof Source) {
+      return new SourceTreeItem(node);
+    }
+    if (node instanceof Seed) {
+      return new SeedTreeItem(node);
+    }
+    return new ModelTreeItem(node);
   }
 
   private getTreeItems(
@@ -124,21 +156,12 @@ abstract class ModelTreeviewProvider
           .get(node.key)
           ?.nodes.filter((node) => node.displayInModelTree);
 
-        if (
-          (node instanceof Model || node instanceof Snapshot) &&
-          childNodes?.filter(
-            (node) => node instanceof Model || node instanceof Snapshot,
-          ).length === 0
-        ) {
-          return new DashboardTreeItem(node);
-        }
-        if (node instanceof Test) {
-          return new TestTreeItem(node);
-        }
-        if (node instanceof Source) {
-          return new SourceTreeItem(node);
-        }
-        return new ModelTreeItem(node);
+        const treeItem = this.getNodeTreeItem(node);
+        treeItem.collapsibleState =
+          childNodes?.length !== 0
+            ? TreeItemCollapsibleState.Collapsed
+            : TreeItemCollapsibleState.None;
+        return treeItem;
       });
   }
 }
@@ -165,7 +188,7 @@ class DocumentationTreeviewProvider implements TreeDataProvider<DocTreeItem> {
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
-      this.eventMap.set(added.projectRoot.fsPath, added);
+      this.eventMap.set(added.project.projectRoot.fsPath, added);
     });
     event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);
@@ -300,11 +323,13 @@ export class NodeTreeItem extends TreeItem {
     if (node.iconPath !== undefined) {
       this.iconPath = node.iconPath;
     }
-    this.command = {
-      command: "vscode.open",
-      title: "Select Node",
-      arguments: [Uri.file(node.url)],
-    };
+    if (node.url) {
+      this.command = {
+        command: "vscode.open",
+        title: "Select Node",
+        arguments: [Uri.file(node.url)],
+      };
+    }
   }
 }
 
@@ -386,38 +411,65 @@ class ModelTreeItem extends NodeTreeItem {
 }
 
 class SourceTreeItem extends NodeTreeItem {
-  collapsibleState = TreeItemCollapsibleState.None;
+  iconPath = {
+    light: path.join(
+      path.resolve(__dirname),
+      "../media/images/source_light.svg",
+    ),
+    dark: path.join(path.resolve(__dirname), "../media/images/source_dark.svg"),
+  };
   contextValue = "source";
 }
 
-class TestTreeItem extends NodeTreeItem {
-  collapsibleState = TreeItemCollapsibleState.None;
+class SeedTreeItem extends NodeTreeItem {
   iconPath = {
-    light: path.join(
-      path.resolve(__dirname),
-      "../media/images/dashboard_light.svg",
-    ),
-    dark: path.join(
-      path.resolve(__dirname),
-      "../media/images/dashboard_dark.svg",
-    ),
+    light: path.join(path.resolve(__dirname), "../media/images/seed_light.svg"),
+    dark: path.join(path.resolve(__dirname), "../media/images/seed_dark.svg"),
   };
-  contextValue = "dashboard";
+  contextValue = "seed";
 }
 
-class DashboardTreeItem extends NodeTreeItem {
-  collapsibleState = TreeItemCollapsibleState.None;
+class SnapshotTreeItem extends NodeTreeItem {
+  contextValue = "snapshot";
   iconPath = {
     light: path.join(
       path.resolve(__dirname),
-      "../media/images/dashboard_light.svg",
+      "../media/images/snapshot_light.svg",
     ),
     dark: path.join(
       path.resolve(__dirname),
-      "../media/images/dashboard_dark.svg",
+      "../media/images/snapshot_dark.svg",
     ),
   };
-  contextValue = "dashboard";
+}
+
+class ExposureTreeItem extends NodeTreeItem {
+  contextValue = "exposure";
+  iconPath = {
+    light: path.join(
+      path.resolve(__dirname),
+      "../media/images/exposure_light.svg",
+    ),
+    dark: path.join(
+      path.resolve(__dirname),
+      "../media/images/exposure_dark.svg",
+    ),
+  };
+}
+
+class AnalysisTreeItem extends NodeTreeItem {
+  contextValue = "analysis";
+}
+
+class TestTreeItem extends NodeTreeItem {
+  iconPath = {
+    light: path.join(
+      path.resolve(__dirname),
+      "../media/images/tests_light.svg",
+    ),
+    dark: path.join(path.resolve(__dirname), "../media/images/tests_dark.svg"),
+  };
+  contextValue = "test";
 }
 
 @provideSingleton(ModelTestTreeview)

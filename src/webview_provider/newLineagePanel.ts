@@ -51,6 +51,7 @@ const CACHE_VALID_TIME = 24 * 60 * 60 * 1000;
 const CAN_COMPILE_SQL_NODE = [
   DBTProject.RESOURCE_TYPE_MODEL,
   DBTProject.RESOURCE_TYPE_SNAPSHOT,
+  DBTProject.RESOURCE_TYPE_ANALYSIS,
 ];
 const canCompileSQL = (nodeType: string) =>
   CAN_COMPILE_SQL_NODE.includes(nodeType);
@@ -176,6 +177,36 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
 
+    if (command === "sendFeedback") {
+      try {
+        await this.altimate.sendFeedback({
+          feedback_src: "dbtpu-extension",
+          feedback_text: params.feedback_text,
+          feedback_value: params.feedback_value,
+          data: {},
+        });
+        this._panel?.webview.postMessage({
+          command: "response",
+          args: { id, status: true },
+        });
+      } catch (error) {
+        this._panel?.webview.postMessage({
+          command: "response",
+          args: { id, status: false },
+        });
+        window.showErrorMessage(
+          extendErrorWithSupportLinks(
+            "An unexpected error occurred while sending feedback: " + error,
+          ),
+        );
+        this.telemetry.sendTelemetryError(
+          "altimateLineageSendFeedbackError",
+          error,
+        );
+      }
+      return;
+    }
+
     if (command === "startProgressBar") {
       window.withProgress(
         {
@@ -199,6 +230,14 @@ export class NewLineagePanel implements LineagePanelView {
 
     if (command === "previewFeature") {
       this.altimate.handlePreviewFeatures();
+      return;
+    }
+
+    if (command === "showNoLineage") {
+      const { table, name: column } = params;
+      window.showInformationMessage(
+        `No lineage found for model ${table} and column ${column}`,
+      );
       return;
     }
 
@@ -522,12 +561,14 @@ export class NewLineagePanel implements LineagePanelView {
     upstreamExpansion,
     currAnd1HopTables,
     selectedColumn,
+    sessionId,
   }: {
     targets: [string, string][];
     upstreamExpansion: boolean;
     currAnd1HopTables: string[];
     // select_column is used for pricing not business logic
     selectedColumn: { name: string; table: string };
+    sessionId: string;
   }) {
     const event = this.getEvent();
     if (!event) {
@@ -645,7 +686,7 @@ export class NewLineagePanel implements LineagePanelView {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
           extendErrorWithSupportLinks(
-            `An error occured while trying to compile your model: ` +
+            `An error occured while trying to compute lineage of your model: ` +
               exc.exception.message +
               ".",
           ),
@@ -693,6 +734,30 @@ export class NewLineagePanel implements LineagePanelView {
       // schemas we could get so not returning here
     }
 
+    const targetTables = Array.from(new Set(targets.map((t) => t[0])));
+    // targets should not empty
+    if (targets.length === 0 || modelInfos.length < targetTables.length) {
+      this.telemetry.sendTelemetryError("columnLineageLogicError", {
+        targets,
+        modelInfos,
+        upstreamExpansion,
+        currAnd1HopTables,
+        selectedColumn,
+      });
+      return { column_lineage: [] };
+    }
+
+    // the case where upstream/downstream only has ephemeral models
+    if (modelInfos.length === targetTables.length) {
+      return { column_lineage: [] };
+    }
+    const models = modelInfos.map((m) => m.model_node.uniqueId);
+    const hasAllModels = targets.every((t) => models.includes(t[0]));
+    if (!hasAllModels) {
+      // most probably error message is already shown in above checks
+      return { column_lineage: [] };
+    }
+
     const modelDialect = project.getAdapterType();
     try {
       const request = {
@@ -702,11 +767,9 @@ export class NewLineagePanel implements LineagePanelView {
         targets: targets.map((t) => ({ uniqueId: t[0], column_name: t[1] })),
         selected_column: selected_column!,
         parent_models,
+        session_id: sessionId,
       };
       console.log("cll:request -> ", request);
-      if (targets.length === 0) {
-        return;
-      }
       const result = await this.altimate.getColumnLevelLineage(request);
       console.log("cll:response -> ", result);
       if ((result as DBTColumnLineageResponse).column_lineage) {

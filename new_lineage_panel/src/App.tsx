@@ -1,6 +1,7 @@
 import {
   Dispatch,
   FunctionComponent,
+  PropsWithChildren,
   SetStateAction,
   createContext,
   useEffect,
@@ -23,16 +24,33 @@ import {
   SelfConnectingEdge,
   TableNode,
 } from "./CustomNodes";
-import { SidebarModal } from "./SidebarModal";
+import { Modal, SidebarModal } from "./Modal";
 import { MoreTables, TMoreTables } from "./MoreTables";
 import { Table } from "./service";
-import { expandTableLineage, layoutElementsOnCanvas } from "./graph";
+import {
+  expandTableLineage,
+  highlightTableConnections,
+  layoutElementsOnCanvas,
+} from "./graph";
 import { TableDetails } from "./TableDetails";
 import { Button, Card, CardBody, Input, Label, Tooltip } from "reactstrap";
 import AlertCircleIcon from "./assets/icons/alert-circle.svg?react";
+import PlayCircleIcon from "./assets/icons/play-circle.svg?react";
+import ResetIcon from "./assets/icons/reset.svg?react";
+import HelpIcon from "./assets/icons/help.svg?react";
+import FeedbackIcon from "./assets/icons/feedback.svg?react";
 import styles from "./styles.module.scss";
-import { TABLES_SIDEBAR, COLUMNS_SIDEBAR, EXPOSURE_SIDEBAR } from "./constants";
+import {
+  TABLES_SIDEBAR,
+  COLUMNS_SIDEBAR,
+  EXPOSURE_SIDEBAR,
+  FEEDBACK_SIDEBAR,
+  HELP_SIDEBAR,
+} from "./constants";
 import ExposureDetails from "./exposure/ExposureDetails";
+import { Feedback } from "./Feedback";
+import { Help } from "./Help";
+import { Demo } from "./Demo";
 
 declare const acquireVsCodeApi: () => { postMessage: (v: unknown) => void };
 
@@ -54,16 +72,13 @@ export const requestExecutor = (url: string, params: unknown) => {
 export const openFile = (url: string) => {
   vscode.postMessage({ command: "openFile", args: { url } });
 };
-export const openDocs = () => {
+const openURL = (url: string) => {
   vscode.postMessage({
-    command: "openDocs",
-    args: {
-      url: aiEnabled
-        ? "https://docs.google.com/forms/d/e/1FAIpQLScsvmEdZ56F1GAFZq_SW7ejYe0dwpHe-N69qiQBz4ekN4gPNQ/viewform"
-        : "https://docs.google.com/forms/d/10_YT2XDwpbkDXio-7TEYPQXsJfCBFqYUa7t0ImzyZvE/viewform",
-    },
+    command: "openURL",
+    args: { url },
   });
 };
+export const openChat = () => openURL("https://app.myaltimate.com/contactus");
 export const startProgressBar = () => {
   vscode.postMessage({ command: "startProgressBar", args: {} });
 };
@@ -72,6 +87,9 @@ export const endProgressBar = () => {
 };
 export const previewFeature = () => {
   vscode.postMessage({ command: "previewFeature", args: {} });
+};
+export const showNoLineage = (params: { table: string; name: string }) => {
+  vscode.postMessage({ command: "showNoLineage", args: { params } });
 };
 
 export let isDarkMode = false;
@@ -92,8 +110,10 @@ export const LineageContext = createContext<{
   setMoreTables: Dispatch<SetStateAction<TMoreTables>>;
   sidebarScreen: string;
   setSidebarScreen: Dispatch<string>;
-  selectedColumn: { name: string; table: string };
-  setSelectedColumn: Dispatch<SetStateAction<{ name: string; table: string }>>;
+  selectedColumn: { name: string; table: string; sessionId: string };
+  setSelectedColumn: Dispatch<
+    SetStateAction<{ name: string; table: string; sessionId: string }>
+  >;
   collectColumns: Record<string, string[]>;
   setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>;
   rerender: () => void;
@@ -109,7 +129,7 @@ export const LineageContext = createContext<{
   setMoreTables: () => {},
   sidebarScreen: "",
   setSidebarScreen: () => {},
-  selectedColumn: { name: "", table: "" },
+  selectedColumn: { name: "", table: "", sessionId: "" },
   setSelectedColumn: () => "",
   collectColumns: {},
   setCollectColumns: () => {},
@@ -137,13 +157,38 @@ const InfoIcon: FunctionComponent<{ id: string; message: string }> = ({
   );
 };
 
+const ActionButton = ({
+  onClick,
+  children,
+}: PropsWithChildren<{
+  onClick: React.MouseEventHandler<HTMLButtonElement>;
+}>) => {
+  return (
+    <Button
+      size="sm"
+      outline
+      color="secondary"
+      onClick={onClick}
+      className="d-flex align-items-center gap-sm"
+    >
+      {children}
+    </Button>
+  );
+};
+
 function App() {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [moreTables, setMoreTables] = useState<TMoreTables>({});
   const [sidebarScreen, setSidebarScreen] = useState("");
-  const [selectedColumn, setSelectedColumn] = useState({ name: "", table: "" });
+  const [showDemoModal, setShowDemoModal] = useState(false);
+  const [showDemoButton, setShowDemoButton] = useState(true);
+  const [selectedColumn, setSelectedColumn] = useState({
+    name: "",
+    table: "",
+    sessionId: "",
+  });
   const [collectColumns, setCollectColumns] = useState<
     Record<string, string[]>
   >({});
@@ -154,8 +199,8 @@ function App() {
   const [, _rerender] = useState(0);
   const rerender = () => _rerender((x) => (x + 1) % 100);
 
-  const [selectCheck, setSelectCheck] = useState(false);
-  const [nonSelectCheck, setNonSelectCheck] = useState(false);
+  const [selectCheck, setSelectCheck] = useState(true);
+  const [nonSelectCheck, setNonSelectCheck] = useState(true);
 
   useEffect(() => {
     const render = async (args: {
@@ -172,79 +217,54 @@ function App() {
       aiEnabled: boolean;
     }) => {
       setShowSidebar(false);
-      if (!args) {
-        return;
-      }
-      const { node, aiEnabled: _aiEnabled } = args;
-      aiEnabled = _aiEnabled;
+      if (!args) return;
+      aiEnabled = args.aiEnabled;
+      const { node } = args;
       const _flow = flow.current;
-      if (!_flow) {
+      if (!_flow) return;
+      const existingNode = _flow.getNode(node.table);
+      if (existingNode) {
+        setSelectedTable(existingNode.data as Table);
+        const [nodes, edges] = highlightTableConnections(
+          _flow.getNodes(),
+          _flow.getEdges(),
+          node.table
+        );
+        _flow.setNodes(nodes);
+        _flow.setEdges(edges);
         return;
       }
-      const existingNode = _flow.getNode(node.table);
       let nodes: Node[] = [];
       let edges: Edge[] = [];
       const addNodesEdges = async (table: string, right: boolean) => {
         [nodes, edges] = await expandTableLineage(nodes, edges, table, right);
-        // TODO: on opening file, how to handle cll
-        // if (selectedColumn.name) {
-        //   startProgressBar()
-        //   await bfsTraversal(
-        //     nodes,
-        //     edges,
-        //     right,
-        //     [selectedColumn],
-        //     setConfidence,
-        //     setMoreTables,
-        //     setCollectColumns,
-        //     _flow
-        //   );
-        //   endProgressBar()
-        // } else if (selectedTable) {
-        //   [nodes, edges] = highlightTableConnections(
-        //     nodes,
-        //     edges,
-        //     selectedTable.table
-        //   );
-        // }
       };
-      if (existingNode) {
-        const { processed } = existingNode.data as {
-          level: number;
-          processed: [boolean, boolean];
-        };
-        nodes = _flow.getNodes();
-        edges = _flow.getEdges();
-        if (!processed[1]) await addNodesEdges(node.table, true);
-        if (!processed[0]) await addNodesEdges(node.table, false);
-      } else {
-        nodes = [
-          {
-            id: node.table,
-            data: {
-              table: node.table,
-              label: node.label,
-              url: node.url,
-              level: 0,
-              shouldExpand: [node.downstreamCount > 0, node.upstreamCount > 0],
-              processed: [node.downstreamCount > 0, node.upstreamCount > 0],
-              nodeType: node.nodeType,
-              upstreamCount: node.upstreamCount,
-              downstreamCount: node.downstreamCount,
-              tests: node.tests,
-              materialization: node.materialization,
-            },
-            position: { x: 100, y: 100 },
-            type: "table",
+      nodes = [
+        {
+          id: node.table,
+          data: {
+            table: node.table,
+            label: node.label,
+            url: node.url,
+            level: 0,
+            shouldExpand: [node.downstreamCount > 0, node.upstreamCount > 0],
+            processed: [node.downstreamCount > 0, node.upstreamCount > 0],
+            nodeType: node.nodeType,
+            upstreamCount: node.upstreamCount,
+            downstreamCount: node.downstreamCount,
+            tests: node.tests,
+            materialization: node.materialization,
           },
-        ];
-        if (node.upstreamCount > 0) await addNodesEdges(node.table, true);
-        if (node.downstreamCount > 0) await addNodesEdges(node.table, false);
-        setSelectedTable(null);
-        setSelectedColumn({ table: "", name: "" });
-        setCollectColumns({});
-        setMoreTables({});
-      }
+          position: { x: 100, y: 100 },
+          type: "table",
+        },
+      ];
+      if (node.upstreamCount > 0) await addNodesEdges(node.table, true);
+      if (node.downstreamCount > 0) await addNodesEdges(node.table, false);
+      setSelectedTable(null);
+      setSelectedColumn({ table: "", name: "", sessionId: "" });
+      setCollectColumns({});
+      setMoreTables({});
 
       layoutElementsOnCanvas(nodes, edges);
       _flow.setNodes(nodes);
@@ -280,6 +300,11 @@ function App() {
     });
     console.log("lineage:onload -> ");
     vscode.postMessage({ command: "init", args: {} });
+
+    // hide demo button after 10s
+    setTimeout(() => {
+      setShowDemoButton(false);
+    }, 10000);
   }, []);
 
   useEffect(() => {
@@ -337,7 +362,10 @@ function App() {
                   </Label>
                   <InfoIcon
                     id="non_select_lineage"
-                    message="Non-Select linkages are shown if columns appear in condition/clauses like where, join, having, etc."
+                    message={
+                      "Non-Select linkages are shown if columns appear " +
+                      "in condition/clauses like where, join, having, etc."
+                    }
                   />
                 </div>
                 {confidence.confidence === "low" && (
@@ -345,14 +373,14 @@ function App() {
                     <div className={styles.verticle_divider} />
                     <div className="d-flex gap-xxs align-items-center">
                       <div>Confidence</div>
-                      {confidence.operator_list && (
-                        <InfoIcon
-                          id="confidence"
-                          message={`The confidence of lineage for indirect links is low because of the presence of the following in the sql: ${Array.from(
-                            new Set(confidence.operator_list)
-                          ).join(", ")}`}
-                        />
-                      )}
+                      <InfoIcon
+                        id="confidence"
+                        message={
+                          "Depending on the SQL dialect and complexity of queries, " +
+                          "there may be situations where we are not completely " +
+                          "confident about the lineage shown in this view"
+                        }
+                      />
                       <div className={styles.low_confidence}>Low</div>
                     </div>
                   </>
@@ -363,22 +391,6 @@ function App() {
         )}
         <Button
           size="sm"
-          color="secondary"
-          onClick={(e) => {
-            e.stopPropagation();
-            flow.current?.setNodes([]);
-            flow.current?.setEdges([]);
-            setSelectedTable(null);
-            setSelectedColumn({ table: "", name: "" });
-            setCollectColumns({});
-            setMoreTables({});
-            vscode.postMessage({ command: "init" });
-          }}
-        >
-          Reset
-        </Button>
-        <Button
-          size="sm"
           color="primary"
           onClick={(e) => {
             e.stopPropagation();
@@ -387,16 +399,63 @@ function App() {
         >
           Show Legacy UX
         </Button>
-        <Button
-          size="sm"
-          color="link"
+        <ActionButton
           onClick={(e) => {
             e.stopPropagation();
-            openDocs();
+            setSidebarScreen(HELP_SIDEBAR);
+            setShowSidebar(true);
           }}
         >
-          Feedback
-        </Button>
+          <HelpIcon />
+          <span>Help</span>
+        </ActionButton>
+        <ActionButton
+          onClick={(e) => {
+            e.stopPropagation();
+            flow.current?.setNodes([]);
+            flow.current?.setEdges([]);
+            setSelectedTable(null);
+            setSelectedColumn({ table: "", name: "", sessionId: "" });
+            setCollectColumns({});
+            setMoreTables({});
+            vscode.postMessage({ command: "init" });
+          }}
+          data-testid="reset-btn"
+        >
+          <ResetIcon />
+          <span>Reset</span>
+        </ActionButton>
+        <ActionButton
+          onClick={(e) => {
+            e.stopPropagation();
+            // setSidebarScreen(FEEDBACK_SIDEBAR);
+            // setShowSidebar(true);
+            // TODO: going to be deprecated
+            openURL(
+              aiEnabled
+                ? "https://docs.google.com/forms/d/e/1FAIpQLScsvmEdZ56F1GAFZq_SW7ejYe0dwpHe-N69qiQBz4ekN4gPNQ/viewform"
+                : "https://docs.google.com/forms/d/10_YT2XDwpbkDXio-7TEYPQXsJfCBFqYUa7t0ImzyZvE/viewform"
+            );
+          }}
+        >
+          <FeedbackIcon />
+          <span>Feedback</span>
+        </ActionButton>
+      </div>
+      <div className="bottom-right-container">
+        {showDemoButton && (
+          <Button
+            color="primary"
+            className="d-flex gap-sm align-items-center"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDemoModal((b) => !b);
+            }}
+          >
+            Quick demo of Column Lineage
+            <PlayCircleIcon />
+          </Button>
+        )}
       </div>
       <LineageContext.Provider
         value={{
@@ -440,7 +499,19 @@ function App() {
             {sidebarScreen === TABLES_SIDEBAR && <MoreTables />}
             {sidebarScreen === COLUMNS_SIDEBAR && <TableDetails />}
             {sidebarScreen === EXPOSURE_SIDEBAR && <ExposureDetails />}
+            {sidebarScreen === FEEDBACK_SIDEBAR && (
+              <Feedback
+                close={() => {
+                  setSidebarScreen("");
+                  setShowSidebar(false);
+                }}
+              />
+            )}
+            {sidebarScreen === HELP_SIDEBAR && <Help />}
           </SidebarModal>
+          <Modal isOpen={showDemoModal} close={() => setShowDemoModal(false)}>
+            <Demo />
+          </Modal>
         </ReactFlowProvider>
       </LineageContext.Provider>
     </div>

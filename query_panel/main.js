@@ -446,6 +446,9 @@ const app = createApp({
           this.endTimer();
           break;
         case "renderLoading":
+          if (this.loading) {
+            break;
+          }
           this.clearData();
           this.focusPreviewPane();
           this.loading = true;

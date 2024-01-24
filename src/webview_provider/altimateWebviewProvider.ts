@@ -21,16 +21,13 @@ import {
   ManifestCacheProjectAddedEvent,
   ManifestCacheChangedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
+import { AltimateRequest } from "../altimate";
+import { UpdateConfigProps } from "./types";
 
 export interface HandleCommandProps extends Record<string, unknown> {
   command: string;
   syncRequestId?: string;
 }
-
-type UpdateConfigProps = {
-  key: string;
-  value: string | boolean | number;
-};
 
 /**
  * This class is responsible for rendering the webview
@@ -48,10 +45,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
-    protected telemetry: TelemetryService,
+    protected altimateRequest: AltimateRequest,
+    protected telemetry: TelemetryService
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
-      this.onManifestCacheChanged(event),
+      this.onManifestCacheChanged(event)
     );
   }
 
@@ -70,43 +68,72 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     webview.html = this.getHtml(
       webview,
-      this.dbtProjectContainer.extensionPath,
+      this.dbtProjectContainer.extensionPath
     );
   }
 
   protected async handleCommand(message: HandleCommandProps): Promise<void> {
     const { command, syncRequestId, ...params } = message;
 
-    switch (command) {
-      case "datapilot:toggle":
-        if (params.open) {
+    try {
+      switch (command) {
+        case "datapilot:toggle":
+          if (params.open) {
+            await commands.executeCommand(
+              "dbtPowerUser.datapilot-webview.focus"
+            );
+          }
+          break;
+        case "datapilot:message":
           await commands.executeCommand("dbtPowerUser.datapilot-webview.focus");
-        }
-        break;
-      case "datapilot:message":
-        await commands.executeCommand("dbtPowerUser.datapilot-webview.focus");
-        // Adding timeout to let the webapp to complete rendering
-        setTimeout(() => {
-          sharedStateManager.postMessage(message);
-        }, 100);
-        break;
-      case "updateConfig":
-        workspace
-          .getConfiguration("dbt")
-          .update(
+          // Adding timeout to let the webapp to complete rendering
+          setTimeout(() => {
+            sharedStateManager.postMessage(message);
+          }, 100);
+          break;
+        case "updateConfig":
+          console.log(
+            "Updating config",
             (params as UpdateConfigProps).key,
-            (params as UpdateConfigProps).value,
+            (params as UpdateConfigProps).value
           );
-        break;
-      default:
-        break;
+          // If config is for preview feature, then check keys
+          const shouldUpdate =
+            !(params as UpdateConfigProps).isPreviewFeature ||
+            this.altimateRequest.handlePreviewFeatures();
+          if (shouldUpdate) {
+            await workspace
+              .getConfiguration("dbt")
+              .update(
+                (params as UpdateConfigProps).key,
+                (params as UpdateConfigProps).value
+              );
+          }
+          if (syncRequestId) {
+            this._panel!.webview.postMessage({
+              command: "response",
+              args: {
+                syncRequestId,
+                body: {
+                  updated: shouldUpdate,
+                },
+                status: true,
+              },
+            });
+          }
+          break;
+        default:
+          break;
+      }
+    } catch (err) {
+      console.error("error while handling command", err);
     }
   }
 
   resolveWebviewView(
     panel: WebviewView,
     context: WebviewViewResolveContext<unknown>,
-    _token: CancellationToken,
+    _token: CancellationToken
   ): void | Thenable<void> {
     console.log("AltimateWebviewProvider:resolveWebviewView -> ");
     this._panel = panel;
@@ -142,8 +169,8 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             this.dbtProjectContainer.extensionPath,
             "webview_panels",
             "dist",
-            "assets",
-          ),
+            "assets"
+          )
         ),
       ],
     };
@@ -151,7 +178,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
   private getTheme() {
     return [ColorThemeKind.Light, ColorThemeKind.HighContrastLight].includes(
-      window.activeColorTheme.kind,
+      window.activeColorTheme.kind
     )
       ? "light"
       : "dark";
@@ -159,13 +186,13 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
   private getHtml(webview: Webview, extensionUri: string) {
     const indexJs = webview.asWebviewUri(
       Uri.file(
-        path.join(extensionUri, "webview_panels", "dist", "assets", "main.js"),
-      ),
+        path.join(extensionUri, "webview_panels", "dist", "assets", "main.js")
+      )
     );
     const indexCss = webview.asWebviewUri(
       Uri.file(
-        path.join(extensionUri, "webview_panels", "dist", "assets", "main.css"),
-      ),
+        path.join(extensionUri, "webview_panels", "dist", "assets", "main.css")
+      )
     );
     const insightsCss = webview.asWebviewUri(
       Uri.file(
@@ -174,9 +201,9 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           "webview_panels",
           "dist",
           "assets",
-          "Insights.css",
-        ),
-      ),
+          "Insights.css"
+        )
+      )
     );
     const nonce = getNonce();
     return `

@@ -1,4 +1,5 @@
 from decimal import Decimal
+from pathlib import Path
 import dbt.adapters.factory
 
 # This is critical because `get_adapter` is all over dbt-core
@@ -83,8 +84,6 @@ JINJA_CONTROL_SEQS = ["{{", "}}", "{%", "%}", "{#", "#}"]
 
 T = TypeVar("T")
 
-ALTIMATE_PACKAGE_PATH = f"{os.path.dirname(os.path.abspath(__file__))}/altimate_packages"
-
 
 @contextlib.contextmanager
 def add_path(path):
@@ -101,6 +100,10 @@ def validate_sql(
     models: List[Dict],
 ):
     try:
+        ALTIMATE_PACKAGE_PATH = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "altimate_packages"
+        )
         with add_path(ALTIMATE_PACKAGE_PATH):
             from altimate.validate_sql import validate_sql_from_models
 
@@ -165,6 +168,26 @@ def memoize_get_rendered(function):
             return rv
 
     return wrapper
+
+def default_profiles_dir(project_dir) -> Path:
+    if "DBT_PROFILES_DIR" in os.environ:
+        return Path(os.environ["DBT_PROFILES_DIR"]).resolve()
+    return project_dir if (project_dir / "profiles.yml").exists() else Path.home() / ".dbt"
+
+def find_package_paths(project_directories, profiles_dir_override):
+    def get_package_path(project_dir):
+        try:
+            project = DbtProject(project_dir=project_dir, profiles_dir=profiles_dir_override if Path(profiles_dir_override).exists() and profiles_dir_override.strip() != ""  else default_profiles_dir(Path(project_dir)))
+            project.init_config()
+            packages_path = Path(project.config.packages_install_path)
+            if packages_path.is_absolute():
+                return packages_path.resolve().as_uri()
+            return (Path(project_dir) / packages_path).resolve().as_uri()
+        except Exception as e:
+            # We don't care about exceptions here, that is dealt with later when the project is loaded
+            pass
+
+    return list(map(lambda project_dir: get_package_path(project_dir), project_directories))
 
 
 # Performance hacks
@@ -252,7 +275,6 @@ class DbtProject:
         project_dir: Optional[str] = None,
         threads: Optional[int] = 1,
         profile: Optional[str] = None,
-        target_path: Optional[str] = None,
     ):
         self.args = ConfigInterface(
             threads=threads,
@@ -260,7 +282,6 @@ class DbtProject:
             profiles_dir=profiles_dir,
             project_dir=project_dir,
             profile=profile,
-            target_path=target_path,
         )
 
         # Utilities
@@ -278,29 +299,35 @@ class DbtProject:
         the singleton approach in the core lib"""
         adapter_name = self.config.credentials.type
         return get_adapter_class_by_name(adapter_name)(self.config)
-
-    def init_project(self):
+    
+    def init_config(self):
         set_from_args(self.args, self.args)
         self.config = RuntimeConfig.from_args(self.args)
-        self.adapter = self.get_adapter()
-        self.adapter.connections.set_connection_name()
-        self.config.adapter = self.adapter
-        self.dbt = None
+        if hasattr(self.config, "source_paths"):
+            self.config.model_paths = self.config.source_paths
 
-    def parse_project(self, init: bool = False) -> None:
-        """Parses project on disk from `ConfigInterface` in args attribute, verifies connection
-        to adapters database, mutates config, adapter, and dbt attributes"""
-        if init:
-            self.init_project()
+    def init_project(self):
+        try:
+            self.init_config()
+            self.adapter = self.get_adapter()
+            self.adapter.connections.set_connection_name()
+            self.config.adapter = self.adapter
+        except Exception as e:
+            raise Exception(str(e))
 
-        project_parser = ManifestLoader(
-            self.config,
-            self.config.load_dependencies(),
-            self.adapter.connections.set_query_header,
-        )
-        self.dbt = project_parser.load()
-        self.dbt.build_flat_graph()
-        project_parser.save_macros_to_adapter(self.adapter)
+    def parse_project(self) -> None:
+        try:
+            project_parser = ManifestLoader(
+                self.config,
+                self.config.load_dependencies(),
+                self.adapter.connections.set_query_header,
+            )
+            self.dbt = project_parser.load()
+            project_parser.save_macros_to_adapter(self.adapter)
+            self.dbt.build_flat_graph()
+        except Exception as e:
+            raise Exception(str(e))
+
         self._sql_parser = None
         self._macro_parser = None
         self._sql_compiler = None
@@ -371,7 +398,7 @@ class DbtProject:
         """dbt manifest dict"""
         return ManifestProxy(self.dbt.flat_graph)
 
-    def safe_parse_project(self, reinit: bool = False) -> None:
+    def safe_parse_project(self) -> None:
         self.clear_caches()
         # doing this so that we can allow inits to fail when config is
         # bad and restart after the user sets it up correctly
@@ -380,7 +407,7 @@ class DbtProject:
         else:
             _config_pointer = None
         try:
-            self.parse_project(init=reinit)
+            self.parse_project()
             self.write_manifest_artifact()
         except Exception as e:
             self.config = _config_pointer
@@ -403,41 +430,47 @@ class DbtProject:
     @lru_cache(maxsize=10)
     def get_ref_node(self, target_model_name: str) -> "ManifestNode":
         """Get a `"ManifestNode"` from a dbt project model name"""
-        if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 6:
+        try:
+            if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 6:
+                return self.dbt.resolve_ref(
+                    source_node=None,
+                    target_model_name=target_model_name,
+                    target_model_version=None,
+                    target_model_package=None,
+                    current_project=self.config.project_name,
+                    node_package=self.config.project_name,
+                )
+            if DBT_MAJOR_VER == 1 and DBT_MINOR_VER >= 5:
+                return self.dbt.resolve_ref(
+                    target_model_name=target_model_name,
+                    target_model_version=None,
+                    target_model_package=None,
+                    current_project=self.config.project_name,
+                    node_package=self.config.project_name,
+                )
             return self.dbt.resolve_ref(
-                source_node=None,
                 target_model_name=target_model_name,
-                target_model_version=None,
                 target_model_package=None,
                 current_project=self.config.project_name,
                 node_package=self.config.project_name,
             )
-        if DBT_MAJOR_VER == 1 and DBT_MINOR_VER >= 5:
-            return self.dbt.resolve_ref(
-                target_model_name=target_model_name,
-                target_model_version=None,
-                target_model_package=None,
-                current_project=self.config.project_name,
-                node_package=self.config.project_name,
-            )
-        return self.dbt.resolve_ref(
-            target_model_name=target_model_name,
-            target_model_package=None,
-            current_project=self.config.project_name,
-            node_package=self.config.project_name,
-        )
+        except Exception as e:
+            raise Exception(str(e))
 
     @lru_cache(maxsize=10)
     def get_source_node(
         self, target_source_name: str, target_table_name: str
     ) -> "ManifestNode":
         """Get a `"ManifestNode"` from a dbt project source name and table name"""
-        return self.dbt.resolve_source(
-            target_source_name=target_source_name,
-            target_table_name=target_table_name,
-            current_project=self.config.project_name,
-            node_package=self.config.project_name,
-        )
+        try:
+            return self.dbt.resolve_source(
+                target_source_name=target_source_name,
+                target_table_name=target_table_name,
+                current_project=self.config.project_name,
+                node_package=self.config.project_name,
+            )
+        except Exception as e:
+            raise Exception(str(e))
 
     def get_server_node(self, sql: str, node_name="name"):
         """Get a node for SQL execution against adapter"""
@@ -506,15 +539,21 @@ class DbtProject:
             raise Exception(str(e))
 
     def compile_sql(self, raw_sql: str) -> DbtAdapterCompilationResult:
-        with self.adapter.connection_named("master"):
-            return self._compile_sql(raw_sql)
+        try:
+            with self.adapter.connection_named("master"):
+                return self._compile_sql(raw_sql)
+        except Exception as e:
+            raise Exception(str(e))
 
     def compile_node(
         self, node: "ManifestNode"
     ) -> Optional[DbtAdapterCompilationResult]:
-        with self.adapter.connection_named("master"):
-            return self._compile_node(node)
-
+        try:
+            with self.adapter.connection_named("master"):
+                return self._compile_node(node)
+        except Exception as e:
+            raise Exception(str(e))
+        
     def _compile_sql(self, raw_sql: str) -> DbtAdapterCompilationResult:
         """Creates a node with a `dbt.parser.sql` class. Compile generated node."""
         try:
@@ -573,8 +612,11 @@ class DbtProject:
 
     def get_columns_in_relation(self, relation: "BaseRelation") -> List[str]:
         """Wrapper for `adapter.get_columns_in_relation`"""
-        with self.adapter.connection_named("master"):
-            return self.adapter.get_columns_in_relation(relation)
+        try:
+            with self.adapter.connection_named("master"):
+                return self.adapter.get_columns_in_relation(relation)
+        except Exception as e:
+            raise Exception(str(e))
 
     @lru_cache(maxsize=5)
     def get_columns(self, node: "ManifestNode") -> List["ColumnInfo"]:

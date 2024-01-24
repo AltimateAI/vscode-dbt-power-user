@@ -39,12 +39,13 @@ export type ExposureMetaData = {
   tags: [string];
   url?: string;
   type: string;
-  config: { enabled: boolean };path: string;
+  config: { enabled: boolean };
+  path: string;
   unique_id: string;
   sources?: [string];
   metrics?: unknown[];
   meta?: Record<string, unknown>;
-}
+};
 interface ColumnLineageResponse {
   column_lineage: ColumnLineage[];
   confidence?: { confidence: string; operator_list?: string[] };
@@ -85,8 +86,16 @@ export const getConnectedColumns = (body: {
   upstreamExpansion: boolean;
   currAnd1HopTables: string[];
   selectedColumn: { name: string; table: string };
+  sessionId: string;
 }) => {
   return requestExecutor("getConnectedColumns", body) as Promise<
     ColumnLineageResponse
   >;
+};
+
+export const sendFeedback = (body: {
+  feedback_value: "good" | "bad";
+  feedback_text: string;
+}) => {
+  return requestExecutor("sendFeedback", body) as Promise<{ ok: boolean }>;
 };

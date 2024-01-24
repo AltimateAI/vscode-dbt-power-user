@@ -16,18 +16,22 @@ import {
   layoutElementsOnCanvas,
   resetTableHighlights,
 } from "./graph";
-import { LineageContext, openFile, isDarkMode, startProgressBar, endProgressBar } from "./App";
+import {
+  LineageContext,
+  openFile,
+  startProgressBar,
+  endProgressBar,
+} from "./App";
 import { C_NODE_H, C_PADDING_Y } from "./utils";
 import { TMoreTables } from "./MoreTables";
 import ModelIcon from "./assets/icons/model.svg?react";
 import SeedIcon from "./assets/icons/seed.svg?react";
 import SourceIcon from "./assets/icons/source.svg?react";
 import ExposureIcon from "./assets/icons/exposure.svg?react";
+import AnalysisIcon from "./assets/icons/analysis.svg?react";
 import SnapshotIcon from "./assets/icons/snapshot.svg?react";
 import MetricsIcon from "./assets/icons/metrics.svg?react";
 import MacrosIcon from "./assets/icons/macros.svg?react";
-import FolderIcon from "./assets/icons/folder.svg?react";
-import FolderDarkIcon from "./assets/icons/folder_dark.svg?react";
 import TestsIcon from "./assets/icons/tests.svg?react";
 import EphemeralIcon from "./assets/icons/ephemeral.svg?react";
 import { UncontrolledTooltip } from "reactstrap";
@@ -80,6 +84,7 @@ export const NodeTypeIcon: FunctionComponent<{ nodeType: string }> = ({
     {nodeType === "model" && <ModelIcon />}
     {nodeType === "source" && <SourceIcon />}
     {nodeType === "exposure" && <ExposureIcon />}
+    {nodeType === "analysis" && <AnalysisIcon />}
     {nodeType === "snapshot" && <SnapshotIcon />}
     {nodeType === "metrics" && <MetricsIcon />}
     {nodeType === "macros" && <MacrosIcon />}
@@ -94,6 +99,7 @@ const NODE_TYPE_SHORTHAND = {
   snapshot: "SNP",
   metrics: "MET",
   macros: "SEM",
+  analysis: "ANY",
 };
 
 const NODE_TYPE_STYLES = {
@@ -104,6 +110,7 @@ const NODE_TYPE_STYLES = {
   snapshot: styles.snapshot,
   metrics: styles.metrics,
   macros: styles.macros,
+  analysis: styles.analysis,
 };
 
 const TableNodePill: FunctionComponent<{
@@ -129,6 +136,7 @@ export const TableHeader: FunctionComponent<{
   materialization?: string | undefined;
 }> = ({ nodeType, label, table, tests, materialization }) => {
   const nType = nodeType as keyof typeof NODE_TYPE_SHORTHAND;
+  const tableId = table.replace(/[^a-zA-Z0-9]/g, "-");
   return (
     <div className="d-flex flex-column align-items-start gap-xs w-100">
       <div className={styles.table_header}>
@@ -141,7 +149,7 @@ export const TableHeader: FunctionComponent<{
       <div className={classNames("d-flex gap-xs", styles.node_extra_info)}>
         {tests?.length > 0 && (
           <TableNodePill
-            id={"table-node-tests-" + table.replaceAll(".", "-")}
+            id={"table-node-tests-" + tableId}
             icon={<TestsIcon />}
             text={tests.length.toString()}
             label="Tests"
@@ -149,7 +157,7 @@ export const TableHeader: FunctionComponent<{
         )}
         {materialization && (
           <TableNodePill
-            id={"table-node-materilization-" + table.replaceAll(".", "-")}
+            id={"table-node-materilization-" + tableId}
             icon={<EphemeralIcon />}
             text={materialization}
             label="Materialization"
@@ -227,7 +235,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
         setConfidence,
         setMoreTables,
         setCollectColumns,
-        flow
+        flow,
+        selectedColumn.sessionId
       );
       rerender();
       endProgressBar();
@@ -272,6 +281,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           e.stopPropagation();
           toggleTableSelection();
           highlightTable();
+          openFile(url);
         }}
       >
         <div
@@ -305,6 +315,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                 e.stopPropagation();
                 expandLeft();
               }}
+              data-testid={"expand-left-btn-" + table}
             >
               {processed[0] ? "-" : "+"}
             </div>
@@ -315,15 +326,9 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                 selected ? "text-blue" : "text-grey"
               )}
               onClick={onDetailsClick}
+              data-testid={"view-details-btn-" + table}
             >
               View Details
-            </div>
-
-            <div
-              className={classNames("nodrag", styles.open_file_button)}
-              onClick={() => openFile(url)}
-            >
-              {isDarkMode ? <FolderDarkIcon /> : <FolderIcon />}
             </div>
             <div className="spacer" />
 
@@ -339,6 +344,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                 e.stopPropagation();
                 expandRight();
               }}
+              data-testid={"expand-right-btn-" + table}
             >
               {processed[1] ? "-" : "+"}
             </div>

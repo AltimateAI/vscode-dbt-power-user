@@ -12,13 +12,11 @@ import {
   Label,
   Stack,
 } from "@uicore";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SettingsIcon } from "@assets/icons";
-import {
-  executeRequestInAsync,
-  executeRequestInSync,
-} from "../app/requestExecutor";
+import { executeRequestInSync } from "../app/requestExecutor";
 import classes from "./defer.module.scss";
+import { IncomingMessageProps } from "@modules/app/types";
 
 interface DeferToProductionProps {
   deferToProduction: boolean;
@@ -35,6 +33,27 @@ const DeferToProduction = (): JSX.Element => {
     manifestPathForDeferral: "",
   });
   const [hideBody, setHideBody] = useState(true);
+
+  const onMesssage = useCallback(
+    (event: MessageEvent<IncomingMessageProps>) => {
+      const { command, args } = event.data;
+      switch (command) {
+        case "updateDeferConfig":
+          setDeferState(args as unknown as DeferToProductionProps);
+          break;
+        default:
+          break;
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    window.addEventListener("message", onMesssage);
+    return () => {
+      window.removeEventListener("message", onMesssage);
+    };
+  }, [onMesssage]);
 
   const loadDeferConfig = async () => {
     const config = await executeRequestInSync("getDeferToProductionConfig", {});
@@ -60,10 +79,18 @@ const DeferToProduction = (): JSX.Element => {
     setDeferState((prevState) => ({ ...prevState, [key]: value }));
   };
 
-  const handleStateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleStateChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const { checked, name } = event.target;
-    executeRequestInAsync("updateConfig", { key: name, value: checked });
-    updateDeferAndFavorState({ key: name, value: checked });
+    const response = await executeRequestInSync("updateDeferConfig", {
+      key: name,
+      value: checked,
+      isPreviewFeature: true,
+    });
+    if ((response as { updated: boolean }).updated) {
+      updateDeferAndFavorState({ key: name, value: checked });
+    }
   };
 
   const handleManifestPathChange = (
@@ -73,11 +100,18 @@ const DeferToProduction = (): JSX.Element => {
     setDeferState((prevState) => ({ ...prevState, [name]: value }));
   };
 
-  const onManifestBlur = () => {
-    executeRequestInAsync("updateConfig", {
+  const onManifestBlur = async () => {
+    const response = await executeRequestInSync("updateDeferConfig", {
       key: "manifestPathForDeferral",
       value: manifestPathForDeferral,
+      isPreviewFeature: true,
     });
+    if (!(response as { updated: boolean }).updated) {
+      setDeferState((prevState) => ({
+        ...prevState,
+        manifestPathForDeferral: "",
+      }));
+    }
   };
 
   return (
@@ -108,7 +142,11 @@ const DeferToProduction = (): JSX.Element => {
             </FormGroup>
             <FormGroup>
               <Stack>
-                <Label for="manifestPath" sm={2}>
+                <Label
+                  for="manifestPath"
+                  sm={2}
+                  style={{ whiteSpace: "nowrap" }}
+                >
                   Path to manifest file
                 </Label>
                 <Input

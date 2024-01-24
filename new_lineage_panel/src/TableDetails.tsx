@@ -16,6 +16,7 @@ import {
   endProgressBar,
   LineageContext,
   previewFeature,
+  showNoLineage,
   startProgressBar,
 } from "./App";
 import {
@@ -36,7 +37,7 @@ import ExpandLineageIcon from "./assets/icons/expand_lineage.svg?react";
 import Preview from "./assets/icons/preview.svg?react";
 import { NodeTypeIcon } from "./CustomNodes";
 import { CustomInput } from "./Form";
-import { defaultEdgeStyle,  isNotColumn } from "./utils";
+import { defaultEdgeStyle, isNotColumn } from "./utils";
 import PurposeSection from "./components/Purpose";
 
 const PreviewIcon = () => {
@@ -61,6 +62,7 @@ const ColumnCard: FunctionComponent<{
         "cursor-pointer": isSelectable,
       })}
       onClick={handleClick}
+      data-testid={"table-details-" + column.name}
     >
       <div className="d-flex align-items-center gap-xs">
         <ColumnDatatype datatype={column.datatype} />
@@ -102,13 +104,14 @@ const ColumnSection: FunctionComponent<{
   setData,
 }) => {
   const isEphemeral = selectedTable?.materialization === "ephemeral";
+  const isAnalysis = selectedTable?.nodeType === "analysis";
   return (
     <div className={classNames(styles.card, "flex-grow column-section")}>
       <div className="d-flex flex-column gap-sm h-100 p-2">
         <div className="d-flex align-items-center gap-xs">
           <div className="fs-5 fw-semibold">Columns</div>
           <div className="spacer" />
-          {!isEphemeral && (
+          {!isEphemeral && !isAnalysis && (
             <Button
               size="sm"
               color="primary"
@@ -249,7 +252,7 @@ const TableDetails = () => {
       );
       flow.setNodes(_nodes);
       flow.setEdges(_edges);
-      setSelectedColumn({ table: "", name: "" });
+      setSelectedColumn({ table: "", name: "", sessionId: "" });
       setCollectColumns({});
       setShowSidebar(false);
       return;
@@ -274,7 +277,8 @@ const TableDetails = () => {
       if (!processed[1]) await addNodesEdges(true);
       if (!processed[0]) await addNodesEdges(false);
     }
-    setSelectedColumn(_column);
+    const sessionId = window.crypto.randomUUID();
+    setSelectedColumn({ ..._column, sessionId });
     setShowSidebar(false);
     setCollectColumns({});
 
@@ -297,12 +301,32 @@ const TableDetails = () => {
         setConfidence,
         setMoreTables,
         setCollectColumns,
-        flow
+        flow,
+        sessionId
       );
-    await Promise.all([_bfsTraversal(true), _bfsTraversal(false)]);
+    try {
+      const result = await Promise.all([
+        _bfsTraversal(true),
+        _bfsTraversal(false),
+      ]);
+      if (result.every((isLineage) => !isLineage)) {
+        showNoLineage(_column);
+      }
+    } catch (e) {
+      console.error(
+        "Error while performing cll for ",
+        _column.table,
+        _column.name,
+        ", error:",
+        e
+      );
+      setSelectedColumn({ table: "", name: "", sessionId: "" });
+    }
     endProgressBar();
   };
   if (isLoading || !data || !selectedTable) return <ComponentLoader />;
+  const tabs = ["Column"];
+  if (selectedTable.tests.length) tabs.push("Tests");
 
   return (
     <div className="p-2 h-100 d-flex flex-column gap-md overflow-y">
@@ -314,7 +338,7 @@ const TableDetails = () => {
       </div>
       {data.purpose && <PurposeSection purpose={data.purpose} />}
       <div className={styles.table_details_tabs}>
-        {["Column", "Tests"].map((label, i) => (
+        {tabs.map((label, i) => (
           <div
             className={classNames(styles.tab, { [styles.selected]: tab === i })}
             onClick={() => setTab(i)}

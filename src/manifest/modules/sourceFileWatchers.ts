@@ -47,7 +47,21 @@ export class SourceFileWatchers implements Disposable {
   }
 
   private onProjectConfigChanged(event: ProjectConfigChangedEvent) {
-    const { sourcePaths, macroPaths, projectRoot } = event;
+    const project = event.project;
+    // TODO: these things can change so we should recreate them if project config changes
+    const sourcePaths = project.getModelPaths();
+    if (sourcePaths === undefined) {
+      throw new Error(
+        "sourcePaths is not defined in project in " +
+          project.projectRoot.fsPath,
+      );
+    }
+    const macroPaths = project.getMacroPaths();
+    if (macroPaths === undefined) {
+      throw new Error(
+        "macroPaths is not defined in " + project.projectRoot.fsPath,
+      );
+    }
     const paths = sourcePaths.concat(macroPaths);
     if (
       this.currentSourcePaths === undefined ||
@@ -56,9 +70,8 @@ export class SourceFileWatchers implements Disposable {
       this.disposeWatchers();
       this.watchers = [];
       paths.forEach((sourcePath) => {
-        const parsedSourcePath = Uri.joinPath(projectRoot, sourcePath);
         const sourceFolderWatcher = workspace.createFileSystemWatcher(
-          new RelativePattern(parsedSourcePath, "**/*.{sql,yml,yaml}"),
+          new RelativePattern(sourcePath, "**/*.{sql,yml,yaml}"),
         );
 
         const debouncedSourceFileChangedEvent = debounce(

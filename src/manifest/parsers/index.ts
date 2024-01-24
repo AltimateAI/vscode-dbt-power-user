@@ -30,18 +30,22 @@ export class ManifestParser {
     private telemetry: TelemetryService,
   ) {}
 
-  public async parseManifest(
-    projectRoot: Uri,
-    projectName: string,
-    targetPath: string,
-  ) {
+  public async parseManifest(project: DBTProject) {
+    const targetPath = project.getTargetPath();
+    if (!targetPath) {
+      console.error(
+        "targetPath should be defined at this stage for project " +
+          project.projectRoot.fsPath,
+      );
+      return;
+    }
+    const projectRoot = project.projectRoot;
     const manifest = this.readAndParseManifest(projectRoot, targetPath);
     if (manifest === undefined) {
       const event: ManifestCacheChangedEvent = {
         added: [
           {
-            projectName: projectName,
-            projectRoot: projectRoot,
+            project,
             nodeMetaMap: new Map(),
             macroMetaMap: new Map(),
             sourceMetaMap: new Map(),
@@ -64,33 +68,27 @@ export class ManifestParser {
     const rootPath = projectRoot.fsPath;
 
     const nodeMetaMapPromise = this.nodeParser.createNodeMetaMap(
-      projectName,
       nodes,
-      rootPath,
+      project,
     );
     const macroMetaMapPromise = this.macroParser.createMacroMetaMap(
-      projectName,
       macros,
-      rootPath,
+      project,
     );
     const sourceMetaMapPromise = this.sourceParser.createSourceMetaMap(
       sources,
-      rootPath,
+      project,
     );
     const testMetaMapPromise = this.testParser.createTestMetaMap(
       nodes,
-      rootPath,
+      project,
     );
     const exposuresMetaMapPromise = this.exposureParser.createExposureMetaMap(
       exposures,
       rootPath,
     );
 
-    const docMetaMapPromise = this.docParser.createDocMetaMap(
-      docs,
-      projectName,
-      rootPath,
-    );
+    const docMetaMapPromise = this.docParser.createDocMetaMap(docs, project);
 
     const [
       nodeMetaMap,
@@ -148,8 +146,7 @@ export class ManifestParser {
     const event: ManifestCacheChangedEvent = {
       added: [
         {
-          projectName: projectName,
-          projectRoot: projectRoot,
+          project,
           nodeMetaMap: nodeMetaMap,
           macroMetaMap: macroMetaMap,
           sourceMetaMap: sourceMetaMap,
@@ -185,24 +182,23 @@ export const createFullPathForNode: (
   projectName: string,
   rootPath: string,
   packageName: string,
+  packagePath: string,
   relativeFilePath: string,
 ) => string | undefined = (
   projectName,
   rootPath,
   packageName,
+  packagePath,
   relativeFilePath,
 ) => {
   if (packageName !== projectName) {
-    for (const modulePathVariant of DBTProject.DBT_MODULES) {
-      const rootPathWithPackage = path.join(
-        rootPath,
-        modulePathVariant,
-        packageName,
-        relativeFilePath,
-      );
-      if (existsSync(rootPathWithPackage)) {
-        return rootPathWithPackage;
-      }
+    const rootPathWithPackage = path.join(
+      packagePath,
+      packageName,
+      relativeFilePath,
+    );
+    if (existsSync(rootPathWithPackage)) {
+      return rootPathWithPackage;
     }
     return undefined;
   }

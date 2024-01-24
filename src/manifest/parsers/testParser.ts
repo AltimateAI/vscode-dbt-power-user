@@ -5,12 +5,16 @@ import { DBTProject } from "../dbtProject";
 
 @provide(TestParser)
 export class TestParser {
-  createTestMetaMap(testsMap: any[], rootPath: string): Promise<TestMetaMap> {
+  createTestMetaMap(
+    testsMap: any[],
+    project: DBTProject,
+  ): Promise<TestMetaMap> {
     return new Promise((resolve) => {
       const testMetaMap: TestMetaMap = new Map();
       if (testsMap === null || testsMap === undefined) {
         resolve(testMetaMap);
       }
+      const rootPath = project.projectRoot.fsPath;
       Object.values(testsMap)
         .filter((test) => test.resource_type === DBTProject.RESOURCE_TYPE_TEST)
         .forEach(

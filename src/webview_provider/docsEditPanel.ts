@@ -560,6 +560,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       columns: message.columns.map((column: any) => ({
                         name: column.name,
                         description: column.description,
+                        ...(column?.type ? { data_type: column.type } : {}),
                       })),
                     });
                   } else {
@@ -578,12 +579,18 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                             if (existingColumn !== undefined) {
                               return {
                                 ...existingColumn,
+                                ...(column?.type && !existingColumn?.data_type
+                                  ? { data_type: column.type }
+                                  : {}),
                                 description: column.description,
                               };
                             } else {
                               return {
                                 name: column.name,
                                 description: column.description,
+                                ...(column?.type
+                                  ? { data_type: column.type }
+                                  : {}),
                               };
                             }
                           });
@@ -626,7 +633,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
   private async onManifestCacheChanged(event: ManifestCacheChangedEvent) {
     event.added?.forEach((added) => {
-      this.eventMap.set(added.projectRoot.fsPath, added);
+      this.eventMap.set(added.project.projectRoot.fsPath, added);
     });
     event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);

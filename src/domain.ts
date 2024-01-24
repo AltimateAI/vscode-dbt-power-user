@@ -1,5 +1,4 @@
 import * as path from "path";
-import { MarkdownString } from "vscode";
 
 export type NodeMetaMap = Map<string, NodeMetaData>;
 export type MacroMetaMap = Map<string, MacroMetaData>;
@@ -148,7 +147,7 @@ export class Test extends Node {
   };
 }
 export class Analysis extends Node {
-  displayInModelTree = false;
+  displayInModelTree = true;
 }
 export class Exposure extends Node {
   displayInModelTree = true;

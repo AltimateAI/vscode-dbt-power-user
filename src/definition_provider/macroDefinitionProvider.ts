@@ -78,7 +78,10 @@ export class MacroDefinitionProvider implements DefinitionProvider, Disposable {
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
-      this.macroToLocationMap.set(added.projectRoot.fsPath, added.macroMetaMap);
+      this.macroToLocationMap.set(
+        added.project.projectRoot.fsPath,
+        added.macroMetaMap,
+      );
     });
     event.removed?.forEach((removed) => {
       this.macroToLocationMap.delete(removed.projectRoot.fsPath);

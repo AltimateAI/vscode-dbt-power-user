@@ -73,7 +73,7 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
-      this.eventMap.set(added.projectRoot.fsPath, added);
+      this.eventMap.set(added.project.projectRoot.fsPath, added);
     });
     event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);
@@ -168,7 +168,7 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
       return;
     }
 
-    if (command === "openDocs") {
+    if (command === "openURL") {
       if (!args.url) {
         return;
       }

@@ -89,7 +89,10 @@ export class SourceHoverProvider implements HoverProvider, Disposable {
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
-      this.sourceMetaMap.set(added.projectRoot.fsPath, added.sourceMetaMap);
+      this.sourceMetaMap.set(
+        added.project.projectRoot.fsPath,
+        added.sourceMetaMap,
+      );
     });
     event.removed?.forEach((removed) => {
       this.sourceMetaMap.delete(removed.projectRoot.fsPath);
