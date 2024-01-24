@@ -89,9 +89,6 @@ export class DBTCoreProjectDetection
     let packagesInstallPaths = projectDirectories.map((projectDirectory) =>
       path.join(projectDirectory.fsPath, "dbt_packages"),
     );
-    const profilesDirOverrideSetting = workspace
-      .getConfiguration("dbt")
-      .get<string>("profilesDirOverride");
     let python: PythonBridge | undefined;
     try {
       python = this.executionInfrastructure.createPythonBridge(
@@ -103,7 +100,7 @@ export class DBTCoreProjectDetection
         (python) =>
           python`to_dict(find_package_paths(${projectDirectories.map(
             (projectDirectory) => projectDirectory.fsPath,
-          )}, ${profilesDirOverrideSetting}))`,
+          )}))`,
       );
       packagesInstallPaths = packagesInstallPaths.map(
         (packageInstallPath, index) => {
