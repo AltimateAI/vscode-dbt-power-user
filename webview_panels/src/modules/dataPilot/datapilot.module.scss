@@ -24,3 +24,19 @@
     }
   }
 }
+
+.default-view{
+  h1{
+    margin-bottom: 0;
+  }
+  > section {
+    border-radius: 8px;
+    border: 1px solid var(--Backgrounds-04, #4A4D51);
+    padding: 46px 20px 20px 20px;
+    text-align: center;
+    margin-top: 20px;
+    h4 {
+      margin-bottom: 24px;
+    }
+  }
+}

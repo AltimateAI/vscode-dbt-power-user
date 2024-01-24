@@ -1,4 +1,4 @@
-import { RefreshIcon } from "@assets/icons";
+import { AltimateIcon, RefreshIcon } from "@assets/icons";
 import ResultFeedbackButtons from "@modules/documentationEditor/components/result/ResultFeedbackButtons";
 import {
   Button,
@@ -73,30 +73,40 @@ const NewGenerationResults = ({
   return (
     <List className={classes.chatList}>
       {generatedResults.map((result) => (
-        <li key={result.name}>
-          <Card>
-            <CardTitle>{result.prompt}</CardTitle>
-            <CardBody>
-              {result.description}
-              <Stack className={classes.actionButtons}>
-                <Stack>
-                  <Button
-                    color="primary"
-                    onClick={() => handleDocInsert(result)}
-                  >
-                    Insert
-                  </Button>
-                  <IconButton>
-                    <RefreshIcon />
-                  </IconButton>
+        <>
+          <li>
+            <Card>
+              <CardBody>{result.prompt}</CardBody>
+            </Card>
+          </li>
+          <li key={result.name}>
+            <Card>
+              <CardTitle>
+                {" "}
+                <AltimateIcon /> {result.prompt}
+              </CardTitle>
+              <CardBody>
+                {result.description}
+                <Stack className={classes.actionButtons}>
+                  <Stack>
+                    <Button
+                      color="primary"
+                      onClick={() => handleDocInsert(result)}
+                    >
+                      Insert
+                    </Button>
+                    <IconButton>
+                      <RefreshIcon />
+                    </IconButton>
+                  </Stack>
+                  <ResultFeedbackButtons
+                    onFeedbackSubmit={(data) => onFeedbackSubmit(data, result)}
+                  />
                 </Stack>
-                <ResultFeedbackButtons
-                  onFeedbackSubmit={(data) => onFeedbackSubmit(data, result)}
-                />
-              </Stack>
-            </CardBody>
-          </Card>
-        </li>
+              </CardBody>
+            </Card>
+          </li>
+        </>
       ))}
     </List>
   );

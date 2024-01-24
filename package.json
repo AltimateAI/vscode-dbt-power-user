@@ -224,7 +224,7 @@
         {
           "id": "datapilot_view",
           "title": "Altimate Data pilot",
-          "icon": "./media/images/dbt_icon.svg",
+          "icon": "./media/images/altimate.svg",
           "contextualTitle": "Altimate Data pilot"
         }
       ],

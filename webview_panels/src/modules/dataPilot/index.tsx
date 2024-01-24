@@ -4,6 +4,7 @@ import useDataPilotContext from "./useDataPilotContext";
 import { DataPilotChat, RequestTypes } from "./types";
 import AiDocChat from "./components/AiDocChat";
 import classes from "./datapilot.module.scss";
+import DefaultDatapilotView from "./DefaultDatapilotView";
 
 const DataPilotPanel = () => {
   const {
@@ -27,7 +28,7 @@ const DataPilotPanel = () => {
   };
 
   if (!chats.length) {
-    return null;
+    return <DefaultDatapilotView />;
   }
 
   return (
