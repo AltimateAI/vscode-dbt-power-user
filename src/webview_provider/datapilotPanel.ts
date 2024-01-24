@@ -8,6 +8,7 @@ import {
 } from "./altimateWebviewProvider";
 import { sharedStateManager } from "./sharedStateManager";
 import { DocGenService } from "../services/docGenService";
+import { AltimateRequest } from "../altimate";
 
 @provideSingleton(DataPilotPanel)
 export class DataPilotPanel extends AltimateWebviewProvider {
@@ -18,9 +19,10 @@ export class DataPilotPanel extends AltimateWebviewProvider {
   public constructor(
     dbtProjectContainer: DBTProjectContainer,
     telemetry: TelemetryService,
+    protected altimateRequest: AltimateRequest,
     private docGenService: DocGenService,
   ) {
-    super(dbtProjectContainer, telemetry);
+    super(dbtProjectContainer, altimateRequest, telemetry);
     sharedStateManager.addListener((message) => {
       const { command, ...item } = message;
       if (!this._panel) {

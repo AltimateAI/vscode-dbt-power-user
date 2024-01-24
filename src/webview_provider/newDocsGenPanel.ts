@@ -5,6 +5,7 @@ import {
   WebviewViewResolveContext,
   workspace,
 } from "vscode";
+import { AltimateRequest } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
 import { provideSingleton } from "../utils";
@@ -23,9 +24,10 @@ export class NewDocsGenPanel
 
   public constructor(
     dbtProjectContainer: DBTProjectContainer,
+    protected altimateRequest: AltimateRequest,
     telemetry: TelemetryService,
   ) {
-    super(dbtProjectContainer, telemetry);
+    super(dbtProjectContainer, altimateRequest, telemetry);
   }
   resolveWebview(
     panel: WebviewView,

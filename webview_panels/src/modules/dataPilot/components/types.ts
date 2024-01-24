@@ -12,7 +12,7 @@ export enum Rating {
 }
 
 export interface Feedback {
-  feedback_type: Rating;
+  feedback_type?: Rating;
   feedback_message: string;
 }
 

@@ -11,7 +11,7 @@ interface Props {
 }
 
 const schema = Yup.object({
-  feedback_type: Yup.mixed<Rating>().oneOf(Object.values(Rating)).required(),
+  feedback_type: Yup.mixed<Rating>().oneOf(Object.values(Rating)).optional(),
   feedback_message: Yup.string().required(),
 }).required();
 

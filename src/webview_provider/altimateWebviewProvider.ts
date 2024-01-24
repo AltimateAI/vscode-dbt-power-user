@@ -46,16 +46,16 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
     protected altimateRequest: AltimateRequest,
-    protected telemetry: TelemetryService
+    protected telemetry: TelemetryService,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
-      this.onManifestCacheChanged(event)
+      this.onManifestCacheChanged(event),
     );
   }
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
-      this.eventMap.set(added.projectRoot.fsPath, added);
+      this.eventMap.set(added.project.projectRoot.fsPath, added);
     });
     event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);
@@ -68,7 +68,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     webview.html = this.getHtml(
       webview,
-      this.dbtProjectContainer.extensionPath
+      this.dbtProjectContainer.extensionPath,
     );
   }
 
@@ -80,7 +80,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         case "datapilot:toggle":
           if (params.open) {
             await commands.executeCommand(
-              "dbtPowerUser.datapilot-webview.focus"
+              "dbtPowerUser.datapilot-webview.focus",
             );
           }
           break;
@@ -95,7 +95,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           console.log(
             "Updating config",
             (params as UpdateConfigProps).key,
-            (params as UpdateConfigProps).value
+            (params as UpdateConfigProps).value,
           );
           // If config is for preview feature, then check keys
           const shouldUpdate =
@@ -106,7 +106,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               .getConfiguration("dbt")
               .update(
                 (params as UpdateConfigProps).key,
-                (params as UpdateConfigProps).value
+                (params as UpdateConfigProps).value,
               );
           }
           if (syncRequestId) {
@@ -133,7 +133,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
   resolveWebviewView(
     panel: WebviewView,
     context: WebviewViewResolveContext<unknown>,
-    _token: CancellationToken
+    _token: CancellationToken,
   ): void | Thenable<void> {
     console.log("AltimateWebviewProvider:resolveWebviewView -> ");
     this._panel = panel;
@@ -169,8 +169,8 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             this.dbtProjectContainer.extensionPath,
             "webview_panels",
             "dist",
-            "assets"
-          )
+            "assets",
+          ),
         ),
       ],
     };
@@ -178,7 +178,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
   private getTheme() {
     return [ColorThemeKind.Light, ColorThemeKind.HighContrastLight].includes(
-      window.activeColorTheme.kind
+      window.activeColorTheme.kind,
     )
       ? "light"
       : "dark";
@@ -186,13 +186,13 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
   private getHtml(webview: Webview, extensionUri: string) {
     const indexJs = webview.asWebviewUri(
       Uri.file(
-        path.join(extensionUri, "webview_panels", "dist", "assets", "main.js")
-      )
+        path.join(extensionUri, "webview_panels", "dist", "assets", "main.js"),
+      ),
     );
     const indexCss = webview.asWebviewUri(
       Uri.file(
-        path.join(extensionUri, "webview_panels", "dist", "assets", "main.css")
-      )
+        path.join(extensionUri, "webview_panels", "dist", "assets", "main.css"),
+      ),
     );
     const insightsCss = webview.asWebviewUri(
       Uri.file(
@@ -201,9 +201,9 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           "webview_panels",
           "dist",
           "assets",
-          "Insights.css"
-        )
-      )
+          "Insights.css",
+        ),
+      ),
     );
     const nonce = getNonce();
     return `
