@@ -310,8 +310,10 @@ export class DBTCoreProjectIntegration
   }
 
   async rebuildManifest(): Promise<void> {
-    const p = Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE);
-    if (this.projectConfigDiagnostics.get(p)) {
+    const errors = this.projectConfigDiagnostics.get(
+      Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+    );
+    if (errors !== undefined && errors.length > 0) {
       // No point in trying to rebuild the manifest if the config is not valid
       return;
     }
