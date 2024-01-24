@@ -101,8 +101,7 @@ def validate_sql(
 ):
     try:
         ALTIMATE_PACKAGE_PATH = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "altimate_packages"
+            os.path.dirname(os.path.abspath(__file__)), "altimate_packages"
         )
         with add_path(ALTIMATE_PACKAGE_PATH):
             from altimate.validate_sql import validate_sql_from_models
@@ -169,15 +168,29 @@ def memoize_get_rendered(function):
 
     return wrapper
 
+
 def default_profiles_dir(project_dir) -> Path:
     if "DBT_PROFILES_DIR" in os.environ:
         return Path(os.environ["DBT_PROFILES_DIR"]).resolve()
-    return project_dir if (project_dir / "profiles.yml").exists() else Path.home() / ".dbt"
+    return (
+        project_dir if (project_dir / "profiles.yml").exists() else Path.home() / ".dbt"
+    )
 
-def find_package_paths(project_directories, profiles_dir_override):
+
+def target_dir() -> Path:
+    if "DBT_TARGET_PATH" in os.environ:
+        return Path(os.environ["DBT_TARGET_PATH"]).resolve()
+    return None
+
+
+def find_package_paths(project_directories):
     def get_package_path(project_dir):
         try:
-            project = DbtProject(project_dir=project_dir, profiles_dir=profiles_dir_override if Path(profiles_dir_override).exists() and profiles_dir_override.strip() != ""  else default_profiles_dir(Path(project_dir)))
+            project = DbtProject(
+                project_dir=project_dir,
+                profiles_dir=default_profiles_dir(Path(project_dir)),
+                target=target_dir(),
+            )
             project.init_config()
             packages_path = Path(project.config.packages_install_path)
             if packages_path.is_absolute():
@@ -187,7 +200,9 @@ def find_package_paths(project_directories, profiles_dir_override):
             # We don't care about exceptions here, that is dealt with later when the project is loaded
             pass
 
-    return list(map(lambda project_dir: get_package_path(project_dir), project_directories))
+    return list(
+        map(lambda project_dir: get_package_path(project_dir), project_directories)
+    )
 
 
 # Performance hacks
@@ -299,7 +314,7 @@ class DbtProject:
         the singleton approach in the core lib"""
         adapter_name = self.config.credentials.type
         return get_adapter_class_by_name(adapter_name)(self.config)
-    
+
     def init_config(self):
         set_from_args(self.args, self.args)
         self.config = RuntimeConfig.from_args(self.args)
@@ -558,7 +573,7 @@ class DbtProject:
                 return self._compile_node(node)
         except Exception as e:
             raise Exception(str(e))
-        
+
     def _compile_sql(self, raw_sql: str) -> DbtAdapterCompilationResult:
         """Creates a node with a `dbt.parser.sql` class. Compile generated node."""
         try:
@@ -704,10 +719,10 @@ class DbtProject:
             ),
             auto_begin=True,
         )
-    
+
     def get_dbt_version(self):
         return [DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER]
-    
+
     def validate_sql_dry_run(self, compiled_sql: str):
         if DBT_MAJOR_VER < 1:
             return None
