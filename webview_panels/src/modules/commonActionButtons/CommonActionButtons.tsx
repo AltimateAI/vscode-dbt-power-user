@@ -1,8 +1,9 @@
-import { FeedbackIcon, HelpIcon } from "@assets/icons";
+import { FeedbackIcon } from "@assets/icons";
 import DocGeneratorSettings from "@modules/documentationEditor/components/settings/DocGeneratorSettings";
 import { vscode } from "@modules/vscode";
 import { Button, Stack } from "@uicore";
 import { executeRequestInAsync } from "../app/requestExecutor";
+import HelpButton from "./HelpButton";
 
 const CommonActionButtons = (): JSX.Element => {
   const showOldUx = () => {
@@ -23,9 +24,7 @@ const CommonActionButtons = (): JSX.Element => {
       </Button>
       <DocGeneratorSettings />
 
-      <Button outline>
-        <HelpIcon /> Help
-      </Button>
+      <HelpButton />
       <Button outline onClick={handleFeedbackClick}>
         <FeedbackIcon /> Feedback
       </Button>
