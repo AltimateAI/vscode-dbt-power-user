@@ -32,6 +32,8 @@ const AiDocActionButton = ({ action, onNewGeneration }: Props): JSX.Element => {
     onNewGeneration({
       ...result.columns[0],
       model: action.data.model as string,
+      id: crypto.randomUUID(),
+      prompt: getFollowupInstruction()?.toString(),
     });
   };
   return (

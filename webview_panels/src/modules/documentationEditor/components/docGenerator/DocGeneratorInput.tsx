@@ -3,12 +3,18 @@ import useDocumentationContext from "@modules/documentationEditor/state/useDocum
 import { Input, InputGroup, Stack } from "@uicore";
 import { ChangeEvent, useCallback, useEffect, useState } from "react";
 import GenerateButton, { Variants } from "./GenerateButton";
+import classes from "./docGenInput.module.scss";
 
 interface Props {
   value: string;
   onSubmit: (data: DocsGenerateModelRequestV2) => void;
+  placeholder?: string;
 }
-const DocGeneratorInput = ({ onSubmit, value }: Props): JSX.Element => {
+const DocGeneratorInput = ({
+  onSubmit,
+  value,
+  placeholder,
+}: Props): JSX.Element => {
   const {
     state: { userInstructions, currentDocsData },
   } = useDocumentationContext();
@@ -35,12 +41,15 @@ const DocGeneratorInput = ({ onSubmit, value }: Props): JSX.Element => {
 
   return (
     <Stack>
-      <InputGroup>
+      <InputGroup className={classes.inputGroup}>
         <Input
           value={description}
           onChange={onChange}
           onFocus={handleHideButton}
           onBlur={handleShowButton}
+          type="textarea"
+          rows={description ? 3 : 1}
+          placeholder={placeholder}
         />
 
         {showButton ? (

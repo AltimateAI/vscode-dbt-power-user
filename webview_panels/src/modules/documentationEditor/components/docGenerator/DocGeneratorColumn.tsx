@@ -32,14 +32,6 @@ const DocGeneratorColumn = ({ column }: Props): JSX.Element => {
     const showInDataPilot = !!column.description;
     const id = crypto.randomUUID();
 
-    if (showInDataPilot) {
-      postMessageToDataPilot({
-        id,
-        query: `Generate Documentation for “${column.name}” using settings`,
-        requestType: RequestTypes.AI_DOC_GENERATION,
-        state: RequestState.LOADING,
-      });
-    }
     try {
       const requestData = {
         description: data.description,
@@ -47,6 +39,15 @@ const DocGeneratorColumn = ({ column }: Props): JSX.Element => {
         columnName: column.name,
         columns: currentDocsData?.columns,
       };
+      if (showInDataPilot) {
+        postMessageToDataPilot({
+          id,
+          query: `Generate Documentation for “${column.name}” using settings`,
+          requestType: RequestTypes.AI_DOC_GENERATION,
+          state: RequestState.LOADING,
+          meta: requestData,
+        });
+      }
       const result = (await executeRequestInSync(
         "generateDocsForColumn",
         requestData,
@@ -74,7 +75,7 @@ const DocGeneratorColumn = ({ column }: Props): JSX.Element => {
         (result as { columns: Partial<DBTDocumentationColumn>[] }).columns[0],
       );
     } catch (error) {
-      panelLogger.error("error while generating doc for colum", error);
+      panelLogger.error("error while generating doc for column", error);
       postMessageToDataPilot({
         id,
         response: (error as Error).message,
@@ -88,6 +89,7 @@ const DocGeneratorColumn = ({ column }: Props): JSX.Element => {
       <DocGeneratorInput
         value={column.description ?? ""}
         onSubmit={handleColumnSubmit}
+        placeholder={`Describe ${column.name}`}
       />
     </div>
   );

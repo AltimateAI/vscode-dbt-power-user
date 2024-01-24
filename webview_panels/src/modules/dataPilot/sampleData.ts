@@ -2,10 +2,16 @@ import { DataPilotChat, RequestState, RequestTypes } from "./types";
 
 export const DATA = {
   [crypto.randomUUID()]: {
-    id: crypto.randomUUID(),
-    query: "Generate Documentation for “customer_id” using settings",
-    requestType: RequestTypes.AI_DOC_GENERATION,
-    state: RequestState.LOADING,
+    id: "e0c5127a-eb7c-475d-bdd5-48032295dd05",
+    meta: {
+      description: "Customer's first name. PII.",
+      user_instructions: {},
+      columnName: "first_name",
+      columns: [],
+    },
+    query: "Generate Documentation for “first_name” using settings",
+    requestType: 0,
+    state: 0,
   },
   [crypto.randomUUID()]: {
     id: crypto.randomUUID(),

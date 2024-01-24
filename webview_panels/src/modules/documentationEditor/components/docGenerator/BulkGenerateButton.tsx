@@ -94,7 +94,7 @@ const BulkGenerateButton = () => {
 
   return (
     <div ref={ref}>
-      <DropdownButton onToggleClick={onToggleClick}>
+      <DropdownButton onToggleClick={onToggleClick} onClick={onToggleClick}>
         <ShinesIcon /> Bulk generate
       </DropdownButton>
       <Popover isOpen={openPopover} target={ref} placement="bottom" hideArrow>

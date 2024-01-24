@@ -9,18 +9,63 @@ import {
   List,
   Stack,
 } from "@uicore";
-import { GeneratedResult } from "./types";
+import {
+  Feedback,
+  FeedbackEntityType,
+  FeedbackRequest,
+  FeedbackType,
+  GeneratedResult,
+} from "./types";
 import classes from "../datapilot.module.scss";
-import { executeRequestInAsync } from "@modules/app/requestExecutor";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
+import { panelLogger } from "@modules/logger";
+import { DataPilotChat } from "../types";
 
 interface Props {
   generatedResults: GeneratedResult[];
+  chat: DataPilotChat;
 }
 const NewGenerationResults = ({
   generatedResults,
+  chat,
 }: Props): JSX.Element | null => {
   const handleDocInsert = (result: GeneratedResult) =>
     executeRequestInAsync("docgen:insert", { ...result });
+
+  const onFeedbackSubmit = async (
+    feedbackData: Feedback,
+    result: GeneratedResult,
+  ) => {
+    const data = {
+      requestDetails: chat.meta,
+      messageSequence: [
+        {
+          content: chat.response,
+          type: FeedbackType.RESPONSE,
+        },
+        ...generatedResults.map((r) => {
+          const baseData = {
+            content: r.description,
+            type: FeedbackType.RESPONSE,
+          };
+          if (result.id === r.id) {
+            return { ...feedbackData, ...baseData };
+          }
+          return baseData;
+        }),
+      ],
+      name: result.name,
+      type: chat.meta?.columnName
+        ? FeedbackEntityType.COLUMN
+        : FeedbackEntityType.MODEL,
+    } as FeedbackRequest;
+
+    panelLogger.info("feedback submitted", data);
+    await executeRequestInSync("sendFeedback", data);
+  };
 
   if (!generatedResults.length) {
     return null;
@@ -30,27 +75,24 @@ const NewGenerationResults = ({
       {generatedResults.map((result) => (
         <li key={result.name}>
           <Card>
-            <CardTitle>Regenerated</CardTitle>
+            <CardTitle>{result.prompt}</CardTitle>
             <CardBody>
               {result.description}
-              <Stack>
+              <Stack className={classes.actionButtons}>
                 <Stack>
-                  <Button onClick={() => handleDocInsert(result)}>
+                  <Button
+                    color="primary"
+                    onClick={() => handleDocInsert(result)}
+                  >
                     Insert
                   </Button>
                   <IconButton>
                     <RefreshIcon />
                   </IconButton>
                 </Stack>
-                <Stack>
-                  <ResultFeedbackButtons
-                    data={{
-                      columnDescription: result.description ?? "",
-                      columnName: result.name ?? "",
-                      model: result.model,
-                    }}
-                  />
-                </Stack>
+                <ResultFeedbackButtons
+                  onFeedbackSubmit={(data) => onFeedbackSubmit(data, result)}
+                />
               </Stack>
             </CardBody>
           </Card>

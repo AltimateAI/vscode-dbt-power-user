@@ -1,6 +1,9 @@
 import { ShinesIcon } from "@assets/icons";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
+import useAppContext from "@modules/app/useAppContext";
 import CommonActionButtons from "@modules/commonActionButtons/CommonActionButtons";
+import { RequestState, RequestTypes } from "@modules/dataPilot/types";
+import { panelLogger } from "@modules/logger";
 import { Alert, Container, Stack } from "@uicore";
 import DocGeneratorColumnsList from "./components/docGenerator/DocGeneratorColumnsList";
 import DocGeneratorInput from "./components/docGenerator/DocGeneratorInput";
@@ -9,24 +12,68 @@ import { updateCurrentDocsData } from "./state/documentationSlice";
 import { DocsGenerateModelRequestV2 } from "./state/types";
 import useDocumentationContext from "./state/useDocumentationContext";
 import classes from "./styles.module.scss";
+import { addDefaultActions } from "./utils";
 
 const DocumentationEditor = (): JSX.Element => {
   const {
     state: { currentDocsData },
     dispatch,
   } = useDocumentationContext();
+  const { postMessageToDataPilot } = useAppContext();
 
   const onModelDocSubmit = async (data: DocsGenerateModelRequestV2) => {
-    const result = await executeRequestInSync("generateDocsForModel", {
-      description: data.description,
-      user_instructions: data.user_instructions,
-      columns: data.columns,
-    });
-    dispatch(
-      updateCurrentDocsData({
-        description: (result as { description: string }).description,
-      }),
-    );
+    if (!currentDocsData) {
+      return;
+    }
+    const showInDataPilot = !!currentDocsData.description;
+    const id = crypto.randomUUID();
+
+    try {
+      const requestData = {
+        description: data.description,
+        user_instructions: data.user_instructions,
+        columns: data.columns,
+      };
+      if (showInDataPilot) {
+        postMessageToDataPilot({
+          id,
+          query: `Generate Documentation for “${currentDocsData.name}” using settings`,
+          requestType: RequestTypes.AI_DOC_GENERATION,
+          state: RequestState.LOADING,
+          meta: requestData,
+        });
+      }
+      const result = (await executeRequestInSync("generateDocsForModel", {
+        description: data.description,
+        user_instructions: data.user_instructions,
+        columns: data.columns,
+      })) as { description: string };
+
+      dispatch(
+        updateCurrentDocsData({
+          description: result.description,
+        }),
+      );
+
+      if (showInDataPilot) {
+        postMessageToDataPilot({
+          id,
+          response: result.description,
+          actions: addDefaultActions({
+            ...requestData,
+            modelName: currentDocsData.name,
+          }),
+          state: RequestState.COMPLETED,
+        });
+      }
+    } catch (error) {
+      panelLogger.error("error while generating doc for model", error);
+      postMessageToDataPilot({
+        id,
+        response: (error as Error).message,
+        state: RequestState.ERROR,
+      });
+    }
   };
 
   if (!currentDocsData) {
@@ -56,6 +103,7 @@ const DocumentationEditor = (): JSX.Element => {
               <DocGeneratorInput
                 value={currentDocsData.description}
                 onSubmit={onModelDocSubmit}
+                placeholder="Describe your model"
               />
             </Stack>
             <DocGeneratorColumnsList />

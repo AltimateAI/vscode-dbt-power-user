@@ -1,5 +1,4 @@
 import { UnknownAction } from "@reduxjs/toolkit";
-import { ReactNode } from "react";
 
 export enum RequestTypes {
   AI_DOC_GENERATION,
@@ -13,7 +12,7 @@ export enum RequestState {
 }
 
 export interface DataPilotChatAction {
-  title: string | ReactNode;
+  title: string;
   data: Record<string, unknown>;
 }
 
@@ -25,6 +24,7 @@ export interface DataPilotChat {
   response?: string;
   actions?: DataPilotChatAction[];
   updatedAt?: Date;
+  meta?: Record<string, unknown>;
 }
 
 export interface DataPilotStateProps {
