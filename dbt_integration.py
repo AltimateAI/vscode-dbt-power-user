@@ -313,6 +313,9 @@ class DbtProject:
             self.adapter.connections.set_connection_name()
             self.config.adapter = self.adapter
         except Exception as e:
+            # reset project
+            self.config = None
+            self.dbt = None
             raise Exception(str(e))
 
     def parse_project(self) -> None:
@@ -326,6 +329,8 @@ class DbtProject:
             project_parser.save_macros_to_adapter(self.adapter)
             self.dbt.build_flat_graph()
         except Exception as e:
+            # reset manifest
+            self.dbt = None
             raise Exception(str(e))
 
         self._sql_parser = None
