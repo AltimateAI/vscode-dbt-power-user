@@ -3,6 +3,7 @@ import {
   ColorThemeKind,
   commands,
   Disposable,
+  env,
   Uri,
   Webview,
   WebviewOptions,
@@ -77,6 +78,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     try {
       switch (command) {
+        case "openURL":
+          if (!params.url) {
+            return;
+          }
+          env.openExternal(Uri.parse(params.url as string));
+          break;
         case "datapilot:toggle":
           if (params.open) {
             await commands.executeCommand(

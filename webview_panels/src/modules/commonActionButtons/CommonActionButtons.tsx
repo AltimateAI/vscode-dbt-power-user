@@ -1,11 +1,19 @@
 import { FeedbackIcon, HelpIcon } from "@assets/icons";
 import DocGeneratorSettings from "@modules/documentationEditor/components/settings/DocGeneratorSettings";
+import { vscode } from "@modules/vscode";
 import { Button, Stack } from "@uicore";
 import { executeRequestInAsync } from "../app/requestExecutor";
 
 const CommonActionButtons = (): JSX.Element => {
   const showOldUx = () => {
     executeRequestInAsync("enableNewDocsPanel", { enable: false });
+  };
+
+  const handleFeedbackClick = () => {
+    vscode.postMessage({
+      command: "openURL",
+      url: "https://app.myaltimate.com/contactus",
+    });
   };
 
   return (
@@ -18,7 +26,7 @@ const CommonActionButtons = (): JSX.Element => {
       <Button outline>
         <HelpIcon /> Help
       </Button>
-      <Button outline>
+      <Button outline onClick={handleFeedbackClick}>
         <FeedbackIcon /> Feedback
       </Button>
     </Stack>
