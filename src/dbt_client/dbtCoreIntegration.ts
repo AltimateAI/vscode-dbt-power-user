@@ -197,6 +197,7 @@ export class DBTCoreProjectIntegration
   private async createPythonDbtProject() {
     await this.python.ex`from dbt_integration import *`;
     const profilesDir = await this.findProfilesDirectory();
+    // TODO: watcher will be recreated every time this code runs, that should not be the case
     const dbtProfileWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(
         profilesDir,
