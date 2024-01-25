@@ -23,7 +23,6 @@ import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./dbtTerminal";
 import { ValidateSqlParseErrorResponse } from "../altimate";
 import { DBTProject } from "../manifest/dbtProject";
-import { getDeferParams } from "./dbtCommandUtils";
 
 interface DBTCommandExecution {
   command: (token: CancellationToken) => Promise<void>;

@@ -3,7 +3,6 @@ import { provideSingleton } from "../utils";
 import { QueryResultPanel } from "./queryResultPanel";
 import { DocsEditViewPanel } from "./docsEditPanel";
 import { LineagePanel } from "./lineagePanel";
-import { InsightsPanel } from "./insightsPanel";
 import { DataPilotPanel } from "./datapilotPanel";
 
 @provideSingleton(WebviewViewProviders)
@@ -14,7 +13,6 @@ export class WebviewViewProviders implements Disposable {
     private queryResultPanel: QueryResultPanel,
     private docsEditPanel: DocsEditViewPanel,
     private lineagePanel: LineagePanel,
-    private insightsPanel: InsightsPanel,
     private dataPilotPanel: DataPilotPanel,
   ) {
     this.disposables.push(
@@ -33,12 +31,6 @@ export class WebviewViewProviders implements Disposable {
         this.lineagePanel,
         { webviewOptions: { retainContextWhenHidden: true } },
       ),
-      // TODO uncomment this for defer feature
-      // window.registerWebviewViewProvider(
-      //   InsightsPanel.viewType,
-      //   this.insightsPanel,
-      //   { webviewOptions: { retainContextWhenHidden: true } },
-      // ),
       window.registerWebviewViewProvider(
         DataPilotPanel.viewType,
         this.dataPilotPanel,
