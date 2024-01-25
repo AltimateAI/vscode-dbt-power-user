@@ -169,7 +169,7 @@ def memoize_get_rendered(function):
     return wrapper
 
 
-def default_profiles_dir(project_dir) -> Path:
+def default_profiles_dir(project_dir: Path) -> Path:
     if "DBT_PROFILES_DIR" in os.environ:
         return Path(os.environ["DBT_PROFILES_DIR"]).resolve()
     return (
