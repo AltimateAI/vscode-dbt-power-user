@@ -28,6 +28,8 @@ html {
   font-size: 14px;
   --Action-Brand-dark: #004fbf;
   --Stroke-Orange: #e38e00;
+  --Backgrounds-04: #4a4d51;
+  --Backgrounds-02: #fff;
 }
 
 html[data-theme="dark"] {
@@ -53,16 +55,15 @@ html[data-theme="dark"] {
   --input-border-color: rgba(131, 144, 163, 0.1);
   --Action-Red: #ee140f;
   --dropdown-toggle-color: #1c1c1c;
+  --Backgrounds-04: #4a4d51;
+  --Backgrounds-02: #28292c;
 }
 
 body {
   padding: 0;
   color: var(--text-color);
   background: var(--bg-color);
-  padding-left: 20px;
-  padding-right: 20px;
-  padding-top: 25px;
-  padding-bottom: 25px;
+  padding: 36px 32px;
 }
 
 b,

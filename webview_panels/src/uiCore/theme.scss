@@ -50,10 +50,22 @@
   color: var(--text-color);
 }
 
+.form-control {
+  border-radius: 2px;
+  border: 1px solid var(--card-border-color);
+  background-color: var(--Backgrounds-02);
+  color: var(--text-color);
+
+  &:focus {
+    border: 1px solid var(--primary-accent);
+    background-color: var(--Backgrounds-02);
+    color: var(--text-color);
+    box-shadow: none;
+  }
+}
+
 input.form-control {
   padding: 2px 10px 2px 8px;
-  border-radius: 3px;
-  border: 1px solid var(--card-border-color);
 }
 
 .dropdown-toggle {
@@ -114,4 +126,20 @@ caption,
 caption {
   padding: 0;
   color: inherit;
+}
+
+.alert {
+  border-radius: 4px;
+  &.alert-warning {
+    background: transparent;
+    border: 1px solid var(--Stroke-Orange, #e38e00);
+    color: var(--Stroke-Orange, #e38e00);
+  }
+}
+html[data-theme="dark"] {
+  .alert-warning {
+    background: rgba(255, 206, 115, 0.1);
+    border: none;
+    color: var(--Action-Yellow, #ffce73);
+  }
 }

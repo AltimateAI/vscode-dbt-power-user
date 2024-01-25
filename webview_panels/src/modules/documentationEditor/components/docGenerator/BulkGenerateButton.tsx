@@ -77,6 +77,7 @@ const BulkGenerateButton = () => {
     return bulkGenerateDocs(currentDocsData.columns);
   };
   const onOptionSelect = (value: string) => {
+    setOpenPopover(false);
     if (value === "all") {
       generateForAll().catch((err) =>
         panelLogger.error("error generating for all columns", err),

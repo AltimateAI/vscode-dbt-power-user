@@ -28,7 +28,7 @@ const DocGeneratorSettings = (): JSX.Element => {
   return (
     <>
       <Button outline onClick={() => setShowSettingsPanel(true)}>
-        <SettingsIcon /> Settings
+        <SettingsIcon style={{ height: 16 }} /> Settings
       </Button>
       {showSettingsPanel ? (
         <RightSidePanel

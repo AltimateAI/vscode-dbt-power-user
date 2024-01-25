@@ -1,10 +1,9 @@
-import { ShinesIcon } from "@assets/icons";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import useAppContext from "@modules/app/useAppContext";
 import CommonActionButtons from "@modules/commonActionButtons/CommonActionButtons";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
-import { Alert, Container, Stack } from "@uicore";
+import { Container, Label, Stack, Tag } from "@uicore";
 import DocGeneratorColumnsList from "./components/docGenerator/DocGeneratorColumnsList";
 import DocGeneratorInput from "./components/docGenerator/DocGeneratorInput";
 import HelpContent from "./components/help/HelpContent";
@@ -89,19 +88,17 @@ const DocumentationEditor = (): JSX.Element => {
   return (
     <Container className={classes.docGenerator}>
       <Stack className={classes.head}>
-        <p>Documentation for {currentDocsData.name}</p>
+        <Stack>
+          <h1>Documentation for {currentDocsData.name}</h1>
+          <Tag color="primary">DATAPILOT</Tag>
+        </Stack>
         <CommonActionButtons />
       </Stack>
       <Stack className={classes.bodyWrap}>
         <Stack direction="column" className={classes.body}>
           <Stack direction="column">
-            <h1>Documentation for {currentDocsData.name}</h1>
-            <Alert color="warning">
-              Doc Generation using AI <ShinesIcon /> is a preview feature.
-            </Alert>
-          </Stack>
-          <Stack direction="column">
-            <Stack direction="column" style={{ margin: "30px 0" }}>
+            <Stack direction="column" style={{ margin: "6px 0" }}>
+              <Label className="p1">Description</Label>
               <DocGeneratorInput
                 value={currentDocsData.description}
                 onSubmit={onModelDocSubmit}

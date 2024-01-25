@@ -20,7 +20,7 @@ const DocGeneratorColumnsList = (): JSX.Element => {
 
   return (
     <div>
-      <div style={{ marginBottom: 30 }}>
+      <div style={{ marginBottom: 40, marginTop: 16 }}>
         <Stack className={classes.columnHeader}>
           <h1>Columns</h1>
           <Button color="warning" onClick={onSyncBtnClick}>
@@ -33,7 +33,7 @@ const DocGeneratorColumnsList = (): JSX.Element => {
           (re)generate documentation at individual column level
         </Alert>
       </div>
-      <Stack direction="column" style={{ gap: 24 }}>
+      <Stack direction="column" className={classes.columns}>
         {currentDocsData?.columns.map((column) => (
           <DocGeneratorColumn key={column.name} column={column} />
         ))}

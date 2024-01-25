@@ -6,6 +6,9 @@
   & .head {
     justify-content: space-between;
     margin-bottom: 1rem;
+    > div{
+    align-items: center;
+    }
     & p {
       text-decoration: underline;
     }
@@ -18,11 +21,17 @@
       padding-right: 1rem;
 
       & :global .alert {
-        margin-top: 10px;
+        margin-top: 12px;
       }
       & .column-header {
         & div:last-of-type {
           margin-left: auto;
+        }
+      }
+      .columns {
+        gap: 16px;
+        h4 {
+          margin-bottom: 16px;
         }
       }
       & .save {
