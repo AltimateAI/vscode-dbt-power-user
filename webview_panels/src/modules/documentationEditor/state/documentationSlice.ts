@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { GenerationDBDataProps } from "../types";
-import { DATA, PROJECT } from "./sampleData";
 import {
   DBTDocumentation,
   DocsGenerateUserInstructions,
@@ -9,8 +8,8 @@ import {
 } from "./types";
 
 export const initialState = {
-  currentDocsData: DATA,
-  project: PROJECT,
+  currentDocsData: undefined,
+  project: undefined,
   generationHistory: [],
   isDocGeneratedForAnyColumn: false,
   userInstructions: {
@@ -38,10 +37,25 @@ const documentationSlice = createSlice({
         state.currentDocsData = undefined;
         return;
       }
-      if (state.currentDocsData?.name !== action.payload.name) {
+      if (!action.payload.name) {
         return;
       }
-      // @ts-expect-error TODO fix this type
+      if (!state.currentDocsData) {
+        // Initial render
+        // @ts-expect-error TODO fix this type
+        state.currentDocsData = action.payload;
+        return;
+      }
+
+      // switching editor
+      if (
+        action.payload.name &&
+        state.currentDocsData?.name !== action.payload.name
+      ) {
+        // @ts-expect-error TODO fix this type
+        state.currentDocsData = action.payload;
+        return;
+      }
       state.currentDocsData = { ...state.currentDocsData, ...action.payload };
     },
     updateColumnsInCurrentDocsData: (

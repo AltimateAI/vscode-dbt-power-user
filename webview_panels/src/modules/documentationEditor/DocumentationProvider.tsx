@@ -1,3 +1,4 @@
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import { IncomingMessageProps } from "@modules/app/types";
 import { panelLogger } from "@modules/logger";
 import {
@@ -118,6 +119,9 @@ const DocumentationProvider = ({
 
   useEffect(() => {
     window.addEventListener("message", onMesssage);
+    // Load current editor documentation
+    executeRequestInAsync("getCurrentModelDocumentation", {});
+
     return () => {
       window.removeEventListener("message", onMesssage);
     };

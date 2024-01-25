@@ -7,6 +7,7 @@ import {
 } from "vscode";
 import { AltimateRequest } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DocGenService } from "../services/docGenService";
 import { TelemetryService } from "../telemetry";
 import { provideSingleton } from "../utils";
 import { AltimateWebviewProvider } from "./altimateWebviewProvider";
@@ -26,6 +27,7 @@ export class NewDocsGenPanel
     dbtProjectContainer: DBTProjectContainer,
     protected altimateRequest: AltimateRequest,
     telemetry: TelemetryService,
+    private docGenService: DocGenService,
   ) {
     super(dbtProjectContainer, altimateRequest, telemetry);
   }
@@ -59,7 +61,19 @@ export class NewDocsGenPanel
           .update("enableNewDocsPanel", args.enable);
         this.telemetry.sendTelemetryEvent("NewDocsPanelDisabled");
         break;
+      case "getCurrentModelDocumentation":
+        if (!this.eventMap || !this._panel) {
+          return;
+        }
 
+        const documentation = await this.docGenService.getDocumentation(
+          this.eventMap,
+        );
+        await this._panel.webview.postMessage({
+          command: "renderDocumentation",
+          docs: documentation,
+          project: this.docGenService.getProject()?.getProjectName(),
+        });
       default:
         super.handleCommand(message);
         break;
