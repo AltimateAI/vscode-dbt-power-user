@@ -14,7 +14,7 @@ const AiDocChat = ({ chat }: Props): JSX.Element => {
   );
 
   const onNewGeneration = (result: GeneratedResult) => {
-    setGeneratedResults((prev) => [...prev, result]);
+    setGeneratedResults((prev) => [...prev, { ...result }]);
   };
 
   return (

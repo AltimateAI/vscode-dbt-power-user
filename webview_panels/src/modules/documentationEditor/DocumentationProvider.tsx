@@ -46,6 +46,9 @@ const DocumentationProvider = ({
           docs?: DBTDocumentation;
           project?: string;
           columns?: MetadataColumn[];
+          model?: string;
+          name?: string;
+          description?: string;
         }
       >,
     ) => {
@@ -64,6 +67,16 @@ const DocumentationProvider = ({
           break;
         case "docgen:insert":
           panelLogger.info("received new doc gen", event.data);
+          // insert model desc
+          if (!params.name && params.model) {
+            dispatch(
+              updateCurrentDocsData({
+                description: params.description,
+                name: params.model,
+              }),
+            );
+          }
+          // insert column desc
           dispatch(
             updateColumnsInCurrentDocsData({
               columns: [params as Partial<MetadataColumn>],

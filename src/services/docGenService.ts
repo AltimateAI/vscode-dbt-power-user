@@ -19,6 +19,21 @@ interface GenerateDocsForColumnsProps {
   documentation: DBTDocumentation | undefined;
 }
 
+interface GenerateDocsForModelProps {
+  panel: WebviewView | undefined;
+  documentation: DBTDocumentation | undefined;
+  queryText: string;
+  project: DBTProject | undefined;
+  message: any;
+}
+
+interface FeedbackRequestProps {
+  panel: WebviewView | undefined;
+  queryText: string;
+  message: any;
+  eventMap: Map<string, ManifestCacheProjectAddedEvent>;
+}
+
 @provideSingleton(DocGenService)
 export class DocGenService {
   public constructor(
@@ -101,6 +116,25 @@ export class DocGenService {
       await panel.webview.postMessage({
         command: "renderError",
       });
+    }
+  }
+
+  private async transmitAIGeneratedModelDocs(
+    description: string,
+    syncRequestId?: string,
+    panel?: WebviewView,
+  ) {
+    if (panel) {
+      const result = syncRequestId
+        ? {
+            command: "response",
+            args: { body: { description }, syncRequestId, status: true },
+          }
+        : {
+            command: "renderAIGeneratedModelDocs",
+            description,
+          };
+      await panel.webview.postMessage(result);
     }
   }
 
@@ -207,6 +241,147 @@ export class DocGenService {
           );
           this.telemetry.sendTelemetryError(
             "generateDocsForColumnError",
+            error,
+          );
+        }
+      },
+    );
+  }
+
+  public async generateDocsForModel({
+    documentation,
+    queryText,
+    project,
+    message,
+    panel,
+  }: GenerateDocsForModelProps) {
+    if (!this.altimateRequest.handlePreviewFeatures()) {
+      return;
+    }
+    if (!project) {
+      return;
+    }
+    this.telemetry.sendTelemetryEvent("altimateGenerateDocsForModel");
+    window.withProgress(
+      {
+        title: "Generating model documentation",
+        location: ProgressLocation.Notification,
+        cancellable: false,
+      },
+      async () => {
+        if (documentation === undefined) {
+          return;
+        }
+        try {
+          const compiledSql = await project.unsafeCompileQuery(queryText);
+          const enableNewDocsPanel = workspace
+            .getConfiguration("dbt")
+            .get<boolean>("enableNewDocsPanel", false);
+
+          const baseRequest = {
+            columns: [],
+            dbt_model: {
+              model_name: documentation?.name,
+              model_description: message.description,
+              compiled_sql: compiledSql,
+              columns: message.columns.map((column: any) => ({
+                column_name: column.name,
+                description: column.description,
+                data_type: column.type,
+                modelName: documentation?.name,
+              })),
+              adapter: project.getAdapterType(),
+            },
+            prompt_hint: message.promptHint || "generate",
+            gen_model_description: true,
+          } as unknown as Parameters<
+            typeof this.altimateRequest.generateModelDocs
+          >["0"];
+          const generateDocsForModel = enableNewDocsPanel
+            ? await this.altimateRequest.generateModelDocsV2({
+                ...baseRequest,
+                user_instructions: {
+                  ...message.user_instructions,
+                  prompt_hint:
+                    message.user_instructions.prompt_hint || "generate",
+                },
+              })
+            : await this.altimateRequest.generateModelDocs(baseRequest);
+
+          if (
+            !generateDocsForModel ||
+            !generateDocsForModel.model_description
+          ) {
+            // nothing to do if nothing happened
+            return;
+          }
+          this.transmitAIGeneratedModelDocs(
+            generateDocsForModel.model_description,
+            message.syncRequestId,
+            panel,
+          );
+        } catch (error) {
+          this.transmitError(panel);
+          window.showErrorMessage(
+            extendErrorWithSupportLinks(
+              "An unexpected error occurred while generating documentation: " +
+                error,
+            ),
+          );
+          this.telemetry.sendTelemetryError("generateDocsForModelError", error);
+        }
+      },
+    );
+  }
+
+  public async sendFeedback({
+    queryText,
+    message,
+    eventMap,
+    panel,
+  }: FeedbackRequestProps) {
+    this.telemetry.sendTelemetryEvent("altimateGenerateDocsSendFeedback");
+    window.withProgress(
+      {
+        title: "Sending feedback",
+        location: ProgressLocation.Notification,
+        cancellable: false,
+      },
+      async () => {
+        try {
+          const project = this.getProject();
+          if (!project) {
+            throw new Error("Unable to find project");
+          }
+          const documentation = await this.getDocumentation(eventMap);
+          const compiledSql = await project.unsafeCompileQuery(queryText);
+          const request = message.data;
+          request["feedback_text"] = message.comment;
+          request["additional_prompt_inputs"] = {
+            model_name: documentation?.name,
+            model_description: documentation?.description,
+            compiled_sql: compiledSql,
+            columns: documentation?.columns.map((column) => ({
+              column_name: column.name,
+              description: column.description,
+              data_type: column.type,
+            })),
+          };
+          await this.altimateRequest.sendFeedback({
+            data: request,
+            feedback_src: "dbtpu-extension",
+            feedback_text: message.comment,
+            feedback_value: message.rating,
+          });
+        } catch (error) {
+          this.transmitError(panel);
+          window.showErrorMessage(
+            extendErrorWithSupportLinks(
+              "An unexpected error occurred while sending feedback: " + error,
+            ),
+          );
+          this.telemetry.sendTelemetryError(
+            "altimateGenerateDocsSendFeedbackError",
             error,
           );
         }

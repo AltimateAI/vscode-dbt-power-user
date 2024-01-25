@@ -3,7 +3,6 @@ import { GenerationDBDataProps } from "../types";
 import { DATA, PROJECT } from "./sampleData";
 import {
   DBTDocumentation,
-  DBTDocumentationColumn,
   DocsGenerateUserInstructions,
   DocumentationStateProps,
   MetadataColumn,
@@ -39,6 +38,9 @@ const documentationSlice = createSlice({
         state.currentDocsData = undefined;
         return;
       }
+      if (state.currentDocsData?.name !== action.payload.name) {
+        return;
+      }
       // @ts-expect-error TODO fix this type
       state.currentDocsData = { ...state.currentDocsData, ...action.payload };
     },
@@ -54,14 +56,12 @@ const documentationSlice = createSlice({
       if (!state.currentDocsData) {
         return;
       }
-      state.currentDocsData.columns = columns.map((c) => {
-        const updatedColumn = state.currentDocsData!.columns.find(
-          (column) => c.name === column.name,
-        );
+      state.currentDocsData.columns = state.currentDocsData.columns.map((c) => {
+        const updatedColumn = columns.find((column) => c.name === column.name);
         if (updatedColumn) {
           return { ...c, ...updatedColumn };
         }
-        return c as DBTDocumentationColumn;
+        return c;
       });
       if (isNewGeneration !== undefined) {
         state.isDocGeneratedForAnyColumn = isNewGeneration;

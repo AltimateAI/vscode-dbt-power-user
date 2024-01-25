@@ -7,27 +7,33 @@ import { DataPilotChatAction } from "../dataPilot/types";
 
 export const addDefaultActions = (
   data: Record<string, unknown>,
+  command: string,
 ): DataPilotChatAction[] => {
   return [
     {
       title: "Regenerate",
       data,
+      command,
     },
     {
       title: "Make it shorter",
       data,
+      command,
     },
     {
       title: "Make it longer",
       data,
+      command,
     },
     {
       title: "Make it fun",
       data,
+      command,
     },
     {
       title: "Generate for business user",
       data,
+      command,
     },
   ];
 };

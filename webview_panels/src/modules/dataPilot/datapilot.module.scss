@@ -5,6 +5,12 @@
     list-style: none;
   }
 
+  :global .card-title{ 
+    font-size: 14px;
+    svg{
+    width: 24px;
+  }
+}
   .action-buttons{
     flex-wrap: wrap;
     justify-content: space-between;

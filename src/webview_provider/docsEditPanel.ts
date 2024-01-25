@@ -159,46 +159,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     }
   }
 
-  private async transmitAIGeneratedModelDocs(
-    description: string,
-    syncRequestId?: string,
-  ) {
-    if (this._panel) {
-      const result = syncRequestId
-        ? {
-            command: "response",
-            args: { body: { description }, syncRequestId, status: true },
-          }
-        : {
-            command: "renderAIGeneratedModelDocs",
-            description,
-          };
-      await this._panel.webview.postMessage(result);
-    }
-  }
-
-  private async transmitAIGeneratedColumnDocs(
-    generatedColumnDescriptions: AIColumnDescription[],
-    syncRequestId?: string,
-  ) {
-    if (this._panel) {
-      const result = syncRequestId
-        ? {
-            command: "response",
-            args: {
-              body: { columns: generatedColumnDescriptions },
-              syncRequestId,
-              status: true,
-            },
-          }
-        : {
-            command: "renderAIGeneratedColumnDocs",
-            columns: generatedColumnDescriptions,
-          };
-      await this._panel.webview.postMessage(result);
-    }
-  }
-
   private async transmitConfig() {
     if (this._panel) {
       await this._panel.webview.postMessage({
@@ -267,46 +227,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     await this.resolveWebviewView(this.panel!, this.context!, this.token!);
   };
 
-  private async generateDocsForModel(
-    compiledSql: string | undefined,
-    adapter: string,
-    message: any,
-  ) {
-    const enableNewDocsPanel = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("enableNewDocsPanel", false);
-
-    const baseRequest = {
-      columns: [],
-      dbt_model: {
-        model_name: this.documentation?.name,
-        model_description: message.description,
-        compiled_sql: compiledSql,
-        columns: message.columns.map((column: any) => ({
-          column_name: column.name,
-          description: column.description,
-          data_type: column.type,
-          modelName: this.documentation?.name,
-        })),
-        adapter,
-      },
-      prompt_hint: message.promptHint || "generate",
-      gen_model_description: true,
-    } as unknown as Parameters<
-      typeof this.altimateRequest.generateModelDocs
-    >["0"];
-    const generateDocsForModel = enableNewDocsPanel
-      ? await this.altimateRequest.generateModelDocsV2({
-          ...baseRequest,
-          user_instructions: {
-            ...message.user_instructions,
-            prompt_hint: message.user_instructions.prompt_hint || "generate",
-          },
-        })
-      : await this.altimateRequest.generateModelDocs(baseRequest);
-
-    return generateDocsForModel;
-  }
   private setupWebviewHooks(context: WebviewViewResolveContext) {
     this._panel!.webview.onDidReceiveMessage(
       async (message) => {
@@ -382,55 +302,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
             break;
           case "generateDocsForModel":
-            if (!this.altimateRequest.handlePreviewFeatures()) {
-              return;
-            }
-            this.telemetry.sendTelemetryEvent("altimateGenerateDocsForModel");
-            window.withProgress(
-              {
-                title: "Generating model documentation",
-                location: ProgressLocation.Notification,
-                cancellable: false,
-              },
-              async () => {
-                if (this.documentation === undefined) {
-                  return;
-                }
-                try {
-                  const compiledSql =
-                    await project.unsafeCompileQuery(queryText);
-                  const generateDocsForModel = await this.generateDocsForModel(
-                    compiledSql,
-                    project.getAdapterType(),
-                    message,
-                  );
-
-                  if (
-                    !generateDocsForModel ||
-                    !generateDocsForModel.model_description
-                  ) {
-                    // nothing to do if nothing happened
-                    return;
-                  }
-                  this.transmitAIGeneratedModelDocs(
-                    generateDocsForModel.model_description,
-                    message.syncRequestId,
-                  );
-                } catch (error) {
-                  this.transmitError();
-                  window.showErrorMessage(
-                    extendErrorWithSupportLinks(
-                      "An unexpected error occurred while generating documentation: " +
-                        error,
-                    ),
-                  );
-                  this.telemetry.sendTelemetryError(
-                    "generateDocsForModelError",
-                    error,
-                  );
-                }
-              },
-            );
+            this.docGenService.generateDocsForModel({
+              queryText,
+              documentation: this.documentation,
+              message,
+              panel: this._panel,
+              project,
+            });
             break;
           case "generateDocsForColumn":
             await this.docGenService.generateDocsForColumns({
@@ -441,52 +319,12 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             });
             break;
           case "sendFeedback":
-            this.telemetry.sendTelemetryEvent(
-              "altimateGenerateDocsSendFeedback",
-            );
-            window.withProgress(
-              {
-                title: "Sending feedback",
-                location: ProgressLocation.Notification,
-                cancellable: false,
-              },
-              async () => {
-                try {
-                  const compiledSql =
-                    await project.unsafeCompileQuery(queryText);
-                  const request = message.data;
-                  request["feedback_text"] = message.comment;
-                  request["additional_prompt_inputs"] = {
-                    model_name: this.documentation?.name,
-                    model_description: this.documentation?.description,
-                    compiled_sql: compiledSql,
-                    columns: this.documentation?.columns.map((column) => ({
-                      column_name: column.name,
-                      description: column.description,
-                      data_type: column.type,
-                    })),
-                  };
-                  await this.altimateRequest.sendFeedback({
-                    data: request,
-                    feedback_src: "dbtpu-extension",
-                    feedback_text: message.comment,
-                    feedback_value: message.rating,
-                  });
-                } catch (error) {
-                  this.transmitError();
-                  window.showErrorMessage(
-                    extendErrorWithSupportLinks(
-                      "An unexpected error occurred while sending feedback: " +
-                        error,
-                    ),
-                  );
-                  this.telemetry.sendTelemetryError(
-                    "altimateGenerateDocsSendFeedbackError",
-                    error,
-                  );
-                }
-              },
-            );
+            this.docGenService.sendFeedback({
+              queryText,
+              message,
+              eventMap: this.eventMap,
+              panel: this._panel,
+            });
             break;
           case "saveDocumentation":
             this.telemetry.sendTelemetryEvent("saveDocumentation");

@@ -64,7 +64,11 @@ const NewGenerationResults = ({
     } as FeedbackRequest;
 
     panelLogger.info("feedback submitted", data);
-    await executeRequestInSync("sendFeedback", data);
+    await executeRequestInSync("sendFeedback", {
+      comment: feedbackData.feedback_message,
+      rating: feedbackData.feedback_type,
+      data,
+    });
   };
 
   if (!generatedResults.length) {

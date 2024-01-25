@@ -24,17 +24,29 @@ const AiDocActionButton = ({ action, onNewGeneration }: Props): JSX.Element => {
   const handleBtnClick = async () => {
     panelLogger.info(action, "chat", isLoading);
     setIsLoading(true);
-    const result = (await executeRequestInSync("generateDocsForColumn", {
+
+    const result = (await executeRequestInSync(action.command, {
       ...action.data,
       follow_up_instructions: { instruction: getFollowupInstruction() },
-    })) as { columns: Partial<DBTDocumentationColumn>[] };
+    })) as
+      | { columns: Partial<DBTDocumentationColumn>[] }
+      | { description: string };
+
     setIsLoading(false);
-    onNewGeneration({
-      ...result.columns[0],
-      model: action.data.model as string,
+
+    let generatedResult = {
+      model: action.data.modelName as string,
       id: crypto.randomUUID(),
       prompt: getFollowupInstruction()?.toString(),
-    });
+    } as GeneratedResult;
+
+    if ("columns" in result) {
+      generatedResult = { ...generatedResult, ...result.columns[0] };
+    }
+    if ("description" in result) {
+      generatedResult = { ...generatedResult, description: result.description };
+    }
+    onNewGeneration(generatedResult);
   };
   return (
     <>

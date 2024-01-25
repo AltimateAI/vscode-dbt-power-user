@@ -62,10 +62,13 @@ const DocGeneratorColumn = ({ column }: Props): JSX.Element => {
         postMessageToDataPilot({
           id,
           response: result.columns[0].description,
-          actions: addDefaultActions({
-            ...requestData,
-            modelName: currentDocsData.name,
-          }),
+          actions: addDefaultActions(
+            {
+              ...requestData,
+              modelName: currentDocsData.name,
+            },
+            "generateDocsForColumn",
+          ),
           state: RequestState.COMPLETED,
         });
       }

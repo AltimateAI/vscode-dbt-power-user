@@ -14,17 +14,18 @@ export enum RequestState {
 export interface DataPilotChatAction {
   title: string;
   data: Record<string, unknown>;
+  command: string;
 }
 
 export interface DataPilotChat {
   id: string;
-  query: string;
-  state: RequestState;
-  requestType: RequestTypes;
-  response?: string;
-  actions?: DataPilotChatAction[];
+  query: string; // query text that triggered this chat
+  state: RequestState; // state of current request
+  requestType: RequestTypes; // What type of request is this? ex: AI doc generation
+  response?: string; // Response from backend
+  actions?: DataPilotChatAction[]; // follow up actions
   updatedAt?: Date;
-  meta?: Record<string, unknown>;
+  meta?: Record<string, unknown>; // any extra data to be stored
 }
 
 export interface DataPilotStateProps {

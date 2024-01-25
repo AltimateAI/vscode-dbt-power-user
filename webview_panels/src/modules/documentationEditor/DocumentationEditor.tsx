@@ -33,6 +33,7 @@ const DocumentationEditor = (): JSX.Element => {
         description: data.description,
         user_instructions: data.user_instructions,
         columns: data.columns,
+        name: currentDocsData.name,
       };
       if (showInDataPilot) {
         postMessageToDataPilot({
@@ -51,6 +52,7 @@ const DocumentationEditor = (): JSX.Element => {
 
       dispatch(
         updateCurrentDocsData({
+          name: currentDocsData.name,
           description: result.description,
         }),
       );
@@ -59,10 +61,13 @@ const DocumentationEditor = (): JSX.Element => {
         postMessageToDataPilot({
           id,
           response: result.description,
-          actions: addDefaultActions({
-            ...requestData,
-            modelName: currentDocsData.name,
-          }),
+          actions: addDefaultActions(
+            {
+              ...requestData,
+              modelName: currentDocsData.name,
+            },
+            "generateDocsForModel",
+          ),
           state: RequestState.COMPLETED,
         });
       }

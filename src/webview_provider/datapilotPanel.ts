@@ -1,4 +1,4 @@
-import { commands, workspace } from "vscode";
+import { commands, window, workspace } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
@@ -37,8 +37,34 @@ export class DataPilotPanel extends AltimateWebviewProvider {
 
   async handleCommand(message: HandleCommandProps): Promise<void> {
     const { command, syncRequestId, ...params } = message;
+    const queryText = window.activeTextEditor?.document.getText();
 
     switch (command) {
+      case "sendFeedback":
+        if (!queryText) {
+          return;
+        }
+        this.docGenService.sendFeedback({
+          queryText,
+          message,
+          eventMap: this.eventMap,
+          panel: this._panel,
+        });
+        break;
+      case "generateDocsForModel":
+        if (!queryText) {
+          return;
+        }
+        this.docGenService.generateDocsForModel({
+          queryText,
+          documentation: await this.docGenService.getDocumentation(
+            this.eventMap,
+          ),
+          message,
+          panel: this._panel,
+          project: this.docGenService.getProject(),
+        });
+        break;
       case "generateDocsForColumn":
         await this.docGenService.generateDocsForColumns({
           documentation: await this.docGenService.getDocumentation(
