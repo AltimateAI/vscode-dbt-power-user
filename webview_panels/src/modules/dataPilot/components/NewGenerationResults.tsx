@@ -1,14 +1,6 @@
-import { AltimateIcon, RefreshIcon } from "@assets/icons";
+import { AltimateIcon } from "@assets/icons";
 import ResultFeedbackButtons from "@modules/documentationEditor/components/result/ResultFeedbackButtons";
-import {
-  Button,
-  Card,
-  CardBody,
-  CardTitle,
-  IconButton,
-  List,
-  Stack,
-} from "@uicore";
+import { Button, Card, CardBody, CardTitle, List, Stack } from "@uicore";
 import {
   Feedback,
   FeedbackEntityType,
@@ -79,7 +71,7 @@ const NewGenerationResults = ({
       {generatedResults.map((result) => (
         <>
           <li>
-            <Card>
+            <Card className={classes.promptCard}>
               <CardBody>{result.prompt}</CardBody>
             </Card>
           </li>
@@ -99,9 +91,6 @@ const NewGenerationResults = ({
                     >
                       Insert
                     </Button>
-                    <IconButton>
-                      <RefreshIcon />
-                    </IconButton>
                   </Stack>
                   <ResultFeedbackButtons
                     onFeedbackSubmit={(data) => onFeedbackSubmit(data, result)}

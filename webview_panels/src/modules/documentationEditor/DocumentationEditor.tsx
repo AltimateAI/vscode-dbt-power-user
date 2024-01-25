@@ -38,7 +38,7 @@ const DocumentationEditor = (): JSX.Element => {
       if (showInDataPilot) {
         postMessageToDataPilot({
           id,
-          query: `Generate Documentation for “${currentDocsData.name}” using settings`,
+          query: `Generate Documentation for “${currentDocsData.name}”`,
           requestType: RequestTypes.AI_DOC_GENERATION,
           meta: requestData,
           response: currentDocsData.description,
