@@ -16,7 +16,6 @@ import { provideSingleton } from "../utils";
 import { DBTProject } from "./dbtProject";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 enum PromptAnswer {
   YES = "Yes",
