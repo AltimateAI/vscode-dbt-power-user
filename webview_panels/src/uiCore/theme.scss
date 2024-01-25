@@ -143,3 +143,8 @@ html[data-theme="dark"] {
     color: var(--Action-Yellow, #ffce73);
   }
 }
+
+.offcanvas{
+  background-color: var(--bg-color);
+  color: var(--text-color)
+}
