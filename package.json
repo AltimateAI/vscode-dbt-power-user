@@ -243,11 +243,6 @@
           "id": "docs_edit_view",
           "title": "Documentation Editor",
           "icon": "./media/images/dbt_icon.svg"
-        },
-        {
-          "id": "insights_view",
-          "title": "Insights",
-          "icon": "./media/images/dbt_icon.svg"
         }
       ]
     },
@@ -291,13 +286,6 @@
       "docs_edit_view": [
         {
           "id": "dbtPowerUser.DocsEdit",
-          "name": "",
-          "type": "webview"
-        }
-      ],
-      "insights_view": [
-        {
-          "id": "dbtPowerUser.Insights",
           "name": "",
           "type": "webview"
         }

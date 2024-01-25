@@ -17,7 +17,8 @@ export class DeferToProductionStatusBar implements Disposable {
   private disposables: Disposable[] = [];
 
   constructor() {
-    this.showTextInStatusBar("$(sync) Defer");
+    // TODO uncomment this for defer feature
+    // this.showTextInStatusBar("$(sync) Defer");
   }
 
   dispose() {

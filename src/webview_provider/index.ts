@@ -33,11 +33,12 @@ export class WebviewViewProviders implements Disposable {
         this.lineagePanel,
         { webviewOptions: { retainContextWhenHidden: true } },
       ),
-      window.registerWebviewViewProvider(
-        InsightsPanel.viewType,
-        this.insightsPanel,
-        { webviewOptions: { retainContextWhenHidden: true } },
-      ),
+      // TODO uncomment this for defer feature
+      // window.registerWebviewViewProvider(
+      //   InsightsPanel.viewType,
+      //   this.insightsPanel,
+      //   { webviewOptions: { retainContextWhenHidden: true } },
+      // ),
       window.registerWebviewViewProvider(
         DataPilotPanel.viewType,
         this.dataPilotPanel,
