@@ -39,29 +39,15 @@ const DocGeneratorColumn = ({ column }: Props): JSX.Element => {
         columnName: column.name,
         columns: currentDocsData?.columns,
       };
+      // Show only in datapilot
       if (showInDataPilot) {
         postMessageToDataPilot({
           id,
           query: `Generate Documentation for “${column.name}” using settings`,
           requestType: RequestTypes.AI_DOC_GENERATION,
-          state: RequestState.LOADING,
+          state: RequestState.COMPLETED,
           meta: requestData,
-        });
-      }
-      const result = (await executeRequestInSync(
-        "generateDocsForColumn",
-        requestData,
-      )) as { columns: Partial<DBTDocumentationColumn>[] };
-      dispatch(
-        updateColumnsInCurrentDocsData({
-          ...result,
-          isNewGeneration: true,
-        }),
-      );
-      if (showInDataPilot) {
-        postMessageToDataPilot({
-          id,
-          response: result.columns[0].description,
+          response: column.description,
           actions: addDefaultActions(
             {
               ...requestData,
@@ -69,9 +55,15 @@ const DocGeneratorColumn = ({ column }: Props): JSX.Element => {
             },
             "generateDocsForColumn",
           ),
-          state: RequestState.COMPLETED,
         });
+        return;
       }
+      const result = (await executeRequestInSync(
+        "generateDocsForColumn",
+        requestData,
+      )) as { columns: Partial<DBTDocumentationColumn>[] };
+      dispatch(updateColumnsInCurrentDocsData(result));
+
       await addDocGeneration(
         project,
         currentDocsData.name,

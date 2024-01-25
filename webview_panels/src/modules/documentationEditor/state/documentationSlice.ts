@@ -31,7 +31,9 @@ const documentationSlice = createSlice({
     },
     updateCurrentDocsData: (
       state,
-      action: PayloadAction<Partial<DBTDocumentation> | undefined>,
+      action: PayloadAction<
+        (Partial<DBTDocumentation> & { isNewGeneration?: boolean }) | undefined
+      >,
     ) => {
       if (!action.payload) {
         state.currentDocsData = undefined;

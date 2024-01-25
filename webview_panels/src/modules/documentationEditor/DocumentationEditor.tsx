@@ -41,10 +41,20 @@ const DocumentationEditor = (): JSX.Element => {
           id,
           query: `Generate Documentation for “${currentDocsData.name}” using settings`,
           requestType: RequestTypes.AI_DOC_GENERATION,
-          state: RequestState.LOADING,
           meta: requestData,
+          response: currentDocsData.description,
+          actions: addDefaultActions(
+            {
+              ...requestData,
+              modelName: currentDocsData.name,
+            },
+            "generateDocsForModel",
+          ),
+          state: RequestState.COMPLETED,
         });
+        return;
       }
+
       const result = (await executeRequestInSync("generateDocsForModel", {
         description: data.description,
         user_instructions: data.user_instructions,
@@ -57,21 +67,6 @@ const DocumentationEditor = (): JSX.Element => {
           description: result.description,
         }),
       );
-
-      if (showInDataPilot) {
-        postMessageToDataPilot({
-          id,
-          response: result.description,
-          actions: addDefaultActions(
-            {
-              ...requestData,
-              modelName: currentDocsData.name,
-            },
-            "generateDocsForModel",
-          ),
-          state: RequestState.COMPLETED,
-        });
-      }
     } catch (error) {
       panelLogger.error("error while generating doc for model", error);
       postMessageToDataPilot({

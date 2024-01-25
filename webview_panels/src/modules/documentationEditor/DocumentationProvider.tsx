@@ -74,6 +74,7 @@ const DocumentationProvider = ({
               updateCurrentDocsData({
                 description: params.description,
                 name: params.model,
+                isNewGeneration: true,
               }),
             );
           }
@@ -81,6 +82,7 @@ const DocumentationProvider = ({
           dispatch(
             updateColumnsInCurrentDocsData({
               columns: [params as Partial<MetadataColumn>],
+              isNewGeneration: true,
             }),
           );
           break;
