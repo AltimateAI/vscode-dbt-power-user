@@ -85,16 +85,10 @@ export const createTableNode = (
   level: number,
   parent: string,
 ): Node => {
-  const { upstreamCount, downstreamCount, table } = _table;
+  const { table } = _table;
   return {
     id: table,
-    data: {
-      ..._table,
-      level,
-      parent,
-      shouldExpand: [downstreamCount > 0, upstreamCount > 0],
-      processed: [false, false],
-    },
+    data: { ..._table, level, parent, mark: [false, false] },
     position: { x: 100, y: 100 },
     type: "table",
     width: T_NODE_W,

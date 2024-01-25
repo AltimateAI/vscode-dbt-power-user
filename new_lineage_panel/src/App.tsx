@@ -51,6 +51,7 @@ import ExposureDetails from "./exposure/ExposureDetails";
 import { Feedback } from "./Feedback";
 import { Help } from "./Help";
 import { Demo } from "./Demo";
+import { createTableNode } from "./utils";
 
 declare const acquireVsCodeApi: () => { postMessage: (v: unknown) => void };
 
@@ -239,26 +240,7 @@ function App() {
       const addNodesEdges = async (table: string, right: boolean) => {
         [nodes, edges] = await expandTableLineage(nodes, edges, table, right);
       };
-      nodes = [
-        {
-          id: node.table,
-          data: {
-            table: node.table,
-            label: node.label,
-            url: node.url,
-            level: 0,
-            shouldExpand: [node.downstreamCount > 0, node.upstreamCount > 0],
-            processed: [node.downstreamCount > 0, node.upstreamCount > 0],
-            nodeType: node.nodeType,
-            upstreamCount: node.upstreamCount,
-            downstreamCount: node.downstreamCount,
-            tests: node.tests,
-            materialization: node.materialization,
-          },
-          position: { x: 100, y: 100 },
-          type: "table",
-        },
-      ];
+      nodes.push(createTableNode(node, 0, ""));
       if (node.upstreamCount > 0) await addNodesEdges(node.table, true);
       if (node.downstreamCount > 0) await addNodesEdges(node.table, false);
       setSelectedTable(null);
