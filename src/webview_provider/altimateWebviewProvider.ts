@@ -93,10 +93,10 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           break;
         case "datapilot:message":
           await commands.executeCommand("dbtPowerUser.datapilot-webview.focus");
-          // Adding timeout to let the webapp to complete rendering
+          // Adding timeout to let the datapilot complete rendering
           setTimeout(() => {
             sharedStateManager.postMessage(message);
-          }, 100);
+          }, 500);
           break;
         case "updateConfig":
           console.log(

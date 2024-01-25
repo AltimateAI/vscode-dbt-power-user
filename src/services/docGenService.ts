@@ -197,9 +197,15 @@ export class DocGenService {
     }
     const queryText = window.activeTextEditor.document.getText();
     this.telemetry.sendTelemetryEvent("altimateGenerateDocsForColumn");
+    const columns = message.columnName
+      ? [message.columnName]
+      : message.columnNames;
+
     window.withProgress(
       {
-        title: "Generating column documentation",
+        title: `Generating documentation for ${
+          columns.length > 1 ? "columns" : "column"
+        } ${columns.join(", ")}`,
         location: ProgressLocation.Notification,
         cancellable: false,
       },
@@ -264,7 +270,7 @@ export class DocGenService {
     this.telemetry.sendTelemetryEvent("altimateGenerateDocsForModel");
     window.withProgress(
       {
-        title: "Generating model documentation",
+        title: `Generating documentation for model ${documentation?.name}`,
         location: ProgressLocation.Notification,
         cancellable: false,
       },
