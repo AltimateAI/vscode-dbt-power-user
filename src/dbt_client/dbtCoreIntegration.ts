@@ -2,6 +2,7 @@ import {
   Diagnostic,
   DiagnosticCollection,
   Disposable,
+  FileSystemWatcher,
   languages,
   Range,
   RelativePattern,
@@ -150,6 +151,7 @@ export class DBTCoreProjectIntegration
     languages.createDiagnosticCollection("dbt");
   private readonly pythonBridgeDiagnostics =
     languages.createDiagnosticCollection("dbt");
+  private dbtProfileWatcher!: FileSystemWatcher;
 
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
@@ -175,6 +177,20 @@ export class DBTCoreProjectIntegration
       this.rebuildManifestDiagnostics,
       this.pythonBridgeDiagnostics,
     );
+    this.createDbtProfileWatcher().then((watcher) => {
+      this.dbtProfileWatcher = watcher;
+    });
+  }
+
+  private async createDbtProfileWatcher() {
+    await this.python.ex`from dbt_integration import *`;
+    const profilesDir = await this.findProfilesDirectory();
+    return workspace.createFileSystemWatcher(
+      new RelativePattern(
+        profilesDir,
+        DBTCoreProjectIntegration.DBT_PROFILES_FILE,
+      ),
+    );
   }
 
   async refreshProjectConfig(): Promise<void> {
@@ -197,18 +213,13 @@ export class DBTCoreProjectIntegration
   private async createPythonDbtProject() {
     await this.python.ex`from dbt_integration import *`;
     const profilesDir = await this.findProfilesDirectory();
-    // TODO: watcher will be recreated every time this code runs, that should not be the case
-    const dbtProfileWatcher = workspace.createFileSystemWatcher(
-      new RelativePattern(
-        profilesDir,
-        DBTCoreProjectIntegration.DBT_PROFILES_FILE,
-      ),
-    );
     await this.python
       .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${profilesDir}) if 'project' not in locals() else project`;
     this.disposables.push(
       // when the project config changes we need to re-init the dbt project
-      ...setupWatcherHandler(dbtProfileWatcher, () => this.rebuildManifest()),
+      ...setupWatcherHandler(this.dbtProfileWatcher, () =>
+        this.rebuildManifest(),
+      ),
     );
   }
 
@@ -505,7 +516,6 @@ export class DBTCoreProjectIntegration
       (python) =>
         python`default_profiles_dir(Path(${this.projectRoot.fsPath}))`,
     );
-    // TODO: returns posix path failing...
     if (!path.isAbsolute(profilesDir)) {
       profilesDir = path.join(this.projectRoot.fsPath, profilesDir);
     }
