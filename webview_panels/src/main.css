@@ -79,3 +79,11 @@ strong {
   max-width: 100%;
   padding-left: 0;
 }
+
+.gap-sm {
+  gap: 0.5rem;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
