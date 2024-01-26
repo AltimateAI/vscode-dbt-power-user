@@ -72,14 +72,14 @@ const NewGenerationResults = ({
         <>
           <li>
             <Card className={classes.promptCard}>
-              <CardBody>{result.prompt}</CardBody>
+              <CardBody>{result.user_prompt}</CardBody>
             </Card>
           </li>
           <li key={result.name}>
             <Card>
               <CardTitle>
                 {" "}
-                <AltimateIcon /> {result.prompt}
+                <AltimateIcon /> {result.datapilot_title}
               </CardTitle>
               <CardBody>
                 {result.description}

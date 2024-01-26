@@ -25,8 +25,23 @@ export const DATA = {
     query: "Generate Documentation for last_name using settings",
     requestType: RequestTypes.AI_DOC_GENERATION,
     state: RequestState.COMPLETED,
+    // meta: { columnName: "first_name" },
     response:
       "A unique identifier for each customer, used for tracking and analyzing customer behavior and preferences. This identifier is crucial for customer segmentation, personalization, and tracking customer lifetime value. It allows businesses to understand individual customer journeys, analyze purchase patterns, and measure the effectiveness of marketing campaigns.",
-    actions: [{ title: "Regenerate" }, { title: "Make it shorter" }],
+    actions: [
+      {
+        title: "Regenerate",
+        command: "rengene",
+        data: { modelName: "customers" },
+        user_prompt: "Regenerate documentation for {type} {name}",
+        datapilot_title: "Improving documentation based on the user suggestion",
+      },
+      {
+        title: "Make it shorter",
+        data: { modelName: "customers" },
+        user_prompt: "Make documentation shorter for {type} {name}",
+        datapilot_title: "Improving documentation based on the user suggestion",
+      },
+    ],
   },
 } as Record<string, DataPilotChat>;

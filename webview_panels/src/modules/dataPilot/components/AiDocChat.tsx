@@ -1,9 +1,9 @@
 import { Card, CardBody, Stack } from "@uicore";
 import { useState } from "react";
-import { DataPilotChat, RequestState } from "../types";
+import { DataPilotChat, DataPilotChatAction, RequestState } from "../types";
 import AiDocActionButton from "./AiDocActionButton";
 import NewGenerationResults from "./NewGenerationResults";
-import { GeneratedResult } from "./types";
+import { FeedbackEntityType, GeneratedResult } from "./types";
 
 interface Props {
   chat: DataPilotChat;
@@ -13,8 +13,25 @@ const AiDocChat = ({ chat }: Props): JSX.Element => {
     [],
   );
 
-  const onNewGeneration = (result: GeneratedResult) => {
-    setGeneratedResults((prev) => [...prev, { ...result }]);
+  const onNewGeneration = (
+    result: GeneratedResult,
+    action: DataPilotChatAction,
+  ) => {
+    const entityType = chat.meta?.columnName
+      ? FeedbackEntityType.COLUMN
+      : FeedbackEntityType.MODEL;
+
+    const entityName = chat.meta?.columnName ?? action.data.modelName;
+    setGeneratedResults((prev) => [
+      ...prev,
+      {
+        ...result,
+        datapilot_title: action.datapilot_title,
+        user_prompt: action.user_prompt
+          .replace("{name}", entityName as string)
+          .replace("{type}", entityType),
+      },
+    ]);
   };
 
   return (
@@ -30,7 +47,7 @@ const AiDocChat = ({ chat }: Props): JSX.Element => {
       <Stack style={{ flexWrap: "wrap" }}>
         {chat.actions?.map((action) => (
           <AiDocActionButton
-            onNewGeneration={onNewGeneration}
+            onNewGeneration={(result) => onNewGeneration(result, action)}
             key={action.title?.toString()}
             action={action}
           />

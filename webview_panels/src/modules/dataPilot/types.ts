@@ -15,6 +15,8 @@ export interface DataPilotChatAction {
   title: string;
   data: Record<string, unknown>;
   command: string;
+  user_prompt: string;
+  datapilot_title: string;
 }
 
 export interface DataPilotChat {
