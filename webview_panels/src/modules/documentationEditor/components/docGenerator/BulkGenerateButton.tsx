@@ -27,24 +27,26 @@ const BulkGenerateButton = () => {
   const chunk = (a: string[], n: number) =>
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     [...Array(Math.ceil(a.length / n))].map((_, i) =>
-      a.slice(n * i, n + n * i),
+      a.slice(n * i, n + n * i)
     );
 
   const bulkGenerateDocs = async (columns: DBTDocumentationColumn[]) => {
     const chunks = chunk(
       columns.map((c) => c.name),
-      3, // use 3 columns per request
+      3 // use 3 columns per request
     );
-    const result = await Promise.all(
-      chunks.map((chunkedColumns) =>
-        executeRequestInSync("generateDocsForColumn", {
-          description: "",
-          user_instructions: userInstructions,
-          columnNames: chunkedColumns,
-          columns: currentDocsData?.columns,
-        }),
-      ),
-    );
+    const result: { columns: Partial<DBTDocumentationColumn>[] }[] = [];
+    for (const chunkedColumns of chunks) {
+      const response = await executeRequestInSync("generateDocsForColumn", {
+        description: "",
+        user_instructions: userInstructions,
+        columnNames: chunkedColumns,
+        columns: currentDocsData?.columns,
+      });
+      result.push(
+        response as { columns: Partial<DBTDocumentationColumn>[] }
+      );
+    }
 
     // convert 2 dim array to 1d with columns
     const allColumnsData = (
@@ -57,7 +59,7 @@ const BulkGenerateButton = () => {
       updateColumnsInCurrentDocsData({
         columns: allColumnsData,
         isNewGeneration: true,
-      }),
+      })
     );
   };
   const generateDocsForMissingColumns = async () => {
@@ -66,7 +68,7 @@ const BulkGenerateButton = () => {
     }
 
     const columnsWithoutDescription = currentDocsData.columns.filter(
-      (column) => !column.description,
+      (column) => !column.description
     );
     return bulkGenerateDocs(columnsWithoutDescription);
   };
@@ -80,14 +82,14 @@ const BulkGenerateButton = () => {
     setOpenPopover(false);
     if (value === "all") {
       generateForAll().catch((err) =>
-        panelLogger.error("error generating for all columns", err),
+        panelLogger.error("error generating for all columns", err)
       );
       return;
     }
 
     if (value === "missing") {
       generateDocsForMissingColumns().catch((err) =>
-        panelLogger.error("error generating for missing columns", err),
+        panelLogger.error("error generating for missing columns", err)
       );
       return;
     }
