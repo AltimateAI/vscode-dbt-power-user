@@ -22,7 +22,7 @@ import {
   ManifestCacheChangedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import { AltimateRequest } from "../altimate";
-import { EventEmitterService } from "../services/eventEmitterService";
+import { SharedStateService } from "../services/SharedStateService";
 
 type UpdateConfigProps = {
   key: string;
@@ -35,7 +35,7 @@ export interface HandleCommandProps extends Record<string, unknown> {
   syncRequestId?: string;
 }
 
-export interface EventEmitterEvent {
+export interface SharedStateEventEmitterProps {
   command: string;
   payload: Record<string, unknown>;
 }
@@ -60,7 +60,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     protected dbtProjectContainer: DBTProjectContainer,
     protected altimateRequest: AltimateRequest,
     protected telemetry: TelemetryService,
-    protected emitterService: EventEmitterService,
+    protected emitterService: SharedStateService,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),

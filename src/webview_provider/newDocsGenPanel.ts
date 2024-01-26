@@ -7,12 +7,12 @@ import {
 import { AltimateRequest } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { DocGenService } from "../services/docGenService";
-import { EventEmitterService } from "../services/eventEmitterService";
+import { SharedStateService } from "../services/SharedStateService";
 import { TelemetryService } from "../telemetry";
 import { provideSingleton } from "../utils";
 import {
   AltimateWebviewProvider,
-  EventEmitterEvent,
+  SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
 import { DocsGenPanelView } from "./docsEditPanel";
 
@@ -30,7 +30,7 @@ export class NewDocsGenPanel
     protected altimateRequest: AltimateRequest,
     telemetry: TelemetryService,
     private docGenService: DocGenService,
-    protected emitterService: EventEmitterService,
+    protected emitterService: SharedStateService,
   ) {
     super(dbtProjectContainer, altimateRequest, telemetry, emitterService);
   }
@@ -50,10 +50,7 @@ export class NewDocsGenPanel
 
     switch (command) {
       case "enableNewDocsPanel":
-        await workspace
-          .getConfiguration("dbt")
-          .update("enableNewDocsPanel", args.enable);
-        this.telemetry.sendTelemetryEvent("NewDocsPanelDisabled");
+        this.toggleDocsPanel(args);
         break;
       case "getCurrentModelDocumentation":
         if (!this.eventMap || !this._panel) {
@@ -74,13 +71,24 @@ export class NewDocsGenPanel
     }
   }
 
-  protected async onEvent({ command, payload }: EventEmitterEvent) {
+  protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
     switch (command) {
       case "docgen:insert":
         this._panel!.webview.postMessage({ command, ...payload });
         break;
+      case "enableNewDocsPanel":
+        this.toggleDocsPanel(payload);
       default:
         break;
     }
+  }
+
+  private async toggleDocsPanel({ enable }: Record<string, unknown>) {
+    await workspace
+      .getConfiguration("dbt")
+      .update("enableNewDocsPanel", enable);
+    this.telemetry.sendTelemetryEvent(
+      enable ? "NewDocsPanelEnabled" : "NewDocsPanelDisabled",
+    );
   }
 }

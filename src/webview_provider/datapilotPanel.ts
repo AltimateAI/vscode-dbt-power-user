@@ -1,15 +1,15 @@
-import { commands, window } from "vscode";
+import { commands, window, workspace } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
 import {
   AltimateWebviewProvider,
-  EventEmitterEvent,
+  SharedStateEventEmitterProps,
   HandleCommandProps,
 } from "./altimateWebviewProvider";
 import { DocGenService } from "../services/docGenService";
 import { AltimateRequest } from "../altimate";
-import { EventEmitterService } from "../services/eventEmitterService";
+import { SharedStateService } from "../services/SharedStateService";
 
 @provideSingleton(DataPilotPanel)
 export class DataPilotPanel extends AltimateWebviewProvider {
@@ -23,7 +23,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     telemetry: TelemetryService,
     protected altimateRequest: AltimateRequest,
     private docGenService: DocGenService,
-    protected emitterService: EventEmitterService,
+    protected emitterService: SharedStateService,
   ) {
     super(dbtProjectContainer, altimateRequest, telemetry, emitterService);
   }
@@ -33,6 +33,28 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     const queryText = window.activeTextEditor?.document.getText();
 
     switch (command) {
+      case "getNewDocsPanelState":
+        const newDocsPanelState = workspace
+          .getConfiguration("dbt")
+          .get<boolean>("enableNewDocsPanel", false);
+
+        this._panel!.webview.postMessage({
+          command: "response",
+          args: {
+            syncRequestId,
+            body: {
+              enabled: newDocsPanelState,
+            },
+            status: true,
+          },
+        });
+        break;
+      case "enableNewDocsPanel":
+        this.emitterService.fire({
+          command: "enableNewDocsPanel",
+          payload: params,
+        });
+        break;
       case "sendFeedback":
         if (!queryText) {
           return;
@@ -80,7 +102,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     }
   }
 
-  protected async onEvent({ command, payload }: EventEmitterEvent) {
+  protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
     switch (command) {
       case "datapilot:toggle":
         await commands.executeCommand("dbtPowerUser.datapilot-webview.focus");
