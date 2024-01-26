@@ -145,6 +145,7 @@ export class DBTCoreProjectIntegration
 {
   static DBT_PROFILES_FILE = "profiles.yml";
 
+  private isInitialized?: boolean = false;
   private targetPath?: string;
   private adapterType?: string;
   private version?: number[];
@@ -202,6 +203,10 @@ export class DBTCoreProjectIntegration
       this.rebuildManifestDiagnostics,
       this.pythonBridgeDiagnostics,
     );
+  }
+
+  updateInitializationState(): void {
+    this.isInitialized = true;
   }
 
   async refreshProjectConfig(): Promise<void> {
