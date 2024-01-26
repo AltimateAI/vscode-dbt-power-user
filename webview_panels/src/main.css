@@ -2,6 +2,8 @@
   --bs-body-font-family: "Lexend", var(--bs-font-sans-serif);
 }
 html {
+  font-size: 14px;
+
   --bg-color: #f5f5f7;
   --primary-accent: #247efe;
   --column-node-bg: #e9f2ff;
@@ -22,10 +24,9 @@ html {
   --input-bg: #ffffff;
   --input-text-color: #212529;
   --input-border-color: #dee2e6;
-  --Text-Neutral: #c4cad2;
+  --Text-Neutral: #4a4d51;
   --Action-Red: #ee140f;
   --dropdown-toggle-color: #1c1c1c;
-  font-size: 14px;
   --Action-Brand-dark: #004fbf;
   --Stroke-Orange: #e38e00;
   --Backgrounds-04: #4a4d51;
@@ -53,6 +54,7 @@ html[data-theme="dark"] {
   --input-bg: rgba(131, 144, 163, 0.2);
   --input-text-color: #ffffff;
   --input-border-color: rgba(131, 144, 163, 0.1);
+  --Text-Neutral: #c4cad2;
   --Action-Red: #ee140f;
   --dropdown-toggle-color: #1c1c1c;
   --Backgrounds-04: #4a4d51;

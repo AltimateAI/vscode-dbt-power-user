@@ -3,7 +3,7 @@ import useAppContext from "@modules/app/useAppContext";
 import CommonActionButtons from "@modules/commonActionButtons/CommonActionButtons";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
-import { Container, Label, Stack } from "@uicore";
+import { Label, Stack } from "@uicore";
 import DocGeneratorColumnsList from "./components/docGenerator/DocGeneratorColumnsList";
 import DocGeneratorInput from "./components/docGenerator/DocGeneratorInput";
 import HelpContent from "./components/help/HelpContent";
@@ -78,15 +78,15 @@ const DocumentationEditor = (): JSX.Element => {
 
   if (!currentDocsData) {
     return (
-      <Container className={classes.docGenerator}>
+      <div className={classes.docGenerator}>
         <h2>Documentation Help</h2>
         <HelpContent />
-      </Container>
+      </div>
     );
   }
 
   return (
-    <Container className={classes.docGenerator}>
+    <div className={classes.docGenerator}>
       <Stack className={classes.head}>
         <Stack>
           <h1>Documentation for {currentDocsData.name}</h1>
@@ -109,7 +109,7 @@ const DocumentationEditor = (): JSX.Element => {
           <SaveDocumentation />
         </Stack>
       </Stack>
-    </Container>
+    </div>
   );
 };
 

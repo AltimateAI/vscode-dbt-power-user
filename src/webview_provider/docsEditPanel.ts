@@ -116,6 +116,25 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         }
       },
     );
+
+    this._disposables.push(
+      workspace.onDidChangeConfiguration(
+        (e) => {
+          if (!e.affectsConfiguration("dbt.enableNewDocsPanel")) {
+            return;
+          }
+          if (this._panel && this.context && this.token) {
+            this.getPanel().resolveWebview(
+              this._panel,
+              this.context,
+              this.token,
+            );
+          }
+        },
+        this,
+        this._disposables,
+      ),
+    );
   }
 
   private getPanel() {

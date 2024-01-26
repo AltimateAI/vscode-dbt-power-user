@@ -1,3 +1,6 @@
+body{
+  padding: var(--spacing-3xl) !important;
+}
 .chat-list{
   padding: 0;
   li {
@@ -43,11 +46,15 @@
   > section {
     border-radius: 8px;
     border: 1px solid var(--Backgrounds-04, #4A4D51);
-    padding: 46px 20px 20px 20px;
+    padding: var(--spacing-2xl);
     text-align: left;
     margin-top: 20px;
-    h4 {
-      margin-bottom: 24px;
+    h3 {
+      margin-bottom: var(--spacing-lg);
+    }
+
+    p{
+      color: var(--Text-Neutral);
     }
   }
 }

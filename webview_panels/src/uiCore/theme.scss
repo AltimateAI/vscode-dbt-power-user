@@ -1,3 +1,8 @@
+html {
+  --spacing-3xl: 1.714rem;
+  --spacing-2xl: 1.429rem;
+  --spacing-lg: 0.857rem;
+}
 .card {
   padding: 16px;
   border-radius: 8px;
@@ -85,43 +90,50 @@ input.form-control {
 
 .h1,
 h1 {
-  font-size: 1.714rem;
+  font-size: 2rem;
 }
 .h2,
 h2 {
-  font-size: 1.429rem;
+  font-size: 1.714rem;
 }
 .h3,
 h3 {
-  font-size: 1.286rem;
+  font-size: 1.429rem;
 }
 .h4,
 h4 {
-  font-size: 1.143rem;
+  font-size: 1.286rem;
 }
 .h5,
 h5 {
-  font-size: 1rem;
+  font-size: 1.143rem;
 }
 .h6,
 h6 {
-  font-size: 0.857rem;
+  font-size: 1rem;
 }
 
-p,
 .p1 {
-  font-size: 1.143rem;
+  font-size: 1.429rem;
+}
+.p2 {
+  font-size: 1.286rem;
 }
 caption,
 .p3 {
-  font-size: 0.857rem;
+  font-size: 1.143rem;
 }
 .p4 {
-  font-size: 0.714rem;
+  font-size: 0.857rem;
 }
 .p5 {
+  font-size: 0.714rem;
+}
+.p6 {
   font-size: 0.571rem;
 }
+
+
 
 caption {
   padding: 0;

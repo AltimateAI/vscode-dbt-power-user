@@ -48,7 +48,7 @@ const DocGeneratorInput = ({
           onFocus={handleHideButton}
           onBlur={handleShowButton}
           type="textarea"
-          rows={description ? 3 : 1}
+          rows={description ? 5 : 1}
           placeholder={placeholder}
         />
 
