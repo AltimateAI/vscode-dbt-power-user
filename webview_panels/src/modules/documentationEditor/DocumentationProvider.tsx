@@ -62,7 +62,10 @@ const DocumentationProvider = ({
         case "renderColumnsFromMetadataFetch":
           if (event.data.columns) {
             dispatch(
-              updateColumnsInCurrentDocsData({ columns: event.data.columns }),
+              updateColumnsInCurrentDocsData({
+                columns: event.data.columns,
+                isNewGeneration: true,
+              }),
             );
           }
           break;
