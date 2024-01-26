@@ -23,7 +23,12 @@ import {
   ManifestCacheChangedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import { AltimateRequest } from "../altimate";
-import { UpdateConfigProps } from "./types";
+
+type UpdateConfigProps = {
+  key: string;
+  value: string | boolean | number;
+  isPreviewFeature?: boolean;
+};
 
 export interface HandleCommandProps extends Record<string, unknown> {
   command: string;
@@ -73,6 +78,13 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     );
   }
 
+  // typegaurd to UpdateConfigProps
+  private isUpdateConfigProps(
+    data: UpdateConfigProps | Record<string, unknown>,
+  ): data is UpdateConfigProps {
+    return (data as UpdateConfigProps).key !== undefined;
+  }
+
   protected async handleCommand(message: HandleCommandProps): Promise<void> {
     const { command, syncRequestId, ...params } = message;
 
@@ -99,22 +111,18 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           }, 500);
           break;
         case "updateConfig":
-          console.log(
-            "Updating config",
-            (params as UpdateConfigProps).key,
-            (params as UpdateConfigProps).value,
-          );
+          if (!this.isUpdateConfigProps(params)) {
+            return;
+          }
+          console.log("Updating config", params.key, params.value);
           // If config is for preview feature, then check keys
           const shouldUpdate =
-            !(params as UpdateConfigProps).isPreviewFeature ||
+            !params.isPreviewFeature ||
             this.altimateRequest.handlePreviewFeatures();
           if (shouldUpdate) {
             await workspace
               .getConfiguration("dbt")
-              .update(
-                (params as UpdateConfigProps).key,
-                (params as UpdateConfigProps).value,
-              );
+              .update(params.key, params.value);
           }
           if (syncRequestId) {
             this._panel!.webview.postMessage({
