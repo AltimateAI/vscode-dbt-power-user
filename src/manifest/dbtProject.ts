@@ -155,7 +155,6 @@ export class DBTProject implements Disposable {
     this.dbtProjectLog = this.dbtProjectLogFactory.createDBTProjectLog(
       this.onProjectConfigChanged,
     );
-    this.dbtProjectIntegration.updateInitializationState();
 
     // ensure all watchers are cleaned up
     this.disposables.push(

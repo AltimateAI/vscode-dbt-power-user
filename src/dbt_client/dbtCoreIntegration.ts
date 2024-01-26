@@ -348,6 +348,7 @@ export class DBTCoreProjectIntegration
             adapter: this.getAdapterType() || "unknown", // TODO: this should be moved to dbtProject
           },
         );
+        this.updateInitializationState();
         return;
       }
       // if we get here, it is not a dbt error but an extension error.
