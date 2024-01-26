@@ -1,6 +1,9 @@
 import { useCallback, useEffect } from "react";
 import { updateTheme } from "./appSlice";
-import { handleIncomingResponse } from "./requestExecutor";
+import {
+  executeRequestInAsync,
+  handleIncomingResponse,
+} from "./requestExecutor";
 import {
   ContextProps,
   IncomingMessageProps,
@@ -34,6 +37,9 @@ const useListeners = (dispatch: ContextProps["dispatch"]): void => {
 
   useEffect(() => {
     window.addEventListener("message", onMesssage);
+
+    executeRequestInAsync("webview:ready", {});
+
     return () => {
       window.removeEventListener("message", onMesssage);
     };

@@ -1,9 +1,9 @@
 import {
   CancellationToken,
   ColorThemeKind,
-  commands,
   Disposable,
   env,
+  EventEmitter,
   Uri,
   Webview,
   WebviewOptions,
@@ -17,7 +17,6 @@ import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
 import path = require("path");
-import { sharedStateManager } from "./sharedStateManager";
 import {
   ManifestCacheProjectAddedEvent,
   ManifestCacheChangedEvent,
@@ -35,6 +34,11 @@ export interface HandleCommandProps extends Record<string, unknown> {
   syncRequestId?: string;
 }
 
+export interface EventEmitterEvent {
+  command: string;
+  payload: Record<string, unknown>;
+}
+
 /**
  * This class is responsible for rendering the webview
  * Each panel needs to have its own provider which extends this class with correct viewPath and description
@@ -48,6 +52,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
   protected _panel: WebviewView | undefined = undefined;
   protected _disposables: Disposable[] = [];
   protected eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
+  // Flag to know if panel's webview is rendered and ready to receive message
+  protected isWebviewReady = false;
+
+  // Event emitter instance to pubsub events across panels/webviews
+  static eventEmitter = new EventEmitter<EventEmitterEvent>();
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
@@ -56,6 +65,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
+    );
+
+    const t = this;
+    this._disposables.push(
+      AltimateWebviewProvider.eventEmitter.event((d) => t.onEvent(d)),
     );
   }
 
@@ -67,6 +81,8 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
       this.eventMap.delete(removed.projectRoot.fsPath);
     });
   }
+
+  protected async onEvent(data: unknown) {}
 
   protected renderWebviewView(context: WebviewViewResolveContext) {
     const webview = this._panel!.webview!;
@@ -85,11 +101,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     return (data as UpdateConfigProps).key !== undefined;
   }
 
+  protected onWebviewReady() {
+    this.isWebviewReady = true;
+  }
   protected async handleCommand(message: HandleCommandProps): Promise<void> {
     const { command, syncRequestId, ...params } = message;
 
     try {
       switch (command) {
+        case "webview:ready":
+          this.onWebviewReady();
+          break;
         case "openURL":
           if (!params.url) {
             return;
@@ -98,17 +120,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           break;
         case "datapilot:toggle":
           if (params.open) {
-            await commands.executeCommand(
-              "dbtPowerUser.datapilot-webview.focus",
-            );
+            AltimateWebviewProvider.eventEmitter.fire({
+              command: "datapilot:toggle",
+              payload: params,
+            });
           }
           break;
         case "datapilot:message":
-          await commands.executeCommand("dbtPowerUser.datapilot-webview.focus");
-          // Adding timeout to let the datapilot complete rendering
-          setTimeout(() => {
-            sharedStateManager.postMessage(message);
-          }, 500);
+          AltimateWebviewProvider.eventEmitter.fire({
+            command: "datapilot:message",
+            payload: message,
+          });
           break;
         case "updateConfig":
           if (!this.isUpdateConfigProps(params)) {
@@ -252,6 +274,15 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           </body>
         </html>
       `;
+  }
+
+  dispose() {
+    while (this._disposables.length) {
+      const x = this._disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
   }
 }
 

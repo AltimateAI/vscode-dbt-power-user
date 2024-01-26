@@ -10,9 +10,11 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { DocGenService } from "../services/docGenService";
 import { TelemetryService } from "../telemetry";
 import { provideSingleton } from "../utils";
-import { AltimateWebviewProvider } from "./altimateWebviewProvider";
+import {
+  AltimateWebviewProvider,
+  EventEmitterEvent,
+} from "./altimateWebviewProvider";
 import { DocsGenPanelView } from "./docsEditPanel";
-import { sharedStateManager } from "./sharedStateManager";
 
 @provideSingleton(NewDocsGenPanel)
 export class NewDocsGenPanel
@@ -37,15 +39,6 @@ export class NewDocsGenPanel
     token: CancellationToken,
   ): void {
     super.resolveWebviewView(panel, context, token);
-    sharedStateManager.addListener((message) => {
-      const { command, ...item } = message;
-      if (!this._panel) {
-        return;
-      }
-      if (command === "docgen:insert") {
-        this._panel.webview.postMessage(message);
-      }
-    });
   }
 
   async handleCommand(message: {
@@ -76,6 +69,16 @@ export class NewDocsGenPanel
         });
       default:
         super.handleCommand(message);
+        break;
+    }
+  }
+
+  protected async onEvent({ command, payload }: EventEmitterEvent) {
+    switch (command) {
+      case "docgen:insert":
+        this._panel!.webview.postMessage({ command, ...payload });
+        break;
+      default:
         break;
     }
   }
