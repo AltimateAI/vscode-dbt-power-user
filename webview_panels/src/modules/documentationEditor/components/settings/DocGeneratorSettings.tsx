@@ -23,6 +23,14 @@ const DocGeneratorSettings = (): JSX.Element => {
     dispatch(
       updateUserInstructions({ [meta.name]: (value as OptionType).value }),
     );
+
+    localStorage.setItem(
+      "userInstructions",
+      JSON.stringify({
+        ...userInstructions,
+        [meta.name]: (value as OptionType).value,
+      }),
+    );
   };
 
   return (

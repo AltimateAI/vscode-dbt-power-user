@@ -129,13 +129,6 @@ const DocumentationProvider = ({
     };
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem(
-      "userInstructions",
-      JSON.stringify(state.userInstructions),
-    );
-  }, [state.userInstructions]);
-
   const values = useMemo(
     () => ({
       state,

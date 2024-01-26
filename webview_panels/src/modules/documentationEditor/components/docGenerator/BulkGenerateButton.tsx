@@ -33,7 +33,7 @@ const BulkGenerateButton = () => {
   const bulkGenerateDocs = async (columns: DBTDocumentationColumn[]) => {
     const chunks = chunk(
       columns.map((c) => c.name),
-      2,
+      3, // use 3 columns per request
     );
     const result = await Promise.all(
       chunks.map((chunkedColumns) =>
