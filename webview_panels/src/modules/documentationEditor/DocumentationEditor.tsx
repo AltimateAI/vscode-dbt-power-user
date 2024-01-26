@@ -3,7 +3,7 @@ import useAppContext from "@modules/app/useAppContext";
 import CommonActionButtons from "@modules/commonActionButtons/CommonActionButtons";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
-import { Container, Label, Stack, Tag } from "@uicore";
+import { Container, Label, Stack } from "@uicore";
 import DocGeneratorColumnsList from "./components/docGenerator/DocGeneratorColumnsList";
 import DocGeneratorInput from "./components/docGenerator/DocGeneratorInput";
 import HelpContent from "./components/help/HelpContent";
@@ -32,7 +32,7 @@ const DocumentationEditor = (): JSX.Element => {
       const requestData = {
         description: data.description,
         user_instructions: data.user_instructions,
-        columns: data.columns,
+        columns: currentDocsData.columns,
         name: currentDocsData.name,
       };
       if (showInDataPilot) {
@@ -90,7 +90,6 @@ const DocumentationEditor = (): JSX.Element => {
       <Stack className={classes.head}>
         <Stack>
           <h1>Documentation for {currentDocsData.name}</h1>
-          <Tag color="primary">DATAPILOT</Tag>
         </Stack>
         <CommonActionButtons />
       </Stack>
