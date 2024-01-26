@@ -69,7 +69,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     webview.html = this.getHtml(
       webview,
-      this.dbtProjectContainer.extensionPath,
+      this.dbtProjectContainer.extensionUri.fsPath,
     );
   }
 
@@ -173,7 +173,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
       localResourceRoots: [
         Uri.file(
           path.join(
-            this.dbtProjectContainer.extensionPath,
+            this.dbtProjectContainer.extensionUri.fsPath,
             "webview_panels",
             "dist",
             "assets",
