@@ -80,6 +80,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private _disposables: Disposable[] = [];
   private legacyDocsPanel = this;
+  private onMessageDisposable: Disposable | undefined;
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -228,7 +229,12 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   };
 
   private setupWebviewHooks(context: WebviewViewResolveContext) {
-    this._panel!.webview.onDidReceiveMessage(
+    // Clear this listener before subscribing again
+    if (this.onMessageDisposable) {
+      this.onMessageDisposable.dispose();
+      this.onMessageDisposable = undefined;
+    }
+    this.onMessageDisposable = this._panel!.webview.onDidReceiveMessage(
       async (message) => {
         console.log(message);
         if (
