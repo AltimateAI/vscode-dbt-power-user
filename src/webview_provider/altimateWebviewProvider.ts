@@ -22,6 +22,7 @@ import {
   ManifestCacheChangedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import { AltimateRequest } from "../altimate";
+import { EventEmitterService } from "../services/eventEmitterService";
 
 type UpdateConfigProps = {
   key: string;
@@ -55,13 +56,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
   // Flag to know if panel's webview is rendered and ready to receive message
   protected isWebviewReady = false;
 
-  // Event emitter instance to pubsub events across panels/webviews
-  static eventEmitter = new EventEmitter<EventEmitterEvent>();
-
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
     protected altimateRequest: AltimateRequest,
     protected telemetry: TelemetryService,
+    protected emitterService: EventEmitterService,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
@@ -69,7 +68,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     const t = this;
     this._disposables.push(
-      AltimateWebviewProvider.eventEmitter.event((d) => t.onEvent(d)),
+      emitterService.eventEmitter.event((d) => t.onEvent(d)),
     );
   }
 
@@ -120,14 +119,14 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           break;
         case "datapilot:toggle":
           if (params.open) {
-            AltimateWebviewProvider.eventEmitter.fire({
+            this.emitterService.eventEmitter.fire({
               command: "datapilot:toggle",
               payload: params,
             });
           }
           break;
         case "datapilot:message":
-          AltimateWebviewProvider.eventEmitter.fire({
+          this.emitterService.eventEmitter.fire({
             command: "datapilot:message",
             payload: message,
           });

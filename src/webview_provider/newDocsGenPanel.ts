@@ -1,6 +1,5 @@
 import {
   CancellationToken,
-  TextEditor,
   WebviewView,
   WebviewViewResolveContext,
   workspace,
@@ -8,6 +7,7 @@ import {
 import { AltimateRequest } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { DocGenService } from "../services/docGenService";
+import { EventEmitterService } from "../services/eventEmitterService";
 import { TelemetryService } from "../telemetry";
 import { provideSingleton } from "../utils";
 import {
@@ -30,8 +30,9 @@ export class NewDocsGenPanel
     protected altimateRequest: AltimateRequest,
     telemetry: TelemetryService,
     private docGenService: DocGenService,
+    protected emitterService: EventEmitterService,
   ) {
-    super(dbtProjectContainer, altimateRequest, telemetry);
+    super(dbtProjectContainer, altimateRequest, telemetry, emitterService);
   }
   resolveWebview(
     panel: WebviewView,

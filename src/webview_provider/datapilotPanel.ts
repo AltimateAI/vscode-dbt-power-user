@@ -9,6 +9,7 @@ import {
 } from "./altimateWebviewProvider";
 import { DocGenService } from "../services/docGenService";
 import { AltimateRequest } from "../altimate";
+import { EventEmitterService } from "../services/eventEmitterService";
 
 @provideSingleton(DataPilotPanel)
 export class DataPilotPanel extends AltimateWebviewProvider {
@@ -22,8 +23,9 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     telemetry: TelemetryService,
     protected altimateRequest: AltimateRequest,
     private docGenService: DocGenService,
+    protected emitterService: EventEmitterService,
   ) {
-    super(dbtProjectContainer, altimateRequest, telemetry);
+    super(dbtProjectContainer, altimateRequest, telemetry, emitterService);
   }
 
   async handleCommand(message: HandleCommandProps): Promise<void> {
@@ -67,7 +69,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         });
         break;
       case "docgen:insert":
-        AltimateWebviewProvider.eventEmitter.fire({
+        this.emitterService.eventEmitter.fire({
           command: "docgen:insert",
           payload: params,
         });
