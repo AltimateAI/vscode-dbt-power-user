@@ -4,7 +4,8 @@ import Select, {
   OptionProps,
   GroupBase,
 } from "react-select";
-import { FormGroup, Input, Label } from "../../index";
+import { Label } from "../../index";
+import { CheckBlueIcon, UncheckIcon } from "@assets/icons";
 
 const { Option } = components;
 
@@ -21,23 +22,18 @@ const IconOption = (
   const {
     data: { label },
     isMulti,
-    selectName,
     isSelected,
   } = props;
 
   return (
     <Option {...props}>
       <div className="flex items-center gap-2">
-        <FormGroup check>
-          <Label check={isMulti}>
-            <Input
-              checked={isSelected}
-              type={isMulti ? "checkbox" : "radio"}
-              name={selectName}
-            />
-            {label}
-          </Label>
-        </FormGroup>
+        <Label check={isMulti}>
+          <span style={{ marginRight: 10 }}>
+            {isSelected ? <CheckBlueIcon /> : <UncheckIcon />}
+          </span>
+          {label}
+        </Label>
       </div>
     </Option>
   );
@@ -45,7 +41,21 @@ const IconOption = (
 
 const AltimateSelect = (props: Parameters<typeof Select>[0]): JSX.Element => {
   const colourStyles: StylesConfig<OptionType> = {
-    menu: (styles) => ({ ...styles, margin: 0, borderRadius: "0 0 4px 4px" }),
+    menu: (styles) => ({
+      ...styles,
+      margin: 0,
+      borderRadius: "0 0 4px 4px",
+      backgroundColor: "var(--Select-menu-bg)",
+    }),
+    singleValue: (styles) => ({
+      ...styles,
+      color: "var(--Text-Neutral)",
+    }),
+    control: (styles) => ({
+      ...styles,
+      backgroundColor: "var(--Backgrounds-02)",
+      color: "var(--Text-Neutral)",
+    }),
   };
   const selectName = props.name ?? `select-${Math.random()}`;
 

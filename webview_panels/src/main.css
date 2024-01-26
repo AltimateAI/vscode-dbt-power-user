@@ -31,6 +31,7 @@ html {
   --Stroke-Orange: #e38e00;
   --Backgrounds-04: #4a4d51;
   --Backgrounds-02: #fff;
+  --Select-menu-bg: #fff;
 }
 
 html[data-theme="dark"] {
@@ -59,6 +60,7 @@ html[data-theme="dark"] {
   --dropdown-toggle-color: #1c1c1c;
   --Backgrounds-04: #4a4d51;
   --Backgrounds-02: #28292c;
+  --Select-menu-bg: rgba(66, 71, 80, 1);
 }
 
 body {

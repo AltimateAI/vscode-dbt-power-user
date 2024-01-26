@@ -11,4 +11,6 @@ export { default as HelpIcon } from "./help.svg?react";
 export { default as FeedbackIcon } from "./feedback.svg?react";
 export { default as EditIcon } from "./edit.svg?react";
 export { default as AltimateIcon } from "./altimate.svg?react";
+export { default as CheckBlueIcon } from "./check-blue.svg?react";
+export { default as UncheckIcon } from "./uncheck.svg?react";
 export { default as MoreIcon } from "./more.svg?react";
