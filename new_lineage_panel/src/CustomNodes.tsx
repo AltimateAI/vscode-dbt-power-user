@@ -16,12 +16,8 @@ import {
   layoutElementsOnCanvas,
   resetTableHighlights,
 } from "./graph";
-import {
-  LineageContext,
-  openFile,
-  startProgressBar,
-  endProgressBar,
-} from "./App";
+import { LineageContext } from "./App";
+import { openFile, startProgressBar, endProgressBar } from "./service_utils";
 import { C_NODE_H, C_PADDING_Y } from "./utils";
 import { TMoreTables } from "./MoreTables";
 import ModelIcon from "./assets/icons/model.svg?react";

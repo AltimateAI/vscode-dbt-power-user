@@ -11,14 +11,13 @@ import styles from "./styles.module.scss";
 import classNames from "classnames";
 import { Button } from "reactstrap";
 import { getColumns, Columns, Column, Table } from "./service";
+import { aiEnabled, LineageContext } from "./App";
 import {
-  aiEnabled,
   endProgressBar,
-  LineageContext,
   previewFeature,
   showNoLineage,
   startProgressBar,
-} from "./App";
+} from "./service_utils";
 import {
   bfsTraversal,
   expandTableLineage,
