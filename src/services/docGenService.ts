@@ -1,6 +1,6 @@
 import path = require("path");
 import { ProgressLocation, WebviewView, window, workspace } from "vscode";
-import { AltimateRequest } from "../altimate";
+import { AltimateRequest, DocsGenerateModelRequest } from "../altimate";
 import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
@@ -199,10 +199,14 @@ export class DocGenService {
       return;
     }
     const queryText = window.activeTextEditor.document.getText();
-    this.telemetry.sendTelemetryEvent("altimateGenerateDocsForColumn");
     const columns = message.columnName
       ? [message.columnName]
       : message.columnNames;
+
+    this.telemetry.sendTelemetryEvent("altimateGenerateDocsForColumn", {
+      model: documentation?.name || "",
+      columns,
+    });
 
     window.withProgress(
       {
@@ -217,6 +221,7 @@ export class DocGenService {
           return;
         }
         try {
+          const startTime = Date.now();
           const compiledSql = await project.unsafeCompileQuery(queryText);
           const generatedDocsForColumn = await this.generateDocsForColumn(
             documentation,
@@ -239,6 +244,14 @@ export class DocGenService {
               description: entry.column_description,
             })),
             message.syncRequestId,
+          );
+          this.telemetry.sendTelemetryEvent(
+            "altimateGenerateDocsForColumn",
+            {
+              model: documentation?.name || "",
+              columns,
+            },
+            { timeTaken: Date.now() - startTime },
           );
         } catch (error) {
           this.transmitError(panel);
@@ -270,7 +283,10 @@ export class DocGenService {
     if (!project) {
       return;
     }
-    this.telemetry.sendTelemetryEvent("altimateGenerateDocsForModel");
+    this.telemetry.sendTelemetryEvent("altimateGenerateDocsForModel", {
+      model: documentation?.name || "",
+    });
+
     window.withProgress(
       {
         title: `Generating documentation for model ${documentation?.name}`,
@@ -282,6 +298,7 @@ export class DocGenService {
           return;
         }
         try {
+          const startTime = Date.now();
           const compiledSql = await project.unsafeCompileQuery(queryText);
           const enableNewDocsPanel = workspace
             .getConfiguration("dbt")
@@ -303,9 +320,7 @@ export class DocGenService {
             },
             prompt_hint: message.promptHint || "generate",
             gen_model_description: true,
-          } as unknown as Parameters<
-            typeof this.altimateRequest.generateModelDocs
-          >["0"];
+          } as unknown as DocsGenerateModelRequest;
           const generateDocsForModel = enableNewDocsPanel
             ? await this.altimateRequest.generateModelDocsV2({
                 ...baseRequest,
@@ -329,6 +344,13 @@ export class DocGenService {
             generateDocsForModel.model_description,
             message.syncRequestId,
             panel,
+          );
+          this.telemetry.sendTelemetryEvent(
+            "altimateGenerateDocsForModel",
+            {
+              model: documentation?.name || "",
+            },
+            { timeTaken: Date.now() - startTime },
           );
         } catch (error) {
           this.transmitError(panel);

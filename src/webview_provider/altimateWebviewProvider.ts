@@ -144,6 +144,20 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             },
           });
           break;
+        case "sendTelemetryEvent":
+          this.telemetry.sendTelemetryEvent(
+            params.eventName as string,
+            params.properties as { [key: string]: string },
+            params.measurements as { [key: string]: number },
+          );
+          break;
+        case "sendTelemetryError":
+          this.telemetry.sendTelemetryError(
+            params.eventName as string,
+            params.error,
+            params.properties as { [key: string]: string },
+          );
+          break;
         case "updateConfig":
           if (!this.isUpdateConfigProps(params)) {
             return;

@@ -1,5 +1,8 @@
 import { ShinesIcon } from "@assets/icons";
-import { executeRequestInSync } from "@modules/app/requestExecutor";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
 import { updateColumnsInCurrentDocsData } from "@modules/documentationEditor/state/documentationSlice";
 import { DBTDocumentationColumn } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
@@ -59,6 +62,8 @@ const BulkGenerateButton = () => {
         isNewGeneration: true,
       }),
     );
+
+    return columns;
   };
   const generateDocsForMissingColumns = async () => {
     if (!currentDocsData) {
@@ -76,19 +81,49 @@ const BulkGenerateButton = () => {
     }
     return bulkGenerateDocs(currentDocsData.columns);
   };
-  const onOptionSelect = (value: string) => {
+
+  const sendTelemetryEvent = (
+    type: string,
+    columns?: DBTDocumentationColumn[],
+    startTime?: number,
+  ) => {
+    const timeTaken = startTime ? Date.now() - startTime : undefined;
+    executeRequestInAsync("sendTelemetryEvent", {
+      eventName: `generate-${type}-columns`,
+      properties: {
+        model: currentDocsData?.name,
+        columns: columns?.map((c) => c.name),
+      },
+      measurements: { timeTaken },
+    });
+  };
+
+  const onOptionSelect = async (value: string) => {
     setOpenPopover(false);
+    const startTime = Date.now();
+    sendTelemetryEvent(value);
+
     if (value === "all") {
-      generateForAll().catch((err) =>
-        panelLogger.error("error generating for all columns", err),
-      );
+      try {
+        const columns = await generateForAll();
+        if (columns) {
+          sendTelemetryEvent(value, columns, startTime);
+        }
+      } catch (err) {
+        panelLogger.error("error generating for all columns", err);
+      }
       return;
     }
 
     if (value === "missing") {
-      generateDocsForMissingColumns().catch((err) =>
-        panelLogger.error("error generating for missing columns", err),
-      );
+      try {
+        const columns = await generateDocsForMissingColumns();
+        if (columns) {
+          sendTelemetryEvent(value, columns, startTime);
+        }
+      } catch (err) {
+        panelLogger.error("error generating for missing columns", err);
+      }
       return;
     }
   };

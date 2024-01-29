@@ -96,7 +96,7 @@ interface DocsGenerateModelRequestV2 {
   gen_model_description: boolean;
 }
 
-interface DocsGenerateModelRequest {
+export interface DocsGenerateModelRequest {
   columns: string[];
   dbt_model: {
     model_name: string;
