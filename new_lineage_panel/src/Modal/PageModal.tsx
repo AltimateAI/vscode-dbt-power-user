@@ -14,9 +14,18 @@ function Modal({
     elem.style.display = isOpen ? "block" : "none";
   }, [isOpen]);
   return createPortal(
-    <div className="page-modal">
+    <div
+      className="page-modal"
+      onClick={(e) => {
+        e.stopPropagation();
+        close();
+      }}
+    >
       {isOpen && (
-        <div className="page-modal-content">
+        <div
+          className="page-modal-content"
+          onClick={(e) => e.stopPropagation()}
+        >
           {children}
           <div className="close-btn" onClick={() => close()}>
             <CloseIcon />

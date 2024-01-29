@@ -1,6 +1,11 @@
 import { Container, interfaces } from "inversify";
 import { buildProviderModule } from "inversify-binding-decorators";
-import { EventEmitter, Uri, WorkspaceFolder } from "vscode";
+import {
+  DiagnosticCollection,
+  EventEmitter,
+  Uri,
+  WorkspaceFolder,
+} from "vscode";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
 import { EnvironmentVariables } from "./domain";
 import { DBTProject } from "./manifest/dbtProject";
@@ -62,9 +67,12 @@ container
   .bind<interfaces.Factory<DBTCoreProjectIntegration>>(
     "Factory<DBTCoreProjectIntegration>",
   )
-  .toFactory<DBTCoreProjectIntegration, [Uri]>(
+  .toFactory<DBTCoreProjectIntegration, [Uri, DiagnosticCollection]>(
     (context: interfaces.Context) => {
-      return (projectRoot: Uri) => {
+      return (
+        projectRoot: Uri,
+        projectConfigDiagnostics: DiagnosticCollection,
+      ) => {
         const { container } = context;
         return new DBTCoreProjectIntegration(
           container.get(DBTCommandExecutionInfrastructure),
@@ -73,6 +81,7 @@ container
           container.get(PythonDBTCommandExecutionStrategy),
           container.get(DBTProjectContainer),
           projectRoot,
+          projectConfigDiagnostics,
         );
       };
     },
