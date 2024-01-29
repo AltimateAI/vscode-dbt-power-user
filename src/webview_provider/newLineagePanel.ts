@@ -232,8 +232,10 @@ export class NewLineagePanel implements LineagePanelView {
     console.error("Unsupported mssage", message);
   }
 
-  private columnLineageCtx: { ctxId: string; resolve: () => void } | null =
-    null;
+  private cllCtxMap: Record<
+    string,
+    { isCancelled: boolean; resolve: () => void }
+  > = {};
   private async handleColumnLineage({
     ctxId,
     status,
@@ -250,12 +252,12 @@ export class NewLineagePanel implements LineagePanelView {
         },
         async (_, token) => {
           await new Promise<void>((resolve) => {
-            this.columnLineageCtx = { ctxId, resolve };
+            this.cllCtxMap[ctxId] = { isCancelled: false, resolve };
             token.onCancellationRequested(() => {
-              this.columnLineageCtx = null;
+              this.cllCtxMap[ctxId].isCancelled = true;
               this._panel?.webview.postMessage({
                 command: "columnLineage",
-                args: { cancel: true },
+                args: { ctxId, cancel: true },
               });
             });
           });
@@ -264,7 +266,7 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
     if (status === CLLStatus.END) {
-      this.columnLineageCtx?.resolve();
+      this.cllCtxMap[ctxId]?.resolve();
       return;
     }
   }
@@ -587,6 +589,7 @@ export class NewLineagePanel implements LineagePanelView {
     currAnd1HopTables,
     selectedColumn,
     sessionId,
+    ctxId,
   }: {
     targets: [string, string][];
     upstreamExpansion: boolean;
@@ -594,6 +597,7 @@ export class NewLineagePanel implements LineagePanelView {
     // select_column is used for pricing not business logic
     selectedColumn: { name: string; table: string };
     sessionId: string;
+    ctxId: string;
   }) {
     const event = this.getEvent();
     if (!event) {
@@ -648,6 +652,9 @@ export class NewLineagePanel implements LineagePanelView {
       auxiliaryTables = Array.from(parentSet);
     }
     try {
+      if (this.cllCtxMap[ctxId].isCancelled) {
+        return { column_lineage: [] };
+      }
       await Promise.all([
         ...currAnd1HopTables.map(async (key) => {
           let compiledSql: string | undefined;
@@ -785,6 +792,9 @@ export class NewLineagePanel implements LineagePanelView {
 
     const modelDialect = project.getAdapterType();
     try {
+      if (this.cllCtxMap[ctxId].isCancelled) {
+        return { column_lineage: [] };
+      }
       const request = {
         model_dialect: modelDialect,
         model_info: modelInfos,

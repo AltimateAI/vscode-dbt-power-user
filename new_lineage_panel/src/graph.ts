@@ -276,6 +276,7 @@ export const removeRelatedNodesEdges = (
 };
 
 export const processColumnLineage = async (
+  ctx: Context,
   levelMap: Record<string, number>,
   seeMoreIdTableReverseMap: Record<string, string>,
   tableNodes: Record<string, boolean>,
@@ -294,6 +295,7 @@ export const processColumnLineage = async (
     currAnd1HopTables,
     selectedColumn,
     sessionId,
+    ctxId: ctx.id,
   });
   const columnLineage = column_lineage.filter((e) =>
     right ? contains(curr, e.source) : contains(curr, e.target)
@@ -547,6 +549,7 @@ export const bfsTraversal = async (
       currAnd1HopTables.push(...ephemeralAncestors[t].map((c) => c[0]));
     });
     const patchState = await processColumnLineage(
+      ctx,
       levelMap,
       seeMoreIdTableReverseMap,
       tableNodes,

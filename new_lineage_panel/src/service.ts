@@ -82,6 +82,7 @@ export const getConnectedColumns = (body: {
   currAnd1HopTables: string[];
   selectedColumn: { name: string; table: string };
   sessionId: string;
+  ctxId: string;
 }) => {
   return requestExecutor(
     "getConnectedColumns",

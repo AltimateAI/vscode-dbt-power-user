@@ -61,6 +61,10 @@ export const setLegacyLineageView = () =>
 
 export class Context {
   isCancelled = false;
+  id: string;
+  constructor(id: string) {
+    this.id = id;
+  }
   cancel() {
     this.isCancelled = true;
   }
@@ -74,7 +78,7 @@ enum CLLStatus {
 const ctxMap: Record<string, Context> = {};
 export const withProgressBar = async <T>(fn: (ctx: Context) => Promise<T>) => {
   const ctxId: string = window.crypto.randomUUID();
-  const ctx = new Context();
+  const ctx = new Context(ctxId);
   ctxMap[ctxId] = ctx;
   vscode.postMessage({
     command: "columnLineage",
