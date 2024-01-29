@@ -13,6 +13,7 @@ import { Button } from "reactstrap";
 import { getColumns, Columns, Column, Table } from "./service";
 import { aiEnabled, LineageContext } from "./App";
 import {
+  Context,
   previewFeature,
   showNoLineage,
   withProgressBar,
@@ -255,7 +256,7 @@ const TableDetails = () => {
       setShowSidebar(false);
       return;
     }
-    withProgressBar(async () => {
+    withProgressBar(async (ctx: Context) => {
       let _nodes = flow.getNodes();
       let _edges = flow.getEdges();
       const addNodesEdges = async (right: boolean) => {
@@ -292,6 +293,7 @@ const TableDetails = () => {
       rerender();
       const _bfsTraversal = (right: boolean) =>
         bfsTraversal(
+          ctx,
           nodes,
           edges,
           right,

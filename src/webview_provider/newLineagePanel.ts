@@ -45,6 +45,11 @@ type Table = {
   tests: any[];
 };
 
+enum CLLStatus {
+  START = "start",
+  END = "end",
+}
+
 const CACHE_SIZE = 100;
 const CACHE_VALID_TIME = 24 * 60 * 60 * 1000;
 
@@ -62,7 +67,6 @@ export class NewLineagePanel implements LineagePanelView {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private dbCache: Map<string, Record<string, string>[]> = new Map();
   private lruCache: Map<string, number> = new Map();
-  private progressBarResolve?: () => void;
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -207,24 +211,8 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
 
-    if (command === "startProgressBar") {
-      window.withProgress(
-        {
-          title: "Processing column level lineage",
-          location: ProgressLocation.Notification,
-          cancellable: false,
-        },
-        async () => {
-          await new Promise<void>((resolve) => {
-            this.progressBarResolve = resolve;
-          });
-        },
-      );
-      return;
-    }
-
-    if (command === "endProgressBar") {
-      this.progressBarResolve?.();
+    if (command === "columnLineage") {
+      this.handleColumnLineage(args);
       return;
     }
 
@@ -242,6 +230,43 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     console.error("Unsupported mssage", message);
+  }
+
+  private columnLineageCtx: { ctxId: string; resolve: () => void } | null =
+    null;
+  private async handleColumnLineage({
+    ctxId,
+    status,
+  }: {
+    ctxId: string;
+    status: CLLStatus;
+  }) {
+    if (status === CLLStatus.START) {
+      window.withProgress(
+        {
+          title: "Processing column level lineage",
+          location: ProgressLocation.Notification,
+          cancellable: true,
+        },
+        async (_, token) => {
+          await new Promise<void>((resolve) => {
+            this.columnLineageCtx = { ctxId, resolve };
+            token.onCancellationRequested(() => {
+              this.columnLineageCtx = null;
+              this._panel?.webview.postMessage({
+                command: "columnLineage",
+                args: { cancel: true },
+              });
+            });
+          });
+        },
+      );
+      return;
+    }
+    if (status === CLLStatus.END) {
+      this.columnLineageCtx?.resolve();
+      return;
+    }
   }
 
   private async addModelColumnsFromDB(project: DBTProject, node: NodeMetaData) {

@@ -44,12 +44,6 @@ export const openURL = (url: string) => {
 
 export const openChat = () => openURL("https://app.myaltimate.com/contactus");
 
-export const withProgressBar = async <T>(fn: () => Promise<T>) => {
-  vscode.postMessage({ command: "startProgressBar", args: {} });
-  await fn();
-  vscode.postMessage({ command: "endProgressBar", args: {} });
-};
-
 export const previewFeature = () => {
   vscode.postMessage({ command: "previewFeature", args: {} });
 };
@@ -62,3 +56,50 @@ export const init = () => vscode.postMessage({ command: "init", args: {} });
 
 export const setLegacyLineageView = () =>
   vscode.postMessage({ command: "setLegacyLineageView" });
+
+// column lineage with cancellation
+
+export class Context {
+  isCancelled = false;
+  cancel() {
+    this.isCancelled = true;
+  }
+}
+
+enum CLLStatus {
+  START = "start",
+  END = "end",
+}
+
+const ctxMap: Record<string, Context> = {};
+export const withProgressBar = async <T>(fn: (ctx: Context) => Promise<T>) => {
+  const ctxId: string = window.crypto.randomUUID();
+  const ctx = new Context();
+  ctxMap[ctxId] = ctx;
+  vscode.postMessage({
+    command: "columnLineage",
+    args: { ctxId, status: CLLStatus.START },
+  });
+  try {
+    await fn(ctx);
+  } catch (e) {
+    /* empty */
+  } finally {
+    vscode.postMessage({
+      command: "columnLineage",
+      args: { ctxId, status: CLLStatus.END },
+    });
+  }
+};
+
+export const columnLineage = ({
+  cancel,
+  ctxId,
+}: {
+  cancel: boolean;
+  ctxId: string;
+}) => {
+  if (cancel) {
+    ctxMap[ctxId]?.cancel();
+  }
+};

@@ -56,6 +56,7 @@ import {
   init,
   openURL,
   setLegacyLineageView,
+  columnLineage,
 } from "./service_utils";
 
 export let aiEnabled = false;
@@ -244,7 +245,12 @@ function App() {
       document.documentElement.setAttribute("data-theme", theme);
       rerender();
     };
-    const commandMap = { render, response: handleResponse, setTheme };
+    const commandMap = {
+      render,
+      response: handleResponse,
+      setTheme,
+      columnLineage,
+    };
     window.addEventListener("message", (event) => {
       console.log("lineage:message -> ", event.data);
       const { command, args } = event.data;

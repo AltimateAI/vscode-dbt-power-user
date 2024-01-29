@@ -34,6 +34,7 @@ import {
 import { Dispatch, SetStateAction } from "react";
 import { COLUMN_PREFIX, SEE_MORE_PREFIX } from "./constants";
 import { TMoreTables } from "./MoreTables";
+import { Context } from "./service_utils";
 
 const createNewNodesEdges = (
   prevNodes: Node[],
@@ -41,7 +42,7 @@ const createNewNodesEdges = (
   tables: Table[],
   t: string,
   right: boolean,
-  level: number,
+  level: number
 ): [Node[], Edge[]] => {
   const newNodes = [...prevNodes];
   const newEdges = [...prevEdges];
@@ -98,7 +99,8 @@ export const layoutElementsOnCanvas = (nodes: Node[], _edges: Edge[]) => {
 
       n.position = {
         x: C_OFFSET_X,
-        y: tableWiseColumnIndex[n.parentNode] * C_NODE_H +
+        y:
+          tableWiseColumnIndex[n.parentNode] * C_NODE_H +
           C_OFFSET_Y +
           (C_PADDING_Y >> 1),
       };
@@ -119,8 +121,12 @@ export const layoutElementsOnCanvas = (nodes: Node[], _edges: Edge[]) => {
     const _columnCount = levelWiseColumnCount[level] || 0;
     levelWiseIndex[level]++;
     levelWiseColumnCount[level] += tableWiseColumnIndex[n.id];
-    return P_OFFSET_Y + (_index * (T_NODE_Y_SEPARATION + T_NODE_H)) +
-      (C_NODE_H * _columnCount) + C_PADDING_Y;
+    return (
+      P_OFFSET_Y +
+      _index * (T_NODE_Y_SEPARATION + T_NODE_H) +
+      C_NODE_H * _columnCount +
+      C_PADDING_Y
+    );
   };
 
   const getX = (level: number) => {
@@ -146,7 +152,7 @@ export const layoutElementsOnCanvas = (nodes: Node[], _edges: Edge[]) => {
 
 export const resetTableHighlights = (
   nodes: Node[],
-  edges: Edge[],
+  edges: Edge[]
 ): [Node[], Edge[]] => {
   nodes.forEach((n) => (n.style = { opacity: 1 }));
   edges.forEach((e) => applyEdgeStyling(e, false));
@@ -156,7 +162,7 @@ export const resetTableHighlights = (
 export const highlightTableConnections = (
   nodes: Node[],
   edges: Edge[],
-  table: string,
+  table: string
 ): [Node[], Edge[]] => {
   const highlightNode: Record<string, boolean> = {};
   const highlightEdge: Record<string, boolean> = {};
@@ -184,7 +190,7 @@ export const highlightTableConnections = (
 
   const newNodes = [...nodes];
   newNodes.forEach(
-    (_n) => (_n.style = { opacity: highlightNode[_n.id] ? 1 : 0.5 }),
+    (_n) => (_n.style = { opacity: highlightNode[_n.id] ? 1 : 0.5 })
   );
 
   return [newNodes, newEdges];
@@ -196,7 +202,7 @@ export const removeRelatedNodesEdges = (
   prevEdges: Edge[],
   table: string,
   right: boolean,
-  level: number,
+  level: number
 ): [Node[], Edge[]] => {
   const nodesToRemove: Record<string, boolean> = {};
   const edgesToRemove: Record<string, boolean> = {};
@@ -218,7 +224,7 @@ export const removeRelatedNodesEdges = (
     prevEdges.forEach((e) => {
       const performVisit = (
         src: "source" | "target",
-        dst: "source" | "target",
+        dst: "source" | "target"
       ) => {
         if (e[src] !== curr) return;
         const _t = e[dst];
@@ -244,11 +250,11 @@ export const removeRelatedNodesEdges = (
 
   prevEdges.forEach((e) => {
     if (isNotColumn(e)) {
-      edgesToRemove[e.id] = nodesToRemove[e.source] ||
-        nodesToRemove[e.target] || e[src] === table;
+      edgesToRemove[e.id] =
+        nodesToRemove[e.source] || nodesToRemove[e.target] || e[src] === table;
     } else {
-      columnEdgesToRemove[e.id] = columnNodesToRemove[e.source] ||
-        columnNodesToRemove[e.target];
+      columnEdgesToRemove[e.id] =
+        columnNodesToRemove[e.source] || columnNodesToRemove[e.target];
     }
   });
 
@@ -277,7 +283,7 @@ export const processColumnLineage = async (
   right: boolean,
   currAnd1HopTables: string[],
   selectedColumn: { name: string; table: string },
-  sessionId: string,
+  sessionId: string
 ) => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
@@ -292,7 +298,7 @@ export const processColumnLineage = async (
   const columnLineage = column_lineage.filter((e) =>
     right ? contains(curr, e.source) : contains(curr, e.target)
   );
-  const newCurr = columnLineage.map((e) => right ? e.target : e.source);
+  const newCurr = columnLineage.map((e) => (right ? e.target : e.source));
   const collectColumns: Record<string, string[]> = {};
 
   const addToCollectColumns = ([_table, _column]: [string, string]) => {
@@ -307,12 +313,12 @@ export const processColumnLineage = async (
     id2: string,
     source: string,
     target: string,
-    type: string,
+    type: string
   ) => {
     const id = getColumnEdgeId(source, target);
     if (edges.find((e) => e.id === id)) return;
     edges.push(
-      createColumnEdge(source, target, levelMap[id1], levelMap[id2], type),
+      createColumnEdge(source, target, levelMap[id1], levelMap[id2], type)
     );
   };
 
@@ -358,14 +364,14 @@ export const processColumnLineage = async (
 
 export const mergeNodesEdges = (
   prevState: { nodes: Node[]; edges: Edge[] },
-  patchState: { nodes: Node[]; edges: Edge[] },
+  patchState: { nodes: Node[]; edges: Edge[] }
 ): [Node[], Edge[]] => {
   const nodes = [...prevState.nodes];
   const edges = [...prevState.edges];
   const nodesId: Record<string, boolean> = {};
   const edgesId: Record<string, boolean> = {};
-  nodes.forEach((n) => nodesId[n.id] = true);
-  edges.forEach((e) => edgesId[e.id] = true);
+  nodes.forEach((n) => (nodesId[n.id] = true));
+  edges.forEach((e) => (edgesId[e.id] = true));
   patchState.nodes.forEach((n) => !nodesId[n.id] && nodes.push(n));
   patchState.edges.forEach((e) => !edgesId[e.id] && edges.push(e));
   layoutElementsOnCanvas(nodes, edges);
@@ -374,7 +380,7 @@ export const mergeNodesEdges = (
 
 export const removeColumnNodes = (
   _nodes: Node[],
-  _edges: Edge[],
+  _edges: Edge[]
 ): [Node[], Edge[]] => {
   const nodes = _nodes.filter((n) => isNotColumn(n));
   const edges = _edges.filter((n) => isNotColumn(n));
@@ -383,7 +389,7 @@ export const removeColumnNodes = (
 
 export const mergeCollectColumns = (
   setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>,
-  newCcollectColumns: Record<string, string[]>,
+  newCcollectColumns: Record<string, string[]>
 ) => {
   setCollectColumns((prev) => {
     const collectColumns: Record<string, string[]> = { ...prev };
@@ -408,7 +414,7 @@ export const expandTableLineage = async (
   nodes: Node[],
   edges: Edge[],
   table: string,
-  right: boolean,
+  right: boolean
 ): Promise<[Node[], Edge[]]> => {
   const getConnectedTables = right ? upstreamTables : downstreamTables;
   const level = nodes.find((n) => n.id === table)?.data?.level;
@@ -425,7 +431,7 @@ export const expandTableLineage = async (
       tables,
       table,
       right,
-      level,
+      level
     );
     nodes = _nodes;
     edges = _edges;
@@ -441,6 +447,7 @@ export const expandTableLineage = async (
 };
 
 export const bfsTraversal = async (
+  ctx: Context,
   nodes: Node[],
   edges: Edge[],
   right: boolean,
@@ -451,7 +458,7 @@ export const bfsTraversal = async (
   setMoreTables: Dispatch<SetStateAction<TMoreTables>>,
   setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>,
   flow: ReactFlowInstance,
-  sessionId: string,
+  sessionId: string
 ) => {
   let isLineage = false;
   // creating helper data for current lineage once
@@ -462,14 +469,16 @@ export const bfsTraversal = async (
 
   const visited: Record<string, boolean> = {};
   const ephemeralAncestors: Record<string, [string, string][]> = {};
-  let currTargetColumns: [string, string][] = columns.map(
-    (c) => [c.table, c.name],
-  );
+  let currTargetColumns: [string, string][] = columns.map((c) => [
+    c.table,
+    c.name,
+  ]);
   let currEphemeralNodes: string[] = [];
   while (true as boolean) {
-    currTargetColumns = currTargetColumns.filter(
-      (x) => !visited[x.join("/")],
-    );
+    if (ctx.isCancelled) {
+      break;
+    }
+    currTargetColumns = currTargetColumns.filter((x) => !visited[x.join("/")]);
     if (currTargetColumns.length === 0 && currEphemeralNodes.length === 0) {
       break;
     }
@@ -493,8 +502,8 @@ export const bfsTraversal = async (
       const dstTables = tableNodes[dstNode]
         ? [_getNode(dstNode)?.data as Table]
         : (_getNode(dstNode)?.data as TMoreTables)?.tables?.filter(
-          (t) => !tableNodes[t.table],
-        );
+            (t) => !tableNodes[t.table]
+          );
       dstTables?.forEach(({ table: dstTable, materialization }) => {
         if (currTargetTables[srcTable]) {
           noDependents = true;
@@ -503,7 +512,7 @@ export const bfsTraversal = async (
             safeConcat(
               ephemeralAncestors,
               dstTable,
-              currTargetColumns.filter((c) => c[0] === srcTable),
+              currTargetColumns.filter((c) => c[0] === srcTable)
             );
             _currEphemeralNodes.push(dstTable);
           } else {
@@ -516,7 +525,7 @@ export const bfsTraversal = async (
             safeConcat(
               ephemeralAncestors,
               dstTable,
-              ephemeralAncestors[srcTable],
+              ephemeralAncestors[srcTable]
             );
             _currEphemeralNodes.push(dstTable);
           } else {
@@ -545,14 +554,14 @@ export const bfsTraversal = async (
       right,
       Array.from(new Set(currAnd1HopTables)),
       columns[0],
-      sessionId,
+      sessionId
     );
     if (patchState.confidence?.confidence === "low") {
       setConfidence((prev) => {
         const newConfidence = { ...prev, confidence: "low" };
         newConfidence.operator_list = newConfidence.operator_list || [];
         newConfidence.operator_list.push(
-          ...(patchState.confidence?.operator_list || []),
+          ...(patchState.confidence?.operator_list || [])
         );
         return newConfidence;
       });
@@ -561,10 +570,13 @@ export const bfsTraversal = async (
     if (!isLineage && currTargetColumns.length > 0) {
       isLineage = true;
     }
-    const [_nodes, _edges] = mergeNodesEdges({
-      nodes: flow.getNodes(),
-      edges: flow.getEdges(),
-    }, patchState);
+    const [_nodes, _edges] = mergeNodesEdges(
+      {
+        nodes: flow.getNodes(),
+        edges: flow.getEdges(),
+      },
+      patchState
+    );
 
     setMoreTables((prev) => ({
       ...prev,
