@@ -13,6 +13,7 @@ import {
   updateCurrentDocsData,
 } from "@modules/documentationEditor/state/documentationSlice";
 import { EntityType } from "@modules/dataPilot/components/types";
+import { executeRequestInSync } from "@modules/app/requestExecutor";
 
 interface Props {
   entity: DBTDocumentationColumn | DBTDocumentation;
@@ -37,7 +38,13 @@ const DocGeneratorInput = ({
     setDescription(entity.description ?? "");
   }, [entity.description]);
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
+    const result = (await executeRequestInSync("validateCredentials", {})) as {
+      isValid: boolean;
+    };
+    if (!result.isValid) {
+      return;
+    }
     const columns = currentDocsData?.columns.map((c) => c.name) ?? [];
     onSubmit({ user_instructions: userInstructions, description, columns });
   }, [description, userInstructions, currentDocsData?.columns]);

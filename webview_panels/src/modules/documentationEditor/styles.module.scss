@@ -24,6 +24,12 @@
         margin-top: 12px;
       }
       & .column-header {
+        .sync-btn{
+          svg{
+            width: 14px;
+            vertical-align: bottom;
+          }
+        }
         & div:last-of-type {
           margin-left: auto;
         }

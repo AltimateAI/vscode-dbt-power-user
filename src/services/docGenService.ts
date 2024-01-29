@@ -314,6 +314,7 @@ export class DocGenService {
                   prompt_hint:
                     message.user_instructions.prompt_hint || "generate",
                 },
+                follow_up_instructions: message.follow_up_instructions,
               })
             : await this.altimateRequest.generateModelDocs(baseRequest);
 

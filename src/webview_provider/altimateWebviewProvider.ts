@@ -131,6 +131,19 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             payload: message,
           });
           break;
+        case "validateCredentials":
+          const isValid = await this.altimateRequest.handlePreviewFeatures();
+          this._panel!.webview.postMessage({
+            command: "response",
+            args: {
+              syncRequestId,
+              body: {
+                isValid,
+              },
+              status: true,
+            },
+          });
+          break;
         case "updateConfig":
           if (!this.isUpdateConfigProps(params)) {
             return;

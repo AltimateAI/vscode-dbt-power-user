@@ -24,7 +24,11 @@ const DocGeneratorColumnsList = (): JSX.Element => {
         <Stack className={classes.columnHeader}>
           <h1>Columns</h1>
           <div>
-            <Button color="warning" onClick={onSyncBtnClick}>
+            <Button
+              color="warning"
+              onClick={onSyncBtnClick}
+              className={classes.syncBtn}
+            >
               <RefreshIcon /> Sync with the Database
             </Button>
           </div>
