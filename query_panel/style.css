@@ -137,3 +137,11 @@ th {
 .tooltip-text-bottom {
   top: 125%;
 }
+
+.flex {
+  display: flex;
+}
+
+.flex-column {
+  flex-direction: column;
+}
