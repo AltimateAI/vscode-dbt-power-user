@@ -50,9 +50,6 @@ enum CLLStatus {
   END = "end",
 }
 
-const CACHE_SIZE = 100;
-const CACHE_VALID_TIME = 24 * 60 * 60 * 1000;
-
 const CAN_COMPILE_SQL_NODE = [
   DBTProject.RESOURCE_TYPE_MODEL,
   DBTProject.RESOURCE_TYPE_SNAPSHOT,
@@ -65,8 +62,6 @@ const canCompileSQL = (nodeType: string) =>
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
-  private dbCache: Map<string, Record<string, string>[]> = new Map();
-  private lruCache: Map<string, number> = new Map();
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -272,25 +267,6 @@ export class NewLineagePanel implements LineagePanelView {
   }
 
   private async addModelColumnsFromDB(project: DBTProject, node: NodeMetaData) {
-    // Disabling cache
-    // const now = Date.now();
-    // if (
-    //   !this.dbCache.has(node.name) ||
-    //   (this.lruCache.get(node.name) || 0) < now - CACHE_VALID_TIME
-    // ) {
-    //   const _columnsFromDB = await project.getColumnsOfModel(node.name);
-    //   this.dbCache.set(node.name, _columnsFromDB);
-    //   if (this.dbCache.size > CACHE_SIZE) {
-    //     const arr = Array.from(this.lruCache.entries());
-    //     arr.sort((a, b) => b[1] - a[1]);
-    //     arr.slice(CACHE_SIZE).forEach(([k]) => {
-    //       this.lruCache.delete(k);
-    //       this.dbCache.delete(k);
-    //     });
-    //   }
-    // }
-    // this.lruCache.set(node.name, now);
-    // const columnsFromDB = this.dbCache.get(node.name)!;
     const columnsFromDB = await project.getColumnsOfModel(node.name);
     console.log("addColumnsFromDB: ", node.name, " -> ", columnsFromDB);
     if (!columnsFromDB || columnsFromDB.length === 0) {
@@ -439,9 +415,6 @@ export class NewLineagePanel implements LineagePanelView {
             cancellable: false,
           },
           async () => {
-            // TODO: the cache should also support sources
-            // this.lruCache.delete(node.name);
-            // this.dbCache.delete(node.name);
             return await this.addSourceColumnsFromDB(
               project,
               node.name,
@@ -496,8 +469,6 @@ export class NewLineagePanel implements LineagePanelView {
           cancellable: false,
         },
         async () => {
-          // this.lruCache.delete(node.name);
-          // this.dbCache.delete(node.name);
           return await this.addModelColumnsFromDB(project, node);
         },
       );
