@@ -44,11 +44,9 @@ export const openURL = (url: string) => {
 
 export const openChat = () => openURL("https://app.myaltimate.com/contactus");
 
-export const startProgressBar = () => {
+export const withProgressBar = async <T>(fn: () => Promise<T>) => {
   vscode.postMessage({ command: "startProgressBar", args: {} });
-};
-
-export const endProgressBar = () => {
+  await fn();
   vscode.postMessage({ command: "endProgressBar", args: {} });
 };
 
