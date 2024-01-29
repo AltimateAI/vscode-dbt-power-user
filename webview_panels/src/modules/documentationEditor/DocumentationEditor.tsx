@@ -1,6 +1,7 @@
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import useAppContext from "@modules/app/useAppContext";
 import CommonActionButtons from "@modules/commonActionButtons/CommonActionButtons";
+import { EntityType } from "@modules/dataPilot/components/types";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
 import { Label, Stack } from "@uicore";
@@ -99,7 +100,8 @@ const DocumentationEditor = (): JSX.Element => {
             <Stack direction="column" style={{ margin: "6px 0" }}>
               <Label className="p1">Description</Label>
               <DocGeneratorInput
-                value={currentDocsData.description}
+                entity={currentDocsData}
+                type={EntityType.MODEL}
                 onSubmit={onModelDocSubmit}
                 placeholder="Describe your model"
               />

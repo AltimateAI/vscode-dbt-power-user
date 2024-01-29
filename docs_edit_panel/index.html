@@ -42,10 +42,14 @@
 
       <vscode-panel-view v-if="hasData">
         <section id="docs-form">
-          <vscode-button @click="showBetaUX()" class="btn-new-ux"
-            ><span class="codicon codicon-bell"></span>&nbsp;Click Here to Try
-            New UX, Bulk Generation, and Multi-Language Support!</vscode-button
-          >
+          <div class="new-ux-alert">
+            Documentation editor has improved experience with new features like
+            Bulk Generation, Multi-Language Support etc.
+            <vscode-button @click="showBetaUX()" class="btn-new-ux"
+              ><span class="codicon codicon-bell"></span>Enable new experience
+            </vscode-button>
+          </div>
+
           <Documentation
             :ai-enabled="aiEnabled"
             :generated="generated"

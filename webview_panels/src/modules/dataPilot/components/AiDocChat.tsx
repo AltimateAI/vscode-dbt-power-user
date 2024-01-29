@@ -3,7 +3,7 @@ import { useState } from "react";
 import { DataPilotChat, DataPilotChatAction, RequestState } from "../types";
 import AiDocActionButton from "./AiDocActionButton";
 import NewGenerationResults from "./NewGenerationResults";
-import { FeedbackEntityType, GeneratedResult } from "./types";
+import { EntityType, GeneratedResult } from "./types";
 
 interface Props {
   chat: DataPilotChat;
@@ -18,8 +18,8 @@ const AiDocChat = ({ chat }: Props): JSX.Element => {
     action: DataPilotChatAction,
   ) => {
     const entityType = chat.meta?.columnName
-      ? FeedbackEntityType.COLUMN
-      : FeedbackEntityType.MODEL;
+      ? EntityType.COLUMN
+      : EntityType.MODEL;
 
     const entityName = chat.meta?.columnName ?? action.data.modelName;
     setGeneratedResults((prev) => [

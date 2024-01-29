@@ -28,7 +28,7 @@ interface GeneratedFeedbackWithRating extends Feedback {
   content: string;
 }
 
-export enum FeedbackEntityType {
+export enum EntityType {
   COLUMN = "column",
   MODEL = "model",
 }

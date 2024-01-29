@@ -27,13 +27,13 @@ const BulkGenerateButton = () => {
   const chunk = (a: string[], n: number) =>
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     [...Array(Math.ceil(a.length / n))].map((_, i) =>
-      a.slice(n * i, n + n * i)
+      a.slice(n * i, n + n * i),
     );
 
   const bulkGenerateDocs = async (columns: DBTDocumentationColumn[]) => {
     const chunks = chunk(
       columns.map((c) => c.name),
-      3 // use 3 columns per request
+      3, // use 3 columns per request
     );
     const result: { columns: Partial<DBTDocumentationColumn>[] }[] = [];
     for (const chunkedColumns of chunks) {
@@ -43,9 +43,7 @@ const BulkGenerateButton = () => {
         columnNames: chunkedColumns,
         columns: currentDocsData?.columns,
       });
-      result.push(
-        response as { columns: Partial<DBTDocumentationColumn>[] }
-      );
+      result.push(response as { columns: Partial<DBTDocumentationColumn>[] });
     }
 
     // convert 2 dim array to 1d with columns
@@ -59,7 +57,7 @@ const BulkGenerateButton = () => {
       updateColumnsInCurrentDocsData({
         columns: allColumnsData,
         isNewGeneration: true,
-      })
+      }),
     );
   };
   const generateDocsForMissingColumns = async () => {
@@ -68,7 +66,7 @@ const BulkGenerateButton = () => {
     }
 
     const columnsWithoutDescription = currentDocsData.columns.filter(
-      (column) => !column.description
+      (column) => !column.description,
     );
     return bulkGenerateDocs(columnsWithoutDescription);
   };
@@ -82,14 +80,14 @@ const BulkGenerateButton = () => {
     setOpenPopover(false);
     if (value === "all") {
       generateForAll().catch((err) =>
-        panelLogger.error("error generating for all columns", err)
+        panelLogger.error("error generating for all columns", err),
       );
       return;
     }
 
     if (value === "missing") {
       generateDocsForMissingColumns().catch((err) =>
-        panelLogger.error("error generating for missing columns", err)
+        panelLogger.error("error generating for missing columns", err),
       );
       return;
     }
@@ -100,8 +98,14 @@ const BulkGenerateButton = () => {
       <DropdownButton onToggleClick={onToggleClick} onClick={onToggleClick}>
         <ShinesIcon /> Bulk generate
       </DropdownButton>
-      <Popover isOpen={openPopover} target={ref} placement="bottom" hideArrow>
-        <PopoverBody className={classes.popoverBody}>
+      <Popover
+        isOpen={openPopover}
+        target={ref}
+        placement="bottom"
+        hideArrow
+        className={classes.popover}
+      >
+        <PopoverBody>
           <List>
             {options.map((option) => (
               <li key={option.label}>

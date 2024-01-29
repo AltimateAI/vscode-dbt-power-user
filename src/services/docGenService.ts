@@ -192,6 +192,9 @@ export class DocGenService {
     documentation,
     panel,
   }: GenerateDocsForColumnsProps) {
+    if (!this.altimateRequest.handlePreviewFeatures()) {
+      return;
+    }
     if (!project || !window.activeTextEditor) {
       return;
     }

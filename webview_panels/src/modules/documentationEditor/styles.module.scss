@@ -56,14 +56,14 @@
         & p {
           border-radius: 2px;
           border: 1px solid var(--Stroke-Disable, #424750);
-          background: var(--Backgrounds-Base, #1e1e1e);
+          background: var(--Backgrounds-02);
           margin-bottom: 0;
           flex: 1;
           font-size: 1rem;
           padding: 8px 12px;
         }
         & :global #file-path {
-          background: var(--Backgrounds-Base, #1e1e1e);
+          background: var(--Backgrounds-02);
         }
       }
     }
@@ -74,7 +74,10 @@
   }
 }
 
-.popover-body {
+.popover {
+  :global .popover{
+  margin-top: -18px;
+  :global .popover-body{
   padding: 0;
 
   &  ul {
@@ -94,5 +97,7 @@
         }
       }
     }
+  }
+}
   }
 }

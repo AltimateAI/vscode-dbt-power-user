@@ -3,7 +3,7 @@ import ResultFeedbackButtons from "@modules/documentationEditor/components/resul
 import { Button, Card, CardBody, CardTitle, List, Stack } from "@uicore";
 import {
   Feedback,
-  FeedbackEntityType,
+  EntityType,
   FeedbackRequest,
   FeedbackType,
   GeneratedResult,
@@ -50,9 +50,7 @@ const NewGenerationResults = ({
         }),
       ],
       name: result.name,
-      type: chat.meta?.columnName
-        ? FeedbackEntityType.COLUMN
-        : FeedbackEntityType.MODEL,
+      type: chat.meta?.columnName ? EntityType.COLUMN : EntityType.MODEL,
     } as FeedbackRequest;
 
     panelLogger.info("feedback submitted", data);

@@ -13,6 +13,7 @@ import DocGeneratorInput from "./DocGeneratorInput";
 import useAppContext from "@modules/app/useAppContext";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
+import { EntityType } from "@modules/dataPilot/components/types";
 
 interface Props {
   column: DBTDocumentationColumn;
@@ -82,9 +83,10 @@ const DocGeneratorColumn = ({ column }: Props): JSX.Element => {
     <div>
       <h4>{column.name}</h4>
       <DocGeneratorInput
-        value={column.description ?? ""}
         onSubmit={handleColumnSubmit}
         placeholder={`Describe ${column.name}`}
+        type={EntityType.COLUMN}
+        entity={column}
       />
     </div>
   );

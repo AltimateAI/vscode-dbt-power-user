@@ -59,13 +59,20 @@ const documentationSlice = createSlice({
         return;
       }
       state.currentDocsData = { ...state.currentDocsData, ...action.payload };
+      if (action.payload.isNewGeneration !== undefined) {
+        state.isDocGeneratedForAnyColumn = action.payload.isNewGeneration;
+      }
     },
     updateColumnsInCurrentDocsData: (
       state,
       {
         payload: { columns, isNewGeneration },
       }: PayloadAction<{
-        columns: Partial<MetadataColumn>[];
+        columns: Partial<
+          MetadataColumn & {
+            description?: string;
+          }
+        >[];
         isNewGeneration?: boolean;
       }>,
     ) => {
