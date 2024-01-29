@@ -2,7 +2,12 @@ import { OptionType, Button, Label, Select, Stack } from "@uicore";
 import { SettingsIcon } from "@assets/icons";
 import { useState } from "react";
 import RightSidePanel from "@modules/panel/RightSidePanel";
-import { Languages, Persona } from "../docGenerator/constants";
+import {
+  Languages,
+  Persona,
+  DefaultLanguage,
+  DefaultPersona,
+} from "../docGenerator/constants";
 import { ActionMeta } from "react-select";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { updateUserInstructions } from "@modules/documentationEditor/state/documentationSlice";
@@ -51,8 +56,8 @@ const DocGeneratorSettings = (): JSX.Element => {
                 <Select
                   name="language"
                   defaultValue={{
-                    label: userInstructions.language,
-                    value: userInstructions.language,
+                    label: userInstructions.language ?? DefaultLanguage,
+                    value: userInstructions.language ?? DefaultLanguage,
                   }}
                   onChange={handleChange}
                   options={Languages.map((l) => ({ label: l, value: l }))}
@@ -63,8 +68,8 @@ const DocGeneratorSettings = (): JSX.Element => {
                 <Select
                   name="persona"
                   defaultValue={{
-                    label: userInstructions.persona,
-                    value: userInstructions.persona,
+                    label: userInstructions.persona ?? DefaultPersona,
+                    value: userInstructions.persona ?? DefaultPersona,
                   }}
                   onChange={handleChange}
                   options={Persona.map((l) => ({ label: l, value: l }))}
