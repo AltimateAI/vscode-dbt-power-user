@@ -275,7 +275,7 @@ export const removeRelatedNodesEdges = (
   return [newNodes, newEdges];
 };
 
-export const processColumnLineage = async (
+const processColumnLineage = async (
   levelMap: Record<string, number>,
   seeMoreIdTableReverseMap: Record<string, string>,
   tableNodes: Record<string, boolean>,
@@ -295,6 +295,7 @@ export const processColumnLineage = async (
     selectedColumn,
     sessionId,
   });
+  CllContext.addLinks(column_lineage.length);
   const columnLineage = column_lineage.filter((e) =>
     right ? contains(curr, e.source) : contains(curr, e.target)
   );

@@ -214,6 +214,11 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
 
+    if (command === "telemetryEvents") {
+      this.telemetry.sendTelemetryEvent(args.event, args.props);
+      return;
+    }
+
     if (command === "previewFeature") {
       this.altimate.handlePreviewFeatures();
       return;

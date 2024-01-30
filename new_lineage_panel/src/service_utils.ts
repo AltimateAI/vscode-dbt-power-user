@@ -65,9 +65,10 @@ enum CllEvents {
 export class CllContext {
   static isCancelled = false;
   static inProgress = false;
+  static linkCount = 0;
 
   static onCancel() {
-    this.isCancelled = true;
+    CllContext.isCancelled = true;
     CllContext.inProgress = false;
   }
 
@@ -81,6 +82,7 @@ export class CllContext {
 
   static start() {
     CllContext.inProgress = true;
+    CllContext.linkCount = 0;
     vscode.postMessage({
       command: "columnLineage",
       args: { event: CllEvents.START },
@@ -93,6 +95,15 @@ export class CllContext {
       command: "columnLineage",
       args: { event: CllEvents.END },
     });
+    vscode.postMessage({
+      command: "telemetryEvents",
+      args: { event: "columnLineageNumLinks", props: { num: CllContext.linkCount } },
+    });
+    CllContext.linkCount = 0;
+  }
+
+  static addLinks(n: number) {
+    CllContext.linkCount += n;
   }
 }
 
