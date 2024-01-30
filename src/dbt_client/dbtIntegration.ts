@@ -220,8 +220,6 @@ export interface DBTProjectDetection extends Disposable {
 export interface DBTProjectIntegration extends Disposable {
   // initialize execution infrastructure
   initializeProject(): Promise<void>;
-  // update initialization
-  updateInitializationState(): void;
   // called when project configuration is changed
   refreshProjectConfig(): Promise<void>;
   // retrieve dbt configs

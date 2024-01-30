@@ -205,10 +205,6 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  updateInitializationState(): void {
-    this.isInitialized = true;
-  }
-
   async refreshProjectConfig(): Promise<void> {
     await this.createPythonDbtProject();
     await this.python.ex`project.init_project()`;
@@ -348,7 +344,7 @@ export class DBTCoreProjectIntegration
             adapter: this.getAdapterType() || "unknown", // TODO: this should be moved to dbtProject
           },
         );
-        this.updateInitializationState();
+        this.isInitialized = true;
         return;
       }
       // if we get here, it is not a dbt error but an extension error.
