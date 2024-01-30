@@ -12,11 +12,7 @@ import classNames from "classnames";
 import { Button } from "reactstrap";
 import { getColumns, Columns, Column, Table } from "./service";
 import { aiEnabled, LineageContext } from "./App";
-import {
-  previewFeature,
-  showNoLineage,
-  createCLLContext,
-} from "./service_utils";
+import { previewFeature, showNoLineage, Context } from "./service_utils";
 import {
   bfsTraversal,
   expandTableLineage,
@@ -241,8 +237,7 @@ const TableDetails = () => {
       return;
     }
 
-    const ctx = createCLLContext();
-    if (ctx.inProgress()) {
+    if (Context.inProgress) {
       console.log("request already in progress");
       return;
     }
@@ -307,7 +302,6 @@ const TableDetails = () => {
     // starting column lienage
     const _bfsTraversal = (right: boolean) =>
       bfsTraversal(
-        ctx,
         nodes,
         edges,
         right,
@@ -319,13 +313,13 @@ const TableDetails = () => {
         sessionId
       );
     try {
-      ctx.start();
+      Context.start();
       const result = await Promise.all([
         _bfsTraversal(true),
         _bfsTraversal(false),
       ]);
       if (result.every((isLineage) => !isLineage)) {
-        if (ctx.isCancelled) {
+        if (Context.isCancelled) {
           setSelectedColumn({ table: "", name: "", sessionId: "" });
         } else {
           showNoLineage(_column);
@@ -341,7 +335,7 @@ const TableDetails = () => {
       );
       setSelectedColumn({ table: "", name: "", sessionId: "" });
     } finally {
-      ctx.end();
+      Context.end();
     }
   };
   if (isLoading || !data || !selectedTable) return <ComponentLoader />;

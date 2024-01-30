@@ -64,72 +64,43 @@ enum CLLStatus {
   END = "end",
   CANCELLED = "cancelled",
 }
-const ctxMap: Record<string, Context> = {};
 
 export class Context {
-  isCancelled = false;
-  id: string;
+  static isCancelled = false;
   static inProgress = false;
-  static currId: string;
 
-  constructor(id: string) {
-    this.id = id;
-  }
-
-  onCancel() {
+  static onCancel() {
     this.isCancelled = true;
     Context.inProgress = false;
   }
 
-  cancel() {
+  static cancel() {
     // this is used to cancel from webview
     vscode.postMessage({
       command: "columnLineage",
-      args: { ctxId: this.id, status: CLLStatus.CANCELLED },
+      args: { status: CLLStatus.CANCELLED },
     });
   }
 
-  start() {
+  static start() {
     Context.inProgress = true;
-    Context.currId = this.id;
     vscode.postMessage({
       command: "columnLineage",
-      args: { ctxId: this.id, status: CLLStatus.START },
+      args: { status: CLLStatus.START },
     });
   }
 
-  end() {
+  static end() {
     Context.inProgress = false;
     vscode.postMessage({
       command: "columnLineage",
-      args: { ctxId: this.id, status: CLLStatus.END },
+      args: { status: CLLStatus.END },
     });
-  }
-
-  inProgress() {
-    return Context.inProgress;
-  }
-
-  static cancelCurr() {
-    ctxMap[Context.currId]?.cancel();
   }
 }
 
-export const createCLLContext = () => {
-  const ctxId: string = window.crypto.randomUUID();
-  const ctx = new Context(ctxId);
-  ctxMap[ctxId] = ctx;
-  return ctx;
-};
-
-export const columnLineage = ({
-  cancel,
-  ctxId,
-}: {
-  cancel: boolean;
-  ctxId: string;
-}) => {
+export const columnLineage = ({ cancel }: { cancel: boolean }) => {
   if (cancel) {
-    ctxMap[ctxId]?.onCancel();
+    Context.onCancel();
   }
 };
