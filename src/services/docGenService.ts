@@ -1,6 +1,11 @@
 import path = require("path");
 import { ProgressLocation, WebviewView, window, workspace } from "vscode";
-import { AltimateRequest, DocsGenerateModelRequest } from "../altimate";
+import {
+  AltimateRequest,
+  DocsGenerateModelRequest,
+  DocsGenerateResponse,
+} from "../altimate";
+import { RateLimitException } from "../exceptions";
 import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
@@ -34,6 +39,8 @@ interface FeedbackRequestProps {
   eventMap: Map<string, ManifestCacheProjectAddedEvent>;
 }
 
+const COLUMNS_PER_CHUNK = 3;
+
 @provideSingleton(DocGenService)
 export class DocGenService {
   public constructor(
@@ -47,45 +54,63 @@ export class DocGenService {
     compiledSql: string | undefined,
     adapter: string,
     message: any,
-  ) {
-    if (!documentation) {
-      return null;
-    }
-    const enableNewDocsPanel = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("enableNewDocsPanel", false);
+    columns: string[],
+  ): Promise<DocsGenerateResponse | undefined> {
+    return new Promise(async (resolve) => {
+      if (!documentation) {
+        return resolve(undefined);
+      }
+      const enableNewDocsPanel = workspace
+        .getConfiguration("dbt")
+        .get<boolean>("enableNewDocsPanel", false);
 
-    const columns = message.columnName
-      ? [message.columnName]
-      : message.columnNames;
+      const baseRequest = {
+        columns,
+        dbt_model: {
+          model_name: documentation.name,
+          model_description: message.description,
+          compiled_sql: compiledSql,
+          columns: message.columns.map((column: any) => ({
+            column_name: column.name,
+            description: column.description,
+            data_type: column.type,
+          })),
+          adapter,
+        },
+        gen_model_description: false,
+      } as unknown as Parameters<
+        typeof this.altimateRequest.generateModelDocs
+      >["0"];
 
-    const baseRequest = {
-      columns,
-      dbt_model: {
-        model_name: documentation.name,
-        model_description: message.description,
-        compiled_sql: compiledSql,
-        columns: message.columns.map((column: any) => ({
-          column_name: column.name,
-          description: column.description,
-          data_type: column.type,
-        })),
-        adapter,
-      },
-      gen_model_description: false,
-    } as unknown as Parameters<
-      typeof this.altimateRequest.generateModelDocs
-    >["0"];
+      try {
+        const result = enableNewDocsPanel
+          ? await this.altimateRequest.generateModelDocsV2({
+              ...baseRequest,
+              user_instructions: message.user_instructions,
+              follow_up_instructions: message.follow_up_instructions,
+            })
+          : await this.altimateRequest.generateModelDocs(baseRequest);
 
-    const result = enableNewDocsPanel
-      ? await this.altimateRequest.generateModelDocsV2({
-          ...baseRequest,
-          user_instructions: message.user_instructions,
-          follow_up_instructions: message.follow_up_instructions,
-        })
-      : await this.altimateRequest.generateModelDocs(baseRequest);
+        return resolve(result);
+      } catch (err) {
+        console.error("error while generating column doc", err, columns);
 
-    return result;
+        if (err instanceof RateLimitException) {
+          setTimeout(async () => {
+            console.debug("retrying generating column doc", columns);
+            return resolve(
+              await this.generateDocsForColumn(
+                documentation,
+                compiledSql,
+                adapter,
+                message,
+                columns,
+              ),
+            );
+          }, err.retryAfter);
+        }
+      }
+    });
   }
 
   private async transmitAIGeneratedColumnDocs(
@@ -186,6 +211,15 @@ export class DocGenService {
     } as DBTDocumentation;
   }
 
+  private chunk(a: string[], n: number) {
+    return [...Array(Math.ceil(a.length / n))].map((_, i) =>
+      a.slice(n * i, n + n * i),
+    );
+  }
+
+  /**
+   * handles single or multi column bulk generation
+   */
   public async generateDocsForColumns({
     project,
     message,
@@ -198,37 +232,78 @@ export class DocGenService {
     if (!project || !window.activeTextEditor) {
       return;
     }
+
     const queryText = window.activeTextEditor.document.getText();
-    const columns = message.columnName
+    const columns: string[] = message.columnName
       ? [message.columnName]
       : message.columnNames;
 
+    const chunks = this.chunk(columns, COLUMNS_PER_CHUNK);
+
     this.telemetry.sendTelemetryEvent("altimateGenerateDocsForColumn", {
       model: documentation?.name || "",
-      columns,
+      columns: columns.join(","),
     });
 
     window.withProgress(
       {
-        title: `Generating documentation for ${
-          columns.length > 1 ? "columns" : "column"
-        } ${columns.join(", ")}`,
+        title: "",
         location: ProgressLocation.Notification,
         cancellable: false,
       },
-      async () => {
+      async (progress) => {
         if (documentation === undefined) {
           return;
         }
         try {
+          const results: (DocsGenerateResponse | undefined)[] = [];
+          const progressMessage =
+            columns.length > COLUMNS_PER_CHUNK
+              ? `Generating docs for ${columns.length} columns`
+              : `Generating docs for columns ${columns.join(", ")}`;
+          progress.report({
+            message: progressMessage,
+            increment: 0,
+          });
+
           const startTime = Date.now();
           const compiledSql = await project.unsafeCompileQuery(queryText);
-          const generatedDocsForColumn = await this.generateDocsForColumn(
-            documentation,
-            compiledSql,
-            project.getAdapterType(),
-            message,
+
+          await Promise.all(
+            chunks.map(async (chunk, i) => {
+              const chunkResult = await this.generateDocsForColumn(
+                documentation,
+                compiledSql,
+                project.getAdapterType(),
+                message,
+                chunk,
+              );
+              results.push(chunkResult);
+              console.log(
+                "generate docs for columns chunk result",
+                chunkResult,
+              );
+              progress.report({
+                message: `Generated docs for ${Math.min(
+                  results.length * COLUMNS_PER_CHUNK,
+                  columns.length,
+                )} of ${columns.length} columns`,
+                increment: (chunk.length / columns.length) * 100,
+              });
+            }),
           );
+          const generatedDocsForColumn = {
+            column_descriptions: results
+              .map((response) => response?.column_descriptions)
+              .filter(
+                (
+                  item,
+                ): item is NonNullable<
+                  DocsGenerateResponse["column_descriptions"]
+                > => !!item,
+              )
+              .flatMap((r) => r),
+          };
 
           if (
             !generatedDocsForColumn ||
@@ -249,7 +324,7 @@ export class DocGenService {
             "altimateGenerateDocsForColumn",
             {
               model: documentation?.name || "",
-              columns,
+              columns: columns.join(","),
             },
             { timeTaken: Date.now() - startTime },
           );
