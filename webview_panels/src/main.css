@@ -2,7 +2,7 @@
   --bs-body-font-family: "Lexend", var(--bs-font-sans-serif);
 }
 html {
-  font-size: 14px;
+  font-size: var(--vscode-font-size);
 }
 
 body {
