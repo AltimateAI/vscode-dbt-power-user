@@ -310,7 +310,11 @@ const TableDetails = () => {
           _bfsTraversal(false),
         ]);
         if (result.every((isLineage) => !isLineage)) {
-          showNoLineage(_column);
+          if (ctx.isCancelled) {
+            setSelectedColumn({ table: "", name: "", sessionId: "" });
+          } else {
+            showNoLineage(_column);
+          }
         }
       } catch (e) {
         console.error(

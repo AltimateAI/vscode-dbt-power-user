@@ -554,7 +554,6 @@ export class NewLineagePanel implements LineagePanelView {
     return { dbColumnAdded, node };
   }
 
-  commandQueue: (() => Promise<void>)[] = [];
   private async getConnectedColumns({
     targets,
     upstreamExpansion,
@@ -623,9 +622,11 @@ export class NewLineagePanel implements LineagePanelView {
       }
       auxiliaryTables = Array.from(parentSet);
     }
+    const commandQueue: (() => Promise<void>)[] = [];
+
     try {
       currAnd1HopTables.forEach((key) => {
-        this.commandQueue.push(async () => {
+        commandQueue.push(async () => {
           let compiledSql: string | undefined;
           const result = await this.getNodeWithDBColumns(key);
           if (!result) {
@@ -653,7 +654,7 @@ export class NewLineagePanel implements LineagePanelView {
           modelInfos.push({ compiled_sql: compiledSql, model_node: node });
         });
       });
-      this.commandQueue.push(async () => {
+      commandQueue.push(async () => {
         const result = await this.getNodeWithDBColumns(selectedColumn.table);
         if (!result) {
           return;
@@ -670,7 +671,7 @@ export class NewLineagePanel implements LineagePanelView {
       });
 
       auxiliaryTables.forEach((key) => {
-        this.commandQueue.push(async () => {
+        commandQueue.push(async () => {
           const result = await this.getNodeWithDBColumns(key);
           if (!result) {
             return;
@@ -687,7 +688,7 @@ export class NewLineagePanel implements LineagePanelView {
         });
       });
 
-      for (const fn of this.commandQueue) {
+      for (const fn of commandQueue) {
         if (this.cllCtxMap[ctxId].isCancelled) {
           return { column_lineage: [] };
         }
