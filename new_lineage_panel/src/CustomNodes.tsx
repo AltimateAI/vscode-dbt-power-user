@@ -17,7 +17,7 @@ import {
   resetTableHighlights,
 } from "./graph";
 import { LineageContext } from "./App";
-import { Context, openFile, withProgressBar } from "./service_utils";
+import { createCLLContext, openFile } from "./service_utils";
 import { C_NODE_H, C_PADDING_Y } from "./utils";
 import { TMoreTables } from "./MoreTables";
 import ModelIcon from "./assets/icons/model.svg?react";
@@ -211,6 +211,11 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
   const expand = async (right: boolean) => {
     if (processed[right ? 1 : 0]) return;
+    const ctx = createCLLContext();
+    if (ctx.inProgress()) {
+      console.log("request already in progress");
+      return;
+    }
     let [nodes, edges] = await expandTableLineage(
       flow.getNodes(),
       flow.getEdges(),
@@ -222,7 +227,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     flow.setEdges(edges);
     rerender();
     if (selectedColumn.name) {
-      withProgressBar(async (ctx: Context) => {
+      try {
+        ctx.start();
         await bfsTraversal(
           ctx,
           nodes,
@@ -236,8 +242,16 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           selectedColumn.sessionId
         );
         rerender();
-      });
-    } else if (selectedTable) {
+      } catch (e) {
+        /* empty */
+      } finally {
+        ctx.end();
+      }
+      return;
+    }
+
+    // highlight expanded table if table is already highlighted
+    if (selectedTable) {
       [nodes, edges] = highlightTableConnections(
         nodes,
         edges,

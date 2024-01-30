@@ -59,41 +59,53 @@ export const setLegacyLineageView = () =>
 
 // column lineage with cancellation
 
-export class Context {
-  isCancelled = false;
-  id: string;
-  constructor(id: string) {
-    this.id = id;
-  }
-  cancel() {
-    this.isCancelled = true;
-  }
-}
-
 enum CLLStatus {
   START = "start",
   END = "end",
 }
 
+export class Context {
+  isCancelled = false;
+  id: string;
+  static inProgress = false;
+
+  constructor(id: string) {
+    this.id = id;
+  }
+
+  cancel() {
+    this.isCancelled = true;
+    Context.inProgress = false;
+  }
+
+  start() {
+    Context.inProgress = true;
+    vscode.postMessage({
+      command: "columnLineage",
+      args: { ctxId: this.id, status: CLLStatus.START },
+    });
+  }
+
+  end() {
+    Context.inProgress = false;
+    vscode.postMessage({
+      command: "columnLineage",
+      args: { ctxId: this.id, status: CLLStatus.END },
+    });
+  }
+
+  inProgress() {
+    return Context.inProgress;
+  }
+}
+
 const ctxMap: Record<string, Context> = {};
-export const withProgressBar = async <T>(fn: (ctx: Context) => Promise<T>) => {
+
+export const createCLLContext = () => {
   const ctxId: string = window.crypto.randomUUID();
   const ctx = new Context(ctxId);
   ctxMap[ctxId] = ctx;
-  vscode.postMessage({
-    command: "columnLineage",
-    args: { ctxId, status: CLLStatus.START },
-  });
-  try {
-    await fn(ctx);
-  } catch (e) {
-    /* empty */
-  } finally {
-    vscode.postMessage({
-      command: "columnLineage",
-      args: { ctxId, status: CLLStatus.END },
-    });
-  }
+  return ctx;
 };
 
 export const columnLineage = ({

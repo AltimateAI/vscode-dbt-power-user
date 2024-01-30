@@ -13,10 +13,9 @@ import { Button } from "reactstrap";
 import { getColumns, Columns, Column, Table } from "./service";
 import { aiEnabled, LineageContext } from "./App";
 import {
-  Context,
   previewFeature,
   showNoLineage,
-  withProgressBar,
+  createCLLContext,
 } from "./service_utils";
 import {
   bfsTraversal,
@@ -241,6 +240,14 @@ const TableDetails = () => {
       previewFeature();
       return;
     }
+
+    const ctx = createCLLContext();
+    if (ctx.inProgress()) {
+      console.log("request already in progress");
+      return;
+    }
+
+    // remove column selection when already selected
     if (
       selectedColumn.table === _column.table &&
       selectedColumn.name === _column.name
@@ -256,77 +263,86 @@ const TableDetails = () => {
       setShowSidebar(false);
       return;
     }
-    withProgressBar(async (ctx: Context) => {
-      let _nodes = flow.getNodes();
-      let _edges = flow.getEdges();
-      const addNodesEdges = async (right: boolean) => {
-        [_nodes, _edges] = await expandTableLineage(
-          _nodes,
-          _edges,
-          _column.table,
-          right
-        );
-        layoutElementsOnCanvas(_nodes, _edges);
-      };
-      const tableNode = flow.getNode(_column.table);
-      if (tableNode) {
-        const {
-          data: { processed },
-        } = tableNode;
-        if (!processed[1]) await addNodesEdges(true);
-        if (!processed[0]) await addNodesEdges(false);
-      }
-      const sessionId = window.crypto.randomUUID();
-      setSelectedColumn({ ..._column, sessionId });
-      setShowSidebar(false);
-      setCollectColumns({});
 
-      // resetting existing styles
-      const [nodes, edges] = resetTableHighlights(
-        _nodes.filter(isNotColumn),
-        _edges.filter(isNotColumn)
+    const tableNode = flow.getNode(_column.table);
+    if (!tableNode) {
+      throw new Error(`table node ${_column.table} isn't visible`);
+    }
+
+    // expand 1st level if not already
+    let _nodes = flow.getNodes();
+    let _edges = flow.getEdges();
+    const addNodesEdges = async (right: boolean) => {
+      [_nodes, _edges] = await expandTableLineage(
+        _nodes,
+        _edges,
+        _column.table,
+        right
       );
-      edges.forEach((_e) => (_e.style = defaultEdgeStyle));
-      flow.setNodes(nodes);
-      flow.setEdges(edges);
-      setConfidence({ confidence: "high" });
-      rerender();
-      const _bfsTraversal = (right: boolean) =>
-        bfsTraversal(
-          ctx,
-          nodes,
-          edges,
-          right,
-          [_column],
-          setConfidence,
-          setMoreTables,
-          setCollectColumns,
-          flow,
-          sessionId
-        );
-      try {
-        const result = await Promise.all([
-          _bfsTraversal(true),
-          _bfsTraversal(false),
-        ]);
-        if (result.every((isLineage) => !isLineage)) {
-          if (ctx.isCancelled) {
-            setSelectedColumn({ table: "", name: "", sessionId: "" });
-          } else {
-            showNoLineage(_column);
-          }
+      layoutElementsOnCanvas(_nodes, _edges);
+    };
+    const {
+      data: { processed },
+    } = tableNode;
+    if (!processed[1]) await addNodesEdges(true);
+    if (!processed[0]) await addNodesEdges(false);
+
+    // initializing states
+    const sessionId = window.crypto.randomUUID();
+    setSelectedColumn({ ..._column, sessionId });
+    setShowSidebar(false);
+    setCollectColumns({});
+    setConfidence({ confidence: "high" });
+
+    // resetting canvas
+    const [nodes, edges] = resetTableHighlights(
+      _nodes.filter(isNotColumn),
+      _edges.filter(isNotColumn)
+    );
+    edges.forEach((_e) => (_e.style = defaultEdgeStyle));
+    flow.setNodes(nodes);
+    flow.setEdges(edges);
+    rerender();
+
+    // starting column lienage
+    const _bfsTraversal = (right: boolean) =>
+      bfsTraversal(
+        ctx,
+        nodes,
+        edges,
+        right,
+        [_column],
+        setConfidence,
+        setMoreTables,
+        setCollectColumns,
+        flow,
+        sessionId
+      );
+    try {
+      ctx.start();
+      const result = await Promise.all([
+        _bfsTraversal(true),
+        _bfsTraversal(false),
+      ]);
+      if (result.every((isLineage) => !isLineage)) {
+        if (ctx.isCancelled) {
+          setSelectedColumn({ table: "", name: "", sessionId: "" });
+        } else {
+          showNoLineage(_column);
         }
-      } catch (e) {
-        console.error(
-          "Error while performing cll for ",
-          _column.table,
-          _column.name,
-          ", error:",
-          e
-        );
-        setSelectedColumn({ table: "", name: "", sessionId: "" });
       }
-    });
+    } catch (e) {
+      console.error(
+        "Error while performing cll for ",
+        _column.table,
+        _column.name,
+        ", error:",
+        e
+      );
+      setSelectedColumn({ table: "", name: "", sessionId: "" });
+    } finally {
+      ctx.end();
+    }
   };
   if (isLoading || !data || !selectedTable) return <ComponentLoader />;
   const tabs = ["Column"];
