@@ -2,7 +2,7 @@
   --bs-body-font-family: "Lexend", var(--bs-font-sans-serif);
 }
 html {
-  font-size: var(--vscode-font-size);
+  font-size: var(--vscode-font-size, 13px);
 }
 
 body {
@@ -66,10 +66,10 @@ body.vscode-dark {
 }
 
 body {
-  padding: 0;
   color: var(--text-color);
   background: var(--bg-color);
-  padding: 36px 32px;
+  padding: var(--spacing-3xl) var(--spacing-2xl) !important;
+  line-height: 160%;
 }
 
 b,

@@ -46,15 +46,16 @@ body{
   > section {
     border-radius: 8px;
     border: 1px solid var(--Backgrounds-04, #4A4D51);
-    padding: var(--spacing-2xl);
+    padding: var(--spacing-xl) var(--spacing-2xl);
     text-align: left;
-    margin-top: 20px;
+    margin-top: var(--spacing-xl);
     h3 {
       margin-bottom: var(--spacing-lg);
     }
 
     p{
       color: var(--Text-Neutral);
+      margin-bottom: 0;
     }
   }
 }
