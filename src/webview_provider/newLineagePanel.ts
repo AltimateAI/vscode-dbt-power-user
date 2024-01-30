@@ -48,6 +48,7 @@ type Table = {
 enum CLLStatus {
   START = "start",
   END = "end",
+  CANCELLED = "cancelled",
 }
 
 const CAN_COMPILE_SQL_NODE = [
@@ -262,6 +263,11 @@ export class NewLineagePanel implements LineagePanelView {
     }
     if (status === CLLStatus.END) {
       this.cllCtxMap[ctxId]?.resolve();
+      return;
+    }
+    if (status === CLLStatus.CANCELLED) {
+      this.cllCtxMap[ctxId]?.resolve();
+      this.cllCtxMap[ctxId].isCancelled = true;
       return;
     }
   }

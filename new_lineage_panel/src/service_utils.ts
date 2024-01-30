@@ -62,24 +62,36 @@ export const setLegacyLineageView = () =>
 enum CLLStatus {
   START = "start",
   END = "end",
+  CANCELLED = "cancelled",
 }
+const ctxMap: Record<string, Context> = {};
 
 export class Context {
   isCancelled = false;
   id: string;
   static inProgress = false;
+  static currId: string;
 
   constructor(id: string) {
     this.id = id;
   }
 
-  cancel() {
+  onCancel() {
     this.isCancelled = true;
     Context.inProgress = false;
   }
 
+  cancel() {
+    // this is used to cancel from webview
+    vscode.postMessage({
+      command: "columnLineage",
+      args: { ctxId: this.id, status: CLLStatus.CANCELLED },
+    });
+  }
+
   start() {
     Context.inProgress = true;
+    Context.currId = this.id;
     vscode.postMessage({
       command: "columnLineage",
       args: { ctxId: this.id, status: CLLStatus.START },
@@ -97,9 +109,11 @@ export class Context {
   inProgress() {
     return Context.inProgress;
   }
-}
 
-const ctxMap: Record<string, Context> = {};
+  static cancelCurr() {
+    ctxMap[Context.currId]?.cancel();
+  }
+}
 
 export const createCLLContext = () => {
   const ctxId: string = window.crypto.randomUUID();
@@ -116,6 +130,6 @@ export const columnLineage = ({
   ctxId: string;
 }) => {
   if (cancel) {
-    ctxMap[ctxId]?.cancel();
+    ctxMap[ctxId]?.onCancel();
   }
 };

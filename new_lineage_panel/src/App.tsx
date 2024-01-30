@@ -362,6 +362,7 @@ function App() {
           onClick={(e) => {
             e.stopPropagation();
             setLegacyLineageView();
+            Context.cancelCurr();
           }}
         >
           Show Legacy UX
@@ -386,6 +387,7 @@ function App() {
             setCollectColumns({});
             setMoreTables({});
             init();
+            Context.cancelCurr();
           }}
           data-testid="reset-btn"
         >
