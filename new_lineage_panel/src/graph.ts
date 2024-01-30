@@ -388,24 +388,21 @@ export const removeColumnNodes = (
   return [nodes, edges];
 };
 
-export const mergeCollectColumns = (
+const mergeCollectColumns = (
   setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>,
-  newCcollectColumns: Record<string, string[]>
+  newCollectColumns: Record<string, string[]>
 ) => {
   setCollectColumns((prev) => {
     const collectColumns: Record<string, string[]> = { ...prev };
-    for (const t in newCcollectColumns) {
-      const _columns = newCcollectColumns[t];
+    for (const t in newCollectColumns) {
+      const _columns = newCollectColumns[t];
       if (!(t in collectColumns)) {
         collectColumns[t] = _columns;
         continue;
       }
-      _columns.forEach((c) => {
-        if (collectColumns[t].includes(c)) {
-          return;
-        }
-        collectColumns[t].push(c);
-      });
+      collectColumns[t].push(
+        ..._columns.filter((c) => !collectColumns[t].includes(c))
+      );
     }
     return collectColumns;
   });
@@ -571,10 +568,7 @@ export const bfsTraversal = async (
       isLineage = true;
     }
     const [_nodes, _edges] = mergeNodesEdges(
-      {
-        nodes: flow.getNodes(),
-        edges: flow.getEdges(),
-      },
+      { nodes: flow.getNodes(), edges: flow.getEdges() },
       patchState
     );
 
