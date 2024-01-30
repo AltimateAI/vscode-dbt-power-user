@@ -57,7 +57,7 @@ import {
   openURL,
   setLegacyLineageView,
   columnLineage,
-  Context,
+  CllContext,
 } from "./service_utils";
 
 export let aiEnabled = false;
@@ -301,7 +301,7 @@ function App() {
                     className="mt-0"
                     checked={selectCheck}
                     onChange={(e) => {
-                      if (Context.inProgress) return;
+                      if (CllContext.inProgress) return;
                       setSelectCheck(e.target.checked);
                     }}
                   />
@@ -320,7 +320,7 @@ function App() {
                     className="mt-0"
                     checked={nonSelectCheck}
                     onChange={(e) => {
-                      if (Context.inProgress) return;
+                      if (CllContext.inProgress) return;
                       setNonSelectCheck(e.target.checked);
                     }}
                   />
@@ -362,7 +362,7 @@ function App() {
           onClick={(e) => {
             e.stopPropagation();
             setLegacyLineageView();
-            Context.cancel();
+            CllContext.cancel();
           }}
         >
           Show Legacy UX
@@ -387,7 +387,7 @@ function App() {
             setCollectColumns({});
             setMoreTables({});
             init();
-            Context.cancel();
+            CllContext.cancel();
           }}
           data-testid="reset-btn"
         >

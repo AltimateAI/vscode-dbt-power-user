@@ -12,7 +12,7 @@ import classNames from "classnames";
 import { Button } from "reactstrap";
 import { getColumns, Columns, Column, Table } from "./service";
 import { aiEnabled, LineageContext } from "./App";
-import { previewFeature, showNoLineage, Context } from "./service_utils";
+import { previewFeature, showNoLineage, CllContext } from "./service_utils";
 import {
   bfsTraversal,
   expandTableLineage,
@@ -237,7 +237,7 @@ const TableDetails = () => {
       return;
     }
 
-    if (Context.inProgress) {
+    if (CllContext.inProgress) {
       console.log("request already in progress");
       return;
     }
@@ -313,13 +313,13 @@ const TableDetails = () => {
         sessionId
       );
     try {
-      Context.start();
+      CllContext.start();
       const result = await Promise.all([
         _bfsTraversal(true),
         _bfsTraversal(false),
       ]);
       if (result.every((isLineage) => !isLineage)) {
-        if (Context.isCancelled) {
+        if (CllContext.isCancelled) {
           setSelectedColumn({ table: "", name: "", sessionId: "" });
         } else {
           showNoLineage(_column);
@@ -335,7 +335,7 @@ const TableDetails = () => {
       );
       setSelectedColumn({ table: "", name: "", sessionId: "" });
     } finally {
-      Context.end();
+      CllContext.end();
     }
   };
   if (isLoading || !data || !selectedTable) return <ComponentLoader />;

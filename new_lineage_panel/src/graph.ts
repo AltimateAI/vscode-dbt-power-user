@@ -34,7 +34,7 @@ import {
 import { Dispatch, SetStateAction } from "react";
 import { COLUMN_PREFIX, SEE_MORE_PREFIX } from "./constants";
 import { TMoreTables } from "./MoreTables";
-import { Context } from "./service_utils";
+import { CllContext } from "./service_utils";
 
 const createNewNodesEdges = (
   prevNodes: Node[],
@@ -474,7 +474,7 @@ export const bfsTraversal = async (
   ]);
   let currEphemeralNodes: string[] = [];
   while (true as boolean) {
-    if (Context.isCancelled) {
+    if (CllContext.isCancelled) {
       break;
     }
     currTargetColumns = currTargetColumns.filter((x) => !visited[x.join("/")]);

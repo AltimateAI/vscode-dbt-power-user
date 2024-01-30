@@ -65,13 +65,13 @@ enum CLLStatus {
   CANCELLED = "cancelled",
 }
 
-export class Context {
+export class CllContext {
   static isCancelled = false;
   static inProgress = false;
 
   static onCancel() {
     this.isCancelled = true;
-    Context.inProgress = false;
+    CllContext.inProgress = false;
   }
 
   static cancel() {
@@ -83,7 +83,7 @@ export class Context {
   }
 
   static start() {
-    Context.inProgress = true;
+    CllContext.inProgress = true;
     vscode.postMessage({
       command: "columnLineage",
       args: { status: CLLStatus.START },
@@ -91,7 +91,7 @@ export class Context {
   }
 
   static end() {
-    Context.inProgress = false;
+    CllContext.inProgress = false;
     vscode.postMessage({
       command: "columnLineage",
       args: { status: CLLStatus.END },
@@ -101,6 +101,6 @@ export class Context {
 
 export const columnLineage = ({ cancel }: { cancel: boolean }) => {
   if (cancel) {
-    Context.onCancel();
+    CllContext.onCancel();
   }
 };

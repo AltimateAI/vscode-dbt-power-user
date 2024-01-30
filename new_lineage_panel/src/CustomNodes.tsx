@@ -17,7 +17,7 @@ import {
   resetTableHighlights,
 } from "./graph";
 import { LineageContext } from "./App";
-import { Context, openFile } from "./service_utils";
+import { CllContext, openFile } from "./service_utils";
 import { C_NODE_H, C_PADDING_Y } from "./utils";
 import { TMoreTables } from "./MoreTables";
 import ModelIcon from "./assets/icons/model.svg?react";
@@ -211,7 +211,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
   const expand = async (right: boolean) => {
     if (processed[right ? 1 : 0]) return;
-    if (Context.inProgress) {
+    if (CllContext.inProgress) {
       console.log("request already in progress");
       return;
     }
@@ -227,7 +227,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     rerender();
     if (selectedColumn.name) {
       try {
-        Context.start();
+        CllContext.start();
         await bfsTraversal(
           nodes,
           edges,
@@ -243,7 +243,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
       } catch (e) {
         /* empty */
       } finally {
-        Context.end();
+        CllContext.end();
       }
       return;
     }
