@@ -57,6 +57,7 @@ import {
   openURL,
   setLegacyLineageView,
   columnLineage,
+  Context,
 } from "./service_utils";
 
 export let aiEnabled = false;
@@ -299,7 +300,10 @@ function App() {
                     id="select-check"
                     className="mt-0"
                     checked={selectCheck}
-                    onChange={(e) => setSelectCheck(e.target.checked)}
+                    onChange={(e) => {
+                      if (Context.inProgress) return;
+                      setSelectCheck(e.target.checked);
+                    }}
                   />
                   <Label check for="select-check">
                     Select
@@ -315,7 +319,10 @@ function App() {
                     id="non-select-check"
                     className="mt-0"
                     checked={nonSelectCheck}
-                    onChange={(e) => setNonSelectCheck(e.target.checked)}
+                    onChange={(e) => {
+                      if (Context.inProgress) return;
+                      setNonSelectCheck(e.target.checked);
+                    }}
                   />
                   <Label check for="non-select-check">
                     Non-Select
