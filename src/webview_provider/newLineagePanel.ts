@@ -228,17 +228,9 @@ export class NewLineagePanel implements LineagePanelView {
     console.error("Unsupported mssage", message);
   }
 
-  private cllCtxMap: Record<
-    string,
-    { isCancelled: boolean; resolve: () => void }
-  > = {};
-  private async handleColumnLineage({
-    ctxId,
-    status,
-  }: {
-    ctxId: string;
-    status: CLLStatus;
-  }) {
+  private cllIsCancelled = false;
+  private cllProgressResolve: () => void = () => {};
+  private async handleColumnLineage({ status }: { status: CLLStatus }) {
     if (status === CLLStatus.START) {
       window.withProgress(
         {
@@ -248,12 +240,13 @@ export class NewLineagePanel implements LineagePanelView {
         },
         async (_, token) => {
           await new Promise<void>((resolve) => {
-            this.cllCtxMap[ctxId] = { isCancelled: false, resolve };
+            this.cllIsCancelled = false;
+            this.cllProgressResolve = resolve;
             token.onCancellationRequested(() => {
-              this.cllCtxMap[ctxId].isCancelled = true;
+              this.cllIsCancelled = true;
               this._panel?.webview.postMessage({
                 command: "columnLineage",
-                args: { ctxId, cancel: true },
+                args: { cancel: true },
               });
             });
           });
@@ -262,12 +255,12 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
     if (status === CLLStatus.END) {
-      this.cllCtxMap[ctxId]?.resolve();
+      this.cllProgressResolve();
       return;
     }
     if (status === CLLStatus.CANCELLED) {
-      this.cllCtxMap[ctxId]?.resolve();
-      this.cllCtxMap[ctxId].isCancelled = true;
+      this.cllProgressResolve();
+      this.cllIsCancelled = true;
       return;
     }
   }
@@ -693,7 +686,7 @@ export class NewLineagePanel implements LineagePanelView {
       });
 
       for (const fn of commandQueue) {
-        if (this.cllCtxMap[ctxId].isCancelled) {
+        if (this.cllIsCancelled) {
           return { column_lineage: [] };
         }
         await fn();
@@ -776,7 +769,7 @@ export class NewLineagePanel implements LineagePanelView {
 
     const modelDialect = project.getAdapterType();
     try {
-      if (this.cllCtxMap[ctxId].isCancelled) {
+      if (this.cllIsCancelled) {
         return { column_lineage: [] };
       }
       const request = {
