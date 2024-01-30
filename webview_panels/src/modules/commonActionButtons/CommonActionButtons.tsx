@@ -43,7 +43,7 @@ const CommonActionButtons = (): JSX.Element => {
   return (
     <Stack className="align-items-center">
       <AutoCollapsingNotif
-        text="New langauge support added! (Check Settings)"
+        text="New language support added! (Check Settings)"
         delay={10000}
       />
       <Button outline onClick={showOldUx}>

@@ -1,6 +1,6 @@
 import { GenerationDBDataProps } from "../types";
 
-enum Source {
+export enum Source {
   DATABASE = "DATABASE",
   YAML = "YAML",
 }

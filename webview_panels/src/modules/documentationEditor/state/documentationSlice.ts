@@ -5,6 +5,7 @@ import {
   DocsGenerateUserInstructions,
   DocumentationStateProps,
   MetadataColumn,
+  Source,
 } from "./types";
 
 export const initialState = {
@@ -62,6 +63,35 @@ const documentationSlice = createSlice({
       if (action.payload.isNewGeneration !== undefined) {
         state.isDocGeneratedForAnyColumn = action.payload.isNewGeneration;
       }
+    },
+    updateColumnsAfterSync: (
+      state,
+      {
+        payload: { columns },
+      }: PayloadAction<{
+        columns: Partial<
+          MetadataColumn & {
+            description?: string;
+          }
+        >[];
+      }>,
+    ) => {
+      if (!state.currentDocsData) {
+        return;
+      }
+      state.currentDocsData.columns = columns.map((column) => {
+        const existingColumn = state.currentDocsData?.columns.find(
+          (c) => column.name?.toLowerCase() === c.name.toLowerCase(),
+        );
+        return {
+          name: column.name ?? "",
+          type: column.type,
+          description: existingColumn?.description ?? "",
+          generated: existingColumn?.generated ?? false,
+          source: existingColumn !== undefined ? Source.YAML : Source.DATABASE,
+        };
+      });
+      state.isDocGeneratedForAnyColumn = true;
     },
     updateColumnsInCurrentDocsData: (
       state,
@@ -122,6 +152,7 @@ const documentationSlice = createSlice({
 export const {
   updateCurrentDocsData,
   updateColumnsInCurrentDocsData,
+  updateColumnsAfterSync,
   setProject,
   addToGenerationsHistory,
   resetGenerationsHistory,

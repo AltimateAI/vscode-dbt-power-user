@@ -39,6 +39,11 @@ const DocGeneratorColumnsList = (): JSX.Element => {
           (re)generate documentation at individual column level
         </Alert>
       </div>
+      {!currentDocsData?.columns ? (
+        <Stack>
+          No columns found in the dbt manifest for {currentDocsData?.name}.
+        </Stack>
+      ) : null}
       <Stack direction="column" className={classes.columns}>
         {currentDocsData?.columns.map((column) => (
           <DocGeneratorColumn key={column.name} column={column} />

@@ -13,6 +13,7 @@ import documentationSlice, {
   initialState,
   setGenerationsHistory,
   setProject,
+  updateColumnsAfterSync,
   updateColumnsInCurrentDocsData,
   updateCurrentDocsData,
   updateUserInstructions,
@@ -62,9 +63,8 @@ const DocumentationProvider = ({
         case "renderColumnsFromMetadataFetch":
           if (event.data.columns) {
             dispatch(
-              updateColumnsInCurrentDocsData({
+              updateColumnsAfterSync({
                 columns: event.data.columns,
-                isNewGeneration: true,
               }),
             );
           }

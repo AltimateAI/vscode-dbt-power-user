@@ -81,7 +81,7 @@ const DocGeneratorColumn = ({ column }: Props): JSX.Element => {
   };
   return (
     <div>
-      <h4>{column.name}</h4>
+      <h4>{column.name + (column.type ? " (" + column.type + ")" : "")}</h4>
       <DocGeneratorInput
         onSubmit={handleColumnSubmit}
         placeholder={`Describe ${column.name}`}
