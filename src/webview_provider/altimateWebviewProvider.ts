@@ -24,7 +24,7 @@ import {
 import { AltimateRequest } from "../altimate";
 import { SharedStateService } from "../services/SharedStateService";
 
-type UpdateConfigProps = {
+export type UpdateConfigProps = {
   key: string;
   value: string | boolean | number;
   isPreviewFeature?: boolean;

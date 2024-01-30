@@ -37,6 +37,7 @@ import { join } from "path";
 import { TelemetryService } from "../telemetry";
 import { ValidateSqlParseErrorResponse } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { getDeferParams } from "./dbtCommandUtils";
 
 // TODO: we shouold really get these from manifest directly
 interface ResolveReferenceNodeResult {
@@ -362,19 +363,27 @@ export class DBTCoreProjectIntegration
   }
 
   async runModel(command: DBTCommand) {
-    this.addCommandToQueue(this.dbtCoreCommand(command));
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
+    );
   }
 
   async buildModel(command: DBTCommand) {
-    this.addCommandToQueue(this.dbtCoreCommand(command));
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
+    );
   }
 
   async runTest(command: DBTCommand) {
-    this.addCommandToQueue(this.dbtCoreCommand(command));
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
+    );
   }
 
   async runModelTest(command: DBTCommand) {
-    this.addCommandToQueue(this.dbtCoreCommand(command));
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
+    );
   }
 
   async compileModel(command: DBTCommand) {
@@ -400,6 +409,12 @@ export class DBTCoreProjectIntegration
       return;
     }
     this.executionInfrastructure.addCommandToQueue(command);
+  }
+
+  private async addDeferParams(command: DBTCommand) {
+    const deferParams = await getDeferParams(this.projectRoot);
+    deferParams.forEach((param) => command.addArgument(param));
+    return command;
   }
 
   private dbtCoreCommand(command: DBTCommand) {
