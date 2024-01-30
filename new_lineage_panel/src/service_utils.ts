@@ -59,10 +59,10 @@ export const setLegacyLineageView = () =>
 
 // column lineage with cancellation
 
-enum CLLStatus {
+enum CllEvents {
   START = "start",
   END = "end",
-  CANCELLED = "cancelled",
+  CANCEL = "cancel",
 }
 
 export class CllContext {
@@ -78,7 +78,7 @@ export class CllContext {
     // this is used to cancel from webview
     vscode.postMessage({
       command: "columnLineage",
-      args: { status: CLLStatus.CANCELLED },
+      args: { event: CllEvents.CANCEL },
     });
   }
 
@@ -86,7 +86,7 @@ export class CllContext {
     CllContext.inProgress = true;
     vscode.postMessage({
       command: "columnLineage",
-      args: { status: CLLStatus.START },
+      args: { event: CllEvents.START },
     });
   }
 
@@ -94,13 +94,13 @@ export class CllContext {
     CllContext.inProgress = false;
     vscode.postMessage({
       command: "columnLineage",
-      args: { status: CLLStatus.END },
+      args: { event: CllEvents.END },
     });
   }
 }
 
-export const columnLineage = ({ cancel }: { cancel: boolean }) => {
-  if (cancel) {
+export const columnLineage = ({ event }: { event: CllEvents }) => {
+  if (event === CllEvents.CANCEL) {
     CllContext.onCancel();
   }
 };

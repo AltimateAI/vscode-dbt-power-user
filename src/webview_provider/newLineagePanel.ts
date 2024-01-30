@@ -45,10 +45,10 @@ type Table = {
   tests: any[];
 };
 
-enum CLLStatus {
+enum CllEvents {
   START = "start",
   END = "end",
-  CANCELLED = "cancelled",
+  CANCEL = "cancel",
 }
 
 const CAN_COMPILE_SQL_NODE = [
@@ -63,6 +63,8 @@ const canCompileSQL = (nodeType: string) =>
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
+  private cllIsCancelled = false;
+  private cllProgressResolve: () => void = () => {};
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -228,10 +230,8 @@ export class NewLineagePanel implements LineagePanelView {
     console.error("Unsupported mssage", message);
   }
 
-  private cllIsCancelled = false;
-  private cllProgressResolve: () => void = () => {};
-  private async handleColumnLineage({ status }: { status: CLLStatus }) {
-    if (status === CLLStatus.START) {
+  private async handleColumnLineage({ event }: { event: CllEvents }) {
+    if (event === CllEvents.START) {
       window.withProgress(
         {
           title: "Processing column level lineage",
@@ -246,7 +246,7 @@ export class NewLineagePanel implements LineagePanelView {
               this.cllIsCancelled = true;
               this._panel?.webview.postMessage({
                 command: "columnLineage",
-                args: { cancel: true },
+                args: { event: CllEvents.CANCEL },
               });
             });
           });
@@ -254,11 +254,11 @@ export class NewLineagePanel implements LineagePanelView {
       );
       return;
     }
-    if (status === CLLStatus.END) {
+    if (event === CllEvents.END) {
       this.cllProgressResolve();
       return;
     }
-    if (status === CLLStatus.CANCELLED) {
+    if (event === CllEvents.CANCEL) {
       this.cllProgressResolve();
       this.cllIsCancelled = true;
       return;
