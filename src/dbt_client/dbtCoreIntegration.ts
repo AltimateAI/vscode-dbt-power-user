@@ -145,7 +145,7 @@ export class DBTCoreProjectIntegration
 {
   static DBT_PROFILES_FILE = "profiles.yml";
 
-  private isInitialized?: boolean = false;
+  private hasManifest: boolean = false;
   private targetPath?: string;
   private adapterType?: string;
   private version?: number[];
@@ -322,7 +322,9 @@ export class DBTCoreProjectIntegration
       await this.python.lock(
         (python) => python`to_dict(project.safe_parse_project())`,
       );
-      this.rebuildManifestDiagnostics.clear();
+      if (!this.hasManifest) {
+        this.rebuildManifestDiagnostics.clear();
+      }
     } catch (exc) {
       if (exc instanceof PythonException) {
         // dbt errors can be about anything, so we just associate the error with the project file
@@ -344,7 +346,7 @@ export class DBTCoreProjectIntegration
             adapter: this.getAdapterType() || "unknown", // TODO: this should be moved to dbtProject
           },
         );
-        this.isInitialized = true;
+        this.hasManifest = true;
         return;
       }
       // if we get here, it is not a dbt error but an extension error.
