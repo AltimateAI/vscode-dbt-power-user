@@ -580,10 +580,7 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
 
-    const modelInfos: {
-      compiled_sql: string | undefined;
-      model_node: ModelNode;
-    }[] = [];
+    const modelInfos: { compiled_sql?: string; model_node: ModelNode }[] = [];
     const relationsWithoutColumns: string[] = [];
     let selected_column: { model_node: ModelNode; column: string } | undefined;
     const parent_models: { model_node: ModelNode }[] = [];
@@ -627,7 +624,6 @@ export class NewLineagePanel implements LineagePanelView {
     try {
       currAnd1HopTables.forEach((key) => {
         commandQueue.push(async () => {
-          let compiledSql: string | undefined;
           const result = await this.getNodeWithDBColumns(key);
           if (!result) {
             return;
@@ -645,11 +641,13 @@ export class NewLineagePanel implements LineagePanelView {
             return;
           }
           const nodeType = key.split(".")[0];
-          if (canCompileSQL(nodeType)) {
-            compiledSql = await project.compileNode(node.name);
-            if (!compiledSql) {
-              return;
-            }
+          if (!canCompileSQL(nodeType)) {
+            modelInfos.push({ model_node: node });
+            return;
+          }
+          const compiledSql = await project.compileNode(node.name);
+          if (!compiledSql) {
+            return;
           }
           modelInfos.push({ compiled_sql: compiledSql, model_node: node });
         });
