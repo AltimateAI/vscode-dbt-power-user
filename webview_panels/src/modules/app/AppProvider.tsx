@@ -1,12 +1,6 @@
 import DataPilotProvider from "@modules/dataPilot/DataPilotProvider";
 import { DataPilotChat } from "@modules/dataPilot/types";
-import {
-  createContext,
-  ReactNode,
-  useEffect,
-  useMemo,
-  useReducer,
-} from "react";
+import { createContext, ReactNode, useMemo, useReducer } from "react";
 import appSlice, { initialState } from "./appSlice";
 import { executeRequestInAsync } from "./requestExecutor";
 import { ContextProps } from "./types";
@@ -35,14 +29,7 @@ const AppProvider = ({ children }: { children: ReactNode }): JSX.Element => {
     executeRequestInAsync("datapilot:toggle", { open });
   };
 
-  useListeners(dispatch);
-
-  useEffect(() => {
-    if (!state.theme) {
-      return;
-    }
-    document.documentElement.setAttribute("data-theme", state.theme);
-  }, [state.theme]);
+  useListeners();
 
   const values = useMemo(
     () => ({

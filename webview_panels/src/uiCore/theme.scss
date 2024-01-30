@@ -148,7 +148,7 @@ caption {
     color: var(--Stroke-Orange, #e38e00);
   }
 }
-html[data-theme="dark"] {
+body.vscode-dark {
   .alert-warning {
     background: rgba(255, 206, 115, 0.1);
     border: none;

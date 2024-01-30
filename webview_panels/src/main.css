@@ -3,7 +3,9 @@
 }
 html {
   font-size: 14px;
+}
 
+body {
   --bg-color: #f5f5f7;
   --primary-accent: #247efe;
   --column-node-bg: #e9f2ff;
@@ -34,7 +36,7 @@ html {
   --Select-menu-bg: #fff;
 }
 
-html[data-theme="dark"] {
+body.vscode-dark {
   --bg-color: #1e1e1e;
   --primary-accent: #247efe;
   --column-node-bg: rgba(131, 144, 163, 0.2);
