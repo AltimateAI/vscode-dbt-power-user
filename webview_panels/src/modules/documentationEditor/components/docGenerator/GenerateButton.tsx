@@ -1,4 +1,5 @@
-import { ShinesIcon, YellowEyeIcon } from "@assets/icons";
+import { ShinesIcon } from "@assets/icons";
+import PreviewFeatureIcon from "@modules/previewFeature/PreviewFeatureIcon";
 import { Button } from "@uicore";
 
 export enum Variants {
@@ -24,13 +25,13 @@ const GenerateButton = ({
       case Variants.TEXT:
         return (
           <>
-            {buttonText} <YellowEyeIcon />
+            {buttonText} <PreviewFeatureIcon />
           </>
         );
       case Variants.ICON_WITH_TEXT:
         return (
           <>
-            <ShinesIcon /> {buttonText} <YellowEyeIcon />
+            <ShinesIcon /> {buttonText} <PreviewFeatureIcon />
           </>
         );
     }

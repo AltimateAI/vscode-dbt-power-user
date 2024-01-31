@@ -1,4 +1,4 @@
-import { AltimateIcon, YellowEyeIcon } from "@assets/icons";
+import { AltimateIcon } from "@assets/icons";
 import {
   executeRequestInAsync,
   executeRequestInSync,
@@ -7,6 +7,7 @@ import { panelLogger } from "@modules/logger";
 import { Button, Stack } from "@uicore";
 import { useEffect, useState } from "react";
 import classes from "./datapilot.module.scss";
+import PreviewFeatureIcon from "@modules/previewFeature/PreviewFeatureIcon";
 
 const DefaultDatapilotView = () => {
   const [isNewDocsPanelEnabled, setIsNewDocsPanelEnabled] = useState(true);
@@ -36,7 +37,7 @@ const DefaultDatapilotView = () => {
         <div>
           <h3>Hello, there!</h3>
           <h6>
-            How can I help you today? <YellowEyeIcon />
+            How can I help you today? <PreviewFeatureIcon />
           </h6>
         </div>
       </Stack>
