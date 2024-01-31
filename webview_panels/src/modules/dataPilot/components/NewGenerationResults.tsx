@@ -1,4 +1,4 @@
-import { AltimateIcon } from "@assets/icons";
+import { AltimateIcon, UserIcon } from "@assets/icons";
 import ResultFeedbackButtons from "@modules/documentationEditor/components/result/ResultFeedbackButtons";
 import { Button, Card, CardBody, CardTitle, List, Stack } from "@uicore";
 import {
@@ -77,7 +77,12 @@ const NewGenerationResults = ({
         <>
           <li ref={onAiGenerationRender}>
             <Card className={classes.promptCard}>
-              <CardBody>{result.user_prompt}</CardBody>
+              <CardBody>
+                <Stack>
+                  <UserIcon />
+                  {result.user_prompt}
+                </Stack>
+              </CardBody>
             </Card>
           </li>
           <li key={result.name}>
