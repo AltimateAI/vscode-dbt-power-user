@@ -1,7 +1,7 @@
-import { readFileSync, readdirSync } from "fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "fs";
 import { fluentProvide } from "inversify-binding-decorators";
 import { platform } from "os";
-import { extname, join, relative } from "path";
+import { extname, join, resolve } from "path";
 import {
   ConfigurationTarget,
   Disposable,

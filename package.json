@@ -115,7 +115,7 @@
               "type": "string"
             },
             "default": [],
-            "description": "Add additional params to the dbt build model command. Ex: --select model1 --target prod needs to be added as four different entries \n--select \nmodel1 \n--target \nprod "
+            "description": "Add additional params to the dbt build model command."
           },
           "dbt.queryLimit": {
             "type": "integer",
