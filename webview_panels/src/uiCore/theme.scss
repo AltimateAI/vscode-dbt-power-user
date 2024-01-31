@@ -1,0 +1,163 @@
+html {
+  --spacing-3xl: 1.846rem;
+  --spacing-2xl: 1.538rem;
+  --spacing-xl: 1.231rem;
+  --spacing-lg: 0.857rem;
+}
+.card {
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--card-bg);
+
+  & .card-title {
+    font-size: 12px;
+    color: var(--text-color);
+    margin-bottom: 0.75rem;
+  }
+  & .card-body {
+    padding: 0;
+    color: var(--Text-Neutral, #c4cad2);
+    & .card-text {
+      font-size: 12px;
+      font-style: normal;
+      font-weight: 300;
+      line-height: 18px;
+      color: var(--Text-Neutral, #c4cad2);
+    }
+  }
+}
+
+.btn {
+  border-radius: 2px;
+  font-size: 12px;
+  font-weight: 400;
+  border: none;
+}
+.btn-outline-secondary,
+.btn-outline-primary {
+  border: var(--bs-btn-border-width) solid var(--bs-btn-border-color);
+}
+
+.btn.btn-primary {
+  background: var(--primary-accent);
+}
+.btn.btn-danger {
+  background: var(--Action-Red);
+}
+.btn.btn-warning {
+  background: var(--Stroke-Orange);
+  color: #fff;
+}
+
+.form-label,
+.col-form-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.form-control {
+  border-radius: 2px;
+  border: 1px solid var(--card-border-color);
+  background-color: var(--Backgrounds-02);
+  color: var(--text-color);
+
+  &:focus {
+    border: 1px solid var(--primary-accent);
+    background-color: var(--Backgrounds-02);
+    color: var(--text-color);
+    box-shadow: none;
+  }
+}
+
+input.form-control {
+  padding: 2px 10px 2px 8px;
+}
+
+.dropdown-toggle {
+  background-color: var(--dropdown-toggle-color);
+}
+.dropdown-menu {
+  --bs-border-radius: 0 0 4px 4px;
+  background: var(--card-bg);
+  border-color: var(--card-border-color);
+
+  & .dropdown-item,
+  & .dropdown-item-text {
+    color: var(--text-color);
+    font-size: 14px;
+  }
+}
+
+.h1,
+h1 {
+  font-size: 2rem;
+}
+.h2,
+h2 {
+  font-size: 1.714rem;
+}
+.h3,
+h3 {
+  font-size: 1.429rem;
+}
+.h4,
+h4 {
+  font-size: 1.286rem;
+}
+.h5,
+h5 {
+  font-size: 1.143rem;
+}
+.h6,
+h6 {
+  font-size: 1rem;
+}
+
+.p1 {
+  font-size: 1.429rem;
+}
+.p2 {
+  font-size: 1.286rem;
+}
+caption,
+.p3 {
+  font-size: 1.143rem;
+}
+.p4 {
+  font-size: 0.857rem;
+}
+.p5 {
+  font-size: 0.714rem;
+}
+.p6 {
+  font-size: 0.571rem;
+}
+
+
+
+caption {
+  padding: 0;
+  color: inherit;
+}
+
+.alert {
+  border-radius: 4px;
+  &.alert-warning {
+    background: transparent;
+    border: 1px solid var(--Stroke-Orange, #e38e00);
+    color: var(--Stroke-Orange, #e38e00);
+  }
+}
+body.vscode-dark {
+  .alert-warning {
+    background: rgba(255, 206, 115, 0.1);
+    border: none;
+    color: var(--Action-Yellow, #ffce73);
+  }
+}
+
+.offcanvas{
+  background-color: var(--bg-color);
+  color: var(--text-color)
+}

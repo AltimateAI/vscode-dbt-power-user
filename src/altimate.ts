@@ -4,6 +4,7 @@ import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
 import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
+import { RateLimitException } from "./exceptions";
 
 interface AltimateConfig {
   key: string;
@@ -71,7 +72,32 @@ interface OnewayFeedback {
   data: any;
 }
 
-interface DocsGenerateModelRequest {
+interface DocsGenerateModelRequestV2 {
+  columns: string[];
+  dbt_model: {
+    model_name: string;
+    model_description?: string;
+    compiled_sql?: string;
+    columns: {
+      column_name: string;
+      description?: string;
+      data_type?: string;
+    }[];
+    adapter?: string;
+  };
+  user_instructions?: {
+    prompt_hint: string;
+    language: string;
+    persona: string;
+  };
+  follow_up_instructions?: {
+    instruction: string;
+  };
+
+  gen_model_description: boolean;
+}
+
+export interface DocsGenerateModelRequest {
   columns: string[];
   dbt_model: {
     model_name: string;
@@ -88,7 +114,7 @@ interface DocsGenerateModelRequest {
   gen_model_description: boolean;
 }
 
-interface DocsGenerateResponse {
+export interface DocsGenerateResponse {
   column_descriptions?: {
     column_name: string;
     column_description: string;
@@ -249,6 +275,14 @@ export class AltimateRequest {
       }
       const textResponse = await response.text();
       console.log("network:response:error:", textResponse);
+      if (response.status === 429) {
+        throw new RateLimitException(
+          textResponse,
+          response.headers.get("Retry-After")
+            ? parseInt(response.headers.get("Retry-After") || "")
+            : 1 * 60 * 1000, // default to 1 min
+        );
+      }
       this.telemetry.sendTelemetryError("apiError", {
         endpoint,
         status: response.status,
@@ -279,6 +313,13 @@ export class AltimateRequest {
 
   async generateModelDocs(docsGenerate: DocsGenerateModelRequest) {
     return this.fetch<DocsGenerateResponse>("dbt/v1", {
+      method: "POST",
+      body: JSON.stringify(docsGenerate),
+    });
+  }
+
+  async generateModelDocsV2(docsGenerate: DocsGenerateModelRequestV2) {
+    return this.fetch<DocsGenerateResponse>("dbt/v2", {
       method: "POST",
       body: JSON.stringify(docsGenerate),
     });

@@ -1,4 +1,5 @@
 import { fluentProvide } from "inversify-binding-decorators";
+import * as path from "path";
 import {
   Disposable,
   FileSystemWatcher,
@@ -146,3 +147,8 @@ export function getFirstWorkspacePath(): string {
     return Uri.file("./").fsPath;
   }
 }
+
+export const getProjectRelativePath = (projectRoot: Uri) => {
+  const ws = workspace.getWorkspaceFolder(projectRoot);
+  return path.relative(ws?.uri.fsPath || "", projectRoot.fsPath);
+};

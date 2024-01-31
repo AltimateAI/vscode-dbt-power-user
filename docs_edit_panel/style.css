@@ -9,6 +9,7 @@
   display: grid;
   grid-auto-flow: row;
   grid-row-gap: 1.5rem;
+  position: relative;
 }
 
 .documentation {
@@ -96,4 +97,20 @@
   border-radius: 4px;
   white-space: nowrap;
   background: #ffce73;
+}
+
+.new-ux-alert {
+  border-radius: 4px;
+  background: rgba(255, 206, 115, 0.1);
+  color: var(--Stroke-Orange, #e38e00);
+  padding: 10px;
+  line-height: 2;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: -2rem;
+}
+.btn-new-ux {
+  background: #e38e00;
+  vertical-align: middle;
 }

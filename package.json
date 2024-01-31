@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.30.1",
+  "version": "0.30.3",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -69,6 +69,10 @@
           "dbt.enableNewLineagePanel": {
             "type": "boolean",
             "description": "Enable the new lineage panel in dbt."
+          },
+          "dbt.enableNewDocsPanel": {
+            "type": "boolean",
+            "description": "Enable the new docs panel in dbt."
           },
           "dbt.enableNewQueryPanel": {
             "type": "boolean",
@@ -175,6 +179,12 @@
           "title": "dbt Power User",
           "icon": "./media/images/dbt_icon.svg",
           "contextualTitle": "dbt Power User"
+        },
+        {
+          "id": "datapilot_view",
+          "title": "DataPilot Chat",
+          "icon": "./media/images/altimate.svg",
+          "contextualTitle": "Altimate Data pilot"
         }
       ],
       "panel": [
@@ -237,6 +247,14 @@
           "id": "dbtPowerUser.DocsEdit",
           "name": "",
           "type": "webview"
+        }
+      ],
+      "datapilot_view": [
+        {
+          "type": "webview",
+          "id": "dbtPowerUser.datapilot-webview",
+          "name": "",
+          "icon": "./media/images/dbt_icon.svg"
         }
       ]
     },
@@ -352,6 +370,10 @@
           "light": "./media/images/run-light.svg",
           "dark": "./media/images/run-dark.svg"
         }
+      },
+      {
+        "command": "dbtPowerUser.resetDatapilot",
+        "title": "Reset"
       },
       {
         "command": "dbtPowerUser.showCompiledSQL",
@@ -556,6 +578,11 @@
         {
           "command": "dbtPowerUser.generateDBTDocs",
           "when": "view == documentation_treeview",
+          "group": "navigation"
+        },
+        {
+          "command": "dbtPowerUser.resetDatapilot",
+          "when": "view == dbtPowerUser.datapilot-webview",
           "group": "navigation"
         }
       ],
@@ -808,16 +835,17 @@
   "scripts": {
     "prepare": "husky install",
     "vscode:prepublish": "npm run panel:lineage && webpack --mode production",
-    "webpack": "npm run panel:lineage && webpack --mode development",
-    "webpack-dev": "npm run panel:lineage && webpack --mode development --watch",
+    "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
+    "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "test-compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
     "deploy-vscode": "vsce publish",
     "build-vsix": "vsce package",
     "deploy-openvsx": "ovsx publish",
+    "panel:webviews": "npm run build --prefix ./webview_panels",
     "panel:lineage": "npm run build --prefix ./new_lineage_panel",
-    "install:panels": "npm install --prefix ./new_lineage_panel"
+    "install:panels": "npm install --prefix ./new_lineage_panel && npm install --prefix ./webview_panels"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
@@ -829,6 +857,7 @@
     "@typescript-eslint/parser": "^5.62.0",
     "@vscode/test-electron": "^2.3.7",
     "copy-webpack-plugin": "^11.0.0",
+    "cross-env": "^7.0.3",
     "eslint": "^8.53.0",
     "eslint-config-prettier": "^8.9.0",
     "eslint-plugin-prettier": "^5.0.1",
@@ -868,6 +897,10 @@
     "yaml": "^2.3.4"
   },
   "lint-staged": {
+    "**/webview_panels/**/*.{ts,tsx}": [
+      "cross-env PRE_COMMIT=true npm run lint --fix --prefix webview_panels",
+      "prettier -w"
+    ],
     "*.ts": [
       "eslint src --ext ts --fix",
       "eslint --max-warnings=0"

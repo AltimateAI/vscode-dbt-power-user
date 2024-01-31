@@ -1,0 +1,16 @@
+.insights-container {
+  & :global .card {
+    margin-bottom: 1rem;
+
+    & .card-title {
+      margin-bottom: 0;
+      & span {
+        margin-left: 0.5rem;
+      }
+    }
+  }
+}
+
+.title {
+  margin-bottom: 1.5rem;
+}
