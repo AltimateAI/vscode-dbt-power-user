@@ -32,11 +32,11 @@ import { PythonBridge, PythonException } from "python-bridge";
 import * as path from "path";
 import { DBTProject } from "../manifest/dbtProject";
 import { existsSync, readFileSync } from "fs";
-import * as yaml from "js-yaml";
 import { join } from "path";
 import { TelemetryService } from "../telemetry";
 import { ValidateSqlParseErrorResponse } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { parse } from "yaml";
 
 // TODO: we shouold really get these from manifest directly
 interface ResolveReferenceNodeResult {
@@ -91,9 +91,7 @@ export class DBTCoreProjectDetection
       "dbt_project.yml",
     );
     if (existsSync(dbtProjectFile)) {
-      const dbtProjectConfig: any = yaml.load(
-        readFileSync(dbtProjectFile, "utf8"),
-      );
+      const dbtProjectConfig: any = parse(readFileSync(dbtProjectFile, "utf8"));
       const packagesInstallPath = dbtProjectConfig["packages-install-path"];
       if (packagesInstallPath) {
         if (path.isAbsolute(packagesInstallPath)) {
