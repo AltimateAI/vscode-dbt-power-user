@@ -111,7 +111,7 @@
               "type": "string"
             },
             "default": [],
-            "description": "Add additional params to the dbt build model command. Ex: --arg1 --arg2 \"arg 3\" needs to be added as three different entries \n--arg1 \n--arg2 \narg 3 "
+            "description": "Add additional params to the dbt build model command. Ex: --select model1 --target prod needs to be added as four different entries \n--select \nmodel1 \n--target \nprod "
           },
           "dbt.profilesDirOverride": {
             "type": "string",
