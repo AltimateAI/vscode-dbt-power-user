@@ -372,6 +372,10 @@
         }
       },
       {
+        "command": "dbtPowerUser.resetDatapilot",
+        "title": "Reset"
+      },
+      {
         "command": "dbtPowerUser.showCompiledSQL",
         "title": "Open dbt target folder compiled SQL",
         "icon": {
@@ -574,6 +578,11 @@
         {
           "command": "dbtPowerUser.generateDBTDocs",
           "when": "view == documentation_treeview",
+          "group": "navigation"
+        },
+        {
+          "command": "dbtPowerUser.resetDatapilot",
+          "when": "view == dbtPowerUser.datapilot-webview",
           "group": "navigation"
         }
       ],

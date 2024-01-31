@@ -15,6 +15,7 @@ import {
 } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import { DataPilotChat } from "../types";
+import { useCallback } from "react";
 
 interface Props {
   generatedResults: GeneratedResult[];
@@ -61,6 +62,12 @@ const NewGenerationResults = ({
     });
   };
 
+  const onAiGenerationRender = useCallback((node: HTMLLIElement) => {
+    if (node) {
+      node.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
+
   if (!generatedResults.length) {
     return null;
   }
@@ -68,7 +75,7 @@ const NewGenerationResults = ({
     <List className={classes.chatList}>
       {generatedResults.map((result) => (
         <>
-          <li>
+          <li ref={onAiGenerationRender}>
             <Card className={classes.promptCard}>
               <CardBody>{result.user_prompt}</CardBody>
             </Card>

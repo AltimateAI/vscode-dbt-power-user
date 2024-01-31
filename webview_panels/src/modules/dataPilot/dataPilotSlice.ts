@@ -21,8 +21,9 @@ const dataPilotSlice = createSlice({
         updatedAt: new Date(),
       };
     },
+    reset: () => initialState,
   },
 });
 
-export const { upsertItem } = dataPilotSlice.actions;
+export const { upsertItem, reset } = dataPilotSlice.actions;
 export default dataPilotSlice;

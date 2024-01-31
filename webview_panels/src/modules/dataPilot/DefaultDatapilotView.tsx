@@ -60,12 +60,15 @@ const DefaultDatapilotView = () => {
 
       {!isNewDocsPanelEnabled ? (
         <section>
-          <h6>Enable docs generation new UX</h6>
+          <h6>Enable new experience for doc generation</h6>
           <p>
-            Please enable new UX for docs generation to enable this
-            functionality &nbsp;
+            For now, DataPilot Chat is only available when new experience is
+            enabled in the Documentation Editor and API key is added in the
+            extension settings.
+          </p>
+          <p className="text-end mt-3">
             <Button color="primary" onClick={enableNewUx}>
-              Enable New UX
+              Enable New Experience
             </Button>
           </p>
         </section>

@@ -5,7 +5,7 @@ import {
 } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { Input, InputGroup, Stack } from "@uicore";
-import { ChangeEvent, useCallback, useEffect, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 import GenerateButton, { Variants } from "./GenerateButton";
 import classes from "./docGenInput.module.scss";
 import {
@@ -28,15 +28,28 @@ const DocGeneratorInput = ({
   type,
 }: Props): JSX.Element => {
   const {
-    state: { userInstructions, currentDocsData },
+    state: { userInstructions, currentDocsData, insertedEntityName },
     dispatch,
   } = useDocumentationContext();
   const [showButton, setShowButton] = useState(true);
   const [description, setDescription] = useState("");
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     setDescription(entity.description ?? "");
   }, [entity.description]);
+
+  useEffect(() => {
+    if (!insertedEntityName || !inputRef.current) {
+      return;
+    }
+
+    if (insertedEntityName === entity.name) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [insertedEntityName, entity.name]);
 
   const handleSubmit = useCallback(async () => {
     const result = (await executeRequestInSync("validateCredentials", {})) as {
@@ -80,6 +93,7 @@ const DocGeneratorInput = ({
     <Stack>
       <InputGroup className={classes.inputGroup}>
         <Input
+          innerRef={inputRef}
           value={description}
           onChange={onChange}
           onFocus={handleHideButton}

@@ -22,7 +22,7 @@ const DocGeneratorColumnsList = (): JSX.Element => {
     <div>
       <div style={{ marginBottom: 40, marginTop: 16 }}>
         <Stack className={classes.columnHeader}>
-          <h1>Columns</h1>
+          <h3>Columns</h3>
           <div>
             <Button
               color="warning"

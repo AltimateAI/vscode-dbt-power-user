@@ -90,7 +90,7 @@ const DocumentationEditor = (): JSX.Element => {
     <div className={classes.docGenerator}>
       <Stack className={classes.head}>
         <Stack>
-          <h1>Documentation for {currentDocsData.name}</h1>
+          <h3>Documentation for {currentDocsData.name}</h3>
         </Stack>
         <CommonActionButtons />
       </Stack>
