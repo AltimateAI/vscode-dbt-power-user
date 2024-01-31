@@ -171,7 +171,7 @@ def memoize_get_rendered(function):
 
 def default_profiles_dir(project_dir):
     if "DBT_PROFILES_DIR" in os.environ:
-        return os.path.abspath(os.environ["DBT_PROFILES_DIR"])
+        return os.path.abspath(os.path.expanduser(os.environ["DBT_PROFILES_DIR"]))
     profiles_path = os.path.join(project_dir, "profiles.yml")
     return (
         project_dir
@@ -182,7 +182,7 @@ def default_profiles_dir(project_dir):
 
 def target_dir():
     if "DBT_TARGET_PATH" in os.environ:
-        return os.path.abspath(os.environ["DBT_TARGET_PATH"])
+        return os.path.abspath(os.path.expanduser(os.environ["DBT_TARGET_PATH"]))
     return None
 
 
