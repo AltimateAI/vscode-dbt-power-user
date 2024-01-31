@@ -291,6 +291,7 @@ class DbtProject:
         project_dir: Optional[str] = None,
         threads: Optional[int] = 1,
         profile: Optional[str] = None,
+        target_path: Optional[str] = None,
     ):
         self.args = ConfigInterface(
             threads=threads,
@@ -298,6 +299,7 @@ class DbtProject:
             profiles_dir=profiles_dir,
             project_dir=project_dir,
             profile=profile,
+            target_path=target_path,
         )
 
         # Utilities
@@ -363,6 +365,7 @@ class DbtProject:
             project_dir=args.project_dir,
             threads=args.threads,
             profile=args.profile,
+            target_path=args.target_path,
         )
 
     @property
