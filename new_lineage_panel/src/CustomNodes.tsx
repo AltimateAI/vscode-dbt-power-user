@@ -302,7 +302,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
               [styles.collapse]: !_showColumns,
             }
           )}
-          aria-selected={selected}
         >
           <TableHeader
             nodeType={nodeType}
