@@ -169,19 +169,20 @@ def memoize_get_rendered(function):
     return wrapper
 
 
-def default_profiles_dir(project_dir) -> str:
+def default_profiles_dir(project_dir):
     if "DBT_PROFILES_DIR" in os.environ:
-        return str(Path(os.environ["DBT_PROFILES_DIR"]).resolve())
+        return os.path.abspath(os.environ["DBT_PROFILES_DIR"])
+    profiles_path = os.path.join(project_dir, "profiles.yml")
     return (
-        str(project_dir)
-        if (project_dir / "profiles.yml").exists()
-        else str(Path.home() / ".dbt")
+        project_dir
+        if os.path.exists(profiles_path)
+        else os.path.join(os.path.expanduser("~"), ".dbt")
     )
 
 
-def target_dir() -> Path:
+def target_dir():
     if "DBT_TARGET_PATH" in os.environ:
-        return str(Path(os.environ["DBT_TARGET_PATH"]).resolve())
+        return os.path.abspath(os.environ["DBT_TARGET_PATH"])
     return None
 
 
@@ -190,21 +191,19 @@ def find_package_paths(project_directories):
         try:
             project = DbtProject(
                 project_dir=project_dir,
-                profiles_dir=default_profiles_dir(Path(project_dir)),
+                profiles_dir=default_profiles_dir(project_dir),
                 target=target_dir(),
             )
             project.init_config()
-            packages_path = Path(project.config.packages_install_path)
-            if packages_path.is_absolute():
-                return packages_path.resolve().as_uri()
-            return (Path(project_dir) / packages_path).resolve().as_uri()
+            packages_path = project.config.packages_install_path
+            if os.path.isabs(packages_path):
+                return os.path.abspath(packages_path)
+            return os.path.abspath(os.path.join(project_dir, packages_path))
         except Exception as e:
             # We don't care about exceptions here, that is dealt with later when the project is loaded
             pass
 
-    return list(
-        map(lambda project_dir: get_package_path(project_dir), project_directories)
-    )
+    return list(map(get_package_path, project_directories))
 
 
 # Performance hacks
