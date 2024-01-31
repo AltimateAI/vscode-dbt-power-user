@@ -301,7 +301,10 @@ function App() {
                     className="mt-0"
                     checked={selectCheck}
                     onChange={(e) => {
-                      if (CllContext.inProgress) return;
+                      if (CllContext.inProgress) {
+                        CllContext.showCllInProgressMsg();
+                        return;
+                      }
                       setSelectCheck(e.target.checked);
                     }}
                   />
@@ -320,7 +323,10 @@ function App() {
                     className="mt-0"
                     checked={nonSelectCheck}
                     onChange={(e) => {
-                      if (CllContext.inProgress) return;
+                      if (CllContext.inProgress) {
+                        CllContext.showCllInProgressMsg();
+                        return;
+                      }
                       setNonSelectCheck(e.target.checked);
                     }}
                   />

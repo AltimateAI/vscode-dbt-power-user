@@ -97,13 +97,22 @@ export class CllContext {
     });
     vscode.postMessage({
       command: "telemetryEvents",
-      args: { event: "columnLineageNumLinks", props: { num: CllContext.linkCount } },
+      args: {
+        id: "columnLineageNumLinks",
+        params: { num: CllContext.linkCount },
+      },
     });
     CllContext.linkCount = 0;
   }
 
   static addLinks(n: number) {
     CllContext.linkCount += n;
+  }
+
+  static showCllInProgressMsg() {
+    showInfoNotification(
+      "Column lineage is in progress. Either wait for it to complete or cancel the current one."
+    );
   }
 }
 

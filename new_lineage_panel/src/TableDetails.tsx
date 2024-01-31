@@ -242,7 +242,7 @@ const TableDetails = () => {
     }
 
     if (CllContext.inProgress) {
-      console.log("request already in progress");
+      CllContext.showCllInProgressMsg();
       return;
     }
 

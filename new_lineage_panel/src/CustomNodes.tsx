@@ -212,7 +212,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const expand = async (right: boolean) => {
     if (processed[right ? 1 : 0]) return;
     if (CllContext.inProgress) {
-      console.log("request already in progress");
+      CllContext.showCllInProgressMsg();
       return;
     }
     let [nodes, edges] = await expandTableLineage(
