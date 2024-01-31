@@ -12,6 +12,7 @@ import {
 } from "vscode";
 import {
   extendErrorWithSupportLinks,
+  getEnvVariableValue,
   getFirstWorkspacePath,
   provideSingleton,
   setupWatcherHandler,
@@ -213,8 +214,9 @@ export class DBTCoreProjectIntegration
   private async createPythonDbtProject() {
     await this.python.ex`from dbt_integration import *`;
     const profilesDir = await this.findProfilesDirectory();
+    const targetPath = getEnvVariableValue("DBT_TARGET_PATH");
     await this.python
-      .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${profilesDir}) if 'project' not in locals() else project`;
+      .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${profilesDir}, target_path=${targetPath}) if 'project' not in locals() else project`;
     this.disposables.push(
       // when the project config changes we need to re-init the dbt project
       ...setupWatcherHandler(this.dbtProfileWatcher, () =>
@@ -520,7 +522,9 @@ export class DBTCoreProjectIntegration
   }
 
   private async findTargetPath(): Promise<string> {
-    let targetPath = await this.python.lock((python) => python`target_dir()`);
+    let targetPath = await this.python.lock(
+      (python) => python`to_dict(project.config.target_path)`,
+    );
     if (!path.isAbsolute(targetPath)) {
       targetPath = path.join(this.projectRoot.fsPath, targetPath);
     }

@@ -1,4 +1,7 @@
+import { readFileSync, readdirSync } from "fs";
 import { fluentProvide } from "inversify-binding-decorators";
+import { homedir } from "os";
+import { extname, join, resolve } from "path";
 import {
   Disposable,
   FileSystemWatcher,
@@ -145,4 +148,23 @@ export function getFirstWorkspacePath(): string {
     // TODO: this shouldn't happen but we should make sure this is valid fallback
     return Uri.file("./").fsPath;
   }
+}
+
+export function getEnvVariableValue(variable: string): string | null {
+  const currWorkingDir = getFirstWorkspacePath();
+  const files = readdirSync(currWorkingDir);
+  for (const file of files) {
+    const c = extname(file);
+    if (extname(file) === "env" || file === ".env") {
+      const data = readFileSync(join(currWorkingDir, file), "utf8");
+      const lines = data.split("\n");
+      for (const line of lines) {
+        const [key, value] = line.split("=");
+        if (key === variable) {
+          return value;
+        }
+      }
+    }
+  }
+  return null;
 }
