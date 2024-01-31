@@ -520,9 +520,7 @@ export class DBTCoreProjectIntegration
   }
 
   private async findTargetPath(): Promise<string> {
-    let targetPath = await this.python.lock(
-      (python) => python`to_dict(project.config.target_path)`,
-    );
+    let targetPath = await this.python.lock((python) => python`target_dir()`);
     if (!path.isAbsolute(targetPath)) {
       targetPath = path.join(this.projectRoot.fsPath, targetPath);
     }
