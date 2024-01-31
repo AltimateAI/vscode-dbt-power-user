@@ -1,8 +1,9 @@
-import { readFileSync, readdirSync } from "fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "fs";
 import { fluentProvide } from "inversify-binding-decorators";
-import { homedir } from "os";
+import { platform } from "os";
 import { extname, join, resolve } from "path";
 import {
+  ConfigurationTarget,
   Disposable,
   FileSystemWatcher,
   Position,
@@ -150,21 +151,38 @@ export function getFirstWorkspacePath(): string {
   }
 }
 
-export function getEnvVariableValue(variable: string): string | null {
-  const currWorkingDir = getFirstWorkspacePath();
+export function setEnvVariableValue(variable: string): string {
+  if (!workspace.workspaceFolders) {
+    throw new Error("No workspace folder is open");
+  }
+
+  const currWorkingDir = workspace.workspaceFolders[0].uri.fsPath;
   const files = readdirSync(currWorkingDir);
+  let variableValue = "";
   for (const file of files) {
-    const c = extname(file);
-    if (extname(file) === "env" || file === ".env") {
+    if (extname(file) === ".env" || file === ".env") {
       const data = readFileSync(join(currWorkingDir, file), "utf8");
       const lines = data.split("\n");
       for (const line of lines) {
-        const [key, value] = line.split("=");
+        const [key, val] = line.split("=");
         if (key === variable) {
-          return value;
+          variableValue = val;
+          // Determine the platform
+          const currPlatform =
+            platform() === "darwin"
+              ? "osx"
+              : platform() === "win32"
+              ? "windows"
+              : "linux";
+          // Set the setting here
+          const config = workspace.getConfiguration("terminal.integrated.env");
+          const envConfig: Record<string, string> =
+            config.get(currPlatform) || {};
+          envConfig[variable] = variableValue;
+          config.update(currPlatform, envConfig, ConfigurationTarget.Workspace);
         }
       }
     }
   }
-  return null;
+  return variableValue;
 }
