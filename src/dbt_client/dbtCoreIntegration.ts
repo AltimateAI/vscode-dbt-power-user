@@ -183,7 +183,7 @@ export class DBTCoreProjectIntegration
   }
 
   private async createDbtProfileWatcher() {
-    await this.python.ex`from dbt_integration import *`;
+    await this.python.ex`from dbt_integration import default_profiles_dir`;
     const profilesDir = await this.findProfilesDirectory();
     return workspace.createFileSystemWatcher(
       new RelativePattern(
