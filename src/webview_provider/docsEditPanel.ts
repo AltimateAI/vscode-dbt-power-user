@@ -269,7 +269,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
           return undefined;
         }
 
-        const { command, args } = message;
+        const { command, syncRequestId, args } = message;
         switch (command) {
           case "enableNewDocsPanel":
             await workspace
@@ -467,6 +467,18 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   writeFileSync(patchPath, stringify(parsedDocFile));
                   this.documentation =
                     await this.docGenService.getDocumentation(this.eventMap);
+                  if (syncRequestId) {
+                    this._panel!.webview.postMessage({
+                      command: "response",
+                      args: {
+                        syncRequestId,
+                        body: {
+                          saved: true,
+                        },
+                        status: true,
+                      },
+                    });
+                  }
                 } catch (error) {
                   this.transmitError();
                   window.showErrorMessage(
@@ -476,6 +488,18 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     "saveDocumentationError",
                     error,
                   );
+                  if (syncRequestId) {
+                    this._panel!.webview.postMessage({
+                      command: "response",
+                      args: {
+                        syncRequestId,
+                        body: {
+                          saved: false,
+                        },
+                        status: true,
+                      },
+                    });
+                  }
                 }
               },
             );

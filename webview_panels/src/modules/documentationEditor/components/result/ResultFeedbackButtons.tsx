@@ -33,6 +33,10 @@ const ResultFeedbackButtons = ({ onFeedbackSubmit }: Props): JSX.Element => {
     setValue("feedback_type", isLiked ? Rating.Good : Rating.Bad);
   };
 
+  const handleLike = () => {
+    onFeedbackSubmit({ feedback_message: "", feedback_type: Rating.Good });
+  };
+
   const isGoodRating = watchRating === Rating.Good;
   const isBadRating = watchRating === Rating.Bad;
   const placeholder = isGoodRating
@@ -45,7 +49,7 @@ const ResultFeedbackButtons = ({ onFeedbackSubmit }: Props): JSX.Element => {
         <IconButton
           className={`${isGoodRating ? "active" : ""} outline`}
           title="Like"
-          onClick={() => handleClick(true)}
+          onClick={handleLike}
         >
           <LikeIcon />
         </IconButton>

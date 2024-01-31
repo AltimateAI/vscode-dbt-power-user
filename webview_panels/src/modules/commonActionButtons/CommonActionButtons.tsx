@@ -41,7 +41,7 @@ const CommonActionButtons = (): JSX.Element => {
   };
 
   return (
-    <Stack className="align-items-center">
+    <Stack className="align-items-center text-nowrap">
       <AutoCollapsingNotif
         text="New language support added! (Check Settings)"
         delay={10000}

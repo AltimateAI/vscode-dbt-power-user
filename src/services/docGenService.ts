@@ -259,8 +259,10 @@ export class DocGenService {
           const results: (DocsGenerateResponse | undefined)[] = [];
           const progressMessage =
             columns.length > COLUMNS_PER_CHUNK
-              ? `Generating docs for ${columns.length} columns`
-              : `Generating docs for columns ${columns.join(", ")}`;
+              ? `Generating documentation for ${columns.length} columns`
+              : `Generating documentation for ${
+                  columns.length > 1 ? "columns" : "column"
+                } ${columns.join(", ")}`;
           progress.report({
             message: progressMessage,
             increment: 0,

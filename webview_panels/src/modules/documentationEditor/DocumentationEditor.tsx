@@ -58,7 +58,7 @@ const DocumentationEditor = (): JSX.Element => {
       const result = (await executeRequestInSync("generateDocsForModel", {
         description: data.description,
         user_instructions: data.user_instructions,
-        columns: data.columns,
+        columns: currentDocsData.columns,
       })) as { description: string };
 
       dispatch(

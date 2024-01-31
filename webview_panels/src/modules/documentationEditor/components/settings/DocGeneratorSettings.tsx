@@ -49,7 +49,7 @@ const DocGeneratorSettings = (): JSX.Element => {
           onClose={() => setShowSettingsPanel(false)}
         >
           <Stack direction="column">
-            <h3>Configure your doc generation with options</h3>
+            <h5>Configure settings for document generation</h5>
             <Stack direction="column">
               <Label>
                 Language

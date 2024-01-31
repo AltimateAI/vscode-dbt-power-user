@@ -1,33 +1,33 @@
-body{
+body {
   padding: var(--spacing-3xl) !important;
 }
-.chat-list{
+.chat-list {
   padding: 0;
   li {
     margin-bottom: 1rem;
     list-style: none;
   }
 
-  :global .card{
+  :global .card {
     padding: 20px;
   }
-  :global .card-title{ 
+  :global .card-title {
     font-size: 14px;
-    svg{
-    width: 24px;
-    height: 24px;
-    margin-right: 6px;
+    svg {
+      width: 24px;
+      height: 24px;
+      margin-right: 6px;
+    }
   }
-}
-  .action-buttons{
+  .action-buttons {
     flex-wrap: wrap;
     justify-content: space-between;
     padding-top: 24px;
 
-    & >div{
+    & > div {
       display: flex;
     }
-    & :global .btn.active{
+    & :global .btn.active {
       border-color: var(--primary-accent);
     }
     & > form {
@@ -39,13 +39,13 @@ body{
   }
 }
 
-.default-view{
-  h1{
+.default-view {
+  h1 {
     margin-bottom: 0;
   }
   > section {
     border-radius: 8px;
-    border: 1px solid var(--Backgrounds-04, #4A4D51);
+    border: 1px solid var(--Backgrounds-04, #4a4d51);
     padding: var(--spacing-xl) var(--spacing-2xl);
     text-align: left;
     margin-top: var(--spacing-xl);
@@ -53,15 +53,15 @@ body{
       margin-bottom: var(--spacing-lg);
     }
 
-    p{
+    p {
       color: var(--Text-Neutral);
       margin-bottom: 0;
     }
   }
 }
 
-.prompt-card{
+.prompt-card {
   border-radius: 8px;
-border: 1px solid var(--Stroke-Disable, #424750);
-background: var(--Backgrounds-Base, #1E1E1E);
+  border: 1px solid var(--Stroke-Disable);
+  background: var(--Backgrounds-02);
 }
