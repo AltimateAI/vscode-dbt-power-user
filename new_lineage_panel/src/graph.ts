@@ -34,7 +34,7 @@ import {
 import { Dispatch, SetStateAction } from "react";
 import { COLUMN_PREFIX, SEE_MORE_PREFIX } from "./constants";
 import { TMoreTables } from "./MoreTables";
-import { CllContext } from "./service_utils";
+import { CLL } from "./service_utils";
 
 const createNewNodesEdges = (
   prevNodes: Node[],
@@ -295,7 +295,7 @@ const processColumnLineage = async (
     selectedColumn,
     sessionId,
   });
-  CllContext.addLinks(column_lineage.length);
+  CLL.addLinks(column_lineage.length);
   const columnLineage = column_lineage.filter((e) =>
     right ? contains(curr, e.source) : contains(curr, e.target)
   );
@@ -472,7 +472,7 @@ export const bfsTraversal = async (
   ]);
   let currEphemeralNodes: string[] = [];
   while (true as boolean) {
-    if (CllContext.isCancelled) {
+    if (CLL.isCancelled) {
       break;
     }
     currTargetColumns = currTargetColumns.filter((x) => !visited[x.join("/")]);

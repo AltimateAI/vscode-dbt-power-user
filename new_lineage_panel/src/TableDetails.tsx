@@ -15,7 +15,7 @@ import { aiEnabled, LineageContext } from "./App";
 import {
   previewFeature,
   showInfoNotification,
-  CllContext,
+  CLL,
 } from "./service_utils";
 import {
   bfsTraversal,
@@ -241,8 +241,8 @@ const TableDetails = () => {
       return;
     }
 
-    if (CllContext.inProgress) {
-      CllContext.showCllInProgressMsg();
+    if (CLL.inProgress) {
+      CLL.showCllInProgressMsg();
       return;
     }
 
@@ -303,7 +303,7 @@ const TableDetails = () => {
     flow.setEdges(edges);
     rerender();
 
-    // starting column lienage
+    // starting column lineage
     const _bfsTraversal = (right: boolean) =>
       bfsTraversal(
         nodes,
@@ -317,13 +317,13 @@ const TableDetails = () => {
         sessionId
       );
     try {
-      CllContext.start();
+      CLL.start();
       const result = await Promise.all([
         _bfsTraversal(true),
         _bfsTraversal(false),
       ]);
       if (result.every((isLineage) => !isLineage)) {
-        if (CllContext.isCancelled) {
+        if (CLL.isCancelled) {
           setSelectedColumn({ table: "", name: "", sessionId: "" });
         } else {
           showInfoNotification(
@@ -341,7 +341,7 @@ const TableDetails = () => {
       );
       setSelectedColumn({ table: "", name: "", sessionId: "" });
     } finally {
-      CllContext.end();
+      CLL.end();
     }
   };
   if (isLoading || !data || !selectedTable) return <ComponentLoader />;

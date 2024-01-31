@@ -62,14 +62,14 @@ enum CllEvents {
   CANCEL = "cancel",
 }
 
-export class CllContext {
+export class CLL {
   static isCancelled = false;
   static inProgress = false;
   static linkCount = 0;
 
   static onCancel() {
-    CllContext.isCancelled = true;
-    CllContext.inProgress = false;
+    CLL.isCancelled = true;
+    CLL.inProgress = false;
   }
 
   static cancel() {
@@ -81,8 +81,8 @@ export class CllContext {
   }
 
   static start() {
-    CllContext.inProgress = true;
-    CllContext.linkCount = 0;
+    CLL.inProgress = true;
+    CLL.linkCount = 0;
     vscode.postMessage({
       command: "columnLineage",
       args: { event: CllEvents.START },
@@ -90,7 +90,7 @@ export class CllContext {
   }
 
   static end() {
-    CllContext.inProgress = false;
+    CLL.inProgress = false;
     vscode.postMessage({
       command: "columnLineage",
       args: { event: CllEvents.END },
@@ -99,14 +99,14 @@ export class CllContext {
       command: "telemetryEvents",
       args: {
         id: "columnLineageNumLinks",
-        params: { num: CllContext.linkCount },
+        params: { num: CLL.linkCount },
       },
     });
-    CllContext.linkCount = 0;
+    CLL.linkCount = 0;
   }
 
   static addLinks(n: number) {
-    CllContext.linkCount += n;
+    CLL.linkCount += n;
   }
 
   static showCllInProgressMsg() {
@@ -118,6 +118,6 @@ export class CllContext {
 
 export const columnLineage = ({ event }: { event: CllEvents }) => {
   if (event === CllEvents.CANCEL) {
-    CllContext.onCancel();
+    CLL.onCancel();
   }
 };
