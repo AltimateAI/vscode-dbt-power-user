@@ -192,7 +192,7 @@ def find_package_paths(project_directories):
             project = DbtProject(
                 project_dir=project_dir,
                 profiles_dir=default_profiles_dir(project_dir),
-                target=target_dir(),
+                target_path=target_dir(),
             )
             project.init_config()
             packages_path = project.config.packages_install_path
