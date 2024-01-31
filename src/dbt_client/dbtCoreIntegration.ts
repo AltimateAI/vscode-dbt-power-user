@@ -31,6 +31,9 @@ import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonBridge, PythonException } from "python-bridge";
 import * as path from "path";
 import { DBTProject } from "../manifest/dbtProject";
+import { existsSync, readFileSync } from "fs";
+import * as yaml from "js-yaml";
+import { join } from "path";
 import { TelemetryService } from "../telemetry";
 import { ValidateSqlParseErrorResponse } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -82,6 +85,27 @@ export class DBTCoreProjectDetection
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
   ) {}
 
+  private getPackageInstallPathFallback(projectDirectory: Uri): string {
+    const dbtProjectFile = path.join(
+      projectDirectory.fsPath,
+      "dbt_project.yml",
+    );
+    if (existsSync(dbtProjectFile)) {
+      const dbtProjectConfig: any = yaml.load(
+        readFileSync(dbtProjectFile, "utf8"),
+      );
+      const packagesInstallPath = dbtProjectConfig["packages-install-path"];
+      if (packagesInstallPath) {
+        if (path.isAbsolute(packagesInstallPath)) {
+          return packagesInstallPath;
+        } else {
+          return path.join(projectDirectory.fsPath, packagesInstallPath);
+        }
+      }
+    }
+    return path.join(projectDirectory.fsPath, "dbt_packages");
+  }
+
   async discoverProjects(projectDirectories: Uri[]): Promise<Uri[]> {
     let packagesInstallPaths = projectDirectories.map((projectDirectory) =>
       path.join(projectDirectory.fsPath, "dbt_packages"),
@@ -111,6 +135,10 @@ export class DBTCoreProjectDetection
       );
     } catch (error) {
       console.log("An error occured while finding package paths: " + error);
+      // Fallback to reading yaml files
+      packagesInstallPaths = projectDirectories.map((projectDirectory) =>
+        this.getPackageInstallPathFallback(projectDirectory),
+      );
     } finally {
       if (python) {
         this.executionInfrastructure.closePythonBridge(python);
