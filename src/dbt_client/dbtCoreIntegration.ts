@@ -12,9 +12,9 @@ import {
 } from "vscode";
 import {
   extendErrorWithSupportLinks,
-  getEnvVariableValue,
   getFirstWorkspacePath,
   provideSingleton,
+  setEnvVariableValue,
   setupWatcherHandler,
 } from "../utils";
 import {
@@ -214,7 +214,7 @@ export class DBTCoreProjectIntegration
   private async createPythonDbtProject() {
     await this.python.ex`from dbt_integration import *`;
     const profilesDir = await this.findProfilesDirectory();
-    const targetPath = getEnvVariableValue("DBT_TARGET_PATH");
+    const targetPath = setEnvVariableValue("DBT_TARGET_PATH");
     await this.python
       .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${profilesDir}, target_path=${targetPath}) if 'project' not in locals() else project`;
     this.disposables.push(
