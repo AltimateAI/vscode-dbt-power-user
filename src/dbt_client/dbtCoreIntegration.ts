@@ -512,13 +512,10 @@ export class DBTCoreProjectIntegration
   }
 
   private async findProfilesDirectory(): Promise<string> {
-    let profilesDir = await this.python.lock(
+    const profilesDir = await this.python.lock(
       (python) =>
         python`default_profiles_dir(Path(${this.projectRoot.fsPath}))`,
     );
-    if (!path.isAbsolute(profilesDir)) {
-      profilesDir = path.join(this.projectRoot.fsPath, profilesDir);
-    }
     return profilesDir;
   }
 
