@@ -12,7 +12,11 @@ import classNames from "classnames";
 import { Button } from "reactstrap";
 import { getColumns, Columns, Column, Table } from "./service";
 import { aiEnabled, LineageContext } from "./App";
-import { previewFeature, showNoLineage, CllContext } from "./service_utils";
+import {
+  previewFeature,
+  showInfoNotification,
+  CllContext,
+} from "./service_utils";
 import {
   bfsTraversal,
   expandTableLineage,
@@ -322,7 +326,9 @@ const TableDetails = () => {
         if (CllContext.isCancelled) {
           setSelectedColumn({ table: "", name: "", sessionId: "" });
         } else {
-          showNoLineage(_column);
+          showInfoNotification(
+            `No lineage found for model ${_column.table} and column ${_column.name}`
+          );
         }
       }
     } catch (e) {

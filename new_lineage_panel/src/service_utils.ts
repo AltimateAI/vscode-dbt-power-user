@@ -45,8 +45,8 @@ export const previewFeature = () => {
   vscode.postMessage({ command: "previewFeature", args: {} });
 };
 
-export const showNoLineage = (params: { table: string; name: string }) => {
-  vscode.postMessage({ command: "showNoLineage", args: { params } });
+export const showInfoNotification = (message: string) => {
+  vscode.postMessage({ command: "showInfoNotification", args: { message } });
 };
 
 export const init = () => vscode.postMessage({ command: "init", args: {} });

@@ -224,11 +224,8 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
 
-    if (command === "showNoLineage") {
-      const { table, name: column } = params;
-      window.showInformationMessage(
-        `No lineage found for model ${table} and column ${column}`,
-      );
+    if (command === "showInfoNotification") {
+      window.showInformationMessage(args.message);
       return;
     }
 
