@@ -1,8 +1,7 @@
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "fs";
+import { readFileSync, readdirSync } from "fs";
 import { fluentProvide } from "inversify-binding-decorators";
 import { platform } from "os";
-import { extname, join, resolve } from "path";
-import * as path from "path";
+import { extname, join, relative } from "path";
 import {
   ConfigurationTarget,
   Disposable,
@@ -154,8 +153,9 @@ export function getFirstWorkspacePath(): string {
 
 export const getProjectRelativePath = (projectRoot: Uri) => {
   const ws = workspace.getWorkspaceFolder(projectRoot);
-  return path.relative(ws?.uri.fsPath || "", projectRoot.fsPath);
+  return relative(ws?.uri.fsPath || "", projectRoot.fsPath);
 };
+
 export function setEnvVariableValue(variable: string): string {
   if (!workspace.workspaceFolders) {
     throw new Error("No workspace folder is open");
