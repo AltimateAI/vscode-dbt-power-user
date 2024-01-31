@@ -214,6 +214,7 @@ export class DBTCoreProjectIntegration
     this.packagesInstallPath = await this.findPackagesInstallPath();
     this.version = await this.findVersion();
     this.adapterType = await this.findAdapterType();
+    this.hasManifest = false;
   }
 
   executeSQL(query: string): Promise<ExecuteSQLResult> {
@@ -322,9 +323,7 @@ export class DBTCoreProjectIntegration
       await this.python.lock(
         (python) => python`to_dict(project.safe_parse_project())`,
       );
-      if (!this.hasManifest) {
-        this.rebuildManifestDiagnostics.clear();
-      }
+      this.rebuildManifestDiagnostics.clear();
     } catch (exc) {
       if (exc instanceof PythonException) {
         // dbt errors can be about anything, so we just associate the error with the project file
