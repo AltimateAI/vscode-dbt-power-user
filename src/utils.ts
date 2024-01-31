@@ -1,4 +1,7 @@
+import { readFileSync, readdirSync } from "fs";
 import { fluentProvide } from "inversify-binding-decorators";
+import { homedir } from "os";
+import { extname, join, resolve } from "path";
 import * as path from "path";
 import {
   Disposable,
