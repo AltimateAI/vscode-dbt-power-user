@@ -16,12 +16,8 @@ import {
   layoutElementsOnCanvas,
   resetTableHighlights,
 } from "./graph";
-import {
-  LineageContext,
-  openFile,
-  startProgressBar,
-  endProgressBar,
-} from "./App";
+import { LineageContext } from "./App";
+import { CLL, openFile } from "./service_utils";
 import { C_NODE_H, C_PADDING_Y } from "./utils";
 import { TMoreTables } from "./MoreTables";
 import ModelIcon from "./assets/icons/model.svg?react";
@@ -215,6 +211,10 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
   const expand = async (right: boolean) => {
     if (processed[right ? 1 : 0]) return;
+    if (CLL.inProgress) {
+      CLL.showCllInProgressMsg();
+      return;
+    }
     let [nodes, edges] = await expandTableLineage(
       flow.getNodes(),
       flow.getEdges(),
@@ -226,21 +226,30 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     flow.setEdges(edges);
     rerender();
     if (selectedColumn.name) {
-      startProgressBar();
-      await bfsTraversal(
-        nodes,
-        edges,
-        right,
-        collectColumns[table].map((c) => ({ table, name: c })),
-        setConfidence,
-        setMoreTables,
-        setCollectColumns,
-        flow,
-        selectedColumn.sessionId
-      );
-      rerender();
-      endProgressBar();
-    } else if (selectedTable) {
+      try {
+        CLL.start();
+        await bfsTraversal(
+          nodes,
+          edges,
+          right,
+          collectColumns[table].map((c) => ({ table, name: c })),
+          setConfidence,
+          setMoreTables,
+          setCollectColumns,
+          flow,
+          selectedColumn.sessionId
+        );
+        rerender();
+      } catch (e) {
+        console.log("cll:error:", e);
+      } finally {
+        CLL.end();
+      }
+      return;
+    }
+
+    // highlight expanded table if table is already highlighted
+    if (selectedTable) {
       [nodes, edges] = highlightTableConnections(
         nodes,
         edges,

@@ -1,6 +1,6 @@
 import { Button } from "reactstrap";
 import lineageDemoGif from "../../media/images/lineage.gif";
-import { openURL } from "./App";
+import { openURL } from "./service_utils";
 
 function Demo() {
   return (

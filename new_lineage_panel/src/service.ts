@@ -1,4 +1,4 @@
-import { requestExecutor } from "./App";
+import { requestExecutor } from "./service_utils";
 
 export type Table = {
   table: string;
@@ -69,16 +69,11 @@ export const getExposureDetails = (name: string) => {
   }) as Promise<ExposureMetaData>;
 };
 
-export const getColumns = (
-  { table }: { table: string },
-  refresh: boolean,
-) => {
+export const getColumns = ({ table }: { table: string }, refresh: boolean) => {
   return requestExecutor("getColumns", {
     table,
     refresh,
-  }) as Promise<
-    Columns
-  >;
+  }) as Promise<Columns>;
 };
 
 export const getConnectedColumns = (body: {
@@ -88,9 +83,10 @@ export const getConnectedColumns = (body: {
   selectedColumn: { name: string; table: string };
   sessionId: string;
 }) => {
-  return requestExecutor("getConnectedColumns", body) as Promise<
-    ColumnLineageResponse
-  >;
+  return requestExecutor(
+    "getConnectedColumns",
+    body
+  ) as Promise<ColumnLineageResponse>;
 };
 
 export const sendFeedback = (body: {

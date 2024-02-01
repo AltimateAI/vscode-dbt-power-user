@@ -11,14 +11,12 @@ import styles from "./styles.module.scss";
 import classNames from "classnames";
 import { Button } from "reactstrap";
 import { getColumns, Columns, Column, Table } from "./service";
+import { aiEnabled, LineageContext } from "./App";
 import {
-  aiEnabled,
-  endProgressBar,
-  LineageContext,
   previewFeature,
-  showNoLineage,
-  startProgressBar,
-} from "./App";
+  showInfoNotification,
+  CLL,
+} from "./service_utils";
 import {
   bfsTraversal,
   expandTableLineage,
@@ -242,6 +240,13 @@ const TableDetails = () => {
       previewFeature();
       return;
     }
+
+    if (CLL.inProgress) {
+      CLL.showCllInProgressMsg();
+      return;
+    }
+
+    // remove column selection when already selected
     if (
       selectedColumn.table === _column.table &&
       selectedColumn.name === _column.name
@@ -257,7 +262,13 @@ const TableDetails = () => {
       setShowSidebar(false);
       return;
     }
-    startProgressBar();
+
+    const tableNode = flow.getNode(_column.table);
+    if (!tableNode) {
+      throw new Error(`table node ${_column.table} isn't visible`);
+    }
+
+    // expand 1st level if not already
     let _nodes = flow.getNodes();
     let _edges = flow.getEdges();
     const addNodesEdges = async (right: boolean) => {
@@ -269,20 +280,20 @@ const TableDetails = () => {
       );
       layoutElementsOnCanvas(_nodes, _edges);
     };
-    const tableNode = flow.getNode(_column.table);
-    if (tableNode) {
-      const {
-        data: { processed },
-      } = tableNode;
-      if (!processed[1]) await addNodesEdges(true);
-      if (!processed[0]) await addNodesEdges(false);
-    }
+    const {
+      data: { processed },
+    } = tableNode;
+    if (!processed[1]) await addNodesEdges(true);
+    if (!processed[0]) await addNodesEdges(false);
+
+    // initializing states
     const sessionId = window.crypto.randomUUID();
     setSelectedColumn({ ..._column, sessionId });
     setShowSidebar(false);
     setCollectColumns({});
+    setConfidence({ confidence: "high" });
 
-    // resetting existing styles
+    // resetting canvas
     const [nodes, edges] = resetTableHighlights(
       _nodes.filter(isNotColumn),
       _edges.filter(isNotColumn)
@@ -290,8 +301,9 @@ const TableDetails = () => {
     edges.forEach((_e) => (_e.style = defaultEdgeStyle));
     flow.setNodes(nodes);
     flow.setEdges(edges);
-    setConfidence({ confidence: "high" });
     rerender();
+
+    // starting column lineage
     const _bfsTraversal = (right: boolean) =>
       bfsTraversal(
         nodes,
@@ -305,12 +317,19 @@ const TableDetails = () => {
         sessionId
       );
     try {
+      CLL.start();
       const result = await Promise.all([
         _bfsTraversal(true),
         _bfsTraversal(false),
       ]);
       if (result.every((isLineage) => !isLineage)) {
-        showNoLineage(_column);
+        if (CLL.isCancelled) {
+          setSelectedColumn({ table: "", name: "", sessionId: "" });
+        } else {
+          showInfoNotification(
+            `No lineage found for model ${_column.table} and column ${_column.name}`
+          );
+        }
       }
     } catch (e) {
       console.error(
@@ -321,8 +340,9 @@ const TableDetails = () => {
         e
       );
       setSelectedColumn({ table: "", name: "", sessionId: "" });
+    } finally {
+      CLL.end();
     }
-    endProgressBar();
   };
   if (isLoading || !data || !selectedTable) return <ComponentLoader />;
   const tabs = ["Column"];

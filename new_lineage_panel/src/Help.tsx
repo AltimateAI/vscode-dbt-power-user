@@ -1,6 +1,6 @@
 import { Button } from "reactstrap";
 import styles from "./styles.module.scss";
-import { openChat } from "./App";
+import { openChat } from "./service_utils";
 
 function Help() {
   return (
