@@ -28,7 +28,7 @@ body {
       display: flex;
     }
     & :global .btn.active {
-      border-color: var(--primary-accent);
+      border-color: var(--primary-color);
     }
     & > form {
       margin-top: 24px;
@@ -45,7 +45,7 @@ body {
   }
   > section {
     border-radius: 8px;
-    border: 1px solid var(--Backgrounds-04, #4a4d51);
+    border: 1px solid var(--background--04, #4a4d51);
     padding: var(--spacing-xl) var(--spacing-2xl);
     text-align: left;
     margin-top: var(--spacing-xl);
@@ -54,7 +54,7 @@ body {
     }
 
     p {
-      color: var(--Text-Neutral);
+      color: var(--text-color--paragraph);
       margin-bottom: 0;
     }
   }
@@ -62,6 +62,6 @@ body {
 
 .prompt-card {
   border-radius: 8px;
-  border: 1px solid var(--Stroke-Disable);
-  background: var(--Backgrounds-02);
+  border: 1px solid var(--stroke--disable);
+  background: var(--background--02);
 }
