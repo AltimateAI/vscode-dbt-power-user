@@ -834,7 +834,7 @@
   },
   "scripts": {
     "prepare": "husky install",
-    "vscode:prepublish": "npm run panel:lineage && webpack --mode production",
+    "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production",
     "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "test-compile": "tsc -p ./",
