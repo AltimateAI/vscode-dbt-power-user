@@ -120,7 +120,7 @@
                 :theme="getPerspectiveTheme()"
               ></perspective-viewer>
             </div>
-            <div v-show="!isPerspective" class="flex flex-column">
+            <div v-show="!isPerspective">
               <div class="flex">
                 <vscode-button
                   @click="copyResultsToClipboard"

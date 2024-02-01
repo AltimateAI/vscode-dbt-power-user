@@ -1,7 +1,5 @@
 import {
   Dispatch,
-  FunctionComponent,
-  PropsWithChildren,
   SetStateAction,
   createContext,
   useEffect,
@@ -24,22 +22,18 @@ import {
   SelfConnectingEdge,
   TableNode,
 } from "./CustomNodes";
-import { Modal, SidebarModal } from "./Modal";
+import { Modal, PopoverContext, SidebarModal } from "./components/Modal";
 import { MoreTables, TMoreTables } from "./MoreTables";
-import { Table } from "./service";
 import {
+  calculateMinLevel,
+  calculateNodeCount,
   expandTableLineage,
   highlightTableConnections,
   layoutElementsOnCanvas,
 } from "./graph";
 import { TableDetails } from "./TableDetails";
-import { Button, Card, CardBody, Input, Label, Tooltip } from "reactstrap";
-import AlertCircleIcon from "./assets/icons/alert-circle.svg?react";
+import { Button } from "reactstrap";
 import PlayCircleIcon from "./assets/icons/play-circle.svg?react";
-import ResetIcon from "./assets/icons/reset.svg?react";
-import HelpIcon from "./assets/icons/help.svg?react";
-import FeedbackIcon from "./assets/icons/feedback.svg?react";
-import styles from "./styles.module.scss";
 import {
   TABLES_SIDEBAR,
   COLUMNS_SIDEBAR,
@@ -47,51 +41,15 @@ import {
   FEEDBACK_SIDEBAR,
   HELP_SIDEBAR,
 } from "./constants";
-import ExposureDetails from "./exposure/ExposureDetails";
+import ExposureDetails from "./ExposureDetails";
 import { Feedback } from "./Feedback";
 import { Help } from "./Help";
 import { Demo } from "./Demo";
-
-declare const acquireVsCodeApi: () => { postMessage: (v: unknown) => void };
-
-const vscode = acquireVsCodeApi();
+import { handleResponse, init, columnLineage } from "./service_utils";
+import { ActionWidget } from "./ActionWidget";
+import { DEFAULT_MIN_ZOOM, createTableNode } from "./utils";
 
 export let aiEnabled = false;
-let id = 0;
-const requestMap: Record<
-  number,
-  { resolve: (k: unknown) => void; reject: (reason?: string) => void }
-> = {};
-export const requestExecutor = (url: string, params: unknown) => {
-  return new Promise((resolve, reject) => {
-    requestMap[id] = { resolve, reject };
-    vscode.postMessage({ command: url, args: { id, params } });
-    id++;
-  });
-};
-export const openFile = (url: string) => {
-  vscode.postMessage({ command: "openFile", args: { url } });
-};
-export const openURL = (url: string) => {
-  vscode.postMessage({
-    command: "openURL",
-    args: { url },
-  });
-};
-export const openChat = () => openURL("https://app.myaltimate.com/contactus");
-export const startProgressBar = () => {
-  vscode.postMessage({ command: "startProgressBar", args: {} });
-};
-export const endProgressBar = () => {
-  vscode.postMessage({ command: "endProgressBar", args: {} });
-};
-export const previewFeature = () => {
-  vscode.postMessage({ command: "previewFeature", args: {} });
-};
-export const showNoLineage = (params: { table: string; name: string }) => {
-  vscode.postMessage({ command: "showNoLineage", args: { params } });
-};
-
 export let isDarkMode = false;
 
 const nodeTypes: NodeTypes = {
@@ -101,11 +59,18 @@ const nodeTypes: NodeTypes = {
 };
 const edgeTypes = { selfConnecting: SelfConnectingEdge };
 
+type Confidence = {
+  confidence: string;
+  operator_list?: string[];
+};
+
+const noop = () => {};
+
 export const LineageContext = createContext<{
   showSidebar: boolean;
   setShowSidebar: Dispatch<boolean>;
-  selectedTable: Table | null;
-  setSelectedTable: Dispatch<SetStateAction<Table | null>>;
+  selectedTable: string;
+  setSelectedTable: Dispatch<SetStateAction<string>>;
   moreTables: TMoreTables;
   setMoreTables: Dispatch<SetStateAction<TMoreTables>>;
   sidebarScreen: string;
@@ -117,68 +82,46 @@ export const LineageContext = createContext<{
   collectColumns: Record<string, string[]>;
   setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>;
   rerender: () => void;
-  setConfidence: Dispatch<
-    SetStateAction<{ confidence: string; operator_list?: string[] }>
-  >;
+  confidence: Confidence;
+  setConfidence: Dispatch<SetStateAction<Confidence>>;
+  leftExpansion: number;
+  setLeftExpansion: Dispatch<SetStateAction<number>>;
+  rightExpansion: number;
+  setRightExpansion: Dispatch<SetStateAction<number>>;
+  minRange: [number, number];
+  setMinRange: Dispatch<SetStateAction<[number, number]>>;
+  nodeCount: number;
+  setNodeCount: Dispatch<SetStateAction<number>>;
 }>({
   showSidebar: false,
-  setShowSidebar: () => {},
-  selectedTable: null,
-  setSelectedTable: () => null,
+  setShowSidebar: noop,
+  selectedTable: "",
+  setSelectedTable: noop,
   moreTables: {},
-  setMoreTables: () => {},
+  setMoreTables: noop,
   sidebarScreen: "",
-  setSidebarScreen: () => {},
+  setSidebarScreen: noop,
   selectedColumn: { name: "", table: "", sessionId: "" },
   setSelectedColumn: () => "",
   collectColumns: {},
-  setCollectColumns: () => {},
-  rerender: () => {},
-  setConfidence: () => {},
+  setCollectColumns: noop,
+  rerender: noop,
+  confidence: { confidence: "high" },
+  setConfidence: noop,
+  leftExpansion: 0,
+  setLeftExpansion: noop,
+  rightExpansion: 0,
+  setRightExpansion: noop,
+  minRange: [0, 0],
+  setMinRange: noop,
+  nodeCount: 0,
+  setNodeCount: noop,
 });
-
-const InfoIcon: FunctionComponent<{ id: string; message: string }> = ({
-  id,
-  message,
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  return (
-    <div
-      className={styles.alert_icon}
-      id={id}
-      onMouseEnter={() => setIsOpen(true)}
-      onMouseLeave={() => setIsOpen(false)}
-    >
-      <AlertCircleIcon />
-      <Tooltip target={id} isOpen={isOpen}>
-        {message}
-      </Tooltip>
-    </div>
-  );
-};
-
-const ActionButton = ({
-  onClick,
-  children,
-}: PropsWithChildren<{
-  onClick: React.MouseEventHandler<HTMLButtonElement>;
-}>) => {
-  return (
-    <Button
-      size="sm"
-      outline
-      color="secondary"
-      onClick={onClick}
-      className="d-flex align-items-center gap-sm"
-    >
-      {children}
-    </Button>
-  );
-};
 
 function App() {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
-  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedTable, setSelectedTable] = useState("");
   const [showSidebar, setShowSidebar] = useState(false);
   const [moreTables, setMoreTables] = useState<TMoreTables>({});
   const [sidebarScreen, setSidebarScreen] = useState("");
@@ -189,18 +132,22 @@ function App() {
     table: "",
     sessionId: "",
   });
+  const [leftExpansion, setLeftExpansion] = useState(0);
+  const [rightExpansion, setRightExpansion] = useState(0);
   const [collectColumns, setCollectColumns] = useState<
     Record<string, string[]>
   >({});
-  const [confidence, setConfidence] = useState<{
-    confidence: string;
-    operator_list?: string[];
-  }>({ confidence: "high" });
+  const [confidence, setConfidence] = useState<Confidence>({
+    confidence: "high",
+  });
   const [, _rerender] = useState(0);
   const rerender = () => _rerender((x) => (x + 1) % 100);
 
   const [selectCheck, setSelectCheck] = useState(true);
   const [nonSelectCheck, setNonSelectCheck] = useState(true);
+
+  const [nodeCount, setNodeCount] = useState(0);
+  const [minRange, setMinRange] = useState<[number, number]>([0, 0]);
 
   useEffect(() => {
     const render = async (args: {
@@ -216,6 +163,7 @@ function App() {
       };
       aiEnabled: boolean;
     }) => {
+      setIsOpen(false);
       setShowSidebar(false);
       if (!args) return;
       aiEnabled = args.aiEnabled;
@@ -224,7 +172,7 @@ function App() {
       if (!_flow) return;
       const existingNode = _flow.getNode(node.table);
       if (existingNode) {
-        setSelectedTable(existingNode.data as Table);
+        setSelectedTable(node.table);
         const [nodes, edges] = highlightTableConnections(
           _flow.getNodes(),
           _flow.getEdges(),
@@ -232,6 +180,16 @@ function App() {
         );
         _flow.setNodes(nodes);
         _flow.setEdges(edges);
+        setMinRange(calculateMinLevel(nodes, edges, node.table));
+        setNodeCount(
+          await calculateNodeCount(
+            nodes,
+            edges,
+            node.table,
+            leftExpansion,
+            rightExpansion
+          )
+        );
         return;
       }
       let nodes: Node[] = [];
@@ -239,58 +197,42 @@ function App() {
       const addNodesEdges = async (table: string, right: boolean) => {
         [nodes, edges] = await expandTableLineage(nodes, edges, table, right);
       };
-      nodes = [
-        {
-          id: node.table,
-          data: {
-            table: node.table,
-            label: node.label,
-            url: node.url,
-            level: 0,
-            shouldExpand: [node.downstreamCount > 0, node.upstreamCount > 0],
-            processed: [node.downstreamCount > 0, node.upstreamCount > 0],
-            nodeType: node.nodeType,
-            upstreamCount: node.upstreamCount,
-            downstreamCount: node.downstreamCount,
-            tests: node.tests,
-            materialization: node.materialization,
-          },
-          position: { x: 100, y: 100 },
-          type: "table",
-        },
-      ];
+      nodes = [createTableNode(node, 0, "")];
       if (node.upstreamCount > 0) await addNodesEdges(node.table, true);
       if (node.downstreamCount > 0) await addNodesEdges(node.table, false);
-      setSelectedTable(null);
+      setSelectedTable(node.table);
       setSelectedColumn({ table: "", name: "", sessionId: "" });
       setCollectColumns({});
       setMoreTables({});
-
+      [nodes, edges] = highlightTableConnections(nodes, edges, node.table);
       layoutElementsOnCanvas(nodes, edges);
       _flow.setNodes(nodes);
       _flow.setEdges(edges);
+      _flow.fitView({ minZoom: DEFAULT_MIN_ZOOM, duration: 500 });
+      setMinRange(calculateMinLevel(nodes, edges, node.table));
+      setNodeCount(
+        await calculateNodeCount(
+          nodes,
+          edges,
+          node.table,
+          leftExpansion,
+          rightExpansion
+        )
+      );
       rerender();
     };
-    const response = (args: {
-      id: number;
-      body: unknown;
-      status: boolean;
-      error: string;
-    }) => {
-      const { resolve, reject } = requestMap[args.id];
-      if (args.status) {
-        resolve(args.body);
-      } else {
-        reject(args.error);
-      }
-      delete requestMap[args.id];
-    };
+
     const setTheme = ({ theme }: { theme: string }) => {
       isDarkMode = theme === "dark";
       document.documentElement.setAttribute("data-theme", theme);
       rerender();
     };
-    const commandMap = { render, response, setTheme };
+    const commandMap = {
+      render,
+      response: handleResponse,
+      setTheme,
+      columnLineage,
+    };
     window.addEventListener("message", (event) => {
       console.log("lineage:message -> ", event.data);
       const { command, args } = event.data;
@@ -298,8 +240,8 @@ function App() {
         commandMap[command as keyof typeof commandMap](args);
       }
     });
-    console.log("lineage:onload -> ");
-    vscode.postMessage({ command: "init", args: {} });
+    console.log("lineage:onload");
+    init();
 
     // hide demo button after 10s
     setTimeout(() => {
@@ -327,194 +269,97 @@ function App() {
   }, [selectCheck, nonSelectCheck]);
 
   return (
-    <div className="position-relative">
-      <div className="top-right-container">
-        {aiEnabled && selectedColumn.name && (
-          <Card className={styles.menu_card_container}>
-            <CardBody className={styles.menu_card}>
-              <div className="d-flex gap-sm">
-                <div className={styles.select_node_checkbox}>
-                  <Input
-                    type="checkbox"
-                    id="select-check"
-                    className="mt-0"
-                    checked={selectCheck}
-                    onChange={(e) => setSelectCheck(e.target.checked)}
-                  />
-                  <Label check for="select-check">
-                    Select
-                  </Label>
-                  <InfoIcon
-                    id="select_lineage"
-                    message="Select linkages are shown if there is direct flow of data between columns through select statements."
-                  />
-                </div>
-                <div className={styles.non_select_node_checkbox}>
-                  <Input
-                    type="checkbox"
-                    id="non-select-check"
-                    className="mt-0"
-                    checked={nonSelectCheck}
-                    onChange={(e) => setNonSelectCheck(e.target.checked)}
-                  />
-                  <Label check for="non-select-check">
-                    Non-Select
-                  </Label>
-                  <InfoIcon
-                    id="non_select_lineage"
-                    message={
-                      "Non-Select linkages are shown if columns appear " +
-                      "in condition/clauses like where, join, having, etc."
-                    }
-                  />
-                </div>
-                {confidence.confidence === "low" && (
-                  <>
-                    <div className={styles.verticle_divider} />
-                    <div className="d-flex gap-xxs align-items-center">
-                      <div>Confidence</div>
-                      <InfoIcon
-                        id="confidence"
-                        message={
-                          "Depending on the SQL dialect and complexity of queries, " +
-                          "there may be situations where we are not completely " +
-                          "confident about the lineage shown in this view"
-                        }
-                      />
-                      <div className={styles.low_confidence}>Low</div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </CardBody>
-          </Card>
-        )}
-        <Button
-          size="sm"
-          color="primary"
-          onClick={(e) => {
-            e.stopPropagation();
-            vscode.postMessage({ command: "setLegacyLineageView" });
-          }}
-        >
-          Show Legacy UX
-        </Button>
-        <ActionButton
-          onClick={(e) => {
-            e.stopPropagation();
-            setSidebarScreen(HELP_SIDEBAR);
-            setShowSidebar(true);
-          }}
-        >
-          <HelpIcon />
-          <span>Help</span>
-        </ActionButton>
-        <ActionButton
-          onClick={(e) => {
-            e.stopPropagation();
-            flow.current?.setNodes([]);
-            flow.current?.setEdges([]);
-            setSelectedTable(null);
-            setSelectedColumn({ table: "", name: "", sessionId: "" });
-            setCollectColumns({});
-            setMoreTables({});
-            vscode.postMessage({ command: "init" });
-          }}
-          data-testid="reset-btn"
-        >
-          <ResetIcon />
-          <span>Reset</span>
-        </ActionButton>
-        <ActionButton
-          onClick={(e) => {
-            e.stopPropagation();
-            // setSidebarScreen(FEEDBACK_SIDEBAR);
-            // setShowSidebar(true);
-            // TODO: going to be deprecated
-            openURL(
-              aiEnabled
-                ? "https://docs.google.com/forms/d/e/1FAIpQLScsvmEdZ56F1GAFZq_SW7ejYe0dwpHe-N69qiQBz4ekN4gPNQ/viewform"
-                : "https://docs.google.com/forms/d/10_YT2XDwpbkDXio-7TEYPQXsJfCBFqYUa7t0ImzyZvE/viewform"
-            );
-          }}
-        >
-          <FeedbackIcon />
-          <span>Feedback</span>
-        </ActionButton>
-      </div>
-      <div className="bottom-right-container">
-        {showDemoButton && (
-          <Button
-            color="primary"
-            className="d-flex gap-sm align-items-center"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowDemoModal((b) => !b);
-            }}
-          >
-            Quick demo of Column Lineage
-            <PlayCircleIcon />
-          </Button>
-        )}
-      </div>
-      <LineageContext.Provider
-        value={{
-          showSidebar,
-          setShowSidebar,
-          selectedTable,
-          setSelectedTable,
-          moreTables,
-          setMoreTables,
-          sidebarScreen,
-          setSidebarScreen,
-          selectedColumn,
-          setSelectedColumn,
-          collectColumns,
-          setCollectColumns,
-          rerender,
-          setConfidence,
-        }}
-      >
+    <LineageContext.Provider
+      value={{
+        showSidebar,
+        setShowSidebar,
+        selectedTable,
+        setSelectedTable,
+        moreTables,
+        setMoreTables,
+        sidebarScreen,
+        setSidebarScreen,
+        selectedColumn,
+        setSelectedColumn,
+        collectColumns,
+        setCollectColumns,
+        rerender,
+        confidence,
+        setConfidence,
+        leftExpansion,
+        setLeftExpansion,
+        rightExpansion,
+        setRightExpansion,
+        minRange,
+        setMinRange,
+        nodeCount,
+        setNodeCount,
+      }}
+    >
+      <PopoverContext.Provider value={{ isOpen, setIsOpen }}>
         <ReactFlowProvider>
-          <div style={{ height: "100vh", width: "100vw" }}>
-            <ReactFlow
-              defaultNodes={[]}
-              defaultEdges={[]}
-              onInit={(_flow) => (flow.current = _flow)}
-              nodeTypes={nodeTypes}
-              edgeTypes={edgeTypes}
-              style={{ background: "var(--bg-color)" }}
-              proOptions={{ hideAttribution: true }}
-              minZoom={0.1}
+          <div className="position-relative">
+            <ActionWidget
+              selectCheck={selectCheck}
+              setSelectCheck={setSelectCheck}
+              nonSelectCheck={nonSelectCheck}
+              setNonSelectCheck={setNonSelectCheck}
+            />
+            <div className="bottom-right-container">
+              {showDemoButton && (
+                <Button
+                  color="primary"
+                  className="d-flex gap-sm align-items-center"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDemoModal((b) => !b);
+                  }}
+                >
+                  Quick demo of Column Lineage
+                  <PlayCircleIcon />
+                </Button>
+              )}
+            </div>
+            <div style={{ height: "100vh", width: "100vw" }}>
+              <ReactFlow
+                defaultNodes={[]}
+                defaultEdges={[]}
+                onInit={(_flow) => (flow.current = _flow)}
+                nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
+                style={{ background: "var(--bg-color)" }}
+                proOptions={{ hideAttribution: true }}
+                minZoom={DEFAULT_MIN_ZOOM}
+              >
+                <Background />
+                <Controls />
+              </ReactFlow>
+            </div>
+            <SidebarModal
+              isOpen={showSidebar}
+              toggleModal={() => setShowSidebar((b) => !b)}
+              width={446}
             >
-              <Background />
-              <Controls />
-            </ReactFlow>
+              {sidebarScreen === TABLES_SIDEBAR && <MoreTables />}
+              {sidebarScreen === COLUMNS_SIDEBAR && <TableDetails />}
+              {sidebarScreen === EXPOSURE_SIDEBAR && <ExposureDetails />}
+              {sidebarScreen === FEEDBACK_SIDEBAR && (
+                <Feedback
+                  close={() => {
+                    setSidebarScreen("");
+                    setShowSidebar(false);
+                  }}
+                />
+              )}
+              {sidebarScreen === HELP_SIDEBAR && <Help />}
+            </SidebarModal>
+            <Modal isOpen={showDemoModal} close={() => setShowDemoModal(false)}>
+              <Demo />
+            </Modal>
           </div>
-          <SidebarModal
-            isOpen={showSidebar}
-            toggleModal={() => setShowSidebar((b) => !b)}
-            width={446}
-          >
-            {sidebarScreen === TABLES_SIDEBAR && <MoreTables />}
-            {sidebarScreen === COLUMNS_SIDEBAR && <TableDetails />}
-            {sidebarScreen === EXPOSURE_SIDEBAR && <ExposureDetails />}
-            {sidebarScreen === FEEDBACK_SIDEBAR && (
-              <Feedback
-                close={() => {
-                  setSidebarScreen("");
-                  setShowSidebar(false);
-                }}
-              />
-            )}
-            {sidebarScreen === HELP_SIDEBAR && <Help />}
-          </SidebarModal>
-          <Modal isOpen={showDemoModal} close={() => setShowDemoModal(false)}>
-            <Demo />
-          </Modal>
         </ReactFlowProvider>
-      </LineageContext.Provider>
-    </div>
+      </PopoverContext.Provider>
+    </LineageContext.Provider>
   );
 }
 

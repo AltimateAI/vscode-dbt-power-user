@@ -35,7 +35,7 @@ export interface DBTColumnLineageRequest {
   model_dialect: string;
   model_info: {
     model_node: ModelNode;
-    compiled_sql: string | undefined;
+    compiled_sql?: string;
   }[];
   schemas?: Schemas | null;
   upstream_expansion: boolean;

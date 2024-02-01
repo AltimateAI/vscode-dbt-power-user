@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.31.0",
+  "version": "0.32.0",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -116,14 +116,6 @@
             },
             "default": [],
             "description": "Add additional params to the dbt build model command. Ex: --select model1 --target prod needs to be added as four different entries \n--select \nmodel1 \n--target \nprod "
-          },
-          "dbt.profilesDirOverride": {
-            "type": "string",
-            "description": "Override the profiles dir for every dbt command. Absolute path or relative to the directory containing profiles.yml"
-          },
-          "dbt.targetPathOverride": {
-            "type": "string",
-            "description": "Override the target-path dir for every dbt command. Absolute path or relative to the directory containing manifest.json."
           },
           "dbt.queryLimit": {
             "type": "integer",

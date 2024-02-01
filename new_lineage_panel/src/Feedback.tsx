@@ -1,13 +1,13 @@
 import ThumbsupIcon from "./assets/icons/thumbsup.svg?react";
 import ThumbsdownIcon from "./assets/icons/thumbsdown.svg?react";
-import ThumbsupSelectedIcon from "./assets/icons/thumbsup_selected.svg?react";
-import ThumbsdownSelectedIcon from "./assets/icons/thumbsdown_selected.svg?react";
+import ThumbsupSelectedIcon from "./assets/icons/thumbsup-selected.svg?react";
+import ThumbsdownSelectedIcon from "./assets/icons/thumbsdown-selected.svg?react";
 import { Button } from "reactstrap";
 import styles from "./styles.module.scss";
 import { useState } from "react";
-import { CustomMultilineInput } from "./Form";
+import { CustomMultilineInput } from "./components/Form";
 import { sendFeedback } from "./service";
-import { openChat } from "./App";
+import { openChat } from "./service_utils";
 
 enum FeedbackState {
   None = "",
