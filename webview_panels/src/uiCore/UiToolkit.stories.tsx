@@ -2,7 +2,7 @@ import {
   LikeIcon,
   SettingsIcon,
   ShinesIcon,
-  YellowEyeIcon,
+  PreviewIcon,
 } from "@assets/icons";
 import type { Meta } from "@storybook/react";
 import {
@@ -44,7 +44,7 @@ export const UIKit = {
       { value: "vanilla", label: "Vanilla" },
     ];
     return (
-      <Container>
+      <Container style={{background: "var(--background--base)"}}>
         <CardTitle tag="h3">
           UI toolkit for VSCode Power user extension
         </CardTitle>
@@ -77,7 +77,7 @@ export const UIKit = {
           <Button color="link">link</Button>
           <Button outline>Settings</Button>
           <DropdownButton onToggleClick={() => null}>
-            <ShinesIcon /> Generate All <YellowEyeIcon />
+            <ShinesIcon /> Generate All <PreviewIcon />
           </DropdownButton>
         </Stack>
         <br />

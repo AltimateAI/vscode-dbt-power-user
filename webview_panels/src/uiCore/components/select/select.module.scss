@@ -1,0 +1,8 @@
+:global .vscode-dark {
+.altimate-select {
+  [class*="-control"]{
+    border-color: transparent;
+    background-color: var(--background--01);
+  }
+}
+}

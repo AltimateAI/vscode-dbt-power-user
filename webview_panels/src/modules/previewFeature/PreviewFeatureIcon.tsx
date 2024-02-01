@@ -1,4 +1,4 @@
-import { YellowEyeIcon } from "@assets/icons";
+import { PreviewIcon } from "@assets/icons";
 import { useRef, useState } from "react";
 import { Tooltip } from "@uicore";
 import classes from "./tooltip.module.scss";
@@ -11,7 +11,7 @@ const PreviewFeatureIcon = (): JSX.Element => {
   return (
     <>
       <span ref={iconRef}>
-        <YellowEyeIcon />
+        <PreviewIcon />
       </span>
       {iconRef.current ? (
         <Tooltip

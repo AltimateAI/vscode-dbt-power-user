@@ -6,6 +6,7 @@ import Select, {
 } from "react-select";
 import { Label } from "../../index";
 import { CheckBlueIcon, UncheckIcon } from "@assets/icons";
+import "./select.module.scss"
 
 const { Option } = components;
 
@@ -45,16 +46,21 @@ const AltimateSelect = (props: Parameters<typeof Select>[0]): JSX.Element => {
       ...styles,
       margin: 0,
       borderRadius: "0 0 4px 4px",
-      backgroundColor: "var(--Select-menu-bg)",
+      backgroundColor: "var(--stroke--disable)",
     }),
+    option: (styles, {isFocused, isSelected}) => ({...styles, 
+      backgroundColor: isFocused || isSelected ? "var(--background--base)" : "transparent",
+    }),
+    indicatorSeparator: (styles) => ({...styles, display: "none"}),
     singleValue: (styles) => ({
       ...styles,
-      color: "var(--Text-Neutral)",
+      color: "var(--text-color--paragraph)",
     }),
     control: (styles) => ({
       ...styles,
-      backgroundColor: "var(--Backgrounds-02)",
-      color: "var(--Text-Neutral)",
+      backgroundColor: "var(--background--base)",
+      borderColor: "var(--stroke--disable)",
+      color: "var(--text-color--paragraph)",
     }),
   };
   const selectName = props.name ?? `select-${Math.random()}`;
@@ -63,6 +69,7 @@ const AltimateSelect = (props: Parameters<typeof Select>[0]): JSX.Element => {
     <Select<OptionType>
       {...props}
       styles={colourStyles}
+      className={`${props.className} altimate-select`}
       // @ts-expect-error TODO fix this type
       components={{
         ...props.components,

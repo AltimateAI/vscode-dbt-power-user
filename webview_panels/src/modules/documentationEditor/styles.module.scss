@@ -44,10 +44,10 @@
       & .save {
         align-items: center;
         position: sticky;
-        z-index: 2;
+        z-index: 5;
         bottom: 0;
-        border-top: 1px solid var(--Stroke-Disable);
-        background: var(--Backgrounds-02, #28292c);
+        border-top: 1px solid var(--stroke--disable);
+        background: var(--background--02, #28292c);
         padding: 10px 20px;
 
         h5 {
@@ -65,15 +65,15 @@
         }
         & p {
           border-radius: 2px;
-          border: 1px solid var(--Stroke-Disable, #424750);
-          background: var(--Backgrounds-02);
+          border: 1px solid var(--stroke--disable, #424750);
+          background: var(--background--02);
           margin-bottom: 0;
           flex: 1;
           font-size: 1rem;
           padding: 8px 12px;
         }
         & :global #file-path {
-          background: var(--Backgrounds-02);
+          background: var(--background--02);
         }
       }
     }
@@ -102,7 +102,7 @@
         text-align: left;
         &:hover,
         &.active {
-        color: var(--primary-accent);
+        color: var(--primary-color);
           background-color: #eee;
         }
       }
