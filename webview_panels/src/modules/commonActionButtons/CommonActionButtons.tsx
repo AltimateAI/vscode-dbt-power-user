@@ -36,7 +36,7 @@ const CommonActionButtons = (): JSX.Element => {
   const handleFeedbackClick = () => {
     vscode.postMessage({
       command: "openURL",
-      url: "https://app.myaltimate.com/contactus",
+      url: "https://docs.google.com/forms/d/e/1FAIpQLSeqFBZX_P4chScTTw8w-reRn2fr7NmeGdy8jISJOPdKEWfLaw/viewform",
     });
   };
 
