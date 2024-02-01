@@ -1,5 +1,4 @@
 from decimal import Decimal
-from pathlib import Path
 import dbt.adapters.factory
 
 # This is critical because `get_adapter` is all over dbt-core

@@ -513,15 +513,14 @@ export class DBTCoreProjectIntegration
 
   private async findProfilesDirectory(): Promise<string> {
     const profilesDir = await this.python.lock(
-      (python) =>
-        python`default_profiles_dir(Path(${this.projectRoot.fsPath}))`,
+      (python) => python`default_profiles_dir(${this.projectRoot.fsPath})`,
     );
     return profilesDir;
   }
 
   private async getTargetDirectory(): Promise<string> {
     const targetDir = await this.python.lock(
-      (python) => python`target_path(Path(${this.projectRoot.fsPath}))`,
+      (python) => python`target_path(${this.projectRoot.fsPath})`,
     );
     return targetDir;
   }
