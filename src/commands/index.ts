@@ -52,8 +52,10 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.compileCurrentModel", () =>
         this.runModel.compileModelOnActiveWindow(),
       ),
-      commands.registerCommand("dbtPowerUser.bigqueryCostEstimate", () =>
-        this.bigQueryCostEstimate.estimateCost(),
+      commands.registerCommand(
+        "dbtPowerUser.bigqueryCostEstimate",
+        ({ returnResult }: { returnResult?: boolean }) =>
+          this.bigQueryCostEstimate.estimateCost({ returnResult }),
       ),
       commands.registerTextEditorCommand(
         "dbtPowerUser.sqlPreview",
