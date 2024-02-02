@@ -1,7 +1,7 @@
 import { PropsWithChildren, useEffect } from "react";
 import { createPortal } from "react-dom";
 import "./PageModal.css";
-import CloseIcon from "../assets/icons/x-close.svg?react";
+import CloseIcon from "../../assets/icons/x-close.svg?react";
 
 const elem = document.getElementById("modal")!;
 

@@ -88,16 +88,9 @@ export const createTableNode = (
   level: number,
   parent: string
 ): Node => {
-  const { upstreamCount, downstreamCount, table } = _table;
   return {
-    id: table,
-    data: {
-      ..._table,
-      level,
-      parent,
-      shouldExpand: [downstreamCount > 0, upstreamCount > 0],
-      processed: [false, false],
-    },
+    id: _table.table,
+    data: { ..._table, level, parent },
     position: { x: 100, y: 100 },
     type: "table",
     width: T_NODE_W,
@@ -220,3 +213,13 @@ export const safeConcat = <T>(
 
 export const getColY = (columnNum: number, tableNum = 1) =>
   columnNum * (C_NODE_H + C_PADDING_Y) + tableNum * C_PADDING_Y;
+export const withinInclusive = (a: number, b: number) => (v: number) =>
+  a <= v && v <= b;
+export const withinExclusive = (a: number, b: number) => (v: number) =>
+  a < v && v < b;
+
+export const deleteIfExists = <T extends Node | Edge>(arr: T[], id: string) => {
+  const index = arr.findIndex((x) => x.id === id);
+  if (index === -1) return;
+  arr.splice(index, 1);
+};

@@ -8,7 +8,9 @@ import {
   createColumnNode,
   createTableEdge,
   createTableNode,
+  deleteIfExists,
   getColumnEdgeId,
+  getColumnId,
   getHelperDataForCLL,
   getSeeMoreId,
   isColumn,
@@ -22,6 +24,7 @@ import {
   T_NODE_W,
   T_NODE_Y_SEPARATION,
   getColY,
+  withinExclusive,
 } from "./utils";
 import {
   ColumnLineage,
@@ -36,31 +39,27 @@ import { TMoreTables } from "./MoreTables";
 import { CLL } from "./service_utils";
 
 const createNewNodesEdges = (
-  prevNodes: Node[],
-  prevEdges: Edge[],
+  nodes: Node[],
+  edges: Edge[],
   tables: Table[],
   t: string,
   right: boolean,
   level: number
-): [Node[], Edge[]] => {
-  const newNodes = [...prevNodes];
-  const newEdges = [...prevEdges];
+) => {
   const newLevel = right ? level + 1 : level - 1;
-  const _node = newNodes.find((_n) => _n.id === t);
-  if (_node) _node.data.processed[right ? 1 : 0] = true;
 
   const addUniqueEdge = (to: string) => {
-    const toLevel = newNodes.find((n) => n.id === to)?.data?.level;
+    const toLevel = nodes.find((n) => n.id === to)?.data?.level;
     const _edge = createTableEdge(level, toLevel, t, to, right);
-    const existingEdge = newEdges.find((e) => e.id === _edge.id);
-    if (!existingEdge) newEdges.push(_edge);
+    const existingEdge = edges.find((e) => e.id === _edge.id);
+    if (!existingEdge) edges.push(_edge);
   };
 
   let tableAdded = 0;
   for (const _t of tables) {
     if (tableAdded >= MAX_EXPAND_TABLE) {
       const nodeId = getSeeMoreId(t, right);
-      newNodes.push({
+      nodes.push({
         id: nodeId,
         data: { tables, prevTable: t, right, level: newLevel },
         position: { x: 100, y: 100 },
@@ -71,15 +70,13 @@ const createNewNodesEdges = (
       addUniqueEdge(nodeId);
       break;
     }
-    const existingNode = newNodes.find((_n) => _n.id === _t.table);
+    const existingNode = nodes.find((_n) => _n.id === _t.table);
     if (!existingNode) {
-      newNodes.push(createTableNode(_t, newLevel, t));
+      nodes.push(createTableNode(_t, newLevel, t));
       tableAdded++;
     }
     addUniqueEdge(_t.table);
   }
-
-  return [newNodes, newEdges];
 };
 
 export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
@@ -320,9 +317,6 @@ export const removeRelatedNodesEdges = (
     .filter(remove(columnEdgesToRemove))
     .filter(remove(edgesToRemove));
 
-  const _node = newNodes.find((_n) => _n.id === table);
-  if (_node) _node.data.processed[right ? 1 : 0] = false;
-
   return [newNodes, newEdges];
 };
 
@@ -414,7 +408,7 @@ const processColumnLineage = async (
   return { nodes, edges, collectColumns, newCurr, confidence, seeMoreLineage };
 };
 
-export const mergeNodesEdges = (
+const mergeNodesEdges = (
   prevState: { nodes: Node[]; edges: Edge[] },
   patchState: { nodes: Node[]; edges: Edge[] }
 ): [Node[], Edge[]] => {
@@ -460,38 +454,76 @@ const mergeCollectColumns = (
 };
 
 export const expandTableLineage = async (
-  nodes: Node[],
-  edges: Edge[],
+  _nodes: Node[],
+  _edges: Edge[],
   table: string,
   right: boolean
 ): Promise<[Node[], Edge[]]> => {
+  const nodes = [..._nodes];
+  const edges = [..._edges];
   const getConnectedTables = right ? upstreamTables : downstreamTables;
-  const level = nodes.find((n) => n.id === table)?.data?.level;
-  const queue: { table: string; level: number }[] = [{ table, level }];
+  const queue: { table: string; level: number }[] = [
+    { table, level: nodes.find((n) => n.id === table)!.data.level },
+  ];
   const visited: Record<string, boolean> = {};
   while (queue.length > 0) {
     const { table, level } = queue.shift()!;
     if (visited[table]) continue;
     visited[table] = true;
     const { tables } = await getConnectedTables(table);
-    const [_nodes, _edges] = createNewNodesEdges(
-      nodes,
-      edges,
-      tables,
-      table,
-      right,
-      level
-    );
-    nodes = _nodes;
-    edges = _edges;
+    createNewNodesEdges(nodes, edges, tables, table, right, level);
     tables.forEach((t) => {
-      if (t.materialization === "ephemeral") {
-        const _t = nodes.find((n) => n.id === t.table);
-        if (!_t) return;
+      const _t = nodes.find((n) => n.id === t.table);
+      if (_t?.data.materialization === "ephemeral") {
         queue.push({ table: t.table, level: _t.data.level });
       }
     });
   }
+  return [nodes, edges];
+};
+
+export const expandTableLineageLevelWise = async (
+  _nodes: Node[],
+  _edges: Edge[],
+  _table: string,
+  lb: number, // lower bound
+  ub: number // upper bound
+): Promise<[Node[], Edge[]]> => {
+  const nodes = [..._nodes];
+  const edges = [..._edges];
+  if (lb >= ub) return [nodes, edges];
+  const withinExcBounds = withinExclusive(lb, ub);
+  const rootLevel = nodes.find((n) => n.id === _table)!.data.level;
+  const bfs = async (right: boolean) => {
+    const queue: { table: string; level: number }[] = [
+      { table: _table, level: rootLevel },
+    ];
+    const visited: Record<string, boolean> = {};
+    const getConnectedTables = right ? upstreamTables : downstreamTables;
+    const calculateNewLevel = (i: number) => (right ? i + 1 : i - 1);
+
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      console.log("bfs:", curr);
+      if (visited[curr.table]) continue;
+      visited[curr.table] = true;
+      const newLevel = calculateNewLevel(curr.level);
+      const { tables } = await getConnectedTables(curr.table);
+      createNewNodesEdges(nodes, edges, tables, curr.table, right, curr.level);
+      if (withinExcBounds(newLevel)) {
+        queue.push(...tables.map((t) => ({ table: t.table, level: newLevel })));
+      } else {
+        queue.push(
+          ...tables
+            .filter((t) => t.materialization === "ephemeral")
+            .map((t) => ({ table: t.table, level: newLevel }))
+        );
+      }
+    }
+  };
+  if (ub > rootLevel) await bfs(true);
+  if (lb < rootLevel) await bfs(false);
+
   return [nodes, edges];
 };
 
@@ -523,9 +555,7 @@ export const bfsTraversal = async (
   ]);
   let currEphemeralNodes: string[] = [];
   while (true as boolean) {
-    if (CLL.isCancelled) {
-      break;
-    }
+    if (CLL.isCancelled) break;
     currTargetColumns = currTargetColumns.filter((x) => !visited[x.join("/")]);
     if (currTargetColumns.length === 0 && currEphemeralNodes.length === 0) {
       break;
@@ -634,4 +664,42 @@ export const bfsTraversal = async (
     mergeCollectColumns(setCollectColumns, patchState.collectColumns);
   }
   return isLineage;
+};
+
+export const moveTableFromSeeMoreToCanvas = (
+  nodes: Node[],
+  edges: Edge[],
+  _table: Table,
+  { prevTable, tables, right, level, lineage }: TMoreTables
+): boolean => {
+  const { table } = _table;
+  const node = nodes.find((n) => n.id === table);
+  if (node) return false;
+  nodes.push(createTableNode(_table, level!, prevTable!));
+  const fromLevel = nodes.find((n) => n.id === prevTable)?.data.level;
+  edges.push(createTableEdge(fromLevel, level!, prevTable!, table, right!));
+  lineage?.forEach((e) => {
+    const src = getColumnId(e.source[0], e.source[1]);
+    const dst = getColumnId(e.target[0], e.target[1]);
+    if (right) {
+      if (e.target[0] !== table) return;
+      nodes.push(createColumnNode(e.target[0], e.target[1]));
+      edges.push(createColumnEdge(src, dst, level! - 1, level!, e.type));
+    } else {
+      if (e.source[0] !== table) return;
+      nodes.push(createColumnNode(e.source[0], e.source[1]));
+      edges.push(createColumnEdge(src, dst, level!, level! + 1, e.type));
+    }
+  });
+
+  if (tables!.every((t) => !!nodes.find((n) => n.id === t.table))) {
+    const seeMoreNodeId = getSeeMoreId(prevTable!, right!);
+    const seeMoreEdgeId = right
+      ? `${prevTable}-${seeMoreNodeId}`
+      : `${seeMoreNodeId}-${prevTable}`;
+    deleteIfExists(nodes, seeMoreNodeId);
+    deleteIfExists(edges, seeMoreEdgeId);
+    return true;
+  }
+  return false;
 };

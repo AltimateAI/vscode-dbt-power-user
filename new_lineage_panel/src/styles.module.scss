@@ -1,4 +1,4 @@
-$node-width: 260px;
+$node-width: 300px;
 
 .table_node {
   width: $node-width;
@@ -220,9 +220,8 @@ $size: 1.2em;
 
 .divider {
   height: 2px;
-  width: calc(100% + 1em);
-  background-color: var(--table-node-border-color);
-  margin-left: -0.5em;
+  width: 100%;
+  background-color: var(--card-border-color);
 }
 
 .table_details_header {
@@ -295,10 +294,11 @@ $size: 1.2em;
   display: flex;
   align-items: center;
   border-radius: 0.5em;
-  border: 1px solid var(--card-border-color);
   gap: 0.25em;
   padding: 0.125em 0.325em;
   font-size: 0.8em;
+  background-color: var(--tag-bg);
+  color: var(--text-color);
 
   .icon {
     $size: 1rem;
@@ -341,5 +341,53 @@ $size: 1.2em;
   .cancel_btn {
     color: var(--text-grey-color);
     text-decoration: none;
+  }
+}
+
+.expand_popover {
+  :global .popover {
+    --bs-popover-bg: --popover-bg;
+    background-color: var(--popover-bg);
+    color: var(--popover-bg);
+  }
+}
+
+.expand-nav {
+  border-radius: 4px;
+  border: var(--table-node-border-color) solid 1px;
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.expand_nav_left {
+  @extend .expand-nav;
+}
+
+.expand_nav_right {
+  @extend .expand-nav;
+}
+
+.expand_nav_btn {
+  background-color: var(--popover-bg);
+  border-radius: 4px;
+  margin: 0.125em;
+  display: flex;
+  align-items: center;
+
+  .divider {
+    height: 100%;
+    width: 1px;
+    background-color: var(--divider-color);
+  }
+
+  .icon {
+    svg {
+      width: 1.5em;
+      height: 1.5em;
+    }
+    padding: 0.125em;
+    cursor: pointer;
   }
 }

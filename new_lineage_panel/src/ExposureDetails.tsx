@@ -1,25 +1,25 @@
 import { useContext, useEffect, useState } from "react";
 import classNames from "classnames";
-import { LineageContext } from "../App";
-import { ExposureMetaData, getExposureDetails } from "../service";
-import { ComponentLoader } from "../Loader";
-import { NodeTypeIcon } from "../CustomNodes";
-import styles from "../styles.module.scss";
-import { ColumnRow, Purpose as PurposeSection, Chip } from "../components";
+import { LineageContext } from "./App";
+import { ExposureMetaData, getExposureDetails } from "./service";
+import { ComponentLoader } from "./components/Loader";
+import styles from "./styles.module.scss";
+import { ColumnRow, Purpose as PurposeSection, Chip } from "./components";
+import { NodeTypeIcon } from "./components/Column";
+import { useReactFlow } from "reactflow";
 
 /**
  * Component to display exposure details
  */
 const ExposureDetails = () => {
+  const flow = useReactFlow();
   const { selectedTable } = useContext(LineageContext);
   const [data, setData] = useState<ExposureMetaData | null>(null);
-
+  const selectedTableData = flow.getNode(selectedTable)?.data;
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
-    if (!selectedTable) {
-      return;
-    }
-    getExposureDetails(selectedTable.label).then((_data) => {
+    if (!selectedTable) return;
+    getExposureDetails(selectedTable).then((_data) => {
       setData(_data);
       setIsLoading(false);
     });
@@ -30,9 +30,11 @@ const ExposureDetails = () => {
   return (
     <div className="p-2 h-100 d-flex flex-column gap-md overflow-y">
       <div className={styles.table_details_header}>
-        <NodeTypeIcon nodeType={selectedTable.nodeType} />
+        <NodeTypeIcon nodeType={selectedTableData.nodeType} />
         <div className="d-flex align-items-center">
-          <div className="fw-semibold fs-5 lines-2">{selectedTable.label}</div>
+          <div className="fw-semibold fs-5 lines-2">
+            {selectedTableData.label}
+          </div>
         </div>
       </div>
       {data.description ? <PurposeSection purpose={data.description} /> : null}
