@@ -14,7 +14,10 @@ import {
 } from "@uicore";
 import { useCallback, useEffect, useState } from "react";
 import { SettingsIcon } from "@assets/icons";
-import { executeRequestInSync } from "../app/requestExecutor";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "../app/requestExecutor";
 import classes from "./defer.module.scss";
 import { IncomingMessageProps } from "@modules/app/types";
 import { panelLogger } from "@modules/logger";
@@ -167,9 +170,9 @@ const DeferToProduction = (): JSX.Element => {
       dbt_core_integration_file_id: number;
     };
     if (data.url === "" && data.dbt_core_integration_file_id === -1) {
-      panelLogger.error(
-        `No remote manifest file present for dbt core integration id: ${selectedOption.value}`,
-      );
+      executeRequestInAsync("showInfoNotification", {
+        infoMessage: `No remote manifest file present for dbt core integration: ${selectedOption.label}`,
+      });
     } else {
       panelLogger.log(data.url);
       // await downloadManifest(data.url);

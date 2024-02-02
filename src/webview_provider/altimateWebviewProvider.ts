@@ -185,6 +185,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             });
           }
           break;
+        case "showInfoNotification":
+          const { infoMessage } = params as {
+            infoMessage: string;
+          };
+          window.showInformationMessage(infoMessage);
+          break;
         default:
           break;
       }
