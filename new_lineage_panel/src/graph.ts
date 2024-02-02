@@ -132,7 +132,6 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
         tableWiseLevelColumnCount[n] += tableWiseColumnCount[curr] || 0;
       levelWiseTables[level].push(n);
     }
-    console.log("layout:dfs:", n, JSON.parse(JSON.stringify(levelWiseTables)));
     for (const m of adjacencyList[n] || []) {
       dfs(m, adjacencyList);
     }
@@ -145,10 +144,6 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
     visited[n.id] = false;
     dfs(n.id, adjacencyListLeft);
   }
-
-  console.log("layout:", tableWiseLevelPos);
-  console.log("layout:", levelWiseTables);
-  console.log("layout:", tableWiseLevelColumnCount);
 
   const getY = (n: Node) => {
     const _index = tableWiseLevelPos[n.id] || 0;
@@ -191,7 +186,7 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
         n.position.y + getColY(tableWiseColumnCount[n.id] || 0)
       );
     }
-    const offsetLevelY = (maxY - maxLevelY) / 3;
+    const offsetLevelY = (maxY - maxLevelY) / 2;
     for (const n of levelNodesMap[level]) n.position.y += offsetLevelY;
   }
 };
