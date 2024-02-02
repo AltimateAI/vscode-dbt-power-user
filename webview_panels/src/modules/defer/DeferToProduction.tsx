@@ -168,14 +168,20 @@ const DeferToProduction = (): JSX.Element => {
     const data = response as {
       url: string;
       dbt_core_integration_file_id: number;
+      manifestPath: string;
     };
     if (data.url === "" && data.dbt_core_integration_file_id === -1) {
       executeRequestInAsync("showInfoNotification", {
         infoMessage: `No remote manifest file present for dbt core integration: ${selectedOption.label}`,
       });
     } else {
-      panelLogger.log(data.url);
-      // await downloadManifest(data.url);
+      if (data.manifestPath) {
+        panelLogger.log(`Manifest path: ${data.manifestPath}`);
+        setDeferState((prevState) => ({
+          ...prevState,
+          localManifestPathForDeferral: data.manifestPath,
+        }));
+      }
     }
   };
 

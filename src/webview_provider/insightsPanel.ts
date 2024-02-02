@@ -10,6 +10,9 @@ import {
 } from "./altimateWebviewProvider";
 import { AltimateRequest } from "../altimate";
 import { SharedStateService } from "../services/SharedStateService";
+import { createWriteStream, mkdir } from "fs";
+import { join } from "path";
+import fetch from "node-fetch";
 
 interface DeferConfig {
   deferToProduction: boolean;
@@ -154,6 +157,51 @@ export class InsightsPanel extends AltimateWebviewProvider {
     }
   }
 
+  async downloadManifestLocally(
+    url: string,
+    destinationFolder = "./dbt_integration/tmp",
+  ): Promise<string> {
+    const currentFilePath = window.activeTextEditor?.document.uri;
+    if (!currentFilePath) {
+      throw new Error("Invalid current file");
+    }
+
+    const currentProject =
+      this.dbtProjectContainer.findDBTProject(currentFilePath);
+
+    const currentProjectRoot = currentProject?.projectRoot.fsPath;
+
+    const destinationFolderv2 = join(currentProjectRoot!, destinationFolder);
+
+    mkdir(destinationFolderv2, { recursive: true }, (err) => {
+      console.log(err);
+    });
+
+    const destinationPath = join(
+      currentProjectRoot!,
+      destinationFolder,
+      "manifest.json",
+    );
+
+    const response = await fetch(url, { agent: undefined });
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to download file. Status: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const fileStream = createWriteStream(destinationPath);
+    await new Promise((resolve, reject) => {
+      response.body?.pipe(fileStream);
+      response.body?.on("error", reject);
+      fileStream.on("finish", resolve);
+    });
+
+    console.log("File downloaded successfully!");
+    return destinationPath;
+  }
+
   private async downloadManifest(
     syncRequestId: string | undefined,
     dbt_core_integration_id: number,
@@ -169,12 +217,19 @@ export class InsightsPanel extends AltimateWebviewProvider {
         throw new Error("Invalid credentials");
       }
 
+      const data = response as { url: string; dbt_core_integration_id: number };
+
+      let manifestPath = "";
+      if (data.url) {
+        manifestPath = await this.downloadManifestLocally(data.url);
+      }
+
       if (syncRequestId) {
         this._panel!.webview.postMessage({
           command: "response",
           args: {
             syncRequestId,
-            body: response,
+            body: { ...response, manifestPath: manifestPath },
             status: true,
           },
         });
