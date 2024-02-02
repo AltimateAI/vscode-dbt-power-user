@@ -280,11 +280,16 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               and only allow scripts that have a specific nonce.
               Added unsafe-inline for css due to csp issue: https://github.com/JedWatson/react-select/issues/4631
               -->
-              <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' ${
-                webview.cspSource
-              }; img-src ${
-                webview.cspSource
-              } https: data:; script-src 'nonce-${nonce}';">
+              <meta
+                http-equiv="Content-Security-Policy"
+                content="default-src 'none'; style-src 'unsafe-inline' ${
+                  webview.cspSource
+                }; img-src ${
+                  webview.cspSource
+                } https: data:; script-src 'nonce-${nonce}'; connect-src ${
+                  webview.cspSource
+                } https://data-pipeline-output-local-testing.s3.amazonaws.com;"
+              />
             <title>VSCode DBT Power user extension</title>
             <link rel="stylesheet" type="text/css" href="${indexCss}">
             <link rel="stylesheet" type="text/css" href="${insightsCss}">

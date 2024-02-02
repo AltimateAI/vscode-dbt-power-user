@@ -10,27 +10,42 @@ import {
   FormGroup,
   Input,
   Label,
-  Stack,
+  Select,
 } from "@uicore";
 import { useCallback, useEffect, useState } from "react";
 import { SettingsIcon } from "@assets/icons";
 import { executeRequestInSync } from "../app/requestExecutor";
 import classes from "./defer.module.scss";
 import { IncomingMessageProps } from "@modules/app/types";
+import { panelLogger } from "@modules/logger";
 
+interface DropdownOptions {
+  label: string;
+  value: number;
+}
 interface DeferToProductionProps {
   deferToProduction: boolean;
   favorState: boolean;
-  manifestPathForDeferral: string;
+  localManifestPathForDeferral: string;
+  manifestPathType: string;
+  projectIntegrations: DropdownOptions[];
 }
 const DeferToProduction = (): JSX.Element => {
   const [
-    { deferToProduction, favorState, manifestPathForDeferral },
+    {
+      deferToProduction,
+      favorState,
+      localManifestPathForDeferral,
+      manifestPathType,
+      projectIntegrations,
+    },
     setDeferState,
   ] = useState<DeferToProductionProps>({
     deferToProduction: false,
     favorState: false,
-    manifestPathForDeferral: "",
+    localManifestPathForDeferral: "",
+    manifestPathType: "",
+    projectIntegrations: [],
   });
   const [hideBody, setHideBody] = useState(true);
 
@@ -93,24 +108,71 @@ const DeferToProduction = (): JSX.Element => {
     }
   };
 
-  const handleManifestPathChange = (
+  const handleLocalManifestPathChange = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const { value, name } = event.target;
     setDeferState((prevState) => ({ ...prevState, [name]: value }));
   };
 
-  const onManifestBlur = async () => {
+  const onLocalManifestBlur = async () => {
     const response = await executeRequestInSync("updateDeferConfig", {
-      key: "manifestPathForDeferral",
-      value: manifestPathForDeferral,
+      key: "localManifestPathForDeferral",
+      value: localManifestPathForDeferral,
       isPreviewFeature: true,
     });
     if (!(response as { updated: boolean }).updated) {
       setDeferState((prevState) => ({
         ...prevState,
-        manifestPathForDeferral: "",
+        localManifestPathForDeferral: "",
       }));
+    }
+  };
+
+  const handleManifestPathTypeChange = async (option: string) => {
+    if (option === "remote") {
+      const response = await executeRequestInSync(
+        "fetchProjectIntegrations",
+        {},
+      );
+      if (Array.isArray(response)) {
+        setDeferState((prevState) => ({
+          ...prevState,
+          projectIntegrations: response.map(
+            (item: { name: string; id: number }) => ({
+              label: item.name,
+              value: item.id,
+            }),
+          ),
+          manifestPathType: option,
+        }));
+        return;
+      }
+    }
+    setDeferState((prevState) => ({
+      ...prevState,
+      manifestPathType: option,
+    }));
+  };
+
+  const handleIntegrationSelect = async (selectedOption: {
+    label: string;
+    value: number;
+  }) => {
+    const response = await executeRequestInSync("downloadManifest", {
+      dbt_core_integration_id: selectedOption.value,
+    });
+    const data = response as {
+      url: string;
+      dbt_core_integration_file_id: number;
+    };
+    if (data.url === "" && data.dbt_core_integration_file_id === -1) {
+      panelLogger.error(
+        `No remote manifest file present for dbt core integration id: ${selectedOption.value}`,
+      );
+    } else {
+      panelLogger.log(data.url);
+      // await downloadManifest(data.url);
     }
   };
 
@@ -140,25 +202,66 @@ const DeferToProduction = (): JSX.Element => {
                 />
               </Label>
             </FormGroup>
-            <FormGroup>
-              <Stack>
+            <Label>Save your file location</Label>
+            <FormGroup check className={classes.pathSelection}>
+              <div className={classes.pathSelectionRow}>
                 <Label
+                  check
                   for="manifestPath"
                   sm={2}
+                  className={classes.title}
                   style={{ whiteSpace: "nowrap" }}
                 >
-                  Path to manifest file
+                  <Input
+                    type="radio"
+                    name="localManifestPathRadio"
+                    checked={manifestPathType === "local"}
+                    onChange={() => handleManifestPathTypeChange("local")}
+                  />
+                  Local Path to manifest file
                 </Label>
-                <Input
-                  id="manifestPath"
-                  name="manifestPathForDeferral"
-                  placeholder=""
-                  type="text"
-                  value={manifestPathForDeferral}
-                  onChange={handleManifestPathChange}
-                  onBlur={onManifestBlur}
-                />
-              </Stack>
+                {manifestPathType === "local" && (
+                  <Input
+                    id="localManifestPath"
+                    name="localManifestPathForDeferral"
+                    placeholder=""
+                    type="text"
+                    className={classes.pathInput}
+                    value={localManifestPathForDeferral}
+                    onChange={handleLocalManifestPathChange}
+                    onBlur={onLocalManifestBlur}
+                  />
+                )}
+              </div>
+              <div className={classes.pathSelectionRow}>
+                <Label
+                  check
+                  for="remoteManifestPath"
+                  sm={2}
+                  className={classes.title}
+                  style={{ whiteSpace: "nowrap" }}
+                >
+                  <Input
+                    type="radio"
+                    name="manifestPathRadio"
+                    checked={manifestPathType === "remote"}
+                    onChange={() => handleManifestPathTypeChange("remote")}
+                  />
+                  DataPilot dbt Integration
+                </Label>
+
+                {manifestPathType === "remote" && (
+                  <Select
+                    options={projectIntegrations}
+                    className={classes.pathInput}
+                    onChange={(newValue) =>
+                      handleIntegrationSelect(
+                        newValue as { label: string; value: number },
+                      )
+                    }
+                  />
+                )}
+              </div>
             </FormGroup>
             <FormGroup switch className={classes.formSwitch}>
               <Label>

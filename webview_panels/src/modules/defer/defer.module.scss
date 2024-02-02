@@ -23,4 +23,26 @@
       }
     }
   }
+
+  .path-selection {
+    padding: 16px;
+    border-radius: 10px;
+    background: #1c1c1c;
+    gap: 8px;
+    margin-bottom: 20px;
+
+    .title{
+      margin-left: 10px;
+    }
+
+    .path-selection-row{
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .path-input{
+      width: 70%;
+    }
+  }
 }

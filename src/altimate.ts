@@ -291,6 +291,17 @@ export class AltimateRequest {
     }
   }
 
+  getQueryString = (params: Record<string, string | number>): string => {
+    const queryString = Object.keys(params)
+      .map(
+        (key) =>
+          `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`,
+      )
+      .join("&");
+
+    return queryString ? `?${queryString}` : "";
+  };
+
   async isAuthenticated() {
     try {
       await this.fetch<void>("auth_health", {
@@ -368,5 +379,21 @@ export class AltimateRequest {
       },
     });
     return (await response.json()) as Record<string, any> | undefined;
+  }
+
+  async fetchProjectIntegrations() {
+    return this.fetch("dbt/v1/project_integrations");
+  }
+
+  async downloadArtifect(
+    artifact_type: string,
+    dbt_core_integration_id: number,
+  ) {
+    return this.fetch(
+      `dbt/v1/download_artifact${this.getQueryString({
+        artifact_type: artifact_type,
+        dbt_core_integration_id: dbt_core_integration_id,
+      })}`,
+    );
   }
 }

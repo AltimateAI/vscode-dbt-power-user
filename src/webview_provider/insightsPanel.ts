@@ -118,6 +118,85 @@ export class InsightsPanel extends AltimateWebviewProvider {
     }
   }
 
+  private async fetchProjectIntegrations(syncRequestId: string | undefined) {
+    try {
+      console.log("Fetching project integrations");
+      const response = await this.altimateRequest.fetchProjectIntegrations();
+      if (!response) {
+        throw new Error("Invalid credentials");
+      }
+
+      if (syncRequestId) {
+        this._panel!.webview.postMessage({
+          command: "response",
+          args: {
+            syncRequestId,
+            body: response,
+            status: true,
+          },
+        });
+      }
+    } catch (err) {
+      console.info(
+        "could not fetch project integrations",
+        (err as Error).message,
+      );
+      this._panel!.webview.postMessage({
+        command: "response",
+        args: {
+          syncRequestId,
+          body: {
+            response: [],
+          },
+          status: false,
+        },
+      });
+    }
+  }
+
+  private async downloadManifest(
+    syncRequestId: string | undefined,
+    dbt_core_integration_id: number,
+  ) {
+    try {
+      console.log("Fetching manifest signed url");
+      const response = await this.altimateRequest.downloadArtifect(
+        "manifest",
+        dbt_core_integration_id,
+      );
+
+      if (!response) {
+        throw new Error("Invalid credentials");
+      }
+
+      if (syncRequestId) {
+        this._panel!.webview.postMessage({
+          command: "response",
+          args: {
+            syncRequestId,
+            body: response,
+            status: true,
+          },
+        });
+      }
+    } catch (err) {
+      console.info(
+        "could not fetch manifest signed url",
+        (err as Error).message,
+      );
+      this._panel!.webview.postMessage({
+        command: "response",
+        args: {
+          syncRequestId,
+          body: {
+            response: [],
+          },
+          status: false,
+        },
+      });
+    }
+  }
+
   async handleCommand(message: HandleCommandProps): Promise<void> {
     const { command, syncRequestId, ...params } = message;
 
@@ -160,6 +239,15 @@ export class InsightsPanel extends AltimateWebviewProvider {
             status: true,
           },
         });
+        break;
+      case "fetchProjectIntegrations":
+        await this.fetchProjectIntegrations(syncRequestId);
+        break;
+      case "downloadManifest":
+        const { dbt_core_integration_id } = params as {
+          dbt_core_integration_id: number;
+        };
+        await this.downloadManifest(syncRequestId, dbt_core_integration_id);
         break;
       default:
         super.handleCommand(message);
