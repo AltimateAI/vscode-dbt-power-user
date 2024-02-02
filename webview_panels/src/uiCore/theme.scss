@@ -72,6 +72,10 @@ html {
     color: var(--text-color--title);
     box-shadow: none;
   }
+
+  &::placeholder{
+    color: var(--text-color--caption);
+  }
 }
 
 input.form-control {
