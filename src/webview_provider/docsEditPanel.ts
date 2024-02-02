@@ -300,6 +300,18 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     };
                   });
                   this.transmitColumns(columns);
+                  if (syncRequestId) {
+                    this._panel!.webview.postMessage({
+                      command: "response",
+                      args: {
+                        syncRequestId,
+                        body: {
+                          columns,
+                        },
+                        status: true,
+                      },
+                    });
+                  }
                 } catch (exc) {
                   this.transmitError();
                   if (exc instanceof PythonException) {
@@ -321,6 +333,16 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     "docsEditPanelLoadError",
                     exc,
                   );
+                  if (syncRequestId) {
+                    this._panel!.webview.postMessage({
+                      command: "response",
+                      args: {
+                        syncRequestId,
+                        body: {},
+                        status: false,
+                      },
+                    });
+                  }
                 }
               },
             );

@@ -55,10 +55,17 @@ const BulkGenerateButton = () => {
     return bulkGenerateDocs(columnsWithoutDescription);
   };
   const generateForAll = async () => {
-    if (!currentDocsData) {
-      return;
+    try {
+      const { columns } = (await executeRequestInSync(
+        "fetchMetadataFromDatabase",
+        {},
+      )) as { columns: DBTDocumentationColumn[] };
+
+      return await bulkGenerateDocs(columns);
+    } catch (err) {
+      panelLogger.error("Unable to generate docs for all columns");
     }
-    return bulkGenerateDocs(currentDocsData.columns);
+    return null;
   };
 
   const sendTelemetryEvent = (
