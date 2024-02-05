@@ -1,4 +1,4 @@
-import { DataPilotChat } from "@modules/dataPilot/types";
+import { DataPilotChat, DataPilotChatAction } from "@modules/dataPilot/types";
 
 export enum SqlAnalysisType {
   SQL_EXPLAIN = "explain",
@@ -13,4 +13,5 @@ export interface SqlExplainResult {
   user_prompt: string;
   datapilot_title: string;
   response: string;
+  actions?: DataPilotChatAction[];
 }

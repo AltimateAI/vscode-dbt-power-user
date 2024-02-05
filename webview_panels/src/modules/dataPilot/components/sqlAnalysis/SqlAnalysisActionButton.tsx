@@ -3,10 +3,11 @@ import { useState } from "react";
 import { Button } from "@uicore";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
+import { SqlExplainResult } from "./types";
 
 interface Props {
   action: DataPilotChatAction;
-  onNewGeneration: (column: unknown) => void;
+  onNewGeneration: (result: SqlExplainResult) => void;
 }
 
 const SqlAnalysisActionButton = ({
@@ -16,9 +17,12 @@ const SqlAnalysisActionButton = ({
   const [isLoading, setIsLoading] = useState(false);
   const handleBtnClick = async () => {
     setIsLoading(true);
-    const result = await executeRequestInSync(action.command, {});
+    const result = (await executeRequestInSync(
+      action.command,
+      {},
+    )) as SqlExplainResult;
     panelLogger.log(result);
-    onNewGeneration({});
+    onNewGeneration(result);
     setIsLoading(false);
   };
   return (

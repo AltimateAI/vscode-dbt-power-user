@@ -4,6 +4,7 @@ import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import {
   DatapilotSqlAnalysisChat,
   SqlAnalysisType,
+  SqlExplainResult,
 } from "@modules/dataPilot/components/sqlAnalysis/types";
 
 export const DatapilotSqlAnalysisFactory =
@@ -23,3 +24,10 @@ export const DatapilotSqlAnalysisFactory =
 export const DatapilotSqlExplainFactory = DatapilotSqlAnalysisFactory.extend({
   analysisType: SqlAnalysisType.SQL_EXPLAIN,
 });
+
+export const DatapilotSqlExplainResultFactory =
+  Sync.makeFactory<SqlExplainResult>({
+    datapilot_title: "Query explanation",
+    response: faker.lorem.paragraph(),
+    user_prompt: "Explain the query",
+  });

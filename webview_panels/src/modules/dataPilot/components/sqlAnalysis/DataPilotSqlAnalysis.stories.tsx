@@ -5,6 +5,7 @@ import { DataPilotContext } from "../../DataPilotProvider";
 import {
   DatapilotDocGenActionButtonFactory,
   DatapilotSqlAnalysisFactory,
+  DatapilotSqlExplainResultFactory,
 } from "@testUtils";
 import { RequestState } from "@modules/dataPilot/types";
 
@@ -36,8 +37,14 @@ export const SqlAnalysisDefaultView = {
   },
   parameters: {
     vscode: {
-      data: { key: "value" },
-      timer: 3000,
+      data: DatapilotSqlExplainResultFactory.build({
+        actions: [
+          DatapilotDocGenActionButtonFactory.build({
+            title: "Why there is a join condition?",
+          }),
+        ],
+      }),
+      timer: 1000,
     },
   },
   decorators: [

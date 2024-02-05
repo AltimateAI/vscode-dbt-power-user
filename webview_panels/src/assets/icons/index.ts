@@ -16,3 +16,4 @@ export { default as UncheckIcon } from "./uncheck.svg?react";
 export { default as MoreIcon } from "./more.svg?react";
 export { default as InfoCircleIcon } from "./info_circle.svg?react";
 export { default as UserIcon } from "./user.svg?react";
+export { default as AskIcon } from "./ask.svg?react";

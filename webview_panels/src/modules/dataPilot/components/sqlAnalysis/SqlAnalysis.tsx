@@ -1,16 +1,23 @@
 import { CodeBlock, Stack } from "@uicore";
-import { DatapilotSqlAnalysisChat } from "./types";
+import { DatapilotSqlAnalysisChat, SqlExplainResult } from "./types";
 import SqlAnalysisActionButton from "./SqlAnalysisActionButton";
 import { panelLogger } from "@modules/logger";
 import { DataPilotChatAction } from "@modules/dataPilot/types";
+import { useState } from "react";
+import SqlExplainResultComponent from "./SqlAnalysisResult";
 
 interface Props {
   chat: DatapilotSqlAnalysisChat;
 }
 
 const SqlAnalysis = ({ chat }: Props): JSX.Element => {
-  const onNewGeneration = (result: unknown, action: DataPilotChatAction) => {
+  const [results, setResults] = useState<SqlExplainResult[]>([]);
+  const onNewGeneration = (
+    result: SqlExplainResult,
+    action: DataPilotChatAction,
+  ) => {
     panelLogger.info(result, action);
+    setResults((prev) => [...prev, result]);
   };
   return (
     <Stack direction="column">
@@ -24,6 +31,9 @@ const SqlAnalysis = ({ chat }: Props): JSX.Element => {
           />
         ))}
       </Stack>
+      {results.map((result) => (
+        <SqlExplainResultComponent key={result.user_prompt} response={result} />
+      ))}
     </Stack>
   );
 };
