@@ -125,9 +125,6 @@ export class InsightsPanel extends AltimateWebviewProvider {
     try {
       console.log("Fetching project integrations");
       const response = await this.altimateRequest.fetchProjectIntegrations();
-      if (!response) {
-        throw new Error("Invalid credentials");
-      }
 
       if (syncRequestId) {
         this._panel!.webview.postMessage({
@@ -208,16 +205,15 @@ export class InsightsPanel extends AltimateWebviewProvider {
   ) {
     try {
       console.log("Fetching manifest signed url");
-      const response = await this.altimateRequest.downloadArtifect(
+      const response = await this.altimateRequest.downloadArtifact(
         "manifest",
         dbt_core_integration_id,
       );
 
-      if (!response) {
-        throw new Error("Invalid credentials");
-      }
-
-      const data = response as { url: string; dbt_core_integration_id: number };
+      const data = response as unknown as {
+        url: string;
+        dbt_core_integration_id: number;
+      };
 
       let manifestPath = "";
       if (data.url) {

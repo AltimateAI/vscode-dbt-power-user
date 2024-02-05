@@ -177,6 +177,9 @@ const DeferToProduction = (): JSX.Element => {
     } else {
       if (data.manifestPath) {
         panelLogger.log(`Manifest path: ${data.manifestPath}`);
+        executeRequestInAsync("showInfoNotification", {
+          infoMessage: `Manifest file downloaded locally at: ${data.manifestPath}`,
+        });
         setDeferState((prevState) => ({
           ...prevState,
           localManifestPathForDeferral: data.manifestPath,

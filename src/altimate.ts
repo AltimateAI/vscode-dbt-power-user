@@ -141,6 +141,42 @@ interface ValidateSqlRequest {
   models: ModelNode[];
 }
 
+interface DBTCoreIntegration {
+  id: number;
+  name: string;
+  created_at: string;
+  last_modified_at: string;
+  created_by: number;
+  last_modified_by: number;
+  environments: DBTCoreIntegrationEnvironment[];
+  files: DBTCoreIntegrationFile[];
+}
+
+interface DBTCoreIntegrationEnvironment {
+  id: number;
+  dbt_core_integration_id: number;
+  environment_type: string;
+  created_at: string;
+  last_modified_at: string;
+  created_by: number;
+  last_modified_by: number;
+}
+
+interface DBTCoreIntegrationFile {
+  id: number;
+  dbt_core_integration_id: number;
+  file_type: string;
+  path: string;
+  verified: boolean;
+  uploaded_at: string;
+  uploaded_by: number;
+}
+
+interface DownloadArtifactResponse {
+  url: string;
+  dbt_core_integration_file_id: number;
+}
+
 export type ValidateSqlParseErrorType =
   | "sql_parse_error"
   | "sql_invalid_error"
@@ -382,14 +418,14 @@ export class AltimateRequest {
   }
 
   async fetchProjectIntegrations() {
-    return this.fetch("dbt/v1/project_integrations");
+    return this.fetch<DBTCoreIntegration[]>("dbt/v1/project_integrations");
   }
 
-  async downloadArtifect(
+  async downloadArtifact(
     artifact_type: string,
     dbt_core_integration_id: number,
   ) {
-    return this.fetch(
+    return this.fetch<DownloadArtifactResponse>(
       `dbt/v1/download_artifact${this.getQueryString({
         artifact_type: artifact_type,
         dbt_core_integration_id: dbt_core_integration_id,
