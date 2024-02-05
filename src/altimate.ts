@@ -4,6 +4,8 @@ import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
 import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
+import { join } from "path";
+import { createWriteStream, mkdir } from "fs";
 
 interface AltimateConfig {
   key: string;
@@ -325,6 +327,52 @@ export class AltimateRequest {
       clearTimeout(timeoutHandler);
       throw e;
     }
+  }
+
+  async downloadFileLocally(
+    url: string,
+    destinationFolder = "./dbt_integration/tmp",
+    filePath = "manifest.json",
+  ): Promise<string> {
+    const currentFilePath = window.activeTextEditor?.document.uri;
+    if (!currentFilePath) {
+      throw new Error("Invalid current file");
+    }
+
+    const currentProject =
+      this.dbtProjectContainer.findDBTProject(currentFilePath);
+
+    const currentProjectRoot = currentProject?.projectRoot.fsPath;
+
+    const destinationFolderV2 = join(currentProjectRoot!, destinationFolder);
+
+    mkdir(destinationFolderV2, { recursive: true }, (err) => {
+      console.log(err);
+    });
+
+    const destinationPath = join(
+      currentProjectRoot!,
+      destinationFolder,
+      filePath,
+    );
+
+    const response = await fetch(url, { agent: undefined });
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to download file. Status: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const fileStream = createWriteStream(destinationPath);
+    await new Promise((resolve, reject) => {
+      response.body?.pipe(fileStream);
+      response.body?.on("error", reject);
+      fileStream.on("finish", resolve);
+    });
+
+    console.log("File downloaded successfully!");
+    return destinationPath;
   }
 
   getQueryString = (params: Record<string, string | number>): string => {
