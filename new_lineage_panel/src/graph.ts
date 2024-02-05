@@ -82,7 +82,6 @@ const createNewNodesEdges = (
   return [newNodes, newEdges];
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
   let minLevel = Infinity;
   let maxLevel = -Infinity;
