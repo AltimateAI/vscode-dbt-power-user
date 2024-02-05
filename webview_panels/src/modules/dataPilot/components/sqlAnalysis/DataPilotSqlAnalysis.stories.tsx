@@ -34,6 +34,12 @@ export const SqlAnalysisDefaultView = {
   render: (): JSX.Element => {
     return <DataPilotPanel />;
   },
+  parameters: {
+    vscode: {
+      data: { key: "value" },
+      timer: 3000,
+    },
+  },
   decorators: [
     withReactContext({
       Context: DataPilotContext,

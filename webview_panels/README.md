@@ -93,3 +93,21 @@ classDiagram
   - [requestExecutor](./src/modules/app/requestExecutor.ts) - handles sending messages to providers
     - `executeRequestInSync` can be used for getting response back from provider for an action
     - `executeRequestInAsync` can be used for just sending message to provider without need for response
+
+### Storybook
+
+- vscode api integration is added using manual mock as in [here](./.storybook/__mocks__/vscode.ts).
+- Sample code (use `vscode` field in `parameters` to pass your mock data):
+  ```
+  export const SqlAnalysisDefaultView = {
+  render: (): JSX.Element => {
+    return <DataPilotPanel />;
+  },
+  parameters: {
+    vscode: {
+      data: { key: "value" },
+      timer: 3000,
+    },
+  },
+  }
+  ```

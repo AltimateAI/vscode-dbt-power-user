@@ -39,9 +39,9 @@
     "@storybook/addon-onboarding": "^1.0.10",
     "@storybook/blocks": "^7.6.6",
     "@storybook/builder-vite": "^7.6.6",
+    "@storybook/jest": "^0.2.3",
     "@storybook/react": "^7.6.6",
     "@storybook/react-vite": "^7.6.6",
-    "@storybook/test": "^7.6.6",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@types/vscode-webview": "^1.57.4",
@@ -67,6 +67,7 @@
     "sass": "^1.69.6",
     "sass-loader": "^13.3.3",
     "storybook": "^7.6.6",
+    "storybook-addon-manual-mocks": "^1.0.3",
     "storybook-react-context": "^0.6.0",
     "typescript": "^5.2.2",
     "vite": "^5.0.8"

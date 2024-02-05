@@ -1,4 +1,4 @@
-import { vscode } from "../vscode";
+import { vscode } from "@vscode";
 import { IncomingSyncResponse } from "./types";
 
 const requestMap: Record<
@@ -8,7 +8,7 @@ const requestMap: Record<
 
 export const executeRequestInSync = (
   url: string,
-  params: Record<string, unknown>,
+  params: Record<string, unknown>
 ): Promise<unknown> =>
   new Promise((resolve, reject) => {
     const id = crypto.randomUUID();
@@ -18,7 +18,7 @@ export const executeRequestInSync = (
 
 export const executeRequestInAsync = (
   url: string,
-  params: Record<string, unknown>,
+  params: Record<string, unknown>
 ): void => {
   vscode.postMessage({ command: url, ...params });
 };

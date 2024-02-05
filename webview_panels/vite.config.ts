@@ -22,6 +22,7 @@ export default defineConfig({
       "@assets": path.resolve(__dirname, "./src/assets"),
       "@modules": path.resolve(__dirname, "./src/modules"),
       "@testUtils": path.resolve(__dirname, "./src/testUtils"),
+      "@vscode": path.resolve(__dirname, "./src/modules/vscode"),
     },
   },
   css: {

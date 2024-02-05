@@ -8,6 +8,12 @@ const config: StorybookConfig = {
     "@storybook/addon-essentials",
     "@storybook/addon-onboarding",
     "@storybook/addon-interactions",
+    // {
+    //   name: "storybook-addon-manual-mocks/vite",
+    //   options: {
+    //     mocksFolder: "__mocks__",
+    //   },
+    // },
   ],
   framework: {
     name: "@storybook/react-vite",
@@ -20,6 +26,11 @@ const config: StorybookConfig = {
     autodocs: "tag",
   },
   async viteFinal(config) {
+    if (config.resolve?.alias) {
+      config.resolve.alias["@vscode"] = require.resolve(
+        "./__mocks__/vscode.ts"
+      );
+    }
     // Merge custom configuration into the default config
     return mergeConfig(config, {
       // Add dependencies to pre-optimization
