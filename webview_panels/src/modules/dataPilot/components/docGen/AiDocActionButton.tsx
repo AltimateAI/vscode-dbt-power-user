@@ -3,7 +3,7 @@ import { DBTDocumentationColumn } from "@modules/documentationEditor/state/types
 import { panelLogger } from "@modules/logger";
 import { Button } from "@uicore";
 import { useState } from "react";
-import { DataPilotChatAction } from "../types";
+import { DataPilotChatAction } from "../../types";
 import { GeneratedResult } from "./types";
 
 interface Props {

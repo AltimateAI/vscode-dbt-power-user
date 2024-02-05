@@ -8,13 +8,13 @@ import {
   FeedbackType,
   GeneratedResult,
 } from "./types";
-import classes from "../datapilot.module.scss";
+import classes from "../../datapilot.module.scss";
 import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
-import { DataPilotChat } from "../types";
+import { DataPilotChat } from "../../types";
 import { useCallback } from "react";
 
 interface Props {
