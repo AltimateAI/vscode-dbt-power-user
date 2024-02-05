@@ -1,9 +1,5 @@
 import { Disposable, EventEmitter, Terminal, window } from "vscode";
-import {
-  extendErrorWithSupportLinks,
-  provideSingleton,
-  stripANSI,
-} from "../utils";
+import { provideSingleton, stripANSI } from "../utils";
 import { CustomException } from "./exception";
 import { TelemetryService } from "../telemetry";
 
