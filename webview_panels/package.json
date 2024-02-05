@@ -67,7 +67,6 @@
     "sass": "^1.69.6",
     "sass-loader": "^13.3.3",
     "storybook": "^7.6.6",
-    "storybook-addon-manual-mocks": "^1.0.3",
     "storybook-react-context": "^0.6.0",
     "typescript": "^5.2.2",
     "vite": "^5.0.8"

@@ -8,12 +8,6 @@ const config: StorybookConfig = {
     "@storybook/addon-essentials",
     "@storybook/addon-onboarding",
     "@storybook/addon-interactions",
-    // {
-    //   name: "storybook-addon-manual-mocks/vite",
-    //   options: {
-    //     mocksFolder: "__mocks__",
-    //   },
-    // },
   ],
   framework: {
     name: "@storybook/react-vite",
