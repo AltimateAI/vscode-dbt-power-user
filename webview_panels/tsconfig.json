@@ -26,7 +26,8 @@
     "paths": {
       "@uicore": ["src/uiCore/index.ts"],
       "@assets/*": ["src/assets/*"],
-      "@modules/*": ["src/modules/*"]
+      "@modules/*": ["src/modules/*"],
+      "@testUtils": ["src/testUtils/index.ts"]
     }
   },
   "include": ["src", "vite.config.ts"],

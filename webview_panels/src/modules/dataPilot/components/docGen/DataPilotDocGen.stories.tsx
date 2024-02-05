@@ -1,13 +1,13 @@
 import { withReactContext } from "storybook-react-context";
 import type { Meta } from "@storybook/react";
-import DataPilotPanel from ".";
-import DataPilotProvider, { DataPilotContext } from "./DataPilotProvider";
+import DataPilotPanel from "../..";
+import DataPilotProvider, { DataPilotContext } from "../../DataPilotProvider";
 import {
   DatapilotDocGenActionButtonFactory,
   DatapilotDocGenFactory,
   DatapilotDocGenWithErrorFactory,
   DatapilotDocGenWithLoadingFactory,
-} from "../../testUtils";
+} from "../../../../testUtils";
 
 const docGenCompleted = DatapilotDocGenFactory.build({
   actions: [
@@ -43,7 +43,7 @@ const SAMPLE_DOCGEN_DATA = {
 };
 
 const meta = {
-  title: "Datapilot",
+  title: "Datapilot/DocGen",
   parameters: {
     layout: "centered",
   },

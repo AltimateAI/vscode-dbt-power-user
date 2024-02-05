@@ -5,6 +5,8 @@ import { DataPilotChat, RequestTypes } from "./types";
 import AiDocChat from "./components/docGen/AiDocChat";
 import classes from "./datapilot.module.scss";
 import DefaultDatapilotView from "./DefaultDatapilotView";
+import SqlAnalysis from "./components/sqlAnalysis/SqlAnalysis";
+import { DatapilotSqlAnalysisChat } from "./components/sqlAnalysis/types";
 
 const DataPilotPanel = () => {
   const {
@@ -21,6 +23,8 @@ const DataPilotPanel = () => {
     switch (chat.requestType) {
       case RequestTypes.AI_DOC_GENERATION:
         return <AiDocChat chat={chat} />;
+      case RequestTypes.SQL_ANALYSIS:
+        return <SqlAnalysis chat={chat as DatapilotSqlAnalysisChat} />;
       default:
         break;
     }

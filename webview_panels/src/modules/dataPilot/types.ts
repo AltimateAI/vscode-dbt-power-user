@@ -3,6 +3,7 @@ import { UnknownAction } from "@reduxjs/toolkit";
 export enum RequestTypes {
   AI_DOC_GENERATION,
   AI_DOC_REGENERATION,
+  SQL_ANALYSIS,
 }
 
 export enum RequestState {
