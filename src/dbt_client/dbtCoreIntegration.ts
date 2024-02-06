@@ -174,9 +174,9 @@ export class DBTCoreProjectIntegration
     private telemetry: TelemetryService,
     private pythonDBTCommandExecutionStrategy: PythonDBTCommandExecutionStrategy,
     private dbtProjectContainer: DBTProjectContainer,
+    private altimateRequest: AltimateRequest,
     private projectRoot: Uri,
     private projectConfigDiagnostics: DiagnosticCollection,
-    private altimateRequest: AltimateRequest,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
@@ -451,6 +451,7 @@ export class DBTCoreProjectIntegration
         const manifestPath = await this.altimateRequest.downloadFileLocally(
           response.url,
         );
+        console.log(`Set remote manifest path: ${manifestPath}`);
         return [
           "--defer",
           "--state",

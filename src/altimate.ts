@@ -208,10 +208,7 @@ export class AltimateRequest {
     .getConfiguration("dbt")
     .get<string>("altimateUrl", "https://api.myaltimate.com");
 
-  constructor(
-    private dbtProjectContainer: DBTProjectContainer,
-    private telemetry: TelemetryService,
-  ) {}
+  constructor(private telemetry: TelemetryService) {}
 
   getConfig(): AltimateConfig | undefined {
     const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
@@ -293,7 +290,6 @@ export class AltimateRequest {
           "x-tenant": config.instance,
           Authorization: "Bearer " + config.key,
           "Content-Type": "application/json",
-          "extension-version": this.dbtProjectContainer.extensionVersion,
         },
       });
       console.log("network:response:", endpoint, ":", response.status);

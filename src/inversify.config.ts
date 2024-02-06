@@ -30,6 +30,7 @@ import {
   DBTCommandFactory,
   PythonDBTCommandExecutionStrategy,
 } from "./dbt_client/dbtIntegration";
+import { AltimateRequest } from "./altimate";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -80,6 +81,7 @@ container
           container.get(TelemetryService),
           container.get(PythonDBTCommandExecutionStrategy),
           container.get(DBTProjectContainer),
+          container.get(AltimateRequest),
           projectRoot,
           projectConfigDiagnostics,
         );
