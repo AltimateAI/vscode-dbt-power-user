@@ -151,7 +151,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
     }
   }
 
-  private async downloadManifest(
+  private async testRemoteManifest(
     syncRequestId: string | undefined,
     dbt_core_integration_id: number,
   ) {
@@ -162,22 +162,12 @@ export class InsightsPanel extends AltimateWebviewProvider {
         dbt_core_integration_id,
       );
 
-      const data = response as unknown as {
-        url: string;
-        dbt_core_integration_id: number;
-      };
-
-      let manifestPath = "";
-      if (data.url) {
-        manifestPath = await this.altimateRequest.downloadFileLocally(data.url);
-      }
-
       if (syncRequestId) {
         this._panel!.webview.postMessage({
           command: "response",
           args: {
             syncRequestId,
-            body: { ...response, manifestPath: manifestPath },
+            body: response,
             status: true,
           },
         });
@@ -246,11 +236,11 @@ export class InsightsPanel extends AltimateWebviewProvider {
       case "fetchProjectIntegrations":
         await this.fetchProjectIntegrations(syncRequestId);
         break;
-      case "downloadManifest":
+      case "testRemoteManifest":
         const { dbt_core_integration_id } = params as {
           dbt_core_integration_id: number;
         };
-        await this.downloadManifest(syncRequestId, dbt_core_integration_id);
+        await this.testRemoteManifest(syncRequestId, dbt_core_integration_id);
         break;
       default:
         super.handleCommand(message);

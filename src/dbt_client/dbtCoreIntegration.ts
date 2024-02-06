@@ -35,9 +35,9 @@ import { DBTProject } from "../manifest/dbtProject";
 import { existsSync } from "fs";
 import { join } from "path";
 import { TelemetryService } from "../telemetry";
-import { ValidateSqlParseErrorResponse } from "../altimate";
+import { AltimateRequest, ValidateSqlParseErrorResponse } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { getDeferParams } from "./dbtCommandUtils";
+import { getProjectRelativePath } from "../utils";
 
 // TODO: we shouold really get these from manifest directly
 interface ResolveReferenceNodeResult {
@@ -52,6 +52,14 @@ interface ResolveReferenceSourceResult {
   alias: string;
   resource_type: string;
   identifier: string;
+}
+
+interface DeferConfig {
+  deferToProduction: boolean;
+  favorState: boolean;
+  manifestPathForDeferral: string;
+  manifestPathType?: string;
+  dbt_core_integration_id?: number;
 }
 
 @provideSingleton(DBTCoreDetection)
@@ -168,6 +176,7 @@ export class DBTCoreProjectIntegration
     private dbtProjectContainer: DBTProjectContainer,
     private projectRoot: Uri,
     private projectConfigDiagnostics: DiagnosticCollection,
+    private altimateRequest: AltimateRequest,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
@@ -411,8 +420,55 @@ export class DBTCoreProjectIntegration
     this.executionInfrastructure.addCommandToQueue(command);
   }
 
+  private async getDeferParams(projectRoot: Uri): Promise<string[]> {
+    const currentConfig: Record<string, DeferConfig> = await workspace
+      .getConfiguration("dbt")
+      .get("deferConfigPerProject", {});
+    const deferConfigInProject =
+      currentConfig[getProjectRelativePath(projectRoot)];
+    if (!deferConfigInProject) {
+      return [];
+    }
+    const {
+      deferToProduction,
+      manifestPathForDeferral,
+      favorState,
+      manifestPathType,
+      dbt_core_integration_id,
+    } = deferConfigInProject;
+    if (!deferToProduction) {
+      return [];
+    }
+    if (!manifestPathForDeferral) {
+      return [];
+    }
+    if (manifestPathType === "remote" && dbt_core_integration_id) {
+      const response = await this.altimateRequest.downloadArtifact(
+        "manifest",
+        dbt_core_integration_id,
+      );
+      if (response?.url) {
+        const manifestPath = await this.altimateRequest.downloadFileLocally(
+          response.url,
+        );
+        return [
+          "--defer",
+          "--state",
+          manifestPath,
+          favorState ? "--favor-state" : "",
+        ];
+      }
+    }
+    return [
+      "--defer",
+      "--state",
+      manifestPathForDeferral,
+      favorState ? "--favor-state" : "",
+    ];
+  }
+
   private async addDeferParams(command: DBTCommand) {
-    const deferParams = await getDeferParams(this.projectRoot);
+    const deferParams = await this.getDeferParams(this.projectRoot);
     deferParams.forEach((param) => command.addArgument(param));
     return command;
   }

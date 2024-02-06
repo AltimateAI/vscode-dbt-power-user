@@ -20,7 +20,6 @@ import {
 } from "../app/requestExecutor";
 import classes from "./defer.module.scss";
 import { IncomingMessageProps } from "@modules/app/types";
-import { panelLogger } from "@modules/logger";
 
 interface DropdownOptions {
   label: string;
@@ -29,7 +28,7 @@ interface DropdownOptions {
 interface DeferToProductionProps {
   deferToProduction: boolean;
   favorState: boolean;
-  localManifestPathForDeferral: string;
+  manifestPathForDeferral: string;
   manifestPathType: string;
   projectIntegrations: DropdownOptions[];
 }
@@ -38,7 +37,7 @@ const DeferToProduction = (): JSX.Element => {
     {
       deferToProduction,
       favorState,
-      localManifestPathForDeferral,
+      manifestPathForDeferral,
       manifestPathType,
       projectIntegrations,
     },
@@ -46,7 +45,7 @@ const DeferToProduction = (): JSX.Element => {
   ] = useState<DeferToProductionProps>({
     deferToProduction: false,
     favorState: false,
-    localManifestPathForDeferral: "",
+    manifestPathForDeferral: "",
     manifestPathType: "",
     projectIntegrations: [],
   });
@@ -120,14 +119,14 @@ const DeferToProduction = (): JSX.Element => {
 
   const onLocalManifestBlur = async () => {
     const response = await executeRequestInSync("updateDeferConfig", {
-      key: "localManifestPathForDeferral",
-      value: localManifestPathForDeferral,
+      key: "manifestPathForDeferral",
+      value: manifestPathForDeferral,
       isPreviewFeature: true,
     });
     if (!(response as { updated: boolean }).updated) {
       setDeferState((prevState) => ({
         ...prevState,
-        localManifestPathForDeferral: "",
+        manifestPathForDeferral: "",
       }));
     }
   };
@@ -162,29 +161,29 @@ const DeferToProduction = (): JSX.Element => {
     label: string;
     value: number;
   }) => {
-    const response = await executeRequestInSync("downloadManifest", {
+    const response = await executeRequestInSync("testRemoteManifest", {
       dbt_core_integration_id: selectedOption.value,
     });
     const data = response as {
       url: string;
       dbt_core_integration_file_id: number;
-      manifestPath: string;
     };
     if (data.url === "" && data.dbt_core_integration_file_id === -1) {
       executeRequestInAsync("showInfoNotification", {
         infoMessage: `No remote manifest file present for dbt core integration: ${selectedOption.label}`,
       });
     } else {
-      if (data.manifestPath) {
-        panelLogger.log(`Manifest path: ${data.manifestPath}`);
-        executeRequestInAsync("showInfoNotification", {
-          infoMessage: `Manifest file downloaded locally at: ${data.manifestPath}`,
-        });
-        setDeferState((prevState) => ({
-          ...prevState,
-          localManifestPathForDeferral: data.manifestPath,
-        }));
-      }
+      executeRequestInAsync("showInfoNotification", {
+        infoMessage: `Project integration connected successfully!`,
+      });
+      await executeRequestInSync("updateDeferConfig", {
+        key: "manifestPathType",
+        value: manifestPathType,
+      });
+      await executeRequestInSync("updateDeferConfig", {
+        key: "dbt_core_integration_id",
+        value: selectedOption.value,
+      });
     }
   };
 
@@ -235,11 +234,11 @@ const DeferToProduction = (): JSX.Element => {
                 {manifestPathType === "local" && (
                   <Input
                     id="localManifestPath"
-                    name="localManifestPathForDeferral"
+                    name="manifestPathForDeferral"
                     placeholder=""
                     type="text"
                     className={classes.pathInput}
-                    value={localManifestPathForDeferral}
+                    value={manifestPathForDeferral}
                     onChange={handleLocalManifestPathChange}
                     onBlur={onLocalManifestBlur}
                   />

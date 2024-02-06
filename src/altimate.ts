@@ -6,6 +6,7 @@ import { TelemetryService } from "./telemetry";
 import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
 import { join } from "path";
 import { createWriteStream, mkdir } from "fs";
+import * as os from "os";
 
 interface AltimateConfig {
   key: string;
@@ -331,30 +332,15 @@ export class AltimateRequest {
 
   async downloadFileLocally(
     url: string,
-    destinationFolder = "./dbt_integration/tmp",
     filePath = "manifest.json",
   ): Promise<string> {
-    const currentFilePath = window.activeTextEditor?.document.uri;
-    if (!currentFilePath) {
-      throw new Error("Invalid current file");
-    }
+    const tempFolder = os.tmpdir();
 
-    const currentProject =
-      this.dbtProjectContainer.findDBTProject(currentFilePath);
-
-    const currentProjectRoot = currentProject?.projectRoot.fsPath;
-
-    const destinationFolderV2 = join(currentProjectRoot!, destinationFolder);
-
-    mkdir(destinationFolderV2, { recursive: true }, (err) => {
+    mkdir(tempFolder, { recursive: true }, (err) => {
       console.log(err);
     });
 
-    const destinationPath = join(
-      currentProjectRoot!,
-      destinationFolder,
-      filePath,
-    );
+    const destinationPath = join(tempFolder, filePath);
 
     const response = await fetch(url, { agent: undefined });
 
