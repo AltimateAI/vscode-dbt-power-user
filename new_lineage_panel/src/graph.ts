@@ -89,6 +89,7 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
 
   for (const n of nodes) {
     if (isColumn(n) && n.parentNode) {
+      // assign position to columns earlier as they are relative to parent
       if (!(n.parentNode in tableWiseColumnCount)) {
         tableWiseColumnCount[n.parentNode] = 0;
       }
@@ -99,6 +100,7 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
       };
       tableWiseColumnCount[n.parentNode]++;
     } else {
+      // calculate bounds along x axis
       const level = n.data.level;
       minLevel = Math.min(minLevel, level);
       maxLevel = Math.max(maxLevel, level);
@@ -109,6 +111,8 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
   const levelWiseTables: Record<number, string[]> = {};
   const tableWiseLevelPos: Record<string, number> = {};
   const visited: Record<string, boolean> = {};
+
+  // create neightbours list for convenience
   const adjacencyListRight: Record<string, string[]> = {};
   const adjacencyListLeft: Record<string, string[]> = {};
   for (const e of edges) {
@@ -118,6 +122,9 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
     if (!(e.target in adjacencyListLeft)) adjacencyListLeft[e.target] = [];
     adjacencyListLeft[e.target].push(e.source);
   }
+
+  // calculate metadata such as tables and columns per level
+  // to get tables position along y axis
   const dfs = (n: string, adjacencyList: Record<string, string[]>) => {
     if (visited[n]) return;
     visited[n] = true;
@@ -144,6 +151,7 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
     dfs(n.id, adjacencyListLeft);
   }
 
+  // assign position to table and see more nodes
   const getY = (n: Node) => {
     const _index = tableWiseLevelPos[n.id] || 0;
     const _columnCount = tableWiseLevelColumnCount[n.id] || 0;
@@ -165,6 +173,7 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
     n.position = { x: getX(level), y: getY(n) };
   }
 
+  // calculate bounds along y axis
   let maxY = 0;
   const levelNodesMap: Record<number, Node[]> = {};
   for (const n of nodes) {
@@ -177,6 +186,8 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
     if (!(level in levelNodesMap)) levelNodesMap[level] = [];
     levelNodesMap[level].push(n);
   }
+
+  // offset table position along y axis to make it center heavy
   for (const level in levelNodesMap) {
     let maxLevelY = 0;
     for (const n of levelNodesMap[level]) {
