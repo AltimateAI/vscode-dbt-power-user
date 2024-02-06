@@ -1,5 +1,4 @@
 from decimal import Decimal
-from pathlib import Path
 import dbt.adapters.factory
 
 # This is critical because `get_adapter` is all over dbt-core
@@ -101,8 +100,7 @@ def validate_sql(
 ):
     try:
         ALTIMATE_PACKAGE_PATH = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "altimate_packages"
+            os.path.dirname(os.path.abspath(__file__)), "altimate_packages"
         )
         with add_path(ALTIMATE_PACKAGE_PATH):
             from altimate.validate_sql import validate_sql_from_models
@@ -169,25 +167,48 @@ def memoize_get_rendered(function):
 
     return wrapper
 
-def default_profiles_dir(project_dir) -> Path:
-    if "DBT_PROFILES_DIR" in os.environ:
-        return Path(os.environ["DBT_PROFILES_DIR"]).resolve()
-    return project_dir if (project_dir / "profiles.yml").exists() else Path.home() / ".dbt"
 
-def find_package_paths(project_directories, profiles_dir_override):
+def default_profiles_dir(project_dir):
+    if "DBT_PROFILES_DIR" in os.environ:
+        profiles_dir = os.path.expanduser(os.environ["DBT_PROFILES_DIR"])
+        if os.path.isabs(profiles_dir):
+            return os.path.normpath(profiles_dir)
+        return os.path.join(project_dir, profiles_dir)
+    project_profiles_file = os.path.normpath(os.path.join(project_dir, "profiles.yml"))
+    return (
+        project_dir
+        if os.path.exists(project_profiles_file)
+        else os.path.join(os.path.expanduser("~"), ".dbt")
+    )
+
+
+def target_path(project_dir):
+    if "DBT_TARGET_PATH" in os.environ:
+        target_path = os.path.expanduser(os.environ["DBT_TARGET_PATH"])
+        if os.path.isabs(target_path):
+            return os.path.normpath(target_path)
+        return os.path.normpath(os.path.join(project_dir, target_path))
+    return None
+
+
+def find_package_paths(project_directories):
     def get_package_path(project_dir):
         try:
-            project = DbtProject(project_dir=project_dir, profiles_dir=profiles_dir_override if Path(profiles_dir_override).exists() and profiles_dir_override.strip() != ""  else default_profiles_dir(Path(project_dir)))
+            project = DbtProject(
+                project_dir=project_dir,
+                profiles_dir=default_profiles_dir(project_dir),
+                target_path=target_path(project_dir),
+            )
             project.init_config()
-            packages_path = Path(project.config.packages_install_path)
-            if packages_path.is_absolute():
-                return packages_path.resolve().as_uri()
-            return (Path(project_dir) / packages_path).resolve().as_uri()
+            packages_path = project.config.packages_install_path
+            if os.path.isabs(packages_path):
+                return os.path.normpath(packages_path)
+            return os.path.normpath(os.path.join(project_dir, packages_path))
         except Exception as e:
             # We don't care about exceptions here, that is dealt with later when the project is loaded
             pass
 
-    return list(map(lambda project_dir: get_package_path(project_dir), project_directories))
+    return list(map(get_package_path, project_directories))
 
 
 # Performance hacks
@@ -275,6 +296,7 @@ class DbtProject:
         project_dir: Optional[str] = None,
         threads: Optional[int] = 1,
         profile: Optional[str] = None,
+        target_path: Optional[str] = None,
     ):
         self.args = ConfigInterface(
             threads=threads,
@@ -282,6 +304,7 @@ class DbtProject:
             profiles_dir=profiles_dir,
             project_dir=project_dir,
             profile=profile,
+            target_path=target_path,
         )
 
         # Utilities
@@ -299,7 +322,7 @@ class DbtProject:
         the singleton approach in the core lib"""
         adapter_name = self.config.credentials.type
         return get_adapter_class_by_name(adapter_name)(self.config)
-    
+
     def init_config(self):
         set_from_args(self.args, self.args)
         self.config = RuntimeConfig.from_args(self.args)
@@ -347,6 +370,7 @@ class DbtProject:
             project_dir=args.project_dir,
             threads=args.threads,
             profile=args.profile,
+            target_path=args.target_path,
         )
 
     @property
@@ -558,7 +582,7 @@ class DbtProject:
                 return self._compile_node(node)
         except Exception as e:
             raise Exception(str(e))
-        
+
     def _compile_sql(self, raw_sql: str) -> DbtAdapterCompilationResult:
         """Creates a node with a `dbt.parser.sql` class. Compile generated node."""
         try:
@@ -704,10 +728,10 @@ class DbtProject:
             ),
             auto_begin=True,
         )
-    
+
     def get_dbt_version(self):
         return [DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER]
-    
+
     def validate_sql_dry_run(self, compiled_sql: str):
         if DBT_MAJOR_VER < 1:
             return None

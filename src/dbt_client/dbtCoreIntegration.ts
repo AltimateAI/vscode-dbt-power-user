@@ -2,6 +2,7 @@ import {
   Diagnostic,
   DiagnosticCollection,
   Disposable,
+  FileSystemWatcher,
   languages,
   Range,
   RelativePattern,
@@ -9,13 +10,11 @@ import {
   window,
   workspace,
 } from "vscode";
-import * as os from "os";
 import {
   extendErrorWithSupportLinks,
   getFirstWorkspacePath,
   provideSingleton,
   setupWatcherHandler,
-  substituteSettingsVariables,
 } from "../utils";
 import {
   CompilationResult,
@@ -32,8 +31,6 @@ import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonBridge, PythonException } from "python-bridge";
 import * as path from "path";
 import { DBTProject } from "../manifest/dbtProject";
-import { existsSync } from "fs";
-import { join } from "path";
 import { TelemetryService } from "../telemetry";
 import { ValidateSqlParseErrorResponse } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -89,9 +86,6 @@ export class DBTCoreProjectDetection
     let packagesInstallPaths = projectDirectories.map((projectDirectory) =>
       path.join(projectDirectory.fsPath, "dbt_packages"),
     );
-    const profilesDirOverrideSetting = workspace
-      .getConfiguration("dbt")
-      .get<string>("profilesDirOverride");
     let python: PythonBridge | undefined;
     try {
       python = this.executionInfrastructure.createPythonBridge(
@@ -103,7 +97,7 @@ export class DBTCoreProjectDetection
         (python) =>
           python`to_dict(find_package_paths(${projectDirectories.map(
             (projectDirectory) => projectDirectory.fsPath,
-          )}, ${profilesDirOverrideSetting}))`,
+          )}))`,
       );
       packagesInstallPaths = packagesInstallPaths.map(
         (packageInstallPath, index) => {
@@ -152,12 +146,12 @@ export class DBTCoreProjectIntegration
   private modelPaths?: string[];
   private macroPaths?: string[];
   private python: PythonBridge;
-  private dbtProfilesDir: string;
   private disposables: Disposable[] = [];
   private readonly rebuildManifestDiagnostics =
     languages.createDiagnosticCollection("dbt");
   private readonly pythonBridgeDiagnostics =
     languages.createDiagnosticCollection("dbt");
+  private dbtProfileWatcher!: FileSystemWatcher;
 
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
@@ -171,27 +165,7 @@ export class DBTCoreProjectIntegration
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
-    const profileExistsInProjectRoot = existsSync(
-      join(this.projectRoot.fsPath, "profiles.yml"),
-    );
-    const profilesDirOverrideSetting = workspace
-      .getConfiguration("dbt")
-      .get<string>("profilesDirOverride");
-    this.dbtProfilesDir =
-      (profilesDirOverrideSetting
-        ? substituteSettingsVariables(profilesDirOverrideSetting)
-        : false) ||
-      (profileExistsInProjectRoot ? this.projectRoot.fsPath : false) ||
-      this.pythonEnvironment.environmentVariables.DBT_PROFILES_DIR ||
-      join(os.homedir(), ".dbt");
-    this.dbtProfilesDir = this.dbtProfilesDir.replace("~", os.homedir());
-    // remove the trailing slashes if they exists,
-    // causes the quote to be escaped when passing to python
-    this.dbtProfilesDir = this.dbtProfilesDir.replace(/\\+$/, "");
-
-    console.log(
-      `Registering project ${this.projectRoot} with profile directory ${this.dbtProfilesDir}`,
-    );
+    console.log(`Registering project ${this.projectRoot}`);
 
     this.disposables.push(
       this.pythonEnvironment.onPythonEnvironmentChanged(() => {
@@ -201,6 +175,20 @@ export class DBTCoreProjectIntegration
       }),
       this.rebuildManifestDiagnostics,
       this.pythonBridgeDiagnostics,
+    );
+    this.createDbtProfileWatcher().then((watcher) => {
+      this.dbtProfileWatcher = watcher;
+    });
+  }
+
+  private async createDbtProfileWatcher() {
+    await this.python.ex`from dbt_integration import default_profiles_dir`;
+    const profilesDir = await this.findProfilesDirectory();
+    return workspace.createFileSystemWatcher(
+      new RelativePattern(
+        profilesDir,
+        DBTCoreProjectIntegration.DBT_PROFILES_FILE,
+      ),
     );
   }
 
@@ -223,17 +211,13 @@ export class DBTCoreProjectIntegration
 
   private async createPythonDbtProject() {
     await this.python.ex`from dbt_integration import *`;
+    const profilesDir = await this.findProfilesDirectory();
+    const targetPath = await this.getTargetDirectory();
     await this.python
-      .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir}) if 'project' not in locals() else project`;
+      .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${profilesDir}, target_path=${targetPath}) if 'project' not in locals() else project`;
   }
 
   async initializeProject(): Promise<void> {
-    const dbtProfileWatcher = workspace.createFileSystemWatcher(
-      new RelativePattern(
-        this.dbtProfilesDir,
-        DBTCoreProjectIntegration.DBT_PROFILES_FILE,
-      ),
-    );
     try {
       await this.createPythonDbtProject();
       this.pythonBridgeDiagnostics.clear();
@@ -275,7 +259,9 @@ export class DBTCoreProjectIntegration
     }
     this.disposables.push(
       // when the project config changes we need to re-init the dbt project
-      ...setupWatcherHandler(dbtProfileWatcher, () => this.rebuildManifest()),
+      ...setupWatcherHandler(this.dbtProfileWatcher, () =>
+        this.rebuildManifest(),
+      ),
     );
   }
 
@@ -403,8 +389,6 @@ export class DBTCoreProjectIntegration
   }
 
   private dbtCoreCommand(command: DBTCommand) {
-    command.addArgument("--profiles-dir");
-    command.addArgument(this.dbtProfilesDir);
     command.addArgument("--project-dir");
     command.addArgument(this.projectRoot.fsPath);
     command.setExecutionStrategy(this.pythonDBTCommandExecutionStrategy);
@@ -525,6 +509,20 @@ export class DBTCoreProjectIntegration
       return macroPath;
     });
     return macroPaths;
+  }
+
+  private async findProfilesDirectory(): Promise<string> {
+    const profilesDir = await this.python.lock(
+      (python) => python`default_profiles_dir(${this.projectRoot.fsPath})`,
+    );
+    return profilesDir;
+  }
+
+  private async getTargetDirectory(): Promise<string> {
+    const targetDir = await this.python.lock(
+      (python) => python`target_path(${this.projectRoot.fsPath})`,
+    );
+    return targetDir;
   }
 
   private async findTargetPath(): Promise<string> {
