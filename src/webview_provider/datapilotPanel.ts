@@ -152,6 +152,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
             query,
             this.eventMap,
             params.session_id as string,
+            params,
             syncRequestId,
           );
 

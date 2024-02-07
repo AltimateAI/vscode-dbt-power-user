@@ -99,7 +99,7 @@ export const ExplainFlow = {
           }),
         ],
       }),
-      timer: 2000,
+      timer: 500,
     },
   },
   decorators: [

@@ -27,3 +27,14 @@ export interface QueryExplainResult {
 export type QueryExplainUpdate = Partial<QueryExplainResult> & {
   session_id: string;
 };
+
+export enum QueryAnalysisHistoryType {
+  HUMAN = "HumanMessage",
+  SYSTEM = "SystemMessage",
+}
+
+export interface QueryAnalysisHistory {
+  type: QueryAnalysisHistoryType;
+  content: string;
+  additional_kwargs?: Record<string, unknown>;
+}

@@ -12,17 +12,6 @@ export enum RequestState {
   COMPLETED,
 }
 
-export enum QueryAnalysisHistoryType {
-  HUMAN = "HumanMessage",
-  SYSTEM = "SystemMessage",
-}
-
-export interface QueryAnalysisHistory {
-  type: QueryAnalysisHistoryType;
-  content: string;
-  additional_kwargs?: Record<string, unknown>;
-}
-
 export interface DataPilotChatAction {
   title: string;
   data: Record<string, unknown>;

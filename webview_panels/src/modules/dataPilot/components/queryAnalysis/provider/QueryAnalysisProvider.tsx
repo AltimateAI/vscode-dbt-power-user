@@ -2,7 +2,6 @@ import { createContext, ReactNode, useMemo, useReducer, useState } from "react";
 import { QueryAnalysisContextProps } from "./types";
 import queryAnalysisSlice, { initialState } from "./queryAnalysisSlice";
 import { QueryExplainResult, QueryExplainUpdate } from "../types";
-import { panelLogger } from "@modules/logger";
 
 export const QueryAnalysisContext = createContext<QueryAnalysisContextProps>({
   state: initialState,
@@ -50,7 +49,6 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
     [state, dispatch, results],
   );
 
-  panelLogger.info(results);
   return (
     <QueryAnalysisContext.Provider value={values}>
       {children}

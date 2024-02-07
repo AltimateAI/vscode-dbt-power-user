@@ -1,19 +1,15 @@
 import { executeStreamRequest } from "@modules/app/requestExecutor";
-import {
-  DataPilotChatAction,
-  QueryAnalysisHistory,
-  RequestState,
-} from "@modules/dataPilot/types";
+import { DataPilotChatAction, RequestState } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
 import { useRef, useState } from "react";
-import { QueryExplainUpdate } from "./types";
+import { QueryAnalysisHistory, QueryExplainUpdate } from "./types";
 
 interface QueryAnalysisRequest {
   command: DataPilotChatAction["command"];
   onNewGeneration: (result: QueryExplainUpdate) => void;
   sessionId?: string;
   user_request?: string;
-  history?: QueryAnalysisHistory;
+  history?: QueryAnalysisHistory[];
 }
 const useQueryAnalysisAction = (): {
   isLoading: boolean;
@@ -26,7 +22,6 @@ const useQueryAnalysisAction = (): {
     chunk: string,
     cb: (result: QueryExplainUpdate) => void,
   ) => {
-    panelLogger.log("chunk", chunk);
     cb({ session_id: idRef.current, response: chunk });
   };
 

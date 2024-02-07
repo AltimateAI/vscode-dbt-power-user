@@ -23,6 +23,7 @@ const QueryExplainResultComponent = ({
   const {
     chat: { id: sessionId },
     onNewGeneration,
+    history,
   } = useQueryAnalysisContext();
 
   const [userRequest, setUserRequest] = useState("");
@@ -35,12 +36,13 @@ const QueryExplainResultComponent = ({
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    panelLogger.info("submitting user request", userRequest);
+    panelLogger.info("submitting user request", userRequest, history);
 
     executeQueryAnalysis({
       command,
       onNewGeneration,
       sessionId,
+      history,
       user_request: userRequest,
     });
   };

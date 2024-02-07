@@ -15,6 +15,7 @@ export class QueryAnalysisService {
     query: string,
     eventMap: Map<string, ManifestCacheProjectAddedEvent>,
     session_id: string,
+    params: Record<string, unknown>,
     syncRequestId?: string,
   ) {
     if (!session_id) {
@@ -43,6 +44,7 @@ export class QueryAnalysisService {
             data_type: c.type,
           })),
         },
+        ...params,
       },
     });
   }
