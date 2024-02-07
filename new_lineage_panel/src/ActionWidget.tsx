@@ -215,8 +215,8 @@ const AutoExpansionPopover = () => {
               </div>
             </div>
             <div className="w-100 d-flex gap-xl justify-content-between align-items-center">
-              <div className="normal-text">Expand parents</div>
-              <div className="normal-text">Expand children</div>
+              <div className="normal-text">Parents</div>
+              <div className="normal-text">Children</div>
             </div>
             <Button
               color="primary"
