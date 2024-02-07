@@ -5,7 +5,9 @@ import {
 } from "@modules/dataPilot/types";
 
 export enum QueryAnalysisType {
-  SQL_EXPLAIN = "explain",
+  EXPLAIN = "explain",
+  FIX = "fix",
+  MODIFY = "modify",
 }
 export interface DatapilotQueryAnalysisChat extends DataPilotChat {
   code: string;

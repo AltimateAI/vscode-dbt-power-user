@@ -23,7 +23,7 @@ export const DatapilotQueryAnalysisFactory =
 
 export const DatapilotQueryExplainFactory =
   DatapilotQueryAnalysisFactory.extend({
-    analysisType: QueryAnalysisType.SQL_EXPLAIN,
+    analysisType: QueryAnalysisType.EXPLAIN,
   });
 
 export const DatapilotQueryExplainResultFactory =

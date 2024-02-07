@@ -1,5 +1,5 @@
 import { env, Uri, window, workspace } from "vscode";
-import { provideSingleton } from "./utils";
+import { provideSingleton, processStreamResponse } from "./utils";
 import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
@@ -74,16 +74,26 @@ interface OnewayFeedback {
 
 export enum QueryAnalysisType {
   EXPLAIN = "explain",
+  FIX = "fix",
+  MODIFY = "modify",
 }
+
+export enum QueryAnalysisChatType {
+  SYSTEM = "SystemMessage",
+  HUMAN = "HumanMessage",
+}
+
+interface QueryAnalysisChat {
+  type: QueryAnalysisChatType;
+  content: string;
+  additional_kwargs?: Record<string, unknown>;
+}
+
 export interface QueryAnalysisRequest {
   job_type: QueryAnalysisType;
-  dbt_model: {
-    model_name: string;
-    adapter: string;
-    compiled_sql: string;
-    columns: { column_name: string; data_type?: string }[];
-  };
-  model_dialect: string;
+  model: DocsGenerateModelRequestV2["dbt_model"];
+  user_request?: string; // required for modify query
+  history?: QueryAnalysisChat[];
 }
 
 interface DocsGenerateModelRequestV2 {
@@ -244,6 +254,50 @@ export class AltimateRequest {
     return false;
   }
 
+  async fetchAsStream<R>(
+    endpoint: string,
+    request: R,
+    onProgress: (response: string) => void,
+    timeout: number = 120000,
+  ) {
+    const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
+    console.log("fetchAsStream:request:", url, request);
+    const config = this.getConfig()!;
+    const abortController = new AbortController();
+    const timeoutHandler = setTimeout(() => {
+      abortController.abort();
+    }, timeout);
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        body: JSON.stringify(request),
+        signal: abortController.signal,
+        headers: {
+          "x-tenant": config.instance,
+          Authorization: "Bearer " + config.key,
+          "Content-Type": "application/json",
+          "extension-version": this.dbtProjectContainer.extensionVersion,
+        },
+      });
+
+      if (!response?.body) {
+        console.error("fetchAsStream: empty response");
+        return null;
+      }
+      clearTimeout(timeoutHandler);
+      const responseText = await processStreamResponse(
+        response.body,
+        onProgress,
+      );
+
+      return responseText;
+    } catch (error) {
+      clearTimeout(timeoutHandler);
+      console.error("error while fetching as stream", error);
+    }
+    return null;
+  }
+
   async fetch<T>(endpoint: string, fetchArgs = {}, timeout: number = 120000) {
     console.log("network:request:", endpoint, ":", fetchArgs);
     const abortController = new AbortController();
@@ -336,24 +390,6 @@ export class AltimateRequest {
     return this.fetch<DocsGenerateResponse>("dbt/v2", {
       method: "POST",
       body: JSON.stringify(docsGenerate),
-    });
-  }
-
-  async executeQueryAnalysis(request: QueryAnalysisRequest) {
-    const endpoint = "dbt/v2/query-analysis";
-    const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
-    console.log("network:url:", url, request);
-    const config = this.getConfig()!;
-
-    return fetch(url, {
-      method: "POST",
-      body: JSON.stringify(request),
-      headers: {
-        "x-tenant": config.instance,
-        Authorization: "Bearer " + config.key,
-        "Content-Type": "application/json",
-        "extension-version": this.dbtProjectContainer.extensionVersion,
-      },
     });
   }
 

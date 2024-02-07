@@ -1,5 +1,3 @@
-import { pipeline } from "node:stream";
-import { promisify } from "node:util";
 import { commands, window, workspace } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -13,7 +11,6 @@ import { DocGenService } from "../services/docGenService";
 import { AltimateRequest, QueryAnalysisType } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
 import { QueryAnalysisService } from "../services/queryAnalysisService";
-import { createWriteStream } from "node:fs";
 
 @provideSingleton(DataPilotPanel)
 export class DataPilotPanel extends AltimateWebviewProvider {
@@ -78,19 +75,6 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         }
       },
     };
-  }
-
-  streamToString(stream: NodeJS.ReadableStream, cb: (data: string) => void) {
-    const chunks: Buffer[] = [];
-    return new Promise((resolve, reject) => {
-      stream.on("data", (chunk: Uint8Array) => {
-        cb(new TextDecoder().decode(chunk));
-        chunks.push(Buffer.from(chunk));
-        // cb(Buffer.concat(chunks).toString("utf8"));
-      });
-      stream.on("error", (err: unknown) => reject(err));
-      stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
-    });
   }
 
   async handleCommand(message: HandleCommandProps): Promise<void> {
@@ -162,53 +146,32 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         });
         break;
       case "queryAnalysis:explain":
-        const query = window.activeTextEditor?.document.getText() || "";
-        const response = await this.queryAnalysisService.executeQueryExplain(
-          query,
-          this.eventMap,
-        );
-        if (!response?.body) {
-          console.error("empty result");
-          return;
-        }
-        // response.body is a ReadableStream
-        // const reader = result.body.getReader();
-        // for await (const chunk of this.readChunks(reader)) {
-        //   console.log(`received chunk of size ${chunk.length}`, chunk);
-        // }
-
-        const responseText = await this.streamToString(
-          response.body,
-          (chunk: string) => {
-            this._panel!.webview.postMessage({
-              command: "response",
-              args: {
-                syncRequestId,
-                body: { chunk },
-                status: true,
-              },
-            });
-          },
-        );
-
-        // res.on("readable", () => {
-        //   let chunk;
-        //   while (null !== (chunk = res.read())) {
-        //     console.log(chunk.toString());
-        //   }
-        // });
-
-        // const streamPipeline = promisify(pipeline);
-        // await streamPipeline(response.body, createWriteStream("./octocat.png"));
-
-        this._panel!.webview.postMessage({
-          command: "response",
-          args: {
+        try {
+          const query = window.activeTextEditor?.document.getText() || "";
+          const response = await this.queryAnalysisService.executeQueryExplain(
+            query,
+            this.eventMap,
             syncRequestId,
-            body: { responseText },
-            status: true,
-          },
-        });
+          );
+
+          this._panel!.webview.postMessage({
+            command: "response",
+            args: {
+              syncRequestId,
+              body: { response },
+              status: true,
+            },
+          });
+        } catch (err) {
+          this._panel!.webview.postMessage({
+            command: "response",
+            args: {
+              syncRequestId,
+              error: (err as Error).message,
+              status: false,
+            },
+          });
+        }
         break;
       default:
         super.handleCommand(message);
@@ -230,6 +193,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         this.postToWebview(payload);
         break;
       default:
+        super.onEvent({ command, payload });
         break;
     }
   }

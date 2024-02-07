@@ -5,7 +5,7 @@ const requestMap: Record<
   string,
   {
     resolve: (k: unknown) => void;
-    reject: (reason?: string) => void;
+    reject: (error?: Error) => void;
     progress?: (chunk: string) => void;
   }
 > = {};
@@ -66,7 +66,7 @@ export const handleIncomingResponse = (args: IncomingSyncResponse): void => {
     }
     resolve(args.body);
   } else {
-    reject(args.error);
+    reject(new Error(args.error));
   }
   delete streamMap[args.syncRequestId];
   delete requestMap[args.syncRequestId];

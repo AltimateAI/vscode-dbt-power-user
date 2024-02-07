@@ -26,26 +26,35 @@ const useQueryAnalysisAction = (): {
     action: DataPilotChatAction,
     onNewGeneration: (result: QueryExplainUpdate) => void,
   ) => {
-    setIsLoading(true);
+    try {
+      setIsLoading(true);
 
-    idRef.current = crypto.randomUUID();
+      idRef.current = crypto.randomUUID();
 
-    onNewGeneration({
-      id: idRef.current,
-      user_prompt: "Query Explanation",
-      datapilot_title: "Datapilot Response",
-      state: RequestState.LOADING,
-    });
-    const result = (await executeStreamRequest(
-      action.command,
-      {},
-      (chunk: string) => {
-        onProgress(chunk, onNewGeneration);
-      },
-    )) as QueryExplainResult;
+      onNewGeneration({
+        id: idRef.current,
+        user_prompt: "Query Explanation",
+        datapilot_title: "Datapilot Response",
+        state: RequestState.LOADING,
+      });
+      const result = (await executeStreamRequest(
+        action.command,
+        {},
+        (chunk: string) => {
+          onProgress(chunk, onNewGeneration);
+        },
+      )) as QueryExplainResult;
 
-    panelLogger.log("result", result);
-    onNewGeneration(result);
+      panelLogger.info("result", result);
+      onNewGeneration(result);
+    } catch (err) {
+      panelLogger.error("Error while fetching explanation", err);
+      onNewGeneration({
+        id: idRef.current,
+        response: (err as Error).message,
+        state: RequestState.ERROR,
+      });
+    }
     setIsLoading(false);
   };
 
