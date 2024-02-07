@@ -1,2 +1,2 @@
 export * from "./docGen";
-export * from "./SqlAnalysis";
+export * from "./sqlAnalysis";

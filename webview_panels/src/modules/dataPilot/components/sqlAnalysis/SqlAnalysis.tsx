@@ -1,5 +1,9 @@
 import { CodeBlock, Stack } from "@uicore";
-import { DatapilotSqlAnalysisChat, SqlExplainResult } from "./types";
+import {
+  DatapilotSqlAnalysisChat,
+  SqlExplainResult,
+  SqlExplainUpdate,
+} from "./types";
 import SqlAnalysisActionButton from "./SqlAnalysisActionButton";
 import { panelLogger } from "@modules/logger";
 import { DataPilotChatAction } from "@modules/dataPilot/types";
@@ -13,12 +17,24 @@ interface Props {
 const SqlAnalysis = ({ chat }: Props): JSX.Element => {
   const [results, setResults] = useState<SqlExplainResult[]>([]);
   const onNewGeneration = (
-    result: SqlExplainResult,
+    result: SqlExplainUpdate,
     action: DataPilotChatAction,
   ) => {
     panelLogger.info(result, action);
-    setResults((prev) => [...prev, result]);
+    setResults((prev) => {
+      if (!prev.length) {
+        return [result as SqlExplainResult];
+      }
+      const currentIndex = prev.findIndex((r) => r.id === result.id);
+      const clone = [...prev];
+      clone[currentIndex] = {
+        ...clone[currentIndex],
+        ...result,
+      } as SqlExplainResult;
+      return clone;
+    });
   };
+
   return (
     <Stack direction="column">
       <CodeBlock code={chat.code} language="sql" fileName={chat.fileName} />
@@ -28,11 +44,12 @@ const SqlAnalysis = ({ chat }: Props): JSX.Element => {
             onNewGeneration={(result) => onNewGeneration(result, action)}
             key={action.title?.toString()}
             action={action}
+            analysisType={chat.analysisType}
           />
         ))}
       </Stack>
       {results.map((result) => (
-        <SqlExplainResultComponent key={result.user_prompt} response={result} />
+        <SqlExplainResultComponent key={result.id} response={result} />
       ))}
     </Stack>
   );

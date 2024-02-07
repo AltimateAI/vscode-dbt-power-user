@@ -72,6 +72,20 @@ interface OnewayFeedback {
   data: any;
 }
 
+export enum QueryAnalysisType {
+  EXPLAIN = "explain",
+}
+export interface QueryAnalysisRequest {
+  job_type: QueryAnalysisType;
+  dbt_model: {
+    model_name: string;
+    adapter: string;
+    compiled_sql: string;
+    columns: { column_name: string; data_type?: string }[];
+  };
+  model_dialect: string;
+}
+
 interface DocsGenerateModelRequestV2 {
   columns: string[];
   dbt_model: {
@@ -322,6 +336,24 @@ export class AltimateRequest {
     return this.fetch<DocsGenerateResponse>("dbt/v2", {
       method: "POST",
       body: JSON.stringify(docsGenerate),
+    });
+  }
+
+  async executeQueryAnalysis(request: QueryAnalysisRequest) {
+    const endpoint = "dbt/v2/query-analysis";
+    const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
+    console.log("network:url:", url, request);
+    const config = this.getConfig()!;
+
+    return fetch(url, {
+      method: "POST",
+      body: JSON.stringify(request),
+      headers: {
+        "x-tenant": config.instance,
+        Authorization: "Bearer " + config.key,
+        "Content-Type": "application/json",
+        "extension-version": this.dbtProjectContainer.extensionVersion,
+      },
     });
   }
 

@@ -7,7 +7,7 @@ import {
 import { AltimateRequest } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { DocGenService } from "../services/docGenService";
-import { SharedStateService } from "../services/SharedStateService";
+import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
 import { provideSingleton } from "../utils";
 import {

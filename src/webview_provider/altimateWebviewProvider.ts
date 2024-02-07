@@ -20,7 +20,7 @@ import {
   ManifestCacheChangedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import { AltimateRequest } from "../altimate";
-import { SharedStateService } from "../services/SharedStateService";
+import { SharedStateService } from "../services/sharedStateService";
 
 type UpdateConfigProps = {
   key: string;

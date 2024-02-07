@@ -1,3 +1,5 @@
+import { pipeline } from "node:stream";
+import { promisify } from "node:util";
 import { commands, window, workspace } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -8,8 +10,10 @@ import {
   HandleCommandProps,
 } from "./altimateWebviewProvider";
 import { DocGenService } from "../services/docGenService";
-import { AltimateRequest } from "../altimate";
-import { SharedStateService } from "../services/SharedStateService";
+import { AltimateRequest, QueryAnalysisType } from "../altimate";
+import { SharedStateService } from "../services/sharedStateService";
+import { QueryAnalysisService } from "../services/queryAnalysisService";
+import { createWriteStream } from "node:fs";
 
 @provideSingleton(DataPilotPanel)
 export class DataPilotPanel extends AltimateWebviewProvider {
@@ -24,6 +28,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     protected altimateRequest: AltimateRequest,
     private docGenService: DocGenService,
     protected emitterService: SharedStateService,
+    protected queryAnalysisService: QueryAnalysisService,
   ) {
     super(dbtProjectContainer, altimateRequest, telemetry, emitterService);
 
@@ -35,6 +40,57 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           args: {},
         }),
     );
+
+    commands.registerCommand("dbtPowerUser.datapilotExplain", async () => {
+      await commands.executeCommand("dbtPowerUser.datapilot-webview.focus");
+
+      const fileName = window.activeTextEditor?.document.fileName;
+      // TODO get current selection
+      const query = window.activeTextEditor?.document.getText();
+      const data = {
+        command: "datapilot:message",
+        id: "sarav",
+        query: "Explain query",
+        requestType: 2,
+        state: 0,
+        code: query,
+        fileName,
+        analysisType: QueryAnalysisType.EXPLAIN,
+        actions: [{ title: "Explain", command: "queryAnalysis:explain" }],
+      };
+
+      if (!this.isWebviewReady) {
+        this.incomingMessages.push(data);
+        return;
+      }
+      this.postToWebview(data);
+    });
+  }
+
+  // readChunks() reads from the provided reader and yields the results into an async iterable
+  readChunks(reader: any) {
+    return {
+      async *[Symbol.asyncIterator]() {
+        let readResult = await reader.read();
+        while (!readResult.done) {
+          yield readResult.value;
+          readResult = await reader.read();
+        }
+      },
+    };
+  }
+
+  streamToString(stream: NodeJS.ReadableStream, cb: (data: string) => void) {
+    const chunks: Buffer[] = [];
+    return new Promise((resolve, reject) => {
+      stream.on("data", (chunk: Uint8Array) => {
+        cb(new TextDecoder().decode(chunk));
+        chunks.push(Buffer.from(chunk));
+        // cb(Buffer.concat(chunks).toString("utf8"));
+      });
+      stream.on("error", (err: unknown) => reject(err));
+      stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+    });
   }
 
   async handleCommand(message: HandleCommandProps): Promise<void> {
@@ -103,6 +159,55 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         this.emitterService.eventEmitter.fire({
           command: "docgen:insert",
           payload: params,
+        });
+        break;
+      case "queryAnalysis:explain":
+        const query = window.activeTextEditor?.document.getText() || "";
+        const response = await this.queryAnalysisService.executeQueryExplain(
+          query,
+          this.eventMap,
+        );
+        if (!response?.body) {
+          console.error("empty result");
+          return;
+        }
+        // response.body is a ReadableStream
+        // const reader = result.body.getReader();
+        // for await (const chunk of this.readChunks(reader)) {
+        //   console.log(`received chunk of size ${chunk.length}`, chunk);
+        // }
+
+        const responseText = await this.streamToString(
+          response.body,
+          (chunk: string) => {
+            this._panel!.webview.postMessage({
+              command: "response",
+              args: {
+                syncRequestId,
+                body: { chunk },
+                status: true,
+              },
+            });
+          },
+        );
+
+        // res.on("readable", () => {
+        //   let chunk;
+        //   while (null !== (chunk = res.read())) {
+        //     console.log(chunk.toString());
+        //   }
+        // });
+
+        // const streamPipeline = promisify(pipeline);
+        // await streamPipeline(response.body, createWriteStream("./octocat.png"));
+
+        this._panel!.webview.postMessage({
+          command: "response",
+          args: {
+            syncRequestId,
+            body: { responseText },
+            status: true,
+          },
         });
         break;
       default:

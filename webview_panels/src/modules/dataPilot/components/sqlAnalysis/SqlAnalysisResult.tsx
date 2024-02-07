@@ -1,7 +1,7 @@
 import { AltimateIcon, AskIcon, RefreshIcon } from "@assets/icons";
 import ResultFeedbackButtons from "@modules/documentationEditor/components/result/ResultFeedbackButtons";
 import { Button, Card, CardBody, CardTitle, Input, Stack } from "@uicore";
-import { SqlExplainResult } from "./types";
+import { SqlExplainResult, SqlExplainUpdate } from "./types";
 import classes from "../../datapilot.module.scss";
 import { Feedback } from "../docGen/types";
 import { panelLogger } from "@modules/logger";
@@ -18,7 +18,7 @@ const SqlExplainResultComponent = ({
   const onFeedbackSubmit = (data: Feedback) => {
     panelLogger.info(data);
   };
-  const onNewGeneration = (result: SqlExplainResult) => {
+  const onNewGeneration = (result: SqlExplainUpdate) => {
     panelLogger.info(result);
   };
 

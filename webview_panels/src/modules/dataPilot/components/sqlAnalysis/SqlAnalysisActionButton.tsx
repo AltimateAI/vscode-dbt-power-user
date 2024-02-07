@@ -1,38 +1,35 @@
 import { DataPilotChatAction } from "@modules/dataPilot/types";
-import { useState } from "react";
 import { Button } from "@uicore";
-import { executeRequestInSync } from "@modules/app/requestExecutor";
-import { panelLogger } from "@modules/logger";
-import { SqlExplainResult } from "./types";
+import { SqlAnalysisType, SqlExplainUpdate } from "./types";
+import useSqlAnalysisAction from "./useSqlAnalysisAction";
 
 interface Props {
   action: DataPilotChatAction;
-  onNewGeneration: (result: SqlExplainResult) => void;
+  onNewGeneration: (result: SqlExplainUpdate) => void;
+  analysisType?: SqlAnalysisType;
 }
 
 const SqlAnalysisActionButton = ({
   action,
   onNewGeneration,
+  analysisType,
 }: Props): JSX.Element => {
-  const [isLoading, setIsLoading] = useState(false);
-  const handleBtnClick = async () => {
-    setIsLoading(true);
-    const result = (await executeRequestInSync(
-      action.command,
-      {},
-    )) as SqlExplainResult;
-    panelLogger.log(result);
-    onNewGeneration(result);
-    setIsLoading(false);
-  };
+  const { executeSqlAnalysis, isLoading } = useSqlAnalysisAction();
+
+  // useEffect(() => {
+  //     if (!analysisType && isLoading){
+  //       return;
+  //     }
+  //     executeSqlAnalysis(action, onNewGeneration).catch(err => panelLogger.error("error while executing analysis", err))
+  // }, [analysisType, isLoading]);
   return (
     <>
       <Button
         key={action.title?.toString()}
-        onClick={handleBtnClick}
+        onClick={() => executeSqlAnalysis(action, onNewGeneration)}
         disabled={isLoading}
       >
-        {action.title}
+        {action.title} {analysisType}
       </Button>
     </>
   );

@@ -30,4 +30,6 @@ export const DatapilotSqlExplainResultFactory =
     datapilot_title: "Query explanation",
     response: faker.lorem.paragraph(),
     user_prompt: "Explain the query",
+    id: each(() => faker.string.uuid()),
+    state: RequestState.COMPLETED,
   });
