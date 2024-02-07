@@ -18,7 +18,7 @@ import {
 } from "./graph";
 import { LineageContext } from "./App";
 import { CLL, openFile } from "./service_utils";
-import { C_NODE_H, C_PADDING_Y } from "./utils";
+import { getColY } from "./utils";
 import { TMoreTables } from "./MoreTables";
 import ModelIcon from "./assets/icons/model.svg?react";
 import SeedIcon from "./assets/icons/seed.svg?react";
@@ -364,7 +364,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             className={classNames(styles.content, {
               [styles.selected]: selected,
             })}
-            style={{ height: _columnLen * C_NODE_H + C_PADDING_Y }}
+            style={{ height: getColY(_columnLen) }}
           />
         )}
       </div>

@@ -1,10 +1,8 @@
 import { Edge, Node, ReactFlowInstance } from "reactflow";
 import {
   applyEdgeStyling,
-  C_NODE_H,
   C_OFFSET_X,
   C_OFFSET_Y,
-  C_PADDING_Y,
   contains,
   createColumnEdge,
   createColumnNode,
@@ -15,14 +13,15 @@ import {
   getSeeMoreId,
   isColumn,
   isNotColumn,
-  LEVEL_SEPARATION,
+  T_LEVEL_SEPARATION,
   MAX_EXPAND_TABLE,
-  P_OFFSET_X,
-  P_OFFSET_Y,
+  F_OFFSET_X,
+  F_OFFSET_Y,
   safeConcat,
   T_NODE_H,
   T_NODE_W,
   T_NODE_Y_SEPARATION,
+  getColY,
 } from "./utils";
 import {
   ColumnLineage,
@@ -32,7 +31,7 @@ import {
   upstreamTables,
 } from "./service";
 import { Dispatch, SetStateAction } from "react";
-import { COLUMN_PREFIX, SEE_MORE_PREFIX } from "./constants";
+import { COLUMN_PREFIX } from "./constants";
 import { TMoreTables } from "./MoreTables";
 import { CLL } from "./service_utils";
 
@@ -83,70 +82,122 @@ const createNewNodesEdges = (
   return [newNodes, newEdges];
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const layoutElementsOnCanvas = (nodes: Node[], _edges: Edge[]) => {
+export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
   let minLevel = Infinity;
   let maxLevel = -Infinity;
-  const levelWiseIndex: Record<number, number> = {};
-  const levelWiseColumnCount: Record<number, number> = {};
-  const tableWiseColumnIndex: Record<string, number> = {};
+  const tableWiseColumnCount: Record<string, number> = {};
 
   for (const n of nodes) {
     if (isColumn(n) && n.parentNode) {
-      if (!(n.parentNode in tableWiseColumnIndex)) {
-        tableWiseColumnIndex[n.parentNode] = 0;
+      // assign position to columns earlier as they are relative to parent
+      if (!(n.parentNode in tableWiseColumnCount)) {
+        tableWiseColumnCount[n.parentNode] = 0;
       }
 
       n.position = {
         x: C_OFFSET_X,
-        y:
-          tableWiseColumnIndex[n.parentNode] * C_NODE_H +
-          C_OFFSET_Y +
-          (C_PADDING_Y >> 1),
+        y: C_OFFSET_Y + getColY(tableWiseColumnCount[n.parentNode]),
       };
-      tableWiseColumnIndex[n.parentNode]++;
-      continue;
-    }
-    const level = n.data.level;
-    minLevel = Math.min(minLevel, level);
-    maxLevel = Math.max(maxLevel, level);
-    if (!(level in levelWiseIndex)) {
-      levelWiseIndex[level] = 0;
-      levelWiseColumnCount[level] = 0;
+      tableWiseColumnCount[n.parentNode]++;
+    } else {
+      // calculate bounds along x axis
+      const level = n.data.level;
+      minLevel = Math.min(minLevel, level);
+      maxLevel = Math.max(maxLevel, level);
     }
   }
 
-  const getY = (n: Node, level: number) => {
-    const _index = levelWiseIndex[level];
-    const _columnCount = levelWiseColumnCount[level] || 0;
-    levelWiseIndex[level]++;
-    levelWiseColumnCount[level] += tableWiseColumnIndex[n.id];
+  const tableWiseLevelColumnCount: Record<string, number> = {};
+  const levelWiseTables: Record<number, string[]> = {};
+  const tableWiseLevelPos: Record<string, number> = {};
+  const visited: Record<string, boolean> = {};
+
+  // create neightbours list for convenience
+  const adjacencyListRight: Record<string, string[]> = {};
+  const adjacencyListLeft: Record<string, string[]> = {};
+  for (const e of edges) {
+    if (isColumn(e)) continue;
+    if (!(e.source in adjacencyListRight)) adjacencyListRight[e.source] = [];
+    adjacencyListRight[e.source].push(e.target);
+    if (!(e.target in adjacencyListLeft)) adjacencyListLeft[e.target] = [];
+    adjacencyListLeft[e.target].push(e.source);
+  }
+
+  // calculate metadata such as tables and columns per level
+  // to get tables position along y axis
+  const dfs = (n: string, adjacencyList: Record<string, string[]>) => {
+    if (visited[n]) return;
+    visited[n] = true;
+    const node = nodes.find((item) => item.id === n)!;
+    const { level } = node.data;
+    if (!(level in levelWiseTables)) levelWiseTables[level] = [];
+    if (!levelWiseTables[level].includes(n)) {
+      tableWiseLevelPos[n] = levelWiseTables[level].length;
+      tableWiseLevelColumnCount[n] = 0;
+      for (const curr of levelWiseTables[level])
+        tableWiseLevelColumnCount[n] += tableWiseColumnCount[curr] || 0;
+      levelWiseTables[level].push(n);
+    }
+    for (const m of adjacencyList[n] || []) {
+      dfs(m, adjacencyList);
+    }
+  };
+
+  for (const n of nodes) {
+    if (isColumn(n)) continue;
+    if (visited[n.id]) continue;
+    dfs(n.id, adjacencyListRight);
+    visited[n.id] = false;
+    dfs(n.id, adjacencyListLeft);
+  }
+
+  // assign position to table and see more nodes
+  const getY = (n: Node) => {
+    const _index = tableWiseLevelPos[n.id] || 0;
+    const _columnCount = tableWiseLevelColumnCount[n.id] || 0;
     return (
-      P_OFFSET_Y +
-      _index * (T_NODE_Y_SEPARATION + T_NODE_H) +
-      C_NODE_H * _columnCount +
-      C_PADDING_Y
+      F_OFFSET_Y +
+      _index * (T_NODE_H + T_NODE_Y_SEPARATION) +
+      getColY(_columnCount, _index)
     );
   };
 
   const getX = (level: number) => {
     const basisLevel = level - minLevel;
-    return basisLevel * (T_NODE_W + LEVEL_SEPARATION) + P_OFFSET_X;
+    return basisLevel * (T_NODE_W + T_LEVEL_SEPARATION) + F_OFFSET_X;
   };
 
   for (const n of nodes) {
-    if (isColumn(n) || n.id.startsWith(SEE_MORE_PREFIX)) {
-      continue;
-    }
-    const level = n.data.level;
-    n.position = { x: getX(level), y: getY(n, level) };
+    if (isColumn(n)) continue;
+    const { level } = n.data;
+    n.position = { x: getX(level), y: getY(n) };
   }
+
+  // calculate bounds along y axis
+  let maxY = 0;
+  const levelNodesMap: Record<number, Node[]> = {};
   for (const n of nodes) {
-    if (!n.id.startsWith(SEE_MORE_PREFIX)) {
-      continue;
+    if (isColumn(n)) continue;
+    maxY = Math.max(
+      maxY,
+      n.position.y + getColY(tableWiseColumnCount[n.id] || 0)
+    );
+    const { level } = n.data;
+    if (!(level in levelNodesMap)) levelNodesMap[level] = [];
+    levelNodesMap[level].push(n);
+  }
+
+  // offset table position along y axis to make it center heavy
+  for (const level in levelNodesMap) {
+    let maxLevelY = 0;
+    for (const n of levelNodesMap[level]) {
+      maxLevelY = Math.max(
+        maxLevelY,
+        n.position.y + getColY(tableWiseColumnCount[n.id] || 0)
+      );
     }
-    const level = n.data.level;
-    n.position = { x: getX(level), y: getY(n, level) };
+    const offsetLevelY = (maxY - maxLevelY) / 2;
+    for (const n of levelNodesMap[level]) n.position.y += offsetLevelY;
   }
 };
 
