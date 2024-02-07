@@ -11,7 +11,7 @@ export const DatapilotQueryAnalysisFactory =
   Sync.makeFactory<DatapilotQueryAnalysisChat>({
     id: each(() => faker.string.uuid()),
     query: faker.lorem.sentence(),
-    requestType: RequestTypes.SQL_ANALYSIS,
+    requestType: RequestTypes.QUERY_ANALYSIS,
     state: RequestState.LOADING,
     actions: [],
     meta: {},

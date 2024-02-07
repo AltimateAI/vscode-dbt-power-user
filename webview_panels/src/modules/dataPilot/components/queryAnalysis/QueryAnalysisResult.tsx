@@ -1,32 +1,54 @@
 import { AltimateIcon, AskIcon, RefreshIcon } from "@assets/icons";
 import ResultFeedbackButtons from "@modules/documentationEditor/components/result/ResultFeedbackButtons";
 import { Button, Card, CardBody, CardTitle, Input, Stack } from "@uicore";
-import { QueryExplainResult, QueryExplainUpdate } from "./types";
+import { QueryExplainResult } from "./types";
 import classes from "../../datapilot.module.scss";
 import { Feedback } from "../docGen/types";
 import { panelLogger } from "@modules/logger";
 import UserQuery from "../common/UserQuery";
 import QueryAnalysisActionButton from "./QueryAnalysisActionButton";
-import { FormEvent } from "react";
-import { RequestState } from "@modules/dataPilot/types";
+import { ChangeEvent, FormEvent, useState } from "react";
+import { DataPilotChatAction, RequestState } from "@modules/dataPilot/types";
+import useQueryAnalysisAction from "./useQueryAnalysisAction";
+import useQueryAnalysisContext from "./provider/useQueryAnalysisContext";
 
 interface Props {
   response: QueryExplainResult;
+  command: DataPilotChatAction["command"];
 }
 const QueryExplainResultComponent = ({
   response: { datapilot_title, response, user_prompt, actions, state },
+  command,
 }: Props): JSX.Element => {
+  const {
+    chat: { id: sessionId },
+    onNewGeneration,
+  } = useQueryAnalysisContext();
+
+  const [userRequest, setUserRequest] = useState("");
+
+  const { executeQueryAnalysis, isLoading } = useQueryAnalysisAction();
+
   const onFeedbackSubmit = (data: Feedback) => {
     panelLogger.info(data);
-  };
-  const onNewGeneration = (result: QueryExplainUpdate) => {
-    panelLogger.info(result);
   };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    panelLogger.info("handleSubmit");
+    panelLogger.info("submitting user request", userRequest);
+
+    executeQueryAnalysis({
+      command,
+      onNewGeneration,
+      sessionId,
+      user_request: userRequest,
+    });
   };
+
+  const handleOnChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setUserRequest(e.target.value);
+  };
+
   return (
     <>
       <UserQuery query={user_prompt} />
@@ -62,11 +84,7 @@ const QueryExplainResultComponent = ({
           <h6>Suggestions</h6>
           <Stack>
             {actions.map((action) => (
-              <QueryAnalysisActionButton
-                key={action.command}
-                action={action}
-                onNewGeneration={onNewGeneration}
-              />
+              <QueryAnalysisActionButton key={action.command} action={action} />
             ))}
           </Stack>
         </Stack>
@@ -74,8 +92,14 @@ const QueryExplainResultComponent = ({
       {state === RequestState.COMPLETED ? (
         <Stack className={classes.askInput}>
           <form onSubmit={handleSubmit}>
-            <Input type="textarea" placeholder="Ask a followup" />
-            <Button type="submit">
+            <Input
+              disabled={isLoading}
+              type="textarea"
+              placeholder="Ask a followup"
+              value={userRequest}
+              onChange={handleOnChange}
+            />
+            <Button type="submit" disabled={isLoading}>
               <AskIcon />
             </Button>
           </form>

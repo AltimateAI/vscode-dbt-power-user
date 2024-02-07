@@ -1,15 +1,23 @@
 import { executeStreamRequest } from "@modules/app/requestExecutor";
-import { DataPilotChatAction, RequestState } from "@modules/dataPilot/types";
+import {
+  DataPilotChatAction,
+  QueryAnalysisHistory,
+  RequestState,
+} from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
 import { useRef, useState } from "react";
 import { QueryExplainUpdate } from "./types";
 
+interface QueryAnalysisRequest {
+  command: DataPilotChatAction["command"];
+  onNewGeneration: (result: QueryExplainUpdate) => void;
+  sessionId?: string;
+  user_request?: string;
+  history?: QueryAnalysisHistory;
+}
 const useQueryAnalysisAction = (): {
   isLoading: boolean;
-  executeQueryAnalysis: (
-    action: DataPilotChatAction,
-    onNewGeneration: (result: QueryExplainUpdate) => void,
-  ) => void;
+  executeQueryAnalysis: (args: QueryAnalysisRequest) => void;
 } => {
   const [isLoading, setIsLoading] = useState(false);
   const idRef = useRef("");
@@ -22,14 +30,17 @@ const useQueryAnalysisAction = (): {
     cb({ session_id: idRef.current, response: chunk });
   };
 
-  const executeQueryAnalysis = async (
-    action: DataPilotChatAction,
-    onNewGeneration: (result: QueryExplainUpdate) => void,
-  ) => {
+  const executeQueryAnalysis = async ({
+    command,
+    onNewGeneration,
+    history,
+    sessionId,
+    user_request,
+  }: QueryAnalysisRequest) => {
     try {
       setIsLoading(true);
 
-      idRef.current = crypto.randomUUID();
+      idRef.current = sessionId ?? crypto.randomUUID();
 
       onNewGeneration({
         session_id: idRef.current,
@@ -38,8 +49,8 @@ const useQueryAnalysisAction = (): {
         state: RequestState.LOADING,
       });
       const result = (await executeStreamRequest(
-        action.command,
-        { session_id: idRef.current },
+        command,
+        { session_id: idRef.current, history, user_request },
         (chunk: string) => {
           onProgress(chunk, onNewGeneration);
         },

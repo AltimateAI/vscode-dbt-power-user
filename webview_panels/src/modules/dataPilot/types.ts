@@ -3,13 +3,24 @@ import { UnknownAction } from "@reduxjs/toolkit";
 export enum RequestTypes {
   AI_DOC_GENERATION,
   AI_DOC_REGENERATION,
-  SQL_ANALYSIS,
+  QUERY_ANALYSIS,
 }
 
 export enum RequestState {
   LOADING,
   ERROR,
   COMPLETED,
+}
+
+export enum QueryAnalysisHistoryType {
+  HUMAN = "HumanMessage",
+  SYSTEM = "SystemMessage",
+}
+
+export interface QueryAnalysisHistory {
+  type: QueryAnalysisHistoryType;
+  content: string;
+  additional_kwargs?: Record<string, unknown>;
 }
 
 export interface DataPilotChatAction {

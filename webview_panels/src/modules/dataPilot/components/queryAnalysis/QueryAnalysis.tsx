@@ -1,41 +1,10 @@
 import { CodeBlock, Stack } from "@uicore";
-import {
-  DatapilotQueryAnalysisChat,
-  QueryExplainResult,
-  QueryExplainUpdate,
-} from "./types";
 import QueryAnalysisActionButton from "./QueryAnalysisActionButton";
-import { panelLogger } from "@modules/logger";
-import { DataPilotChatAction } from "@modules/dataPilot/types";
-import { useState } from "react";
 import QueryExplainResultComponent from "./QueryAnalysisResult";
+import useQueryAnalysisContext from "./provider/useQueryAnalysisContext";
 
-interface Props {
-  chat: DatapilotQueryAnalysisChat;
-}
-
-const QueryAnalysis = ({ chat }: Props): JSX.Element => {
-  const [results, setResults] = useState<QueryExplainResult[]>([]);
-  const onNewGeneration = (
-    result: QueryExplainUpdate,
-    action: DataPilotChatAction,
-  ) => {
-    panelLogger.info(result, action);
-    setResults((prev) => {
-      if (!prev.length) {
-        return [result as QueryExplainResult];
-      }
-      const currentIndex = prev.findIndex(
-        (r) => r.session_id === result.session_id,
-      );
-      const clone = [...prev];
-      clone[currentIndex] = {
-        ...clone[currentIndex],
-        ...result,
-      } as QueryExplainResult;
-      return clone;
-    });
-  };
+const QueryAnalysis = (): JSX.Element => {
+  const { chat, results } = useQueryAnalysisContext();
 
   return (
     <Stack direction="column">
@@ -43,10 +12,8 @@ const QueryAnalysis = ({ chat }: Props): JSX.Element => {
       <Stack style={{ flexWrap: "wrap" }}>
         {chat.actions?.map((action) => (
           <QueryAnalysisActionButton
-            onNewGeneration={(result) => onNewGeneration(result, action)}
             key={action.title?.toString()}
             action={action}
-            analysisType={chat.analysisType}
           />
         ))}
       </Stack>
@@ -54,6 +21,7 @@ const QueryAnalysis = ({ chat }: Props): JSX.Element => {
         <QueryExplainResultComponent
           key={result.session_id}
           response={result}
+          command={`queryAnalysis:${chat.analysisType ?? ""}`}
         />
       ))}
     </Stack>
