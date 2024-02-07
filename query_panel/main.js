@@ -30,6 +30,8 @@ class Grid {
         float: {
           format: {
             maximumFractionDigits: 20,
+            minimumFractionDigits: 0,
+            useGrouping: false,
           },
         },
       },
@@ -42,7 +44,7 @@ class Grid {
       case "Text":
         return "string";
       case "Integer":
-        return "integer";
+        return "float";
       // case "Boolean":
       //   return "boolean"; // TODO: uncomment when material icons are added
       // case "Date":
@@ -67,7 +69,7 @@ class Grid {
     await this.elem.load(table);
     await this.elem.restore({
       columns: [], // reset columns
-      settings: false,
+      settings: true,
       title: "query result",
       plugin_config: { editable: false },
     });
