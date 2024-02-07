@@ -184,7 +184,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
         className={styles.table_node}
         onClick={(e) => {
           e.stopPropagation();
-          setSelectedTable(data);
+          setSelectedTable(table);
           highlightTable();
           openFile(url);
         }}
