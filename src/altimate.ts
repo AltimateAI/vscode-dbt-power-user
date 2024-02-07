@@ -357,7 +357,9 @@ export class AltimateRequest {
     return tempFolder;
   }
 
-  getQueryString = (params: Record<string, string | number>): string => {
+  private getQueryString = (
+    params: Record<string, string | number>,
+  ): string => {
     const queryString = Object.keys(params)
       .map(
         (key) =>

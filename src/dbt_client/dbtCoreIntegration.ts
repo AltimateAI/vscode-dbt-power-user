@@ -452,20 +452,18 @@ export class DBTCoreProjectIntegration
           response.url,
         );
         console.log(`Set remote manifest path: ${manifestPath}`);
-        return [
-          "--defer",
-          "--state",
-          manifestPath,
-          favorState ? "--favor-state" : "",
-        ];
+        const args = ["--defer", "--state", manifestPath];
+        if (favorState) {
+          args.push("--favor-state");
+        }
+        return args;
       }
     }
-    return [
-      "--defer",
-      "--state",
-      manifestPathForDeferral,
-      favorState ? "--favor-state" : "",
-    ];
+    const args = ["--defer", "--state", manifestPathForDeferral];
+    if (favorState) {
+      args.push("--favor-state");
+    }
+    return args;
   }
 
   private async addDeferParams(command: DBTCommand) {

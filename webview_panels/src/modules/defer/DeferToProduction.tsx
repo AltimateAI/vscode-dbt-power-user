@@ -25,12 +25,14 @@ interface DropdownOptions {
   label: string;
   value: number;
 }
+
 interface DeferToProductionProps {
   deferToProduction: boolean;
   favorState: boolean;
   manifestPathForDeferral: string;
   manifestPathType: string;
   projectIntegrations: DropdownOptions[];
+  dbt_core_integration_id: number;
 }
 const DeferToProduction = (): JSX.Element => {
   const [
@@ -40,6 +42,7 @@ const DeferToProduction = (): JSX.Element => {
       manifestPathForDeferral,
       manifestPathType,
       projectIntegrations,
+      dbt_core_integration_id,
     },
     setDeferState,
   ] = useState<DeferToProductionProps>({
@@ -48,8 +51,10 @@ const DeferToProduction = (): JSX.Element => {
     manifestPathForDeferral: "",
     manifestPathType: "",
     projectIntegrations: [],
+    dbt_core_integration_id: -1,
   });
   const [hideBody, setHideBody] = useState(true);
+  const [showManifestError, setShowManifestError] = useState(false);
 
   const onMesssage = useCallback(
     (event: MessageEvent<IncomingMessageProps>) => {
@@ -72,12 +77,22 @@ const DeferToProduction = (): JSX.Element => {
     };
   }, [onMesssage]);
 
+  const handleRemoteManifestIntegration = async (
+    config: DeferToProductionProps,
+  ) => {
+    if (config.manifestPathType === "remote") {
+      await setProjectIntegrations();
+    }
+  };
+
   const loadDeferConfig = async () => {
     const config = await executeRequestInSync("getDeferToProductionConfig", {});
     if (config) {
       setDeferState(config as DeferToProductionProps);
+      await handleRemoteManifestIntegration(config as DeferToProductionProps);
     }
   };
+
   useEffect(() => {
     loadDeferConfig().catch(() => {
       return;
@@ -114,42 +129,61 @@ const DeferToProduction = (): JSX.Element => {
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const { value, name } = event.target;
+    if (!value.endsWith("manifest.json")) {
+      setShowManifestError(false);
+    } else {
+      setShowManifestError(true);
+    }
     setDeferState((prevState) => ({ ...prevState, [name]: value }));
   };
 
   const onLocalManifestBlur = async () => {
-    const response = await executeRequestInSync("updateDeferConfig", {
-      key: "manifestPathForDeferral",
-      value: manifestPathForDeferral,
-      isPreviewFeature: true,
-    });
-    if (!(response as { updated: boolean }).updated) {
+    if (!showManifestError) {
+      const response = await executeRequestInSync("updateDeferConfig", {
+        key: "manifestPathForDeferral",
+        value: manifestPathForDeferral,
+        isPreviewFeature: true,
+      });
+      if (!(response as { updated: boolean }).updated) {
+        setDeferState((prevState) => ({
+          ...prevState,
+          manifestPathForDeferral: "",
+        }));
+      }
+
+      const response2 = await executeRequestInSync("updateDeferConfig", {
+        key: "manifestPathType",
+        value: manifestPathType,
+      });
+      if (!(response2 as { updated: boolean }).updated) {
+        setDeferState((prevState) => ({
+          ...prevState,
+          manifestPathType: "",
+        }));
+      }
+    }
+  };
+
+  const setProjectIntegrations = async () => {
+    const response = await executeRequestInSync("fetchProjectIntegrations", {});
+    if (Array.isArray(response)) {
       setDeferState((prevState) => ({
         ...prevState,
-        manifestPathForDeferral: "",
+        projectIntegrations: response.map(
+          (item: { name: string; id: number }) => ({
+            label: item.name,
+            value: item.id,
+          }),
+        ),
+        manifestPathType: "remote",
       }));
+      return;
     }
   };
 
   const handleManifestPathTypeChange = async (option: string) => {
     if (option === "remote") {
-      const response = await executeRequestInSync(
-        "fetchProjectIntegrations",
-        {},
-      );
-      if (Array.isArray(response)) {
-        setDeferState((prevState) => ({
-          ...prevState,
-          projectIntegrations: response.map(
-            (item: { name: string; id: number }) => ({
-              label: item.name,
-              value: item.id,
-            }),
-          ),
-          manifestPathType: option,
-        }));
-        return;
-      }
+      await setProjectIntegrations();
     }
     setDeferState((prevState) => ({
       ...prevState,
@@ -169,11 +203,11 @@ const DeferToProduction = (): JSX.Element => {
       dbt_core_integration_file_id: number;
     };
     if (data.url === "" && data.dbt_core_integration_file_id === -1) {
-      executeRequestInAsync("showInfoNotification", {
+      executeRequestInAsync("showInformationMessage", {
         infoMessage: `No remote manifest file present for dbt core integration: ${selectedOption.label}`,
       });
     } else {
-      executeRequestInAsync("showInfoNotification", {
+      executeRequestInAsync("showInformationMessage", {
         infoMessage: `Project integration connected successfully!`,
       });
       await executeRequestInSync("updateDeferConfig", {
@@ -184,6 +218,10 @@ const DeferToProduction = (): JSX.Element => {
         key: "dbt_core_integration_id",
         value: selectedOption.value,
       });
+      setDeferState((prevState) => ({
+        ...prevState,
+        dbt_core_integration_id: selectedOption.value,
+      }));
     }
   };
 
@@ -229,7 +267,7 @@ const DeferToProduction = (): JSX.Element => {
                     checked={manifestPathType === "local"}
                     onChange={() => handleManifestPathTypeChange("local")}
                   />
-                  Local Path to manifest file
+                  Local Path to manifest folder
                 </Label>
                 {manifestPathType === "local" && (
                   <Input
@@ -244,6 +282,12 @@ const DeferToProduction = (): JSX.Element => {
                   />
                 )}
               </div>
+              {showManifestError && (
+                <CardText>
+                  The path should indicate the folder where the manifest.json
+                  file is located
+                </CardText>
+              )}
               <div className={classes.pathSelectionRow}>
                 <Label
                   check
@@ -261,10 +305,13 @@ const DeferToProduction = (): JSX.Element => {
                   DataPilot dbt Integration
                 </Label>
 
-                {manifestPathType === "remote" && (
+                {manifestPathType === "remote" && projectIntegrations && (
                   <Select
                     options={projectIntegrations}
                     className={classes.pathInput}
+                    value={projectIntegrations.find(
+                      (i) => i.value === dbt_core_integration_id,
+                    )}
                     onChange={(newValue) =>
                       handleIntegrationSelect(
                         newValue as { label: string; value: number },
