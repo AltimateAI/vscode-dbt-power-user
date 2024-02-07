@@ -354,7 +354,7 @@ export class AltimateRequest {
     });
 
     console.log("File downloaded successfully!");
-    return destinationPath;
+    return tempFolder;
   }
 
   getQueryString = (params: Record<string, string | number>): string => {
