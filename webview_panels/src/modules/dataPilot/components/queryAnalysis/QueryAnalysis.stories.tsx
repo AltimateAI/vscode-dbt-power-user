@@ -4,12 +4,12 @@ import DataPilotPanel from "../..";
 import { DataPilotContext } from "../../DataPilotProvider";
 import {
   DatapilotDocGenActionButtonFactory,
-  DatapilotSqlAnalysisFactory,
-  DatapilotSqlExplainResultFactory,
+  DatapilotQueryAnalysisFactory,
+  DatapilotQueryExplainResultFactory,
 } from "@testUtils";
 import { RequestState } from "@modules/dataPilot/types";
 
-const sqlAnalysisDefaultState = DatapilotSqlAnalysisFactory.build({
+const queryAnalysisDefaultState = DatapilotQueryAnalysisFactory.build({
   state: RequestState.COMPLETED,
   actions: [
     DatapilotDocGenActionButtonFactory.build({
@@ -28,16 +28,16 @@ const sqlAnalysisDefaultState = DatapilotSqlAnalysisFactory.build({
 });
 
 export default {
-  title: "Datapilot/Sql Analysis",
+  title: "Datapilot/Query Analysis",
 } satisfies Meta;
 
-export const SqlAnalysisDefaultView = {
+export const QueryAnalysisDefaultView = {
   render: (): JSX.Element => {
     return <DataPilotPanel />;
   },
   parameters: {
     vscode: {
-      data: DatapilotSqlExplainResultFactory.build({
+      data: DatapilotQueryExplainResultFactory.build({
         actions: [
           DatapilotDocGenActionButtonFactory.build({
             title: "Why there is a join condition?",
@@ -52,7 +52,7 @@ export const SqlAnalysisDefaultView = {
       Context: DataPilotContext,
       initialState: {
         state: {
-          items: { [sqlAnalysisDefaultState.id]: sqlAnalysisDefaultState },
+          items: { [queryAnalysisDefaultState.id]: queryAnalysisDefaultState },
         },
       },
     }),

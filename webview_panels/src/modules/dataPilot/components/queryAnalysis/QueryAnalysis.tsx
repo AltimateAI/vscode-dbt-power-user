@@ -1,36 +1,36 @@
 import { CodeBlock, Stack } from "@uicore";
 import {
-  DatapilotSqlAnalysisChat,
-  SqlExplainResult,
-  SqlExplainUpdate,
+  DatapilotQueryAnalysisChat,
+  QueryExplainResult,
+  QueryExplainUpdate,
 } from "./types";
-import SqlAnalysisActionButton from "./SqlAnalysisActionButton";
+import QueryAnalysisActionButton from "./QueryAnalysisActionButton";
 import { panelLogger } from "@modules/logger";
 import { DataPilotChatAction } from "@modules/dataPilot/types";
 import { useState } from "react";
-import SqlExplainResultComponent from "./SqlAnalysisResult";
+import QueryExplainResultComponent from "./QueryAnalysisResult";
 
 interface Props {
-  chat: DatapilotSqlAnalysisChat;
+  chat: DatapilotQueryAnalysisChat;
 }
 
-const SqlAnalysis = ({ chat }: Props): JSX.Element => {
-  const [results, setResults] = useState<SqlExplainResult[]>([]);
+const QueryAnalysis = ({ chat }: Props): JSX.Element => {
+  const [results, setResults] = useState<QueryExplainResult[]>([]);
   const onNewGeneration = (
-    result: SqlExplainUpdate,
+    result: QueryExplainUpdate,
     action: DataPilotChatAction,
   ) => {
     panelLogger.info(result, action);
     setResults((prev) => {
       if (!prev.length) {
-        return [result as SqlExplainResult];
+        return [result as QueryExplainResult];
       }
       const currentIndex = prev.findIndex((r) => r.id === result.id);
       const clone = [...prev];
       clone[currentIndex] = {
         ...clone[currentIndex],
         ...result,
-      } as SqlExplainResult;
+      } as QueryExplainResult;
       return clone;
     });
   };
@@ -40,7 +40,7 @@ const SqlAnalysis = ({ chat }: Props): JSX.Element => {
       <CodeBlock code={chat.code} language="sql" fileName={chat.fileName} />
       <Stack style={{ flexWrap: "wrap" }}>
         {chat.actions?.map((action) => (
-          <SqlAnalysisActionButton
+          <QueryAnalysisActionButton
             onNewGeneration={(result) => onNewGeneration(result, action)}
             key={action.title?.toString()}
             action={action}
@@ -49,10 +49,10 @@ const SqlAnalysis = ({ chat }: Props): JSX.Element => {
         ))}
       </Stack>
       {results.map((result) => (
-        <SqlExplainResultComponent key={result.id} response={result} />
+        <QueryExplainResultComponent key={result.id} response={result} />
       ))}
     </Stack>
   );
 };
 
-export default SqlAnalysis;
+export default QueryAnalysis;

@@ -2,13 +2,13 @@ import { executeStreamRequest } from "@modules/app/requestExecutor";
 import { DataPilotChatAction, RequestState } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
 import { useRef, useState } from "react";
-import { SqlExplainResult, SqlExplainUpdate } from "./types";
+import { QueryExplainResult, QueryExplainUpdate } from "./types";
 
-const useSqlAnalysisAction = (): {
+const useQueryAnalysisAction = (): {
   isLoading: boolean;
-  executeSqlAnalysis: (
+  executeQueryAnalysis: (
     action: DataPilotChatAction,
-    onNewGeneration: (result: SqlExplainUpdate) => void,
+    onNewGeneration: (result: QueryExplainUpdate) => void,
   ) => void;
 } => {
   const [isLoading, setIsLoading] = useState(false);
@@ -16,15 +16,15 @@ const useSqlAnalysisAction = (): {
 
   const onProgress = (
     chunk: string,
-    cb: (result: SqlExplainUpdate) => void,
+    cb: (result: QueryExplainUpdate) => void,
   ) => {
     panelLogger.log("chunk", chunk);
     cb({ id: idRef.current, response: chunk });
   };
 
-  const executeSqlAnalysis = async (
+  const executeQueryAnalysis = async (
     action: DataPilotChatAction,
-    onNewGeneration: (result: SqlExplainUpdate) => void,
+    onNewGeneration: (result: QueryExplainUpdate) => void,
   ) => {
     setIsLoading(true);
 
@@ -42,14 +42,14 @@ const useSqlAnalysisAction = (): {
       (chunk: string) => {
         onProgress(chunk, onNewGeneration);
       },
-    )) as SqlExplainResult;
+    )) as QueryExplainResult;
 
     panelLogger.log("result", result);
     onNewGeneration(result);
     setIsLoading(false);
   };
 
-  return { executeSqlAnalysis, isLoading };
+  return { executeQueryAnalysis, isLoading };
 };
 
-export default useSqlAnalysisAction;
+export default useQueryAnalysisAction;

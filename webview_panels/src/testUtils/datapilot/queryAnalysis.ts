@@ -2,13 +2,13 @@ import { Sync, each } from "factory.ts";
 import { faker } from "@faker-js/faker";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import {
-  DatapilotSqlAnalysisChat,
-  SqlAnalysisType,
-  SqlExplainResult,
-} from "@modules/dataPilot/components/sqlAnalysis/types";
+  DatapilotQueryAnalysisChat,
+  QueryAnalysisType,
+  QueryExplainResult,
+} from "@modules/dataPilot/components/queryAnalysis/types";
 
-export const DatapilotSqlAnalysisFactory =
-  Sync.makeFactory<DatapilotSqlAnalysisChat>({
+export const DatapilotQueryAnalysisFactory =
+  Sync.makeFactory<DatapilotQueryAnalysisChat>({
     id: each(() => faker.string.uuid()),
     query: faker.lorem.sentence(),
     requestType: RequestTypes.SQL_ANALYSIS,
@@ -21,12 +21,13 @@ export const DatapilotSqlAnalysisFactory =
     fileName: faker.system.fileName(),
   });
 
-export const DatapilotSqlExplainFactory = DatapilotSqlAnalysisFactory.extend({
-  analysisType: SqlAnalysisType.SQL_EXPLAIN,
-});
+export const DatapilotQueryExplainFactory =
+  DatapilotQueryAnalysisFactory.extend({
+    analysisType: QueryAnalysisType.SQL_EXPLAIN,
+  });
 
-export const DatapilotSqlExplainResultFactory =
-  Sync.makeFactory<SqlExplainResult>({
+export const DatapilotQueryExplainResultFactory =
+  Sync.makeFactory<QueryExplainResult>({
     datapilot_title: "Query explanation",
     response: faker.lorem.paragraph(),
     user_prompt: "Explain the query",

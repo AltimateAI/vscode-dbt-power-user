@@ -5,8 +5,8 @@ import { DataPilotChat, RequestTypes } from "./types";
 import AiDocChat from "./components/docGen/AiDocChat";
 import classes from "./datapilot.module.scss";
 import DefaultDatapilotView from "./DefaultDatapilotView";
-import SqlAnalysis from "./components/sqlAnalysis/SqlAnalysis";
-import { DatapilotSqlAnalysisChat } from "./components/sqlAnalysis/types";
+import QueryAnalysis from "./components/queryAnalysis/QueryAnalysis";
+import { DatapilotQueryAnalysisChat } from "./components/queryAnalysis/types";
 
 const DataPilotPanel = () => {
   const {
@@ -24,7 +24,7 @@ const DataPilotPanel = () => {
       case RequestTypes.AI_DOC_GENERATION:
         return <AiDocChat chat={chat} />;
       case RequestTypes.SQL_ANALYSIS:
-        return <SqlAnalysis chat={chat as DatapilotSqlAnalysisChat} />;
+        return <QueryAnalysis chat={chat as DatapilotQueryAnalysisChat} />;
       default:
         break;
     }

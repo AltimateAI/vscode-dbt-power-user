@@ -99,7 +99,7 @@ classDiagram
 - vscode api integration is added using manual mock as in [here](./.storybook/__mocks__/vscode.ts).
 - Sample code (use `vscode` field in `parameters` to pass your mock data):
   ```
-  export const SqlAnalysisDefaultView = {
+  export const QueryAnalysisDefaultView = {
   render: (): JSX.Element => {
     return <DataPilotPanel />;
   },

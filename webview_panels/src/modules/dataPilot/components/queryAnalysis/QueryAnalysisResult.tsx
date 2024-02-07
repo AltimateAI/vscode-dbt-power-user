@@ -1,24 +1,24 @@
 import { AltimateIcon, AskIcon, RefreshIcon } from "@assets/icons";
 import ResultFeedbackButtons from "@modules/documentationEditor/components/result/ResultFeedbackButtons";
 import { Button, Card, CardBody, CardTitle, Input, Stack } from "@uicore";
-import { SqlExplainResult, SqlExplainUpdate } from "./types";
+import { QueryExplainResult, QueryExplainUpdate } from "./types";
 import classes from "../../datapilot.module.scss";
 import { Feedback } from "../docGen/types";
 import { panelLogger } from "@modules/logger";
 import UserQuery from "../common/UserQuery";
-import SqlAnalysisActionButton from "./SqlAnalysisActionButton";
+import QueryAnalysisActionButton from "./QueryAnalysisActionButton";
 import { FormEvent } from "react";
 
 interface Props {
-  response: SqlExplainResult;
+  response: QueryExplainResult;
 }
-const SqlExplainResultComponent = ({
+const QueryExplainResultComponent = ({
   response: { datapilot_title, response, user_prompt, actions },
 }: Props): JSX.Element => {
   const onFeedbackSubmit = (data: Feedback) => {
     panelLogger.info(data);
   };
-  const onNewGeneration = (result: SqlExplainUpdate) => {
+  const onNewGeneration = (result: QueryExplainUpdate) => {
     panelLogger.info(result);
   };
 
@@ -54,7 +54,7 @@ const SqlExplainResultComponent = ({
           <h6>Suggestions</h6>
           <Stack>
             {actions.map((action) => (
-              <SqlAnalysisActionButton
+              <QueryAnalysisActionButton
                 key={action.command}
                 action={action}
                 onNewGeneration={onNewGeneration}
@@ -75,4 +75,4 @@ const SqlExplainResultComponent = ({
   );
 };
 
-export default SqlExplainResultComponent;
+export default QueryExplainResultComponent;
