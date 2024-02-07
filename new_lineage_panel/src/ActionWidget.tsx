@@ -273,83 +273,81 @@ export const ActionWidget: FC<{
 
   return (
     <div className="top-right-container">
-      {aiEnabled && (
-        <Card className={styles.menu_card_container}>
-          <CardBody className={styles.menu_card}>
-            <div className="d-flex gap-sm">
-              <AutoExpansionPopover />
-              {selectedColumn.name && (
-                <>
-                  <div className={styles.select_node_checkbox}>
-                    <Input
-                      type="checkbox"
-                      id="select-check"
-                      className="mt-0"
-                      checked={selectCheck}
-                      onChange={(e) => {
-                        if (CLL.inProgress) {
-                          CLL.showCllInProgressMsg();
-                          return;
-                        }
-                        setSelectCheck(e.target.checked);
-                      }}
-                    />
-                    <Label check for="select-check">
-                      Select
-                    </Label>
-                    <InfoIcon
-                      id="select_lineage"
-                      message="Select linkages are shown if there is direct flow of data between columns through select statements."
-                    />
-                  </div>
-                  <div className={styles.non_select_node_checkbox}>
-                    <Input
-                      type="checkbox"
-                      id="non-select-check"
-                      className="mt-0"
-                      checked={nonSelectCheck}
-                      onChange={(e) => {
-                        if (CLL.inProgress) {
-                          CLL.showCllInProgressMsg();
-                          return;
-                        }
-                        setNonSelectCheck(e.target.checked);
-                      }}
-                    />
-                    <Label check for="non-select-check">
-                      Non-Select
-                    </Label>
-                    <InfoIcon
-                      id="non_select_lineage"
-                      message={
-                        "Non-Select linkages are shown if columns appear " +
-                        "in condition/clauses like where, join, having, etc."
+      <Card className={styles.menu_card_container}>
+        <CardBody className={styles.menu_card}>
+          <div className="d-flex gap-sm">
+            <AutoExpansionPopover />
+            {aiEnabled && selectedColumn.name && (
+              <>
+                <div className={styles.select_node_checkbox}>
+                  <Input
+                    type="checkbox"
+                    id="select-check"
+                    className="mt-0"
+                    checked={selectCheck}
+                    onChange={(e) => {
+                      if (CLL.inProgress) {
+                        CLL.showCllInProgressMsg();
+                        return;
                       }
-                    />
-                  </div>
-                  {confidence.confidence === "low" && (
-                    <>
-                      <div className={styles.verticle_divider} />
-                      <div className="d-flex gap-xxs align-items-center">
-                        <div>Confidence</div>
-                        <InfoIcon
-                          id="confidence"
-                          message={
-                            "Depending on the SQL dialect and complexity of queries, " +
-                            "there may be situations where we are not completely " +
-                            "confident about the lineage shown in this view"
-                          }
-                        />
-                        <div className={styles.low_confidence}>Low</div>
-                      </div>
-                    </>
-                  )}
-                </>
-              )}
-            </div>
-          </CardBody>
-        </Card>
-      )}
+                      setSelectCheck(e.target.checked);
+                    }}
+                  />
+                  <Label check for="select-check">
+                    Select
+                  </Label>
+                  <InfoIcon
+                    id="select_lineage"
+                    message="Select linkages are shown if there is direct flow of data between columns through select statements."
+                  />
+                </div>
+                <div className={styles.non_select_node_checkbox}>
+                  <Input
+                    type="checkbox"
+                    id="non-select-check"
+                    className="mt-0"
+                    checked={nonSelectCheck}
+                    onChange={(e) => {
+                      if (CLL.inProgress) {
+                        CLL.showCllInProgressMsg();
+                        return;
+                      }
+                      setNonSelectCheck(e.target.checked);
+                    }}
+                  />
+                  <Label check for="non-select-check">
+                    Non-Select
+                  </Label>
+                  <InfoIcon
+                    id="non_select_lineage"
+                    message={
+                      "Non-Select linkages are shown if columns appear " +
+                      "in condition/clauses like where, join, having, etc."
+                    }
+                  />
+                </div>
+                {confidence.confidence === "low" && (
+                  <>
+                    <div className={styles.verticle_divider} />
+                    <div className="d-flex gap-xxs align-items-center">
+                      <div>Confidence</div>
+                      <InfoIcon
+                        id="confidence"
+                        message={
+                          "Depending on the SQL dialect and complexity of queries, " +
+                          "there may be situations where we are not completely " +
+                          "confident about the lineage shown in this view"
+                        }
+                      />
+                      <div className={styles.low_confidence}>Low</div>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </CardBody>
+      </Card>
       <Button
         size="sm"
         color="primary"
