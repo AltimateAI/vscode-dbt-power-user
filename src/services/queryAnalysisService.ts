@@ -14,8 +14,13 @@ export class QueryAnalysisService {
   public async executeQueryExplain(
     query: string,
     eventMap: Map<string, ManifestCacheProjectAddedEvent>,
+    session_id: string,
     syncRequestId?: string,
   ) {
+    if (!session_id) {
+      console.error("Missing session id");
+      throw new Error("Invalid session id");
+    }
     const adapter =
       this.docGenService.getProject()?.getAdapterType() || "unknown";
     const documentation = await this.docGenService.getDocumentation(eventMap);
@@ -27,6 +32,7 @@ export class QueryAnalysisService {
       endpoint: "dbt/v2/query-analysis",
       syncRequestId,
       request: {
+        session_id,
         job_type: QueryAnalysisType.EXPLAIN,
         model: {
           model_name: documentation.name,

@@ -151,6 +151,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           const response = await this.queryAnalysisService.executeQueryExplain(
             query,
             this.eventMap,
+            params.session_id as string,
             syncRequestId,
           );
 

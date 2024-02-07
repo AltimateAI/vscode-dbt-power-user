@@ -90,6 +90,7 @@ interface QueryAnalysisChat {
 }
 
 export interface QueryAnalysisRequest {
+  session_id: string;
   job_type: QueryAnalysisType;
   model: DocsGenerateModelRequestV2["dbt_model"];
   user_request?: string; // required for modify query

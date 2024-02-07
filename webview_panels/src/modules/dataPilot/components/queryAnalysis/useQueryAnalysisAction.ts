@@ -39,7 +39,7 @@ const useQueryAnalysisAction = (): {
       });
       const result = (await executeStreamRequest(
         action.command,
-        {},
+        { session_id: idRef.current },
         (chunk: string) => {
           onProgress(chunk, onNewGeneration);
         },
