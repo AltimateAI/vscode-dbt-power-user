@@ -2,7 +2,7 @@ import { executeStreamRequest } from "@modules/app/requestExecutor";
 import { DataPilotChatAction, RequestState } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
 import { useRef, useState } from "react";
-import { QueryExplainResult, QueryExplainUpdate } from "./types";
+import { QueryExplainUpdate } from "./types";
 
 const useQueryAnalysisAction = (): {
   isLoading: boolean;
@@ -19,7 +19,7 @@ const useQueryAnalysisAction = (): {
     cb: (result: QueryExplainUpdate) => void,
   ) => {
     panelLogger.log("chunk", chunk);
-    cb({ id: idRef.current, response: chunk });
+    cb({ session_id: idRef.current, response: chunk });
   };
 
   const executeQueryAnalysis = async (
@@ -32,7 +32,7 @@ const useQueryAnalysisAction = (): {
       idRef.current = crypto.randomUUID();
 
       onNewGeneration({
-        id: idRef.current,
+        session_id: idRef.current,
         user_prompt: "Query Explanation",
         datapilot_title: "Datapilot Response",
         state: RequestState.LOADING,
@@ -43,14 +43,18 @@ const useQueryAnalysisAction = (): {
         (chunk: string) => {
           onProgress(chunk, onNewGeneration);
         },
-      )) as QueryExplainResult;
+      )) as { response: string };
 
       panelLogger.info("result", result);
-      onNewGeneration(result);
+      onNewGeneration({
+        session_id: idRef.current,
+        response: result.response,
+        state: RequestState.COMPLETED,
+      });
     } catch (err) {
       panelLogger.error("Error while fetching explanation", err);
       onNewGeneration({
-        id: idRef.current,
+        session_id: idRef.current,
         response: (err as Error).message,
         state: RequestState.ERROR,
       });

@@ -25,7 +25,9 @@ const QueryAnalysis = ({ chat }: Props): JSX.Element => {
       if (!prev.length) {
         return [result as QueryExplainResult];
       }
-      const currentIndex = prev.findIndex((r) => r.id === result.id);
+      const currentIndex = prev.findIndex(
+        (r) => r.session_id === result.session_id,
+      );
       const clone = [...prev];
       clone[currentIndex] = {
         ...clone[currentIndex],
@@ -49,7 +51,10 @@ const QueryAnalysis = ({ chat }: Props): JSX.Element => {
         ))}
       </Stack>
       {results.map((result) => (
-        <QueryExplainResultComponent key={result.id} response={result} />
+        <QueryExplainResultComponent
+          key={result.session_id}
+          response={result}
+        />
       ))}
     </Stack>
   );

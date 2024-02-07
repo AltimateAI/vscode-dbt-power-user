@@ -8,12 +8,13 @@ import { panelLogger } from "@modules/logger";
 import UserQuery from "../common/UserQuery";
 import QueryAnalysisActionButton from "./QueryAnalysisActionButton";
 import { FormEvent } from "react";
+import { RequestState } from "@modules/dataPilot/types";
 
 interface Props {
   response: QueryExplainResult;
 }
 const QueryExplainResultComponent = ({
-  response: { datapilot_title, response, user_prompt, actions },
+  response: { datapilot_title, response, user_prompt, actions, state },
 }: Props): JSX.Element => {
   const onFeedbackSubmit = (data: Feedback) => {
     panelLogger.info(data);
@@ -37,16 +38,23 @@ const QueryExplainResultComponent = ({
         </CardTitle>
         <CardBody>
           {response}
-          <Stack className={classes.actionButtons}>
+          {state === RequestState.LOADING ? (
             <Stack>
-              <Button color="primary" outline>
-                <RefreshIcon />
-              </Button>
+              <Button color="warning">Loading...</Button>
             </Stack>
-            <ResultFeedbackButtons
-              onFeedbackSubmit={(data) => onFeedbackSubmit(data)}
-            />
-          </Stack>
+          ) : null}
+          {state === RequestState.COMPLETED ? (
+            <Stack className={classes.actionButtons}>
+              <Stack>
+                <Button color="primary" outline>
+                  <RefreshIcon />
+                </Button>
+              </Stack>
+              <ResultFeedbackButtons
+                onFeedbackSubmit={(data) => onFeedbackSubmit(data)}
+              />
+            </Stack>
+          ) : null}
         </CardBody>
       </Card>
       {actions?.length ? (
@@ -63,14 +71,16 @@ const QueryExplainResultComponent = ({
           </Stack>
         </Stack>
       ) : null}
-      <Stack className={classes.askInput}>
-        <form onSubmit={handleSubmit}>
-          <Input type="textarea" placeholder="Ask a followup" />
-          <Button type="submit">
-            <AskIcon />
-          </Button>
-        </form>
-      </Stack>
+      {state === RequestState.COMPLETED ? (
+        <Stack className={classes.askInput}>
+          <form onSubmit={handleSubmit}>
+            <Input type="textarea" placeholder="Ask a followup" />
+            <Button type="submit">
+              <AskIcon />
+            </Button>
+          </form>
+        </Stack>
+      ) : null}
     </>
   );
 };
