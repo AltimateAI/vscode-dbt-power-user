@@ -20,7 +20,7 @@ import {
   ManifestCacheChangedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import { AltimateRequest } from "../altimate";
-import { SharedStateService } from "../services/SharedStateService";
+import { SharedStateService } from "../services/sharedStateService";
 
 type UpdateConfigProps = {
   key: string;
@@ -66,7 +66,9 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     const t = this;
     this._disposables.push(
-      emitterService.eventEmitter.event((d) => t.onEvent(d)),
+      emitterService.eventEmitter.event((d) =>
+        t.onEvent(d as SharedStateEventEmitterProps),
+      ),
     );
   }
 
@@ -79,7 +81,19 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     });
   }
 
-  protected async onEvent(data: unknown) {}
+  protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
+    switch (command) {
+      case "stream:chunk":
+        this._panel!.webview.postMessage({
+          command: "response",
+          args: payload,
+        });
+        break;
+
+      default:
+        break;
+    }
+  }
 
   protected renderWebviewView(context: WebviewViewResolveContext) {
     const webview = this._panel!.webview!;
