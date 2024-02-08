@@ -9,10 +9,10 @@ export const MAX_EXPAND_TABLE = 5;
 // dimensions
 export const F_OFFSET_X = 100;
 export const F_OFFSET_Y = 100;
-export const T_NODE_W = 260;
-export const T_NODE_H = 141;
+export const T_NODE_W = 272;
+export const T_NODE_H = 100;
 export const C_OFFSET_X = 12;
-export const C_OFFSET_Y = 141;
+export const C_OFFSET_Y = 100;
 const C_NODE_H = 36;
 const C_PADDING_Y = 4;
 export const T_LEVEL_SEPARATION = 280;
