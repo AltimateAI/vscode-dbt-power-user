@@ -8,7 +8,7 @@ const QueryAnalysis = (): JSX.Element => {
 
   return (
     <Stack direction="column">
-      <CodeBlock code={chat.code} language="sql" fileName={chat.fileName} />
+      <CodeBlock code={chat.query} language="sql" fileName={chat.fileName} />
       <Stack style={{ flexWrap: "wrap" }}>
         {chat.actions?.map((action) => (
           <QueryAnalysisActionButton

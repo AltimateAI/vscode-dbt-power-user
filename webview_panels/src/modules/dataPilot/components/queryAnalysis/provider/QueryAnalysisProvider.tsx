@@ -1,7 +1,19 @@
-import { createContext, ReactNode, useMemo, useReducer, useState } from "react";
+import {
+  createContext,
+  ReactNode,
+  useEffect,
+  useMemo,
+  useReducer,
+  useState,
+} from "react";
 import { QueryAnalysisContextProps } from "./types";
 import queryAnalysisSlice, { initialState } from "./queryAnalysisSlice";
 import { QueryExplainResult, QueryExplainUpdate } from "../types";
+import { RequestState, RequestTypes } from "@modules/dataPilot/types";
+import useQueryAnalysisAction from "../useQueryAnalysisAction";
+import { panelLogger } from "@modules/logger";
+import useDataPilotContext from "@modules/dataPilot/useDataPilotContext";
+import { upsertItem } from "@modules/dataPilot/dataPilotSlice";
 
 export const QueryAnalysisContext = createContext<QueryAnalysisContextProps>({
   state: initialState,
@@ -20,6 +32,13 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
     queryAnalysisSlice.getInitialState(),
   );
 
+  const {
+    state: { items },
+    dispatch: datapilotDispatch,
+  } = useDataPilotContext();
+  const chat = Object.values(items)[0];
+
+  const { executeQueryAnalysis } = useQueryAnalysisAction();
   const [results, setResults] = useState<QueryExplainResult[]>([]);
 
   const onNewGeneration = (result: QueryExplainUpdate) => {
@@ -38,6 +57,30 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
       return clone;
     });
   };
+
+  const handleQueryExplainOnload = () => {
+    panelLogger.info("handleQueryExplainOnload");
+    datapilotDispatch(upsertItem({ ...chat, state: RequestState.LOADING }));
+    executeQueryAnalysis({
+      sessionId: chat.id,
+      command: "queryAnalysis:explain",
+      onNewGeneration,
+    }).catch((err) =>
+      panelLogger.error("error while executing analysis onload", err),
+    );
+  };
+
+  useEffect(() => {
+    if (
+      chat.requestType !== RequestTypes.QUERY_ANALYSIS ||
+      chat.state !== RequestState.UNINITIALIZED
+    ) {
+      return;
+    }
+
+    // Api request not sent for this chat yet
+    handleQueryExplainOnload();
+  }, [chat.state, chat.requestType]);
 
   const values = useMemo(
     () => ({

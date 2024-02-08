@@ -7,6 +7,7 @@ export enum RequestTypes {
 }
 
 export enum RequestState {
+  UNINITIALIZED,
   LOADING,
   ERROR,
   COMPLETED,

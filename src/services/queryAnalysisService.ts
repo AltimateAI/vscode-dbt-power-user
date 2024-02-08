@@ -1,3 +1,4 @@
+import { Range, window } from "vscode";
 import { QueryAnalysisRequest, QueryAnalysisType } from "../altimate";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
@@ -11,17 +12,49 @@ export class QueryAnalysisService {
     private streamingService: StreamingService,
   ) {}
 
+  public getSelectedQuery() {
+    const editor = window.activeTextEditor;
+    if (!editor) {
+      return null;
+    }
+    const fileName = editor.document.fileName.split("/").pop();
+    const selection = editor.selection;
+    if (selection && !selection.isEmpty) {
+      const selectionRange = new Range(
+        selection.start.line,
+        selection.start.character,
+        selection.end.line,
+        selection.end.character,
+      );
+      return {
+        query: editor.document.getText(selectionRange),
+        fileName: `${fileName} (${selection.start.line + 1}-${
+          selection.end.line + 1
+        })`,
+      };
+    }
+
+    return { query: editor.document.getText(), fileName };
+  }
+
   public async executeQueryExplain(
-    query: string,
     eventMap: Map<string, ManifestCacheProjectAddedEvent>,
-    session_id: string,
-    params: Record<string, unknown>,
+    params: Partial<QueryAnalysisRequest>,
     syncRequestId?: string,
   ) {
+    const { session_id } = params;
     if (!session_id) {
       console.error("Missing session id");
       throw new Error("Invalid session id");
     }
+
+    const selectionData = this.getSelectedQuery();
+    if (!selectionData) {
+      console.error("Missing query");
+      throw new Error("Invalid query");
+    }
+    const { query } = selectionData;
+
     const adapter =
       this.docGenService.getProject()?.getAdapterType() || "unknown";
     const documentation = await this.docGenService.getDocumentation(eventMap);

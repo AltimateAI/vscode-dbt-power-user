@@ -17,7 +17,6 @@ export const DatapilotQueryAnalysisFactory =
     meta: {},
     response: undefined,
     updatedAt: faker.date.past(),
-    code: "select * from users;",
     fileName: faker.system.fileName(),
   });
 

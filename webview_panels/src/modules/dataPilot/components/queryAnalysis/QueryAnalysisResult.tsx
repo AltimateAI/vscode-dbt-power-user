@@ -44,7 +44,9 @@ const QueryExplainResultComponent = ({
       sessionId,
       history,
       user_request: userRequest,
-    });
+    }).catch((err) =>
+      panelLogger.error("error while querying by user input", err),
+    );
   };
 
   const handleOnChange = (e: ChangeEvent<HTMLInputElement>) => {

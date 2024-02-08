@@ -10,7 +10,7 @@ export enum QueryAnalysisType {
   MODIFY = "modify",
 }
 export interface DatapilotQueryAnalysisChat extends DataPilotChat {
-  code: string;
+  query: string;
   fileName: string;
   analysisType?: QueryAnalysisType;
 }

@@ -39,42 +39,19 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     );
 
     commands.registerCommand("dbtPowerUser.datapilotExplain", async () => {
-      await commands.executeCommand("dbtPowerUser.datapilot-webview.focus");
-
-      const fileName = window.activeTextEditor?.document.fileName;
-      // TODO get current selection
-      const query = window.activeTextEditor?.document.getText();
-      const data = {
-        command: "datapilot:message",
-        id: "sarav",
-        query: "Explain query",
-        requestType: 2,
-        state: 0,
-        code: query,
-        fileName,
-        analysisType: QueryAnalysisType.EXPLAIN,
-        actions: [{ title: "Explain", command: "queryAnalysis:explain" }],
-      };
-
-      if (!this.isWebviewReady) {
-        this.incomingMessages.push(data);
+      const queryData = this.queryAnalysisService.getSelectedQuery();
+      if (!queryData) {
         return;
       }
-      this.postToWebview(data);
+      this.emitterService.fire({
+        command: "datapilot:message",
+        payload: {
+          command: "queryAnalysis:explain:load",
+          query: queryData.query,
+          fileName: queryData.fileName,
+        },
+      });
     });
-  }
-
-  // readChunks() reads from the provided reader and yields the results into an async iterable
-  readChunks(reader: any) {
-    return {
-      async *[Symbol.asyncIterator]() {
-        let readResult = await reader.read();
-        while (!readResult.done) {
-          yield readResult.value;
-          readResult = await reader.read();
-        }
-      },
-    };
   }
 
   async handleCommand(message: HandleCommandProps): Promise<void> {
@@ -147,11 +124,8 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         break;
       case "queryAnalysis:explain":
         try {
-          const query = window.activeTextEditor?.document.getText() || "";
           const response = await this.queryAnalysisService.executeQueryExplain(
-            query,
             this.eventMap,
-            params.session_id as string,
             params,
             syncRequestId,
           );
@@ -212,10 +186,13 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     }
   }
 
-  private postToWebview(message: unknown) {
-    if (this._panel) {
+  private postToWebview(message: Record<string, unknown> | undefined) {
+    if (this._panel && message) {
+      const command =
+        "command" in message ? message.command : "datapilot:message";
+
       this._panel.webview.postMessage({
-        command: "datapilot:message",
+        command,
         args: message,
       });
     }

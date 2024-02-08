@@ -16,6 +16,7 @@ const useQueryAnalysisContext = (): {
     state: { items },
   } = useDataPilotContext();
 
+  // Since we support only one chat at a time, we take 0th item always
   const chat = Object.values(items)[0] as DatapilotQueryAnalysisChat;
   const context = useContext(QueryAnalysisContext);
 

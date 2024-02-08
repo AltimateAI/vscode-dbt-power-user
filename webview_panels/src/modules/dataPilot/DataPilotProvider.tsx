@@ -12,7 +12,17 @@ import dataPilotSlice, {
   reset,
   upsertItem,
 } from "./dataPilotSlice";
-import { ContextProps, DataPilotChat } from "./types";
+import {
+  ContextProps,
+  DataPilotChat,
+  RequestState,
+  RequestTypes,
+} from "./types";
+import { panelLogger } from "@modules/logger";
+import {
+  DatapilotQueryAnalysisChat,
+  QueryAnalysisType,
+} from "./components/queryAnalysis/types";
 
 export const DataPilotContext = createContext<ContextProps>({
   state: initialState,
@@ -29,6 +39,22 @@ const DataPilotProvider = ({
     dataPilotSlice.getInitialState(),
   );
 
+  const handleQueryAnalysisOnload = (
+    request: Partial<DatapilotQueryAnalysisChat>,
+  ) => {
+    panelLogger.info("query explain onload", request);
+    const data = {
+      id: crypto.randomUUID(),
+      requestType: RequestTypes.QUERY_ANALYSIS,
+      state: RequestState.UNINITIALIZED,
+      query: request.query,
+      fileName: request.fileName,
+      analysisType: QueryAnalysisType.EXPLAIN,
+    } as DatapilotQueryAnalysisChat;
+
+    dispatch(upsertItem(data));
+  };
+
   const onMesssage = useCallback(
     (event: MessageEvent<IncomingMessageProps>) => {
       const { command, args } = event.data;
@@ -39,6 +65,9 @@ const DataPilotProvider = ({
               args as Partial<DataPilotChat> & { id: DataPilotChat["id"] },
             ),
           );
+          break;
+        case "queryAnalysis:explain:load":
+          handleQueryAnalysisOnload(args);
           break;
         case "datapilot:reset":
           dispatch(reset());

@@ -1,7 +1,6 @@
 import { DataPilotChatAction } from "@modules/dataPilot/types";
 import { Button } from "@uicore";
 import useQueryAnalysisAction from "./useQueryAnalysisAction";
-import { panelLogger } from "@modules/logger";
 import useQueryAnalysisContext from "./provider/useQueryAnalysisContext";
 
 interface Props {
@@ -11,18 +10,9 @@ interface Props {
 const QueryAnalysisActionButton = ({ action }: Props): JSX.Element => {
   const { executeQueryAnalysis, isLoading } = useQueryAnalysisAction();
   const {
-    chat: { id: sessionId, analysisType },
+    chat: { id: sessionId },
     onNewGeneration,
   } = useQueryAnalysisContext();
-
-  // useEffect(() => {
-  //     if (!analysisType && isLoading){
-  //       return;
-  //     }
-  //     executeQueryAnalysis(action, onNewGeneration).catch(err => panelLogger.error("error while executing analysis", err))
-  // }, [analysisType, isLoading]);
-
-  panelLogger.info(analysisType);
 
   return (
     <>

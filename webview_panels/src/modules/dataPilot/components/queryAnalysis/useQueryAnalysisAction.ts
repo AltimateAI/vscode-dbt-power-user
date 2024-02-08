@@ -13,7 +13,7 @@ interface QueryAnalysisRequest {
 }
 const useQueryAnalysisAction = (): {
   isLoading: boolean;
-  executeQueryAnalysis: (args: QueryAnalysisRequest) => void;
+  executeQueryAnalysis: (args: QueryAnalysisRequest) => Promise<void>;
 } => {
   const [isLoading, setIsLoading] = useState(false);
   const idRef = useRef("");
@@ -33,6 +33,7 @@ const useQueryAnalysisAction = (): {
     user_request,
   }: QueryAnalysisRequest) => {
     try {
+      panelLogger.info("executeQueryAnalysis", sessionId);
       setIsLoading(true);
 
       idRef.current = sessionId ?? crypto.randomUUID();
@@ -51,7 +52,7 @@ const useQueryAnalysisAction = (): {
         },
       )) as { response: string };
 
-      panelLogger.info("result", result);
+      panelLogger.info("executeQueryAnalysis result", result);
       onNewGeneration({
         session_id: idRef.current,
         response: result.response,
