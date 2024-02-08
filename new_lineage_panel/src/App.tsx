@@ -179,7 +179,7 @@ function App() {
       setSelectedColumn({ table: "", name: "", sessionId: "" });
       setCollectColumns({});
       setMoreTables({});
-
+      [nodes, edges] = highlightTableConnections(nodes, edges, node.table);
       layoutElementsOnCanvas(nodes, edges);
       _flow.setNodes(nodes);
       _flow.setEdges(edges);
@@ -204,7 +204,7 @@ function App() {
         commandMap[command as keyof typeof commandMap](args);
       }
     });
-    console.log("lineage:onload -> ");
+    console.log("lineage:onload");
     init();
 
     // hide demo button after 10s
