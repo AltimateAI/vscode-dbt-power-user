@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useContext } from "react";
+import { FunctionComponent, useContext } from "react";
 import {
   BaseEdge,
   EdgeProps,
@@ -162,9 +162,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const expandRight = () => expand(true);
   const expandLeft = () => expand(false);
 
-  const onDetailsClick = (e: React.MouseEvent) => {
+  const onDetailsClick = () => {
     if (!selected) return;
-    e.stopPropagation();
     setShowSidebar(true);
     if (flow.getNode(selectedTable)?.data?.nodeType === "exposure") {
       setSidebarScreen(EXPOSURE_SIDEBAR);
@@ -185,8 +184,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     >
       <div
         className={styles.table_node}
-        onClick={(e) => {
-          e.stopPropagation();
+        onClick={() => {
           setSelectedTable(table);
           highlightTable();
           openFile(url);
@@ -228,10 +226,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                     downstreamCount ===
                       _edges.filter((e) => e.target === table).length,
                 })}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  expandLeft();
-                }}
+                onClick={() => expandLeft()}
                 data-testid={"expand-left-btn-" + table}
               >
                 +
@@ -270,10 +265,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                     upstreamCount ===
                       _edges.filter((e) => e.source === table).length,
                 })}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  expandRight();
-                }}
+                onClick={() => expandRight()}
                 data-testid={"expand-right-btn-" + table}
               >
                 +
@@ -307,8 +299,7 @@ export const SeeMoreNode: FunctionComponent<NodeProps> = ({ data }) => {
   return (
     <div
       className={styles.see_more_node}
-      onClick={(e) => {
-        e.stopPropagation();
+      onClick={() => {
         setShowSidebar(true);
         setSidebarScreen(TABLES_SIDEBAR);
         setMoreTables((prev) => ({ ...prev, tables, prevTable, right, level }));

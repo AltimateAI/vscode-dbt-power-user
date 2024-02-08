@@ -105,6 +105,9 @@ const AutoExpansionPopover = () => {
     setLeftExpansion(Math.max(minRange[0], 0));
     setRightExpansion(Math.max(minRange[1], 0));
     setNodeCount(0);
+    document.getElementsByTagName("body")[0].addEventListener("click", () => {
+      setIsOpen(false);
+    });
   }, [minRange, setLeftExpansion, setRightExpansion]);
 
   useEffect(() => {
@@ -176,7 +179,7 @@ const AutoExpansionPopover = () => {
         isOpen={isOpen}
         toggle={() => setIsOpen((b) => !b)}
       >
-        <PopoverBody>
+        <PopoverBody onClick={(e) => e.stopPropagation()}>
           <div className="d-flex flex-column gap-xs">
             <div className="w-100 d-flex gap-xl justify-content-between align-items-center">
               <div
@@ -188,8 +191,7 @@ const AutoExpansionPopover = () => {
                 <div className={styles.expand_nav_btn}>
                   <div
                     className={styles.icon}
-                    onClick={(e) => {
-                      e.stopPropagation();
+                    onClick={() => {
                       setLeftExpansion(maxRange[0]);
                     }}
                   >
@@ -198,8 +200,7 @@ const AutoExpansionPopover = () => {
                   <div className={styles.divider} />
                   <div
                     className={styles.icon}
-                    onClick={(e) => {
-                      e.stopPropagation();
+                    onClick={() => {
                       setLeftExpansion((i) =>
                         i + 1 <= maxRange[0] ? i + 1 : i
                       );
@@ -220,8 +221,7 @@ const AutoExpansionPopover = () => {
                 <div className={styles.expand_nav_btn}>
                   <div
                     className={styles.icon}
-                    onClick={(e) => {
-                      e.stopPropagation();
+                    onClick={() => {
                       setRightExpansion((i) =>
                         i + 1 <= maxRange[1] ? i + 1 : i
                       );
@@ -232,8 +232,7 @@ const AutoExpansionPopover = () => {
                   <div className={styles.divider} />
                   <div
                     className={styles.icon}
-                    onClick={(e) => {
-                      e.stopPropagation();
+                    onClick={() => {
                       setRightExpansion(maxRange[1]);
                     }}
                   >
@@ -250,8 +249,7 @@ const AutoExpansionPopover = () => {
               color={nodeCount === 0 ? "secondary" : "primary"}
               size="sm"
               disabled={nodeCount === 0}
-              onClick={async (e) => {
-                e.stopPropagation();
+              onClick={async () => {
                 if (!selectedTable) return;
                 const selectedTableData = flow.getNode(selectedTable)?.data;
                 if (!selectedTableData) return;
@@ -377,8 +375,7 @@ export const ActionWidget: FC<{
       <Button
         size="sm"
         color="primary"
-        onClick={(e) => {
-          e.stopPropagation();
+        onClick={() => {
           setLegacyLineageView();
           CLL.cancel();
         }}
@@ -386,8 +383,7 @@ export const ActionWidget: FC<{
         Show Legacy UX
       </Button>
       <ActionButton
-        onClick={(e) => {
-          e.stopPropagation();
+        onClick={() => {
           setSidebarScreen(HELP_SIDEBAR);
           setShowSidebar(true);
         }}
@@ -396,8 +392,7 @@ export const ActionWidget: FC<{
         <span>Help</span>
       </ActionButton>
       <ActionButton
-        onClick={(e) => {
-          e.stopPropagation();
+        onClick={() => {
           flow.setNodes([]);
           flow.setEdges([]);
           setSelectedColumn({ table: "", name: "", sessionId: "" });
@@ -412,8 +407,7 @@ export const ActionWidget: FC<{
         <span>Reset</span>
       </ActionButton>
       <ActionButton
-        onClick={(e) => {
-          e.stopPropagation();
+        onClick={() => {
           // setSidebarScreen(FEEDBACK_SIDEBAR);
           // setShowSidebar(true);
           // TODO: going to be deprecated
