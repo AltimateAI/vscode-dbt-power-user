@@ -22,7 +22,7 @@ const DocGeneratorColumnsList = (): JSX.Element => {
     <div>
       <div style={{ marginBottom: 40, marginTop: 16 }}>
         <Stack className={classes.columnHeader}>
-          <h1>Columns</h1>
+          <h3>Columns</h3>
           <div>
             <Button
               color="warning"
@@ -35,8 +35,8 @@ const DocGeneratorColumnsList = (): JSX.Element => {
           <BulkGenerateButton />
         </Stack>
         <Alert color="warning">
-          Note: If you need to override existing documentation, please
-          (re)generate documentation at individual column level
+          Note: If you don’t want to override existing documentation, please
+          (re)generate documentation at the individual column level below
         </Alert>
       </div>
       {!currentDocsData?.columns ? (

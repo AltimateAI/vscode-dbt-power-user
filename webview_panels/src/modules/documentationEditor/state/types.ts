@@ -31,6 +31,7 @@ export interface DocumentationStateProps {
   generationHistory: GenerationDBDataProps[];
   userInstructions: DocsGenerateUserInstructions;
   isDocGeneratedForAnyColumn: boolean;
+  insertedEntityName?: string;
 }
 
 export interface DocsGenerateFollowupInstructions {

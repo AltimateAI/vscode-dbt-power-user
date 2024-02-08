@@ -1,5 +1,5 @@
 import { Card, CardBody, Stack } from "@uicore";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { DataPilotChat, DataPilotChatAction, RequestState } from "../types";
 import AiDocActionButton from "./AiDocActionButton";
 import NewGenerationResults from "./NewGenerationResults";
@@ -34,8 +34,14 @@ const AiDocChat = ({ chat }: Props): JSX.Element => {
     ]);
   };
 
+  const onAiChatRender = useCallback((node: HTMLDivElement) => {
+    if (node) {
+      node.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
+
   return (
-    <Stack direction="column">
+    <Stack direction="column" ref={onAiChatRender}>
       <h5>{chat.query}</h5>
       {chat.response ? (
         <Card>

@@ -3,7 +3,7 @@ import * as Yup from "yup";
 import { Controller, useForm } from "react-hook-form";
 import { LikeIcon, DislikeIcon } from "@assets/icons";
 import { Button, Form, IconButton, Input, Stack } from "@uicore";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Feedback, Rating } from "@modules/dataPilot/components/types";
 
 interface Props {
@@ -33,6 +33,16 @@ const ResultFeedbackButtons = ({ onFeedbackSubmit }: Props): JSX.Element => {
     setValue("feedback_type", isLiked ? Rating.Good : Rating.Bad);
   };
 
+  const handleLike = () => {
+    onFeedbackSubmit({ feedback_message: "", feedback_type: Rating.Good });
+  };
+
+  const onFormRender = useCallback((node: HTMLDivElement | null) => {
+    if (node) {
+      node.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
+
   const isGoodRating = watchRating === Rating.Good;
   const isBadRating = watchRating === Rating.Bad;
   const placeholder = isGoodRating
@@ -45,7 +55,7 @@ const ResultFeedbackButtons = ({ onFeedbackSubmit }: Props): JSX.Element => {
         <IconButton
           className={`${isGoodRating ? "active" : ""} outline`}
           title="Like"
-          onClick={() => handleClick(true)}
+          onClick={handleLike}
         >
           <LikeIcon />
         </IconButton>
@@ -59,7 +69,7 @@ const ResultFeedbackButtons = ({ onFeedbackSubmit }: Props): JSX.Element => {
       </Stack>
       {showForm ? (
         <Form onSubmit={handleSubmit(onFeedbackSubmit)}>
-          <Stack direction="column">
+          <Stack direction="column" ref={onFormRender}>
             <h5>AI still needs humans sometimes, please help it out 🙂</h5>
             <Controller
               control={control}

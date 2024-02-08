@@ -13,6 +13,7 @@ export const initialState = {
   project: undefined,
   generationHistory: [],
   isDocGeneratedForAnyColumn: false,
+  insertedEntityName: undefined,
   userInstructions: {
     language: undefined,
     persona: undefined,
@@ -29,6 +30,12 @@ const documentationSlice = createSlice({
       action: PayloadAction<DocumentationStateProps["project"]>,
     ) => {
       state.project = action.payload;
+    },
+    setInsertedEntityName: (
+      state,
+      action: PayloadAction<string | undefined>,
+    ) => {
+      state.insertedEntityName = action.payload;
     },
     updateCurrentDocsData: (
       state,
@@ -159,5 +166,6 @@ export const {
   setGenerationsHistory,
   updateUserInstructions,
   setIsDocGeneratedForAnyColumn,
+  setInsertedEntityName,
 } = documentationSlice.actions;
 export default documentationSlice;

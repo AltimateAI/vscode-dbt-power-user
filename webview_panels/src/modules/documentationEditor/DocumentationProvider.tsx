@@ -12,6 +12,7 @@ import {
 import documentationSlice, {
   initialState,
   setGenerationsHistory,
+  setInsertedEntityName,
   setProject,
   updateColumnsAfterSync,
   updateColumnsInCurrentDocsData,
@@ -40,6 +41,14 @@ const DocumentationProvider = ({
     documentationSlice.reducer,
     documentationSlice.getInitialState(),
   );
+
+  const updateFocus = (name?: string) => {
+    dispatch(setInsertedEntityName(name));
+    // reset the name, so re insert will still focus
+    setTimeout(() => {
+      dispatch(setInsertedEntityName(undefined));
+    }, 1000);
+  };
 
   const onMesssage = useCallback(
     (
@@ -80,6 +89,8 @@ const DocumentationProvider = ({
                 isNewGeneration: true,
               }),
             );
+            updateFocus(params.model);
+            return;
           }
           // insert column desc
           dispatch(
@@ -88,6 +99,8 @@ const DocumentationProvider = ({
               isNewGeneration: true,
             }),
           );
+          updateFocus((params as Partial<MetadataColumn>).name);
+
           break;
         default:
           break;

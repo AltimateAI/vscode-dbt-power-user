@@ -58,7 +58,7 @@ const DocumentationEditor = (): JSX.Element => {
       const result = (await executeRequestInSync("generateDocsForModel", {
         description: data.description,
         user_instructions: data.user_instructions,
-        columns: data.columns,
+        columns: currentDocsData.columns,
       })) as { description: string };
 
       dispatch(
@@ -90,7 +90,7 @@ const DocumentationEditor = (): JSX.Element => {
     <div className={classes.docGenerator}>
       <Stack className={classes.head}>
         <Stack>
-          <h1>Documentation for {currentDocsData.name}</h1>
+          <h3>Documentation for {currentDocsData.name}</h3>
         </Stack>
         <CommonActionButtons />
       </Stack>

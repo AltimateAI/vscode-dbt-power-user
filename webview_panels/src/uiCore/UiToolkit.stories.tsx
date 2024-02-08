@@ -1,9 +1,4 @@
-import {
-  LikeIcon,
-  SettingsIcon,
-  ShinesIcon,
-  YellowEyeIcon,
-} from "@assets/icons";
+import { LikeIcon, SettingsIcon, ShinesIcon, PreviewIcon } from "@assets/icons";
 import type { Meta } from "@storybook/react";
 import {
   Button,
@@ -77,7 +72,7 @@ export const UIKit = {
           <Button color="link">link</Button>
           <Button outline>Settings</Button>
           <DropdownButton onToggleClick={() => null}>
-            <ShinesIcon /> Generate All <YellowEyeIcon />
+            <ShinesIcon /> Generate All <PreviewIcon />
           </DropdownButton>
         </Stack>
         <br />

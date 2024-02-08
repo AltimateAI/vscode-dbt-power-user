@@ -7,7 +7,11 @@ import {
   useMemo,
   useReducer,
 } from "react";
-import dataPilotSlice, { initialState, upsertItem } from "./dataPilotSlice";
+import dataPilotSlice, {
+  initialState,
+  reset,
+  upsertItem,
+} from "./dataPilotSlice";
 import { ContextProps, DataPilotChat } from "./types";
 
 export const DataPilotContext = createContext<ContextProps>({
@@ -35,6 +39,9 @@ const DataPilotProvider = ({
               args as Partial<DataPilotChat> & { id: DataPilotChat["id"] },
             ),
           );
+          break;
+        case "datapilot:reset":
+          dispatch(reset());
           break;
         default:
           break;

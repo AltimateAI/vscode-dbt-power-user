@@ -1,23 +1,11 @@
 import { useCallback, useEffect } from "react";
-import { updateTheme } from "./appSlice";
 import {
   executeRequestInAsync,
   handleIncomingResponse,
 } from "./requestExecutor";
-import {
-  ContextProps,
-  IncomingMessageProps,
-  IncomingSyncResponse,
-} from "./types";
+import { IncomingMessageProps, IncomingSyncResponse } from "./types";
 
-const useListeners = (dispatch: ContextProps["dispatch"]): void => {
-  const setTheme = useCallback(
-    ({ theme }: { theme: string }) => {
-      dispatch(updateTheme(theme));
-    },
-    [dispatch],
-  );
-
+const useListeners = (): void => {
   const onMesssage = useCallback(
     (event: MessageEvent<IncomingMessageProps>) => {
       const { command, args } = event.data;
@@ -25,14 +13,11 @@ const useListeners = (dispatch: ContextProps["dispatch"]): void => {
         case "response":
           handleIncomingResponse(args as unknown as IncomingSyncResponse);
           break;
-        case "setTheme":
-          setTheme(args as unknown as { theme: string });
-          break;
         default:
           break;
       }
     },
-    [setTheme],
+    [],
   );
 
   useEffect(() => {

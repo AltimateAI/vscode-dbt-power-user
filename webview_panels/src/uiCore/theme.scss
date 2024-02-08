@@ -1,27 +1,28 @@
 html {
-  --spacing-3xl: 1.714rem;
-  --spacing-2xl: 1.429rem;
+  --spacing-3xl: 1.846rem;
+  --spacing-2xl: 1.538rem;
+  --spacing-xl: 1.231rem;
   --spacing-lg: 0.857rem;
 }
 .card {
   padding: 16px;
   border-radius: 8px;
-  background: var(--card-bg);
+  background: var(--background--02);
 
   & .card-title {
     font-size: 12px;
-    color: var(--text-color);
+    color: var(--text-color--title);
     margin-bottom: 0.75rem;
   }
   & .card-body {
     padding: 0;
-    color: var(--Text-Neutral, #c4cad2);
+    color: var(--text-color--paragraph, #c4cad2);
     & .card-text {
       font-size: 12px;
       font-style: normal;
       font-weight: 300;
       line-height: 18px;
-      color: var(--Text-Neutral, #c4cad2);
+      color: var(--text-color--paragraph, #c4cad2);
     }
   }
 }
@@ -31,6 +32,10 @@ html {
   font-size: 12px;
   font-weight: 400;
   border: none;
+
+  svg {
+    vertical-align: sub;
+  }
 }
 .btn-outline-secondary,
 .btn-outline-primary {
@@ -38,13 +43,13 @@ html {
 }
 
 .btn.btn-primary {
-  background: var(--primary-accent);
+  background: var(--primary-color);
 }
 .btn.btn-danger {
-  background: var(--Action-Red);
+  background: var(--action-red);
 }
 .btn.btn-warning {
-  background: var(--Stroke-Orange);
+  background: var(--stroke--orange);
   color: #fff;
 }
 
@@ -52,19 +57,19 @@ html {
 .col-form-label {
   font-size: 12px;
   font-weight: 500;
-  color: var(--text-color);
+  color: var(--text-color--title);
 }
 
 .form-control {
   border-radius: 2px;
-  border: 1px solid var(--card-border-color);
-  background-color: var(--Backgrounds-02);
-  color: var(--text-color);
+  border: 1px solid var(--stroke--disable);
+  background-color: var(--background--02);
+  color: var(--text-color--title);
 
   &:focus {
-    border: 1px solid var(--primary-accent);
-    background-color: var(--Backgrounds-02);
-    color: var(--text-color);
+    border: 1px solid var(--primary-color);
+    background-color: var(--background--02);
+    color: var(--text-color--title);
     box-shadow: none;
   }
 }
@@ -74,16 +79,16 @@ input.form-control {
 }
 
 .dropdown-toggle {
-  background-color: var(--dropdown-toggle-color);
+  background-color: var(--background--01);
 }
 .dropdown-menu {
   --bs-border-radius: 0 0 4px 4px;
-  background: var(--card-bg);
-  border-color: var(--card-border-color);
+  background: var(--background--02);
+  border-color: var(--stroke--disable);
 
   & .dropdown-item,
   & .dropdown-item-text {
-    color: var(--text-color);
+    color: var(--text-color--title);
     font-size: 14px;
   }
 }
@@ -144,11 +149,11 @@ caption {
   border-radius: 4px;
   &.alert-warning {
     background: transparent;
-    border: 1px solid var(--Stroke-Orange, #e38e00);
-    color: var(--Stroke-Orange, #e38e00);
+    border: 1px solid var(--stroke--orange, #e38e00);
+    color: var(--stroke--orange, #e38e00);
   }
 }
-html[data-theme="dark"] {
+body.vscode-dark {
   .alert-warning {
     background: rgba(255, 206, 115, 0.1);
     border: none;
@@ -157,6 +162,6 @@ html[data-theme="dark"] {
 }
 
 .offcanvas{
-  background-color: var(--bg-color);
-  color: var(--text-color)
+  background-color: var(--background--base);
+  color: var(--text-color--title)
 }

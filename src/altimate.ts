@@ -7,6 +7,7 @@ import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
 import { join } from "path";
 import { createWriteStream, mkdir } from "fs";
 import * as os from "os";
+import { RateLimitException } from "./exceptions";
 
 interface AltimateConfig {
   key: string;
@@ -37,7 +38,7 @@ export interface DBTColumnLineageRequest {
   model_dialect: string;
   model_info: {
     model_node: ModelNode;
-    compiled_sql: string | undefined;
+    compiled_sql?: string;
   }[];
   schemas?: Schemas | null;
   upstream_expansion: boolean;
@@ -116,7 +117,7 @@ export interface DocsGenerateModelRequest {
   gen_model_description: boolean;
 }
 
-interface DocsGenerateResponse {
+export interface DocsGenerateResponse {
   column_descriptions?: {
     column_name: string;
     column_description: string;
@@ -309,6 +310,14 @@ export class AltimateRequest {
       }
       const textResponse = await response.text();
       console.log("network:response:error:", textResponse);
+      if (response.status === 429) {
+        throw new RateLimitException(
+          textResponse,
+          response.headers.get("Retry-After")
+            ? parseInt(response.headers.get("Retry-After") || "")
+            : 1 * 60 * 1000, // default to 1 min
+        );
+      }
       this.telemetry.sendTelemetryError("apiError", {
         endpoint,
         status: response.status,

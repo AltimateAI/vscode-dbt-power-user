@@ -120,17 +120,19 @@
                 :theme="getPerspectiveTheme()"
               ></perspective-viewer>
             </div>
-            <div v-show="!isPerspective">
-              <vscode-button
-                @click="copyResultsToClipboard"
-                style="margin-bottom: 4px"
-                >Copy Results</vscode-button
-              >
-              <vscode-button
-                @click="downloadAsCSV"
-                style="margin-left: 5px; margin-bottom: 4px"
-                >Download as CSV</vscode-button
-              >
+            <div v-show="!isPerspective" class="flex flex-column">
+              <div class="flex">
+                <vscode-button
+                  @click="copyResultsToClipboard"
+                  style="margin-bottom: 4px"
+                  >Copy Results</vscode-button
+                >
+                <vscode-button
+                  @click="downloadAsCSV"
+                  style="margin-left: 5px; margin-bottom: 4px"
+                  >Download as CSV</vscode-button
+                >
+              </div>
               <div id="query-results" :style="getTableStyles()"></div>
             </div>
           </div>

@@ -51,47 +51,16 @@ import ExposureDetails from "./exposure/ExposureDetails";
 import { Feedback } from "./Feedback";
 import { Help } from "./Help";
 import { Demo } from "./Demo";
-
-declare const acquireVsCodeApi: () => { postMessage: (v: unknown) => void };
-
-const vscode = acquireVsCodeApi();
+import {
+  handleResponse,
+  init,
+  openURL,
+  setLegacyLineageView,
+  columnLineage,
+  CLL,
+} from "./service_utils";
 
 export let aiEnabled = false;
-let id = 0;
-const requestMap: Record<
-  number,
-  { resolve: (k: unknown) => void; reject: (reason?: string) => void }
-> = {};
-export const requestExecutor = (url: string, params: unknown) => {
-  return new Promise((resolve, reject) => {
-    requestMap[id] = { resolve, reject };
-    vscode.postMessage({ command: url, args: { id, params } });
-    id++;
-  });
-};
-export const openFile = (url: string) => {
-  vscode.postMessage({ command: "openFile", args: { url } });
-};
-export const openURL = (url: string) => {
-  vscode.postMessage({
-    command: "openURL",
-    args: { url },
-  });
-};
-export const openChat = () => openURL("https://app.myaltimate.com/contactus");
-export const startProgressBar = () => {
-  vscode.postMessage({ command: "startProgressBar", args: {} });
-};
-export const endProgressBar = () => {
-  vscode.postMessage({ command: "endProgressBar", args: {} });
-};
-export const previewFeature = () => {
-  vscode.postMessage({ command: "previewFeature", args: {} });
-};
-export const showNoLineage = (params: { table: string; name: string }) => {
-  vscode.postMessage({ command: "showNoLineage", args: { params } });
-};
-
 export let isDarkMode = false;
 
 const nodeTypes: NodeTypes = {
@@ -271,26 +240,18 @@ function App() {
       _flow.setEdges(edges);
       rerender();
     };
-    const response = (args: {
-      id: number;
-      body: unknown;
-      status: boolean;
-      error: string;
-    }) => {
-      const { resolve, reject } = requestMap[args.id];
-      if (args.status) {
-        resolve(args.body);
-      } else {
-        reject(args.error);
-      }
-      delete requestMap[args.id];
-    };
+
     const setTheme = ({ theme }: { theme: string }) => {
       isDarkMode = theme === "dark";
       document.documentElement.setAttribute("data-theme", theme);
       rerender();
     };
-    const commandMap = { render, response, setTheme };
+    const commandMap = {
+      render,
+      response: handleResponse,
+      setTheme,
+      columnLineage,
+    };
     window.addEventListener("message", (event) => {
       console.log("lineage:message -> ", event.data);
       const { command, args } = event.data;
@@ -299,7 +260,7 @@ function App() {
       }
     });
     console.log("lineage:onload -> ");
-    vscode.postMessage({ command: "init", args: {} });
+    init();
 
     // hide demo button after 10s
     setTimeout(() => {
@@ -339,7 +300,13 @@ function App() {
                     id="select-check"
                     className="mt-0"
                     checked={selectCheck}
-                    onChange={(e) => setSelectCheck(e.target.checked)}
+                    onChange={(e) => {
+                      if (CLL.inProgress) {
+                        CLL.showCllInProgressMsg();
+                        return;
+                      }
+                      setSelectCheck(e.target.checked);
+                    }}
                   />
                   <Label check for="select-check">
                     Select
@@ -355,7 +322,13 @@ function App() {
                     id="non-select-check"
                     className="mt-0"
                     checked={nonSelectCheck}
-                    onChange={(e) => setNonSelectCheck(e.target.checked)}
+                    onChange={(e) => {
+                      if (CLL.inProgress) {
+                        CLL.showCllInProgressMsg();
+                        return;
+                      }
+                      setNonSelectCheck(e.target.checked);
+                    }}
                   />
                   <Label check for="non-select-check">
                     Non-Select
@@ -394,7 +367,8 @@ function App() {
           color="primary"
           onClick={(e) => {
             e.stopPropagation();
-            vscode.postMessage({ command: "setLegacyLineageView" });
+            setLegacyLineageView();
+            CLL.cancel();
           }}
         >
           Show Legacy UX
@@ -418,7 +392,8 @@ function App() {
             setSelectedColumn({ table: "", name: "", sessionId: "" });
             setCollectColumns({});
             setMoreTables({});
-            vscode.postMessage({ command: "init" });
+            init();
+            CLL.cancel();
           }}
           data-testid="reset-btn"
         >

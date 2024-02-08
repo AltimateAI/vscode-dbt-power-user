@@ -28,6 +28,11 @@ import { stringify, parse } from "yaml";
 import { NewDocsGenPanel } from "./newDocsGenPanel";
 import { DBTProject } from "../manifest/dbtProject";
 import { DocGenService } from "../services/docGenService";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import {
+  CustomPythonException,
+  CustomUnknownException,
+} from "../dbt_client/exception";
 
 export enum Source {
   YAML = "YAML",
@@ -88,6 +93,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     private telemetry: TelemetryService,
     private newDocsPanel: NewDocsGenPanel,
     private docGenService: DocGenService,
+    private terminal: DBTTerminal,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
@@ -269,7 +275,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
           return undefined;
         }
 
-        const { command, args } = message;
+        const { command, syncRequestId, args } = message;
         switch (command) {
           case "enableNewDocsPanel":
             await workspace
@@ -307,9 +313,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       `An error occured while fetching metadata for ${modelName} from the database: ` +
                         exc.exception.message,
                     );
-                    this.telemetry.sendTelemetryError(
-                      "docsEditPanelLoadPythonError",
-                      exc,
+                    this.terminal.error(
+                      new CustomPythonException(
+                        "docsEditPanelLoadPythonError",
+                        exc,
+                      ),
                     );
                     return;
                   }
@@ -317,9 +325,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     `An error occured while fetching metadata for ${modelName} from the database: ` +
                       exc,
                   );
-                  this.telemetry.sendTelemetryError(
-                    "docsEditPanelLoadError",
-                    exc,
+                  this.terminal.error(
+                    new CustomUnknownException("docsEditPanelLoadError", exc),
                   );
                 }
               },
@@ -467,15 +474,38 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   writeFileSync(patchPath, stringify(parsedDocFile));
                   this.documentation =
                     await this.docGenService.getDocumentation(this.eventMap);
+                  if (syncRequestId) {
+                    this._panel!.webview.postMessage({
+                      command: "response",
+                      args: {
+                        syncRequestId,
+                        body: {
+                          saved: true,
+                        },
+                        status: true,
+                      },
+                    });
+                  }
                 } catch (error) {
                   this.transmitError();
                   window.showErrorMessage(
                     `Could not save documentation to ${patchPath}: ${error}`,
                   );
-                  this.telemetry.sendTelemetryError(
-                    "saveDocumentationError",
-                    error,
+                  this.terminal.error(
+                    new CustomUnknownException("saveDocumentationError", error),
                   );
+                  if (syncRequestId) {
+                    this._panel!.webview.postMessage({
+                      command: "response",
+                      args: {
+                        syncRequestId,
+                        body: {
+                          saved: false,
+                        },
+                        status: true,
+                      },
+                    });
+                  }
                 }
               },
             );

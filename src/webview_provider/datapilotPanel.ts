@@ -26,6 +26,15 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     protected emitterService: SharedStateService,
   ) {
     super(dbtProjectContainer, altimateRequest, telemetry, emitterService);
+
+    commands.registerCommand(
+      "dbtPowerUser.resetDatapilot",
+      () =>
+        this._panel?.webview.postMessage({
+          command: "datapilot:reset",
+          args: {},
+        }),
+    );
   }
 
   async handleCommand(message: HandleCommandProps): Promise<void> {

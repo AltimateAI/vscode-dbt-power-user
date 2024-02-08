@@ -27,38 +27,17 @@ const BulkGenerateButton = () => {
     { label: "Generate only missing columns", value: "missing" },
   ];
 
-  const chunk = (a: string[], n: number) =>
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    [...Array(Math.ceil(a.length / n))].map((_, i) =>
-      a.slice(n * i, n + n * i),
-    );
-
   const bulkGenerateDocs = async (columns: DBTDocumentationColumn[]) => {
-    const chunks = chunk(
-      columns.map((c) => c.name),
-      3, // use 3 columns per request
-    );
-    const result: { columns: Partial<DBTDocumentationColumn>[] }[] = [];
-    for (const chunkedColumns of chunks) {
-      const response = await executeRequestInSync("generateDocsForColumn", {
-        description: "",
-        user_instructions: userInstructions,
-        columnNames: chunkedColumns,
-        columns: currentDocsData?.columns,
-      });
-      result.push(response as { columns: Partial<DBTDocumentationColumn>[] });
-    }
-
-    // convert 2 dim array to 1d with columns
-    const allColumnsData = (
-      result as { columns: Partial<DBTDocumentationColumn>[] }[]
-    )
-      .map((d) => d.columns)
-      .flat();
+    const result = (await executeRequestInSync("generateDocsForColumn", {
+      description: "",
+      user_instructions: userInstructions,
+      columnNames: columns.map((c) => c.name),
+      columns: currentDocsData?.columns,
+    })) as { columns: Partial<DBTDocumentationColumn>[] };
 
     dispatch(
       updateColumnsInCurrentDocsData({
-        columns: allColumnsData,
+        columns: result.columns,
         isNewGeneration: true,
       }),
     );

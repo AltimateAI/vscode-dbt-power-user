@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.30.1",
+  "version": "0.31.4",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -99,7 +99,7 @@
               "type": "string"
             },
             "default": [],
-            "description": "Define workspace-relative paths to include. Only projects within these folders will be built. If empty, no filtering is applied."
+            "description": "Define workspace-relative paths to include. Only projects within these folders will be built. If empty, no filtering is applied. The path should be relative to the workspace. Example: [folder1, folder2]"
           },
           "dbt.runModelCommandAdditionalParams": {
             "type": "array",
@@ -107,7 +107,7 @@
               "type": "string"
             },
             "default": [],
-            "description": "Add additional params to the dbt run model command."
+            "description": "Add additional params to the dbt run model command. Ex: --select model1 --target prod needs to be added as four different entries \n--select \nmodel1 \n--target \nprod "
           },
           "dbt.buildModelCommandAdditionalParams": {
             "type": "array",
@@ -115,15 +115,7 @@
               "type": "string"
             },
             "default": [],
-            "description": "Add additional params to the dbt build model command."
-          },
-          "dbt.profilesDirOverride": {
-            "type": "string",
-            "description": "Override the profiles dir for every dbt command. Absolute path or relative to the directory containing profiles.yml"
-          },
-          "dbt.targetPathOverride": {
-            "type": "string",
-            "description": "Override the target-path dir for every dbt command. Absolute path or relative to the directory containing manifest.json."
+            "description": "Add additional params to the dbt build model command. Ex: --select model1 --target prod needs to be added as four different entries \n--select \nmodel1 \n--target \nprod "
           },
           "dbt.queryLimit": {
             "type": "integer",
@@ -414,6 +406,10 @@
         }
       },
       {
+        "command": "dbtPowerUser.resetDatapilot",
+        "title": "Reset"
+      },
+      {
         "command": "dbtPowerUser.showCompiledSQL",
         "title": "Open dbt target folder compiled SQL",
         "icon": {
@@ -616,6 +612,11 @@
         {
           "command": "dbtPowerUser.generateDBTDocs",
           "when": "view == documentation_treeview",
+          "group": "navigation"
+        },
+        {
+          "command": "dbtPowerUser.resetDatapilot",
+          "when": "view == dbtPowerUser.datapilot-webview",
           "group": "navigation"
         }
       ],
@@ -867,7 +868,7 @@
   },
   "scripts": {
     "prepare": "husky install",
-    "vscode:prepublish": "npm run panel:lineage && webpack --mode production",
+    "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production",
     "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "test-compile": "tsc -p ./",

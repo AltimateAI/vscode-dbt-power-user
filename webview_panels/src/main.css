@@ -2,72 +2,84 @@
   --bs-body-font-family: "Lexend", var(--bs-font-sans-serif);
 }
 html {
-  font-size: 14px;
-
-  --bg-color: #f5f5f7;
-  --primary-accent: #247efe;
-  --column-node-bg: #e9f2ff;
-  --column-node-color: var(--primary-accent);
-  --text-color: #000000;
-  --card-bg: #ffffff;
-  --card-border-color: #e7e8ea;
-  --table-node-border-color: rgba(167, 178, 193, 0.3);
-  --table-node-expand-bg: #eaf3ff;
-  --table-node-collapse-bg: #ffffff;
-  --table-node-content-bg: #ffffff;
-  --text-grey-color: #8390a3;
-  --purpose-section-bg: #eaf3ff;
-  --column-section-bg: #f5f6f7;
-  --tag-bg: rgba(63, 140, 255, 0.1);
-  --tag-text-color: #082247;
-  --input-placeholder-color: rgba(8, 34, 71, 0.5);
-  --input-bg: #ffffff;
-  --input-text-color: #212529;
-  --input-border-color: #dee2e6;
-  --Text-Neutral: #4a4d51;
-  --Action-Red: #ee140f;
-  --dropdown-toggle-color: #1c1c1c;
-  --Action-Brand-dark: #004fbf;
-  --Stroke-Orange: #e38e00;
-  --Backgrounds-04: #4a4d51;
-  --Backgrounds-02: #fff;
-  --Select-menu-bg: #fff;
-}
-
-html[data-theme="dark"] {
-  --bg-color: #1e1e1e;
-  --primary-accent: #247efe;
-  --column-node-bg: rgba(131, 144, 163, 0.2);
-  --column-node-color: #ffffff;
-  --text-color: #ffffff;
-  --card-bg: #27292c;
-  --card-border-color: #d5dbe433;
-  --table-node-border-color: rgba(213, 219, 228, 0.1);
-  --table-node-expand-bg: #494e56;
-  --table-node-collapse-bg: #3a3d41;
-  --table-node-content-bg: #3a3d41;
-  --text-grey-color: #66768d;
-  --purpose-section-bg: #3c3c3c;
-  --column-section-bg: #3c3c3c;
-  --tag-bg: rgba(255, 255, 255, 0.1);
-  --tag-text-color: #ffffff;
-  --input-placeholder-color: #ffffff;
-  --input-bg: rgba(131, 144, 163, 0.2);
-  --input-text-color: #ffffff;
-  --input-border-color: rgba(131, 144, 163, 0.1);
-  --Text-Neutral: #c4cad2;
-  --Action-Red: #ee140f;
-  --dropdown-toggle-color: #1c1c1c;
-  --Backgrounds-04: #4a4d51;
-  --Backgrounds-02: #28292c;
-  --Select-menu-bg: rgba(66, 71, 80, 1);
+  font-size: var(--vscode-font-size, 13px);
 }
 
 body {
-  padding: 0;
-  color: var(--text-color);
-  background: var(--bg-color);
-  padding: 36px 32px;
+  --primary-color: #247efe;
+  --text-color--title: #171717;
+  --text-color--paragraph: #4a4d51;
+  --text-color--caption: #808080;
+  --text-color--white: #ffffff;
+  --text-color--brand: #247efe;
+  --background--base: #ffffff;
+  --background--01: #f6f5f8;
+  --background--02: #f5f6f7;
+  --background--03: #eaf3ff;
+  --background--04: #d3e5ff;
+  --background: #171717;
+  --background--blue: #247efe;
+  --action--active: #247efe;
+  --action--secondary: #eaf3ff;
+  --action--disable: #8390a3;
+  --action--brand: #004fbf;
+  --action-red: #ee140f;
+  --action-brand-dark: #004fbf;
+  --icon--active: #535456;
+  --icon--default: #8390a3;
+  --icon--deactive: #c4cad2;
+  --icon--blue: #247efe;
+  --stroke--active: #424750;
+  --stroke--default: #8390a3;
+  --stroke--disable: #c4cad2;
+  --stroke--orange: #e38e00;
+  --stroke--blue: #247efe;
+  --gray--gray-01: #484e55;
+  --gray--gray-02: #3a3d41;
+  --gray--blue--gray-01: #082247;
+  --gray--blue--gray-02: #374c6a;
+}
+
+body.vscode-dark {
+  --primary-color: #247efe;
+  --text-color--title: #e8e8e8;
+  --text-color--paragraph: #c4cad2;
+  --text-color--caption: #808080;
+  --text-color--white: #ffffff;
+  --text-color--brand: #247efe;
+  --background--base: #1e1e1e;
+  --background--01: #171717;
+  --background--02: #28292c;
+  --background--03: #3c3c3c;
+  --background--04: #4a4d51;
+  --background: #ffffff;
+  --background--blue: #247efe;
+  --action--active: #247efe;
+  --action--brand: #004fbf;
+  --action--secondary: #8390a3;
+  --action--disable: #424750;
+  --action-red: #ee140f;
+  --action-brand-dark: #004fbf;
+  --stroke--active: #e8e8e8;
+  --stroke--default: #8390a3;
+  --stroke--disable: #424750;
+  --stroke--orange: #e38e00;
+  --stroke--blue: #247efe;
+  --icon--active: #e8e8e8;
+  --icon--default: #8390a3;
+  --icon--deactive: #424750;
+  --icon--blue: #247efe;
+  --gray--gray-01: #484e55;
+  --gray--gray-02: #3a3d41;
+  --gray--blue--gray-01: #082247;
+  --gray--blue--gray-02: #374c6a;
+}
+
+body {
+  color: var(--text-color--title);
+  background: var(--background--base);
+  padding: var(--spacing-3xl) var(--spacing-2xl) !important;
+  line-height: 160%;
 }
 
 b,

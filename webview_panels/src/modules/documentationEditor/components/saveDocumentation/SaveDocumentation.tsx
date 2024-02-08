@@ -1,8 +1,9 @@
 import { MoreIcon } from "@assets/icons";
+import { executeRequestInSync } from "@modules/app/requestExecutor";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
-import { vscode } from "@modules/vscode";
 import { Button, IconButton, Popover, PopoverBody, List, Stack } from "@uicore";
 import { useEffect, useState } from "react";
+import { setIsDocGeneratedForAnyColumn } from "@modules/documentationEditor/state/documentationSlice";
 import classes from "../../styles.module.scss";
 
 const SaveDocumentation = (): JSX.Element | null => {
@@ -11,15 +12,18 @@ const SaveDocumentation = (): JSX.Element | null => {
   const [openPopover, setOpenPopover] = useState(false);
   const {
     state: { currentDocsData, isDocGeneratedForAnyColumn },
+    dispatch,
   } = useDocumentationContext();
 
-  const saveDocumentation = () => {
-    vscode.postMessage({
-      command: "saveDocumentation",
+  const saveDocumentation = async () => {
+    const result = (await executeRequestInSync("saveDocumentation", {
       ...currentDocsData,
       patchPath,
       dialogType,
-    });
+    })) as { saved: boolean };
+    if (result.saved) {
+      dispatch(setIsDocGeneratedForAnyColumn(false));
+    }
   };
 
   useEffect(() => {
@@ -50,7 +54,7 @@ const SaveDocumentation = (): JSX.Element | null => {
 
   return (
     <Stack direction="row" className={classes.save}>
-      <h5>Save documentation</h5>
+      <h4>Save documentation</h4>
       <p>{currentDocsData?.patchPath ?? "Write path"}</p>
 
       {currentDocsData?.patchPath ? null : (

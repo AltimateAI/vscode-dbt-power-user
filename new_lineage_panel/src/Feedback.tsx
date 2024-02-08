@@ -7,7 +7,7 @@ import styles from "./styles.module.scss";
 import { useState } from "react";
 import { CustomMultilineInput } from "./Form";
 import { sendFeedback } from "./service";
-import { openChat } from "./App";
+import { openChat } from "./service_utils";
 
 enum FeedbackState {
   None = "",
