@@ -1,6 +1,6 @@
 import { Card, CardBody, Stack } from "@uicore";
 import { useCallback, useState } from "react";
-import { DataPilotChat, DataPilotChatAction, RequestState } from "../types";
+import { DataPilotChat, DataPilotChatAction, RequestState } from "../../types";
 import AiDocActionButton from "./AiDocActionButton";
 import NewGenerationResults from "./NewGenerationResults";
 import { EntityType, GeneratedResult } from "./types";

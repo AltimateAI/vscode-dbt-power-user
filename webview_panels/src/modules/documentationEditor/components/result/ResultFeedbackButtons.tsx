@@ -4,7 +4,7 @@ import { Controller, useForm } from "react-hook-form";
 import { LikeIcon, DislikeIcon } from "@assets/icons";
 import { Button, Form, IconButton, Input, Stack } from "@uicore";
 import { useCallback, useState } from "react";
-import { Feedback, Rating } from "@modules/dataPilot/components/types";
+import { Feedback, Rating } from "@modules/dataPilot/components/docGen/types";
 
 interface Props {
   onFeedbackSubmit: (data: Feedback) => void;

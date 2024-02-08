@@ -1,4 +1,4 @@
-import { AltimateIcon, UserIcon } from "@assets/icons";
+import { AltimateIcon } from "@assets/icons";
 import ResultFeedbackButtons from "@modules/documentationEditor/components/result/ResultFeedbackButtons";
 import { Button, Card, CardBody, CardTitle, List, Stack } from "@uicore";
 import {
@@ -8,14 +8,15 @@ import {
   FeedbackType,
   GeneratedResult,
 } from "./types";
-import classes from "../datapilot.module.scss";
+import classes from "../../datapilot.module.scss";
 import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
-import { DataPilotChat } from "../types";
+import { DataPilotChat } from "../../types";
 import { useCallback } from "react";
+import UserQuery from "../common/UserQuery";
 
 interface Props {
   generatedResults: GeneratedResult[];
@@ -76,14 +77,7 @@ const NewGenerationResults = ({
       {generatedResults.map((result) => (
         <>
           <li ref={onAiGenerationRender}>
-            <Card className={classes.promptCard}>
-              <CardBody>
-                <Stack>
-                  <UserIcon />
-                  {result.user_prompt}
-                </Stack>
-              </CardBody>
-            </Card>
+            <UserQuery query={result.user_prompt} />
           </li>
           <li key={result.name}>
             <Card>

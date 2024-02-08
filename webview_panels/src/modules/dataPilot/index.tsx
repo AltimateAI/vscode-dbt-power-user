@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { List } from "@uicore";
 import useDataPilotContext from "./useDataPilotContext";
 import { DataPilotChat, RequestTypes } from "./types";
-import AiDocChat from "./components/AiDocChat";
+import AiDocChat from "./components/docGen/AiDocChat";
 import classes from "./datapilot.module.scss";
 import DefaultDatapilotView from "./DefaultDatapilotView";
 
