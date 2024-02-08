@@ -20,6 +20,7 @@ const QueryAnalysisActionButton = ({ action }: Props): JSX.Element => {
             command: action.command,
             onNewGeneration,
             sessionId: chat?.id,
+            user_request: action.title,
           })
         }
         disabled={isLoading}

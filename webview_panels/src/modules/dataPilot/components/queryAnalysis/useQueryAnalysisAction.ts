@@ -25,7 +25,7 @@ const useQueryAnalysisAction = (): {
   const onProgress = (
     id: string,
     chunk: string,
-    cb: (result: QueryExplainUpdate) => void
+    cb: (result: QueryExplainUpdate) => void,
   ) => {
     cb({ session_id: id, response: chunk });
   };
@@ -44,7 +44,7 @@ const useQueryAnalysisAction = (): {
 
       onNewGeneration({
         session_id: id,
-        user_prompt: "Query Explanation",
+        user_prompt: user_request ?? "Query Explanation",
         datapilot_title: "Datapilot Response",
         state: RequestState.LOADING,
       });
@@ -55,7 +55,7 @@ const useQueryAnalysisAction = (): {
           { session_id: sessionId, history, user_request },
           (chunk: string) => {
             onProgress(id, chunk, onNewGeneration);
-          }
+          },
         ) as Promise<{ response: string }>,
         executeRequestInSync("queryanalysis:followup", {
           user_request,
@@ -66,7 +66,7 @@ const useQueryAnalysisAction = (): {
       panelLogger.info(
         "executeQueryAnalysis result",
         result,
-        followupQuestions
+        followupQuestions,
       );
       onNewGeneration({
         session_id: id,

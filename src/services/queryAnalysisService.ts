@@ -101,7 +101,7 @@ export class QueryAnalysisService {
     return this.altimateRequest.fetch("dbt/v2/follow-up-questions", {
       method: "POST",
       body: JSON.stringify({
-        dbt_model: {
+        model: {
           model_name: documentation.name,
           adapter,
           compiled_sql: query,
