@@ -50,7 +50,8 @@ const createNewNodesEdges = (
   tables: Table[],
   t: string,
   right: boolean,
-  level: number
+  level: number,
+  max_expand_table = MAX_EXPAND_TABLE
 ) => {
   const newLevel = calculateNewLevel(right, level);
 
@@ -63,7 +64,7 @@ const createNewNodesEdges = (
 
   let tableAdded = 0;
   for (const _t of tables) {
-    if (tableAdded >= MAX_EXPAND_TABLE) {
+    if (tableAdded >= max_expand_table) {
       const nodeId = getSeeMoreId(t, right);
       nodes.push({
         id: nodeId,
@@ -494,9 +495,17 @@ export const expandTableLineageLevelWise = async (
       const curr = queue.shift()!;
       if (visited[curr.table]) continue;
       visited[curr.table] = true;
-      const newLevel = calculateNewLevel(right, curr.level);
       const { tables } = await getConnectedTables(right, curr.table);
-      createNewNodesEdges(nodes, edges, tables, curr.table, right, curr.level);
+      createNewNodesEdges(
+        nodes,
+        edges,
+        tables,
+        curr.table,
+        right,
+        curr.level,
+        Infinity
+      );
+      const newLevel = calculateNewLevel(right, curr.level);
       if (withinExcBounds(newLevel)) {
         queue.push(...tables.map((t) => ({ table: t.table, level: newLevel })));
       } else {
