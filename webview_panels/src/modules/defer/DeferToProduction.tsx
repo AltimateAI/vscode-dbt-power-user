@@ -1,6 +1,5 @@
 import {
   Tag,
-  Button,
   Card,
   CardBody,
   CardText,
@@ -13,7 +12,6 @@ import {
   Select,
 } from "@uicore";
 import { useCallback, useEffect, useState } from "react";
-import { SettingsIcon } from "@assets/icons";
 import {
   executeRequestInAsync,
   executeRequestInSync,
@@ -53,7 +51,6 @@ const DeferToProduction = (): JSX.Element => {
     projectIntegrations: [],
     dbt_core_integration_id: -1,
   });
-  const [hideBody, setHideBody] = useState(true);
   const [showManifestError, setShowManifestError] = useState(false);
 
   const onMesssage = useCallback(
@@ -98,8 +95,6 @@ const DeferToProduction = (): JSX.Element => {
       return;
     });
   }, []);
-
-  const toggleBody = () => setHideBody(!hideBody);
 
   const updateDeferAndFavorState = ({
     key,
@@ -184,6 +179,19 @@ const DeferToProduction = (): JSX.Element => {
   const handleManifestPathTypeChange = async (option: string) => {
     if (option === "remote") {
       await setProjectIntegrations();
+      if (dbt_core_integration_id > 0) {
+        await executeRequestInSync("updateDeferConfig", {
+          key: "manifestPathType",
+          value: option,
+        });
+      }
+    } else {
+      if (manifestPathForDeferral) {
+        await executeRequestInSync("updateDeferConfig", {
+          key: "manifestPathType",
+          value: option,
+        });
+      }
     }
     setDeferState((prevState) => ({
       ...prevState,
@@ -229,20 +237,15 @@ const DeferToProduction = (): JSX.Element => {
     <Col lg={7}>
       <Card className={classes.insightsCard}>
         <CardTitle className={classes.cardTitle} tag="h5">
-          Enable defer_to_production
+          Enable defer to production
           <Tag color="primary">Performance</Tag>
-          <Button outline onClick={toggleBody}>
-            <SettingsIcon />
-          </Button>
         </CardTitle>
-        <CardBody hidden={hideBody}>
-          <CardText>
-            Run subset of models without building their parent models
-          </CardText>
+        <CardBody>
+          <CardText>Save costs by only running what is changed</CardText>
           <Form>
             <FormGroup switch className={classes.formSwitch}>
               <Label>
-                Defer_to_production
+                Defer to production
                 <Input
                   type="switch"
                   onChange={handleStateChange}
@@ -256,16 +259,16 @@ const DeferToProduction = (): JSX.Element => {
               <div className={classes.pathSelectionRow}>
                 <Label
                   check
-                  for="manifestPath"
+                  for="localManifestPathRadio"
                   sm={2}
                   className={classes.title}
                   style={{ whiteSpace: "nowrap" }}
+                  onClick={() => handleManifestPathTypeChange("local")}
                 >
                   <Input
                     type="radio"
                     name="localManifestPathRadio"
                     checked={manifestPathType === "local"}
-                    onChange={() => handleManifestPathTypeChange("local")}
                   />
                   Local Path to manifest folder
                 </Label>
@@ -291,20 +294,19 @@ const DeferToProduction = (): JSX.Element => {
               <div className={classes.pathSelectionRow}>
                 <Label
                   check
-                  for="remoteManifestPath"
+                  for="manifestPathRadio"
                   sm={2}
                   className={classes.title}
                   style={{ whiteSpace: "nowrap" }}
+                  onClick={() => handleManifestPathTypeChange("remote")}
                 >
                   <Input
                     type="radio"
                     name="manifestPathRadio"
                     checked={manifestPathType === "remote"}
-                    onChange={() => handleManifestPathTypeChange("remote")}
                   />
                   DataPilot dbt Integration
                 </Label>
-
                 {manifestPathType === "remote" && projectIntegrations && (
                   <Select
                     options={projectIntegrations}

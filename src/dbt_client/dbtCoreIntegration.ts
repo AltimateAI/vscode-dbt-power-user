@@ -425,31 +425,41 @@ export class DBTCoreProjectIntegration
     if (!deferToProduction) {
       return [];
     }
-    if (!manifestPathForDeferral) {
-      return [];
-    }
-    if (manifestPathType === "remote" && dbt_core_integration_id) {
-      const response = await this.altimateRequest.downloadArtifact(
-        "manifest",
-        dbt_core_integration_id,
-      );
-      if (response?.url) {
-        const manifestPath = await this.altimateRequest.downloadFileLocally(
-          response.url,
+    if (manifestPathType === "local") {
+      if (!manifestPathForDeferral) {
+        return [];
+      }
+      const args = ["--defer", "--state", manifestPathForDeferral];
+      if (favorState) {
+        args.push("--favor-state");
+      }
+      return args;
+    } else if (manifestPathType === "remote") {
+      if (dbt_core_integration_id! > 0) {
+        const response = await this.altimateRequest.downloadArtifact(
+          "manifest",
+          dbt_core_integration_id!,
         );
-        console.log(`Set remote manifest path: ${manifestPath}`);
-        const args = ["--defer", "--state", manifestPath];
-        if (favorState) {
-          args.push("--favor-state");
+        if (response?.url) {
+          const manifestPath = await this.altimateRequest.downloadFileLocally(
+            response.url,
+          );
+          if (manifestPath) {
+            console.log(`Set remote manifest path: ${manifestPath}`);
+            const args = ["--defer", "--state", manifestPath];
+            if (favorState) {
+              args.push("--favor-state");
+            }
+            return args;
+          } else {
+            window.showErrorMessage("Unable to use remote manifest file.");
+            this.telemetry.sendTelemetryEvent("remoteManifestError");
+            throw new Error("Unable to use remote manifest file.");
+          }
         }
-        return args;
       }
     }
-    const args = ["--defer", "--state", manifestPathForDeferral];
-    if (favorState) {
-      args.push("--favor-state");
-    }
-    return args;
+    return [];
   }
 
   private async addDeferParams(command: DBTCommand) {
