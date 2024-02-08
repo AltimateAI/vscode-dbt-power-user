@@ -489,9 +489,9 @@ export const expandTableLineageLevelWise = async (
   lb: number, // lower bound
   ub: number // upper bound
 ): Promise<[Node[], Edge[]]> => {
-  const nodes = [..._nodes];
-  const edges = [..._edges];
-  if (lb >= ub) return [nodes, edges];
+  let nodes = [..._nodes];
+  let edges = [..._edges];
+  if (lb > ub) return [nodes, edges];
   const withinExcBounds = withinExclusive(lb, ub);
   const rootLevel = nodes.find((n) => n.id === _table)!.data.level;
   const bfs = async (right: boolean) => {
@@ -522,6 +522,10 @@ export const expandTableLineageLevelWise = async (
   };
   if (ub > rootLevel) await bfs(true);
   if (lb < rootLevel) await bfs(false);
+  if (ub === rootLevel)
+    [nodes, edges] = await expandTableLineage(nodes, edges, _table, true);
+  if (lb === rootLevel)
+    [nodes, edges] = await expandTableLineage(nodes, edges, _table, false);
 
   return [nodes, edges];
 };
@@ -532,7 +536,7 @@ const _calculateMinLevel = (
   table: string,
   right: boolean
 ): number => {
-  if (!table) return 0;
+  if (!table) return -1;
   const src = right ? "source" : "target";
   const dst = right ? "target" : "source";
   const countKey = right ? "upstreamCount" : "downstreamCount";
@@ -553,22 +557,20 @@ const _calculateMinLevel = (
   const bfs = () => {
     const queue = [table];
     const visited: Record<string, boolean> = {};
-
     while (queue.length > 0) {
       const curr = queue.shift()!;
       if (visited[curr]) continue;
       visited[curr] = true;
-      for (const n of adjacencyList[curr]) {
-        const nodeData = nodesMap[n].data;
-        if (nodeData[countKey] === 0) continue;
-        if (adjacencyList[n].length < nodeData[countKey]) return n;
-        queue.push(n);
-      }
+      const nodeData = nodesMap[curr].data;
+      if (nodeData[countKey] === 0) continue;
+      if (adjacencyList[curr].length < nodeData[countKey]) return curr;
+      for (const n of adjacencyList[curr]) queue.push(n);
     }
   };
   const targetNode = bfs();
 
-  if (!targetNode) return 0;
+  // unable to find such node means everything is already expanded
+  if (!targetNode) return -1;
   const { level: rootLevel } = nodesMap[table].data;
   const { level: targetLevel } = nodesMap[targetNode].data;
   return right ? targetLevel - rootLevel : rootLevel - targetLevel;

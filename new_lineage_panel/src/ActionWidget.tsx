@@ -102,8 +102,8 @@ const AutoExpansionPopover = () => {
   }, [flow, selectedTable, setMinRange]);
 
   useEffect(() => {
-    setLeftExpansion(minRange[0]);
-    setRightExpansion(minRange[1]);
+    setLeftExpansion(Math.max(minRange[0], 0));
+    setRightExpansion(Math.max(minRange[1], 0));
     setNodeCount(0);
   }, [minRange, setLeftExpansion, setRightExpansion]);
 
@@ -154,6 +154,8 @@ const AutoExpansionPopover = () => {
     })();
   }, [flow, selectedTable]);
 
+  console.log("AutoExpansionPopover:", minRange, maxRange);
+
   return (
     <>
       <Button
@@ -179,7 +181,8 @@ const AutoExpansionPopover = () => {
             <div className="w-100 d-flex gap-xl justify-content-between align-items-center">
               <div
                 className={classNames(styles.expand_nav_left, {
-                  [styles.disabled]: minRange[0] >= maxRange[0],
+                  [styles.disabled]:
+                    leftExpansion >= maxRange[0] || minRange[0] === -1,
                 })}
               >
                 <div className={styles.expand_nav_btn}>
@@ -209,7 +212,8 @@ const AutoExpansionPopover = () => {
               </div>
               <div
                 className={classNames(styles.expand_nav_right, {
-                  [styles.disabled]: minRange[1] >= maxRange[1],
+                  [styles.disabled]:
+                    rightExpansion >= maxRange[1] || minRange[1] === -1,
                 })}
               >
                 <div className="text-blue px-2 py-1">{rightExpansion}</div>
