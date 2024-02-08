@@ -18,6 +18,7 @@ export const DatapilotQueryAnalysisFactory =
     response: undefined,
     updatedAt: faker.date.past(),
     fileName: faker.system.fileName(),
+    analysisType: faker.helpers.enumValue(QueryAnalysisType)
   });
 
 export const DatapilotQueryExplainFactory =
@@ -28,7 +29,7 @@ export const DatapilotQueryExplainFactory =
 export const DatapilotQueryExplainResultFactory =
   Sync.makeFactory<QueryExplainResult>({
     datapilot_title: "Query explanation",
-    response: faker.lorem.paragraph(),
+    response: each(() => faker.lorem.paragraph()),
     user_prompt: "Explain the query",
     session_id: each(() => faker.string.uuid()),
     state: RequestState.COMPLETED,

@@ -44,7 +44,7 @@ export const DatapilotDocGenWithLoadingFactory =
 export const DatapilotDocGenActionButtonFactory =
   Sync.makeFactory<DataPilotChatAction>({
     title: "Regenerate",
-    command: "rengenerate",
+    command: "regenerate",
     data: { modelName: "customers" },
     user_prompt: "Regenerate documentation for {type} {name}",
     datapilot_title: "Improving documentation based on the user suggestion",

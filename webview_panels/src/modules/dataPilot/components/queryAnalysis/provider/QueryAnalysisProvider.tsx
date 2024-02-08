@@ -55,6 +55,9 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
       const currentIndex = prev.findIndex(
         (r) => r.session_id === result.session_id,
       );
+      if (currentIndex === -1){
+        return [...prev, result as QueryExplainResult];
+      }
       const clone = [...prev];
       clone[currentIndex] = {
         ...clone[currentIndex],

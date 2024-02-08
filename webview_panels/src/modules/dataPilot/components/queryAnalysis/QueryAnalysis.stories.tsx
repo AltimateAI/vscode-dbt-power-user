@@ -10,6 +10,7 @@ import {
 import { RequestState } from "@modules/dataPilot/types";
 import { userEvent, within } from "@storybook/testing-library";
 import { faker } from "@faker-js/faker";
+import { panelLogger } from "@modules/logger";
 
 const queryAnalysisLoadingState = DatapilotQueryAnalysisFactory.build({
   state: RequestState.LOADING,
@@ -50,7 +51,7 @@ const queryAnalysisDefaultState = DatapilotQueryAnalysisFactory.build({
 export default {
   title: "Datapilot/Query Analysis",
   parameters: {
-    layout: "centered",
+    layout: "left",
   },
   tags: ["autodocs"],
   argTypes: {
@@ -80,6 +81,7 @@ export const ExplainLoading: StoryObj = {
       initialState: {
         state: {
           items: { [queryAnalysisLoadingState.id]: queryAnalysisLoadingState },
+          currentSessionId: queryAnalysisLoadingState.id
         },
       },
     }),
@@ -92,13 +94,21 @@ export const ExplainFlow = {
   },
   parameters: {
     vscode: {
-      data: DatapilotQueryExplainResultFactory.build({
-        actions: [
-          DatapilotDocGenActionButtonFactory.build({
-            title: "Why there is a join condition?",
-          }),
-        ],
-      }),
+      func: (request: Record<string, unknown>): unknown => {
+        if (request.command === "regenerate" || request.command === 'queryAnalysis:explain'){
+          return DatapilotQueryExplainResultFactory.build({
+            actions: [
+              DatapilotDocGenActionButtonFactory.build({
+                title: "Why there is a join condition?",
+              }),
+            ],
+          })
+        }
+        if (request.command === "queryanalysis:followup"){
+          return faker.helpers.multiple(() => faker.lorem.sentence(), {count: 4})
+        }
+        panelLogger.log(request)
+      },
       timer: 500,
     },
   },
@@ -108,6 +118,8 @@ export const ExplainFlow = {
       initialState: {
         state: {
           items: { [queryAnalysisDefaultState.id]: queryAnalysisDefaultState },
+          currentSessionId: queryAnalysisDefaultState.id
+
         },
       },
     }),

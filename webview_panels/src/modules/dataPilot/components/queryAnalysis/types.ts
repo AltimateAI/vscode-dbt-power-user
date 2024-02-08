@@ -12,7 +12,7 @@ export enum QueryAnalysisType {
 export interface DatapilotQueryAnalysisChat extends DataPilotChat {
   query: string;
   fileName: string;
-  analysisType?: QueryAnalysisType;
+  analysisType: QueryAnalysisType;
 }
 
 export interface QueryExplainResult {
