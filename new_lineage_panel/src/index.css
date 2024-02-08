@@ -55,6 +55,7 @@ html[data-theme="dark"] {
 body {
   padding: 0;
   color: var(--text-color);
+  font-size: var(--vscode-font-size) !important;
 }
 
 .position-relative {
