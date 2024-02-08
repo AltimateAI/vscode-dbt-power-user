@@ -128,22 +128,22 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
 
   // calculate metadata such as tables and columns per level
   // to get tables position along y axis
+  const processNode = (n: Node) => {
+    const { level } = n.data;
+    levelWiseTables[level] = levelWiseTables[level] || [];
+    if (!levelWiseTables[level].includes(n.id)) {
+      tableWiseLevelPos[n.id] = levelWiseTables[level].length;
+      tableWiseLevelColumnCount[n.id] = 0;
+      for (const curr of levelWiseTables[level])
+        tableWiseLevelColumnCount[n.id] += tableWiseColumnCount[curr] || 0;
+      levelWiseTables[level].push(n.id);
+    }
+  };
   const dfs = (n: string, adjacencyList: Record<string, string[]>) => {
     if (visited[n]) return;
     visited[n] = true;
-    const node = nodes.find((item) => item.id === n)!;
-    const { level } = node.data;
-    levelWiseTables[level] = levelWiseTables[level] || [];
-    if (!levelWiseTables[level].includes(n)) {
-      tableWiseLevelPos[n] = levelWiseTables[level].length;
-      tableWiseLevelColumnCount[n] = 0;
-      for (const curr of levelWiseTables[level])
-        tableWiseLevelColumnCount[n] += tableWiseColumnCount[curr] || 0;
-      levelWiseTables[level].push(n);
-    }
-    for (const m of adjacencyList[n] || []) {
-      dfs(m, adjacencyList);
-    }
+    processNode(nodes.find((item) => item.id === n)!);
+    for (const m of adjacencyList[n] || []) dfs(m, adjacencyList);
   };
 
   for (const n of nodes) {
@@ -154,18 +154,11 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
     visited[n.id] = false;
     dfs(n.id, adjacencyListLeft);
   }
+  // will place see more node at the end of level
   for (const n of nodes) {
     if (isColumn(n)) continue;
     if (!isSeeMore(n)) continue;
-    const { level } = n.data;
-    levelWiseTables[level] = levelWiseTables[level] || [];
-    if (!levelWiseTables[level].includes(n.id)) {
-      tableWiseLevelPos[n.id] = levelWiseTables[level].length;
-      tableWiseLevelColumnCount[n.id] = 0;
-      for (const curr of levelWiseTables[level])
-        tableWiseLevelColumnCount[n.id] += tableWiseColumnCount[curr] || 0;
-      levelWiseTables[level].push(n.id);
-    }
+    processNode(n);
   }
 
   // assign position to table and see more nodes
