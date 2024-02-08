@@ -1,0 +1,7 @@
+.popover {
+  :global .popover {
+    --bs-popover-bg: --popover-bg;
+    background-color: var(--popover-bg);
+    color: var(--popover-bg);
+  }
+}

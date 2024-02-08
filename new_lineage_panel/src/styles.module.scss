@@ -344,14 +344,6 @@ $size: 1.2em;
   }
 }
 
-.expand_popover {
-  :global .popover {
-    --bs-popover-bg: --popover-bg;
-    background-color: var(--popover-bg);
-    color: var(--popover-bg);
-  }
-}
-
 .expand-nav {
   border-radius: 4px;
   border: var(--table-node-border-color) solid 1px;

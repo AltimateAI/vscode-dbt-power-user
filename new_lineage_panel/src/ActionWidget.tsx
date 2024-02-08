@@ -9,16 +9,7 @@ import {
   useState,
 } from "react";
 import "reactflow/dist/style.css";
-import {
-  Button,
-  Card,
-  CardBody,
-  Input,
-  Label,
-  Popover,
-  PopoverBody,
-  Tooltip,
-} from "reactstrap";
+import { Button, Card, CardBody, Input, Label, Tooltip } from "reactstrap";
 import AlertCircleIcon from "./assets/icons/alert-circle.svg?react";
 import ResetIcon from "./assets/icons/reset.svg?react";
 import HelpIcon from "./assets/icons/help.svg?react";
@@ -40,6 +31,7 @@ import {
   layoutElementsOnCanvas,
 } from "./graph";
 import classNames from "classnames";
+import { BetterPopover } from "./components/Modal/BetterPopover";
 
 const InfoIcon: FunctionComponent<{ id: string; message: string }> = ({
   id,
@@ -92,7 +84,6 @@ const AutoExpansionPopover = () => {
     setMinRange,
   } = useContext(LineageContext);
   const [nodeCount, setNodeCount] = useState(0);
-  const [isOpen, setIsOpen] = useState(false);
   const [maxRange, setMaxRange] = useState([0, 0]);
 
   useEffect(() => {
@@ -105,15 +96,10 @@ const AutoExpansionPopover = () => {
     setLeftExpansion(Math.max(minRange[0], 0));
     setRightExpansion(Math.max(minRange[1], 0));
     setNodeCount(0);
-    document.getElementsByTagName("body")[0].addEventListener("click", () => {
-      setIsOpen(false);
-    });
   }, [minRange, setLeftExpansion, setRightExpansion]);
 
   useEffect(() => {
-    console.log("useEffect2");
     (async () => {
-      console.log("useEffect2:async");
       if (!selectedTable) return;
       const selectedTableData = flow.getNode(selectedTable)?.data;
       if (!selectedTableData) return;
@@ -157,124 +143,112 @@ const AutoExpansionPopover = () => {
     })();
   }, [flow, selectedTable]);
 
-  console.log("AutoExpansionPopover:", minRange, maxRange);
-
   return (
-    <>
-      <Button
-        size="sm"
-        color="primary"
-        className="d-flex gap-sm align-items-center"
-        id="expand-btn"
-        type="button"
-      >
-        <ExpandIcon />
-        Expand
-      </Button>
-      <Popover
-        placement="bottom"
-        trigger="click"
-        target="expand-btn"
-        className={styles.expand_popover}
-        isOpen={isOpen}
-        toggle={() => setIsOpen((b) => !b)}
-      >
-        <PopoverBody onClick={(e) => e.stopPropagation()}>
-          <div className="d-flex flex-column gap-xs">
-            <div className="w-100 d-flex gap-xl justify-content-between align-items-center">
-              <div
-                className={classNames(styles.expand_nav_left, {
-                  [styles.disabled]:
-                    leftExpansion >= maxRange[0] || minRange[0] === -1,
-                })}
-              >
-                <div className={styles.expand_nav_btn}>
-                  <div
-                    className={styles.icon}
-                    onClick={() => {
-                      setLeftExpansion(maxRange[0]);
-                    }}
-                  >
-                    <ArrowLeftDoubleIcon />
-                  </div>
-                  <div className={styles.divider} />
-                  <div
-                    className={styles.icon}
-                    onClick={() => {
-                      setLeftExpansion((i) =>
-                        i + 1 <= maxRange[0] ? i + 1 : i
-                      );
-                    }}
-                  >
-                    <ArrowLeftIcon />
-                  </div>
-                </div>
-                <div className="text-blue px-2 py-1">{leftExpansion}</div>
-              </div>
-              <div
-                className={classNames(styles.expand_nav_right, {
-                  [styles.disabled]:
-                    rightExpansion >= maxRange[1] || minRange[1] === -1,
-                })}
-              >
-                <div className="text-blue px-2 py-1">{rightExpansion}</div>
-                <div className={styles.expand_nav_btn}>
-                  <div
-                    className={styles.icon}
-                    onClick={() => {
-                      setRightExpansion((i) =>
-                        i + 1 <= maxRange[1] ? i + 1 : i
-                      );
-                    }}
-                  >
-                    <ArrowRightIcon />
-                  </div>
-                  <div className={styles.divider} />
-                  <div
-                    className={styles.icon}
-                    onClick={() => {
-                      setRightExpansion(maxRange[1]);
-                    }}
-                  >
-                    <ArrowRightDoubleIcon />
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="w-100 d-flex gap-xl justify-content-between align-items-center">
-              <div className="normal-text">Parents</div>
-              <div className="normal-text">Children</div>
-            </div>
-            <Button
-              color={nodeCount === 0 ? "secondary" : "primary"}
-              size="sm"
-              disabled={nodeCount === 0}
-              onClick={async () => {
-                if (!selectedTable) return;
-                const selectedTableData = flow.getNode(selectedTable)?.data;
-                if (!selectedTableData) return;
-
-                const [nodes, edges] = await expandTableLineageLevelWise(
-                  flow.getNodes(),
-                  flow.getEdges(),
-                  selectedTable,
-                  selectedTableData.level - leftExpansion,
-                  selectedTableData.level + rightExpansion
-                );
-                highlightTableConnections(nodes, edges, selectedTable);
-                layoutElementsOnCanvas(nodes, edges);
-                flow.setNodes(nodes);
-                flow.setEdges(edges);
-                setIsOpen(false);
-                setMinRange(calculateMinLevel(nodes, edges, selectedTable));
-              }}
+    <BetterPopover
+      trigger={
+        <Button
+          size="sm"
+          color="primary"
+          className="d-flex gap-sm align-items-center"
+          type="button"
+        >
+          <ExpandIcon />
+          Expand
+        </Button>
+      }
+      render={({ close }) => (
+        <div className="d-flex flex-column gap-xs">
+          <div className="w-100 d-flex gap-xl justify-content-between align-items-center">
+            <div
+              className={classNames(styles.expand_nav_left, {
+                [styles.disabled]:
+                  leftExpansion >= maxRange[0] || minRange[0] === -1,
+              })}
             >
-              Add {nodeCount} tables
-            </Button>
+              <div className={styles.expand_nav_btn}>
+                <div
+                  className={styles.icon}
+                  onClick={() => {
+                    setLeftExpansion(maxRange[0]);
+                  }}
+                >
+                  <ArrowLeftDoubleIcon />
+                </div>
+                <div className={styles.divider} />
+                <div
+                  className={styles.icon}
+                  onClick={() => {
+                    setLeftExpansion((i) => (i + 1 <= maxRange[0] ? i + 1 : i));
+                  }}
+                >
+                  <ArrowLeftIcon />
+                </div>
+              </div>
+              <div className="text-blue px-2 py-1">{leftExpansion}</div>
+            </div>
+            <div
+              className={classNames(styles.expand_nav_right, {
+                [styles.disabled]:
+                  rightExpansion >= maxRange[1] || minRange[1] === -1,
+              })}
+            >
+              <div className="text-blue px-2 py-1">{rightExpansion}</div>
+              <div className={styles.expand_nav_btn}>
+                <div
+                  className={styles.icon}
+                  onClick={() => {
+                    setRightExpansion((i) =>
+                      i + 1 <= maxRange[1] ? i + 1 : i
+                    );
+                  }}
+                >
+                  <ArrowRightIcon />
+                </div>
+                <div className={styles.divider} />
+                <div
+                  className={styles.icon}
+                  onClick={() => {
+                    setRightExpansion(maxRange[1]);
+                  }}
+                >
+                  <ArrowRightDoubleIcon />
+                </div>
+              </div>
+            </div>
           </div>
-        </PopoverBody>
-      </Popover>
-    </>
+          <div className="w-100 d-flex gap-xl justify-content-between align-items-center">
+            <div className="normal-text">Parents</div>
+            <div className="normal-text">Children</div>
+          </div>
+          <Button
+            color={nodeCount === 0 ? "secondary" : "primary"}
+            size="sm"
+            disabled={nodeCount === 0}
+            onClick={async () => {
+              if (!selectedTable) return;
+              const selectedTableData = flow.getNode(selectedTable)?.data;
+              if (!selectedTableData) return;
+
+              const [nodes, edges] = await expandTableLineageLevelWise(
+                flow.getNodes(),
+                flow.getEdges(),
+                selectedTable,
+                selectedTableData.level - leftExpansion,
+                selectedTableData.level + rightExpansion
+              );
+              highlightTableConnections(nodes, edges, selectedTable);
+              layoutElementsOnCanvas(nodes, edges);
+              flow.setNodes(nodes);
+              flow.setEdges(edges);
+              close();
+              setMinRange(calculateMinLevel(nodes, edges, selectedTable));
+            }}
+          >
+            Add {nodeCount} tables
+          </Button>
+        </div>
+      )}
+    />
   );
 };
 
