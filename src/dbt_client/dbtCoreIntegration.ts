@@ -436,7 +436,7 @@ export class DBTCoreProjectIntegration
       return args;
     } else if (manifestPathType === "remote") {
       if (dbt_core_integration_id! > 0) {
-        const response = await this.altimateRequest.downloadArtifact(
+        const response = await this.altimateRequest.fetchArtifactUrl(
           "manifest",
           dbt_core_integration_id!,
         );

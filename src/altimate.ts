@@ -462,12 +462,12 @@ export class AltimateRequest {
     return this.fetch<DBTCoreIntegration[]>("dbt/v1/project_integrations");
   }
 
-  async downloadArtifact(
+  async fetchArtifactUrl(
     artifact_type: string,
     dbt_core_integration_id: number,
   ) {
     return this.fetch<DownloadArtifactResponse>(
-      `dbt/v1/download_artifact${this.getQueryString({
+      `dbt/v1/fetch_artifact_url${this.getQueryString({
         artifact_type: artifact_type,
         dbt_core_integration_id: dbt_core_integration_id,
       })}`,

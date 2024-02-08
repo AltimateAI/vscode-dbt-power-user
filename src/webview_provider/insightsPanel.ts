@@ -157,7 +157,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
   ) {
     try {
       console.log("Fetching manifest signed url");
-      const response = await this.altimateRequest.downloadArtifact(
+      const response = await this.altimateRequest.fetchArtifactUrl(
         "manifest",
         dbt_core_integration_id,
       );
