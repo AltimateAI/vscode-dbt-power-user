@@ -1,8 +1,12 @@
-import { executeStreamRequest } from "@modules/app/requestExecutor";
+import {
+  executeRequestInSync,
+  executeStreamRequest,
+} from "@modules/app/requestExecutor";
 import { DataPilotChatAction, RequestState } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
 import { useRef, useState } from "react";
 import { QueryAnalysisHistory, QueryExplainUpdate } from "./types";
+import useQueryAnalysisContext from "./provider/useQueryAnalysisContext";
 
 interface QueryAnalysisRequest {
   command: DataPilotChatAction["command"];
@@ -15,6 +19,7 @@ const useQueryAnalysisAction = (): {
   isLoading: boolean;
   executeQueryAnalysis: (args: QueryAnalysisRequest) => Promise<void>;
 } => {
+  const { chat } = useQueryAnalysisContext();
   const [isLoading, setIsLoading] = useState(false);
   const idRef = useRef("");
 
@@ -44,19 +49,36 @@ const useQueryAnalysisAction = (): {
         datapilot_title: "Datapilot Response",
         state: RequestState.LOADING,
       });
-      const result = (await executeStreamRequest(
-        command,
-        { session_id: idRef.current, history, user_request },
-        (chunk: string) => {
-          onProgress(chunk, onNewGeneration);
-        },
-      )) as { response: string };
+      const [result, followupQuestions] = await Promise.all([
+        executeStreamRequest(
+          command,
+          { session_id: idRef.current, history, user_request },
+          (chunk: string) => {
+            onProgress(chunk, onNewGeneration);
+          },
+        ) as Promise<{ response: string }>,
+        executeRequestInSync("queryanalysis:followup", {
+          user_request,
+          query: chat?.query,
+        }) as Promise<string[] | null>,
+      ]);
 
-      panelLogger.info("executeQueryAnalysis result", result);
+      panelLogger.info(
+        "executeQueryAnalysis result",
+        result,
+        followupQuestions,
+      );
       onNewGeneration({
         session_id: idRef.current,
         response: result.response,
         state: RequestState.COMPLETED,
+        actions: followupQuestions?.map((question) => ({
+          title: question,
+          data: {},
+          command,
+          user_prompt: question,
+          datapilot_title: question,
+        })),
       });
     } catch (err) {
       panelLogger.error("Error while fetching explanation", err);

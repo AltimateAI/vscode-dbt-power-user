@@ -1,5 +1,9 @@
 import { Range, window } from "vscode";
-import { QueryAnalysisRequest, QueryAnalysisType } from "../altimate";
+import {
+  AltimateRequest,
+  QueryAnalysisRequest,
+  QueryAnalysisType,
+} from "../altimate";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
 import { DocGenService } from "./docGenService";
@@ -10,6 +14,7 @@ export class QueryAnalysisService {
   public constructor(
     private docGenService: DocGenService,
     private streamingService: StreamingService,
+    private altimateRequest: AltimateRequest,
   ) {}
 
   public getSelectedQuery() {
@@ -79,6 +84,34 @@ export class QueryAnalysisService {
         },
         ...params,
       },
+    });
+  }
+
+  public async getFollowupQuestions(
+    eventMap: Map<string, ManifestCacheProjectAddedEvent>,
+    { query, user_request }: { query: string; user_request: string },
+  ) {
+    const adapter =
+      this.docGenService.getProject()?.getAdapterType() || "unknown";
+    const documentation = await this.docGenService.getDocumentation(eventMap);
+    if (!documentation) {
+      console.error("Unable to find documentation for the model");
+      throw new Error("Invalid model");
+    }
+    return this.altimateRequest.fetch("dbt/v2/follow-up-questions", {
+      method: "POST",
+      body: JSON.stringify({
+        dbt_model: {
+          model_name: documentation.name,
+          adapter,
+          compiled_sql: query,
+          columns: documentation.columns.map((c) => ({
+            column_name: c.name,
+            data_type: c.type,
+          })),
+        },
+        user_request,
+      }),
     });
   }
 }

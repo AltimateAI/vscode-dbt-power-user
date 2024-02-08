@@ -154,6 +154,31 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           });
         }
         break;
+      case "queryanalysis:followup":
+        try {
+          const response = await this.queryAnalysisService.getFollowupQuestions(
+            this.eventMap,
+            params as { query: string; user_request: string },
+          );
+
+          this._panel!.webview.postMessage({
+            command: "response",
+            args: {
+              syncRequestId,
+              body: response,
+              status: true,
+            },
+          });
+        } catch (err) {
+          this._panel!.webview.postMessage({
+            command: "response",
+            args: {
+              syncRequestId,
+              error: (err as Error).message,
+              status: false,
+            },
+          });
+        }
       default:
         super.handleCommand(message);
         break;
