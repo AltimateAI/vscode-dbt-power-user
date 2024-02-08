@@ -7,15 +7,15 @@ import { COLUMN_PREFIX, SEE_MORE_PREFIX } from "./constants";
 export const MAX_EXPAND_TABLE = 5;
 
 // dimensions
-export const P_OFFSET_X = 100;
-export const P_OFFSET_Y = 100;
+export const F_OFFSET_X = 100;
+export const F_OFFSET_Y = 100;
 export const T_NODE_W = 260;
 export const T_NODE_H = 141;
 export const C_OFFSET_X = 12;
 export const C_OFFSET_Y = 141;
-export const C_NODE_H = 36;
-export const C_PADDING_Y = 16;
-export const LEVEL_SEPARATION = 200;
+const C_NODE_H = 36;
+const C_PADDING_Y = 4;
+export const T_LEVEL_SEPARATION = 280;
 export const T_NODE_Y_SEPARATION = 80;
 
 // node styles
@@ -50,6 +50,8 @@ export const highlightMarker = {
 };
 
 export const isColumn = (x: { id: string }) => x.id.startsWith(COLUMN_PREFIX);
+export const isSeeMore = (x: { id: string }) =>
+  x.id.startsWith(SEE_MORE_PREFIX);
 export const isNotColumn = (x: { id: string }) =>
   !x.id.startsWith(COLUMN_PREFIX);
 
@@ -58,7 +60,7 @@ export const createTableEdge = (
   n2Level: number,
   n1: string,
   n2: string,
-  right: boolean,
+  right: boolean
 ): Edge => {
   const [src, dst] = right ? [n1, n2] : [n2, n1];
   const [sourceHandle, targetHandle] = right
@@ -72,18 +74,19 @@ export const createTableEdge = (
     targetHandle,
     style: defaultEdgeStyle,
     markerEnd: defaultMarker,
-    type: n1 === n2
-      ? "selfConnecting"
-      : n1Level === n2Level
-      ? "smoothstep"
-      : "default",
+    type:
+      n1 === n2
+        ? "selfConnecting"
+        : n1Level === n2Level
+        ? "smoothstep"
+        : "default",
   };
 };
 
 export const createTableNode = (
   _table: Table,
   level: number,
-  parent: string,
+  parent: string
 ): Node => {
   const { upstreamCount, downstreamCount, table } = _table;
   return {
@@ -111,6 +114,7 @@ export const createColumnNode = (t: string, c: string): Node => {
     draggable: false,
     type: "column",
     position: { x: 100, y: 100 },
+    height: C_NODE_H,
   };
 };
 
@@ -119,14 +123,14 @@ export const createColumnEdge = (
   target: string,
   srcLevel: number,
   dstLevel: number,
-  type: string,
+  type: string
 ): Edge => {
   const edgeId = getColumnEdgeId(source, target);
   const [sourceHandle, targetHandle] = getSourceTargetHandles(
     srcLevel,
-    dstLevel,
+    dstLevel
   );
-  return ({
+  return {
     id: edgeId,
     data: { type },
     source,
@@ -137,7 +141,7 @@ export const createColumnEdge = (
     zIndex: 1000,
     markerEnd: highlightMarker,
     type: srcLevel === dstLevel ? "smoothstep" : "default",
-  });
+  };
 };
 
 export const getColumnEdgeId = (source: string, target: string) =>
@@ -150,7 +154,7 @@ export const applyEdgeStyling = (e: Edge, highlight: boolean) => {
 
 export const getSourceTargetHandles = (
   l0: number,
-  l1: number,
+  l1: number
 ): ["left" | "right", "left" | "right"] => {
   if (l0 < l1) return ["right", "left"];
   if (l0 > l1) return ["left", "right"];
@@ -208,8 +212,11 @@ export const contains = (arr: [string, string][], x: [string, string]) => {
 export const safeConcat = <T>(
   obj: Record<string, T[]>,
   key: string,
-  values: T[],
+  values: T[]
 ) => {
   obj[key] = obj[key] || [];
   obj[key].push(...values);
 };
+
+export const getColY = (columnNum: number, tableNum = 1) =>
+  columnNum * (C_NODE_H + C_PADDING_Y) + tableNum * C_PADDING_Y;

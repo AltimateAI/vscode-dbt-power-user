@@ -111,3 +111,10 @@ classDiagram
   },
   }
   ```
+
+### Streaming api response
+
+- use `executeStreamRequest` defined in [requestExecutor](./src/modules/app/requestExecutor.ts) to send an api request (which could send streaming response) through webview provider and add `progress` callback
+- In webview providers (ex: [datapilotPanel](../src/webview_provider/datapilotPanel.ts)), handle the incoming command and trigger backend api request using `fetchAsStream` defined in [StreamingService](../src/services/streamingService.ts)
+- `StreamingService` will take care of sending chunks to webview_panels which will be listened by `response` message event and `progress` will be called with chunks
+- Once the stream is completed, `executeStreamRequest` will resolve to the response
