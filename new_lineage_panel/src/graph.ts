@@ -25,6 +25,7 @@ import {
   T_NODE_Y_SEPARATION,
   getColY,
   withinExclusive,
+  isSeeMore,
 } from "./utils";
 import {
   ColumnLineage,
@@ -114,6 +115,11 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
   const adjacencyListLeft: Record<string, string[]> = {};
   for (const e of edges) {
     if (isColumn(e)) continue;
+    if (
+      isSeeMore(nodes.find((x) => x.id === e.source)!) ||
+      isSeeMore(nodes.find((x) => x.id === e.target)!)
+    )
+      continue;
     adjacencyListRight[e.source] = adjacencyListRight[e.source] || [];
     adjacencyListRight[e.source].push(e.target);
     adjacencyListLeft[e.target] = adjacencyListLeft[e.target] || [];
@@ -142,10 +148,24 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
 
   for (const n of nodes) {
     if (isColumn(n)) continue;
+    if (isSeeMore(n)) continue;
     if (visited[n.id]) continue;
     dfs(n.id, adjacencyListRight);
     visited[n.id] = false;
     dfs(n.id, adjacencyListLeft);
+  }
+  for (const n of nodes) {
+    if (isColumn(n)) continue;
+    if (!isSeeMore(n)) continue;
+    const { level } = n.data;
+    levelWiseTables[level] = levelWiseTables[level] || [];
+    if (!levelWiseTables[level].includes(n.id)) {
+      tableWiseLevelPos[n.id] = levelWiseTables[level].length;
+      tableWiseLevelColumnCount[n.id] = 0;
+      for (const curr of levelWiseTables[level])
+        tableWiseLevelColumnCount[n.id] += tableWiseColumnCount[curr] || 0;
+      levelWiseTables[level].push(n.id);
+    }
   }
 
   // assign position to table and see more nodes
