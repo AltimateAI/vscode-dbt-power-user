@@ -104,6 +104,7 @@ const AutoExpansionPopover = () => {
   useEffect(() => {
     setLeftExpansion(minRange[0]);
     setRightExpansion(minRange[1]);
+    setNodeCount(0);
   }, [minRange, setLeftExpansion, setRightExpansion]);
 
   useEffect(() => {
@@ -289,8 +290,6 @@ export const ActionWidget: FC<{
     setSelectedColumn,
     setCollectColumns,
     setMoreTables,
-    setLeftExpansion,
-    setRightExpansion,
   } = useContext(LineageContext);
   const flow = useReactFlow();
 
@@ -400,8 +399,6 @@ export const ActionWidget: FC<{
           setSelectedColumn({ table: "", name: "", sessionId: "" });
           setCollectColumns({});
           setMoreTables({});
-          setLeftExpansion(0);
-          setRightExpansion(0);
           init();
           CLL.cancel();
         }}

@@ -25,6 +25,7 @@ import {
 import { Modal, SidebarModal } from "./components/Modal";
 import { MoreTables, TMoreTables } from "./MoreTables";
 import {
+  calculateMinLevel,
   expandTableLineage,
   highlightTableConnections,
   layoutElementsOnCanvas,
@@ -189,6 +190,7 @@ function App() {
       layoutElementsOnCanvas(nodes, edges);
       _flow.setNodes(nodes);
       _flow.setEdges(edges);
+      setMinRange(calculateMinLevel(nodes, edges, node.table));
       rerender();
     };
 
