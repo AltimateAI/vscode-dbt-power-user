@@ -169,33 +169,6 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
     const { level } = n.data;
     n.position = { x: getX(level), y: getY(n) };
   }
-
-  // calculate bounds along y axis
-  let maxY = 0;
-  const levelNodesMap: Record<number, Node[]> = {};
-  for (const n of nodes) {
-    if (isColumn(n)) continue;
-    maxY = Math.max(
-      maxY,
-      n.position.y + getColY(tableWiseColumnCount[n.id] || 0)
-    );
-    const { level } = n.data;
-    if (!(level in levelNodesMap)) levelNodesMap[level] = [];
-    levelNodesMap[level].push(n);
-  }
-
-  // offset table position along y axis to make it center heavy
-  for (const level in levelNodesMap) {
-    let maxLevelY = 0;
-    for (const n of levelNodesMap[level]) {
-      maxLevelY = Math.max(
-        maxLevelY,
-        n.position.y + getColY(tableWiseColumnCount[n.id] || 0)
-      );
-    }
-    const offsetLevelY = (maxY - maxLevelY) / 2;
-    for (const n of levelNodesMap[level]) n.position.y += offsetLevelY;
-  }
 };
 
 export const resetTableHighlights = (
