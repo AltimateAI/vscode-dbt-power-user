@@ -363,10 +363,16 @@ $size: 1.2em;
 
 .expand_nav_left {
   @extend .expand-nav;
+  &.disabled {
+    opacity: 0.5;
+  }
 }
 
 .expand_nav_right {
   @extend .expand-nav;
+  &.disabled {
+    opacity: 0.5;
+  }
 }
 
 .expand_nav_btn {

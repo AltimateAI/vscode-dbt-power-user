@@ -39,6 +39,7 @@ import {
   highlightTableConnections,
   layoutElementsOnCanvas,
 } from "./graph";
+import classNames from "classnames";
 
 const InfoIcon: FunctionComponent<{ id: string; message: string }> = ({
   id,
@@ -87,19 +88,23 @@ const AutoExpansionPopover = () => {
     setLeftExpansion,
     rightExpansion,
     setRightExpansion,
+    minRange,
+    setMinRange,
   } = useContext(LineageContext);
   const [nodeCount, setNodeCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
-  const [range, setRange] = useState([0, 0]);
+  const [maxRange, setMaxRange] = useState([0, 0]);
 
   useEffect(() => {
-    console.log("useEffect1");
-    const nodes = flow.getNodes();
-    const edges = flow.getEdges();
-    setLeftExpansion(calculateMinLevel(nodes, edges, selectedTable, false));
-    setRightExpansion(calculateMinLevel(nodes, edges, selectedTable, true));
-    // setNodeCount(0);
-  }, [flow, selectedTable, setLeftExpansion, setRightExpansion]);
+    setMinRange(
+      calculateMinLevel(flow.getNodes(), flow.getEdges(), selectedTable)
+    );
+  }, [flow, selectedTable, setMinRange]);
+
+  useEffect(() => {
+    setLeftExpansion(minRange[0]);
+    setRightExpansion(minRange[1]);
+  }, [minRange, setLeftExpansion, setRightExpansion]);
 
   useEffect(() => {
     console.log("useEffect2");
@@ -144,7 +149,7 @@ const AutoExpansionPopover = () => {
         minLevel = Math.min(minLevel, n.data.level);
         maxLevel = Math.max(maxLevel, n.data.level);
       }
-      setRange([level - minLevel, maxLevel - level]);
+      setMaxRange([level - minLevel, maxLevel - level]);
     })();
   }, [flow, selectedTable]);
 
@@ -171,13 +176,17 @@ const AutoExpansionPopover = () => {
         <PopoverBody>
           <div className="d-flex flex-column gap-xs">
             <div className="w-100 d-flex gap-xl justify-content-between align-items-center">
-              <div className={styles.expand_nav_left}>
+              <div
+                className={classNames(styles.expand_nav_left, {
+                  [styles.disabled]: minRange[0] >= maxRange[0],
+                })}
+              >
                 <div className={styles.expand_nav_btn}>
                   <div
                     className={styles.icon}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setLeftExpansion(range[0]);
+                      setLeftExpansion(maxRange[0]);
                     }}
                   >
                     <ArrowLeftDoubleIcon />
@@ -187,7 +196,9 @@ const AutoExpansionPopover = () => {
                     className={styles.icon}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setLeftExpansion((i) => (i + 1 <= range[0] ? i + 1 : i));
+                      setLeftExpansion((i) =>
+                        i + 1 <= maxRange[0] ? i + 1 : i
+                      );
                     }}
                   >
                     <ArrowLeftIcon />
@@ -195,14 +206,20 @@ const AutoExpansionPopover = () => {
                 </div>
                 <div className="text-blue px-2 py-1">{leftExpansion}</div>
               </div>
-              <div className={styles.expand_nav_right}>
+              <div
+                className={classNames(styles.expand_nav_right, {
+                  [styles.disabled]: minRange[1] >= maxRange[1],
+                })}
+              >
                 <div className="text-blue px-2 py-1">{rightExpansion}</div>
                 <div className={styles.expand_nav_btn}>
                   <div
                     className={styles.icon}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setRightExpansion((i) => (i + 1 <= range[1] ? i + 1 : i));
+                      setRightExpansion((i) =>
+                        i + 1 <= maxRange[1] ? i + 1 : i
+                      );
                     }}
                   >
                     <ArrowRightIcon />
@@ -212,7 +229,7 @@ const AutoExpansionPopover = () => {
                     className={styles.icon}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setRightExpansion(range[1]);
+                      setRightExpansion(maxRange[1]);
                     }}
                   >
                     <ArrowRightDoubleIcon />
@@ -225,8 +242,9 @@ const AutoExpansionPopover = () => {
               <div className="normal-text">Children</div>
             </div>
             <Button
-              color="primary"
+              color={nodeCount === 0 ? "secondary" : "primary"}
               size="sm"
+              disabled={nodeCount === 0}
               onClick={async (e) => {
                 e.stopPropagation();
                 if (!selectedTable) return;
@@ -245,8 +263,7 @@ const AutoExpansionPopover = () => {
                 flow.setNodes(nodes);
                 flow.setEdges(edges);
                 setIsOpen(false);
-                setLeftExpansion(0);
-                setRightExpansion(0);
+                setMinRange(calculateMinLevel(nodes, edges, selectedTable));
               }}
             >
               Add {nodeCount} tables

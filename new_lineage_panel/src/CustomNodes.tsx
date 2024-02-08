@@ -11,6 +11,7 @@ import styles from "./styles.module.scss";
 import classNames from "classnames";
 import {
   bfsTraversal,
+  calculateMinLevel,
   expandTableLineage,
   highlightTableConnections,
   layoutElementsOnCanvas,
@@ -93,6 +94,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     rerender,
     setConfidence,
     setMoreTables,
+    setMinRange,
   } = useContext(LineageContext);
 
   const _columnLen = Object.keys(collectColumns[table] || {}).length;
@@ -122,6 +124,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     layoutElementsOnCanvas(nodes, edges);
     flow.setNodes(nodes);
     flow.setEdges(edges);
+    setMinRange(calculateMinLevel(nodes, edges, selectedTable));
     rerender();
     if (selectedColumn.name) {
       try {

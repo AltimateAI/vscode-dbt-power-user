@@ -86,6 +86,8 @@ export const LineageContext = createContext<{
   setLeftExpansion: Dispatch<SetStateAction<number>>;
   rightExpansion: number;
   setRightExpansion: Dispatch<SetStateAction<number>>;
+  minRange: [number, number];
+  setMinRange: Dispatch<SetStateAction<[number, number]>>;
 }>({
   showSidebar: false,
   setShowSidebar: noop,
@@ -106,6 +108,8 @@ export const LineageContext = createContext<{
   setLeftExpansion: noop,
   rightExpansion: 0,
   setRightExpansion: noop,
+  minRange: [0, 0],
+  setMinRange: noop,
 });
 
 function App() {
@@ -134,6 +138,8 @@ function App() {
 
   const [selectCheck, setSelectCheck] = useState(true);
   const [nonSelectCheck, setNonSelectCheck] = useState(true);
+
+  const [minRange, setMinRange] = useState<[number, number]>([0, 0]);
 
   useEffect(() => {
     const render = async (args: {
@@ -254,6 +260,8 @@ function App() {
         setLeftExpansion,
         rightExpansion,
         setRightExpansion,
+        minRange,
+        setMinRange,
       }}
     >
       <ReactFlowProvider>

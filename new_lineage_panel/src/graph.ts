@@ -526,7 +526,7 @@ export const expandTableLineageLevelWise = async (
   return [nodes, edges];
 };
 
-export const calculateMinLevel = (
+const _calculateMinLevel = (
   nodes: Node[],
   edges: Edge[],
   table: string,
@@ -573,6 +573,15 @@ export const calculateMinLevel = (
   const { level: targetLevel } = nodesMap[targetNode].data;
   return right ? targetLevel - rootLevel : rootLevel - targetLevel;
 };
+
+export const calculateMinLevel = (
+  nodes: Node[],
+  edges: Edge[],
+  table: string
+): [number, number] => [
+  _calculateMinLevel(nodes, edges, table, false),
+  _calculateMinLevel(nodes, edges, table, true),
+];
 
 export const bfsTraversal = async (
   nodes: Node[],
