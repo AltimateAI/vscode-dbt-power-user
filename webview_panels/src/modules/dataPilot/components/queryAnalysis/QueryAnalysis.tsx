@@ -3,8 +3,12 @@ import QueryAnalysisActionButton from "./QueryAnalysisActionButton";
 import QueryExplainResultComponent from "./QueryAnalysisResult";
 import useQueryAnalysisContext from "./provider/useQueryAnalysisContext";
 
-const QueryAnalysis = (): JSX.Element => {
+const QueryAnalysis = (): JSX.Element | null => {
   const { chat, results } = useQueryAnalysisContext();
+
+  if (!chat) {
+    return null;
+  }
 
   return (
     <Stack direction="column">

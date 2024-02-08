@@ -8,7 +8,11 @@ import {
 } from "react";
 import { QueryAnalysisContextProps } from "./types";
 import queryAnalysisSlice, { initialState } from "./queryAnalysisSlice";
-import { QueryExplainResult, QueryExplainUpdate } from "../types";
+import {
+  DatapilotQueryAnalysisChat,
+  QueryExplainResult,
+  QueryExplainUpdate,
+} from "../types";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import useQueryAnalysisAction from "../useQueryAnalysisAction";
 import { panelLogger } from "@modules/logger";
@@ -33,10 +37,12 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
   );
 
   const {
-    state: { items },
+    state: { items, currentSessionId },
     dispatch: datapilotDispatch,
   } = useDataPilotContext();
-  const chat = Object.values(items)[0];
+  const chat = currentSessionId
+    ? (items[currentSessionId] as DatapilotQueryAnalysisChat | undefined)
+    : undefined;
 
   const { executeQueryAnalysis } = useQueryAnalysisAction();
   const [results, setResults] = useState<QueryExplainResult[]>([]);
@@ -59,6 +65,9 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
   };
 
   const handleQueryExplainOnload = () => {
+    if (!chat) {
+      return;
+    }
     panelLogger.info("handleQueryExplainOnload");
     datapilotDispatch(upsertItem({ ...chat, state: RequestState.LOADING }));
     executeQueryAnalysis({
@@ -72,6 +81,7 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
 
   useEffect(() => {
     if (
+      !chat ||
       chat.requestType !== RequestTypes.QUERY_ANALYSIS ||
       chat.state !== RequestState.UNINITIALIZED
     ) {
@@ -80,7 +90,7 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
 
     // Api request not sent for this chat yet
     handleQueryExplainOnload();
-  }, [chat.state, chat.requestType]);
+  }, [chat?.state, chat?.requestType]);
 
   const values = useMemo(
     () => ({

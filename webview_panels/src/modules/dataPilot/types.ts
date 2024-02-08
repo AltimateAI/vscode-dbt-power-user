@@ -34,6 +34,7 @@ export interface DataPilotChat {
 
 export interface DataPilotStateProps {
   items: Record<DataPilotChat["id"], DataPilotChat>;
+  currentSessionId?: DataPilotChat["id"];
 }
 
 export interface ContextProps {

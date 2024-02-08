@@ -20,11 +20,7 @@ const QueryExplainResultComponent = ({
   response: { datapilot_title, response, user_prompt, actions, state },
   command,
 }: Props): JSX.Element => {
-  const {
-    chat: { id: sessionId },
-    onNewGeneration,
-    history,
-  } = useQueryAnalysisContext();
+  const { chat, onNewGeneration, history } = useQueryAnalysisContext();
 
   const [userRequest, setUserRequest] = useState("");
 
@@ -41,7 +37,7 @@ const QueryExplainResultComponent = ({
     executeQueryAnalysis({
       command,
       onNewGeneration,
-      sessionId,
+      sessionId: chat?.id,
       history,
       user_request: userRequest,
     }).catch((err) =>

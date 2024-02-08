@@ -9,15 +9,16 @@ import { QueryAnalysisContext } from "./QueryAnalysisProvider";
 import { QueryAnalysisContextProps } from "./types";
 
 const useQueryAnalysisContext = (): {
-  chat: DatapilotQueryAnalysisChat;
+  chat?: DatapilotQueryAnalysisChat;
   history: QueryAnalysisHistory[];
 } & QueryAnalysisContextProps => {
   const {
-    state: { items },
+    state: { items, currentSessionId },
   } = useDataPilotContext();
 
-  // Since we support only one chat at a time, we take 0th item always
-  const chat = Object.values(items)[0] as DatapilotQueryAnalysisChat;
+  const chat = currentSessionId
+    ? (items[currentSessionId] as DatapilotQueryAnalysisChat | undefined)
+    : undefined;
   const context = useContext(QueryAnalysisContext);
 
   const history = useMemo(() => {

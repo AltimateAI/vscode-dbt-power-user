@@ -39,6 +39,11 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     );
 
     commands.registerCommand("dbtPowerUser.datapilotExplain", async () => {
+      // reset the datapilot to start new session
+      this._panel?.webview.postMessage({
+        command: "datapilot:reset",
+        args: {},
+      });
       const queryData = this.queryAnalysisService.getSelectedQuery();
       if (!queryData) {
         return;

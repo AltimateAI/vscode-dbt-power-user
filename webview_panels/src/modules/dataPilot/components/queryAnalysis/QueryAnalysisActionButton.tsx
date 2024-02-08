@@ -9,10 +9,7 @@ interface Props {
 
 const QueryAnalysisActionButton = ({ action }: Props): JSX.Element => {
   const { executeQueryAnalysis, isLoading } = useQueryAnalysisAction();
-  const {
-    chat: { id: sessionId },
-    onNewGeneration,
-  } = useQueryAnalysisContext();
+  const { chat, onNewGeneration } = useQueryAnalysisContext();
 
   return (
     <>
@@ -22,7 +19,7 @@ const QueryAnalysisActionButton = ({ action }: Props): JSX.Element => {
           executeQueryAnalysis({
             command: action.command,
             onNewGeneration,
-            sessionId,
+            sessionId: chat?.id,
           })
         }
         disabled={isLoading}

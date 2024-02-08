@@ -10,6 +10,7 @@ import {
 import dataPilotSlice, {
   initialState,
   reset,
+  setCurrentSessionId,
   upsertItem,
 } from "./dataPilotSlice";
 import {
@@ -53,6 +54,7 @@ const DataPilotProvider = ({
     } as DatapilotQueryAnalysisChat;
 
     dispatch(upsertItem(data));
+    dispatch(setCurrentSessionId(data.id));
   };
 
   const onMesssage = useCallback(
