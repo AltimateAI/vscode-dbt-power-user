@@ -114,9 +114,9 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
   const adjacencyListLeft: Record<string, string[]> = {};
   for (const e of edges) {
     if (isColumn(e)) continue;
-    if (!(e.source in adjacencyListRight)) adjacencyListRight[e.source] = [];
+    adjacencyListRight[e.source] = adjacencyListRight[e.source] || [];
     adjacencyListRight[e.source].push(e.target);
-    if (!(e.target in adjacencyListLeft)) adjacencyListLeft[e.target] = [];
+    adjacencyListLeft[e.target] = adjacencyListLeft[e.target] || [];
     adjacencyListLeft[e.target].push(e.source);
   }
 
@@ -127,7 +127,7 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
     visited[n] = true;
     const node = nodes.find((item) => item.id === n)!;
     const { level } = node.data;
-    if (!(level in levelWiseTables)) levelWiseTables[level] = [];
+    levelWiseTables[level] = levelWiseTables[level] || [];
     if (!levelWiseTables[level].includes(n)) {
       tableWiseLevelPos[n] = levelWiseTables[level].length;
       tableWiseLevelColumnCount[n] = 0;
