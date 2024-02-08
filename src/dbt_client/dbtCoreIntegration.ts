@@ -104,7 +104,7 @@ export class DBTCoreProjectDetection
           const packageInstallPathFromPython =
             packagesInstallPathsFromPython[index];
           if (packageInstallPathFromPython) {
-            return Uri.parse(packageInstallPathFromPython).fsPath;
+            return Uri.file(packageInstallPathFromPython).fsPath;
           }
           return packageInstallPath;
         },
