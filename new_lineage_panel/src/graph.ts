@@ -39,6 +39,11 @@ import { COLUMN_PREFIX } from "./constants";
 import { TMoreTables } from "./MoreTables";
 import { CLL } from "./service_utils";
 
+const getConnectedTables = (right: boolean, table: string) =>
+  right ? upstreamTables(table) : downstreamTables(table);
+const calculateNewLevel = (right: boolean, i: number) =>
+  right ? i + 1 : i - 1;
+
 const createNewNodesEdges = (
   nodes: Node[],
   edges: Edge[],
@@ -47,7 +52,7 @@ const createNewNodesEdges = (
   right: boolean,
   level: number
 ) => {
-  const newLevel = right ? level + 1 : level - 1;
+  const newLevel = calculateNewLevel(right, level);
 
   const addUniqueEdge = (to: string) => {
     const toLevel = nodes.find((n) => n.id === to)?.data?.level;
@@ -99,7 +104,7 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
       tableWiseColumnCount[n.parentNode]++;
     } else {
       // calculate bounds along x axis
-      const level = n.data.level;
+      const { level } = n.data;
       minLevel = Math.min(minLevel, level);
       maxLevel = Math.max(maxLevel, level);
     }
@@ -447,7 +452,6 @@ export const expandTableLineage = async (
 ): Promise<[Node[], Edge[]]> => {
   const nodes = [..._nodes];
   const edges = [..._edges];
-  const getConnectedTables = right ? upstreamTables : downstreamTables;
   const queue: { table: string; level: number }[] = [
     { table, level: nodes.find((n) => n.id === table)!.data.level },
   ];
@@ -456,7 +460,7 @@ export const expandTableLineage = async (
     const { table, level } = queue.shift()!;
     if (visited[table]) continue;
     visited[table] = true;
-    const { tables } = await getConnectedTables(table);
+    const { tables } = await getConnectedTables(right, table);
     createNewNodesEdges(nodes, edges, tables, table, right, level);
     tables.forEach((t) => {
       const _t = nodes.find((n) => n.id === t.table);
@@ -485,15 +489,13 @@ export const expandTableLineageLevelWise = async (
       { table: _table, level: rootLevel },
     ];
     const visited: Record<string, boolean> = {};
-    const getConnectedTables = right ? upstreamTables : downstreamTables;
-    const calculateNewLevel = (i: number) => (right ? i + 1 : i - 1);
 
     while (queue.length > 0) {
       const curr = queue.shift()!;
       if (visited[curr.table]) continue;
       visited[curr.table] = true;
-      const newLevel = calculateNewLevel(curr.level);
-      const { tables } = await getConnectedTables(curr.table);
+      const newLevel = calculateNewLevel(right, curr.level);
+      const { tables } = await getConnectedTables(right, curr.table);
       createNewNodesEdges(nodes, edges, tables, curr.table, right, curr.level);
       if (withinExcBounds(newLevel)) {
         queue.push(...tables.map((t) => ({ table: t.table, level: newLevel })));
