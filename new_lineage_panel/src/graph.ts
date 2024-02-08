@@ -504,7 +504,6 @@ export const expandTableLineageLevelWise = async (
 
     while (queue.length > 0) {
       const curr = queue.shift()!;
-      console.log("bfs:", curr);
       if (visited[curr.table]) continue;
       visited[curr.table] = true;
       const newLevel = calculateNewLevel(curr.level);
@@ -525,6 +524,54 @@ export const expandTableLineageLevelWise = async (
   if (lb < rootLevel) await bfs(false);
 
   return [nodes, edges];
+};
+
+export const calculateMinLevel = (
+  nodes: Node[],
+  edges: Edge[],
+  table: string,
+  right: boolean
+): number => {
+  if (!table) return 0;
+  const src = right ? "source" : "target";
+  const dst = right ? "target" : "source";
+  const countKey = right ? "upstreamCount" : "downstreamCount";
+
+  const nodesMap: Record<string, Node> = {};
+  const adjacencyList: Record<string, string[]> = {};
+  for (const n of nodes) {
+    if (isColumn(n)) continue;
+    nodesMap[n.id] = n;
+    adjacencyList[n.id] = [];
+  }
+  for (const e of edges) {
+    if (isColumn(e)) continue;
+    adjacencyList[e[src]].push(e[dst]);
+  }
+
+  // get the node with lowest level which can be expanded but not yet expanded
+  const bfs = () => {
+    const queue = [table];
+    const visited: Record<string, boolean> = {};
+
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      if (visited[curr]) continue;
+      visited[curr] = true;
+      for (const n of adjacencyList[curr]) {
+        const nodeData = nodesMap[n].data;
+        if (nodeData[countKey] === 0) continue;
+        if (adjacencyList[n].length < nodeData[countKey]) return n;
+        queue.push(n);
+      }
+    }
+  };
+  const targetNode = bfs();
+
+  if (!targetNode) return 0;
+  const { level: rootLevel } = nodesMap[table].data;
+  const { level: targetLevel } = nodesMap[targetNode].data;
+  return right ? targetLevel - rootLevel : rootLevel - targetLevel;
 };
 
 export const bfsTraversal = async (

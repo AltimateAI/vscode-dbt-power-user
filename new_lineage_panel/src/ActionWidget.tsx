@@ -34,6 +34,7 @@ import { init, openURL, setLegacyLineageView, CLL } from "./service_utils";
 import { LineageContext, aiEnabled } from "./App";
 import { useReactFlow } from "reactflow";
 import {
+  calculateMinLevel,
   expandTableLineageLevelWise,
   highlightTableConnections,
   layoutElementsOnCanvas,
@@ -92,13 +93,18 @@ const AutoExpansionPopover = () => {
   const [range, setRange] = useState([0, 0]);
 
   useEffect(() => {
-    setLeftExpansion(0);
-    setRightExpansion(0);
-    setNodeCount(0);
-  }, [selectedTable, setLeftExpansion, setRightExpansion]);
+    console.log("useEffect1");
+    const nodes = flow.getNodes();
+    const edges = flow.getEdges();
+    setLeftExpansion(calculateMinLevel(nodes, edges, selectedTable, false));
+    setRightExpansion(calculateMinLevel(nodes, edges, selectedTable, true));
+    // setNodeCount(0);
+  }, [flow, selectedTable, setLeftExpansion, setRightExpansion]);
 
   useEffect(() => {
+    console.log("useEffect2");
     (async () => {
+      console.log("useEffect2:async");
       if (!selectedTable) return;
       const selectedTableData = flow.getNode(selectedTable)?.data;
       if (!selectedTableData) return;
