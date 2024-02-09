@@ -244,17 +244,19 @@ const DeferToProduction = (): JSX.Element => {
     projectIntegrations: [],
     dbt_core_integration_id: -1,
   });
-  const [showPanel, setShowPanel] = useState(false);
+  const [showPanel, setShowPanel] = useState(true);
 
   const onMesssage = useCallback(
     (event: MessageEvent<IncomingMessageProps>) => {
       const { command, args } = event.data;
       switch (command) {
         case "updateDeferConfig":
-          if (args) {
-            setDeferState(args as unknown as DeferToProductionProps);
-            setShowPanel(true);
+          if (args?.hidePanel) {
+            setShowPanel(false);
+            break;
           }
+          setDeferState(args as unknown as DeferToProductionProps);
+          setShowPanel(true);
           break;
         default:
           break;

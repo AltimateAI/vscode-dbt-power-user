@@ -52,7 +52,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
           }
           this._panel!.webview.postMessage({
             command: "updateDeferConfig",
-            args: "",
+            args: { hidePanel: true },
           });
         }
       },
