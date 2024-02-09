@@ -272,7 +272,7 @@
         }
       },
       {
-        "command": "dbtPowerUser.datapilotExplain",
+        "command": "dbtPowerUser.summarizeQuery",
         "title": "Explain"
       },
       {
@@ -385,14 +385,6 @@
         "icon": "$(play)"
       },
       {
-        "command": "dbtPowerUser.summarizeQuery",
-        "title": "Explain selected SQL (Preview feature)",
-        "icon": {
-          "light": "./media/images/lightbulb_light.svg",
-          "dark": "./media/images/lightbulb_dark.svg"
-        }
-      },
-      {
         "command": "dbtPowerUser.buildCurrentModel",
         "title": "Build dbt Model",
         "icon": {
@@ -441,7 +433,7 @@
     "menus": {
       "dbtPowerUser.datapilotSubmenu": [
         {
-          "command": "dbtPowerUser.datapilotExplain"
+          "command": "dbtPowerUser.summarizeQuery"
         }
       ],
       "editor/title": [

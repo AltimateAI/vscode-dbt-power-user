@@ -22,6 +22,7 @@ import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { AltimateRequest } from "../altimate";
 import { ExecuteSQLResult } from "../dbt_client/dbtIntegration";
+import { SharedStateService } from "../services/sharedStateService";
 
 interface JsonObj {
   [key: string]: string | number | undefined;
@@ -104,6 +105,7 @@ export class QueryResultPanel implements WebviewViewProvider {
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
     private altimate: AltimateRequest,
+    private eventEmitterService: SharedStateService,
   ) {
     window.onDidChangeActiveColorTheme(
       (e) => {
@@ -191,7 +193,12 @@ export class QueryResultPanel implements WebviewViewProvider {
             break;
           case InboundCommand.GetSummary:
             const summary = message as RecSummary;
-            await this.getSummary(summary.compiledSql, this.adapter);
+            this.eventEmitterService.fire({
+              command: "dbtPowerUser.summarizeQuery",
+              payload: {
+                query: summary.compiledSql,
+              },
+            });
             break;
         }
       },
@@ -328,44 +335,6 @@ export class QueryResultPanel implements WebviewViewProvider {
       rows,
       query,
       result.compiled_sql,
-    );
-  }
-
-  public async getSummary(query: string, adapter: string) {
-    //using id to focus on the webview is more reliable than using the view title
-    if (!this.altimate.handlePreviewFeatures()) {
-      return;
-    }
-    await commands.executeCommand("dbtPowerUser.PreviewResults.focus");
-    this.telemetry.sendTelemetryEvent("getQuerySummary");
-    window.withProgress(
-      {
-        title: "Getting query explanation",
-        location: ProgressLocation.Notification,
-        cancellable: false,
-      },
-      async () => {
-        if (this._panel) {
-          this._panel.show(); // Show the view
-          this._panel.webview.postMessage({ command: "focus" }); // keyboard focus
-        }
-        try {
-          const response = await this.altimate.getQuerySummary(query, adapter);
-          if (response === undefined || response.explanation === undefined) {
-            window.showErrorMessage(
-              extendErrorWithSupportLinks("Could not get summary."),
-            );
-            this.telemetry.sendTelemetryError("getQuerySummaryAltimateError");
-            return;
-          }
-          await this.transmitSummary(query, response.explanation);
-        } catch (err) {
-          window.showErrorMessage(
-            extendErrorWithSupportLinks("Could not get summary: " + err + "."),
-          );
-          this.telemetry.sendTelemetryError("getQuerySummaryAltimateError");
-        }
-      },
     );
   }
 

@@ -37,26 +37,6 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           args: {},
         }),
     );
-
-    commands.registerCommand("dbtPowerUser.datapilotExplain", async () => {
-      // reset the datapilot to start new session
-      this._panel?.webview.postMessage({
-        command: "datapilot:reset",
-        args: {},
-      });
-      const queryData = this.queryAnalysisService.getSelectedQuery();
-      if (!queryData) {
-        return;
-      }
-      this.emitterService.fire({
-        command: "datapilot:message",
-        payload: {
-          command: "queryAnalysis:explain:load",
-          query: queryData.query,
-          fileName: queryData.fileName,
-        },
-      });
-    });
   }
 
   async handleCommand(message: HandleCommandProps): Promise<void> {
@@ -198,6 +178,9 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         }
         this.postToWebview(payload);
         break;
+      case "dbtPowerUser.summarizeQuery":
+        this.handleQuerySummaryEvent(payload);
+        break;
       default:
         super.onEvent({ command, payload });
         break;
@@ -226,5 +209,26 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         args: message,
       });
     }
+  }
+
+  private handleQuerySummaryEvent(data?: { query?: string }) {
+    // reset the datapilot to start new session
+    this._panel?.webview.postMessage({
+      command: "datapilot:reset",
+      args: {},
+    });
+    const queryData = this.queryAnalysisService.getSelectedQuery();
+    if (!queryData) {
+      return;
+    }
+    this.emitterService.fire({
+      command: "datapilot:message",
+      payload: {
+        command: "queryAnalysis:explain:load",
+        // data.query will be passed from query panel webview
+        query: data?.query || queryData.query,
+        fileName: queryData.fileName,
+      },
+    });
   }
 }
