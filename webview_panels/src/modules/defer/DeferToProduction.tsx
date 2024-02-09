@@ -221,6 +221,10 @@ const ManifestSelection = ({
   );
 };
 
+const DefaultInsightsPanel = (): JSX.Element => {
+  return <></>;
+};
+
 const DeferToProduction = (): JSX.Element => {
   const [
     {
@@ -240,13 +244,17 @@ const DeferToProduction = (): JSX.Element => {
     projectIntegrations: [],
     dbt_core_integration_id: -1,
   });
+  const [showPanel, setShowPanel] = useState(false);
 
   const onMesssage = useCallback(
     (event: MessageEvent<IncomingMessageProps>) => {
       const { command, args } = event.data;
       switch (command) {
         case "updateDeferConfig":
-          setDeferState(args as unknown as DeferToProductionProps);
+          if (args) {
+            setDeferState(args as unknown as DeferToProductionProps);
+            setShowPanel(true);
+          }
           break;
         default:
           break;
@@ -325,7 +333,7 @@ const DeferToProduction = (): JSX.Element => {
     }
   };
 
-  return (
+  return showPanel ? (
     <Col lg={7}>
       <Card className={classes.insightsCard}>
         <CardTitle className={classes.cardTitle} tag="h5">
@@ -370,6 +378,8 @@ const DeferToProduction = (): JSX.Element => {
         </CardBody>
       </Card>
     </Col>
+  ) : (
+    <DefaultInsightsPanel />
   );
 };
 

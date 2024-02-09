@@ -43,9 +43,16 @@ export class InsightsPanel extends AltimateWebviewProvider {
             .getConfiguration("dbt")
             .get("deferConfigPerProject", {});
 
+          if (currentProjectRoot) {
+            this._panel!.webview.postMessage({
+              command: "updateDeferConfig",
+              args: currentConfig[currentProjectRoot] || {},
+            });
+            return;
+          }
           this._panel!.webview.postMessage({
             command: "updateDeferConfig",
-            args: currentConfig[currentProjectRoot] || {},
+            args: "",
           });
         }
       },
