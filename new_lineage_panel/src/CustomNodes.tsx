@@ -186,6 +186,9 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
         className={styles.table_node}
         onClick={() => {
           setSelectedTable(table);
+          setMinRange(
+            calculateMinLevel(flow.getNodes(), flow.getEdges(), table)
+          );
           highlightTable();
           openFile(url);
         }}

@@ -172,6 +172,7 @@ function App() {
         );
         _flow.setNodes(nodes);
         _flow.setEdges(edges);
+        setMinRange(calculateMinLevel(nodes, edges, node.table));
         return;
       }
       let nodes: Node[] = [];

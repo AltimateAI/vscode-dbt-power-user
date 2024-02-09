@@ -88,12 +88,6 @@ const AutoExpansionPopover = () => {
   const [maxRange, setMaxRange] = useState([0, 0]);
 
   useEffect(() => {
-    setMinRange(
-      calculateMinLevel(flow.getNodes(), flow.getEdges(), selectedTable)
-    );
-  }, [flow, selectedTable, setMinRange]);
-
-  useEffect(() => {
     setLeftExpansion(Math.max(minRange[0], 0));
     setRightExpansion(Math.max(minRange[1], 0));
   }, [minRange, setLeftExpansion, setRightExpansion]);
