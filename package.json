@@ -373,7 +373,21 @@
       },
       {
         "command": "dbtPowerUser.resetDatapilot",
-        "title": "Reset"
+        "title": "Start Chat",
+        "icon": "$(add)"
+      },
+      {
+        "command": "dbtPowerUser.maximizeDatapilot",
+        "title": "Maximize",
+        "icon": {
+          "light": "./media/images/fullscreen-light.svg",
+          "dark": "./media/images/fullscreen-dark.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.helpDatapilot",
+        "title": "Help",
+        "icon": "$(question)"
       },
       {
         "command": "dbtPowerUser.showCompiledSQL",
@@ -595,7 +609,17 @@
         {
           "command": "dbtPowerUser.resetDatapilot",
           "when": "view == dbtPowerUser.datapilot-webview",
-          "group": "navigation"
+          "group": "navigation@1"
+        },
+        {
+          "command": "dbtPowerUser.maximizeDatapilot",
+          "when": "view == dbtPowerUser.datapilot-webview",
+          "group": "navigation@2"
+        },
+        {
+          "command": "dbtPowerUser.helpDatapilot",
+          "when": "view == dbtPowerUser.datapilot-webview",
+          "group": "navigation@3"
         }
       ],
       "view/item/context": [

@@ -204,6 +204,8 @@ export class VSCodeCommands implements Disposable {
           payload: {},
         }),
       ),
+      commands.registerCommand("dbtPowerUser.helpDatapilot", () => null),
+      commands.registerCommand("dbtPowerUser.maximizeDatapilot", () => null),
     );
   }
 
