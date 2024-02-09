@@ -55,7 +55,7 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
       const currentIndex = prev.findIndex(
         (r) => r.session_id === result.session_id,
       );
-      if (currentIndex === -1){
+      if (currentIndex === -1) {
         return [...prev, result as QueryExplainResult];
       }
       const clone = [...prev];
@@ -86,14 +86,15 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
     if (
       !chat ||
       chat.requestType !== RequestTypes.QUERY_ANALYSIS ||
-      chat.state !== RequestState.UNINITIALIZED
+      chat.state !== RequestState.UNINITIALIZED ||
+      !chat.analysisType
     ) {
       return;
     }
 
     // Api request not sent for this chat yet
     handleQueryExplainOnload();
-  }, [chat?.state, chat?.requestType]);
+  }, [chat?.state, chat?.requestType, chat?.analysisType]);
 
   const values = useMemo(
     () => ({

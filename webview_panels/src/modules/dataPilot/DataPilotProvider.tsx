@@ -40,8 +40,10 @@ const DataPilotProvider = ({
     dataPilotSlice.getInitialState(),
   );
 
+  // Since query analysis provider is not loaded yet, have to insert the item into context in datapilot provider
   const handleQueryAnalysisOnload = (
     request: Partial<DatapilotQueryAnalysisChat>,
+    triggerOnLoad: boolean,
   ) => {
     panelLogger.info("query explain onload", request);
     const data = {
@@ -50,7 +52,8 @@ const DataPilotProvider = ({
       state: RequestState.UNINITIALIZED,
       query: request.query,
       fileName: request.fileName,
-      analysisType: QueryAnalysisType.EXPLAIN,
+      //If analysis type is undefined, dont trigger api call
+      analysisType: triggerOnLoad ? QueryAnalysisType.EXPLAIN : undefined,
     } as DatapilotQueryAnalysisChat;
 
     dispatch(upsertItem(data));
@@ -68,8 +71,11 @@ const DataPilotProvider = ({
             ),
           );
           break;
-        case "queryAnalysis:explain:load":
-          handleQueryAnalysisOnload(args);
+        case "queryAnalysis:load:explain":
+          handleQueryAnalysisOnload(args, true);
+          break;
+        case "queryAnalysis:load":
+          handleQueryAnalysisOnload(args, false);
           break;
         case "datapilot:reset":
           dispatch(reset());

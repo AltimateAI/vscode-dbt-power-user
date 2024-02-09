@@ -12,6 +12,11 @@ import { AltimateRequest, QueryAnalysisType } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
 import { QueryAnalysisService } from "../services/queryAnalysisService";
 
+enum DatapilotEvents {
+  QUERY_EXPLAIN_ONLOAD = "queryAnalysis:load:explain",
+  QUERY_ONLOAD = "queryAnalysis:load",
+}
+
 @provideSingleton(DataPilotPanel)
 export class DataPilotPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.datapilot-webview";
@@ -179,7 +184,13 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         this.postToWebview(payload);
         break;
       case "dbtPowerUser.summarizeQuery":
-        this.handleQuerySummaryEvent(payload);
+        this.handleDatapilotEvent(
+          DatapilotEvents.QUERY_EXPLAIN_ONLOAD,
+          payload,
+        );
+        break;
+      case "dbtPowerUser.openDatapilotWithQuery":
+        this.handleDatapilotEvent(DatapilotEvents.QUERY_ONLOAD, payload);
         break;
       default:
         super.onEvent({ command, payload });
@@ -211,7 +222,10 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     }
   }
 
-  private handleQuerySummaryEvent(data?: { query?: string }) {
+  private handleDatapilotEvent(
+    command: DatapilotEvents,
+    data?: { query?: string },
+  ) {
     // reset the datapilot to start new session
     this._panel?.webview.postMessage({
       command: "datapilot:reset",
@@ -224,7 +238,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     this.emitterService.fire({
       command: "datapilot:message",
       payload: {
-        command: "queryAnalysis:explain:load",
+        command,
         // data.query will be passed from query panel webview
         query: data?.query || queryData.query,
         fileName: queryData.fileName,

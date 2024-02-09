@@ -5,6 +5,14 @@ import useQueryAnalysisContext, {
   MAX_ALLOWED_FOLLOWUP_QUESTIONS,
 } from "./provider/useQueryAnalysisContext";
 import DatapilotHeader from "../common/Header";
+import { DataPilotChatAction } from "@modules/dataPilot/types";
+
+const DefaultActions = [
+  {
+    title: "Query explanation",
+    command: "queryAnalysis:explain",
+  },
+] as DataPilotChatAction[];
 
 const QueryAnalysis = (): JSX.Element | null => {
   const { chat, results, isMaxFollowupReached } = useQueryAnalysisContext();
@@ -13,13 +21,15 @@ const QueryAnalysis = (): JSX.Element | null => {
     return null;
   }
 
+  const actions = chat.actions?.length ? chat.actions : DefaultActions;
+
   return (
     <Stack direction="column">
       <DatapilotHeader />
 
       <CodeBlock code={chat.query} language="sql" fileName={chat.fileName} />
       <Stack style={{ flexWrap: "wrap" }}>
-        {chat.actions?.map((action) => (
+        {actions.map((action) => (
           <QueryAnalysisActionButton
             key={action.title?.toString()}
             action={action}

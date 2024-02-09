@@ -272,6 +272,10 @@
         }
       },
       {
+        "command": "dbtPowerUser.openDatapilotWithQuery",
+        "title": "Start Chat"
+      },
+      {
         "command": "dbtPowerUser.summarizeQuery",
         "title": "Explain"
       },
@@ -430,6 +434,11 @@
         "command": "dbtPowerUser.sqlPreview"
       },
       {
+        "key": "shift+Ctrl+Q",
+        "mac": "shift+Cmd+Q",
+        "command": "dbtPowerUser.openDatapilotWithQuery"
+      },
+      {
         "key": "shift+Ctrl+E",
         "mac": "shift+Cmd+E",
         "command": "dbtPowerUser.summarizeQuery"
@@ -437,6 +446,9 @@
     ],
     "menus": {
       "dbtPowerUser.datapilotSubmenu": [
+        {
+          "command": "dbtPowerUser.openDatapilotWithQuery"
+        },
         {
           "command": "dbtPowerUser.summarizeQuery"
         }
@@ -503,6 +515,11 @@
           "command": "dbtPowerUser.runCurrentModel",
           "group": "dbt@1",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        },
+        {
+          "command": "dbtPowerUser.openDatapilotWithQuery",
+          "group": "dbt@3",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.altimateInstanceName && config.dbt.altimateAiKey"
         },
         {
           "command": "dbtPowerUser.summarizeQuery",
