@@ -1,6 +1,7 @@
-import { AltimateIcon, AskIcon, RefreshIcon } from "@assets/icons";
+import { AltimateIcon, AskIcon } from "@assets/icons";
+import TextareaAutosize from "react-textarea-autosize";
 import ResultFeedbackButtons from "@modules/documentationEditor/components/result/ResultFeedbackButtons";
-import { Button, Card, CardBody, CardTitle, Input, Stack } from "@uicore";
+import { Button, Card, CardBody, CardTitle, IconButton, Stack } from "@uicore";
 import { QueryExplainResult } from "./types";
 import classes from "../../datapilot.module.scss";
 import { Feedback } from "../docGen/types";
@@ -45,7 +46,7 @@ const QueryExplainResultComponent = ({
     );
   };
 
-  const handleOnChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleOnChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setUserRequest(e.target.value);
   };
 
@@ -59,7 +60,7 @@ const QueryExplainResultComponent = ({
           <AltimateIcon /> {datapilot_title}
         </CardTitle>
         <CardBody>
-          {response}
+          <div className={classes.response}>{response}</div>
           {state === RequestState.LOADING ? (
             <Stack>
               <Button color="warning">Loading...</Button>
@@ -67,11 +68,7 @@ const QueryExplainResultComponent = ({
           ) : null}
           {state === RequestState.COMPLETED ? (
             <Stack className={classes.actionButtons}>
-              <Stack>
-                <Button color="primary" outline>
-                  <RefreshIcon />
-                </Button>
-              </Stack>
+              <Stack>&nbsp;</Stack>
               <ResultFeedbackButtons
                 onFeedbackSubmit={(data) => onFeedbackSubmit(data)}
               />
@@ -81,8 +78,8 @@ const QueryExplainResultComponent = ({
       </Card>
       {actions?.length ? (
         <Stack direction="column">
-          <h6>Suggestions</h6>
-          <Stack>
+          <p className="p4 mb-0">Suggestions</p>
+          <Stack className="flex-wrap">
             {actions.map((action) => (
               <QueryAnalysisActionButton key={action.command} action={action} />
             ))}
@@ -92,16 +89,19 @@ const QueryExplainResultComponent = ({
       {state === RequestState.COMPLETED ? (
         <Stack className={classes.askInput}>
           <form onSubmit={handleSubmit}>
-            <Input
+            <TextareaAutosize
               disabled={isLoading}
-              type="textarea"
               placeholder="Ask a followup"
               value={userRequest}
               onChange={handleOnChange}
+              rows={1}
+              maxRows={3}
+              className="form-control"
             />
-            <Button type="submit" disabled={isLoading}>
+
+            <IconButton type="submit" disabled={isLoading}>
               <AskIcon />
-            </Button>
+            </IconButton>
           </form>
         </Stack>
       ) : null}

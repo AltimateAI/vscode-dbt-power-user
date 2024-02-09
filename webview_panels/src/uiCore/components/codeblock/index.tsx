@@ -1,5 +1,6 @@
 import { CodeBlock, nord } from "react-code-blocks";
 import { Card, CardBody, CardTitle } from "../../";
+import classes from "./codeblock.module.scss";
 
 interface Props {
   code: string;
@@ -12,10 +13,15 @@ const CodeBlockComponent = ({
   fileName,
 }: Props): JSX.Element => {
   return (
-    <Card>
+    <Card className={classes.codeblock}>
       <CardTitle>{fileName}</CardTitle>
       <CardBody>
-        <CodeBlock text={code} theme={nord} language={language} />
+        <CodeBlock
+          showLineNumbers={false}
+          text={code}
+          theme={nord}
+          language={language}
+        />
       </CardBody>
     </Card>
   );

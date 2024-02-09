@@ -2,6 +2,7 @@ import { CodeBlock, Stack } from "@uicore";
 import QueryAnalysisActionButton from "./QueryAnalysisActionButton";
 import QueryExplainResultComponent from "./QueryAnalysisResult";
 import useQueryAnalysisContext from "./provider/useQueryAnalysisContext";
+import DatapilotHeader from "../common/Header";
 
 const QueryAnalysis = (): JSX.Element | null => {
   const { chat, results } = useQueryAnalysisContext();
@@ -12,6 +13,8 @@ const QueryAnalysis = (): JSX.Element | null => {
 
   return (
     <Stack direction="column">
+      <DatapilotHeader />
+
       <CodeBlock code={chat.query} language="sql" fileName={chat.fileName} />
       <Stack style={{ flexWrap: "wrap" }}>
         {chat.actions?.map((action) => (

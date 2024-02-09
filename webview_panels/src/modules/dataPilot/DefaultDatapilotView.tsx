@@ -1,4 +1,3 @@
-import { AltimateIcon } from "@assets/icons";
 import {
   executeRequestInAsync,
   executeRequestInSync,
@@ -7,7 +6,7 @@ import { panelLogger } from "@modules/logger";
 import { Button, Stack } from "@uicore";
 import { useEffect, useState } from "react";
 import classes from "./datapilot.module.scss";
-import PreviewFeatureIcon from "@modules/previewFeature/PreviewFeatureIcon";
+import DatapilotHeader from "./components/common/Header";
 
 const DefaultDatapilotView = () => {
   const [isNewDocsPanelEnabled, setIsNewDocsPanelEnabled] = useState(true);
@@ -32,15 +31,7 @@ const DefaultDatapilotView = () => {
 
   return (
     <Stack direction="column" className={classes.defaultView}>
-      <Stack style={{ alignItems: "end" }}>
-        <AltimateIcon />
-        <div>
-          <h3>Hello, there!</h3>
-          <h6>
-            How can I help you today? <PreviewFeatureIcon />
-          </h6>
-        </div>
-      </Stack>
+      <DatapilotHeader />
       <section>
         <h6>Accelerate Your Work</h6>
         <p>

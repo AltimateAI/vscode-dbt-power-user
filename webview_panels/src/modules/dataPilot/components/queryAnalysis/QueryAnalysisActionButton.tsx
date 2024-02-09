@@ -24,6 +24,7 @@ const QueryAnalysisActionButton = ({ action }: Props): JSX.Element => {
           })
         }
         disabled={isLoading}
+        className="text-nowrap"
       >
         {action.title}
       </Button>

@@ -6,10 +6,16 @@ body {
   li {
     margin-bottom: 1rem;
     list-style: none;
+
+    > :global.stack-column{
+      gap: var(--spacing-xl)
+    }
   }
 
   :global .card {
     padding: 20px;
+    background: var(--background-base);
+
   }
   :global .card-title {
     font-size: 14px;
@@ -19,10 +25,12 @@ body {
       margin-right: 6px;
     }
   }
+  .response{
+    padding-bottom: var(--spacing-3xl);
+  }
   .action-buttons {
     flex-wrap: wrap;
     justify-content: space-between;
-    padding-top: 24px;
 
     & > div {
       display: flex;
@@ -37,6 +45,29 @@ body {
       flex: 100%;
     }
   }
+
+  .prompt-card {
+    border-radius: 8px;
+    border: 1px solid var(--stroke--disable);
+    background: var(--background--03);
+  }
+  
+  .ask-input {
+    form {
+      width: 100%;
+      position: relative;
+  
+      textarea{
+        padding: 1rem 1.5rem;
+      }
+      button {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+      }
+    }
+  }
+  
 }
 
 .default-view {
@@ -58,23 +89,7 @@ body {
       margin-bottom: 0;
     }
   }
+
+  
 }
 
-.prompt-card {
-  border-radius: 8px;
-  border: 1px solid var(--stroke--disable);
-  background: var(--background--02);
-}
-
-.ask-input {
-  form {
-    width: 100%;
-    position: relative;
-
-    button {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-    }
-  }
-}

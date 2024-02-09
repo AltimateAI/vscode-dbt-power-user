@@ -1,0 +1,18 @@
+.codeblock{
+    :global .card-title{
+        border-bottom: 1px solid #ccc;
+        font-weight: 500;
+        padding-bottom: var(--spacing-xl);
+        margin-bottom: var(--spacing-xl);
+    }
+
+    :global .card-body{
+        > span {
+            background: transparent !important;
+
+            code {
+                padding: 0 !important;
+            }
+        }
+    }
+}
