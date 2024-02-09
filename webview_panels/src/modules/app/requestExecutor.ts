@@ -8,7 +8,7 @@ const requestMap: Record<
 
 export const executeRequestInSync = (
   url: string,
-  params: Record<string, unknown>,
+  params: Record<string, unknown> | Record<string, unknown>[],
 ): Promise<unknown> =>
   new Promise((resolve, reject) => {
     const id = crypto.randomUUID();

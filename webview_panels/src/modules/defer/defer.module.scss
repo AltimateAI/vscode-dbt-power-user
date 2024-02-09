@@ -1,3 +1,7 @@
+:root {
+  --path-selection-background-color: #1c1c1c;
+}
+
 .insights-card {
   & :global .form-label {
     white-space: nowrap;
@@ -27,7 +31,7 @@
   .path-selection {
     padding: 16px;
     border-radius: 10px;
-    background: #1c1c1c;
+    background: var(--path-selection-background-color);
     gap: 8px;
     margin-bottom: 20px;
 

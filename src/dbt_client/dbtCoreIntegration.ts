@@ -35,6 +35,7 @@ import { TelemetryService } from "../telemetry";
 import { AltimateRequest, ValidateSqlParseErrorResponse } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { getProjectRelativePath } from "../utils";
+import { ManifestPathType } from "../constants";
 
 // TODO: we shouold really get these from manifest directly
 interface ResolveReferenceNodeResult {
@@ -425,17 +426,24 @@ export class DBTCoreProjectIntegration
     if (!deferToProduction) {
       return [];
     }
-    if (manifestPathType === "local") {
+    if (manifestPathType === ManifestPathType.LOCAL) {
       if (!manifestPathForDeferral) {
-        return [];
+        window.showErrorMessage("manifestPathForDeferral is not present");
+        this.telemetry.sendTelemetryError(
+          "manifestPathForDeferralNotPresent",
+          "manifestPathForDeferral is not present",
+        );
+        throw new Error("manifestPathForDeferral is not present");
       }
       const args = ["--defer", "--state", manifestPathForDeferral];
       if (favorState) {
         args.push("--favor-state");
       }
       return args;
-    } else if (manifestPathType === "remote") {
+    }
+    if (manifestPathType === ManifestPathType.REMOTE) {
       if (dbt_core_integration_id! > 0) {
+        window.showInformationMessage(`Downloading manifest.json`);
         const response = await this.altimateRequest.fetchArtifactUrl(
           "manifest",
           dbt_core_integration_id!,
@@ -453,7 +461,10 @@ export class DBTCoreProjectIntegration
             return args;
           } else {
             window.showErrorMessage("Unable to use remote manifest file.");
-            this.telemetry.sendTelemetryEvent("remoteManifestError");
+            this.telemetry.sendTelemetryError(
+              "remoteManifestError",
+              "Unable to use remote manifest file.",
+            );
             throw new Error("Unable to use remote manifest file.");
           }
         }

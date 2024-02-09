@@ -1,11 +1,11 @@
 import { env, Uri, window, workspace } from "vscode";
-import { provideSingleton } from "./utils";
+import { generateUUID, provideSingleton } from "./utils";
 import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
 import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
 import { join } from "path";
-import { createWriteStream, mkdir } from "fs";
+import { createWriteStream, mkdirSync } from "fs";
 import * as os from "os";
 import { RateLimitException } from "./exceptions";
 
@@ -337,33 +337,41 @@ export class AltimateRequest {
 
   async downloadFileLocally(
     url: string,
-    filePath = "manifest.json",
+    fileName = "manifest.json",
   ): Promise<string> {
-    const tempFolder = os.tmpdir();
+    const tempFolder = `${os.tmpdir()}/${generateUUID()}`;
+    try {
+      mkdirSync(tempFolder, { recursive: true });
 
-    mkdir(tempFolder, { recursive: true }, (err) => {
-      console.log(err);
-    });
+      const destinationPath = join(tempFolder, fileName);
 
-    const destinationPath = join(tempFolder, filePath);
+      const response = await fetch(url, { agent: undefined });
 
-    const response = await fetch(url, { agent: undefined });
+      if (!response.ok) {
+        throw new Error(
+          `Failed to download file. Status: ${response.status} ${response.statusText}`,
+        );
+      }
 
-    if (!response.ok) {
-      throw new Error(
-        `Failed to download file. Status: ${response.status} ${response.statusText}`,
+      const fileStream = createWriteStream(destinationPath);
+      await new Promise((resolve, reject) => {
+        response.body?.pipe(fileStream);
+        response.body?.on("error", reject);
+        fileStream.on("finish", resolve);
+      });
+
+      console.log("File downloaded successfully!");
+      window.showInformationMessage(`Successfully downloaded ${fileName}`);
+      return tempFolder;
+    } catch (err) {
+      console.error(`Could not save ${fileName} locally: ${err}`);
+      window.showErrorMessage(`Could not save ${fileName} locally: ${err}`);
+      this.telemetry.sendTelemetryError(
+        "downloadFileLocally",
+        `Could not save ${fileName} locally: ${err}`,
       );
+      throw err;
     }
-
-    const fileStream = createWriteStream(destinationPath);
-    await new Promise((resolve, reject) => {
-      response.body?.pipe(fileStream);
-      response.body?.on("error", reject);
-      fileStream.on("finish", resolve);
-    });
-
-    console.log("File downloaded successfully!");
-    return tempFolder;
   }
 
   private getQueryString = (
