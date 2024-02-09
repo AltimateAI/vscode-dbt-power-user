@@ -1,11 +1,13 @@
-import { CodeBlock, Stack } from "@uicore";
+import { Alert, CodeBlock, Stack } from "@uicore";
 import QueryAnalysisActionButton from "./QueryAnalysisActionButton";
 import QueryExplainResultComponent from "./QueryAnalysisResult";
-import useQueryAnalysisContext from "./provider/useQueryAnalysisContext";
+import useQueryAnalysisContext, {
+  MAX_ALLOWED_FOLLOWUP_QUESTIONS,
+} from "./provider/useQueryAnalysisContext";
 import DatapilotHeader from "../common/Header";
 
 const QueryAnalysis = (): JSX.Element | null => {
-  const { chat, results } = useQueryAnalysisContext();
+  const { chat, results, isMaxFollowupReached } = useQueryAnalysisContext();
 
   if (!chat) {
     return null;
@@ -31,6 +33,13 @@ const QueryAnalysis = (): JSX.Element | null => {
           command={`queryAnalysis:${chat.analysisType ?? ""}`}
         />
       ))}
+      {isMaxFollowupReached ? (
+        <Alert color="warning">
+          Note: Maximum {MAX_ALLOWED_FOLLOWUP_QUESTIONS} followup operations are
+          allowed. You have reached the limit, so there are no more followup
+          options available.
+        </Alert>
+      ) : null}
     </Stack>
   );
 };

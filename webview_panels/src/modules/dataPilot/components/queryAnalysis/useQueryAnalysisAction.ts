@@ -19,7 +19,7 @@ const useQueryAnalysisAction = (): {
   isLoading: boolean;
   executeQueryAnalysis: (args: QueryAnalysisRequest) => Promise<void>;
 } => {
-  const { chat } = useQueryAnalysisContext();
+  const { chat, isMaxFollowupReached } = useQueryAnalysisContext();
   const [isLoading, setIsLoading] = useState(false);
 
   const onProgress = (
@@ -37,6 +37,9 @@ const useQueryAnalysisAction = (): {
     sessionId,
     user_request,
   }: QueryAnalysisRequest) => {
+    if (isMaxFollowupReached) {
+      return;
+    }
     const id = crypto.randomUUID();
     try {
       panelLogger.info("executeQueryAnalysis", sessionId, id);

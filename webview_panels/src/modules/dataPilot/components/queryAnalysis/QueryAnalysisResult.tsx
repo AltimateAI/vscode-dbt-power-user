@@ -21,7 +21,8 @@ const QueryExplainResultComponent = ({
   response: { datapilot_title, response, user_prompt, actions, state },
   command,
 }: Props): JSX.Element => {
-  const { chat, onNewGeneration, history } = useQueryAnalysisContext();
+  const { chat, onNewGeneration, history, isMaxFollowupReached } =
+    useQueryAnalysisContext();
 
   const [userRequest, setUserRequest] = useState("");
 
@@ -99,7 +100,10 @@ const QueryExplainResultComponent = ({
               className="form-control"
             />
 
-            <IconButton type="submit" disabled={isLoading}>
+            <IconButton
+              type="submit"
+              disabled={isLoading || isMaxFollowupReached}
+            >
               <AskIcon />
             </IconButton>
           </form>

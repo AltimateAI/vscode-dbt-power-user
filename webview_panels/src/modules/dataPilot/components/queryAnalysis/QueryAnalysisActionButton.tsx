@@ -9,7 +9,8 @@ interface Props {
 
 const QueryAnalysisActionButton = ({ action }: Props): JSX.Element => {
   const { executeQueryAnalysis, isLoading } = useQueryAnalysisAction();
-  const { chat, onNewGeneration } = useQueryAnalysisContext();
+  const { chat, onNewGeneration, isMaxFollowupReached } =
+    useQueryAnalysisContext();
 
   return (
     <>
@@ -23,7 +24,7 @@ const QueryAnalysisActionButton = ({ action }: Props): JSX.Element => {
             user_request: action.title,
           })
         }
-        disabled={isLoading}
+        disabled={isLoading || isMaxFollowupReached}
         className="text-nowrap"
       >
         {action.title}

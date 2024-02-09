@@ -8,9 +8,12 @@ import { useContext, useMemo } from "react";
 import { QueryAnalysisContext } from "./QueryAnalysisProvider";
 import { QueryAnalysisContextProps } from "./types";
 
+export const MAX_ALLOWED_FOLLOWUP_QUESTIONS = 15;
+
 const useQueryAnalysisContext = (): {
   chat?: DatapilotQueryAnalysisChat;
   history: QueryAnalysisHistory[];
+  isMaxFollowupReached: boolean;
 } & QueryAnalysisContextProps => {
   const {
     state: { items, currentSessionId },
@@ -22,10 +25,6 @@ const useQueryAnalysisContext = (): {
   const context = useContext(QueryAnalysisContext);
 
   const history = useMemo(() => {
-    // const intialMessage = [
-    //   { content: chat.query, type: QueryAnalysisHistoryType.HUMAN },
-    //   { content: chat.response, type: QueryAnalysisHistoryType.SYSTEM },
-    // ].filter(r => !!r.content) as QueryAnalysisHistory[];
     const intialMessage = [] as QueryAnalysisHistory[];
     if (!context.results.length) {
       return intialMessage;
@@ -47,6 +46,8 @@ const useQueryAnalysisContext = (): {
     chat,
     ...context,
     history,
+    isMaxFollowupReached:
+      MAX_ALLOWED_FOLLOWUP_QUESTIONS <= context.results.length,
   };
 };
 
