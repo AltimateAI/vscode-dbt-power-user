@@ -480,9 +480,9 @@ export const expandTableLineageLevelWise = async (
   lb: number, // lower bound
   ub: number // upper bound
 ): Promise<[Node[], Edge[]]> => {
-  let nodes = [..._nodes];
-  let edges = [..._edges];
-  if (lb > ub) return [nodes, edges];
+  const nodes = [..._nodes];
+  const edges = [..._edges];
+  if (lb >= ub) return [nodes, edges];
   const withinExcBounds = withinExclusive(lb, ub);
   const rootLevel = nodes.find((n) => n.id === _table)!.data.level;
   const bfs = async (right: boolean) => {
@@ -519,10 +519,6 @@ export const expandTableLineageLevelWise = async (
   };
   if (ub > rootLevel) await bfs(true);
   if (lb < rootLevel) await bfs(false);
-  if (ub === rootLevel)
-    [nodes, edges] = await expandTableLineage(nodes, edges, _table, true);
-  if (lb === rootLevel)
-    [nodes, edges] = await expandTableLineage(nodes, edges, _table, false);
 
   return [nodes, edges];
 };

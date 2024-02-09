@@ -82,6 +82,7 @@ const AutoExpansionPopover = () => {
     setRightExpansion,
     minRange,
     setMinRange,
+    rerender,
   } = useContext(LineageContext);
   const [nodeCount, setNodeCount] = useState(0);
   const [maxRange, setMaxRange] = useState([0, 0]);
@@ -95,7 +96,6 @@ const AutoExpansionPopover = () => {
   useEffect(() => {
     setLeftExpansion(Math.max(minRange[0], 0));
     setRightExpansion(Math.max(minRange[1], 0));
-    setNodeCount(0);
   }, [minRange, setLeftExpansion, setRightExpansion]);
 
   useEffect(() => {
@@ -116,7 +116,7 @@ const AutoExpansionPopover = () => {
       );
       setNodeCount(newNodes.length - startingNodesNum);
     })();
-  }, [flow, leftExpansion, rightExpansion, selectedTable]);
+  }, [flow, minRange, leftExpansion, rightExpansion, selectedTable]);
 
   useEffect(() => {
     (async () => {
@@ -161,8 +161,7 @@ const AutoExpansionPopover = () => {
           <div className="w-100 d-flex gap-xl justify-content-between align-items-center">
             <div
               className={classNames(styles.expand_nav_left, {
-                [styles.disabled]:
-                  leftExpansion >= maxRange[0] || minRange[0] === -1,
+                [styles.disabled]: minRange[0] === -1,
               })}
             >
               <div className={styles.expand_nav_btn}>
@@ -188,8 +187,7 @@ const AutoExpansionPopover = () => {
             </div>
             <div
               className={classNames(styles.expand_nav_right, {
-                [styles.disabled]:
-                  rightExpansion >= maxRange[1] || minRange[1] === -1,
+                [styles.disabled]: minRange[1] === -1,
               })}
             >
               <div className="text-blue px-2 py-1">{rightExpansion}</div>
@@ -228,7 +226,6 @@ const AutoExpansionPopover = () => {
               if (!selectedTable) return;
               const selectedTableData = flow.getNode(selectedTable)?.data;
               if (!selectedTableData) return;
-
               const [nodes, edges] = await expandTableLineageLevelWise(
                 flow.getNodes(),
                 flow.getEdges(),
@@ -240,8 +237,9 @@ const AutoExpansionPopover = () => {
               layoutElementsOnCanvas(nodes, edges);
               flow.setNodes(nodes);
               flow.setEdges(edges);
-              close();
               setMinRange(calculateMinLevel(nodes, edges, selectedTable));
+              rerender();
+              close();
             }}
           >
             Add {nodeCount} tables
