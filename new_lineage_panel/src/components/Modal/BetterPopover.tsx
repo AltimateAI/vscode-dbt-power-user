@@ -14,9 +14,11 @@ function BetterPopover({
   const [isOpen, setIsOpen] = useState(false);
   useEffect(() => {
     const clickHandler = () => setIsOpen(false);
-    document.body.addEventListener("click", clickHandler);
+    document.getElementById("root")?.addEventListener("click", clickHandler);
     return () => {
-      document.body.removeEventListener("click", clickHandler);
+      document
+        .getElementById("root")
+        ?.removeEventListener("click", clickHandler);
     };
   }, []);
 
