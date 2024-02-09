@@ -27,7 +27,7 @@ const DefaultDatapilotView = () => {
       <section>
         <p>
           First, Please select a piece of code or all code in a file to get
-          started, and press cmd + shift + Q or start from Documentation Editor
+          started, and press cmd + shift + A or start from Documentation Editor
           Panel
         </p>
       </section>
