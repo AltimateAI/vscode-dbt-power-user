@@ -447,10 +447,12 @@
     "menus": {
       "dbtPowerUser.datapilotSubmenu": [
         {
-          "command": "dbtPowerUser.openDatapilotWithQuery"
+          "command": "dbtPowerUser.openDatapilotWithQuery",
+          "group": "datapilot@1"
         },
         {
-          "command": "dbtPowerUser.summarizeQuery"
+          "command": "dbtPowerUser.summarizeQuery",
+          "group": "datapilot@2"
         }
       ],
       "editor/title": [
@@ -487,6 +489,11 @@
       ],
       "editor/context": [
         {
+          "submenu": "dbtPowerUser.datapilotSubmenu",
+          "group": "datapilot@1",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.altimateInstanceName && config.dbt.altimateAiKey"
+        },
+        {
           "submenu": "dbtPowerUser.buildModel",
           "group": "dbt@5",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
@@ -515,20 +522,6 @@
           "command": "dbtPowerUser.runCurrentModel",
           "group": "dbt@1",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
-        },
-        {
-          "command": "dbtPowerUser.openDatapilotWithQuery",
-          "group": "dbt@3",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.altimateInstanceName && config.dbt.altimateAiKey"
-        },
-        {
-          "command": "dbtPowerUser.summarizeQuery",
-          "group": "dbt@3",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.altimateInstanceName && config.dbt.altimateAiKey"
-        },
-        {
-          "submenu": "dbtPowerUser.datapilotSubmenu",
-          "group": "dbtPowerUser.datapilot"
         },
         {
           "command": "dbtPowerUser.sqlToModel",
