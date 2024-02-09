@@ -1,10 +1,4 @@
-import {
-  PropsWithoutRef,
-  ReactNode,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { PropsWithoutRef, ReactNode, useEffect, useState } from "react";
 import { Popover, PopoverBody } from "reactstrap";
 import styles from "./styles.module.scss";
 
@@ -15,7 +9,8 @@ function BetterPopover({
   trigger: ReactNode;
   render: (args: { close: () => void }) => ReactNode;
 }>) {
-  const id = useMemo(() => window.crypto.randomUUID(), []);
+  // TODO: fix this hardcoded id, random uuid creating issue
+  const id = "popover-id";
   const [isOpen, setIsOpen] = useState(false);
   useEffect(() => {
     const clickHandler = () => setIsOpen(false);
@@ -27,10 +22,17 @@ function BetterPopover({
 
   return (
     <>
-      <div id={id}>{trigger}</div>
+      <div
+        id={id}
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen((b) => !b);
+        }}
+      >
+        {trigger}
+      </div>
       <Popover
         placement="bottom"
-        trigger="click"
         target={id}
         className={styles.popover}
         isOpen={isOpen}

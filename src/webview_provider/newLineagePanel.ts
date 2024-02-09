@@ -84,7 +84,6 @@ export class NewLineagePanel implements LineagePanelView {
 
   eventMapChanged(eventMap: Map<string, ManifestCacheProjectAddedEvent>): void {
     this.eventMap = eventMap;
-    console.log("lineage:eventMapChanged");
     this.init();
   }
 
