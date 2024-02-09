@@ -1,19 +1,20 @@
-.codeblock{
-    :global .card-title{
-        border-bottom: 1px solid #ccc;
-        font-weight: 500;
-        padding-bottom: var(--spacing-xl);
-        margin-bottom: var(--spacing-xl);
-    }
+.codeblock {
+  :global .card-title {
+    border-bottom: 1px solid #ccc;
+    font-weight: 500;
+    padding-bottom: var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
+  }
 
-    :global .card-body{
-        > span {
-            background: transparent !important;
+  :global .card-body {
+    > span {
+      background: transparent !important;
 
-            code {
-            background: transparent !important;
-            padding: 0 !important;
-            }
-        }
+      code {
+        background: transparent !important;
+        padding: 0 !important;
+        max-height: 250px;
+      }
     }
+  }
 }
