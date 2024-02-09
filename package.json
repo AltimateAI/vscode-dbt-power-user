@@ -428,6 +428,11 @@
         "key": "Ctrl+'",
         "mac": "Cmd+'",
         "command": "dbtPowerUser.sqlPreview"
+      },
+      {
+        "key": "shift+Ctrl+E",
+        "mac": "shift+Cmd+E",
+        "command": "dbtPowerUser.summarizeQuery"
       }
     ],
     "menus": {
