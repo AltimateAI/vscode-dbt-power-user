@@ -204,7 +204,12 @@ export class VSCodeCommands implements Disposable {
           payload: {},
         }),
       ),
-      commands.registerCommand("dbtPowerUser.helpDatapilot", () => null),
+      commands.registerCommand("dbtPowerUser.helpDatapilot", () =>
+        this.eventEmitterService.fire({
+          command: "dbtPowerUser.openHelpInDatapilot",
+          payload: {},
+        }),
+      ),
       commands.registerCommand("dbtPowerUser.maximizeDatapilot", () => null),
     );
   }

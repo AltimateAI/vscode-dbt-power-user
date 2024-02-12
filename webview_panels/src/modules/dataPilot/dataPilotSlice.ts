@@ -4,6 +4,7 @@ import { DataPilotChat, DataPilotStateProps } from "./types";
 export const initialState = {
   items: {},
   currentSessionId: undefined,
+  showHelp: false,
 } as DataPilotStateProps;
 
 const dataPilotSlice = createSlice({
@@ -15,6 +16,12 @@ const dataPilotSlice = createSlice({
       action: PayloadAction<DataPilotStateProps["currentSessionId"]>,
     ) => {
       state.currentSessionId = action.payload;
+    },
+    setShowHelp: (
+      state,
+      action: PayloadAction<DataPilotStateProps["showHelp"]>,
+    ) => {
+      state.showHelp = action.payload;
     },
     upsertItem: (
       state,
@@ -32,6 +39,6 @@ const dataPilotSlice = createSlice({
   },
 });
 
-export const { upsertItem, reset, setCurrentSessionId } =
+export const { upsertItem, reset, setCurrentSessionId, setShowHelp } =
   dataPilotSlice.actions;
 export default dataPilotSlice;

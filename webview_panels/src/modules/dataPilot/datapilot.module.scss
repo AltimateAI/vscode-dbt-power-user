@@ -7,15 +7,14 @@ body {
     margin-bottom: 1rem;
     list-style: none;
 
-    > :global.stack-column{
-      gap: var(--spacing-xl)
+    > :global.stack-column {
+      gap: var(--spacing-xl);
     }
   }
 
   :global .card {
     padding: 20px;
     background: var(--background-base);
-
   }
   :global .card-title {
     font-size: 14px;
@@ -25,7 +24,7 @@ body {
       margin-right: 6px;
     }
   }
-  .response{
+  .response {
     padding-bottom: var(--spacing-3xl);
   }
   .action-buttons {
@@ -51,13 +50,13 @@ body {
     border: 1px solid var(--stroke--disable);
     background: var(--background--03);
   }
-  
+
   .ask-input {
     form {
       width: 100%;
       position: relative;
-  
-      textarea{
+
+      textarea {
         padding: 1rem 1.5rem;
         min-height: 48px;
       }
@@ -68,7 +67,6 @@ body {
       }
     }
   }
-  
 }
 
 .default-view {
@@ -90,7 +88,41 @@ body {
       margin-bottom: 0;
     }
   }
-
-  
 }
 
+.help {
+  .back{
+    cursor: pointer;
+    svg path{
+      stroke: var(--text-color--title);
+    } 
+  }
+  .links {
+    gap: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    padding: 0; 
+    .link {
+      text-align: center;
+      list-style: none;
+      width: 31%;
+    a{
+      background: var(--background--04);
+    border-radius: 10px;
+    padding: 40px 0px;
+      display: block;
+      height: 100%;
+      color: var(--text-color--title);
+      text-decoration: none;
+      svg{
+        margin-bottom: var(--spacing-2xl);
+        path{
+          fill: var(--text-color--title);
+        }
+      }
+      &:hover {
+        background: var(--background--blue);
+      }
+    }}
+  }
+}

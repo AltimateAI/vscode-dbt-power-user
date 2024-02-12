@@ -7,10 +7,11 @@ import classes from "./datapilot.module.scss";
 import DefaultDatapilotView from "./DefaultDatapilotView";
 import QueryAnalysis from "./components/queryAnalysis/QueryAnalysis";
 import QueryAnalysisProvider from "./components/queryAnalysis/provider/QueryAnalysisProvider";
+import DataPilotHelp from "./DataPilotHelp";
 
 const DataPilotPanel = () => {
   const {
-    state: { items },
+    state: { items, showHelp },
   } = useDataPilotContext();
 
   const chats = useMemo(() => {
@@ -34,6 +35,10 @@ const DataPilotPanel = () => {
     }
     return null;
   };
+
+  if (showHelp) {
+    return <DataPilotHelp />;
+  }
 
   if (!chats.length) {
     return <DefaultDatapilotView />;

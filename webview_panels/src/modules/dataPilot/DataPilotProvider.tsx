@@ -11,6 +11,7 @@ import dataPilotSlice, {
   initialState,
   reset,
   setCurrentSessionId,
+  setShowHelp,
   upsertItem,
 } from "./dataPilotSlice";
 import {
@@ -79,6 +80,9 @@ const DataPilotProvider = ({
           break;
         case "datapilot:reset":
           dispatch(reset());
+          break;
+        case "datapilot:showHelp":
+          dispatch(setShowHelp(true));
           break;
         default:
           break;

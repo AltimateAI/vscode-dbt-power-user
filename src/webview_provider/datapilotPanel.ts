@@ -192,6 +192,11 @@ export class DataPilotPanel extends AltimateWebviewProvider {
       case "dbtPowerUser.openDatapilotWithQuery":
         this.handleDatapilotEvent(DatapilotEvents.QUERY_ONLOAD, payload);
         break;
+      case "dbtPowerUser.openHelpInDatapilot":
+        this._panel!.webview.postMessage({
+          command: "datapilot:showHelp",
+        });
+        break;
       default:
         super.onEvent({ command, payload });
         break;

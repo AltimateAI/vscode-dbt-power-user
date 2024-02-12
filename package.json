@@ -612,11 +612,6 @@
           "group": "navigation@1"
         },
         {
-          "command": "dbtPowerUser.maximizeDatapilot",
-          "when": "view == dbtPowerUser.datapilot-webview",
-          "group": "navigation@2"
-        },
-        {
           "command": "dbtPowerUser.helpDatapilot",
           "when": "view == dbtPowerUser.datapilot-webview",
           "group": "navigation@3"
