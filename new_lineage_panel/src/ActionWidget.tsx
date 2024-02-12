@@ -31,7 +31,7 @@ import {
   layoutElementsOnCanvas,
 } from "./graph";
 import classNames from "classnames";
-import { BetterPopover } from "./components/Modal/BetterPopover";
+import { BetterPopover } from "./components/Modal";
 
 const InfoIcon: FunctionComponent<{ id: string; message: string }> = ({
   id,
@@ -154,7 +154,7 @@ const AutoExpansionPopover = () => {
         <div className="d-flex flex-column gap-xs">
           <div className="w-100 d-flex gap-xl justify-content-between align-items-center">
             <div
-              className={classNames(styles.expand_nav_left, {
+              className={classNames(styles.expand_nav, {
                 [styles.disabled]: minRange[0] === -1,
               })}
             >
@@ -180,7 +180,7 @@ const AutoExpansionPopover = () => {
               <div className="text-blue px-2 py-1">{leftExpansion}</div>
             </div>
             <div
-              className={classNames(styles.expand_nav_right, {
+              className={classNames(styles.expand_nav, {
                 [styles.disabled]: minRange[1] === -1,
               })}
             >
