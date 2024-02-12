@@ -1,13 +1,13 @@
 import { env, Uri, window, workspace } from "vscode";
-import { generateUUID, provideSingleton } from "./utils";
+import { provideSingleton } from "./utils";
 import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
-import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
 import { join } from "path";
 import { createWriteStream, mkdirSync } from "fs";
 import * as os from "os";
 import { RateLimitException } from "./exceptions";
+import { DBTProject } from "./manifest/dbtProject";
 
 interface AltimateConfig {
   key: string;
@@ -150,30 +150,7 @@ interface DBTCoreIntegration {
   name: string;
   created_at: string;
   last_modified_at: string;
-  created_by: number;
-  last_modified_by: number;
-  environments: DBTCoreIntegrationEnvironment[];
-  files: DBTCoreIntegrationFile[];
-}
-
-interface DBTCoreIntegrationEnvironment {
-  id: number;
-  dbt_core_integration_id: number;
-  environment_type: string;
-  created_at: string;
-  last_modified_at: string;
-  created_by: number;
-  last_modified_by: number;
-}
-
-interface DBTCoreIntegrationFile {
-  id: number;
-  dbt_core_integration_id: number;
-  file_type: string;
-  path: string;
-  verified: boolean;
-  uploaded_at: string;
-  uploaded_by: number;
+  last_file_upload_time: string;
 }
 
 interface DownloadArtifactResponse {
@@ -336,16 +313,19 @@ export class AltimateRequest {
   }
 
   async downloadFileLocally(
-    url: string,
+    artifactUrl: string,
+    projectRoot: Uri,
     fileName = "manifest.json",
   ): Promise<string> {
-    const tempFolder = `${os.tmpdir()}/${generateUUID()}`;
+    const hashedProjectRoot = DBTProject.hashProjectRoot(projectRoot.fsPath);
+    const tempFolder = join(os.tmpdir(), hashedProjectRoot);
+
     try {
       mkdirSync(tempFolder, { recursive: true });
 
       const destinationPath = join(tempFolder, fileName);
 
-      const response = await fetch(url, { agent: undefined });
+      const response = await fetch(artifactUrl, { agent: undefined });
 
       if (!response.ok) {
         throw new Error(

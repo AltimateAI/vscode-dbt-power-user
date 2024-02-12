@@ -451,6 +451,7 @@ export class DBTCoreProjectIntegration
         if (response?.url) {
           const manifestPath = await this.altimateRequest.downloadFileLocally(
             response.url,
+            this.projectRoot,
           );
           if (manifestPath) {
             console.log(`Set remote manifest path: ${manifestPath}`);

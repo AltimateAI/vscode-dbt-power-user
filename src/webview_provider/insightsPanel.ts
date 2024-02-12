@@ -11,7 +11,7 @@ import {
 import { AltimateRequest } from "../altimate";
 import { SharedStateService } from "../services/SharedStateService";
 
-type UpdateConfigPropsOrArray = UpdateConfigProps | UpdateConfigProps[];
+type UpdateConfigPropsArray = { config: UpdateConfigProps[] };
 interface DeferConfig {
   deferToProduction: boolean;
   favorState: boolean;
@@ -68,7 +68,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
   }
   private async updateDeferConfig(
     syncRequestId: string | undefined,
-    params: UpdateConfigPropsOrArray,
+    params: UpdateConfigPropsArray,
   ) {
     try {
       console.log("Updating defer config", params);
@@ -77,16 +77,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
         throw new Error("Invalid credentials");
       }
 
-      if (Object.keys(params).every((key) => /^\d+$/.test(key))) {
-        params = Object.values(params);
-      }
-
-      let updateConfigs: UpdateConfigProps[];
-      if (Array.isArray(params)) {
-        updateConfigs = params;
-      } else {
-        updateConfigs = [params];
-      }
+      const updateConfigs = params.config;
 
       const currentConfig: Record<string, DeferConfig> = await workspace
         .getConfiguration("dbt")
@@ -214,7 +205,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       case "updateDeferConfig":
         await this.updateDeferConfig(
           syncRequestId,
-          params as UpdateConfigPropsOrArray,
+          params as UpdateConfigPropsArray,
         );
         break;
       case "bigqueryCostEstimate":
