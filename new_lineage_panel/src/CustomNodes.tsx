@@ -125,6 +125,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
       table,
       right
     );
+    [nodes, edges] = highlightTableConnections(nodes, edges, selectedTable);
     layoutElementsOnCanvas(nodes, edges);
     flow.setNodes(nodes);
     flow.setEdges(edges);
@@ -161,19 +162,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
       }
       return;
     }
-
-    // highlight expanded table if table is already highlighted
-    if (selectedTable) {
-      [nodes, edges] = highlightTableConnections(nodes, edges, selectedTable);
-      layoutElementsOnCanvas(nodes, edges);
-      flow.setNodes(nodes);
-      flow.setEdges(edges);
-      rerender();
-    }
   };
-
-  const expandRight = () => expand(true);
-  const expandLeft = () => expand(false);
 
   const onDetailsClick = () => {
     if (!selected) return;
@@ -251,7 +240,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                     downstreamCount ===
                       _edges.filter((e) => e.target === table).length,
                 })}
-                onClick={() => expandLeft()}
+                onClick={() => expand(false)}
                 data-testid={"expand-left-btn-" + table}
               >
                 +
@@ -290,7 +279,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                     upstreamCount ===
                       _edges.filter((e) => e.source === table).length,
                 })}
-                onClick={() => expandRight()}
+                onClick={() => expand(true)}
                 data-testid={"expand-right-btn-" + table}
               >
                 +
