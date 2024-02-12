@@ -28,19 +28,24 @@ const QueryAnalysis = (): JSX.Element | null => {
       <DatapilotHeader />
 
       <CodeBlock code={chat.query} language="sql" fileName={chat.fileName} />
-      <Stack style={{ flexWrap: "wrap" }}>
-        {actions.map((action) => (
-          <QueryAnalysisActionButton
-            key={action.title?.toString()}
-            action={action}
-          />
-        ))}
-      </Stack>
-      {results.map((result) => (
+      {/* show actions only if this is start of chat */}
+      {results.length > 0 ? null : (
+        <Stack style={{ flexWrap: "wrap" }}>
+          {actions.map((action) => (
+            <QueryAnalysisActionButton
+              key={action.title?.toString()}
+              action={action}
+            />
+          ))}
+        </Stack>
+      )}
+      {results.map((result, i) => (
         <QueryExplainResultComponent
           key={result.session_id}
           response={result}
           command={`queryAnalysis:${chat.analysisType ?? ""}`}
+          // show followup and ask textbox for last result only
+          showFollowup={i === results.length - 1}
         />
       ))}
       {isMaxFollowupReached ? (

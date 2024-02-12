@@ -21,6 +21,7 @@ import useAiGenerationUtils from "../common/useAiGenerationUtils";
 interface Props {
   response: QueryExplainResult;
   command: DataPilotChatAction["command"];
+  showFollowup: boolean;
 }
 const QueryExplainResultComponent = ({
   response: {
@@ -32,6 +33,7 @@ const QueryExplainResultComponent = ({
     session_id,
   },
   command,
+  showFollowup,
 }: Props): JSX.Element => {
   const { chat, results, onNewGeneration, history, isMaxFollowupReached } =
     useQueryAnalysisContext();
@@ -116,7 +118,7 @@ const QueryExplainResultComponent = ({
           </CardBody>
         </Card>
       </li>
-      {actions?.length ? (
+      {showFollowup && actions?.length ? (
         <Stack direction="column">
           <p className="p4 mb-0">Suggestions</p>
           <Stack className="flex-wrap">
@@ -126,7 +128,7 @@ const QueryExplainResultComponent = ({
           </Stack>
         </Stack>
       ) : null}
-      {state === RequestState.COMPLETED ? (
+      {showFollowup && state === RequestState.COMPLETED ? (
         <Stack className={classes.askInput}>
           <form onSubmit={handleSubmit}>
             <TextareaAutosize
