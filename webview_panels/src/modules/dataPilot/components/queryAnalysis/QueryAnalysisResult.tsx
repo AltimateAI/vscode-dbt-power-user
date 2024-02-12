@@ -17,6 +17,7 @@ import { DataPilotChatAction, RequestState } from "@modules/dataPilot/types";
 import useQueryAnalysisAction from "./useQueryAnalysisAction";
 import useQueryAnalysisContext from "./provider/useQueryAnalysisContext";
 import useAiGenerationUtils from "../common/useAiGenerationUtils";
+import MarkdownRenderer from "@modules/markdown/Renderer";
 
 interface Props {
   response: QueryExplainResult;
@@ -101,7 +102,11 @@ const QueryExplainResultComponent = ({
             <AltimateIcon /> {datapilot_title}
           </CardTitle>
           <CardBody>
-            <div className={classes.response}>{response}</div>
+            {response ? (
+              <div className={classes.response}>
+                <MarkdownRenderer response={response} />
+              </div>
+            ) : null}
             {state === RequestState.LOADING ? (
               <Stack>
                 <Button color="warning">Loading...</Button>

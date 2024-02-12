@@ -120,6 +120,10 @@ body {
           fill: var(--text-color--title);
         }
       }
+      :global .codicon{
+        font-size: 80px;
+      }
+      
       &:hover {
         background: var(--background--blue);
       }

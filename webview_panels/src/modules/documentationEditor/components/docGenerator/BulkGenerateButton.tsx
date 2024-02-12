@@ -11,7 +11,7 @@ import { Button, DropdownButton, List, Popover, PopoverBody } from "@uicore";
 import { useRef, useState } from "react";
 import classes from "../../styles.module.scss";
 
-const BulkGenerateButton = () => {
+const BulkGenerateButton = (): JSX.Element => {
   const [openPopover, setOpenPopover] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
   const {

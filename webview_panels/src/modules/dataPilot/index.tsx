@@ -9,7 +9,7 @@ import QueryAnalysis from "./components/queryAnalysis/QueryAnalysis";
 import QueryAnalysisProvider from "./components/queryAnalysis/provider/QueryAnalysisProvider";
 import DataPilotHelp from "./DataPilotHelp";
 
-const DataPilotPanel = () => {
+const DataPilotPanel = (): JSX.Element => {
   const {
     state: { items, showHelp },
   } = useDataPilotContext();

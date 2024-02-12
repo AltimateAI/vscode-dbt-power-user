@@ -2,7 +2,7 @@ import { AltimateIcon } from "@assets/icons";
 import PreviewFeatureIcon from "@modules/previewFeature/PreviewFeatureIcon";
 import { Stack } from "@uicore";
 
-const DatapilotHeader = () => {
+const DatapilotHeader = (): JSX.Element => {
   return (
     <Stack style={{ alignItems: "end" }}>
       <AltimateIcon />

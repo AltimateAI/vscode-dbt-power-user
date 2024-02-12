@@ -1,0 +1,30 @@
+.markdown {
+  ul {
+    padding: 0;
+  }
+  .code {
+    position: relative;
+
+    pre {
+      transition: 0.3s ease all;
+      border-radius: 4px;
+      border: 1px solid var(--stroke--disable);
+      padding-left: 1rem;
+      background: var(--background--03) !important;
+    }
+  }
+
+  :global .code__icons {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 1;
+  }
+
+  :global .code__icons button {
+    background-color: transparent;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+  }
+}

@@ -2,7 +2,7 @@ import { Stack } from "@uicore";
 import classes from "./datapilot.module.scss";
 import DatapilotHeader from "./components/common/Header";
 
-const DefaultDatapilotView = () => {
+const DefaultDatapilotView = (): JSX.Element => {
   return (
     <Stack direction="column" className={classes.defaultView}>
       <DatapilotHeader />

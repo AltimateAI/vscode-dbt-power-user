@@ -14,7 +14,7 @@ const CodeBlockComponent = ({
 }: Props): JSX.Element => {
   return (
     <Card className={classes.codeblock}>
-      <CardTitle>{fileName}</CardTitle>
+      {fileName ? <CardTitle>{fileName}</CardTitle> : null}
       <CardBody>
         <CodeBlock
           showLineNumbers={false}

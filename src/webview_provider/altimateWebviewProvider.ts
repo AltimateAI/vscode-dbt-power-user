@@ -99,10 +99,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     const webview = this._panel!.webview!;
     this._panel!.webview.onDidReceiveMessage(this.handleCommand, this, []);
 
-    webview.html = this.getHtml(
-      webview,
-      this.dbtProjectContainer.extensionUri.fsPath,
-    );
+    webview.html = this.getHtml(webview, this.dbtProjectContainer.extensionUri);
   }
 
   // typegaurd to UpdateConfigProps
@@ -233,21 +230,33 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     };
   }
 
-  private getHtml(webview: Webview, extensionUri: string) {
+  private getHtml(webview: Webview, extensionUri: Uri) {
     const indexJs = webview.asWebviewUri(
       Uri.file(
-        path.join(extensionUri, "webview_panels", "dist", "assets", "main.js"),
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "main.js",
+        ),
       ),
     );
     const indexCss = webview.asWebviewUri(
       Uri.file(
-        path.join(extensionUri, "webview_panels", "dist", "assets", "main.css"),
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "main.css",
+        ),
       ),
     );
     const insightsCss = webview.asWebviewUri(
       Uri.file(
         path.join(
-          extensionUri,
+          extensionUri.fsPath,
           "webview_panels",
           "dist",
           "assets",
@@ -255,6 +264,16 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         ),
       ),
     );
+    const codiconsUri = webview.asWebviewUri(
+      Uri.joinPath(
+        extensionUri,
+        "node_modules",
+        "@vscode/codicons",
+        "dist",
+        "codicon.css",
+      ),
+    );
+
     const nonce = getNonce();
     return `
         <!DOCTYPE html>
@@ -271,6 +290,8 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             <title>VSCode DBT Power user extension</title>
             <link rel="stylesheet" type="text/css" href="${indexCss}">
             <link rel="stylesheet" type="text/css" href="${insightsCss}">
+            <link href="${codiconsUri}" rel="stylesheet" />
+
           </head>
       
           <body>
