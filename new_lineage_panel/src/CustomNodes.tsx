@@ -19,7 +19,7 @@ import {
 } from "./graph";
 import { LineageContext } from "./App";
 import { CLL, openFile } from "./service_utils";
-import { getColY } from "./utils";
+import { getColY, getSeeMoreId } from "./utils";
 import { TMoreTables } from "./MoreTables";
 
 import TestsIcon from "./assets/icons/tests.svg?react";
@@ -238,7 +238,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                   invisible:
                     downstreamCount === 0 ||
                     downstreamCount ===
-                      _edges.filter((e) => e.target === table).length,
+                      _edges.filter((e) => e.target === table).length ||
+                    flow.getNode(getSeeMoreId(table, false)),
                 })}
                 onClick={() => expand(false)}
                 data-testid={"expand-left-btn-" + table}
@@ -277,7 +278,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                   invisible:
                     upstreamCount === 0 ||
                     upstreamCount ===
-                      _edges.filter((e) => e.source === table).length,
+                      _edges.filter((e) => e.source === table).length ||
+                    flow.getNode(getSeeMoreId(table, true)),
                 })}
                 onClick={() => expand(true)}
                 data-testid={"expand-right-btn-" + table}
