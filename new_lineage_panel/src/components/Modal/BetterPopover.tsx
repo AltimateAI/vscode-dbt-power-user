@@ -1,7 +1,21 @@
-import { PropsWithoutRef, ReactNode, useEffect, useRef, useState } from "react";
+import {
+  Dispatch,
+  PropsWithoutRef,
+  ReactNode,
+  SetStateAction,
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+} from "react";
 import { Popover, PopoverBody } from "reactstrap";
 import styles from "./styles.module.scss";
 import { withinInclusive } from "../../utils";
+
+const PopoverContext = createContext<{
+  isOpen: boolean;
+  setIsOpen: Dispatch<SetStateAction<boolean>>;
+}>({ isOpen: false, setIsOpen: () => {} });
 
 function BetterPopover({
   trigger,
@@ -13,7 +27,7 @@ function BetterPopover({
   // TODO: fix this hardcoded id, random uuid creating issue
   const ref = useRef<HTMLDivElement>(null);
   const id = "popover-id";
-  const [isOpen, setIsOpen] = useState(false);
+  const { isOpen, setIsOpen } = useContext(PopoverContext);
   useEffect(() => {
     const clickHandler = (e: MouseEvent) => {
       if (!ref.current) return;
@@ -55,4 +69,4 @@ function BetterPopover({
   );
 }
 
-export { BetterPopover };
+export { BetterPopover, PopoverContext };

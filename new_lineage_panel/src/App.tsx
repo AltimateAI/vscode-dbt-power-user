@@ -22,7 +22,7 @@ import {
   SelfConnectingEdge,
   TableNode,
 } from "./CustomNodes";
-import { Modal, SidebarModal } from "./components/Modal";
+import { Modal, PopoverContext, SidebarModal } from "./components/Modal";
 import { MoreTables, TMoreTables } from "./MoreTables";
 import {
   calculateMinLevel,
@@ -120,6 +120,7 @@ export const LineageContext = createContext<{
 
 function App() {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
+  const [isOpen, setIsOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState("");
   const [showSidebar, setShowSidebar] = useState(false);
   const [moreTables, setMoreTables] = useState<TMoreTables>({});
@@ -162,6 +163,7 @@ function App() {
       };
       aiEnabled: boolean;
     }) => {
+      setIsOpen(false);
       setShowSidebar(false);
       if (!args) return;
       aiEnabled = args.aiEnabled;
@@ -294,67 +296,69 @@ function App() {
         setNodeCount,
       }}
     >
-      <ReactFlowProvider>
-        <div className="position-relative">
-          <ActionWidget
-            selectCheck={selectCheck}
-            setSelectCheck={setSelectCheck}
-            nonSelectCheck={nonSelectCheck}
-            setNonSelectCheck={setNonSelectCheck}
-          />
-          <div className="bottom-right-container">
-            {showDemoButton && (
-              <Button
-                color="primary"
-                className="d-flex gap-sm align-items-center"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowDemoModal((b) => !b);
-                }}
+      <PopoverContext.Provider value={{ isOpen, setIsOpen }}>
+        <ReactFlowProvider>
+          <div className="position-relative">
+            <ActionWidget
+              selectCheck={selectCheck}
+              setSelectCheck={setSelectCheck}
+              nonSelectCheck={nonSelectCheck}
+              setNonSelectCheck={setNonSelectCheck}
+            />
+            <div className="bottom-right-container">
+              {showDemoButton && (
+                <Button
+                  color="primary"
+                  className="d-flex gap-sm align-items-center"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDemoModal((b) => !b);
+                  }}
+                >
+                  Quick demo of Column Lineage
+                  <PlayCircleIcon />
+                </Button>
+              )}
+            </div>
+            <div style={{ height: "100vh", width: "100vw" }}>
+              <ReactFlow
+                defaultNodes={[]}
+                defaultEdges={[]}
+                onInit={(_flow) => (flow.current = _flow)}
+                nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
+                style={{ background: "var(--bg-color)" }}
+                proOptions={{ hideAttribution: true }}
+                minZoom={DEFAULT_MIN_ZOOM}
               >
-                Quick demo of Column Lineage
-                <PlayCircleIcon />
-              </Button>
-            )}
-          </div>
-          <div style={{ height: "100vh", width: "100vw" }}>
-            <ReactFlow
-              defaultNodes={[]}
-              defaultEdges={[]}
-              onInit={(_flow) => (flow.current = _flow)}
-              nodeTypes={nodeTypes}
-              edgeTypes={edgeTypes}
-              style={{ background: "var(--bg-color)" }}
-              proOptions={{ hideAttribution: true }}
-              minZoom={DEFAULT_MIN_ZOOM}
+                <Background />
+                <Controls />
+              </ReactFlow>
+            </div>
+            <SidebarModal
+              isOpen={showSidebar}
+              toggleModal={() => setShowSidebar((b) => !b)}
+              width={446}
             >
-              <Background />
-              <Controls />
-            </ReactFlow>
+              {sidebarScreen === TABLES_SIDEBAR && <MoreTables />}
+              {sidebarScreen === COLUMNS_SIDEBAR && <TableDetails />}
+              {sidebarScreen === EXPOSURE_SIDEBAR && <ExposureDetails />}
+              {sidebarScreen === FEEDBACK_SIDEBAR && (
+                <Feedback
+                  close={() => {
+                    setSidebarScreen("");
+                    setShowSidebar(false);
+                  }}
+                />
+              )}
+              {sidebarScreen === HELP_SIDEBAR && <Help />}
+            </SidebarModal>
+            <Modal isOpen={showDemoModal} close={() => setShowDemoModal(false)}>
+              <Demo />
+            </Modal>
           </div>
-          <SidebarModal
-            isOpen={showSidebar}
-            toggleModal={() => setShowSidebar((b) => !b)}
-            width={446}
-          >
-            {sidebarScreen === TABLES_SIDEBAR && <MoreTables />}
-            {sidebarScreen === COLUMNS_SIDEBAR && <TableDetails />}
-            {sidebarScreen === EXPOSURE_SIDEBAR && <ExposureDetails />}
-            {sidebarScreen === FEEDBACK_SIDEBAR && (
-              <Feedback
-                close={() => {
-                  setSidebarScreen("");
-                  setShowSidebar(false);
-                }}
-              />
-            )}
-            {sidebarScreen === HELP_SIDEBAR && <Help />}
-          </SidebarModal>
-          <Modal isOpen={showDemoModal} close={() => setShowDemoModal(false)}>
-            <Demo />
-          </Modal>
-        </div>
-      </ReactFlowProvider>
+        </ReactFlowProvider>
+      </PopoverContext.Provider>
     </LineageContext.Provider>
   );
 }
