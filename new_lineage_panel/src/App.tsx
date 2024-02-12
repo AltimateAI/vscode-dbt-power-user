@@ -307,7 +307,10 @@ function App() {
               <Button
                 color="primary"
                 className="d-flex gap-sm align-items-center"
-                onClick={() => setShowDemoModal((b) => !b)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDemoModal((b) => !b);
+                }}
               >
                 Quick demo of Column Lineage
                 <PlayCircleIcon />

@@ -157,7 +157,8 @@ const AutoExpansionPopover = () => {
               <div className={styles.expand_nav_btn}>
                 <div
                   className={styles.icon}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     if (!selectedTable) return;
                     setLeftExpansion(maxRange[0]);
                   }}
@@ -167,7 +168,8 @@ const AutoExpansionPopover = () => {
                 <div className={styles.divider} />
                 <div
                   className={styles.icon}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     if (!selectedTable) return;
                     setLeftExpansion((i) => (i + 1 <= maxRange[0] ? i + 1 : i));
                   }}
@@ -186,7 +188,8 @@ const AutoExpansionPopover = () => {
               <div className={styles.expand_nav_btn}>
                 <div
                   className={styles.icon}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     if (!selectedTable) return;
                     setRightExpansion((i) =>
                       i + 1 <= maxRange[1] ? i + 1 : i
@@ -198,7 +201,8 @@ const AutoExpansionPopover = () => {
                 <div className={styles.divider} />
                 <div
                   className={styles.icon}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     if (!selectedTable) return;
                     setRightExpansion(maxRange[1]);
                   }}
@@ -216,7 +220,8 @@ const AutoExpansionPopover = () => {
             color={nodeCount === 0 ? "secondary" : "primary"}
             size="sm"
             disabled={nodeCount === 0}
-            onClick={async () => {
+            onClick={async (e) => {
+              e.stopPropagation();
               if (!selectedTable) return;
               const selectedTableData = flow.getNode(selectedTable)?.data;
               if (!selectedTableData) return;
@@ -348,7 +353,8 @@ export const ActionWidget: FC<{
         </CardBody>
       </Card>
       <ActionButton
-        onClick={() => {
+        onClick={(e) => {
+          e.stopPropagation();
           setLegacyLineageView();
           CLL.cancel();
         }}
@@ -356,7 +362,8 @@ export const ActionWidget: FC<{
         Show Legacy UX
       </ActionButton>
       <ActionButton
-        onClick={() => {
+        onClick={(e) => {
+          e.stopPropagation();
           setSidebarScreen(HELP_SIDEBAR);
           setShowSidebar(true);
         }}
@@ -365,7 +372,8 @@ export const ActionWidget: FC<{
         <span>Help</span>
       </ActionButton>
       <ActionButton
-        onClick={() => {
+        onClick={(e) => {
+          e.stopPropagation();
           flow.setNodes([]);
           flow.setEdges([]);
           setSelectedColumn({ table: "", name: "", sessionId: "" });
@@ -380,7 +388,8 @@ export const ActionWidget: FC<{
         <span>Reset</span>
       </ActionButton>
       <ActionButton
-        onClick={() => {
+        onClick={(e) => {
+          e.stopPropagation();
           // setSidebarScreen(FEEDBACK_SIDEBAR);
           // setShowSidebar(true);
           // TODO: going to be deprecated

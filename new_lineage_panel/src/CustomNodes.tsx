@@ -1,4 +1,4 @@
-import { FunctionComponent, useContext } from "react";
+import React, { FunctionComponent, useContext } from "react";
 import {
   BaseEdge,
   EdgeProps,
@@ -164,8 +164,12 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     }
   };
 
-  const onDetailsClick = () => {
+  const expandRight = () => expand(true);
+  const expandLeft = () => expand(false);
+
+  const onDetailsClick = (e: React.MouseEvent) => {
     if (!selected) return;
+    e.stopPropagation();
     setShowSidebar(true);
     if (flow.getNode(selectedTable)?.data?.nodeType === "exposure") {
       setSidebarScreen(EXPOSURE_SIDEBAR);
@@ -186,7 +190,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     >
       <div
         className={styles.table_node}
-        onClick={async () => {
+        onClick={async (e) => {
+          e.stopPropagation();
           setSelectedTable(table);
           const nodes = flow.getNodes();
           const edges = flow.getEdges();
@@ -241,7 +246,10 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                       _edges.filter((e) => e.target === table).length ||
                     flow.getNode(getSeeMoreId(table, false)),
                 })}
-                onClick={() => expand(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  expandLeft();
+                }}
                 data-testid={"expand-left-btn-" + table}
               >
                 +
@@ -281,7 +289,10 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                       _edges.filter((e) => e.source === table).length ||
                     flow.getNode(getSeeMoreId(table, true)),
                 })}
-                onClick={() => expand(true)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  expandRight();
+                }}
                 data-testid={"expand-right-btn-" + table}
               >
                 +
@@ -315,7 +326,8 @@ export const SeeMoreNode: FunctionComponent<NodeProps> = ({ data }) => {
   return (
     <div
       className={styles.see_more_node}
-      onClick={() => {
+      onClick={(e) => {
+        e.stopPropagation();
         setShowSidebar(true);
         setSidebarScreen(TABLES_SIDEBAR);
         setMoreTables((prev) => ({ ...prev, tables, prevTable, right, level }));
