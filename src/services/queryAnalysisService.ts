@@ -47,6 +47,10 @@ export class QueryAnalysisService {
     params: Partial<QueryAnalysisRequest>,
     syncRequestId?: string,
   ) {
+    if (!this.altimateRequest.handlePreviewFeatures()) {
+      return;
+    }
+
     const { session_id } = params;
     if (!session_id) {
       console.error("Missing session id");

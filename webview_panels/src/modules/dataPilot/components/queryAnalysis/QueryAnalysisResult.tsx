@@ -12,6 +12,7 @@ import { ChangeEvent, FormEvent, useState } from "react";
 import { DataPilotChatAction, RequestState } from "@modules/dataPilot/types";
 import useQueryAnalysisAction from "./useQueryAnalysisAction";
 import useQueryAnalysisContext from "./provider/useQueryAnalysisContext";
+import useAiGenerationUtils from "../common/useAiGenerationUtils";
 
 interface Props {
   response: QueryExplainResult;
@@ -23,6 +24,7 @@ const QueryExplainResultComponent = ({
 }: Props): JSX.Element => {
   const { chat, onNewGeneration, history, isMaxFollowupReached } =
     useQueryAnalysisContext();
+  const { onAiGenerationRender } = useAiGenerationUtils();
 
   const [userRequest, setUserRequest] = useState("");
 
@@ -55,28 +57,30 @@ const QueryExplainResultComponent = ({
     <>
       <UserQuery query={user_prompt} />
 
-      <Card>
-        <CardTitle>
-          {" "}
-          <AltimateIcon /> {datapilot_title}
-        </CardTitle>
-        <CardBody>
-          <div className={classes.response}>{response}</div>
-          {state === RequestState.LOADING ? (
-            <Stack>
-              <Button color="warning">Loading...</Button>
-            </Stack>
-          ) : null}
-          {state === RequestState.COMPLETED ? (
-            <Stack className={classes.actionButtons}>
-              <Stack>&nbsp;</Stack>
-              <ResultFeedbackButtons
-                onFeedbackSubmit={(data) => onFeedbackSubmit(data)}
-              />
-            </Stack>
-          ) : null}
-        </CardBody>
-      </Card>
+      <li ref={onAiGenerationRender}>
+        <Card>
+          <CardTitle>
+            {" "}
+            <AltimateIcon /> {datapilot_title}
+          </CardTitle>
+          <CardBody>
+            <div className={classes.response}>{response}</div>
+            {state === RequestState.LOADING ? (
+              <Stack>
+                <Button color="warning">Loading...</Button>
+              </Stack>
+            ) : null}
+            {state === RequestState.COMPLETED ? (
+              <Stack className={classes.actionButtons}>
+                <Stack>&nbsp;</Stack>
+                <ResultFeedbackButtons
+                  onFeedbackSubmit={(data) => onFeedbackSubmit(data)}
+                />
+              </Stack>
+            ) : null}
+          </CardBody>
+        </Card>
+      </li>
       {actions?.length ? (
         <Stack direction="column">
           <p className="p4 mb-0">Suggestions</p>

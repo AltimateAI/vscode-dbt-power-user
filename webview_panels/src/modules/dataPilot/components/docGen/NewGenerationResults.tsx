@@ -15,8 +15,8 @@ import {
 } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import { DataPilotChat } from "../../types";
-import { useCallback } from "react";
 import UserQuery from "../common/UserQuery";
+import useAiGenerationUtils from "../common/useAiGenerationUtils";
 
 interface Props {
   generatedResults: GeneratedResult[];
@@ -28,6 +28,7 @@ const NewGenerationResults = ({
 }: Props): JSX.Element | null => {
   const handleDocInsert = (result: GeneratedResult) =>
     executeRequestInAsync("docgen:insert", { ...result });
+  const { onAiGenerationRender } = useAiGenerationUtils();
 
   const onFeedbackSubmit = async (
     feedbackData: Feedback,
@@ -62,12 +63,6 @@ const NewGenerationResults = ({
       data,
     });
   };
-
-  const onAiGenerationRender = useCallback((node: HTMLLIElement) => {
-    if (node) {
-      node.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }, []);
 
   if (!generatedResults.length) {
     return null;
