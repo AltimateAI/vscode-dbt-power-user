@@ -42,6 +42,7 @@ const DeferToProduction = (): JSX.Element => {
 
   const [dbtProjects, setDbtProjects] = useState<DbtProject[]>([]);
   const [dbtProjectRoot, setDbtProjectRoot] = useState("");
+  const [showProjectDropdown, setShowProjectDropdown] = useState(true);
 
   const onMesssage = useCallback(
     (event: MessageEvent<IncomingMessageProps>) => {
@@ -74,7 +75,13 @@ const DeferToProduction = (): JSX.Element => {
 
   const loadProjects = async () => {
     const projects = await executeRequestInSync("getProjects", {});
-    setDbtProjects(projects as DbtProject[]);
+    const localProjects = projects as DbtProject[];
+    if (localProjects.length === 1) {
+      setDbtProjectRoot(localProjects[0].projectRoot);
+      setShowProjectDropdown(false);
+    } else {
+      setDbtProjects(localProjects);
+    }
   };
 
   const loadDeferConfig = async () => {
@@ -166,21 +173,23 @@ const DeferToProduction = (): JSX.Element => {
         <CardBody>
           <CardText>Save costs by only running what is changed</CardText>
           <Form>
-            <Select
-              options={dbtProjects.map((d) => {
-                return {
-                  label: `${d.projectName} (${d.projectRoot})`,
-                  value: d.projectRoot,
-                };
-              })}
-              className={classes.projectSelect}
-              onChange={(newValue) =>
-                handleProjectSelect(
-                  newValue as { label: string; value: string },
-                )
-              }
-              placeholder="Select Project"
-            />
+            {showProjectDropdown && (
+              <Select
+                options={dbtProjects.map((d) => {
+                  return {
+                    label: `${d.projectName} (${d.projectRoot})`,
+                    value: d.projectRoot,
+                  };
+                })}
+                className={classes.projectSelect}
+                onChange={(newValue) =>
+                  handleProjectSelect(
+                    newValue as { label: string; value: string },
+                  )
+                }
+                placeholder="Select Project"
+              />
+            )}
             {dbtProjectRoot && (
               <>
                 <FormGroup switch className={classes.formSwitch}>
