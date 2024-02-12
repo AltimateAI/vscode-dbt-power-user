@@ -8,7 +8,9 @@ import {
   createColumnNode,
   createTableEdge,
   createTableNode,
+  deleteIfExists,
   getColumnEdgeId,
+  getColumnId,
   getHelperDataForCLL,
   getSeeMoreId,
   isColumn,
@@ -22,6 +24,8 @@ import {
   T_NODE_W,
   T_NODE_Y_SEPARATION,
   getColY,
+  withinExclusive,
+  isSeeMore,
 } from "./utils";
 import {
   ColumnLineage,
@@ -35,32 +39,34 @@ import { COLUMN_PREFIX } from "./constants";
 import { TMoreTables } from "./MoreTables";
 import { CLL } from "./service_utils";
 
+const getConnectedTables = (right: boolean, table: string) =>
+  right ? upstreamTables(table) : downstreamTables(table);
+const calculateNewLevel = (right: boolean, i: number) =>
+  right ? i + 1 : i - 1;
+
 const createNewNodesEdges = (
-  prevNodes: Node[],
-  prevEdges: Edge[],
+  nodes: Node[],
+  edges: Edge[],
   tables: Table[],
   t: string,
   right: boolean,
-  level: number
-): [Node[], Edge[]] => {
-  const newNodes = [...prevNodes];
-  const newEdges = [...prevEdges];
-  const newLevel = right ? level + 1 : level - 1;
-  const _node = newNodes.find((_n) => _n.id === t);
-  if (_node) _node.data.processed[right ? 1 : 0] = true;
+  level: number,
+  max_expand_table = MAX_EXPAND_TABLE
+) => {
+  const newLevel = calculateNewLevel(right, level);
 
   const addUniqueEdge = (to: string) => {
-    const toLevel = newNodes.find((n) => n.id === to)?.data?.level;
+    const toLevel = nodes.find((n) => n.id === to)?.data?.level;
     const _edge = createTableEdge(level, toLevel, t, to, right);
-    const existingEdge = newEdges.find((e) => e.id === _edge.id);
-    if (!existingEdge) newEdges.push(_edge);
+    const existingEdge = edges.find((e) => e.id === _edge.id);
+    if (!existingEdge) edges.push(_edge);
   };
 
   let tableAdded = 0;
   for (const _t of tables) {
-    if (tableAdded >= MAX_EXPAND_TABLE) {
+    if (tableAdded >= max_expand_table) {
       const nodeId = getSeeMoreId(t, right);
-      newNodes.push({
+      nodes.push({
         id: nodeId,
         data: { tables, prevTable: t, right, level: newLevel },
         position: { x: 100, y: 100 },
@@ -71,15 +77,13 @@ const createNewNodesEdges = (
       addUniqueEdge(nodeId);
       break;
     }
-    const existingNode = newNodes.find((_n) => _n.id === _t.table);
+    const existingNode = nodes.find((_n) => _n.id === _t.table);
     if (!existingNode) {
-      newNodes.push(createTableNode(_t, newLevel, t));
+      nodes.push(createTableNode(_t, newLevel, t));
       tableAdded++;
     }
     addUniqueEdge(_t.table);
   }
-
-  return [newNodes, newEdges];
 };
 
 export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
@@ -101,7 +105,7 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
       tableWiseColumnCount[n.parentNode]++;
     } else {
       // calculate bounds along x axis
-      const level = n.data.level;
+      const { level } = n.data;
       minLevel = Math.min(minLevel, level);
       maxLevel = Math.max(maxLevel, level);
     }
@@ -117,38 +121,50 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
   const adjacencyListLeft: Record<string, string[]> = {};
   for (const e of edges) {
     if (isColumn(e)) continue;
-    if (!(e.source in adjacencyListRight)) adjacencyListRight[e.source] = [];
+    if (
+      isSeeMore(nodes.find((x) => x.id === e.source)!) ||
+      isSeeMore(nodes.find((x) => x.id === e.target)!)
+    )
+      continue;
+    adjacencyListRight[e.source] = adjacencyListRight[e.source] || [];
     adjacencyListRight[e.source].push(e.target);
-    if (!(e.target in adjacencyListLeft)) adjacencyListLeft[e.target] = [];
+    adjacencyListLeft[e.target] = adjacencyListLeft[e.target] || [];
     adjacencyListLeft[e.target].push(e.source);
   }
 
   // calculate metadata such as tables and columns per level
   // to get tables position along y axis
+  const processNode = (n: Node) => {
+    const { level } = n.data;
+    levelWiseTables[level] = levelWiseTables[level] || [];
+    if (!levelWiseTables[level].includes(n.id)) {
+      tableWiseLevelPos[n.id] = levelWiseTables[level].length;
+      tableWiseLevelColumnCount[n.id] = 0;
+      for (const curr of levelWiseTables[level])
+        tableWiseLevelColumnCount[n.id] += tableWiseColumnCount[curr] || 0;
+      levelWiseTables[level].push(n.id);
+    }
+  };
   const dfs = (n: string, adjacencyList: Record<string, string[]>) => {
     if (visited[n]) return;
     visited[n] = true;
-    const node = nodes.find((item) => item.id === n)!;
-    const { level } = node.data;
-    if (!(level in levelWiseTables)) levelWiseTables[level] = [];
-    if (!levelWiseTables[level].includes(n)) {
-      tableWiseLevelPos[n] = levelWiseTables[level].length;
-      tableWiseLevelColumnCount[n] = 0;
-      for (const curr of levelWiseTables[level])
-        tableWiseLevelColumnCount[n] += tableWiseColumnCount[curr] || 0;
-      levelWiseTables[level].push(n);
-    }
-    for (const m of adjacencyList[n] || []) {
-      dfs(m, adjacencyList);
-    }
+    processNode(nodes.find((item) => item.id === n)!);
+    for (const m of adjacencyList[n] || []) dfs(m, adjacencyList);
   };
 
   for (const n of nodes) {
     if (isColumn(n)) continue;
+    if (isSeeMore(n)) continue;
     if (visited[n.id]) continue;
     dfs(n.id, adjacencyListRight);
     visited[n.id] = false;
     dfs(n.id, adjacencyListLeft);
+  }
+  // will place see more node at the end of level
+  for (const n of nodes) {
+    if (isColumn(n)) continue;
+    if (!isSeeMore(n)) continue;
+    processNode(n);
   }
 
   // assign position to table and see more nodes
@@ -171,33 +187,6 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
     if (isColumn(n)) continue;
     const { level } = n.data;
     n.position = { x: getX(level), y: getY(n) };
-  }
-
-  // calculate bounds along y axis
-  let maxY = 0;
-  const levelNodesMap: Record<number, Node[]> = {};
-  for (const n of nodes) {
-    if (isColumn(n)) continue;
-    maxY = Math.max(
-      maxY,
-      n.position.y + getColY(tableWiseColumnCount[n.id] || 0)
-    );
-    const { level } = n.data;
-    if (!(level in levelNodesMap)) levelNodesMap[level] = [];
-    levelNodesMap[level].push(n);
-  }
-
-  // offset table position along y axis to make it center heavy
-  for (const level in levelNodesMap) {
-    let maxLevelY = 0;
-    for (const n of levelNodesMap[level]) {
-      maxLevelY = Math.max(
-        maxLevelY,
-        n.position.y + getColY(tableWiseColumnCount[n.id] || 0)
-      );
-    }
-    const offsetLevelY = (maxY - maxLevelY) / 2;
-    for (const n of levelNodesMap[level]) n.position.y += offsetLevelY;
   }
 };
 
@@ -320,9 +309,6 @@ export const removeRelatedNodesEdges = (
     .filter(remove(columnEdgesToRemove))
     .filter(remove(edgesToRemove));
 
-  const _node = newNodes.find((_n) => _n.id === table);
-  if (_node) _node.data.processed[right ? 1 : 0] = false;
-
   return [newNodes, newEdges];
 };
 
@@ -414,7 +400,7 @@ const processColumnLineage = async (
   return { nodes, edges, collectColumns, newCurr, confidence, seeMoreLineage };
 };
 
-export const mergeNodesEdges = (
+const mergeNodesEdges = (
   prevState: { nodes: Node[]; edges: Edge[] },
   patchState: { nodes: Node[]; edges: Edge[] }
 ): [Node[], Edge[]] => {
@@ -460,40 +446,137 @@ const mergeCollectColumns = (
 };
 
 export const expandTableLineage = async (
-  nodes: Node[],
-  edges: Edge[],
+  _nodes: Node[],
+  _edges: Edge[],
   table: string,
   right: boolean
 ): Promise<[Node[], Edge[]]> => {
-  const getConnectedTables = right ? upstreamTables : downstreamTables;
-  const level = nodes.find((n) => n.id === table)?.data?.level;
-  const queue: { table: string; level: number }[] = [{ table, level }];
+  const nodes = [..._nodes];
+  const edges = [..._edges];
+  const queue: { table: string; level: number }[] = [
+    { table, level: nodes.find((n) => n.id === table)!.data.level },
+  ];
   const visited: Record<string, boolean> = {};
   while (queue.length > 0) {
     const { table, level } = queue.shift()!;
     if (visited[table]) continue;
     visited[table] = true;
-    const { tables } = await getConnectedTables(table);
-    const [_nodes, _edges] = createNewNodesEdges(
-      nodes,
-      edges,
-      tables,
-      table,
-      right,
-      level
-    );
-    nodes = _nodes;
-    edges = _edges;
+    const { tables } = await getConnectedTables(right, table);
+    createNewNodesEdges(nodes, edges, tables, table, right, level);
     tables.forEach((t) => {
-      if (t.materialization === "ephemeral") {
-        const _t = nodes.find((n) => n.id === t.table);
-        if (!_t) return;
+      const _t = nodes.find((n) => n.id === t.table);
+      if (_t?.data.materialization === "ephemeral") {
         queue.push({ table: t.table, level: _t.data.level });
       }
     });
   }
   return [nodes, edges];
 };
+
+export const expandTableLineageLevelWise = async (
+  _nodes: Node[],
+  _edges: Edge[],
+  _table: string,
+  lb: number, // lower bound
+  ub: number // upper bound
+): Promise<[Node[], Edge[]]> => {
+  const nodes = [..._nodes];
+  const edges = [..._edges];
+  if (lb >= ub) return [nodes, edges];
+  const withinExcBounds = withinExclusive(lb, ub);
+  const rootLevel = nodes.find((n) => n.id === _table)!.data.level;
+  const bfs = async (right: boolean) => {
+    const queue: { table: string; level: number }[] = [
+      { table: _table, level: rootLevel },
+    ];
+    const visited: Record<string, boolean> = {};
+
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      if (visited[curr.table]) continue;
+      visited[curr.table] = true;
+      const { tables } = await getConnectedTables(right, curr.table);
+      createNewNodesEdges(
+        nodes,
+        edges,
+        tables,
+        curr.table,
+        right,
+        curr.level,
+        Infinity
+      );
+      const newLevel = calculateNewLevel(right, curr.level);
+      if (withinExcBounds(newLevel)) {
+        queue.push(...tables.map((t) => ({ table: t.table, level: newLevel })));
+      } else {
+        queue.push(
+          ...tables
+            .filter((t) => t.materialization === "ephemeral")
+            .map((t) => ({ table: t.table, level: newLevel }))
+        );
+      }
+    }
+  };
+  if (ub > rootLevel) await bfs(true);
+  if (lb < rootLevel) await bfs(false);
+
+  return [nodes, edges];
+};
+
+const _calculateMinLevel = (
+  nodes: Node[],
+  edges: Edge[],
+  table: string,
+  right: boolean
+): number => {
+  if (!table) return -1;
+  const src = right ? "source" : "target";
+  const dst = right ? "target" : "source";
+  const countKey = right ? "upstreamCount" : "downstreamCount";
+
+  const nodesMap: Record<string, Node> = {};
+  const adjacencyList: Record<string, string[]> = {};
+  for (const n of nodes) {
+    if (isColumn(n)) continue;
+    nodesMap[n.id] = n;
+    adjacencyList[n.id] = [];
+  }
+  for (const e of edges) {
+    if (isColumn(e)) continue;
+    adjacencyList[e[src]].push(e[dst]);
+  }
+
+  // get the node with lowest level which can be expanded but not yet expanded
+  const bfs = () => {
+    const queue = [table];
+    const visited: Record<string, boolean> = {};
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      if (visited[curr]) continue;
+      visited[curr] = true;
+      const nodeData = nodesMap[curr].data;
+      if (nodeData[countKey] === 0) continue;
+      if (adjacencyList[curr].length < nodeData[countKey]) return curr;
+      for (const n of adjacencyList[curr]) queue.push(n);
+    }
+  };
+  const targetNode = bfs();
+
+  // unable to find such node means everything is already expanded
+  if (!targetNode) return -1;
+  const { level: rootLevel } = nodesMap[table].data;
+  const { level: targetLevel } = nodesMap[targetNode].data;
+  return right ? targetLevel - rootLevel : rootLevel - targetLevel;
+};
+
+export const calculateMinLevel = (
+  nodes: Node[],
+  edges: Edge[],
+  table: string
+): [number, number] => [
+  _calculateMinLevel(nodes, edges, table, false),
+  _calculateMinLevel(nodes, edges, table, true),
+];
 
 export const bfsTraversal = async (
   nodes: Node[],
@@ -523,9 +606,7 @@ export const bfsTraversal = async (
   ]);
   let currEphemeralNodes: string[] = [];
   while (true as boolean) {
-    if (CLL.isCancelled) {
-      break;
-    }
+    if (CLL.isCancelled) break;
     currTargetColumns = currTargetColumns.filter((x) => !visited[x.join("/")]);
     if (currTargetColumns.length === 0 && currEphemeralNodes.length === 0) {
       break;
@@ -634,4 +715,64 @@ export const bfsTraversal = async (
     mergeCollectColumns(setCollectColumns, patchState.collectColumns);
   }
   return isLineage;
+};
+
+export const moveTableFromSeeMoreToCanvas = (
+  nodes: Node[],
+  edges: Edge[],
+  _table: Table,
+  { prevTable, tables, right, level, lineage }: TMoreTables
+): boolean => {
+  const { table } = _table;
+  const node = nodes.find((n) => n.id === table);
+  if (node) return false;
+  nodes.push(createTableNode(_table, level!, prevTable!));
+  const fromLevel = nodes.find((n) => n.id === prevTable)?.data.level;
+  edges.push(createTableEdge(fromLevel, level!, prevTable!, table, right!));
+  lineage?.forEach((e) => {
+    const src = getColumnId(e.source[0], e.source[1]);
+    const dst = getColumnId(e.target[0], e.target[1]);
+    if (right) {
+      if (e.target[0] !== table) return;
+      nodes.push(createColumnNode(e.target[0], e.target[1]));
+      edges.push(createColumnEdge(src, dst, level! - 1, level!, e.type));
+    } else {
+      if (e.source[0] !== table) return;
+      nodes.push(createColumnNode(e.source[0], e.source[1]));
+      edges.push(createColumnEdge(src, dst, level!, level! + 1, e.type));
+    }
+  });
+
+  if (tables!.every((t) => !!nodes.find((n) => n.id === t.table))) {
+    const seeMoreNodeId = getSeeMoreId(prevTable!, right!);
+    const seeMoreEdgeId = right
+      ? `${prevTable}-${seeMoreNodeId}`
+      : `${seeMoreNodeId}-${prevTable}`;
+    deleteIfExists(nodes, seeMoreNodeId);
+    deleteIfExists(edges, seeMoreEdgeId);
+    return true;
+  }
+  return false;
+};
+
+export const calculateNodeCount = async (
+  nodes: Node[],
+  edges: Edge[],
+  selectedTable: string,
+  leftExpansion: number,
+  rightExpansion: number
+): Promise<number> => {
+  if (!selectedTable) return 0;
+  const selectedTableData = nodes.find((n) => n.id === selectedTable)?.data;
+  if (!selectedTableData) return 0;
+  const { level } = selectedTableData;
+  const startingNodesNum = nodes.length;
+  const [newNodes] = await expandTableLineageLevelWise(
+    nodes,
+    edges,
+    selectedTable,
+    level - leftExpansion,
+    level + rightExpansion
+  );
+  return newNodes.length - startingNodesNum;
 };
