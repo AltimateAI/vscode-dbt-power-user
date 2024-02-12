@@ -353,8 +353,7 @@ export const ActionWidget: FC<{
         </CardBody>
       </Card>
       <ActionButton
-        onClick={(e) => {
-          e.stopPropagation();
+        onClick={() => {
           setLegacyLineageView();
           CLL.cancel();
         }}
@@ -362,8 +361,7 @@ export const ActionWidget: FC<{
         Show Legacy UX
       </ActionButton>
       <ActionButton
-        onClick={(e) => {
-          e.stopPropagation();
+        onClick={() => {
           setSidebarScreen(HELP_SIDEBAR);
           setShowSidebar(true);
         }}
@@ -372,8 +370,7 @@ export const ActionWidget: FC<{
         <span>Help</span>
       </ActionButton>
       <ActionButton
-        onClick={(e) => {
-          e.stopPropagation();
+        onClick={() => {
           flow.setNodes([]);
           flow.setEdges([]);
           setSelectedColumn({ table: "", name: "", sessionId: "" });
@@ -388,8 +385,7 @@ export const ActionWidget: FC<{
         <span>Reset</span>
       </ActionButton>
       <ActionButton
-        onClick={(e) => {
-          e.stopPropagation();
+        onClick={() => {
           // setSidebarScreen(FEEDBACK_SIDEBAR);
           // setShowSidebar(true);
           // TODO: going to be deprecated

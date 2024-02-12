@@ -190,8 +190,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     >
       <div
         className={styles.table_node}
-        onClick={async (e) => {
-          e.stopPropagation();
+        onClick={async () => {
           setSelectedTable(table);
           const nodes = flow.getNodes();
           const edges = flow.getEdges();
