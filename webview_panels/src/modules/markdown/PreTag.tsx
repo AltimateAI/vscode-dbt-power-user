@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { DetailedHTMLProps, HTMLAttributes, useState } from "react";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
 import jsx from "react-syntax-highlighter/dist/esm/languages/prism/jsx";
 import classes from "./markdown.module.scss";
 import { IconButton } from "@uicore";
 
-interface Props {
-  children: string;
-  language?: string;
-}
-const Code = ({ children, language }: Props): JSX.Element => {
+const PreTag = ({
+  children,
+  ...rest
+}: DetailedHTMLProps<
+  HTMLAttributes<HTMLPreElement>,
+  HTMLPreElement
+>): JSX.Element => {
   const [isCopied, setIsCopied] = useState(false);
 
   SyntaxHighlighter.registerLanguage("jsx", jsx);
@@ -21,10 +23,12 @@ const Code = ({ children, language }: Props): JSX.Element => {
     }, 3000);
   };
 
+  const value = String(children).replace(/\n$/, "");
+
   return (
-    <div className={classes.code}>
+    <div className={classes.pre}>
       <div className="code__icons">
-        <CopyToClipboard text={children}>
+        <CopyToClipboard text={value}>
           <IconButton
             title={`${!isCopied ? "Copy to clipboard" : "Copied to clipboard"}`}
             onClick={() => setCopied()}
@@ -38,9 +42,9 @@ const Code = ({ children, language }: Props): JSX.Element => {
         </CopyToClipboard>
       </div>
 
-      <SyntaxHighlighter language={language}>{children}</SyntaxHighlighter>
+      <pre {...rest}>{children}</pre>
     </div>
   );
 };
 
-export default Code;
+export default PreTag;
