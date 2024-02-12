@@ -88,9 +88,9 @@ const AutoExpansionPopover = () => {
   const [maxRange, setMaxRange] = useState([0, 0]);
 
   useEffect(() => {
-    setLeftExpansion(Math.max(minRange[0], 0));
-    setRightExpansion(Math.max(minRange[1], 0));
-  }, [minRange, setLeftExpansion, setRightExpansion]);
+    setLeftExpansion(minRange[0] === -1 ? maxRange[0] : minRange[0]);
+    setRightExpansion(minRange[1] === -1 ? maxRange[1] : minRange[1]);
+  }, [maxRange, minRange, setLeftExpansion, setRightExpansion]);
 
   useEffect(() => {
     (async () => {
