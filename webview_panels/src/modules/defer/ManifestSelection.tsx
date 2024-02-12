@@ -9,6 +9,7 @@ import { ManifestPathType } from "./constants";
 import { ManifestSelectionProps } from "./types";
 
 export const ManifestSelection = ({
+  dbtProjectRoot,
   manifestPathType,
   manifestPathForDeferral,
   projectIntegrations,
@@ -44,6 +45,7 @@ export const ManifestSelection = ({
             value: manifestPathType,
           },
         ],
+        projectRoot: dbtProjectRoot,
       });
       if (!(response as { updated: boolean }).updated) {
         setDeferState((prevState) => ({
@@ -66,6 +68,7 @@ export const ManifestSelection = ({
               value: option,
             },
           ],
+          projectRoot: dbtProjectRoot,
         });
       }
     }
@@ -78,6 +81,7 @@ export const ManifestSelection = ({
               value: option,
             },
           ],
+          projectRoot: dbtProjectRoot,
         });
       }
     }
@@ -118,6 +122,7 @@ export const ManifestSelection = ({
           value: selectedOption.value,
         },
       ],
+      projectRoot: dbtProjectRoot,
     });
     setDeferState((prevState) => ({
       ...prevState,

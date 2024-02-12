@@ -1,4 +1,4 @@
-import { commands, TextEditor, window, workspace } from "vscode";
+import { commands, TextEditor, Uri, window, workspace } from "vscode";
 import { getProjectRelativePath, provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { DBTProject } from "../manifest/dbtProject";
@@ -11,12 +11,21 @@ import {
 import { AltimateRequest } from "../altimate";
 import { SharedStateService } from "../services/SharedStateService";
 
-type UpdateConfigPropsArray = { config: UpdateConfigProps[] };
+type UpdateConfigPropsArray = {
+  config: UpdateConfigProps[];
+  projectRoot: string;
+};
 interface DeferConfig {
   deferToProduction: boolean;
   favorState: boolean;
   manifestPathForDeferral: string;
 }
+
+interface DbtProject {
+  projectRoot: string;
+  projectName: string;
+}
+
 @provideSingleton(InsightsPanel)
 export class InsightsPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.Insights";
@@ -72,6 +81,10 @@ export class InsightsPanel extends AltimateWebviewProvider {
   ) {
     try {
       console.log("Updating defer config", params);
+      if (!params.projectRoot) {
+        window.showErrorMessage("Please select a project");
+        return;
+      }
       // defer config is preview feature, then check keys
       if (!this.altimateRequest.handlePreviewFeatures()) {
         throw new Error("Invalid credentials");
@@ -82,7 +95,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       const currentConfig: Record<string, DeferConfig> = await workspace
         .getConfiguration("dbt")
         .get("deferConfigPerProject", {});
-      const root = await this.getCurrentProjectRoot();
+      const root = getProjectRelativePath(Uri.parse(params.projectRoot));
 
       const newConfig = {
         ...currentConfig,
@@ -198,6 +211,50 @@ export class InsightsPanel extends AltimateWebviewProvider {
     }
   }
 
+  private async getProjects(syncRequestId: string | undefined) {
+    try {
+      console.log("Fetching projects");
+      const projects = this.dbtProjectContainer.getProjects();
+
+      const dbtProjects: DbtProject[] = [];
+
+      projects.forEach((i) => {
+        const projectName = i.getProjectName();
+        const projectRoot = i.projectRoot;
+        dbtProjects.push({
+          projectName: projectName,
+          projectRoot: projectRoot.fsPath,
+        });
+      });
+
+      if (syncRequestId) {
+        this._panel!.webview.postMessage({
+          command: "response",
+          args: {
+            syncRequestId,
+            body: dbtProjects,
+            status: true,
+          },
+        });
+      }
+    } catch (err) {
+      console.info(
+        "could not fetch project integrations",
+        (err as Error).message,
+      );
+      this._panel!.webview.postMessage({
+        command: "response",
+        args: {
+          syncRequestId,
+          body: {
+            response: [],
+          },
+          status: false,
+        },
+      });
+    }
+  }
+
   async handleCommand(message: HandleCommandProps): Promise<void> {
     const { command, syncRequestId, ...params } = message;
 
@@ -227,7 +284,8 @@ export class InsightsPanel extends AltimateWebviewProvider {
         commands.executeCommand("dbtPowerUser.clearAltimateScanResults", {});
         break;
       case "getDeferToProductionConfig":
-        const currentProjectRoot = await this.getCurrentProjectRoot();
+        const { projectRoot } = params as { projectRoot: string };
+        const root = getProjectRelativePath(Uri.parse(projectRoot));
         const currentConfig: Record<string, DeferConfig> = await workspace
           .getConfiguration("dbt")
           .get("deferConfigPerProject", {});
@@ -236,7 +294,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
           command: "response",
           args: {
             syncRequestId,
-            body: currentConfig[currentProjectRoot],
+            body: currentConfig[root],
             status: true,
           },
         });
@@ -249,6 +307,9 @@ export class InsightsPanel extends AltimateWebviewProvider {
           dbt_core_integration_id: number;
         };
         await this.testRemoteManifest(syncRequestId, dbt_core_integration_id);
+        break;
+      case "getProjects":
+        await this.getProjects(syncRequestId);
         break;
       default:
         super.handleCommand(message);

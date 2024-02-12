@@ -9,14 +9,16 @@ import {
   FormGroup,
   Input,
   Label,
+  Select,
 } from "@uicore";
 import { useCallback, useEffect, useState } from "react";
 import { executeRequestInSync } from "../app/requestExecutor";
 import classes from "./defer.module.scss";
 import { IncomingMessageProps } from "@modules/app/types";
-import { DeferToProductionProps } from "./types";
+import { DbtProject, DeferToProductionProps } from "./types";
 import { ManifestPathType } from "./constants";
 import { ManifestSelection } from "./ManifestSelection";
+import { panelLogger } from "@modules/logger";
 
 const DeferToProduction = (): JSX.Element => {
   const [
@@ -37,6 +39,9 @@ const DeferToProduction = (): JSX.Element => {
     projectIntegrations: [],
     dbt_core_integration_id: -1,
   });
+
+  const [dbtProjects, setDbtProjects] = useState<DbtProject[]>([]);
+  const [dbtProjectRoot, setDbtProjectRoot] = useState("");
 
   const onMesssage = useCallback(
     (event: MessageEvent<IncomingMessageProps>) => {
@@ -67,8 +72,15 @@ const DeferToProduction = (): JSX.Element => {
     }
   };
 
+  const loadProjects = async () => {
+    const projects = await executeRequestInSync("getProjects", {});
+    setDbtProjects(projects as DbtProject[]);
+  };
+
   const loadDeferConfig = async () => {
-    const config = await executeRequestInSync("getDeferToProductionConfig", {});
+    const config = await executeRequestInSync("getDeferToProductionConfig", {
+      projectRoot: dbtProjectRoot,
+    });
     if (config) {
       setDeferState(config as DeferToProductionProps);
       await handleRemoteManifestIntegration(config as DeferToProductionProps);
@@ -76,10 +88,18 @@ const DeferToProduction = (): JSX.Element => {
   };
 
   useEffect(() => {
-    loadDeferConfig().catch(() => {
+    loadProjects().catch(() => {
       return;
     });
   }, []);
+
+  useEffect(() => {
+    if (dbtProjectRoot) {
+      loadDeferConfig().catch(() => {
+        return;
+      });
+    }
+  }, [dbtProjectRoot]);
 
   const updateDeferAndFavorState = ({
     key,
@@ -95,6 +115,8 @@ const DeferToProduction = (): JSX.Element => {
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const { checked, name } = event.target;
+    panelLogger.log("dbtProjectRoot");
+    panelLogger.log(dbtProjectRoot);
     const response = await executeRequestInSync("updateDeferConfig", {
       config: [
         {
@@ -103,6 +125,7 @@ const DeferToProduction = (): JSX.Element => {
           isPreviewFeature: true,
         },
       ],
+      projectRoot: dbtProjectRoot,
     });
     if ((response as { updated: boolean }).updated) {
       updateDeferAndFavorState({ key: name, value: checked });
@@ -126,6 +149,13 @@ const DeferToProduction = (): JSX.Element => {
     }
   };
 
+  const handleProjectSelect = (selectedOption: {
+    label: string;
+    value: string;
+  }) => {
+    setDbtProjectRoot(selectedOption.value);
+  };
+
   return (
     <Col lg={7}>
       <Card className={classes.insightsCard}>
@@ -136,37 +166,57 @@ const DeferToProduction = (): JSX.Element => {
         <CardBody>
           <CardText>Save costs by only running what is changed</CardText>
           <Form>
-            <FormGroup switch className={classes.formSwitch}>
-              <Label>
-                Defer to production
-                <Input
-                  type="switch"
-                  onChange={handleStateChange}
-                  name="deferToProduction"
-                  checked={deferToProduction}
-                />
-              </Label>
-            </FormGroup>
-            <Label>Save your file location</Label>
-            <ManifestSelection
-              manifestPathForDeferral={manifestPathForDeferral}
-              manifestPathType={manifestPathType}
-              projectIntegrations={projectIntegrations}
-              dbt_core_integration_id={dbt_core_integration_id}
-              setDeferState={setDeferState}
-              setProjectIntegrations={setProjectIntegrations}
+            <Select
+              options={dbtProjects.map((d) => {
+                return {
+                  label: `${d.projectName} (${d.projectRoot})`,
+                  value: d.projectRoot,
+                };
+              })}
+              className={classes.projectSelect}
+              onChange={(newValue) =>
+                handleProjectSelect(
+                  newValue as { label: string; value: string },
+                )
+              }
+              placeholder="Select Project"
             />
-            <FormGroup switch className={classes.formSwitch}>
-              <Label>
-                Favor-state
-                <Input
-                  type="switch"
-                  onChange={handleStateChange}
-                  checked={favorState}
-                  name="favorState"
+            {dbtProjectRoot && (
+              <>
+                <FormGroup switch className={classes.formSwitch}>
+                  <Label>
+                    Defer to production
+                    <Input
+                      type="switch"
+                      onChange={handleStateChange}
+                      name="deferToProduction"
+                      checked={deferToProduction}
+                    />
+                  </Label>
+                </FormGroup>
+                <Label>Save your file location</Label>
+                <ManifestSelection
+                  dbtProjectRoot={dbtProjectRoot}
+                  manifestPathForDeferral={manifestPathForDeferral}
+                  manifestPathType={manifestPathType}
+                  projectIntegrations={projectIntegrations}
+                  dbt_core_integration_id={dbt_core_integration_id}
+                  setDeferState={setDeferState}
+                  setProjectIntegrations={setProjectIntegrations}
                 />
-              </Label>
-            </FormGroup>
+                <FormGroup switch className={classes.formSwitch}>
+                  <Label>
+                    Favor-state
+                    <Input
+                      type="switch"
+                      onChange={handleStateChange}
+                      checked={favorState}
+                      name="favorState"
+                    />
+                  </Label>
+                </FormGroup>
+              </>
+            )}
           </Form>
         </CardBody>
       </Card>
