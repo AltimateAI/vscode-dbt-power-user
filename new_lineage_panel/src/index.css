@@ -208,3 +208,7 @@ body {
 .normal-text {
   color: var(--text-color);
 }
+
+.theme-bg {
+  background-color: var(--bg-color) !important;
+}

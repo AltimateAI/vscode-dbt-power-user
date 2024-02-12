@@ -46,7 +46,7 @@ import { Help } from "./Help";
 import { Demo } from "./Demo";
 import { handleResponse, init, columnLineage } from "./service_utils";
 import { ActionWidget } from "./ActionWidget";
-import { createTableNode } from "./utils";
+import { DEFAULT_MIN_ZOOM, createTableNode } from "./utils";
 
 export let aiEnabled = false;
 export let isDarkMode = false;
@@ -191,6 +191,7 @@ function App() {
       layoutElementsOnCanvas(nodes, edges);
       _flow.setNodes(nodes);
       _flow.setEdges(edges);
+      _flow.fitView({ minZoom: DEFAULT_MIN_ZOOM, duration: 500 });
       setMinRange(calculateMinLevel(nodes, edges, node.table));
       rerender();
     };
@@ -296,7 +297,7 @@ function App() {
               edgeTypes={edgeTypes}
               style={{ background: "var(--bg-color)" }}
               proOptions={{ hideAttribution: true }}
-              minZoom={0.05}
+              minZoom={DEFAULT_MIN_ZOOM}
             >
               <Background />
               <Controls />

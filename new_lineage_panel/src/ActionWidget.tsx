@@ -65,7 +65,7 @@ const ActionButton = ({
       outline
       color="secondary"
       onClick={onClick}
-      className="d-flex align-items-center gap-sm"
+      className="d-flex align-items-center gap-sm theme-bg"
     >
       {children}
     </Button>
@@ -338,16 +338,14 @@ export const ActionWidget: FC<{
           </div>
         </CardBody>
       </Card>
-      <Button
-        size="sm"
-        color="primary"
+      <ActionButton
         onClick={() => {
           setLegacyLineageView();
           CLL.cancel();
         }}
       >
         Show Legacy UX
-      </Button>
+      </ActionButton>
       <ActionButton
         onClick={() => {
           setSidebarScreen(HELP_SIDEBAR);

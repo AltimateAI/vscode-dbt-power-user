@@ -18,6 +18,7 @@ const C_PADDING_Y = 4;
 export const T_LEVEL_SEPARATION = 280;
 export const T_NODE_Y_SEPARATION = 80;
 
+export const DEFAULT_MIN_ZOOM = 0.05;
 // node styles
 const DEFAULT_COLOR = "#7A899E";
 const HIGHLIGHT_COLOR = "#E38E00";
