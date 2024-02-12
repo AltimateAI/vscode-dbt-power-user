@@ -3,7 +3,9 @@ import {
   ChevronLeftIcon,
   ContactUsIcon,
   DocsIcon,
+  GithubIcon,
   SlackIcon,
+  WebIcon,
 } from "@assets/icons";
 import { List, Stack } from "@uicore";
 import classes from "./datapilot.module.scss";
@@ -27,13 +29,13 @@ const HelpSections = [
     url: "https://getdbt.slack.com/archives/C05KPDGRMDW",
   },
   {
-    icon: <i className="codicon codicon-globe" />,
+    icon: <WebIcon />,
     label: "Website",
     url: "https://www.altimate.ai/",
   },
   { icon: <BlogIcon />, label: "Blog", url: "https://blog.altimate.ai/" },
   {
-    icon: <i className="codicon codicon-github-inverted" />,
+    icon: <GithubIcon />,
     label: "Github",
     url: "https://github.com/AltimateAI/vscode-dbt-power-user",
   },

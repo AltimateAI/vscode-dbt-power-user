@@ -4,14 +4,15 @@ import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
 import jsx from "react-syntax-highlighter/dist/esm/languages/prism/jsx";
 import classes from "./markdown.module.scss";
 import { IconButton } from "@uicore";
+import { CopyIcon } from "@assets/icons";
 
 const PreTag = ({
   children,
+  text,
   ...rest
-}: DetailedHTMLProps<
-  HTMLAttributes<HTMLPreElement>,
-  HTMLPreElement
->): JSX.Element => {
+}: DetailedHTMLProps<HTMLAttributes<HTMLPreElement>, HTMLPreElement> & {
+  text?: string;
+}): JSX.Element => {
   const [isCopied, setIsCopied] = useState(false);
 
   SyntaxHighlighter.registerLanguage("jsx", jsx);
@@ -23,25 +24,27 @@ const PreTag = ({
     }, 3000);
   };
 
-  const value = String(children).replace(/\n$/, "");
-
   return (
     <div className={classes.pre}>
-      <div className="code__icons">
-        <CopyToClipboard text={value}>
-          <IconButton
-            title={`${!isCopied ? "Copy to clipboard" : "Copied to clipboard"}`}
-            onClick={() => setCopied()}
-          >
-            <i
-              className={`codicon ${
-                !isCopied ? "codicon-files" : "codicon-pass-filled"
+      {text ? (
+        <div className="code__icons">
+          <CopyToClipboard text={text}>
+            <IconButton
+              title={`${
+                !isCopied ? "Copy to clipboard" : "Copied to clipboard"
               }`}
-            />
-          </IconButton>
-        </CopyToClipboard>
-      </div>
-
+              onClick={() => setCopied()}
+            >
+              <i
+                className={`codicon ${
+                  !isCopied ? "codicon-files" : "codicon-pass-filled"
+                }`}
+              />
+              <CopyIcon />
+            </IconButton>
+          </CopyToClipboard>
+        </div>
+      ) : null}
       <pre {...rest}>{children}</pre>
     </div>
   );

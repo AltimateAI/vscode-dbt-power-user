@@ -10,8 +10,15 @@ const MarkdownRenderer = ({ response }: Props): JSX.Element => {
     <ReactMarkdown
       className={classes.markdown}
       components={{
-        pre: ({ node: _, ...preProps }) => {
-          return <PreTag {...preProps} />;
+        pre: ({ node, ...preProps }) => {
+          return (
+            <PreTag
+              {...preProps}
+              // @ts-expect-error valid type
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+              text={node?.children?.[0]?.children?.[0]?.value}
+            />
+          );
         },
       }}
     >
