@@ -33,6 +33,7 @@ import {
 } from "./graph";
 import classNames from "classnames";
 import { BetterPopover } from "./components/Modal";
+import { DEFAULT_MIN_ZOOM } from "./utils";
 
 const InfoIcon: FunctionComponent<{ id: string; message: string }> = ({
   id,
@@ -236,6 +237,7 @@ const AutoExpansionPopover = () => {
               layoutElementsOnCanvas(nodes, edges);
               flow.setNodes(nodes);
               flow.setEdges(edges);
+              flow.fitView({ minZoom: DEFAULT_MIN_ZOOM });
               setMinRange(calculateMinLevel(nodes, edges, selectedTable));
               setNodeCount(
                 await calculateNodeCount(
