@@ -1,10 +1,14 @@
 import { AltimateIcon, AskIcon } from "@assets/icons";
 import TextareaAutosize from "react-textarea-autosize";
-import ResultFeedbackButtons from "@modules/documentationEditor/components/result/ResultFeedbackButtons";
+import ResultFeedbackButtons from "@modules/feedback/ResultFeedbackButtons";
 import { Button, Card, CardBody, CardTitle, IconButton, Stack } from "@uicore";
 import { QueryExplainResult } from "./types";
 import classes from "../../datapilot.module.scss";
-import { Feedback } from "../docGen/types";
+import {
+  Feedback,
+  FeedbackRequest,
+  FeedbackType,
+} from "../../../feedback/types";
 import { panelLogger } from "@modules/logger";
 import UserQuery from "../common/UserQuery";
 import QueryAnalysisActionButton from "./QueryAnalysisActionButton";
@@ -19,10 +23,17 @@ interface Props {
   command: DataPilotChatAction["command"];
 }
 const QueryExplainResultComponent = ({
-  response: { datapilot_title, response, user_prompt, actions, state },
+  response: {
+    datapilot_title,
+    response,
+    user_prompt,
+    actions,
+    state,
+    session_id,
+  },
   command,
 }: Props): JSX.Element => {
-  const { chat, onNewGeneration, history, isMaxFollowupReached } =
+  const { chat, results, onNewGeneration, history, isMaxFollowupReached } =
     useQueryAnalysisContext();
   const { onAiGenerationRender } = useAiGenerationUtils();
 
@@ -30,8 +41,32 @@ const QueryExplainResultComponent = ({
 
   const { executeQueryAnalysis, isLoading } = useQueryAnalysisAction();
 
-  const onFeedbackSubmit = (data: Feedback) => {
-    panelLogger.info(data);
+  const onFeedbackSubmit = (feedbackData: Feedback) => {
+    if (!chat) {
+      return null;
+    }
+
+    const data = {
+      requestDetails: chat.meta,
+      messageSequence: [
+        {
+          query: chat.query,
+          response: chat.response,
+          type: FeedbackType.USER_REQUEST,
+        },
+        ...results.map((r) => {
+          const baseData = {
+            response: r.response,
+            type: FeedbackType.RESPONSE,
+          };
+          if (session_id === r.session_id) {
+            return { ...feedbackData, ...baseData };
+          }
+          return baseData;
+        }),
+      ],
+    } as FeedbackRequest;
+    return data;
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -74,7 +109,7 @@ const QueryExplainResultComponent = ({
               <Stack className={classes.actionButtons}>
                 <Stack>&nbsp;</Stack>
                 <ResultFeedbackButtons
-                  onFeedbackSubmit={(data) => onFeedbackSubmit(data)}
+                  getFeedbackData={(data) => onFeedbackSubmit(data)}
                 />
               </Stack>
             ) : null}
