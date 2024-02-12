@@ -26,6 +26,7 @@ import { LineageContext, aiEnabled } from "./App";
 import { useReactFlow } from "reactflow";
 import {
   calculateMinLevel,
+  calculateNodeCount,
   expandTableLineageLevelWise,
   highlightTableConnections,
   layoutElementsOnCanvas,
@@ -83,8 +84,9 @@ const AutoExpansionPopover = () => {
     minRange,
     setMinRange,
     rerender,
+    nodeCount,
+    setNodeCount,
   } = useContext(LineageContext);
-  const [nodeCount, setNodeCount] = useState(0);
   const [maxRange, setMaxRange] = useState([0, 0]);
 
   useEffect(() => {
@@ -94,23 +96,17 @@ const AutoExpansionPopover = () => {
 
   useEffect(() => {
     (async () => {
-      if (!selectedTable) return;
-      const selectedTableData = flow.getNode(selectedTable)?.data;
-      if (!selectedTableData) return;
-      const { level } = selectedTableData;
-      const nodes = flow.getNodes();
-      const edges = flow.getEdges();
-      const startingNodesNum = nodes.length;
-      const [newNodes] = await expandTableLineageLevelWise(
-        nodes,
-        edges,
-        selectedTable,
-        level - leftExpansion,
-        level + rightExpansion
+      setNodeCount(
+        await calculateNodeCount(
+          flow.getNodes(),
+          flow.getEdges(),
+          selectedTable,
+          leftExpansion,
+          rightExpansion
+        )
       );
-      setNodeCount(newNodes.length - startingNodesNum);
     })();
-  }, [flow, minRange, leftExpansion, rightExpansion, selectedTable]);
+  }, [flow, leftExpansion, rightExpansion, selectedTable, setNodeCount]);
 
   useEffect(() => {
     (async () => {
@@ -162,6 +158,7 @@ const AutoExpansionPopover = () => {
                 <div
                   className={styles.icon}
                   onClick={() => {
+                    if (!selectedTable) return;
                     setLeftExpansion(maxRange[0]);
                   }}
                 >
@@ -171,6 +168,7 @@ const AutoExpansionPopover = () => {
                 <div
                   className={styles.icon}
                   onClick={() => {
+                    if (!selectedTable) return;
                     setLeftExpansion((i) => (i + 1 <= maxRange[0] ? i + 1 : i));
                   }}
                 >
@@ -189,6 +187,7 @@ const AutoExpansionPopover = () => {
                 <div
                   className={styles.icon}
                   onClick={() => {
+                    if (!selectedTable) return;
                     setRightExpansion((i) =>
                       i + 1 <= maxRange[1] ? i + 1 : i
                     );
@@ -200,6 +199,7 @@ const AutoExpansionPopover = () => {
                 <div
                   className={styles.icon}
                   onClick={() => {
+                    if (!selectedTable) return;
                     setRightExpansion(maxRange[1]);
                   }}
                 >
@@ -232,6 +232,15 @@ const AutoExpansionPopover = () => {
               flow.setNodes(nodes);
               flow.setEdges(edges);
               setMinRange(calculateMinLevel(nodes, edges, selectedTable));
+              setNodeCount(
+                await calculateNodeCount(
+                  nodes,
+                  edges,
+                  selectedTable,
+                  leftExpansion,
+                  rightExpansion
+                )
+              );
               rerender();
               close();
             }}

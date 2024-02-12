@@ -26,6 +26,7 @@ import { Modal, SidebarModal } from "./components/Modal";
 import { MoreTables, TMoreTables } from "./MoreTables";
 import {
   calculateMinLevel,
+  calculateNodeCount,
   expandTableLineage,
   highlightTableConnections,
   layoutElementsOnCanvas,
@@ -89,6 +90,8 @@ export const LineageContext = createContext<{
   setRightExpansion: Dispatch<SetStateAction<number>>;
   minRange: [number, number];
   setMinRange: Dispatch<SetStateAction<[number, number]>>;
+  nodeCount: number;
+  setNodeCount: Dispatch<SetStateAction<number>>;
 }>({
   showSidebar: false,
   setShowSidebar: noop,
@@ -111,6 +114,8 @@ export const LineageContext = createContext<{
   setRightExpansion: noop,
   minRange: [0, 0],
   setMinRange: noop,
+  nodeCount: 0,
+  setNodeCount: noop,
 });
 
 function App() {
@@ -140,6 +145,7 @@ function App() {
   const [selectCheck, setSelectCheck] = useState(true);
   const [nonSelectCheck, setNonSelectCheck] = useState(true);
 
+  const [nodeCount, setNodeCount] = useState(0);
   const [minRange, setMinRange] = useState<[number, number]>([0, 0]);
 
   useEffect(() => {
@@ -173,6 +179,15 @@ function App() {
         _flow.setNodes(nodes);
         _flow.setEdges(edges);
         setMinRange(calculateMinLevel(nodes, edges, node.table));
+        setNodeCount(
+          await calculateNodeCount(
+            nodes,
+            edges,
+            node.table,
+            leftExpansion,
+            rightExpansion
+          )
+        );
         return;
       }
       let nodes: Node[] = [];
@@ -193,6 +208,15 @@ function App() {
       _flow.setEdges(edges);
       _flow.fitView({ minZoom: DEFAULT_MIN_ZOOM, duration: 500 });
       setMinRange(calculateMinLevel(nodes, edges, node.table));
+      setNodeCount(
+        await calculateNodeCount(
+          nodes,
+          edges,
+          node.table,
+          leftExpansion,
+          rightExpansion
+        )
+      );
       rerender();
     };
 
@@ -266,6 +290,8 @@ function App() {
         setRightExpansion,
         minRange,
         setMinRange,
+        nodeCount,
+        setNodeCount,
       }}
     >
       <ReactFlowProvider>

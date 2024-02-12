@@ -12,6 +12,7 @@ import classNames from "classnames";
 import {
   bfsTraversal,
   calculateMinLevel,
+  calculateNodeCount,
   expandTableLineage,
   highlightTableConnections,
   layoutElementsOnCanvas,
@@ -95,6 +96,9 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     setConfidence,
     setMoreTables,
     setMinRange,
+    setNodeCount,
+    leftExpansion,
+    rightExpansion,
   } = useContext(LineageContext);
 
   const _columnLen = Object.keys(collectColumns[table] || {}).length;
@@ -125,6 +129,15 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     flow.setNodes(nodes);
     flow.setEdges(edges);
     setMinRange(calculateMinLevel(nodes, edges, selectedTable));
+    setNodeCount(
+      await calculateNodeCount(
+        nodes,
+        edges,
+        selectedTable,
+        leftExpansion,
+        rightExpansion
+      )
+    );
     rerender();
     if (selectedColumn.name) {
       try {
@@ -184,10 +197,19 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     >
       <div
         className={styles.table_node}
-        onClick={() => {
+        onClick={async () => {
           setSelectedTable(table);
-          setMinRange(
-            calculateMinLevel(flow.getNodes(), flow.getEdges(), table)
+          const nodes = flow.getNodes();
+          const edges = flow.getEdges();
+          setMinRange(calculateMinLevel(nodes, edges, table));
+          setNodeCount(
+            await calculateNodeCount(
+              nodes,
+              edges,
+              table,
+              leftExpansion,
+              rightExpansion
+            )
           );
           highlightTable();
           openFile(url);

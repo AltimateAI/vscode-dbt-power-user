@@ -754,3 +754,25 @@ export const moveTableFromSeeMoreToCanvas = (
   }
   return false;
 };
+
+export const calculateNodeCount = async (
+  nodes: Node[],
+  edges: Edge[],
+  selectedTable: string,
+  leftExpansion: number,
+  rightExpansion: number
+): Promise<number> => {
+  if (!selectedTable) return 0;
+  const selectedTableData = nodes.find((n) => n.id === selectedTable)?.data;
+  if (!selectedTableData) return 0;
+  const { level } = selectedTableData;
+  const startingNodesNum = nodes.length;
+  const [newNodes] = await expandTableLineageLevelWise(
+    nodes,
+    edges,
+    selectedTable,
+    level - leftExpansion,
+    level + rightExpansion
+  );
+  return newNodes.length - startingNodesNum;
+};
