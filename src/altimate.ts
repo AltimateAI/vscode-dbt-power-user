@@ -167,6 +167,23 @@ interface ValidateSqlRequest {
   models: ModelNode[];
 }
 
+interface ShareQueryRequest {
+  name: string;
+  compile_sql: string;
+  csv_result: string;
+}
+
+interface InviteUserRequest {
+  company: string;
+  email: string;
+  role: string;
+}
+
+interface InviteUserResponse {
+  id: number;
+  email: string;
+}
+
 export type ValidateSqlParseErrorType =
   | "sql_parse_error"
   | "sql_invalid_error"
@@ -357,7 +374,14 @@ export class AltimateRequest {
         textResponse,
       });
       clearTimeout(timeoutHandler);
-      return {} as T;
+      let errorMessage = textResponse;
+      try {
+        const jsonResponse = JSON.parse(textResponse);
+        errorMessage = jsonResponse.detail || jsonResponse;
+      } catch {
+        /* empty */
+      }
+      throw new Error(errorMessage);
     } catch (e) {
       console.log("network:response:catchAllError:", e);
       this.telemetry.sendTelemetryError("apiCatchAllError", e, {
@@ -445,5 +469,19 @@ export class AltimateRequest {
       },
     });
     return (await response.json()) as Record<string, any> | undefined;
+  }
+
+  async shareQueryResult(req: ShareQueryRequest) {
+    return this.fetch<{ share_url: string }>("dbt/v3/query-result/share", {
+      method: "POST",
+      body: JSON.stringify(req),
+    });
+  }
+
+  async inviteUser(req: InviteUserRequest) {
+    return this.fetch<InviteUserResponse>("users/invite", {
+      method: "POST",
+      body: JSON.stringify(req),
+    });
   }
 }

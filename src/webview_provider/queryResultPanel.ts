@@ -14,7 +14,7 @@ import {
   window,
   workspace,
 } from "vscode";
-
+import * as path from "path";
 import { readFileSync } from "fs";
 import { PythonException } from "python-bridge";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -70,6 +70,8 @@ enum InboundCommand {
   OpenUrl = "openUrl",
   GetSummary = "getSummary",
   CancelQuery = "cancelQuery",
+  ShareQueryResult = "shareQueryResult",
+  InviteUser = "inviteUser",
 }
 
 interface RecInfo {
@@ -121,6 +123,27 @@ export class QueryResultPanel implements WebviewViewProvider {
       null,
       this._disposables,
     );
+    this._disposables.push(
+      workspace.onDidChangeConfiguration(
+        (e) => {
+          if (!e.affectsConfiguration("dbt")) {
+            return;
+          }
+          this.transmitConfig();
+        },
+        this,
+        this._disposables,
+      ),
+    );
+  }
+
+  dispose() {
+    while (this._disposables.length) {
+      const x = this._disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
   }
 
   public async resolveWebviewView(
@@ -192,6 +215,68 @@ export class QueryResultPanel implements WebviewViewProvider {
                 );
             }
             break;
+          case InboundCommand.ShareQueryResult:
+            window.withProgress(
+              {
+                location: ProgressLocation.Notification,
+                title: "Uploading data to Altimate backend",
+                cancellable: false,
+              },
+              async () => {
+                try {
+                  const result = await this.altimate.shareQueryResult(message);
+                  if (result?.share_url) {
+                    await env.clipboard.writeText(result.share_url);
+                    window.showInformationMessage(
+                      `URL is copied to clipboard: [${result.share_url}](${result.share_url})`,
+                    );
+                  } else {
+                    window.showErrorMessage(
+                      "Unable to upload data to Altimate backend.",
+                    );
+                  }
+                } catch (error) {
+                  window.showErrorMessage(
+                    `Unable to upload data to Altimate backend:${error}`,
+                  );
+                }
+              },
+            );
+            break;
+          case InboundCommand.InviteUser:
+            const { role, email } = message;
+            if (!this.altimate.handlePreviewFeatures()) {
+              return;
+            }
+            const company = workspace
+              .getConfiguration("dbt")
+              .get<string>("altimateInstanceName")!;
+            if (!email || !role) {
+              window.showErrorMessage(
+                "Please add valid email and role for inviting user.",
+              );
+              return;
+            }
+            window.withProgress(
+              {
+                location: ProgressLocation.Notification,
+                title: "Inviting User",
+                cancellable: false,
+              },
+              async () => {
+                try {
+                  await this.altimate.inviteUser({
+                    company,
+                    role,
+                    email,
+                  });
+                  window.showInformationMessage("Successfully invited user.");
+                } catch (e) {
+                  window.showErrorMessage((e as Error).message);
+                }
+              },
+            );
+            break;
           case InboundCommand.OpenUrl:
             const config = message as RecOpenUrl;
             env.openExternal(Uri.parse(config.url));
@@ -236,18 +321,36 @@ export class QueryResultPanel implements WebviewViewProvider {
     raw_sql: string,
     compiled_sql: string,
   ) {
-    if (this._panel) {
-      await this._panel.webview.postMessage({
-        command: OutboundCommand.RenderQuery,
-        ...(<RenderQuery>{
-          columnNames,
-          columnTypes,
-          rows,
-          raw_sql,
-          compiled_sql,
-        }),
-      });
+    if (!this._panel) {
+      return;
     }
+    const fileUri = window.activeTextEditor?.document.uri;
+    if (!fileUri) {
+      return;
+    }
+    const project = this.dbtProjectContainer.findDBTProject(fileUri);
+    if (!project) {
+      return;
+    }
+    const project_name = project.getProjectName();
+    const model_path = path.relative(project.projectRoot.path, fileUri.path);
+    const model_name = path.basename(
+      window.activeTextEditor!.document.fileName,
+      ".sql",
+    );
+    await this._panel.webview.postMessage({
+      command: OutboundCommand.RenderQuery,
+      ...(<RenderQuery>{
+        columnNames,
+        columnTypes,
+        rows,
+        raw_sql,
+        compiled_sql,
+        model_path,
+        model_name,
+        project_name,
+      }),
+    });
   }
 
   /** Sends error result data to webview */
@@ -289,6 +392,9 @@ export class QueryResultPanel implements WebviewViewProvider {
             ColorThemeKind.HighContrastLight,
           ].includes(window.activeColorTheme.kind),
           aiEnabled: this.altimate.enabled(),
+          enableQuerySharing: workspace
+            .getConfiguration("dbt")
+            .get<boolean>("enableQuerySharing", false),
         }),
       });
     }

@@ -106,6 +106,17 @@ th {
   user-select: text;
 }
 
+.tooltip-js {
+  display: none;
+  position: absolute;
+  padding: 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 1;
+  background-color: var(--input-background);
+  color: var(--input-foreground);
+}
+
 .tooltip-container {
   position: relative;
   display: flex;
@@ -119,13 +130,12 @@ th {
 .tooltip-text {
   display: none;
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 100%;
+  right: 0%;
   padding: 8px;
-  color: #082247;
   border-radius: 4px;
   white-space: nowrap;
-  background: #ffce73;
+  z-index: 1;
 }
 
 .tooltip-text-top {
@@ -134,6 +144,16 @@ th {
 
 .tooltip-text-bottom {
   top: 125%;
+}
+
+.premium-tooltip {
+  background: #ffce73;
+  color: #082247;
+}
+
+.normal-tooltip {
+  background-color: var(--input-background);
+  color: var(--input-foreground);
 }
 
 .flex {
@@ -146,4 +166,142 @@ th {
 
 regular-table::-webkit-scrollbar-thumb {
   border-width: 2px;
+}
+
+.gap-sm {
+  gap: 0.5em;
+}
+
+.w-100 {
+  width: 100%;
+}
+
+.h-100 {
+  height: 100%;
+}
+
+.justify-content-end {
+  justify-content: end;
+}
+
+.m-2 {
+  margin: 0.5em;
+}
+
+:root {
+  --primary-color: #247efe;
+  --primary-color-2: #0b5ed7;
+  --primary-color-3: #0a58ca;
+}
+html {
+  font-size: var(--vscode-font-size) !important;
+  --bg-color: #f5f5f7;
+  --text-color: #000000;
+}
+
+html[data-theme="dark"] {
+  --bg-color: #1e1e1e;
+  --text-color: #ffffff;
+}
+
+.btn {
+  border-radius: 4px;
+  outline: none;
+  border: none;
+  color: #ffffff;
+
+  display: inline-block;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: center;
+  text-decoration: none;
+  vertical-align: middle;
+  cursor: pointer;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  border: 1px solid transparent;
+  padding: 0.125rem 0.75rem;
+  font-size: 1rem;
+  border-radius: 0.25rem;
+  transition:
+    color 0.15s ease-in-out,
+    background-color 0.15s ease-in-out,
+    border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
+}
+
+.primary-btn {
+  background-color: var(--primary-color);
+}
+
+.primary-btn:hover {
+  background-color: var(--primary-color-2);
+  border-color: var(--primary-color-3);
+}
+
+.secondary-btn {
+  background-color: var(--button-secondary-background);
+}
+
+.secondary-btn:hover {
+  background-color: var(--button-secondary-hover-background);
+  border-color: var(--button-secondary-hover-background);
+}
+
+.popover {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  z-index: 10001;
+  padding: 1em;
+  border-radius: 0.5em;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+input {
+  padding: 0.5em;
+  outline: none;
+  border: none;
+  border-radius: 0.25em;
+  min-width: 20em;
+  background-color: var(--input-background);
+  color: var(--input-foreground);
+}
+
+input:focus {
+  outline: 1px solid var(--primary-color);
+}
+
+.mb-2 {
+  margin-bottom: 0.5em;
+}
+
+.align-items-center {
+  align-items: center;
+}
+
+.fs-6 {
+  font-size: 1.2em;
+}
+
+#invite-user {
+  background-color: var(--input-background);
+  color: var(--input-foreground);
+  padding: 0.25em;
+  border-radius: 0.25em;
+}
+
+#invite-user input {
+  outline: none;
+  flex-grow: 1;
+}
+
+#invite-user input:focus {
+  outline: none;
+}
+
+#invite-user:focus-within {
+  outline: 1px solid var(--primary-color);
 }

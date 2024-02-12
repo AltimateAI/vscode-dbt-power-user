@@ -78,6 +78,11 @@
             "type": "boolean",
             "description": "Enable the new query panel in dbt.",
             "default": true
+          },
+          "dbt.enableQuerySharing": {
+            "type": "boolean",
+            "description": "This functionality will upload the query preview results to the SaaS service.",
+            "default": false
           }
         }
       },
