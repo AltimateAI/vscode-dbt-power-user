@@ -23,23 +23,28 @@ export class DeferToProductionStatusBar implements Disposable {
   constructor(private dbtProjectContainer: DBTProjectContainer) {
     this.showTextInStatusBar("$(sync) Defer");
 
-    window.onDidChangeActiveTextEditor(
-      async (event: TextEditor | undefined) => {
-        if (event === undefined) {
-          return;
-        }
+    this.disposables.push(
+      workspace.onDidChangeConfiguration(
+        async (e) => {
+          if (!e.affectsConfiguration("dbt.deferConfigPerProject")) {
+            return;
+          }
+          await this.updateStatusBar();
+        },
+        this,
+        this.disposables,
+      ),
+    );
+    this.disposables.push(
+      window.onDidChangeActiveTextEditor(
+        async (event: TextEditor | undefined) => {
+          if (event === undefined) {
+            return;
+          }
 
-        const currentProjectRoot = await this.getCurrentProjectRoot();
-        const currentConfig: Record<string, DeferConfig> = await workspace
-          .getConfiguration("dbt")
-          .get("deferConfigPerProject", {});
-
-        if (currentConfig[currentProjectRoot]?.deferToProduction) {
-          this.showTextInStatusBar("$(sync) Defer");
-          return;
-        }
-        this.showTextInStatusBar("$(sync-ignored) Defer");
-      },
+          await this.updateStatusBar();
+        },
+      ),
     );
   }
 
@@ -75,5 +80,18 @@ export class DeferToProductionStatusBar implements Disposable {
     }
 
     return getProjectRelativePath(currentProject.projectRoot);
+  }
+
+  private async updateStatusBar() {
+    const currentProjectRoot = await this.getCurrentProjectRoot();
+    const currentConfig: Record<string, DeferConfig> = await workspace
+      .getConfiguration("dbt")
+      .get("deferConfigPerProject", {});
+
+    if (currentConfig[currentProjectRoot]?.deferToProduction) {
+      this.showTextInStatusBar("$(sync) Defer");
+      return;
+    }
+    this.showTextInStatusBar("$(sync-ignored) Defer");
   }
 }

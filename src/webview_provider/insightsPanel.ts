@@ -47,6 +47,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
         }
 
         if (this._panel) {
+          const currentProject = await this.getCurrentProject();
           const currentProjectRoot = await this.getCurrentProjectRoot();
           const currentConfig: Record<string, DeferConfig> = await workspace
             .getConfiguration("dbt")
@@ -54,7 +55,10 @@ export class InsightsPanel extends AltimateWebviewProvider {
 
           this._panel!.webview.postMessage({
             command: "updateDeferConfig",
-            args: currentConfig[currentProjectRoot] || {},
+            args: {
+              config: currentConfig[currentProjectRoot],
+              projectPath: currentProject?.projectRoot.fsPath,
+            },
           });
         }
       },
@@ -62,6 +66,15 @@ export class InsightsPanel extends AltimateWebviewProvider {
   }
 
   private async getCurrentProjectRoot() {
+    const currentProject = await this.getCurrentProject();
+    if (!currentProject?.projectRoot) {
+      throw new Error("Invalid current project root");
+    }
+
+    return getProjectRelativePath(currentProject.projectRoot);
+  }
+
+  private async getCurrentProject() {
     const currentFilePath = window.activeTextEditor?.document.uri;
     if (!currentFilePath) {
       throw new Error("Invalid current file");
@@ -69,12 +82,9 @@ export class InsightsPanel extends AltimateWebviewProvider {
 
     const currentProject =
       this.dbtProjectContainer.findDBTProject(currentFilePath);
-    if (!currentProject?.projectRoot) {
-      throw new Error("Invalid current project root");
-    }
-
-    return getProjectRelativePath(currentProject.projectRoot);
+    return currentProject;
   }
+
   private async updateDeferConfig(
     syncRequestId: string | undefined,
     params: UpdateConfigPropsArray,
@@ -287,8 +297,12 @@ export class InsightsPanel extends AltimateWebviewProvider {
         commands.executeCommand("dbtPowerUser.clearAltimateScanResults", {});
         break;
       case "getDeferToProductionConfig":
-        const { projectRoot } = params as { projectRoot: string };
-        const root = getProjectRelativePath(Uri.parse(projectRoot));
+        const { projectRoot } = params as { projectRoot?: string };
+        const root = projectRoot
+          ? getProjectRelativePath(Uri.parse(projectRoot))
+          : await this.getCurrentProjectRoot();
+        const projectPath =
+          projectRoot || (await this.getCurrentProject())?.projectRoot.fsPath;
         const currentConfig: Record<string, DeferConfig> = await workspace
           .getConfiguration("dbt")
           .get("deferConfigPerProject", {});
@@ -297,7 +311,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
           command: "response",
           args: {
             syncRequestId,
-            body: currentConfig[root],
+            body: { config: currentConfig[root], projectPath },
             status: true,
           },
         });

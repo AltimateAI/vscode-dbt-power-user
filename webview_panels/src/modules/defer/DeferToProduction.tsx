@@ -11,7 +11,7 @@ import {
   Label,
   Select,
 } from "@uicore";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { executeRequestInSync } from "../app/requestExecutor";
 import classes from "./defer.module.scss";
 import { IncomingMessageProps } from "@modules/app/types";
@@ -19,6 +19,15 @@ import { DbtProject, DeferToProductionProps } from "./types";
 import { ManifestPathType } from "./constants";
 import { ManifestSelection } from "./ManifestSelection";
 import { panelLogger } from "@modules/logger";
+
+const DefaultDeferState = {
+  deferToProduction: false,
+  favorState: false,
+  manifestPathForDeferral: "",
+  manifestPathType: ManifestPathType.EMPTY,
+  projectIntegrations: [],
+  dbt_core_integration_id: -1,
+};
 
 const DeferToProduction = (): JSX.Element => {
   const [
@@ -31,25 +40,31 @@ const DeferToProduction = (): JSX.Element => {
       dbt_core_integration_id,
     },
     setDeferState,
-  ] = useState<DeferToProductionProps>({
-    deferToProduction: false,
-    favorState: false,
-    manifestPathForDeferral: "",
-    manifestPathType: ManifestPathType.EMPTY,
-    projectIntegrations: [],
-    dbt_core_integration_id: -1,
-  });
+  ] = useState<DeferToProductionProps>(DefaultDeferState);
 
   const [dbtProjects, setDbtProjects] = useState<DbtProject[]>([]);
   const [dbtProjectRoot, setDbtProjectRoot] = useState("");
   const [showProjectDropdown, setShowProjectDropdown] = useState(true);
+
+  const updateDeferState = (args: {
+    config: DeferToProductionProps;
+    projectPath: string;
+  }) => {
+    setDeferState(args.config || DefaultDeferState);
+    setDbtProjectRoot(args.projectPath);
+  };
 
   const onMesssage = useCallback(
     (event: MessageEvent<IncomingMessageProps>) => {
       const { command, args } = event.data;
       switch (command) {
         case "updateDeferConfig":
-          setDeferState(args as unknown as DeferToProductionProps);
+          updateDeferState(
+            args as {
+              config: DeferToProductionProps;
+              projectPath: string;
+            },
+          );
           break;
         default:
           break;
@@ -85,13 +100,14 @@ const DeferToProduction = (): JSX.Element => {
   };
 
   const loadDeferConfig = async () => {
-    const config = await executeRequestInSync("getDeferToProductionConfig", {
+    const response = (await executeRequestInSync("getDeferToProductionConfig", {
       projectRoot: dbtProjectRoot,
-    });
-    if (config) {
-      setDeferState(config as DeferToProductionProps);
-      await handleRemoteManifestIntegration(config as DeferToProductionProps);
+    })) as { config: DeferToProductionProps; projectPath: string };
+    if (response.config) {
+      setDeferState(response.config || DefaultDeferState);
+      await handleRemoteManifestIntegration(response.config);
     }
+    setDbtProjectRoot(response.projectPath);
   };
 
   useEffect(() => {
@@ -101,12 +117,10 @@ const DeferToProduction = (): JSX.Element => {
   }, []);
 
   useEffect(() => {
-    if (dbtProjectRoot) {
-      loadDeferConfig().catch(() => {
-        return;
-      });
-    }
-  }, [dbtProjectRoot]);
+    loadDeferConfig().catch(() => {
+      return;
+    });
+  }, []);
 
   const updateDeferAndFavorState = ({
     key,
@@ -161,8 +175,20 @@ const DeferToProduction = (): JSX.Element => {
     value: string;
   }) => {
     setDbtProjectRoot(selectedOption.value);
-    setDeferState({} as DeferToProductionProps);
+    setDeferState(DefaultDeferState);
   };
+
+  const selectedProject = useMemo(() => {
+    const project = dbtProjects.find((p) => p.projectRoot === dbtProjectRoot);
+    if (!project) {
+      return;
+    }
+
+    return {
+      label: `${project.projectName} (${project.projectRoot})`,
+      value: project.projectRoot,
+    };
+  }, [dbtProjects, dbtProjectRoot]);
 
   return (
     <Col lg={7}>
@@ -182,6 +208,8 @@ const DeferToProduction = (): JSX.Element => {
                     value: d.projectRoot,
                   };
                 })}
+                defaultValue={selectedProject}
+                value={selectedProject}
                 className={classes.projectSelect}
                 onChange={(newValue) =>
                   handleProjectSelect(
