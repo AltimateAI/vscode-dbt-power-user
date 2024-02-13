@@ -95,34 +95,36 @@ const QueryAnalysisResultComponent = ({
     <>
       <UserQuery query={user_prompt} />
 
-      <li ref={onAiGenerationRender}>
-        <Card>
-          <CardTitle>
-            {" "}
-            <AltimateIcon /> {datapilot_title}
-          </CardTitle>
-          <CardBody>
-            {response ? (
-              <div className={classes.response}>
-                <MarkdownRenderer response={response} />
-              </div>
-            ) : null}
-            {state === RequestState.LOADING ? (
-              <Stack>
-                <Button color="warning">Loading...</Button>
-              </Stack>
-            ) : null}
-            {state === RequestState.COMPLETED ? (
-              <Stack className={classes.actionButtons}>
-                <Stack>&nbsp;</Stack>
-                <ResultFeedbackButtons
-                  getFeedbackData={(data) => onFeedbackSubmit(data)}
-                />
-              </Stack>
-            ) : null}
-          </CardBody>
-        </Card>
-      </li>
+      {state === RequestState.COMPLETED && !response ? null : (
+        <li ref={onAiGenerationRender}>
+          <Card>
+            <CardTitle>
+              {" "}
+              <AltimateIcon /> {datapilot_title}
+            </CardTitle>
+            <CardBody>
+              {response ? (
+                <div className={classes.response}>
+                  <MarkdownRenderer response={response} />
+                </div>
+              ) : null}
+              {state === RequestState.LOADING ? (
+                <Stack>
+                  <Button color="warning">Loading...</Button>
+                </Stack>
+              ) : null}
+              {state === RequestState.COMPLETED ? (
+                <Stack className={classes.actionButtons}>
+                  <Stack>&nbsp;</Stack>
+                  <ResultFeedbackButtons
+                    getFeedbackData={(data) => onFeedbackSubmit(data)}
+                  />
+                </Stack>
+              ) : null}
+            </CardBody>
+          </Card>
+        </li>
+      )}
       {showFollowup && actions?.length ? (
         <Stack direction="column">
           <p className="p4 mb-0">Suggestions</p>

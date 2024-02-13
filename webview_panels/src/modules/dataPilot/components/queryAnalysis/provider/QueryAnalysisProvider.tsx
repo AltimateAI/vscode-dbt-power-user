@@ -11,6 +11,7 @@ import queryAnalysisSlice, { initialState } from "./queryAnalysisSlice";
 import {
   DatapilotQueryAnalysisChat,
   QueryAnalysisResult,
+  QueryAnalysisType,
   QueryExplainUpdate,
 } from "../types";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
@@ -82,6 +83,22 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
     );
   };
 
+  const handleQueryModifyOnload = () => {
+    if (!chat) {
+      return;
+    }
+    panelLogger.info("handleQueryModifyOnload");
+    datapilotDispatch(upsertItem({ ...chat, state: RequestState.LOADING }));
+    executeQueryAnalysis({
+      sessionId: chat.id,
+      command: "queryAnalysis:change",
+      onNewGeneration,
+      skipQueryAnalysis: true,
+    }).catch((err) =>
+      panelLogger.error("error while executing query change onload", err),
+    );
+  };
+
   // Trigger explain query api if analysis type is set in chat request
   useEffect(() => {
     if (
@@ -94,7 +111,19 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
     }
 
     // Api request not sent for this chat yet
-    handleQueryExplainOnload();
+    switch (chat.analysisType) {
+      case QueryAnalysisType.EXPLAIN:
+        handleQueryExplainOnload();
+
+        break;
+      case QueryAnalysisType.MODIFY:
+        handleQueryModifyOnload();
+
+        break;
+
+      default:
+        break;
+    }
   }, [chat?.state, chat?.requestType, chat?.analysisType]);
 
   const values = useMemo(

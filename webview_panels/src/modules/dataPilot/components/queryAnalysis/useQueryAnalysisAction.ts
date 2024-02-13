@@ -14,6 +14,7 @@ interface QueryAnalysisRequest {
   sessionId?: string;
   user_request?: string;
   history?: QueryAnalysisHistory[];
+  skipQueryAnalysis?: boolean;
 }
 const useQueryAnalysisAction = (): {
   isLoading: boolean;
@@ -30,12 +31,24 @@ const useQueryAnalysisAction = (): {
     cb({ session_id: id, response: chunk });
   };
 
+  const getRequestText = (command: string) => {
+    switch (command) {
+      case "queryAnalysis:change":
+        return "Query change";
+
+      case "queryAnalysis:explain":
+        return "Query explanation";
+      default:
+        break;
+    }
+  };
   const executeQueryAnalysis = async ({
     command,
     onNewGeneration,
     history,
     sessionId,
     user_request,
+    skipQueryAnalysis,
   }: QueryAnalysisRequest) => {
     if (isMaxFollowupReached) {
       return;
@@ -47,19 +60,21 @@ const useQueryAnalysisAction = (): {
 
       onNewGeneration({
         session_id: id,
-        user_prompt: user_request ?? "Query Explanation",
+        user_prompt: user_request ?? getRequestText(command),
         datapilot_title: "Datapilot Response",
         state: RequestState.LOADING,
       });
       const [result, followupQuestions] = await Promise.all([
-        executeStreamRequest(
-          command,
-          // use the original chat session id to track the whole conversation
-          { session_id: sessionId, history, user_request },
-          (chunk: string) => {
-            onProgress(id, chunk, onNewGeneration);
-          },
-        ) as Promise<{ response: string }>,
+        skipQueryAnalysis
+          ? undefined
+          : (executeStreamRequest(
+              command,
+              // use the original chat session id to track the whole conversation
+              { session_id: sessionId, history, user_request },
+              (chunk: string) => {
+                onProgress(id, chunk, onNewGeneration);
+              },
+            ) as Promise<{ response: string }>),
         executeRequestInSync("queryanalysis:followup", {
           user_request,
           query: chat?.query,
@@ -73,7 +88,7 @@ const useQueryAnalysisAction = (): {
       );
       onNewGeneration({
         session_id: id,
-        response: result.response,
+        response: result?.response,
         state: RequestState.COMPLETED,
         actions: Array.isArray(followupQuestions)
           ? followupQuestions.map((question) => ({

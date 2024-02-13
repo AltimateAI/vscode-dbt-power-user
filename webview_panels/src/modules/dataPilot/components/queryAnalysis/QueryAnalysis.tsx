@@ -12,6 +12,10 @@ const DefaultActions = [
     title: "Query explanation",
     command: "queryAnalysis:explain",
   },
+  {
+    title: "Query change",
+    command: "queryAnalysis:modify",
+  },
 ] as DataPilotChatAction[];
 
 const QueryAnalysis = (): JSX.Element | null => {
