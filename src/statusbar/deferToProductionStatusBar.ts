@@ -4,8 +4,12 @@ import {
   window,
   Disposable,
   Command,
+  TextEditor,
+  workspace,
 } from "vscode";
-import { provideSingleton } from "../utils";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { getProjectRelativePath, provideSingleton } from "../utils";
+import { DeferConfig } from "../webview_provider/insightsPanel";
 
 @provideSingleton(DeferToProductionStatusBar)
 export class DeferToProductionStatusBar implements Disposable {
@@ -16,8 +20,27 @@ export class DeferToProductionStatusBar implements Disposable {
   private defaultColor: string = "statusBarItem.activeBackground";
   private disposables: Disposable[] = [];
 
-  constructor() {
+  constructor(private dbtProjectContainer: DBTProjectContainer) {
     this.showTextInStatusBar("$(sync) Defer");
+
+    window.onDidChangeActiveTextEditor(
+      async (event: TextEditor | undefined) => {
+        if (event === undefined) {
+          return;
+        }
+
+        const currentProjectRoot = await this.getCurrentProjectRoot();
+        const currentConfig: Record<string, DeferConfig> = await workspace
+          .getConfiguration("dbt")
+          .get("deferConfigPerProject", {});
+
+        if (currentConfig[currentProjectRoot]?.deferToProduction) {
+          this.showTextInStatusBar("$(sync) Defer");
+          return;
+        }
+        this.showTextInStatusBar("$(sync-ignored) Defer");
+      },
+    );
   }
 
   dispose() {
@@ -37,5 +60,20 @@ export class DeferToProductionStatusBar implements Disposable {
       command: "dbtPowerUser.openInsights",
     };
     this.statusBar.show();
+  }
+
+  private async getCurrentProjectRoot() {
+    const currentFilePath = window.activeTextEditor?.document.uri;
+    if (!currentFilePath) {
+      throw new Error("Invalid current file");
+    }
+
+    const currentProject =
+      this.dbtProjectContainer.findDBTProject(currentFilePath);
+    if (!currentProject?.projectRoot) {
+      throw new Error("Invalid current project root");
+    }
+
+    return getProjectRelativePath(currentProject.projectRoot);
   }
 }

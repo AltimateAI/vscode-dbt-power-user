@@ -161,6 +161,7 @@ const DeferToProduction = (): JSX.Element => {
     value: string;
   }) => {
     setDbtProjectRoot(selectedOption.value);
+    setDeferState({} as DeferToProductionProps);
   };
 
   return (

@@ -439,6 +439,7 @@ export class DBTCoreProjectIntegration
       if (favorState) {
         args.push("--favor-state");
       }
+      this.altimateRequest.sendDeferToProdEvent(ManifestPathType.LOCAL);
       return args;
     }
     if (manifestPathType === ManifestPathType.REMOTE) {
@@ -459,6 +460,7 @@ export class DBTCoreProjectIntegration
             if (favorState) {
               args.push("--favor-state");
             }
+            this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
             return args;
           } else {
             window.showErrorMessage("Unable to use remote manifest file.");

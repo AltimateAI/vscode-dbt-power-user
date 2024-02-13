@@ -15,7 +15,7 @@ type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];
   projectRoot: string;
 };
-interface DeferConfig {
+export interface DeferConfig {
   deferToProduction: boolean;
   favorState: boolean;
   manifestPathForDeferral: string;
@@ -141,6 +141,9 @@ export class InsightsPanel extends AltimateWebviewProvider {
 
   private async fetchProjectIntegrations(syncRequestId: string | undefined) {
     try {
+      if (!this.altimateRequest.handlePreviewFeatures()) {
+        return;
+      }
       console.log("Fetching project integrations");
       const response = await this.altimateRequest.fetchProjectIntegrations();
 

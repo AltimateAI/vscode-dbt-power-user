@@ -450,6 +450,13 @@ export class AltimateRequest {
     return this.fetch<DBTCoreIntegration[]>("dbt/v1/project_integrations");
   }
 
+  async sendDeferToProdEvent(defer_type: string) {
+    return this.fetch("defer_to_prod_event", {
+      method: "POST",
+      body: JSON.stringify({ defer_type }),
+    });
+  }
+
   async fetchArtifactUrl(
     artifact_type: string,
     dbt_core_integration_id: number,
