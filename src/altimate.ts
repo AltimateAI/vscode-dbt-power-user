@@ -451,7 +451,7 @@ export class AltimateRequest {
   }
 
   async sendDeferToProdEvent(defer_type: string) {
-    return this.fetch("defer_to_prod_event", {
+    return this.fetch("dbt/v1/defer_to_prod_event", {
       method: "POST",
       body: JSON.stringify({ defer_type }),
     });
