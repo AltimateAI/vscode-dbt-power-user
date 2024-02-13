@@ -1,4 +1,4 @@
-import { commands, TextEditor, Uri, window, workspace } from "vscode";
+import { commands, env, TextEditor, Uri, window, workspace } from "vscode";
 import { getProjectRelativePath, provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { DBTProject } from "../manifest/dbtProject";
@@ -156,6 +156,20 @@ export class InsightsPanel extends AltimateWebviewProvider {
       }
       console.log("Fetching project integrations");
       const response = await this.altimateRequest.fetchProjectIntegrations();
+
+      if (!response?.length) {
+        // TODO @surya to update text and docs link
+        window
+          .showInformationMessage(
+            "You need to set up integration in SaaS. Please check the documentation",
+            ...["View", "Cancel"],
+          )
+          .then((selection) => {
+            if (selection === "View") {
+              env.openExternal(Uri.parse("https://docs.myaltimate.com/"));
+            }
+          });
+      }
 
       if (syncRequestId) {
         this._panel!.webview.postMessage({
