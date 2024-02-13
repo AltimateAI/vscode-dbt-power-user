@@ -12,11 +12,7 @@ import classNames from "classnames";
 import { Button } from "reactstrap";
 import { getColumns, Columns, Column, Table } from "./service";
 import { aiEnabled, LineageContext } from "./App";
-import {
-  previewFeature,
-  showInfoNotification,
-  CLL,
-} from "./service_utils";
+import { previewFeature, showInfoNotification, CLL } from "./service_utils";
 import {
   bfsTraversal,
   expandTableLineage,
@@ -26,15 +22,14 @@ import {
 } from "./graph";
 
 // ui components
-import { ComponentLoader } from "./Loader";
-import { ColumnDatatype } from "./Column";
-import { ColorTag } from "./Tags";
+import { ComponentLoader } from "./components/Loader";
+import { ColumnDatatype, NodeTypeIcon } from "./components/Column";
+import { ColorTag } from "./components/Tags";
 
 // assets
-import ExpandLineageIcon from "./assets/icons/expand_lineage.svg?react";
+import ExpandLineageIcon from "./assets/icons/expand-lineage.svg?react";
 import Preview from "./assets/icons/preview.svg?react";
-import { NodeTypeIcon } from "./CustomNodes";
-import { CustomInput } from "./Form";
+import { CustomInput } from "./components/Form";
 import { defaultEdgeStyle, isNotColumn } from "./utils";
 import PurposeSection from "./components/Purpose";
 
@@ -114,10 +109,8 @@ const ColumnSection: FunctionComponent<{
               size="sm"
               color="primary"
               onClick={() => {
-                if (!selectedTable) {
-                  return;
-                }
-                getColumns(selectedTable, true).then((_data) => {
+                if (!selectedTable) return;
+                getColumns(selectedTable.table, true).then((_data) => {
                   setData(_data);
                   setFilteredColumn(_data.columns);
                 });
@@ -225,9 +218,7 @@ const TableDetails = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
-    if (!selectedTable) {
-      return;
-    }
+    if (!selectedTable) return;
     getColumns(selectedTable, false).then((_data) => {
       setData(_data);
       setFilteredColumn(_data.columns);
@@ -263,8 +254,8 @@ const TableDetails = () => {
       return;
     }
 
-    const tableNode = flow.getNode(_column.table);
-    if (!tableNode) {
+    const tableNodeData = flow.getNode(_column.table)?.data;
+    if (!tableNodeData) {
       throw new Error(`table node ${_column.table} isn't visible`);
     }
 
@@ -280,11 +271,17 @@ const TableDetails = () => {
       );
       layoutElementsOnCanvas(_nodes, _edges);
     };
-    const {
-      data: { processed },
-    } = tableNode;
-    if (!processed[1]) await addNodesEdges(true);
-    if (!processed[0]) await addNodesEdges(false);
+    const { upstreamCount, downstreamCount } = tableNodeData;
+    if (
+      upstreamCount > 0 &&
+      upstreamCount < _edges.filter((e) => e.source === _column.table).length
+    )
+      await addNodesEdges(true);
+    if (
+      downstreamCount > 0 &&
+      downstreamCount < _edges.filter((e) => e.target === _column.table).length
+    )
+      await addNodesEdges(false);
 
     // initializing states
     const sessionId = window.crypto.randomUUID();
@@ -344,16 +341,19 @@ const TableDetails = () => {
       CLL.end();
     }
   };
+  const selectedTableData = flow.getNode(selectedTable)?.data;
   if (isLoading || !data || !selectedTable) return <ComponentLoader />;
   const tabs = ["Column"];
-  if (selectedTable.tests.length) tabs.push("Tests");
+  if (selectedTableData.tests.length) tabs.push("Tests");
 
   return (
     <div className="p-2 h-100 d-flex flex-column gap-md overflow-y">
       <div className={styles.table_details_header}>
-        <NodeTypeIcon nodeType={selectedTable.nodeType} />
+        <NodeTypeIcon nodeType={selectedTableData.nodeType} />
         <div className="d-flex align-items-center">
-          <div className="fw-semibold fs-5 lines-2">{selectedTable.label}</div>
+          <div className="fw-semibold fs-5 lines-2">
+            {selectedTableData.label}
+          </div>
         </div>
       </div>
       {data.purpose && <PurposeSection purpose={data.purpose} />}
@@ -369,7 +369,7 @@ const TableDetails = () => {
       </div>
       {tab === 0 && (
         <ColumnSection
-          selectedTable={selectedTable}
+          selectedTable={selectedTableData}
           selectedColumn={selectedColumn}
           filteredColumn={filteredColumn}
           setFilteredColumn={setFilteredColumn}
@@ -378,7 +378,7 @@ const TableDetails = () => {
           setData={setData}
         />
       )}
-      {tab === 1 && <TestSection tests={selectedTable.tests} />}
+      {tab === 1 && <TestSection tests={selectedTableData.tests} />}
     </div>
   );
 };

@@ -9,15 +9,16 @@ export const MAX_EXPAND_TABLE = 5;
 // dimensions
 export const F_OFFSET_X = 100;
 export const F_OFFSET_Y = 100;
-export const T_NODE_W = 260;
-export const T_NODE_H = 141;
+export const T_NODE_W = 272;
+export const T_NODE_H = 80;
 export const C_OFFSET_X = 12;
-export const C_OFFSET_Y = 141;
-const C_NODE_H = 36;
+export const C_OFFSET_Y = T_NODE_H;
+const C_NODE_H = 30;
 const C_PADDING_Y = 4;
 export const T_LEVEL_SEPARATION = 280;
 export const T_NODE_Y_SEPARATION = 80;
 
+export const DEFAULT_MIN_ZOOM = 0.05;
 // node styles
 const DEFAULT_COLOR = "#7A899E";
 const HIGHLIGHT_COLOR = "#E38E00";
@@ -88,16 +89,9 @@ export const createTableNode = (
   level: number,
   parent: string
 ): Node => {
-  const { upstreamCount, downstreamCount, table } = _table;
   return {
-    id: table,
-    data: {
-      ..._table,
-      level,
-      parent,
-      shouldExpand: [downstreamCount > 0, upstreamCount > 0],
-      processed: [false, false],
-    },
+    id: _table.table,
+    data: { ..._table, level, parent },
     position: { x: 100, y: 100 },
     type: "table",
     width: T_NODE_W,
@@ -220,3 +214,13 @@ export const safeConcat = <T>(
 
 export const getColY = (columnNum: number, tableNum = 1) =>
   columnNum * (C_NODE_H + C_PADDING_Y) + tableNum * C_PADDING_Y;
+export const withinInclusive = (a: number, b: number) => (v: number) =>
+  a <= v && v <= b;
+export const withinExclusive = (a: number, b: number) => (v: number) =>
+  a < v && v < b;
+
+export const deleteIfExists = <T extends Node | Edge>(arr: T[], id: string) => {
+  const index = arr.findIndex((x) => x.id === id);
+  if (index === -1) return;
+  arr.splice(index, 1);
+};
