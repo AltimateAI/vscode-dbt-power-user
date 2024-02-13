@@ -1,7 +1,7 @@
 import { PropsWithChildren } from "react";
 import { createPortal } from "react-dom";
 import "./SidebarModal.css";
-import CloseIcon from "../assets/icons/x-close.svg?react";
+import CloseIcon from "../../assets/icons/x-close.svg?react";
 
 const sidebarElem = document.getElementById("sidebar")!;
 
