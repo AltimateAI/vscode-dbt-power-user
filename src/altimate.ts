@@ -252,7 +252,6 @@ export class AltimateRequest {
           "x-tenant": config.instance,
           Authorization: "Bearer " + config.key,
           "Content-Type": "application/json",
-          "extension-version": this.dbtProjectContainer.extensionVersion,
         },
       });
 
