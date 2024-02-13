@@ -65,7 +65,6 @@ const BulkGenerateButton = () => {
     } catch (err) {
       panelLogger.error("Unable to generate docs for all columns");
     }
-    return null;
   };
 
   const sendTelemetryEvent = (
