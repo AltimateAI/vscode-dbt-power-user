@@ -505,7 +505,7 @@
         {
           "submenu": "dbtPowerUser.datapilotSubmenu",
           "group": "datapilot@1",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.altimateInstanceName && config.dbt.altimateAiKey"
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
         },
         {
           "submenu": "dbtPowerUser.buildModel",

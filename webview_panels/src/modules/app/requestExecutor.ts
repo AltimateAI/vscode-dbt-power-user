@@ -1,4 +1,4 @@
-import { vscode } from "@vscode";
+import { vscode } from "@modules/vscode";
 import { IncomingSyncResponse } from "./types";
 
 const requestMap: Record<

@@ -100,6 +100,9 @@ export class QueryAnalysisService {
     eventMap: Map<string, ManifestCacheProjectAddedEvent>,
     { query, user_request }: { query: string; user_request: string },
   ) {
+    if (!this.altimateRequest.handlePreviewFeatures()) {
+      return;
+    }
     const adapter =
       this.docGenService.getProject()?.getAdapterType() || "unknown";
     const documentation = await this.docGenService.getDocumentation(eventMap);
