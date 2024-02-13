@@ -99,7 +99,10 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     const webview = this._panel!.webview!;
     this._panel!.webview.onDidReceiveMessage(this.handleCommand, this, []);
 
-    webview.html = this.getHtml(webview, this.dbtProjectContainer.extensionUri);
+    webview.html = this.getHtml(
+      webview,
+      this.dbtProjectContainer.extensionUri.fsPath,
+    );
   }
 
   // typegaurd to UpdateConfigProps
@@ -230,48 +233,26 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     };
   }
 
-  private getHtml(webview: Webview, extensionUri: Uri) {
+  private getHtml(webview: Webview, extensionUri: string) {
     const indexJs = webview.asWebviewUri(
       Uri.file(
-        path.join(
-          extensionUri.fsPath,
-          "webview_panels",
-          "dist",
-          "assets",
-          "main.js",
-        ),
+        path.join(extensionUri, "webview_panels", "dist", "assets", "main.js"),
       ),
     );
     const indexCss = webview.asWebviewUri(
       Uri.file(
-        path.join(
-          extensionUri.fsPath,
-          "webview_panels",
-          "dist",
-          "assets",
-          "main.css",
-        ),
+        path.join(extensionUri, "webview_panels", "dist", "assets", "main.css"),
       ),
     );
     const insightsCss = webview.asWebviewUri(
       Uri.file(
         path.join(
-          extensionUri.fsPath,
+          extensionUri,
           "webview_panels",
           "dist",
           "assets",
           "Insights.css",
         ),
-      ),
-    );
-    const codiconsUri = webview.asWebviewUri(
-      Uri.joinPath(
-        extensionUri,
-        "webview_panels",
-        "node_modules",
-        "@vscode/codicons",
-        "dist",
-        "codicon.css",
       ),
     );
 
@@ -287,11 +268,10 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               and only allow scripts that have a specific nonce.
               Added unsafe-inline for css due to csp issue: https://github.com/JedWatson/react-select/issues/4631
               -->
-            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}';">
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}';">
             <title>VSCode DBT Power user extension</title>
             <link rel="stylesheet" type="text/css" href="${indexCss}">
             <link rel="stylesheet" type="text/css" href="${insightsCss}">
-            <link href="${codiconsUri}" type="text/css" rel="stylesheet" />
 
           </head>
       

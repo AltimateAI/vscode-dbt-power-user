@@ -75,13 +75,15 @@ const useQueryAnalysisAction = (): {
         session_id: id,
         response: result.response,
         state: RequestState.COMPLETED,
-        actions: followupQuestions?.map((question) => ({
-          title: question,
-          data: {},
-          command,
-          user_prompt: question,
-          datapilot_title: question,
-        })),
+        actions: Array.isArray(followupQuestions)
+          ? followupQuestions.map((question) => ({
+              title: question,
+              data: {},
+              command,
+              user_prompt: question,
+              datapilot_title: question,
+            }))
+          : [],
       });
     } catch (err) {
       panelLogger.error("Error while fetching explanation", err);

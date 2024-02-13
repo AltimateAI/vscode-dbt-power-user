@@ -25,7 +25,10 @@ const ResultFeedbackButtons = ({ getFeedbackData }: Props): JSX.Element => {
   });
 
   const onFeedbackSubmit = async (feedbackData: Feedback) => {
-    if (!feedbackData.feedback_message) {
+    if (
+      feedbackData.feedback_type === Rating.Bad &&
+      !feedbackData.feedback_message
+    ) {
       panelLogger.info("no feedback", feedbackData);
       return;
     }

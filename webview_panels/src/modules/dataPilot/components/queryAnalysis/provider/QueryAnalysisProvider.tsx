@@ -82,6 +82,7 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
     );
   };
 
+  // Trigger explain query api if analysis type is set in chat request
   useEffect(() => {
     if (
       !chat ||

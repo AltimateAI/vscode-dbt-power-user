@@ -385,7 +385,7 @@
         }
       },
       {
-        "command": "dbtPowerUser.helpDatapilot",
+        "command": "dbtPowerUser.showHelpDatapilot",
         "title": "Help",
         "icon": "$(question)"
       },
@@ -612,7 +612,7 @@
           "group": "navigation@1"
         },
         {
-          "command": "dbtPowerUser.helpDatapilot",
+          "command": "dbtPowerUser.showHelpDatapilot",
           "when": "view == dbtPowerUser.datapilot-webview",
           "group": "navigation@3"
         }

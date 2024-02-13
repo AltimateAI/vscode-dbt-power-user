@@ -227,6 +227,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     }
   }
 
+  // handles events from sharedStateService events
   private handleDatapilotEvent(
     command: DatapilotEvents,
     data?: { query?: string },
