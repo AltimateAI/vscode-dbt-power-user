@@ -1,4 +1,4 @@
-import { CardText, FormGroup, Input, Label, Select } from "@uicore";
+import { Alert, CardText, FormGroup, Input, Label, Select } from "@uicore";
 import { useState } from "react";
 import {
   executeRequestInAsync,
@@ -161,10 +161,12 @@ export const ManifestSelection = ({
           />
         )}
       </div>
-      {showManifestError && (
-        <CardText>
-          The path should indicate the folder where the manifest.json file is
-          located
+      {manifestPathType === ManifestPathType.LOCAL && (
+        <CardText className="mt-2">
+          <Alert color="warning">
+            The path should indicate the folder where the manifest.json file is
+            located
+          </Alert>
         </CardText>
       )}
       <div className={classes.pathSelectionRow}>
