@@ -1,6 +1,6 @@
 import { Alert, CodeBlock, Stack } from "@uicore";
 import QueryAnalysisActionButton from "./QueryAnalysisActionButton";
-import QueryExplainResultComponent from "./QueryAnalysisResult";
+import QueryAnalysisResultComponent from "./QueryAnalysisResult";
 import useQueryAnalysisContext, {
   MAX_ALLOWED_FOLLOWUP_QUESTIONS,
 } from "./provider/useQueryAnalysisContext";
@@ -40,7 +40,7 @@ const QueryAnalysis = (): JSX.Element | null => {
         </Stack>
       )}
       {results.map((result, i) => (
-        <QueryExplainResultComponent
+        <QueryAnalysisResultComponent
           key={result.session_id}
           response={result}
           command={`queryAnalysis:${chat.analysisType ?? ""}`}

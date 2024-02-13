@@ -15,7 +15,7 @@ export interface DatapilotQueryAnalysisChat extends DataPilotChat {
   analysisType: QueryAnalysisType;
 }
 
-export interface QueryExplainResult {
+export interface QueryAnalysisResult {
   session_id: string;
   user_prompt: string;
   datapilot_title: string;
@@ -24,7 +24,7 @@ export interface QueryExplainResult {
   state: RequestState;
 }
 
-export type QueryExplainUpdate = Partial<QueryExplainResult> & {
+export type QueryExplainUpdate = Partial<QueryAnalysisResult> & {
   session_id: string;
 };
 

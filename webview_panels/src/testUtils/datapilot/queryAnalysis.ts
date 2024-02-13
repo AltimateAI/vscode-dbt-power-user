@@ -4,7 +4,7 @@ import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import {
   DatapilotQueryAnalysisChat,
   QueryAnalysisType,
-  QueryExplainResult,
+  QueryAnalysisResult,
 } from "@modules/dataPilot/components/queryAnalysis/types";
 
 export const DatapilotQueryAnalysisFactory =
@@ -27,7 +27,7 @@ export const DatapilotQueryExplainFactory =
   });
 
 export const DatapilotQueryExplainResultFactory =
-  Sync.makeFactory<QueryExplainResult>({
+  Sync.makeFactory<QueryAnalysisResult>({
     datapilot_title: "Query explanation",
     response: each(() =>
       [

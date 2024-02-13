@@ -2,7 +2,7 @@ import { AltimateIcon, AskIcon } from "@assets/icons";
 import TextareaAutosize from "react-textarea-autosize";
 import ResultFeedbackButtons from "@modules/feedback/ResultFeedbackButtons";
 import { Button, Card, CardBody, CardTitle, IconButton, Stack } from "@uicore";
-import { QueryExplainResult } from "./types";
+import { QueryAnalysisResult } from "./types";
 import classes from "../../datapilot.module.scss";
 import {
   Feedback,
@@ -20,11 +20,11 @@ import useAiGenerationUtils from "../common/useAiGenerationUtils";
 import MarkdownRenderer from "@modules/markdown/Renderer";
 
 interface Props {
-  response: QueryExplainResult;
+  response: QueryAnalysisResult;
   command: DataPilotChatAction["command"];
   showFollowup: boolean;
 }
-const QueryExplainResultComponent = ({
+const QueryAnalysisResultComponent = ({
   response: {
     datapilot_title,
     response,
@@ -159,4 +159,4 @@ const QueryExplainResultComponent = ({
   );
 };
 
-export default QueryExplainResultComponent;
+export default QueryAnalysisResultComponent;

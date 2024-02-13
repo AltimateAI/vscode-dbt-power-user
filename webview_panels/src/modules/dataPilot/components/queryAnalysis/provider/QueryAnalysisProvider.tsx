@@ -10,7 +10,7 @@ import { QueryAnalysisContextProps } from "./types";
 import queryAnalysisSlice, { initialState } from "./queryAnalysisSlice";
 import {
   DatapilotQueryAnalysisChat,
-  QueryExplainResult,
+  QueryAnalysisResult,
   QueryExplainUpdate,
 } from "../types";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
@@ -45,24 +45,24 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
     : undefined;
 
   const { executeQueryAnalysis } = useQueryAnalysisAction();
-  const [results, setResults] = useState<QueryExplainResult[]>([]);
+  const [results, setResults] = useState<QueryAnalysisResult[]>([]);
 
   const onNewGeneration = (result: QueryExplainUpdate) => {
     setResults((prev) => {
       if (!prev.length) {
-        return [result as QueryExplainResult];
+        return [result as QueryAnalysisResult];
       }
       const currentIndex = prev.findIndex(
         (r) => r.session_id === result.session_id,
       );
       if (currentIndex === -1) {
-        return [...prev, result as QueryExplainResult];
+        return [...prev, result as QueryAnalysisResult];
       }
       const clone = [...prev];
       clone[currentIndex] = {
         ...clone[currentIndex],
         ...result,
-      } as QueryExplainResult;
+      } as QueryAnalysisResult;
       return clone;
     });
   };

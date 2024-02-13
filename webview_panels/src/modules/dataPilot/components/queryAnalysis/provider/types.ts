@@ -1,5 +1,5 @@
 import { UnknownAction } from "@reduxjs/toolkit";
-import { QueryExplainUpdate, QueryExplainResult } from "../types";
+import { QueryExplainUpdate, QueryAnalysisResult } from "../types";
 
 export interface QueryAnalysisStateProps {
   sessionId: string | null;
@@ -8,5 +8,5 @@ export interface QueryAnalysisContextProps {
   state: QueryAnalysisStateProps;
   dispatch: React.Dispatch<UnknownAction>;
   onNewGeneration: (result: QueryExplainUpdate) => void;
-  results: QueryExplainResult[];
+  results: QueryAnalysisResult[];
 }

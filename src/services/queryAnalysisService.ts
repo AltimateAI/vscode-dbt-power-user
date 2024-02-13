@@ -33,7 +33,7 @@ export class QueryAnalysisService {
       );
       return {
         query: editor.document.getText(selectionRange),
-        fileName: `${fileName} (${selection.start.line + 1}-${
+        fileName: `${fileName} (L${selection.start.line + 1}-L${
           selection.end.line + 1
         })`,
       };
