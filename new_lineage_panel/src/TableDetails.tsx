@@ -274,12 +274,12 @@ const TableDetails = () => {
     const { upstreamCount, downstreamCount } = tableNodeData;
     if (
       upstreamCount > 0 &&
-      upstreamCount < _edges.filter((e) => e.source === _column.table).length
+      _edges.filter((e) => e.source === _column.table).length < upstreamCount
     )
       await addNodesEdges(true);
     if (
       downstreamCount > 0 &&
-      downstreamCount < _edges.filter((e) => e.target === _column.table).length
+      _edges.filter((e) => e.target === _column.table).length < downstreamCount
     )
       await addNodesEdges(false);
 
