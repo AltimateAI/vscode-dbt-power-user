@@ -7,7 +7,11 @@ import { AltimateIcon } from "@assets/icons";
 interface Props {
   history: GenerationDBDataProps;
 }
-const DocumentationResult = ({ history }: Props): JSX.Element => {
+const DocumentationResult = ({ history }: Props): JSX.Element | null => {
+  if (!history) {
+    return null;
+  }
+
   return (
     <Card>
       <CardBody>

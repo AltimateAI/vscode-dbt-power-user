@@ -273,11 +273,13 @@
       },
       {
         "command": "dbtPowerUser.openDatapilotWithQuery",
-        "title": "Start Chat"
+        "title": "Start Chat",
+        "category": "dbt Power User"
       },
       {
         "command": "dbtPowerUser.summarizeQuery",
-        "title": "Explain"
+        "title": "Explain",
+        "category": "dbt Power User"
       },
       {
         "command": "dbtPowerUser.changeQuery",
@@ -377,8 +379,9 @@
       },
       {
         "command": "dbtPowerUser.resetDatapilot",
-        "title": "Start Chat",
-        "icon": "$(add)"
+        "title": "Start New Chat",
+        "icon": "$(add)",
+        "category": "dbt Power User"
       },
       {
         "command": "dbtPowerUser.maximizeDatapilot",
