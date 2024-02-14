@@ -1,8 +1,8 @@
-import { HTMLAttributes, useRef, useState } from "react";
+import { ButtonHTMLAttributes, useRef, useState } from "react";
 import { Tooltip } from "../../";
 import classes from "./styles.module.scss";
 
-interface Props extends HTMLAttributes<HTMLButtonElement> {
+interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   color?: string;
 }
 const IconButton = (props: Props): JSX.Element => {

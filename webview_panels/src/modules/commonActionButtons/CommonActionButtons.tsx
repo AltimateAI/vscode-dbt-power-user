@@ -22,7 +22,7 @@ const AutoCollapsingNotif: FC<{ text: string; delay: number }> = ({
       onClick={() => setShowInfo((prevSetinfo) => !prevSetinfo)}
       className="d-flex align-items-center cursor-pointer gap-sm m-0 p-2"
     >
-      <InfoCircleIcon />
+      <InfoCircleIcon style={{ color: "var(--action-yellow)" }} />
       {showInfo && text}
     </Alert>
   );

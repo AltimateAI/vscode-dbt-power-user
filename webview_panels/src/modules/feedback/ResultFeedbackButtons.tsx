@@ -4,24 +4,43 @@ import { Controller, useForm } from "react-hook-form";
 import { LikeIcon, DislikeIcon } from "@assets/icons";
 import { Button, Form, IconButton, Input, Stack } from "@uicore";
 import { useCallback, useState } from "react";
-import { Feedback, Rating } from "@modules/dataPilot/components/docGen/types";
+import { Feedback, Rating } from "./types";
+import { panelLogger } from "@modules/logger";
+import { executeRequestInSync } from "@modules/app/requestExecutor";
 
 interface Props {
-  onFeedbackSubmit: (data: Feedback) => void;
+  getFeedbackData: (data: Feedback) => void;
 }
 
 const schema = Yup.object({
   feedback_type: Yup.mixed<Rating>().oneOf(Object.values(Rating)).optional(),
-  feedback_message: Yup.string().required(),
+  feedback_message: Yup.string().optional(),
 }).required();
 
-const ResultFeedbackButtons = ({ onFeedbackSubmit }: Props): JSX.Element => {
+const ResultFeedbackButtons = ({ getFeedbackData }: Props): JSX.Element => {
   const [showForm, setShowForm] = useState(false);
 
   const { control, handleSubmit, setValue, watch } = useForm<Feedback>({
     resolver: yupResolver(schema),
   });
 
+  const onFeedbackSubmit = async (feedbackData: Feedback) => {
+    if (
+      feedbackData.feedback_type === Rating.Bad &&
+      !feedbackData.feedback_message
+    ) {
+      panelLogger.info("no feedback", feedbackData);
+      return;
+    }
+
+    const data = getFeedbackData(feedbackData);
+    panelLogger.info("feedback submitted", feedbackData, data);
+    await executeRequestInSync("sendFeedback", {
+      comment: feedbackData.feedback_message,
+      rating: feedbackData.feedback_type,
+      data,
+    });
+  };
   const watchRating = watch("feedback_type");
 
   const handleCancel = () => {
@@ -34,7 +53,12 @@ const ResultFeedbackButtons = ({ onFeedbackSubmit }: Props): JSX.Element => {
   };
 
   const handleLike = () => {
-    onFeedbackSubmit({ feedback_message: "", feedback_type: Rating.Good });
+    onFeedbackSubmit({
+      feedback_message: "",
+      feedback_type: Rating.Good,
+    }).catch((err) =>
+      panelLogger.error("error while submitting feedback", err),
+    );
   };
 
   const onFormRender = useCallback((node: HTMLDivElement | null) => {

@@ -18,6 +18,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { ValidateSql } from "./validateSql";
 import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
+import { SharedStateService } from "../services/sharedStateService";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -31,6 +32,7 @@ export class VSCodeCommands implements Disposable {
     private altimateScan: AltimateScan,
     private walkthroughCommands: WalkthroughCommands,
     private bigQueryCostEstimate: BigQueryCostEstimate,
+    private eventEmitterService: SharedStateService,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -111,7 +113,16 @@ export class VSCodeCommands implements Disposable {
         this.runModel.executeQueryOnActiveWindow(),
       ),
       commands.registerCommand("dbtPowerUser.summarizeQuery", () =>
-        this.runModel.getSummaryOnActiveWindow(),
+        this.eventEmitterService.fire({
+          command: "dbtPowerUser.summarizeQuery",
+          payload: {},
+        }),
+      ),
+      commands.registerCommand("dbtPowerUser.changeQuery", () =>
+        this.eventEmitterService.fire({
+          command: "dbtPowerUser.changeQuery",
+          payload: {},
+        }),
       ),
       commands.registerCommand(
         "dbtPowerUser.createModelBasedonSourceConfig",
@@ -193,6 +204,18 @@ export class VSCodeCommands implements Disposable {
           "@id:files.associations",
         );
       }),
+      commands.registerCommand("dbtPowerUser.openDatapilotWithQuery", () =>
+        this.eventEmitterService.fire({
+          command: "dbtPowerUser.openDatapilotWithQuery",
+          payload: {},
+        }),
+      ),
+      commands.registerCommand("dbtPowerUser.showHelpDatapilot", () =>
+        this.eventEmitterService.fire({
+          command: "dbtPowerUser.openHelpInDatapilot",
+          payload: {},
+        }),
+      ),
     );
   }
 

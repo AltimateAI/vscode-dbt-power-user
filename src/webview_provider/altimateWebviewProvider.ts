@@ -20,7 +20,7 @@ import {
   ManifestCacheChangedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import { AltimateRequest } from "../altimate";
-import { SharedStateService } from "../services/SharedStateService";
+import { SharedStateService } from "../services/sharedStateService";
 
 type UpdateConfigProps = {
   key: string;
@@ -66,7 +66,9 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     const t = this;
     this._disposables.push(
-      emitterService.eventEmitter.event((d) => t.onEvent(d)),
+      emitterService.eventEmitter.event((d) =>
+        t.onEvent(d as SharedStateEventEmitterProps),
+      ),
     );
   }
 
@@ -79,16 +81,25 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     });
   }
 
-  protected async onEvent(data: unknown) {}
+  protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
+    switch (command) {
+      case "stream:chunk":
+        this._panel!.webview.postMessage({
+          command: "response",
+          args: payload,
+        });
+        break;
+
+      default:
+        break;
+    }
+  }
 
   protected renderWebviewView(context: WebviewViewResolveContext) {
     const webview = this._panel!.webview!;
     this._panel!.webview.onDidReceiveMessage(this.handleCommand, this, []);
 
-    webview.html = this.getHtml(
-      webview,
-      this.dbtProjectContainer.extensionUri.fsPath,
-    );
+    webview.html = this.getHtml(webview, this.dbtProjectContainer.extensionUri);
   }
 
   // typegaurd to UpdateConfigProps
@@ -219,21 +230,33 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     };
   }
 
-  private getHtml(webview: Webview, extensionUri: string) {
+  private getHtml(webview: Webview, extensionUri: Uri) {
     const indexJs = webview.asWebviewUri(
       Uri.file(
-        path.join(extensionUri, "webview_panels", "dist", "assets", "main.js"),
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "main.js",
+        ),
       ),
     );
     const indexCss = webview.asWebviewUri(
       Uri.file(
-        path.join(extensionUri, "webview_panels", "dist", "assets", "main.css"),
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "main.css",
+        ),
       ),
     );
     const insightsCss = webview.asWebviewUri(
       Uri.file(
         path.join(
-          extensionUri,
+          extensionUri.fsPath,
           "webview_panels",
           "dist",
           "assets",
@@ -241,6 +264,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         ),
       ),
     );
+    const codiconsUri = webview.asWebviewUri(
+      Uri.joinPath(
+        extensionUri,
+        "webview_panels",
+        "dist",
+        "assets",
+        "codicons",
+        "codicon.css",
+      ),
+    );
+
     const nonce = getNonce();
     return `
         <!DOCTYPE html>
@@ -253,10 +287,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               and only allow scripts that have a specific nonce.
               Added unsafe-inline for css due to csp issue: https://github.com/JedWatson/react-select/issues/4631
               -->
-            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}';">
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}';">
             <title>VSCode DBT Power user extension</title>
             <link rel="stylesheet" type="text/css" href="${indexCss}">
             <link rel="stylesheet" type="text/css" href="${insightsCss}">
+            <link rel="stylesheet" type="text/css" href="${codiconsUri}">
           </head>
       
           <body>
