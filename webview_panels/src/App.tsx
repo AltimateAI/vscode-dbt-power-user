@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
-// import "@vscode/codicons/dist/codicon.css";
 import "@uicore/theme.scss";
 import { AppRoutes } from "./AppRoutes";
 import AppProvider from "./modules/app/AppProvider";
