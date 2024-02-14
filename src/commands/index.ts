@@ -18,6 +18,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { ValidateSql } from "./validateSql";
 import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -31,6 +32,7 @@ export class VSCodeCommands implements Disposable {
     private altimateScan: AltimateScan,
     private walkthroughCommands: WalkthroughCommands,
     private bigQueryCostEstimate: BigQueryCostEstimate,
+    private dbtTerminal: DBTTerminal,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -124,6 +126,26 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.buildCurrentModel", () =>
         this.runModel.buildModelOnActiveWindow(),
       ),
+      commands.registerCommand("dbtPowerUser.buildCurrentProject", () => {
+        if (!window.activeTextEditor) {
+          return;
+        }
+        const activeFileUri = window.activeTextEditor.document.uri;
+        if (!activeFileUri) {
+          this.dbtTerminal.log("buildCurrentProject without active file");
+          return;
+        }
+
+        const dbtProject =
+          this.dbtProjectContainer.findDBTProject(activeFileUri);
+        if (!dbtProject) {
+          this.dbtTerminal.log(
+            `buildCurrentProject unable to find dbtproject by active file: ${activeFileUri.path}`,
+          );
+          return;
+        }
+        dbtProject.buildProject();
+      }),
       commands.registerCommand("dbtPowerUser.buildChildrenModels", () =>
         this.runModel.buildModelOnActiveWindow(RunModelType.BUILD_CHILDREN),
       ),

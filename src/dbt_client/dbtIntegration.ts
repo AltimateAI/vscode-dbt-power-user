@@ -236,6 +236,7 @@ export interface DBTProjectIntegration extends Disposable {
   // dbt commands
   runModel(command: DBTCommand): Promise<void>;
   buildModel(command: DBTCommand): Promise<void>;
+  buildProject(command: DBTCommand): Promise<void>;
   runTest(command: DBTCommand): Promise<void>;
   runModelTest(command: DBTCommand): Promise<void>;
   compileModel(command: DBTCommand): Promise<void>;
@@ -388,6 +389,10 @@ export class DBTCommandFactory {
       ],
       true,
     );
+  }
+
+  createBuildProjectCommand(): DBTCommand {
+    return new DBTCommand("Building dbt project...", ["build"], true);
   }
 
   createTestModelCommand(testName: string): DBTCommand {

@@ -370,6 +370,12 @@ export class DBTCoreProjectIntegration
     );
   }
 
+  async buildProject(command: DBTCommand) {
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
+    );
+  }
+
   async runTest(command: DBTCommand) {
     this.addCommandToQueue(
       await this.addDeferParams(this.dbtCoreCommand(command)),

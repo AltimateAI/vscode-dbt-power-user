@@ -431,6 +431,14 @@
         }
       },
       {
+        "command": "dbtPowerUser.buildCurrentProject",
+        "title": "Build dbt project",
+        "icon": {
+          "light": "./media/images/build-model_light.svg",
+          "dark": "./media/images/build-model_dark.svg"
+        }
+      },
+      {
         "command": "dbtPowerUser.buildCurrentModel",
         "title": "Build dbt Model",
         "icon": {
@@ -567,6 +575,11 @@
         }
       ],
       "editor/title/run": [
+        {
+          "command": "dbtPowerUser.buildCurrentProject",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "group": "inline"
+        },
         {
           "command": "dbtPowerUser.buildCurrentModel",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
