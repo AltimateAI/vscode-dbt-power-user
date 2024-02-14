@@ -19,7 +19,7 @@ interface Props {
 }
 const Icon = ({
   icon,
-  className,
+  className = "",
   ...rest
 }: Props & HTMLAttributes<HTMLElement>) => (
   <i className={`${className} codicon codicon-${icon}`} {...rest} />

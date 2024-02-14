@@ -76,6 +76,10 @@ const QueryAnalysisResultComponent = ({
     e.preventDefault();
     panelLogger.info("submitting user request", userRequest, history);
 
+    if (!userRequest) {
+      return;
+    }
+
     executeQueryAnalysis({
       command,
       onNewGeneration,
@@ -152,7 +156,7 @@ const QueryAnalysisResultComponent = ({
               type="submit"
               disabled={isLoading || isMaxFollowupReached}
             >
-              <AskIcon style={{ color: "var(--action--disable)" }} />
+              <AskIcon />
             </IconButton>
           </form>
         </Stack>
