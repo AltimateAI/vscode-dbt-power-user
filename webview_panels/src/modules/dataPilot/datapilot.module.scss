@@ -116,12 +116,15 @@ body {
       text-decoration: none;
       svg{
         margin-bottom: var(--spacing-2xl);
+        width: 50%;
         path{
           fill: var(--text-color--title);
         }
       }
+      
       :global .codicon{
         font-size: 80px;
+        margin-bottom: var(--spacing-2xl);
       }
       
       &:hover {

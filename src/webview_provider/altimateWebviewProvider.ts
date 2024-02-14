@@ -226,16 +226,6 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             "assets",
           ),
         ),
-        Uri.file(
-          path.join(
-            this.dbtProjectContainer.extensionUri.fsPath,
-            "webview_panels",
-            "node_modules",
-            "@vscode",
-            "codicons",
-            "dist",
-          ),
-        ),
       ],
     };
   }
@@ -278,10 +268,9 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
       Uri.joinPath(
         extensionUri,
         "webview_panels",
-        "node_modules",
-        "@vscode",
-        "codicons",
         "dist",
+        "assets",
+        "codicons",
         "codicon.css",
       ),
     );
