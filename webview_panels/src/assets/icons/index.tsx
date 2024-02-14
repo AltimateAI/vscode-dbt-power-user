@@ -17,8 +17,12 @@ export { default as SlackIcon } from "./slack.svg?react";
 interface Props {
   icon: string;
 }
-const Icon = ({ icon }: Props & HTMLAttributes<HTMLElement>) => (
-  <i className={`codicon codicon-${icon}`} />
+const Icon = ({
+  icon,
+  className,
+  ...rest
+}: Props & HTMLAttributes<HTMLElement>) => (
+  <i className={`${className} codicon codicon-${icon}`} {...rest} />
 );
 
 export const GlobeIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
