@@ -42,9 +42,10 @@ export class QueryAnalysisService {
     return { query: editor.document.getText(), fileName };
   }
 
-  public async executeQueryExplain(
+  public async executeQueryAnalysis(
     eventMap: Map<string, ManifestCacheProjectAddedEvent>,
     params: Partial<QueryAnalysisRequest>,
+    job_type: QueryAnalysisType,
     syncRequestId?: string,
   ) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
@@ -81,7 +82,7 @@ export class QueryAnalysisService {
       syncRequestId,
       request: {
         session_id,
-        job_type: QueryAnalysisType.EXPLAIN,
+        job_type,
         model: {
           model_name: documentation.name,
           adapter,

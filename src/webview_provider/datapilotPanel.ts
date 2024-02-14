@@ -15,6 +15,7 @@ import { QueryAnalysisService } from "../services/queryAnalysisService";
 enum DatapilotEvents {
   QUERY_EXPLAIN_ONLOAD = "queryAnalysis:load:explain",
   QUERY_ONLOAD = "queryAnalysis:load",
+  QUERY_CHANGE_ONLOAD = "queryAnalysis:load:change",
 }
 
 @provideSingleton(DataPilotPanel)
@@ -114,9 +115,38 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         break;
       case "queryAnalysis:explain":
         try {
-          const response = await this.queryAnalysisService.executeQueryExplain(
+          const response = await this.queryAnalysisService.executeQueryAnalysis(
             this.eventMap,
             params,
+            QueryAnalysisType.EXPLAIN,
+            syncRequestId,
+          );
+
+          this._panel!.webview.postMessage({
+            command: "response",
+            args: {
+              syncRequestId,
+              body: { response },
+              status: true,
+            },
+          });
+        } catch (err) {
+          this._panel!.webview.postMessage({
+            command: "response",
+            args: {
+              syncRequestId,
+              error: (err as Error).message,
+              status: false,
+            },
+          });
+        }
+        break;
+      case "queryAnalysis:modify":
+        try {
+          const response = await this.queryAnalysisService.executeQueryAnalysis(
+            this.eventMap,
+            params,
+            QueryAnalysisType.MODIFY,
             syncRequestId,
           );
 
@@ -188,6 +218,9 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           DatapilotEvents.QUERY_EXPLAIN_ONLOAD,
           payload,
         );
+        break;
+      case "dbtPowerUser.changeQuery":
+        this.handleDatapilotEvent(DatapilotEvents.QUERY_CHANGE_ONLOAD, payload);
         break;
       case "dbtPowerUser.openDatapilotWithQuery":
         this.handleDatapilotEvent(DatapilotEvents.QUERY_ONLOAD, payload);

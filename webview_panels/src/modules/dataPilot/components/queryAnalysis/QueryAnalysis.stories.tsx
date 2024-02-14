@@ -11,6 +11,7 @@ import { RequestState } from "@modules/dataPilot/types";
 import { userEvent, within } from "@storybook/testing-library";
 import { faker } from "@faker-js/faker";
 import { panelLogger } from "@modules/logger";
+import { QueryAnalysisCommands } from "./commands";
 
 const queryAnalysisLoadingState = DatapilotQueryAnalysisFactory.build({
   state: RequestState.LOADING,
@@ -105,7 +106,7 @@ export const ExplainFlow = {
       func: (request: Record<string, unknown>): unknown => {
         if (
           request.command === "regenerate" ||
-          request.command === "queryAnalysis:explain"
+          request.command === QueryAnalysisCommands.explain
         ) {
           return DatapilotQueryExplainResultFactory.build({
             actions: [

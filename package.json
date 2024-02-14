@@ -282,6 +282,11 @@
         "category": "dbt Power User"
       },
       {
+        "command": "dbtPowerUser.changeQuery",
+        "title": "Change",
+        "category": "dbt Power User"
+      },
+      {
         "command": "dbtPowerUser.sqlToModel",
         "title": "Convert to dbt Model (Preview feature)",
         "shortTitle": "Convert to dbt Model",
@@ -459,6 +464,11 @@
         "key": "shift+Ctrl+E",
         "mac": "shift+Cmd+E",
         "command": "dbtPowerUser.summarizeQuery"
+      },
+      {
+        "key": "shift+Ctrl+C",
+        "mac": "shift+Cmd+C",
+        "command": "dbtPowerUser.changeQuery"
       }
     ],
     "menus": {
@@ -470,6 +480,10 @@
         {
           "command": "dbtPowerUser.summarizeQuery",
           "group": "datapilot@2"
+        },
+        {
+          "command": "dbtPowerUser.changeQuery",
+          "group": "datapilot@3"
         }
       ],
       "editor/title": [

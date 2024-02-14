@@ -45,6 +45,7 @@ const DataPilotProvider = ({
   const handleQueryAnalysisOnload = (
     request: Partial<DatapilotQueryAnalysisChat>,
     triggerOnLoad: boolean,
+    analysisType?: QueryAnalysisType,
   ) => {
     panelLogger.info("query explain onload", request);
     const data = {
@@ -54,7 +55,7 @@ const DataPilotProvider = ({
       query: request.query,
       fileName: request.fileName,
       //If analysis type is undefined, dont trigger api call
-      analysisType: triggerOnLoad ? QueryAnalysisType.EXPLAIN : undefined,
+      analysisType: triggerOnLoad ? analysisType : undefined,
     } as DatapilotQueryAnalysisChat;
 
     dispatch(upsertItem(data));
@@ -73,7 +74,10 @@ const DataPilotProvider = ({
           );
           break;
         case "queryAnalysis:load:explain":
-          handleQueryAnalysisOnload(args, true);
+          handleQueryAnalysisOnload(args, true, QueryAnalysisType.EXPLAIN);
+          break;
+        case "queryAnalysis:load:change":
+          handleQueryAnalysisOnload(args, true, QueryAnalysisType.MODIFY);
           break;
         case "queryAnalysis:load":
           handleQueryAnalysisOnload(args, false);

@@ -118,6 +118,12 @@ export class VSCodeCommands implements Disposable {
           payload: {},
         }),
       ),
+      commands.registerCommand("dbtPowerUser.changeQuery", () =>
+        this.eventEmitterService.fire({
+          command: "dbtPowerUser.changeQuery",
+          payload: {},
+        }),
+      ),
       commands.registerCommand(
         "dbtPowerUser.createModelBasedonSourceConfig",
         (params) => {

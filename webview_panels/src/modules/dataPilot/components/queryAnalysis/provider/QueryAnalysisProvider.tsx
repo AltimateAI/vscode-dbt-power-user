@@ -11,6 +11,7 @@ import queryAnalysisSlice, { initialState } from "./queryAnalysisSlice";
 import {
   DatapilotQueryAnalysisChat,
   QueryAnalysisResult,
+  QueryAnalysisType,
   QueryExplainUpdate,
 } from "../types";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
@@ -18,6 +19,7 @@ import useQueryAnalysisAction from "../useQueryAnalysisAction";
 import { panelLogger } from "@modules/logger";
 import useDataPilotContext from "@modules/dataPilot/useDataPilotContext";
 import { upsertItem } from "@modules/dataPilot/dataPilotSlice";
+import { QueryAnalysisCommands } from "../commands";
 
 export const QueryAnalysisContext = createContext<QueryAnalysisContextProps>({
   state: initialState,
@@ -75,11 +77,23 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
     datapilotDispatch(upsertItem({ ...chat, state: RequestState.LOADING }));
     executeQueryAnalysis({
       sessionId: chat.id,
-      command: "queryAnalysis:explain",
+      command: QueryAnalysisCommands.explain,
       onNewGeneration,
     }).catch((err) =>
       panelLogger.error("error while executing analysis onload", err),
     );
+  };
+
+  const handleQueryModifyOnload = () => {
+    if (!chat) {
+      return;
+    }
+    panelLogger.info("handleQueryModifyOnload");
+    datapilotDispatch(upsertItem({ ...chat, state: RequestState.LOADING }));
+    onNewGeneration({
+      session_id: crypto.randomUUID(),
+      state: RequestState.COMPLETED,
+    });
   };
 
   // Trigger explain query api if analysis type is set in chat request
@@ -94,7 +108,19 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
     }
 
     // Api request not sent for this chat yet
-    handleQueryExplainOnload();
+    switch (chat.analysisType) {
+      case QueryAnalysisType.EXPLAIN:
+        handleQueryExplainOnload();
+
+        break;
+      case QueryAnalysisType.MODIFY:
+        handleQueryModifyOnload();
+
+        break;
+
+      default:
+        break;
+    }
   }, [chat?.state, chat?.requestType, chat?.analysisType]);
 
   const values = useMemo(

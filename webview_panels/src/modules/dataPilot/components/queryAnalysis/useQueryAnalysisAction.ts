@@ -5,8 +5,13 @@ import {
 import { DataPilotChatAction, RequestState } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
 import { useState } from "react";
-import { QueryAnalysisHistory, QueryExplainUpdate } from "./types";
+import {
+  QueryAnalysisHistory,
+  QueryAnalysisType,
+  QueryExplainUpdate,
+} from "./types";
 import useQueryAnalysisContext from "./provider/useQueryAnalysisContext";
+import { QueryAnalysisCommands } from "./commands";
 
 interface QueryAnalysisRequest {
   command: DataPilotChatAction["command"];
@@ -22,6 +27,9 @@ const useQueryAnalysisAction = (): {
   const { chat, isMaxFollowupReached } = useQueryAnalysisContext();
   const [isLoading, setIsLoading] = useState(false);
 
+  // No need for followup questions for query modify
+  const skipFollowupQuestions = chat?.analysisType === QueryAnalysisType.MODIFY;
+
   const onProgress = (
     id: string,
     chunk: string,
@@ -30,6 +38,17 @@ const useQueryAnalysisAction = (): {
     cb({ session_id: id, response: chunk });
   };
 
+  const getRequestText = (command: string) => {
+    switch (command) {
+      case QueryAnalysisCommands.modify:
+        return "Query change";
+
+      case QueryAnalysisCommands.explain:
+        return "Query explanation";
+      default:
+        break;
+    }
+  };
   const executeQueryAnalysis = async ({
     command,
     onNewGeneration,
@@ -47,7 +66,7 @@ const useQueryAnalysisAction = (): {
 
       onNewGeneration({
         session_id: id,
-        user_prompt: user_request ?? "Query Explanation",
+        user_prompt: user_request ?? getRequestText(command),
         datapilot_title: "Datapilot Response",
         state: RequestState.LOADING,
       });
@@ -60,10 +79,12 @@ const useQueryAnalysisAction = (): {
             onProgress(id, chunk, onNewGeneration);
           },
         ) as Promise<{ response: string }>,
-        executeRequestInSync("queryanalysis:followup", {
-          user_request,
-          query: chat?.query,
-        }) as Promise<string[] | null>,
+        skipFollowupQuestions
+          ? undefined
+          : (executeRequestInSync("queryanalysis:followup", {
+              user_request,
+              query: chat?.query,
+            }) as Promise<string[] | null>),
       ]);
 
       panelLogger.info(
@@ -73,7 +94,7 @@ const useQueryAnalysisAction = (): {
       );
       onNewGeneration({
         session_id: id,
-        response: result.response,
+        response: result?.response,
         state: RequestState.COMPLETED,
         actions: Array.isArray(followupQuestions)
           ? followupQuestions.map((question) => ({
