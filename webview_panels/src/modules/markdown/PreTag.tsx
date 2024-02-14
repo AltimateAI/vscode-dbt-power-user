@@ -2,6 +2,7 @@ import { DetailedHTMLProps, HTMLAttributes, useState } from "react";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import classes from "./markdown.module.scss";
 import { IconButton } from "@uicore";
+import { CheckedIcon, FilesIcon } from "@assets/icons";
 
 const PreTag = ({
   children,
@@ -30,11 +31,7 @@ const PreTag = ({
               }`}
               onClick={() => setCopied()}
             >
-              <i
-                className={`codicon ${
-                  !isCopied ? "codicon-files" : "codicon-pass-filled"
-                }`}
-              />
+              {!isCopied ? <FilesIcon /> : <CheckedIcon />}
             </IconButton>
           </CopyToClipboard>
         </div>
