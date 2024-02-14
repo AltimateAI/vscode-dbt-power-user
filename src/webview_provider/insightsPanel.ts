@@ -71,7 +71,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       throw new Error("Invalid current project root");
     }
 
-    return getProjectRelativePath(currentProject.projectRoot);
+    return currentProject.projectRoot.fsPath; // getProjectRelativePath(currentProject.projectRoot);
   }
 
   private async getCurrentProject() {
@@ -105,7 +105,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       const currentConfig: Record<string, DeferConfig> = await workspace
         .getConfiguration("dbt")
         .get("deferConfigPerProject", {});
-      const root = getProjectRelativePath(Uri.parse(params.projectRoot));
+      const root = params.projectRoot; // getProjectRelativePath(Uri.parse(params.projectRoot));
 
       const newConfig = {
         ...currentConfig,
@@ -313,7 +313,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       case "getDeferToProductionConfig":
         const { projectRoot } = params as { projectRoot?: string };
         const root = projectRoot
-          ? getProjectRelativePath(Uri.parse(projectRoot))
+          ? projectRoot // getProjectRelativePath(Uri.parse(projectRoot))
           : await this.getCurrentProjectRoot();
         const projectPath =
           projectRoot || (await this.getCurrentProject())?.projectRoot.fsPath;

@@ -417,8 +417,7 @@ export class DBTCoreProjectIntegration
     const currentConfig: Record<string, DeferConfig> = await workspace
       .getConfiguration("dbt")
       .get("deferConfigPerProject", {});
-    const deferConfigInProject =
-      currentConfig[getProjectRelativePath(projectRoot)];
+    const deferConfigInProject = currentConfig[projectRoot.fsPath];
     if (!deferConfigInProject) {
       return [];
     }

@@ -79,7 +79,7 @@ export class DeferToProductionStatusBar implements Disposable {
       throw new Error("Invalid current project root");
     }
 
-    return getProjectRelativePath(currentProject.projectRoot);
+    return currentProject.projectRoot.fsPath; // getProjectRelativePath(currentProject.projectRoot);
   }
 
   private async updateStatusBar() {
