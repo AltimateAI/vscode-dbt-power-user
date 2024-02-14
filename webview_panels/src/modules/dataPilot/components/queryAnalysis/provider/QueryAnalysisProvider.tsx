@@ -19,6 +19,7 @@ import useQueryAnalysisAction from "../useQueryAnalysisAction";
 import { panelLogger } from "@modules/logger";
 import useDataPilotContext from "@modules/dataPilot/useDataPilotContext";
 import { upsertItem } from "@modules/dataPilot/dataPilotSlice";
+import { QueryAnalysisCommands } from "../commands";
 
 export const QueryAnalysisContext = createContext<QueryAnalysisContextProps>({
   state: initialState,
@@ -76,7 +77,7 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
     datapilotDispatch(upsertItem({ ...chat, state: RequestState.LOADING }));
     executeQueryAnalysis({
       sessionId: chat.id,
-      command: "queryAnalysis:explain",
+      command: QueryAnalysisCommands.explain,
       onNewGeneration,
     }).catch((err) =>
       panelLogger.error("error while executing analysis onload", err),
@@ -89,14 +90,10 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
     }
     panelLogger.info("handleQueryModifyOnload");
     datapilotDispatch(upsertItem({ ...chat, state: RequestState.LOADING }));
-    executeQueryAnalysis({
-      sessionId: chat.id,
-      command: "queryAnalysis:change",
-      onNewGeneration,
-      skipQueryAnalysis: true,
-    }).catch((err) =>
-      panelLogger.error("error while executing query change onload", err),
-    );
+    onNewGeneration({
+      session_id: crypto.randomUUID(),
+      state: RequestState.COMPLETED,
+    });
   };
 
   // Trigger explain query api if analysis type is set in chat request

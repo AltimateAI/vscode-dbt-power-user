@@ -283,7 +283,8 @@
       },
       {
         "command": "dbtPowerUser.changeQuery",
-        "title": "Change"
+        "title": "Change",
+        "category": "dbt Power User"
       },
       {
         "command": "dbtPowerUser.sqlToModel",

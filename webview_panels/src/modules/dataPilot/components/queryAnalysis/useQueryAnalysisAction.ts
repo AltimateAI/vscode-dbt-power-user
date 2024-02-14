@@ -5,8 +5,13 @@ import {
 import { DataPilotChatAction, RequestState } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
 import { useState } from "react";
-import { QueryAnalysisHistory, QueryExplainUpdate } from "./types";
+import {
+  QueryAnalysisHistory,
+  QueryAnalysisType,
+  QueryExplainUpdate,
+} from "./types";
 import useQueryAnalysisContext from "./provider/useQueryAnalysisContext";
+import { QueryAnalysisCommands } from "./commands";
 
 interface QueryAnalysisRequest {
   command: DataPilotChatAction["command"];
@@ -14,7 +19,6 @@ interface QueryAnalysisRequest {
   sessionId?: string;
   user_request?: string;
   history?: QueryAnalysisHistory[];
-  skipQueryAnalysis?: boolean;
 }
 const useQueryAnalysisAction = (): {
   isLoading: boolean;
@@ -22,6 +26,9 @@ const useQueryAnalysisAction = (): {
 } => {
   const { chat, isMaxFollowupReached } = useQueryAnalysisContext();
   const [isLoading, setIsLoading] = useState(false);
+
+  // No need for followup questions for query modify
+  const skipFollowupQuestions = chat?.analysisType === QueryAnalysisType.MODIFY;
 
   const onProgress = (
     id: string,
@@ -33,10 +40,10 @@ const useQueryAnalysisAction = (): {
 
   const getRequestText = (command: string) => {
     switch (command) {
-      case "queryAnalysis:change":
+      case QueryAnalysisCommands.modify:
         return "Query change";
 
-      case "queryAnalysis:explain":
+      case QueryAnalysisCommands.explain:
         return "Query explanation";
       default:
         break;
@@ -48,7 +55,6 @@ const useQueryAnalysisAction = (): {
     history,
     sessionId,
     user_request,
-    skipQueryAnalysis,
   }: QueryAnalysisRequest) => {
     if (isMaxFollowupReached) {
       return;
@@ -65,20 +71,20 @@ const useQueryAnalysisAction = (): {
         state: RequestState.LOADING,
       });
       const [result, followupQuestions] = await Promise.all([
-        skipQueryAnalysis
+        executeStreamRequest(
+          command,
+          // use the original chat session id to track the whole conversation
+          { session_id: sessionId, history, user_request },
+          (chunk: string) => {
+            onProgress(id, chunk, onNewGeneration);
+          },
+        ) as Promise<{ response: string }>,
+        skipFollowupQuestions
           ? undefined
-          : (executeStreamRequest(
-              command,
-              // use the original chat session id to track the whole conversation
-              { session_id: sessionId, history, user_request },
-              (chunk: string) => {
-                onProgress(id, chunk, onNewGeneration);
-              },
-            ) as Promise<{ response: string }>),
-        executeRequestInSync("queryanalysis:followup", {
-          user_request,
-          query: chat?.query,
-        }) as Promise<string[] | null>,
+          : (executeRequestInSync("queryanalysis:followup", {
+              user_request,
+              query: chat?.query,
+            }) as Promise<string[] | null>),
       ]);
 
       panelLogger.info(

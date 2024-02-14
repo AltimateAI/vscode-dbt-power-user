@@ -6,15 +6,16 @@ import useQueryAnalysisContext, {
 } from "./provider/useQueryAnalysisContext";
 import DatapilotHeader from "../common/Header";
 import { DataPilotChatAction } from "@modules/dataPilot/types";
+import { QueryAnalysisCommands } from "./commands";
 
 const DefaultActions = [
   {
     title: "Query explanation",
-    command: "queryAnalysis:explain",
+    command: QueryAnalysisCommands.explain,
   },
   {
     title: "Query change",
-    command: "queryAnalysis:modify",
+    command: QueryAnalysisCommands.modify,
   },
 ] as DataPilotChatAction[];
 

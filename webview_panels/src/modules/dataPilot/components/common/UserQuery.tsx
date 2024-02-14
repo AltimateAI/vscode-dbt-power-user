@@ -5,7 +5,10 @@ import classes from "../../datapilot.module.scss";
 interface Props {
   query: string;
 }
-const UserQuery = ({ query }: Props): JSX.Element => {
+const UserQuery = ({ query }: Props): JSX.Element | null => {
+  if (!query) {
+    return null;
+  }
   return (
     <Card className={classes.promptCard}>
       <CardBody>
