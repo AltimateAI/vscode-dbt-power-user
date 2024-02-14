@@ -92,9 +92,7 @@ const NewGenerationResults = ({
                 <AltimateIcon /> {result.datapilot_title}
               </CardTitle>
               <CardBody>
-                <Stack data-testid="generated-description">
-                  {result.description}
-                </Stack>
+                {result.description}
                 <Stack className={classes.actionButtons}>
                   <Stack>
                     <Button
