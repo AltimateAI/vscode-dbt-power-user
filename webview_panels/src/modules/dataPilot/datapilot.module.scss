@@ -46,9 +46,9 @@ body {
   }
 
   .action-button{
-    white-space: nowrap;
     font-family: "SF Mono",Monaco,Menlo,Courier,monospace;
     font-size: 10px;
+    text-align: left;
 
     &.default{
       font-size: 12px;
