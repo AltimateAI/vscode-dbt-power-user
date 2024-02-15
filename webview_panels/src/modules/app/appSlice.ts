@@ -1,15 +1,15 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { AppStateProps } from "./types";
+import { AppStateProps, Themes } from "./types";
 
 export const initialState = {
-  theme: "",
+  theme: Themes.Dark,
 } as AppStateProps;
 
 const appSlice = createSlice({
   name: "appState",
   initialState,
   reducers: {
-    updateTheme: (state, action: PayloadAction<string>) => {
+    updateTheme: (state, action: PayloadAction<Themes>) => {
       state.theme = action.payload;
     },
   },

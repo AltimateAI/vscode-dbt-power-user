@@ -1,4 +1,4 @@
-import { DataPilotChatAction } from "@modules/dataPilot/types";
+import { DataPilotChatAction, RequestState } from "@modules/dataPilot/types";
 import { Button } from "@uicore";
 import useQueryAnalysisAction from "./useQueryAnalysisAction";
 import useQueryAnalysisContext from "./provider/useQueryAnalysisContext";
@@ -7,6 +7,7 @@ import useDataPilotContext from "@modules/dataPilot/useDataPilotContext";
 import { upsertItem } from "@modules/dataPilot/dataPilotSlice";
 import { DatapilotQueryAnalysisChat, QueryAnalysisType } from "./types";
 import { QueryAnalysisCommands } from "./commands";
+import classes from "../../datapilot.module.scss";
 
 interface Props {
   action: DataPilotChatAction;
@@ -14,9 +15,11 @@ interface Props {
 
 const QueryAnalysisActionButton = ({ action }: Props): JSX.Element => {
   const { executeQueryAnalysis, isLoading } = useQueryAnalysisAction();
-  const { chat, onNewGeneration, isMaxFollowupReached } =
+  const { chat, onNewGeneration, isMaxFollowupReached, results } =
     useQueryAnalysisContext();
   const { dispatch } = useDataPilotContext();
+
+  const isDefaultButton = results.length === 0;
 
   const getAnalysisType = () => {
     switch (action.command) {
@@ -30,10 +33,15 @@ const QueryAnalysisActionButton = ({ action }: Props): JSX.Element => {
   };
 
   const handleClick = () => {
+    // If analysis type is not set for chat yet, set the current analysis type and state as completed to avoid multiple requests
     if (!chat?.analysisType) {
       const analysisType = getAnalysisType();
       dispatch(
-        upsertItem({ ...chat, analysisType } as DatapilotQueryAnalysisChat),
+        upsertItem({
+          ...chat,
+          analysisType,
+          state: RequestState.COMPLETED,
+        } as DatapilotQueryAnalysisChat),
       );
     }
     executeQueryAnalysis({
@@ -52,7 +60,9 @@ const QueryAnalysisActionButton = ({ action }: Props): JSX.Element => {
         key={action.title?.toString()}
         onClick={handleClick}
         disabled={isLoading || isMaxFollowupReached}
-        className="text-nowrap"
+        className={`${classes.actionButton} ${
+          isDefaultButton ? classes.default : ""
+        }`}
       >
         {action.title}
       </Button>

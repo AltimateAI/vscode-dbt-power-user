@@ -45,6 +45,17 @@ body {
     }
   }
 
+  .action-button{
+    white-space: nowrap;
+    font-family: "SF Mono",Monaco,Menlo,Courier,monospace;
+    font-size: 10px;
+
+    &.default{
+      font-size: 12px;
+      font-family: var(--bs-body-font-family);
+    }
+  }
+
   .prompt-card {
     border-radius: 8px;
     border: 1px solid var(--stroke--disable);
