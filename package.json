@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.33.1",
+  "version": "0.33.2",
   "engines": {
     "vscode": "^1.81.0"
   },

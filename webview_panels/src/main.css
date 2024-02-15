@@ -104,5 +104,5 @@ strong {
 
 .codicon {
   vertical-align: sub;
-  color: var(--text-color--title);
+  color: inherit;
 }

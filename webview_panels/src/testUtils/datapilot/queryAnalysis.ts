@@ -10,7 +10,13 @@ import {
 export const DatapilotQueryAnalysisFactory =
   Sync.makeFactory<DatapilotQueryAnalysisChat>({
     id: each(() => faker.string.uuid()),
-    query: faker.lorem.sentence(),
+    query: `
+    /*
+      some comments here
+    */
+    select * from users 
+    where provider='google' and name='john'
+    group by city`,
     requestType: RequestTypes.QUERY_ANALYSIS,
     state: RequestState.LOADING,
     actions: [],

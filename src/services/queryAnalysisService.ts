@@ -107,6 +107,13 @@ export class QueryAnalysisService {
     const adapter =
       this.docGenService.getProject()?.getAdapterType() || "unknown";
     const documentation = await this.docGenService.getDocumentation(eventMap);
+    const dbtProject = this.docGenService.getProject();
+
+    if (!dbtProject) {
+      console.error("Invalid dbt project");
+      throw new Error("Invalid dbt project");
+    }
+
     if (!documentation) {
       console.error("Unable to find documentation for the model");
       throw new Error("Invalid model");
@@ -117,7 +124,7 @@ export class QueryAnalysisService {
         model: {
           model_name: documentation.name,
           adapter,
-          compiled_sql: query,
+          compiled_sql: await dbtProject.compileQuery(query),
           columns: documentation.columns.map((c) => ({
             column_name: c.name,
             data_type: c.type,
