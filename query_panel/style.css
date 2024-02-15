@@ -68,15 +68,13 @@ button {
   margin-left: 35px;
 }
 
-#spinner {
-  display: block;
-  min-width: 100px;
-  width: 100px;
-  height: 100px;
-  margin-top: 25px;
-  justify-self: center;
-  margin-left: auto;
-  margin-right: auto;
+#loading_container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
 }
 
 #panel-manager {
