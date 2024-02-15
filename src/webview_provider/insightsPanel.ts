@@ -1,4 +1,12 @@
-import { commands, env, TextEditor, Uri, window, workspace } from "vscode";
+import {
+  commands,
+  ConfigurationTarget,
+  env,
+  TextEditor,
+  Uri,
+  window,
+  workspace,
+} from "vscode";
 import { getProjectRelativePath, provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { DBTProject } from "../manifest/dbtProject";
@@ -9,7 +17,7 @@ import {
   UpdateConfigProps,
 } from "./altimateWebviewProvider";
 import { AltimateRequest } from "../altimate";
-import { SharedStateService } from "../services/SharedStateService";
+import { SharedStateService } from "../services/sharedStateService";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];
@@ -71,7 +79,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       throw new Error("Invalid current project root");
     }
 
-    return currentProject.projectRoot.fsPath; // getProjectRelativePath(currentProject.projectRoot);
+    return getProjectRelativePath(currentProject.projectRoot);
   }
 
   private async getCurrentProject() {
@@ -101,11 +109,17 @@ export class InsightsPanel extends AltimateWebviewProvider {
       }
 
       const updateConfigs = params.config;
-
+      const currentDocument = window.activeTextEditor?.document;
+      const targetFolder = currentDocument?.uri
+        ? workspace.getWorkspaceFolder(currentDocument?.uri)
+        : null;
+      const target = workspace.workspaceFolders
+        ? ConfigurationTarget.WorkspaceFolder
+        : ConfigurationTarget.Global;
       const currentConfig: Record<string, DeferConfig> = await workspace
-        .getConfiguration("dbt")
+        .getConfiguration("dbt", targetFolder)
         .get("deferConfigPerProject", {});
-      const root = params.projectRoot; // getProjectRelativePath(Uri.parse(params.projectRoot));
+      const root = getProjectRelativePath(Uri.parse(params.projectRoot));
 
       const newConfig = {
         ...currentConfig,
@@ -119,8 +133,8 @@ export class InsightsPanel extends AltimateWebviewProvider {
       };
 
       await workspace
-        .getConfiguration("dbt")
-        .update("deferConfigPerProject", newConfig);
+        .getConfiguration("dbt", targetFolder)
+        .update("deferConfigPerProject", newConfig, target);
 
       if (syncRequestId) {
         this._panel!.webview.postMessage({
@@ -311,14 +325,15 @@ export class InsightsPanel extends AltimateWebviewProvider {
         commands.executeCommand("dbtPowerUser.clearAltimateScanResults", {});
         break;
       case "getDeferToProductionConfig":
+        const currentDocument = window.activeTextEditor?.document;
         const { projectRoot } = params as { projectRoot?: string };
         const root = projectRoot
-          ? projectRoot // getProjectRelativePath(Uri.parse(projectRoot))
+          ? getProjectRelativePath(Uri.parse(projectRoot))
           : await this.getCurrentProjectRoot();
         const projectPath =
           projectRoot || (await this.getCurrentProject())?.projectRoot.fsPath;
         const currentConfig: Record<string, DeferConfig> = await workspace
-          .getConfiguration("dbt")
+          .getConfiguration("dbt", currentDocument?.uri)
           .get("deferConfigPerProject", {});
 
         this._panel!.webview.postMessage({

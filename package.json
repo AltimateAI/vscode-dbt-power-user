@@ -164,6 +164,7 @@
           "dbt.deferConfigPerProject": {
             "type": "object",
             "description": "Run subset of models without building their parent models",
+            "scope": "resource",
             "patternProperties": {
               ".*": {
                 "type": "object",
