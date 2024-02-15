@@ -453,7 +453,6 @@
         "icon": "$(play)"
       },
       {
-      {
         "command": "dbtPowerUser.buildCurrentProject",
         "title": "Build dbt project",
         "icon": {
