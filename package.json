@@ -461,11 +461,6 @@
         "command": "dbtPowerUser.openDatapilotWithQuery"
       },
       {
-        "key": "shift+Ctrl+E",
-        "mac": "shift+Cmd+E",
-        "command": "dbtPowerUser.summarizeQuery"
-      },
-      {
         "key": "shift+Ctrl+C",
         "mac": "shift+Cmd+C",
         "command": "dbtPowerUser.changeQuery"
