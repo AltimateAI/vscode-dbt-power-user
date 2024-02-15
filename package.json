@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.33.2",
+  "version": "0.33.3",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -454,16 +454,6 @@
         "key": "Ctrl+'",
         "mac": "Cmd+'",
         "command": "dbtPowerUser.sqlPreview"
-      },
-      {
-        "key": "shift+Ctrl+A",
-        "mac": "shift+Cmd+A",
-        "command": "dbtPowerUser.openDatapilotWithQuery"
-      },
-      {
-        "key": "shift+Ctrl+C",
-        "mac": "shift+Cmd+C",
-        "command": "dbtPowerUser.changeQuery"
       }
     ],
     "menus": {
