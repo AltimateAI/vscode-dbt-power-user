@@ -8,6 +8,7 @@ html {
   padding: 16px;
   border-radius: 8px;
   background: var(--background--02);
+  border-color: var(--stroke--disable);
 
   & .card-title {
     font-size: 12px;
@@ -71,6 +72,10 @@ html {
     background-color: var(--background--02);
     color: var(--text-color--title);
     box-shadow: none;
+  }
+
+  &::placeholder{
+    color: var(--text-color--caption);
   }
 }
 

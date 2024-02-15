@@ -93,3 +93,28 @@ classDiagram
   - [requestExecutor](./src/modules/app/requestExecutor.ts) - handles sending messages to providers
     - `executeRequestInSync` can be used for getting response back from provider for an action
     - `executeRequestInAsync` can be used for just sending message to provider without need for response
+
+### Storybook
+
+- vscode api integration is added using manual mock as in [here](./.storybook/__mocks__/vscode.ts).
+- Sample code (use `vscode` field in `parameters` to pass your mock data):
+  ```
+  export const QueryAnalysisDefaultView = {
+  render: (): JSX.Element => {
+    return <DataPilotPanel />;
+  },
+  parameters: {
+    vscode: {
+      data: { key: "value" },
+      timer: 3000,
+    },
+  },
+  }
+  ```
+
+### Streaming api response
+
+- use `executeStreamRequest` defined in [requestExecutor](./src/modules/app/requestExecutor.ts) to send an api request (which could send streaming response) through webview provider and add `progress` callback
+- In webview providers (ex: [datapilotPanel](../src/webview_provider/datapilotPanel.ts)), handle the incoming command and trigger backend api request using `fetchAsStream` defined in [StreamingService](../src/services/streamingService.ts)
+- `StreamingService` will take care of sending chunks to webview_panels which will be listened by `response` message event and `progress` will be called with chunks
+- Once the stream is completed, `executeStreamRequest` will resolve to the response

@@ -13,7 +13,7 @@ import DocGeneratorInput from "./DocGeneratorInput";
 import useAppContext from "@modules/app/useAppContext";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
-import { EntityType } from "@modules/dataPilot/components/types";
+import { EntityType } from "@modules/dataPilot/components/docGen/types";
 
 interface Props {
   column: DBTDocumentationColumn;

@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useContext } from "react";
+import React, { FunctionComponent, useContext } from "react";
 import {
   BaseEdge,
   EdgeProps,
@@ -11,27 +11,26 @@ import styles from "./styles.module.scss";
 import classNames from "classnames";
 import {
   bfsTraversal,
+  calculateMinLevel,
+  calculateNodeCount,
   expandTableLineage,
   highlightTableConnections,
   layoutElementsOnCanvas,
-  resetTableHighlights,
 } from "./graph";
 import { LineageContext } from "./App";
 import { CLL, openFile } from "./service_utils";
-import { C_NODE_H, C_PADDING_Y } from "./utils";
+import { getColY, getSeeMoreId } from "./utils";
 import { TMoreTables } from "./MoreTables";
-import ModelIcon from "./assets/icons/model.svg?react";
-import SeedIcon from "./assets/icons/seed.svg?react";
-import SourceIcon from "./assets/icons/source.svg?react";
-import ExposureIcon from "./assets/icons/exposure.svg?react";
-import AnalysisIcon from "./assets/icons/analysis.svg?react";
-import SnapshotIcon from "./assets/icons/snapshot.svg?react";
-import MetricsIcon from "./assets/icons/metrics.svg?react";
-import MacrosIcon from "./assets/icons/macros.svg?react";
+
 import TestsIcon from "./assets/icons/tests.svg?react";
 import EphemeralIcon from "./assets/icons/ephemeral.svg?react";
-import { UncontrolledTooltip } from "reactstrap";
 import { COLUMNS_SIDEBAR, EXPOSURE_SIDEBAR, TABLES_SIDEBAR } from "./constants";
+import { NODE_TYPE_SHORTHAND } from "./components/Column";
+import {
+  NODE_TYPE_STYLES,
+  NodeTypeIcon,
+  TableNodePill,
+} from "./components/Column";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -72,102 +71,8 @@ const BidirectionalHandles = () => (
   </>
 );
 
-export const NodeTypeIcon: FunctionComponent<{ nodeType: string }> = ({
-  nodeType,
-}) => (
-  <div>
-    {nodeType === "seed" && <SeedIcon />}
-    {nodeType === "model" && <ModelIcon />}
-    {nodeType === "source" && <SourceIcon />}
-    {nodeType === "exposure" && <ExposureIcon />}
-    {nodeType === "analysis" && <AnalysisIcon />}
-    {nodeType === "snapshot" && <SnapshotIcon />}
-    {nodeType === "metrics" && <MetricsIcon />}
-    {nodeType === "macros" && <MacrosIcon />}
-  </div>
-);
-
-const NODE_TYPE_SHORTHAND = {
-  seed: "SED",
-  model: "MDL",
-  source: "SRC",
-  exposure: "EXP",
-  snapshot: "SNP",
-  metrics: "MET",
-  macros: "SEM",
-  analysis: "ANY",
-};
-
-const NODE_TYPE_STYLES = {
-  seed: styles.seed,
-  model: styles.model,
-  source: styles.source,
-  exposure: styles.exposure,
-  snapshot: styles.snapshot,
-  metrics: styles.metrics,
-  macros: styles.macros,
-  analysis: styles.analysis,
-};
-
-const TableNodePill: FunctionComponent<{
-  id: string;
-  icon: ReactElement;
-  label: string;
-  text: string;
-}> = ({ id, icon, text, label }) => (
-  <>
-    <div className={styles.table_node_pill} id={id}>
-      <div className={styles.icon}>{icon}</div>
-      <div>{text}</div>
-    </div>
-    <UncontrolledTooltip target={id}>{label}</UncontrolledTooltip>
-  </>
-);
-
-export const TableHeader: FunctionComponent<{
-  nodeType: unknown;
-  label: string;
-  table: string;
-  tests: { key: string; path: string }[];
-  materialization?: string | undefined;
-}> = ({ nodeType, label, table, tests, materialization }) => {
-  const nType = nodeType as keyof typeof NODE_TYPE_SHORTHAND;
-  const tableId = table.replace(/[^a-zA-Z0-9]/g, "-");
-  return (
-    <div className="d-flex flex-column align-items-start gap-xs w-100">
-      <div className={styles.table_header}>
-        <div className={classNames(styles.node_icon, NODE_TYPE_STYLES[nType])}>
-          <NodeTypeIcon nodeType={nType} />
-          <div>{NODE_TYPE_SHORTHAND[nType]}</div>
-        </div>
-        <div className="lines-2">{label}</div>
-      </div>
-      <div className={classNames("d-flex gap-xs", styles.node_extra_info)}>
-        {tests?.length > 0 && (
-          <TableNodePill
-            id={"table-node-tests-" + tableId}
-            icon={<TestsIcon />}
-            text={tests.length.toString()}
-            label="Tests"
-          />
-        )}
-        {materialization && (
-          <TableNodePill
-            id={"table-node-materilization-" + tableId}
-            icon={<EphemeralIcon />}
-            text={materialization}
-            label="Materialization"
-          />
-        )}
-      </div>
-    </div>
-  );
-};
-
 export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const {
-    shouldExpand,
-    processed,
     label,
     table,
     url,
@@ -190,27 +95,26 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     rerender,
     setConfidence,
     setMoreTables,
+    setMinRange,
+    setNodeCount,
+    leftExpansion,
+    rightExpansion,
   } = useContext(LineageContext);
 
   const _columnLen = Object.keys(collectColumns[table] || {}).length;
   const _showColumns = _columnLen > 0;
-  const selected = selectedTable?.table === table;
-  const toggleTableSelection = () =>
-    setSelectedTable((prev) => (prev?.table === table ? null : data));
+  const selected = selectedTable === table;
 
   const highlightTable = () => {
     if (selectedColumn.name) return;
     const _nodes = flow.getNodes();
     const _edges = flow.getEdges();
-    const [nodes, edges] = selected
-      ? resetTableHighlights(_nodes, _edges)
-      : highlightTableConnections(_nodes, _edges, table);
+    const [nodes, edges] = highlightTableConnections(_nodes, _edges, table);
     flow.setNodes(nodes);
     flow.setEdges(edges);
   };
 
   const expand = async (right: boolean) => {
-    if (processed[right ? 1 : 0]) return;
     if (CLL.inProgress) {
       CLL.showCllInProgressMsg();
       return;
@@ -221,9 +125,20 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
       table,
       right
     );
+    [nodes, edges] = highlightTableConnections(nodes, edges, selectedTable);
     layoutElementsOnCanvas(nodes, edges);
     flow.setNodes(nodes);
     flow.setEdges(edges);
+    setMinRange(calculateMinLevel(nodes, edges, selectedTable));
+    setNodeCount(
+      await calculateNodeCount(
+        nodes,
+        edges,
+        selectedTable,
+        leftExpansion,
+        rightExpansion
+      )
+    );
     rerender();
     if (selectedColumn.name) {
       try {
@@ -247,19 +162,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
       }
       return;
     }
-
-    // highlight expanded table if table is already highlighted
-    if (selectedTable) {
-      [nodes, edges] = highlightTableConnections(
-        nodes,
-        edges,
-        selectedTable.table
-      );
-      layoutElementsOnCanvas(nodes, edges);
-      flow.setNodes(nodes);
-      flow.setEdges(edges);
-      rerender();
-    }
   };
 
   const expandRight = () => expand(true);
@@ -269,7 +171,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     if (!selected) return;
     e.stopPropagation();
     setShowSidebar(true);
-    if (selectedTable?.nodeType === "exposure") {
+    if (flow.getNode(selectedTable)?.data?.nodeType === "exposure") {
       setSidebarScreen(EXPOSURE_SIDEBAR);
       return;
     }
@@ -277,6 +179,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   };
 
   const _edges = flow.getEdges();
+  const nType = nodeType as keyof typeof NODE_TYPE_SHORTHAND;
+  const tableId = table.replace(/[^a-zA-Z0-9]/g, "-");
   return (
     <div
       className="position-relative"
@@ -286,9 +190,20 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     >
       <div
         className={styles.table_node}
-        onClick={(e) => {
-          e.stopPropagation();
-          toggleTableSelection();
+        onClick={async () => {
+          setSelectedTable(table);
+          const nodes = flow.getNodes();
+          const edges = flow.getEdges();
+          setMinRange(calculateMinLevel(nodes, edges, table));
+          setNodeCount(
+            await calculateNodeCount(
+              nodes,
+              edges,
+              table,
+              leftExpansion,
+              rightExpansion
+            )
+          );
           highlightTable();
           openFile(url);
         }}
@@ -303,69 +218,97 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             }
           )}
         >
-          <TableHeader
-            nodeType={nodeType}
-            label={label}
-            table={table}
-            tests={tests}
-            materialization={materialization}
-          />
-          <div className={styles.divider} />
-          <div className="w-100 d-flex align-items-center gap-xs">
-            <div
-              className={classNames("nodrag", styles.table_handle, {
-                invisible:
-                  !shouldExpand[0] ||
-                  processed[0] ||
-                  downstreamCount ===
-                    _edges.filter((e) => e.target === table).length,
-              })}
-              onClick={(e) => {
-                e.stopPropagation();
-                expandLeft();
-              }}
-              data-testid={"expand-left-btn-" + table}
-            >
-              {processed[0] ? "-" : "+"}
+          <div className="d-flex flex-column align-items-start gap-xs w-100">
+            <div className={styles.table_header}>
+              <div
+                className={classNames(
+                  styles.node_icon,
+                  NODE_TYPE_STYLES[nType]
+                )}
+              >
+                <NodeTypeIcon nodeType={nType} />
+                <div>{NODE_TYPE_SHORTHAND[nType]}</div>
+              </div>
+              <div className="lines-2">{label}</div>
             </div>
-
             <div
               className={classNames(
-                "nodrag",
-                selected ? "text-blue" : "text-grey"
+                "w-100 d-flex align-items-center gap-xs",
+                styles.node_extra_info
               )}
-              onClick={onDetailsClick}
-              data-testid={"view-details-btn-" + table}
             >
-              View Details
-            </div>
-            <div className="spacer" />
-
-            <div
-              className={classNames("nodrag", styles.table_handle, {
-                invisible:
-                  !shouldExpand[1] ||
-                  processed[1] ||
-                  upstreamCount ===
-                    _edges.filter((e) => e.source === table).length,
-              })}
-              onClick={(e) => {
-                e.stopPropagation();
-                expandRight();
-              }}
-              data-testid={"expand-right-btn-" + table}
-            >
-              {processed[1] ? "-" : "+"}
+              <div
+                className={classNames("nodrag", styles.table_handle, {
+                  invisible:
+                    downstreamCount === 0 ||
+                    downstreamCount ===
+                      _edges.filter((e) => e.target === table).length ||
+                    flow.getNode(getSeeMoreId(table, false)),
+                })}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  expandLeft();
+                }}
+                data-testid={"expand-left-btn-" + table}
+              >
+                +
+              </div>
+              {tests?.length > 0 && (
+                <TableNodePill
+                  id={"table-node-tests-" + tableId}
+                  icon={<TestsIcon />}
+                  text={tests.length.toString()}
+                  label="Tests"
+                />
+              )}
+              {materialization && (
+                <TableNodePill
+                  id={"table-node-materilization-" + tableId}
+                  icon={<EphemeralIcon />}
+                  text={materialization}
+                  label="Materialization"
+                />
+              )}
+              <div className="spacer" />
+              <div
+                className={classNames(
+                  "nodrag",
+                  selected ? "text-blue" : "text-grey"
+                )}
+                onClick={onDetailsClick}
+                data-testid={"view-details-btn-" + table}
+              >
+                Details
+              </div>
+              <div
+                className={classNames("nodrag", styles.table_handle, {
+                  invisible:
+                    upstreamCount === 0 ||
+                    upstreamCount ===
+                      _edges.filter((e) => e.source === table).length ||
+                    flow.getNode(getSeeMoreId(table, true)),
+                })}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  expandRight();
+                }}
+                data-testid={"expand-right-btn-" + table}
+              >
+                +
+              </div>
             </div>
           </div>
         </div>
         {_showColumns && (
-          <div
-            className={classNames(styles.content, {
-              [styles.selected]: selected,
-            })}
-            style={{ height: _columnLen * C_NODE_H + C_PADDING_Y }}
-          />
+          <>
+            <div className={styles.divider} />
+            <div
+              className={classNames(styles.content, {
+                [styles.selected]: selected,
+              })}
+              style={{ height: getColY(_columnLen) }}
+            />
+          </>
         )}
       </div>
 

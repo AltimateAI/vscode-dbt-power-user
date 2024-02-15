@@ -1,20 +1,19 @@
-import { useContext, useState } from "react";
+import { PropsWithChildren, useContext, useState } from "react";
 import styles from "./styles.module.scss";
 import classNames from "classnames";
 import { useReactFlow } from "reactflow";
-import {
-  createColumnEdge,
-  createColumnNode,
-  createTableEdge,
-  createTableNode,
-  getColumnId,
-  getSeeMoreId,
-} from "./utils";
-import { layoutElementsOnCanvas } from "./graph";
+import { layoutElementsOnCanvas, moveTableFromSeeMoreToCanvas } from "./graph";
 import { LineageContext } from "./App";
 import { ColumnLineage, Table } from "./service";
-import { TableHeader } from "./CustomNodes";
-import { CustomInput } from "./Form";
+import { CustomInput } from "./components/Form";
+import TestsIcon from "./assets/icons/tests.svg?react";
+import EphemeralIcon from "./assets/icons/ephemeral.svg?react";
+import { NODE_TYPE_SHORTHAND } from "./components/Column";
+import {
+  NODE_TYPE_STYLES,
+  NodeTypeIcon,
+  TableNodePill,
+} from "./components/Column";
 
 export type TMoreTables = {
   prevTable?: string;
@@ -24,54 +23,67 @@ export type TMoreTables = {
   lineage?: ColumnLineage[];
 };
 
+function TableHeader({
+  nodeType,
+  label,
+  table,
+  tests,
+  materialization,
+}: PropsWithChildren<{
+  nodeType: unknown;
+  label: string;
+  table: string;
+  tests: { key: string; path: string }[];
+  materialization?: string | undefined;
+}>) {
+  const nType = nodeType as keyof typeof NODE_TYPE_SHORTHAND;
+  const tableId = table.replace(/[^a-zA-Z0-9]/g, "-");
+  return (
+    <div className="d-flex flex-column align-items-start gap-xs w-100">
+      <div className={styles.table_header}>
+        <div className={classNames(styles.node_icon, NODE_TYPE_STYLES[nType])}>
+          <NodeTypeIcon nodeType={nType} />
+          <div>{NODE_TYPE_SHORTHAND[nType]}</div>
+        </div>
+        <div className="lines-2">{label}</div>
+      </div>
+      <div className={classNames("d-flex gap-xs", styles.node_extra_info)}>
+        {tests?.length > 0 && (
+          <TableNodePill
+            id={"table-node-tests-" + tableId}
+            icon={<TestsIcon />}
+            text={tests.length.toString()}
+            label="Tests"
+          />
+        )}
+        {materialization && (
+          <TableNodePill
+            id={"table-node-materilization-" + tableId}
+            icon={<EphemeralIcon />}
+            text={materialization}
+            label="Materialization"
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
 function MoreTables() {
   const { moreTables, setShowSidebar, rerender } = useContext(LineageContext);
-  const { prevTable, tables, right, level, lineage } =
-    moreTables as TMoreTables;
+  const { tables, level } = moreTables as TMoreTables;
   const flow = useReactFlow();
 
   const onItemClick = async (_table: Table) => {
-    const { table } = _table;
-    let nodes = flow.getNodes();
-    let edges = flow.getEdges();
-    const node = nodes.find((n) => n.id === table);
-    if (!node) {
-      nodes.push(createTableNode(_table, level!, prevTable!));
-      const fromLevel = nodes.find((n) => n.id === prevTable)?.data.level;
-      edges.push(createTableEdge(fromLevel, level!, prevTable!, table, right!));
-      lineage?.forEach((e) => {
-        const src = getColumnId(e.source[0], e.source[1]);
-        const dst = getColumnId(e.target[0], e.target[1]);
-        if (right) {
-          if (e.target[0] !== table) return;
-          nodes.push(createColumnNode(e.target[0], e.target[1]));
-          edges.push(createColumnEdge(src, dst, level! - 1, level!, e.type));
-        } else {
-          if (e.source[0] !== table) return;
-          nodes.push(createColumnNode(e.source[0], e.source[1]));
-          edges.push(createColumnEdge(src, dst, level!, level! + 1, e.type));
-        }
-      });
-    } else {
-      return;
-      // TODO: remove node and edges related to table
-      // const columns = nodes
-      //   .filter((n) => n.parentNode === table)
-      //   .map((n) => [n.data.table, n.data.column]);
-      // nodes = nodes
-      //   .filter((n) => isNotColumn(n) && n.id !== table)
-      //   .filter((n) => isColumn(n) && n.parentNode !== table);
-      // const _edgeId = right ? `${prevTable}-${table}` : `${table}-${prevTable}`;
-      // edges = edges.filter((e) => e.id !== _edgeId);
-    }
-
-    if (tables!.every((t) => !!nodes.find((n) => n.id === t.table))) {
-      const seeMoreNodeId = getSeeMoreId(prevTable!, right!);
-      const seeMoreEdgeId = right
-        ? `${prevTable}-${seeMoreNodeId}`
-        : `${seeMoreNodeId}-${prevTable}`;
-      nodes = nodes.filter((n) => n.id !== seeMoreNodeId);
-      edges = edges.filter((e) => e.id !== seeMoreEdgeId);
+    const nodes = [...flow.getNodes()];
+    const edges = [...flow.getEdges()];
+    const allTablesAdded = moveTableFromSeeMoreToCanvas(
+      nodes,
+      edges,
+      _table,
+      moreTables
+    );
+    if (allTablesAdded) {
       setShowSidebar(false);
     }
 

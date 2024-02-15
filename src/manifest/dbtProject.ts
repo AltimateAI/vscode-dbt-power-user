@@ -603,16 +603,6 @@ select * from renamed
     }
   }
 
-  async getSummary(query: string) {
-    this.telemetry.sendTelemetryEvent("getSummary");
-    const compiledSql = await this.compileQuery(query);
-    if (compiledSql === undefined) {
-      // error handling done inside compileQuery
-      return;
-    }
-    this.queryResultPanel.getSummary(compiledSql, this.getAdapterType());
-  }
-
   async executeSQL(query: string) {
     const limit = workspace
       .getConfiguration("dbt")

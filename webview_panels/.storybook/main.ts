@@ -20,6 +20,11 @@ const config: StorybookConfig = {
     autodocs: "tag",
   },
   async viteFinal(config) {
+    if (config.resolve?.alias) {
+      config.resolve.alias["@vscode"] = require.resolve(
+        "./__mocks__/vscode.ts"
+      );
+    }
     // Merge custom configuration into the default config
     return mergeConfig(config, {
       // Add dependencies to pre-optimization

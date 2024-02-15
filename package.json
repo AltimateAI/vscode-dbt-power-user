@@ -1,7 +1,7 @@
 {
   "name": "vscode-dbt-power-user",
   "displayName": "dbt Power User",
-  "description": "This extension makes vscode seamlessly work with dbt",
+  "description": "This extension makes vscode seamlessly work with dbt: auto-complete, preview, column lineage, AI docs generation, health checks, cost estimation etc",
   "icon": "media/images/dbt.png",
   "publisher": "innoverio",
   "license": "MIT",
@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.31.4",
+  "version": "0.33.1",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -314,6 +314,21 @@
         }
       },
       {
+        "command": "dbtPowerUser.openDatapilotWithQuery",
+        "title": "Start Chat",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.summarizeQuery",
+        "title": "Explain",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.changeQuery",
+        "title": "Change",
+        "category": "dbt Power User"
+      },
+      {
         "command": "dbtPowerUser.sqlToModel",
         "title": "Convert to dbt Model (Preview feature)",
         "shortTitle": "Convert to dbt Model",
@@ -407,7 +422,22 @@
       },
       {
         "command": "dbtPowerUser.resetDatapilot",
-        "title": "Reset"
+        "title": "Start New Chat",
+        "icon": "$(add)",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.maximizeDatapilot",
+        "title": "Maximize",
+        "icon": {
+          "light": "./media/images/fullscreen-light.svg",
+          "dark": "./media/images/fullscreen-dark.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.showHelpDatapilot",
+        "title": "Help",
+        "icon": "$(question)"
       },
       {
         "command": "dbtPowerUser.showCompiledSQL",
@@ -423,13 +453,6 @@
         "icon": "$(play)"
       },
       {
-        "command": "dbtPowerUser.summarizeQuery",
-        "title": "Explain selected SQL (Preview feature)",
-        "icon": {
-          "light": "./media/images/lightbulb_light.svg",
-          "dark": "./media/images/lightbulb_dark.svg"
-        }
-      },
       {
         "command": "dbtPowerUser.buildCurrentProject",
         "title": "Build dbt project",
@@ -482,9 +505,38 @@
         "key": "Ctrl+'",
         "mac": "Cmd+'",
         "command": "dbtPowerUser.sqlPreview"
+      },
+      {
+        "key": "shift+Ctrl+A",
+        "mac": "shift+Cmd+A",
+        "command": "dbtPowerUser.openDatapilotWithQuery"
+      },
+      {
+        "key": "shift+Ctrl+E",
+        "mac": "shift+Cmd+E",
+        "command": "dbtPowerUser.summarizeQuery"
+      },
+      {
+        "key": "shift+Ctrl+C",
+        "mac": "shift+Cmd+C",
+        "command": "dbtPowerUser.changeQuery"
       }
     ],
     "menus": {
+      "dbtPowerUser.datapilotSubmenu": [
+        {
+          "command": "dbtPowerUser.openDatapilotWithQuery",
+          "group": "datapilot@1"
+        },
+        {
+          "command": "dbtPowerUser.summarizeQuery",
+          "group": "datapilot@2"
+        },
+        {
+          "command": "dbtPowerUser.changeQuery",
+          "group": "datapilot@3"
+        }
+      ],
       "editor/title": [
         {
           "command": "dbtPowerUser.executeSQL",
@@ -519,6 +571,11 @@
       ],
       "editor/context": [
         {
+          "submenu": "dbtPowerUser.datapilotSubmenu",
+          "group": "datapilot@1",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        },
+        {
           "submenu": "dbtPowerUser.buildModel",
           "group": "dbt@5",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
@@ -547,11 +604,6 @@
           "command": "dbtPowerUser.runCurrentModel",
           "group": "dbt@1",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
-        },
-        {
-          "command": "dbtPowerUser.summarizeQuery",
-          "group": "dbt@3",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.altimateInstanceName && config.dbt.altimateAiKey"
         },
         {
           "command": "dbtPowerUser.sqlToModel",
@@ -630,7 +682,12 @@
         {
           "command": "dbtPowerUser.resetDatapilot",
           "when": "view == dbtPowerUser.datapilot-webview",
-          "group": "navigation"
+          "group": "navigation@1"
+        },
+        {
+          "command": "dbtPowerUser.showHelpDatapilot",
+          "when": "view == dbtPowerUser.datapilot-webview",
+          "group": "navigation@3"
         }
       ],
       "view/item/context": [
@@ -686,6 +743,10 @@
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
         }
+      },
+      {
+        "id": "dbtPowerUser.datapilotSubmenu",
+        "label": "Datapilot"
       }
     ],
     "languages": [

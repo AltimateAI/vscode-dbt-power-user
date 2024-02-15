@@ -114,7 +114,7 @@ export class DBTCoreProjectDetection
           const packageInstallPathFromPython =
             packagesInstallPathsFromPython[index];
           if (packageInstallPathFromPython) {
-            return Uri.parse(packageInstallPathFromPython).fsPath;
+            return Uri.file(packageInstallPathFromPython).fsPath;
           }
           return packageInstallPath;
         },
@@ -149,6 +149,7 @@ export class DBTCoreProjectIntegration
 {
   static DBT_PROFILES_FILE = "profiles.yml";
 
+  private profilesDir?: string;
   private targetPath?: string;
   private adapterType?: string;
   private version?: number[];
@@ -161,7 +162,6 @@ export class DBTCoreProjectIntegration
     languages.createDiagnosticCollection("dbt");
   private readonly pythonBridgeDiagnostics =
     languages.createDiagnosticCollection("dbt");
-  private dbtProfileWatcher!: FileSystemWatcher;
 
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
@@ -187,20 +187,12 @@ export class DBTCoreProjectIntegration
       this.rebuildManifestDiagnostics,
       this.pythonBridgeDiagnostics,
     );
-    this.createDbtProfileWatcher().then((watcher) => {
-      this.dbtProfileWatcher = watcher;
-    });
   }
 
-  private async createDbtProfileWatcher() {
-    await this.python.ex`from dbt_integration import default_profiles_dir`;
-    const profilesDir = await this.findProfilesDirectory();
-    return workspace.createFileSystemWatcher(
-      new RelativePattern(
-        profilesDir,
-        DBTCoreProjectIntegration.DBT_PROFILES_FILE,
-      ),
-    );
+  // remove the trailing slashes if they exists,
+  // causes the quote to be escaped when passing to python
+  private removeTrailingSlashes(input: string | undefined) {
+    return input?.replace(/\\+$/, "");
   }
 
   async refreshProjectConfig(): Promise<void> {
@@ -222,14 +214,38 @@ export class DBTCoreProjectIntegration
 
   private async createPythonDbtProject() {
     await this.python.ex`from dbt_integration import *`;
-    const profilesDir = await this.findProfilesDirectory();
-    const targetPath = await this.getTargetDirectory();
+    const targetPath = this.removeTrailingSlashes(
+      await this.python.lock(
+        (python) => python`target_path(${this.projectRoot.fsPath})`,
+      ),
+    );
     await this.python
-      .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${profilesDir}, target_path=${targetPath}) if 'project' not in locals() else project`;
+      .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.profilesDir}, target_path=${targetPath}) if 'project' not in locals() else project`;
   }
 
   async initializeProject(): Promise<void> {
     try {
+      await this.python.ex`from dbt_integration import default_profiles_dir`;
+      this.profilesDir = this.removeTrailingSlashes(
+        await this.python.lock(
+          (python) => python`default_profiles_dir(${this.projectRoot.fsPath})`,
+        ),
+      );
+      if (this.profilesDir) {
+        const dbtProfileWatcher = workspace.createFileSystemWatcher(
+          new RelativePattern(
+            this.profilesDir,
+            DBTCoreProjectIntegration.DBT_PROFILES_FILE,
+          ),
+        );
+        this.disposables.push(
+          dbtProfileWatcher,
+          // when the project config changes we need to re-init the dbt project
+          ...setupWatcherHandler(dbtProfileWatcher, () =>
+            this.rebuildManifest(),
+          ),
+        );
+      }
       await this.createPythonDbtProject();
       this.pythonBridgeDiagnostics.clear();
     } catch (exc: any) {
@@ -268,12 +284,6 @@ export class DBTCoreProjectIntegration
         this.telemetry.sendTelemetryError("pythonBridgeInitError", exc);
       }
     }
-    this.disposables.push(
-      // when the project config changes we need to re-init the dbt project
-      ...setupWatcherHandler(this.dbtProfileWatcher, () =>
-        this.rebuildManifest(),
-      ),
-    );
   }
 
   getTargetPath(): string | undefined {
@@ -490,6 +500,10 @@ export class DBTCoreProjectIntegration
   private dbtCoreCommand(command: DBTCommand) {
     command.addArgument("--project-dir");
     command.addArgument(this.projectRoot.fsPath);
+    if (this.profilesDir) {
+      command.addArgument("--profiles-dir");
+      command.addArgument(this.profilesDir);
+    }
     command.setExecutionStrategy(this.pythonDBTCommandExecutionStrategy);
     return command;
   }
@@ -608,20 +622,6 @@ export class DBTCoreProjectIntegration
       return macroPath;
     });
     return macroPaths;
-  }
-
-  private async findProfilesDirectory(): Promise<string> {
-    const profilesDir = await this.python.lock(
-      (python) => python`default_profiles_dir(${this.projectRoot.fsPath})`,
-    );
-    return profilesDir;
-  }
-
-  private async getTargetDirectory(): Promise<string> {
-    const targetDir = await this.python.lock(
-      (python) => python`target_path(${this.projectRoot.fsPath})`,
-    );
-    return targetDir;
   }
 
   private async findTargetPath(): Promise<string> {

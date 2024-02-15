@@ -21,6 +21,7 @@ export default defineConfig({
       "@uicore": path.resolve(__dirname, "./src/uiCore"),
       "@assets": path.resolve(__dirname, "./src/assets"),
       "@modules": path.resolve(__dirname, "./src/modules"),
+      "@testUtils": path.resolve(__dirname, "./src/testUtils"),
     },
   },
   css: {
