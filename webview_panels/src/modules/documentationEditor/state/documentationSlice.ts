@@ -5,11 +5,13 @@ import {
   DocsGenerateUserInstructions,
   DocumentationStateProps,
   MetadataColumn,
+  Pages,
   Source,
 } from "./types";
 
 export const initialState = {
   currentDocsData: undefined,
+  currentDocsTests: undefined,
   project: undefined,
   generationHistory: [],
   isDocGeneratedForAnyColumn: false,
@@ -19,17 +21,30 @@ export const initialState = {
     persona: undefined,
     prompt_hint: undefined,
   },
+  activePage: Pages.DOCUMENTATION,
 } as DocumentationStateProps;
 
 const documentationSlice = createSlice({
   name: "documentationState",
   initialState,
   reducers: {
+    setActivePage: (
+      state,
+      action: PayloadAction<DocumentationStateProps["activePage"]>,
+    ) => {
+      state.activePage = action.payload;
+    },
     setProject: (
       state,
       action: PayloadAction<DocumentationStateProps["project"]>,
     ) => {
       state.project = action.payload;
+    },
+    updateCurrentDocsTests: (
+      state,
+      action: PayloadAction<DocumentationStateProps["currentDocsTests"]>,
+    ) => {
+      state.currentDocsTests = action.payload;
     },
     setInsertedEntityName: (
       state,
@@ -167,5 +182,7 @@ export const {
   updateUserInstructions,
   setIsDocGeneratedForAnyColumn,
   setInsertedEntityName,
+  updateCurrentDocsTests,
+  setActivePage,
 } = documentationSlice.actions;
 export default documentationSlice;

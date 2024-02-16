@@ -13,6 +13,7 @@ export { default as BlogIcon } from "./blog.svg?react";
 export { default as ContactUsIcon } from "./contact.svg?react";
 export { default as DocsIcon } from "./docs.svg?react";
 export { default as SlackIcon } from "./slack.svg?react";
+export { default as AddOutlineIcon } from "./add-outline.svg?react";
 
 interface Props {
   icon: string;

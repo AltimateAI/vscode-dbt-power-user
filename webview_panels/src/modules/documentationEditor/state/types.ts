@@ -5,6 +5,10 @@ export enum Source {
   YAML = "YAML",
 }
 
+export enum Pages {
+  DOCUMENTATION,
+  TESTS,
+}
 export interface MetadataColumn {
   name: string;
   type?: string;
@@ -27,11 +31,22 @@ export interface DBTDocumentation {
 
 export interface DocumentationStateProps {
   currentDocsData?: DBTDocumentation;
+  currentDocsTests?: DBTModelTest[];
   project?: string;
   generationHistory: GenerationDBDataProps[];
   userInstructions: DocsGenerateUserInstructions;
   isDocGeneratedForAnyColumn: boolean;
   insertedEntityName?: string;
+  activePage: Pages;
+}
+
+export interface DBTModelTest {
+  alias: string;
+  column_name?: string;
+  database: string;
+  key: string;
+  path: string;
+  schema: string;
 }
 
 export interface DocsGenerateFollowupInstructions {

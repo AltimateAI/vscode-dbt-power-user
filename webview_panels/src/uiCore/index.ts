@@ -21,6 +21,9 @@ export {
   Offcanvas,
   OffcanvasHeader,
   OffcanvasBody,
+  Nav,
+  NavItem,
+  NavLink,
 } from "reactstrap";
 
 export { default as Tag } from "./components/tag/Tag";

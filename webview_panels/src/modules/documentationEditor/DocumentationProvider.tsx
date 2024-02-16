@@ -3,7 +3,6 @@ import { IncomingMessageProps } from "@modules/app/types";
 import { panelLogger } from "@modules/logger";
 import {
   createContext,
-  ReactNode,
   useCallback,
   useEffect,
   useMemo,
@@ -17,26 +16,25 @@ import documentationSlice, {
   updateColumnsAfterSync,
   updateColumnsInCurrentDocsData,
   updateCurrentDocsData,
+  updateCurrentDocsTests,
   updateUserInstructions,
 } from "./state/documentationSlice";
 import {
   DBTDocumentation,
+  DBTModelTest,
   DocsGenerateUserInstructions,
   MetadataColumn,
 } from "./state/types";
 import { ContextProps } from "./types";
 import { getGenerationsInModel } from "./utils";
+import DocumentationWrapper from "./DocumentationWrapper";
 
 export const DocumentationContext = createContext<ContextProps>({
   state: initialState,
   dispatch: () => null,
 });
 
-const DocumentationProvider = ({
-  children,
-}: {
-  children: ReactNode;
-}): JSX.Element => {
+const DocumentationProvider = (): JSX.Element => {
   const [state, dispatch] = useReducer(
     documentationSlice.reducer,
     documentationSlice.getInitialState(),
@@ -55,6 +53,7 @@ const DocumentationProvider = ({
       event: MessageEvent<
         IncomingMessageProps & {
           docs?: DBTDocumentation;
+          tests?: DBTModelTest[];
           project?: string;
           columns?: MetadataColumn[];
           model?: string;
@@ -65,6 +64,11 @@ const DocumentationProvider = ({
     ) => {
       const { command, ...params } = event.data;
       switch (command) {
+        case "renderTests":
+          panelLogger.info(event.data);
+          dispatch(updateCurrentDocsTests(event.data.tests));
+          dispatch(setProject(event.data.project));
+          break;
         case "renderDocumentation":
           dispatch(updateCurrentDocsData(event.data.docs));
           dispatch(setProject(event.data.project));
@@ -155,7 +159,7 @@ const DocumentationProvider = ({
 
   return (
     <DocumentationContext.Provider value={values}>
-      <div>{children}</div>
+      <DocumentationWrapper />
     </DocumentationContext.Provider>
   );
 };

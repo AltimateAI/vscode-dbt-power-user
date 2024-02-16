@@ -217,6 +217,27 @@ export class DocGenService {
     );
   }
 
+  private getEvent(
+    eventMap: Map<string, ManifestCacheProjectAddedEvent>,
+  ): ManifestCacheProjectAddedEvent | undefined {
+    if (window.activeTextEditor === undefined || eventMap === undefined) {
+      return;
+    }
+
+    const currentFilePath = window.activeTextEditor.document.uri;
+    const projectRootpath =
+      this.dbtProjectContainer.getProjectRootpath(currentFilePath);
+    if (projectRootpath === undefined) {
+      return;
+    }
+
+    const event = eventMap.get(projectRootpath.fsPath);
+    if (event === undefined) {
+      return;
+    }
+    return event;
+  }
+
   /**
    * handles single or multi column bulk generation
    */
@@ -441,6 +462,31 @@ export class DocGenService {
         }
       },
     );
+  }
+
+  private getFilename() {
+    return path.basename(window.activeTextEditor!.document.fileName, ".sql");
+  }
+
+  public async getTestsData(
+    eventMap: Map<string, ManifestCacheProjectAddedEvent>,
+  ) {
+    const event = this.getEvent(eventMap);
+    if (!event) {
+      return;
+    }
+    const { nodeMetaMap, graphMetaMap, testMetaMap } = event;
+    const tableName = this.getFilename();
+    const _node = nodeMetaMap.get(tableName);
+    if (!_node) {
+      return;
+    }
+    const key = _node.uniqueId;
+
+    return (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
+      const testKey = n.label.split(".")[0];
+      return { ...testMetaMap.get(testKey), key: testKey };
+    });
   }
 
   public async sendFeedback({

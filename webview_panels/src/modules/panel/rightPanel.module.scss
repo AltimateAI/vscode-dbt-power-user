@@ -1,11 +1,9 @@
 .offcanvas{
-  & :global .offcanvas-header{
-    position: relative;
-
-    & button{
-      position: absolute;
+  .close-btn{
+    width: 40px;
+    height: 40px;
+    position: absolute;
       top: 0;
-      left: -36px;
-    }
+      left: -40px;
   }
 }

@@ -1,8 +1,14 @@
 import { withReactContext } from "storybook-react-context";
 import type { Meta } from "@storybook/react";
-import DocumentationEditor from "./DocumentationEditor";
 import { DocumentationContext } from "./DocumentationProvider";
-import { DATA, PROJECT } from "./state/sampleData";
+import {
+  DBTDocumentationFactory,
+  DBTDocumentationTestsFactory,
+} from "@testUtils";
+import { faker } from "@faker-js/faker";
+import DocumentationWrapper from "./DocumentationWrapper";
+import { initialState } from "./state/documentationSlice";
+import { DocumentationStateProps, Pages } from "./state/types";
 
 const meta = {
   title: "Documentation Editor",
@@ -19,7 +25,7 @@ export default meta;
 
 export const DefaultHelpView = {
   render: (): JSX.Element => {
-    return <DocumentationEditor />;
+    return <DocumentationWrapper />;
   },
   decorators: [
     withReactContext({
@@ -31,17 +37,37 @@ export const DefaultHelpView = {
 
 export const ModelDocGenView = {
   render: (): JSX.Element => {
-    return <DocumentationEditor />;
+    return <DocumentationWrapper />;
   },
   decorators: [
     withReactContext({
       Context: DocumentationContext,
       initialState: {
         state: {
-          currentDocsData: DATA,
-          project: PROJECT,
-          userInstructions: {},
+          ...initialState,
+          currentDocsData: DBTDocumentationFactory.build(),
+          project: faker.system.fileName(),
         },
+      },
+    }),
+  ],
+};
+
+export const DocumentationTestsView = {
+  render: (): JSX.Element => {
+    return <DocumentationWrapper />;
+  },
+  decorators: [
+    withReactContext({
+      Context: DocumentationContext,
+      initialState: {
+        state: {
+          ...initialState,
+          currentDocsData: DBTDocumentationFactory.build(),
+          currentDocsTests: DBTDocumentationTestsFactory.buildList(10),
+          project: faker.system.fileName(),
+          activePage: Pages.TESTS,
+        } as DocumentationStateProps,
       },
     }),
   ],

@@ -1,22 +1,14 @@
-import { RefreshIcon } from "@assets/icons";
-import { executeRequestInSync } from "@modules/app/requestExecutor";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
-import { panelLogger } from "@modules/logger";
-import { Alert, Button, Stack } from "@uicore";
+import { Alert, Stack } from "@uicore";
 import DocGeneratorColumn from "./DocGeneratorColumn";
 import classes from "../../styles.module.scss";
 import BulkGenerateButton from "./BulkGenerateButton";
+import SyncWithDatabase from "./SyncWithDatabase";
 
 const DocGeneratorColumnsList = (): JSX.Element => {
   const {
     state: { currentDocsData },
   } = useDocumentationContext();
-
-  const onSyncBtnClick = () => {
-    executeRequestInSync("fetchMetadataFromDatabase", {}).catch((err) =>
-      panelLogger.error("error while syncing with db", err),
-    );
-  };
 
   return (
     <div>
@@ -24,13 +16,7 @@ const DocGeneratorColumnsList = (): JSX.Element => {
         <Stack className={classes.columnHeader}>
           <h3>Columns</h3>
           <div>
-            <Button
-              color="warning"
-              onClick={onSyncBtnClick}
-              className={classes.syncBtn}
-            >
-              <RefreshIcon /> Sync with the Database
-            </Button>
+            <SyncWithDatabase />
           </div>
           <BulkGenerateButton />
         </Stack>

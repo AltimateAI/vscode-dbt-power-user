@@ -11,12 +11,18 @@ interface Props {
 const RightSidePanel = ({ title, children, onClose }: Props): JSX.Element => {
   return (
     <Offcanvas isOpen direction="end" className={classes.offcanvas}>
-      <OffcanvasHeader>
-        <h2>{title}</h2>
-        <IconButton color="primary" onClick={onClose}>
-          <ChevronRightIcon />
-        </IconButton>
-      </OffcanvasHeader>
+      {title ? (
+        <OffcanvasHeader>
+          <h2>{title}</h2>
+        </OffcanvasHeader>
+      ) : null}
+      <IconButton
+        color="primary"
+        onClick={onClose}
+        className={classes.closeBtn}
+      >
+        <ChevronRightIcon />
+      </IconButton>
       <OffcanvasBody>{children}</OffcanvasBody>
     </Offcanvas>
   );

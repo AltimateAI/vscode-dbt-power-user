@@ -1,7 +1,9 @@
 import {
   CancellationToken,
+  TextEditor,
   WebviewView,
   WebviewViewResolveContext,
+  window,
   workspace,
 } from "vscode";
 import { AltimateRequest } from "../altimate";
@@ -33,6 +35,22 @@ export class NewDocsGenPanel
     protected emitterService: SharedStateService,
   ) {
     super(dbtProjectContainer, altimateRequest, telemetry, emitterService);
+
+    this._disposables.push(
+      window.onDidChangeActiveTextEditor(
+        async (event: TextEditor | undefined) => {
+          if (event === undefined) {
+            return;
+          }
+          const tests = await this.docGenService.getTestsData(this.eventMap);
+          this._panel?.webview.postMessage({
+            command: "renderTests",
+            tests,
+            project: this.docGenService.getProject()?.getProjectName(),
+          });
+        },
+      ),
+    );
   }
   resolveWebview(
     panel: WebviewView,
