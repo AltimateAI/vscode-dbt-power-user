@@ -58,7 +58,7 @@ interface DeferConfig {
   deferToProduction: boolean;
   favorState: boolean;
   manifestPathForDeferral: string;
-  manifestPathType?: string;
+  manifestPathType?: ManifestPathType;
   dbt_core_integration_id?: number;
 }
 

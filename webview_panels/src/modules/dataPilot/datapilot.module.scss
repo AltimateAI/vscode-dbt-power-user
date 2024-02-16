@@ -1,4 +1,4 @@
-body{
+body {
   padding: var(--spacing-3xl) !important;
 }
 .chat-list {
@@ -42,6 +42,17 @@ body{
       padding-top: 24px;
       border-top: 1px solid #424750;
       flex: 100%;
+    }
+  }
+
+  .action-button{
+    font-family: "SF Mono",Monaco,Menlo,Courier,monospace;
+    font-size: 10px;
+    text-align: left;
+
+    &.default{
+      font-size: 12px;
+      font-family: var(--bs-body-font-family);
     }
   }
 
