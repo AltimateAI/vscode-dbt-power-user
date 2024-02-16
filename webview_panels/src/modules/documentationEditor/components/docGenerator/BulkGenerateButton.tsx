@@ -45,14 +45,19 @@ const BulkGenerateButton = (): JSX.Element => {
     return columns;
   };
   const generateDocsForMissingColumns = async () => {
-    if (!currentDocsData) {
-      return;
-    }
+    try {
+      const { columns } = (await executeRequestInSync(
+        "fetchMetadataFromDatabase",
+        {},
+      )) as { columns: DBTDocumentationColumn[] };
 
-    const columnsWithoutDescription = currentDocsData.columns.filter(
-      (column) => !column.description,
-    );
-    return bulkGenerateDocs(columnsWithoutDescription);
+      const columnsWithoutDescription = columns.filter(
+        (column) => !column.description,
+      );
+      return await bulkGenerateDocs(columnsWithoutDescription);
+    } catch (err) {
+      panelLogger.error("Unable to generate docs for missing columns");
+    }
   };
   const generateForAll = async () => {
     try {

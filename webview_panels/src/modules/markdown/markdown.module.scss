@@ -1,5 +1,6 @@
 .markdown {
-  ul, ol {
+  ul,
+  ol {
     padding: 0;
   }
   .pre {
@@ -7,24 +8,30 @@
 
     pre {
       transition: 0.3s ease all;
-      border-radius: 4px;
-      border: 1px solid var(--stroke--disable);
-      padding-left: 1rem;
-      background: var(--background--03) !important;
+      :global .card {
+        background: var(--background--03) !important;
+        :global .card-body {
+          code {
+            max-height: none;
+          }
+        }
+      }
     }
   }
 
   :global .code__icons {
     position: absolute;
-    top: 0;
-    right: 0;
+    top: 6px;
+    right: 6px;
     z-index: 1;
   }
 
   :global .code__icons button {
     background-color: transparent;
     border: none;
-    padding: 10px;
+    border-radius: 50%;
+    background-color: var(--icon--default);
+    padding: 6px;
     cursor: pointer;
   }
 }

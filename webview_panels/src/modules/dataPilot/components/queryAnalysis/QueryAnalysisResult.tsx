@@ -156,7 +156,7 @@ const QueryAnalysisResultComponent = ({
               type="submit"
               disabled={isLoading || isMaxFollowupReached}
             >
-              <AskIcon style={{ color: "var(--action--disable)" }} />
+              <AskIcon style={{ color: "var(--icon--default)" }} />
             </IconButton>
           </form>
         </Stack>
