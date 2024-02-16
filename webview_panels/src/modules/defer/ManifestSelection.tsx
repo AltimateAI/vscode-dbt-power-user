@@ -1,5 +1,4 @@
-import { Alert, CardText, FormGroup, Input, Label, Select } from "@uicore";
-import { useState } from "react";
+import { FormGroup, Input, Label, Select } from "@uicore";
 import {
   executeRequestInAsync,
   executeRequestInSync,
@@ -7,6 +6,7 @@ import {
 import classes from "./defer.module.scss";
 import { ManifestPathType } from "./constants";
 import { ManifestSelectionProps } from "./types";
+import { panelLogger } from "@modules/logger";
 
 export const ManifestSelection = ({
   dbtProjectRoot,
@@ -17,43 +17,28 @@ export const ManifestSelection = ({
   setDeferState,
   setProjectIntegrations,
 }: ManifestSelectionProps): JSX.Element => {
-  const [showManifestError, setShowManifestError] = useState(false);
-
-  const handleLocalManifestPathChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const { value, name } = event.target;
-    if (!value.endsWith("manifest.json")) {
-      setShowManifestError(false);
-    } else {
-      setShowManifestError(true);
-    }
-    setDeferState((prevState) => ({ ...prevState, [name]: value }));
-  };
-
-  const onLocalManifestBlur = async () => {
-    if (!showManifestError) {
-      const response = await executeRequestInSync("updateDeferConfig", {
-        config: [
-          {
-            key: "manifestPathForDeferral",
-            value: manifestPathForDeferral,
-            isPreviewFeature: true,
-          },
-          {
-            key: "manifestPathType",
-            value: manifestPathType,
-          },
-        ],
-        projectRoot: dbtProjectRoot,
-      });
-      if (!(response as { updated: boolean }).updated) {
-        setDeferState((prevState) => ({
-          ...prevState,
-          manifestPathForDeferral: "",
-          manifestPathType: ManifestPathType.EMPTY,
-        }));
-      }
+  const updateConfigWithManifestPath = async (path: string) => {
+    panelLogger.info("updating defer config for manifest path", path);
+    const response = await executeRequestInSync("updateDeferConfig", {
+      config: [
+        {
+          key: "manifestPathForDeferral",
+          value: path,
+          isPreviewFeature: true,
+        },
+        {
+          key: "manifestPathType",
+          value: manifestPathType,
+        },
+      ],
+      projectRoot: dbtProjectRoot,
+    });
+    if (!(response as { updated: boolean }).updated) {
+      setDeferState((prevState) => ({
+        ...prevState,
+        manifestPathForDeferral: "",
+        manifestPathType: ManifestPathType.EMPTY,
+      }));
     }
   };
 
@@ -130,6 +115,19 @@ export const ManifestSelection = ({
     }));
   };
 
+  const selectDirectoryForManifest = async () => {
+    panelLogger.info("selecting directory for manifest");
+    const result = await executeRequestInSync("selectDirectoryForManifest", {});
+    panelLogger.info("selected directory for manifest", result);
+    const { path } = result as { path: string };
+    setDeferState((prevState) => ({
+      ...prevState,
+      manifestPathForDeferral: path,
+    }));
+
+    await updateConfigWithManifestPath(path);
+  };
+
   return (
     <FormGroup check className={classes.pathSelection}>
       <div className={classes.pathSelectionRow}>
@@ -154,21 +152,14 @@ export const ManifestSelection = ({
             name="manifestPathForDeferral"
             placeholder=""
             type="text"
+            readOnly
             className={classes.pathInput}
             value={manifestPathForDeferral}
-            onChange={handleLocalManifestPathChange}
-            onBlur={onLocalManifestBlur}
+            onClick={selectDirectoryForManifest}
+            title="Click to select folder"
           />
         )}
       </div>
-      {manifestPathType === ManifestPathType.LOCAL && (
-        <CardText className="mt-2">
-          <Alert color="warning">
-            The path should indicate the folder where the manifest.json file is
-            located
-          </Alert>
-        </CardText>
-      )}
       <div className={classes.pathSelectionRow}>
         <Label
           check

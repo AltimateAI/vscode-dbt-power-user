@@ -296,10 +296,43 @@ export class InsightsPanel extends AltimateWebviewProvider {
     }
   }
 
+  private async selectDirectoryForManifest(syncRequestId?: string) {
+    const openDialog = await window.showOpenDialog({
+      filters: {},
+      canSelectFolders: true,
+      openLabel: "Select",
+      canSelectFiles: false,
+      canSelectMany: false,
+    });
+    if (openDialog === undefined || openDialog.length === 0) {
+      this._panel!.webview.postMessage({
+        command: "response",
+        args: {
+          syncRequestId,
+          body: { error: "Folder not selected" },
+          status: false,
+        },
+      });
+      return;
+    }
+
+    this._panel!.webview.postMessage({
+      command: "response",
+      args: {
+        syncRequestId,
+        body: { path: openDialog[0].fsPath },
+        status: true,
+      },
+    });
+  }
+
   async handleCommand(message: HandleCommandProps): Promise<void> {
     const { command, syncRequestId, ...params } = message;
 
     switch (command) {
+      case "selectDirectoryForManifest":
+        this.selectDirectoryForManifest(syncRequestId);
+        break;
       case "updateDeferConfig":
         await this.updateDeferConfig(
           syncRequestId,
