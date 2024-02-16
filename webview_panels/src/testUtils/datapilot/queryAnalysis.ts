@@ -24,7 +24,6 @@ export const DatapilotQueryAnalysisFactory =
     response: undefined,
     updatedAt: faker.date.past(),
     fileName: faker.system.commonFileName("sql"),
-    analysisType: faker.helpers.enumValue(QueryAnalysisType),
   });
 
 export const DatapilotQueryExplainFactory =
