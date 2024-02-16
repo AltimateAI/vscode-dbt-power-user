@@ -139,7 +139,7 @@ const QueryAnalysisResultComponent = ({
       )}
       {showFollowup && actions?.length ? (
         <Stack direction="column">
-          <p className="p4 mb-0">Suggestions</p>
+          <p className="p4 mb-0">Followup Suggestions</p>
           <Stack className="flex-wrap">
             {actions.map((action) => (
               <QueryAnalysisActionButton key={action.command} action={action} />
