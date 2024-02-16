@@ -40,6 +40,7 @@ const ResultFeedbackButtons = ({ getFeedbackData }: Props): JSX.Element => {
       rating: feedbackData.feedback_type,
       data,
     });
+    setShowForm(false);
   };
   const watchRating = watch("feedback_type");
 
