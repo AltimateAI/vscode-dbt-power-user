@@ -28,7 +28,7 @@ const DefaultDatapilotView = (): JSX.Element => {
         <p>
           To get started, please select code in a file, right click and choose
           DataPilot submenu. For documentation, start from Documentation Editor
-          bottom panel.
+          panel.
         </p>
       </section>
     </Stack>
