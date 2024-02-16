@@ -36,6 +36,8 @@ import { AltimateRequest, ValidateSqlParseErrorResponse } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { getProjectRelativePath } from "../utils";
 import { ManifestPathType } from "../constants";
+import { DBTTerminal } from "./dbtTerminal";
+import { CustomUnknownException } from "./exception";
 
 // TODO: we shouold really get these from manifest directly
 interface ResolveReferenceNodeResult {
@@ -172,6 +174,7 @@ export class DBTCoreProjectIntegration
     private altimateRequest: AltimateRequest,
     private projectRoot: Uri,
     private projectConfigDiagnostics: DiagnosticCollection,
+    private dbtTerminal: DBTTerminal,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
@@ -431,6 +434,7 @@ export class DBTCoreProjectIntegration
       currentConfig[getProjectRelativePath(projectRoot)];
 
     if (!deferConfigInProject) {
+      this.dbtTerminal.debug("defer params not set");
       return [];
     }
     const {
@@ -441,54 +445,71 @@ export class DBTCoreProjectIntegration
       dbt_core_integration_id,
     } = deferConfigInProject;
     if (!deferToProduction) {
+      this.dbtTerminal.debug("defer to prod not enabled");
       return [];
     }
     if (manifestPathType === ManifestPathType.LOCAL) {
       if (!manifestPathForDeferral) {
-        window.showErrorMessage("manifestPathForDeferral is not present");
-        this.telemetry.sendTelemetryError(
-          "manifestPathForDeferralNotPresent",
-          "manifestPathForDeferral is not present",
+        this.dbtTerminal.error(
+          new CustomUnknownException(
+            "manifestPathForDeferral",
+            "manifestPathForDeferral is not present",
+          ),
         );
+        window.showErrorMessage("manifestPathForDeferral is not present");
         throw new Error("manifestPathForDeferral is not present");
       }
       const args = ["--defer", "--state", manifestPathForDeferral];
       if (favorState) {
         args.push("--favor-state");
       }
+      this.dbtTerminal.debug(`local defer params: ${args.join(" ")}`);
       this.altimateRequest.sendDeferToProdEvent(ManifestPathType.LOCAL);
       return args;
     }
     if (manifestPathType === ManifestPathType.REMOTE) {
-      if (dbt_core_integration_id! > 0) {
-        window.showInformationMessage(`Downloading manifest.json`);
-        const response = await this.altimateRequest.fetchArtifactUrl(
-          "manifest",
-          dbt_core_integration_id!,
+      if (dbt_core_integration_id! <= 0) {
+        this.dbtTerminal.log(
+          "No dbt_core_integration_id for defer remote config",
         );
-        if (response?.url) {
-          const manifestPath = await this.altimateRequest.downloadFileLocally(
-            response.url,
-            this.projectRoot,
-          );
-          if (manifestPath) {
-            console.log(`Set remote manifest path: ${manifestPath}`);
-            const args = ["--defer", "--state", manifestPath];
-            if (favorState) {
-              args.push("--favor-state");
-            }
-            this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
-            return args;
-          } else {
-            window.showErrorMessage("Unable to use remote manifest file.");
-            this.telemetry.sendTelemetryError(
+        return [];
+      }
+
+      window.showInformationMessage(`Downloading manifest.json`);
+      this.dbtTerminal.debug(
+        `fetching artifact url for dbt_core_integration_id: ${dbt_core_integration_id}`,
+      );
+      const response = await this.altimateRequest.fetchArtifactUrl(
+        "manifest",
+        dbt_core_integration_id!,
+      );
+      if (response?.url) {
+        const manifestPath = await this.altimateRequest.downloadFileLocally(
+          response.url,
+          this.projectRoot,
+        );
+        if (manifestPath) {
+          console.log(`Set remote manifest path: ${manifestPath}`);
+          const args = ["--defer", "--state", manifestPath];
+          if (favorState) {
+            args.push("--favor-state");
+          }
+          this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
+          return args;
+        } else {
+          window.showErrorMessage("Unable to use remote manifest file.");
+          this.dbtTerminal.error(
+            new CustomUnknownException(
               "remoteManifestError",
               "Unable to use remote manifest file.",
-            );
-            throw new Error("Unable to use remote manifest file.");
-          }
+            ),
+          );
+          throw new Error("Unable to use remote manifest file.");
         }
       }
+      this.dbtTerminal.debug(
+        `empty artifact url for dbt_core_integration_id: ${dbt_core_integration_id}`,
+      );
     }
     return [];
   }

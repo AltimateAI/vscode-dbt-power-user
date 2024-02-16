@@ -84,6 +84,7 @@ container
           container.get(AltimateRequest),
           projectRoot,
           projectConfigDiagnostics,
+          container.get(DBTTerminal),
         );
       };
     },

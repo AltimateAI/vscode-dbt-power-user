@@ -8,6 +8,8 @@ import { createWriteStream, mkdirSync } from "fs";
 import * as os from "os";
 import { RateLimitException } from "./exceptions";
 import { DBTProject } from "./manifest/dbtProject";
+import { DBTTerminal } from "./dbt_client/dbtTerminal";
+import { CustomUnknownException } from "./dbt_client/exception";
 
 interface AltimateConfig {
   key: string;
@@ -211,7 +213,10 @@ export class AltimateRequest {
     .getConfiguration("dbt")
     .get<string>("altimateUrl", "https://api.myaltimate.com");
 
-  constructor(private telemetry: TelemetryService) {}
+  constructor(
+    private telemetry: TelemetryService,
+    private dbtTerminal: DBTTerminal,
+  ) {}
 
   getConfig(): AltimateConfig | undefined {
     const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
@@ -389,10 +394,14 @@ export class AltimateRequest {
     const tempFolder = join(os.tmpdir(), hashedProjectRoot);
 
     try {
+      this.dbtTerminal.log(
+        `creating temporary folder: ${tempFolder} for file: ${fileName}`,
+      );
       mkdirSync(tempFolder, { recursive: true });
 
       const destinationPath = join(tempFolder, fileName);
 
+      this.dbtTerminal.log(`fetching artifactUrl: ${artifactUrl}`);
       const response = await fetch(artifactUrl, { agent: undefined });
 
       if (!response.ok) {
@@ -408,16 +417,17 @@ export class AltimateRequest {
         fileStream.on("finish", resolve);
       });
 
-      console.log("File downloaded successfully!");
+      this.dbtTerminal.log("File downloaded successfully!");
       window.showInformationMessage(`Successfully downloaded ${fileName}`);
       return tempFolder;
     } catch (err) {
-      console.error(`Could not save ${fileName} locally: ${err}`);
-      window.showErrorMessage(`Could not save ${fileName} locally: ${err}`);
-      this.telemetry.sendTelemetryError(
-        "downloadFileLocally",
-        `Could not save ${fileName} locally: ${err}`,
+      this.dbtTerminal.error(
+        new CustomUnknownException(
+          "downloadFileLocally",
+          `Could not save ${fileName} locally: ${err}`,
+        ),
       );
+      window.showErrorMessage(`Could not save ${fileName} locally: ${err}`);
       throw err;
     }
   }

@@ -21,6 +21,7 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { AltimateRequest } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 export type UpdateConfigProps = {
   key: string;
@@ -59,6 +60,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     protected altimateRequest: AltimateRequest,
     protected telemetry: TelemetryService,
     protected emitterService: SharedStateService,
+    protected dbtTerminal: DBTTerminal,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),

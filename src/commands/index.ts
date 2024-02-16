@@ -143,7 +143,9 @@ export class VSCodeCommands implements Disposable {
         }
         const activeFileUri = window.activeTextEditor.document.uri;
         if (!activeFileUri) {
-          this.dbtTerminal.log("buildCurrentProject without active file");
+          this.dbtTerminal.log(
+            "skipping buildCurrentProject without active file",
+          );
           return;
         }
 
@@ -155,6 +157,12 @@ export class VSCodeCommands implements Disposable {
           );
           return;
         }
+        this.dbtTerminal.log(
+          `building current project: ${dbtProject.getProjectName()} with active file: ${
+            activeFileUri.path
+          }`,
+        );
+
         dbtProject.buildProject();
       }),
       commands.registerCommand("dbtPowerUser.buildChildrenModels", () =>

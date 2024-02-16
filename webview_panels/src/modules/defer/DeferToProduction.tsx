@@ -136,8 +136,7 @@ const DeferToProduction = (): JSX.Element => {
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const { checked, name } = event.target;
-    panelLogger.log("dbtProjectRoot");
-    panelLogger.log(dbtProjectRoot);
+    panelLogger.log("dbtProjectRoot", dbtProjectRoot);
     const response = await executeRequestInSync("updateDeferConfig", {
       config: [
         {

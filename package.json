@@ -292,15 +292,18 @@
     "commands": [
       {
         "command": "dbtPowerUser.puQuickPick",
+        "category": "dbt Power User",
         "title": "dbt Power User Quick Pick"
       },
       {
         "command": "dbtPowerUser.openInsights",
+        "category": "dbt Power User",
         "title": "Open dbt Power User insights panel"
       },
       {
         "command": "dbtPowerUser.sqlQuickPick",
         "title": "SQL Actions",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/sql-action-light.svg",
           "dark": "./media/images/sql-action-dark.svg"
@@ -309,6 +312,7 @@
       {
         "command": "dbtPowerUser.runCurrentModel",
         "title": "Run dbt Model",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/run-light.svg",
           "dark": "./media/images/run-dark.svg"
@@ -333,6 +337,7 @@
         "command": "dbtPowerUser.sqlToModel",
         "title": "Convert to dbt Model (Preview feature)",
         "shortTitle": "Convert to dbt Model",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/preview-dbt-light.svg",
           "dark": "./media/images/preview-dbt-dark.svg"
@@ -341,24 +346,29 @@
       {
         "command": "dbtPowerUser.validateSql",
         "title": "Validate SQL",
+        "category": "dbt Power User",
         "icon": "$(circuit-board)"
       },
       {
         "command": "dbtPowerUser.altimateScan",
         "title": "Project Health Check",
+        "category": "dbt Power User",
         "icon": "$(circuit-board)"
       },
       {
         "command": "dbtPowerUser.clearAltimateScanResults",
+        "category": "dbt Power User",
         "title": "Clear Health Check Results"
       },
       {
         "command": "dbtPowerUser.bigqueryCostEstimate",
+        "category": "dbt Power User",
         "title": "Estimate cost for BigQuery"
       },
       {
         "command": "dbtPowerUser.compileCurrentModel",
         "title": "Compile dbt Model",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build_light.svg",
           "dark": "./media/images/build_dark.svg"
@@ -367,31 +377,37 @@
       {
         "command": "dbtPowerUser.sqlPreview",
         "title": "Compiled dbt Preview",
+        "category": "dbt Power User",
         "icon": "$(diff)"
       },
       {
         "command": "dbtPowerUser.runTest",
         "title": "Run Test",
+        "category": "dbt Power User",
         "icon": "$(pass)"
       },
       {
         "command": "dbtPowerUser.testCurrentModel",
         "title": "Test dbt Model",
+        "category": "dbt Power User",
         "icon": "$(pass)"
       },
       {
         "command": "dbtPowerUser.runChildrenModels",
         "title": "Run Downstream Models",
+        "category": "dbt Power User",
         "icon": "$(run-below)"
       },
       {
         "command": "dbtPowerUser.runParentModels",
         "title": "Run Upstream Models",
+        "category": "dbt Power User",
         "icon": "$(run-above)"
       },
       {
         "command": "dbtPowerUser.showRunSQL",
         "title": "Open dbt target folder run SQL",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/file-code_light.svg",
           "dark": "./media/images/file-code_dark.svg"
@@ -400,6 +416,7 @@
       {
         "command": "dbtPowerUser.generateSchemaYML",
         "title": "Generate Documentation YML",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/file-code_light.svg",
           "dark": "./media/images/file-code_dark.svg"
@@ -408,6 +425,7 @@
       {
         "command": "dbtPowerUser.goToDocumentationEditor",
         "title": "Open Documentation Editor",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/file-code_light.svg",
           "dark": "./media/images/file-code_dark.svg"
@@ -416,6 +434,7 @@
       {
         "command": "dbtPowerUser.generateDBTDocs",
         "title": "Run Dbt Docs Generate",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/run-light.svg",
           "dark": "./media/images/run-dark.svg"
@@ -430,6 +449,7 @@
       {
         "command": "dbtPowerUser.maximizeDatapilot",
         "title": "Maximize",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/fullscreen-light.svg",
           "dark": "./media/images/fullscreen-dark.svg"
@@ -438,11 +458,13 @@
       {
         "command": "dbtPowerUser.showHelpDatapilot",
         "title": "Help",
+        "category": "dbt Power User",
         "icon": "$(question)"
       },
       {
         "command": "dbtPowerUser.showCompiledSQL",
         "title": "Open dbt target folder compiled SQL",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/file-code_light.svg",
           "dark": "./media/images/file-code_dark.svg"
@@ -451,11 +473,13 @@
       {
         "command": "dbtPowerUser.executeSQL",
         "title": "Execute dbt SQL",
+        "category": "dbt Power User",
         "icon": "$(play)"
       },
       {
         "command": "dbtPowerUser.buildCurrentProject",
         "title": "Build dbt project",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
@@ -464,6 +488,7 @@
       {
         "command": "dbtPowerUser.buildCurrentModel",
         "title": "Build dbt Model",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
@@ -472,6 +497,7 @@
       {
         "command": "dbtPowerUser.buildChildrenModels",
         "title": "Build Downstream Models",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
@@ -480,6 +506,7 @@
       {
         "command": "dbtPowerUser.buildParentModels",
         "title": "Build Upstream Models",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
@@ -488,6 +515,7 @@
       {
         "command": "dbtPowerUser.buildChildrenParentModels",
         "title": "Build Upstream and Downstream Models",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"

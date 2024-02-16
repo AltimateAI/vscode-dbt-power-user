@@ -9,7 +9,6 @@ import {
 } from "vscode";
 import { getProjectRelativePath, provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import {
   AltimateWebviewProvider,
@@ -18,6 +17,8 @@ import {
 } from "./altimateWebviewProvider";
 import { AltimateRequest } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { CustomUnknownException } from "../dbt_client/exception";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];
@@ -45,31 +46,40 @@ export class InsightsPanel extends AltimateWebviewProvider {
     protected altimateRequest: AltimateRequest,
     telemetry: TelemetryService,
     protected emitterService: SharedStateService,
+    protected dbtTerminal: DBTTerminal,
   ) {
-    super(dbtProjectContainer, altimateRequest, telemetry, emitterService);
+    super(
+      dbtProjectContainer,
+      altimateRequest,
+      telemetry,
+      emitterService,
+      dbtTerminal,
+    );
 
-    window.onDidChangeActiveTextEditor(
-      async (event: TextEditor | undefined) => {
-        if (event === undefined) {
-          return;
-        }
+    this._disposables.push(
+      window.onDidChangeActiveTextEditor(
+        async (event: TextEditor | undefined) => {
+          if (event === undefined) {
+            return;
+          }
 
-        if (this._panel) {
-          const currentProject = await this.getCurrentProject();
-          const currentProjectRoot = await this.getCurrentProjectRoot();
-          const currentConfig: Record<string, DeferConfig> = await workspace
-            .getConfiguration("dbt")
-            .get("deferConfigPerProject", {});
+          if (this._panel) {
+            const currentProject = await this.getCurrentProject();
+            const currentProjectRoot = await this.getCurrentProjectRoot();
+            const currentConfig: Record<string, DeferConfig> = await workspace
+              .getConfiguration("dbt")
+              .get("deferConfigPerProject", {});
 
-          this._panel!.webview.postMessage({
-            command: "updateDeferConfig",
-            args: {
-              config: currentConfig[currentProjectRoot],
-              projectPath: currentProject?.projectRoot.fsPath,
-            },
-          });
-        }
-      },
+            this._panel!.webview.postMessage({
+              command: "updateDeferConfig",
+              args: {
+                config: currentConfig[currentProjectRoot],
+                projectPath: currentProject?.projectRoot.fsPath,
+              },
+            });
+          }
+        },
+      ),
     );
   }
 
@@ -98,7 +108,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
     params: UpdateConfigPropsArray,
   ) {
     try {
-      console.log("Updating defer config", params);
+      this.dbtTerminal.log("Updating defer config", params);
       if (!params.projectRoot) {
         window.showErrorMessage("Please select a project");
         return;
@@ -116,10 +126,21 @@ export class InsightsPanel extends AltimateWebviewProvider {
       const target = workspace.workspaceFolders
         ? ConfigurationTarget.WorkspaceFolder
         : ConfigurationTarget.Global;
+
+      this.dbtTerminal.debug("defer config target", targetFolder?.uri);
+
       const currentConfig: Record<string, DeferConfig> = await workspace
         .getConfiguration("dbt", targetFolder)
         .get("deferConfigPerProject", {});
       const root = getProjectRelativePath(Uri.parse(params.projectRoot));
+
+      this.dbtTerminal.info(
+        "Defer config",
+        "updating defer config",
+        true,
+        root,
+        updateConfigs,
+      );
 
       const newConfig = {
         ...currentConfig,
@@ -149,7 +170,9 @@ export class InsightsPanel extends AltimateWebviewProvider {
         });
       }
     } catch (err) {
-      console.info("could not update defer config", (err as Error).message);
+      this.dbtTerminal.error(
+        new CustomUnknownException("Defer config", (err as Error).message),
+      );
       this._panel!.webview.postMessage({
         command: "response",
         args: {
@@ -168,10 +191,11 @@ export class InsightsPanel extends AltimateWebviewProvider {
       if (!this.altimateRequest.handlePreviewFeatures()) {
         return;
       }
-      console.log("Fetching project integrations");
+      this.dbtTerminal.log("Fetching project integrations");
       const response = await this.altimateRequest.fetchProjectIntegrations();
 
       if (!response?.length) {
+        this.dbtTerminal.log("Missing project integrations");
         // TODO @surya to update text and docs link
         window
           .showInformationMessage(
@@ -196,9 +220,11 @@ export class InsightsPanel extends AltimateWebviewProvider {
         });
       }
     } catch (err) {
-      console.info(
-        "could not fetch project integrations",
-        (err as Error).message,
+      this.dbtTerminal.error(
+        new CustomUnknownException(
+          "Defer config",
+          `could not fetch project integrations ${(err as Error).message}`,
+        ),
       );
       this._panel!.webview.postMessage({
         command: "response",
@@ -218,7 +244,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
     dbt_core_integration_id: number,
   ) {
     try {
-      console.log("Fetching manifest signed url");
+      this.dbtTerminal.log("Fetching manifest signed url");
       const response = await this.altimateRequest.fetchArtifactUrl(
         "manifest",
         dbt_core_integration_id,
@@ -235,9 +261,11 @@ export class InsightsPanel extends AltimateWebviewProvider {
         });
       }
     } catch (err) {
-      console.info(
-        "could not fetch manifest signed url",
-        (err as Error).message,
+      this.dbtTerminal.error(
+        new CustomUnknownException(
+          "Defer config",
+          `could not fetch manifest signed url ${(err as Error).message}`,
+        ),
       );
       this._panel!.webview.postMessage({
         command: "response",
@@ -254,7 +282,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
 
   private async getProjects(syncRequestId: string | undefined) {
     try {
-      console.log("Fetching projects");
+      this.dbtTerminal.log("Fetching projects");
       const projects = this.dbtProjectContainer.getProjects();
 
       const dbtProjects: DbtProject[] = [];
@@ -279,9 +307,11 @@ export class InsightsPanel extends AltimateWebviewProvider {
         });
       }
     } catch (err) {
-      console.info(
-        "could not fetch project integrations",
-        (err as Error).message,
+      this.dbtTerminal.error(
+        new CustomUnknownException(
+          "Defer config",
+          `could not fetch project integrations ${(err as Error).message}`,
+        ),
       );
       this._panel!.webview.postMessage({
         command: "response",
@@ -305,6 +335,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       canSelectMany: false,
     });
     if (openDialog === undefined || openDialog.length === 0) {
+      this.dbtTerminal.debug("opendialog cancelled");
       this._panel!.webview.postMessage({
         command: "response",
         args: {
@@ -340,7 +371,9 @@ export class InsightsPanel extends AltimateWebviewProvider {
         );
         break;
       case "bigqueryCostEstimate":
-        console.log("insights_panel:handleCommand -> bigqueryCostEstimate");
+        this.dbtTerminal.log(
+          "insights_panel:handleCommand -> bigqueryCostEstimate",
+        );
         const result = await commands.executeCommand(
           "dbtPowerUser.bigqueryCostEstimate",
           { returnResult: true },
@@ -365,6 +398,9 @@ export class InsightsPanel extends AltimateWebviewProvider {
           : await this.getCurrentProjectRoot();
         const projectPath =
           projectRoot || (await this.getCurrentProject())?.projectRoot.fsPath;
+        this.dbtTerminal.debug(
+          `getting defer config for ${currentDocument?.uri.fsPath}`,
+        );
         const currentConfig: Record<string, DeferConfig> = await workspace
           .getConfiguration("dbt", currentDocument?.uri)
           .get("deferConfigPerProject", {});
