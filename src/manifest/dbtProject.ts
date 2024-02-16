@@ -161,7 +161,16 @@ export class DBTProject implements Disposable {
       this.dbtProjectLog,
       dbtProjectConfigWatcher,
       this.onSourceFileChanged(
-        debounce(async () => await this.rebuildManifest(), 2000),
+        debounce(async () => {
+          await this.rebuildManifest();
+          if (
+            workspace
+              .getConfiguration("dbt")
+              .get<boolean>("enableValidateSQLOnSave", false)
+          ) {
+            commands.executeCommand("dbtPowerUser.validateSql");
+          }
+        }, 2000),
       ),
     );
   }
