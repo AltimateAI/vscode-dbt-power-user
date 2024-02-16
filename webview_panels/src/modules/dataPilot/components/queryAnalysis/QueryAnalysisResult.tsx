@@ -12,7 +12,7 @@ import {
 import { panelLogger } from "@modules/logger";
 import UserQuery from "../common/UserQuery";
 import QueryAnalysisActionButton from "./QueryAnalysisActionButton";
-import { ChangeEvent, FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, KeyboardEvent, useState } from "react";
 import { DataPilotChatAction, RequestState } from "@modules/dataPilot/types";
 import useQueryAnalysisAction from "./useQueryAnalysisAction";
 import useQueryAnalysisContext from "./provider/useQueryAnalysisContext";
@@ -95,6 +95,14 @@ const QueryAnalysisResultComponent = ({
     setUserRequest(e.target.value);
   };
 
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      handleSubmit(e);
+    }
+  };
+
   return (
     <>
       <UserQuery query={user_prompt} />
@@ -131,7 +139,7 @@ const QueryAnalysisResultComponent = ({
       )}
       {showFollowup && actions?.length ? (
         <Stack direction="column">
-          <p className="p4 mb-0">Suggestions</p>
+          <p className="p4 mb-0">Followup Suggestions</p>
           <Stack className="flex-wrap">
             {actions.map((action) => (
               <QueryAnalysisActionButton key={action.command} action={action} />
@@ -150,6 +158,7 @@ const QueryAnalysisResultComponent = ({
               rows={1}
               maxRows={3}
               className="form-control"
+              onKeyDown={onKeyDown}
             />
 
             <IconButton
