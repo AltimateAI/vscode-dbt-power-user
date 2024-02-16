@@ -81,6 +81,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           message,
           eventMap: this.eventMap,
           panel: this._panel,
+          syncRequestId,
         });
         break;
       case "generateDocsForModel":
