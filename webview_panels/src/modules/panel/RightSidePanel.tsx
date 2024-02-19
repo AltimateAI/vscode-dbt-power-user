@@ -4,7 +4,7 @@ import { ReactNode } from "react";
 import classes from "./rightPanel.module.scss";
 
 interface Props {
-  title: string;
+  title?: string;
   children: ReactNode;
   onClose: () => void;
 }

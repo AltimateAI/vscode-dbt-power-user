@@ -7,6 +7,7 @@ export {
   CardTitle,
   CardBody,
   CardText,
+  CardFooter,
   Col,
   Form,
   FormGroup,
@@ -24,6 +25,8 @@ export {
   Nav,
   NavItem,
   NavLink,
+  ListGroup,
+  ListGroupItem,
 } from "reactstrap";
 
 export { default as Tag } from "./components/tag/Tag";
