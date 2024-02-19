@@ -29,6 +29,29 @@ export interface DBTDocumentation {
   patchPath?: string;
 }
 
+export interface TestMetadataKwArgs {
+  column_name: string;
+  model: string;
+}
+
+export enum DbtGenericTests {
+  ACCEPTED_VALUES = "accepted_values",
+  NOT_NULL = "not_null",
+  RELATIONSHIPS = "relationships",
+  UNIQUE = "unique",
+}
+
+// for accepted_values
+export interface TestMetadataAcceptedValuesKwArgs extends TestMetadataKwArgs {
+  values?: string[];
+}
+
+// for relationship
+export interface TestMetadataRelationshipsKwArgs extends TestMetadataKwArgs {
+  field?: string;
+  to?: string;
+}
+
 export interface DocumentationStateProps {
   currentDocsData?: DBTDocumentation;
   currentDocsTests?: DBTModelTest[];
@@ -47,6 +70,11 @@ export interface DBTModelTest {
   key: string;
   path: string;
   schema: string;
+  test_metadata?: {
+    kwargs: TestMetadataKwArgs;
+    name: string;
+    namespace?: string;
+  };
 }
 
 export interface DocsGenerateFollowupInstructions {

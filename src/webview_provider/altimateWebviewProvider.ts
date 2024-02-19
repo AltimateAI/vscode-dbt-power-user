@@ -60,8 +60,10 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     protected telemetry: TelemetryService,
     protected emitterService: SharedStateService,
   ) {
-    dbtProjectContainer.onManifestChanged((event) =>
-      this.onManifestCacheChanged(event),
+    this._disposables.push(
+      dbtProjectContainer.onManifestChanged((event) =>
+        this.onManifestCacheChanged(event),
+      ),
     );
 
     const t = this;

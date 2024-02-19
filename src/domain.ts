@@ -62,6 +62,18 @@ interface DocMetaData {
   character: number;
 }
 
+interface TestMetadataKwArgs {
+  column_name: string;
+  model: string;
+
+  // for accepted_values
+  values?: string[];
+
+  // for relationship
+  field?: string;
+  to?: string;
+}
+
 interface TestMetaData {
   path: string;
   database: string;
@@ -69,6 +81,11 @@ interface TestMetaData {
   alias: string;
   raw_sql: string;
   column_name?: string;
+  test_metadata?: {
+    kwargs: TestMetadataKwArgs;
+    name: string;
+    namespace?: string;
+  };
 }
 
 export interface ExposureMetaData {
