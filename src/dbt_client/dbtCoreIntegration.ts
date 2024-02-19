@@ -136,7 +136,7 @@ export class DBTCoreProjectDetection
 class DBTCoreQueryExecution implements QueryExecution {
   constructor(
     private cancelFunc: () => Promise<void>,
-    private queryResult: Promise<ExecuteSQLResult>,
+    private queryResult: () => Promise<ExecuteSQLResult>,
   ) {}
 
   cancel(): Promise<void> {
@@ -144,7 +144,7 @@ class DBTCoreQueryExecution implements QueryExecution {
   }
 
   executeQuery(): Promise<ExecuteSQLResult> {
-    return this.queryResult;
+    return this.queryResult();
   }
 }
 
@@ -222,7 +222,6 @@ export class DBTCoreProjectIntegration
       .replace("{query}", () => query)
       .replace("{limit}", () => limit.toString());
 
-    const compiledQuery = await this.unsafeCompileQuery(limitQuery);
     const queryThread = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
@@ -232,9 +231,12 @@ export class DBTCoreProjectIntegration
       async () => {
         queryThread.kill(2);
       },
-      queryThread!.lock<ExecuteSQLResult>(
-        (python) => python`to_dict(project.execute_sql(${compiledQuery}))`,
-      ),
+      async () => {
+        const compiledQuery = await this.unsafeCompileQuery(limitQuery);
+        return queryThread!.lock<ExecuteSQLResult>(
+          (python) => python`to_dict(project.execute_sql(${compiledQuery}))`,
+        );
+      },
     );
   }
 
