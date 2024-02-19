@@ -253,6 +253,61 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     await this.resolveWebviewView(this.panel!, this.context!, this.token!);
   };
 
+  private getModelTestDataToSave(
+    message: any,
+    columnName: string,
+    tests?: Record<string, unknown>[],
+  ) {
+    if (!message.tests?.column || columnName !== message.tests.column) {
+      return tests ? { tests } : {};
+    }
+
+    switch (message.tests.test) {
+      case "accepted_values":
+        const newValues = (message.tests.accepted_values as string)
+          ?.split(",")
+          .map((s) => s.trim());
+        if (tests) {
+          const currentIndex = tests.findIndex(
+            (test: Record<string, unknown>) => !!test.accepted_values,
+          );
+          if (currentIndex > -1) {
+            tests[currentIndex] = {
+              accepted_values: {
+                values: newValues,
+              },
+            };
+            return { tests };
+          }
+        }
+        return {
+          tests: [
+            ...(tests || []),
+            {
+              accepted_values: {
+                values: newValues,
+              },
+            },
+          ],
+        };
+      case "relationships":
+        return {
+          tests: [
+            ...(tests || []),
+            {
+              relationships: {
+                to: message.tests.to,
+                field: message.tests.field,
+              },
+            },
+          ],
+        };
+
+      default:
+        return { tests: [...(tests || []), message.tests.test] };
+    }
+  }
+
   private setupWebviewHooks(context: WebviewViewResolveContext) {
     // Clear this listener before subscribing again
     if (this.onMessageDisposable) {
@@ -453,6 +508,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                         name: column.name,
                         description: column.description,
                         ...(column?.type ? { data_type: column.type } : {}),
+                        ...this.getModelTestDataToSave(
+                          message,
+                          column.name,
+                          [],
+                        ),
                       })),
                     });
                   } else {
@@ -475,6 +535,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                   ? { data_type: column.type }
                                   : {}),
                                 description: column.description,
+                                ...this.getModelTestDataToSave(
+                                  message,
+                                  column.name,
+                                  existingColumn.tests,
+                                ),
                               };
                             } else {
                               return {
@@ -483,6 +548,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                 ...(column?.type
                                   ? { data_type: column.type }
                                   : {}),
+                                ...this.getModelTestDataToSave(
+                                  message,
+                                  column.name,
+                                  existingColumn.tests,
+                                ),
                               };
                             }
                           });

@@ -1,5 +1,8 @@
 import { AddOutlineIcon } from "@assets/icons";
-import { executeRequestInSync } from "@modules/app/requestExecutor";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import {
   DbtGenericTests,
@@ -27,6 +30,7 @@ import {
 } from "@uicore";
 import { useState } from "react";
 import { panelLogger } from "@modules/logger";
+import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 
 interface Props {
   title: string;
@@ -51,6 +55,9 @@ interface SaveRequest {
 }
 
 const EntityWithTests = ({ title, tests, type }: Props) => {
+  const {
+    state: { currentDocsData },
+  } = useDocumentationContext();
   const [addNewTestPanel, setAddNewTestPanel] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [toModelOptions, setModels] = useState<OptionType[]>([]);
@@ -62,14 +69,14 @@ const EntityWithTests = ({ title, tests, type }: Props) => {
     });
 
   const handleNewTestClick = async (test: DbtGenericTests) => {
+    setValue("test", test);
+
     if (test === DbtGenericTests.NOT_NULL || test === DbtGenericTests.UNIQUE) {
-      setIsSaving(true);
-      await executeRequestInSync("saveModelTest", {
-        column: title,
-        test,
-        path: tests?.[0].path,
-      });
-      setIsSaving(false);
+      await handleSave({ test }).catch((err) =>
+        panelLogger.error("error while saving test", test, err, title),
+      );
+      onClose();
+      return;
     }
 
     if (test === DbtGenericTests.RELATIONSHIPS) {
@@ -79,17 +86,23 @@ const EntityWithTests = ({ title, tests, type }: Props) => {
       )) as { models: string[] };
       setModels(resultModels.models.map((m) => ({ label: m, value: m })));
     }
-    setValue("test", test);
   };
 
   const handleSave = async (data: SaveRequest) => {
     setIsSaving(true);
-    await executeRequestInSync("saveModelTest", {
-      column: title,
-      path: tests?.[0].path,
-      ...data,
-      accepted_values: data.accepted_values?.split(",").map((s) => s.trim()),
-    });
+
+    (await executeRequestInSync("saveDocumentation", {
+      ...currentDocsData,
+      tests: {
+        column: title,
+        path: tests?.[0].path,
+        ...data,
+      },
+      patchPath: currentDocsData?.patchPath,
+      dialogType: "Existing file",
+    })) as { saved: boolean };
+    executeRequestInAsync("getCurrentModelTests", {});
+
     setIsSaving(false);
   };
 
@@ -117,6 +130,12 @@ const EntityWithTests = ({ title, tests, type }: Props) => {
   const formType = watch("test");
 
   const getFormContent = () => {
+    if (
+      formType !== DbtGenericTests.RELATIONSHIPS &&
+      formType !== DbtGenericTests.ACCEPTED_VALUES
+    ) {
+      return null;
+    }
     return (
       <Card>
         <CardTitle>{formType}</CardTitle>
