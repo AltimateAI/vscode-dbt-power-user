@@ -8,12 +8,14 @@ import {
 } from "vscode";
 import { AltimateRequest } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DbtProjectService } from "../services/dbtProjectService";
 import { DocGenService } from "../services/docGenService";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
 import { provideSingleton } from "../utils";
 import {
   AltimateWebviewProvider,
+  HandleCommandProps,
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
 import { DocsGenPanelView } from "./docsEditPanel";
@@ -33,6 +35,7 @@ export class NewDocsGenPanel
     telemetry: TelemetryService,
     private docGenService: DocGenService,
     protected emitterService: SharedStateService,
+    protected dbtProjectService: DbtProjectService,
   ) {
     super(dbtProjectContainer, altimateRequest, telemetry, emitterService);
 
@@ -42,16 +45,12 @@ export class NewDocsGenPanel
           if (event === undefined) {
             return;
           }
-          const tests = await this.docGenService.getTestsData(this.eventMap);
-          this._panel?.webview.postMessage({
-            command: "renderTests",
-            tests,
-            project: this.docGenService.getProject()?.getProjectName(),
-          });
+          this.transmitTestsData();
         },
       ),
     );
   }
+
   resolveWebview(
     panel: WebviewView,
     context: WebviewViewResolveContext<unknown>,
@@ -60,11 +59,17 @@ export class NewDocsGenPanel
     super.resolveWebviewView(panel, context, token);
   }
 
-  async handleCommand(message: {
-    command: string;
-    args: Record<string, unknown>;
-  }): Promise<void> {
-    const { command, args } = message;
+  private async transmitTestsData() {
+    const tests = await this.docGenService.getTestsData(this.eventMap);
+    this._panel?.webview.postMessage({
+      command: "renderTests",
+      tests,
+      project: this.dbtProjectService.getProject()?.getProjectName(),
+    });
+  }
+
+  async handleCommand(message: HandleCommandProps): Promise<void> {
+    const { command, syncRequestId, ...args } = message;
 
     switch (command) {
       case "enableNewDocsPanel":
@@ -81,8 +86,47 @@ export class NewDocsGenPanel
         await this._panel.webview.postMessage({
           command: "renderDocumentation",
           docs: documentation,
-          project: this.docGenService.getProject()?.getProjectName(),
+          project: this.dbtProjectService.getProject()?.getProjectName(),
         });
+      case "getCurrentModelTests":
+        this.transmitTestsData();
+        break;
+      case "getColumnsOfModel":
+        const columns = this.dbtProjectService.getColumnsFromEventMap(
+          this.eventMap,
+          args.model as string,
+        );
+        if (this._panel) {
+          this._panel.webview.postMessage({
+            command: "response",
+            args: {
+              syncRequestId,
+              body: {
+                columns: columns ? Object.keys(columns) : [],
+              },
+              status: true,
+            },
+          });
+        }
+        break;
+      case "getModelsFromProject":
+        const models = this.dbtProjectService.getModelsFromProject(
+          this.eventMap,
+          window.activeTextEditor?.document.uri,
+        );
+
+        if (this._panel) {
+          this._panel.webview.postMessage({
+            command: "response",
+            args: {
+              syncRequestId,
+              body: {
+                models,
+              },
+              status: true,
+            },
+          });
+        }
       default:
         super.handleCommand(message);
         break;

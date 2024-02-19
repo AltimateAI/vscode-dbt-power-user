@@ -11,6 +11,7 @@ import { DocGenService } from "../services/docGenService";
 import { AltimateRequest, QueryAnalysisType } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
 import { QueryAnalysisService } from "../services/queryAnalysisService";
+import { DbtProjectService } from "../services/dbtProjectService";
 
 enum DatapilotEvents {
   QUERY_EXPLAIN_ONLOAD = "queryAnalysis:load:explain",
@@ -32,6 +33,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     private docGenService: DocGenService,
     protected emitterService: SharedStateService,
     protected queryAnalysisService: QueryAnalysisService,
+    private dbtProjectService: DbtProjectService,
   ) {
     super(dbtProjectContainer, altimateRequest, telemetry, emitterService);
 
@@ -94,7 +96,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           ),
           message,
           panel: this._panel,
-          project: this.docGenService.getProject(),
+          project: this.dbtProjectService.getProject(),
         });
         break;
       case "generateDocsForColumn":
@@ -104,7 +106,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           ),
           panel: this._panel,
           message,
-          project: this.docGenService.getProject(),
+          project: this.dbtProjectService.getProject(),
         });
         break;
       case "docgen:insert":

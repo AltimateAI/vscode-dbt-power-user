@@ -7,38 +7,40 @@ import EntityWithTests from "./EntityWithTests";
 
 const ColumnsWithTests = () => {
   const {
-    state: { currentDocsTests },
+    state: { currentDocsTests, currentDocsData },
   } = useDocumentationContext();
 
   const testsPerColumns = useMemo(() => {
-    return currentDocsTests?.reduce(
-      (acc: Record<string, DBTModelTest[]>, columnTest) => {
-        if (!columnTest.column_name) {
-          return acc;
-        }
-        acc[columnTest.column_name] = acc[columnTest.column_name] ?? [];
-        return {
-          ...acc,
-          [columnTest.column_name]: [
-            ...acc[columnTest.column_name],
-            columnTest,
-          ],
-        };
-      },
-      {},
+    return (
+      currentDocsTests?.reduce(
+        (acc: Record<string, DBTModelTest[]>, columnTest) => {
+          if (!columnTest.column_name) {
+            return acc;
+          }
+          acc[columnTest.column_name] = acc[columnTest.column_name] ?? [];
+          return {
+            ...acc,
+            [columnTest.column_name]: [
+              ...acc[columnTest.column_name],
+              columnTest,
+            ],
+          };
+        },
+        {},
+      ) ?? {}
     );
   }, [currentDocsTests]);
 
-  if (!testsPerColumns) {
+  if (!currentDocsData?.columns.length) {
     return null;
   }
   return (
     <Stack direction="column">
-      {Object.entries(testsPerColumns)?.map(([columnName, tests]) => (
+      {currentDocsData.columns.map(({ name }) => (
         <EntityWithTests
-          title={columnName}
-          key={columnName}
-          tests={tests}
+          title={name}
+          key={name}
+          tests={testsPerColumns[name]}
           type={EntityType.COLUMN}
         />
       ))}

@@ -1,7 +1,8 @@
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import CommonActionButtons from "@modules/commonActionButtons/CommonActionButtons";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { Stack } from "@uicore";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import SyncWithDatabase from "./components/docGenerator/SyncWithDatabase";
 import ColumnsWithTests from "./components/tests/ColumnsWithTests";
 import EntityWithTests from "./components/tests/EntityWithTests";
@@ -12,6 +13,10 @@ const DocumentationTests = () => {
   const {
     state: { currentDocsData, currentDocsTests },
   } = useDocumentationContext();
+
+  useEffect(() => {
+    executeRequestInAsync("getCurrentModelTests", {});
+  }, []);
 
   const modelTests = useMemo(() => {
     return currentDocsTests?.filter((test) => !test.column_name);

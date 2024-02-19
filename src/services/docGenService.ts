@@ -1,5 +1,5 @@
 import path = require("path");
-import { ProgressLocation, WebviewView, window, workspace } from "vscode";
+import { ProgressLocation, Uri, WebviewView, window, workspace } from "vscode";
 import {
   AltimateRequest,
   DocsGenerateModelRequest,
@@ -16,6 +16,7 @@ import {
   DBTDocumentation,
   Source,
 } from "../webview_provider/docsEditPanel";
+import { DbtProjectService } from "./dbtProjectService";
 
 interface GenerateDocsForColumnsProps {
   panel: WebviewView | undefined;
@@ -45,8 +46,9 @@ const COLUMNS_PER_CHUNK = 3;
 export class DocGenService {
   public constructor(
     private altimateRequest: AltimateRequest,
-    protected dbtProjectContainer: DBTProjectContainer,
-    protected telemetry: TelemetryService,
+    private dbtProjectContainer: DBTProjectContainer,
+    private telemetry: TelemetryService,
+    private dbtProjectService: DbtProjectService,
   ) {}
 
   private async generateDocsForColumn(
@@ -163,14 +165,6 @@ export class DocGenService {
     }
   }
 
-  public getProject(): DBTProject | undefined {
-    if (!window.activeTextEditor) {
-      return undefined;
-    }
-    const currentFilePath = window.activeTextEditor.document.uri;
-    return this.dbtProjectContainer.findDBTProject(currentFilePath);
-  }
-
   public async getDocumentation(
     eventMap: Map<string, ManifestCacheProjectAddedEvent>,
   ): Promise<DBTDocumentation | undefined> {
@@ -179,7 +173,7 @@ export class DocGenService {
     }
 
     const currentFilePath = window.activeTextEditor.document.uri;
-    const project = this.getProject();
+    const project = this.dbtProjectService.getProject();
     if (project === undefined) {
       return undefined;
     }
@@ -504,7 +498,7 @@ export class DocGenService {
       },
       async () => {
         try {
-          const project = this.getProject();
+          const project = this.dbtProjectService.getProject();
           if (!project) {
             throw new Error("Unable to find project");
           }

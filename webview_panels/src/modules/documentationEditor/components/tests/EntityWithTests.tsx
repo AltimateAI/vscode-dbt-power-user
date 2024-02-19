@@ -26,6 +26,7 @@ import {
   OptionType,
 } from "@uicore";
 import { useState } from "react";
+import { panelLogger } from "@modules/logger";
 
 interface Props {
   title: string;
@@ -52,10 +53,8 @@ interface SaveRequest {
 const EntityWithTests = ({ title, tests, type }: Props) => {
   const [addNewTestPanel, setAddNewTestPanel] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
-  // TODO: fill the values
-  const toModelOptions = [{ label: "customer", value: "customer" }];
-  const toFieldOptions = [{ label: "customer", value: "customer" }];
+  const [toModelOptions, setModels] = useState<OptionType[]>([]);
+  const [toFieldOptions, setToFieldOptions] = useState<OptionType[]>([]);
 
   const { control, handleSubmit, setValue, watch, reset } =
     useForm<SaveRequest>({
@@ -73,6 +72,13 @@ const EntityWithTests = ({ title, tests, type }: Props) => {
       setIsSaving(false);
     }
 
+    if (test === DbtGenericTests.RELATIONSHIPS) {
+      const resultModels = (await executeRequestInSync(
+        "getModelsFromProject",
+        {},
+      )) as { models: string[] };
+      setModels(resultModels.models.map((m) => ({ label: m, value: m })));
+    }
     setValue("test", test);
   };
 
@@ -99,6 +105,15 @@ const EntityWithTests = ({ title, tests, type }: Props) => {
     reset();
   };
 
+  const getColumnsOfModel = async (model: string) => {
+    const columnsResult = (await executeRequestInSync("getColumnsOfModel", {
+      model,
+    })) as { columns: string[] };
+    setToFieldOptions(
+      columnsResult.columns.map((m) => ({ label: m, value: m })),
+    );
+  };
+
   const formType = watch("test");
 
   const getFormContent = () => {
@@ -118,9 +133,16 @@ const EntityWithTests = ({ title, tests, type }: Props) => {
                       ref={ref}
                       options={toModelOptions}
                       value={toModelOptions.find((c) => c.value === value)}
-                      onChange={(val: unknown) =>
-                        onChange((val as OptionType).value)
-                      }
+                      onChange={(val: unknown) => {
+                        const selectedModel = (val as OptionType).value;
+                        getColumnsOfModel(selectedModel).catch((err) =>
+                          panelLogger.error(
+                            `error while fetching colums of model: ${selectedModel}`,
+                            err,
+                          ),
+                        );
+                        return onChange(selectedModel);
+                      }}
                     />
                   )}
                 />

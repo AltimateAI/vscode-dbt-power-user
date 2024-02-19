@@ -6,6 +6,7 @@ import {
 } from "../altimate";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
+import { DbtProjectService } from "./dbtProjectService";
 import { DocGenService } from "./docGenService";
 import { StreamingService } from "./streamingService";
 
@@ -15,6 +16,7 @@ export class QueryAnalysisService {
     private docGenService: DocGenService,
     private streamingService: StreamingService,
     private altimateRequest: AltimateRequest,
+    private dbtProjectService: DbtProjectService,
   ) {}
 
   public getSelectedQuery() {
@@ -64,7 +66,7 @@ export class QueryAnalysisService {
       throw new Error("Invalid query");
     }
     const { query } = selectionData;
-    const dbtProject = this.docGenService.getProject();
+    const dbtProject = this.dbtProjectService.getProject();
 
     if (!dbtProject) {
       console.error("Invalid dbt project");
@@ -104,15 +106,14 @@ export class QueryAnalysisService {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
     }
-    const adapter =
-      this.docGenService.getProject()?.getAdapterType() || "unknown";
-    const documentation = await this.docGenService.getDocumentation(eventMap);
-    const dbtProject = this.docGenService.getProject();
-
+    const dbtProject = this.dbtProjectService.getProject();
     if (!dbtProject) {
       console.error("Invalid dbt project");
       throw new Error("Invalid dbt project");
     }
+
+    const adapter = dbtProject.getAdapterType() || "unknown";
+    const documentation = await this.docGenService.getDocumentation(eventMap);
 
     if (!documentation) {
       console.error("Unable to find documentation for the model");
