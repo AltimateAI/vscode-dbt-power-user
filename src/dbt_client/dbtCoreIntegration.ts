@@ -427,9 +427,28 @@ export class DBTCoreProjectIntegration
   }
 
   private async getDeferParams(projectRoot: Uri): Promise<string[]> {
+    // validate credentials and if not valid run without defer params
+    const config = this.altimateRequest.getConfig();
+    if (!config?.key || !config?.instance) {
+      // only validate when both are set
+      window.showErrorMessage("Missing credentials.");
+      throw new Error("Missing Altimate instance name and key in settings.");
+    }
+
+    const validation = await this.altimateRequest.validateCredentials(
+      config.instance,
+      config.key,
+    );
+
+    if (!validation?.ok) {
+      window.showErrorMessage("Invalid credentials. " + validation?.detail);
+      throw new Error("Invalid Altimate instance name and key in settings.");
+    }
+
     const currentConfig: Record<string, DeferConfig> = await workspace
       .getConfiguration("dbt")
       .get("deferConfigPerProject", {});
+
     const deferConfigInProject =
       currentConfig[getProjectRelativePath(projectRoot)];
 

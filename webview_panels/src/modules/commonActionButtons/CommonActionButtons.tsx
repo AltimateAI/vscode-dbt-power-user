@@ -1,10 +1,11 @@
-import { FeedbackIcon, InfoCircleIcon } from "@assets/icons";
-import HelpButton from "@modules/documentationEditor/components/help/HelpButton";
+import { InfoCircleIcon } from "@assets/icons";
 import DocGeneratorSettings from "@modules/documentationEditor/components/settings/DocGeneratorSettings";
-import { vscode } from "@modules/vscode";
 import { Alert, Button, Stack } from "@uicore";
 import { executeRequestInAsync } from "../app/requestExecutor";
 import { FC, useEffect, useState } from "react";
+import FeedbackButton from "./FeedbackButton";
+import HelpButton from "./HelpButton";
+import HelpContent from "@modules/documentationEditor/components/help/HelpContent";
 
 const AutoCollapsingNotif: FC<{ text: string; delay: number }> = ({
   text,
@@ -33,13 +34,6 @@ const CommonActionButtons = (): JSX.Element => {
     executeRequestInAsync("enableNewDocsPanel", { enable: false });
   };
 
-  const handleFeedbackClick = () => {
-    vscode.postMessage({
-      command: "openURL",
-      url: "https://docs.google.com/forms/d/e/1FAIpQLSeqFBZX_P4chScTTw8w-reRn2fr7NmeGdy8jISJOPdKEWfLaw/viewform",
-    });
-  };
-
   return (
     <Stack className="align-items-center text-nowrap">
       <AutoCollapsingNotif
@@ -51,10 +45,10 @@ const CommonActionButtons = (): JSX.Element => {
       </Button>
       <DocGeneratorSettings />
 
-      <HelpButton />
-      <Button outline onClick={handleFeedbackClick}>
-        <FeedbackIcon /> Feedback
-      </Button>
+      <HelpButton>
+        <HelpContent />
+      </HelpButton>
+      <FeedbackButton url="https://docs.google.com/forms/d/e/1FAIpQLSeqFBZX_P4chScTTw8w-reRn2fr7NmeGdy8jISJOPdKEWfLaw/viewform" />
     </Stack>
   );
 };

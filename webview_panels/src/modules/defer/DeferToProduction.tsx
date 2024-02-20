@@ -19,6 +19,7 @@ import { DbtProject, DeferToProductionProps } from "./types";
 import { ManifestPathType } from "./constants";
 import { ManifestSelection } from "./ManifestSelection";
 import { panelLogger } from "@modules/logger";
+import PreviewFeatureIcon from "@modules/previewFeature/PreviewFeatureIcon";
 
 const DefaultDeferState = {
   deferToProduction: false,
@@ -193,7 +194,7 @@ const DeferToProduction = (): JSX.Element => {
     <Col lg={7}>
       <Card className={classes.insightsCard}>
         <CardTitle className={classes.cardTitle} tag="h5">
-          Enable defer to production
+          Defer to production <PreviewFeatureIcon />
           <Tag color="primary">Performance</Tag>
         </CardTitle>
         <CardBody>
@@ -222,7 +223,7 @@ const DeferToProduction = (): JSX.Element => {
               <>
                 <FormGroup switch className={classes.formSwitch}>
                   <Label>
-                    Defer to production
+                    Enable defer to production
                     <Input
                       type="switch"
                       onChange={handleStateChange}

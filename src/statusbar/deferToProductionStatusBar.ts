@@ -17,11 +17,29 @@ export class DeferToProductionStatusBar implements Disposable {
     StatusBarAlignment.Left,
     9,
   );
-  private defaultColor: string = "statusBarItem.activeBackground";
   private disposables: Disposable[] = [];
 
   constructor(private dbtProjectContainer: DBTProjectContainer) {
-    this.showTextInStatusBar("$(sync) Defer");
+    this.dbtProjectContainer.onManifestChanged(async (event) => {
+      // Set initial defer status icon after project is initialized
+      const currentDocument = window.activeTextEditor?.document;
+      if (!currentDocument?.uri) {
+        this.showTextInStatusBar("$(sync~ignored) Defer");
+        return;
+      }
+
+      const currentDocProjectModified =
+        event.added?.find((p) =>
+          currentDocument.uri.fsPath.includes(p.project.projectRoot.fsPath),
+        ) ||
+        event.removed?.find((p) =>
+          currentDocument.uri.fsPath.includes(p.projectRoot.fsPath),
+        );
+
+      if (currentDocProjectModified) {
+        await this.updateStatusBar();
+      }
+    });
 
     this.disposables.push(
       workspace.onDidChangeConfiguration(
@@ -83,9 +101,10 @@ export class DeferToProductionStatusBar implements Disposable {
   }
 
   private async updateStatusBar() {
+    const currentDocument = window.activeTextEditor?.document;
     const currentProjectRoot = await this.getCurrentProjectRoot();
     const currentConfig: Record<string, DeferConfig> = await workspace
-      .getConfiguration("dbt")
+      .getConfiguration("dbt", currentDocument?.uri)
       .get("deferConfigPerProject", {});
 
     if (currentConfig[currentProjectRoot]?.deferToProduction) {

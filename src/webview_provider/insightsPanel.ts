@@ -196,7 +196,6 @@ export class InsightsPanel extends AltimateWebviewProvider {
 
       if (!response?.length) {
         this.dbtTerminal.log("Missing project integrations");
-        // TODO @surya to update text and docs link
         window
           .showInformationMessage(
             "You need to set up integration in SaaS. Please check the documentation",
@@ -204,7 +203,9 @@ export class InsightsPanel extends AltimateWebviewProvider {
           )
           .then((selection) => {
             if (selection === "View") {
-              env.openExternal(Uri.parse("https://docs.myaltimate.com/"));
+              env.openExternal(
+                Uri.parse("https://docs.myaltimate.com/test/defertoprod"),
+              );
             }
           });
       }
