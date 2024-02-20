@@ -1,4 +1,4 @@
-import { Alert, CodeBlock, Stack } from "@uicore";
+import { Alert, Card, CardBody, CardTitle, CodeBlock, Stack } from "@uicore";
 import QueryAnalysisActionButton from "./QueryAnalysisActionButton";
 import QueryAnalysisResultComponent from "./QueryAnalysisResult";
 import useQueryAnalysisContext, {
@@ -7,7 +7,10 @@ import useQueryAnalysisContext, {
 import DatapilotHeader from "../common/Header";
 import { DataPilotChatAction } from "@modules/dataPilot/types";
 import { QueryAnalysisCommands } from "./commands";
+import { AltimateIcon } from "@assets/icons";
+import { QueryAnalysisType } from "./types";
 
+const QUERY_HAPPY_LIMIT = 10;
 const DefaultActions = [
   {
     title: "Query explanation",
@@ -27,12 +30,28 @@ const QueryAnalysis = (): JSX.Element | null => {
   }
 
   const actions = chat.actions?.length ? chat.actions : DefaultActions;
+  const showLineLimitWarning =
+    chat.query.split("\n").length > QUERY_HAPPY_LIMIT &&
+    chat.analysisType === QueryAnalysisType.MODIFY;
 
   return (
     <Stack direction="column">
       <DatapilotHeader />
 
       <CodeBlock code={chat.query} language="sql" fileName={chat.fileName} />
+      {showLineLimitWarning ? (
+        <Card>
+          <CardTitle>
+            <AltimateIcon /> Datapilot
+          </CardTitle>
+          <CardBody>
+            Warning: this functionality works better for small code blocks, as
+            DataPilot may end up rewriting the entire code that is displayed
+            above.
+          </CardBody>
+        </Card>
+      ) : null}
+
       {/* show actions only if this is start of chat */}
       {results.length > 0 ? null : (
         <Stack style={{ flexWrap: "wrap" }}>
