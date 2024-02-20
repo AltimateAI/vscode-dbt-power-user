@@ -1,4 +1,4 @@
-import { vscode } from "@modules/vscode";
+import { vscode } from "@vscodeApi";
 import { IncomingSyncResponse } from "./types";
 
 const requestMap: Record<
@@ -46,7 +46,7 @@ const updateProgress = (
   syncRequestId: string,
   progress?: (chunk: string) => void,
 ) => {
-  if (progress && "chunk" in (body as Record<string, unknown>)) {
+  if (progress && body && "chunk" in (body as Record<string, unknown>)) {
     streamMap[syncRequestId] += (body as Record<string, unknown>)
       .chunk as string;
     progress(streamMap[syncRequestId]);

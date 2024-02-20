@@ -2,7 +2,6 @@ import {
   Diagnostic,
   DiagnosticCollection,
   Disposable,
-  FileSystemWatcher,
   languages,
   Range,
   RelativePattern,
@@ -25,6 +24,7 @@ import {
   DBTProjectIntegration,
   ExecuteSQLResult,
   PythonDBTCommandExecutionStrategy,
+  QueryExecution,
 } from "./dbtIntegration";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
@@ -145,6 +145,21 @@ export class DBTCoreProjectDetection
   async dispose() {}
 }
 
+class DBTCoreQueryExecution implements QueryExecution {
+  constructor(
+    private cancelFunc: () => Promise<void>,
+    private queryResult: () => Promise<ExecuteSQLResult>,
+  ) {}
+
+  cancel(): Promise<void> {
+    return this.cancelFunc();
+  }
+
+  executeQuery(): Promise<ExecuteSQLResult> {
+    return this.queryResult();
+  }
+}
+
 @provideSingleton(DBTCoreProjectIntegration)
 export class DBTCoreProjectIntegration
   implements DBTProjectIntegration, Disposable
@@ -199,7 +214,7 @@ export class DBTCoreProjectIntegration
   }
 
   async refreshProjectConfig(): Promise<void> {
-    await this.createPythonDbtProject();
+    await this.createPythonDbtProject(this.python);
     await this.python.ex`project.init_project()`;
     this.targetPath = await this.findTargetPath();
     this.modelPaths = await this.findModelPaths();
@@ -209,21 +224,44 @@ export class DBTCoreProjectIntegration
     this.adapterType = await this.findAdapterType();
   }
 
-  executeSQL(query: string): Promise<ExecuteSQLResult> {
-    return this.python!.lock<ExecuteSQLResult>(
-      (python) => python`to_dict(project.execute_sql(${query}))`,
+  async executeSQL(query: string, limit: number): Promise<QueryExecution> {
+    const queryTemplate = workspace
+      .getConfiguration("dbt")
+      .get<string>(
+        "queryTemplate",
+        "select * from ({query}\n) as query limit {limit}",
+      );
+
+    const limitQuery = queryTemplate
+      .replace("{query}", () => query)
+      .replace("{limit}", () => limit.toString());
+
+    const queryThread = this.executionInfrastructure.createPythonBridge(
+      this.projectRoot.fsPath,
+    );
+    await this.createPythonDbtProject(queryThread);
+    await queryThread.ex`project.init_project()`;
+    return new DBTCoreQueryExecution(
+      async () => {
+        queryThread.kill(2);
+      },
+      async () => {
+        const compiledQuery = await this.unsafeCompileQuery(limitQuery);
+        return queryThread!.lock<ExecuteSQLResult>(
+          (python) => python`to_dict(project.execute_sql(${compiledQuery}))`,
+        );
+      },
     );
   }
 
-  private async createPythonDbtProject() {
-    await this.python.ex`from dbt_integration import *`;
+  private async createPythonDbtProject(bridge: PythonBridge) {
+    await bridge.ex`from dbt_integration import *`;
     const targetPath = this.removeTrailingSlashes(
-      await this.python.lock(
+      await bridge.lock(
         (python) => python`target_path(${this.projectRoot.fsPath})`,
       ),
     );
-    await this.python
-      .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.profilesDir}, target_path=${targetPath}) if 'project' not in locals() else project`;
+    await bridge.ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.profilesDir}, target_path=${targetPath}) if 'project' not in locals() else project`;
   }
 
   async initializeProject(): Promise<void> {
@@ -249,7 +287,7 @@ export class DBTCoreProjectIntegration
           ),
         );
       }
-      await this.createPythonDbtProject();
+      await this.createPythonDbtProject(this.python);
       this.pythonBridgeDiagnostics.clear();
     } catch (exc: any) {
       if (exc instanceof PythonException) {

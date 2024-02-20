@@ -217,6 +217,11 @@ export interface DBTProjectDetection extends Disposable {
   discoverProjects(projectConfigFiles: Uri[]): Promise<Uri[]>;
 }
 
+export interface QueryExecution {
+  cancel(): Promise<void>;
+  executeQuery(): Promise<ExecuteSQLResult>;
+}
+
 export interface DBTProjectIntegration extends Disposable {
   // initialize execution infrastructure
   initializeProject(): Promise<void>;
@@ -232,7 +237,7 @@ export interface DBTProjectIntegration extends Disposable {
   // parse manifest
   rebuildManifest(): Promise<void>;
   // execute queries
-  executeSQL(query: string): Promise<ExecuteSQLResult>;
+  executeSQL(query: string, limit: number): Promise<QueryExecution>;
   // dbt commands
   runModel(command: DBTCommand): Promise<void>;
   buildModel(command: DBTCommand): Promise<void>;

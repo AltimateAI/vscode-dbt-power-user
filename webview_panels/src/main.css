@@ -106,3 +106,7 @@ strong {
   vertical-align: sub;
   color: inherit;
 }
+
+code {
+  color: inherit;
+}

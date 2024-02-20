@@ -3,7 +3,6 @@ import type { Meta, StoryObj } from "@storybook/react";
 import DataPilotPanel from "../..";
 import { DataPilotContext } from "../../DataPilotProvider";
 import {
-  DatapilotDocGenActionButtonFactory,
   DatapilotQueryAnalysisFactory,
   DatapilotQueryExplainResultFactory,
 } from "@testUtils";
@@ -12,6 +11,7 @@ import { userEvent, within } from "@storybook/testing-library";
 import { faker } from "@faker-js/faker";
 import { panelLogger } from "@modules/logger";
 import { QueryAnalysisCommands } from "./commands";
+import { QueryAnalysisType } from "./types";
 
 const queryAnalysisLoadingState = DatapilotQueryAnalysisFactory.build({
   state: RequestState.LOADING,
@@ -19,20 +19,6 @@ const queryAnalysisLoadingState = DatapilotQueryAnalysisFactory.build({
 
 const queryAnalysisDefaultState = DatapilotQueryAnalysisFactory.build({
   state: RequestState.COMPLETED,
-  actions: [
-    DatapilotDocGenActionButtonFactory.build({
-      title: "Query explanation",
-    }),
-    DatapilotDocGenActionButtonFactory.build({
-      title: "Query change",
-    }),
-    DatapilotDocGenActionButtonFactory.build({
-      title: "Query debug",
-    }),
-    DatapilotDocGenActionButtonFactory.build({
-      title: "Query translate",
-    }),
-  ],
 });
 
 export default {
@@ -97,6 +83,50 @@ export const ExplainLoading: StoryObj = {
   ],
 };
 
+export const ModifyFlow = {
+  render: (): JSX.Element => {
+    return <DataPilotPanel />;
+  },
+  parameters: {
+    vscode: {
+      func: (request: Record<string, unknown>): unknown => {
+        if (request.command === QueryAnalysisCommands.modify) {
+          return DatapilotQueryExplainResultFactory.build({
+            datapilot_title: "Query change",
+          });
+        }
+
+        if (request.command === "sendFeedback") {
+          return true;
+        }
+      },
+      timer: 500,
+    },
+  },
+  decorators: [
+    withReactContext({
+      Context: DataPilotContext,
+      initialState: {
+        state: {
+          items: {
+            [queryAnalysisDefaultState.id]: {
+              ...queryAnalysisDefaultState,
+              analysisType: QueryAnalysisType.MODIFY,
+              actions: [
+                {
+                  title: "Query change",
+                  command: QueryAnalysisCommands.modify,
+                },
+              ],
+            },
+          },
+          currentSessionId: queryAnalysisDefaultState.id,
+        },
+      },
+    }),
+  ],
+};
+
 export const ExplainFlow = {
   render: (): JSX.Element => {
     return <DataPilotPanel />;
@@ -108,13 +138,7 @@ export const ExplainFlow = {
           request.command === "regenerate" ||
           request.command === QueryAnalysisCommands.explain
         ) {
-          return DatapilotQueryExplainResultFactory.build({
-            actions: [
-              DatapilotDocGenActionButtonFactory.build({
-                title: "Why there is a join condition?",
-              }),
-            ],
-          });
+          return DatapilotQueryExplainResultFactory.build();
         }
         if (request.command === "queryanalysis:followup") {
           return faker.helpers.multiple(() => faker.lorem.sentence(), {
@@ -131,7 +155,18 @@ export const ExplainFlow = {
       Context: DataPilotContext,
       initialState: {
         state: {
-          items: { [queryAnalysisDefaultState.id]: queryAnalysisDefaultState },
+          items: {
+            [queryAnalysisDefaultState.id]: {
+              ...queryAnalysisDefaultState,
+              analysisType: QueryAnalysisType.EXPLAIN,
+              actions: [
+                {
+                  title: "Query explain",
+                  command: QueryAnalysisCommands.explain,
+                },
+              ],
+            },
+          },
           currentSessionId: queryAnalysisDefaultState.id,
         },
       },

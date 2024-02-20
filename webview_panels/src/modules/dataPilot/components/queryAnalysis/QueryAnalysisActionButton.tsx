@@ -33,9 +33,9 @@ const QueryAnalysisActionButton = ({ action }: Props): JSX.Element => {
   };
 
   const handleClick = () => {
+    const analysisType = getAnalysisType();
     // If analysis type is not set for chat yet, set the current analysis type and state as completed to avoid multiple requests
     if (!chat?.analysisType) {
-      const analysisType = getAnalysisType();
       dispatch(
         upsertItem({
           ...chat,
@@ -44,6 +44,15 @@ const QueryAnalysisActionButton = ({ action }: Props): JSX.Element => {
         } as DatapilotQueryAnalysisChat),
       );
     }
+
+    if (analysisType === QueryAnalysisType.MODIFY) {
+      onNewGeneration({
+        session_id: crypto.randomUUID(),
+        state: RequestState.COMPLETED,
+      });
+      return;
+    }
+
     executeQueryAnalysis({
       command: action.command,
       onNewGeneration,
