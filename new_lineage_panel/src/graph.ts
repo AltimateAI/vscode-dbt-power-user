@@ -375,10 +375,14 @@ const processColumnLineage = async (
     const targetId = e.target.join("/");
     const source = COLUMN_PREFIX + sourceId;
     const target = COLUMN_PREFIX + targetId;
+    const getEdgeType = (prevNodeEdgeType: string) => {
+      if (e.type === "indirect") return "indirect";
+      return prevNodeEdgeType || e.type;
+    };
     if (right) {
-      columnEdgeType[targetId] = columnEdgeType[sourceId] || e.type;
+      columnEdgeType[targetId] = getEdgeType(columnEdgeType[sourceId]);
     } else {
-      columnEdgeType[sourceId] = columnEdgeType[targetId] || e.type;
+      columnEdgeType[sourceId] = getEdgeType(columnEdgeType[targetId]);
     }
     const edgeType = right
       ? columnEdgeType[targetId]
