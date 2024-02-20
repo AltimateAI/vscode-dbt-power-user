@@ -431,10 +431,10 @@ export class DBTCoreProjectIntegration
     const config = this.altimateRequest.getConfig();
     if (!config?.key || !config?.instance) {
       // only validate when both are set
-      window.showErrorMessage("Missing credentials.");
-      throw new Error(
+      window.showErrorMessage(
         "Cannot run with defer to prod set up as Auth tokens are invalid",
       );
+      throw new Error("Missing Altimate instance name and key in settings.");
     }
 
     const validation = await this.altimateRequest.validateCredentials(
@@ -443,10 +443,10 @@ export class DBTCoreProjectIntegration
     );
 
     if (!validation?.ok) {
-      window.showErrorMessage("Invalid credentials. " + validation?.detail);
-      throw new Error(
+      window.showErrorMessage(
         "Cannot run with defer to prod set up as Auth tokens are invalid",
       );
+      throw new Error("Invalid Altimate instance name and key in settings.");
     }
 
     const currentConfig: Record<string, DeferConfig> = await workspace
