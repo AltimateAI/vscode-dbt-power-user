@@ -18,6 +18,6 @@ Describe the implemented solution. Add external references if needed.
 ## Checklist
 
 - [ ] I have run this code and it appears to resolve the stated issue
-- [ ] I have added necessary tests
+- [ ] I have added the necessary tests
 - [ ] `README.md` updated and added information about my change
 - [ ] Documentation website is updated with information related to this change
