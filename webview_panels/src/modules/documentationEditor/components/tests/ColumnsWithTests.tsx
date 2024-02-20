@@ -5,7 +5,7 @@ import { Stack } from "@uicore";
 import { useMemo } from "react";
 import EntityWithTests from "./EntityWithTests";
 
-const ColumnsWithTests = () => {
+const ColumnsWithTests = (): JSX.Element | null => {
   const {
     state: { currentDocsTests, currentDocsData },
   } = useDocumentationContext();

@@ -1,3 +1,4 @@
+import { readFileSync } from "fs";
 import {
   CancellationToken,
   TextEditor,
@@ -72,6 +73,18 @@ export class NewDocsGenPanel
     const { command, syncRequestId, ...args } = message;
 
     switch (command) {
+      case "getTestCode":
+        this._panel?.webview.postMessage({
+          command: "response",
+          args: {
+            syncRequestId,
+            body: {
+              code: readFileSync(args.path as string, { encoding: "utf-8" }),
+            },
+            status: true,
+          },
+        });
+        break;
       case "enableNewDocsPanel":
         this.toggleDocsPanel(args);
         break;

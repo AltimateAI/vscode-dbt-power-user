@@ -9,7 +9,7 @@ import EntityWithTests from "./components/tests/EntityWithTests";
 import useDocumentationContext from "./state/useDocumentationContext";
 import classes from "./styles.module.scss";
 
-const DocumentationTests = () => {
+const DocumentationTests = (): JSX.Element => {
   const {
     state: { currentDocsData, currentDocsTests },
   } = useDocumentationContext();

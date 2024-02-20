@@ -40,6 +40,7 @@ const getName = (i: number) => {
 };
 const getRandomDbtTestMetadata = (
   i: number,
+  columnName?: string,
 ): undefined | DBTModelTest["test_metadata"] => {
   // singular tests in tests directory
   if (i % 3 === 0) return undefined;
@@ -48,7 +49,7 @@ const getRandomDbtTestMetadata = (
   if (i % 4 === 0)
     return {
       kwargs: {
-        column_name: faker.database.column(),
+        column_name: columnName ?? "",
         model: faker.hacker.noun(),
       },
       name: faker.hacker.noun(),
@@ -67,7 +68,7 @@ const getRandomDbtTestMetadata = (
       : {};
   return {
     kwargs: {
-      column_name: faker.database.column(),
+      column_name: columnName ?? "",
       model: faker.hacker.noun(),
       ...extraData,
     },
@@ -75,14 +76,19 @@ const getRandomDbtTestMetadata = (
   };
 };
 
-const DBTDocumentationTestsBaseFactory = Sync.makeFactory<DBTModelTest>({
-  alias: each(() => faker.string.alpha(getRandomNumber())),
-  column_name: each((i) => (i % 3 === 0 ? undefined : faker.database.column())),
-  database: faker.hacker.noun(),
-  schema: each(() => faker.string.alpha(getRandomNumber())),
-  test_metadata: each((i) => getRandomDbtTestMetadata(i)),
-  key: each(() => faker.string.alpha(getRandomNumber())),
-  path: each(() => faker.string.alpha(getRandomNumber())),
+const DBTDocumentationTestsBaseFactory = Sync.makeFactory<DBTModelTest>(() => {
+  const columnName = faker.database.column();
+  return {
+    alias: each(() => faker.string.alpha(getRandomNumber())),
+    column_name: each((i) => (i % 3 === 0 ? undefined : columnName)),
+    database: faker.hacker.noun(),
+    schema: each(() => faker.string.alpha(getRandomNumber())),
+    test_metadata: each((i) =>
+      getRandomDbtTestMetadata(i, i % 3 === 0 ? undefined : columnName),
+    ),
+    key: each(() => faker.string.alpha(getRandomNumber())),
+    path: each(() => faker.string.alpha(getRandomNumber())),
+  };
 });
 
 const DBTDocumentationTestsWithKeyFactory =
