@@ -320,7 +320,8 @@ const processColumnLineage = async (
   right: boolean,
   currAnd1HopTables: string[],
   selectedColumn: { name: string; table: string },
-  sessionId: string
+  sessionId: string,
+  columnEdgeType: Record<string, string>
 ) => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
@@ -370,18 +371,27 @@ const processColumnLineage = async (
 
     const sourceTableExist = tableNodes[t0];
     const targetTableExist = tableNodes[t1];
-    const source = COLUMN_PREFIX + e.source.join("/");
-    const target = COLUMN_PREFIX + e.target.join("/");
-
+    const sourceId = e.source.join("/");
+    const targetId = e.target.join("/");
+    const source = COLUMN_PREFIX + sourceId;
+    const target = COLUMN_PREFIX + targetId;
+    if (right) {
+      columnEdgeType[targetId] = columnEdgeType[sourceId] || e.type;
+    } else {
+      columnEdgeType[sourceId] = columnEdgeType[targetId] || e.type;
+    }
+    const edgeType = right
+      ? columnEdgeType[targetId]
+      : columnEdgeType[sourceId];
     if (sourceTableExist && targetTableExist) {
-      addToEdges(t0, t1, source, target, e.type);
+      addToEdges(t0, t1, source, target, edgeType);
     } else if (sourceTableExist) {
       const seeMoreId = seeMoreIdTableReverseMap[t1];
-      addToEdges(t0, seeMoreId, source, seeMoreId, e.type);
+      addToEdges(t0, seeMoreId, source, seeMoreId, edgeType);
       seeMoreLineage.push(e);
     } else if (targetTableExist) {
       const seeMoreId = seeMoreIdTableReverseMap[t0];
-      addToEdges(seeMoreId, t1, seeMoreId, target, e.type);
+      addToEdges(seeMoreId, t1, seeMoreId, target, edgeType);
       seeMoreLineage.push(e);
     } else {
       seeMoreLineage.push(e);
@@ -605,6 +615,7 @@ export const bfsTraversal = async (
     c.name,
   ]);
   let currEphemeralNodes: string[] = [];
+  const columnEdgeType: Record<string, string> = {};
   while (true as boolean) {
     if (CLL.isCancelled) break;
     currTargetColumns = currTargetColumns.filter((x) => !visited[x.join("/")]);
@@ -683,7 +694,8 @@ export const bfsTraversal = async (
       right,
       Array.from(new Set(currAnd1HopTables)),
       columns[0],
-      sessionId
+      sessionId,
+      columnEdgeType
     );
     if (patchState.confidence?.confidence === "low") {
       setConfidence((prev) => {
