@@ -363,20 +363,13 @@ const processColumnLineage = async (
   };
 
   const seeMoreLineage: ColumnLineage[] = [];
+
+  // since many edges can come to same node, one node can have multiple direct/indirect edges
+  // 1st pass to collect all type of edges that column at current level can have
   const columnEdgeTypeCandidates: Record<string, string[]> = {};
   for (const e of columnLineage) {
-    addToCollectColumns(e.source);
-    addToCollectColumns(e.target);
-    const [t0] = e.source;
-    const [t1] = e.target;
-
-    const sourceTableExist = tableNodes[t0];
-    const targetTableExist = tableNodes[t1];
     const sourceId = e.source.join("/");
     const targetId = e.target.join("/");
-    const source = COLUMN_PREFIX + sourceId;
-    const target = COLUMN_PREFIX + targetId;
-
     const getEdgeType = (prevNodeEdgeType: string) => {
       if (isFirst) return e.type;
       if (e.type === "indirect") return "indirect";
@@ -396,7 +389,28 @@ const processColumnLineage = async (
         getEdgeType(columnEdgeType[targetId])
       );
     }
-    const edgeType = getEdgeType(columnEdgeType[right ? targetId : sourceId]);
+  }
+  // 2nd pass to assign edge type to columns at current level
+  for (const k in columnEdgeTypeCandidates) {
+    columnEdgeType[k] = columnEdgeTypeCandidates[k].some((x) => x === "direct")
+      ? "direct"
+      : "indirect";
+  }
+
+  for (const e of columnLineage) {
+    addToCollectColumns(e.source);
+    addToCollectColumns(e.target);
+    const [t0] = e.source;
+    const [t1] = e.target;
+
+    const sourceTableExist = tableNodes[t0];
+    const targetTableExist = tableNodes[t1];
+    const sourceId = e.source.join("/");
+    const targetId = e.target.join("/");
+    const source = COLUMN_PREFIX + sourceId;
+    const target = COLUMN_PREFIX + targetId;
+
+    const edgeType = columnEdgeType[right ? targetId : sourceId];
     if (sourceTableExist && targetTableExist) {
       addToEdges(t0, t1, source, target, edgeType);
     } else if (sourceTableExist) {
@@ -411,13 +425,6 @@ const processColumnLineage = async (
       seeMoreLineage.push(e);
       // TODO: check is nothing to do in this case
     }
-  }
-
-  // since many edges can come to same node, one node can have multiple direct/indirect edges
-  for (const k in columnEdgeTypeCandidates) {
-    columnEdgeType[k] = columnEdgeTypeCandidates[k].some((x) => x === "direct")
-      ? "direct"
-      : "indirect";
   }
 
   for (const t in collectColumns) {
