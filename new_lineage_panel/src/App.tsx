@@ -173,13 +173,13 @@ function App() {
       const existingNode = _flow.getNode(node.table);
       if (existingNode) {
         setSelectedTable(node.table);
-        const [nodes, edges] = highlightTableConnections(
-          _flow.getNodes(),
-          _flow.getEdges(),
-          node.table
-        );
-        _flow.setNodes(nodes);
-        _flow.setEdges(edges);
+        let nodes = _flow.getNodes();
+        let edges = _flow.getEdges();
+        if (!selectedColumn.name) {
+          [nodes, edges] = highlightTableConnections(nodes, edges, node.table);
+          _flow.setNodes(nodes);
+          _flow.setEdges(edges);
+        }
         setMinRange(calculateMinLevel(nodes, edges, node.table));
         setNodeCount(
           await calculateNodeCount(

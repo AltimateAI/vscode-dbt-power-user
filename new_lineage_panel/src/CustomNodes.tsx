@@ -86,7 +86,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
   const {
     selectedTable,
-    setSelectedTable,
     setShowSidebar,
     setSidebarScreen,
     collectColumns,
@@ -191,7 +190,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
       <div
         className={styles.table_node}
         onClick={async () => {
-          setSelectedTable(table);
           const nodes = flow.getNodes();
           const edges = flow.getEdges();
           setMinRange(calculateMinLevel(nodes, edges, table));
