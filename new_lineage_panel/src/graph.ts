@@ -321,7 +321,8 @@ const processColumnLineage = async (
   currAnd1HopTables: string[],
   selectedColumn: { name: string; table: string },
   sessionId: string,
-  columnEdgeType: Record<string, string>
+  columnEdgeType: Record<string, string>,
+  isFirst: boolean
 ) => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
@@ -362,7 +363,7 @@ const processColumnLineage = async (
   };
 
   const seeMoreLineage: ColumnLineage[] = [];
-
+  const columnEdgeTypeCandidates: Record<string, string[]> = {};
   for (const e of columnLineage) {
     addToCollectColumns(e.source);
     addToCollectColumns(e.target);
@@ -375,18 +376,27 @@ const processColumnLineage = async (
     const targetId = e.target.join("/");
     const source = COLUMN_PREFIX + sourceId;
     const target = COLUMN_PREFIX + targetId;
+
     const getEdgeType = (prevNodeEdgeType: string) => {
+      if (isFirst) return e.type;
       if (e.type === "indirect") return "indirect";
       return prevNodeEdgeType || e.type;
     };
+
     if (right) {
-      columnEdgeType[targetId] = getEdgeType(columnEdgeType[sourceId]);
+      columnEdgeTypeCandidates[targetId] =
+        columnEdgeTypeCandidates[targetId] || [];
+      columnEdgeTypeCandidates[targetId].push(
+        getEdgeType(columnEdgeType[sourceId])
+      );
     } else {
-      columnEdgeType[sourceId] = getEdgeType(columnEdgeType[targetId]);
+      columnEdgeTypeCandidates[sourceId] =
+        columnEdgeTypeCandidates[sourceId] || [];
+      columnEdgeTypeCandidates[sourceId].push(
+        getEdgeType(columnEdgeType[targetId])
+      );
     }
-    const edgeType = right
-      ? columnEdgeType[targetId]
-      : columnEdgeType[sourceId];
+    const edgeType = getEdgeType(columnEdgeType[right ? targetId : sourceId]);
     if (sourceTableExist && targetTableExist) {
       addToEdges(t0, t1, source, target, edgeType);
     } else if (sourceTableExist) {
@@ -401,6 +411,13 @@ const processColumnLineage = async (
       seeMoreLineage.push(e);
       // TODO: check is nothing to do in this case
     }
+  }
+
+  // since many edges can come to same node, one node can have multiple direct/indirect edges
+  for (const k in columnEdgeTypeCandidates) {
+    columnEdgeType[k] = columnEdgeTypeCandidates[k].some((x) => x === "direct")
+      ? "direct"
+      : "indirect";
   }
 
   for (const t in collectColumns) {
@@ -620,6 +637,7 @@ export const bfsTraversal = async (
   ]);
   let currEphemeralNodes: string[] = [];
   const columnEdgeType: Record<string, string> = {};
+  let isFirst = true;
   while (true as boolean) {
     if (CLL.isCancelled) break;
     currTargetColumns = currTargetColumns.filter((x) => !visited[x.join("/")]);
@@ -699,8 +717,10 @@ export const bfsTraversal = async (
       Array.from(new Set(currAnd1HopTables)),
       columns[0],
       sessionId,
-      columnEdgeType
+      columnEdgeType,
+      isFirst
     );
+    isFirst = false;
     if (patchState.confidence?.confidence === "low") {
       setConfidence((prev) => {
         const newConfidence = { ...prev, confidence: "low" };
