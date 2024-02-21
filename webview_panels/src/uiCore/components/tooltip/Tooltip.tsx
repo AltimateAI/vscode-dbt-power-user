@@ -5,6 +5,7 @@ interface Props {
   children: ReactNode;
   title?: string;
   id?: string;
+  className?: string;
 }
 const Tooltip = (props: Props): JSX.Element => {
   const [tooltipOpen, setTooltipOpen] = useState(false);
@@ -21,6 +22,7 @@ const Tooltip = (props: Props): JSX.Element => {
           isOpen={tooltipOpen}
           target={idRef.current}
           toggle={toggle}
+          className={props.className}
         >
           {props.title}
         </ReactStrapTooltip>
