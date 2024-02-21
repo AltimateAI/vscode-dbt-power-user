@@ -1,9 +1,10 @@
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import "reactflow/dist/style.css";
 import { Input, Label } from "reactstrap";
 import styles from "./styles.module.scss";
 import { CLL } from "./service_utils";
 import { LineageContext, aiEnabled } from "./App";
+import { CustomInput } from "./components/Form";
 
 function Settings() {
   const {
@@ -13,10 +14,21 @@ function Settings() {
     nonSelectCheck,
     setNonSelectCheck,
   } = useContext(LineageContext);
+  const [defaultExpansion, setDefaultExpansion] = useState("5");
   return (
     <div className="p-2 h-100 d-flex flex-column">
       <div className="mb-2 fw-semibold fs-5">Settings</div>
       <div className="d-flex flex-column gap-sm">
+        <div>
+          <Label check for="default-expansion" className="fs-6">
+            Default Expansion
+          </Label>
+          <CustomInput
+            id="default-expansion"
+            value={defaultExpansion}
+            onChange={(e) => setDefaultExpansion(e.target.value)}
+          />
+        </div>
         {aiEnabled && selectedColumn.name && (
           <>
             <div className={styles.select_node_checkbox}>
