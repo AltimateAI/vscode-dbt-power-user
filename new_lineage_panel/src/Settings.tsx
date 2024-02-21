@@ -35,6 +35,7 @@ function Settings() {
         </div>
         {aiEnabled && selectedColumn.name && (
           <>
+            <div className="fs-6">Edges visibility</div>
             <div className={styles.select_node_checkbox}>
               <Input
                 type="checkbox"
