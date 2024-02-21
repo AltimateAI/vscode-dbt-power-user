@@ -16,8 +16,8 @@ function Settings() {
   return (
     <div className="p-2 h-100 d-flex flex-column">
       <div className="mb-2 fw-semibold fs-5">Settings</div>
-      <div className="flex flex-column gap-sm">
-        {aiEnabled && selectedColumn.name && (
+      <div className="d-flex flex-column gap-sm">
+        {(true || (aiEnabled && selectedColumn.name)) && (
           <>
             <div className={styles.select_node_checkbox}>
               <Input
@@ -33,12 +33,14 @@ function Settings() {
                   setSelectCheck(e.target.checked);
                 }}
               />
-              <Label check for="select-check">
-                Select
-              </Label>
-              <div>
-                Select linkages are shown if there is direct flow of data
-                between columns through select statements.
+              <div className="d-flex flex-column">
+                <Label check for="select-check" className="fs-6">
+                  Select
+                </Label>
+                <div className="text-grey">
+                  Select linkages are shown if there is direct flow of data
+                  between columns through select statements.
+                </div>
               </div>
             </div>
             <div className={styles.non_select_node_checkbox}>
@@ -55,12 +57,14 @@ function Settings() {
                   setNonSelectCheck(e.target.checked);
                 }}
               />
-              <Label check for="non-select-check">
-                Non-Select
-              </Label>
-              <div>
-                Non-Select linkages are shown if columns appear in
-                condition/clauses like where, join, having, etc.
+              <div className="d-flex flex-column">
+                <Label check for="non-select-check" className="fs-6">
+                  Non-Select
+                </Label>
+                <div className="text-grey">
+                  Non-Select linkages are shown if columns appear in
+                  condition/clauses like where, join, having, etc.
+                </div>
               </div>
             </div>
           </>
