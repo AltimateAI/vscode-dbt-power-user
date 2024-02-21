@@ -76,7 +76,7 @@ export class SourceFileWatchers implements Disposable {
 
         const debouncedSourceFileChangedEvent = debounce(
           () => this._onSourceFileChanged.fire(),
-          100,
+          500,
         );
 
         sourceFolderWatcher.onDidChange(() =>
