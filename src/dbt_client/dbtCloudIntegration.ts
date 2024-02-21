@@ -173,8 +173,11 @@ export class DBTCloudProjectIntegration
 
           return {
             table: {
-              column_names: Object.keys(preview[0]),
-              column_types: Object.keys(preview[0]).map((obj: any) => "string"),
+              column_names: preview.length > 0 ? Object.keys(preview[0]) : [],
+              column_types:
+                preview.length > 0
+                  ? Object.keys(preview[0]).map((obj: any) => "string")
+                  : [],
               rows: preview.map((obj: any) => Object.values(obj)),
             },
             compiled_sql: "",
