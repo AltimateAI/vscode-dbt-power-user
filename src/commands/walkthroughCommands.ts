@@ -34,15 +34,18 @@ export class WalkthroughCommands {
       const allProfilesDir: string[] = allProjects.map((project) => {
         return `${project.getProjectName()}: ${project.dbtProfilesDir}`;
       });
+      // get all adapters from this.dbtProjectContainer.getAdapters() and store in a variable as a string
+      const allAdapters = this.dbtProjectContainer.getAdapters();
+
       this.dbtTerminal.show(true);
       await this.commandProcessExecutionFactory
         .createCommandProcessExecution({
           command: this.dbtProjectContainer.getPythonEnvironment().pythonPath,
           args: ["ext_troubleshooter.py"],
-          // args: ["--version"],
           cwd: this.dbtProjectContainer.extensionUri.fsPath,
           envVars: {
             DBTPU__PROFILES_DIR: allProfilesDir.join("\r\n"),
+            DBTPU__ADAPTERS: allAdapters.join("\r\n"),
           },
         })
         .completeWithTerminalOutput(this.dbtTerminal);
