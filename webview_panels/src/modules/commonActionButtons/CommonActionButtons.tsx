@@ -1,7 +1,7 @@
 import { FeedbackIcon, InfoCircleIcon } from "@assets/icons";
 import HelpButton from "@modules/documentationEditor/components/help/HelpButton";
 import DocGeneratorSettings from "@modules/documentationEditor/components/settings/DocGeneratorSettings";
-import { vscode } from "@modules/vscode";
+import { vscode } from "@vscodeApi";
 import { Alert, Button, Stack } from "@uicore";
 import { executeRequestInAsync } from "../app/requestExecutor";
 import { FC, useEffect, useState } from "react";

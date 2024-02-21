@@ -605,33 +605,14 @@ select * from renamed
       window.showErrorMessage("Please enter a positive number for query limit");
       return;
     }
-    const queryTemplate = workspace
-      .getConfiguration("dbt")
-      .get<string>(
-        "queryTemplate",
-        "select * from ({query}\n) as query limit {limit}",
-      );
-
-    const limitQuery = queryTemplate
-      .replace("{query}", () => query)
-      .replace("{limit}", () => limit.toString());
-
-    this.telemetry.sendTelemetryEvent(
-      "executeSQL",
-      {
-        queryTemplate: queryTemplate,
-        adapter: this.getAdapterType(),
-      },
-      {
-        limit: limit,
-      },
-    );
-
+    this.telemetry.sendTelemetryEvent("executeSQL", {
+      adapter: this.getAdapterType(),
+      limit: limit.toString(),
+    });
     // TODO: this should generate an event instead of directly going to the panel
     this.queryResultPanel.executeQuery(
       query,
-      this.dbtProjectIntegration.executeSQL(limitQuery),
-      this.getAdapterType(),
+      this.dbtProjectIntegration.executeSQL(query, limit),
     );
   }
 

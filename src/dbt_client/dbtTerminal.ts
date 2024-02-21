@@ -21,8 +21,8 @@ export class DBTTerminal {
     }
   }
 
-  log(message: string) {
-    this.outputChannel.info(stripANSI(message));
+  log(message: string, ...args: any[]) {
+    this.outputChannel.info(stripANSI(message), args);
     if (this.terminal !== undefined) {
       this.writeEmitter.fire(message);
     }
@@ -33,32 +33,37 @@ export class DBTTerminal {
     console.log(message);
   }
 
-  debug(message: string) {
-    this.outputChannel?.debug(stripANSI(message));
-    console.debug(message);
+  debug(message: string, ...args: any[]) {
+    this.outputChannel?.debug(stripANSI(message), args);
+    console.debug(message, args);
   }
 
-  info(name: string, message: string, sendTelemetry: boolean = true) {
-    this.outputChannel?.info(stripANSI(message));
-    console.info(`${name}:${message}`);
+  info(
+    name: string,
+    message: string,
+    sendTelemetry: boolean = true,
+    ...args: any[]
+  ) {
+    this.outputChannel?.info(stripANSI(message), args);
+    console.info(`${name}:${message}`, args);
     if (sendTelemetry) {
       this.telemetry.sendTelemetryEvent(name, { message });
     }
   }
 
-  warn(e: CustomException, sendTelemetry: boolean = true) {
+  warn(e: CustomException, sendTelemetry: boolean = true, ...args: any[]) {
     const message = e.getMessage();
-    this.outputChannel?.warn(stripANSI(message));
-    console.warn(`${e.name}:${message}`);
+    this.outputChannel?.warn(stripANSI(message), args);
+    console.warn(`${e.name}:${message}`, args);
     if (sendTelemetry) {
       this.telemetry.sendTelemetryError(e.name, e.error, { message });
     }
   }
 
-  error(e: CustomException, sendTelemetry = true) {
+  error(e: CustomException, sendTelemetry = true, ...args: any[]) {
     const message = e.getMessage();
-    this.outputChannel?.error(stripANSI(message));
-    console.error(`${e.name}:${message}`);
+    this.outputChannel?.error(stripANSI(message), args);
+    console.error(`${e.name}:${message}`, args);
     if (sendTelemetry) {
       this.telemetry.sendTelemetryError(e.name, e.error, { message });
     }
