@@ -331,7 +331,7 @@ function App() {
               </ReactFlow>
             </div>
             <SidebarModal
-              isOpen={!sidebarScreen}
+              isOpen={sidebarScreen !== ""}
               closeModal={() => setSidebarScreen("")}
               width={446}
             >
