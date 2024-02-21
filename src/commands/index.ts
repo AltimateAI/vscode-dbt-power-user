@@ -16,6 +16,9 @@ import { AltimateScan } from "./altimateScan";
 import { WalkthroughCommands } from "./walkthroughCommands";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
+import { ValidateSql } from "./validateSql";
+import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
+import { SharedStateService } from "../services/sharedStateService";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -25,12 +28,25 @@ export class VSCodeCommands implements Disposable {
     private dbtProjectContainer: DBTProjectContainer,
     private runModel: RunModel,
     private sqlToModel: SqlToModel,
+    private validateSql: ValidateSql,
     private altimateScan: AltimateScan,
     private walkthroughCommands: WalkthroughCommands,
+    private bigQueryCostEstimate: BigQueryCostEstimate,
+    private eventEmitterService: SharedStateService,
   ) {
     this.disposables.push(
-      commands.registerCommand("dbtPowerUser.checkIfDbtIsInstalled", () =>
-        this.dbtProjectContainer.detectDBT(),
+      commands.registerCommand(
+        "dbtPowerUser.checkIfDbtIsInstalled",
+        async () => {
+          await this.dbtProjectContainer.detectDBT();
+          this.dbtProjectContainer.initialize();
+        },
+      ),
+      commands.registerCommand("dbtPowerUser.troubleShootExtension", () =>
+        this.walkthroughCommands.troubleShootExtension(),
+      ),
+      commands.registerCommand("dbtPowerUser.installDbt", () =>
+        this.walkthroughCommands.installDbt(),
       ),
       commands.registerCommand("dbtPowerUser.runCurrentModel", () =>
         this.runModel.runModelOnActiveWindow(),
@@ -40,6 +56,9 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand("dbtPowerUser.compileCurrentModel", () =>
         this.runModel.compileModelOnActiveWindow(),
+      ),
+      commands.registerCommand("dbtPowerUser.bigqueryCostEstimate", () =>
+        this.bigQueryCostEstimate.estimateCost(),
       ),
       commands.registerTextEditorCommand(
         "dbtPowerUser.sqlPreview",
@@ -76,10 +95,10 @@ export class VSCodeCommands implements Disposable {
         this.runModel.runModelOnNodeTreeItem(RunModelType.TEST)(model),
       ),
       commands.registerCommand("dbtPowerUser.runChildrenModels", (model) =>
-        this.runModel.runModelOnNodeTreeItem(RunModelType.CHILDREN)(model),
+        this.runModel.runModelOnNodeTreeItem(RunModelType.RUN_CHILDREN)(model),
       ),
       commands.registerCommand("dbtPowerUser.runParentModels", (model) =>
-        this.runModel.runModelOnNodeTreeItem(RunModelType.PARENTS)(model),
+        this.runModel.runModelOnNodeTreeItem(RunModelType.RUN_PARENTS)(model),
       ),
       commands.registerCommand("dbtPowerUser.showRunSQL", () =>
         this.runModel.showRunSQLOnActiveWindow(),
@@ -96,6 +115,18 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.executeSQL", () =>
         this.runModel.executeQueryOnActiveWindow(),
       ),
+      commands.registerCommand("dbtPowerUser.summarizeQuery", () =>
+        this.eventEmitterService.fire({
+          command: "dbtPowerUser.summarizeQuery",
+          payload: {},
+        }),
+      ),
+      commands.registerCommand("dbtPowerUser.changeQuery", () =>
+        this.eventEmitterService.fire({
+          command: "dbtPowerUser.changeQuery",
+          payload: {},
+        }),
+      ),
       commands.registerCommand(
         "dbtPowerUser.createModelBasedonSourceConfig",
         (params) => {
@@ -105,8 +136,22 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.buildCurrentModel", () =>
         this.runModel.buildModelOnActiveWindow(),
       ),
+      commands.registerCommand("dbtPowerUser.buildChildrenModels", () =>
+        this.runModel.buildModelOnActiveWindow(RunModelType.BUILD_CHILDREN),
+      ),
+      commands.registerCommand("dbtPowerUser.buildParentModels", () =>
+        this.runModel.buildModelOnActiveWindow(RunModelType.BUILD_PARENTS),
+      ),
+      commands.registerCommand("dbtPowerUser.buildChildrenParentModels", () =>
+        this.runModel.buildModelOnActiveWindow(
+          RunModelType.BUILD_CHILDREN_PARENTS,
+        ),
+      ),
       commands.registerCommand("dbtPowerUser.sqlToModel", () =>
         this.sqlToModel.getModelFromSql(),
+      ),
+      commands.registerCommand("dbtPowerUser.validateSql", () =>
+        this.validateSql.validateSql(),
       ),
       commands.registerCommand("dbtPowerUser.altimateScan", () =>
         this.altimateScan.getProblems(),
@@ -162,11 +207,17 @@ export class VSCodeCommands implements Disposable {
           "@id:files.associations",
         );
       }),
-      commands.registerCommand(
-        "dbtPowerUser.troubleShootExtension",
-        async () => {
-          await this.walkthroughCommands.troubleShootExtension();
-        },
+      commands.registerCommand("dbtPowerUser.openDatapilotWithQuery", () =>
+        this.eventEmitterService.fire({
+          command: "dbtPowerUser.openDatapilotWithQuery",
+          payload: {},
+        }),
+      ),
+      commands.registerCommand("dbtPowerUser.showHelpDatapilot", () =>
+        this.eventEmitterService.fire({
+          command: "dbtPowerUser.openHelpInDatapilot",
+          payload: {},
+        }),
       ),
     );
   }
