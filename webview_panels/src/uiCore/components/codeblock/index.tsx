@@ -1,4 +1,4 @@
-import { CodeBlock, a11yLight, a11yDark } from "react-code-blocks";
+import { CodeBlock, solarizedDark, solarizedLight } from "react-code-blocks";
 import { Card, CardBody, CardTitle } from "../../";
 import classes from "./codeblock.module.scss";
 import useAppContext from "@modules/app/useAppContext";
@@ -17,7 +17,7 @@ const CodeBlockComponent = ({
   const {
     state: { theme },
   } = useAppContext();
-  const codeBlockTheme = theme === Themes.Dark ? a11yDark : a11yLight;
+  const codeBlockTheme = theme === Themes.Dark ? solarizedDark : solarizedLight;
   return (
     <Card className={classes.codeblock}>
       {fileName ? <CardTitle>{fileName}</CardTitle> : null}

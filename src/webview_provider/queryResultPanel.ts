@@ -21,7 +21,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { AltimateRequest } from "../altimate";
-import { ExecuteSQLResult } from "../dbt_client/dbtIntegration";
+import { ExecuteSQLResult, QueryExecution } from "../dbt_client/dbtIntegration";
 import { SharedStateService } from "../services/sharedStateService";
 
 interface JsonObj {
@@ -69,6 +69,7 @@ enum InboundCommand {
   UpdateConfig = "updateConfig",
   OpenUrl = "openUrl",
   GetSummary = "getSummary",
+  CancelQuery = "cancelQuery",
 }
 
 interface RecInfo {
@@ -99,7 +100,7 @@ export class QueryResultPanel implements WebviewViewProvider {
 
   private _disposables: Disposable[] = [];
   private _panel: WebviewView | undefined;
-  private adapter: string = "unknown";
+  private queryExecution?: QueryExecution;
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -149,6 +150,10 @@ export class QueryResultPanel implements WebviewViewProvider {
     this._panel!.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
+          case InboundCommand.CancelQuery:
+            if (this.queryExecution) {
+              this.queryExecution.cancel();
+            }
           case InboundCommand.Error:
             const error = message as RecError;
             window.showErrorMessage(error.text);
@@ -245,18 +250,6 @@ export class QueryResultPanel implements WebviewViewProvider {
     }
   }
 
-  private async transmitSummary(compiled_sql: string, summary: string) {
-    if (this._panel) {
-      await this._panel.webview.postMessage({
-        command: OutboundCommand.RenderSummary,
-        ...(<RenderSummary>{
-          compiled_sql: compiled_sql,
-          summary: summary,
-        }),
-      });
-    }
-  }
-
   /** Sends error result data to webview */
   private async transmitError(
     error: any,
@@ -341,22 +334,26 @@ export class QueryResultPanel implements WebviewViewProvider {
   /** Runs a query transmitting appropriate notifications to webview */
   public async executeQuery(
     query: string,
-    queryExecution: Promise<ExecuteSQLResult>,
-    adapter: string,
+    queryExecutionPromise: Promise<QueryExecution>,
   ) {
     //using id to focus on the webview is more reliable than using the view title
     await commands.executeCommand("dbtPowerUser.PreviewResults.focus");
     if (this._panel) {
       this._panel.show(); // Show the view
       this._panel.webview.postMessage({ command: "focus" }); // keyboard focus
-      this.adapter = adapter;
       this.transmitLoading();
     }
+    const queryExecution = (this.queryExecution = await queryExecutionPromise);
     try {
-      const output = await queryExecution;
+      const output = await queryExecution.executeQuery();
       await this.transmitDataWrapper(output, query);
     } catch (exc: any) {
       if (exc instanceof PythonException) {
+        if (exc.exception.type.name === "KeyboardInterrupt") {
+          // query cancellation
+          this.transmitReset();
+          return;
+        }
         window.showErrorMessage(
           "An error occured while trying to execute your query: " +
             exc.exception.message,
@@ -386,6 +383,8 @@ export class QueryResultPanel implements WebviewViewProvider {
         query,
         query,
       );
+    } finally {
+      this.queryExecution = undefined;
     }
   }
 }

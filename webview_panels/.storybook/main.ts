@@ -21,7 +21,7 @@ const config: StorybookConfig = {
   },
   async viteFinal(config) {
     if (config.resolve?.alias) {
-      config.resolve.alias["@vscode"] = require.resolve(
+      config.resolve.alias["@vscodeApi"] = require.resolve(
         "./__mocks__/vscode.ts"
       );
     }

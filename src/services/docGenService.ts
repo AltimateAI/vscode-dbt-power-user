@@ -38,6 +38,7 @@ interface FeedbackRequestProps {
   queryText: string;
   message: any;
   eventMap: Map<string, ManifestCacheProjectAddedEvent>;
+  syncRequestId?: string;
 }
 
 const COLUMNS_PER_CHUNK = 3;
@@ -488,6 +489,7 @@ export class DocGenService {
     message,
     eventMap,
     panel,
+    syncRequestId,
   }: FeedbackRequestProps) {
     this.telemetry.sendTelemetryEvent("altimateGenerateDocsSendFeedback");
     window.withProgress(
@@ -522,6 +524,18 @@ export class DocGenService {
             feedback_text: message.comment,
             feedback_value: message.rating,
           });
+          if (panel) {
+            await panel.webview.postMessage({
+              command: "response",
+              args: {
+                syncRequestId,
+                body: {
+                  status: true,
+                },
+                status: true,
+              },
+            });
+          }
         } catch (error) {
           this.transmitError(panel);
           window.showErrorMessage(
