@@ -108,6 +108,36 @@
   }
 }
 
+.add-test{
+    gap: var(--spacing-2xl);
+
+    :global .card{
+      background-color: var(--background--03);
+
+      
+    }
+    .title{
+      background-color: var(--background--02);
+      padding: 1rem;
+      border-radius: 8px;
+
+      :global .primary {
+        max-width: 100%;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+      }
+      }
+      .test-list-group{
+        gap: 10px;
+
+        button {
+          border-color: transparent;
+          background-color: var(--background--02);
+        }
+      }
+}
+
 .popover {
   :global .popover{
   margin-top: -18px;

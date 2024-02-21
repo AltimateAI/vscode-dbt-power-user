@@ -18,6 +18,7 @@ import {
   CardTitle,
   ListGroup,
   ListGroupItem,
+  Stack,
   Tag,
 } from "@uicore";
 import { useState } from "react";
@@ -25,6 +26,7 @@ import AcceptedValues from "./forms/AcceptedValues";
 import Relationships from "./forms/Relationships";
 import { SaveRequest } from "./types";
 import useTestFormSave from "./hooks/useTestFormSave";
+import classes from "../../styles.module.scss";
 
 const schema = Yup.object({
   to: Yup.string().optional(),
@@ -59,12 +61,14 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
   const getFooter = () => {
     return (
       <CardFooter>
-        <Button type="submit" disabled={isSaving}>
-          Save
-        </Button>
-        <Button onClick={handleCancel} disabled={isSaving}>
-          Cancel
-        </Button>
+        <Stack className="mt-3">
+          <Button type="submit" disabled={isSaving}>
+            Save
+          </Button>
+          <Button onClick={handleCancel} disabled={isSaving}>
+            Cancel
+          </Button>
+        </Stack>
       </CardFooter>
     );
   };
@@ -104,14 +108,13 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
       case DbtGenericTests.ACCEPTED_VALUES:
         return (
           <Card>
-            <CardTitle>
-              Values <Button onClick={handleEdit}>Edit</Button>
-            </CardTitle>
             <CardBody>
               {isInEditMode ? (
                 <div>
-                  <p>Selected</p>
-                  <Button>{test.test_metadata?.name}</Button>
+                  <p className="mb-0">Selected</p>
+                  <Button className="mb-2" color="primary">
+                    {test.test_metadata?.name}
+                  </Button>
                   <AcceptedValues
                     control={control}
                     value={(
@@ -122,16 +125,21 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
                   {getFooter()}
                 </div>
               ) : (
-                <ListGroup>
-                  {(
-                    test.test_metadata
-                      .kwargs as TestMetadataAcceptedValuesKwArgs
-                  ).values?.map((value) => (
-                    <ListGroupItem key={value} action tag="button">
-                      {value}
-                    </ListGroupItem>
-                  ))}
-                </ListGroup>
+                <>
+                  <CardTitle className="d-flex justify-content-between">
+                    Values <Button onClick={handleEdit}>Edit</Button>
+                  </CardTitle>
+                  <ListGroup className={classes.testListGroup}>
+                    {(
+                      test.test_metadata
+                        .kwargs as TestMetadataAcceptedValuesKwArgs
+                    ).values?.map((value) => (
+                      <ListGroupItem key={value} action tag="button">
+                        {value}
+                      </ListGroupItem>
+                    ))}
+                  </ListGroup>
+                </>
               )}
             </CardBody>
           </Card>
@@ -163,7 +171,9 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
                 </div>
               ) : (
                 <>
-                  <Button onClick={handleEdit}>Edit</Button>
+                  <CardTitle className="d-flex justify-content-between">
+                    Values <Button onClick={handleEdit}>Edit</Button>
+                  </CardTitle>
                   <div>
                     To:{" "}
                     {
@@ -198,19 +208,21 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
   };
   return (
     <RightSidePanel onClose={onClose}>
-      <Card>
-        <CardTitle>Column: {test.column_name}</CardTitle>
-        <CardBody>
-          Tests: <Tag color="primary">{test.key}</Tag>
-        </CardBody>
-      </Card>
-
-      <form onSubmit={handleSubmit(onSubmit)}>{getDisplayContent()}</form>
-      {testCode ? (
+      <Stack direction="column" className={classes.addTest}>
         <Card>
-          <CardBody>{testCode}</CardBody>
+          <CardTitle>Column: {test.column_name}</CardTitle>
+          <CardBody>
+            Tests: <Tag color="primary">{test.key}</Tag>
+          </CardBody>
         </Card>
-      ) : null}
+
+        <form onSubmit={handleSubmit(onSubmit)}>{getDisplayContent()}</form>
+        {testCode ? (
+          <Card>
+            <CardBody>{testCode}</CardBody>
+          </Card>
+        ) : null}
+      </Stack>
     </RightSidePanel>
   );
 };

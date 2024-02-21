@@ -2,7 +2,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import { useForm } from "react-hook-form";
 import { DbtGenericTests } from "@modules/documentationEditor/state/types";
-import { Card, CardTitle, CardBody, CardFooter, Button } from "@uicore";
+import { Card, CardTitle, CardBody, CardFooter, Button, Stack } from "@uicore";
 import AcceptedValues from "./AcceptedValues";
 import Relationships from "./Relationships";
 import { useEffect } from "react";
@@ -65,7 +65,10 @@ const TestForm = ({ formType, onClose, column }: Props): JSX.Element | null => {
 
   return (
     <Card>
-      <CardTitle>{formType}</CardTitle>
+      <CardTitle>
+        <div>Selected</div>
+        <Button color="primary">{formType}</Button>
+      </CardTitle>
       <CardBody>
         {formType === DbtGenericTests.RELATIONSHIPS ? (
           <Relationships control={control} />
@@ -74,14 +77,18 @@ const TestForm = ({ formType, onClose, column }: Props): JSX.Element | null => {
         )}
       </CardBody>
       <CardFooter>
-        <Button
-          onClick={handleSubmit((d) =>
-            handleSave({ ...d, test: formType }, column),
-          )}
-        >
-          Save
-        </Button>
-        <Button onClick={handleCancel}>Cancel</Button>
+        <Stack className="mt-3">
+          <Button
+            onClick={handleSubmit((d) =>
+              handleSave({ ...d, test: formType }, column),
+            )}
+          >
+            Save
+          </Button>
+          <Button onClick={handleCancel} outline>
+            Cancel
+          </Button>
+        </Stack>
       </CardFooter>
     </Card>
   );

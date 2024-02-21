@@ -1,6 +1,5 @@
 import { AddOutlineIcon } from "@assets/icons";
 import { DbtGenericTests } from "@modules/documentationEditor/state/types";
-
 import RightSidePanel from "@modules/panel/RightSidePanel";
 import {
   IconButton,
@@ -9,9 +8,11 @@ import {
   CardBody,
   ListGroup,
   ListGroupItem,
+  Stack,
 } from "@uicore";
 import { useState } from "react";
 import TestForm from "./forms/TestForm";
+import classes from "../../styles.module.scss";
 
 interface Props {
   title: string;
@@ -35,32 +36,34 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
     <>
       {addNewTestPanel ? (
         <RightSidePanel onClose={onClose}>
-          <Card>
-            <CardTitle>Add new test</CardTitle>
-            <CardBody>Column: {title}</CardBody>
-          </Card>
-          {!formType ? (
+          <Stack direction="column" className={classes.addTest}>
             <Card>
-              <CardTitle>Select test for next step</CardTitle>
-              <CardBody>
-                <ListGroup>
-                  {Object.values(DbtGenericTests).map((test) => (
-                    <ListGroupItem
-                      onClick={() => handleNewTestClick(test)}
-                      key={test}
-                      action
-                      tag="button"
-                      disabled={currentTests?.includes(test)}
-                    >
-                      {test}
-                    </ListGroupItem>
-                  ))}
-                </ListGroup>
-              </CardBody>
+              <CardTitle>Add new test</CardTitle>
+              <CardBody className={classes.title}>Column: {title}</CardBody>
             </Card>
-          ) : (
-            <TestForm formType={formType} onClose={onClose} column={title} />
-          )}
+            {!formType ? (
+              <Card>
+                <CardTitle>Select test for next step</CardTitle>
+                <CardBody>
+                  <ListGroup className={classes.testListGroup}>
+                    {Object.values(DbtGenericTests).map((test) => (
+                      <ListGroupItem
+                        onClick={() => handleNewTestClick(test)}
+                        key={test}
+                        action
+                        tag="button"
+                        disabled={currentTests?.includes(test)}
+                      >
+                        {test}
+                      </ListGroupItem>
+                    ))}
+                  </ListGroup>
+                </CardBody>
+              </Card>
+            ) : (
+              <TestForm formType={formType} onClose={onClose} column={title} />
+            )}
+          </Stack>
         </RightSidePanel>
       ) : null}
       <IconButton onClick={() => setAddNewTestPanel(true)}>

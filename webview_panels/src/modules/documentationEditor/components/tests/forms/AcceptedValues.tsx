@@ -1,4 +1,4 @@
-import { Stack, Label, Input } from "@uicore";
+import { Label, Input } from "@uicore";
 import { Control, Controller } from "react-hook-form";
 import { SaveRequest } from "../types";
 
@@ -8,7 +8,7 @@ interface Props {
 }
 const AcceptedValues = ({ control, value }: Props): JSX.Element => {
   return (
-    <Stack direction="column">
+    <div>
       <Label>Add comma separated list of values</Label>
       <Controller
         control={control}
@@ -21,7 +21,7 @@ const AcceptedValues = ({ control, value }: Props): JSX.Element => {
           />
         )}
       />
-    </Stack>
+    </div>
   );
 };
 
