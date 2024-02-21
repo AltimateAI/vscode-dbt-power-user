@@ -9,6 +9,7 @@ import ArrowLeftDoubleIcon from "./assets/icons/arrow-left-double.svg?react";
 import ArrowRightDoubleIcon from "./assets/icons/arrow-right-double.svg?react";
 import ArrowLeftIcon from "./assets/icons/arrow-left.svg?react";
 import ArrowRightIcon from "./assets/icons/arrow-right.svg?react";
+import GearIcon from "./assets/icons/gear.svg?react";
 import styles from "./styles.module.scss";
 import { HELP_SIDEBAR, SETTINGS_SIDEBAR } from "./constants";
 import { init, openURL, setLegacyLineageView, CLL } from "./service_utils";
@@ -38,7 +39,7 @@ const ActionButton = ({
       outline
       color="secondary"
       onClick={onClick}
-      className="d-flex align-items-center gap-sm theme-bg"
+      className="d-flex align-items-center gap-xs theme-bg"
     >
       {children}
     </Button>
@@ -69,7 +70,13 @@ const AutoExpansionPopover = () => {
     setRightExpansion(
       calculateExpand(minRange[1], maxRange[1], defaultExpansion)
     );
-  }, [defaultExpansion, maxRange, minRange, setLeftExpansion, setRightExpansion]);
+  }, [
+    defaultExpansion,
+    maxRange,
+    minRange,
+    setLeftExpansion,
+    setRightExpansion,
+  ]);
 
   useEffect(() => {
     (async () => {
@@ -276,6 +283,7 @@ export const ActionWidget = () => {
         </CardBody>
       </Card>
       <ActionButton onClick={() => setSidebarScreen(SETTINGS_SIDEBAR)}>
+        <GearIcon />
         Settings
       </ActionButton>
       <ActionButton
