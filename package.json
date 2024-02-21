@@ -1,21 +1,21 @@
 {
   "name": "vscode-dbt-power-user",
   "displayName": "dbt Power User",
-  "description": "This extension makes vscode seamlessly work with dbt",
+  "description": "This extension makes vscode seamlessly work with dbt: auto-complete, preview, column lineage, AI docs generation, health checks, cost estimation etc",
   "icon": "media/images/dbt.png",
   "publisher": "innoverio",
   "license": "MIT",
-  "homepage": "https://github.com/innoverio/vscode-dbt-power-user",
+  "homepage": "https://www.altimate.ai/vscode",
   "repository": {
     "type": "git",
-    "url": "https://github.com/innoverio/vscode-dbt-power-user.git"
+    "url": "https://github.com/AltimateAI/vscode-dbt-power-user.git"
   },
   "bugs": {
-    "url": "https://github.com/innoverio/vscode-dbt-power-user/issues"
+    "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.24.3",
+  "version": "0.34.2",
   "engines": {
-    "vscode": "^1.82.0"
+    "vscode": "^1.81.0"
   },
   "capabilities": {
     "hoverProvider": true
@@ -70,6 +70,10 @@
             "type": "boolean",
             "description": "Enable the new lineage panel in dbt."
           },
+          "dbt.enableNewDocsPanel": {
+            "type": "boolean",
+            "description": "Enable the new docs panel in dbt."
+          },
           "dbt.enableNewQueryPanel": {
             "type": "boolean",
             "description": "Enable the new query panel in dbt.",
@@ -95,7 +99,7 @@
               "type": "string"
             },
             "default": [],
-            "description": "Define workspace-relative paths to include. Only projects within these folders will be built. If empty, no filtering is applied."
+            "description": "Define workspace-relative paths to include. Only projects within these folders will be built. If empty, no filtering is applied. The path should be relative to the workspace. Example: [folder1, folder2]"
           },
           "dbt.runModelCommandAdditionalParams": {
             "type": "array",
@@ -103,7 +107,7 @@
               "type": "string"
             },
             "default": [],
-            "description": "Add additional params to the dbt run model command."
+            "description": "Add additional params to the dbt run model command. Ex: --select model1 --target prod needs to be added as four different entries \n--select \nmodel1 \n--target \nprod "
           },
           "dbt.buildModelCommandAdditionalParams": {
             "type": "array",
@@ -111,20 +115,13 @@
               "type": "string"
             },
             "default": [],
-            "description": "Add additional params to the dbt build model command."
-          },
-          "dbt.profilesDirOverride": {
-            "type": "string",
-            "description": "Override the profiles dir for every dbt command. Absolute path or relative to the directory containing profiles.yml"
-          },
-          "dbt.targetPathOverride": {
-            "type": "string",
-            "description": "Override the target-path dir for every dbt command. Absolute path or relative to the directory containing manifest.json."
+            "description": "Add additional params to the dbt build model command. Ex: --select model1 --target prod needs to be added as four different entries \n--select \nmodel1 \n--target \nprod "
           },
           "dbt.queryLimit": {
             "type": "integer",
             "description": "The maximum number of rows the `Preview SQL Query` command returns.",
-            "default": 500
+            "default": 500,
+            "minimum": 1
           },
           "dbt.queryTemplate": {
             "type": "string",
@@ -152,23 +149,6 @@
             "default": "base",
             "description": "Set the prefix that is used when generating a model from a source yml file."
           },
-          "dbt.versionCheck": {
-            "type": "string",
-            "enum": [
-              "both",
-              "status bar",
-              "error message",
-              "neither"
-            ],
-            "default": "both",
-            "enumDescriptions": [
-              "Show the outdated version message both in the status bar and as an error message popup.",
-              "Show the outdated version message in the status bar, but not as an error message popup.",
-              "Show the outdated version message as an error message popup, but not in the status bar.",
-              "Do not show the outdated version message in the status bar or as an error message popup."
-            ],
-            "description": "This determines which messages will show when the dbt version is outdated."
-          },
           "dbt.sqlFmtPath": {
             "type": "string",
             "description": "Path to `sqlfmt`. If not set, it will look on your PATH"
@@ -191,6 +171,12 @@
           "title": "dbt Power User",
           "icon": "./media/images/dbt_icon.svg",
           "contextualTitle": "dbt Power User"
+        },
+        {
+          "id": "datapilot_view",
+          "title": "DataPilot Chat",
+          "icon": "./media/images/altimate.svg",
+          "contextualTitle": "Altimate Data pilot"
         }
       ],
       "panel": [
@@ -254,6 +240,14 @@
           "name": "",
           "type": "webview"
         }
+      ],
+      "datapilot_view": [
+        {
+          "type": "webview",
+          "id": "dbtPowerUser.datapilot-webview",
+          "name": "",
+          "icon": "./media/images/dbt_icon.svg"
+        }
       ]
     },
     "commands": [
@@ -262,14 +256,12 @@
         "title": "dbt Power User Quick Pick"
       },
       {
-        "command": "dbtPowerUser.troubleshoot",
-        "title": "troubleshoot extension",
-        "category": "dbt PowerUser"
-      },
-      {
-        "command": "dbtPowerUser.validateProject",
-        "title": "Validate Project Command",
-        "category": "dbt PowerUser"
+        "command": "dbtPowerUser.sqlQuickPick",
+        "title": "SQL Actions",
+        "icon": {
+          "light": "./media/images/sql-action-light.svg",
+          "dark": "./media/images/sql-action-dark.svg"
+        }
       },
       {
         "command": "dbtPowerUser.runCurrentModel",
@@ -280,8 +272,32 @@
         }
       },
       {
+        "command": "dbtPowerUser.openDatapilotWithQuery",
+        "title": "Start Chat",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.summarizeQuery",
+        "title": "Explain",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.changeQuery",
+        "title": "Change",
+        "category": "dbt Power User"
+      },
+      {
         "command": "dbtPowerUser.sqlToModel",
-        "title": "Convert to dbt Model",
+        "title": "Convert to dbt Model (Preview feature)",
+        "shortTitle": "Convert to dbt Model",
+        "icon": {
+          "light": "./media/images/preview-dbt-light.svg",
+          "dark": "./media/images/preview-dbt-dark.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.validateSql",
+        "title": "Validate SQL",
         "icon": "$(circuit-board)"
       },
       {
@@ -292,6 +308,10 @@
       {
         "command": "dbtPowerUser.clearAltimateScanResults",
         "title": "Clear Health Check Results"
+      },
+      {
+        "command": "dbtPowerUser.bigqueryCostEstimate",
+        "title": "Estimate cost for BigQuery"
       },
       {
         "command": "dbtPowerUser.compileCurrentModel",
@@ -359,6 +379,25 @@
         }
       },
       {
+        "command": "dbtPowerUser.resetDatapilot",
+        "title": "Start New Chat",
+        "icon": "$(add)",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.maximizeDatapilot",
+        "title": "Maximize",
+        "icon": {
+          "light": "./media/images/fullscreen-light.svg",
+          "dark": "./media/images/fullscreen-dark.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.showHelpDatapilot",
+        "title": "Help",
+        "icon": "$(question)"
+      },
+      {
         "command": "dbtPowerUser.showCompiledSQL",
         "title": "Open dbt target folder compiled SQL",
         "icon": {
@@ -374,6 +413,30 @@
       {
         "command": "dbtPowerUser.buildCurrentModel",
         "title": "Build dbt Model",
+        "icon": {
+          "light": "./media/images/build-model_light.svg",
+          "dark": "./media/images/build-model_dark.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.buildChildrenModels",
+        "title": "Build Downstream Models",
+        "icon": {
+          "light": "./media/images/build-model_light.svg",
+          "dark": "./media/images/build-model_dark.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.buildParentModels",
+        "title": "Build Upstream Models",
+        "icon": {
+          "light": "./media/images/build-model_light.svg",
+          "dark": "./media/images/build-model_dark.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.buildChildrenParentModels",
+        "title": "Build Upstream and Downstream Models",
         "icon": {
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
@@ -394,16 +457,25 @@
       }
     ],
     "menus": {
+      "dbtPowerUser.datapilotSubmenu": [
+        {
+          "command": "dbtPowerUser.openDatapilotWithQuery",
+          "group": "datapilot@1"
+        },
+        {
+          "command": "dbtPowerUser.summarizeQuery",
+          "group": "datapilot@2"
+        },
+        {
+          "command": "dbtPowerUser.changeQuery",
+          "group": "datapilot@3"
+        }
+      ],
       "editor/title": [
         {
           "command": "dbtPowerUser.executeSQL",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
           "group": "navigation@1"
-        },
-        {
-          "command": "dbtPowerUser.buildCurrentModel",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
-          "group": "navigation@2"
         },
         {
           "command": "dbtPowerUser.runCurrentModel",
@@ -421,12 +493,27 @@
           "group": "navigation@5"
         },
         {
+          "command": "dbtPowerUser.sqlQuickPick",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "group": "navigation@1"
+        },
+        {
           "command": "dbtPowerUser.sqlToModel",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.altimateInstanceName && config.dbt.altimateAiKey",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
           "group": "navigation@6"
         }
       ],
       "editor/context": [
+        {
+          "submenu": "dbtPowerUser.datapilotSubmenu",
+          "group": "datapilot@1",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        },
+        {
+          "submenu": "dbtPowerUser.buildModel",
+          "group": "dbt@5",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        },
         {
           "command": "dbtPowerUser.showCompiledSQL",
           "group": "dbt@5",
@@ -455,12 +542,49 @@
         {
           "command": "dbtPowerUser.sqlToModel",
           "group": "dbt@3",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.altimateInstanceName && config.dbt.altimateAiKey"
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
         },
         {
           "command": "dbtPowerUser.compileCurrentModel",
           "group": "dbt@4",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        },
+        {
+          "command": "dbtPowerUser.validateSql",
+          "group": "dbt@4",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        },
+        {
+          "command": "dbtPowerUser.bigqueryCostEstimate",
+          "group": "dbt@4",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        }
+      ],
+      "editor/title/run": [
+        {
+          "command": "dbtPowerUser.buildCurrentModel",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.buildChildrenModels",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.buildParentModels",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.buildChildrenParentModels",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "group": "inline"
+        },
+        {
+          "command": "dbtPowerUser.runCurrentModel",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "group": "inline"
         }
       ],
       "view/title": [
@@ -483,6 +607,16 @@
           "command": "dbtPowerUser.generateDBTDocs",
           "when": "view == documentation_treeview",
           "group": "navigation"
+        },
+        {
+          "command": "dbtPowerUser.resetDatapilot",
+          "when": "view == dbtPowerUser.datapilot-webview",
+          "group": "navigation@1"
+        },
+        {
+          "command": "dbtPowerUser.showHelpDatapilot",
+          "when": "view == dbtPowerUser.datapilot-webview",
+          "group": "navigation@3"
         }
       ],
       "view/item/context": [
@@ -508,6 +642,42 @@
         }
       ]
     },
+    "dbtPowerUser.buildModel": [
+      {
+        "command": "dbtPowerUser.buildCurrentModel",
+        "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+        "group": "inline"
+      },
+      {
+        "command": "dbtPowerUser.buildChildrenModels",
+        "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+        "group": "inline"
+      },
+      {
+        "command": "dbtPowerUser.buildParentModels",
+        "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+        "group": "inline"
+      },
+      {
+        "command": "dbtPowerUser.buildChildrenParentModels",
+        "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+        "group": "inline"
+      }
+    ],
+    "submenus": [
+      {
+        "id": "dbtPowerUser.buildModel",
+        "label": "Build dbt Model",
+        "icon": {
+          "light": "./media/images/build-model_light.svg",
+          "dark": "./media/images/build-model_dark.svg"
+        }
+      },
+      {
+        "id": "dbtPowerUser.datapilotSubmenu",
+        "label": "Datapilot"
+      }
+    ],
     "languages": [
       {
         "id": "jinja-sql",
@@ -701,28 +871,30 @@
   },
   "scripts": {
     "prepare": "husky install",
-    "vscode:prepublish": "npm run panel:lineage && webpack --mode production",
-    "webpack": "npm run panel:lineage && webpack --mode development",
-    "webpack-dev": "npm run panel:lineage && webpack --mode development --watch",
+    "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production",
+    "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
+    "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "test-compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
     "deploy-vscode": "vsce publish",
     "build-vsix": "vsce package",
     "deploy-openvsx": "ovsx publish",
+    "panel:webviews": "npm run build --prefix ./webview_panels",
     "panel:lineage": "npm run build --prefix ./new_lineage_panel",
-    "install:panels": "npm install --prefix ./new_lineage_panel"
+    "install:panels": "npm install --prefix ./new_lineage_panel && npm install --prefix ./webview_panels"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.1",
     "@types/node": "^20.9.1",
-    "@types/vscode": "^1.82.0",
+    "@types/vscode": "^1.81.0",
     "@types/which": "^3.0.0",
     "@typescript-eslint/eslint-plugin": "^5.54.1",
     "@typescript-eslint/parser": "^5.62.0",
-    "@vscode/test-electron": "^2.3.5",
+    "@vscode/test-electron": "^2.3.7",
     "copy-webpack-plugin": "^11.0.0",
+    "cross-env": "^7.0.3",
     "eslint": "^8.53.0",
     "eslint-config-prettier": "^8.9.0",
     "eslint-plugin-prettier": "^5.0.1",
@@ -750,7 +922,7 @@
     "@vscode/extension-telemetry": "^0.8.4",
     "@vscode/vsce": "^2.21.1",
     "@vscode/webview-ui-toolkit": "^1.2.2",
-    "dayjs": "^1.11.9",
+    "dayjs": "^1.11.10",
     "inversify": "^6.0.1",
     "inversify-binding-decorators": "^4.0.0",
     "node-abort-controller": "^3.1.1",
@@ -762,6 +934,10 @@
     "yaml": "^2.3.4"
   },
   "lint-staged": {
+    "**/webview_panels/**/*.{ts,tsx}": [
+      "cross-env PRE_COMMIT=true npm run lint --fix --prefix webview_panels",
+      "prettier -w"
+    ],
     "*.ts": [
       "eslint src --ext ts --fix",
       "eslint --max-warnings=0"
