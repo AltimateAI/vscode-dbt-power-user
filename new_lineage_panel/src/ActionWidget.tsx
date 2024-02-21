@@ -24,6 +24,7 @@ import {
 import classNames from "classnames";
 import { BetterPopover } from "./components/Modal";
 import { DEFAULT_MIN_ZOOM } from "./utils";
+import { InfoIcon } from "./components/InfoIcon";
 
 const ActionButton = ({
   onClick,
@@ -232,6 +233,8 @@ const AutoExpansionPopover = () => {
 
 export const ActionWidget = () => {
   const {
+    selectedColumn,
+    confidence,
     setSidebarScreen,
     setSelectedColumn,
     setCollectColumns,
@@ -245,6 +248,25 @@ export const ActionWidget = () => {
         <CardBody className={styles.menu_card}>
           <div className="d-flex gap-sm">
             <AutoExpansionPopover />
+            {aiEnabled &&
+              selectedColumn.name &&
+              confidence.confidence === "low" && (
+                <>
+                  <div className={styles.verticle_divider} />
+                  <div className="d-flex gap-xxs align-items-center">
+                    <div>Confidence</div>
+                    <InfoIcon
+                      id="confidence"
+                      message={
+                        "Depending on the SQL dialect and complexity of queries, " +
+                        "there may be situations where we are not completely " +
+                        "confident about the lineage shown in this view"
+                      }
+                    />
+                    <div className={styles.low_confidence}>Low</div>
+                  </div>
+                </>
+              )}
           </div>
         </CardBody>
       </Card>

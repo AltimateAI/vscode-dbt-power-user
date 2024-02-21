@@ -149,7 +149,7 @@ function App() {
   const rerender = () => _rerender((x) => (x + 1) % 100);
 
   const [selectCheck, setSelectCheck] = useState(true);
-  const [nonSelectCheck, setNonSelectCheck] = useState(true);
+  const [nonSelectCheck, setNonSelectCheck] = useState(false);
 
   const [nodeCount, setNodeCount] = useState(0);
   const [minRange, setMinRange] = useState<[number, number]>([0, 0]);
