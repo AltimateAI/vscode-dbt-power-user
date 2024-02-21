@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext } from "react";
 import "reactflow/dist/style.css";
 import { Input, Label } from "reactstrap";
 import styles from "./styles.module.scss";
@@ -13,8 +13,9 @@ function Settings() {
     setSelectCheck,
     nonSelectCheck,
     setNonSelectCheck,
+    defaultExpansion,
+    setDefaultExpansion,
   } = useContext(LineageContext);
-  const [defaultExpansion, setDefaultExpansion] = useState("5");
   return (
     <div className="p-2 h-100 d-flex flex-column">
       <div className="mb-2 fw-semibold fs-5">Settings</div>
@@ -26,7 +27,10 @@ function Settings() {
           <CustomInput
             id="default-expansion"
             value={defaultExpansion}
-            onChange={(e) => setDefaultExpansion(e.target.value)}
+            type="number"
+            onChange={(e) =>
+              setDefaultExpansion(Math.max(parseInt(e.target.value), 0))
+            }
           />
         </div>
         {aiEnabled && selectedColumn.name && (

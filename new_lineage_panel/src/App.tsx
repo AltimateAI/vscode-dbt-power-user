@@ -96,6 +96,8 @@ export const LineageContext = createContext<{
   setSelectCheck: Dispatch<SetStateAction<boolean>>;
   nonSelectCheck: boolean;
   setNonSelectCheck: Dispatch<SetStateAction<boolean>>;
+  defaultExpansion: number;
+  setDefaultExpansion: Dispatch<SetStateAction<number>>;
 }>({
   selectedTable: "",
   setSelectedTable: noop,
@@ -122,6 +124,8 @@ export const LineageContext = createContext<{
   setSelectCheck: noop,
   nonSelectCheck: false,
   setNonSelectCheck: noop,
+  defaultExpansion: 0,
+  setDefaultExpansion: noop,
 });
 
 function App() {
@@ -150,7 +154,7 @@ function App() {
 
   const [selectCheck, setSelectCheck] = useState(true);
   const [nonSelectCheck, setNonSelectCheck] = useState(false);
-
+  const [defaultExpansion, setDefaultExpansion] = useState(5);
   const [nodeCount, setNodeCount] = useState(0);
   const [minRange, setMinRange] = useState<[number, number]>([0, 0]);
 
@@ -301,6 +305,8 @@ function App() {
         setSelectCheck,
         nonSelectCheck,
         setNonSelectCheck,
+        defaultExpansion,
+        setDefaultExpansion,
       }}
     >
       <PopoverContext.Provider value={{ isOpen, setIsOpen }}>
