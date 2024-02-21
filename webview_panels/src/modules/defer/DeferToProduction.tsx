@@ -119,7 +119,7 @@ const DeferToProduction = (): JSX.Element => {
       <Card className={classes.insightsCard}>
         <CardTitle className={classes.cardTitle} tag="h5">
           Enable defer_to_production
-          <Tag color="primary">Performance</Tag>
+          <Tag>Performance</Tag>
           <Button outline onClick={toggleBody}>
             <SettingsIcon />
           </Button>

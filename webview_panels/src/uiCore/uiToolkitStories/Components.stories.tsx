@@ -83,7 +83,10 @@ export const UIKit = {
           </CardBody>
         </Card>
         <br />
-        <Tag color="primary">Performance</Tag>
+        <div>
+          <Tag>Performance</Tag> &nbsp;
+          <Tag color="primary">Primary</Tag>
+        </div>
         <br />
         <Stack
           style={{ padding: 8, border: "1px solid #ccc", borderRadius: 2 }}

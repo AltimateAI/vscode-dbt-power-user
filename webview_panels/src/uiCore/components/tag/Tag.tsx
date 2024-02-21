@@ -8,7 +8,7 @@ const Tag = ({
   ...rest
 }: {
   children: ReactNode;
-  color: string;
+  color?: string;
 } & HTMLAttributes<HTMLSpanElement>): JSX.Element => {
   return (
     <span className={`${className ?? ""} ${classes.tag} ${color}`} {...rest}>

@@ -1,9 +1,10 @@
-import { Nav, NavItem, NavLink } from "@uicore";
+import { Button, ButtonGroup } from "@uicore";
 import DocumentationEditor from "./DocumentationEditor";
 import DocumentationTests from "./DocumentationTests";
 import { setActivePage } from "./state/documentationSlice";
 import { Pages } from "./state/types";
 import useDocumentationContext from "./state/useDocumentationContext";
+import classes from "./styles.module.scss";
 
 const DocumentationWrapper = (): JSX.Element => {
   const {
@@ -15,25 +16,28 @@ const DocumentationWrapper = (): JSX.Element => {
   };
 
   return (
-    <div>
-      <Nav justified pills>
-        <NavItem>
-          <NavLink
-            active={activePage === Pages.DOCUMENTATION}
-            onClick={() => handleClick(Pages.DOCUMENTATION)}
-          >
-            Documentation
-          </NavLink>
-        </NavItem>
-        <NavItem>
-          <NavLink
-            active={activePage === Pages.TESTS}
-            onClick={() => handleClick(Pages.TESTS)}
-          >
-            Tests
-          </NavLink>
-        </NavItem>
-      </Nav>
+    <div className={classes.documentationWrapper}>
+      <ButtonGroup>
+        <Button
+          color={activePage === Pages.DOCUMENTATION ? "primary" : "secondary"}
+          onClick={() => handleClick(Pages.DOCUMENTATION)}
+        >
+          Documentation
+        </Button>
+        <Button
+          color={activePage === Pages.TESTS ? "primary" : "secondary"}
+          onClick={() => handleClick(Pages.TESTS)}
+        >
+          Tests
+        </Button>
+        <Button
+          color={activePage === Pages.TAGS ? "primary" : "secondary"}
+          onClick={() => handleClick(Pages.TAGS)}
+        >
+          Tags
+        </Button>
+      </ButtonGroup>
+
       {activePage === Pages.DOCUMENTATION ? <DocumentationEditor /> : null}
       {activePage === Pages.TESTS ? <DocumentationTests /> : null}
     </div>

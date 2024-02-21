@@ -2,7 +2,8 @@ import {
   DBTModelTest,
   DbtGenericTests,
 } from "@modules/documentationEditor/state/types";
-import { Tag } from "@uicore";
+import { Tag, Tooltip } from "@uicore";
+import classes from "../../styles.module.scss";
 
 interface Props {
   test: DBTModelTest;
@@ -10,41 +11,27 @@ interface Props {
 }
 
 const Test = ({ test, onSelect }: Props): JSX.Element => {
+  const isEditableTest =
+    test.test_metadata?.name !== DbtGenericTests.NOT_NULL &&
+    test.test_metadata?.name !== DbtGenericTests.UNIQUE;
+
   const handleClick = () => {
-    if (
-      test.test_metadata?.name !== DbtGenericTests.NOT_NULL &&
-      test.test_metadata?.name !== DbtGenericTests.UNIQUE
-    ) {
+    if (isEditableTest) {
       onSelect(test);
-    }
-
-    if (!test.column_name) {
-      // singular test for model
-    }
-
-    if (!test.test_metadata?.name) {
-      return;
-    }
-
-    const testName = test.test_metadata.name;
-
-    if (!Object.values(DbtGenericTests).includes(testName as DbtGenericTests)) {
-      // macro test
-    }
-
-    if ((testName as DbtGenericTests) === DbtGenericTests.ACCEPTED_VALUES) {
-      // accepted value test
-    }
-
-    if ((testName as DbtGenericTests) === DbtGenericTests.RELATIONSHIPS) {
-      // relationship test
     }
   };
 
   return (
-    <Tag color="primary" key={test.key} onClick={handleClick}>
-      {test.key}
-    </Tag>
+    <Tooltip title={isEditableTest ? "Click to view details" : ""}>
+      <Tag
+        color="primary"
+        key={test.key}
+        onClick={handleClick}
+        className={classes.testTag}
+      >
+        {test.key}
+      </Tag>
+    </Tooltip>
   );
 };
 

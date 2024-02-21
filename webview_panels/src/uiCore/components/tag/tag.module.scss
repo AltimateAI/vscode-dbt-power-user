@@ -6,5 +6,9 @@
   color: var(--Text-white, #fff);
   font-size: 10px;
   font-weight: 300;
-  height: 20px;;
+  height: 26px;
+
+  &:global.primary{
+    background-color: var(--primary-color);
+  }
 }

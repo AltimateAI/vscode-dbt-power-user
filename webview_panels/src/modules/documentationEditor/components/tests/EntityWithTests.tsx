@@ -5,6 +5,7 @@ import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { Stack } from "@uicore";
 import { useState } from "react";
 import DisplayTestDetails from "./DisplayTestDetails";
+import classes from "../../styles.module.scss";
 
 interface Props {
   title: string;
@@ -24,7 +25,7 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element => {
       ?.map((t) => t.test_metadata?.name)
       .filter((item): item is string => !!item);
   return (
-    <div>
+    <div className={classes.entityTests}>
       <h5>
         {title}
         {type === EntityType.COLUMN ? (

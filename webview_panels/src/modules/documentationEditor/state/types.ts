@@ -8,6 +8,7 @@ export enum Source {
 export enum Pages {
   DOCUMENTATION,
   TESTS,
+  TAGS,
 }
 export interface MetadataColumn {
   name: string;

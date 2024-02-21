@@ -26,7 +26,7 @@ const DocumentationTests = (): JSX.Element => {
   }
 
   return (
-    <div className={classes.docGenerator}>
+    <div className={`${classes.docGenerator} ${classes.docTests}`}>
       <Stack className={classes.head}>
         <Stack>
           <h3>Tests for {currentDocsData?.name}</h3>

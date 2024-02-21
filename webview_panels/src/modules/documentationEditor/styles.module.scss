@@ -1,3 +1,15 @@
+.documentation-wrapper {
+  :global .btn-group{
+    margin-bottom: var(--spacing-3xl);
+
+  }
+
+  .entity-tests{
+    h5 {
+      margin-bottom: var(--spacing-lg);
+    }
+  }
+}
 .doc-generator {
   max-height: calc(100vh - 50px);
   display: flex;
@@ -80,6 +92,18 @@
     & .result-body {
       width: 40%;
       overflow: overlay;
+    }
+  }
+
+  &.docTests{
+    .column-header{
+      margin-top: var(--spacing-3xl);
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .test-tag{
+      border-radius: 26px;
+      cursor: pointer;
     }
   }
 }
