@@ -92,6 +92,10 @@ export const LineageContext = createContext<{
   setMinRange: Dispatch<SetStateAction<[number, number]>>;
   nodeCount: number;
   setNodeCount: Dispatch<SetStateAction<number>>;
+  selectCheck: boolean;
+  setSelectCheck: Dispatch<SetStateAction<boolean>>;
+  nonSelectCheck: boolean;
+  setNonSelectCheck: Dispatch<SetStateAction<boolean>>;
 }>({
   selectedTable: "",
   setSelectedTable: noop,
@@ -114,6 +118,10 @@ export const LineageContext = createContext<{
   setMinRange: noop,
   nodeCount: 0,
   setNodeCount: noop,
+  selectCheck: false,
+  setSelectCheck: noop,
+  nonSelectCheck: false,
+  setNonSelectCheck: noop,
 });
 
 function App() {
@@ -289,17 +297,16 @@ function App() {
         setMinRange,
         nodeCount,
         setNodeCount,
+        selectCheck,
+        setSelectCheck,
+        nonSelectCheck,
+        setNonSelectCheck,
       }}
     >
       <PopoverContext.Provider value={{ isOpen, setIsOpen }}>
         <ReactFlowProvider>
           <div className="position-relative">
-            <ActionWidget
-              selectCheck={selectCheck}
-              setSelectCheck={setSelectCheck}
-              nonSelectCheck={nonSelectCheck}
-              setNonSelectCheck={setNonSelectCheck}
-            />
+            <ActionWidget />
             <div className="bottom-right-container">
               {showDemoButton && (
                 <Button
