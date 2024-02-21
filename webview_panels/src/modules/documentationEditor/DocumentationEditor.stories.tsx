@@ -71,4 +71,14 @@ export const DocumentationTestsView = {
       },
     }),
   ],
+  parameters: {
+    vscode: {
+      func: (request: Record<string, unknown>): unknown => {
+        if (request.command === "getTestCode") {
+          return { code: `select * from users` };
+        }
+      },
+      timer: 500,
+    },
+  },
 };

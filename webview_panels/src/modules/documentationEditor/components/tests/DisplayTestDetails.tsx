@@ -219,7 +219,8 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
         <form onSubmit={handleSubmit(onSubmit)}>{getDisplayContent()}</form>
         {testCode ? (
           <Card>
-            <CardBody>{testCode}</CardBody>
+            <CardTitle>Values</CardTitle>
+            <CardBody className={classes.title}>{testCode}</CardBody>
           </Card>
         ) : null}
       </Stack>
