@@ -19,12 +19,16 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element => {
     setSelectedTest(null);
   };
 
+  const getCurrentTests = () =>
+    tests
+      ?.map((t) => t.test_metadata?.name)
+      .filter((item): item is string => !!item);
   return (
     <div>
       <h5>
         {title}
         {type === EntityType.COLUMN ? (
-          <AddTest title={title} path={tests?.[0].path} />
+          <AddTest title={title} currentTests={getCurrentTests()} />
         ) : null}
       </h5>
       <Stack>
@@ -34,7 +38,11 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element => {
         ))}
       </Stack>
       {selectedTest ? (
-        <DisplayTestDetails onClose={handleClose} test={selectedTest} />
+        <DisplayTestDetails
+          onClose={handleClose}
+          test={selectedTest}
+          column={title}
+        />
       ) : null}
     </div>
   );

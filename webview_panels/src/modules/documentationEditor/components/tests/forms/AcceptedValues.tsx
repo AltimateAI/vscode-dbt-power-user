@@ -1,11 +1,12 @@
 import { Stack, Label, Input } from "@uicore";
 import { Control, Controller } from "react-hook-form";
-import { SaveRequest } from "./TestForm";
+import { SaveRequest } from "../types";
 
 interface Props {
   control: Control<SaveRequest, unknown>;
+  value?: string;
 }
-const AcceptedValues = ({ control }: Props): JSX.Element => {
+const AcceptedValues = ({ control, value }: Props): JSX.Element => {
   return (
     <Stack direction="column">
       <Label>Add comma separated list of values</Label>
@@ -14,6 +15,7 @@ const AcceptedValues = ({ control }: Props): JSX.Element => {
         name="accepted_values"
         render={({ field: { onChange } }) => (
           <Input
+            defaultValue={value}
             onChange={onChange}
             placeholder="Entire home/apt,Private room,Shared room"
           />

@@ -5,18 +5,14 @@ import { DbtGenericTests } from "@modules/documentationEditor/state/types";
 import { Card, CardTitle, CardBody, CardFooter, Button } from "@uicore";
 import AcceptedValues from "./AcceptedValues";
 import Relationships from "./Relationships";
-import { useEffect, useState } from "react";
-import {
-  executeRequestInAsync,
-  executeRequestInSync,
-} from "@modules/app/requestExecutor";
-import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
+import { useEffect } from "react";
 import { panelLogger } from "@modules/logger";
+import useTestFormSave from "../hooks/useTestFormSave";
+import { SaveRequest } from "../types";
 
 interface Props {
   formType: DbtGenericTests;
   onClose: () => void;
-  path?: string;
   column: string;
 }
 
@@ -26,23 +22,8 @@ const schema = Yup.object({
   accepted_values: Yup.string().optional(),
 }).required();
 
-export interface SaveRequest {
-  to?: string;
-  field?: string;
-  accepted_values?: string;
-  test?: DbtGenericTests;
-}
-
-const TestForm = ({
-  formType,
-  onClose,
-  path,
-  column,
-}: Props): JSX.Element | null => {
-  const [isSaving, setIsSaving] = useState(false);
-  const {
-    state: { currentDocsData },
-  } = useDocumentationContext();
+const TestForm = ({ formType, onClose, column }: Props): JSX.Element | null => {
+  const { isSaving, handleSave } = useTestFormSave();
 
   const { control, handleSubmit, reset } = useForm<SaveRequest>({
     resolver: yupResolver(schema),
@@ -53,7 +34,7 @@ const TestForm = ({
       formType === DbtGenericTests.NOT_NULL ||
       formType === DbtGenericTests.UNIQUE
     ) {
-      await handleSave({ test: formType });
+      await handleSave({ test: formType }, column);
       onClose();
       return;
     }
@@ -68,23 +49,6 @@ const TestForm = ({
     );
   }, [formType, isSaving]);
 
-  const handleSave = async (data: SaveRequest) => {
-    setIsSaving(true);
-
-    (await executeRequestInSync("saveDocumentation", {
-      ...currentDocsData,
-      tests: {
-        column,
-        path,
-        ...data,
-      },
-      patchPath: currentDocsData?.patchPath,
-      dialogType: "Existing file",
-    })) as { saved: boolean };
-    executeRequestInAsync("getCurrentModelTests", {});
-
-    setIsSaving(false);
-  };
   const handleCancel = () => {
     reset();
     if (!isSaving) {
@@ -110,7 +74,13 @@ const TestForm = ({
         )}
       </CardBody>
       <CardFooter>
-        <Button onClick={handleSubmit(handleSave)}>Save</Button>
+        <Button
+          onClick={handleSubmit((d) =>
+            handleSave({ ...d, test: formType }, column),
+          )}
+        >
+          Save
+        </Button>
         <Button onClick={handleCancel}>Cancel</Button>
       </CardFooter>
     </Card>

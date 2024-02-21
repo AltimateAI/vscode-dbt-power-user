@@ -15,10 +15,10 @@ import TestForm from "./forms/TestForm";
 
 interface Props {
   title: string;
-  path?: string;
+  currentTests?: string[];
 }
 
-const AddTest = ({ title, path }: Props): JSX.Element => {
+const AddTest = ({ title, currentTests }: Props): JSX.Element => {
   const [addNewTestPanel, setAddNewTestPanel] = useState(false);
   const [formType, setFormType] = useState<DbtGenericTests | null>(null);
 
@@ -50,6 +50,7 @@ const AddTest = ({ title, path }: Props): JSX.Element => {
                       key={test}
                       action
                       tag="button"
+                      disabled={currentTests?.includes(test)}
                     >
                       {test}
                     </ListGroupItem>
@@ -58,12 +59,7 @@ const AddTest = ({ title, path }: Props): JSX.Element => {
               </CardBody>
             </Card>
           ) : (
-            <TestForm
-              formType={formType}
-              onClose={onClose}
-              path={path}
-              column={title}
-            />
+            <TestForm formType={formType} onClose={onClose} column={title} />
           )}
         </RightSidePanel>
       ) : null}
