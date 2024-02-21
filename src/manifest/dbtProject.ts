@@ -73,6 +73,7 @@ export class DBTProject implements Disposable {
   private readonly projectConfigDiagnostics =
     languages.createDiagnosticCollection("dbt");
   public readonly projectHealth = languages.createDiagnosticCollection("dbt");
+  dbtProfilesDir: any;
 
   constructor(
     private PythonEnvironment: PythonEnvironment,

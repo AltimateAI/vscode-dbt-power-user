@@ -18,6 +18,7 @@ enum DbtInstallationPromptAnswer {
 
 @provideSingleton(WalkthroughCommands)
 export class WalkthroughCommands {
+  terminal: any;
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
@@ -25,6 +26,32 @@ export class WalkthroughCommands {
     private pythonEnvironment: PythonEnvironment,
     private dbtTerminal: DBTTerminal,
   ) {}
+
+  async troubleShootExtension() {
+    try {
+      // get all profiles dir
+      const allProjects = this.dbtProjectContainer.getProjects();
+      const allProfilesDir: string[] = allProjects.map((project) => {
+        return `${project.getProjectName()}: ${project.dbtProfilesDir}`;
+      });
+      this.terminal.show(true);
+      await this.commandProcessExecutionFactory
+        .createCommandProcessExecution({
+          command: this.dbtProjectContainer.getPythonEnvironment().pythonPath,
+          args: ["ext_troubleshooter.py"],
+          // args: ["--version"],
+          cwd: this.dbtProjectContainer.extensionUri.fsPath,
+          envVars: {
+            DBTPU__PROFILES_DIR: allProfilesDir.join("\r\n"),
+          },
+        })
+        .completeWithTerminalOutput(this.terminal);
+    } catch (err) {
+      // do something useful with error
+      // TODO: telemetry
+      console.log(err);
+    }
+  }
 
   async validateProjects(projectContext: ProjectQuickPickItem | undefined) {
     if (projectContext === undefined) {
