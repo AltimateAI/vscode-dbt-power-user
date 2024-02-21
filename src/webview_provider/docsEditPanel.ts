@@ -566,6 +566,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   writeFileSync(patchPath, stringify(parsedDocFile));
                   this.documentation =
                     await this.docGenService.getDocumentation(this.eventMap);
+                  const tests = await this.docGenService.getTestsData(
+                    this.eventMap,
+                  );
                   if (syncRequestId) {
                     this._panel!.webview.postMessage({
                       command: "response",
@@ -573,6 +576,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                         syncRequestId,
                         body: {
                           saved: true,
+                          tests,
                         },
                         status: true,
                       },

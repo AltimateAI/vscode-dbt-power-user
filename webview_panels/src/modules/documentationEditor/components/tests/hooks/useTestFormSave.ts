@@ -1,7 +1,4 @@
-import {
-  executeRequestInAsync,
-  executeRequestInSync,
-} from "@modules/app/requestExecutor";
+import { executeRequestInSync } from "@modules/app/requestExecutor";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { useState } from "react";
 import { SaveRequest } from "../types";
@@ -27,9 +24,6 @@ const useTestFormSave = (): {
       patchPath: currentDocsData?.patchPath,
       dialogType: "Existing file",
     })) as { saved: boolean };
-    executeRequestInAsync("getCurrentModelTests", {});
-
-    setIsSaving(false);
   };
 
   return { handleSave, isSaving };

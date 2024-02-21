@@ -74,7 +74,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     );
   }
 
-  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+  protected onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
       this.eventMap.set(added.project.projectRoot.fsPath, added);
     });

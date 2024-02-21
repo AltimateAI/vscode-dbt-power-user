@@ -9,6 +9,7 @@ import {
 } from "vscode";
 import { AltimateRequest } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { DbtProjectService } from "../services/dbtProjectService";
 import { DocGenService } from "../services/docGenService";
 import { SharedStateService } from "../services/sharedStateService";
@@ -50,6 +51,12 @@ export class NewDocsGenPanel
         },
       ),
     );
+  }
+
+  protected onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+    super.onManifestCacheChanged(event);
+
+    this.transmitTestsData();
   }
 
   resolveWebview(
@@ -101,9 +108,6 @@ export class NewDocsGenPanel
           docs: documentation,
           project: this.dbtProjectService.getProject()?.getProjectName(),
         });
-      case "getCurrentModelTests":
-        this.transmitTestsData();
-        break;
       case "getColumnsOfModel":
         const columns = this.dbtProjectService.getColumnsFromEventMap(
           this.eventMap,
