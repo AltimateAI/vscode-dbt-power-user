@@ -23,7 +23,7 @@ import {
 } from "./graph";
 import classNames from "classnames";
 import { BetterPopover } from "./components/Modal";
-import { DEFAULT_MIN_ZOOM } from "./utils";
+import { DEFAULT_MIN_ZOOM, calculateExpand } from "./utils";
 import { InfoIcon } from "./components/InfoIcon";
 
 const ActionButton = ({
@@ -58,13 +58,18 @@ const AutoExpansionPopover = () => {
     rerender,
     nodeCount,
     setNodeCount,
+    defaultExpansion,
   } = useContext(LineageContext);
-  const [maxRange, setMaxRange] = useState([0, 0]);
+  const [maxRange, setMaxRange] = useState<[number, number]>([0, 0]);
 
   useEffect(() => {
-    setLeftExpansion(minRange[0] === -1 ? maxRange[0] : minRange[0]);
-    setRightExpansion(minRange[1] === -1 ? maxRange[1] : minRange[1]);
-  }, [maxRange, minRange, setLeftExpansion, setRightExpansion]);
+    setLeftExpansion(
+      calculateExpand(minRange[0], maxRange[0], defaultExpansion)
+    );
+    setRightExpansion(
+      calculateExpand(minRange[1], maxRange[1], defaultExpansion)
+    );
+  }, [defaultExpansion, maxRange, minRange, setLeftExpansion, setRightExpansion]);
 
   useEffect(() => {
     (async () => {

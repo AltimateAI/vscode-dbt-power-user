@@ -21,7 +21,7 @@ function Settings() {
       <div className="mb-2 fw-semibold fs-5">Settings</div>
       <div className="d-flex flex-column gap-sm">
         <div>
-          <Label check for="default-expansion" className="fs-6">
+          <Label check for="default-expansion" className="fs-6 mb-1">
             Default Expansion
           </Label>
           <CustomInput
