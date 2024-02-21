@@ -87,6 +87,10 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
       return;
     }
 
+    if (!isInEditMode) {
+      return;
+    }
+
     handleSave({ ...data, test: testName as DbtGenericTests }, column).catch(
       (err) =>
         panelLogger.error("error while editing test", err, testName, data),
@@ -212,7 +216,9 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
         <Card>
           <CardTitle>Column: {test.column_name}</CardTitle>
           <CardBody>
-            Tests: <Tag color="primary">{test.key}</Tag>
+            <div className={classes.title}>
+              Tests: <Tag color="primary">{test.key}</Tag>
+            </div>
           </CardBody>
         </Card>
 
