@@ -23,7 +23,7 @@ function Settings() {
               <Input
                 type="checkbox"
                 id="select-check"
-                className="mt-0"
+                className="mt-2"
                 checked={selectCheck}
                 onChange={(e) => {
                   if (CLL.inProgress) {
@@ -47,7 +47,7 @@ function Settings() {
               <Input
                 type="checkbox"
                 id="non-select-check"
-                className="mt-0"
+                className="mt-2"
                 checked={nonSelectCheck}
                 onChange={(e) => {
                   if (CLL.inProgress) {
