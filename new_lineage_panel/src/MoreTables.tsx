@@ -70,7 +70,7 @@ function TableHeader({
 }
 
 function MoreTables() {
-  const { moreTables, setShowSidebar, rerender } = useContext(LineageContext);
+  const { moreTables, rerender, setSidebarScreen } = useContext(LineageContext);
   const { tables, level } = moreTables as TMoreTables;
   const flow = useReactFlow();
 
@@ -84,7 +84,7 @@ function MoreTables() {
       moreTables
     );
     if (allTablesAdded) {
-      setShowSidebar(false);
+      setSidebarScreen("");
     }
 
     layoutElementsOnCanvas(nodes, edges);

@@ -20,7 +20,7 @@ import ArrowRightDoubleIcon from "./assets/icons/arrow-right-double.svg?react";
 import ArrowLeftIcon from "./assets/icons/arrow-left.svg?react";
 import ArrowRightIcon from "./assets/icons/arrow-right.svg?react";
 import styles from "./styles.module.scss";
-import { HELP_SIDEBAR } from "./constants";
+import { HELP_SIDEBAR, SETTINGS_SIDEBAR } from "./constants";
 import { init, openURL, setLegacyLineageView, CLL } from "./service_utils";
 import { LineageContext, aiEnabled } from "./App";
 import { useReactFlow } from "reactflow";
@@ -270,7 +270,6 @@ export const ActionWidget: FC<{
     selectedColumn,
     confidence,
     setSidebarScreen,
-    setShowSidebar,
     setSelectedColumn,
     setCollectColumns,
     setMoreTables,
@@ -354,6 +353,9 @@ export const ActionWidget: FC<{
           </div>
         </CardBody>
       </Card>
+      <ActionButton onClick={() => setSidebarScreen(SETTINGS_SIDEBAR)}>
+        Settings
+      </ActionButton>
       <ActionButton
         onClick={() => {
           setLegacyLineageView();
@@ -362,12 +364,7 @@ export const ActionWidget: FC<{
       >
         Show Legacy UX
       </ActionButton>
-      <ActionButton
-        onClick={() => {
-          setSidebarScreen(HELP_SIDEBAR);
-          setShowSidebar(true);
-        }}
-      >
+      <ActionButton onClick={() => setSidebarScreen(HELP_SIDEBAR)}>
         <HelpIcon />
         <span>Help</span>
       </ActionButton>
@@ -389,7 +386,6 @@ export const ActionWidget: FC<{
       <ActionButton
         onClick={() => {
           // setSidebarScreen(FEEDBACK_SIDEBAR);
-          // setShowSidebar(true);
           // TODO: going to be deprecated
           openURL(
             aiEnabled

@@ -40,6 +40,7 @@ import {
   EXPOSURE_SIDEBAR,
   FEEDBACK_SIDEBAR,
   HELP_SIDEBAR,
+  SETTINGS_SIDEBAR,
 } from "./constants";
 import ExposureDetails from "./ExposureDetails";
 import { Feedback } from "./Feedback";
@@ -48,6 +49,7 @@ import { Demo } from "./Demo";
 import { handleResponse, init, columnLineage } from "./service_utils";
 import { ActionWidget } from "./ActionWidget";
 import { DEFAULT_MIN_ZOOM, createTableNode } from "./utils";
+import { Settings } from "./Settings";
 
 export let aiEnabled = false;
 export let isDarkMode = false;
@@ -67,8 +69,6 @@ type Confidence = {
 const noop = () => {};
 
 export const LineageContext = createContext<{
-  showSidebar: boolean;
-  setShowSidebar: Dispatch<boolean>;
   selectedTable: string;
   setSelectedTable: Dispatch<SetStateAction<string>>;
   moreTables: TMoreTables;
@@ -93,8 +93,6 @@ export const LineageContext = createContext<{
   nodeCount: number;
   setNodeCount: Dispatch<SetStateAction<number>>;
 }>({
-  showSidebar: false,
-  setShowSidebar: noop,
   selectedTable: "",
   setSelectedTable: noop,
   moreTables: {},
@@ -122,7 +120,6 @@ function App() {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState("");
-  const [showSidebar, setShowSidebar] = useState(false);
   const [moreTables, setMoreTables] = useState<TMoreTables>({});
   const [sidebarScreen, setSidebarScreen] = useState("");
   const [showDemoModal, setShowDemoModal] = useState(false);
@@ -164,7 +161,7 @@ function App() {
       aiEnabled: boolean;
     }) => {
       setIsOpen(false);
-      setShowSidebar(false);
+      setSidebarScreen("");
       if (!args) return;
       aiEnabled = args.aiEnabled;
       const { node } = args;
@@ -271,8 +268,6 @@ function App() {
   return (
     <LineageContext.Provider
       value={{
-        showSidebar,
-        setShowSidebar,
         selectedTable,
         setSelectedTable,
         moreTables,
@@ -336,22 +331,18 @@ function App() {
               </ReactFlow>
             </div>
             <SidebarModal
-              isOpen={showSidebar}
-              toggleModal={() => setShowSidebar((b) => !b)}
+              isOpen={!sidebarScreen}
+              closeModal={() => setSidebarScreen("")}
               width={446}
             >
               {sidebarScreen === TABLES_SIDEBAR && <MoreTables />}
               {sidebarScreen === COLUMNS_SIDEBAR && <TableDetails />}
               {sidebarScreen === EXPOSURE_SIDEBAR && <ExposureDetails />}
               {sidebarScreen === FEEDBACK_SIDEBAR && (
-                <Feedback
-                  close={() => {
-                    setSidebarScreen("");
-                    setShowSidebar(false);
-                  }}
-                />
+                <Feedback close={() => setSidebarScreen("")} />
               )}
               {sidebarScreen === HELP_SIDEBAR && <Help />}
+              {sidebarScreen === SETTINGS_SIDEBAR && <Settings />}
             </SidebarModal>
             <Modal isOpen={showDemoModal} close={() => setShowDemoModal(false)}>
               <Demo />

@@ -86,7 +86,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
   const {
     selectedTable,
-    setShowSidebar,
     setSidebarScreen,
     collectColumns,
     selectedColumn,
@@ -169,7 +168,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const onDetailsClick = (e: React.MouseEvent) => {
     if (!selected) return;
     e.stopPropagation();
-    setShowSidebar(true);
     if (flow.getNode(selectedTable)?.data?.nodeType === "exposure") {
       setSidebarScreen(EXPOSURE_SIDEBAR);
       return;
@@ -317,15 +315,13 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
 export const SeeMoreNode: FunctionComponent<NodeProps> = ({ data }) => {
   const { tables = [], prevTable, right, level } = data as TMoreTables;
-  const { setShowSidebar, setMoreTables, setSidebarScreen } =
-    useContext(LineageContext);
+  const { setMoreTables, setSidebarScreen } = useContext(LineageContext);
   const flow = useReactFlow();
   return (
     <div
       className={styles.see_more_node}
       onClick={(e) => {
         e.stopPropagation();
-        setShowSidebar(true);
         setSidebarScreen(TABLES_SIDEBAR);
         setMoreTables((prev) => ({ ...prev, tables, prevTable, right, level }));
       }}

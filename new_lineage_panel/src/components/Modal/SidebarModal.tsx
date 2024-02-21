@@ -7,12 +7,12 @@ const sidebarElem = document.getElementById("sidebar")!;
 
 function SidebarModal({
   isOpen,
-  toggleModal,
+  closeModal,
   width = 350,
   children,
 }: PropsWithChildren<{
   isOpen: boolean;
-  toggleModal: () => void;
+  closeModal: () => void;
   width: number;
 }>) {
   return createPortal(
@@ -28,10 +28,10 @@ function SidebarModal({
     >
       {isOpen && (
         <>
-          <div className="sidebar-close-button" onClick={toggleModal}>
+          <div className="sidebar-close-button" onClick={closeModal}>
             <CloseIcon />
           </div>
-          <div className="sidebar-background-screen" onClick={toggleModal} />
+          <div className="sidebar-background-screen" onClick={closeModal} />
           <div className="sidebar-modal-content">{children}</div>
         </>
       )}
