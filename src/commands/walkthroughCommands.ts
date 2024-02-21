@@ -34,7 +34,7 @@ export class WalkthroughCommands {
       const allProfilesDir: string[] = allProjects.map((project) => {
         return `${project.getProjectName()}: ${project.dbtProfilesDir}`;
       });
-      this.terminal.show(true);
+      this.dbtTerminal.show(true);
       await this.commandProcessExecutionFactory
         .createCommandProcessExecution({
           command: this.dbtProjectContainer.getPythonEnvironment().pythonPath,
@@ -45,7 +45,7 @@ export class WalkthroughCommands {
             DBTPU__PROFILES_DIR: allProfilesDir.join("\r\n"),
           },
         })
-        .completeWithTerminalOutput(this.terminal);
+        .completeWithTerminalOutput(this.dbtTerminal);
     } catch (err) {
       // do something useful with error
       // TODO: telemetry

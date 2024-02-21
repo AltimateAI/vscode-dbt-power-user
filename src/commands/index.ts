@@ -42,9 +42,6 @@ export class VSCodeCommands implements Disposable {
           this.dbtProjectContainer.initialize();
         },
       ),
-      commands.registerCommand("dbtPowerUser.troubleShootExtension", () =>
-        this.walkthroughCommands.troubleShootExtension(),
-      ),
       commands.registerCommand("dbtPowerUser.installDbt", () =>
         this.walkthroughCommands.installDbt(),
       ),
@@ -207,6 +204,12 @@ export class VSCodeCommands implements Disposable {
           "@id:files.associations",
         );
       }),
+      commands.registerCommand(
+        "dbtPowerUser.troubleShootExtension",
+        async () => {
+          await this.walkthroughCommands.troubleShootExtension();
+        },
+      ),
       commands.registerCommand("dbtPowerUser.openDatapilotWithQuery", () =>
         this.eventEmitterService.fire({
           command: "dbtPowerUser.openDatapilotWithQuery",
