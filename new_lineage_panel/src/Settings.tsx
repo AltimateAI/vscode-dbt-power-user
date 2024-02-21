@@ -17,7 +17,7 @@ function Settings() {
     <div className="p-2 h-100 d-flex flex-column">
       <div className="mb-2 fw-semibold fs-5">Settings</div>
       <div className="d-flex flex-column gap-sm">
-        {(true || (aiEnabled && selectedColumn.name)) && (
+        {aiEnabled && selectedColumn.name && (
           <>
             <div className={styles.select_node_checkbox}>
               <Input
