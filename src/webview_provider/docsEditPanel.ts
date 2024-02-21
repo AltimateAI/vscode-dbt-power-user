@@ -268,6 +268,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
           ?.split(",")
           .map((s) => s.trim());
         if (tests) {
+          // If tests are already added, check if there is any accepted_values available and replace it
           const currentIndex = tests.findIndex(
             (test: Record<string, unknown>) => !!test.accepted_values,
           );
@@ -291,6 +292,21 @@ export class DocsEditViewPanel implements WebviewViewProvider {
           ],
         };
       case "relationships":
+        if (tests) {
+          // If tests are already added, check if there is any relationships available and replace it
+          const currentIndex = tests.findIndex(
+            (test: Record<string, unknown>) => !!test.relationships,
+          );
+          if (currentIndex > -1) {
+            tests[currentIndex] = {
+              relationships: {
+                to: message.tests.to,
+                field: message.tests.field,
+              },
+            };
+            return { tests };
+          }
+        }
         return {
           tests: [
             ...(tests || []),

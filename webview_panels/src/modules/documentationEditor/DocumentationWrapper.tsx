@@ -30,12 +30,12 @@ const DocumentationWrapper = (): JSX.Element => {
         >
           Tests
         </Button>
-        <Button
+        {/* <Button
           color={activePage === Pages.TAGS ? "primary" : "secondary"}
           onClick={() => handleClick(Pages.TAGS)}
         >
           Tags
-        </Button>
+        </Button> */}
       </ButtonGroup>
 
       {activePage === Pages.DOCUMENTATION ? <DocumentationEditor /> : null}

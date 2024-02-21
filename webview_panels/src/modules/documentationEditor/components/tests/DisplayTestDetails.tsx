@@ -41,7 +41,7 @@ interface Props {
 }
 
 const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
-  const { control, handleSubmit } = useForm<SaveRequest>({
+  const { control, handleSubmit, setValue } = useForm<SaveRequest>({
     resolver: yupResolver(schema),
   });
 
@@ -52,6 +52,27 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
 
   const handleEdit = () => {
     setIsInEditMode(true);
+    if (test.test_metadata?.name === DbtGenericTests.ACCEPTED_VALUES) {
+      setValue(
+        "accepted_values",
+        (
+          test.test_metadata.kwargs as TestMetadataAcceptedValuesKwArgs
+        ).values?.join(","),
+      );
+      return;
+    }
+
+    if (test.test_metadata?.name === DbtGenericTests.RELATIONSHIPS) {
+      setValue(
+        "to",
+        (test.test_metadata.kwargs as TestMetadataRelationshipsKwArgs).to,
+      );
+      setValue(
+        "field",
+        (test.test_metadata.kwargs as TestMetadataRelationshipsKwArgs).field,
+      );
+      return;
+    }
   };
 
   const handleCancel = () => {
@@ -116,9 +137,9 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
               {isInEditMode ? (
                 <div>
                   <p className="mb-0">Selected</p>
-                  <Button className="mb-2" color="primary">
+                  <Tag className="mb-2" color="primary">
                     {test.test_metadata?.name}
-                  </Button>
+                  </Tag>
                   <AcceptedValues
                     control={control}
                     value={(
@@ -155,7 +176,9 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
               {isInEditMode ? (
                 <div>
                   <p>Selected</p>
-                  <Button>{test.test_metadata?.name}</Button>
+                  <Tag className="mb-2" color="primary">
+                    {test.test_metadata?.name}
+                  </Tag>
                   <Relationships
                     control={control}
                     toValue={
