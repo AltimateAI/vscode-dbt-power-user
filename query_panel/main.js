@@ -243,6 +243,14 @@ const app = createApp({
       if (!this.isPopoverVisible) {
         return;
       }
+      const tab = document.getElementsByTagName("vscode-panel-tab")[6];
+      if (tab) {
+        const target = document.querySelector(".popover");
+        const { x, y } = tab.getBoundingClientRect();
+        target.style.display = "block";
+        target.style.top = `${y + 4}px`;
+        target.style.left = `${x - 240}px`;
+      }
       const { columnNames, rows } = this.data;
       const n = rows.length * columnNames.length;
       if (n === 0) {
