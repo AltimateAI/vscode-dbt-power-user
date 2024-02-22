@@ -46,6 +46,7 @@ import {
 } from "../dbt_client/dbtIntegration";
 import { DBTCoreProjectIntegration } from "../dbt_client/dbtCoreIntegration";
 import { DBTCloudProjectIntegration } from "../dbt_client/dbtCloudIntegration";
+import { CustomUnknownException } from "../dbt_client/exception";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -336,7 +337,7 @@ export class DBTProject implements Disposable {
   async compileNode(modelName: string): Promise<string | undefined> {
     this.telemetry.sendTelemetryEvent("compileNode");
     try {
-      return this.dbtProjectIntegration.unsafeCompileNode(modelName);
+      return await this.dbtProjectIntegration.unsafeCompileNode(modelName);
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
@@ -364,6 +365,11 @@ export class DBTProject implements Disposable {
       );
       return "Detailed error information:\n" + exc;
     }
+  }
+
+  async unsafeCompileNode(modelName: string): Promise<string | undefined> {
+    this.telemetry.sendTelemetryEvent("unsafeCompileNode");
+    return await this.dbtProjectIntegration.unsafeCompileNode(modelName);
   }
 
   async validateSql(request: { sql: string; dialect: string; models: any[] }) {
@@ -409,7 +415,7 @@ export class DBTProject implements Disposable {
   async compileQuery(query: string): Promise<string | undefined> {
     this.telemetry.sendTelemetryEvent("compileQuery");
     try {
-      return this.dbtProjectIntegration.unsafeCompileQuery(query);
+      return await this.dbtProjectIntegration.unsafeCompileQuery(query);
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
@@ -653,10 +659,26 @@ select * from renamed
       limit: limit.toString(),
     });
     // TODO: this should generate an event instead of directly going to the panel
-    this.queryResultPanel.executeQuery(
-      query,
-      this.dbtProjectIntegration.executeSQL(query, limit),
-    );
+    try {
+      const queryExecution = await this.dbtProjectIntegration.executeSQL(
+        query,
+        limit,
+      );
+      this.queryResultPanel.executeQuery(query, queryExecution);
+    } catch (e) {
+      this.terminal.error(
+        new CustomUnknownException("executeSQLError", e),
+        true,
+        {
+          adapter: this.getAdapterType(),
+        },
+      );
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          `An error occured while trying to executing the query: ${e}`,
+        ),
+      );
+    }
   }
 
   async dispose() {
