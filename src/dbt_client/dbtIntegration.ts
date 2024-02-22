@@ -59,18 +59,17 @@ export class CLIDBTCommandExecutionStrategy
     command: DBTCommand,
     token?: CancellationToken,
   ): CommandProcessExecution {
+    if (command.logToTerminal && command.focus) {
+      this.terminal.show(true);
+    }
+    this.telemetry.sendTelemetryEvent("dbtCommand", {
+      command: command.getCommandAsString(),
+    });
     if (command.logToTerminal) {
       this.terminal.log(
         `> Executing task: ${command.getCommandAsString()}\n\r`,
       );
     }
-    this.telemetry.sendTelemetryEvent("dbtCommand", {
-      command: command.getCommandAsString(),
-    });
-    if (command.logToTerminal && command.focus) {
-      this.terminal.show(true);
-    }
-
     const { args } = command!;
     if (
       !this.pythonEnvironment.pythonPath ||
