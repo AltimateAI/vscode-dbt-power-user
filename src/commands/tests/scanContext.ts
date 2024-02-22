@@ -1,9 +1,10 @@
+import { Catalog } from "../../dbt_client/dbtIntegration";
 import { DBTProject } from "../../manifest/dbtProject";
 import { ManifestCacheProjectAddedEvent } from "../../manifest/event/manifestCacheChangedEvent";
 import { Diagnostic } from "vscode";
 
 export interface AltimateCatalog {
-  [projectName: string]: { [key: string]: any[] };
+  [projectName: string]: { [key: string]: Catalog };
 }
 export class ScanContext {
   project: DBTProject;

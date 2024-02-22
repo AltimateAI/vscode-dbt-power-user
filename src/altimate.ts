@@ -73,7 +73,7 @@ interface SQLToModelRequest {
   sources: SourceMetaData[];
 }
 
-interface SQLToModelResponse {
+export interface SQLToModelResponse {
   sql: string;
 }
 
