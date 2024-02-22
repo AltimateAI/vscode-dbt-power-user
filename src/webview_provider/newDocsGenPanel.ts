@@ -56,6 +56,14 @@ export class NewDocsGenPanel
   protected onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     super.onManifestCacheChanged(event);
 
+    // Start sending tests data only after webview is ready
+    if (this.isWebviewReady) {
+      this.transmitTestsData();
+    }
+  }
+
+  protected onWebviewReady() {
+    super.onWebviewReady();
     this.transmitTestsData();
   }
 

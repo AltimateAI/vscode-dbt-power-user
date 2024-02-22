@@ -292,6 +292,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
           ],
         };
       case "relationships":
+        if (!message.tests.to || !message.tests.field) {
+          break;
+        }
         if (tests) {
           // If tests are already added, check if there is any relationships available and replace it
           const currentIndex = tests.findIndex(

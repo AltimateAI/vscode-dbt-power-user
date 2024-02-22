@@ -67,6 +67,7 @@ const SaveDocumentation = (): JSX.Element | null => {
             target="file-path"
             placement="top"
             hideArrow
+            className={classes.popover}
           >
             <PopoverBody className={classes.popoverBody}>
               <List>
