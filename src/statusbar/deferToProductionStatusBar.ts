@@ -102,15 +102,23 @@ export class DeferToProductionStatusBar implements Disposable {
 
   private async updateStatusBar() {
     const currentDocument = window.activeTextEditor?.document;
-    const currentProjectRoot = await this.getCurrentProjectRoot();
-    const currentConfig: Record<string, DeferConfig> = await workspace
-      .getConfiguration("dbt", currentDocument?.uri)
-      .get("deferConfigPerProject", {});
+    try {
+      const currentProjectRoot = await this.getCurrentProjectRoot();
+      const currentConfig: Record<string, DeferConfig> = await workspace
+        .getConfiguration("dbt", currentDocument?.uri)
+        .get("deferConfigPerProject", {});
 
-    if (currentConfig[currentProjectRoot]?.deferToProduction) {
-      this.showTextInStatusBar("$(sync) Defer");
-      return;
+      if (!currentProjectRoot) {
+        return;
+      }
+
+      if (currentConfig[currentProjectRoot]?.deferToProduction) {
+        this.showTextInStatusBar("$(sync) Defer");
+        return;
+      }
+      this.showTextInStatusBar("$(sync-ignored) Defer");
+    } catch (err) {
+      console.error("Unable to update defer status bar", err);
     }
-    this.showTextInStatusBar("$(sync-ignored) Defer");
   }
 }
