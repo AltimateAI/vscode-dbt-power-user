@@ -255,17 +255,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         ),
       ),
     );
-    const insightsCss = webview.asWebviewUri(
-      Uri.file(
-        path.join(
-          extensionUri.fsPath,
-          "webview_panels",
-          "dist",
-          "assets",
-          "Insights.css",
-        ),
-      ),
-    );
+    // const insightsCss = webview.asWebviewUri(
+    //   Uri.file(
+    //     path.join(
+    //       extensionUri.fsPath,
+    //       "webview_panels",
+    //       "dist",
+    //       "assets",
+    //       "Insights.css",
+    //     ),
+    //   ),
+    // );
     const codiconsUri = webview.asWebviewUri(
       Uri.joinPath(
         extensionUri,
@@ -292,7 +292,6 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}';">
             <title>VSCode DBT Power user extension</title>
             <link rel="stylesheet" type="text/css" href="${indexCss}">
-            <link rel="stylesheet" type="text/css" href="${insightsCss}">
             <link rel="stylesheet" type="text/css" href="${codiconsUri}">
           </head>
       
