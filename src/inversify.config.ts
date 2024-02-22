@@ -26,10 +26,17 @@ import {
   DBTCoreProjectIntegration,
 } from "./dbt_client/dbtCoreIntegration";
 import {
+  CLIDBTCommandExecutionStrategy,
   DBTCommandExecutionInfrastructure,
+  DBTCommandExecutionStrategy,
   DBTCommandFactory,
   PythonDBTCommandExecutionStrategy,
 } from "./dbt_client/dbtIntegration";
+import {
+  DBTCloudProjectDetection,
+  DBTCloudProjectIntegration,
+} from "./dbt_client/dbtCloudIntegration";
+import { CommandProcessExecutionFactory } from "./commandProcessExecution";
 import { AltimateRequest } from "./altimate";
 
 export const container = new Container();
@@ -56,6 +63,7 @@ container
       return new DBTWorkspaceFolder(
         container.get("Factory<DBTProject>"),
         container.get(DBTCoreProjectDetection),
+        container.get(DBTCloudProjectDetection),
         container.get(TelemetryService),
         workspaceFolder,
         _onManifestChanged,
@@ -91,6 +99,45 @@ container
   );
 
 container
+  .bind<interfaces.Factory<DBTCommandExecutionStrategy>>(
+    "Factory<CLIDBTCommandExecutionStrategy>",
+  )
+  .toFactory<CLIDBTCommandExecutionStrategy, [Uri]>(
+    (context: interfaces.Context) => {
+      return (projectRoot: Uri) => {
+        const { container } = context;
+        return new CLIDBTCommandExecutionStrategy(
+          container.get(CommandProcessExecutionFactory),
+          container.get(PythonEnvironment),
+          container.get(DBTTerminal),
+          container.get(TelemetryService),
+          projectRoot,
+        );
+      };
+    },
+  );
+
+container
+  .bind<interfaces.Factory<DBTCloudProjectIntegration>>(
+    "Factory<DBTCloudProjectIntegration>",
+  )
+  .toFactory<DBTCloudProjectIntegration, [Uri]>(
+    (context: interfaces.Context) => {
+      return (projectRoot: Uri) => {
+        const { container } = context;
+        return new DBTCloudProjectIntegration(
+          container.get(DBTCommandExecutionInfrastructure),
+          container.get(DBTCommandFactory),
+          container.get("Factory<CLIDBTCommandExecutionStrategy>"),
+          container.get(AltimateRequest),
+          container.get(TelemetryService),
+          projectRoot,
+        );
+      };
+    },
+  );
+
+container
   .bind<interfaces.Factory<DBTProject>>("Factory<DBTProject>")
   .toFactory<DBTProject, [Uri, any, EventEmitter<ManifestCacheChangedEvent>]>(
     (context: interfaces.Context) => {
@@ -110,6 +157,7 @@ container
           container.get(QueryResultPanel),
           container.get(TelemetryService),
           container.get("Factory<DBTCoreProjectIntegration>"),
+          container.get("Factory<DBTCloudProjectIntegration>"),
           path,
           projectConfig,
           _onManifestChanged,

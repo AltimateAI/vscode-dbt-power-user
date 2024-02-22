@@ -51,8 +51,12 @@ const config = {
     new CopyPlugin({
       patterns: [
         {
-          from: path.resolve(__dirname, "dbt_integration.py"),
-          to: "dbt_integration.py",
+          from: path.resolve(__dirname, "dbt_core_integration.py"),
+          to: "dbt_core_integration.py",
+        },
+        {
+          from: path.resolve(__dirname, "dbt_cloud_integration.py"),
+          to: "dbt_cloud_integration.py",
         },
         {
           from: path.resolve(
