@@ -1,4 +1,4 @@
-import { ChildProcess, spawn } from "child_process";
+import { spawn } from "child_process";
 import { provide } from "inversify-binding-decorators";
 import { CancellationToken, Disposable } from "vscode";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
@@ -11,14 +11,14 @@ export class CommandProcessExecutionFactory {
     args,
     stdin,
     cwd,
-    token,
+    tokens,
     envVars,
   }: {
     command: string;
     args?: string[];
     stdin?: string;
     cwd?: string;
-    token?: CancellationToken;
+    tokens?: CancellationToken[];
     envVars?: EnvironmentVariables;
   }) {
     return new CommandProcessExecution(
@@ -26,7 +26,7 @@ export class CommandProcessExecutionFactory {
       args,
       stdin,
       cwd,
-      token,
+      tokens,
       envVars,
     );
   }
@@ -40,7 +40,7 @@ export class CommandProcessExecution {
     private args?: string[],
     private stdin?: string,
     private cwd?: string,
-    private token?: CancellationToken,
+    private tokens?: CancellationToken[],
     private envVars?: EnvironmentVariables,
   ) {}
 
@@ -49,11 +49,13 @@ export class CommandProcessExecution {
       cwd: this.cwd,
       env: this.envVars,
     });
-    if (this.token !== undefined) {
-      this.disposables.push(
-        this.token.onCancellationRequested(() => {
-          proc.kill("SIGINT");
-        }),
+    if (this.tokens !== undefined) {
+      this.tokens.forEach((token) =>
+        this.disposables.push(
+          token.onCancellationRequested(() => {
+            proc.kill("SIGTERM");
+          }),
+        ),
       );
     }
     return proc;

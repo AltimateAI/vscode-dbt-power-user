@@ -86,7 +86,7 @@ export class QueryAnalysisService {
         model: {
           model_name: documentation.name,
           adapter,
-          compiled_sql: await dbtProject.compileQuery(query),
+          compiled_sql: await dbtProject.unsafeCompileQuery(query),
           columns: documentation.columns.map((c) => ({
             column_name: c.name,
             data_type: c.type,
@@ -124,7 +124,7 @@ export class QueryAnalysisService {
         model: {
           model_name: documentation.name,
           adapter,
-          compiled_sql: await dbtProject.compileQuery(query),
+          compiled_sql: await dbtProject.unsafeCompileQuery(query),
           columns: documentation.columns.map((c) => ({
             column_name: c.name,
             data_type: c.type,
