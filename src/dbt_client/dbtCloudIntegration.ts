@@ -12,6 +12,7 @@ import { provideSingleton } from "../utils";
 import {
   Catalog,
   DBColumn,
+  DBTNode,
   DBTCommand,
   DBTCommandExecutionInfrastructure,
   DBTCommandExecutionStrategy,
@@ -540,27 +541,103 @@ export class DBTCloudProjectIntegration
     }
   }
 
-  async getCatalog(): Promise<Catalog> {
-    this.throwIfNotAuthenticated();
+  async getBulkSchema(nodes: DBTNode[]): Promise<Record<string, DBColumn[]>> {
+    const bulkModelQuery = `
+{% set result = {} %}
+{% for n in ${JSON.stringify(nodes)} %}
+  {% set columns = adapter.get_columns_in_relation(ref(n["name"])) %}
+  {% set new_columns = [] %}
+  {% for column in columns %}
+    {% do new_columns.append({"column": column.name, "dtype": column.dtype}) %}
+  {% endfor %}
+  {% do result.update({n["unique_id"]:new_columns}) %}
+{% endfor %}
+{% for n in graph.sources.values() %}
+  {% set columns = adapter.get_columns_in_relation(source(n["source_name"], n["identifier"])) %}
+  {% set new_columns = [] %}
+  {% for column in columns %}
+    {% do new_columns.append({"column": column.name, "dtype": column.dtype}) %}
+  {% endfor %}
+  {% do result.update({n["unique_id"]:new_columns}) %}
+{% endfor %}
+{{ tojson(result) }}`;
+    console.log(bulkModelQuery);
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting catalog...", [
         "compile",
         "--inline",
-        `{% set output = [] %}{% for result in adapter.get_catalog()) %} {% do output.append({"column": result.name, "dtype": result.dtype}) %} {% endfor %} {{ tojson(output) }}`,
+        bulkModelQuery.trim().split("\n").join(""),
         "--output",
         "json",
         "--log-format",
         "json",
       ]),
     );
+    const output = await compileQueryCommand.execute();
+    const compiledLine = output
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line.trim()))
+      .filter((line) => line.data.hasOwnProperty("compiled"));
+    return JSON.parse(compiledLine[0].data.compiled);
+  }
+
+  async getCatalog(): Promise<Catalog> {
+    this.throwIfNotAuthenticated();
     try {
+      const bulkModelQuery = `
+{% set result = [] %}
+{% for n in graph.nodes.values() %}
+  {% if n.resource_type == "test" or 
+  n.resource_type == "analysis" or 
+  n.resource_type == "sql_operation" or 
+  n.config.materialized == "ephemeral" %}
+    {% continue %}
+  {% endif %}
+  {% set columns = adapter.get_columns_in_relation(ref(n["name"])) %}
+  {% for column in columns %}
+    {% do result.append({
+      "table_database": n.database,
+      "table_schema": n.schema,
+      "table_name": n.name,
+      "column_name": column.name,
+      "column_type": column.dtype,
+    }) %}
+  {% endfor %}
+{% endfor %}
+{% for n in graph.sources.values() %}
+  {% set columns = adapter.get_columns_in_relation(source(n["source_name"], n["identifier"])) %}
+  {% for column in columns %}
+    {% do result.append({
+      "table_database": n.database,
+      "table_schema": n.schema,
+      "table_name": n.name,
+      "column_name": column.name,
+      "column_type": column.dtype,
+    }) %}
+  {% endfor %}
+{% endfor %}
+{{ tojson(result) }}`;
+
+      const compileQueryCommand = this.dbtCloudCommand(
+        new DBTCommand("Getting catalog...", [
+          "compile",
+          "--inline",
+          bulkModelQuery.trim().split("\n").join(""),
+          "--output",
+          "json",
+          "--log-format",
+          "json",
+        ]),
+      );
       const output = await compileQueryCommand.execute();
       const compiledLine = output
         .trim()
         .split("\n")
         .map((line) => JSON.parse(line.trim()))
         .filter((line) => line.data.hasOwnProperty("compiled"));
-      return JSON.parse(compiledLine[0].data.compiled);
+      const result: Catalog = JSON.parse(compiledLine[0].data.compiled);
+      return result;
     } catch (error) {
       throw this.processJSONErrors(error);
     }

@@ -19,6 +19,7 @@ import {
   Catalog,
   CompilationResult,
   DBColumn,
+  DBTNode,
   DBTCommand,
   DBTCommandExecutionInfrastructure,
   DBTDetection,
@@ -27,6 +28,8 @@ import {
   ExecuteSQLResult,
   PythonDBTCommandExecutionStrategy,
   QueryExecution,
+  SourceNode,
+  Node,
 } from "./dbtIntegration";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
@@ -593,6 +596,7 @@ export class DBTCoreProjectIntegration
     if (!node) {
       return [];
     }
+    // TODO: fix this type
     return this.getColumsOfRelation(
       node.database,
       node.schema,
@@ -628,6 +632,25 @@ export class DBTCoreProjectIntegration
       (python) =>
         python!`to_dict(project.get_columns_in_relation(project.create_relation(${database}, ${schema}, ${objectName})))`,
     );
+  }
+
+  async getBulkSchema(nodes: DBTNode[]): Promise<Record<string, DBColumn[]>> {
+    const result: Record<string, DBColumn[]> = {};
+    await Promise.all(
+      nodes.map(async (n) => {
+        if (n.resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {
+          const source = n as SourceNode;
+          result[n.unique_id] = await this.getColumnsOfSource(
+            source.name,
+            source.table,
+          );
+        } else {
+          const model = n as Node;
+          result[n.unique_id] = await this.getColumnsOfModel(model.name);
+        }
+      }),
+    );
+    return result;
   }
 
   async getCatalog(): Promise<Catalog> {
