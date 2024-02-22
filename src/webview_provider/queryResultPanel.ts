@@ -343,8 +343,9 @@ export class QueryResultPanel implements WebviewViewProvider {
       this._panel.webview.postMessage({ command: "focus" }); // keyboard focus
       this.transmitLoading();
     }
-    const queryExecution = (this.queryExecution = await queryExecutionPromise);
     try {
+      const queryExecution = (this.queryExecution =
+        await queryExecutionPromise);
       const output = await queryExecution.executeQuery();
       await this.transmitDataWrapper(output, query);
     } catch (exc: any) {
