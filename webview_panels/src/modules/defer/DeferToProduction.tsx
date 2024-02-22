@@ -27,7 +27,7 @@ const DefaultDeferState = {
   manifestPathForDeferral: "",
   manifestPathType: ManifestPathType.EMPTY,
   projectIntegrations: [],
-  dbt_core_integration_id: -1,
+  dbtCoreIntegrationId: -1,
 };
 
 const DeferToProduction = (): JSX.Element => {
@@ -38,7 +38,7 @@ const DeferToProduction = (): JSX.Element => {
       manifestPathForDeferral,
       manifestPathType,
       projectIntegrations,
-      dbt_core_integration_id,
+      dbtCoreIntegrationId,
     },
     setDeferState,
   ] = useState<DeferToProductionProps>(DefaultDeferState);
@@ -238,7 +238,7 @@ const DeferToProduction = (): JSX.Element => {
                   manifestPathForDeferral={manifestPathForDeferral}
                   manifestPathType={manifestPathType}
                   projectIntegrations={projectIntegrations}
-                  dbt_core_integration_id={dbt_core_integration_id}
+                  dbtCoreIntegrationId={dbtCoreIntegrationId}
                   setDeferState={setDeferState}
                   setProjectIntegrations={setProjectIntegrations}
                 />

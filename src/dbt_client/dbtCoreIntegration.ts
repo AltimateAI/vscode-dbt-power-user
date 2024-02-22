@@ -59,7 +59,7 @@ interface DeferConfig {
   favorState: boolean;
   manifestPathForDeferral: string;
   manifestPathType?: ManifestPathType;
-  dbt_core_integration_id?: number;
+  dbtCoreIntegrationId?: number;
 }
 
 @provideSingleton(DBTCoreDetection)
@@ -488,7 +488,7 @@ export class DBTCoreProjectIntegration
     }
 
     const currentConfig: Record<string, DeferConfig> = await workspace
-      .getConfiguration("dbt")
+      .getConfiguration("dbt", window.activeTextEditor?.document.uri)
       .get("deferConfigPerProject", {});
 
     const deferConfigInProject =
@@ -503,7 +503,7 @@ export class DBTCoreProjectIntegration
       manifestPathForDeferral,
       favorState,
       manifestPathType,
-      dbt_core_integration_id,
+      dbtCoreIntegrationId,
     } = deferConfigInProject;
     if (!deferToProduction) {
       this.dbtTerminal.debug("defer to prod not enabled");
@@ -529,20 +529,18 @@ export class DBTCoreProjectIntegration
       return args;
     }
     if (manifestPathType === ManifestPathType.REMOTE) {
-      if (dbt_core_integration_id! <= 0) {
-        this.dbtTerminal.log(
-          "No dbt_core_integration_id for defer remote config",
-        );
+      if (dbtCoreIntegrationId! <= 0) {
+        this.dbtTerminal.log("No dbtCoreIntegrationId for defer remote config");
         return [];
       }
 
       window.showInformationMessage(`Downloading manifest.json`);
       this.dbtTerminal.debug(
-        `fetching artifact url for dbt_core_integration_id: ${dbt_core_integration_id}`,
+        `fetching artifact url for dbtCoreIntegrationId: ${dbtCoreIntegrationId}`,
       );
       const response = await this.altimateRequest.fetchArtifactUrl(
         "manifest",
-        dbt_core_integration_id!,
+        dbtCoreIntegrationId!,
       );
       if (response?.url) {
         const manifestPath = await this.altimateRequest.downloadFileLocally(
@@ -569,7 +567,7 @@ export class DBTCoreProjectIntegration
         }
       }
       this.dbtTerminal.debug(
-        `empty artifact url for dbt_core_integration_id: ${dbt_core_integration_id}`,
+        `empty artifact url for dbtCoreIntegrationId: ${dbtCoreIntegrationId}`,
       );
     }
     return [];

@@ -67,7 +67,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
             const currentProject = await this.getCurrentProject();
             const currentProjectRoot = await this.getCurrentProjectRoot();
             const currentConfig: Record<string, DeferConfig> = await workspace
-              .getConfiguration("dbt")
+              .getConfiguration("dbt", window.activeTextEditor?.document.uri)
               .get("deferConfigPerProject", {});
 
             this._panel!.webview.postMessage({
@@ -120,17 +120,17 @@ export class InsightsPanel extends AltimateWebviewProvider {
 
       const updateConfigs = params.config;
       const currentDocument = window.activeTextEditor?.document;
-      const targetFolder = currentDocument?.uri
-        ? workspace.getWorkspaceFolder(currentDocument?.uri)
-        : null;
       const target = workspace.workspaceFolders
         ? ConfigurationTarget.WorkspaceFolder
         : ConfigurationTarget.Global;
 
-      this.dbtTerminal.debug("defer config target", targetFolder?.uri);
+      this.dbtTerminal.debug(
+        "defer config target",
+        window.activeTextEditor?.document.uri,
+      );
 
       const currentConfig: Record<string, DeferConfig> = await workspace
-        .getConfiguration("dbt", targetFolder)
+        .getConfiguration("dbt", window.activeTextEditor?.document.uri)
         .get("deferConfigPerProject", {});
       const root = getProjectRelativePath(Uri.parse(params.projectRoot));
 
@@ -154,7 +154,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       };
 
       await workspace
-        .getConfiguration("dbt", targetFolder)
+        .getConfiguration("dbt", window.activeTextEditor?.document.uri)
         .update("deferConfigPerProject", newConfig, target);
 
       if (syncRequestId) {
@@ -242,13 +242,13 @@ export class InsightsPanel extends AltimateWebviewProvider {
 
   private async testRemoteManifest(
     syncRequestId: string | undefined,
-    dbt_core_integration_id: number,
+    dbtCoreIntegrationId: number,
   ) {
     try {
       this.dbtTerminal.log("Fetching manifest signed url");
       const response = await this.altimateRequest.fetchArtifactUrl(
         "manifest",
-        dbt_core_integration_id,
+        dbtCoreIntegrationId,
       );
 
       if (syncRequestId) {
@@ -419,10 +419,10 @@ export class InsightsPanel extends AltimateWebviewProvider {
         await this.fetchProjectIntegrations(syncRequestId);
         break;
       case "testRemoteManifest":
-        const { dbt_core_integration_id } = params as {
-          dbt_core_integration_id: number;
+        const { dbtCoreIntegrationId } = params as {
+          dbtCoreIntegrationId: number;
         };
-        await this.testRemoteManifest(syncRequestId, dbt_core_integration_id);
+        await this.testRemoteManifest(syncRequestId, dbtCoreIntegrationId);
         break;
       case "getProjects":
         await this.getProjects(syncRequestId);

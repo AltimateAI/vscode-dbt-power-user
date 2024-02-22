@@ -535,14 +535,11 @@ export class AltimateRequest {
     });
   }
 
-  async fetchArtifactUrl(
-    artifact_type: string,
-    dbt_core_integration_id: number,
-  ) {
+  async fetchArtifactUrl(artifact_type: string, dbtCoreIntegrationId: number) {
     return this.fetch<DownloadArtifactResponse>(
       `dbt/v1/fetch_artifact_url${this.getQueryString({
         artifact_type: artifact_type,
-        dbt_core_integration_id: dbt_core_integration_id,
+        dbt_core_integration_id: dbtCoreIntegrationId,
       })}`,
     );
   }

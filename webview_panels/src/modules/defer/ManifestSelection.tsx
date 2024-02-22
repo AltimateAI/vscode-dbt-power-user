@@ -13,7 +13,7 @@ export const ManifestSelection = ({
   manifestPathType,
   manifestPathForDeferral,
   projectIntegrations,
-  dbt_core_integration_id,
+  dbtCoreIntegrationId,
   setDeferState,
   setProjectIntegrations,
 }: ManifestSelectionProps): JSX.Element => {
@@ -45,7 +45,7 @@ export const ManifestSelection = ({
   const handleManifestPathTypeChange = async (option: ManifestPathType) => {
     if (option === ManifestPathType.REMOTE) {
       await setProjectIntegrations();
-      if (dbt_core_integration_id > 0) {
+      if (dbtCoreIntegrationId > 0) {
         await executeRequestInSync("updateDeferConfig", {
           config: [
             {
@@ -81,7 +81,7 @@ export const ManifestSelection = ({
     value: number;
   }) => {
     const response = await executeRequestInSync("testRemoteManifest", {
-      dbt_core_integration_id: selectedOption.value,
+      dbtCoreIntegrationId: selectedOption.value,
     });
     const data = response as {
       url: string;
@@ -103,7 +103,7 @@ export const ManifestSelection = ({
           value: manifestPathType,
         },
         {
-          key: "dbt_core_integration_id",
+          key: "dbtCoreIntegrationId",
           value: selectedOption.value,
         },
       ],
@@ -111,7 +111,7 @@ export const ManifestSelection = ({
     });
     setDeferState((prevState) => ({
       ...prevState,
-      dbt_core_integration_id: selectedOption.value,
+      dbtCoreIntegrationId: selectedOption.value,
     }));
   };
 
@@ -182,7 +182,7 @@ export const ManifestSelection = ({
               options={projectIntegrations}
               className={classes.pathInput}
               value={projectIntegrations.find(
-                (i) => i.value === dbt_core_integration_id,
+                (i) => i.value === dbtCoreIntegrationId,
               )}
               onChange={(newValue) =>
                 handleIntegrationSelect(
