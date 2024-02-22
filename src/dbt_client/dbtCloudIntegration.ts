@@ -275,6 +275,13 @@ export class DBTCloudProjectIntegration
     );
   }
 
+  async buildProject(command: DBTCommand) {
+    this.addCommandToQueue(
+      DBTCloudProjectIntegration.QUEUE_OTHERS,
+      this.dbtCloudCommand(command),
+    );
+  }
+
   async runTest(command: DBTCommand) {
     this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_OTHERS,
