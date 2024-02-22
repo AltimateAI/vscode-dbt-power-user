@@ -129,11 +129,28 @@ export class PythonEnvironment implements Disposable {
           const env = config.terminal.integrated.env;
           // parse vs code environment variables
           for (const prop in env) {
+            // Ignore any settings not supported by the terminal
+            // We don't know which os is used in terminal unfortunately, so we just merge all of them.
+            if (!["osx", "windows", "linux"].includes(prop)) {
+              this.dbtTerminal.debug(
+                "pythonEnvironment",
+                "Loading env vars from config.terminal.integrated.env",
+                "Ignoring invalid property  " + prop,
+              );
+              continue;
+            }
             const vsCodeEnv = env[prop];
+            const newEnvVars = this.parseEnvVarsFromUserSettings(vsCodeEnv);
+            this.dbtTerminal.debug(
+              "pythonEnvironment",
+              "Loading env vars from config.terminal.integrated.env",
+              "Merging from " + prop,
+              newEnvVars,
+            );
             envVars = {
               ...process.env,
               ...envVars,
-              ...this.parseEnvVarsFromUserSettings(vsCodeEnv),
+              ...newEnvVars,
             };
           }
         }
