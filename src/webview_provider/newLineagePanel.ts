@@ -33,6 +33,7 @@ import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { PythonException } from "python-bridge";
 import { AbortError } from "node-fetch";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 type Table = {
   label: string;
@@ -70,6 +71,7 @@ export class NewLineagePanel implements LineagePanelView {
     private dbtProjectContainer: DBTProjectContainer,
     private altimate: AltimateRequest,
     private telemetry: TelemetryService,
+    private terminal: DBTTerminal,
   ) {}
 
   public changedActiveTextEditor(event: TextEditor | undefined) {
@@ -104,7 +106,7 @@ export class NewLineagePanel implements LineagePanelView {
   }
 
   init() {
-    console.log("lineage:init -> ", this._panel);
+    this.terminal.log("lineage:init -> ", this._panel);
     this.changedActiveColorTheme();
     this.renderStartingNode();
   }
@@ -124,7 +126,7 @@ export class NewLineagePanel implements LineagePanelView {
     context: WebviewViewResolveContext<unknown>,
     _token: CancellationToken,
   ): void | Thenable<void> {
-    console.log("lineage:resolveWebviewView -> ");
+    this.terminal.log("lineage:resolveWebviewView -> ");
     this._panel = panel;
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
@@ -269,7 +271,7 @@ export class NewLineagePanel implements LineagePanelView {
 
   private async addModelColumnsFromDB(project: DBTProject, node: NodeMetaData) {
     const columnsFromDB = await project.getColumnsOfModel(node.name);
-    console.log("addColumnsFromDB: ", node.name, " -> ", columnsFromDB);
+    this.terminal.log("addColumnsFromDB: " + node.name, " -> ", columnsFromDB);
     if (!columnsFromDB || columnsFromDB.length === 0) {
       return false;
     }
@@ -313,7 +315,7 @@ export class NewLineagePanel implements LineagePanelView {
       nodeName,
       table.name,
     );
-    console.log("addColumnsFromDB: ", nodeName, " -> ", columnsFromDB);
+    this.terminal.log("addColumnsFromDB: " + nodeName, " -> ", columnsFromDB);
     if (!columnsFromDB || columnsFromDB.length === 0) {
       return false;
     }
@@ -781,9 +783,9 @@ export class NewLineagePanel implements LineagePanelView {
         parent_models,
         session_id: sessionId,
       };
-      console.log("cll:request -> ", request);
+      this.terminal.log("cll:request -> ", request);
       const result = await this.altimate.getColumnLevelLineage(request);
-      console.log("cll:response -> ", result);
+      this.terminal.log("cll:response -> ", result);
       if ((result as DBTColumnLineageResponse).column_lineage) {
         const column_lineage =
           result?.column_lineage.map((c) => ({
