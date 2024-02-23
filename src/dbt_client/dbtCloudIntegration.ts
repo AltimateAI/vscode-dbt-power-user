@@ -8,7 +8,7 @@ import {
   CancellationTokenSource,
   Diagnostic,
 } from "vscode";
-import { provideSingleton } from "../utils";
+import { getProjectRelativePath, provideSingleton } from "../utils";
 import {
   DBTCommand,
   DBTCommandExecutionInfrastructure,
@@ -26,6 +26,8 @@ import { AltimateRequest, ValidateSqlParseErrorResponse } from "../altimate";
 import path = require("path");
 import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
+import { DBTTerminal } from "./dbtTerminal";
+import { DeferConfig } from "../webview_provider/insightsPanel";
 
 @provideSingleton(DBTCloudDetection)
 export class DBTCloudDetection implements DBTDetection {
@@ -119,6 +121,7 @@ export class DBTCloudProjectIntegration
     private altimate: AltimateRequest,
     private telemetry: TelemetryService,
     private projectRoot: Uri,
+    private dbtTerminal: DBTTerminal,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
@@ -264,35 +267,35 @@ export class DBTCloudProjectIntegration
   async runModel(command: DBTCommand) {
     this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_OTHERS,
-      this.dbtCloudCommand(command),
+      await this.addDeferParams(this.dbtCloudCommand(command)),
     );
   }
 
   async buildModel(command: DBTCommand) {
     this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_OTHERS,
-      this.dbtCloudCommand(command),
+      await this.addDeferParams(this.dbtCloudCommand(command)),
     );
   }
 
   async buildProject(command: DBTCommand) {
     this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_OTHERS,
-      this.dbtCloudCommand(command),
+      await this.addDeferParams(this.dbtCloudCommand(command)),
     );
   }
 
   async runTest(command: DBTCommand) {
     this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_OTHERS,
-      this.dbtCloudCommand(command),
+      await this.addDeferParams(this.dbtCloudCommand(command)),
     );
   }
 
   async runModelTest(command: DBTCommand) {
     this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_OTHERS,
-      this.dbtCloudCommand(command),
+      await this.addDeferParams(this.dbtCloudCommand(command)),
     );
   }
 
@@ -316,6 +319,61 @@ export class DBTCloudProjectIntegration
 
   async debug(command: DBTCommand) {
     return this.dbtCloudCommand(command).execute();
+  }
+
+  private async getDeferParams(projectRoot: Uri): Promise<string[]> {
+    // validate credentials and if not valid run without defer params
+    const config = this.altimate.getConfig();
+    if (!config?.key || !config?.instance) {
+      // only validate when both are set
+      window.showErrorMessage(
+        "Cannot run with defer to prod set up as Auth tokens are invalid",
+      );
+      throw new Error("Missing Altimate instance name and key in settings.");
+    }
+
+    const validation = await this.altimate.validateCredentials(
+      config.instance,
+      config.key,
+    );
+
+    if (!validation?.ok) {
+      window.showErrorMessage(
+        "Cannot run with defer to prod set up as Auth tokens are invalid",
+      );
+      throw new Error("Invalid Altimate instance name and key in settings.");
+    }
+
+    // https://docs.getdbt.com/docs/cloud/about-cloud-develop-defer#defer-in-dbt-cloud-cli
+    // For dbt cloud, defer is enabled by default. We need to send flag only if it is disabled
+    const currentConfig: Record<string, DeferConfig> = await workspace
+      .getConfiguration("dbt", window.activeTextEditor?.document.uri)
+      .get("deferConfigPerProject", {});
+
+    const deferConfigInProject =
+      currentConfig[getProjectRelativePath(projectRoot)];
+
+    if (!deferConfigInProject) {
+      this.dbtTerminal.debug("defer params not set");
+      return [];
+    }
+    const { deferToProduction, favorState } = deferConfigInProject;
+    // explicitly checking false to make sure defer is disabled
+    if (deferToProduction === false) {
+      this.dbtTerminal.debug("defer to prod not enabled");
+      return ["--no-defer"];
+    }
+    if (favorState) {
+      return ["--favor-state"];
+    }
+
+    return [];
+  }
+
+  private async addDeferParams(command: DBTCommand) {
+    const deferParams = await this.getDeferParams(this.projectRoot);
+    deferParams.forEach((param) => command.addArgument(param));
+    return command;
   }
 
   private dbtCloudCommand(command: DBTCommand) {

@@ -70,11 +70,16 @@ export class InsightsPanel extends AltimateWebviewProvider {
               .getConfiguration("dbt", window.activeTextEditor?.document.uri)
               .get("deferConfigPerProject", {});
 
+            const dbtIntegrationMode = workspace
+              .getConfiguration("dbt")
+              .get<string>("dbtIntegration", "core");
+
             this._panel!.webview.postMessage({
               command: "updateDeferConfig",
               args: {
                 config: currentConfig[currentProjectRoot],
                 projectPath: currentProject?.projectRoot.fsPath,
+                dbtIntegrationMode,
               },
             });
           }
@@ -119,7 +124,6 @@ export class InsightsPanel extends AltimateWebviewProvider {
       }
 
       const updateConfigs = params.config;
-      const currentDocument = window.activeTextEditor?.document;
       const target = workspace.workspaceFolders
         ? ConfigurationTarget.WorkspaceFolder
         : ConfigurationTarget.Global;
@@ -406,11 +410,19 @@ export class InsightsPanel extends AltimateWebviewProvider {
           .getConfiguration("dbt", currentDocument?.uri)
           .get("deferConfigPerProject", {});
 
+        const dbtIntegrationMode = workspace
+          .getConfiguration("dbt")
+          .get<string>("dbtIntegration", "core");
+
         this._panel!.webview.postMessage({
           command: "response",
           args: {
             syncRequestId,
-            body: { config: currentConfig[root], projectPath },
+            body: {
+              config: currentConfig[root],
+              projectPath,
+              dbtIntegrationMode,
+            },
             status: true,
           },
         });

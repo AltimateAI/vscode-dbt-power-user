@@ -15,7 +15,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { executeRequestInSync } from "../app/requestExecutor";
 import classes from "./defer.module.scss";
 import { IncomingMessageProps } from "@modules/app/types";
-import { DbtProject, DeferToProductionProps } from "./types";
+import {
+  DbtIntegrationMode,
+  DbtProject,
+  DeferToProductionProps,
+} from "./types";
 import { ManifestPathType } from "./constants";
 import { ManifestSelection } from "./ManifestSelection";
 import { panelLogger } from "@modules/logger";
@@ -45,14 +49,28 @@ const DeferToProduction = (): JSX.Element => {
 
   const [dbtProjects, setDbtProjects] = useState<DbtProject[]>([]);
   const [dbtProjectRoot, setDbtProjectRoot] = useState("");
+  const [dbtIntegrationMode, setDbtIntegrationMode] = useState(
+    DbtIntegrationMode.CORE,
+  );
   const [showProjectDropdown, setShowProjectDropdown] = useState(true);
+
+  // In dbt cloud, defer is enabled by default
+  const getDefaultDeferState = (mode: DbtIntegrationMode) => {
+    if (mode === DbtIntegrationMode.CLOUD) {
+      return { ...DefaultDeferState, deferToProduction: true };
+    }
+
+    return DefaultDeferState;
+  };
 
   const updateDeferState = (args: {
     config: DeferToProductionProps;
     projectPath: string;
+    dbtIntegrationMode: DbtIntegrationMode;
   }) => {
-    setDeferState(args.config || DefaultDeferState);
+    setDeferState(args.config || getDefaultDeferState(args.dbtIntegrationMode));
     setDbtProjectRoot(args.projectPath);
+    setDbtIntegrationMode(args.dbtIntegrationMode);
   };
 
   const onMesssage = useCallback(
@@ -64,6 +82,7 @@ const DeferToProduction = (): JSX.Element => {
             args as {
               config: DeferToProductionProps;
               projectPath: string;
+              dbtIntegrationMode: DbtIntegrationMode;
             },
           );
           break;
@@ -103,12 +122,15 @@ const DeferToProduction = (): JSX.Element => {
   const loadDeferConfig = async () => {
     const response = (await executeRequestInSync("getDeferToProductionConfig", {
       projectRoot: dbtProjectRoot,
-    })) as { config: DeferToProductionProps; projectPath: string };
+    })) as {
+      config: DeferToProductionProps;
+      projectPath: string;
+      dbtIntegrationMode: DbtIntegrationMode;
+    };
+    updateDeferState(response);
     if (response.config) {
-      setDeferState(response.config || DefaultDeferState);
       await handleRemoteManifestIntegration(response.config);
     }
-    setDbtProjectRoot(response.projectPath);
   };
 
   useEffect(() => {
@@ -175,7 +197,7 @@ const DeferToProduction = (): JSX.Element => {
     value: string;
   }) => {
     setDbtProjectRoot(selectedOption.value);
-    setDeferState(DefaultDeferState);
+    setDeferState(getDefaultDeferState(dbtIntegrationMode));
   };
 
   const selectedProject = useMemo(() => {
@@ -232,16 +254,20 @@ const DeferToProduction = (): JSX.Element => {
                     />
                   </Label>
                 </FormGroup>
-                <Label>Save your file location</Label>
-                <ManifestSelection
-                  dbtProjectRoot={dbtProjectRoot}
-                  manifestPathForDeferral={manifestPathForDeferral}
-                  manifestPathType={manifestPathType}
-                  projectIntegrations={projectIntegrations}
-                  dbtCoreIntegrationId={dbtCoreIntegrationId}
-                  setDeferState={setDeferState}
-                  setProjectIntegrations={setProjectIntegrations}
-                />
+                {dbtIntegrationMode !== DbtIntegrationMode.CLOUD ? (
+                  <>
+                    <Label>Save your file location</Label>
+                    <ManifestSelection
+                      dbtProjectRoot={dbtProjectRoot}
+                      manifestPathForDeferral={manifestPathForDeferral}
+                      manifestPathType={manifestPathType}
+                      projectIntegrations={projectIntegrations}
+                      dbtCoreIntegrationId={dbtCoreIntegrationId}
+                      setDeferState={setDeferState}
+                      setProjectIntegrations={setProjectIntegrations}
+                    />
+                  </>
+                ) : null}
                 <FormGroup switch className={classes.formSwitch}>
                   <Label>
                     Favor-state

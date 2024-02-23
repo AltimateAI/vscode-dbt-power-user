@@ -132,6 +132,7 @@ container
           container.get(AltimateRequest),
           container.get(TelemetryService),
           projectRoot,
+          container.get(DBTTerminal),
         );
       };
     },

@@ -1,5 +1,10 @@
 import { ManifestPathType } from "./constants";
 
+export enum DbtIntegrationMode {
+  CLOUD = "cloud",
+  CORE = "core",
+}
+
 export interface DropdownOptions {
   label: string;
   value: number;
