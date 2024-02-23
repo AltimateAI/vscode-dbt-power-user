@@ -34,7 +34,6 @@ enum OutboundCommand {
   RenderError = "renderError",
   InjectConfig = "injectConfig",
   ResetState = "resetState",
-  RenderSummary = "renderSummary",
 }
 
 interface RenderQuery {
@@ -43,11 +42,6 @@ interface RenderQuery {
   rows: JsonObj[];
   raw_sql: string;
   compiled_sql: string;
-}
-
-interface RenderSummary {
-  compiled_sql: string;
-  summary: string;
 }
 
 interface RenderError {

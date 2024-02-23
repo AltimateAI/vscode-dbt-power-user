@@ -35,8 +35,7 @@ import { TelemetryService } from "../telemetry";
 import { ValidateSqlParseErrorResponse } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 
-const DEFAULT_QUERY_TEMPLATE =
-  "select * from ({query}\n) as query limit {limit}";
+const DEFAULT_QUERY_TEMPLATE = "select * from ({query}) as query limit {limit}";
 
 // TODO: we shouold really get these from manifest directly
 interface ResolveReferenceNodeResult {
@@ -200,7 +199,7 @@ export class DBTCoreProjectIntegration
   private async getQuery(
     query: string,
     limit: number,
-  ): Promise<{ queryTemplate: string; limitQuery: string }> {
+  ): Promise<{ limitQuery: string }> {
     const queryTemplate = workspace
       .getConfiguration("dbt")
       .get<string>("queryTemplate");
@@ -209,7 +208,7 @@ export class DBTCoreProjectIntegration
       console.log("Using user provided query template", queryTemplate);
       const limitQuery = this.getLimitQuery(queryTemplate, query, limit);
 
-      return { queryTemplate, limitQuery };
+      return { limitQuery };
     }
 
     try {
@@ -224,7 +223,6 @@ export class DBTCoreProjectIntegration
 
         console.log("Using query template from macro", queryTemplateFromMacro);
         return {
-          queryTemplate: queryTemplateFromMacro,
           limitQuery: queryTemplateFromMacro,
         };
       }
@@ -236,7 +234,6 @@ export class DBTCoreProjectIntegration
       );
     }
     return {
-      queryTemplate: DEFAULT_QUERY_TEMPLATE,
       limitQuery: this.getLimitQuery(DEFAULT_QUERY_TEMPLATE, query, limit),
     };
   }
@@ -253,16 +250,7 @@ export class DBTCoreProjectIntegration
   }
 
   async executeSQL(query: string, limit: number): Promise<QueryExecution> {
-    const queryTemplate = workspace
-      .getConfiguration("dbt")
-      .get<string>(
-        "queryTemplate",
-        "select * from ({query}\n) as query limit {limit}",
-      );
-
-    const limitQuery = queryTemplate
-      .replace("{query}", () => query)
-      .replace("{limit}", () => limit.toString());
+    const { limitQuery } = await this.getQuery(query, limit);
 
     const queryThread = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,

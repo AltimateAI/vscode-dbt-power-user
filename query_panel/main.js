@@ -231,34 +231,6 @@ const app = createApp({
       this.isDarkMode = data.darkMode;
       this.aiEnabled = data.aiEnabled || false;
     },
-    updateSummary(data) {
-      if (data.summary) {
-        // this.summary = data.summary;
-        console.log(data);
-        // If the query we're getting summary for is different from the one
-        // we're currently displaying, clear the data as it will create confusion.
-        let newCompiledCode = data.compiled_sql;
-        try {
-          const queryRegex = new RegExp(
-            this.queryTemplate
-              .replace(/\(/g, "\\(")
-              .replace(/\)/g, "\\)")
-              .replace(/\*/g, "\\*")
-              .replace("{query}", "([\\w\\W]+)")
-              .replace("{limit}", this.limit.toString()),
-            "gm",
-          );
-          const result = queryRegex.exec(data.compiled_sql);
-          newCompiledCode = result[1];
-        } catch (err) {}
-
-        if (this.hasCode && newCompiledCode !== this.compiledCode) {
-          this.clearData();
-        }
-        this.summary = data.summary;
-        this.compiledCode = newCompiledCode;
-      }
-    },
     focusSummaryTab() {
       document.querySelector("#panel-manager").activeid = "tab-6";
     },
@@ -480,10 +452,6 @@ const app = createApp({
           this.endTimer();
           this.clearData();
           this.focusWelcomePane();
-          break;
-        case "renderSummary":
-          this.updateSummary(event.data);
-          this.focusSummaryTab();
           break;
       }
     });
