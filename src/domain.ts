@@ -27,6 +27,7 @@ export interface NodeMetaData {
   patch_path: string;
   columns: { [columnName: string]: ColumnMetaData };
   config: Config;
+  resource_type: string;
 }
 
 export interface ColumnMetaData {
@@ -147,7 +148,7 @@ export class Test extends Node {
   };
 }
 export class Analysis extends Node {
-  displayInModelTree = false;
+  displayInModelTree = true;
 }
 export class Exposure extends Node {
   displayInModelTree = true;

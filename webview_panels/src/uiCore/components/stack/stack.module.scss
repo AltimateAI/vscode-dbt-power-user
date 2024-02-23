@@ -1,0 +1,9 @@
+.stack {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+
+  &:global.stack-column {
+    flex-direction: column;
+  }
+}

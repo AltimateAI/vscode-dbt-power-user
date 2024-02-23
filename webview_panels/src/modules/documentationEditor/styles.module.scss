@@ -1,0 +1,113 @@
+.doc-generator {
+  max-height: calc(100vh - 50px);
+  display: flex;
+  flex-direction: column;
+
+  & .head {
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    > div{
+    align-items: center;
+    }
+    & p {
+      text-decoration: underline;
+    }
+  }
+  & .body-wrap {
+    overflow: hidden;
+    & .body {
+      width: 80%;
+      min-width: var(--bs-breakpoint-md);
+      overflow: overlay;
+      padding-right: 1rem;
+
+      & :global .alert {
+        margin-top: 12px;
+      }
+      & .column-header {
+        .sync-btn{
+          svg{
+            width: 14px;
+            vertical-align: bottom;
+          }
+        }
+        & div:last-of-type {
+          margin-left: auto;
+        }
+      }
+      .columns {
+        gap: 16px;
+        h4 {
+          margin-bottom: 16px;
+        }
+      }
+      & .save {
+        align-items: center;
+        position: sticky;
+        z-index: 5;
+        bottom: 0;
+        border-top: 1px solid var(--stroke--disable);
+        background: var(--background--02, #28292c);
+        padding: 10px 20px;
+
+        h5 {
+          margin-right: 10px;
+          margin-bottom: 0;
+        }
+
+        h5,
+        button {
+          text-wrap: nowrap;
+        }
+
+        button {
+          height: 100%;
+        }
+        & p {
+          border-radius: 2px;
+          border: 1px solid var(--stroke--disable, #424750);
+          background: var(--background--02);
+          margin-bottom: 0;
+          flex: 1;
+          font-size: 1rem;
+          padding: 8px 12px;
+        }
+        & :global #file-path {
+          background: var(--background--02);
+        }
+      }
+    }
+    & .result-body {
+      width: 40%;
+      overflow: overlay;
+    }
+  }
+}
+
+.popover {
+  :global .popover{
+  margin-top: -18px;
+  :global .popover-body{
+  padding: 0;
+
+  &  ul {
+    padding: 0.5rem 0;
+    margin: 0;
+    list-style: none;
+    li{
+      :global .btn-link {
+        text-decoration: none;
+        color: #1e1e1e;
+        width: 100%;
+        text-align: left;
+        &:hover,
+        &.active {
+        color: var(--primary-color);
+          background-color: #eee;
+        }
+      }
+    }
+  }
+}
+  }
+}

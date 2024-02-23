@@ -1,0 +1,14 @@
+.tooltip {
+  :global .tooltip-inner {
+    padding: 8px;
+    color: #082247;
+    border-radius: 4px;
+    white-space: nowrap;
+    background: #ffce73;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+  :global .arrow {
+    display: none;
+  }
+}

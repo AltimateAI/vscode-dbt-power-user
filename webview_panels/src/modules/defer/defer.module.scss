@@ -1,0 +1,26 @@
+.insights-card {
+  & :global .form-label {
+    white-space: nowrap;
+  }
+  .card-title {
+    & button {
+      float: right;
+      padding: 0;
+      border: none;
+      margin-top: -6px;
+    }
+  }
+
+  .form-switch {
+    padding-left: 0;
+    & :global .form-label {
+      display: flex;
+      width: 100%;
+      justify-content: space-between;
+
+      & input {
+        float: none;
+      }
+    }
+  }
+}

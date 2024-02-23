@@ -92,7 +92,9 @@ export class StaleModelColumnTest implements AltimateScanStep {
         );
         const packagePath = project.getPackageInstallPath();
         if (packagePath === undefined) {
-          throw new Error("packagePath is not defined");
+          throw new Error(
+            "packagePath is not defined in " + project.projectRoot.fsPath,
+          );
         }
         for (const existingCol of Object.keys(value.columns)) {
           if (!allDBColumns.includes(existingCol.toLowerCase())) {

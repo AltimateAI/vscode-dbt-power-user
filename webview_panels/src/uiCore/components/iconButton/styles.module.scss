@@ -1,0 +1,8 @@
+.iconButton {
+  padding: 6px;
+
+  &:global.outline {
+    border-radius: 5px;
+    border: 1px solid var(--stroke--disable, #424750);
+  }
+}

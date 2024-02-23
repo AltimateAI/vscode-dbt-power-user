@@ -1,8 +1,9 @@
 import { env, Uri, window, workspace } from "vscode";
-import { provideSingleton } from "./utils";
+import { provideSingleton, processStreamResponse } from "./utils";
 import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
+import { RateLimitException } from "./exceptions";
 
 interface AltimateConfig {
   key: string;
@@ -33,7 +34,7 @@ export interface DBTColumnLineageRequest {
   model_dialect: string;
   model_info: {
     model_node: ModelNode;
-    compiled_sql: string | undefined;
+    compiled_sql?: string;
   }[];
   schemas?: Schemas | null;
   upstream_expansion: boolean;
@@ -44,6 +45,7 @@ export interface DBTColumnLineageRequest {
   parent_models: {
     model_node: ModelNode;
   }[];
+  session_id: string;
 }
 
 export interface DBTColumnLineageResponse {
@@ -69,7 +71,57 @@ interface OnewayFeedback {
   data: any;
 }
 
-interface DocsGenerateModelRequest {
+export enum QueryAnalysisType {
+  EXPLAIN = "explain",
+  FIX = "fix",
+  MODIFY = "modify",
+}
+
+export enum QueryAnalysisChatType {
+  SYSTEM = "SystemMessage",
+  HUMAN = "HumanMessage",
+}
+
+interface QueryAnalysisChat {
+  type: QueryAnalysisChatType;
+  content: string;
+  additional_kwargs?: Record<string, unknown>;
+}
+
+export interface QueryAnalysisRequest {
+  session_id: string;
+  job_type: QueryAnalysisType;
+  model: DocsGenerateModelRequestV2["dbt_model"];
+  user_request?: string; // required for modify query
+  history?: QueryAnalysisChat[];
+}
+
+interface DocsGenerateModelRequestV2 {
+  columns: string[];
+  dbt_model: {
+    model_name: string;
+    model_description?: string;
+    compiled_sql?: string;
+    columns: {
+      column_name: string;
+      description?: string;
+      data_type?: string;
+    }[];
+    adapter?: string;
+  };
+  user_instructions?: {
+    prompt_hint: string;
+    language: string;
+    persona: string;
+  };
+  follow_up_instructions?: {
+    instruction: string;
+  };
+
+  gen_model_description: boolean;
+}
+
+export interface DocsGenerateModelRequest {
   columns: string[];
   dbt_model: {
     model_name: string;
@@ -86,7 +138,7 @@ interface DocsGenerateModelRequest {
   gen_model_description: boolean;
 }
 
-interface DocsGenerateResponse {
+export interface DocsGenerateResponse {
   column_descriptions?: {
     column_name: string;
     column_description: string;
@@ -126,6 +178,10 @@ export interface ValidateSqlParseErrorResponse {
     start_position?: [number, number];
     end_position?: [number, number];
   }[];
+}
+
+interface FeedbackResponse {
+  ok: boolean;
 }
 
 enum PromptAnswer {
@@ -168,25 +224,74 @@ export class AltimateRequest {
     }
   }
 
-  handlePreviewFeatures(): boolean {
+  private getCredentialsMessage(): string | undefined {
     const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
     const instance = workspace
       .getConfiguration("dbt")
       .get<string>("altimateInstanceName");
 
-    if (key && instance) {
-      return true;
-    }
-    let message = "";
     if (!key && !instance) {
-      message = `To use this feature, please add an API Key and an instance name in the settings.`;
-    } else if (!key) {
-      message = `To use this feature, please add an API key in the settings.`;
-    } else {
-      message = `To use this feature, please add an instance name in the settings.`;
+      return `To use this feature, please add an API Key and an instance name in the settings.`;
+    }
+    if (!key) {
+      return `To use this feature, please add an API key in the settings.`;
+    }
+    if (!instance) {
+      return `To use this feature, please add an instance name in the settings.`;
+    }
+    return;
+  }
+
+  handlePreviewFeatures(): boolean {
+    const message = this.getCredentialsMessage();
+    if (!message) {
+      return true;
     }
     this.showAPIKeyMessage(message);
     return false;
+  }
+
+  async fetchAsStream<R>(
+    endpoint: string,
+    request: R,
+    onProgress: (response: string) => void,
+    timeout: number = 120000,
+  ) {
+    const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
+    console.log("fetchAsStream:request:", url, request);
+    const config = this.getConfig()!;
+    const abortController = new AbortController();
+    const timeoutHandler = setTimeout(() => {
+      abortController.abort();
+    }, timeout);
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        body: JSON.stringify(request),
+        signal: abortController.signal,
+        headers: {
+          "x-tenant": config.instance,
+          Authorization: "Bearer " + config.key,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response?.body) {
+        console.error("fetchAsStream: empty response");
+        return null;
+      }
+      clearTimeout(timeoutHandler);
+      const responseText = await processStreamResponse(
+        response.body,
+        onProgress,
+      );
+
+      return responseText;
+    } catch (error) {
+      clearTimeout(timeoutHandler);
+      console.error("error while fetching as stream", error);
+    }
+    return null;
   }
 
   async fetch<T>(endpoint: string, fetchArgs = {}, timeout: number = 120000) {
@@ -196,26 +301,17 @@ export class AltimateRequest {
       abortController.abort();
     }, timeout);
 
-    const config = this.getConfig();
-    if (config === undefined) {
-      this.showAPIKeyMessage(
-        "To use this feature, please add an API Key and an instance name in the settings.",
-      );
+    const message = this.getCredentialsMessage();
+    if (message) {
+      window.showErrorMessage(message);
       return;
     }
+    const config = this.getConfig()!;
 
-    if (!config.instance || !config.key) {
-      window.showErrorMessage(
-        "Credentials are not set properly. Please refer to Altimate [docs](https://docs.myaltimate.com).",
-      );
-      return;
-    }
-
-    let response;
     try {
       const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
       console.log("network:url:", url);
-      response = await fetch(url, {
+      const response = await fetch(url, {
         method: "GET",
         ...fetchArgs,
         signal: abortController.signal,
@@ -242,6 +338,14 @@ export class AltimateRequest {
       }
       const textResponse = await response.text();
       console.log("network:response:error:", textResponse);
+      if (response.status === 429) {
+        throw new RateLimitException(
+          textResponse,
+          response.headers.get("Retry-After")
+            ? parseInt(response.headers.get("Retry-After") || "")
+            : 1 * 60 * 1000, // default to 1 min
+        );
+      }
       this.telemetry.sendTelemetryError("apiError", {
         endpoint,
         status: response.status,
@@ -259,17 +363,6 @@ export class AltimateRequest {
     }
   }
 
-  async isAuthenticated() {
-    try {
-      await this.fetch<void>("auth_health", {
-        method: "POST",
-      });
-    } catch (error) {
-      return false;
-    }
-    return true;
-  }
-
   async generateModelDocs(docsGenerate: DocsGenerateModelRequest) {
     return this.fetch<DocsGenerateResponse>("dbt/v1", {
       method: "POST",
@@ -277,8 +370,15 @@ export class AltimateRequest {
     });
   }
 
+  async generateModelDocsV2(docsGenerate: DocsGenerateModelRequestV2) {
+    return this.fetch<DocsGenerateResponse>("dbt/v2", {
+      method: "POST",
+      body: JSON.stringify(docsGenerate),
+    });
+  }
+
   async sendFeedback(feedback: OnewayFeedback) {
-    await this.fetch<void>("feedbacks/ai/fb", {
+    return await this.fetch<FeedbackResponse>("feedbacks/ai/fb", {
       method: "POST",
       body: JSON.stringify(feedback),
     });

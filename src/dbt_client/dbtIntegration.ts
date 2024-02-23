@@ -2,6 +2,7 @@ import {
   CancellationToken,
   Disposable,
   ProgressLocation,
+  Uri,
   window,
   workspace,
 } from "vscode";
@@ -10,7 +11,7 @@ import {
   getFirstWorkspacePath,
   provideSingleton,
 } from "../utils";
-import { PythonBridge, pythonBridge } from "python-bridge";
+import { PythonBridge, PythonException, pythonBridge } from "python-bridge";
 import { provide } from "inversify-binding-decorators";
 import {
   CommandProcessExecution,
@@ -23,9 +24,11 @@ import { DBTTerminal } from "./dbtTerminal";
 import { ValidateSqlParseErrorResponse } from "../altimate";
 
 interface DBTCommandExecution {
-  command: (token: CancellationToken) => Promise<void>;
+  command: (token?: CancellationToken) => Promise<void>;
   statusMessage: string;
+  showProgress?: boolean;
   focus?: boolean;
+  token?: CancellationToken;
 }
 
 export interface DBTCommandExecutionStrategy {
@@ -37,30 +40,36 @@ export class CLIDBTCommandExecutionStrategy
   implements DBTCommandExecutionStrategy
 {
   constructor(
-    private commandProcessExecutionFactory: CommandProcessExecutionFactory,
-    private pythonEnvironment: PythonEnvironment,
-    private terminal: DBTTerminal,
-    private telemetry: TelemetryService,
+    protected commandProcessExecutionFactory: CommandProcessExecutionFactory,
+    protected pythonEnvironment: PythonEnvironment,
+    protected terminal: DBTTerminal,
+    protected telemetry: TelemetryService,
+    protected cwd: Uri,
   ) {}
 
   execute(command: DBTCommand, token?: CancellationToken): Promise<string> {
-    return this.executeCommand(command, token).completeWithTerminalOutput(
-      this.terminal,
-    );
+    const commandExecution = this.executeCommand(command, token);
+    if (command.logToTerminal) {
+      return commandExecution.completeWithTerminalOutput(this.terminal);
+    }
+    return commandExecution.complete();
   }
 
-  private executeCommand(
+  protected executeCommand(
     command: DBTCommand,
     token?: CancellationToken,
   ): CommandProcessExecution {
-    this.terminal.log(`> Executing task: ${command.getCommandAsString()}\n\r`);
+    if (command.logToTerminal && command.focus) {
+      this.terminal.show(true);
+    }
     this.telemetry.sendTelemetryEvent("dbtCommand", {
       command: command.getCommandAsString(),
     });
-    if (command.focus) {
-      this.terminal.show(true);
+    if (command.logToTerminal) {
+      this.terminal.log(
+        `> Executing task: ${command.getCommandAsString()}\n\r`,
+      );
     }
-
     const { args } = command!;
     if (
       !this.pythonEnvironment.pythonPath ||
@@ -70,12 +79,18 @@ export class CLIDBTCommandExecutionStrategy
         "Could not launch command as python environment is not available",
       );
     }
-
+    const tokens: CancellationToken[] = [];
+    if (token !== undefined) {
+      tokens.push(token);
+    }
+    if (command.token !== undefined) {
+      tokens.push(command.token);
+    }
     return this.commandProcessExecutionFactory.createCommandProcessExecution({
       command: "dbt",
       args,
-      token,
-      cwd: getFirstWorkspacePath(),
+      tokens,
+      cwd: this.cwd.fsPath,
       envVars: this.pythonEnvironment.environmentVariables,
     });
   }
@@ -119,18 +134,24 @@ export class PythonDBTCommandExecutionStrategy
         "Could not launch command as python environment is not available",
       );
     }
-
+    const tokens: CancellationToken[] = [];
+    if (token !== undefined) {
+      tokens.push(token);
+    }
+    if (command.token !== undefined) {
+      tokens.push(command.token);
+    }
     return this.commandProcessExecutionFactory.createCommandProcessExecution({
       command: this.pythonEnvironment.pythonPath,
       args: ["-c", this.dbtCommand(args)],
-      token,
+      tokens,
       cwd: getFirstWorkspacePath(),
       envVars: this.pythonEnvironment.environmentVariables,
     });
   }
 
   private dbtCommand(args: string[]): string {
-    args = args.map((arg) => `'${arg}'`);
+    args = args.map((arg) => `r'${arg}'`);
     const dbtCustomRunnerImport = workspace
       .getConfiguration("dbt")
       .get<string>(
@@ -156,7 +177,10 @@ export class DBTCommand {
     public statusMessage: string,
     public args: string[],
     public focus: boolean = false,
+    public showProgress: boolean = false,
+    public logToTerminal: boolean = false,
     public executionStrategy?: DBTCommandExecutionStrategy,
+    public token?: CancellationToken,
   ) {}
 
   addArgument(arg: string) {
@@ -176,6 +200,10 @@ export class DBTCommand {
       throw new Error("Execution strategy is required to run dbt commands");
     }
     return this.executionStrategy.execute(this, token);
+  }
+
+  setToken(token: CancellationToken) {
+    this.token = token;
   }
 }
 
@@ -211,6 +239,25 @@ export interface DBTInstallion {
   installDBT(): Promise<void>;
 }
 
+export interface DBTProjectDetection extends Disposable {
+  discoverProjects(projectConfigFiles: Uri[]): Promise<Uri[]>;
+}
+
+export class QueryExecution {
+  constructor(
+    private cancelFunc: () => Promise<void>,
+    private queryResult: () => Promise<ExecuteSQLResult>,
+  ) {}
+
+  cancel(): Promise<void> {
+    return this.cancelFunc();
+  }
+
+  executeQuery(): Promise<ExecuteSQLResult> {
+    return this.queryResult();
+  }
+}
+
 export interface DBTProjectIntegration extends Disposable {
   // initialize execution infrastructure
   initializeProject(): Promise<void>;
@@ -226,7 +273,7 @@ export interface DBTProjectIntegration extends Disposable {
   // parse manifest
   rebuildManifest(): Promise<void>;
   // execute queries
-  executeSQL(query: string, limit: number): Promise<ExecuteSQLResult>;
+  executeSQL(query: string, limit: number): Promise<QueryExecution>;
   // dbt commands
   runModel(command: DBTCommand): Promise<void>;
   buildModel(command: DBTCommand): Promise<void>;
@@ -253,12 +300,16 @@ export interface DBTProjectIntegration extends Disposable {
   ): Promise<{ [key: string]: string }[]>; // TODO: this should be typed
   getColumnsOfModel(modelName: string): Promise<{ [key: string]: string }[]>; // TODO: this should be typed
   getCatalog(): Promise<{ [key: string]: string }[]>; // TODO: this should be typed
+  getDebounceForRebuildManifest(): number;
 }
 
 @provide(DBTCommandExecutionInfrastructure)
 export class DBTCommandExecutionInfrastructure {
-  private queue: DBTCommandExecution[] = [];
-  private running = false;
+  private queues: Map<string, DBTCommandExecution[]> = new Map<
+    string,
+    DBTCommandExecution[]
+  >();
+  private queueStates: Map<string, boolean> = new Map<string, boolean>();
 
   constructor(
     private pythonEnvironment: PythonEnvironment,
@@ -294,51 +345,98 @@ export class DBTCommandExecutionInfrastructure {
     } catch (_) {}
   }
 
-  async addCommandToQueue(command: DBTCommand) {
-    this.queue.push({
+  createQueue(queueName: string) {
+    this.queues.set(queueName, []);
+  }
+
+  async addCommandToQueue(queueName: string, command: DBTCommand) {
+    this.queues.get(queueName)!.push({
       command: async (token) => {
         await command.execute(token);
       },
       statusMessage: command.statusMessage,
       focus: command.focus,
+      token: command.token,
+      showProgress: command.showProgress,
     });
-    this.pickCommandToRun();
+    this.pickCommandToRun(queueName);
   }
 
-  private async pickCommandToRun(): Promise<void> {
-    if (!this.running && this.queue.length > 0) {
-      this.running = true;
-      const { command, statusMessage, focus } = this.queue.shift()!;
+  private async pickCommandToRun(queueName: string): Promise<void> {
+    const queue = this.queues.get(queueName)!;
+    const running = this.queueStates.get(queueName);
+    if (!running && queue.length > 0) {
+      this.queueStates.set(queueName, true);
+      const { command, statusMessage, focus, showProgress } = queue.shift()!;
+      const commandExecution = async (token?: CancellationToken) => {
+        try {
+          await command(token);
+        } catch (error) {
+          window.showErrorMessage(
+            extendErrorWithSupportLinks(
+              `Could not run command '${statusMessage}': ` + error + ".",
+            ),
+          );
+          this.telemetry.sendTelemetryError("queueRunCommandError", error, {
+            command: statusMessage,
+          });
+        }
+      };
 
-      await window.withProgress(
-        {
-          location: focus
-            ? ProgressLocation.Notification
-            : ProgressLocation.Window,
-          cancellable: true,
-          title: statusMessage,
-        },
-        async (_, token) => {
-          try {
-            await command(token);
-          } catch (error) {
-            window.showErrorMessage(
-              extendErrorWithSupportLinks(
-                `Could not run command '${statusMessage}': ` +
-                  (error as Error).message +
-                  ".",
-              ),
-            );
-            this.telemetry.sendTelemetryError("queueRunCommandError", error, {
-              command: statusMessage,
-            });
-          }
-        },
-      );
-
-      this.running = false;
-      this.pickCommandToRun();
+      if (showProgress) {
+        await window.withProgress(
+          {
+            location: focus
+              ? ProgressLocation.Notification
+              : ProgressLocation.Window,
+            cancellable: true,
+            title: statusMessage,
+          },
+          async (_, token) => {
+            await commandExecution(token);
+          },
+        );
+      } else {
+        await commandExecution();
+      }
+      this.queueStates.set(queueName, false);
+      this.pickCommandToRun(queueName);
     }
+  }
+
+  async runCommand(command: DBTCommand) {
+    const commandExecution: DBTCommandExecution = {
+      command: async (token) => {
+        await command.execute(token);
+      },
+      statusMessage: command.statusMessage,
+      focus: command.focus,
+    };
+    await window.withProgress(
+      {
+        location: commandExecution.focus
+          ? ProgressLocation.Notification
+          : ProgressLocation.Window,
+        cancellable: true,
+        title: commandExecution.statusMessage,
+      },
+      async (_, token) => {
+        try {
+          return await commandExecution.command(token);
+        } catch (error) {
+          window.showErrorMessage(
+            extendErrorWithSupportLinks(
+              `Could not run command '${commandExecution.statusMessage}': ` +
+                (error as Error).message +
+                ".",
+            ),
+          );
+          this.telemetry.sendTelemetryError("runCommandError", error, {
+            command: commandExecution.statusMessage,
+          });
+        }
+      },
+    );
   }
 }
 
@@ -346,6 +444,10 @@ export class DBTCommandExecutionInfrastructure {
 export class DBTCommandFactory {
   createVersionCommand(): DBTCommand {
     return new DBTCommand("Detecting dbt version...", ["--version"]);
+  }
+
+  createParseCommand(): DBTCommand {
+    return new DBTCommand("Parsing dbt project...", ["parse"]);
   }
 
   createRunModelCommand(params: RunModelParams): DBTCommand {
@@ -362,6 +464,8 @@ export class DBTCommandFactory {
         `${plusOperatorLeft}${modelName}${plusOperatorRight}`,
         ...buildModelCommandAdditionalParams,
       ],
+      true,
+      true,
       true,
     );
   }
@@ -381,6 +485,8 @@ export class DBTCommandFactory {
         ...buildModelCommandAdditionalParams,
       ],
       true,
+      true,
+      true,
     );
   }
 
@@ -392,6 +498,8 @@ export class DBTCommandFactory {
     return new DBTCommand(
       "Testing dbt model...",
       ["test", "--select", testName, ...testModelCommandAdditionalParams],
+      true,
+      true,
       true,
     );
   }
@@ -406,18 +514,26 @@ export class DBTCommandFactory {
         `${plusOperatorLeft}${modelName}${plusOperatorRight}`,
       ],
       true,
+      true,
+      true,
     );
   }
 
   createDocsGenerateCommand(): DBTCommand {
-    return new DBTCommand("Generating dbt Docs...", ["docs", "generate"], true);
+    return new DBTCommand(
+      "Generating dbt Docs...",
+      ["docs", "generate"],
+      true,
+      true,
+      true,
+    );
   }
 
   createInstallDepsCommand(): DBTCommand {
-    return new DBTCommand("Installing packages...", ["deps"], true);
+    return new DBTCommand("Installing packages...", ["deps"], true, true, true);
   }
 
   createDebugCommand(): DBTCommand {
-    return new DBTCommand("Debugging...", ["debug"], true);
+    return new DBTCommand("Debugging...", ["debug"], true, true, true);
   }
 }

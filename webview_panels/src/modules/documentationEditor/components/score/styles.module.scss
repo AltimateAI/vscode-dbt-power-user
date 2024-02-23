@@ -1,0 +1,37 @@
+.scoreWrapper {
+  width: 56px;
+  height: 56px;
+  position: relative;
+  & .percentage {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    top: 0;
+    left: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--text-color--title);
+  }
+  & .score {
+    height: 100%;
+    width: 100%;
+    transform: rotate(-90deg);
+    display: inline-block;
+    color: #01cd8c;
+    &:global.blue {
+      color: #247efe;
+    }
+    &:global.yellow {
+      color: #ffce73;
+    }
+    & svg {
+      display: block;
+      overflow: visible;
+      & circle {
+        stroke-dasharray: 126.92;
+        stroke: currentColor;
+      }
+    }
+  }
+}

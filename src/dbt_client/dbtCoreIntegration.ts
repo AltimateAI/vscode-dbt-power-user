@@ -1,5 +1,6 @@
 import {
   Diagnostic,
+  DiagnosticCollection,
   Disposable,
   languages,
   Range,
@@ -8,30 +9,28 @@ import {
   window,
   workspace,
 } from "vscode";
-import * as os from "os";
 import {
   extendErrorWithSupportLinks,
   getFirstWorkspacePath,
   provideSingleton,
   setupWatcherHandler,
-  substituteSettingsVariables,
 } from "../utils";
 import {
   CompilationResult,
   DBTCommand,
   DBTCommandExecutionInfrastructure,
   DBTDetection,
+  DBTProjectDetection,
   DBTProjectIntegration,
   ExecuteSQLResult,
   PythonDBTCommandExecutionStrategy,
+  QueryExecution,
 } from "./dbtIntegration";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonBridge, PythonException } from "python-bridge";
 import * as path from "path";
 import { DBTProject } from "../manifest/dbtProject";
-import { existsSync } from "fs";
-import { join } from "path";
 import { TelemetryService } from "../telemetry";
 import { ValidateSqlParseErrorResponse } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -78,12 +77,72 @@ export class DBTCoreDetection implements DBTDetection {
   }
 }
 
+@provideSingleton(DBTCoreProjectDetection)
+export class DBTCoreProjectDetection
+  implements DBTProjectDetection, Disposable
+{
+  constructor(
+    private executionInfrastructure: DBTCommandExecutionInfrastructure,
+  ) {}
+
+  async discoverProjects(projectDirectories: Uri[]): Promise<Uri[]> {
+    let packagesInstallPaths = projectDirectories.map((projectDirectory) =>
+      path.join(projectDirectory.fsPath, "dbt_packages"),
+    );
+    let python: PythonBridge | undefined;
+    try {
+      python = this.executionInfrastructure.createPythonBridge(
+        getFirstWorkspacePath(),
+      );
+
+      await python.ex`from dbt_core_integration import *`;
+      const packagesInstallPathsFromPython = await python.lock<string[]>(
+        (python) =>
+          python`to_dict(find_package_paths(${projectDirectories.map(
+            (projectDirectory) => projectDirectory.fsPath,
+          )}))`,
+      );
+      packagesInstallPaths = packagesInstallPaths.map(
+        (packageInstallPath, index) => {
+          const packageInstallPathFromPython =
+            packagesInstallPathsFromPython[index];
+          if (packageInstallPathFromPython) {
+            return Uri.file(packageInstallPathFromPython).fsPath;
+          }
+          return packageInstallPath;
+        },
+      );
+    } catch (error) {
+      console.log("An error occured while finding package paths: " + error);
+    } finally {
+      if (python) {
+        this.executionInfrastructure.closePythonBridge(python);
+      }
+    }
+
+    const filteredProjectFiles = projectDirectories.filter((uri) => {
+      return !packagesInstallPaths.some((packageInstallPath) => {
+        return uri.fsPath.startsWith(packageInstallPath!);
+      });
+    });
+    if (filteredProjectFiles.length > 20) {
+      window.showWarningMessage(
+        `dbt Power User detected ${filteredProjectFiles.length} projects in your work space, this will negatively affect performance.`,
+      );
+    }
+    return filteredProjectFiles;
+  }
+
+  async dispose() {}
+}
+
 @provideSingleton(DBTCoreProjectIntegration)
 export class DBTCoreProjectIntegration
   implements DBTProjectIntegration, Disposable
 {
   static DBT_PROFILES_FILE = "profiles.yml";
 
+  private profilesDir?: string;
   private targetPath?: string;
   private adapterType?: string;
   private version?: number[];
@@ -91,12 +150,12 @@ export class DBTCoreProjectIntegration
   private modelPaths?: string[];
   private macroPaths?: string[];
   private python: PythonBridge;
-  private dbtProfilesDir: string;
   private disposables: Disposable[] = [];
   private readonly rebuildManifestDiagnostics =
     languages.createDiagnosticCollection("dbt");
   private readonly pythonBridgeDiagnostics =
     languages.createDiagnosticCollection("dbt");
+  private static QUEUE_ALL = "all";
 
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
@@ -105,30 +164,14 @@ export class DBTCoreProjectIntegration
     private pythonDBTCommandExecutionStrategy: PythonDBTCommandExecutionStrategy,
     private dbtProjectContainer: DBTProjectContainer,
     private projectRoot: Uri,
+    private projectConfigDiagnostics: DiagnosticCollection,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
-    const profileExistsInProjectRoot = existsSync(
-      join(this.projectRoot.fsPath, "profiles.yml"),
-    );
-    const profilesDirOverrideSetting = workspace
-      .getConfiguration("dbt")
-      .get<string>("profilesDirOverride");
-    this.dbtProfilesDir =
-      (profilesDirOverrideSetting
-        ? substituteSettingsVariables(profilesDirOverrideSetting)
-        : false) ||
-      (profileExistsInProjectRoot ? this.projectRoot.fsPath : false) ||
-      this.pythonEnvironment.environmentVariables.DBT_PROFILES_DIR ||
-      join(os.homedir(), ".dbt");
-    this.dbtProfilesDir = this.dbtProfilesDir.replace("~", os.homedir());
-    // remove the trailing slashes if they exists,
-    // causes the quote to be escaped when passing to python
-    this.dbtProfilesDir = this.dbtProfilesDir.replace(/\\+$/, "");
-
-    console.log(
-      `Registering project ${this.projectRoot} with profile directory ${this.dbtProfilesDir}`,
+    console.log(`Registering project ${this.projectRoot}`);
+    this.executionInfrastructure.createQueue(
+      DBTCoreProjectIntegration.QUEUE_ALL,
     );
 
     this.disposables.push(
@@ -142,8 +185,10 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  async refreshProjectConfig(): Promise<void> {
-    await this.createPythonDbtProject();
+  // remove the trailing slashes if they exists,
+  // causes the quote to be escaped when passing to python
+  private removeTrailingSlashes(input: string | undefined) {
+    return input?.replace(/\\+$/, "");
   }
 
   private getLimitQuery(queryTemplate: string, query: string, limit: number) {
@@ -196,29 +241,9 @@ export class DBTCoreProjectIntegration
     };
   }
 
-  async executeSQL(query: string, limit: number): Promise<ExecuteSQLResult> {
-    const { queryTemplate, limitQuery } = await this.getQuery(query, limit);
-
-    this.telemetry.sendTelemetryEvent(
-      "executeSQL",
-      {
-        queryTemplate: queryTemplate,
-        adapter: this.adapterType || "unknown",
-      },
-      {
-        limit: limit,
-      },
-    );
-
-    return this.python!.lock<ExecuteSQLResult>(
-      (python) => python`to_dict(project.execute_sql(${limitQuery}))`,
-    );
-  }
-
-  private async createPythonDbtProject() {
-    await this.python.ex`from dbt_integration import *`;
-    await this.python
-      .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.dbtProfilesDir})`;
+  async refreshProjectConfig(): Promise<void> {
+    await this.createPythonDbtProject(this.python);
+    await this.python.ex`project.init_project()`;
     this.targetPath = await this.findTargetPath();
     this.modelPaths = await this.findModelPaths();
     this.macroPaths = await this.findMacroPaths();
@@ -227,15 +252,71 @@ export class DBTCoreProjectIntegration
     this.adapterType = await this.findAdapterType();
   }
 
-  async initializeProject(): Promise<void> {
-    const dbtProfileWatcher = workspace.createFileSystemWatcher(
-      new RelativePattern(
-        this.dbtProfilesDir,
-        DBTCoreProjectIntegration.DBT_PROFILES_FILE,
+  async executeSQL(query: string, limit: number): Promise<QueryExecution> {
+    const queryTemplate = workspace
+      .getConfiguration("dbt")
+      .get<string>(
+        "queryTemplate",
+        "select * from ({query}\n) as query limit {limit}",
+      );
+
+    const limitQuery = queryTemplate
+      .replace("{query}", () => query)
+      .replace("{limit}", () => limit.toString());
+
+    const queryThread = this.executionInfrastructure.createPythonBridge(
+      this.projectRoot.fsPath,
+    );
+    await this.createPythonDbtProject(queryThread);
+    await queryThread.ex`project.init_project()`;
+    return new QueryExecution(
+      async () => {
+        queryThread.kill(2);
+      },
+      async () => {
+        const compiledQuery = await this.unsafeCompileQuery(limitQuery);
+        return queryThread!.lock<ExecuteSQLResult>(
+          (python) => python`to_dict(project.execute_sql(${compiledQuery}))`,
+        );
+      },
+    );
+  }
+
+  private async createPythonDbtProject(bridge: PythonBridge) {
+    await bridge.ex`from dbt_core_integration import *`;
+    const targetPath = this.removeTrailingSlashes(
+      await bridge.lock(
+        (python) => python`target_path(${this.projectRoot.fsPath})`,
       ),
     );
+    await bridge.ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.profilesDir}, target_path=${targetPath}) if 'project' not in locals() else project`;
+  }
+
+  async initializeProject(): Promise<void> {
     try {
-      await this.createPythonDbtProject();
+      await this.python
+        .ex`from dbt_core_integration import default_profiles_dir`;
+      this.profilesDir = this.removeTrailingSlashes(
+        await this.python.lock(
+          (python) => python`default_profiles_dir(${this.projectRoot.fsPath})`,
+        ),
+      );
+      if (this.profilesDir) {
+        const dbtProfileWatcher = workspace.createFileSystemWatcher(
+          new RelativePattern(
+            this.profilesDir,
+            DBTCoreProjectIntegration.DBT_PROFILES_FILE,
+          ),
+        );
+        this.disposables.push(
+          dbtProfileWatcher,
+          // when the project config changes we need to re-init the dbt project
+          ...setupWatcherHandler(dbtProfileWatcher, () =>
+            this.rebuildManifest(),
+          ),
+        );
+      }
+      await this.createPythonDbtProject(this.python);
       this.pythonBridgeDiagnostics.clear();
     } catch (exc: any) {
       if (exc instanceof PythonException) {
@@ -263,7 +344,9 @@ export class DBTCoreProjectIntegration
       } else {
         window.showErrorMessage(
           extendErrorWithSupportLinks(
-            "An unexpected error occured while initializing the dbt project: " +
+            "An unexpected error occured while initializing the dbt project at " +
+              this.projectRoot +
+              ": " +
               exc +
               ".",
           ),
@@ -271,12 +354,6 @@ export class DBTCoreProjectIntegration
         this.telemetry.sendTelemetryError("pythonBridgeInitError", exc);
       }
     }
-    // don't await on rebuild manifest
-    this.rebuildManifest();
-    this.disposables.push(
-      // when the project config changes we need to re-init the dbt project
-      ...setupWatcherHandler(dbtProfileWatcher, () => this.rebuildManifest()),
-    );
   }
 
   getTargetPath(): string | undefined {
@@ -310,6 +387,13 @@ export class DBTCoreProjectIntegration
   }
 
   async rebuildManifest(): Promise<void> {
+    const errors = this.projectConfigDiagnostics.get(
+      Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+    );
+    if (errors !== undefined && errors.length > 0) {
+      // No point in trying to rebuild the manifest if the config is not valid
+      return;
+    }
     try {
       await this.python.lock(
         (python) => python`to_dict(project.safe_parse_project())`,
@@ -392,14 +476,19 @@ export class DBTCoreProjectIntegration
     if (!isInstalled) {
       return;
     }
-    this.executionInfrastructure.addCommandToQueue(command);
+    this.executionInfrastructure.addCommandToQueue(
+      DBTCoreProjectIntegration.QUEUE_ALL,
+      command,
+    );
   }
 
   private dbtCoreCommand(command: DBTCommand) {
-    command.addArgument("--profiles-dir");
-    command.addArgument(this.dbtProfilesDir);
     command.addArgument("--project-dir");
     command.addArgument(this.projectRoot.fsPath);
+    if (this.profilesDir) {
+      command.addArgument("--profiles-dir");
+      command.addArgument(this.profilesDir);
+    }
     command.setExecutionStrategy(this.pythonDBTCommandExecutionStrategy);
     return command;
   }
@@ -505,6 +594,10 @@ export class DBTCoreProjectIntegration
       return modelPath;
     });
     return modelPaths;
+  }
+
+  getDebounceForRebuildManifest() {
+    return 2000;
   }
 
   private async findMacroPaths(): Promise<string[]> {

@@ -45,12 +45,16 @@ type Table = {
   tests: any[];
 };
 
-const CACHE_SIZE = 100;
-const CACHE_VALID_TIME = 24 * 60 * 60 * 1000;
+enum CllEvents {
+  START = "start",
+  END = "end",
+  CANCEL = "cancel",
+}
 
 const CAN_COMPILE_SQL_NODE = [
   DBTProject.RESOURCE_TYPE_MODEL,
   DBTProject.RESOURCE_TYPE_SNAPSHOT,
+  DBTProject.RESOURCE_TYPE_ANALYSIS,
 ];
 const canCompileSQL = (nodeType: string) =>
   CAN_COMPILE_SQL_NODE.includes(nodeType);
@@ -59,9 +63,8 @@ const canCompileSQL = (nodeType: string) =>
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
-  private dbCache: Map<string, Record<string, string>[]> = new Map();
-  private lruCache: Map<string, number> = new Map();
-  private progressBarResolve?: () => void;
+  private cllIsCancelled = false;
+  private cllProgressResolve: () => void = () => {};
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -176,24 +179,43 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
 
-    if (command === "startProgressBar") {
-      window.withProgress(
-        {
-          title: "Processing column level lineage",
-          location: ProgressLocation.Notification,
-          cancellable: false,
-        },
-        async () => {
-          await new Promise<void>((resolve) => {
-            this.progressBarResolve = resolve;
-          });
-        },
-      );
+    if (command === "sendFeedback") {
+      try {
+        await this.altimate.sendFeedback({
+          feedback_src: "dbtpu-extension",
+          feedback_text: params.feedback_text,
+          feedback_value: params.feedback_value,
+          data: {},
+        });
+        this._panel?.webview.postMessage({
+          command: "response",
+          args: { id, status: true },
+        });
+      } catch (error) {
+        this._panel?.webview.postMessage({
+          command: "response",
+          args: { id, status: false },
+        });
+        window.showErrorMessage(
+          extendErrorWithSupportLinks(
+            "An unexpected error occurred while sending feedback: " + error,
+          ),
+        );
+        this.telemetry.sendTelemetryError(
+          "altimateLineageSendFeedbackError",
+          error,
+        );
+      }
       return;
     }
 
-    if (command === "endProgressBar") {
-      this.progressBarResolve?.();
+    if (command === "columnLineage") {
+      this.handleColumnLineage(args);
+      return;
+    }
+
+    if (command === "telemetryEvents") {
+      this.telemetry.sendTelemetryEvent(id, params);
       return;
     }
 
@@ -202,29 +224,50 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
 
+    if (command === "showInfoNotification") {
+      window.showInformationMessage(args.message);
+      return;
+    }
+
     console.error("Unsupported mssage", message);
   }
 
+  private async handleColumnLineage({ event }: { event: CllEvents }) {
+    if (event === CllEvents.START) {
+      window.withProgress(
+        {
+          title: "Processing column level lineage",
+          location: ProgressLocation.Notification,
+          cancellable: true,
+        },
+        async (_, token) => {
+          await new Promise<void>((resolve) => {
+            this.cllIsCancelled = false;
+            this.cllProgressResolve = resolve;
+            token.onCancellationRequested(() => {
+              this.cllIsCancelled = true;
+              this._panel?.webview.postMessage({
+                command: "columnLineage",
+                args: { event: CllEvents.CANCEL },
+              });
+            });
+          });
+        },
+      );
+      return;
+    }
+    if (event === CllEvents.END) {
+      this.cllProgressResolve();
+      return;
+    }
+    if (event === CllEvents.CANCEL) {
+      this.cllProgressResolve();
+      this.cllIsCancelled = true;
+      return;
+    }
+  }
+
   private async addModelColumnsFromDB(project: DBTProject, node: NodeMetaData) {
-    // Disabling cache
-    // const now = Date.now();
-    // if (
-    //   !this.dbCache.has(node.name) ||
-    //   (this.lruCache.get(node.name) || 0) < now - CACHE_VALID_TIME
-    // ) {
-    //   const _columnsFromDB = await project.getColumnsOfModel(node.name);
-    //   this.dbCache.set(node.name, _columnsFromDB);
-    //   if (this.dbCache.size > CACHE_SIZE) {
-    //     const arr = Array.from(this.lruCache.entries());
-    //     arr.sort((a, b) => b[1] - a[1]);
-    //     arr.slice(CACHE_SIZE).forEach(([k]) => {
-    //       this.lruCache.delete(k);
-    //       this.dbCache.delete(k);
-    //     });
-    //   }
-    // }
-    // this.lruCache.set(node.name, now);
-    // const columnsFromDB = this.dbCache.get(node.name)!;
     const columnsFromDB = await project.getColumnsOfModel(node.name);
     console.log("addColumnsFromDB: ", node.name, " -> ", columnsFromDB);
     if (!columnsFromDB || columnsFromDB.length === 0) {
@@ -373,9 +416,6 @@ export class NewLineagePanel implements LineagePanelView {
             cancellable: false,
           },
           async () => {
-            // TODO: the cache should also support sources
-            // this.lruCache.delete(node.name);
-            // this.dbCache.delete(node.name);
             return await this.addSourceColumnsFromDB(
               project,
               node.name,
@@ -430,8 +470,6 @@ export class NewLineagePanel implements LineagePanelView {
           cancellable: false,
         },
         async () => {
-          // this.lruCache.delete(node.name);
-          // this.dbCache.delete(node.name);
           return await this.addModelColumnsFromDB(project, node);
         },
       );
@@ -522,12 +560,14 @@ export class NewLineagePanel implements LineagePanelView {
     upstreamExpansion,
     currAnd1HopTables,
     selectedColumn,
+    sessionId,
   }: {
     targets: [string, string][];
     upstreamExpansion: boolean;
     currAnd1HopTables: string[];
     // select_column is used for pricing not business logic
     selectedColumn: { name: string; table: string };
+    sessionId: string;
   }) {
     const event = this.getEvent();
     if (!event) {
@@ -539,10 +579,7 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
 
-    const modelInfos: {
-      compiled_sql: string | undefined;
-      model_node: ModelNode;
-    }[] = [];
+    const modelInfos: { compiled_sql?: string; model_node: ModelNode }[] = [];
     const relationsWithoutColumns: string[] = [];
     let selected_column: { model_node: ModelNode; column: string } | undefined;
     const parent_models: { model_node: ModelNode }[] = [];
@@ -581,10 +618,11 @@ export class NewLineagePanel implements LineagePanelView {
       }
       auxiliaryTables = Array.from(parentSet);
     }
+    const commandQueue: (() => Promise<void>)[] = [];
+
     try {
-      await Promise.all([
-        ...currAnd1HopTables.map(async (key) => {
-          let compiledSql: string | undefined;
+      currAnd1HopTables.forEach((key) => {
+        commandQueue.push(async () => {
           const result = await this.getNodeWithDBColumns(key);
           if (!result) {
             return;
@@ -602,30 +640,35 @@ export class NewLineagePanel implements LineagePanelView {
             return;
           }
           const nodeType = key.split(".")[0];
-          if (canCompileSQL(nodeType)) {
-            compiledSql = await project.compileNode(node.name);
-            if (!compiledSql) {
-              return;
-            }
+          if (!canCompileSQL(nodeType)) {
+            modelInfos.push({ model_node: node });
+            return;
+          }
+          const compiledSql = await project.compileNode(node.name);
+          if (!compiledSql) {
+            return;
           }
           modelInfos.push({ compiled_sql: compiledSql, model_node: node });
-        }),
-        async () => {
-          const result = await this.getNodeWithDBColumns(selectedColumn.table);
-          if (!result) {
-            return;
-          }
-          const { node, dbColumnAdded } = result;
-          if (!dbColumnAdded) {
-            relationsWithoutColumns.push(selectedColumn.table);
-            return;
-          }
-          selected_column = {
-            model_node: node,
-            column: selectedColumn.name,
-          };
-        },
-        ...auxiliaryTables.map(async (key) => {
+        });
+      });
+      commandQueue.push(async () => {
+        const result = await this.getNodeWithDBColumns(selectedColumn.table);
+        if (!result) {
+          return;
+        }
+        const { node, dbColumnAdded } = result;
+        if (!dbColumnAdded) {
+          relationsWithoutColumns.push(selectedColumn.table);
+          return;
+        }
+        selected_column = {
+          model_node: node,
+          column: selectedColumn.name,
+        };
+      });
+
+      auxiliaryTables.forEach((key) => {
+        commandQueue.push(async () => {
           const result = await this.getNodeWithDBColumns(key);
           if (!result) {
             return;
@@ -639,8 +682,15 @@ export class NewLineagePanel implements LineagePanelView {
             return;
           }
           parent_models.push({ model_node: node });
-        }),
-      ]);
+        });
+      });
+
+      for (const fn of commandQueue) {
+        if (this.cllIsCancelled) {
+          return { column_lineage: [] };
+        }
+        await fn();
+      }
     } catch (exc) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
@@ -693,8 +743,35 @@ export class NewLineagePanel implements LineagePanelView {
       // schemas we could get so not returning here
     }
 
+    const targetTables = Array.from(new Set(targets.map((t) => t[0])));
+    // targets should not empty
+    if (targets.length === 0 || modelInfos.length < targetTables.length) {
+      this.telemetry.sendTelemetryError("columnLineageLogicError", {
+        targets,
+        modelInfos,
+        upstreamExpansion,
+        currAnd1HopTables,
+        selectedColumn,
+      });
+      return { column_lineage: [] };
+    }
+
+    // the case where upstream/downstream only has ephemeral models
+    if (modelInfos.length === targetTables.length) {
+      return { column_lineage: [] };
+    }
+    const models = modelInfos.map((m) => m.model_node.uniqueId);
+    const hasAllModels = targets.every((t) => models.includes(t[0]));
+    if (!hasAllModels) {
+      // most probably error message is already shown in above checks
+      return { column_lineage: [] };
+    }
+
     const modelDialect = project.getAdapterType();
     try {
+      if (this.cllIsCancelled) {
+        return { column_lineage: [] };
+      }
       const request = {
         model_dialect: modelDialect,
         model_info: modelInfos,
@@ -702,11 +779,9 @@ export class NewLineagePanel implements LineagePanelView {
         targets: targets.map((t) => ({ uniqueId: t[0], column_name: t[1] })),
         selected_column: selected_column!,
         parent_models,
+        session_id: sessionId,
       };
       console.log("cll:request -> ", request);
-      if (targets.length === 0) {
-        return;
-      }
       const result = await this.altimate.getColumnLevelLineage(request);
       console.log("cll:response -> ", result);
       if ((result as DBTColumnLineageResponse).column_lineage) {

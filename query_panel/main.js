@@ -14,6 +14,10 @@ async function updateConfig(config) {
   return await executeCommand("updateConfig", config);
 }
 
+async function cancelQuery() {
+  return await executeCommand("cancelQuery");
+}
+
 const DEFAULT_HEIGHT = 455;
 
 class Grid {
@@ -30,6 +34,8 @@ class Grid {
         float: {
           format: {
             maximumFractionDigits: 20,
+            minimumFractionDigits: 0,
+            useGrouping: false,
           },
         },
       },
@@ -42,7 +48,7 @@ class Grid {
       case "Text":
         return "string";
       case "Integer":
-        return "integer";
+        return "float";
       // case "Boolean":
       //   return "boolean"; // TODO: uncomment when material icons are added
       // case "Date":
@@ -115,6 +121,9 @@ const app = createApp({
       setTimeout(() => {
         document.querySelector("#panel-manager").activeid = "tab-1";
       }, 100);
+    },
+    cancelQuery() {
+      cancelQuery();
     },
     // Converts the provided data to CSV format.
     dataToCsv(columns, rows) {
@@ -293,6 +302,9 @@ const app = createApp({
     focusPreviewPane() {
       document.querySelector("#panel-manager").activeid = "tab-1";
     },
+    focusWelcomePane() {
+      document.querySelector("#panel-manager").activeid = "tab-3";
+    },
     timeExecution() {
       this.timer = setInterval(() => {
         this.queryEnd = Date.now();
@@ -446,6 +458,9 @@ const app = createApp({
           this.endTimer();
           break;
         case "renderLoading":
+          if (this.loading) {
+            break;
+          }
           this.clearData();
           this.focusPreviewPane();
           this.loading = true;
@@ -461,7 +476,10 @@ const app = createApp({
           this.updateConfig(event.data);
           break;
         case "resetState":
+          this.loading = false;
+          this.endTimer();
           this.clearData();
+          this.focusWelcomePane();
           break;
         case "renderSummary":
           this.updateSummary(event.data);

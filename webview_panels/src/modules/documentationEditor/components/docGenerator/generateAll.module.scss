@@ -1,0 +1,7 @@
+.options-card {
+  width: 70%;
+  margin-top: 1rem;
+  & :global .form-label {
+    width: 100%;
+  }
+}

@@ -1,7 +1,7 @@
 {
   "name": "vscode-dbt-power-user",
   "displayName": "dbt Power User",
-  "description": "This extension makes vscode seamlessly work with dbt",
+  "description": "This extension makes vscode seamlessly work with dbt: auto-complete, preview, column lineage, AI docs generation, health checks, cost estimation etc",
   "icon": "media/images/dbt.png",
   "publisher": "innoverio",
   "license": "MIT",
@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.28.5",
+  "version": "0.34.4",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -70,6 +70,10 @@
             "type": "boolean",
             "description": "Enable the new lineage panel in dbt."
           },
+          "dbt.enableNewDocsPanel": {
+            "type": "boolean",
+            "description": "Enable the new docs panel in dbt."
+          },
           "dbt.enableNewQueryPanel": {
             "type": "boolean",
             "description": "Enable the new query panel in dbt.",
@@ -95,7 +99,7 @@
               "type": "string"
             },
             "default": [],
-            "description": "Define workspace-relative paths to include. Only projects within these folders will be built. If empty, no filtering is applied."
+            "description": "Define workspace-relative paths to include. Only projects within these folders will be built. If empty, no filtering is applied. The path should be relative to the workspace. Example: [folder1, folder2]"
           },
           "dbt.runModelCommandAdditionalParams": {
             "type": "array",
@@ -103,7 +107,7 @@
               "type": "string"
             },
             "default": [],
-            "description": "Add additional params to the dbt run model command."
+            "description": "Add additional params to the dbt run model command. Ex: --select model1 --target prod needs to be added as four different entries \n--select \nmodel1 \n--target \nprod "
           },
           "dbt.buildModelCommandAdditionalParams": {
             "type": "array",
@@ -111,15 +115,7 @@
               "type": "string"
             },
             "default": [],
-            "description": "Add additional params to the dbt build model command."
-          },
-          "dbt.profilesDirOverride": {
-            "type": "string",
-            "description": "Override the profiles dir for every dbt command. Absolute path or relative to the directory containing profiles.yml"
-          },
-          "dbt.targetPathOverride": {
-            "type": "string",
-            "description": "Override the target-path dir for every dbt command. Absolute path or relative to the directory containing manifest.json."
+            "description": "Add additional params to the dbt build model command. Ex: --select model1 --target prod needs to be added as four different entries \n--select \nmodel1 \n--target \nprod "
           },
           "dbt.queryLimit": {
             "type": "integer",
@@ -175,6 +171,12 @@
           "title": "dbt Power User",
           "icon": "./media/images/dbt_icon.svg",
           "contextualTitle": "dbt Power User"
+        },
+        {
+          "id": "datapilot_view",
+          "title": "DataPilot Chat",
+          "icon": "./media/images/altimate.svg",
+          "contextualTitle": "Altimate Data pilot"
         }
       ],
       "panel": [
@@ -238,6 +240,14 @@
           "name": "",
           "type": "webview"
         }
+      ],
+      "datapilot_view": [
+        {
+          "type": "webview",
+          "id": "dbtPowerUser.datapilot-webview",
+          "name": "",
+          "icon": "./media/images/dbt_icon.svg"
+        }
       ]
     },
     "commands": [
@@ -260,6 +270,21 @@
           "light": "./media/images/run-light.svg",
           "dark": "./media/images/run-dark.svg"
         }
+      },
+      {
+        "command": "dbtPowerUser.openDatapilotWithQuery",
+        "title": "Start Chat",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.summarizeQuery",
+        "title": "Explain",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.changeQuery",
+        "title": "Change",
+        "category": "dbt Power User"
       },
       {
         "command": "dbtPowerUser.sqlToModel",
@@ -354,6 +379,25 @@
         }
       },
       {
+        "command": "dbtPowerUser.resetDatapilot",
+        "title": "Start New Chat",
+        "icon": "$(add)",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.maximizeDatapilot",
+        "title": "Maximize",
+        "icon": {
+          "light": "./media/images/fullscreen-light.svg",
+          "dark": "./media/images/fullscreen-dark.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.showHelpDatapilot",
+        "title": "Help",
+        "icon": "$(question)"
+      },
+      {
         "command": "dbtPowerUser.showCompiledSQL",
         "title": "Open dbt target folder compiled SQL",
         "icon": {
@@ -365,14 +409,6 @@
         "command": "dbtPowerUser.executeSQL",
         "title": "Execute dbt SQL",
         "icon": "$(play)"
-      },
-      {
-        "command": "dbtPowerUser.summarizeQuery",
-        "title": "Explain selected SQL (Preview feature)",
-        "icon": {
-          "light": "./media/images/lightbulb_light.svg",
-          "dark": "./media/images/lightbulb_dark.svg"
-        }
       },
       {
         "command": "dbtPowerUser.buildCurrentModel",
@@ -421,6 +457,20 @@
       }
     ],
     "menus": {
+      "dbtPowerUser.datapilotSubmenu": [
+        {
+          "command": "dbtPowerUser.openDatapilotWithQuery",
+          "group": "datapilot@1"
+        },
+        {
+          "command": "dbtPowerUser.summarizeQuery",
+          "group": "datapilot@2"
+        },
+        {
+          "command": "dbtPowerUser.changeQuery",
+          "group": "datapilot@3"
+        }
+      ],
       "editor/title": [
         {
           "command": "dbtPowerUser.executeSQL",
@@ -455,6 +505,11 @@
       ],
       "editor/context": [
         {
+          "submenu": "dbtPowerUser.datapilotSubmenu",
+          "group": "datapilot@1",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
+        },
+        {
           "submenu": "dbtPowerUser.buildModel",
           "group": "dbt@5",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
@@ -483,11 +538,6 @@
           "command": "dbtPowerUser.runCurrentModel",
           "group": "dbt@1",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
-        },
-        {
-          "command": "dbtPowerUser.summarizeQuery",
-          "group": "dbt@3",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/ && config.dbt.altimateInstanceName && config.dbt.altimateAiKey"
         },
         {
           "command": "dbtPowerUser.sqlToModel",
@@ -557,6 +607,16 @@
           "command": "dbtPowerUser.generateDBTDocs",
           "when": "view == documentation_treeview",
           "group": "navigation"
+        },
+        {
+          "command": "dbtPowerUser.resetDatapilot",
+          "when": "view == dbtPowerUser.datapilot-webview",
+          "group": "navigation@1"
+        },
+        {
+          "command": "dbtPowerUser.showHelpDatapilot",
+          "when": "view == dbtPowerUser.datapilot-webview",
+          "group": "navigation@3"
         }
       ],
       "view/item/context": [
@@ -612,6 +672,10 @@
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
         }
+      },
+      {
+        "id": "dbtPowerUser.datapilotSubmenu",
+        "label": "Datapilot"
       }
     ],
     "languages": [
@@ -807,17 +871,18 @@
   },
   "scripts": {
     "prepare": "husky install",
-    "vscode:prepublish": "npm run panel:lineage && webpack --mode production",
-    "webpack": "npm run panel:lineage && webpack --mode development",
-    "webpack-dev": "npm run panel:lineage && webpack --mode development --watch",
+    "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production",
+    "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
+    "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "test-compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
     "deploy-vscode": "vsce publish",
     "build-vsix": "vsce package",
     "deploy-openvsx": "ovsx publish",
+    "panel:webviews": "npm run build --prefix ./webview_panels",
     "panel:lineage": "npm run build --prefix ./new_lineage_panel",
-    "install:panels": "npm install --prefix ./new_lineage_panel"
+    "install:panels": "npm install --prefix ./new_lineage_panel && npm install --prefix ./webview_panels"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
@@ -829,6 +894,7 @@
     "@typescript-eslint/parser": "^5.62.0",
     "@vscode/test-electron": "^2.3.7",
     "copy-webpack-plugin": "^11.0.0",
+    "cross-env": "^7.0.3",
     "eslint": "^8.53.0",
     "eslint-config-prettier": "^8.9.0",
     "eslint-plugin-prettier": "^5.0.1",
@@ -868,6 +934,10 @@
     "yaml": "^2.3.4"
   },
   "lint-staged": {
+    "**/webview_panels/**/*.{ts,tsx}": [
+      "cross-env PRE_COMMIT=true npm run lint --fix --prefix webview_panels",
+      "prettier -w"
+    ],
     "*.ts": [
       "eslint src --ext ts --fix",
       "eslint --max-warnings=0"

@@ -1,4 +1,5 @@
 import { fluentProvide } from "inversify-binding-decorators";
+import * as path from "path";
 import {
   Disposable,
   FileSystemWatcher,
@@ -146,3 +147,23 @@ export function getFirstWorkspacePath(): string {
     return Uri.file("./").fsPath;
   }
 }
+
+export const getProjectRelativePath = (projectRoot: Uri) => {
+  const ws = workspace.getWorkspaceFolder(projectRoot);
+  return path.relative(ws?.uri.fsPath || "", projectRoot.fsPath);
+};
+
+export const processStreamResponse = (
+  stream: NodeJS.ReadableStream,
+  cb: (data: string) => void,
+): Promise<string> => {
+  const chunks: Buffer[] = [];
+  return new Promise((resolve, reject) => {
+    stream.on("data", (chunk: Uint8Array) => {
+      cb(new TextDecoder().decode(chunk));
+      chunks.push(Buffer.from(chunk));
+    });
+    stream.on("error", (err: unknown) => reject(err));
+    stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+  });
+};

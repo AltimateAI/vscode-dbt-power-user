@@ -5,6 +5,7 @@ import { PythonException } from "python-bridge";
 import {
   commands,
   Diagnostic,
+  DiagnosticCollection,
   Disposable,
   Event,
   EventEmitter,
@@ -41,6 +42,7 @@ import {
   RunModelParams,
 } from "../dbt_client/dbtIntegration";
 import { DBTCoreProjectIntegration } from "../dbt_client/dbtCoreIntegration";
+import { DBTCloudProjectIntegration } from "../dbt_client/dbtCloudIntegration";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -51,6 +53,7 @@ export class DBTProject implements Disposable {
   static MANIFEST_FILE = "manifest.json";
 
   static RESOURCE_TYPE_MODEL = "model";
+  static RESOURCE_TYPE_ANALYSIS = "analysis";
   static RESOURCE_TYPE_SOURCE = "source";
   static RESOURCE_TYPE_EXPOSURE = "exposure";
   static RESOURCE_TYPE_SEED = "seed";
@@ -81,7 +84,13 @@ export class DBTProject implements Disposable {
     private terminal: DBTTerminal,
     private queryResultPanel: QueryResultPanel,
     private telemetry: TelemetryService,
-    private dbtCoreIntegrationFactory: (path: Uri) => DBTCoreProjectIntegration,
+    private dbtCoreIntegrationFactory: (
+      path: Uri,
+      projectConfigDiagnostics: DiagnosticCollection,
+    ) => DBTCoreProjectIntegration,
+    private dbtCloudIntegrationFactory: (
+      path: Uri,
+    ) => DBTCloudProjectIntegration,
     path: Uri,
     projectConfig: any,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
@@ -95,9 +104,23 @@ export class DBTProject implements Disposable {
       );
     this.onSourceFileChanged = this.sourceFileWatchers.onSourceFileChanged;
 
-    this.dbtProjectIntegration = this.dbtCoreIntegrationFactory(
-      this.projectRoot,
-    );
+    const dbtIntegrationMode = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+
+    switch (dbtIntegrationMode) {
+      case "cloud":
+        this.dbtProjectIntegration = this.dbtCloudIntegrationFactory(
+          this.projectRoot,
+        );
+        break;
+      default:
+        this.dbtProjectIntegration = this.dbtCoreIntegrationFactory(
+          this.projectRoot,
+          this.projectConfigDiagnostics,
+        );
+        break;
+    }
 
     this.disposables.push(
       this.dbtProjectIntegration,
@@ -139,9 +162,13 @@ export class DBTProject implements Disposable {
     const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
     );
-    setupWatcherHandler(dbtProjectConfigWatcher, () => this.tryRefresh());
+    setupWatcherHandler(dbtProjectConfigWatcher, async () => {
+      await this.refreshProjectConfig();
+      this.rebuildManifest();
+    });
     await this.dbtProjectIntegration.initializeProject();
-    await this.tryRefresh();
+    await this.refreshProjectConfig();
+    this.rebuildManifest();
     this.dbtProjectLog = this.dbtProjectLogFactory.createDBTProjectLog(
       this.onProjectConfigChanged,
     );
@@ -151,7 +178,10 @@ export class DBTProject implements Disposable {
       this.dbtProjectLog,
       dbtProjectConfigWatcher,
       this.onSourceFileChanged(
-        debounce(async () => await this.rebuildManifest(), 2000),
+        debounce(
+          async () => await this.rebuildManifest(),
+          this.dbtProjectIntegration.getDebounceForRebuildManifest(),
+        ),
       ),
     );
   }
@@ -160,15 +190,33 @@ export class DBTProject implements Disposable {
     await this.initialize();
   }
 
-  private async tryRefresh() {
+  private async refreshProjectConfig() {
     try {
-      await this.refresh();
+      this.projectConfig = DBTProject.readAndParseProjectConfig(
+        this.projectRoot,
+      );
+      await this.dbtProjectIntegration.refreshProjectConfig();
       this.projectConfigDiagnostics.clear();
     } catch (error) {
       if (error instanceof YAMLError) {
         this.projectConfigDiagnostics.set(
           Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
-          [new Diagnostic(new Range(0, 0, 999, 999), error.message)],
+          [
+            new Diagnostic(
+              new Range(0, 0, 999, 999),
+              "dbt_project.yml is invalid : " + error.message,
+            ),
+          ],
+        );
+      } else if (error instanceof PythonException) {
+        this.projectConfigDiagnostics.set(
+          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+          [
+            new Diagnostic(
+              new Range(0, 0, 999, 999),
+              "dbt configuration is invalid : " + error.exception.message,
+            ),
+          ],
         );
       }
       console.warn(
@@ -568,16 +616,6 @@ select * from renamed
     }
   }
 
-  async getSummary(query: string) {
-    this.telemetry.sendTelemetryEvent("getSummary");
-    const compiledSql = await this.compileQuery(query);
-    if (compiledSql === undefined) {
-      // error handling done inside compileQuery
-      return;
-    }
-    this.queryResultPanel.getSummary(compiledSql, this.getAdapterType());
-  }
-
   async executeSQL(query: string) {
     const limit = workspace
       .getConfiguration("dbt")
@@ -587,12 +625,14 @@ select * from renamed
       window.showErrorMessage("Please enter a positive number for query limit");
       return;
     }
-
+    this.telemetry.sendTelemetryEvent("executeSQL", {
+      adapter: this.getAdapterType(),
+      limit: limit.toString(),
+    });
     // TODO: this should generate an event instead of directly going to the panel
     this.queryResultPanel.executeQuery(
       query,
       this.dbtProjectIntegration.executeSQL(query, limit),
-      this.getAdapterType(),
     );
   }
 
@@ -638,10 +678,5 @@ select * from renamed
         viewColumn: ViewColumn.Beside,
       });
     }
-  }
-
-  private async refresh() {
-    this.projectConfig = DBTProject.readAndParseProjectConfig(this.projectRoot);
-    await this.dbtProjectIntegration.refreshProjectConfig();
   }
 }

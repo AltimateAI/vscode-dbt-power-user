@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES5",
+    "useDefineForClassFields": true,
+    "lib": ["ES2015", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "outDir": "dist",
+
+    /* Linting */
+    "strict": true,
+    "strictNullChecks": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@uicore": ["src/uiCore/index.ts"],
+      "@assets/*": ["src/assets/*"],
+      "@modules/*": ["src/modules/*"],
+      "@testUtils": ["src/testUtils/index.ts"],
+      "@vscodeApi": ["src/modules/vscode/index.ts"]
+    }
+  },
+  "include": ["src", "vite.config.ts"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}

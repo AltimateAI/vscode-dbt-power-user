@@ -18,6 +18,7 @@ export class NodeParser {
         (model) =>
           model.resource_type === DBTProject.RESOURCE_TYPE_MODEL ||
           model.resource_type === DBTProject.RESOURCE_TYPE_SEED ||
+          model.resource_type === DBTProject.RESOURCE_TYPE_ANALYSIS ||
           model.resource_type === DBTProject.RESOURCE_TYPE_SNAPSHOT,
       );
       const rootPath = project.projectRoot.fsPath;
@@ -25,7 +26,9 @@ export class NodeParser {
       const projectName = project.getProjectName();
       const packagePath = project.getPackageInstallPath();
       if (packagePath === undefined) {
-        throw new Error("packagePath is not defined");
+        throw new Error(
+          "packagePath is not defined " + project.projectRoot.fsPath,
+        );
       }
       for (const nodesMap of nodesMaps) {
         const {
@@ -40,6 +43,7 @@ export class NodeParser {
           description,
           patch_path,
           config,
+          resource_type,
         } = nodesMap;
         const fullPath = createFullPathForNode(
           projectName,
@@ -63,6 +67,7 @@ export class NodeParser {
           description,
           patch_path,
           config,
+          resource_type,
         });
       }
       resolve(modelMetaMap);

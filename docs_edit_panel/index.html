@@ -42,6 +42,14 @@
 
       <vscode-panel-view v-if="hasData">
         <section id="docs-form">
+          <div class="new-ux-alert">
+            Documentation editor has improved experience with new features like
+            Bulk Generation, Multi-Language Support etc.
+            <vscode-button @click="showBetaUX()" class="btn-new-ux"
+              >Enable new experience
+            </vscode-button>
+          </div>
+
           <Documentation
             :ai-enabled="aiEnabled"
             :generated="generated"
