@@ -9,7 +9,6 @@ import {
   Uri,
   workspace,
 } from "vscode";
-import { DBTTerminal } from "./dbt_client/dbtTerminal";
 
 export const isEnclosedWithinCodeBlock: (
   document: TextDocument,
@@ -168,32 +167,3 @@ export const processStreamResponse = (
     stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
   });
 };
-
-export function LogMethodWithDBTTerminal() {
-  return function (
-    target: any,
-    propertyKey: string,
-    descriptor: PropertyDescriptor,
-  ) {
-    const originalMethod = descriptor.value;
-
-    descriptor.value = async function (...args: any[]) {
-      const dbtTerminal: DBTTerminal = args[args.length - 1];
-      dbtTerminal.log(`[${propertyKey}] Arguments`, args);
-      const result = originalMethod.apply(this, args);
-      // Check if the result is a Promise (i.e., the original method is async)
-      if (result instanceof Promise) {
-        // If it's a Promise, use await to wait for it to resolve
-        const resolvedResult = await result;
-        dbtTerminal.log(`[${propertyKey}] Result`, resolvedResult);
-        return resolvedResult;
-      } else {
-        // If it's not a Promise, log the result directly
-        dbtTerminal.log(`[${propertyKey}] Result`, result);
-        return result;
-      }
-    };
-
-    return descriptor;
-  };
-}

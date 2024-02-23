@@ -12,7 +12,7 @@ import {
 } from "vscode";
 import { DBTClient } from "../dbt_client";
 import { EnvironmentVariables, RunModelType } from "../domain";
-import { LogMethodWithDBTTerminal, provideSingleton } from "../utils";
+import { provideSingleton } from "../utils";
 import { DBTProject } from "./dbtProject";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
@@ -62,8 +62,7 @@ export class DBTProjectContainer implements Disposable {
         const { added, removed } = event;
         await Promise.all(
           added.map(
-            async (folder) =>
-              await this.registerWorkspaceFolder(folder, dbtTerminal),
+            async (folder) => await this.registerWorkspaceFolder(folder),
           ),
         );
         removed.forEach((removedWorkspaceFolder) =>
@@ -125,9 +124,7 @@ export class DBTProjectContainer implements Disposable {
       return;
     }
     await Promise.all(
-      folders.map((folder) =>
-        this.registerWorkspaceFolder(folder, this.dbtTerminal),
-      ),
+      folders.map((folder) => this.registerWorkspaceFolder(folder)),
     );
   }
 
@@ -334,17 +331,17 @@ export class DBTProjectContainer implements Disposable {
     return { plusOperatorLeft, modelName, plusOperatorRight };
   }
 
-  @LogMethodWithDBTTerminal()
   private async registerWorkspaceFolder(
     workspaceFolder: WorkspaceFolder,
-    dbtTerminal: DBTTerminal,
   ): Promise<void> {
+    this.dbtTerminal.log("registerWorkspaceFolder");
     const dbtProjectWorkspaceFolder = this.dbtWorkspaceFolderFactory(
       workspaceFolder,
       this._onManifestChanged,
       this._onProjectRegisteredUnregistered,
     );
     this.dbtWorkspaceFolders.push(dbtProjectWorkspaceFolder);
+    this.dbtTerminal.debug("dbtWorkspaceFolders", this.dbtWorkspaceFolders);
     await dbtProjectWorkspaceFolder.discoverProjects();
   }
 
