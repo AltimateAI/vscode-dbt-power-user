@@ -16,6 +16,7 @@ import { LogMethodWithDBTTerminal, provideSingleton } from "../utils";
 import { DBTProject } from "./dbtProject";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
 import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -54,13 +55,15 @@ export class DBTProjectContainer implements Disposable {
       pythonPath?: string,
       envVars?: EnvironmentVariables,
     ) => DBTWorkspaceFolder,
+    private dbtTerminal: DBTTerminal,
   ) {
     this.disposables.push(
       workspace.onDidChangeWorkspaceFolders(async (event) => {
         const { added, removed } = event;
         await Promise.all(
           added.map(
-            async (folder) => await this.registerWorkspaceFolder(folder),
+            async (folder) =>
+              await this.registerWorkspaceFolder(folder, dbtTerminal),
           ),
         );
         removed.forEach((removedWorkspaceFolder) =>
@@ -122,7 +125,9 @@ export class DBTProjectContainer implements Disposable {
       return;
     }
     await Promise.all(
-      folders.map((folder) => this.registerWorkspaceFolder(folder)),
+      folders.map((folder) =>
+        this.registerWorkspaceFolder(folder, this.dbtTerminal),
+      ),
     );
   }
 
@@ -145,6 +150,7 @@ export class DBTProjectContainer implements Disposable {
 
   async initializeWalkthrough() {
     // show setup walkthrough if needed
+    this.dbtTerminal.log("initializeWalkthrough");
     const showSetupWalkthrough = this.getFromGlobalState(
       "showSetupWalkthrough",
     );
@@ -162,6 +168,7 @@ export class DBTProjectContainer implements Disposable {
     const existingAssociations = workspace
       .getConfiguration("files")
       .get<any>("associations", {});
+    this.dbtTerminal.debug("fileAssociations", existingAssociations);
     let showFileAssociationsStep = false;
     Object.entries({
       "*.sql": ["jinja-sql", "sql"],
@@ -216,6 +223,7 @@ export class DBTProjectContainer implements Disposable {
   };
 
   async detectDBT(): Promise<void> {
+    this.dbtTerminal.log("detectDBT");
     await this.dbtClient.detectDBT();
   }
 
@@ -329,6 +337,7 @@ export class DBTProjectContainer implements Disposable {
   @LogMethodWithDBTTerminal()
   private async registerWorkspaceFolder(
     workspaceFolder: WorkspaceFolder,
+    dbtTerminal: DBTTerminal,
   ): Promise<void> {
     const dbtProjectWorkspaceFolder = this.dbtWorkspaceFolderFactory(
       workspaceFolder,

@@ -163,5 +163,3 @@ container
       };
     },
   );
-
-container.bind<DBTTerminal>(DBTTerminal).toSelf().inSingletonScope();
