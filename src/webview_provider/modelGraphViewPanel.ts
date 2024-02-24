@@ -148,7 +148,7 @@ export class ModelGraphViewPanel implements LineagePanelView {
   }
 
   handleCommand(message: { command: string; args: any }): void {
-    console.error("Unsupported mssage", message);
+    this.dbtTerminal.debug("Unsupported mssage", message);
   }
 
   private parseGraphData = () => {

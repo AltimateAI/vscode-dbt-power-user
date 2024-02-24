@@ -231,7 +231,7 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
 
-    console.error("Unsupported mssage", message);
+    this.terminal.debug("Unsupported command", message);
   }
 
   private async handleColumnLineage({ event }: { event: CllEvents }) {
@@ -706,15 +706,10 @@ export class NewLineagePanel implements LineagePanelView {
           "columnLineageCompileNodePythonError",
           exc,
         );
-        console.error(
-          "Error encountered while compiling/retrieving schema for model: ",
-        );
-        console.error(
-          "Exception: " +
-            exc.exception.message +
-            "\n\n" +
-            "Detailed error information:\n" +
-            exc,
+        this.terminal.debug(
+          "Error encountered while compiling/retrieving schema for model: " +
+            exc.exception.message,
+          exc,
         );
         return;
       }
