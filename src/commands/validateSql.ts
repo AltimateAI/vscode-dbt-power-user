@@ -27,6 +27,7 @@ import {
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { PythonException } from "python-bridge";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 @provideSingleton(ValidateSql)
 export class ValidateSql {
@@ -36,6 +37,7 @@ export class ValidateSql {
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
     private altimate: AltimateRequest,
+    private dbtTerminal: DBTTerminal,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
@@ -309,7 +311,10 @@ export class ValidateSql {
     // this.lruCache.set(node.name, now);
     // const columnsFromDB = this.dbCache.get(node.name)!;
     const columnsFromDB = await project.getColumnsOfModel(node.name);
-    console.log("addColumnsFromDB: ", node.name, " -> ", columnsFromDB);
+    this.dbtTerminal.log(
+      "addColumnsFromDB: " + node.name + " -> ",
+      columnsFromDB,
+    );
     if (!columnsFromDB || columnsFromDB.length === 0) {
       return false;
     }
@@ -353,7 +358,10 @@ export class ValidateSql {
       nodeName,
       table.name,
     );
-    console.log("addColumnsFromDB: ", nodeName, " -> ", columnsFromDB);
+    this.dbtTerminal.log(
+      "addColumnsFromDB: " + nodeName + " -> ",
+      columnsFromDB,
+    );
     if (!columnsFromDB || columnsFromDB.length === 0) {
       return false;
     }

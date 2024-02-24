@@ -16,6 +16,7 @@ import {
   DBTDocumentation,
   Source,
 } from "../webview_provider/docsEditPanel";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 interface GenerateDocsForColumnsProps {
   panel: WebviewView | undefined;
@@ -48,6 +49,7 @@ export class DocGenService {
     private altimateRequest: AltimateRequest,
     protected dbtProjectContainer: DBTProjectContainer,
     protected telemetry: TelemetryService,
+    private dbtTerminal: DBTTerminal,
   ) {}
 
   private async generateDocsForColumn(
@@ -282,7 +284,7 @@ export class DocGenService {
                 chunk,
               );
               results.push(chunkResult);
-              console.log(
+              this.dbtTerminal.log(
                 "generate docs for columns chunk result",
                 chunkResult,
               );

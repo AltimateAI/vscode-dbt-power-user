@@ -143,6 +143,7 @@ export class DBTProjectContainer implements Disposable {
       commands.executeCommand("dbtPowerUser.openSetupWalkthrough");
     }
     this.setToGlobalState("showSetupWalkthrough", false);
+    this.dbtTerminal.log("showSetupWalkthrough");
   }
 
   async initializeWalkthrough() {
@@ -156,6 +157,7 @@ export class DBTProjectContainer implements Disposable {
     }
 
     const allProjects = await this.getProjects();
+    this.dbtTerminal.debug("getProjects", allProjects);
 
     commands.executeCommand(
       "setContext",
@@ -181,6 +183,7 @@ export class DBTProjectContainer implements Disposable {
       "dbtPowerUser.showFileAssociationStep",
       showFileAssociationsStep,
     );
+    this.dbtTerminal.log("showFileAssociationsStep");
   }
 
   get extensionUri() {

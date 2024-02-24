@@ -34,6 +34,7 @@ import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { ValidateSqlParseErrorResponse } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTTerminal } from "./dbtTerminal";
 
 // TODO: we shouold really get these from manifest directly
 interface ResolveReferenceNodeResult {
@@ -80,6 +81,7 @@ export class DBTCoreProjectDetection
 {
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
+    private dbtTerminal: DBTTerminal,
   ) {}
 
   async discoverProjects(projectDirectories: Uri[]): Promise<Uri[]> {
@@ -110,7 +112,9 @@ export class DBTCoreProjectDetection
         },
       );
     } catch (error) {
-      console.log("An error occured while finding package paths: " + error);
+      this.dbtTerminal.log(
+        "An error occured while finding package paths: " + error,
+      );
     } finally {
       if (python) {
         this.executionInfrastructure.closePythonBridge(python);
@@ -162,11 +166,12 @@ export class DBTCoreProjectIntegration
     private dbtProjectContainer: DBTProjectContainer,
     private projectRoot: Uri,
     private projectConfigDiagnostics: DiagnosticCollection,
+    private dbtTerminal: DBTTerminal,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
-    console.log(`Registering project ${this.projectRoot}`);
+    this.dbtTerminal.log(`Registering project ${this.projectRoot}`);
     this.executionInfrastructure.createQueue(
       DBTCoreProjectIntegration.QUEUE_ALL,
     );
