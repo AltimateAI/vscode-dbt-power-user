@@ -91,6 +91,7 @@ container
           container.get(DBTProjectContainer),
           projectRoot,
           projectConfigDiagnostics,
+          container.get(DBTTerminal),
         );
       };
     },
@@ -130,6 +131,7 @@ container
           container.get(AltimateRequest),
           container.get(TelemetryService),
           projectRoot,
+          container.get(DBTTerminal),
         );
       };
     },
@@ -159,6 +161,7 @@ container
           path,
           projectConfig,
           _onManifestChanged,
+          container.get(DBTTerminal),
         );
       };
     },
