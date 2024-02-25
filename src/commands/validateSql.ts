@@ -28,6 +28,7 @@ import {
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { PythonException } from "python-bridge";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { CustomUnknownException } from "../dbt_client/exception";
 
 @provideSingleton(ValidateSql)
 export class ValidateSql {
@@ -67,15 +68,11 @@ export class ValidateSql {
         "validateSQLCompileNodePythonError",
         exc,
       );
-      console.error(
-        "Error encountered while compiling/retrieving schema for model: ",
-      );
-      console.error(
-        "Exception: " +
-          exc.exception.message +
-          "\n\n" +
-          "Detailed error information:\n" +
+      this.dbtTerminal.error(
+        new CustomUnknownException(
+          "Error encountered while compiling/retrieving schema for model",
           exc,
+        ),
       );
       return;
     }

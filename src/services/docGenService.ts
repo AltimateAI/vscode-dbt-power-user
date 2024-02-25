@@ -96,11 +96,14 @@ export class DocGenService {
 
         return resolve(result);
       } catch (err) {
-        console.error("error while generating column doc", err, columns);
+        this.dbtTerminal.debug(
+          "error while generating column doc" + err,
+          columns,
+        );
 
         if (err instanceof RateLimitException) {
           setTimeout(async () => {
-            console.debug("retrying generating column doc", columns);
+            this.dbtTerminal.debug("retrying generating column doc", columns);
             return resolve(
               await this.generateDocsForColumn(
                 documentation,

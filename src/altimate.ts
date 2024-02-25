@@ -281,7 +281,7 @@ export class AltimateRequest {
       });
 
       if (!response?.body) {
-        console.error("fetchAsStream: empty response");
+        this.dbtTerminal.debug("fetchAsStream: empty response");
         return null;
       }
       clearTimeout(timeoutHandler);
@@ -293,7 +293,7 @@ export class AltimateRequest {
       return responseText;
     } catch (error) {
       clearTimeout(timeoutHandler);
-      console.error("error while fetching as stream", error);
+      this.dbtTerminal.debug("error while fetching as stream", error);
     }
     return null;
   }
