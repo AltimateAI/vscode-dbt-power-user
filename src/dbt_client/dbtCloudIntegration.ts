@@ -143,12 +143,14 @@ export class DBTCloudProjectIntegration
     await this.initializePaths();
   }
 
-  async executeSQL(query: string): Promise<QueryExecution> {
+  async executeSQL(query: string, limit: number): Promise<QueryExecution> {
     const showCommand = this.dbtCloudCommand(
       new DBTCommand("Running sql...", [
         "show",
         "--inline",
         query,
+        "--limit",
+        limit.toString(),
         "--output",
         "json",
         "--log-format",
