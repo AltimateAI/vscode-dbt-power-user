@@ -96,7 +96,6 @@ const app = createApp({
       error: {},
       loading: false,
       limit: undefined,
-      queryTemplate: undefined,
       queryStart: Date.now(),
       queryEnd: undefined,
       timer: undefined,
@@ -221,9 +220,6 @@ const app = createApp({
       if (data.limit) {
         this.limit = data.limit;
       }
-      if (data.queryTemplate) {
-        this.queryTemplate = data.queryTemplate;
-      }
       if (data.scale) {
         this.scale = data.scale;
       }
@@ -236,26 +232,12 @@ const app = createApp({
     },
     updateDispatchedCode(raw_stmt, compiled_stmt) {
       this.rawCode = raw_stmt;
-      let newCompiledCode = compiled_stmt;
-      try {
-        const queryRegex = new RegExp(
-          this.queryTemplate
-            .replace(/\(/g, "\\(")
-            .replace(/\)/g, "\\)")
-            .replace(/\*/g, "\\*")
-            .replace("{query}", "([\\w\\W]+)")
-            .replace("{limit}", this.limit.toString()),
-          "gm",
-        );
-        const result = queryRegex.exec(compiled_stmt);
-        newCompiledCode = result[1].trim();
-      } catch (err) {}
-      if (newCompiledCode !== this.previousCode && this.previousSummary) {
+      if (compiled_stmt !== this.previousCode && this.previousSummary) {
         this.summary = undefined;
         this.previousCode = undefined;
         this.previousSummary = undefined;
       }
-      this.compiledCode = newCompiledCode;
+      this.compiledCode = compiled_stmt;
       this.summary = this.previousSummary;
     },
     clearData() {

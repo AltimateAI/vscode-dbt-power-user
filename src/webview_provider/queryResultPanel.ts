@@ -265,18 +265,11 @@ export class QueryResultPanel implements WebviewViewProvider {
     const enableNewQueryPanel = workspace
       .getConfiguration("dbt")
       .get<boolean>("enableNewQueryPanel", true);
-    const queryTemplate = workspace
-      .getConfiguration("dbt")
-      .get<string>(
-        "queryTemplate",
-        "select * from ({query}) as query limit {limit}",
-      );
     if (this._panel) {
       this._panel.webview.postMessage({
         command: OutboundCommand.InjectConfig,
         ...(<InjectConfig>{
           limit,
-          queryTemplate,
           enableNewQueryPanel,
           darkMode: ![
             ColorThemeKind.Light,

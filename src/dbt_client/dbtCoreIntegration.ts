@@ -199,7 +199,7 @@ export class DBTCoreProjectIntegration
   private async getQuery(
     query: string,
     limit: number,
-  ): Promise<{ limitQuery: string }> {
+  ): Promise<{ queryTemplate: string; limitQuery: string }> {
     const queryTemplate = workspace
       .getConfiguration("dbt")
       .get<string>("queryTemplate");
@@ -208,7 +208,7 @@ export class DBTCoreProjectIntegration
       console.log("Using user provided query template", queryTemplate);
       const limitQuery = this.getLimitQuery(queryTemplate, query, limit);
 
-      return { limitQuery };
+      return { queryTemplate, limitQuery };
     }
 
     try {
@@ -223,10 +223,12 @@ export class DBTCoreProjectIntegration
 
         console.log("Using query template from macro", queryTemplateFromMacro);
         return {
+          queryTemplate: queryTemplateFromMacro,
           limitQuery: queryTemplateFromMacro,
         };
       }
     } catch (err) {
+      console.error("Error while getting macro", err);
       this.telemetry.sendTelemetryError(
         "executeMacroGetLimitSubquerySQLError",
         err,
@@ -234,6 +236,7 @@ export class DBTCoreProjectIntegration
       );
     }
     return {
+      queryTemplate: DEFAULT_QUERY_TEMPLATE,
       limitQuery: this.getLimitQuery(DEFAULT_QUERY_TEMPLATE, query, limit),
     };
   }
@@ -250,7 +253,7 @@ export class DBTCoreProjectIntegration
   }
 
   async executeSQL(query: string, limit: number): Promise<QueryExecution> {
-    const { limitQuery } = await this.getQuery(query, limit);
+    const { limitQuery, queryTemplate } = await this.getQuery(query, limit);
 
     const queryThread = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
@@ -263,9 +266,29 @@ export class DBTCoreProjectIntegration
       },
       async () => {
         const compiledQuery = await this.unsafeCompileQuery(limitQuery);
-        return queryThread!.lock<ExecuteSQLResult>(
+        const result = await queryThread!.lock<ExecuteSQLResult>(
           (python) => python`to_dict(project.execute_sql(${compiledQuery}))`,
         );
+        let compiled_stmt = result.compiled_sql;
+        try {
+          const queryRegex = new RegExp(
+            queryTemplate
+              .replace(/\(/g, "\\(")
+              .replace(/\)/g, "\\)")
+              .replace(/\*/g, "\\*")
+              .replace("{query}", "([\\w\\W]+)")
+              .replace("{limit}", limit.toString()),
+            "g",
+          );
+          const matches = queryRegex.exec(result.compiled_sql);
+          if (matches) {
+            compiled_stmt = matches[1].trim();
+          }
+        } catch (err) {
+          console.error("error while executing querytemplate conversion", err);
+        }
+
+        return { ...result, compiled_stmt };
       },
     );
   }
