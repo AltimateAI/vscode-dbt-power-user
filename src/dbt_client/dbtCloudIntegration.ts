@@ -119,8 +119,8 @@ export class DBTCloudProjectIntegration
     ) => DBTCommandExecutionStrategy,
     private altimate: AltimateRequest,
     private telemetry: TelemetryService,
-    private projectRoot: Uri,
     private dbtTerminal: DBTTerminal,
+    private projectRoot: Uri,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,

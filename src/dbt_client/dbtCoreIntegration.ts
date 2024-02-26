@@ -164,9 +164,9 @@ export class DBTCoreProjectIntegration
     private telemetry: TelemetryService,
     private pythonDBTCommandExecutionStrategy: PythonDBTCommandExecutionStrategy,
     private dbtProjectContainer: DBTProjectContainer,
+    private dbtTerminal: DBTTerminal,
     private projectRoot: Uri,
     private projectConfigDiagnostics: DiagnosticCollection,
-    private dbtTerminal: DBTTerminal,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,

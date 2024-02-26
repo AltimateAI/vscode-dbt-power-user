@@ -94,7 +94,6 @@ export class DBTProject implements Disposable {
     path: Uri,
     projectConfig: any,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
-    private dbtTerminal: DBTTerminal,
   ) {
     this.projectRoot = path;
     this.projectConfig = projectConfig;
@@ -572,7 +571,7 @@ export class DBTProject implements Disposable {
           sourceName,
           tableName,
         );
-        this.dbtTerminal.log("generateModel", columnsInRelation);
+        this.terminal.log("generateModel", columnsInRelation);
 
         const fileContents = `with source as (
       select * from {{ source('${sourceName}', '${tableName}') }}
