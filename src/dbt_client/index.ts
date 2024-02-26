@@ -27,6 +27,7 @@ export class DBTClient implements Disposable {
     this._onDBTInstallationVerificationEvent,
   ];
   private shownError = false;
+  private dbtIntegrationMode = "core";
   private dbtDetection: DBTDetection;
 
   constructor(
@@ -34,11 +35,11 @@ export class DBTClient implements Disposable {
     private dbtCoreDetection: DBTCoreDetection,
     private dbtCloudDetection: DBTCloudDetection,
   ) {
-    const dbtIntegrationMode = workspace
+    this.dbtIntegrationMode = workspace
       .getConfiguration("dbt")
       .get<string>("dbtIntegration", "core");
 
-    switch (dbtIntegrationMode) {
+    switch (this.dbtIntegrationMode) {
       case "cloud":
         this.dbtDetection = this.dbtCloudDetection;
         break;
@@ -112,12 +113,18 @@ export class DBTClient implements Disposable {
       if (!this.shownError) {
         // We don't want to flood the user with errors
         this.shownError = true;
-        const answer = await window.showErrorMessage(
-          "Please ensure dbt is installed.",
-          DbtInstallationPromptAnswer.INSTALL,
-        );
-        if (answer === DbtInstallationPromptAnswer.INSTALL) {
-          commands.executeCommand("dbtPowerUser.installDbt");
+        let message = "Please ensure dbt is installed.";
+        if (this.dbtIntegrationMode === "cloud") {
+          message = "Please ensure dbt cloud cli is installed.";
+          window.showErrorMessage("Please ensure dbt cloud cli is installed.");
+        } else {
+          const answer = await window.showErrorMessage(
+            "Please ensure dbt is installed.",
+            DbtInstallationPromptAnswer.INSTALL,
+          );
+          if (answer === DbtInstallationPromptAnswer.INSTALL) {
+            commands.executeCommand("dbtPowerUser.installDbt");
+          }
         }
       }
       return false;

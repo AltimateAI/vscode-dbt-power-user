@@ -112,7 +112,8 @@ export class DBTCoreProjectDetection
         },
       );
     } catch (error) {
-      this.dbtTerminal.log(
+      this.dbtTerminal.debug(
+        "dbtCoreIntegration:discoverProjects",
         "An error occured while finding package paths: " + error,
       );
     } finally {

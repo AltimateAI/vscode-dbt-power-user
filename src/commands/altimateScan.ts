@@ -98,7 +98,11 @@ export class AltimateScan {
             await this.runSteps(scanContext);
             totalProblems += this.showDiagnostics(scanContext);
           } catch (err) {
-            this.dbtTerminal.log("getProblems", err);
+            this.dbtTerminal.debug(
+              "altimateScane:getProblems",
+              `Error occurred for ${project.getProjectName()}`,
+              err,
+            );
           }
         }
         // we can select problem tab as soon as the first project is done maybe

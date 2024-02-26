@@ -28,7 +28,6 @@ import {
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { PythonException } from "python-bridge";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { CustomUnknownException } from "../dbt_client/exception";
 
 @provideSingleton(ValidateSql)
 export class ValidateSql {
@@ -69,10 +68,9 @@ export class ValidateSql {
         exc,
       );
       this.dbtTerminal.error(
-        new CustomUnknownException(
-          "Error encountered while compiling/retrieving schema for model",
-          exc,
-        ),
+        "validateSQLError",
+        "Error encountered while compiling/retrieving schema for model",
+        exc,
       );
       return;
     }
@@ -308,10 +306,7 @@ export class ValidateSql {
     // this.lruCache.set(node.name, now);
     // const columnsFromDB = this.dbCache.get(node.name)!;
     const columnsFromDB = await project.getColumnsOfModel(node.name);
-    this.dbtTerminal.log(
-      "addColumnsFromDB: " + node.name + " -> ",
-      columnsFromDB,
-    );
+    this.dbtTerminal.debug("addColumnsFromDB", node.name, columnsFromDB);
     if (!columnsFromDB || columnsFromDB.length === 0) {
       return false;
     }
@@ -355,10 +350,7 @@ export class ValidateSql {
       nodeName,
       table.name,
     );
-    this.dbtTerminal.log(
-      "addColumnsFromDB: " + nodeName + " -> ",
-      columnsFromDB,
-    );
+    this.dbtTerminal.debug("addColumnsFromDB", nodeName, columnsFromDB);
     if (!columnsFromDB || columnsFromDB.length === 0) {
       return false;
     }

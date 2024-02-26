@@ -123,7 +123,6 @@ export class ModelGraphViewPanel implements LineagePanelView {
     context: WebviewViewResolveContext,
     _token: CancellationToken,
   ) {
-    this.dbtTerminal.log("graph:resolveWebviewView  -> ", this._panel);
     this._panel = panel;
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
@@ -141,14 +140,17 @@ export class ModelGraphViewPanel implements LineagePanelView {
   }
 
   init() {
-    this.dbtTerminal.log("graph:init  -> ", this._panel);
     this.g6Data = this.parseGraphData();
     this.transmitData(this.g6Data);
     this.updateGraphStyle();
   }
 
   handleCommand(message: { command: string; args: any }): void {
-    this.dbtTerminal.debug("Unsupported mssage", message);
+    this.dbtTerminal.debug(
+      "modelGraphViewPanel:handleCommand",
+      "Unsupported mssage",
+      message,
+    );
   }
 
   private parseGraphData = () => {

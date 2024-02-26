@@ -143,21 +143,28 @@ export class DBTProjectContainer implements Disposable {
       commands.executeCommand("dbtPowerUser.openSetupWalkthrough");
     }
     this.setToGlobalState("showSetupWalkthrough", false);
-    this.dbtTerminal.log("showSetupWalkthrough");
   }
 
   async initializeWalkthrough() {
     // show setup walkthrough if needed
-    this.dbtTerminal.log("initializeWalkthrough");
     const showSetupWalkthrough = this.getFromGlobalState(
       "showSetupWalkthrough",
     );
     if (showSetupWalkthrough === undefined || showSetupWalkthrough === true) {
+      this.dbtTerminal.debug(
+        "dbtProjectContainer:setupWalkthroughDisplayed",
+        "showing SetupWalkthrough: value of showSetupWalkthrough is" +
+          showSetupWalkthrough,
+      );
       this.showWalkthrough();
     }
 
     const allProjects = await this.getProjects();
-    this.dbtTerminal.debug("getProjects", allProjects);
+    this.dbtTerminal.debug(
+      "dbtProjectContainer:initializeWalkthrough",
+      "getProjects",
+      allProjects,
+    );
 
     commands.executeCommand(
       "setContext",
@@ -167,7 +174,11 @@ export class DBTProjectContainer implements Disposable {
     const existingAssociations = workspace
       .getConfiguration("files")
       .get<any>("associations", {});
-    this.dbtTerminal.debug("fileAssociations", existingAssociations);
+    this.dbtTerminal.debug(
+      "dbtProjectContainer:fileAssociationsCheck",
+      "already existing fileAssociations",
+      existingAssociations,
+    );
     let showFileAssociationsStep = false;
     Object.entries({
       "*.sql": ["jinja-sql", "sql"],
@@ -183,7 +194,6 @@ export class DBTProjectContainer implements Disposable {
       "dbtPowerUser.showFileAssociationStep",
       showFileAssociationsStep,
     );
-    this.dbtTerminal.log("showFileAssociationsStep");
   }
 
   get extensionUri() {
@@ -223,7 +233,6 @@ export class DBTProjectContainer implements Disposable {
   };
 
   async detectDBT(): Promise<void> {
-    this.dbtTerminal.log("detectDBT");
     await this.dbtClient.detectDBT();
   }
 
@@ -337,14 +346,17 @@ export class DBTProjectContainer implements Disposable {
   private async registerWorkspaceFolder(
     workspaceFolder: WorkspaceFolder,
   ): Promise<void> {
-    this.dbtTerminal.log("registerWorkspaceFolder");
     const dbtProjectWorkspaceFolder = this.dbtWorkspaceFolderFactory(
       workspaceFolder,
       this._onManifestChanged,
       this._onProjectRegisteredUnregistered,
     );
     this.dbtWorkspaceFolders.push(dbtProjectWorkspaceFolder);
-    this.dbtTerminal.debug("dbtWorkspaceFolders", this.dbtWorkspaceFolders);
+    this.dbtTerminal.debug(
+      "dbtProjectContainer:registerWorkspaceFolder",
+      "dbtWorkspaceFolders",
+      this.dbtWorkspaceFolders,
+    );
     await dbtProjectWorkspaceFolder.discoverProjects();
   }
 
