@@ -138,6 +138,19 @@
           color: var(--text-color--title);
         }
       }
+
+      :global .card-title{
+        border: none;
+        margin: 0;
+        font-weight: 400;
+      }
+
+      :global .card-body{
+        background-color: var(--background--02);
+    padding: 1rem;
+    border-radius: 8px;
+        
+      }
 }
 
 .popover {

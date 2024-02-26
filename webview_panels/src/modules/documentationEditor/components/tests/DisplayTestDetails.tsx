@@ -16,6 +16,7 @@ import {
   CardBody,
   CardFooter,
   CardTitle,
+  CodeBlock,
   ListGroup,
   ListGroupItem,
   Stack,
@@ -245,10 +246,7 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
 
         <form onSubmit={handleSubmit(onSubmit)}>{getDisplayContent()}</form>
         {testCode ? (
-          <Card>
-            <CardTitle>Values</CardTitle>
-            <CardBody className={classes.title}>{testCode}</CardBody>
-          </Card>
+          <CodeBlock code={testCode} language="sql" fileName="Values" />
         ) : null}
       </Stack>
     </RightSidePanel>
