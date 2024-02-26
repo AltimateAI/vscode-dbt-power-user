@@ -16,6 +16,7 @@ import {
   DBTDocumentation,
   Source,
 } from "../webview_provider/docsEditPanel";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 interface GenerateDocsForColumnsProps {
   panel: WebviewView | undefined;
@@ -48,6 +49,7 @@ export class DocGenService {
     private altimateRequest: AltimateRequest,
     protected dbtProjectContainer: DBTProjectContainer,
     protected telemetry: TelemetryService,
+    private dbtTerminal: DBTTerminal,
   ) {}
 
   private async generateDocsForColumn(
@@ -94,11 +96,14 @@ export class DocGenService {
 
         return resolve(result);
       } catch (err) {
-        console.error("error while generating column doc", err, columns);
+        this.dbtTerminal.debug(
+          "error while generating column doc" + err,
+          columns,
+        );
 
         if (err instanceof RateLimitException) {
           setTimeout(async () => {
-            console.debug("retrying generating column doc", columns);
+            this.dbtTerminal.debug("retrying generating column doc", columns);
             return resolve(
               await this.generateDocsForColumn(
                 documentation,
@@ -282,7 +287,7 @@ export class DocGenService {
                 chunk,
               );
               results.push(chunkResult);
-              console.log(
+              this.dbtTerminal.log(
                 "generate docs for columns chunk result",
                 chunkResult,
               );

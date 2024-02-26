@@ -16,6 +16,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 @provideSingleton(ModelDefinitionProvider)
 export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
@@ -27,6 +28,7 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
+    private dbtTerminal: DBTTerminal,
   ) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
@@ -59,7 +61,7 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
       );
       const project = this.dbtProjectContainer.findDBTProject(document.uri);
       if (!project) {
-        console.error(
+        this.dbtTerminal.debug(
           "Could not load definition provider, project not found in container for " +
             document.uri.fsPath,
         );
