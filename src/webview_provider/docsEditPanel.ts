@@ -33,6 +33,7 @@ import {
   CustomPythonException,
   CustomUnknownException,
 } from "../dbt_client/exception";
+import { TestMetaData } from "../domain";
 
 export enum Source {
   YAML = "YAML",
@@ -253,78 +254,44 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     await this.resolveWebviewView(this.panel!, this.context!, this.token!);
   };
 
-  private getModelTestDataToSave(
-    message: any,
-    columnName: string,
-    tests?: Record<string, unknown>[],
-  ) {
-    if (!message.tests?.column || columnName !== message.tests.column) {
-      return tests ? { tests } : {};
+  private getTestDataByColumn(message: any, columnName: string) {
+    const tests = message.tests as undefined | TestMetaData[];
+
+    if (!tests) {
+      return;
     }
 
-    switch (message.tests.test) {
-      case "accepted_values":
-        const newValues = (message.tests.accepted_values as string)
-          ?.split(",")
-          .map((s) => s.trim());
-        if (tests) {
-          // If tests are already added, check if there is any accepted_values available and replace it
-          const currentIndex = tests.findIndex(
-            (test: Record<string, unknown>) => !!test.accepted_values,
-          );
-          if (currentIndex > -1) {
-            tests[currentIndex] = {
-              accepted_values: {
-                values: newValues,
-              },
-            };
-            return { tests };
-          }
-        }
-        return {
-          tests: [
-            ...(tests || []),
-            {
-              accepted_values: {
-                values: newValues,
-              },
+    const data = tests
+      .filter((test) => test.column_name === columnName)
+      .map((test) => {
+        if (
+          test.test_metadata?.name === "relationships" &&
+          test.test_metadata.kwargs.field &&
+          test.test_metadata.kwargs.to
+        ) {
+          const { to, field } = test.test_metadata.kwargs;
+          return {
+            relationships: {
+              field,
+              to,
             },
-          ],
-        };
-      case "relationships":
-        if (!message.tests.to || !message.tests.field) {
-          break;
+          };
         }
-        if (tests) {
-          // If tests are already added, check if there is any relationships available and replace it
-          const currentIndex = tests.findIndex(
-            (test: Record<string, unknown>) => !!test.relationships,
-          );
-          if (currentIndex > -1) {
-            tests[currentIndex] = {
-              relationships: {
-                to: message.tests.to,
-                field: message.tests.field,
-              },
-            };
-            return { tests };
-          }
-        }
-        return {
-          tests: [
-            ...(tests || []),
-            {
-              relationships: {
-                to: message.tests.to,
-                field: message.tests.field,
-              },
-            },
-          ],
-        };
 
-      default:
-        return { tests: [...(tests || []), message.tests.test] };
+        if (test.test_metadata?.name === "accepted_values") {
+          return {
+            accepted_values: test.test_metadata.kwargs.values,
+          };
+        }
+        return test.test_metadata?.name;
+      });
+
+    if (!data.length) {
+      return;
     }
+    return {
+      tests: data,
+    };
   }
 
   private setupWebviewHooks(context: WebviewViewResolveContext) {
@@ -527,11 +494,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                         name: column.name,
                         description: column.description,
                         ...(column?.type ? { data_type: column.type } : {}),
-                        ...this.getModelTestDataToSave(
-                          message,
-                          column.name,
-                          [],
-                        ),
+                        ...this.getTestDataByColumn(message, column.name),
                       })),
                     });
                   } else {
@@ -554,10 +517,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                   ? { data_type: column.type }
                                   : {}),
                                 description: column.description,
-                                ...this.getModelTestDataToSave(
+                                ...this.getTestDataByColumn(
                                   message,
                                   column.name,
-                                  existingColumn.tests,
                                 ),
                               };
                             } else {
@@ -567,10 +529,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                 ...(column?.type
                                   ? { data_type: column.type }
                                   : {}),
-                                ...this.getModelTestDataToSave(
+                                ...this.getTestDataByColumn(
                                   message,
                                   column.name,
-                                  existingColumn.tests,
                                 ),
                               };
                             }

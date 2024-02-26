@@ -84,7 +84,7 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
       <CardFooter>
         <Stack className="mt-3">
           <Button type="submit" disabled={isSaving}>
-            Save
+            Update
           </Button>
           <Button onClick={handleCancel} disabled={isSaving}>
             Cancel
@@ -112,10 +112,8 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
       return;
     }
 
-    handleSave({ ...data, test: testName as DbtGenericTests }, column).catch(
-      (err) =>
-        panelLogger.error("error while editing test", err, testName, data),
-    );
+    handleSave({ ...data, test: testName as DbtGenericTests }, column, false);
+    onClose();
   };
 
   const getDisplayContent = () => {

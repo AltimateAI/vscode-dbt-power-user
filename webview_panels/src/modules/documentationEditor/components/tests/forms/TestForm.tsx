@@ -6,7 +6,6 @@ import { Card, CardTitle, CardBody, CardFooter, Button, Stack } from "@uicore";
 import AcceptedValues from "./AcceptedValues";
 import Relationships from "./Relationships";
 import { useEffect } from "react";
-import { panelLogger } from "@modules/logger";
 import useTestFormSave from "../hooks/useTestFormSave";
 import { SaveRequest } from "../types";
 
@@ -29,12 +28,12 @@ const TestForm = ({ formType, onClose, column }: Props): JSX.Element | null => {
     resolver: yupResolver(schema),
   });
 
-  const saveGenericTest = async () => {
+  const saveGenericTest = () => {
     if (
       formType === DbtGenericTests.NOT_NULL ||
       formType === DbtGenericTests.UNIQUE
     ) {
-      await handleSave({ test: formType }, column);
+      handleSave({ test: formType }, column, true);
       onClose();
       return;
     }
@@ -44,9 +43,7 @@ const TestForm = ({ formType, onClose, column }: Props): JSX.Element | null => {
       return;
     }
 
-    saveGenericTest().catch((err) =>
-      panelLogger.error("error while saving test", formType, err, column),
-    );
+    saveGenericTest();
   }, [formType, isSaving]);
 
   const handleCancel = () => {
@@ -79,11 +76,12 @@ const TestForm = ({ formType, onClose, column }: Props): JSX.Element | null => {
       <CardFooter>
         <Stack className="mt-3">
           <Button
-            onClick={handleSubmit((d) =>
-              handleSave({ ...d, test: formType }, column),
-            )}
+            onClick={handleSubmit((d) => {
+              handleSave({ ...d, test: formType }, column, true);
+              onClose();
+            })}
           >
-            Save
+            Add
           </Button>
           <Button onClick={handleCancel} outline>
             Cancel

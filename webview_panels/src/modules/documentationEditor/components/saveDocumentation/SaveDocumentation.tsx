@@ -11,13 +11,14 @@ const SaveDocumentation = (): JSX.Element | null => {
   const [dialogType, setDialogType] = useState("");
   const [openPopover, setOpenPopover] = useState(false);
   const {
-    state: { currentDocsData, isDocGeneratedForAnyColumn },
+    state: { currentDocsData, isDocGeneratedForAnyColumn, currentDocsTests },
     dispatch,
   } = useDocumentationContext();
 
   const saveDocumentation = async () => {
     const result = (await executeRequestInSync("saveDocumentation", {
       ...currentDocsData,
+      tests: currentDocsTests,
       patchPath,
       dialogType,
     })) as { saved: boolean };

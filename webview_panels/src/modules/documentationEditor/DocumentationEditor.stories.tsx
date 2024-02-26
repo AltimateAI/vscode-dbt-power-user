@@ -53,6 +53,29 @@ export const ModelDocGenView = {
   ],
 };
 
+const docsDataForTests = DBTDocumentationFactory.build();
+const testsDataForTests = docsDataForTests.columns
+  .map((c, i) =>
+    DBTDocumentationTestsFactory.build({
+      column_name: i % 3 === 0 ? undefined : c.name,
+    }),
+  )
+  .map((test) => {
+    if (test.test_metadata) {
+      return {
+        ...test,
+        test_metadata: {
+          ...test.test_metadata,
+          kwargs: {
+            ...test.test_metadata.kwargs,
+            column_name: test.column_name,
+          },
+        },
+      };
+    }
+    return test;
+  });
+
 export const DocumentationTestsView = {
   render: (): JSX.Element => {
     return <DocumentationWrapper />;
@@ -63,8 +86,8 @@ export const DocumentationTestsView = {
       initialState: {
         state: {
           ...initialState,
-          currentDocsData: DBTDocumentationFactory.build(),
-          currentDocsTests: DBTDocumentationTestsFactory.buildList(10),
+          currentDocsData: docsDataForTests,
+          currentDocsTests: testsDataForTests,
           project: faker.system.fileName(),
           activePage: Pages.TESTS,
         } as DocumentationStateProps,

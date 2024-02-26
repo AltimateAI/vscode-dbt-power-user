@@ -74,7 +74,7 @@ interface TestMetadataKwArgs {
   to?: string;
 }
 
-interface TestMetaData {
+export interface TestMetaData {
   path: string;
   database: string;
   schema: string;

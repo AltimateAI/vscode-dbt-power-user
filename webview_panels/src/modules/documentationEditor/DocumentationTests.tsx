@@ -7,6 +7,7 @@ import ColumnsWithTests from "./components/tests/ColumnsWithTests";
 import EntityWithTests from "./components/tests/EntityWithTests";
 import useDocumentationContext from "./state/useDocumentationContext";
 import classes from "./styles.module.scss";
+import SaveDocumentation from "./components/saveDocumentation/SaveDocumentation";
 
 const DocumentationTests = (): JSX.Element => {
   const {
@@ -28,18 +29,23 @@ const DocumentationTests = (): JSX.Element => {
         </Stack>
         <CommonActionButtons />
       </Stack>
-      <EntityWithTests
-        title="Model"
-        tests={modelTests}
-        type={EntityType.MODEL}
-      />
-      <Stack className={classes.columnHeader}>
-        <h3>Columns</h3>
-        <div>
-          <SyncWithDatabase />
-        </div>
+      <Stack className={classes.bodyWrap}>
+        <Stack direction="column" className={classes.body}>
+          <EntityWithTests
+            title="Model"
+            tests={modelTests}
+            type={EntityType.MODEL}
+          />
+          <Stack className={classes.columnHeader}>
+            <h3>Columns</h3>
+            <div>
+              <SyncWithDatabase />
+            </div>
+          </Stack>
+          <ColumnsWithTests />
+          <SaveDocumentation />
+        </Stack>
       </Stack>
-      <ColumnsWithTests />
     </div>
   );
 };
