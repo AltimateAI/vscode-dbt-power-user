@@ -200,17 +200,6 @@ export class DBTCoreProjectIntegration
     query: string,
     limit: number,
   ): Promise<{ queryTemplate: string; limitQuery: string }> {
-    const queryTemplate = workspace
-      .getConfiguration("dbt")
-      .get<string>("queryTemplate");
-
-    if (queryTemplate && queryTemplate !== DEFAULT_QUERY_TEMPLATE) {
-      console.log("Using user provided query template", queryTemplate);
-      const limitQuery = this.getLimitQuery(queryTemplate, query, limit);
-
-      return { queryTemplate, limitQuery };
-    }
-
     try {
       const dbtVersion = await this.version;
       //dbt supports limit macro after v1.5
@@ -228,13 +217,25 @@ export class DBTCoreProjectIntegration
         };
       }
     } catch (err) {
-      console.error("Error while getting macro", err);
+      console.error("Error while getting get_limit_subquery_sql macro", err);
       this.telemetry.sendTelemetryError(
         "executeMacroGetLimitSubquerySQLError",
         err,
         { adapter: this.adapterType || "unknown" },
       );
     }
+
+    const queryTemplate = workspace
+      .getConfiguration("dbt")
+      .get<string>("queryTemplate");
+
+    if (queryTemplate && queryTemplate !== DEFAULT_QUERY_TEMPLATE) {
+      console.log("Using user provided query template", queryTemplate);
+      const limitQuery = this.getLimitQuery(queryTemplate, query, limit);
+
+      return { queryTemplate, limitQuery };
+    }
+
     return {
       queryTemplate: DEFAULT_QUERY_TEMPLATE,
       limitQuery: this.getLimitQuery(DEFAULT_QUERY_TEMPLATE, query, limit),
