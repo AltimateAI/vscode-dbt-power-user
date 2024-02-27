@@ -9,7 +9,6 @@ import {
   TestMetadataRelationshipsKwArgs,
 } from "@modules/documentationEditor/state/types";
 import { panelLogger } from "@modules/logger";
-import RightSidePanel from "@modules/panel/RightSidePanel";
 import {
   Button,
   Card,
@@ -236,25 +235,23 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
     }
   };
   return (
-    <RightSidePanel onClose={onClose}>
-      <Stack direction="column" className={classes.addTest}>
-        <Card>
-          <CardTitle>Column: {test.column_name}</CardTitle>
-          <CardBody>
-            <div className={classes.title}>
-              Tests: <Tag color="primary">{test.key}</Tag>
-            </div>
-          </CardBody>
-        </Card>
+    <Stack direction="column" className={classes.addTest}>
+      <Card>
+        <CardTitle>Column: {test.column_name}</CardTitle>
+        <CardBody>
+          <div className={classes.title}>
+            Tests: <Tag color="primary">{test.key}</Tag>
+          </div>
+        </CardBody>
+      </Card>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          {isInEditMode ? getEditableContent() : getDisplayContent()}
-        </form>
-        {testCode ? (
-          <CodeBlock code={testCode} language="sql" fileName="Values" />
-        ) : null}
-      </Stack>
-    </RightSidePanel>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        {isInEditMode ? getEditableContent() : getDisplayContent()}
+      </form>
+      {testCode ? (
+        <CodeBlock code={testCode} language="sql" fileName="Values" />
+      ) : null}
+    </Stack>
   );
 };
 

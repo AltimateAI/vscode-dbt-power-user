@@ -2,8 +2,8 @@ import Test from "./Test";
 import AddTest from "./AddTest";
 import { DBTModelTest } from "@modules/documentationEditor/state/types";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
-import { Stack } from "@uicore";
-import { useMemo, useState } from "react";
+import { Stack, Drawer, DrawerRef } from "@uicore";
+import { useMemo, useRef, useState } from "react";
 import DisplayTestDetails from "./DisplayTestDetails";
 import classes from "../../styles.module.scss";
 
@@ -15,9 +15,14 @@ interface Props {
 
 const EntityWithTests = ({ title, tests, type }: Props): JSX.Element => {
   const [selectedTest, setSelectedTest] = useState<DBTModelTest | null>(null);
-
+  const drawerRef = useRef<DrawerRef | null>(null);
   const handleClose = () => {
     setSelectedTest(null);
+  };
+
+  const onSelect = (test: DBTModelTest) => {
+    setSelectedTest(test);
+    drawerRef.current?.open();
   };
 
   const currentTests = useMemo(
@@ -39,16 +44,18 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element => {
       <Stack>
         <p>Tests:</p>
         {tests?.map((test) => (
-          <Test key={test.key} test={test} onSelect={setSelectedTest} />
+          <Test key={test.key} test={test} onSelect={onSelect} />
         ))}
       </Stack>
-      {selectedTest ? (
-        <DisplayTestDetails
-          onClose={handleClose}
-          test={selectedTest}
-          column={title}
-        />
-      ) : null}
+      <Drawer ref={drawerRef}>
+        {selectedTest ? (
+          <DisplayTestDetails
+            onClose={handleClose}
+            test={selectedTest}
+            column={title}
+          />
+        ) : null}
+      </Drawer>
     </div>
   );
 };

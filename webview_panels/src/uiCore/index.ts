@@ -37,5 +37,6 @@ export { default as DropdownButton } from "./components/dropdownButton/DropdownB
 export { default as Avatar } from "./components/avatar/Avatar";
 export { default as CodeBlock } from "./components/codeblock/index";
 export { default as Tooltip } from "./components/tooltip/Tooltip";
-
+export { default as Drawer } from "./components/drawer/index";
+export type { DrawerRef } from "./components/drawer/index";
 export type { OptionType } from "./components/select";

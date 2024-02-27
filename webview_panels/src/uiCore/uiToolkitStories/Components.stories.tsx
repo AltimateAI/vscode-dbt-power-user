@@ -7,6 +7,7 @@ import {
   CardText,
   CardTitle,
   Container,
+  Drawer,
   DropdownButton,
   Form,
   FormGroup,
@@ -127,6 +128,14 @@ export const UIKit = {
             </Stack>
           </FormGroup>
         </Form>
+        <br />
+        <Drawer
+          buttonText="Drawer"
+          title="Offcanvas title"
+          buttonProps={{ title: "drawer button" }}
+        >
+          hello
+        </Drawer>
       </Container>
     );
   },
