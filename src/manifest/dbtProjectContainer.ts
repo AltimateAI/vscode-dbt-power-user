@@ -353,12 +353,12 @@ export class DBTProjectContainer implements Disposable {
     );
     this.disposables.push(
       dbtProjectWorkspaceFolder.onRebuildManifestStatusChange((e) => {
-        this.rebuildManifestStatusChangeMap.set(e.name, e.inProgress);
+        this.rebuildManifestStatusChangeMap.set(e.projectName, e.inProgress);
         const inProgressProjects = Array.from(
           this.rebuildManifestStatusChangeMap.entries(),
         ).filter(([_, inProgress]) => inProgress);
         this._onRebuildManifestStatusChange.fire({
-          name: inProgressProjects.map((p) => p[0]),
+          projectNames: inProgressProjects.map((p) => p[0]),
           inProgress: inProgressProjects.length > 0,
         });
       }),
