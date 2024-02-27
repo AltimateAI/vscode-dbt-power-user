@@ -55,6 +55,7 @@ export class DBTProjectContainer implements Disposable {
       pythonPath?: string,
       envVars?: EnvironmentVariables,
     ) => DBTWorkspaceFolder,
+    private dbtTerminal: DBTTerminal,
   ) {
     this.disposables.push(
       workspace.onDidChangeWorkspaceFolders(async (event) => {
@@ -142,10 +143,12 @@ export class DBTProjectContainer implements Disposable {
       commands.executeCommand("dbtPowerUser.openSetupWalkthrough");
     }
     this.setToGlobalState("showSetupWalkthrough", false);
+    this.dbtTerminal.log("showSetupWalkthrough");
   }
 
   async initializeWalkthrough() {
     // show setup walkthrough if needed
+    this.dbtTerminal.log("initializeWalkthrough");
     const showSetupWalkthrough = this.getFromGlobalState(
       "showSetupWalkthrough",
     );
@@ -154,6 +157,7 @@ export class DBTProjectContainer implements Disposable {
     }
 
     const allProjects = await this.getProjects();
+    this.dbtTerminal.debug("getProjects", allProjects);
 
     commands.executeCommand(
       "setContext",
@@ -163,6 +167,7 @@ export class DBTProjectContainer implements Disposable {
     const existingAssociations = workspace
       .getConfiguration("files")
       .get<any>("associations", {});
+    this.dbtTerminal.debug("fileAssociations", existingAssociations);
     let showFileAssociationsStep = false;
     Object.entries({
       "*.sql": ["jinja-sql", "sql"],
@@ -178,6 +183,7 @@ export class DBTProjectContainer implements Disposable {
       "dbtPowerUser.showFileAssociationStep",
       showFileAssociationsStep,
     );
+    this.dbtTerminal.log("showFileAssociationsStep");
   }
 
   get extensionUri() {
@@ -217,6 +223,7 @@ export class DBTProjectContainer implements Disposable {
   };
 
   async detectDBT(): Promise<void> {
+    this.dbtTerminal.log("detectDBT");
     await this.dbtClient.detectDBT();
   }
 
@@ -330,12 +337,14 @@ export class DBTProjectContainer implements Disposable {
   private async registerWorkspaceFolder(
     workspaceFolder: WorkspaceFolder,
   ): Promise<void> {
+    this.dbtTerminal.log("registerWorkspaceFolder");
     const dbtProjectWorkspaceFolder = this.dbtWorkspaceFolderFactory(
       workspaceFolder,
       this._onManifestChanged,
       this._onProjectRegisteredUnregistered,
     );
     this.dbtWorkspaceFolders.push(dbtProjectWorkspaceFolder);
+    this.dbtTerminal.debug("dbtWorkspaceFolders", this.dbtWorkspaceFolders);
     await dbtProjectWorkspaceFolder.discoverProjects();
   }
 

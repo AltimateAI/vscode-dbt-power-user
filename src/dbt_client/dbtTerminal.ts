@@ -23,6 +23,7 @@ export class DBTTerminal {
 
   log(message: string, ...args: any[]) {
     this.outputChannel.info(stripANSI(message), args);
+    console.log(stripANSI(message), args);
     if (this.terminal !== undefined) {
       this.writeEmitter.fire(message);
     }

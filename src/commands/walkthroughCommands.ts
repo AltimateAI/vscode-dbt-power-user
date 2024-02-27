@@ -56,7 +56,7 @@ export class WalkthroughCommands {
           throw new Error(runModelOutput);
         }
       } catch (err) {
-        console.log(err);
+        this.dbtTerminal.log("validateProjects", err);
         this.telemetry.sendTelemetryError("validateProjectError", err);
         window.showErrorMessage(
           "Error running dbt debug for project " +
@@ -94,7 +94,7 @@ export class WalkthroughCommands {
 
         await project.installDeps();
       } catch (err) {
-        console.log(err);
+        this.dbtTerminal.log("installDeps", err);
         this.telemetry.sendTelemetryError("installDepsError", err);
         window.showErrorMessage(
           "Error installing dbt dependencies for project " +

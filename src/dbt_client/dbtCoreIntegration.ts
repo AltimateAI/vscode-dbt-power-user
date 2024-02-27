@@ -34,6 +34,7 @@ import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { ValidateSqlParseErrorResponse } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTTerminal } from "./dbtTerminal";
 
 const DEFAULT_QUERY_TEMPLATE = "select * from ({query}) as query limit {limit}";
 
@@ -82,6 +83,7 @@ export class DBTCoreProjectDetection
 {
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
+    private dbtTerminal: DBTTerminal,
   ) {}
 
   async discoverProjects(projectDirectories: Uri[]): Promise<Uri[]> {
@@ -112,7 +114,9 @@ export class DBTCoreProjectDetection
         },
       );
     } catch (error) {
-      console.log("An error occured while finding package paths: " + error);
+      this.dbtTerminal.log(
+        "An error occured while finding package paths: " + error,
+      );
     } finally {
       if (python) {
         this.executionInfrastructure.closePythonBridge(python);
@@ -162,13 +166,14 @@ export class DBTCoreProjectIntegration
     private telemetry: TelemetryService,
     private pythonDBTCommandExecutionStrategy: PythonDBTCommandExecutionStrategy,
     private dbtProjectContainer: DBTProjectContainer,
+    private dbtTerminal: DBTTerminal,
     private projectRoot: Uri,
     private projectConfigDiagnostics: DiagnosticCollection,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
-    console.log(`Registering project ${this.projectRoot}`);
+    this.dbtTerminal.log(`Registering project ${this.projectRoot}`);
     this.executionInfrastructure.createQueue(
       DBTCoreProjectIntegration.QUEUE_ALL,
     );

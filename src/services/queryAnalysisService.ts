@@ -8,6 +8,8 @@ import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheC
 import { provideSingleton } from "../utils";
 import { DocGenService } from "./docGenService";
 import { StreamingService } from "./streamingService";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { CustomUnknownException } from "../dbt_client/exception";
 
 @provideSingleton(QueryAnalysisService)
 export class QueryAnalysisService {
@@ -15,6 +17,7 @@ export class QueryAnalysisService {
     private docGenService: DocGenService,
     private streamingService: StreamingService,
     private altimateRequest: AltimateRequest,
+    private dbtTerminal: DBTTerminal,
   ) {}
 
   public getSelectedQuery() {
@@ -54,27 +57,44 @@ export class QueryAnalysisService {
 
     const { session_id } = params;
     if (!session_id) {
-      console.error("Missing session id");
+      this.dbtTerminal.error(
+        new CustomUnknownException(
+          "Missing session id",
+          new Error("Invalid session id"),
+        ),
+      );
       throw new Error("Invalid session id");
     }
 
     const selectionData = this.getSelectedQuery();
     if (!selectionData) {
-      console.error("Missing query");
+      this.dbtTerminal.error(
+        new CustomUnknownException("Missing query", new Error("Invalid query")),
+      );
       throw new Error("Invalid query");
     }
     const { query } = selectionData;
     const dbtProject = this.docGenService.getProject();
 
     if (!dbtProject) {
-      console.error("Invalid dbt project");
+      this.dbtTerminal.error(
+        new CustomUnknownException(
+          "Invalid dbt project",
+          new Error("Invalid dbt project"),
+        ),
+      );
       throw new Error("Invalid dbt project");
     }
 
     const adapter = dbtProject.getAdapterType() || "unknown";
     const documentation = await this.docGenService.getDocumentation(eventMap);
     if (!documentation) {
-      console.error("Unable to find documentation for the model");
+      this.dbtTerminal.error(
+        new CustomUnknownException(
+          "Unable to find documentation for the model",
+          new Error("Invalid model"),
+        ),
+      );
       throw new Error("Invalid model");
     }
     return this.streamingService.fetchAsStream<QueryAnalysisRequest>({
@@ -110,12 +130,22 @@ export class QueryAnalysisService {
     const dbtProject = this.docGenService.getProject();
 
     if (!dbtProject) {
-      console.error("Invalid dbt project");
+      this.dbtTerminal.error(
+        new CustomUnknownException(
+          "Invalid dbt project",
+          new Error("Invalid dbt project"),
+        ),
+      );
       throw new Error("Invalid dbt project");
     }
 
     if (!documentation) {
-      console.error("Unable to find documentation for the model");
+      this.dbtTerminal.error(
+        new CustomUnknownException(
+          "Unable to find documentation for the model",
+          new Error("Unable to find documentation for the model"),
+        ),
+      );
       throw new Error("Invalid model");
     }
     return this.altimateRequest.fetch("dbt/v2/follow-up-questions", {
