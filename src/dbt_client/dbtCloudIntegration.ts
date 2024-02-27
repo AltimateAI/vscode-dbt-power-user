@@ -144,21 +144,18 @@ export class DBTCloudProjectIntegration
   }
 
   async executeSQL(query: string, limit: number): Promise<QueryExecution> {
-    const commandArgs = [
-      "show",
-      "--inline",
-      query,
-      "--output",
-      "json",
-      "--log-format",
-      "json",
-    ];
-    // If limit is provided and is a positive number, add the limit arguments
-    if (limit !== undefined && limit > 0) {
-      commandArgs.push("--limit", limit.toString());
-    }
     const showCommand = this.dbtCloudCommand(
-      new DBTCommand("Running sql...", commandArgs),
+      new DBTCommand("Running sql...", [
+        "show",
+        "--inline",
+        query,
+        "--limit",
+        limit.toString(),
+        "--output",
+        "json",
+        "--log-format",
+        "json",
+      ]),
     );
     const cancellationTokenSource = new CancellationTokenSource();
     showCommand.setToken(cancellationTokenSource.token);
