@@ -27,6 +27,12 @@ export class DbtPowerUserControlCenterAction {
             "dbtPowerUser.openSetupWalkthrough",
           ),
           new DbtPowerUserControlPanelItem(
+            "Troubleshoot Extension",
+            "debug",
+            "Get Extension Support info",
+            "dbtPowerUser.troubleShootExtension",
+          ),
+          new DbtPowerUserControlPanelItem(
             "dbt Power User Tutorials",
             "book",
             "Open the dbt Power User Tutorials",

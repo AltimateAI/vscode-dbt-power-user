@@ -59,6 +59,10 @@ const config = {
           to: "dbt_cloud_integration.py",
         },
         {
+          from: path.resolve(__dirname, "ext_troubleshooter.py"),
+          to: "ext_troubleshooter.py",
+        },
+        {
           from: path.resolve(
             __dirname,
             "node_modules/python-bridge/node_python_bridge.py",
