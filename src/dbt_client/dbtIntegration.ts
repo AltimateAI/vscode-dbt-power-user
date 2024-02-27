@@ -45,6 +45,7 @@ export class CLIDBTCommandExecutionStrategy
     protected terminal: DBTTerminal,
     protected telemetry: TelemetryService,
     protected cwd: Uri,
+    protected dbtPath: string,
   ) {}
 
   execute(command: DBTCommand, token?: CancellationToken): Promise<string> {
@@ -87,7 +88,7 @@ export class CLIDBTCommandExecutionStrategy
       tokens.push(command.token);
     }
     return this.commandProcessExecutionFactory.createCommandProcessExecution({
-      command: "dbt",
+      command: this.dbtPath,
       args,
       tokens,
       cwd: this.cwd.fsPath,
