@@ -10,6 +10,7 @@ import {
 import { DBTInstallationVerificationEvent } from "../dbt_client/dbtVersionEvent";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { provideSingleton } from "../utils";
+import { RebuildManifestCombinedStatusChange } from "../manifest/event/manifestCacheChangedEvent";
 
 @provideSingleton(VersionStatusBar)
 export class VersionStatusBar implements Disposable {
@@ -41,12 +42,18 @@ export class VersionStatusBar implements Disposable {
     this.statusBar.dispose();
   }
 
-  private onRebuildManifestStatusChange(event: { inProgress: boolean }) {
-    if (event.inProgress === true) {
-      this.showTextInStatusBar("$(sync~spin) Parsing manifest");
+  private onRebuildManifestStatusChange(
+    event: RebuildManifestCombinedStatusChange,
+  ) {
+    if (!event.inProgress) {
+      this.showTextInStatusBar(`$(check) dbt`);
       return;
     }
-    this.showTextInStatusBar(`$(check) dbt`);
+    if (event.projectNames.length === 1) {
+      this.showTextInStatusBar(`$(sync~spin) Parsing ${event.projectNames[0]}`);
+      return;
+    }
+    this.showTextInStatusBar("$(sync~spin) Parsing manifests");
   }
 
   private async onDBTInstallationVerification(
