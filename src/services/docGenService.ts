@@ -18,7 +18,6 @@ import {
   Source,
 } from "../webview_provider/docsEditPanel";
 import { DbtProjectService } from "./dbtProjectService";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 interface GenerateDocsForColumnsProps {
   panel: WebviewView | undefined;
@@ -226,20 +225,23 @@ export class DocGenService {
     }
 
     const currentFilePath = window.activeTextEditor.document.uri;
-    this.terminal.debug(
+    this.dbtTerminal.debug(
       "getting event for project, currentFilePath: ",
       currentFilePath,
     );
     const projectRootpath =
       this.dbtProjectContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
-      this.terminal.debug("no project for currentFilePath: ", currentFilePath);
+      this.dbtTerminal.debug(
+        "no project for currentFilePath: ",
+        currentFilePath,
+      );
       return;
     }
 
     const event = eventMap.get(projectRootpath.fsPath);
     if (event === undefined) {
-      this.terminal.debug("no event for project: ", projectRootpath.fsPath);
+      this.dbtTerminal.debug("no event for project: ", projectRootpath.fsPath);
       return;
     }
     return event;
@@ -484,7 +486,7 @@ export class DocGenService {
     }
     const { nodeMetaMap, graphMetaMap, testMetaMap } = event;
     const tableName = this.getFilename();
-    this.terminal.info(
+    this.dbtTerminal.info(
       "Tests",
       "getting tests by tableName:",
       false,
@@ -492,7 +494,7 @@ export class DocGenService {
     );
     const _node = nodeMetaMap.get(tableName);
     if (!_node) {
-      this.terminal.debug("no node for tableName:", tableName);
+      this.dbtTerminal.debug("no node for tableName:", tableName);
       return;
     }
     const key = _node.uniqueId;

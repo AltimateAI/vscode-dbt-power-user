@@ -39,9 +39,15 @@ export class NewDocsGenPanel
     private docGenService: DocGenService,
     protected emitterService: SharedStateService,
     protected dbtProjectService: DbtProjectService,
-    private dbtTerminal: DBTTerminal,
+    protected dbtTerminal: DBTTerminal,
   ) {
-    super(dbtProjectContainer, altimateRequest, telemetry, emitterService);
+    super(
+      dbtProjectContainer,
+      altimateRequest,
+      telemetry,
+      emitterService,
+      dbtTerminal,
+    );
 
     this._disposables.push(
       window.onDidChangeActiveTextEditor(

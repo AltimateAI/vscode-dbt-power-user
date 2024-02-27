@@ -67,7 +67,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     protected altimateRequest: AltimateRequest,
     protected telemetry: TelemetryService,
     protected emitterService: SharedStateService,
-    private dbtTerminal: DBTTerminal,
+    protected dbtTerminal: DBTTerminal,
   ) {
     this._disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
