@@ -32,5 +32,10 @@ export interface ManifestCacheChangedEvent {
 
 export interface RebuildManifestStatusChange {
   inProgress: boolean;
-  uri: Uri;
+  name: string;
+}
+
+export interface RebuildManifestCombinedStatusChange {
+  inProgress: boolean;
+  name: string[];
 }

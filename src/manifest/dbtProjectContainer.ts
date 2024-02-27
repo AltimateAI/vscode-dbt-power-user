@@ -15,7 +15,10 @@ import { EnvironmentVariables, RunModelType } from "../domain";
 import { provideSingleton } from "../utils";
 import { DBTProject } from "./dbtProject";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
-import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
+import {
+  ManifestCacheChangedEvent,
+  RebuildManifestCombinedStatusChange,
+} from "./event/manifestCacheChangedEvent";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 enum PromptAnswer {
@@ -44,12 +47,11 @@ export class DBTProjectContainer implements Disposable {
   ];
   private context?: ExtensionContext;
   private projects: Map<Uri, string> = new Map<Uri, string>();
-  private _onRebuildManifestStatusChange = new EventEmitter<{
-    inProgress: boolean;
-  }>();
+  private _onRebuildManifestStatusChange =
+    new EventEmitter<RebuildManifestCombinedStatusChange>();
   readonly onRebuildManifestStatusChange =
     this._onRebuildManifestStatusChange.event;
-  private rebuildManifestStatusChangeMap = new Map<Uri, boolean>();
+  private rebuildManifestStatusChangeMap = new Map<string, boolean>();
 
   constructor(
     private dbtClient: DBTClient,
@@ -351,11 +353,13 @@ export class DBTProjectContainer implements Disposable {
     );
     this.disposables.push(
       dbtProjectWorkspaceFolder.onRebuildManifestStatusChange((e) => {
-        this.rebuildManifestStatusChangeMap.set(e.uri, e.inProgress);
+        this.rebuildManifestStatusChangeMap.set(e.name, e.inProgress);
+        const inProgressProjects = Array.from(
+          this.rebuildManifestStatusChangeMap.entries(),
+        ).filter(([_, inProgress]) => inProgress);
         this._onRebuildManifestStatusChange.fire({
-          inProgress: Array.from(
-            this.rebuildManifestStatusChangeMap.values(),
-          ).some((b) => b),
+          name: inProgressProjects.map((p) => p[0]),
+          inProgress: inProgressProjects.length > 0,
         });
       }),
     );
