@@ -266,6 +266,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
     const filteredTests = columnTests
       .map((test, i) => {
+        // If relationships test, set field and to
         if (
           test.test_metadata?.name === "relationships" &&
           test.test_metadata.kwargs.field &&
@@ -280,6 +281,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
           };
         }
 
+        // set values if test is accepted_values
         if (test.test_metadata?.name === "accepted_values") {
           return {
             accepted_values: { values: test.test_metadata.kwargs.values },
@@ -572,9 +574,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   writeFileSync(patchPath, stringify(parsedDocFile));
                   this.documentation =
                     await this.docGenService.getDocumentation(this.eventMap);
-                  const tests = await this.docGenService.getTestsData(
-                    this.eventMap,
-                  );
+                  const tests =
+                    await this.docGenService.getTestsForCurrentModel(
+                      this.eventMap,
+                    );
                   if (syncRequestId) {
                     this._panel!.webview.postMessage({
                       command: "response",

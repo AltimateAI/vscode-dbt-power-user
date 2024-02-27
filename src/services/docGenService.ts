@@ -477,7 +477,7 @@ export class DocGenService {
     return path.basename(window.activeTextEditor!.document.fileName, ".sql");
   }
 
-  public async getTestsData(
+  public async getTestsForCurrentModel(
     eventMap: Map<string, ManifestCacheProjectAddedEvent>,
   ) {
     const event = this.getEventByProject(eventMap);

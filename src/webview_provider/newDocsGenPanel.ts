@@ -84,7 +84,9 @@ export class NewDocsGenPanel
   }
 
   private async transmitTestsData() {
-    const tests = await this.docGenService.getTestsData(this.eventMap);
+    const tests = await this.docGenService.getTestsForCurrentModel(
+      this.eventMap,
+    );
     this.sendResponseToWebview({
       command: "renderTests",
       tests,
