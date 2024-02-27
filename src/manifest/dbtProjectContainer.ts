@@ -44,6 +44,11 @@ export class DBTProjectContainer implements Disposable {
   ];
   private context?: ExtensionContext;
   private projects: Map<Uri, string> = new Map<Uri, string>();
+  private _onRebuildManifestStatusChange = new EventEmitter<{
+    inProgress: boolean;
+  }>();
+  readonly onRebuildManifestStatusChange =
+    this._onRebuildManifestStatusChange.event;
 
   constructor(
     private dbtClient: DBTClient,
@@ -231,6 +236,14 @@ export class DBTProjectContainer implements Disposable {
     this.getProjects().forEach((project) => project.initialize());
   }
 
+  private handleRebuildManifestStatusChange(e: { inProgress: boolean }) {
+    if (e.inProgress) {
+      this._onRebuildManifestStatusChange.fire({ inProgress: true });
+    } else {
+      this._onRebuildManifestStatusChange.fire({ inProgress: false });
+    }
+  }
+
   executeSQL(uri: Uri, query: string): void {
     this.findDBTProject(uri)?.executeSQL(query);
   }
@@ -346,6 +359,13 @@ export class DBTProjectContainer implements Disposable {
     this.dbtWorkspaceFolders.push(dbtProjectWorkspaceFolder);
     this.dbtTerminal.debug("dbtWorkspaceFolders", this.dbtWorkspaceFolders);
     await dbtProjectWorkspaceFolder.discoverProjects();
+    dbtProjectWorkspaceFolder.getProjects().forEach((project) => {
+      this.disposables.push(
+        project.onRebuildManifestStatusChange((e) => {
+          this.handleRebuildManifestStatusChange(e);
+        }),
+      );
+    });
   }
 
   private unregisterWorkspaceFolder(workspaceFolder: WorkspaceFolder): void {

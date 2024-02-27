@@ -74,6 +74,11 @@ export class DBTProject implements Disposable {
   private readonly projectConfigDiagnostics =
     languages.createDiagnosticCollection("dbt");
   public readonly projectHealth = languages.createDiagnosticCollection("dbt");
+  private _onRebuildManifestStatusChange = new EventEmitter<{
+    inProgress: boolean;
+  }>();
+  readonly onRebuildManifestStatusChange =
+    this._onRebuildManifestStatusChange.event;
 
   constructor(
     private PythonEnvironment: PythonEnvironment,
@@ -260,7 +265,9 @@ export class DBTProject implements Disposable {
   }
 
   private async rebuildManifest() {
-    this.dbtProjectIntegration.rebuildManifest();
+    this._onRebuildManifestStatusChange.fire({ inProgress: true });
+    await this.dbtProjectIntegration.rebuildManifest();
+    this._onRebuildManifestStatusChange.fire({ inProgress: false });
   }
 
   runModel(runModelParams: RunModelParams) {

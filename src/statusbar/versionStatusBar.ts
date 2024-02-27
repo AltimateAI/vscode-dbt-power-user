@@ -25,6 +25,9 @@ export class VersionStatusBar implements Disposable {
       this.dbtProjectContainer.onDBTInstallationVerification((e) =>
         this.onDBTInstallationVerification(e),
       ),
+      this.dbtProjectContainer.onRebuildManifestStatusChange((e) =>
+        this.onRebuildManifestStatusChange(e),
+      ),
     );
   }
 
@@ -38,21 +41,29 @@ export class VersionStatusBar implements Disposable {
     this.statusBar.dispose();
   }
 
-  private async onDBTInstallationVerification(
-    event: DBTInstallationVerificationEvent,
-  ) {
+  private onRebuildManifestStatusChange(event: { inProgress: boolean }) {
     if (event.inProgress === true) {
-      this.showTextInStatusBar("$(sync~spin) Detecting dbt");
-      return;
-    }
-    if (!event.installed) {
-      this.showTextInStatusBar(
-        "$(error) dbt is not installed",
-        // "statusBarItem.errorBackground",
-      );
+      this.showTextInStatusBar("$(sync~spin) Parsing manifest");
       return;
     }
     this.showTextInStatusBar(`$(check) dbt`);
+  }
+
+  private async onDBTInstallationVerification(
+    event: DBTInstallationVerificationEvent,
+  ) {
+    // if (event.inProgress === true) {
+    //   this.showTextInStatusBar("$(sync~spin) Detecting dbt");
+    //   return;
+    // }
+    // if (!event.installed) {
+    //   this.showTextInStatusBar(
+    //     "$(error) dbt is not installed",
+    //     // "statusBarItem.errorBackground",
+    //   );
+    //   return;
+    // }
+    // this.showTextInStatusBar(`$(check) dbt`);
   }
 
   private showTextInStatusBar(
