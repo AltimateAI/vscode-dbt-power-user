@@ -9,6 +9,8 @@ import { panelLogger } from "@modules/logger";
 import {
   DBTModelTest,
   DbtGenericTests,
+  TestMetadataRelationshipsKwArgs,
+  TestMetadataAcceptedValuesKwArgs,
 } from "@modules/documentationEditor/state/types";
 
 const useTestFormSave = (): {
@@ -20,6 +22,35 @@ const useTestFormSave = (): {
     state: { currentDocsData, currentDocsTests },
     dispatch,
   } = useDocumentationContext();
+
+  const updateTests = (
+    testsData: DBTModelTest[],
+    data:
+      | Partial<TestMetadataAcceptedValuesKwArgs>
+      | Partial<TestMetadataRelationshipsKwArgs>,
+  ) => {
+    const temp = { ...testsData };
+    const currentIndex = temp.findIndex(
+      (test: DBTModelTest) =>
+        test.test_metadata?.name === DbtGenericTests.ACCEPTED_VALUES,
+    );
+    if (currentIndex > -1) {
+      temp[currentIndex] = {
+        ...temp[currentIndex],
+        test_metadata: {
+          ...temp[currentIndex].test_metadata,
+          name: temp[currentIndex].test_metadata?.name ?? "",
+          kwargs: {
+            ...temp[currentIndex].test_metadata!.kwargs,
+            ...data,
+          },
+        },
+      };
+      return temp;
+    }
+
+    return temp;
+  };
 
   const getUpdatedTestsData = (
     data: SaveRequest,
@@ -51,46 +82,14 @@ const useTestFormSave = (): {
     }
 
     if (data.test === DbtGenericTests.ACCEPTED_VALUES) {
-      const currentIndex = testsData.findIndex(
-        (test: DBTModelTest) =>
-          test.test_metadata?.name === DbtGenericTests.ACCEPTED_VALUES,
-      );
-      if (currentIndex > -1) {
-        testsData[currentIndex] = {
-          ...testsData[currentIndex],
-          test_metadata: {
-            ...testsData[currentIndex].test_metadata,
-            name: testsData[currentIndex].test_metadata?.name ?? "",
-            kwargs: {
-              ...testsData[currentIndex].test_metadata!.kwargs,
-              values: newValues ?? [],
-            },
-          },
-        };
-        return testsData;
-      }
+      return updateTests(testsData, { values: newValues ?? [] });
     }
 
     if (data.test === DbtGenericTests.RELATIONSHIPS) {
-      const currentIndex = testsData.findIndex(
-        (test: DBTModelTest) =>
-          test.test_metadata?.name === DbtGenericTests.RELATIONSHIPS,
-      );
-      if (currentIndex > -1) {
-        testsData[currentIndex] = {
-          ...testsData[currentIndex],
-          test_metadata: {
-            ...testsData[currentIndex].test_metadata,
-            name: testsData[currentIndex].test_metadata?.name ?? "",
-            kwargs: {
-              ...testsData[currentIndex].test_metadata!.kwargs,
-              to: data.to ? `ref('${data.to}')` : undefined,
-              field: data.field,
-            },
-          },
-        };
-        return testsData;
-      }
+      return updateTests(testsData, {
+        to: data.to ? `ref('${data.to}')` : undefined,
+        field: data.field,
+      });
     }
     return testsData;
   };

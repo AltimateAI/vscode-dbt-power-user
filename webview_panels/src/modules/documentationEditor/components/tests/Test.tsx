@@ -29,7 +29,7 @@ const Test = ({ test, onSelect }: Props): JSX.Element => {
         onClick={handleClick}
         className={classes.testTag}
       >
-        {test.key}
+        {test.test_metadata?.name ?? test.key}
       </Tag>
     </Tooltip>
   );

@@ -37,13 +37,10 @@ export class DataPilotPanel extends AltimateWebviewProvider {
   ) {
     super(dbtProjectContainer, altimateRequest, telemetry, emitterService);
 
-    commands.registerCommand(
-      "dbtPowerUser.resetDatapilot",
-      () =>
-        this._panel?.webview.postMessage({
-          command: "datapilot:reset",
-          args: {},
-        }),
+    commands.registerCommand("dbtPowerUser.resetDatapilot", () =>
+      this.sendResponseToWebview({
+        command: "datapilot:reset",
+      }),
     );
   }
 
@@ -57,15 +54,12 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           .getConfiguration("dbt")
           .get<boolean>("enableNewDocsPanel", false);
 
-        this._panel!.webview.postMessage({
+        this.sendResponseToWebview({
           command: "response",
-          args: {
-            syncRequestId,
-            body: {
-              enabled: newDocsPanelState,
-            },
-            status: true,
+          data: {
+            enabled: newDocsPanelState,
           },
+          syncRequestId,
         });
         break;
       case "enableNewDocsPanel":
@@ -125,22 +119,18 @@ export class DataPilotPanel extends AltimateWebviewProvider {
             syncRequestId,
           );
 
-          this._panel!.webview.postMessage({
+          this.sendResponseToWebview({
             command: "response",
-            args: {
-              syncRequestId,
-              body: { response },
-              status: true,
+            data: {
+              response,
             },
+            syncRequestId,
           });
         } catch (err) {
-          this._panel!.webview.postMessage({
+          this.sendResponseToWebview({
             command: "response",
-            args: {
-              syncRequestId,
-              error: (err as Error).message,
-              status: false,
-            },
+            syncRequestId,
+            error: (err as Error).message,
           });
         }
         break;
@@ -153,22 +143,16 @@ export class DataPilotPanel extends AltimateWebviewProvider {
             syncRequestId,
           );
 
-          this._panel!.webview.postMessage({
+          this.sendResponseToWebview({
             command: "response",
-            args: {
-              syncRequestId,
-              body: { response },
-              status: true,
-            },
+            syncRequestId,
+            data: { response },
           });
         } catch (err) {
-          this._panel!.webview.postMessage({
+          this.sendResponseToWebview({
             command: "response",
-            args: {
-              syncRequestId,
-              error: (err as Error).message,
-              status: false,
-            },
+            syncRequestId,
+            error: (err as Error).message,
           });
         }
         break;
@@ -179,22 +163,16 @@ export class DataPilotPanel extends AltimateWebviewProvider {
             params as { query: string; user_request: string },
           );
 
-          this._panel!.webview.postMessage({
+          this.sendResponseToWebview({
             command: "response",
-            args: {
-              syncRequestId,
-              body: response,
-              status: true,
-            },
+            syncRequestId,
+            data: { response },
           });
         } catch (err) {
-          this._panel!.webview.postMessage({
+          this.sendResponseToWebview({
             command: "response",
-            args: {
-              syncRequestId,
-              error: (err as Error).message,
-              status: false,
-            },
+            syncRequestId,
+            error: (err as Error).message,
           });
         }
       default:
@@ -229,7 +207,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         this.handleDatapilotEvent(DatapilotEvents.QUERY_ONLOAD, payload);
         break;
       case "dbtPowerUser.openHelpInDatapilot":
-        this._panel!.webview.postMessage({
+        this.sendResponseToWebview({
           command: "datapilot:showHelp",
         });
         break;
@@ -253,10 +231,11 @@ export class DataPilotPanel extends AltimateWebviewProvider {
 
   private postToWebview(message: Record<string, unknown> | undefined) {
     if (this._panel && message) {
-      const command =
-        "command" in message ? message.command : "datapilot:message";
+      const command = (
+        "command" in message ? message.command : "datapilot:message"
+      ) as string;
 
-      this._panel.webview.postMessage({
+      this.sendResponseToWebview({
         command,
         args: message,
       });
@@ -269,7 +248,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     data?: { query?: string },
   ) {
     // reset the datapilot to start new session
-    this._panel?.webview.postMessage({
+    this.sendResponseToWebview({
       command: "datapilot:reset",
       args: {},
     });

@@ -5,6 +5,7 @@ import {
   DocsGenerateModelRequest,
   DocsGenerateResponse,
 } from "../altimate";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { RateLimitException } from "../exceptions";
 import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -50,6 +51,7 @@ export class DocGenService {
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
     private dbtProjectService: DbtProjectService,
+    private terminal: DBTTerminal,
   ) {}
 
   private async generateDocsForColumn(
@@ -212,7 +214,7 @@ export class DocGenService {
     );
   }
 
-  private getEvent(
+  private getEventByProject(
     eventMap: Map<string, ManifestCacheProjectAddedEvent>,
   ): ManifestCacheProjectAddedEvent | undefined {
     if (window.activeTextEditor === undefined || eventMap === undefined) {
@@ -220,14 +222,20 @@ export class DocGenService {
     }
 
     const currentFilePath = window.activeTextEditor.document.uri;
+    this.terminal.debug(
+      "getting event for project, currentFilePath: ",
+      currentFilePath,
+    );
     const projectRootpath =
       this.dbtProjectContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
+      this.terminal.debug("no project for currentFilePath: ", currentFilePath);
       return;
     }
 
     const event = eventMap.get(projectRootpath.fsPath);
     if (event === undefined) {
+      this.terminal.debug("no event for project: ", projectRootpath.fsPath);
       return;
     }
     return event;
@@ -466,14 +474,21 @@ export class DocGenService {
   public async getTestsData(
     eventMap: Map<string, ManifestCacheProjectAddedEvent>,
   ) {
-    const event = this.getEvent(eventMap);
+    const event = this.getEventByProject(eventMap);
     if (!event) {
       return;
     }
     const { nodeMetaMap, graphMetaMap, testMetaMap } = event;
     const tableName = this.getFilename();
+    this.terminal.info(
+      "Tests",
+      "getting tests by tableName:",
+      false,
+      tableName,
+    );
     const _node = nodeMetaMap.get(tableName);
     if (!_node) {
+      this.terminal.debug("no node for tableName:", tableName);
       return;
     }
     const key = _node.uniqueId;

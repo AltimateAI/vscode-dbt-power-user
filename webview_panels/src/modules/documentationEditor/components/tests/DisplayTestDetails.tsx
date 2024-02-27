@@ -117,14 +117,7 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
     onClose();
   };
 
-  const getDisplayContent = () => {
-    if (!test.column_name) {
-      renderCode().catch((err) =>
-        panelLogger.error("error while getting code for test", err, test),
-      );
-      return null;
-    }
-
+  const getEditableContent = () => {
     switch (test.test_metadata?.name) {
       case DbtGenericTests.UNIQUE:
       case DbtGenericTests.NOT_NULL:
@@ -133,38 +126,20 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
         return (
           <Card>
             <CardBody>
-              {isInEditMode ? (
-                <div>
-                  <p className="mb-0">Selected</p>
-                  <Tag className="mb-2" color="primary">
-                    {test.test_metadata?.name}
-                  </Tag>
-                  <AcceptedValues
-                    control={control}
-                    value={(
-                      test.test_metadata
-                        .kwargs as TestMetadataAcceptedValuesKwArgs
-                    ).values?.join(",")}
-                  />
-                  {getFooter()}
-                </div>
-              ) : (
-                <>
-                  <CardTitle className="d-flex justify-content-between">
-                    Values <Button onClick={handleEdit}>Edit</Button>
-                  </CardTitle>
-                  <ListGroup className={classes.testListGroup}>
-                    {(
-                      test.test_metadata
-                        .kwargs as TestMetadataAcceptedValuesKwArgs
-                    ).values?.map((value) => (
-                      <ListGroupItem key={value} action tag="button">
-                        {value}
-                      </ListGroupItem>
-                    ))}
-                  </ListGroup>
-                </>
-              )}
+              <div>
+                <p className="mb-0">Selected</p>
+                <Tag className="mb-2" color="primary">
+                  {test.test_metadata?.name}
+                </Tag>
+                <AcceptedValues
+                  control={control}
+                  value={(
+                    test.test_metadata
+                      .kwargs as TestMetadataAcceptedValuesKwArgs
+                  ).values?.join(",")}
+                />
+                {getFooter()}
+              </div>
             </CardBody>
           </Card>
         );
@@ -172,55 +147,83 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
         return (
           <Card>
             <CardBody>
-              {isInEditMode ? (
-                <div>
-                  <p>Selected</p>
-                  <Tag className="mb-2" color="primary">
-                    {test.test_metadata?.name}
-                  </Tag>
-                  <Relationships
-                    control={control}
-                    toValue={
-                      (
-                        test.test_metadata
-                          .kwargs as TestMetadataRelationshipsKwArgs
-                      ).to
-                    }
-                    fieldValue={
-                      (
-                        test.test_metadata
-                          .kwargs as TestMetadataRelationshipsKwArgs
-                      ).field
-                    }
-                  />
-                  {getFooter()}
-                </div>
-              ) : (
-                <>
-                  <CardTitle className="d-flex justify-content-between">
-                    Values <Button onClick={handleEdit}>Edit</Button>
-                  </CardTitle>
-                  <div>
-                    To:{" "}
-                    {
-                      (
-                        test.test_metadata
-                          .kwargs as TestMetadataRelationshipsKwArgs
-                      ).to
-                    }
-                  </div>
+              <div>
+                <p>Selected</p>
+                <Tag className="mb-2" color="primary">
+                  {test.test_metadata?.name}
+                </Tag>
+                <Relationships
+                  control={control}
+                  toValue={
+                    (
+                      test.test_metadata
+                        .kwargs as TestMetadataRelationshipsKwArgs
+                    ).to
+                  }
+                  fieldValue={
+                    (
+                      test.test_metadata
+                        .kwargs as TestMetadataRelationshipsKwArgs
+                    ).field
+                  }
+                />
+                {getFooter()}
+              </div>
+            </CardBody>
+          </Card>
+        );
 
-                  <div>
-                    Field:{" "}
-                    {
-                      (
-                        test.test_metadata
-                          .kwargs as TestMetadataRelationshipsKwArgs
-                      ).field
-                    }
-                  </div>
-                </>
-              )}
+      default:
+        return null;
+    }
+  };
+
+  const getDisplayContent = () => {
+    switch (test.test_metadata?.name) {
+      case DbtGenericTests.UNIQUE:
+      case DbtGenericTests.NOT_NULL:
+        return null;
+      case DbtGenericTests.ACCEPTED_VALUES:
+        return (
+          <Card>
+            <CardBody>
+              <CardTitle className="d-flex justify-content-between">
+                Values <Button onClick={handleEdit}>Edit</Button>
+              </CardTitle>
+              <ListGroup className={classes.testListGroup}>
+                {(
+                  test.test_metadata.kwargs as TestMetadataAcceptedValuesKwArgs
+                ).values?.map((value) => (
+                  <ListGroupItem key={value} action tag="button">
+                    {value}
+                  </ListGroupItem>
+                ))}
+              </ListGroup>
+            </CardBody>
+          </Card>
+        );
+      case DbtGenericTests.RELATIONSHIPS:
+        return (
+          <Card>
+            <CardBody>
+              <CardTitle className="d-flex justify-content-between">
+                Values <Button onClick={handleEdit}>Edit</Button>
+              </CardTitle>
+              <div>
+                To:{" "}
+                {
+                  (test.test_metadata.kwargs as TestMetadataRelationshipsKwArgs)
+                    .to
+                }
+              </div>
+
+              <div>
+                Field:{" "}
+                {
+                  (test.test_metadata.kwargs as TestMetadataRelationshipsKwArgs)
+                    .field
+                }
+              </div>
             </CardBody>
           </Card>
         );
@@ -244,7 +247,9 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
           </CardBody>
         </Card>
 
-        <form onSubmit={handleSubmit(onSubmit)}>{getDisplayContent()}</form>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          {isInEditMode ? getEditableContent() : getDisplayContent()}
+        </form>
         {testCode ? (
           <CodeBlock code={testCode} language="sql" fileName="Values" />
         ) : null}

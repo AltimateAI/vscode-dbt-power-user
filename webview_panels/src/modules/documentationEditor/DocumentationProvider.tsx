@@ -65,7 +65,7 @@ const DocumentationProvider = (): JSX.Element => {
       const { command, ...params } = event.data;
       switch (command) {
         case "renderTests":
-          panelLogger.info(event.data);
+          panelLogger.info("tests data", event.data);
           dispatch(updateCurrentDocsTests(event.data.tests));
           dispatch(setProject(event.data.project));
           break;

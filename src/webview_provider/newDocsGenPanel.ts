@@ -77,7 +77,7 @@ export class NewDocsGenPanel
 
   private async transmitTestsData() {
     const tests = await this.docGenService.getTestsData(this.eventMap);
-    this._panel?.webview.postMessage({
+    this.sendResponseToWebview({
       command: "renderTests",
       tests,
       project: this.dbtProjectService.getProject()?.getProjectName(),
@@ -89,15 +89,12 @@ export class NewDocsGenPanel
 
     switch (command) {
       case "getTestCode":
-        this._panel?.webview.postMessage({
+        this.sendResponseToWebview({
           command: "response",
-          args: {
-            syncRequestId,
-            body: {
-              code: readFileSync(args.path as string, { encoding: "utf-8" }),
-            },
-            status: true,
+          data: {
+            code: readFileSync(args.path as string, { encoding: "utf-8" }),
           },
+          syncRequestId,
         });
         break;
       case "enableNewDocsPanel":
@@ -111,28 +108,22 @@ export class NewDocsGenPanel
         const documentation = await this.docGenService.getDocumentation(
           this.eventMap,
         );
-        await this._panel.webview.postMessage({
+        this.sendResponseToWebview({
           command: "renderDocumentation",
           docs: documentation,
           project: this.dbtProjectService.getProject()?.getProjectName(),
         });
       case "getColumnsOfModel":
-        const columns = this.dbtProjectService.getColumnsFromEventMap(
-          this.eventMap,
-          args.model as string,
-        );
-        if (this._panel) {
-          this._panel.webview.postMessage({
-            command: "response",
-            args: {
-              syncRequestId,
-              body: {
-                columns: columns ? Object.keys(columns) : [],
-              },
-              status: true,
-            },
-          });
-        }
+        const columns = this.dbtProjectService
+          .getProject()
+          ?.getColumnsOfModel(args.model as string);
+        this.sendResponseToWebview({
+          command: "response",
+          data: {
+            columns: columns ? Object.keys(columns) : [],
+          },
+          syncRequestId,
+        });
         break;
       case "getModelsFromProject":
         const models = this.dbtProjectService.getModelsFromProject(
@@ -140,18 +131,13 @@ export class NewDocsGenPanel
           window.activeTextEditor?.document.uri,
         );
 
-        if (this._panel) {
-          this._panel.webview.postMessage({
-            command: "response",
-            args: {
-              syncRequestId,
-              body: {
-                models,
-              },
-              status: true,
-            },
-          });
-        }
+        this.sendResponseToWebview({
+          command: "response",
+          data: {
+            models,
+          },
+          syncRequestId,
+        });
       default:
         super.handleCommand(message);
         break;
@@ -161,7 +147,10 @@ export class NewDocsGenPanel
   protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
     switch (command) {
       case "docgen:insert":
-        this._panel!.webview.postMessage({ command, ...payload });
+        this.sendResponseToWebview({
+          command,
+          ...payload,
+        });
         break;
       case "enableNewDocsPanel":
         this.toggleDocsPanel(payload);

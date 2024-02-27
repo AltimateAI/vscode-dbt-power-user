@@ -38,6 +38,13 @@ export interface SharedStateEventEmitterProps {
   payload: Record<string, unknown>;
 }
 
+interface SendMessageProps extends Record<string, unknown> {
+  command: string;
+  syncRequestId?: string;
+  error?: string;
+  data?: unknown;
+}
+
 /**
  * This class is responsible for rendering the webview
  * Each panel needs to have its own provider which extends this class with correct viewPath and description
@@ -72,6 +79,24 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         t.onEvent(d as SharedStateEventEmitterProps),
       ),
     );
+  }
+
+  protected sendResponseToWebview({
+    command,
+    data,
+    error,
+    syncRequestId,
+    ...rest
+  }: SendMessageProps) {
+    this._panel?.webview.postMessage({
+      command,
+      args: {
+        syncRequestId,
+        body: data,
+        status: !error,
+      },
+      ...rest,
+    });
   }
 
   protected onManifestCacheChanged(event: ManifestCacheChangedEvent): void {

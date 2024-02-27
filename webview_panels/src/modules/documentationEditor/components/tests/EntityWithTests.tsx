@@ -3,7 +3,7 @@ import AddTest from "./AddTest";
 import { DBTModelTest } from "@modules/documentationEditor/state/types";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { Stack } from "@uicore";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import DisplayTestDetails from "./DisplayTestDetails";
 import classes from "../../styles.module.scss";
 
@@ -20,16 +20,20 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element => {
     setSelectedTest(null);
   };
 
-  const getCurrentTests = () =>
-    tests
-      ?.map((t) => t.test_metadata?.name)
-      .filter((item): item is string => !!item);
+  const currentTests = useMemo(
+    () =>
+      tests
+        ?.map((t) => t.test_metadata?.name)
+        .filter((item): item is string => !!item),
+    [tests],
+  );
+
   return (
     <div className={classes.entityTests}>
       <h5>
         {title}
         {type === EntityType.COLUMN ? (
-          <AddTest title={title} currentTests={getCurrentTests()} />
+          <AddTest title={title} currentTests={currentTests} />
         ) : null}
       </h5>
       <Stack>

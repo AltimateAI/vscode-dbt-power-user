@@ -257,7 +257,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   private getTestDataByColumn(message: any, columnName: string) {
     const tests = message.tests as undefined | TestMetaData[];
 
-    if (!tests) {
+    if (!tests?.length) {
+      this.terminal.debug("No test data passed");
       return;
     }
 
@@ -285,6 +286,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         }
         return test.test_metadata?.name;
       });
+
+    this.terminal.info("tests", "test data passed", false, data, columnName);
 
     if (!data.length) {
       return;

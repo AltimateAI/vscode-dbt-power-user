@@ -1,5 +1,4 @@
-import path = require("path");
-import { CompletionItemKind, Uri, window } from "vscode";
+import { Uri, window } from "vscode";
 import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
@@ -10,31 +9,12 @@ export class DbtProjectService {
   public constructor(protected dbtProjectContainer: DBTProjectContainer) {}
 
   public getProject(): DBTProject | undefined {
-    if (!window.activeTextEditor) {
-      return undefined;
+    if (!window.activeTextEditor?.document.uri) {
+      return;
     }
-    const currentFilePath = window.activeTextEditor.document.uri;
-    return this.dbtProjectContainer.findDBTProject(currentFilePath);
-  }
-
-  public getColumnsFromEventMap(
-    eventMap: Map<string, ManifestCacheProjectAddedEvent>,
-    modelName: string,
-  ) {
-    const project = this.getProject();
-    if (project === undefined) {
-      return undefined;
-    }
-    const event = eventMap.get(project.projectRoot.fsPath);
-    if (event === undefined) {
-      return undefined;
-    }
-    const currentNode = event.nodeMetaMap.get(modelName);
-    if (currentNode === undefined) {
-      return undefined;
-    }
-
-    return currentNode.columns;
+    return this.dbtProjectContainer.findDBTProject(
+      window.activeTextEditor.document.uri,
+    );
   }
 
   public getModelsFromProject(

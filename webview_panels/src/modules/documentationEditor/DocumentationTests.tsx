@@ -36,7 +36,7 @@ const DocumentationTests = (): JSX.Element => {
             tests={modelTests}
             type={EntityType.MODEL}
           />
-          <Stack className={classes.columnHeader}>
+          <Stack>
             <h3>Columns</h3>
             <div>
               <SyncWithDatabase />
