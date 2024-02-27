@@ -49,6 +49,7 @@ export class DBTProjectContainer implements Disposable {
   }>();
   readonly onRebuildManifestStatusChange =
     this._onRebuildManifestStatusChange.event;
+  private rebuildManifestStatusChangeMap = new Map<Uri, boolean>();
 
   constructor(
     private dbtClient: DBTClient,
@@ -350,8 +351,11 @@ export class DBTProjectContainer implements Disposable {
     );
     this.disposables.push(
       dbtProjectWorkspaceFolder.onRebuildManifestStatusChange((e) => {
+        this.rebuildManifestStatusChangeMap.set(e.uri, e.inProgress);
         this._onRebuildManifestStatusChange.fire({
-          inProgress: e.inProgress,
+          inProgress: Array.from(
+            this.rebuildManifestStatusChangeMap.values(),
+          ).some((b) => b),
         });
       }),
     );

@@ -25,7 +25,10 @@ import {
   setupWatcherHandler,
 } from "../utils";
 import { QueryResultPanel } from "../webview_provider/queryResultPanel";
-import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
+import {
+  ManifestCacheChangedEvent,
+  RebuildManifestStatusChange,
+} from "./event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 import { DBTProjectLog, DBTProjectLogFactory } from "./modules/dbtProjectLog";
 import {
@@ -74,9 +77,8 @@ export class DBTProject implements Disposable {
   private readonly projectConfigDiagnostics =
     languages.createDiagnosticCollection("dbt");
   public readonly projectHealth = languages.createDiagnosticCollection("dbt");
-  private _onRebuildManifestStatusChange = new EventEmitter<{
-    inProgress: boolean;
-  }>();
+  private _onRebuildManifestStatusChange =
+    new EventEmitter<RebuildManifestStatusChange>();
   readonly onRebuildManifestStatusChange =
     this._onRebuildManifestStatusChange.event;
 
@@ -265,9 +267,15 @@ export class DBTProject implements Disposable {
   }
 
   private async rebuildManifest() {
-    this._onRebuildManifestStatusChange.fire({ inProgress: true });
+    this._onRebuildManifestStatusChange.fire({
+      uri: this.projectRoot,
+      inProgress: true,
+    });
     await this.dbtProjectIntegration.rebuildManifest();
-    this._onRebuildManifestStatusChange.fire({ inProgress: false });
+    this._onRebuildManifestStatusChange.fire({
+      uri: this.projectRoot,
+      inProgress: false,
+    });
   }
 
   runModel(runModelParams: RunModelParams) {

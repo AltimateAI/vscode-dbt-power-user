@@ -29,3 +29,8 @@ export interface ManifestCacheChangedEvent {
   added?: ManifestCacheProjectAddedEvent[];
   removed?: ManifestCacheProjectRemovedEvent[];
 }
+
+export interface RebuildManifestStatusChange {
+  inProgress: boolean;
+  uri: Uri;
+}

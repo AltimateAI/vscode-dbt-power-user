@@ -15,7 +15,10 @@ import {
   WorkspaceFolder,
 } from "vscode";
 import { DBTProject } from "./dbtProject";
-import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
+import {
+  ManifestCacheChangedEvent,
+  RebuildManifestStatusChange,
+} from "./event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
 import { YAMLError } from "yaml";
 import { ProjectRegisteredUnregisteredEvent } from "./dbtProjectContainer";
@@ -29,9 +32,8 @@ export class DBTWorkspaceFolder implements Disposable {
     languages.createDiagnosticCollection("dbt");
   private dbtProjects: DBTProject[] = [];
   private disposables: Disposable[] = [];
-  private _onRebuildManifestStatusChange = new EventEmitter<{
-    inProgress: boolean;
-  }>();
+  private _onRebuildManifestStatusChange =
+    new EventEmitter<RebuildManifestStatusChange>();
   readonly onRebuildManifestStatusChange =
     this._onRebuildManifestStatusChange.event;
 
@@ -170,9 +172,7 @@ export class DBTWorkspaceFolder implements Disposable {
       );
       this.disposables.push(
         dbtProject.onRebuildManifestStatusChange((e) => {
-          this._onRebuildManifestStatusChange.fire({
-            inProgress: e.inProgress,
-          });
+          this._onRebuildManifestStatusChange.fire(e);
         }),
       );
       await dbtProject.initialize();
