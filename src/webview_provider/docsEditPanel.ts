@@ -262,9 +262,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       return;
     }
 
-    const data = tests
-      .filter((test) => test.column_name === columnName)
-      .map((test) => {
+    const columnTests = tests.filter((test) => test.column_name === columnName);
+
+    const filteredTests = columnTests
+      .map((test, i) => {
         if (
           test.test_metadata?.name === "relationships" &&
           test.test_metadata.kwargs.field &&
@@ -281,13 +282,35 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
         if (test.test_metadata?.name === "accepted_values") {
           return {
-            accepted_values: test.test_metadata.kwargs.values,
+            accepted_values: { values: test.test_metadata.kwargs.values },
           };
         }
         return test.test_metadata?.name;
-      });
+      })
+      // Filter duplicate values
+      .reduce((acc: Record<string, any>, test) => {
+        if (!test) {
+          return acc;
+        }
+        if (typeof test === "string") {
+          acc[test] = test;
+          return acc;
+        }
 
-    this.terminal.info("tests", "test data passed", false, data, columnName);
+        if (test.accepted_values) {
+          acc["accepted_values"] = { accepted_values: test.accepted_values };
+          return acc;
+        }
+
+        if (test.relationships) {
+          acc["relationships"] = { relationships: test.relationships };
+          return acc;
+        }
+        return acc;
+      }, {});
+
+    const data = Object.values(filteredTests);
+    this.terminal.info("tests", "test data", false, data, columnName);
 
     if (!data.length) {
       return;
