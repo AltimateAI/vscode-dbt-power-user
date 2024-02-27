@@ -21,6 +21,7 @@ import { YAMLError } from "yaml";
 import { ProjectRegisteredUnregisteredEvent } from "./dbtProjectContainer";
 import { DBTCoreProjectDetection } from "../dbt_client/dbtCoreIntegration";
 import { DBTCloudProjectDetection } from "../dbt_client/dbtCloudIntegration";
+import { DBTProjectDetection } from "../dbt_client/dbtIntegration";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
@@ -28,6 +29,11 @@ export class DBTWorkspaceFolder implements Disposable {
     languages.createDiagnosticCollection("dbt");
   private dbtProjects: DBTProject[] = [];
   private disposables: Disposable[] = [];
+  private _onRebuildManifestStatusChange = new EventEmitter<{
+    inProgress: boolean;
+  }>();
+  readonly onRebuildManifestStatusChange =
+    this._onRebuildManifestStatusChange.event;
 
   constructor(
     @inject("DBTProjectFactory")
@@ -101,7 +107,7 @@ export class DBTWorkspaceFolder implements Disposable {
       .getConfiguration("dbt")
       .get<string>("dbtIntegration", "core");
 
-    let dbtProjectDetection;
+    let dbtProjectDetection: DBTProjectDetection;
     switch (dbtIntegrationMode) {
       case "cloud":
         dbtProjectDetection = this.dbtCloudProjectDetection;
@@ -161,6 +167,13 @@ export class DBTWorkspaceFolder implements Disposable {
         uri,
         projectConfig,
         this._onManifestChanged,
+      );
+      this.disposables.push(
+        dbtProject.onRebuildManifestStatusChange((e) => {
+          this._onRebuildManifestStatusChange.fire({
+            inProgress: e.inProgress,
+          });
+        }),
       );
       await dbtProject.initialize();
       this.dbtProjects.push(dbtProject);

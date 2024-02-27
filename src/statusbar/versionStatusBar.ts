@@ -52,18 +52,18 @@ export class VersionStatusBar implements Disposable {
   private async onDBTInstallationVerification(
     event: DBTInstallationVerificationEvent,
   ) {
-    // if (event.inProgress === true) {
-    //   this.showTextInStatusBar("$(sync~spin) Detecting dbt");
-    //   return;
-    // }
-    // if (!event.installed) {
-    //   this.showTextInStatusBar(
-    //     "$(error) dbt is not installed",
-    //     // "statusBarItem.errorBackground",
-    //   );
-    //   return;
-    // }
-    // this.showTextInStatusBar(`$(check) dbt`);
+    if (event.inProgress === true) {
+      this.showTextInStatusBar("$(sync~spin) Detecting dbt");
+      return;
+    }
+    if (!event.installed) {
+      this.showTextInStatusBar(
+        "$(error) dbt is not installed",
+        // "statusBarItem.errorBackground",
+      );
+      return;
+    }
+    this.showTextInStatusBar(`$(check) dbt`);
   }
 
   private showTextInStatusBar(
