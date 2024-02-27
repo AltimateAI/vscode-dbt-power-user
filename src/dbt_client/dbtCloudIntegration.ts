@@ -143,6 +143,7 @@ export class DBTCloudProjectIntegration
   private rebuildManifestCancellationTokenSource:
     | CancellationTokenSource
     | undefined;
+  private isAuthenticated = false;
 
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
@@ -175,6 +176,28 @@ export class DBTCloudProjectIntegration
       this.rebuildManifestDiagnostics,
       this.pythonBridgeDiagnostics,
     );
+    this.checkConnectivity();
+  }
+
+  throwIfNotAuthenticated() {
+    if (!this.isAuthenticated) {
+      throw new Error("Unable to connect with altimate backend");
+    }
+  }
+
+  async checkConnectivity() {
+    const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
+    const instance = workspace
+      .getConfiguration("dbt")
+      .get<string>("altimateInstanceName");
+    if (!key || !instance) {
+      return;
+    }
+    const validation = await this.altimate.validateCredentials(instance, key);
+    if (!validation?.ok) {
+      return;
+    }
+    this.isAuthenticated = true;
   }
 
   async refreshProjectConfig(): Promise<void> {
@@ -182,6 +205,7 @@ export class DBTCloudProjectIntegration
   }
 
   async executeSQL(query: string, limit: number): Promise<QueryExecution> {
+    this.throwIfNotAuthenticated();
     const showCommand = this.dbtCloudCommand(
       new DBTCommand("Running sql...", [
         "show",
@@ -365,11 +389,13 @@ export class DBTCloudProjectIntegration
   }
 
   private addCommandToQueue(queueName: string, command: DBTCommand) {
+    this.throwIfNotAuthenticated();
     this.executionInfrastructure.addCommandToQueue(queueName, command);
   }
 
   // internal commands
   async unsafeCompileNode(modelName: string): Promise<string | undefined> {
+    this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Compiling model...", [
         "compile",
@@ -395,6 +421,7 @@ export class DBTCloudProjectIntegration
   }
 
   async unsafeCompileQuery(query: string): Promise<string | undefined> {
+    this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Compiling sql...", [
         "compile",
@@ -424,6 +451,7 @@ export class DBTCloudProjectIntegration
     dialect: string,
     models: any,
   ): Promise<ValidateSqlParseErrorResponse> {
+    this.throwIfNotAuthenticated();
     const result = await this.python?.lock<ValidateSqlParseErrorResponse>(
       (python) =>
         python!`to_dict(validate_sql(${query}, ${dialect}, ${models}))`,
@@ -432,6 +460,7 @@ export class DBTCloudProjectIntegration
   }
 
   async validateSQLDryRun(query: string): Promise<{ bytes_processed: string }> {
+    this.throwIfNotAuthenticated();
     const validateSqlCommand = this.dbtCloudCommand(
       new DBTCommand("Estimating BigQuery cost...", [
         "compile",
@@ -460,6 +489,7 @@ export class DBTCloudProjectIntegration
     sourceName: string,
     tableName: string,
   ): Promise<{ [key: string]: string }[]> {
+    this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting columns of source...", [
         "compile",
@@ -487,6 +517,7 @@ export class DBTCloudProjectIntegration
   async getColumnsOfModel(
     modelName: string,
   ): Promise<{ [key: string]: string }[]> {
+    this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting columns of model...", [
         "compile",
@@ -512,6 +543,7 @@ export class DBTCloudProjectIntegration
   }
 
   async getCatalog(): Promise<{ [key: string]: string }[]> {
+    this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting catalog...", [
         "compile",
