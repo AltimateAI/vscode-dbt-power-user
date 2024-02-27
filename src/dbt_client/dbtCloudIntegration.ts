@@ -26,6 +26,7 @@ import { AltimateRequest, ValidateSqlParseErrorResponse } from "../altimate";
 import path = require("path");
 import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
+import { DBTTerminal } from "./dbtTerminal";
 
 @provideSingleton(DBTCloudDetection)
 export class DBTCloudDetection implements DBTDetection {
@@ -118,6 +119,7 @@ export class DBTCloudProjectIntegration
     ) => DBTCommandExecutionStrategy,
     private altimate: AltimateRequest,
     private telemetry: TelemetryService,
+    private dbtTerminal: DBTTerminal,
     private projectRoot: Uri,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
@@ -129,7 +131,7 @@ export class DBTCloudProjectIntegration
     this.executionInfrastructure.createQueue(
       DBTCloudProjectIntegration.QUEUE_OTHERS,
     );
-    console.log(`Registering dbt cloud project ${this.projectRoot}`);
+    this.dbtTerminal.log("Registering dbt cloud project" + this.projectRoot);
 
     this.disposables.push(
       this.rebuildManifestDiagnostics,

@@ -21,6 +21,7 @@ import {
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
 import { DocsGenPanelView } from "./docsEditPanel";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 @provideSingleton(NewDocsGenPanel)
 export class NewDocsGenPanel
@@ -38,6 +39,7 @@ export class NewDocsGenPanel
     private docGenService: DocGenService,
     protected emitterService: SharedStateService,
     protected dbtProjectService: DbtProjectService,
+    private dbtTerminal: DBTTerminal,
   ) {
     super(dbtProjectContainer, altimateRequest, telemetry, emitterService);
 

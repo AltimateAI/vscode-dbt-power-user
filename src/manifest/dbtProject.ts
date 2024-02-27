@@ -571,7 +571,7 @@ export class DBTProject implements Disposable {
           sourceName,
           tableName,
         );
-        console.log(columnsInRelation);
+        this.terminal.log("generateModel", columnsInRelation);
 
         const fileContents = `with source as (
       select * from {{ source('${sourceName}', '${tableName}') }}

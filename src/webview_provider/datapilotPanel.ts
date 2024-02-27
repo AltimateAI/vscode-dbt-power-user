@@ -12,6 +12,7 @@ import { AltimateRequest, QueryAnalysisType } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
 import { QueryAnalysisService } from "../services/queryAnalysisService";
 import { DbtProjectService } from "../services/dbtProjectService";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 enum DatapilotEvents {
   QUERY_EXPLAIN_ONLOAD = "queryAnalysis:load:explain",
@@ -34,8 +35,15 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     protected emitterService: SharedStateService,
     protected queryAnalysisService: QueryAnalysisService,
     private dbtProjectService: DbtProjectService,
+    dbtTerminal: DBTTerminal,
   ) {
-    super(dbtProjectContainer, altimateRequest, telemetry, emitterService);
+    super(
+      dbtProjectContainer,
+      altimateRequest,
+      telemetry,
+      emitterService,
+      dbtTerminal,
+    );
 
     commands.registerCommand("dbtPowerUser.resetDatapilot", () =>
       this.sendResponseToWebview({

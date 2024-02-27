@@ -3,6 +3,8 @@ import { EnvironmentVariables } from "../domain";
 import { provideSingleton, substituteSettingsVariables } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { CustomPythonException } from "../dbt_client/exception";
 
 interface PythonExecutionDetails {
   getPythonPath: () => string;
@@ -18,6 +20,7 @@ export class PythonEnvironment implements Disposable {
   constructor(
     private telemetry: TelemetryService,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
+    private dbtTerminal: DBTTerminal,
   ) {}
 
   dispose() {
@@ -144,12 +147,10 @@ export class PythonEnvironment implements Disposable {
               ),
             };
           }
-        } catch (e) {
-          this.telemetry.sendTelemetryError(
-            "vsCodeApiEnvironmentVariablesNotLoading",
-            e,
+        } catch (e: any) {
+          this.dbtTerminal.error(
+            new CustomPythonException("Could not call environment api", e),
           );
-          console.error("Could not call environment api", e);
         }
 
         return envVars;

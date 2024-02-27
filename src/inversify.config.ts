@@ -89,6 +89,7 @@ container
           container.get(TelemetryService),
           container.get(PythonDBTCommandExecutionStrategy),
           container.get(DBTProjectContainer),
+          container.get(DBTTerminal),
           projectRoot,
           projectConfigDiagnostics,
         );
@@ -129,6 +130,7 @@ container
           container.get("Factory<CLIDBTCommandExecutionStrategy>"),
           container.get(AltimateRequest),
           container.get(TelemetryService),
+          container.get(DBTTerminal),
           projectRoot,
         );
       };
