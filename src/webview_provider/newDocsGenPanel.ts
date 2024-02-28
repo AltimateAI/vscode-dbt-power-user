@@ -122,6 +122,9 @@ export class NewDocsGenPanel
           command: "renderDocumentation",
           docs: documentation,
           project: this.dbtProjectService.getProject()?.getProjectName(),
+          testsEnabled: workspace
+            .getConfiguration("dbt")
+            .get<boolean>("enableTests", false),
         });
       case "getColumnsOfModel":
         const columns = this.dbtProjectService

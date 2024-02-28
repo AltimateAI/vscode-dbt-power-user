@@ -18,6 +18,7 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element => {
   const drawerRef = useRef<DrawerRef | null>(null);
   const handleClose = () => {
     setSelectedTest(null);
+    drawerRef.current?.close();
   };
 
   const onSelect = (test: DBTModelTest) => {
