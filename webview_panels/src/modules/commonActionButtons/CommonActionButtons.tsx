@@ -5,6 +5,8 @@ import { vscode } from "@vscodeApi";
 import { Alert, Button, Stack } from "@uicore";
 import { executeRequestInAsync } from "../app/requestExecutor";
 import { FC, useEffect, useState } from "react";
+import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
+import { Pages } from "@modules/documentationEditor/state/types";
 
 const AutoCollapsingNotif: FC<{ text: string; delay: number }> = ({
   text,
@@ -29,6 +31,10 @@ const AutoCollapsingNotif: FC<{ text: string; delay: number }> = ({
 };
 
 const CommonActionButtons = (): JSX.Element => {
+  const {
+    state: { activePage },
+  } = useDocumentationContext();
+  
   const showOldUx = () => {
     executeRequestInAsync("enableNewDocsPanel", { enable: false });
   };
@@ -42,15 +48,18 @@ const CommonActionButtons = (): JSX.Element => {
 
   return (
     <Stack className="align-items-center text-nowrap">
-      <AutoCollapsingNotif
-        text="New language support added! (Check Settings)"
-        delay={10000}
-      />
-      <Button outline onClick={showOldUx}>
-        Show legacy UX
-      </Button>
-      <DocGeneratorSettings />
-
+      {activePage === Pages.DOCUMENTATION ? (
+        <>
+          <AutoCollapsingNotif
+            text="New language support added! (Check Settings)"
+            delay={10000}
+          />
+          <Button outline onClick={showOldUx}>
+            Show legacy UX
+          </Button>
+          <DocGeneratorSettings />
+        </>
+      ) : null}
       <HelpButton />
       <Button outline onClick={handleFeedbackClick}>
         <FeedbackIcon /> Feedback

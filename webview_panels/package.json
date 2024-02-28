@@ -41,7 +41,6 @@
     "@storybook/addon-essentials": "^7.6.6",
     "@storybook/addon-interactions": "^7.6.6",
     "@storybook/addon-links": "^7.6.6",
-    "@storybook/addon-onboarding": "^1.0.10",
     "@storybook/blocks": "^7.6.6",
     "@storybook/builder-vite": "^7.6.6",
     "@storybook/jest": "^0.2.3",

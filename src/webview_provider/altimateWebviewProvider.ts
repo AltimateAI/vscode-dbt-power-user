@@ -146,6 +146,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     try {
       switch (command) {
+        case "openFile":
+          workspace.openTextDocument(params.path as string).then((doc) => {
+            window.showTextDocument(doc);
+          });
+          break;
         case "webview:ready":
           this.onWebviewReady();
           break;

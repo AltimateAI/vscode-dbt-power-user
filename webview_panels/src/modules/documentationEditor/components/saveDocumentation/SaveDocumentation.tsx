@@ -5,13 +5,14 @@ import { Button, IconButton, Popover, PopoverBody, List, Stack } from "@uicore";
 import { useEffect, useState } from "react";
 import { setIsDocGeneratedForAnyColumn } from "@modules/documentationEditor/state/documentationSlice";
 import classes from "../../styles.module.scss";
+import { Pages } from "@modules/documentationEditor/state/types";
 
 const SaveDocumentation = (): JSX.Element | null => {
   const [patchPath, setPatchPath] = useState("");
   const [dialogType, setDialogType] = useState("");
   const [openPopover, setOpenPopover] = useState(false);
   const {
-    state: { currentDocsData, isDocGeneratedForAnyColumn, currentDocsTests },
+    state: { currentDocsData, isDocGeneratedForAnyColumn, currentDocsTests, activePage },
     dispatch,
   } = useDocumentationContext();
 
@@ -55,7 +56,7 @@ const SaveDocumentation = (): JSX.Element | null => {
 
   return (
     <Stack direction="row" className={classes.save}>
-      <h4>Save documentation</h4>
+      <h4>{activePage === Pages.DOCUMENTATION ? "Save documentation" : "Save tests"}</h4>
       <p>{currentDocsData?.patchPath ?? "Write path"}</p>
 
       {currentDocsData?.patchPath ? null : (

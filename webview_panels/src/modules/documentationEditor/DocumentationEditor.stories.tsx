@@ -13,7 +13,7 @@ import { DocumentationStateProps, Pages } from "./state/types";
 const meta = {
   title: "Documentation Editor",
   parameters: {
-    layout: "left",
+    layout: "padded",
   },
   tags: ["autodocs"],
   argTypes: {
