@@ -31,11 +31,11 @@ export interface ManifestCacheChangedEvent {
 }
 
 export interface RebuildManifestStatusChange {
-  projectName: string;
+  project: DBTProject;
   inProgress: boolean;
 }
 
 export interface RebuildManifestCombinedStatusChange {
-  projectNames: string[];
+  projects: DBTProject[];
   inProgress: boolean;
 }

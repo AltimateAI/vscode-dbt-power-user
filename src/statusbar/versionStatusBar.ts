@@ -49,8 +49,10 @@ export class VersionStatusBar implements Disposable {
       this.showTextInStatusBar(`$(check) dbt`);
       return;
     }
-    if (event.projectNames.length === 1) {
-      this.showTextInStatusBar(`$(sync~spin) Parsing ${event.projectNames[0]}`);
+    if (event.projects.length === 1) {
+      this.showTextInStatusBar(
+        `$(sync~spin) Parsing ${event.projects[0].getProjectName()}`,
+      );
       return;
     }
     this.showTextInStatusBar("$(sync~spin) Parsing manifests");

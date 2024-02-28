@@ -175,12 +175,12 @@ export class DBTWorkspaceFolder implements Disposable {
           this._onRebuildManifestStatusChange.fire(e);
         }),
       );
-      await dbtProject.initialize();
       this.dbtProjects.push(dbtProject);
       // sorting the dbt projects descending by path ensures that we find the deepest path first
       this.dbtProjects.sort(
         (a, b) => -a.projectRoot.fsPath.localeCompare(b.projectRoot.fsPath),
       );
+      await dbtProject.initialize();
       this.projectDiscoveryDiagnostics.clear();
       this._onProjectRegisteredUnregistered.fire({
         root: uri,

@@ -268,12 +268,12 @@ export class DBTProject implements Disposable {
 
   private async rebuildManifest() {
     this._onRebuildManifestStatusChange.fire({
-      projectName: this.projectConfig.name,
+      project: this,
       inProgress: true,
     });
     await this.dbtProjectIntegration.rebuildManifest();
     this._onRebuildManifestStatusChange.fire({
-      projectName: this.projectConfig.name,
+      project: this,
       inProgress: false,
     });
   }
