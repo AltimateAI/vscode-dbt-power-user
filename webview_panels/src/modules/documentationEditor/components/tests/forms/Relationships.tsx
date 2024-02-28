@@ -43,13 +43,15 @@ const Relationships = ({
   return (
     <div>
       <div>
-        <Label>To</Label>
+        <Label htmlFor="relationship-to">To</Label>
         <Controller
           control={control}
           name="to"
           render={({ field: { onChange, ref, value } }) => (
             <Select
+              inputId="relationship-to"
               ref={ref}
+              openMenuOnFocus
               options={toModelOptions}
               value={toModelOptions.find((c) => c.value === value)}
               defaultValue={
@@ -70,13 +72,15 @@ const Relationships = ({
         />
       </div>
       <div>
-        <Label>Field</Label>
+        <Label htmlFor="relationship-field">Field</Label>
         <Controller
           control={control}
           name="field"
           render={({ field: { onChange, ref, value } }) => (
             <Select
+              inputId="relationship-field"
               ref={ref}
+              openMenuOnFocus
               options={toFieldOptions}
               defaultValue={
                 fieldValue

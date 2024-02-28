@@ -29,10 +29,13 @@ const useTestFormSave = (): {
       | Partial<TestMetadataAcceptedValuesKwArgs>
       | Partial<TestMetadataRelationshipsKwArgs>,
     type: DbtGenericTests,
+    column: string,
   ) => {
     const temp = [...testsData];
     const currentIndex = temp.findIndex(
-      (test: DBTModelTest) => test.test_metadata?.name === type,
+      (test: DBTModelTest) =>
+        test.test_metadata?.name === type &&
+        test.test_metadata.kwargs.column_name === column,
     );
     if (currentIndex > -1) {
       temp[currentIndex] = {
@@ -86,6 +89,7 @@ const useTestFormSave = (): {
         testsData,
         { values: newValues ?? [] },
         DbtGenericTests.ACCEPTED_VALUES,
+        column,
       );
     }
 
@@ -97,6 +101,7 @@ const useTestFormSave = (): {
           field: data.field,
         },
         DbtGenericTests.RELATIONSHIPS,
+        column,
       );
     }
     return testsData;

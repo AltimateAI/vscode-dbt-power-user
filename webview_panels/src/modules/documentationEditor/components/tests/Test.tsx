@@ -22,7 +22,10 @@ const Test = ({ test, onSelect }: Props): JSX.Element => {
   };
 
   return (
-    <Tooltip title={isEditableTest ? "Click to view details" : ""}>
+    <Tooltip
+      title={isEditableTest ? "Click to view details" : ""}
+      id={`tooltip-${test.column_name ?? ""}-${test.test_metadata?.name ?? ""}`}
+    >
       <Tag
         color="primary"
         key={test.key}

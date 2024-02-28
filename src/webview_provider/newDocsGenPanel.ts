@@ -127,13 +127,13 @@ export class NewDocsGenPanel
             .get<boolean>("enableTests", false),
         });
       case "getColumnsOfModel":
-        const columns = this.dbtProjectService
+        const columns = await this.dbtProjectService
           .getProject()
           ?.getColumnsOfModel(args.model as string);
         this.sendResponseToWebview({
           command: "response",
           data: {
-            columns: columns ? Object.keys(columns) : [],
+            columns: columns ? columns.map((c) => c.column) : [],
           },
           syncRequestId,
         });
