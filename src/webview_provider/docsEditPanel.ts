@@ -257,7 +257,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     }
     this.onMessageDisposable = this._panel!.webview.onDidReceiveMessage(
       async (message) => {
-        this.terminal.debug("docsEditPanel:setupWebviewHooks", message);
+        this.terminal.debug(
+          "docsEditPanel:setupWebviewHooks",
+          "onDidReceiveMessage",
+          message,
+        );
         if (
           window.activeTextEditor === undefined ||
           this.eventMap === undefined
