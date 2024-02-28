@@ -21,24 +21,44 @@ import {
 } from "./dbtIntegration";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonBridge } from "python-bridge";
-import { join } from "path";
+import { join, dirname } from "path";
 import { AltimateRequest, ValidateSqlParseErrorResponse } from "../altimate";
 import path = require("path");
 import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./dbtTerminal";
+import { PythonEnvironment } from "../manifest/pythonEnvironment";
+import { existsSync } from "fs";
+
+function getDBTPath(
+  pythonEnvironment: PythonEnvironment,
+  terminal: DBTTerminal,
+): string {
+  if (pythonEnvironment.pythonPath) {
+    const dbtPythonPath = join(dirname(pythonEnvironment.pythonPath), "dbt");
+    if (existsSync(dbtPythonPath)) {
+      terminal.debug("Found dbt path in Python bin directory:", dbtPythonPath);
+      return dbtPythonPath;
+    }
+  }
+  terminal.debug("Using default dbt path:", "dbt");
+  return "dbt";
+}
 
 @provideSingleton(DBTCloudDetection)
 export class DBTCloudDetection implements DBTDetection {
   constructor(
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
+    private pythonEnvironment: PythonEnvironment,
+    private terminal: DBTTerminal,
   ) {}
 
   async detectDBT(): Promise<boolean> {
+    const dbtPath = getDBTPath(this.pythonEnvironment, this.terminal);
     try {
       const checkDBTInstalledProcess =
         this.commandProcessExecutionFactory.createCommandProcessExecution({
-          command: "dbt",
+          command: dbtPath,
           args: ["--version"],
           cwd: this.getFirstWorkspacePath(),
         });
@@ -94,14 +114,14 @@ export class DBTCloudProjectDetection
 export class DBTCloudProjectIntegration
   implements DBTProjectIntegration, Disposable
 {
-  private static QUEUE_MANIFEST = "manifest";
-  private static QUEUE_OTHERS = "others";
+  private static QUEUE_ALL = "all";
   private targetPath?: string;
   private adapterType: string = "unknown";
   private packagesInstallPath?: string;
   private modelPaths?: string[];
   private macroPaths?: string[];
   private python: PythonBridge;
+  private dbtPath: string = "dbt";
   private disposables: Disposable[] = [];
   private readonly rebuildManifestDiagnostics =
     languages.createDiagnosticCollection("dbt");
@@ -116,24 +136,29 @@ export class DBTCloudProjectIntegration
     private dbtCommandFactory: DBTCommandFactory,
     private cliDBTCommandExecutionStrategyFactory: (
       path: Uri,
+      dbtPath: string,
     ) => DBTCommandExecutionStrategy,
     private altimate: AltimateRequest,
     private telemetry: TelemetryService,
-    private dbtTerminal: DBTTerminal,
+    private pythonEnvironment: PythonEnvironment,
+    private terminal: DBTTerminal,
     private projectRoot: Uri,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
     this.executionInfrastructure.createQueue(
-      DBTCloudProjectIntegration.QUEUE_MANIFEST,
+      DBTCloudProjectIntegration.QUEUE_ALL,
     );
-    this.executionInfrastructure.createQueue(
-      DBTCloudProjectIntegration.QUEUE_OTHERS,
-    );
-    this.dbtTerminal.log("Registering dbt cloud project" + this.projectRoot);
+    this.terminal.log("Registering dbt cloud project" + this.projectRoot);
 
     this.disposables.push(
+      this.pythonEnvironment.onPythonEnvironmentChanged(() => {
+        this.python = this.executionInfrastructure.createPythonBridge(
+          this.projectRoot.fsPath,
+        );
+        this.initializeProject();
+      }),
       this.rebuildManifestDiagnostics,
       this.pythonBridgeDiagnostics,
     );
@@ -143,12 +168,14 @@ export class DBTCloudProjectIntegration
     await this.initializePaths();
   }
 
-  async executeSQL(query: string): Promise<QueryExecution> {
+  async executeSQL(query: string, limit: number): Promise<QueryExecution> {
     const showCommand = this.dbtCloudCommand(
       new DBTCommand("Running sql...", [
         "show",
         "--inline",
         query,
+        "--limit",
+        limit.toString(),
         "--output",
         "json",
         "--log-format",
@@ -199,9 +226,10 @@ export class DBTCloudProjectIntegration
     } catch (error) {
       // TODO: telemetry + better error
       window.showErrorMessage(
-        "Error occurred while importing validate_sql: " + error,
+        "Error occurred while initializing Python environment: " + error,
       );
     }
+    this.dbtPath = getDBTPath(this.pythonEnvironment, this.terminal);
     this.altimate.handlePreviewFeatures();
   }
 
@@ -265,42 +293,42 @@ export class DBTCloudProjectIntegration
 
   async runModel(command: DBTCommand) {
     this.addCommandToQueue(
-      DBTCloudProjectIntegration.QUEUE_OTHERS,
+      DBTCloudProjectIntegration.QUEUE_ALL,
       this.dbtCloudCommand(command),
     );
   }
 
   async buildModel(command: DBTCommand) {
     this.addCommandToQueue(
-      DBTCloudProjectIntegration.QUEUE_OTHERS,
+      DBTCloudProjectIntegration.QUEUE_ALL,
       this.dbtCloudCommand(command),
     );
   }
 
   async runTest(command: DBTCommand) {
     this.addCommandToQueue(
-      DBTCloudProjectIntegration.QUEUE_OTHERS,
+      DBTCloudProjectIntegration.QUEUE_ALL,
       this.dbtCloudCommand(command),
     );
   }
 
   async runModelTest(command: DBTCommand) {
     this.addCommandToQueue(
-      DBTCloudProjectIntegration.QUEUE_OTHERS,
+      DBTCloudProjectIntegration.QUEUE_ALL,
       this.dbtCloudCommand(command),
     );
   }
 
   async compileModel(command: DBTCommand) {
     this.addCommandToQueue(
-      DBTCloudProjectIntegration.QUEUE_OTHERS,
+      DBTCloudProjectIntegration.QUEUE_ALL,
       this.dbtCloudCommand(command),
     );
   }
 
   async generateDocs(command: DBTCommand) {
     this.addCommandToQueue(
-      DBTCloudProjectIntegration.QUEUE_OTHERS,
+      DBTCloudProjectIntegration.QUEUE_ALL,
       this.dbtCloudCommand(command),
     );
   }
@@ -315,7 +343,10 @@ export class DBTCloudProjectIntegration
 
   private dbtCloudCommand(command: DBTCommand) {
     command.setExecutionStrategy(
-      this.cliDBTCommandExecutionStrategyFactory(this.projectRoot),
+      this.cliDBTCommandExecutionStrategyFactory(
+        this.projectRoot,
+        this.dbtPath,
+      ),
     );
     return command;
   }
