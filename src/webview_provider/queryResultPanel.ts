@@ -319,7 +319,10 @@ export class QueryResultPanel implements WebviewViewProvider {
   }
 
   /** Runs a query transmitting appropriate notifications to webview */
-  public async executeQuery(query: string, queryExecution: QueryExecution) {
+  public async executeQuery(
+    query: string,
+    queryExecutionPromise: Promise<QueryExecution>,
+  ) {
     //using id to focus on the webview is more reliable than using the view title
     await commands.executeCommand("dbtPowerUser.PreviewResults.focus");
     if (this._panel) {
@@ -327,8 +330,9 @@ export class QueryResultPanel implements WebviewViewProvider {
       this._panel.webview.postMessage({ command: "focus" }); // keyboard focus
       this.transmitLoading();
     }
-    this.queryExecution = queryExecution;
     try {
+      const queryExecution = (this.queryExecution =
+        await queryExecutionPromise);
       const output = await queryExecution.executeQuery();
       await this.transmitDataWrapper(output, query);
     } catch (exc: any) {

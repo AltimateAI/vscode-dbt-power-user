@@ -658,26 +658,10 @@ select * from renamed
       limit: limit.toString(),
     });
     // TODO: this should generate an event instead of directly going to the panel
-    try {
-      const queryExecution = await this.dbtProjectIntegration.executeSQL(
-        query,
-        limit,
-      );
-      this.queryResultPanel.executeQuery(query, queryExecution);
-    } catch (e) {
-      this.terminal.error(
-        "executeSQLError",
-        `Error when executing ${query}`,
-        e,
-        true,
-        { adapter: this.getAdapterType() },
-      );
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          `An error occured while trying to executing the query: ${e}`,
-        ),
-      );
-    }
+    this.queryResultPanel.executeQuery(
+      query,
+      this.dbtProjectIntegration.executeSQL(query, limit),
+    );
   }
 
   async dispose() {
