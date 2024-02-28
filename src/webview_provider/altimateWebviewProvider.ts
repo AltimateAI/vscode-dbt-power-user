@@ -204,7 +204,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           break;
       }
     } catch (err) {
-      this.dbtTerminal.debug(
+      this.dbtTerminal.error(
         "altimateWebviewProvider:handleCommand",
         "error while handling command",
         err,

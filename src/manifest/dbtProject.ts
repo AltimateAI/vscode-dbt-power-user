@@ -629,7 +629,11 @@ select * from renamed
       window.showErrorMessage("Please enter a positive number for query limit");
       return;
     }
-    this.terminal.info("executeSQL", query, true, {
+    this.telemetry.sendTelemetryEvent("executeSQL", {
+      adapter: this.getAdapterType(),
+      limit: limit.toString(),
+    });
+    this.terminal.debug("executeSQL", query, {
       adapter: this.getAdapterType(),
       limit: limit.toString(),
     });

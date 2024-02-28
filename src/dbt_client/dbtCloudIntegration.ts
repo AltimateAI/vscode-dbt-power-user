@@ -56,7 +56,7 @@ export class DBTCloudDetection implements DBTDetection {
   async detectDBT(): Promise<boolean> {
     const dbtPath = getDBTPath(this.pythonEnvironment, this.terminal);
     try {
-      this.terminal.log("DBTCLIDetection", "Detecting dbt cloud cli");
+      this.terminal.debug("DBTCLIDetection", "Detecting dbt cloud cli");
       const checkDBTInstalledProcess =
         this.commandProcessExecutionFactory.createCommandProcessExecution({
           command: dbtPath,
@@ -65,10 +65,10 @@ export class DBTCloudDetection implements DBTDetection {
         });
       const output = await checkDBTInstalledProcess.complete();
       if (output.includes("dbt Cloud CLI")) {
-        this.terminal.log("DBTCLIDetectionSuccess", "dbt cloud cli detected");
+        this.terminal.debug("DBTCLIDetectionSuccess", "dbt cloud cli detected");
         return true;
       } else {
-        this.terminal.log(
+        this.terminal.debug(
           "DBTCLIDetectionFailed",
           "dbt cloud cli was not found. Detection command returned :  " +
             output,
@@ -76,9 +76,10 @@ export class DBTCloudDetection implements DBTDetection {
       }
     } catch (error) {
       console.warn(error);
-      this.terminal.log(
+      this.terminal.error(
         "DBTCLIDetectionError",
-        "detection failed with error : " + error,
+        "detection failed with error : ",
+        error,
       );
     }
     return false;
