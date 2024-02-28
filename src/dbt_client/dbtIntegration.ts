@@ -11,7 +11,7 @@ import {
   getFirstWorkspacePath,
   provideSingleton,
 } from "../utils";
-import { PythonBridge, PythonException, pythonBridge } from "python-bridge";
+import { PythonBridge, pythonBridge } from "python-bridge";
 import { provide } from "inversify-binding-decorators";
 import {
   CommandProcessExecution,
