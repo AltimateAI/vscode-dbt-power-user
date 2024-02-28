@@ -63,15 +63,18 @@ export class DBTCloudDetection implements DBTDetection {
           args: ["--version"],
           cwd: this.getFirstWorkspacePath(),
         });
-      const output = await checkDBTInstalledProcess.complete();
-      if (output.includes("dbt Cloud CLI")) {
+      const { stdout, stderr } = await checkDBTInstalledProcess.complete();
+      if (stderr) {
+        throw new Error(stderr);
+      }
+      if (stdout.includes("dbt Cloud CLI")) {
         this.terminal.debug("DBTCLIDetectionSuccess", "dbt cloud cli detected");
         return true;
       } else {
         this.terminal.debug(
           "DBTCLIDetectionFailed",
           "dbt cloud cli was not found. Detection command returned :  " +
-            output,
+            stdout,
         );
       }
     } catch (error) {
