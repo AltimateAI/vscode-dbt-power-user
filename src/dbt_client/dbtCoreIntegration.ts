@@ -253,7 +253,6 @@ export class DBTCoreProjectIntegration
           (python) => python`default_profiles_dir(${this.projectRoot.fsPath})`,
         ),
       );
-      // TODO: check if this also needs to be done dbt cloud
       if (this.profilesDir) {
         const dbtProfileWatcher = workspace.createFileSystemWatcher(
           new RelativePattern(

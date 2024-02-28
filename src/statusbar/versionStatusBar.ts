@@ -55,7 +55,7 @@ export class VersionStatusBar implements Disposable {
       );
       return;
     }
-    this.showTextInStatusBar("$(sync~spin) Parsing manifests");
+    this.showTextInStatusBar("$(sync~spin) Parsing projects");
   }
 
   private async onDBTInstallationVerification(
