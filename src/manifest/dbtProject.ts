@@ -25,7 +25,10 @@ import {
   setupWatcherHandler,
 } from "../utils";
 import { QueryResultPanel } from "../webview_provider/queryResultPanel";
-import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
+import {
+  ManifestCacheChangedEvent,
+  RebuildManifestStatusChange,
+} from "./event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 import { DBTProjectLog, DBTProjectLogFactory } from "./modules/dbtProjectLog";
 import {
@@ -74,6 +77,10 @@ export class DBTProject implements Disposable {
   private readonly projectConfigDiagnostics =
     languages.createDiagnosticCollection("dbt");
   public readonly projectHealth = languages.createDiagnosticCollection("dbt");
+  private _onRebuildManifestStatusChange =
+    new EventEmitter<RebuildManifestStatusChange>();
+  readonly onRebuildManifestStatusChange =
+    this._onRebuildManifestStatusChange.event;
 
   constructor(
     private PythonEnvironment: PythonEnvironment,
@@ -260,7 +267,15 @@ export class DBTProject implements Disposable {
   }
 
   private async rebuildManifest() {
-    this.dbtProjectIntegration.rebuildManifest();
+    this._onRebuildManifestStatusChange.fire({
+      project: this,
+      inProgress: true,
+    });
+    await this.dbtProjectIntegration.rebuildManifest();
+    this._onRebuildManifestStatusChange.fire({
+      project: this,
+      inProgress: false,
+    });
   }
 
   runModel(runModelParams: RunModelParams) {
