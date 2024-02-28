@@ -9,7 +9,7 @@ import classes from "./styles.module.scss";
 const DocumentationWrapper = (): JSX.Element => {
   const {
     dispatch,
-    state: { activePage },
+    state: { activePage, testsEnabled },
   } = useDocumentationContext();
   const handleClick = (page: Pages) => {
     dispatch(setActivePage(page));
@@ -17,27 +17,28 @@ const DocumentationWrapper = (): JSX.Element => {
 
   return (
     <div className={classes.documentationWrapper}>
-      <ButtonGroup>
-        <Button
-          color={activePage === Pages.DOCUMENTATION ? "primary" : "secondary"}
-          onClick={() => handleClick(Pages.DOCUMENTATION)}
-        >
-          Documentation
-        </Button>
-        <Button
-          color={activePage === Pages.TESTS ? "primary" : "secondary"}
-          onClick={() => handleClick(Pages.TESTS)}
-        >
-          Tests
-        </Button>
-        {/* <Button
+      {testsEnabled ? (
+        <ButtonGroup>
+          <Button
+            color={activePage === Pages.DOCUMENTATION ? "primary" : "secondary"}
+            onClick={() => handleClick(Pages.DOCUMENTATION)}
+          >
+            Documentation
+          </Button>
+          <Button
+            color={activePage === Pages.TESTS ? "primary" : "secondary"}
+            onClick={() => handleClick(Pages.TESTS)}
+          >
+            Tests
+          </Button>
+          {/* <Button
           color={activePage === Pages.TAGS ? "primary" : "secondary"}
           onClick={() => handleClick(Pages.TAGS)}
         >
           Tags
         </Button> */}
-      </ButtonGroup>
-
+        </ButtonGroup>
+      ) : null}
       {activePage === Pages.DOCUMENTATION ? <DocumentationEditor /> : null}
       {activePage === Pages.TESTS ? <DocumentationTests /> : null}
     </div>

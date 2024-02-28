@@ -74,6 +74,10 @@
             "type": "boolean",
             "description": "Enable the new docs panel in dbt."
           },
+          "dbt.enableTests": {
+            "type": "boolean",
+            "description": "Enable the new tests experience in documentation editor."
+          },
           "dbt.enableNewQueryPanel": {
             "type": "boolean",
             "description": "Enable the new query panel in dbt.",
