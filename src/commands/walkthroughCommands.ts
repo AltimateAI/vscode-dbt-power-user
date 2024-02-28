@@ -56,8 +56,11 @@ export class WalkthroughCommands {
           throw new Error(runModelOutput);
         }
       } catch (err) {
-        this.dbtTerminal.log("validateProjects", err);
-        this.telemetry.sendTelemetryError("validateProjectError", err);
+        this.dbtTerminal.error(
+          "validateProjectError",
+          `Error when validating ${projectContext.label}`,
+          err,
+        );
         window.showErrorMessage(
           "Error running dbt debug for project " +
             projectContext.label +

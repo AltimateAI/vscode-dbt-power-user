@@ -34,6 +34,7 @@ export class ManifestParser {
     const targetPath = project.getTargetPath();
     if (!targetPath) {
       this.terminal.debug(
+        "parsers:parseManifest",
         "targetPath should be defined at this stage for project " +
           project.projectRoot.fsPath,
       );

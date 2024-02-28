@@ -586,7 +586,11 @@ export class DBTProject implements Disposable {
           sourceName,
           tableName,
         );
-        this.terminal.log("generateModel", columnsInRelation);
+        this.terminal.debug(
+          "dbtProject:generateModel",
+          `Generating columns for source ${sourceName} and table ${tableName}`,
+          columnsInRelation,
+        );
 
         const fileContents = `with source as (
       select * from {{ source('${sourceName}', '${tableName}') }}
@@ -641,6 +645,10 @@ select * from renamed
       return;
     }
     this.telemetry.sendTelemetryEvent("executeSQL", {
+      adapter: this.getAdapterType(),
+      limit: limit.toString(),
+    });
+    this.terminal.debug("executeSQL", query, {
       adapter: this.getAdapterType(),
       limit: limit.toString(),
     });

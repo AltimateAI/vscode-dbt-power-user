@@ -29,10 +29,6 @@ import { NewDocsGenPanel } from "./newDocsGenPanel";
 import { DBTProject } from "../manifest/dbtProject";
 import { DocGenService } from "../services/docGenService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import {
-  CustomPythonException,
-  CustomUnknownException,
-} from "../dbt_client/exception";
 
 export enum Source {
   YAML = "YAML",
@@ -261,7 +257,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     }
     this.onMessageDisposable = this._panel!.webview.onDidReceiveMessage(
       async (message) => {
-        this.terminal.log("setupWebviewHooks", message);
+        this.terminal.debug("docsEditPanel:setupWebviewHooks", message);
         if (
           window.activeTextEditor === undefined ||
           this.eventMap === undefined
@@ -326,10 +322,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                         exc.exception.message,
                     );
                     this.terminal.error(
-                      new CustomPythonException(
-                        "docsEditPanelLoadPythonError",
-                        exc,
-                      ),
+                      "docsEditPanelLoadPythonError",
+                      `An error occured while fetching metadata for ${modelName} from the database`,
+                      exc,
                     );
                     return;
                   }
@@ -338,7 +333,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       exc,
                   );
                   this.terminal.error(
-                    new CustomUnknownException("docsEditPanelLoadError", exc),
+                    "docsEditPanelLoadError",
+                    `An error occured while fetching metadata for ${modelName} from the database`,
+                    exc,
                   );
                   if (syncRequestId) {
                     this._panel!.webview.postMessage({
@@ -514,7 +511,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     `Could not save documentation to ${patchPath}: ${error}`,
                   );
                   this.terminal.error(
-                    new CustomUnknownException("saveDocumentationError", error),
+                    "saveDocumentationError",
+                    `Could not save documentation to ${patchPath}`,
+                    error,
                   );
                   if (syncRequestId) {
                     this._panel!.webview.postMessage({

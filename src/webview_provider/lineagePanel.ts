@@ -106,7 +106,6 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     context: WebviewViewResolveContext<unknown>,
     token: CancellationToken,
   ): void | Thenable<void> {
-    this.dbtTerminal.log("abstract:resolveWebviewView -> ");
     this.panel = panel;
     this.context = context;
     this.token = token;
@@ -132,7 +131,11 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     command: string;
     args: any;
   }) => {
-    this.dbtTerminal.log("lineagePanelHost:message -> ", message);
+    this.dbtTerminal.debug(
+      "lineagePanel:handleWebviewMessage",
+      "message",
+      message,
+    );
     const { command, args } = message;
     // common commands
     if (command === "openFile") {

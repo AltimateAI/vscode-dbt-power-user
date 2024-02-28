@@ -59,6 +59,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
       const project = this.dbtProjectContainer.findDBTProject(document.uri);
       if (!project) {
         this.dbtTerminal.debug(
+          "modeHoverProvider:provideHover",
           "Could not load hover provider, project not found in container for " +
             document.uri.fsPath,
         );

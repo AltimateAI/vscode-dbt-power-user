@@ -1,4 +1,3 @@
-import { join } from "path";
 import {
   Disposable,
   Event,
@@ -13,7 +12,6 @@ import { ManifestCacheChangedEvent } from "../event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
 import { ManifestParser } from "../parsers";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
-import { CustomUnknownException } from "../../dbt_client/exception";
 
 @provideSingleton(TargetWatchersFactory)
 export class TargetWatchersFactory {
@@ -75,6 +73,7 @@ export class TargetWatchers implements Disposable {
     const targetPath = event.project.getTargetPath();
     if (!targetPath) {
       this.dbtTerminal.debug(
+        "targetWatchers:onProjectConfigChanged",
         "targetPath should be defined at this stage for project " +
           event.project.projectRoot.fsPath,
       );
@@ -122,17 +121,15 @@ export class TargetWatchers implements Disposable {
   ): FileSystemWatcher {
     const targetPath = event.project.getTargetPath();
     if (!targetPath) {
-      this.dbtTerminal.error(
-        new CustomUnknownException(
-          "targetPath is undefined",
-          new Error(
-            "targetPath is undefined in " + event.project.projectRoot.fsPath,
-          ),
-        ),
-      );
-      throw new Error(
+      const error = new Error(
         "targetPath is undefined in " + event.project.projectRoot.fsPath,
       );
+      this.dbtTerminal.error(
+        "createManifestWatcherError",
+        "targetPath is undefined",
+        error,
+      );
+      throw error;
     }
     const projectRoot = event.project.projectRoot;
     const manifestWatcher = workspace.createFileSystemWatcher(
@@ -146,17 +143,15 @@ export class TargetWatchers implements Disposable {
   ): FileSystemWatcher {
     const targetPath = event.project.getTargetPath();
     if (!targetPath) {
-      this.dbtTerminal.error(
-        new CustomUnknownException(
-          "targetPath is undefined",
-          new Error(
-            "targetPath is undefined in " + event.project.projectRoot.fsPath,
-          ),
-        ),
-      );
-      throw new Error(
+      const error = new Error(
         "targetPath is undefined in " + event.project.projectRoot.fsPath,
       );
+      this.dbtTerminal.error(
+        "createTargetFolderWatcherError",
+        "targetPath is undefined",
+        error,
+      );
+      throw error;
     }
     const targetFolderWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(targetPath, "*"),
