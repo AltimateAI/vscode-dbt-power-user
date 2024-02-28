@@ -30,15 +30,19 @@ import { DBTTerminal } from "./dbtTerminal";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync } from "fs";
 
-function getDBTPath(pythonEnvironment: PythonEnvironment): string {
-  let dbtPath = "dbt";
+function getDBTPath(
+  pythonEnvironment: PythonEnvironment,
+  terminal: DBTTerminal,
+): string {
   if (pythonEnvironment.pythonPath) {
     const dbtPythonPath = join(dirname(pythonEnvironment.pythonPath), "dbt");
     if (existsSync(dbtPythonPath)) {
-      dbtPath = dbtPythonPath;
+      terminal.debug("Found dbt path in Python bin directory:", dbtPythonPath);
+      return dbtPythonPath;
     }
   }
-  return dbtPath;
+  terminal.debug("Using default dbt path:", "dbt");
+  return "dbt";
 }
 
 @provideSingleton(DBTCloudDetection)
@@ -50,8 +54,7 @@ export class DBTCloudDetection implements DBTDetection {
   ) {}
 
   async detectDBT(): Promise<boolean> {
-    const dbtPath = getDBTPath(this.pythonEnvironment);
-    this.terminal.log("dbt path for dbt cloud: " + dbtPath);
+    const dbtPath = getDBTPath(this.pythonEnvironment, this.terminal);
     try {
       const checkDBTInstalledProcess =
         this.commandProcessExecutionFactory.createCommandProcessExecution({
@@ -226,7 +229,7 @@ export class DBTCloudProjectIntegration
         "Error occurred while initializing Python environment: " + error,
       );
     }
-    this.dbtPath = getDBTPath(this.pythonEnvironment);
+    this.dbtPath = getDBTPath(this.pythonEnvironment, this.terminal);
     this.altimate.handlePreviewFeatures();
   }
 
