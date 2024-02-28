@@ -46,7 +46,6 @@ import {
 } from "../dbt_client/dbtIntegration";
 import { DBTCoreProjectIntegration } from "../dbt_client/dbtCoreIntegration";
 import { DBTCloudProjectIntegration } from "../dbt_client/dbtCloudIntegration";
-import { CustomUnknownException } from "../dbt_client/exception";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -667,11 +666,11 @@ select * from renamed
       this.queryResultPanel.executeQuery(query, queryExecution);
     } catch (e) {
       this.terminal.error(
-        new CustomUnknownException("executeSQLError", e),
+        "executeSQLError",
+        `Error when executing ${query}`,
+        e,
         true,
-        {
-          adapter: this.getAdapterType(),
-        },
+        { adapter: this.getAdapterType() },
       );
       window.showErrorMessage(
         extendErrorWithSupportLinks(
