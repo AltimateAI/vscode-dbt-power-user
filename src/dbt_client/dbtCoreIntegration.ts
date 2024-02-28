@@ -260,6 +260,7 @@ export class DBTCoreProjectIntegration
   }
 
   async executeSQL(query: string, limit: number): Promise<QueryExecution> {
+    this.throwBridgeErrorIfAvailable();
     const { limitQuery, queryTemplate } = await this.getQuery(query, limit);
 
     const queryThread = this.executionInfrastructure.createPythonBridge(
@@ -661,8 +662,9 @@ export class DBTCoreProjectIntegration
   }
 
   private throwBridgeErrorIfAvailable() {
-    const allDiagnostics = [
+    const allDiagnostics: DiagnosticCollection[] = [
       this.pythonBridgeDiagnostics,
+      this.projectConfigDiagnostics,
       this.rebuildManifestDiagnostics,
     ];
 

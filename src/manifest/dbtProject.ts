@@ -336,7 +336,7 @@ export class DBTProject implements Disposable {
   async compileNode(modelName: string): Promise<string | undefined> {
     this.telemetry.sendTelemetryEvent("compileNode");
     try {
-      return this.dbtProjectIntegration.unsafeCompileNode(modelName);
+      return await this.dbtProjectIntegration.unsafeCompileNode(modelName);
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
@@ -364,6 +364,11 @@ export class DBTProject implements Disposable {
       );
       return "Detailed error information:\n" + exc;
     }
+  }
+
+  async unsafeCompileNode(modelName: string): Promise<string | undefined> {
+    this.telemetry.sendTelemetryEvent("unsafeCompileNode");
+    return await this.dbtProjectIntegration.unsafeCompileNode(modelName);
   }
 
   async validateSql(request: { sql: string; dialect: string; models: any[] }) {
@@ -409,7 +414,7 @@ export class DBTProject implements Disposable {
   async compileQuery(query: string): Promise<string | undefined> {
     this.telemetry.sendTelemetryEvent("compileQuery");
     try {
-      return this.dbtProjectIntegration.unsafeCompileQuery(query);
+      return await this.dbtProjectIntegration.unsafeCompileQuery(query);
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(

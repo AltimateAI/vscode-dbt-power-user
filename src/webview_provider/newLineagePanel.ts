@@ -658,11 +658,17 @@ export class NewLineagePanel implements LineagePanelView {
             modelInfos.push({ model_node: node });
             return;
           }
-          const compiledSql = await project.compileNode(node.name);
-          if (!compiledSql) {
-            return;
+          try {
+            const compiledSql = await project.unsafeCompileNode(node.name);
+            if (!compiledSql) {
+              return;
+            }
+            modelInfos.push({ compiled_sql: compiledSql, model_node: node });
+          } catch (e) {
+            // Just logging error as models without compiled sql are collected
+            // and shown in single error notification
+            console.error(`Unable to compile sql for node ${node.name}`, e);
           }
-          modelInfos.push({ compiled_sql: compiledSql, model_node: node });
         });
       });
       commandQueue.push(async () => {
