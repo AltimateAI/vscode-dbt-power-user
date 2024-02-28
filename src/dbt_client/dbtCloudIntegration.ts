@@ -30,6 +30,17 @@ import { DBTTerminal } from "./dbtTerminal";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync } from "fs";
 
+function getDBTPath(pythonEnvironment: PythonEnvironment): string {
+  let dbtPath = "dbt";
+  if (pythonEnvironment.pythonPath) {
+    const dbtPythonPath = join(dirname(pythonEnvironment.pythonPath), "dbt");
+    if (existsSync(dbtPythonPath)) {
+      dbtPath = dbtPythonPath;
+    }
+  }
+  return dbtPath;
+}
+
 @provideSingleton(DBTCloudDetection)
 export class DBTCloudDetection implements DBTDetection {
   constructor(
@@ -39,16 +50,7 @@ export class DBTCloudDetection implements DBTDetection {
   ) {}
 
   async detectDBT(): Promise<boolean> {
-    let dbtPath = "dbt";
-    if (this.pythonEnvironment.pythonPath) {
-      const dbtPythonPath = join(
-        dirname(this.pythonEnvironment.pythonPath),
-        "dbt",
-      );
-      if (existsSync(dbtPythonPath)) {
-        dbtPath = dbtPythonPath;
-      }
-    }
+    const dbtPath = getDBTPath(this.pythonEnvironment);
     this.terminal.log("dbt path for dbt cloud: " + dbtPath);
     try {
       const checkDBTInstalledProcess =
@@ -148,6 +150,12 @@ export class DBTCloudProjectIntegration
     this.terminal.log("Registering dbt cloud project" + this.projectRoot);
 
     this.disposables.push(
+      this.pythonEnvironment.onPythonEnvironmentChanged(() => {
+        this.python = this.executionInfrastructure.createPythonBridge(
+          this.projectRoot.fsPath,
+        );
+        this.initializeProject();
+      }),
       this.rebuildManifestDiagnostics,
       this.pythonBridgeDiagnostics,
     );
@@ -218,16 +226,7 @@ export class DBTCloudProjectIntegration
         "Error occurred while initializing Python environment: " + error,
       );
     }
-    // TODO: find better way to share this logic between dbt detection and execution
-    if (this.pythonEnvironment.pythonPath) {
-      const dbtPythonPath = join(
-        dirname(this.pythonEnvironment.pythonPath),
-        "dbt",
-      );
-      if (existsSync(dbtPythonPath)) {
-        this.dbtPath = dbtPythonPath;
-      }
-    }
+    this.dbtPath = getDBTPath(this.pythonEnvironment);
     this.altimate.handlePreviewFeatures();
   }
 
