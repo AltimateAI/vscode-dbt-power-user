@@ -10,6 +10,7 @@
   "packageManager": "npm@9.6.7",
   "scripts": {
     "dev": "vite",
+    "watch": "rm -Rf ./dist; tsc && vite build --watch && cp -r ./node_modules/@vscode/codicons/dist ./dist/assets/codicons/",
     "build": "rm -Rf ./dist; tsc && vite build && cp -r ./node_modules/@vscode/codicons/dist ./dist/assets/codicons/",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 5",
     "preview": "vite preview",
