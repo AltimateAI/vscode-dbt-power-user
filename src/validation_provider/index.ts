@@ -9,6 +9,7 @@ export class ValidationProvider implements Disposable {
   private disposables: Disposable[] = [];
   private currInstanceName: string | undefined;
   private currAPIKey: string | undefined;
+  isAuthenticated = false;
 
   constructor(private altimate: AltimateRequest) {
     const config = this.altimate.getConfig();
@@ -20,7 +21,7 @@ export class ValidationProvider implements Disposable {
           if (!e.affectsConfiguration("dbt")) {
             return;
           }
-          this.validateCredentials();
+          this.validateCredentials(false);
         },
         this,
         this.disposables,
@@ -28,20 +29,23 @@ export class ValidationProvider implements Disposable {
     );
   }
 
-  private async validateCredentials() {
-    const config = this.altimate.getConfig();
-    if (!config) {
-      return;
-    }
-    const { key, instance } = config;
+  async validateCredentials(silent: boolean) {
+    const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
+    const instance = workspace
+      .getConfiguration("dbt")
+      .get<string>("altimateInstanceName");
+
+    // only validate when both are set
     if (!key || !instance) {
-      // only validate when both are set
+      this.isAuthenticated = false;
       return;
     }
+
+    // no change in instance and key
     if (instance === this.currInstanceName && key === this.currAPIKey) {
-      // no change in instance and key
       return;
     }
+
     this.currInstanceName = instance;
     this.currAPIKey = key;
     let message = "";
@@ -51,13 +55,23 @@ export class ValidationProvider implements Disposable {
       message = "API key is not valid";
     }
     if (message) {
-      window.showErrorMessage(message);
+      this.isAuthenticated = false;
+      if (!silent) {
+        window.showErrorMessage(message);
+      }
       return;
     }
     const validation = await this.altimate.validateCredentials(instance, key);
     if (!validation?.ok) {
-      window.showErrorMessage("Credentials are invalid. " + validation?.detail);
+      this.isAuthenticated = false;
+      if (!silent) {
+        window.showErrorMessage(
+          `Credentials are invalid. ${validation?.detail}`,
+        );
+      }
+      return;
     }
+    this.isAuthenticated = true;
   }
 
   dispose() {

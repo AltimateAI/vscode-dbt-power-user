@@ -29,6 +29,7 @@ import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./dbtTerminal";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync } from "fs";
+import { ValidationProvider } from "../validation_provider";
 
 function getDBTPath(
   pythonEnvironment: PythonEnvironment,
@@ -143,7 +144,6 @@ export class DBTCloudProjectIntegration
   private rebuildManifestCancellationTokenSource:
     | CancellationTokenSource
     | undefined;
-  private isAuthenticated = false;
 
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
@@ -157,6 +157,7 @@ export class DBTCloudProjectIntegration
     private pythonEnvironment: PythonEnvironment,
     private terminal: DBTTerminal,
     private projectRoot: Uri,
+    private validationProvider: ValidationProvider,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
@@ -176,30 +177,15 @@ export class DBTCloudProjectIntegration
       this.rebuildManifestDiagnostics,
       this.pythonBridgeDiagnostics,
     );
-    this.checkConnectivity();
+    this.validationProvider.validateCredentials(true);
   }
 
   private throwIfNotAuthenticated() {
-    if (!this.isAuthenticated) {
+    if (!this.validationProvider.isAuthenticated) {
       const message =
         this.altimate.getCredentialsMessage() || "Invalid credentials";
       throw new Error(message);
     }
-  }
-
-  async checkConnectivity() {
-    const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
-    const instance = workspace
-      .getConfiguration("dbt")
-      .get<string>("altimateInstanceName");
-    if (!key || !instance) {
-      return;
-    }
-    const validation = await this.altimate.validateCredentials(instance, key);
-    if (!validation?.ok) {
-      return;
-    }
-    this.isAuthenticated = true;
   }
 
   async refreshProjectConfig(): Promise<void> {
