@@ -379,8 +379,12 @@ export class DBTCloudProjectIntegration
 
   private addCommandToQueue(queueName: string, command: DBTCommand) {
     this.telemetry.sendTelemetryEvent(`dbtCloud:${command.statusMessage}`);
-    this.throwIfNotAuthenticated();
-    this.executionInfrastructure.addCommandToQueue(queueName, command);
+    try {
+      this.throwIfNotAuthenticated();
+      this.executionInfrastructure.addCommandToQueue(queueName, command);
+    } catch (e) {
+      window.showErrorMessage((e as Error).message);
+    }
   }
 
   // internal commands
