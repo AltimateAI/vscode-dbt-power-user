@@ -31,7 +31,10 @@ We warmly welcome contributions from our active community! If you're interested 
       ```
 
    1. **Start Debugging:** In the Visual Studio Code interface, navigate to the "Run and Debug" sidebar. Click on "Launch Extension" to start the debugging process. This will open a new window with the dbt Power User extension installed. During this debug session, the existing installation of dbt-power-user will be overridden, allowing you to test your changes without affecting the installed extension.
-
+      - **Note:** If you're running the dbt Power User extension in debug mode and you make changes to the extension's code, you can see those changes take effect immediately by reloading the VS Code instance where the extension is running.
+      - To reload the VS Code instance in debug mode, you can either:
+        - Use the command "Developer: Reload Window" from the command palette by pressing Ctrl + Shift + P and typing "Developer: Reload Window".
+        - Simply press Ctrl/Cmd + R to reload the VS Code instance.
    1. **Open a dbt Project as a Target:** To effectively test your changes, open a dbt project as a target. You can either use an existing project or create a new virtual environment with the necessary dbt package installed. Creating a virtual environment ensures a clean environment that won't interfere with any existing dbt installations. It's important to note that the dbt Power User extension itself does not require any Python/dbt installation.
 
    1. **Explore and Test:** With the extension debug window open and your dbt project loaded, take the time to explore and test your changes. Verify that the extension behaves as expected and that your changes integrate seamlessly.
