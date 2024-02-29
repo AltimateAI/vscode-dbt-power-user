@@ -86,7 +86,7 @@ export class CommandProcessExecution {
 
       commandProcess.once("close", () => {
         if (stderrBuffer) {
-          reject(stderrBuffer);
+          reject(new Error(stderrBuffer));
         } else {
           resolve(stdoutBuffer);
         }
@@ -94,7 +94,7 @@ export class CommandProcessExecution {
 
       commandProcess.once("error", (error) => {
         console.warn(error);
-        reject(`${error}`);
+        reject(new Error(`${error}`));
       });
 
       if (this.stdin) {
@@ -121,7 +121,7 @@ export class CommandProcessExecution {
       });
       commandProcess.once("close", () => {
         if (stderrBuffer) {
-          reject(stderrBuffer);
+          reject(new Error(stderrBuffer));
         } else {
           terminal.log("");
           resolve(stdoutBuffer);
@@ -129,7 +129,7 @@ export class CommandProcessExecution {
         this.dispose();
       });
       commandProcess.once("error", (error) => {
-        reject(`Error occurred during process execution: ${error}`);
+        reject(new Error(`Error occurred during process execution: ${error}`));
       });
 
       if (this.stdin) {

@@ -9,7 +9,7 @@ import { Pages } from "@modules/documentationEditor/state/types";
 
 const SaveDocumentation = (): JSX.Element | null => {
   const [patchPath, setPatchPath] = useState("");
-  const [dialogType, setDialogType] = useState("");
+  const [dialogType, setDialogType] = useState("Existing file");
   const [openPopover, setOpenPopover] = useState(false);
   const {
     state: { currentDocsData, isDocGeneratedForAnyColumn, currentDocsTests, activePage },

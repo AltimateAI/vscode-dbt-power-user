@@ -4,7 +4,6 @@ import { provideSingleton, substituteSettingsVariables } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { CustomPythonException } from "../dbt_client/exception";
 
 interface PythonExecutionDetails {
   getPythonPath: () => string;
@@ -149,7 +148,9 @@ export class PythonEnvironment implements Disposable {
           }
         } catch (e: any) {
           this.dbtTerminal.error(
-            new CustomPythonException("Could not call environment api", e),
+            "getEnvVarsError",
+            "Could not call environment api",
+            e,
           );
         }
 

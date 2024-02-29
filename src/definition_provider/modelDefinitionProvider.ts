@@ -62,6 +62,7 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
       const project = this.dbtProjectContainer.findDBTProject(document.uri);
       if (!project) {
         this.dbtTerminal.debug(
+          "modelDefinitionProvider:provideDefinition",
           "Could not load definition provider, project not found in container for " +
             document.uri.fsPath,
         );

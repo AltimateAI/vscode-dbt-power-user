@@ -25,7 +25,10 @@ import {
   setupWatcherHandler,
 } from "../utils";
 import { QueryResultPanel } from "../webview_provider/queryResultPanel";
-import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
+import {
+  ManifestCacheChangedEvent,
+  RebuildManifestStatusChange,
+} from "./event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 import { DBTProjectLog, DBTProjectLogFactory } from "./modules/dbtProjectLog";
 import {
@@ -74,6 +77,10 @@ export class DBTProject implements Disposable {
   private readonly projectConfigDiagnostics =
     languages.createDiagnosticCollection("dbt");
   public readonly projectHealth = languages.createDiagnosticCollection("dbt");
+  private _onRebuildManifestStatusChange =
+    new EventEmitter<RebuildManifestStatusChange>();
+  readonly onRebuildManifestStatusChange =
+    this._onRebuildManifestStatusChange.event;
 
   constructor(
     private PythonEnvironment: PythonEnvironment,
@@ -260,7 +267,15 @@ export class DBTProject implements Disposable {
   }
 
   private async rebuildManifest() {
-    this.dbtProjectIntegration.rebuildManifest();
+    this._onRebuildManifestStatusChange.fire({
+      project: this,
+      inProgress: true,
+    });
+    await this.dbtProjectIntegration.rebuildManifest();
+    this._onRebuildManifestStatusChange.fire({
+      project: this,
+      inProgress: false,
+    });
   }
 
   runModel(runModelParams: RunModelParams) {
@@ -321,7 +336,7 @@ export class DBTProject implements Disposable {
   async compileNode(modelName: string): Promise<string | undefined> {
     this.telemetry.sendTelemetryEvent("compileNode");
     try {
-      return this.dbtProjectIntegration.unsafeCompileNode(modelName);
+      return await this.dbtProjectIntegration.unsafeCompileNode(modelName);
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
@@ -349,6 +364,11 @@ export class DBTProject implements Disposable {
       );
       return "Detailed error information:\n" + exc;
     }
+  }
+
+  async unsafeCompileNode(modelName: string): Promise<string | undefined> {
+    this.telemetry.sendTelemetryEvent("unsafeCompileNode");
+    return await this.dbtProjectIntegration.unsafeCompileNode(modelName);
   }
 
   async validateSql(request: { sql: string; dialect: string; models: any[] }) {
@@ -394,7 +414,7 @@ export class DBTProject implements Disposable {
   async compileQuery(query: string): Promise<string | undefined> {
     this.telemetry.sendTelemetryEvent("compileQuery");
     try {
-      return this.dbtProjectIntegration.unsafeCompileQuery(query);
+      return await this.dbtProjectIntegration.unsafeCompileQuery(query);
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
@@ -571,7 +591,11 @@ export class DBTProject implements Disposable {
           sourceName,
           tableName,
         );
-        this.terminal.log("generateModel", columnsInRelation);
+        this.terminal.debug(
+          "dbtProject:generateModel",
+          `Generating columns for source ${sourceName} and table ${tableName}`,
+          columnsInRelation,
+        );
 
         const fileContents = `with source as (
       select * from {{ source('${sourceName}', '${tableName}') }}
@@ -626,6 +650,10 @@ select * from renamed
       return;
     }
     this.telemetry.sendTelemetryEvent("executeSQL", {
+      adapter: this.getAdapterType(),
+      limit: limit.toString(),
+    });
+    this.terminal.debug("executeSQL", query, {
       adapter: this.getAdapterType(),
       limit: limit.toString(),
     });

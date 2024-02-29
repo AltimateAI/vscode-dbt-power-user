@@ -1,6 +1,5 @@
 import { AltimateRequest } from "../altimate";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { CustomUnknownException } from "../dbt_client/exception";
 import { NodeMetaData, SourceMetaData } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
@@ -100,11 +99,10 @@ export class SqlToModel {
         Encountered unknown error when converting sql to model.",
         );
         this.dbtTerminal.error(
-          new CustomUnknownException(
-            "Could not convert sql to model. \
+          "sqlToModelError",
+          "Could not convert sql to model. \
         Encountered unknown error when converting sql to model.",
-            err,
-          ),
+          err,
         );
         return undefined;
       });
