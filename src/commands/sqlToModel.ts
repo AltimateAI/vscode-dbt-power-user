@@ -70,16 +70,6 @@ export class SqlToModel {
     const allsources = Array.from(sourceMetaMap.values());
 
     const fileText = activedoc.document.getText();
-    let compiledSql: string | undefined;
-    try {
-      compiledSql = await project.unsafeCompileQuery(fileText);
-    } catch (error) {
-      window.showErrorMessage(
-        "Could not compile the SQL: " + (error as Error).message,
-      );
-      return;
-    }
-
     try {
       const retobj = await window.withProgress(
         {
@@ -88,6 +78,15 @@ export class SqlToModel {
           cancellable: true,
         },
         async () => {
+          let compiledSql: string | undefined;
+          try {
+            compiledSql = await project.unsafeCompileQuery(fileText);
+          } catch (error) {
+            window.showErrorMessage(
+              "Could not compile the SQL: " + (error as Error).message,
+            );
+            return;
+          }
           return await this.altimate.runModeller({
             // if we can run this through compile sql, we can also do
             // conversions that were half done. if it fails, just send the text as is.
