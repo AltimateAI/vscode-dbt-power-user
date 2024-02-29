@@ -8,7 +8,7 @@ import classes from "../../styles.module.scss";
 
 const SaveDocumentation = (): JSX.Element | null => {
   const [patchPath, setPatchPath] = useState("");
-  const [dialogType, setDialogType] = useState("");
+  const [dialogType, setDialogType] = useState("Existing file");
   const [openPopover, setOpenPopover] = useState(false);
   const {
     state: { currentDocsData, isDocGeneratedForAnyColumn },
@@ -67,6 +67,7 @@ const SaveDocumentation = (): JSX.Element | null => {
             target="file-path"
             placement="top"
             hideArrow
+            className={classes.popover}
           >
             <PopoverBody className={classes.popoverBody}>
               <List>
