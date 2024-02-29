@@ -179,9 +179,11 @@ export class DBTCloudProjectIntegration
     this.checkConnectivity();
   }
 
-  throwIfNotAuthenticated() {
+  private throwIfNotAuthenticated() {
     if (!this.isAuthenticated) {
-      throw new Error("Unable to connect with altimate backend");
+      const message =
+        this.altimate.getCredentialsMessage() || "Invalid credentials";
+      throw new Error(message);
     }
   }
 
