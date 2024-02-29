@@ -21,7 +21,7 @@ export class ValidationProvider implements Disposable {
           if (!e.affectsConfiguration("dbt")) {
             return;
           }
-          this.validateCredentials(false);
+          this.validateCredentials();
         },
         this,
         this.disposables,
@@ -29,7 +29,15 @@ export class ValidationProvider implements Disposable {
     );
   }
 
-  async validateCredentials(silent: boolean) {
+  validateCredentials() {
+    this._validateCredentials(false);
+  }
+
+  validateCredentialsSilently() {
+    this._validateCredentials(true);
+  }
+
+  private async _validateCredentials(silent: boolean) {
     const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
     const instance = workspace
       .getConfiguration("dbt")

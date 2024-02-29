@@ -177,7 +177,7 @@ export class DBTCloudProjectIntegration
       this.rebuildManifestDiagnostics,
       this.pythonBridgeDiagnostics,
     );
-    this.validationProvider.validateCredentials(true);
+    this.validationProvider.validateCredentialsSilently();
   }
 
   private throwIfNotAuthenticated() {
