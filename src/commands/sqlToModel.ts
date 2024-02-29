@@ -1,4 +1,5 @@
 import { AltimateRequest } from "../altimate";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { NodeMetaData, SourceMetaData } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
@@ -16,6 +17,7 @@ export class SqlToModel {
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
     private altimate: AltimateRequest,
+    private dbtTerminal: DBTTerminal,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
@@ -96,8 +98,12 @@ export class SqlToModel {
           "Could not convert sql to model. \
         Encountered unknown error when converting sql to model.",
         );
-        this.telemetry.sendTelemetryError("sqlToModelBackendError", err);
-        console.error(err);
+        this.dbtTerminal.error(
+          "sqlToModelError",
+          "Could not convert sql to model. \
+        Encountered unknown error when converting sql to model.",
+          err,
+        );
         return undefined;
       });
     // if somehow the response isnt there or got an error response

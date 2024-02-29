@@ -14,6 +14,7 @@ import { MissingSchemaTest } from "./tests/missingSchemaTest";
 import { UnmaterializedModelTest } from "./tests/unmaterializedModelTest";
 import { ScanContext } from "./tests/scanContext";
 import { AltimateScanStep } from "./tests/step";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 @provideSingleton(AltimateScan)
 export class AltimateScan {
@@ -30,6 +31,7 @@ export class AltimateScan {
     private undocumentedModelColumnTest: UndocumentedModelColumnTest,
     private unmaterializedModelTest: UnmaterializedModelTest,
     private staleModelColumnTest: StaleModelColumnTest,
+    private dbtTerminal: DBTTerminal,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
@@ -96,7 +98,11 @@ export class AltimateScan {
             await this.runSteps(scanContext);
             totalProblems += this.showDiagnostics(scanContext);
           } catch (err) {
-            console.log(err);
+            this.dbtTerminal.debug(
+              "altimateScane:getProblems",
+              `Error occurred for ${project.getProjectName()}`,
+              err,
+            );
           }
         }
         // we can select problem tab as soon as the first project is done maybe

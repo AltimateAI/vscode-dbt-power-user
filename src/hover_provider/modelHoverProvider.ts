@@ -16,6 +16,7 @@ import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChange
 import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { generateHoverMarkdownString } from "./utils";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 @provideSingleton(ModelHoverProvider)
 export class ModelHoverProvider implements HoverProvider, Disposable {
@@ -27,6 +28,7 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
+    private dbtTerminal: DBTTerminal,
   ) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
@@ -56,7 +58,8 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
       );
       const project = this.dbtProjectContainer.findDBTProject(document.uri);
       if (!project) {
-        console.error(
+        this.dbtTerminal.debug(
+          "modeHoverProvider:provideHover",
           "Could not load hover provider, project not found in container for " +
             document.uri.fsPath,
         );

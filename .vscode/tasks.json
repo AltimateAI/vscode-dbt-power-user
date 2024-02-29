@@ -1,0 +1,43 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    // Based on this comment: https://stackoverflow.com/a/57328332
+    {
+      "label": "debug-task",
+      "type": "npm",
+      "script": "watch",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^([^\\s].*)\\((\\d+|\\d+,\\d+|\\d+,\\d+,\\d+,\\d+)\\):\\s+(error|warning|info)\\s+(TS\\d+)\\s*:\\s*(.*)$",
+          "file": 1,
+          "location": 2,
+          "severity": 3,
+          "code": 4,
+          "message": 5
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*assets by path.*",
+          "endsPattern": "^.*compiled successfully.*"
+        }
+      }
+    },
+    {
+      "label": "terminate debug-task",
+      "command": "echo ${input:terminate-debug-task}",
+      "type": "shell",
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "terminate-debug-task",
+      "type": "command",
+      "command": "workbench.action.tasks.terminate",
+      "args": "debug-task"
+    }
+  ]
+}

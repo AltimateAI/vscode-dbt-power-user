@@ -3,8 +3,8 @@ import { provideSingleton, processStreamResponse } from "./utils";
 import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
-import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
 import { RateLimitException } from "./exceptions";
+import { DBTTerminal } from "./dbt_client/dbtTerminal";
 
 interface AltimateConfig {
   key: string;
@@ -196,8 +196,8 @@ export class AltimateRequest {
     .get<string>("altimateUrl", "https://api.myaltimate.com");
 
   constructor(
-    private dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
+    private dbtTerminal: DBTTerminal,
   ) {}
 
   getConfig(): AltimateConfig | undefined {
@@ -262,7 +262,7 @@ export class AltimateRequest {
     timeout: number = 120000,
   ) {
     const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
-    console.log("fetchAsStream:request:", url, request);
+    this.dbtTerminal.debug("fetchAsStream:request", url, request);
     const config = this.getConfig()!;
     const abortController = new AbortController();
     const timeoutHandler = setTimeout(() => {
@@ -281,7 +281,7 @@ export class AltimateRequest {
       });
 
       if (!response?.body) {
-        console.error("fetchAsStream: empty response");
+        this.dbtTerminal.debug("fetchAsStream", "empty response");
         return null;
       }
       clearTimeout(timeoutHandler);
@@ -293,13 +293,17 @@ export class AltimateRequest {
       return responseText;
     } catch (error) {
       clearTimeout(timeoutHandler);
-      console.error("error while fetching as stream", error);
+      this.dbtTerminal.debug(
+        "fetchAsStream",
+        "error while fetching as stream",
+        error,
+      );
     }
     return null;
   }
 
   async fetch<T>(endpoint: string, fetchArgs = {}, timeout: number = 120000) {
-    console.log("network:request:", endpoint, ":", fetchArgs);
+    this.dbtTerminal.debug("network:request", endpoint, fetchArgs);
     const abortController = new AbortController();
     const timeoutHandler = setTimeout(() => {
       abortController.abort();
@@ -314,7 +318,6 @@ export class AltimateRequest {
 
     try {
       const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
-      console.log("network:url:", url);
       const response = await fetch(url, {
         method: "GET",
         ...fetchArgs,
@@ -323,10 +326,9 @@ export class AltimateRequest {
           "x-tenant": config.instance,
           Authorization: "Bearer " + config.key,
           "Content-Type": "application/json",
-          "extension-version": this.dbtProjectContainer.extensionVersion,
         },
       });
-      console.log("network:response:", endpoint, ":", response.status);
+      this.dbtTerminal.debug("network:response", endpoint, response.status);
       if (response.ok && response.status === 200) {
         const jsonResponse = await response.json();
         clearTimeout(timeoutHandler);
@@ -342,7 +344,11 @@ export class AltimateRequest {
         this.telemetry.sendTelemetryEvent("invalidCredentials");
       }
       const textResponse = await response.text();
-      console.log("network:response:error:", textResponse);
+      this.dbtTerminal.debug(
+        "network:response",
+        "error from backend",
+        textResponse,
+      );
       if (response.status === 429) {
         throw new RateLimitException(
           textResponse,
@@ -359,24 +365,12 @@ export class AltimateRequest {
       clearTimeout(timeoutHandler);
       return {} as T;
     } catch (e) {
-      console.log("network:response:catchAllError:", e);
-      this.telemetry.sendTelemetryError("apiCatchAllError", e, {
+      this.dbtTerminal.error("apiCatchAllError", "catchAllError", e, true, {
         endpoint,
       });
       clearTimeout(timeoutHandler);
       throw e;
     }
-  }
-
-  async isAuthenticated() {
-    try {
-      await this.fetch<void>("auth_health", {
-        method: "POST",
-      });
-    } catch (error) {
-      return false;
-    }
-    return true;
   }
 
   async generateModelDocs(docsGenerate: DocsGenerateModelRequest) {
