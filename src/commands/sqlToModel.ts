@@ -1,6 +1,5 @@
 import { AltimateRequest } from "../altimate";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { NodeMetaData, SourceMetaData } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
@@ -8,7 +7,8 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
 import { provideSingleton } from "../utils";
-import { Position, Range, window } from "vscode";
+import { Position, ProgressLocation, Range, window } from "vscode";
+import * as path from "path";
 
 @provideSingleton(SqlToModel)
 export class SqlToModel {
@@ -43,38 +43,34 @@ export class SqlToModel {
     }
     const activedoc = window.activeTextEditor;
     const currentFilePath = activedoc.document.uri;
-    const allmodels: NodeMetaData[] = [];
+    const model = path.basename(
+      window.activeTextEditor!.document.fileName,
+      ".sql",
+    );
     const project = this.dbtProjectContainer.findDBTProject(currentFilePath);
-    if (project === undefined) {
+    if (!project) {
       window.showErrorMessage(
         "Could not find a dbt project. \
       Please put the new model in a dbt project before converting to a model.",
       );
       this.telemetry.sendTelemetryError("sqlToModelNoProjectError");
-      return undefined;
+      return;
     }
     const event = this.eventMap.get(project.projectRoot.fsPath);
-    if (event === undefined) {
+    if (!event) {
       window.showErrorMessage(
         "Could not convert to model due to pending initiation, \
       Please retry again.",
       );
       this.telemetry.sendTelemetryError("sqlToModelNoManifestError");
-      return undefined;
+      return;
     }
-    const rriter = event.nodeMetaMap.values();
-    for (const rrvalue of rriter) {
-      allmodels.push(rrvalue);
-    }
-
-    const allsources: SourceMetaData[] = [];
-    const srcriter = event.sourceMetaMap.values();
-    for (const srcvalue of srcriter) {
-      allsources.push(srcvalue);
-    }
+    const { nodeMetaMap, sourceMetaMap } = event;
+    const allmodels = Array.from(nodeMetaMap.values());
+    const allsources = Array.from(sourceMetaMap.values());
 
     const fileText = activedoc.document.getText();
-    let compiledSql;
+    let compiledSql: string | undefined;
     try {
       compiledSql = await project.unsafeCompileQuery(fileText);
     } catch (error) {
@@ -84,46 +80,59 @@ export class SqlToModel {
       return;
     }
 
-    const retobj = await this.altimate
-      .runModeller({
-        // if we can run this through compile sql, we can also do
-        // conversions that were half done. if it fails, just send the text as is.
-        sql: compiledSql || fileText,
-        adapter: project.getAdapterType(),
-        models: allmodels,
-        sources: allsources,
-      })
-      .catch((err) => {
+    try {
+      const retobj = await window.withProgress(
+        {
+          location: ProgressLocation.Notification,
+          title: "Convert SQL to Model...",
+          cancellable: true,
+        },
+        async () => {
+          return await this.altimate.runModeller({
+            // if we can run this through compile sql, we can also do
+            // conversions that were half done. if it fails, just send the text as is.
+            sql: compiledSql || fileText,
+            adapter: project.getAdapterType(),
+            models: allmodels,
+            sources: allsources,
+          });
+        },
+      );
+
+      // if somehow the response isnt there or got an error response
+      if (retobj === undefined || retobj.sql === undefined) {
         window.showErrorMessage(
           "Could not convert sql to model. \
-        Encountered unknown error when converting sql to model.",
+          Encountered unknown error when converting sql to model.",
         );
-        this.dbtTerminal.error(
-          "sqlToModelError",
-          "Could not convert sql to model. \
-        Encountered unknown error when converting sql to model.",
-          err,
+        this.telemetry.sendTelemetryError(
+          "sqlToModelEmptyBackendResponseError",
         );
-        return undefined;
+        return;
+      }
+
+      const startpos = new Position(0, 0);
+      const endpos = new Position(
+        activedoc.document.lineCount,
+        activedoc.document.lineAt(activedoc.document.lineCount - 1).text.length,
+      );
+      activedoc.edit((editBuilder) => {
+        editBuilder.replace(new Range(startpos, endpos), retobj.sql);
       });
-    // if somehow the response isnt there or got an error response
-    if (retobj === undefined || retobj.sql === undefined) {
+      window.showInformationMessage(
+        `SQL successfully converted to model ${model}`,
+      );
+    } catch (err) {
       window.showErrorMessage(
         "Could not convert sql to model. \
-        Encountered unknown error when converting sql to model.",
+      Encountered unknown error when converting sql to model.",
       );
-      this.telemetry.sendTelemetryError("sqlToModelEmptyBackendResponseError");
-      return undefined;
+      this.dbtTerminal.error(
+        "sqlToModelError",
+        "Could not convert sql to model. \
+      Encountered unknown error when converting sql to model.",
+        err,
+      );
     }
-
-    const startpos = new Position(0, 0);
-    const endpos = new Position(
-      activedoc.document.lineCount,
-      activedoc.document.lineAt(activedoc.document.lineCount - 1).text.length,
-    );
-    activedoc.edit((editBuilder) => {
-      editBuilder.replace(new Range(startpos, endpos), retobj.sql);
-    });
-    return;
   }
 }
