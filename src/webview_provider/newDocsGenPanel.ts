@@ -16,7 +16,6 @@ import {
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
 import { DocsGenPanelView } from "./docsEditPanel";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 @provideSingleton(NewDocsGenPanel)
 export class NewDocsGenPanel

@@ -9,7 +9,6 @@ import * as os from "os";
 import { RateLimitException } from "./exceptions";
 import { DBTProject } from "./manifest/dbtProject";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
-import { CustomUnknownException } from "./dbt_client/exception";
 
 interface AltimateConfig {
   key: string;
@@ -428,10 +427,9 @@ export class AltimateRequest {
       return tempFolder;
     } catch (err) {
       this.dbtTerminal.error(
-        new CustomUnknownException(
-          "downloadFileLocally",
-          `Could not save ${fileName} locally: ${err}`,
-        ),
+        "downloadFileLocally",
+        `Could not save ${fileName} locally`,
+        err,
       );
       window.showErrorMessage(`Could not save ${fileName} locally: ${err}`);
       throw err;

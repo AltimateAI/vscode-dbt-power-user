@@ -93,7 +93,6 @@ container
           container.get(DBTTerminal),
           projectRoot,
           projectConfigDiagnostics,
-          container.get(DBTTerminal),
         );
       };
     },

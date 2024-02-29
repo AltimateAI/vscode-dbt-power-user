@@ -37,7 +37,6 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { getProjectRelativePath } from "../utils";
 import { ManifestPathType } from "../constants";
 import { DBTTerminal } from "./dbtTerminal";
-import { CustomUnknownException } from "./exception";
 
 const DEFAULT_QUERY_TEMPLATE = "select * from ({query}) as query limit {limit}";
 
@@ -182,7 +181,6 @@ export class DBTCoreProjectIntegration
     private dbtTerminal: DBTTerminal,
     private projectRoot: Uri,
     private projectConfigDiagnostics: DiagnosticCollection,
-    private dbtTerminal: DBTTerminal,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
@@ -559,7 +557,7 @@ export class DBTCoreProjectIntegration
       currentConfig[getProjectRelativePath(projectRoot)];
 
     if (!deferConfigInProject) {
-      this.dbtTerminal.debug("defer params not set");
+      this.dbtTerminal.debug("defer", "defer params not set");
       return [];
     }
     const {
@@ -570,16 +568,15 @@ export class DBTCoreProjectIntegration
       dbtCoreIntegrationId,
     } = deferConfigInProject;
     if (!deferToProduction) {
-      this.dbtTerminal.debug("defer to prod not enabled");
+      this.dbtTerminal.debug("defer", "defer to prod not enabled");
       return [];
     }
     if (manifestPathType === ManifestPathType.LOCAL) {
       if (!manifestPathForDeferral) {
         this.dbtTerminal.error(
-          new CustomUnknownException(
-            "manifestPathForDeferral",
-            "manifestPathForDeferral is not present",
-          ),
+          "manifestPathForDeferral",
+          "manifestPathForDeferral is not present",
+          new Error("manifestPathForDeferral is not present"),
         );
         window.showErrorMessage("manifestPathForDeferral is not present");
         throw new Error("manifestPathForDeferral is not present");
@@ -588,7 +585,10 @@ export class DBTCoreProjectIntegration
       if (favorState) {
         args.push("--favor-state");
       }
-      this.dbtTerminal.debug(`local defer params: ${args.join(" ")}`);
+      this.dbtTerminal.debug(
+        "localManifest",
+        `local defer params: ${args.join(" ")}`,
+      );
       this.altimateRequest.sendDeferToProdEvent(ManifestPathType.LOCAL);
       return args;
     }
@@ -600,6 +600,7 @@ export class DBTCoreProjectIntegration
 
       window.showInformationMessage(`Downloading manifest.json`);
       this.dbtTerminal.debug(
+        "remoteManifest",
         `fetching artifact url for dbtCoreIntegrationId: ${dbtCoreIntegrationId}`,
       );
       const response = await this.altimateRequest.fetchArtifactUrl(
@@ -622,15 +623,15 @@ export class DBTCoreProjectIntegration
         } else {
           window.showErrorMessage("Unable to use remote manifest file.");
           this.dbtTerminal.error(
-            new CustomUnknownException(
-              "remoteManifestError",
-              "Unable to use remote manifest file.",
-            ),
+            "remoteManifestError",
+            "Unable to use remote manifest file.",
+            new Error("Unable to use remote manifest file."),
           );
           throw new Error("Unable to use remote manifest file.");
         }
       }
       this.dbtTerminal.debug(
+        "remoteManifest",
         `empty artifact url for dbtCoreIntegrationId: ${dbtCoreIntegrationId}`,
       );
     }

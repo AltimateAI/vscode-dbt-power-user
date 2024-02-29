@@ -18,7 +18,6 @@ import {
 import { AltimateRequest } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { CustomUnknownException } from "../dbt_client/exception";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];
@@ -129,8 +128,8 @@ export class InsightsPanel extends AltimateWebviewProvider {
         : ConfigurationTarget.Global;
 
       this.dbtTerminal.debug(
-        "defer config target",
-        window.activeTextEditor?.document.uri,
+        "defer",
+        "config target: ${window.activeTextEditor?.document.uri}",
       );
 
       const currentConfig: Record<string, DeferConfig> = await workspace
@@ -174,9 +173,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
         });
       }
     } catch (err) {
-      this.dbtTerminal.error(
-        new CustomUnknownException("Defer config", (err as Error).message),
-      );
+      this.dbtTerminal.error("defer", "error while updating defer config", err);
       this._panel!.webview.postMessage({
         command: "response",
         args: {
@@ -226,10 +223,9 @@ export class InsightsPanel extends AltimateWebviewProvider {
       }
     } catch (err) {
       this.dbtTerminal.error(
-        new CustomUnknownException(
-          "Defer config",
-          `could not fetch project integrations ${(err as Error).message}`,
-        ),
+        "defer",
+        `could not fetch project integrations`,
+        err,
       );
       this._panel!.webview.postMessage({
         command: "response",
@@ -267,10 +263,9 @@ export class InsightsPanel extends AltimateWebviewProvider {
       }
     } catch (err) {
       this.dbtTerminal.error(
-        new CustomUnknownException(
-          "Defer config",
-          `could not fetch manifest signed url ${(err as Error).message}`,
-        ),
+        "defer",
+        `could not fetch manifest signed url`,
+        err,
       );
       this._panel!.webview.postMessage({
         command: "response",
@@ -313,10 +308,9 @@ export class InsightsPanel extends AltimateWebviewProvider {
       }
     } catch (err) {
       this.dbtTerminal.error(
-        new CustomUnknownException(
-          "Defer config",
-          `could not fetch project integrations ${(err as Error).message}`,
-        ),
+        "defer",
+        `could not fetch project integrations`,
+        err,
       );
       this._panel!.webview.postMessage({
         command: "response",
@@ -340,7 +334,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       canSelectMany: false,
     });
     if (openDialog === undefined || openDialog.length === 0) {
-      this.dbtTerminal.debug("opendialog cancelled");
+      this.dbtTerminal.debug("defer", "opendialog cancelled");
       this._panel!.webview.postMessage({
         command: "response",
         args: {
@@ -404,6 +398,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
         const projectPath =
           projectRoot || (await this.getCurrentProject())?.projectRoot.fsPath;
         this.dbtTerminal.debug(
+          "defer",
           `getting defer config for ${currentDocument?.uri.fsPath}`,
         );
         const currentConfig: Record<string, DeferConfig> = await workspace

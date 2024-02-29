@@ -396,13 +396,13 @@ export class DBTCloudProjectIntegration
       currentConfig[getProjectRelativePath(projectRoot)];
 
     if (!deferConfigInProject) {
-      this.dbtTerminal.debug("defer params not set");
+      this.dbtTerminal.debug("defer", "defer params not set");
       return [];
     }
     const { deferToProduction, favorState } = deferConfigInProject;
     // explicitly checking false to make sure defer is disabled
     if (deferToProduction === false) {
-      this.dbtTerminal.debug("defer to prod not enabled");
+      this.dbtTerminal.debug("defer", "defer to prod not enabled");
       return ["--no-defer"];
     }
     if (favorState) {
