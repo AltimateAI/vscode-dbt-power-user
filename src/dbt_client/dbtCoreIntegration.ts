@@ -39,6 +39,8 @@ import { ManifestPathType } from "../constants";
 import { DBTTerminal } from "./dbtTerminal";
 import { CustomUnknownException } from "./exception";
 
+const DEFAULT_QUERY_TEMPLATE = "select * from ({query}) as query limit {limit}";
+
 // TODO: we shouold really get these from manifest directly
 interface ResolveReferenceNodeResult {
   database: string;
@@ -92,6 +94,7 @@ export class DBTCoreProjectDetection
 {
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
+    private dbtTerminal: DBTTerminal,
   ) {}
 
   async discoverProjects(projectDirectories: Uri[]): Promise<Uri[]> {
@@ -122,7 +125,10 @@ export class DBTCoreProjectDetection
         },
       );
     } catch (error) {
-      console.log("An error occured while finding package paths: " + error);
+      this.dbtTerminal.debug(
+        "dbtCoreIntegration:discoverProjects",
+        "An error occured while finding package paths: " + error,
+      );
     } finally {
       if (python) {
         this.executionInfrastructure.closePythonBridge(python);
@@ -173,6 +179,7 @@ export class DBTCoreProjectIntegration
     private pythonDBTCommandExecutionStrategy: PythonDBTCommandExecutionStrategy,
     private dbtProjectContainer: DBTProjectContainer,
     private altimateRequest: AltimateRequest,
+    private dbtTerminal: DBTTerminal,
     private projectRoot: Uri,
     private projectConfigDiagnostics: DiagnosticCollection,
     private dbtTerminal: DBTTerminal,
@@ -180,7 +187,7 @@ export class DBTCoreProjectIntegration
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
-    console.log(`Registering project ${this.projectRoot}`);
+    this.dbtTerminal.log(`Registering project ${this.projectRoot}`);
     this.executionInfrastructure.createQueue(
       DBTCoreProjectIntegration.QUEUE_ALL,
     );
@@ -202,6 +209,58 @@ export class DBTCoreProjectIntegration
     return input?.replace(/\\+$/, "");
   }
 
+  private getLimitQuery(queryTemplate: string, query: string, limit: number) {
+    return queryTemplate
+      .replace("{query}", () => query)
+      .replace("{limit}", () => limit.toString());
+  }
+
+  private async getQuery(
+    query: string,
+    limit: number,
+  ): Promise<{ queryTemplate: string; limitQuery: string }> {
+    try {
+      const dbtVersion = await this.version;
+      //dbt supports limit macro after v1.5
+      if (dbtVersion && dbtVersion[0] >= 1 && dbtVersion[1] >= 5) {
+        const args = { sql: query, limit };
+        const queryTemplateFromMacro = await this.python?.lock(
+          (python) =>
+            python!`to_dict(project.execute_macro('get_limit_subquery_sql', ${args}))`,
+        );
+
+        console.log("Using query template from macro", queryTemplateFromMacro);
+        return {
+          queryTemplate: queryTemplateFromMacro,
+          limitQuery: queryTemplateFromMacro,
+        };
+      }
+    } catch (err) {
+      console.error("Error while getting get_limit_subquery_sql macro", err);
+      this.telemetry.sendTelemetryError(
+        "executeMacroGetLimitSubquerySQLError",
+        err,
+        { adapter: this.adapterType || "unknown" },
+      );
+    }
+
+    const queryTemplate = workspace
+      .getConfiguration("dbt")
+      .get<string>("queryTemplate");
+
+    if (queryTemplate && queryTemplate !== DEFAULT_QUERY_TEMPLATE) {
+      console.log("Using user provided query template", queryTemplate);
+      const limitQuery = this.getLimitQuery(queryTemplate, query, limit);
+
+      return { queryTemplate, limitQuery };
+    }
+
+    return {
+      queryTemplate: DEFAULT_QUERY_TEMPLATE,
+      limitQuery: this.getLimitQuery(DEFAULT_QUERY_TEMPLATE, query, limit),
+    };
+  }
+
   async refreshProjectConfig(): Promise<void> {
     await this.createPythonDbtProject(this.python);
     await this.python.ex`project.init_project()`;
@@ -214,16 +273,8 @@ export class DBTCoreProjectIntegration
   }
 
   async executeSQL(query: string, limit: number): Promise<QueryExecution> {
-    const queryTemplate = workspace
-      .getConfiguration("dbt")
-      .get<string>(
-        "queryTemplate",
-        "select * from ({query}\n) as query limit {limit}",
-      );
-
-    const limitQuery = queryTemplate
-      .replace("{query}", () => query)
-      .replace("{limit}", () => limit.toString());
+    this.throwBridgeErrorIfAvailable();
+    const { limitQuery, queryTemplate } = await this.getQuery(query, limit);
 
     const queryThread = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
@@ -236,9 +287,29 @@ export class DBTCoreProjectIntegration
       },
       async () => {
         const compiledQuery = await this.unsafeCompileQuery(limitQuery);
-        return queryThread!.lock<ExecuteSQLResult>(
+        const result = await queryThread!.lock<ExecuteSQLResult>(
           (python) => python`to_dict(project.execute_sql(${compiledQuery}))`,
         );
+        let compiled_stmt = result.compiled_sql;
+        try {
+          const queryRegex = new RegExp(
+            queryTemplate
+              .replace(/\(/g, "\\(")
+              .replace(/\)/g, "\\)")
+              .replace(/\*/g, "\\*")
+              .replace("{query}", "([\\w\\W]+)")
+              .replace("{limit}", limit.toString()),
+            "g",
+          );
+          const matches = queryRegex.exec(result.compiled_sql);
+          if (matches) {
+            compiled_stmt = matches[1].trim();
+          }
+        } catch (err) {
+          console.error("error while executing querytemplate conversion", err);
+        }
+
+        return { ...result, compiled_stmt };
       },
     );
   }
@@ -733,8 +804,9 @@ export class DBTCoreProjectIntegration
   }
 
   private throwBridgeErrorIfAvailable() {
-    const allDiagnostics = [
+    const allDiagnostics: DiagnosticCollection[] = [
       this.pythonBridgeDiagnostics,
+      this.projectConfigDiagnostics,
       this.rebuildManifestDiagnostics,
     ];
 

@@ -34,7 +34,6 @@ enum OutboundCommand {
   RenderError = "renderError",
   InjectConfig = "injectConfig",
   ResetState = "resetState",
-  RenderSummary = "renderSummary",
 }
 
 interface RenderQuery {
@@ -43,11 +42,6 @@ interface RenderQuery {
   rows: JsonObj[];
   raw_sql: string;
   compiled_sql: string;
-}
-
-interface RenderSummary {
-  compiled_sql: string;
-  summary: string;
 }
 
 interface RenderError {
@@ -271,18 +265,11 @@ export class QueryResultPanel implements WebviewViewProvider {
     const enableNewQueryPanel = workspace
       .getConfiguration("dbt")
       .get<boolean>("enableNewQueryPanel", true);
-    const queryTemplate = workspace
-      .getConfiguration("dbt")
-      .get<string>(
-        "queryTemplate",
-        "select * from ({query}) as query limit {limit}",
-      );
     if (this._panel) {
       this._panel.webview.postMessage({
         command: OutboundCommand.InjectConfig,
         ...(<InjectConfig>{
           limit,
-          queryTemplate,
           enableNewQueryPanel,
           darkMode: ![
             ColorThemeKind.Light,

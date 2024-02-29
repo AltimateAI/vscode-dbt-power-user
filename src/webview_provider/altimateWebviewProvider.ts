@@ -173,7 +173,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           if (!this.isUpdateConfigProps(params)) {
             return;
           }
-          console.log("Updating config", params.key, params.value);
+          this.dbtTerminal.debug(
+            "altimateWebviewProvider:handleCommand",
+            "Updating config",
+            params,
+          );
           // If config is for preview feature, then check keys
           const shouldUpdate =
             !params.isPreviewFeature ||
@@ -206,7 +210,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           break;
       }
     } catch (err) {
-      console.error("error while handling command", err);
+      this.dbtTerminal.error(
+        "altimateWebviewProvider:handleCommand",
+        "error while handling command",
+        err,
+      );
     }
   }
 
@@ -215,7 +223,6 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     context: WebviewViewResolveContext<unknown>,
     _token: CancellationToken,
   ): void | Thenable<void> {
-    console.log("AltimateWebviewProvider:resolveWebviewView -> ");
     this._panel = panel;
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);

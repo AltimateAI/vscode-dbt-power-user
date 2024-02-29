@@ -90,6 +90,7 @@ container
           container.get(PythonDBTCommandExecutionStrategy),
           container.get(DBTProjectContainer),
           container.get(AltimateRequest),
+          container.get(DBTTerminal),
           projectRoot,
           projectConfigDiagnostics,
           container.get(DBTTerminal),
@@ -102,9 +103,9 @@ container
   .bind<interfaces.Factory<DBTCommandExecutionStrategy>>(
     "Factory<CLIDBTCommandExecutionStrategy>",
   )
-  .toFactory<CLIDBTCommandExecutionStrategy, [Uri]>(
+  .toFactory<CLIDBTCommandExecutionStrategy, [Uri, string]>(
     (context: interfaces.Context) => {
-      return (projectRoot: Uri) => {
+      return (projectRoot: Uri, dbtPath: string) => {
         const { container } = context;
         return new CLIDBTCommandExecutionStrategy(
           container.get(CommandProcessExecutionFactory),
@@ -112,6 +113,7 @@ container
           container.get(DBTTerminal),
           container.get(TelemetryService),
           projectRoot,
+          dbtPath,
         );
       };
     },
@@ -131,6 +133,8 @@ container
           container.get("Factory<CLIDBTCommandExecutionStrategy>"),
           container.get(AltimateRequest),
           container.get(TelemetryService),
+          container.get(PythonEnvironment),
+          container.get(DBTTerminal),
           projectRoot,
           container.get(DBTTerminal),
         );
