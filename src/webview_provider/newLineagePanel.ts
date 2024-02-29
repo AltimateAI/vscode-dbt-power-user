@@ -126,7 +126,10 @@ export class NewLineagePanel implements LineagePanelView {
     context: WebviewViewResolveContext<unknown>,
     _token: CancellationToken,
   ): void | Thenable<void> {
-    this.terminal.debug("newLineagePanel:resolveWebviewView", "");
+    this.terminal.debug(
+      "newLineagePanel:resolveWebviewView",
+      "onResolveWebviewView",
+    );
     this._panel = panel;
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
