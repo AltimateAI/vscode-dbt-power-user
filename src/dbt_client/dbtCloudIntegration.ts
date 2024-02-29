@@ -156,8 +156,8 @@ export class DBTCloudProjectIntegration
     private telemetry: TelemetryService,
     private pythonEnvironment: PythonEnvironment,
     private terminal: DBTTerminal,
-    private projectRoot: Uri,
     private validationProvider: ValidationProvider,
+    private projectRoot: Uri,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
