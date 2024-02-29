@@ -3,9 +3,7 @@ import {
   Disposable,
   StatusBarAlignment,
   StatusBarItem,
-  ThemeColor,
   window,
-  workspace,
 } from "vscode";
 import { DBTInstallationVerificationEvent } from "../dbt_client/dbtVersionEvent";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -18,8 +16,8 @@ export class VersionStatusBar implements Disposable {
     StatusBarAlignment.Left,
     10,
   );
-  private defaultColor: string = "statusBarItem.activeBackground";
   private disposables: Disposable[] = [];
+  private installed: boolean | undefined;
 
   constructor(private dbtProjectContainer: DBTProjectContainer) {
     this.disposables.push(
@@ -46,6 +44,10 @@ export class VersionStatusBar implements Disposable {
     event: RebuildManifestCombinedStatusChange,
   ) {
     if (!event.inProgress) {
+      if (!this.installed) {
+        this.showTextInStatusBar("$(error) dbt is not installed");
+        return;
+      }
       this.showTextInStatusBar(`$(check) dbt`);
       return;
     }
@@ -61,37 +63,24 @@ export class VersionStatusBar implements Disposable {
   private async onDBTInstallationVerification(
     event: DBTInstallationVerificationEvent,
   ) {
+    this.installed = event.installed;
     if (event.inProgress === true) {
       this.showTextInStatusBar("$(sync~spin) Detecting dbt");
       return;
     }
     if (!event.installed) {
-      this.showTextInStatusBar(
-        "$(error) dbt is not installed",
-        // "statusBarItem.errorBackground",
-      );
+      this.showTextInStatusBar("$(error) dbt is not installed");
       return;
     }
     this.showTextInStatusBar(`$(check) dbt`);
   }
 
-  private showTextInStatusBar(
-    text: string,
-    //statusColor: string = this.defaultColor,
-    command?: Command,
-  ) {
+  private showTextInStatusBar(text: string, command?: Command) {
     this.statusBar.text = text;
     this.statusBar.command = command || {
-      title: "Open Pu Control Panel",
+      title: "Open Control Panel",
       command: "dbtPowerUser.puQuickPick",
     };
-    //this.statusBar.backgroundColor = new ThemeColor(statusColor);
     this.statusBar.show();
-  }
-  private setStatusBarColor(color: string) {
-    this.statusBar.backgroundColor = new ThemeColor(color);
-  }
-  private resetStatusBarColor() {
-    this.statusBar.backgroundColor = new ThemeColor(this.defaultColor);
   }
 }
