@@ -207,6 +207,7 @@ export class DBTCloudProjectIntegration
   }
 
   async executeSQL(query: string, limit: number): Promise<QueryExecution> {
+    this.telemetry.sendTelemetryEvent("dbtCloud:executeSQL");
     this.throwIfNotAuthenticated();
     const showCommand = this.dbtCloudCommand(
       new DBTCommand("Running sql...", [
@@ -391,12 +392,14 @@ export class DBTCloudProjectIntegration
   }
 
   private addCommandToQueue(queueName: string, command: DBTCommand) {
+    this.telemetry.sendTelemetryEvent(`dbtCloud:${command.statusMessage}`);
     this.throwIfNotAuthenticated();
     this.executionInfrastructure.addCommandToQueue(queueName, command);
   }
 
   // internal commands
   async unsafeCompileNode(modelName: string): Promise<string | undefined> {
+    this.telemetry.sendTelemetryEvent("dbtCloud:unsafeCompileNode");
     this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Compiling model...", [
@@ -423,6 +426,7 @@ export class DBTCloudProjectIntegration
   }
 
   async unsafeCompileQuery(query: string): Promise<string | undefined> {
+    this.telemetry.sendTelemetryEvent("dbtCloud:unsafeCompileQuery");
     this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Compiling sql...", [
@@ -453,6 +457,7 @@ export class DBTCloudProjectIntegration
     dialect: string,
     models: any,
   ): Promise<ValidateSqlParseErrorResponse> {
+    this.telemetry.sendTelemetryEvent("dbtCloud:validateSql");
     this.throwIfNotAuthenticated();
     const result = await this.python?.lock<ValidateSqlParseErrorResponse>(
       (python) =>
@@ -462,6 +467,7 @@ export class DBTCloudProjectIntegration
   }
 
   async validateSQLDryRun(query: string): Promise<{ bytes_processed: string }> {
+    this.telemetry.sendTelemetryEvent("dbtCloud:validateSQLDryRun");
     this.throwIfNotAuthenticated();
     const validateSqlCommand = this.dbtCloudCommand(
       new DBTCommand("Estimating BigQuery cost...", [
@@ -491,6 +497,7 @@ export class DBTCloudProjectIntegration
     sourceName: string,
     tableName: string,
   ): Promise<{ [key: string]: string }[]> {
+    this.telemetry.sendTelemetryEvent("dbtCloud:getColumnsOfSource");
     this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting columns of source...", [
@@ -519,6 +526,7 @@ export class DBTCloudProjectIntegration
   async getColumnsOfModel(
     modelName: string,
   ): Promise<{ [key: string]: string }[]> {
+    this.telemetry.sendTelemetryEvent("dbtCloud:getColumnsOfModel");
     this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting columns of model...", [
@@ -545,6 +553,7 @@ export class DBTCloudProjectIntegration
   }
 
   async getCatalog(): Promise<{ [key: string]: string }[]> {
+    this.telemetry.sendTelemetryEvent("dbtCloud:getCatalog");
     this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting catalog...", [
