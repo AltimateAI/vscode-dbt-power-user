@@ -139,9 +139,13 @@ export class DBTCoreProjectDetection
         "An error occured while finding package paths: " + error,
       );
       // Fallback to reading yaml files
-      packagesInstallPaths = projectDirectories.map((projectDirectory) =>
-        this.getPackageInstallPathFallback(projectDirectory),
-      );
+      packagesInstallPaths = projectDirectories
+        .map((projectDirectory) => {
+          const fallbackPath =
+            this.getPackageInstallPathFallback(projectDirectory);
+          return fallbackPath;
+        })
+        .filter(Boolean);
     } finally {
       if (python) {
         this.executionInfrastructure.closePythonBridge(python);
