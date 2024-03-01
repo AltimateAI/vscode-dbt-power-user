@@ -88,27 +88,22 @@ export class DBTCoreProjectDetection
     private dbtTerminal: DBTTerminal,
   ) {}
 
-  private getPackageInstallPathFallback(projectDirectory: Uri): string {
+  private getPackageInstallPathFallback(projectDirectory: Uri): any {
     const dbtProjectFile = path.join(
       projectDirectory.fsPath,
       "dbt_project.yml",
     );
-    let packagesInstallPath = path.join(
-      projectDirectory.fsPath,
-      "dbt_packages",
-    );
     if (existsSync(dbtProjectFile)) {
       const dbtProjectConfig: any = parse(readFileSync(dbtProjectFile, "utf8"));
-      const configPath = dbtProjectConfig["packages-install-path"];
-      if (configPath) {
-        if (path.isAbsolute(configPath)) {
-          packagesInstallPath = configPath;
+      const packagesInstallPath = dbtProjectConfig["packages-install-path"];
+      if (packagesInstallPath) {
+        if (path.isAbsolute(packagesInstallPath)) {
+          return packagesInstallPath;
         } else {
-          packagesInstallPath = path.join(projectDirectory.fsPath, configPath);
+          return path.join(projectDirectory.fsPath, packagesInstallPath);
         }
       }
     }
-    return packagesInstallPath;
   }
 
   async discoverProjects(projectDirectories: Uri[]): Promise<Uri[]> {
