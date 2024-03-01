@@ -75,7 +75,7 @@ export class SqlToModel {
         {
           location: ProgressLocation.Notification,
           title: "Convert SQL to Model...",
-          cancellable: true,
+          cancellable: false,
         },
         async () => {
           let compiledSql: string | undefined;
