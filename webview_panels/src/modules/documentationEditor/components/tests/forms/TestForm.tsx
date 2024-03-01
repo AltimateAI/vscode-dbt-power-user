@@ -63,7 +63,7 @@ const TestForm = ({ formType, onClose, column }: Props): JSX.Element | null => {
   return (
     <Card>
       <CardTitle>
-        <div>Selected</div>
+        <div>Selected test</div>
         <Button color="primary">{formType}</Button>
       </CardTitle>
       <CardBody>
@@ -80,6 +80,7 @@ const TestForm = ({ formType, onClose, column }: Props): JSX.Element | null => {
               handleSave({ ...d, test: formType }, column, true);
               onClose();
             })}
+            color="primary"
           >
             Add
           </Button>

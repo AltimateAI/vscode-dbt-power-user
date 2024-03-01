@@ -8,6 +8,7 @@ import EntityWithTests from "./components/tests/EntityWithTests";
 import useDocumentationContext from "./state/useDocumentationContext";
 import classes from "./styles.module.scss";
 import SaveDocumentation from "./components/saveDocumentation/SaveDocumentation";
+import TestHelpContent from "./components/help/TestsHelpContent";
 
 const DocumentationTests = (): JSX.Element => {
   const {
@@ -18,7 +19,7 @@ const DocumentationTests = (): JSX.Element => {
     return currentDocsTests?.filter((test) => !test.column_name);
   }, [currentDocsTests]);
   if (!currentDocsTests) {
-    return <div>Unable to find tests for the selected model</div>;
+    return <TestHelpContent />;
   }
 
   return (

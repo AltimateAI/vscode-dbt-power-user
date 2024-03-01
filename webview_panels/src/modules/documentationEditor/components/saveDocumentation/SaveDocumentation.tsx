@@ -12,7 +12,12 @@ const SaveDocumentation = (): JSX.Element | null => {
   const [dialogType, setDialogType] = useState("Existing file");
   const [openPopover, setOpenPopover] = useState(false);
   const {
-    state: { currentDocsData, isDocGeneratedForAnyColumn, currentDocsTests, activePage },
+    state: {
+      currentDocsData,
+      isDocGeneratedForAnyColumn,
+      currentDocsTests,
+      activePage,
+    },
     dispatch,
   } = useDocumentationContext();
 
@@ -56,7 +61,11 @@ const SaveDocumentation = (): JSX.Element | null => {
 
   return (
     <Stack direction="row" className={classes.save}>
-      <h4>{activePage === Pages.DOCUMENTATION ? "Save documentation" : "Save tests"}</h4>
+      <h4>
+        {activePage === Pages.DOCUMENTATION
+          ? "Save documentation"
+          : "Save tests"}
+      </h4>
       <p>{currentDocsData?.patchPath ?? "Write path"}</p>
 
       {currentDocsData?.patchPath ? null : (
@@ -91,7 +100,11 @@ const SaveDocumentation = (): JSX.Element | null => {
           </Popover>
         </>
       )}
-      <Button onClick={saveDocumentation}>Save documentation</Button>
+      <Button onClick={saveDocumentation}>
+        {activePage === Pages.DOCUMENTATION
+          ? "Save documentation"
+          : "Save tests"}
+      </Button>
     </Stack>
   );
 };

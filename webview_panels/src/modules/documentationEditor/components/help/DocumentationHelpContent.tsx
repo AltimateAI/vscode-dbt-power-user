@@ -1,6 +1,6 @@
 import { Stack } from "@uicore";
 
-const HelpContent = (): JSX.Element => {
+const DocumentationHelpContent = (): JSX.Element => {
   return (
     <Stack direction="column">
       <p>
@@ -50,4 +50,4 @@ const HelpContent = (): JSX.Element => {
   );
 };
 
-export default HelpContent;
+export default DocumentationHelpContent;

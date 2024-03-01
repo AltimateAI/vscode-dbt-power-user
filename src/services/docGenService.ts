@@ -232,14 +232,14 @@ export class DocGenService {
     const currentFilePath = window.activeTextEditor.document.uri;
     this.dbtTerminal.debug(
       "getting event for project, currentFilePath: ",
-      currentFilePath,
+      currentFilePath.fsPath,
     );
     const projectRootpath =
       this.dbtProjectContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
       this.dbtTerminal.debug(
         "no project for currentFilePath: ",
-        currentFilePath,
+        currentFilePath.fsPath,
       );
       return;
     }

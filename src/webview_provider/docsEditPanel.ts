@@ -29,10 +29,6 @@ import { NewDocsGenPanel } from "./newDocsGenPanel";
 import { DBTProject } from "../manifest/dbtProject";
 import { DocGenService } from "../services/docGenService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import {
-  CustomPythonException,
-  CustomUnknownException,
-} from "../dbt_client/exception";
 import { TestMetaData } from "../domain";
 
 export enum Source {
@@ -261,7 +257,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     const tests = message.tests as undefined | TestMetaData[];
 
     if (!tests?.length) {
-      this.terminal.debug("No test data passed");
+      this.terminal.debug("tests", "No test data passed");
       return;
     }
 

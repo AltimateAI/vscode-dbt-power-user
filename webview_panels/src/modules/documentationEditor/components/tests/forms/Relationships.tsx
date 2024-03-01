@@ -42,7 +42,7 @@ const Relationships = ({
 
   return (
     <div>
-      <div>
+      <div style={{ marginBottom: "var(--spacing-xl)" }}>
         <Label htmlFor="relationship-to">To</Label>
         <Controller
           control={control}

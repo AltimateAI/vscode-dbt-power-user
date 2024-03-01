@@ -36,17 +36,19 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element => {
 
   return (
     <div className={classes.entityTests}>
-      <h5>
-        {title}
-        {type === EntityType.COLUMN ? (
-          <AddTest title={title} currentTests={currentTests} />
-        ) : null}
-      </h5>
-      <Stack>
-        <p>Tests:</p>
-        {tests?.map((test) => (
-          <Test key={test.key} test={test} onSelect={onSelect} />
-        ))}
+      <Stack className={type}>
+        <h5>
+          {title}
+          {type === EntityType.COLUMN ? (
+            <AddTest title={title} currentTests={currentTests} />
+          ) : null}
+        </h5>
+        <Stack>
+          <p>Tests:</p>
+          {tests?.map((test) => (
+            <Test key={test.key} test={test} onSelect={onSelect} />
+          ))}
+        </Stack>
       </Stack>
       <Drawer ref={drawerRef}>
         {selectedTest ? (

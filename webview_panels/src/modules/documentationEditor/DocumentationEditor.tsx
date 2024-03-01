@@ -7,7 +7,7 @@ import { panelLogger } from "@modules/logger";
 import { Label, Stack } from "@uicore";
 import DocGeneratorColumnsList from "./components/docGenerator/DocGeneratorColumnsList";
 import DocGeneratorInput from "./components/docGenerator/DocGeneratorInput";
-import HelpContent from "./components/help/HelpContent";
+import DocumentationHelpContent from "./components/help/DocumentationHelpContent";
 import SaveDocumentation from "./components/saveDocumentation/SaveDocumentation";
 import { updateCurrentDocsData } from "./state/documentationSlice";
 import { DocsGenerateModelRequestV2 } from "./state/types";
@@ -81,7 +81,7 @@ const DocumentationEditor = (): JSX.Element => {
     return (
       <div className={classes.docGenerator}>
         <h2>Documentation Help</h2>
-        <HelpContent />
+        <DocumentationHelpContent />
       </div>
     );
   }

@@ -1,12 +1,26 @@
 .documentation-wrapper {
-  :global .btn-group{
+  :global .btn-group {
     margin-bottom: var(--spacing-3xl);
-
   }
 
-  .entity-tests{
+  .entity-tests {
     h5 {
       margin-bottom: var(--spacing-lg);
+    }
+    :global .model {
+      gap: 5px;
+      h5 {
+        font-weight: 400;
+        font-size: 1rem;
+        margin-bottom: 0;
+        line-height: 1.6;
+      }
+      flex-direction: row;
+      margin-bottom: var(--spacing-lg);
+    }
+    :global .column {
+      flex-direction: column;
+      gap: 0;
     }
   }
 }
@@ -18,8 +32,8 @@
   & .head {
     justify-content: space-between;
     margin-bottom: 1rem;
-    > div{
-    align-items: center;
+    > div {
+      align-items: center;
     }
     & p {
       text-decoration: underline;
@@ -37,8 +51,8 @@
         margin-top: 12px;
       }
       & .column-header {
-        .sync-btn{
-          svg{
+        .sync-btn {
+          svg {
             width: 14px;
             vertical-align: bottom;
           }
@@ -86,7 +100,7 @@
         }
         & :global #file-path {
           background: var(--background--02);
-          color: var(--text-color--title)
+          color: var(--text-color--title);
         }
       }
     }
@@ -96,87 +110,91 @@
     }
   }
 
-  &.docTests{
-    .column-header{
+  &.docTests {
+    .column-header {
       margin-top: var(--spacing-3xl);
       margin-bottom: var(--spacing-xl);
     }
 
-    .test-tag{
+    .test-tag {
       border-radius: 26px;
       cursor: pointer;
     }
   }
 }
 
-.add-test{
-    gap: var(--spacing-2xl);
+.add-test {
+  gap: var(--spacing-2xl);
 
-    :global .card{
-      background-color: var(--background--03);
-
-      
-    }
-    .title{
-      background-color: var(--background--02);
-      padding: 1rem;
-      border-radius: 8px;
-
-      :global .primary {
-        max-width: 100%;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-      }
-      }
-      .test-list-group{
-        gap: 10px;
-
-        button {
-          border-color: transparent;
-          background-color: var(--background--02);
-          color: var(--text-color--title);
-        }
-      }
-
-      :global .card-title{
-        border: none;
-        margin: 0;
-        font-weight: 400;
-      }
-
-      :global .card-body{
-        background-color: var(--background--02);
+  :global .card {
+    background-color: var(--background--03);
+  }
+  .title {
+    background-color: var(--background--02);
     padding: 1rem;
     border-radius: 8px;
-        
-      }
+
+    :global .primary {
+      max-width: 100%;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      vertical-align: middle;
+      margin-left: 3px;
+    }
+  }
+  .test-list-group {
+    gap: 10px;
+
+    button {
+      border-color: transparent;
+      background-color: var(--background--02);
+      color: var(--text-color--title);
+    }
+  }
+
+  :global .card-title {
+    border: none;
+    margin: 0;
+    font-weight: 400;
+    margin-bottom: 1rem;
+  }
+
+  :global .card-body {
+    background-color: var(--background--02);
+    padding: 1rem;
+    border-radius: 8px;
+  }
+
+  :global .card-footer{
+    border: none;
+  }
 }
 
 .popover {
-  :global .popover{
-  margin-top: -18px;
-  :global .popover-body{
-  padding: 0;
+  :global .popover {
+    margin-top: -18px;
+    :global .popover-body {
+      padding: 0;
 
-  &  ul {
-    padding: 0.5rem 0;
-    margin: 0;
-    list-style: none;
-    li{
-      :global .btn-link {
-        text-decoration: none;
-        color: #1e1e1e;
-        width: 100%;
-        text-align: left;
-        &:hover,
-        &.active {
-        color: var(--primary-color);
-          background-color: #eee;
+      & ul {
+        padding: 0.5rem 0;
+        margin: 0;
+        list-style: none;
+        li {
+          :global .btn-link {
+            text-decoration: none;
+            color: #1e1e1e;
+            width: 100%;
+            text-align: left;
+            &:hover,
+            &.active {
+              color: var(--primary-color);
+              background-color: #eee;
+            }
+          }
         }
       }
     }
-  }
-}
   }
 }

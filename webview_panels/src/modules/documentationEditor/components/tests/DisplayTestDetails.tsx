@@ -240,7 +240,8 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
         <CardTitle>Column: {test.column_name}</CardTitle>
         <CardBody>
           <div className={classes.title}>
-            Tests: <Tag color="primary">{test.key}</Tag>
+            Test:{" "}
+            <Tag color="primary">{test.test_metadata?.name ?? test.key}</Tag>
           </div>
         </CardBody>
       </Card>
