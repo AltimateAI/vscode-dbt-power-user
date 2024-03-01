@@ -8,6 +8,7 @@ import DefaultDatapilotView from "./DefaultDatapilotView";
 import QueryAnalysis from "./components/queryAnalysis/QueryAnalysis";
 import QueryAnalysisProvider from "./components/queryAnalysis/provider/QueryAnalysisProvider";
 import DataPilotHelp from "./DataPilotHelp";
+import AddCustomTest from "./components/test/AddCustomTest";
 
 const DataPilotPanel = (): JSX.Element => {
   const {
@@ -30,6 +31,10 @@ const DataPilotPanel = (): JSX.Element => {
             <QueryAnalysis />
           </QueryAnalysisProvider>
         );
+        case RequestTypes.ADD_CUSTOM_TEST:
+          return (
+            <AddCustomTest />
+          );
       default:
         break;
     }

@@ -15,6 +15,8 @@ export interface DatapilotQueryAnalysisChat extends DataPilotChat {
   analysisType?: QueryAnalysisType;
 }
 
+export type DatapilotCustomTestChat = DataPilotChat
+
 export interface QueryAnalysisResult {
   session_id: string;
   user_prompt: string;
