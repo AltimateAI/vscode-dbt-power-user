@@ -1,5 +1,4 @@
 import {
-  Tag,
   Card,
   CardBody,
   CardTitle,
@@ -216,7 +215,6 @@ const DeferToProduction = (): JSX.Element => {
       <Card className={classes.insightsCard}>
         <CardTitle className={classes.cardTitle} tag="h5">
           Defer to production <PreviewFeatureIcon />
-          <Tag color="primary">Performance</Tag>
         </CardTitle>
         <CardBody>
           <Form>

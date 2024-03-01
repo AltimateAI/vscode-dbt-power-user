@@ -4,32 +4,24 @@ const HelpContent = (): JSX.Element => {
   return (
     <Stack direction="column">
       <p>
-        You can write, update, and generate descriptions for your dbt models and
-        columns, and save them in YAML files with a click of a button.{" "}
+        Defer functionality in dbt allows the user to run a subset of models or
+        tests without having to first build their upstream parents. Usually, it
+        leads to significant cost and time savings during testing of the dbt
+        models. More information about this functionality is availabale in{" "}
+        <a href="https://docs.getdbt.com/reference/node-selection/defer/">
+          dbt documentation
+        </a>
       </p>
       <p>
-        <b>Save Documentation:</b> Once you&apos;ve added or edited the
-        documentation for your model and columns, hit the
-        <b> &quot;Save Documentation&quot;</b> button at the bottom to save in
-        schema.yml
+        <b>Local and SaaS Mode:</b>You can either use this functionality in
+        local mode where your manifest files stay in your local computer or you
+        can use SaaS instance to store your manifest files so multiple team
+        members can benefits from prod or staging data.
       </p>
       <p>
-        <b>Sync Columns with Database:</b> Use the sync action to synchronize
-        the model with your database and fetch the accurate columns and their
-        types.
-      </p>
-      <p>
-        <b>Generate Documentation:</b> This functionality requires an API key.
-        You can generate descriptions for models and columns using the generate
-        button. You can also bulk generate in a single action using the “Bulk
-        Generate” button. If you want to change settings like language, or
-        persona, please use the “Settings” button in the right top corner.{" "}
-      </p>
-      <p>
-        If the description is present already, and you click the “regenerate”
-        icon, DataPilot panel will be displayed on the left with prompts and
-        instructions where you can guide the DataPilot to generate descriptions
-        as per your specific preferences.
+        Turn on favor-state if you need. If it&apos;s turned on, the defer
+        functionality will favor using the node defined in the referenced
+        integration, even if the node exists in the current project.
       </p>
       <p>
         <b>Help Us Improve:</b> We&apos;re eager to hear from you! If
@@ -44,7 +36,7 @@ const HelpContent = (): JSX.Element => {
         </a>
         . For any issues or concerns, please{" "}
         <a href="https://app.myaltimate.com/contactus">contact us</a> via chat
-        or Slack. Happy documenting!
+        or Slack.
       </p>
     </Stack>
   );
