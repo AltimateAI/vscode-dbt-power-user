@@ -35,7 +35,7 @@ export class CommandProcessExecutionFactory {
 export interface CommandProcessResult {
   stdout: string;
   stderr: string;
-  fullOutput: string[];
+  fullOutput: string;
 }
 
 export class CommandProcessExecution {
@@ -81,16 +81,16 @@ export class CommandProcessExecution {
       const commandProcess = this.spawn();
       let stdoutBuffer = "";
       let stderrBuffer = "";
-      const fullOutput: string[] = [];
+      let fullOutput = "";
       commandProcess.stdout!.on("data", (chunk) => {
         chunk = chunk.toString();
         stdoutBuffer += chunk;
-        fullOutput.push(chunk);
+        fullOutput += chunk;
       });
       commandProcess.stderr!.on("data", (chunk) => {
         chunk = chunk.toString();
         stderrBuffer += chunk;
-        fullOutput.push(chunk);
+        fullOutput += chunk;
       });
 
       commandProcess.once("close", () => {
@@ -116,18 +116,18 @@ export class CommandProcessExecution {
       const commandProcess = this.spawn();
       let stdoutBuffer = "";
       let stderrBuffer = "";
-      const fullOutput: string[] = [];
+      let fullOutput = "";
       commandProcess.stdout!.on("data", (chunk) => {
         const line = `${this.formatText(chunk.toString())}`;
         stdoutBuffer += line;
         terminal.log(line);
-        fullOutput.push(line);
+        fullOutput += line;
       });
       commandProcess.stderr!.on("data", (chunk) => {
         const line = `${this.formatText(chunk.toString())}`;
         stderrBuffer += line;
         terminal.log(line);
-        fullOutput.push(line);
+        fullOutput += line;
       });
       commandProcess.once("close", () => {
         resolve({ stdout: stdoutBuffer, stderr: stderrBuffer, fullOutput });
