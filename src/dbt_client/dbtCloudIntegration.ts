@@ -229,7 +229,11 @@ export class DBTCloudProjectIntegration
             raw_sql: query,
           };
         } catch (error) {
-          throw new Error(JSON.parse((error as string).trim()).info.msg);
+          const errorLines = (error as Error).message
+            .trim()
+            .split("\n")
+            .map((line) => JSON.parse(line.trim()).info.msg);
+          throw new Error(errorLines.join(", "));
         }
       },
     );
@@ -289,7 +293,7 @@ export class DBTCloudProjectIntegration
       await command.execute();
       this.rebuildManifestDiagnostics.clear();
     } catch (error) {
-      const exception = (error as string).replace(/^.*?\n/, "");
+      const exception = (error as Error).message;
       this.rebuildManifestDiagnostics.set(
         Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
         [
@@ -393,7 +397,11 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return compiledLine[0].data.compiled;
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).data.exc);
+      const errorLines = (error as Error).message
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line.trim()).info.msg);
+      throw new Error(errorLines.join(", "));
     }
   }
 
@@ -418,7 +426,11 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return compiledLine[0].data.compiled;
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).data.exc);
+      const errorLines = (error as Error).message
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line.trim()).info.msg);
+      throw new Error(errorLines.join(", "));
     }
   }
 
@@ -455,7 +467,11 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return JSON.parse(compiledLine[0].data.compiled);
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).data.exc);
+      const errorLines = (error as Error).message
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line.trim()).info.msg);
+      throw new Error(errorLines.join(", "));
     }
   }
 
@@ -483,7 +499,11 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return JSON.parse(compiledLine[0].data.compiled);
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).data.exc);
+      const errorLines = (error as Error).message
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line.trim()).info.msg);
+      throw new Error(errorLines.join(", "));
     }
   }
 
@@ -510,7 +530,11 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return JSON.parse(compiledLine[0].data.compiled);
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).data.exc);
+      const errorLines = (error as Error).message
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line.trim()).info.msg);
+      throw new Error(errorLines.join(", "));
     }
   }
 
@@ -535,7 +559,11 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return JSON.parse(compiledLine[0].data.compiled);
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).data.exc);
+      const errorLines = (error as Error).message
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line.trim()).info.msg);
+      throw new Error(errorLines.join(", "));
     }
   }
 
@@ -573,7 +601,7 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       this.adapterType = compiledLine[0].data.compiled;
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).info.msg);
+      throw new Error(JSON.parse((error as Error).message.trim()).info.msg);
     }
   }
 
