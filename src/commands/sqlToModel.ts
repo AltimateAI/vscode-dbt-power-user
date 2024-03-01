@@ -104,8 +104,10 @@ export class SqlToModel {
         window.showErrorMessage(
           "Could not convert sql to model. Encountered unknown error when converting sql to model.",
         );
-        this.telemetry.sendTelemetryError(
+        this.dbtTerminal.error(
           "sqlToModelEmptyBackendResponseError",
+          "Could not convert sql to model.  Encountered unknown error when converting sql to model.",
+          new Error("Empty response from backend"),
         );
         return;
       }
