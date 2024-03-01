@@ -64,15 +64,18 @@ export class DBTCloudDetection implements DBTDetection {
           args: ["--version"],
           cwd: this.getFirstWorkspacePath(),
         });
-      const output = await checkDBTInstalledProcess.complete();
-      if (output.includes("dbt Cloud CLI")) {
+      const { stdout, stderr } = await checkDBTInstalledProcess.complete();
+      if (stderr) {
+        throw new Error(stderr);
+      }
+      if (stdout.includes("dbt Cloud CLI")) {
         this.terminal.debug("DBTCLIDetectionSuccess", "dbt cloud cli detected");
         return true;
       } else {
         this.terminal.debug(
           "DBTCLIDetectionFailed",
           "dbt cloud cli was not found. Detection command returned :  " +
-            output,
+            stdout,
         );
       }
     } catch (error) {
@@ -241,7 +244,7 @@ export class DBTCloudProjectIntegration
             raw_sql: query,
           };
         } catch (error) {
-          throw new Error(JSON.parse((error as string).trim()).info.msg);
+          throw this.processJSONErrors(error);
         }
       },
     );
@@ -300,7 +303,7 @@ export class DBTCloudProjectIntegration
       await command.execute();
       this.rebuildManifestDiagnostics.clear();
     } catch (error) {
-      const exception = (error as string).replace(/^.*?\n/, "");
+      const exception = (error as Error).message;
       this.rebuildManifestDiagnostics.set(
         Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
         [
@@ -410,7 +413,7 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return compiledLine[0].data.compiled;
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).data.exc);
+      throw this.processJSONErrors(error);
     }
   }
 
@@ -436,7 +439,7 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return compiledLine[0].data.compiled;
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).data.exc);
+      throw this.processJSONErrors(error);
     }
   }
 
@@ -475,7 +478,7 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return JSON.parse(compiledLine[0].data.compiled);
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).data.exc);
+      throw this.processJSONErrors(error);
     }
   }
 
@@ -504,7 +507,7 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return JSON.parse(compiledLine[0].data.compiled);
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).data.exc);
+      throw this.processJSONErrors(error);
     }
   }
 
@@ -532,7 +535,7 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return JSON.parse(compiledLine[0].data.compiled);
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).data.exc);
+      throw this.processJSONErrors(error);
     }
   }
 
@@ -558,7 +561,7 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return JSON.parse(compiledLine[0].data.compiled);
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).data.exc);
+      throw this.processJSONErrors(error);
     }
   }
 
@@ -596,8 +599,31 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       this.adapterType = compiledLine[0].data.compiled;
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).info.msg);
+      throw this.processJSONErrors(error);
     }
+  }
+
+  private processJSONErrors(jsonErrors: unknown) {
+    const rawError = (jsonErrors as Error).message;
+    const errorLines: string[] = [];
+    try {
+      // eslint-disable-next-line prefer-spread
+      errorLines.push.apply(
+        errorLines,
+        rawError
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line.trim()).info.msg),
+      );
+    } catch (error) {
+      // ideally we never come here, this is a bug in our code
+      return new Error("Could not process " + rawError + ": " + error);
+    }
+    return new Error(
+      errorLines.length
+        ? errorLines.join(", ")
+        : "Could not process error output: " + rawError,
+    );
   }
 
   async dispose() {

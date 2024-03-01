@@ -71,7 +71,10 @@ export class DBTCoreDetection implements DBTDetection {
           cwd: getFirstWorkspacePath(),
           envVars: this.pythonEnvironment.environmentVariables,
         });
-      await checkDBTInstalledProcess.complete();
+      const { stderr } = await checkDBTInstalledProcess.complete();
+      if (stderr) {
+        throw new Error(stderr);
+      }
       return true;
     } catch (error) {
       return false;

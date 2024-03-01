@@ -48,12 +48,19 @@ export class CLIDBTCommandExecutionStrategy
     protected dbtPath: string,
   ) {}
 
-  execute(command: DBTCommand, token?: CancellationToken): Promise<string> {
+  async execute(
+    command: DBTCommand,
+    token?: CancellationToken,
+  ): Promise<string> {
     const commandExecution = this.executeCommand(command, token);
-    if (command.logToTerminal) {
-      return commandExecution.completeWithTerminalOutput(this.terminal);
+    const executionPromise = command.logToTerminal
+      ? commandExecution.completeWithTerminalOutput(this.terminal)
+      : commandExecution.complete();
+    const { stdout, stderr } = await executionPromise;
+    if (stderr) {
+      throw new Error(stderr);
     }
-    return commandExecution.complete();
+    return stdout;
   }
 
   protected executeCommand(
@@ -108,10 +115,18 @@ export class PythonDBTCommandExecutionStrategy
     private telemetry: TelemetryService,
   ) {}
 
-  execute(command: DBTCommand, token?: CancellationToken): Promise<string> {
-    return this.executeCommand(command, token).completeWithTerminalOutput(
-      this.terminal,
-    );
+  async execute(
+    command: DBTCommand,
+    token?: CancellationToken,
+  ): Promise<string> {
+    const { stdout, stderr } = await this.executeCommand(
+      command,
+      token,
+    ).completeWithTerminalOutput(this.terminal);
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    return stdout;
   }
 
   private executeCommand(
