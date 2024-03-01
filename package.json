@@ -224,7 +224,7 @@
         },
         {
           "id": "insights_view",
-          "title": "Insights",
+          "title": "Actions",
           "icon": "./media/images/dbt_icon.svg"
         }
       ]

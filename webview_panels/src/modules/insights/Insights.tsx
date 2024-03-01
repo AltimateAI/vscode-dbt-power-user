@@ -11,13 +11,13 @@ const Insights = (): JSX.Element => (
   <Container className={classes.insightsContainer}>
     <Stack className={classes.head}>
       <Stack>
-        <h3>Insights</h3>
+        <h3>Actions</h3>
       </Stack>
       <Stack className="align-items-center text-nowrap">
         <HelpButton>
           <HelpContent />
         </HelpButton>
-        <FeedbackButton url="https://docs.google.com/forms/d/e/1FAIpQLSeqFBZX_P4chScTTw8w-reRn2fr7NmeGdy8jISJOPdKEWfLaw/viewform" />
+        <FeedbackButton url="https://docs.google.com/forms/d/e/1FAIpQLSfGsy10RxTeLwFSVH_MLBuzRO5ErTm3YVHLt_YtrleDM4FMLQ/viewform" />
       </Stack>
     </Stack>
 

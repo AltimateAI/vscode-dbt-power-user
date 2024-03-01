@@ -2,7 +2,6 @@ import {
   Tag,
   Card,
   CardBody,
-  CardText,
   CardTitle,
   Col,
   Form,
@@ -220,7 +219,6 @@ const DeferToProduction = (): JSX.Element => {
           <Tag color="primary">Performance</Tag>
         </CardTitle>
         <CardBody>
-          <CardText>Save costs by only running what is changed</CardText>
           <Form>
             {showProjectDropdown && (
               <Select
@@ -256,7 +254,6 @@ const DeferToProduction = (): JSX.Element => {
                 </FormGroup>
                 {dbtIntegrationMode !== DbtIntegrationMode.CLOUD ? (
                   <>
-                    <Label>Save your file location</Label>
                     <ManifestSelection
                       dbtProjectRoot={dbtProjectRoot}
                       manifestPathForDeferral={manifestPathForDeferral}

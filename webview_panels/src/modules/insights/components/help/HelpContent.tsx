@@ -39,7 +39,7 @@ const HelpContent = (): JSX.Element => {
       </p>
       <p>
         Need more help? Check out the&nbsp;
-        <a href="https://docs.myaltimate.com/document/generatedoc/">
+        <a href="https://docs.myaltimate.com/test/defertoprod/">
           documentation
         </a>
         . For any issues or concerns, please{" "}
