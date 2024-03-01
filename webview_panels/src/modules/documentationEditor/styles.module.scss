@@ -150,7 +150,17 @@
       border-color: transparent;
       background-color: var(--background--02);
       color: var(--text-color--title);
+      
     }
+    :global .btn-primary{
+      background-color: var(--primary-color);
+
+      }
+      .custom-test{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
   }
 
   :global .card-title {

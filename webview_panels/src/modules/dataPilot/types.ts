@@ -4,6 +4,7 @@ export enum RequestTypes {
   AI_DOC_GENERATION,
   AI_DOC_REGENERATION,
   QUERY_ANALYSIS,
+  ADD_CUSTOM_TEST,
 }
 
 export enum RequestState {

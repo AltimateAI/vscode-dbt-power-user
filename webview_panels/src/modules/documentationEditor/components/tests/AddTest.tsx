@@ -14,6 +14,7 @@ import {
 import { useRef, useState } from "react";
 import TestForm from "./forms/TestForm";
 import classes from "../../styles.module.scss";
+import CustomTestButton from "./CustomTestButton";
 
 interface Props {
   title: string;
@@ -63,6 +64,7 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
                       {test}
                     </ListGroupItem>
                   ))}
+                  <CustomTestButton column={title} />
                 </ListGroup>
               </CardBody>
             </Card>
