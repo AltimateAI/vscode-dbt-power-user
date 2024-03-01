@@ -6,7 +6,7 @@ import {
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
-import { provideSingleton } from "../utils";
+import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { Position, ProgressLocation, Range, window } from "vscode";
 import * as path from "path";
 
@@ -50,7 +50,9 @@ export class SqlToModel {
     const project = this.dbtProjectContainer.findDBTProject(currentFilePath);
     if (!project) {
       window.showErrorMessage(
-        "Could not find a dbt project. Please put the new model in a dbt project before converting to a model.",
+        extendErrorWithSupportLinks(
+          "Could not find a dbt project. Please put the new model in a dbt project before converting to a model.",
+        ),
       );
       this.telemetry.sendTelemetryError("sqlToModelNoProjectError");
       return;
@@ -58,7 +60,9 @@ export class SqlToModel {
     const event = this.eventMap.get(project.projectRoot.fsPath);
     if (!event) {
       window.showErrorMessage(
-        "Could not convert to model due to pending initiation, Please retry again.",
+        extendErrorWithSupportLinks(
+          "Could not convert to model due to pending initiation, Please retry again.",
+        ),
       );
       this.telemetry.sendTelemetryError("sqlToModelNoManifestError");
       return;
@@ -81,7 +85,9 @@ export class SqlToModel {
             compiledSql = await project.unsafeCompileQuery(fileText);
           } catch (error) {
             window.showErrorMessage(
-              "Could not compile the SQL: " + (error as Error).message,
+              extendErrorWithSupportLinks(
+                "Could not compile the SQL: " + (error as Error).message,
+              ),
             );
             return;
           }
@@ -102,11 +108,13 @@ export class SqlToModel {
         sqlToModelResponse.sql === undefined
       ) {
         window.showErrorMessage(
-          "Could not convert sql to model. Encountered unknown error when converting sql to model.",
+          extendErrorWithSupportLinks(
+            "Could not convert sql to model. Encountered unknown error when converting sql to model.",
+          ),
         );
         this.dbtTerminal.error(
           "sqlToModelEmptyBackendResponseError",
-          "Could not convert sql to model.  Encountered unknown error when converting sql to model.",
+          `Could not convert sql to model for query: ${fileText}`,
           new Error("Empty response from backend"),
         );
         return;
@@ -128,11 +136,13 @@ export class SqlToModel {
       );
     } catch (err) {
       window.showErrorMessage(
-        "Could not convert sql to model. Encountered unknown error when converting sql to model.",
+        extendErrorWithSupportLinks(
+          "Could not convert sql to model. Encountered unknown error when converting sql to model.",
+        ),
       );
       this.dbtTerminal.error(
         "sqlToModelError",
-        "Could not convert sql to model. Encountered unknown error when converting sql to model.",
+        `Could not convert sql to model for query: ${fileText}`,
         err,
       );
     }
