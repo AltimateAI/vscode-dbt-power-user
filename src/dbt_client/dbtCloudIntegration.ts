@@ -104,7 +104,10 @@ export class DBTCloudDetection implements DBTDetection {
 export class DBTCloudProjectDetection
   implements DBTProjectDetection, Disposable
 {
+  constructor(private altimate: AltimateRequest) {}
+
   async discoverProjects(projectDirectories: Uri[]): Promise<Uri[]> {
+    this.altimate.handlePreviewFeatures();
     const packagesInstallPaths = projectDirectories.map((projectDirectory) =>
       path.join(projectDirectory.fsPath, "dbt_packages"),
     );
@@ -255,7 +258,6 @@ export class DBTCloudProjectIntegration
       );
     }
     this.dbtPath = getDBTPath(this.pythonEnvironment, this.terminal);
-    this.altimate.handlePreviewFeatures();
   }
 
   getTargetPath(): string | undefined {
