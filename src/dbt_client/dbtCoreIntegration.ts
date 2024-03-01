@@ -88,7 +88,10 @@ export class DBTCoreProjectDetection
     private dbtTerminal: DBTTerminal,
   ) {}
 
-  private getPackageInstallPathFallback(projectDirectory: Uri): any {
+  private getPackageInstallPathFallback(
+    projectDirectory: Uri,
+    packageInstallPath: string,
+  ): string {
     const dbtProjectFile = path.join(
       projectDirectory.fsPath,
       "dbt_project.yml",
@@ -104,6 +107,7 @@ export class DBTCoreProjectDetection
         }
       }
     }
+    return packageInstallPath;
   }
 
   async discoverProjects(projectDirectories: Uri[]): Promise<Uri[]> {
@@ -139,12 +143,12 @@ export class DBTCoreProjectDetection
         "An error occured while finding package paths: " + error,
       );
       // Fallback to reading yaml files
-      packagesInstallPaths =
-        packagesInstallPaths !== undefined
-          ? packagesInstallPaths
-          : projectDirectories.map((projectDirectory) =>
-              this.getPackageInstallPathFallback(projectDirectory),
-            );
+      packagesInstallPaths = projectDirectories.map((projectDirectory, idx) =>
+        this.getPackageInstallPathFallback(
+          projectDirectory,
+          packagesInstallPaths[idx],
+        ),
+      );
     } finally {
       if (python) {
         this.executionInfrastructure.closePythonBridge(python);
