@@ -71,7 +71,7 @@ export class SqlToModel {
 
     const fileText = activedoc.document.getText();
     try {
-      const retobj = await window.withProgress(
+      const sqlToModelResponse = await window.withProgress(
         {
           location: ProgressLocation.Notification,
           title: "Convert SQL to Model...",
@@ -99,7 +99,10 @@ export class SqlToModel {
       );
 
       // if somehow the response isnt there or got an error response
-      if (retobj === undefined || retobj.sql === undefined) {
+      if (
+        sqlToModelResponse === undefined ||
+        sqlToModelResponse.sql === undefined
+      ) {
         window.showErrorMessage(
           "Could not convert sql to model. \
           Encountered unknown error when converting sql to model.",
@@ -116,7 +119,10 @@ export class SqlToModel {
         activedoc.document.lineAt(activedoc.document.lineCount - 1).text.length,
       );
       activedoc.edit((editBuilder) => {
-        editBuilder.replace(new Range(startpos, endpos), retobj.sql);
+        editBuilder.replace(
+          new Range(startpos, endpos),
+          sqlToModelResponse.sql,
+        );
       });
       window.showInformationMessage(
         `SQL successfully converted to model ${model}`,
