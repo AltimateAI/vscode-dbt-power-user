@@ -229,11 +229,7 @@ export class DBTCloudProjectIntegration
             raw_sql: query,
           };
         } catch (error) {
-          const errorLines = (error as Error).message
-            .trim()
-            .split("\n")
-            .map((line) => JSON.parse(line.trim()).info.msg);
-          throw new Error(errorLines.join(", "));
+          throw this.processJSONErrors(error);
         }
       },
     );
@@ -397,11 +393,7 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return compiledLine[0].data.compiled;
     } catch (error) {
-      const errorLines = (error as Error).message
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()).info.msg);
-      throw new Error(errorLines.join(", "));
+      throw this.processJSONErrors(error);
     }
   }
 
@@ -426,11 +418,7 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return compiledLine[0].data.compiled;
     } catch (error) {
-      const errorLines = (error as Error).message
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()).info.msg);
-      throw new Error(errorLines.join(", "));
+      throw this.processJSONErrors(error);
     }
   }
 
@@ -467,11 +455,7 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return JSON.parse(compiledLine[0].data.compiled);
     } catch (error) {
-      const errorLines = (error as Error).message
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()).info.msg);
-      throw new Error(errorLines.join(", "));
+      throw this.processJSONErrors(error);
     }
   }
 
@@ -499,11 +483,7 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return JSON.parse(compiledLine[0].data.compiled);
     } catch (error) {
-      const errorLines = (error as Error).message
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()).info.msg);
-      throw new Error(errorLines.join(", "));
+      throw this.processJSONErrors(error);
     }
   }
 
@@ -530,11 +510,7 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return JSON.parse(compiledLine[0].data.compiled);
     } catch (error) {
-      const errorLines = (error as Error).message
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()).info.msg);
-      throw new Error(errorLines.join(", "));
+      throw this.processJSONErrors(error);
     }
   }
 
@@ -559,11 +535,7 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return JSON.parse(compiledLine[0].data.compiled);
     } catch (error) {
-      const errorLines = (error as Error).message
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()).info.msg);
-      throw new Error(errorLines.join(", "));
+      throw this.processJSONErrors(error);
     }
   }
 
@@ -601,8 +573,31 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       this.adapterType = compiledLine[0].data.compiled;
     } catch (error) {
-      throw new Error(JSON.parse((error as Error).message.trim()).info.msg);
+      throw this.processJSONErrors(error);
     }
+  }
+
+  private processJSONErrors(jsonErrors: unknown) {
+    const rawError = (jsonErrors as Error).message;
+    const errorLines: string[] = [];
+    try {
+      // eslint-disable-next-line prefer-spread
+      errorLines.push.apply(
+        errorLines,
+        rawError
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line.trim()).info.msg),
+      );
+    } catch (error) {
+      // ideally we never come here, this is a bug in our code
+      return new Error("Could not process " + rawError + ": " + error);
+    }
+    return new Error(
+      errorLines.length
+        ? errorLines.join(", ")
+        : "Could not process error output: " + rawError,
+    );
   }
 
   async dispose() {
