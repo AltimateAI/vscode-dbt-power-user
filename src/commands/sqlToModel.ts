@@ -50,8 +50,7 @@ export class SqlToModel {
     const project = this.dbtProjectContainer.findDBTProject(currentFilePath);
     if (!project) {
       window.showErrorMessage(
-        "Could not find a dbt project. \
-      Please put the new model in a dbt project before converting to a model.",
+        "Could not find a dbt project. Please put the new model in a dbt project before converting to a model.",
       );
       this.telemetry.sendTelemetryError("sqlToModelNoProjectError");
       return;
@@ -59,8 +58,7 @@ export class SqlToModel {
     const event = this.eventMap.get(project.projectRoot.fsPath);
     if (!event) {
       window.showErrorMessage(
-        "Could not convert to model due to pending initiation, \
-      Please retry again.",
+        "Could not convert to model due to pending initiation, Please retry again.",
       );
       this.telemetry.sendTelemetryError("sqlToModelNoManifestError");
       return;
@@ -104,8 +102,7 @@ export class SqlToModel {
         sqlToModelResponse.sql === undefined
       ) {
         window.showErrorMessage(
-          "Could not convert sql to model. \
-          Encountered unknown error when converting sql to model.",
+          "Could not convert sql to model. Encountered unknown error when converting sql to model.",
         );
         this.telemetry.sendTelemetryError(
           "sqlToModelEmptyBackendResponseError",
@@ -129,13 +126,11 @@ export class SqlToModel {
       );
     } catch (err) {
       window.showErrorMessage(
-        "Could not convert sql to model. \
-      Encountered unknown error when converting sql to model.",
+        "Could not convert sql to model. Encountered unknown error when converting sql to model.",
       );
       this.dbtTerminal.error(
         "sqlToModelError",
-        "Could not convert sql to model. \
-      Encountered unknown error when converting sql to model.",
+        "Could not convert sql to model. Encountered unknown error when converting sql to model.",
         err,
       );
     }
