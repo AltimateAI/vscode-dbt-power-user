@@ -29,6 +29,7 @@ import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./dbtTerminal";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync } from "fs";
+import { ValidationProvider } from "../validation_provider";
 
 function getDBTPath(
   pythonEnvironment: PythonEnvironment,
@@ -103,7 +104,10 @@ export class DBTCloudDetection implements DBTDetection {
 export class DBTCloudProjectDetection
   implements DBTProjectDetection, Disposable
 {
+  constructor(private altimate: AltimateRequest) {}
+
   async discoverProjects(projectDirectories: Uri[]): Promise<Uri[]> {
+    this.altimate.handlePreviewFeatures();
     const packagesInstallPaths = projectDirectories.map((projectDirectory) =>
       path.join(projectDirectory.fsPath, "dbt_packages"),
     );
@@ -155,6 +159,7 @@ export class DBTCloudProjectIntegration
     private telemetry: TelemetryService,
     private pythonEnvironment: PythonEnvironment,
     private terminal: DBTTerminal,
+    private validationProvider: ValidationProvider,
     private projectRoot: Uri,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
@@ -175,6 +180,15 @@ export class DBTCloudProjectIntegration
       this.rebuildManifestDiagnostics,
       this.pythonBridgeDiagnostics,
     );
+    this.validationProvider.validateCredentialsSilently();
+  }
+
+  private throwIfNotAuthenticated() {
+    if (!this.validationProvider.isAuthenticated) {
+      const message =
+        this.altimate.getCredentialsMessage() || "Invalid credentials";
+      throw new Error(message);
+    }
   }
 
   async refreshProjectConfig(): Promise<void> {
@@ -182,6 +196,7 @@ export class DBTCloudProjectIntegration
   }
 
   async executeSQL(query: string, limit: number): Promise<QueryExecution> {
+    this.throwIfNotAuthenticated();
     const showCommand = this.dbtCloudCommand(
       new DBTCommand("Running sql...", [
         "show",
@@ -243,7 +258,6 @@ export class DBTCloudProjectIntegration
       );
     }
     this.dbtPath = getDBTPath(this.pythonEnvironment, this.terminal);
-    this.altimate.handlePreviewFeatures();
   }
 
   getTargetPath(): string | undefined {
@@ -365,11 +379,17 @@ export class DBTCloudProjectIntegration
   }
 
   private addCommandToQueue(queueName: string, command: DBTCommand) {
-    this.executionInfrastructure.addCommandToQueue(queueName, command);
+    try {
+      this.throwIfNotAuthenticated();
+      this.executionInfrastructure.addCommandToQueue(queueName, command);
+    } catch (e) {
+      window.showErrorMessage((e as Error).message);
+    }
   }
 
   // internal commands
   async unsafeCompileNode(modelName: string): Promise<string | undefined> {
+    this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Compiling model...", [
         "compile",
@@ -395,6 +415,7 @@ export class DBTCloudProjectIntegration
   }
 
   async unsafeCompileQuery(query: string): Promise<string | undefined> {
+    this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Compiling sql...", [
         "compile",
@@ -424,6 +445,7 @@ export class DBTCloudProjectIntegration
     dialect: string,
     models: any,
   ): Promise<ValidateSqlParseErrorResponse> {
+    this.throwIfNotAuthenticated();
     const result = await this.python?.lock<ValidateSqlParseErrorResponse>(
       (python) =>
         python!`to_dict(validate_sql(${query}, ${dialect}, ${models}))`,
@@ -432,6 +454,7 @@ export class DBTCloudProjectIntegration
   }
 
   async validateSQLDryRun(query: string): Promise<{ bytes_processed: string }> {
+    this.throwIfNotAuthenticated();
     const validateSqlCommand = this.dbtCloudCommand(
       new DBTCommand("Estimating BigQuery cost...", [
         "compile",
@@ -460,6 +483,7 @@ export class DBTCloudProjectIntegration
     sourceName: string,
     tableName: string,
   ): Promise<{ [key: string]: string }[]> {
+    this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting columns of source...", [
         "compile",
@@ -487,6 +511,7 @@ export class DBTCloudProjectIntegration
   async getColumnsOfModel(
     modelName: string,
   ): Promise<{ [key: string]: string }[]> {
+    this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting columns of model...", [
         "compile",
@@ -512,6 +537,7 @@ export class DBTCloudProjectIntegration
   }
 
   async getCatalog(): Promise<{ [key: string]: string }[]> {
+    this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting catalog...", [
         "compile",

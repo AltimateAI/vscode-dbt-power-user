@@ -228,7 +228,7 @@ export class AltimateRequest {
     }
   }
 
-  private getCredentialsMessage(): string | undefined {
+  getCredentialsMessage(): string | undefined {
     const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
     const instance = workspace
       .getConfiguration("dbt")
