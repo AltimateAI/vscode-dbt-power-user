@@ -35,6 +35,7 @@ export class CommandProcessExecutionFactory {
 export interface CommandProcessResult {
   stdout: string;
   stderr: string;
+  fullOutput: string[];
 }
 
 export class CommandProcessExecution {
@@ -80,17 +81,20 @@ export class CommandProcessExecution {
       const commandProcess = this.spawn();
       let stdoutBuffer = "";
       let stderrBuffer = "";
-      commandProcess.stdout!.on(
-        "data",
-        (chunk) => (stdoutBuffer += chunk.toString()),
-      );
-      commandProcess.stderr!.on(
-        "data",
-        (chunk) => (stderrBuffer += chunk.toString()),
-      );
+      const fullOutput: string[] = [];
+      commandProcess.stdout!.on("data", (chunk) => {
+        chunk = chunk.toString();
+        stdoutBuffer += chunk;
+        fullOutput.push(chunk);
+      });
+      commandProcess.stderr!.on("data", (chunk) => {
+        chunk = chunk.toString();
+        stderrBuffer += chunk;
+        fullOutput.push(chunk);
+      });
 
       commandProcess.once("close", () => {
-        resolve({ stdout: stdoutBuffer, stderr: stderrBuffer });
+        resolve({ stdout: stdoutBuffer, stderr: stderrBuffer, fullOutput });
       });
 
       commandProcess.once("error", (error) => {
@@ -112,18 +116,21 @@ export class CommandProcessExecution {
       const commandProcess = this.spawn();
       let stdoutBuffer = "";
       let stderrBuffer = "";
+      const fullOutput: string[] = [];
       commandProcess.stdout!.on("data", (chunk) => {
         const line = `${this.formatText(chunk.toString())}`;
         stdoutBuffer += line;
         terminal.log(line);
+        fullOutput.push(line);
       });
       commandProcess.stderr!.on("data", (chunk) => {
         const line = `${this.formatText(chunk.toString())}`;
         stderrBuffer += line;
         terminal.log(line);
+        fullOutput.push(line);
       });
       commandProcess.once("close", () => {
-        resolve({ stdout: stdoutBuffer, stderr: stderrBuffer });
+        resolve({ stdout: stdoutBuffer, stderr: stderrBuffer, fullOutput });
         terminal.log("");
         this.dispose();
       });
