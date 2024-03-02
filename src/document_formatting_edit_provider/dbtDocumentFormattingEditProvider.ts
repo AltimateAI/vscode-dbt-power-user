@@ -70,7 +70,19 @@ export class DbtDocumentFormattingEditProvider
           })
           .complete();
         return [];
-      } catch (sqlfmtOutput) {}
+      } catch (sqlfmtOutput) {
+        this.telemetry.sendTelemetryError(
+          "formatDbtModelSqlfmtFailed",
+          sqlfmtOutput,
+        );
+        window.showErrorMessage(
+          extendErrorWithSupportLinks(
+            "Could not process difference output from sqlfmt. Detailed error: " +
+              sqlfmtOutput +
+              ".",
+          ),
+        );
+      }
     } catch (error) {
       this.telemetry.sendTelemetryError("formatDbtModelApplyDiffFailed", error);
       window.showErrorMessage(
