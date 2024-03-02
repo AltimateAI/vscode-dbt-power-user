@@ -274,6 +274,33 @@ export class QueryExecution {
   }
 }
 
+export type DBColumn = { column: string; dtype: string };
+
+export type Node = {
+  unique_id: string;
+  name: string;
+  resource_type: string;
+};
+
+export type SourceNode = {
+  unique_id: string;
+  name: string;
+  resource_type: "source";
+  table: string;
+};
+
+export type DBTNode = Node | SourceNode;
+
+type CatalogItem = {
+  table_database: string;
+  table_schema: string;
+  table_name: string;
+  column_name: string;
+  column_type: string;
+};
+
+export type Catalog = CatalogItem[];
+
 export interface DBTProjectIntegration extends Disposable {
   // initialize execution infrastructure
   initializeProject(): Promise<void>;
@@ -313,9 +340,9 @@ export interface DBTProjectIntegration extends Disposable {
   getColumnsOfSource(
     sourceName: string,
     tableName: string,
-  ): Promise<{ [key: string]: string }[]>; // TODO: this should be typed
-  getColumnsOfModel(modelName: string): Promise<{ [key: string]: string }[]>; // TODO: this should be typed
-  getCatalog(): Promise<{ [key: string]: string }[]>; // TODO: this should be typed
+  ): Promise<DBColumn[]>;
+  getColumnsOfModel(modelName: string): Promise<DBColumn[]>;
+  getCatalog(): Promise<Catalog>;
   getDebounceForRebuildManifest(): number;
 }
 
