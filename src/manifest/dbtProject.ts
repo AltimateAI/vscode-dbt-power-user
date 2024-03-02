@@ -43,6 +43,7 @@ import {
   DBTProjectIntegration,
   DBTCommandFactory,
   RunModelParams,
+  Catalog,
 } from "../dbt_client/dbtIntegration";
 import { DBTCoreProjectIntegration } from "../dbt_client/dbtCoreIntegration";
 import { DBTCloudProjectIntegration } from "../dbt_client/dbtCloudIntegration";
@@ -481,7 +482,7 @@ export class DBTProject implements Disposable {
     return this.dbtProjectIntegration.getColumnsOfSource(sourceName, tableName);
   }
 
-  async getCatalog(): Promise<{ [key: string]: string }[]> {
+  async getCatalog(): Promise<Catalog> {
     try {
       return this.dbtProjectIntegration.getCatalog();
     } catch (exc: any) {

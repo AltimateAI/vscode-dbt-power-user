@@ -16,7 +16,9 @@ import {
   setupWatcherHandler,
 } from "../utils";
 import {
+  Catalog,
   CompilationResult,
+  DBColumn,
   DBTCommand,
   DBTCommandExecutionInfrastructure,
   DBTDetection,
@@ -763,17 +765,17 @@ export class DBTCoreProjectIntegration
     database: string | undefined,
     schema: string | undefined,
     objectName: string,
-  ) {
+  ): Promise<DBColumn[]> {
     this.throwBridgeErrorIfAvailable();
-    return this.python?.lock<{ [key: string]: string }[]>(
+    return this.python?.lock<DBColumn[]>(
       (python) =>
         python!`to_dict(project.get_columns_in_relation(project.create_relation(${database}, ${schema}, ${objectName})))`,
     );
   }
 
-  async getCatalog() {
+  async getCatalog(): Promise<Catalog> {
     this.throwBridgeErrorIfAvailable();
-    return await this.python?.lock<{ [key: string]: string }[]>(
+    return await this.python?.lock<Catalog>(
       (python) => python!`to_dict(project.get_catalog())`,
     );
   }
