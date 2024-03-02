@@ -245,7 +245,7 @@ export class NewLineagePanel implements LineagePanelView {
     if (event === CllEvents.START) {
       window.withProgress(
         {
-          title: "Processing column level lineage",
+          title: "Retrieving column level lineage",
           location: ProgressLocation.Notification,
           cancellable: true,
         },

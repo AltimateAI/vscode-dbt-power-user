@@ -340,8 +340,10 @@ export class AltimateRequest {
         response.status === 403 ||
         response.status === 404
       ) {
-        window.showErrorMessage("Invalid credentials");
         this.telemetry.sendTelemetryEvent("invalidCredentials");
+        throw new Error(
+          "To use this feature, please add a valid API Key and an instance name in the settings.",
+        );
       }
       const textResponse = await response.text();
       this.dbtTerminal.debug(
