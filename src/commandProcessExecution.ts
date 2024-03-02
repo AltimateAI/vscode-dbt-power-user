@@ -83,12 +83,12 @@ export class CommandProcessExecution {
         "data",
         (chunk) => (stderrBuffer += chunk.toString()),
       );
-
-      commandProcess.once("close", () => {
-        if (stderrBuffer) {
-          reject(stderrBuffer);
+      commandProcess.once("close", (code) => {
+        const wholeOutput = `${stdoutBuffer}\n${stderrBuffer}`;
+        if (code !== 0) {
+          reject(wholeOutput);
         } else {
-          resolve(stdoutBuffer);
+          resolve(wholeOutput);
         }
       });
 
