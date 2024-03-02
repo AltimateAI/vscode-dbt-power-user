@@ -1,6 +1,7 @@
 import {
   Card,
   CardBody,
+  CardText,
   CardTitle,
   Col,
   Form,
@@ -217,6 +218,18 @@ const DeferToProduction = (): JSX.Element => {
           Defer to production <PreviewFeatureIcon />
         </CardTitle>
         <CardBody>
+          <CardText>
+            Save costs and time by only running a subset of models without
+            building upstream models (
+            <a
+              href="https://docs.getdbt.com/reference/node-selection/defer"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              more info
+            </a>
+            ).
+          </CardText>
           <Form>
             {showProjectDropdown && (
               <Select
