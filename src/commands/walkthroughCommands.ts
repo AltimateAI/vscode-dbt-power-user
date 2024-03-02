@@ -155,7 +155,7 @@ export class WalkthroughCommands {
       },
       async () => {
         try {
-          const result = await this.commandProcessExecutionFactory
+          const { stderr } = await this.commandProcessExecutionFactory
             .createCommandProcessExecution({
               command: this.pythonEnvironment.pythonPath,
               args: [
@@ -168,6 +168,9 @@ export class WalkthroughCommands {
               envVars: this.pythonEnvironment.environmentVariables,
             })
             .completeWithTerminalOutput(this.dbtTerminal);
+          if (stderr) {
+            throw new Error(stderr);
+          }
           await this.dbtProjectContainer.detectDBT();
           this.dbtProjectContainer.initialize();
         } catch (err) {

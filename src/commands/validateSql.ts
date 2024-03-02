@@ -81,9 +81,7 @@ export class ValidateSql {
     // Unknown error
     window.showErrorMessage(
       extendErrorWithSupportLinks(
-        "Encountered an unknown issue: " +
-          exc +
-          " while compiling/retrieving schema for nodes.",
+        "Could not validate SQL: " + (exc as Error).message,
       ),
     );
   }

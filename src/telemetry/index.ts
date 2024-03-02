@@ -20,6 +20,9 @@ export class TelemetryService implements vscode.Disposable {
         instanceName: vscode.workspace
           .getConfiguration("dbt")
           .get<string>("altimateInstanceName"),
+        dbtIntegrationMode: vscode.workspace
+          .getConfiguration("dbt")
+          .get<string>("dbtIntegration", "core"),
       },
       measurements,
     );
@@ -38,6 +41,9 @@ export class TelemetryService implements vscode.Disposable {
         instanceName: vscode.workspace
           .getConfiguration("dbt")
           .get<string>("altimateInstanceName"),
+        dbtIntegrationMode: vscode.workspace
+          .getConfiguration("dbt")
+          .get<string>("dbtIntegration", "core"),
         stack:
           error !== undefined && error instanceof Error
             ? error.stack

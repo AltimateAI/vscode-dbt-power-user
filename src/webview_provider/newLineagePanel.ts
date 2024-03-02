@@ -742,9 +742,7 @@ export class NewLineagePanel implements LineagePanelView {
       // Unknown error
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Encountered an unknown issue: " +
-            exc +
-            " while compiling/retrieving schema for nodes.",
+          "Column lineage failed: " + (exc as Error).message,
         ),
       );
       return;

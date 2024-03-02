@@ -38,6 +38,7 @@ import {
 } from "./dbt_client/dbtCloudIntegration";
 import { CommandProcessExecutionFactory } from "./commandProcessExecution";
 import { AltimateRequest } from "./altimate";
+import { ValidationProvider } from "./validation_provider";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -134,6 +135,7 @@ container
           container.get(TelemetryService),
           container.get(PythonEnvironment),
           container.get(DBTTerminal),
+          container.get(ValidationProvider),
           projectRoot,
           container.get(DBTTerminal),
         );

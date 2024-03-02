@@ -366,7 +366,11 @@ export class DBTProject implements Disposable {
       // Unknown error
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Encountered an unknown issue: " + exc + ".",
+          "Could not compile model " +
+            modelName +
+            ": " +
+            (exc as Error).message +
+            ".",
         ),
       );
       return "Detailed error information:\n" + exc;
@@ -438,7 +442,7 @@ export class DBTProject implements Disposable {
       // Unknown error
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Encountered an unknown issue: " + exc + ".",
+          "Could not compile query: " + (exc as Error).message,
         ),
       );
       return undefined;
@@ -547,7 +551,7 @@ export class DBTProject implements Disposable {
       });
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Encountered an unknown issue:" + exc + ".",
+          "Could not generate schema yaml: " + (exc as Error).message,
         ),
       );
     }

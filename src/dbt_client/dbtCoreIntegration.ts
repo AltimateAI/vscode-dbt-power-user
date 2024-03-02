@@ -31,6 +31,8 @@ import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonBridge, PythonException } from "python-bridge";
 import * as path from "path";
 import { DBTProject } from "../manifest/dbtProject";
+import { existsSync, readFileSync } from "fs";
+import { parse } from "yaml";
 import { TelemetryService } from "../telemetry";
 import { AltimateRequest, ValidateSqlParseErrorResponse } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -79,7 +81,10 @@ export class DBTCoreDetection implements DBTDetection {
           cwd: getFirstWorkspacePath(),
           envVars: this.pythonEnvironment.environmentVariables,
         });
-      await checkDBTInstalledProcess.complete();
+      const { stderr } = await checkDBTInstalledProcess.complete();
+      if (stderr) {
+        throw new Error(stderr);
+      }
       return true;
     } catch (error) {
       return false;
@@ -95,6 +100,28 @@ export class DBTCoreProjectDetection
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
     private dbtTerminal: DBTTerminal,
   ) {}
+
+  private getPackageInstallPathFallback(
+    projectDirectory: Uri,
+    packageInstallPath: string,
+  ): string {
+    const dbtProjectFile = path.join(
+      projectDirectory.fsPath,
+      "dbt_project.yml",
+    );
+    if (existsSync(dbtProjectFile)) {
+      const dbtProjectConfig: any = parse(readFileSync(dbtProjectFile, "utf8"));
+      const packagesInstallPath = dbtProjectConfig["packages-install-path"];
+      if (packagesInstallPath) {
+        if (path.isAbsolute(packagesInstallPath)) {
+          return packagesInstallPath;
+        } else {
+          return path.join(projectDirectory.fsPath, packagesInstallPath);
+        }
+      }
+    }
+    return packageInstallPath;
+  }
 
   async discoverProjects(projectDirectories: Uri[]): Promise<Uri[]> {
     let packagesInstallPaths = projectDirectories.map((projectDirectory) =>
@@ -127,6 +154,13 @@ export class DBTCoreProjectDetection
       this.dbtTerminal.debug(
         "dbtCoreIntegration:discoverProjects",
         "An error occured while finding package paths: " + error,
+      );
+      // Fallback to reading yaml files
+      packagesInstallPaths = projectDirectories.map((projectDirectory, idx) =>
+        this.getPackageInstallPathFallback(
+          projectDirectory,
+          packagesInstallPaths[idx],
+        ),
       );
     } finally {
       if (python) {

@@ -30,6 +30,7 @@ import { DBTTerminal } from "./dbtTerminal";
 import { DeferConfig } from "../webview_provider/insightsPanel";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync } from "fs";
+import { ValidationProvider } from "../validation_provider";
 
 function getDBTPath(
   pythonEnvironment: PythonEnvironment,
@@ -64,15 +65,18 @@ export class DBTCloudDetection implements DBTDetection {
           args: ["--version"],
           cwd: this.getFirstWorkspacePath(),
         });
-      const output = await checkDBTInstalledProcess.complete();
-      if (output.includes("dbt Cloud CLI")) {
+      const { stdout, stderr } = await checkDBTInstalledProcess.complete();
+      if (stderr) {
+        throw new Error(stderr);
+      }
+      if (stdout.includes("dbt Cloud CLI")) {
         this.terminal.debug("DBTCLIDetectionSuccess", "dbt cloud cli detected");
         return true;
       } else {
         this.terminal.debug(
           "DBTCLIDetectionFailed",
           "dbt cloud cli was not found. Detection command returned :  " +
-            output,
+            stdout,
         );
       }
     } catch (error) {
@@ -104,7 +108,10 @@ export class DBTCloudDetection implements DBTDetection {
 export class DBTCloudProjectDetection
   implements DBTProjectDetection, Disposable
 {
+  constructor(private altimate: AltimateRequest) {}
+
   async discoverProjects(projectDirectories: Uri[]): Promise<Uri[]> {
+    this.altimate.handlePreviewFeatures();
     const packagesInstallPaths = projectDirectories.map((projectDirectory) =>
       path.join(projectDirectory.fsPath, "dbt_packages"),
     );
@@ -156,6 +163,7 @@ export class DBTCloudProjectIntegration
     private telemetry: TelemetryService,
     private pythonEnvironment: PythonEnvironment,
     private terminal: DBTTerminal,
+    private validationProvider: ValidationProvider,
     private projectRoot: Uri,
     private dbtTerminal: DBTTerminal,
   ) {
@@ -177,6 +185,15 @@ export class DBTCloudProjectIntegration
       this.rebuildManifestDiagnostics,
       this.pythonBridgeDiagnostics,
     );
+    this.validationProvider.validateCredentialsSilently();
+  }
+
+  private throwIfNotAuthenticated() {
+    if (!this.validationProvider.isAuthenticated) {
+      const message =
+        this.altimate.getCredentialsMessage() || "Invalid credentials";
+      throw new Error(message);
+    }
   }
 
   async refreshProjectConfig(): Promise<void> {
@@ -184,6 +201,7 @@ export class DBTCloudProjectIntegration
   }
 
   async executeSQL(query: string, limit: number): Promise<QueryExecution> {
+    this.throwIfNotAuthenticated();
     const showCommand = this.dbtCloudCommand(
       new DBTCommand("Running sql...", [
         "show",
@@ -228,7 +246,7 @@ export class DBTCloudProjectIntegration
             raw_sql: query,
           };
         } catch (error) {
-          throw new Error(JSON.parse((error as string).trim()).info.msg);
+          throw this.processJSONErrors(error);
         }
       },
     );
@@ -245,7 +263,6 @@ export class DBTCloudProjectIntegration
       );
     }
     this.dbtPath = getDBTPath(this.pythonEnvironment, this.terminal);
-    this.altimate.handlePreviewFeatures();
   }
 
   getTargetPath(): string | undefined {
@@ -288,7 +305,7 @@ export class DBTCloudProjectIntegration
       await command.execute();
       this.rebuildManifestDiagnostics.clear();
     } catch (error) {
-      const exception = (error as string).replace(/^.*?\n/, "");
+      const exception = (error as Error).message;
       this.rebuildManifestDiagnostics.set(
         Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
         [
@@ -429,11 +446,17 @@ export class DBTCloudProjectIntegration
   }
 
   private addCommandToQueue(queueName: string, command: DBTCommand) {
-    this.executionInfrastructure.addCommandToQueue(queueName, command);
+    try {
+      this.throwIfNotAuthenticated();
+      this.executionInfrastructure.addCommandToQueue(queueName, command);
+    } catch (e) {
+      window.showErrorMessage((e as Error).message);
+    }
   }
 
   // internal commands
   async unsafeCompileNode(modelName: string): Promise<string | undefined> {
+    this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Compiling model...", [
         "compile",
@@ -454,11 +477,12 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return compiledLine[0].data.compiled;
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).data.exc);
+      throw this.processJSONErrors(error);
     }
   }
 
   async unsafeCompileQuery(query: string): Promise<string | undefined> {
+    this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Compiling sql...", [
         "compile",
@@ -479,7 +503,7 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return compiledLine[0].data.compiled;
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).data.exc);
+      throw this.processJSONErrors(error);
     }
   }
 
@@ -488,6 +512,7 @@ export class DBTCloudProjectIntegration
     dialect: string,
     models: any,
   ): Promise<ValidateSqlParseErrorResponse> {
+    this.throwIfNotAuthenticated();
     const result = await this.python?.lock<ValidateSqlParseErrorResponse>(
       (python) =>
         python!`to_dict(validate_sql(${query}, ${dialect}, ${models}))`,
@@ -496,6 +521,7 @@ export class DBTCloudProjectIntegration
   }
 
   async validateSQLDryRun(query: string): Promise<{ bytes_processed: string }> {
+    this.throwIfNotAuthenticated();
     const validateSqlCommand = this.dbtCloudCommand(
       new DBTCommand("Estimating BigQuery cost...", [
         "compile",
@@ -516,7 +542,7 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return JSON.parse(compiledLine[0].data.compiled);
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).data.exc);
+      throw this.processJSONErrors(error);
     }
   }
 
@@ -524,6 +550,7 @@ export class DBTCloudProjectIntegration
     sourceName: string,
     tableName: string,
   ): Promise<{ [key: string]: string }[]> {
+    this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting columns of source...", [
         "compile",
@@ -544,13 +571,14 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return JSON.parse(compiledLine[0].data.compiled);
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).data.exc);
+      throw this.processJSONErrors(error);
     }
   }
 
   async getColumnsOfModel(
     modelName: string,
   ): Promise<{ [key: string]: string }[]> {
+    this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting columns of model...", [
         "compile",
@@ -571,11 +599,12 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return JSON.parse(compiledLine[0].data.compiled);
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).data.exc);
+      throw this.processJSONErrors(error);
     }
   }
 
   async getCatalog(): Promise<{ [key: string]: string }[]> {
+    this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting catalog...", [
         "compile",
@@ -596,7 +625,7 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       return JSON.parse(compiledLine[0].data.compiled);
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).data.exc);
+      throw this.processJSONErrors(error);
     }
   }
 
@@ -634,8 +663,31 @@ export class DBTCloudProjectIntegration
         .filter((line) => line.data.hasOwnProperty("compiled"));
       this.adapterType = compiledLine[0].data.compiled;
     } catch (error) {
-      throw new Error(JSON.parse((error as string).trim()).info.msg);
+      throw this.processJSONErrors(error);
     }
+  }
+
+  private processJSONErrors(jsonErrors: unknown) {
+    const rawError = (jsonErrors as Error).message;
+    const errorLines: string[] = [];
+    try {
+      // eslint-disable-next-line prefer-spread
+      errorLines.push.apply(
+        errorLines,
+        rawError
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line.trim()).info.msg),
+      );
+    } catch (error) {
+      // ideally we never come here, this is a bug in our code
+      return new Error("Could not process " + rawError + ": " + error);
+    }
+    return new Error(
+      errorLines.length
+        ? errorLines.join(", ")
+        : "Could not process error output: " + rawError,
+    );
   }
 
   async dispose() {
