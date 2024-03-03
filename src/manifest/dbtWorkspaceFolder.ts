@@ -15,12 +15,16 @@ import {
   WorkspaceFolder,
 } from "vscode";
 import { DBTProject } from "./dbtProject";
-import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
+import {
+  ManifestCacheChangedEvent,
+  RebuildManifestStatusChange,
+} from "./event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
 import { YAMLError } from "yaml";
 import { ProjectRegisteredUnregisteredEvent } from "./dbtProjectContainer";
 import { DBTCoreProjectDetection } from "../dbt_client/dbtCoreIntegration";
 import { DBTCloudProjectDetection } from "../dbt_client/dbtCloudIntegration";
+import { DBTProjectDetection } from "../dbt_client/dbtIntegration";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
@@ -28,6 +32,10 @@ export class DBTWorkspaceFolder implements Disposable {
     languages.createDiagnosticCollection("dbt");
   private dbtProjects: DBTProject[] = [];
   private disposables: Disposable[] = [];
+  private _onRebuildManifestStatusChange =
+    new EventEmitter<RebuildManifestStatusChange>();
+  readonly onRebuildManifestStatusChange =
+    this._onRebuildManifestStatusChange.event;
 
   constructor(
     @inject("DBTProjectFactory")
@@ -101,7 +109,7 @@ export class DBTWorkspaceFolder implements Disposable {
       .getConfiguration("dbt")
       .get<string>("dbtIntegration", "core");
 
-    let dbtProjectDetection;
+    let dbtProjectDetection: DBTProjectDetection;
     switch (dbtIntegrationMode) {
       case "cloud":
         dbtProjectDetection = this.dbtCloudProjectDetection;
@@ -162,12 +170,17 @@ export class DBTWorkspaceFolder implements Disposable {
         projectConfig,
         this._onManifestChanged,
       );
-      await dbtProject.initialize();
+      this.disposables.push(
+        dbtProject.onRebuildManifestStatusChange((e) => {
+          this._onRebuildManifestStatusChange.fire(e);
+        }),
+      );
       this.dbtProjects.push(dbtProject);
       // sorting the dbt projects descending by path ensures that we find the deepest path first
       this.dbtProjects.sort(
         (a, b) => -a.projectRoot.fsPath.localeCompare(b.projectRoot.fsPath),
       );
+      await dbtProject.initialize();
       this.projectDiscoveryDiagnostics.clear();
       this._onProjectRegisteredUnregistered.fire({
         root: uri,

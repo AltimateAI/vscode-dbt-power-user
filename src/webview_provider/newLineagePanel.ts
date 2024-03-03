@@ -33,6 +33,7 @@ import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { PythonException } from "python-bridge";
 import { AbortError } from "node-fetch";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 type Table = {
   label: string;
@@ -70,6 +71,7 @@ export class NewLineagePanel implements LineagePanelView {
     private dbtProjectContainer: DBTProjectContainer,
     private altimate: AltimateRequest,
     private telemetry: TelemetryService,
+    private terminal: DBTTerminal,
   ) {}
 
   public changedActiveTextEditor(event: TextEditor | undefined) {
@@ -104,7 +106,7 @@ export class NewLineagePanel implements LineagePanelView {
   }
 
   init() {
-    console.log("lineage:init -> ", this._panel);
+    this.terminal.debug("newLineagePanel:init", "init", this._panel);
     this.changedActiveColorTheme();
     this.renderStartingNode();
   }
@@ -124,7 +126,10 @@ export class NewLineagePanel implements LineagePanelView {
     context: WebviewViewResolveContext<unknown>,
     _token: CancellationToken,
   ): void | Thenable<void> {
-    console.log("lineage:resolveWebviewView -> ");
+    this.terminal.debug(
+      "newLineagePanel:resolveWebviewView",
+      "onResolveWebviewView",
+    );
     this._panel = panel;
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
@@ -229,7 +234,11 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
 
-    console.error("Unsupported mssage", message);
+    this.terminal.debug(
+      "newLineagePanel:handleCommand",
+      "Unsupported command",
+      message,
+    );
   }
 
   private async handleColumnLineage({ event }: { event: CllEvents }) {
@@ -269,7 +278,11 @@ export class NewLineagePanel implements LineagePanelView {
 
   private async addModelColumnsFromDB(project: DBTProject, node: NodeMetaData) {
     const columnsFromDB = await project.getColumnsOfModel(node.name);
-    console.log("addColumnsFromDB: ", node.name, " -> ", columnsFromDB);
+    this.terminal.debug(
+      "newLineagePanel:addModelColumnsFromDB",
+      node.name,
+      columnsFromDB,
+    );
     if (!columnsFromDB || columnsFromDB.length === 0) {
       return false;
     }
@@ -313,7 +326,11 @@ export class NewLineagePanel implements LineagePanelView {
       nodeName,
       table.name,
     );
-    console.log("addColumnsFromDB: ", nodeName, " -> ", columnsFromDB);
+    this.terminal.debug(
+      "newLineagePanel:addSourceColumnsFromDB",
+      nodeName,
+      columnsFromDB,
+    );
     if (!columnsFromDB || columnsFromDB.length === 0) {
       return false;
     }
@@ -644,11 +661,17 @@ export class NewLineagePanel implements LineagePanelView {
             modelInfos.push({ model_node: node });
             return;
           }
-          const compiledSql = await project.compileNode(node.name);
-          if (!compiledSql) {
-            return;
+          try {
+            const compiledSql = await project.unsafeCompileNode(node.name);
+            if (!compiledSql) {
+              return;
+            }
+            modelInfos.push({ compiled_sql: compiledSql, model_node: node });
+          } catch (e) {
+            // Just logging error as models without compiled sql are collected
+            // and shown in single error notification
+            console.error(`Unable to compile sql for node ${node.name}`, e);
           }
-          modelInfos.push({ compiled_sql: compiledSql, model_node: node });
         });
       });
       commandQueue.push(async () => {
@@ -704,15 +727,11 @@ export class NewLineagePanel implements LineagePanelView {
           "columnLineageCompileNodePythonError",
           exc,
         );
-        console.error(
-          "Error encountered while compiling/retrieving schema for model: ",
-        );
-        console.error(
-          "Exception: " +
-            exc.exception.message +
-            "\n\n" +
-            "Detailed error information:\n" +
-            exc,
+        this.terminal.debug(
+          "newLineagePanel:getConnectedColumns",
+          "Error encountered while compiling/retrieving schema for model: " +
+            exc.exception.message,
+          exc,
         );
         return;
       }
@@ -723,9 +742,7 @@ export class NewLineagePanel implements LineagePanelView {
       // Unknown error
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Encountered an unknown issue: " +
-            exc +
-            " while compiling/retrieving schema for nodes.",
+          "Column lineage failed: " + (exc as Error).message,
         ),
       );
       return;
@@ -781,9 +798,17 @@ export class NewLineagePanel implements LineagePanelView {
         parent_models,
         session_id: sessionId,
       };
-      console.log("cll:request -> ", request);
+      this.terminal.debug(
+        "newLineagePanel:getConnectedColumns",
+        "request",
+        request,
+      );
       const result = await this.altimate.getColumnLevelLineage(request);
-      console.log("cll:response -> ", result);
+      this.terminal.debug(
+        "newLineagePanel:getConnectedColumns",
+        "response",
+        result,
+      );
       if ((result as DBTColumnLineageResponse).column_lineage) {
         const column_lineage =
           result?.column_lineage.map((c) => ({

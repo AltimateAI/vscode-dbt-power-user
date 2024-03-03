@@ -11,7 +11,7 @@ import {
   getFirstWorkspacePath,
   provideSingleton,
 } from "../utils";
-import { PythonBridge, PythonException, pythonBridge } from "python-bridge";
+import { PythonBridge, pythonBridge } from "python-bridge";
 import { provide } from "inversify-binding-decorators";
 import {
   CommandProcessExecution,
@@ -45,14 +45,22 @@ export class CLIDBTCommandExecutionStrategy
     protected terminal: DBTTerminal,
     protected telemetry: TelemetryService,
     protected cwd: Uri,
+    protected dbtPath: string,
   ) {}
 
-  execute(command: DBTCommand, token?: CancellationToken): Promise<string> {
+  async execute(
+    command: DBTCommand,
+    token?: CancellationToken,
+  ): Promise<string> {
     const commandExecution = this.executeCommand(command, token);
-    if (command.logToTerminal) {
-      return commandExecution.completeWithTerminalOutput(this.terminal);
+    const executionPromise = command.logToTerminal
+      ? commandExecution.completeWithTerminalOutput(this.terminal)
+      : commandExecution.complete();
+    const { stdout, stderr } = await executionPromise;
+    if (stderr) {
+      throw new Error(stderr);
     }
-    return commandExecution.complete();
+    return stdout;
   }
 
   protected executeCommand(
@@ -87,7 +95,7 @@ export class CLIDBTCommandExecutionStrategy
       tokens.push(command.token);
     }
     return this.commandProcessExecutionFactory.createCommandProcessExecution({
-      command: "dbt",
+      command: this.dbtPath,
       args,
       tokens,
       cwd: this.cwd.fsPath,
@@ -107,10 +115,18 @@ export class PythonDBTCommandExecutionStrategy
     private telemetry: TelemetryService,
   ) {}
 
-  execute(command: DBTCommand, token?: CancellationToken): Promise<string> {
-    return this.executeCommand(command, token).completeWithTerminalOutput(
-      this.terminal,
-    );
+  async execute(
+    command: DBTCommand,
+    token?: CancellationToken,
+  ): Promise<string> {
+    const { stdout, stderr } = await this.executeCommand(
+      command,
+      token,
+    ).completeWithTerminalOutput(this.terminal);
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    return stdout;
   }
 
   private executeCommand(

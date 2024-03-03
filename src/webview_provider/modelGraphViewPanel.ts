@@ -15,6 +15,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { LineagePanelView } from "./lineagePanel";
 import { provideSingleton } from "../utils";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 interface G6DataModel {
   nodes: {
@@ -70,7 +71,10 @@ export class ModelGraphViewPanel implements LineagePanelView {
 
   private g6Data?: G6DataModel;
 
-  public constructor(private dbtProjectContainer: DBTProjectContainer) {}
+  public constructor(
+    private dbtProjectContainer: DBTProjectContainer,
+    private dbtTerminal: DBTTerminal,
+  ) {}
 
   eventMapChanged(eventMap: Map<string, ManifestCacheProjectAddedEvent>): void {
     this.eventMap = eventMap;
@@ -119,7 +123,6 @@ export class ModelGraphViewPanel implements LineagePanelView {
     context: WebviewViewResolveContext,
     _token: CancellationToken,
   ) {
-    console.log("graph:resolveWebviewView  -> ", this._panel);
     this._panel = panel;
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
@@ -137,14 +140,17 @@ export class ModelGraphViewPanel implements LineagePanelView {
   }
 
   init() {
-    console.log("graph:init  -> ", this._panel);
     this.g6Data = this.parseGraphData();
     this.transmitData(this.g6Data);
     this.updateGraphStyle();
   }
 
   handleCommand(message: { command: string; args: any }): void {
-    console.error("Unsupported mssage", message);
+    this.dbtTerminal.debug(
+      "modelGraphViewPanel:handleCommand",
+      "Unsupported mssage",
+      message,
+    );
   }
 
   private parseGraphData = () => {

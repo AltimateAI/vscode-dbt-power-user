@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.34.4",
+  "version": "0.34.5",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -874,6 +874,7 @@
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production",
     "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
+    "watch": "concurrently \"npm:watch --prefix ./new_lineage_panel\" \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
@@ -889,10 +890,11 @@
     "@types/mocha": "^10.0.1",
     "@types/node": "^20.9.1",
     "@types/vscode": "^1.81.0",
-    "@types/which": "^3.0.0",
-    "@typescript-eslint/eslint-plugin": "^5.54.1",
+    "@types/which": "^3.0.3",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "@vscode/test-electron": "^2.3.7",
+    "concurrently": "^8.2.2",
     "copy-webpack-plugin": "^11.0.0",
     "cross-env": "^7.0.3",
     "eslint": "^8.53.0",
@@ -906,8 +908,8 @@
     "ovsx": "^0.8.3",
     "prettier": "^3.0.3",
     "prettier-eslint": "^15.0.1",
-    "prettier-plugin-organize-imports": "^3.2.3",
-    "terser-webpack-plugin": "^5.3.9",
+    "prettier-plugin-organize-imports": "^3.2.4",
+    "terser-webpack-plugin": "^5.3.10",
     "ts-loader": "^9.4.4",
     "typescript": "^4.9.5",
     "webpack": "^5.88.2",

@@ -38,6 +38,7 @@ import {
 } from "./dbt_client/dbtCloudIntegration";
 import { CommandProcessExecutionFactory } from "./commandProcessExecution";
 import { AltimateRequest } from "./altimate";
+import { ValidationProvider } from "./validation_provider";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -89,6 +90,7 @@ container
           container.get(TelemetryService),
           container.get(PythonDBTCommandExecutionStrategy),
           container.get(DBTProjectContainer),
+          container.get(DBTTerminal),
           projectRoot,
           projectConfigDiagnostics,
         );
@@ -100,9 +102,9 @@ container
   .bind<interfaces.Factory<DBTCommandExecutionStrategy>>(
     "Factory<CLIDBTCommandExecutionStrategy>",
   )
-  .toFactory<CLIDBTCommandExecutionStrategy, [Uri]>(
+  .toFactory<CLIDBTCommandExecutionStrategy, [Uri, string]>(
     (context: interfaces.Context) => {
-      return (projectRoot: Uri) => {
+      return (projectRoot: Uri, dbtPath: string) => {
         const { container } = context;
         return new CLIDBTCommandExecutionStrategy(
           container.get(CommandProcessExecutionFactory),
@@ -110,6 +112,7 @@ container
           container.get(DBTTerminal),
           container.get(TelemetryService),
           projectRoot,
+          dbtPath,
         );
       };
     },
@@ -129,6 +132,9 @@ container
           container.get("Factory<CLIDBTCommandExecutionStrategy>"),
           container.get(AltimateRequest),
           container.get(TelemetryService),
+          container.get(PythonEnvironment),
+          container.get(DBTTerminal),
+          container.get(ValidationProvider),
           projectRoot,
         );
       };

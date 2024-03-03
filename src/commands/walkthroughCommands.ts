@@ -56,8 +56,11 @@ export class WalkthroughCommands {
           throw new Error(runModelOutput);
         }
       } catch (err) {
-        console.log(err);
-        this.telemetry.sendTelemetryError("validateProjectError", err);
+        this.dbtTerminal.error(
+          "validateProjectError",
+          `Error when validating ${projectContext.label}`,
+          err,
+        );
         window.showErrorMessage(
           "Error running dbt debug for project " +
             projectContext.label +
@@ -94,7 +97,7 @@ export class WalkthroughCommands {
 
         await project.installDeps();
       } catch (err) {
-        console.log(err);
+        this.dbtTerminal.log("installDeps", err);
         this.telemetry.sendTelemetryError("installDepsError", err);
         window.showErrorMessage(
           "Error installing dbt dependencies for project " +
@@ -152,7 +155,7 @@ export class WalkthroughCommands {
       },
       async () => {
         try {
-          const result = await this.commandProcessExecutionFactory
+          const { stderr } = await this.commandProcessExecutionFactory
             .createCommandProcessExecution({
               command: this.pythonEnvironment.pythonPath,
               args: [
@@ -165,6 +168,9 @@ export class WalkthroughCommands {
               envVars: this.pythonEnvironment.environmentVariables,
             })
             .completeWithTerminalOutput(this.dbtTerminal);
+          if (stderr) {
+            throw new Error(stderr);
+          }
           await this.dbtProjectContainer.detectDBT();
           this.dbtProjectContainer.initialize();
         } catch (err) {
