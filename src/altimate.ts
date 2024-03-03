@@ -10,6 +10,8 @@ import { RateLimitException } from "./exceptions";
 import { DBTProject } from "./manifest/dbtProject";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
 
+export class NoCredentialsError extends Error {}
+
 export class NotFoundError extends Error {}
 
 export class ForbiddenError extends Error {}
@@ -305,7 +307,11 @@ export class AltimateRequest {
     return null;
   }
 
-  async fetch<T>(endpoint: string, fetchArgs = {}, timeout: number = 120000) {
+  async fetch<T>(
+    endpoint: string,
+    fetchArgs = {},
+    timeout: number = 120000,
+  ): Promise<T> {
     this.dbtTerminal.debug("network:request", endpoint, fetchArgs);
     const abortController = new AbortController();
     const timeoutHandler = setTimeout(() => {
@@ -314,8 +320,7 @@ export class AltimateRequest {
 
     const message = this.getCredentialsMessage();
     if (message) {
-      window.showErrorMessage(message);
-      return;
+      throw new NoCredentialsError(message);
     }
     const config = this.getConfig()!;
 
