@@ -256,6 +256,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
         "manifest",
         dbtCoreIntegrationId,
       );
+      // TODO: Can be removed once the backend sends a 404
       if (response.url === "" && response.dbt_core_integration_file_id === -1) {
         throw new Error(
           "No remote manifest file present for selected dbt core integration",
