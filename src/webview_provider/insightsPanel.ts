@@ -87,19 +87,21 @@ export class InsightsPanel extends AltimateWebviewProvider {
     );
   }
 
-  private async getCurrentProjectRoot() {
-    const currentProject = await this.getCurrentProject();
+  private getCurrentProjectRoot() {
+    const currentProject = this.getCurrentProject();
     if (!currentProject?.projectRoot) {
-      throw new Error("Invalid current project root");
+      throw new Error(
+        "Could not find a project based on the currently selected file in the editor",
+      );
     }
 
     return getProjectRelativePath(currentProject.projectRoot);
   }
 
-  private async getCurrentProject() {
+  private getCurrentProject() {
     const currentFilePath = window.activeTextEditor?.document.uri;
     if (!currentFilePath) {
-      throw new Error("Invalid current file");
+      throw new Error("No file selected in the editor");
     }
 
     const currentProject =
@@ -128,7 +130,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
         : ConfigurationTarget.Global;
 
       this.dbtTerminal.debug(
-        "defer",
+        "InsightsPanel",
         "config target: ${window.activeTextEditor?.document.uri}",
       );
 
@@ -173,7 +175,11 @@ export class InsightsPanel extends AltimateWebviewProvider {
         });
       }
     } catch (err) {
-      this.dbtTerminal.error("defer", "error while updating defer config", err);
+      this.dbtTerminal.error(
+        "InsightsPanel",
+        "error while updating defer config",
+        err,
+      );
       this._panel!.webview.postMessage({
         command: "response",
         args: {
@@ -223,7 +229,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       }
     } catch (err) {
       this.dbtTerminal.error(
-        "defer",
+        "InsightsPanel",
         `could not fetch project integrations`,
         err,
       );
@@ -250,7 +256,11 @@ export class InsightsPanel extends AltimateWebviewProvider {
         "manifest",
         dbtCoreIntegrationId,
       );
-
+      if (response.url === "" && response.dbt_core_integration_file_id === -1) {
+        throw new Error(
+          "No remote manifest file present for selected dbt core integration",
+        );
+      }
       if (syncRequestId) {
         this._panel!.webview.postMessage({
           command: "response",
@@ -262,9 +272,12 @@ export class InsightsPanel extends AltimateWebviewProvider {
         });
       }
     } catch (err) {
+      window.showErrorMessage(
+        "Could not download remote manifest: " + (err as Error).message,
+      );
       this.dbtTerminal.error(
-        "defer",
-        `could not fetch manifest signed url`,
+        "InsightsPanel",
+        `could not download remote manifest`,
         err,
       );
       this._panel!.webview.postMessage({
@@ -308,7 +321,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       }
     } catch (err) {
       this.dbtTerminal.error(
-        "defer",
+        "InsightsPanel",
         `could not fetch project integrations`,
         err,
       );
@@ -334,7 +347,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       canSelectMany: false,
     });
     if (openDialog === undefined || openDialog.length === 0) {
-      this.dbtTerminal.debug("defer", "opendialog cancelled");
+      this.dbtTerminal.debug("InsightsPanel", "opendialog cancelled");
       this._panel!.webview.postMessage({
         command: "response",
         args: {
@@ -399,7 +412,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
         const projectPath =
           projectRoot || (await this.getCurrentProject())?.projectRoot.fsPath;
         this.dbtTerminal.debug(
-          "defer",
+          "InsightsPanel",
           `getting defer config for ${currentDocument?.uri.fsPath}`,
         );
         const currentConfig: Record<string, DeferConfig> = await workspace

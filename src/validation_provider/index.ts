@@ -70,6 +70,15 @@ export class ValidationProvider implements Disposable {
     return this._isAuthenticated;
   }
 
+  throwIfNotAuthenticated() {
+    if (!this.isAuthenticated()) {
+      const message =
+        this.altimate.getCredentialsMessage() ||
+        "To use this feature, please add a valid API Key and an instance name in the settings.";
+      throw new Error(message);
+    }
+  }
+
   dispose() {
     while (this.disposables.length) {
       const x = this.disposables.pop();

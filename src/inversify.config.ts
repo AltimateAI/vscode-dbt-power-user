@@ -92,6 +92,7 @@ container
           container.get(DBTProjectContainer),
           container.get(AltimateRequest),
           container.get(DBTTerminal),
+          container.get(ValidationProvider),
           projectRoot,
           projectConfigDiagnostics,
         );
@@ -137,7 +138,6 @@ container
           container.get(DBTTerminal),
           container.get(ValidationProvider),
           projectRoot,
-          container.get(DBTTerminal),
         );
       };
     },

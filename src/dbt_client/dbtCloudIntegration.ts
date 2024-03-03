@@ -167,7 +167,6 @@ export class DBTCloudProjectIntegration
     private terminal: DBTTerminal,
     private validationProvider: ValidationProvider,
     private projectRoot: Uri,
-    private dbtTerminal: DBTTerminal,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
@@ -191,15 +190,6 @@ export class DBTCloudProjectIntegration
       this.pythonBridgeDiagnostics,
     );
     this.validationProvider.validateCredentialsSilently();
-  }
-
-  private throwIfNotAuthenticated() {
-    if (!this.validationProvider.isAuthenticated()) {
-      const message =
-        this.altimate.getCredentialsMessage() ||
-        "To use this feature, please add a valid API Key and an instance name in the settings.";
-      throw new Error(message);
-    }
   }
 
   async refreshProjectConfig(): Promise<void> {
@@ -387,28 +377,7 @@ export class DBTCloudProjectIntegration
   }
 
   private async getDeferParams(projectRoot: Uri): Promise<string[]> {
-    // validate credentials and if not valid run without defer params
-    const config = this.altimate.getConfig();
-    if (!config?.key || !config?.instance) {
-      // only validate when both are set
-      window.showErrorMessage(
-        "Cannot run with defer to prod set up as Auth tokens are invalid",
-      );
-      throw new Error("Missing Altimate instance name and key in settings.");
-    }
-
-    const validation = await this.altimate.validateCredentials(
-      config.instance,
-      config.key,
-    );
-
-    if (!validation?.ok) {
-      window.showErrorMessage(
-        "Cannot run with defer to prod set up as Auth tokens are invalid",
-      );
-      throw new Error("Invalid Altimate instance name and key in settings.");
-    }
-
+    this.throwIfNotAuthenticated();
     // https://docs.getdbt.com/docs/cloud/about-cloud-develop-defer#defer-in-dbt-cloud-cli
     // For dbt cloud, defer is enabled by default. We need to send flag only if it is disabled
     const currentConfig: Record<string, DeferConfig> = await workspace
@@ -419,13 +388,13 @@ export class DBTCloudProjectIntegration
       currentConfig[getProjectRelativePath(projectRoot)];
 
     if (!deferConfigInProject) {
-      this.dbtTerminal.debug("defer", "defer params not set");
+      this.terminal.debug("Defer to Prod", "defer params not set");
       return [];
     }
     const { deferToProduction, favorState } = deferConfigInProject;
     // explicitly checking false to make sure defer is disabled
     if (deferToProduction === false) {
-      this.dbtTerminal.debug("defer", "defer to prod not enabled");
+      this.terminal.debug("Defer to Prod", "defer to prod not enabled");
       return ["--no-defer"];
     }
     if (favorState) {
@@ -692,6 +661,10 @@ export class DBTCloudProjectIntegration
         ? errorLines.join(", ")
         : "Could not process error output: " + rawError,
     );
+  }
+
+  private throwIfNotAuthenticated() {
+    this.validationProvider.throwIfNotAuthenticated();
   }
 
   async dispose() {

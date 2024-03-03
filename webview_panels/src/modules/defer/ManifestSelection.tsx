@@ -80,19 +80,9 @@ export const ManifestSelection = ({
     label: string;
     value: number;
   }) => {
-    const response = await executeRequestInSync("testRemoteManifest", {
+    await executeRequestInSync("testRemoteManifest", {
       dbtCoreIntegrationId: selectedOption.value,
     });
-    const data = response as {
-      url: string;
-      dbt_core_integration_file_id: number;
-    };
-    if (data.url === "" && data.dbt_core_integration_file_id === -1) {
-      executeRequestInAsync("showInformationMessage", {
-        infoMessage: `No remote manifest file present for dbt core integration: ${selectedOption.label}`,
-      });
-      return;
-    }
     executeRequestInAsync("showInformationMessage", {
       infoMessage: `Project integration connected successfully!`,
     });

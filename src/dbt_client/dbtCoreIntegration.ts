@@ -36,11 +36,16 @@ import { DBTProject } from "../manifest/dbtProject";
 import { existsSync, readFileSync } from "fs";
 import { parse } from "yaml";
 import { TelemetryService } from "../telemetry";
-import { AltimateRequest, ValidateSqlParseErrorResponse } from "../altimate";
+import {
+  AltimateRequest,
+  NotFoundError,
+  ValidateSqlParseErrorResponse,
+} from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { getProjectRelativePath } from "../utils";
 import { ManifestPathType } from "../constants";
 import { DBTTerminal } from "./dbtTerminal";
+import { ValidationProvider } from "../validation_provider";
 
 const DEFAULT_QUERY_TEMPLATE = "select * from ({query}) as query limit {limit}";
 
@@ -215,6 +220,7 @@ export class DBTCoreProjectIntegration
     private dbtProjectContainer: DBTProjectContainer,
     private altimateRequest: AltimateRequest,
     private dbtTerminal: DBTTerminal,
+    private validationProvider: ValidationProvider,
     private projectRoot: Uri,
     private projectConfigDiagnostics: DiagnosticCollection,
   ) {
@@ -570,28 +576,6 @@ export class DBTCoreProjectIntegration
   }
 
   private async getDeferParams(projectRoot: Uri): Promise<string[]> {
-    // validate credentials and if not valid run without defer params
-    const config = this.altimateRequest.getConfig();
-    if (!config?.key || !config?.instance) {
-      // only validate when both are set
-      window.showErrorMessage(
-        "Cannot run with defer to prod set up as Auth tokens are invalid",
-      );
-      throw new Error("Missing Altimate instance name and key in settings.");
-    }
-
-    const validation = await this.altimateRequest.validateCredentials(
-      config.instance,
-      config.key,
-    );
-
-    if (!validation?.ok) {
-      window.showErrorMessage(
-        "Cannot run with defer to prod set up as Auth tokens are invalid",
-      );
-      throw new Error("Invalid Altimate instance name and key in settings.");
-    }
-
     const currentConfig: Record<string, DeferConfig> = await workspace
       .getConfiguration("dbt", window.activeTextEditor?.document.uri)
       .get("deferConfigPerProject", {});
@@ -600,7 +584,10 @@ export class DBTCoreProjectIntegration
       currentConfig[getProjectRelativePath(projectRoot)];
 
     if (!deferConfigInProject) {
-      this.dbtTerminal.debug("defer", "defer params not set");
+      this.dbtTerminal.debug(
+        "deferToProd",
+        "No defer to prod configuration found",
+      );
       return [];
     }
     const {
@@ -611,18 +598,21 @@ export class DBTCoreProjectIntegration
       dbtCoreIntegrationId,
     } = deferConfigInProject;
     if (!deferToProduction) {
-      this.dbtTerminal.debug("defer", "defer to prod not enabled");
+      this.dbtTerminal.debug("deferToProd", "defer to prod not enabled");
       return [];
     }
     if (manifestPathType === ManifestPathType.LOCAL) {
       if (!manifestPathForDeferral) {
+        const configNotPresent = new Error(
+          "manifestPathForDeferral config is not present, use the actions panel to set the configuration",
+        );
         this.dbtTerminal.error(
           "manifestPathForDeferral",
           "manifestPathForDeferral is not present",
-          new Error("manifestPathForDeferral is not present"),
+          configNotPresent,
         );
         window.showErrorMessage("manifestPathForDeferral is not present");
-        throw new Error("manifestPathForDeferral is not present");
+        throw configNotPresent;
       }
       const args = ["--defer", "--state", manifestPathForDeferral];
       if (favorState) {
@@ -636,6 +626,7 @@ export class DBTCoreProjectIntegration
       return args;
     }
     if (manifestPathType === ManifestPathType.REMOTE) {
+      this.validationProvider.throwIfNotAuthenticated();
       if (dbtCoreIntegrationId! <= 0) {
         this.dbtTerminal.debug(
           "DBTCoreProjectIntegration",
@@ -644,42 +635,40 @@ export class DBTCoreProjectIntegration
         return [];
       }
 
-      window.showInformationMessage(`Downloading manifest.json`);
       this.dbtTerminal.debug(
         "remoteManifest",
         `fetching artifact url for dbtCoreIntegrationId: ${dbtCoreIntegrationId}`,
       );
-      const response = await this.altimateRequest.fetchArtifactUrl(
-        "manifest",
-        dbtCoreIntegrationId!,
-      );
-      if (response?.url) {
+      try {
+        const response = await this.altimateRequest.fetchArtifactUrl(
+          "manifest",
+          dbtCoreIntegrationId!,
+        );
         const manifestPath = await this.altimateRequest.downloadFileLocally(
           response.url,
           this.projectRoot,
         );
-        if (manifestPath) {
-          console.log(`Set remote manifest path: ${manifestPath}`);
-          const args = ["--defer", "--state", manifestPath];
-          if (favorState) {
-            args.push("--favor-state");
-          }
-          this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
-          return args;
-        } else {
-          window.showErrorMessage("Unable to use remote manifest file.");
+        console.log(`Set remote manifest path: ${manifestPath}`);
+        const args = ["--defer", "--state", manifestPath];
+        if (favorState) {
+          args.push("--favor-state");
+        }
+        this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
+        return args;
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          const manifestNotFoundError = new Error(
+            "Unable to download remote manifest file. Did you upload your manifest using the Altimate DataPilot CLI?",
+          );
           this.dbtTerminal.error(
             "remoteManifestError",
-            "Unable to use remote manifest file.",
-            new Error("Unable to use remote manifest file."),
+            "Unable to download remote manifest file.",
+            manifestNotFoundError,
           );
-          throw new Error("Unable to use remote manifest file.");
+          throw manifestNotFoundError;
         }
+        throw error;
       }
-      this.dbtTerminal.debug(
-        "remoteManifest",
-        `empty artifact url for dbtCoreIntegrationId: ${dbtCoreIntegrationId}`,
-      );
     }
     return [];
   }

@@ -410,12 +410,6 @@ export class AltimateRequest {
       );
       const response = await fetch(artifactUrl, { agent: undefined });
 
-      if (!response.ok) {
-        throw new Error(
-          `Failed to download file. Status: ${response.status} ${response.statusText}`,
-        );
-      }
-
       const fileStream = createWriteStream(destinationPath);
       await new Promise((resolve, reject) => {
         response.body?.pipe(fileStream);
@@ -424,7 +418,6 @@ export class AltimateRequest {
       });
 
       this.dbtTerminal.debug("File downloaded successfully!", fileName);
-      window.showInformationMessage(`Successfully downloaded ${fileName}`);
       return tempFolder;
     } catch (err) {
       this.dbtTerminal.error(
