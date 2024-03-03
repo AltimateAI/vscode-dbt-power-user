@@ -7,25 +7,16 @@ const validTenantRegex = new RegExp(/^[a-z_][a-z0-9_]*$/);
 @provideSingleton(ValidationProvider)
 export class ValidationProvider implements Disposable {
   private disposables: Disposable[] = [];
-  private currInstanceName: string | undefined;
-  private currAPIKey: string | undefined;
-  isAuthenticated = false;
+  private _isAuthenticated = false;
 
   constructor(private altimate: AltimateRequest) {
-    const config = this.altimate.getConfig();
-    this.currInstanceName = config?.instance;
-    this.currAPIKey = config?.key;
     this.disposables.push(
-      workspace.onDidChangeConfiguration(
-        (e) => {
-          if (!e.affectsConfiguration("dbt")) {
-            return;
-          }
-          this.validateCredentials();
-        },
-        this,
-        this.disposables,
-      ),
+      workspace.onDidChangeConfiguration((e) => {
+        if (!e.affectsConfiguration("dbt")) {
+          return;
+        }
+        this.validateCredentials();
+      }),
     );
   }
 
@@ -45,17 +36,10 @@ export class ValidationProvider implements Disposable {
 
     // only validate when both are set
     if (!key || !instance) {
-      this.isAuthenticated = false;
+      this._isAuthenticated = false;
       return;
     }
 
-    // no change in instance and key
-    if (instance === this.currInstanceName && key === this.currAPIKey) {
-      return;
-    }
-
-    this.currInstanceName = instance;
-    this.currAPIKey = key;
     let message = "";
     if (!validTenantRegex.exec(instance)) {
       message = "Instance name must not be URL.";
@@ -63,7 +47,7 @@ export class ValidationProvider implements Disposable {
       message = "API key is not valid";
     }
     if (message) {
-      this.isAuthenticated = false;
+      this._isAuthenticated = false;
       if (!silent) {
         window.showErrorMessage(message);
       }
@@ -71,7 +55,7 @@ export class ValidationProvider implements Disposable {
     }
     const validation = await this.altimate.validateCredentials(instance, key);
     if (!validation?.ok) {
-      this.isAuthenticated = false;
+      this._isAuthenticated = false;
       if (!silent) {
         window.showErrorMessage(
           `Credentials are invalid. ${validation?.detail}`,
@@ -79,7 +63,11 @@ export class ValidationProvider implements Disposable {
       }
       return;
     }
-    this.isAuthenticated = true;
+    this._isAuthenticated = true;
+  }
+
+  isAuthenticated() {
+    return this._isAuthenticated;
   }
 
   dispose() {

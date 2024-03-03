@@ -10,6 +10,8 @@ import {
 } from "vscode";
 import { provideSingleton } from "../utils";
 import {
+  Catalog,
+  DBColumn,
   DBTCommand,
   DBTCommandExecutionInfrastructure,
   DBTCommandExecutionStrategy,
@@ -187,9 +189,10 @@ export class DBTCloudProjectIntegration
   }
 
   private throwIfNotAuthenticated() {
-    if (!this.validationProvider.isAuthenticated) {
+    if (!this.validationProvider.isAuthenticated()) {
       const message =
-        this.altimate.getCredentialsMessage() || "Invalid credentials";
+        this.altimate.getCredentialsMessage() ||
+        "To use this feature, please add a valid API Key and an instance name in the settings.";
       throw new Error(message);
     }
   }
@@ -485,7 +488,7 @@ export class DBTCloudProjectIntegration
   async getColumnsOfSource(
     sourceName: string,
     tableName: string,
-  ): Promise<{ [key: string]: string }[]> {
+  ): Promise<DBColumn[]> {
     this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting columns of source...", [
@@ -511,9 +514,7 @@ export class DBTCloudProjectIntegration
     }
   }
 
-  async getColumnsOfModel(
-    modelName: string,
-  ): Promise<{ [key: string]: string }[]> {
+  async getColumnsOfModel(modelName: string): Promise<DBColumn[]> {
     this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting columns of model...", [
@@ -539,7 +540,7 @@ export class DBTCloudProjectIntegration
     }
   }
 
-  async getCatalog(): Promise<{ [key: string]: string }[]> {
+  async getCatalog(): Promise<Catalog> {
     this.throwIfNotAuthenticated();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting catalog...", [
