@@ -3,7 +3,6 @@ import {
   StatusBarAlignment,
   window,
   Disposable,
-  Command,
   TextEditor,
   workspace,
 } from "vscode";
@@ -20,27 +19,6 @@ export class DeferToProductionStatusBar implements Disposable {
   private disposables: Disposable[] = [];
 
   constructor(private dbtProjectContainer: DBTProjectContainer) {
-    this.dbtProjectContainer.onManifestChanged(async (event) => {
-      // Set initial defer status icon after project is initialized
-      const currentDocument = window.activeTextEditor?.document;
-      if (!currentDocument?.uri) {
-        this.showTextInStatusBar("$(sync~ignored) Defer");
-        return;
-      }
-
-      const currentDocProjectModified =
-        event.added?.find((p) =>
-          currentDocument.uri.fsPath.includes(p.project.projectRoot.fsPath),
-        ) ||
-        event.removed?.find((p) =>
-          currentDocument.uri.fsPath.includes(p.projectRoot.fsPath),
-        );
-
-      if (currentDocProjectModified) {
-        await this.updateStatusBar();
-      }
-    });
-
     this.disposables.push(
       workspace.onDidChangeConfiguration(
         async (e) => {
@@ -107,10 +85,6 @@ export class DeferToProductionStatusBar implements Disposable {
       const currentConfig: Record<string, DeferConfig> = await workspace
         .getConfiguration("dbt", currentDocument?.uri)
         .get("deferConfigPerProject", {});
-
-      if (!currentProjectRoot) {
-        return;
-      }
 
       if (currentConfig[currentProjectRoot]?.deferToProduction) {
         this.showTextInStatusBar("$(sync) Defer");
