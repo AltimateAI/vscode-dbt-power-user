@@ -221,7 +221,10 @@ export class DBTCoreProjectIntegration
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
-    this.dbtTerminal.log(`Registering project ${this.projectRoot}`);
+    this.dbtTerminal.debug(
+      "DBTCoreProjectIntegration",
+      `Registering project ${this.projectRoot}`,
+    );
     this.executionInfrastructure.createQueue(
       DBTCoreProjectIntegration.QUEUE_ALL,
     );
@@ -263,7 +266,11 @@ export class DBTCoreProjectIntegration
             python!`to_dict(project.execute_macro('get_limit_subquery_sql', ${args}))`,
         );
 
-        console.log("Using query template from macro", queryTemplateFromMacro);
+        this.dbtTerminal.debug(
+          "DBTCoreProjectIntegration",
+          "Using query template from macro",
+          queryTemplateFromMacro,
+        );
         return {
           queryTemplate: queryTemplateFromMacro,
           limitQuery: queryTemplateFromMacro,
@@ -630,7 +637,10 @@ export class DBTCoreProjectIntegration
     }
     if (manifestPathType === ManifestPathType.REMOTE) {
       if (dbtCoreIntegrationId! <= 0) {
-        this.dbtTerminal.log("No dbtCoreIntegrationId for defer remote config");
+        this.dbtTerminal.debug(
+          "DBTCoreProjectIntegration",
+          "No dbtCoreIntegrationId for defer remote config",
+        );
         return [];
       }
 

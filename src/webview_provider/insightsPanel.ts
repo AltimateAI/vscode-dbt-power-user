@@ -112,7 +112,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
     params: UpdateConfigPropsArray,
   ) {
     try {
-      this.dbtTerminal.log("Updating defer config", params);
+      this.dbtTerminal.debug("InsightsPanel", "Updating defer config", params);
       if (!params.projectRoot) {
         window.showErrorMessage("Please select a project");
         return;
@@ -192,11 +192,11 @@ export class InsightsPanel extends AltimateWebviewProvider {
       if (!this.altimateRequest.handlePreviewFeatures()) {
         return;
       }
-      this.dbtTerminal.log("Fetching project integrations");
+      this.dbtTerminal.debug("InsightsPanel", "Fetching project integrations");
       const response = await this.altimateRequest.fetchProjectIntegrations();
 
       if (!response?.length) {
-        this.dbtTerminal.log("Missing project integrations");
+        this.dbtTerminal.debug("InsightsPanel", "Missing project integrations");
         window
           .showInformationMessage(
             "You need to set up integration in SaaS. Please check the documentation",
@@ -245,7 +245,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
     dbtCoreIntegrationId: number,
   ) {
     try {
-      this.dbtTerminal.log("Fetching manifest signed url");
+      this.dbtTerminal.debug("InsightsPanel", "Fetching manifest signed url");
       const response = await this.altimateRequest.fetchArtifactUrl(
         "manifest",
         dbtCoreIntegrationId,
@@ -282,7 +282,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
 
   private async getProjects(syncRequestId: string | undefined) {
     try {
-      this.dbtTerminal.log("Fetching projects");
+      this.dbtTerminal.debug("InsightsPanel", "Fetching projects");
       const projects = this.dbtProjectContainer.getProjects();
 
       const dbtProjects: DbtProject[] = [];
@@ -370,7 +370,8 @@ export class InsightsPanel extends AltimateWebviewProvider {
         );
         break;
       case "bigqueryCostEstimate":
-        this.dbtTerminal.log(
+        this.dbtTerminal.debug(
+          "InsightsPanel",
           "insights_panel:handleCommand -> bigqueryCostEstimate",
         );
         const result = await commands.executeCommand(

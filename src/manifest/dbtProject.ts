@@ -227,16 +227,12 @@ export class DBTProject implements Disposable {
           ],
         );
       }
-      console.warn(
+      this.terminal.debug(
+        "DBTProject",
         `An error occurred while trying to refresh the project "${this.getProjectName()}" at ${
           this.projectRoot
         } configuration`,
         error,
-      );
-      this.terminal.log(
-        `An error occurred while trying to refresh the project "${this.getProjectName()}" at ${
-          this.projectRoot
-        } configuration: ${error}`,
       );
       this.telemetry.sendTelemetryError("projectConfigRefreshError", error);
     }

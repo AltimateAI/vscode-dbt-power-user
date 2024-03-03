@@ -143,7 +143,8 @@ export class VSCodeCommands implements Disposable {
         }
         const activeFileUri = window.activeTextEditor.document.uri;
         if (!activeFileUri) {
-          this.dbtTerminal.log(
+          this.dbtTerminal.debug(
+            "buildCurrentProject",
             "skipping buildCurrentProject without active file",
           );
           return;
@@ -152,12 +153,14 @@ export class VSCodeCommands implements Disposable {
         const dbtProject =
           this.dbtProjectContainer.findDBTProject(activeFileUri);
         if (!dbtProject) {
-          this.dbtTerminal.log(
+          this.dbtTerminal.debug(
+            "buildCurrentProject",
             `buildCurrentProject unable to find dbtproject by active file: ${activeFileUri.path}`,
           );
           return;
         }
-        this.dbtTerminal.log(
+        this.dbtTerminal.debug(
+          "buildCurrentProject",
           `building current project: ${dbtProject.getProjectName()} with active file: ${
             activeFileUri.path
           }`,

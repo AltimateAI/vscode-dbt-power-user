@@ -396,14 +396,18 @@ export class AltimateRequest {
     const tempFolder = join(os.tmpdir(), hashedProjectRoot);
 
     try {
-      this.dbtTerminal.log(
+      this.dbtTerminal.debug(
+        "AltimateRequest",
         `creating temporary folder: ${tempFolder} for file: ${fileName}`,
       );
       mkdirSync(tempFolder, { recursive: true });
 
       const destinationPath = join(tempFolder, fileName);
 
-      this.dbtTerminal.log(`fetching artifactUrl: ${artifactUrl}`);
+      this.dbtTerminal.debug(
+        "AltimateRequest",
+        `fetching artifactUrl: ${artifactUrl}`,
+      );
       const response = await fetch(artifactUrl, { agent: undefined });
 
       if (!response.ok) {
@@ -419,7 +423,7 @@ export class AltimateRequest {
         fileStream.on("finish", resolve);
       });
 
-      this.dbtTerminal.log("File downloaded successfully!");
+      this.dbtTerminal.debug("File downloaded successfully!", fileName);
       window.showInformationMessage(`Successfully downloaded ${fileName}`);
       return tempFolder;
     } catch (err) {

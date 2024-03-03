@@ -175,7 +175,10 @@ export class DBTCloudProjectIntegration
     this.executionInfrastructure.createQueue(
       DBTCloudProjectIntegration.QUEUE_ALL,
     );
-    this.terminal.log("Registering dbt cloud project" + this.projectRoot);
+    this.terminal.debug(
+      "DBTCloudProjectIntegration",
+      "Registering dbt cloud project" + this.projectRoot,
+    );
 
     this.disposables.push(
       this.pythonEnvironment.onPythonEnvironmentChanged(() => {
