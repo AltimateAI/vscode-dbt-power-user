@@ -137,7 +137,7 @@ export class SqlToModel {
     } catch (err) {
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Could not convert sql to model. Encountered unknown error when converting sql to model.",
+          "Could not convert SQL to model: " + (err as Error).message,
         ),
       );
       this.dbtTerminal.error(
