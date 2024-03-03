@@ -63,14 +63,14 @@ export class DbtDocumentFormattingEditProvider
         sqlFmtPath: sqlFmtPathSetting ? "setting" : "path",
       });
       try {
-        const { stderr } = await this.commandProcessExecutionFactory
+        const { code, fullOutput } = await this.commandProcessExecutionFactory
           .createCommandProcessExecution({
             command: sqlFmtPath,
             args: sqlFmtArgs,
           })
           .complete();
-        if (stderr) {
-          throw new Error(stderr);
+        if (code !== 0) {
+          throw new Error(fullOutput);
         }
         return [];
       } catch (sqlfmtOutput) {
@@ -80,14 +80,14 @@ export class DbtDocumentFormattingEditProvider
         );
         window.showErrorMessage(
           extendErrorWithSupportLinks(
-            "Could not process difference output from sqlfmt. Detailed error: " +
+            "sqlfmt returned an error. Did you set the absolute path of sqlfmt? Detailed error: " +
               sqlfmtOutput +
               ".",
           ),
         );
       }
     } catch (error) {
-      this.telemetry.sendTelemetryError("formatDbtModelApplyDiffFailed", error);
+      this.telemetry.sendTelemetryError("formatDbtModelRunSqlfmtFailed", error);
       window.showErrorMessage(
         extendErrorWithSupportLinks(
           "Could not run sqlfmt. Did you install sqlfmt? Detailed error: " +

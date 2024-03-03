@@ -33,6 +33,7 @@ export class CommandProcessExecutionFactory {
 }
 
 export interface CommandProcessResult {
+  code: number;
   stdout: string;
   stderr: string;
   fullOutput: string;
@@ -93,8 +94,13 @@ export class CommandProcessExecution {
         fullOutput += chunk;
       });
 
-      commandProcess.once("close", () => {
-        resolve({ stdout: stdoutBuffer, stderr: stderrBuffer, fullOutput });
+      commandProcess.once("close", (code) => {
+        resolve({
+          code: code!,
+          stdout: stdoutBuffer,
+          stderr: stderrBuffer,
+          fullOutput,
+        });
       });
 
       commandProcess.once("error", (error) => {
@@ -129,8 +135,13 @@ export class CommandProcessExecution {
         terminal.log(line);
         fullOutput += line;
       });
-      commandProcess.once("close", () => {
-        resolve({ stdout: stdoutBuffer, stderr: stderrBuffer, fullOutput });
+      commandProcess.once("close", (code) => {
+        resolve({
+          code: code!,
+          stdout: stdoutBuffer,
+          stderr: stderrBuffer,
+          fullOutput,
+        });
         terminal.log("");
         this.dispose();
       });
