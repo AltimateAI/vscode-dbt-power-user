@@ -477,15 +477,6 @@
         "icon": "$(play)"
       },
       {
-        "command": "dbtPowerUser.buildCurrentProject",
-        "title": "Build dbt project",
-        "category": "dbt Power User",
-        "icon": {
-          "light": "./media/images/build-model_light.svg",
-          "dark": "./media/images/build-model_dark.svg"
-        }
-      },
-      {
         "command": "dbtPowerUser.buildCurrentModel",
         "title": "Build dbt Model",
         "category": "dbt Power User",
@@ -515,6 +506,15 @@
       {
         "command": "dbtPowerUser.buildChildrenParentModels",
         "title": "Build Upstream and Downstream Models",
+        "category": "dbt Power User",
+        "icon": {
+          "light": "./media/images/build-model_light.svg",
+          "dark": "./media/images/build-model_dark.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.buildCurrentProject",
+        "title": "Build dbt Project",
         "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build-model_light.svg",
