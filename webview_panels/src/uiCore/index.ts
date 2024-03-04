@@ -32,6 +32,10 @@ export {
 } from "reactstrap";
 
 export { default as Tag } from "./components/tag/Tag";
+export { default as Tabs } from "./components/tabs/Tabs";
+export { default as Accordion } from "./components/accordion/Accordion";
+export { default as Dropdown } from "./components/dropdown/Dropdown";
+export { default as Sidebar } from "./components/sidebar/Sidebar";
 export { default as Stack } from "./components/stack/Stack";
 export { default as Select } from "./components/select";
 export { default as IconButton } from "./components/iconButton/IconButton";

@@ -75,6 +75,39 @@ interface DeferConfig {
   dbtCoreIntegrationId?: number;
 }
 
+type InsightType = "Modelling" | "Test" | "structure";
+
+interface Insight {
+  name: string;
+  type: InsightType;
+  message: string;
+  recommendation: string;
+  reason_to_flag: string;
+  metadata: {
+    model?: string;
+    model_unique_id?: string;
+    model_type?: string;
+    convention?: string | null;
+  };
+}
+
+type Severity = "ERROR" | "WARNING";
+
+interface ModelInsight {
+  insight: Insight;
+  severity: Severity;
+  unique_id: string;
+  package_name: string;
+  path: string;
+  original_file_path: string;
+  insight_level: string;
+}
+
+export interface ProjectHealthcheck {
+  model_insights: Record<string, ModelInsight>;
+  // package_insights: any;
+}
+
 @provideSingleton(DBTCoreDetection)
 export class DBTCoreDetection implements DBTDetection {
   constructor(
@@ -98,6 +131,48 @@ export class DBTCoreDetection implements DBTDetection {
       return true;
     } catch (error) {
       return false;
+    }
+  }
+}
+
+@provideSingleton(AltimateDatapilot)
+export class AltimateDatapilot {
+  private packageName = "altimate-datapilot";
+  constructor(
+    private pythonEnvironment: PythonEnvironment,
+    private commandProcessExecutionFactory: CommandProcessExecutionFactory,
+    private dbtTerminal: DBTTerminal,
+  ) {}
+
+  async checkIfAltimateDatapilotInstalled() {
+    const process =
+      this.commandProcessExecutionFactory.createCommandProcessExecution({
+        command: this.pythonEnvironment.pythonPath,
+        args: ["-c", "import datapilot"],
+        cwd: getFirstWorkspacePath(),
+        envVars: this.pythonEnvironment.environmentVariables,
+      });
+    const { stderr } = await process.complete();
+    if (stderr) {
+      return false;
+    }
+    return true;
+  }
+
+  async installAltimateDatapilot() {
+    const { stderr, stdout } = await this.commandProcessExecutionFactory
+      .createCommandProcessExecution({
+        command: this.pythonEnvironment.pythonPath,
+        args: ["-m", "pip", "install", this.packageName],
+        cwd: getFirstWorkspacePath(),
+        envVars: this.pythonEnvironment.environmentVariables,
+      })
+      .completeWithTerminalOutput(this.dbtTerminal);
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    if (!stdout.includes(`Successfully installed ${this.packageName}`)) {
+      throw new Error(`Unable to install ${this.packageName}: ${stdout}`);
     }
   }
 }
@@ -955,5 +1030,23 @@ export class DBTCoreProjectIntegration
         x.dispose();
       }
     }
+  }
+
+  async performDatapilotHealthcheck({
+    manifestPath,
+    config,
+    configPath,
+  }: {
+    manifestPath: string;
+    catalogPath?: string;
+    config?: any;
+    configPath?: string;
+  }): Promise<ProjectHealthcheck> {
+    this.throwBridgeErrorIfAvailable();
+    const result = await this.python?.lock<ProjectHealthcheck>(
+      (python) =>
+        python!`to_dict(project_healthcheck(${manifestPath}, None, ${configPath}, ${config}))`,
+    );
+    return result;
   }
 }

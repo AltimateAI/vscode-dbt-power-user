@@ -410,6 +410,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
       
           <body>
             <div id="root"></div>
+            <div id="sidebar"></div>
             <script nonce="${nonce}" >
               window.viewPath = "${this.viewPath}";
             </script>

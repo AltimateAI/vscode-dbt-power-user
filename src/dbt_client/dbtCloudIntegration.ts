@@ -36,6 +36,7 @@ import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync } from "fs";
 import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
+import { ProjectHealthcheck } from "./dbtCoreIntegration";
 
 function getDBTPath(
   pythonEnvironment: PythonEnvironment,
@@ -850,5 +851,15 @@ export class DBTCloudProjectIntegration
         }
       }
     }
+  }
+
+  async performDatapilotHealthcheck(args: {
+    manifestPath: string;
+    catalogPath?: string;
+    config?: any;
+    configPath?: string;
+  }): Promise<ProjectHealthcheck> {
+    // TODO: what to do in this case
+    return { model_insights: {} };
   }
 }

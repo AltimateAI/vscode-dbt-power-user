@@ -48,6 +48,7 @@ import {
   DBTNode,
   DBColumn,
   SourceNode,
+  HealthcheckArgs,
 } from "../dbt_client/dbtIntegration";
 import { DBTCoreProjectIntegration } from "../dbt_client/dbtCoreIntegration";
 import { DBTCloudProjectIntegration } from "../dbt_client/dbtCloudIntegration";
@@ -55,6 +56,7 @@ import { AltimateRequest, NoCredentialsError } from "../altimate";
 import { ValidationProvider } from "../validation_provider";
 import { ModelNode } from "../altimate";
 import { ColumnMetaData } from "../domain";
+import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -186,6 +188,45 @@ export class DBTProject implements Disposable {
 
   getMacroPaths() {
     return this.dbtProjectIntegration.getMacroPaths();
+  }
+
+  getManifestPath() {
+    const targetPath = this.getTargetPath();
+    if (!targetPath) {
+      return;
+    }
+    return path.join(targetPath, "manifest.json");
+  }
+
+  getCatalogPath() {
+    const targetPath = this.getTargetPath();
+    if (!targetPath) {
+      return;
+    }
+    return path.join(targetPath, "catalog.json");
+  }
+
+  performDatapilotHealthcheck(args: AltimateConfigProps) {
+    const manifestPath = this.getManifestPath();
+    if (!manifestPath) {
+      throw new Error(
+        `Unable to find manifest path for project ${this.getProjectName()}`,
+      );
+    }
+    const healthcheckArgs: HealthcheckArgs = { manifestPath };
+    if ("configPath" in args) {
+      healthcheckArgs.configPath = args.configPath;
+    } else {
+      healthcheckArgs.config = args.config;
+      if (
+        args.config_schema.some((i) => i.files_required.includes("Catalog"))
+      ) {
+        healthcheckArgs.catalogPath = this.getCatalogPath();
+      }
+    }
+    return this.dbtProjectIntegration.performDatapilotHealthcheck(
+      healthcheckArgs,
+    );
   }
 
   async initialize() {

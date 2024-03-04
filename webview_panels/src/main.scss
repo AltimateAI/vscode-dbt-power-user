@@ -113,3 +113,27 @@ strong {
 code {
   color: inherit;
 }
+
+.align-items-center {
+  align-items: center;
+}
+
+.align-items-start {
+  align-items: start;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.spacer {
+  flex-grow: 1;
+}
+
+.text-para {
+  color: var(--text-color--paragraph);
+}
+
+.gap-0 {
+  gap: 0;
+}

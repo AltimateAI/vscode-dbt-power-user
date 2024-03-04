@@ -79,6 +79,19 @@ interface SQLToModelRequest {
   sources: SourceMetaData[];
 }
 
+interface DBTConfig {
+  id: number;
+  name: string;
+  description: string;
+  created_on: string;
+  config: Record<string, unknown>;
+  config_schema: unknown[];
+}
+
+interface DBTConfigResponse {
+  items: DBTConfig[];
+}
+
 export interface SQLToModelResponse {
   sql: string;
 }
@@ -573,6 +586,12 @@ export class AltimateRequest {
         artifact_type: artifact_type,
         dbt_core_integration_id: dbtCoreIntegrationId,
       })}`,
+    );
+  }
+
+  async getHealthcheckConfigs() {
+    return this.fetch<DBTConfigResponse>(
+      `dbtconfig?${new URLSearchParams({ size: "100" }).toString()}`,
     );
   }
 }

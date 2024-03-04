@@ -27,6 +27,7 @@ import {
   NoCredentialsError,
   ValidateSqlParseErrorResponse,
 } from "../altimate";
+import { ProjectHealthcheck } from "./dbtCoreIntegration";
 
 interface DBTCommandExecution {
   command: (token?: CancellationToken) => Promise<void>;
@@ -254,6 +255,13 @@ export interface DBTInstallion {
   installDBT(): Promise<void>;
 }
 
+export interface HealthcheckArgs {
+  manifestPath: string;
+  catalogPath?: string;
+  config?: any;
+  configPath?: string;
+}
+
 export interface DBTProjectDetection extends Disposable {
   discoverProjects(projectConfigFiles: Uri[]): Promise<Uri[]>;
 }
@@ -347,6 +355,9 @@ export interface DBTProjectIntegration extends Disposable {
   getDebounceForRebuildManifest(): number;
   getBulkSchema(nodes: DBTNode[]): Promise<Record<string, DBColumn[]>>;
   findPackageVersion(packageName: string): string | undefined;
+  performDatapilotHealthcheck(
+    args: HealthcheckArgs,
+  ): Promise<ProjectHealthcheck>;
 }
 
 @provide(DBTCommandExecutionInfrastructure)
