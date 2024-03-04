@@ -131,8 +131,8 @@
   }
   .title {
     background-color: var(--background--02);
-    padding: 1rem;
     border-radius: 8px;
+    justify-content: space-between;
 
     :global .primary {
       max-width: 100%;
