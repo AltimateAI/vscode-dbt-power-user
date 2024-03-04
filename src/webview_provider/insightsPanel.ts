@@ -18,6 +18,8 @@ import {
 import { AltimateRequest } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { DeferToProdService } from "../services/deferToProdService";
+import { ManifestPathType } from "../constants";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];
@@ -27,6 +29,8 @@ export interface DeferConfig {
   deferToProduction: boolean;
   favorState: boolean;
   manifestPathForDeferral: string;
+  manifestPathType?: ManifestPathType;
+  dbtCoreIntegrationId?: number;
 }
 
 interface DbtProject {
@@ -46,6 +50,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
     telemetry: TelemetryService,
     protected emitterService: SharedStateService,
     protected dbtTerminal: DBTTerminal,
+    private deferToProdService: DeferToProdService,
   ) {
     super(
       dbtProjectContainer,
@@ -64,10 +69,6 @@ export class InsightsPanel extends AltimateWebviewProvider {
 
           if (this._panel) {
             const currentProject = await this.getCurrentProject();
-            const currentProjectRoot = await this.getCurrentProjectRoot();
-            const currentConfig: Record<string, DeferConfig> = await workspace
-              .getConfiguration("dbt", window.activeTextEditor?.document.uri)
-              .get("deferConfigPerProject", {});
 
             const dbtIntegrationMode = workspace
               .getConfiguration("dbt")
@@ -76,7 +77,8 @@ export class InsightsPanel extends AltimateWebviewProvider {
             this._panel!.webview.postMessage({
               command: "updateDeferConfig",
               args: {
-                config: currentConfig[currentProjectRoot],
+                config:
+                  this.deferToProdService.getDeferConfigInCurrentProject(),
                 projectPath: currentProject?.projectRoot.fsPath,
                 dbtIntegrationMode,
               },
@@ -85,17 +87,6 @@ export class InsightsPanel extends AltimateWebviewProvider {
         },
       ),
     );
-  }
-
-  private getCurrentProjectRoot() {
-    const currentProject = this.getCurrentProject();
-    if (!currentProject?.projectRoot) {
-      throw new Error(
-        "Could not find a project based on the currently selected file in the editor",
-      );
-    }
-
-    return getProjectRelativePath(currentProject.projectRoot);
   }
 
   private getCurrentProject() {
@@ -134,9 +125,8 @@ export class InsightsPanel extends AltimateWebviewProvider {
         "config target: ${window.activeTextEditor?.document.uri}",
       );
 
-      const currentConfig: Record<string, DeferConfig> = await workspace
-        .getConfiguration("dbt", window.activeTextEditor?.document.uri)
-        .get("deferConfigPerProject", {});
+      const currentConfig: Record<string, DeferConfig> =
+        this.deferToProdService.getDeferConfigByWorkspace();
       const root = getProjectRelativePath(Uri.parse(params.projectRoot));
 
       this.dbtTerminal.info(
@@ -158,8 +148,11 @@ export class InsightsPanel extends AltimateWebviewProvider {
         },
       };
 
+      const workspaceFolder = workspace.getWorkspaceFolder(
+        Uri.parse(params.projectRoot),
+      );
       await workspace
-        .getConfiguration("dbt", window.activeTextEditor?.document.uri)
+        .getConfiguration("dbt", workspaceFolder)
         .update("deferConfigPerProject", newConfig, target);
 
       if (syncRequestId) {
@@ -405,20 +398,17 @@ export class InsightsPanel extends AltimateWebviewProvider {
         commands.executeCommand("dbtPowerUser.clearAltimateScanResults", {});
         break;
       case "getDeferToProductionConfig":
-        const currentDocument = window.activeTextEditor?.document;
         const { projectRoot } = params as { projectRoot?: string };
-        const root = projectRoot
-          ? getProjectRelativePath(Uri.parse(projectRoot))
-          : await this.getCurrentProjectRoot();
+        const config = projectRoot
+          ? this.deferToProdService.getDeferConfigByProjectRoot(projectRoot)
+          : this.deferToProdService.getDeferConfigInCurrentProject();
         const projectPath =
           projectRoot || (await this.getCurrentProject())?.projectRoot.fsPath;
         this.dbtTerminal.debug(
           "InsightsPanel",
-          `getting defer config for ${currentDocument?.uri.fsPath}`,
+          `getting defer config for ${projectPath}`,
+          projectRoot,
         );
-        const currentConfig: Record<string, DeferConfig> = await workspace
-          .getConfiguration("dbt", currentDocument?.uri)
-          .get("deferConfigPerProject", {});
 
         const dbtIntegrationMode = workspace
           .getConfiguration("dbt")
@@ -429,7 +419,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
           args: {
             syncRequestId,
             body: {
-              config: currentConfig[root],
+              config,
               projectPath,
               dbtIntegrationMode,
             },

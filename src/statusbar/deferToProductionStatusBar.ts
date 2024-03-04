@@ -6,9 +6,8 @@ import {
   TextEditor,
   workspace,
 } from "vscode";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { getProjectRelativePath, provideSingleton } from "../utils";
-import { DeferConfig } from "../webview_provider/insightsPanel";
+import { DeferToProdService } from "../services/deferToProdService";
+import { provideSingleton } from "../utils";
 
 @provideSingleton(DeferToProductionStatusBar)
 export class DeferToProductionStatusBar implements Disposable {
@@ -18,14 +17,14 @@ export class DeferToProductionStatusBar implements Disposable {
   );
   private disposables: Disposable[] = [];
 
-  constructor(private dbtProjectContainer: DBTProjectContainer) {
+  constructor(private deferToProdService: DeferToProdService) {
     this.disposables.push(
       workspace.onDidChangeConfiguration(
         async (e) => {
           if (!e.affectsConfiguration("dbt.deferConfigPerProject")) {
             return;
           }
-          await this.updateStatusBar();
+          this.updateStatusBar();
         },
         this,
         this.disposables,
@@ -38,7 +37,7 @@ export class DeferToProductionStatusBar implements Disposable {
             return;
           }
 
-          await this.updateStatusBar();
+          this.updateStatusBar();
         },
       ),
     );
@@ -63,30 +62,10 @@ export class DeferToProductionStatusBar implements Disposable {
     this.statusBar.show();
   }
 
-  private async getCurrentProjectRoot() {
-    const currentFilePath = window.activeTextEditor?.document.uri;
-    if (!currentFilePath) {
-      throw new Error("Invalid current file");
-    }
-
-    const currentProject =
-      this.dbtProjectContainer.findDBTProject(currentFilePath);
-    if (!currentProject?.projectRoot) {
-      throw new Error("Invalid current project root");
-    }
-
-    return getProjectRelativePath(currentProject.projectRoot);
-  }
-
-  private async updateStatusBar() {
-    const currentDocument = window.activeTextEditor?.document;
+  private updateStatusBar() {
     try {
-      const currentProjectRoot = await this.getCurrentProjectRoot();
-      const currentConfig: Record<string, DeferConfig> = await workspace
-        .getConfiguration("dbt", currentDocument?.uri)
-        .get("deferConfigPerProject", {});
-
-      if (currentConfig[currentProjectRoot]?.deferToProduction) {
+      const config = this.deferToProdService.getDeferConfigInCurrentProject();
+      if (config?.deferToProduction) {
         this.showTextInStatusBar("$(sync) Defer");
         return;
       }

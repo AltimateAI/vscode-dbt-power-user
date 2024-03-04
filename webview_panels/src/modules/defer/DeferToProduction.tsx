@@ -53,21 +53,12 @@ const DeferToProduction = (): JSX.Element => {
   );
   const [showProjectDropdown, setShowProjectDropdown] = useState(true);
 
-  // In dbt cloud, defer is enabled by default
-  const getDefaultDeferState = (mode: DbtIntegrationMode) => {
-    if (mode === DbtIntegrationMode.CLOUD) {
-      return { ...DefaultDeferState, deferToProduction: true };
-    }
-
-    return DefaultDeferState;
-  };
-
   const updateDeferState = (args: {
     config: DeferToProductionProps;
     projectPath: string;
     dbtIntegrationMode: DbtIntegrationMode;
   }) => {
-    setDeferState(args.config || getDefaultDeferState(args.dbtIntegrationMode));
+    setDeferState(args.config || DefaultDeferState);
     setDbtProjectRoot(args.projectPath);
     setDbtIntegrationMode(args.dbtIntegrationMode);
   };
@@ -142,7 +133,7 @@ const DeferToProduction = (): JSX.Element => {
     loadDeferConfig().catch(() => {
       return;
     });
-  }, []);
+  }, [dbtProjectRoot]);
 
   const updateDeferAndFavorState = ({
     key,
@@ -196,7 +187,7 @@ const DeferToProduction = (): JSX.Element => {
     value: string;
   }) => {
     setDbtProjectRoot(selectedOption.value);
-    setDeferState(getDefaultDeferState(dbtIntegrationMode));
+    setDeferState(DefaultDeferState);
   };
 
   const selectedProject = useMemo(() => {
@@ -232,23 +223,25 @@ const DeferToProduction = (): JSX.Element => {
           </CardText>
           <Form>
             {showProjectDropdown && (
-              <Select
-                options={dbtProjects.map((d) => {
-                  return {
-                    label: `${d.projectName} (${d.projectRoot})`,
-                    value: d.projectRoot,
-                  };
-                })}
-                defaultValue={selectedProject}
-                value={selectedProject}
-                className={classes.projectSelect}
-                onChange={(newValue) =>
-                  handleProjectSelect(
-                    newValue as { label: string; value: string },
-                  )
-                }
-                placeholder="Select Project"
-              />
+              <Label className={classes.projectSelect}>
+                Select dbt project
+                <Select
+                  options={dbtProjects.map((d) => {
+                    return {
+                      label: `${d.projectName} (${d.projectRoot})`,
+                      value: d.projectRoot,
+                    };
+                  })}
+                  defaultValue={selectedProject}
+                  value={selectedProject}
+                  onChange={(newValue) =>
+                    handleProjectSelect(
+                      newValue as { label: string; value: string },
+                    )
+                  }
+                  placeholder="Select Project"
+                />
+              </Label>
             )}
             {dbtProjectRoot && (
               <>
