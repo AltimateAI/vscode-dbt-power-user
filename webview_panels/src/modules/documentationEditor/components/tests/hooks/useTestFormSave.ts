@@ -13,8 +13,17 @@ import {
   TestMetadataAcceptedValuesKwArgs,
 } from "@modules/documentationEditor/state/types";
 
+export enum TestOperation {
+  CREATE,
+  UPDATE,
+  DELETE,
+}
 const useTestFormSave = (): {
-  handleSave: (data: SaveRequest, column: string, isNewTest: boolean) => void;
+  handleSave: (
+    data: SaveRequest,
+    column: string,
+    operation: TestOperation,
+  ) => void;
   isSaving: boolean;
 } => {
   const [isSaving, setIsSaving] = useState(false);
@@ -58,11 +67,20 @@ const useTestFormSave = (): {
   const getUpdatedTestsData = (
     data: SaveRequest,
     column: string,
-    isNewTest: boolean,
+    operation: TestOperation,
   ) => {
     const testsData = [...(currentDocsTests ?? [])];
     const newValues = data.accepted_values?.split(",").map((s) => s.trim());
-    if (isNewTest) {
+    if (operation === TestOperation.DELETE) {
+      return testsData.filter((test: DBTModelTest) => {
+        if (test.test_metadata?.kwargs.column_name !== column) {
+          return true;
+        }
+
+        return test.test_metadata?.name !== data.test?.toString();
+      });
+    }
+    if (operation === TestOperation.CREATE) {
       testsData.push({
         alias: "",
         database: "",
@@ -110,7 +128,7 @@ const useTestFormSave = (): {
   const handleSave = (
     data: SaveRequest,
     column: string,
-    isNewTest: boolean,
+    operation: TestOperation,
   ) => {
     setIsSaving(true);
 
@@ -118,7 +136,7 @@ const useTestFormSave = (): {
       return;
     }
 
-    const testsData = getUpdatedTestsData(data, column, isNewTest);
+    const testsData = getUpdatedTestsData(data, column, operation);
     panelLogger.info("add/update test data", testsData);
     dispatch(updateCurrentDocsTests(testsData));
     dispatch(setIsDocGeneratedForAnyColumn(true));

@@ -26,7 +26,7 @@ import { useState } from "react";
 import AcceptedValues from "./forms/AcceptedValues";
 import Relationships from "./forms/Relationships";
 import { SaveRequest } from "./types";
-import useTestFormSave from "./hooks/useTestFormSave";
+import useTestFormSave, { TestOperation } from "./hooks/useTestFormSave";
 import classes from "../../styles.module.scss";
 import { DeleteIcon, EditIcon } from "@assets/icons";
 
@@ -55,6 +55,16 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
   const isEditableTest =
     test.test_metadata?.name !== DbtGenericTests.NOT_NULL &&
     test.test_metadata?.name !== DbtGenericTests.UNIQUE;
+
+  const handleDelete = () => {
+    panelLogger.info("delete test", test);
+    handleSave(
+      { test: test.test_metadata?.name as DbtGenericTests },
+      column,
+      TestOperation.DELETE,
+    );
+    onClose();
+  };
 
   const handleEdit = () => {
     setIsInEditMode(true);
@@ -118,7 +128,11 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
       return;
     }
 
-    handleSave({ ...data, test: testName as DbtGenericTests }, column, false);
+    handleSave(
+      { ...data, test: testName as DbtGenericTests },
+      column,
+      TestOperation.UPDATE,
+    );
     onClose();
   };
 
@@ -248,7 +262,7 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
                   <EditIcon />
                 </IconButton>
               ) : null}
-              <IconButton title="Delete test">
+              <IconButton title="Delete test" onClick={handleDelete}>
                 <DeleteIcon />
               </IconButton>
             </span>
