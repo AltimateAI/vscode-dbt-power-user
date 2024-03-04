@@ -20,6 +20,7 @@ import {
   RebuildManifestCombinedStatusChange,
 } from "./event/manifestCacheChangedEvent";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { AltimateDatapilot } from "../dbt_client/dbtCoreIntegration";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -64,6 +65,7 @@ export class DBTProjectContainer implements Disposable {
       envVars?: EnvironmentVariables,
     ) => DBTWorkspaceFolder,
     private dbtTerminal: DBTTerminal,
+    private altimateDatapilot: AltimateDatapilot,
   ) {
     this.disposables.push(
       workspace.onDidChangeWorkspaceFolders(async (event) => {
@@ -405,5 +407,23 @@ export class DBTProjectContainer implements Disposable {
 
   private findDBTWorkspaceFolder(uri: Uri): DBTWorkspaceFolder | undefined {
     return this.dbtWorkspaceFolders.find((folder) => folder.contains(uri));
+  }
+
+  checkIfAltimateDatapilotInstalled() {
+    return this.altimateDatapilot.checkIfAltimateDatapilotInstalled();
+  }
+
+  installAltimateDatapilot() {
+    return this.altimateDatapilot.installAltimateDatapilot();
+  }
+
+  executeAltimateDatapilotHealthcheck(projectRoot: string) {
+    const project = this.getProjects().find(
+      (p) => p.projectRoot.fsPath.toString() === projectRoot,
+    );
+    if (!project) {
+      throw new Error(`Unable to find project ${projectRoot}`);
+    }
+    return project.performDatapilotHealthcheck();
   }
 }

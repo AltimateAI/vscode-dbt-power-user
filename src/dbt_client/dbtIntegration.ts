@@ -22,6 +22,7 @@ import { existsSync } from "fs";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./dbtTerminal";
 import { ValidateSqlParseErrorResponse } from "../altimate";
+import { ProjectHealthcheck } from "./dbtCoreIntegration";
 
 interface DBTCommandExecution {
   command: (token?: CancellationToken) => Promise<void>;
@@ -345,6 +346,10 @@ export interface DBTProjectIntegration extends Disposable {
   getColumnsOfModel(modelName: string): Promise<DBColumn[]>;
   getCatalog(): Promise<Catalog>;
   getDebounceForRebuildManifest(): number;
+  performDatapilotHealthcheck(args: {
+    manifestPath: string;
+    catalogPath?: string;
+  }): Promise<ProjectHealthcheck>;
 }
 
 @provide(DBTCommandExecutionInfrastructure)

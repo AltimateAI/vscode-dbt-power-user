@@ -2,6 +2,7 @@ import {
   commands,
   ConfigurationTarget,
   env,
+  ProgressLocation,
   TextEditor,
   Uri,
   window,
@@ -25,6 +26,9 @@ type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];
   projectRoot: string;
 };
+type AltimateConfigPropsArray = {
+  projectRoot: string;
+};
 export interface DeferConfig {
   deferToProduction: boolean;
   favorState: boolean;
@@ -36,6 +40,10 @@ export interface DeferConfig {
 interface DbtProject {
   projectRoot: string;
   projectName: string;
+}
+
+enum PromptAnswer {
+  YES = "Install altimate datapilot",
 }
 
 @provideSingleton(InsightsPanel)
@@ -363,6 +371,88 @@ export class InsightsPanel extends AltimateWebviewProvider {
     });
   }
 
+  private async altimateScan({ projectRoot }: AltimateConfigPropsArray) {
+    let isInstalled = false;
+    try {
+      isInstalled =
+        await this.dbtProjectContainer.checkIfAltimateDatapilotInstalled();
+    } catch (e) {
+      window.showErrorMessage(
+        `Error while checking altimate datapilot installation: ${
+          (e as Error).message
+        }`,
+      );
+      this.dbtTerminal.error(
+        "atimateDatapilotInstallationCheck",
+        "Error while checking altimate datapilot installation",
+        e,
+      );
+      return;
+    }
+    if (!isInstalled) {
+      const answer = await window.showInformationMessage(
+        "Altimate datapilot is not detected. Install it?",
+        PromptAnswer.YES,
+      );
+      if (answer !== PromptAnswer.YES) {
+        return;
+      }
+      try {
+        await window.withProgress(
+          {
+            title: `Installing altimate-datapilot...`,
+            location: ProgressLocation.Notification,
+            cancellable: false,
+          },
+          async () => {
+            await this.dbtProjectContainer.installAltimateDatapilot();
+            window.showInformationMessage(
+              "Successfully installed altimate-datapilot",
+            );
+          },
+        );
+      } catch (e) {
+        window.showErrorMessage(
+          `Error while installing altimate datapilot: ${(e as Error).message}`,
+        );
+        this.dbtTerminal.error(
+          "atimateDatapilotInstallation",
+          "Error while installing altimate datapilot",
+          e,
+        );
+        return;
+      }
+    }
+
+    try {
+      await window.withProgress(
+        {
+          title: `Performing healthcheck...`,
+          location: ProgressLocation.Notification,
+          cancellable: false,
+        },
+        async () => {
+          await this.dbtProjectContainer.executeAltimateDatapilotHealthcheck(
+            projectRoot,
+          );
+          window.showInformationMessage("Successfully performed healthcheck");
+        },
+      );
+    } catch (e) {
+      window.showErrorMessage(
+        `Error while performing healthcheck:${(e as Error).message}`,
+      );
+      this.dbtTerminal.error(
+        "atimateDatapilotHealthcheck",
+        "Error while performing healthcheck",
+        e,
+      );
+      return;
+    }
+
+    // commands.executeCommand("dbtPowerUser.altimateScan", {});
+  }
+
   async handleCommand(message: HandleCommandProps): Promise<void> {
     const { command, syncRequestId, ...params } = message;
 
@@ -392,7 +482,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
         });
         break;
       case "altimateScan":
-        commands.executeCommand("dbtPowerUser.altimateScan", {});
+        this.altimateScan(params as AltimateConfigPropsArray);
         break;
       case "clearAltimateScanResults":
         commands.executeCommand("dbtPowerUser.clearAltimateScanResults", {});

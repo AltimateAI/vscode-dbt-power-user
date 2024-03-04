@@ -13,6 +13,9 @@ export { default as BlogIcon } from "./blog.svg?react";
 export { default as ContactUsIcon } from "./contact.svg?react";
 export { default as DocsIcon } from "./docs.svg?react";
 export { default as SlackIcon } from "./slack.svg?react";
+export { default as ArrowUpIcon } from "./arrow-up.svg?react";
+export { default as ArrowDownIcon } from "./arrow-down.svg?react";
+export { default as FolderIcon } from "./folder.svg?react";
 
 interface Props {
   icon: string;

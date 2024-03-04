@@ -3,7 +3,6 @@ import {
   CardBody,
   CardText,
   CardTitle,
-  Col,
   Form,
   FormGroup,
   Input,
@@ -203,89 +202,87 @@ const DeferToProduction = (): JSX.Element => {
   }, [dbtProjects, dbtProjectRoot]);
 
   return (
-    <Col lg={7}>
-      <Card className={classes.insightsCard}>
-        <CardTitle className={classes.cardTitle} tag="h5">
-          Defer to production <PreviewFeatureIcon />
-        </CardTitle>
-        <CardBody>
-          <CardText>
-            Save costs and time by only running a subset of models without
-            building upstream models (
-            <a
-              href="https://docs.getdbt.com/reference/node-selection/defer"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              more info
-            </a>
-            ).
-          </CardText>
-          <Form>
-            {showProjectDropdown && (
-              <Label className={classes.projectSelect}>
-                Select dbt project
-                <Select
-                  options={dbtProjects.map((d) => {
-                    return {
-                      label: `${d.projectName} (${d.projectRoot})`,
-                      value: d.projectRoot,
-                    };
-                  })}
-                  defaultValue={selectedProject}
-                  value={selectedProject}
-                  onChange={(newValue) =>
-                    handleProjectSelect(
-                      newValue as { label: string; value: string },
-                    )
-                  }
-                  placeholder="Select Project"
-                />
-              </Label>
-            )}
-            {dbtProjectRoot && (
-              <>
-                <FormGroup switch className={classes.formSwitch}>
-                  <Label>
-                    Enable defer to production
-                    <Input
-                      type="switch"
-                      onChange={handleStateChange}
-                      name="deferToProduction"
-                      checked={deferToProduction}
-                    />
-                  </Label>
-                </FormGroup>
-                {dbtIntegrationMode !== DbtIntegrationMode.CLOUD ? (
-                  <>
-                    <ManifestSelection
-                      dbtProjectRoot={dbtProjectRoot}
-                      manifestPathForDeferral={manifestPathForDeferral}
-                      manifestPathType={manifestPathType}
-                      projectIntegrations={projectIntegrations}
-                      dbtCoreIntegrationId={dbtCoreIntegrationId}
-                      setDeferState={setDeferState}
-                      setProjectIntegrations={setProjectIntegrations}
-                    />
-                  </>
-                ) : null}
-                <FormGroup switch className={classes.formSwitch}>
-                  <Label>
-                    Favor-state
-                    <Input
-                      type="switch"
-                      onChange={handleStateChange}
-                      checked={favorState}
-                      name="favorState"
-                    />
-                  </Label>
-                </FormGroup>
-              </>
-            )}
-          </Form>
-        </CardBody>
-      </Card>
-    </Col>
+    <Card className={classes.insightsCard}>
+      <CardTitle className={classes.cardTitle} tag="h5">
+        Defer to production <PreviewFeatureIcon />
+      </CardTitle>
+      <CardBody>
+        <CardText>
+          Save costs and time by only running a subset of models without
+          building upstream models (
+          <a
+            href="https://docs.getdbt.com/reference/node-selection/defer"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            more info
+          </a>
+          ).
+        </CardText>
+        <Form>
+          {showProjectDropdown && (
+            <Label className={classes.projectSelect}>
+              Select dbt project
+              <Select
+                options={dbtProjects.map((d) => {
+                  return {
+                    label: `${d.projectName} (${d.projectRoot})`,
+                    value: d.projectRoot,
+                  };
+                })}
+                defaultValue={selectedProject}
+                value={selectedProject}
+                onChange={(newValue) =>
+                  handleProjectSelect(
+                    newValue as { label: string; value: string },
+                  )
+                }
+                placeholder="Select Project"
+              />
+            </Label>
+          )}
+          {dbtProjectRoot && (
+            <>
+              <FormGroup switch className={classes.formSwitch}>
+                <Label>
+                  Enable defer to production
+                  <Input
+                    type="switch"
+                    onChange={handleStateChange}
+                    name="deferToProduction"
+                    checked={deferToProduction}
+                  />
+                </Label>
+              </FormGroup>
+              {dbtIntegrationMode !== DbtIntegrationMode.CLOUD ? (
+                <>
+                  <ManifestSelection
+                    dbtProjectRoot={dbtProjectRoot}
+                    manifestPathForDeferral={manifestPathForDeferral}
+                    manifestPathType={manifestPathType}
+                    projectIntegrations={projectIntegrations}
+                    dbtCoreIntegrationId={dbtCoreIntegrationId}
+                    setDeferState={setDeferState}
+                    setProjectIntegrations={setProjectIntegrations}
+                  />
+                </>
+              ) : null}
+              <FormGroup switch className={classes.formSwitch}>
+                <Label>
+                  Favor-state
+                  <Input
+                    type="switch"
+                    onChange={handleStateChange}
+                    checked={favorState}
+                    name="favorState"
+                  />
+                </Label>
+              </FormGroup>
+            </>
+          )}
+        </Form>
+      </CardBody>
+    </Card>
   );
 };
 

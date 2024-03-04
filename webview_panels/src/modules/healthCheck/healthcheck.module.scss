@@ -1,0 +1,34 @@
+.container {
+  width: 60vw;
+}
+
+.accordion {
+  background-color: var(--background--01);
+  border-radius: 0.25em;
+  padding: 0.25em 0.5em;
+
+  .row {
+    align-items: center;
+    cursor: pointer;
+    padding: 0.125em 0.5em;
+
+    &:hover {
+      background-color: var(--background--02);
+      border-radius: 0.25em;
+    }
+  }
+}
+
+.notification {
+  border-radius: 0.25em;
+  padding: 0.25em 0.75em;
+  border: 1px solid var(--stroke--orange);
+  color: var(--text-color--caption);
+}
+
+.link {
+  color: var(--text-color--brand);
+  &:focus {
+    outline: none;
+  }
+}

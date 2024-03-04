@@ -164,6 +164,26 @@ export class DBTProject implements Disposable {
     return this.dbtProjectIntegration.getMacroPaths();
   }
 
+  getManifestPath() {
+    const targetPath = this.getTargetPath();
+    if (!targetPath) {
+      return;
+    }
+    return targetPath + "/manifest.json";
+  }
+
+  performDatapilotHealthcheck() {
+    const manifestPath = this.getManifestPath();
+    if (!manifestPath) {
+      throw new Error(
+        `Unable to find manifest path for project ${this.getProjectName()}`,
+      );
+    }
+    return this.dbtProjectIntegration.performDatapilotHealthcheck({
+      manifestPath,
+    });
+  }
+
   async initialize() {
     // ensure we watch all files and reflect changes
     // This is purely vscode watchers, no need for the project to be fully initialized

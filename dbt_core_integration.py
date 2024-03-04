@@ -110,6 +110,30 @@ def validate_sql(
         raise Exception(str(e))
 
 
+def project_healthcheck(manifest_path, catalog_path=None, config_path=None):
+    try:
+        from datapilot.config.config import load_config
+        from datapilot.core.platforms.dbt.constants import MODEL
+        from datapilot.core.platforms.dbt.constants import PROJECT
+        from datapilot.core.platforms.dbt.executor import DBTInsightGenerator
+
+        config = None
+        if config_path:
+            config = load_config(config_path)
+        insight_generator = DBTInsightGenerator(
+            manifest_path,
+            catalog_path=catalog_path,
+            config=config,
+        )
+        reports = insight_generator.run()
+
+        package_insights = reports[PROJECT]
+        model_insights = reports[MODEL]
+        return {"package_insights": package_insights, "model_insights": model_insights}
+    except Exception as e:
+        raise Exception(str(e))
+
+
 def to_dict(obj):
     if isinstance(obj, agate.Table):
         return {
