@@ -370,8 +370,7 @@ export class DocGenService {
           this.transmitError(panel);
           window.showErrorMessage(
             extendErrorWithSupportLinks(
-              "An unexpected error occurred while generating documentation: " +
-                error,
+              "Could not generate documentation: " + (error as Error).message,
             ),
           );
           this.telemetry.sendTelemetryError(
@@ -469,8 +468,7 @@ export class DocGenService {
           this.transmitError(panel);
           window.showErrorMessage(
             extendErrorWithSupportLinks(
-              "An unexpected error occurred while generating documentation: " +
-                error,
+              "Could not generate documentation: " + (error as Error).message,
             ),
           );
           this.telemetry.sendTelemetryError("generateDocsForModelError", error);
@@ -567,7 +565,7 @@ export class DocGenService {
           this.transmitError(panel);
           window.showErrorMessage(
             extendErrorWithSupportLinks(
-              "An unexpected error occurred while sending feedback: " + error,
+              "Could not send feedback: " + (error as Error).message,
             ),
           );
           this.telemetry.sendTelemetryError(

@@ -203,7 +203,7 @@ export class NewLineagePanel implements LineagePanelView {
         });
         window.showErrorMessage(
           extendErrorWithSupportLinks(
-            "An unexpected error occurred while sending feedback: " + error,
+            "Could not send feedback: " + (error as Error).message,
           ),
         );
         this.telemetry.sendTelemetryError(
@@ -245,7 +245,7 @@ export class NewLineagePanel implements LineagePanelView {
     if (event === CllEvents.START) {
       window.withProgress(
         {
-          title: "Processing column level lineage",
+          title: "Retrieving column level lineage",
           location: ProgressLocation.Notification,
           cancellable: true,
         },
@@ -742,9 +742,7 @@ export class NewLineagePanel implements LineagePanelView {
       // Unknown error
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Encountered an unknown issue: " +
-            exc +
-            " while compiling/retrieving schema for nodes.",
+          "Column lineage failed: " + (exc as Error).message,
         ),
       );
       return;
@@ -845,7 +843,8 @@ export class NewLineagePanel implements LineagePanelView {
       }
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "An unexpected error occured while fetching column level lineage.",
+          "Could not generate column level lineage: " +
+            (error as Error).message,
         ),
       );
       this.telemetry.sendTelemetryError("ColumnLevelLineageError", error);

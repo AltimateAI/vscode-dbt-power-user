@@ -6,6 +6,14 @@ import { TelemetryService } from "./telemetry";
 import { RateLimitException } from "./exceptions";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
 
+export class NoCredentialsError extends Error {}
+
+export class NotFoundError extends Error {}
+
+export class ForbiddenError extends Error {}
+
+export class APIError extends Error {}
+
 interface AltimateConfig {
   key: string;
   instance: string;
@@ -147,26 +155,6 @@ export interface DocsGenerateResponse {
   model_description?: string;
 }
 
-interface DocPromptOptionsResponse {
-  prompt_options: {
-    options: {
-      key: string;
-      value: string;
-    }[];
-  }[];
-}
-
-interface QuerySummaryResponse {
-  explanation: string;
-  ok: string;
-}
-
-interface ValidateSqlRequest {
-  sql: string;
-  adapter: string;
-  models: ModelNode[];
-}
-
 export type ValidateSqlParseErrorType =
   | "sql_parse_error"
   | "sql_invalid_error"
@@ -228,7 +216,7 @@ export class AltimateRequest {
     }
   }
 
-  private getCredentialsMessage(): string | undefined {
+  getCredentialsMessage(): string | undefined {
     const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
     const instance = workspace
       .getConfiguration("dbt")
@@ -284,7 +272,6 @@ export class AltimateRequest {
         this.dbtTerminal.debug("fetchAsStream", "empty response");
         return null;
       }
-      clearTimeout(timeoutHandler);
       const responseText = await processStreamResponse(
         response.body,
         onProgress,
@@ -292,17 +279,22 @@ export class AltimateRequest {
 
       return responseText;
     } catch (error) {
-      clearTimeout(timeoutHandler);
       this.dbtTerminal.debug(
         "fetchAsStream",
         "error while fetching as stream",
         error,
       );
+    } finally {
+      clearTimeout(timeoutHandler);
     }
     return null;
   }
 
-  async fetch<T>(endpoint: string, fetchArgs = {}, timeout: number = 120000) {
+  async fetch<T>(
+    endpoint: string,
+    fetchArgs = {},
+    timeout: number = 120000,
+  ): Promise<T> {
     this.dbtTerminal.debug("network:request", endpoint, fetchArgs);
     const abortController = new AbortController();
     const timeoutHandler = setTimeout(() => {
@@ -311,8 +303,7 @@ export class AltimateRequest {
 
     const message = this.getCredentialsMessage();
     if (message) {
-      window.showErrorMessage(message);
-      return;
+      throw new NoCredentialsError(message);
     }
     const config = this.getConfig()!;
 
@@ -331,17 +322,21 @@ export class AltimateRequest {
       this.dbtTerminal.debug("network:response", endpoint, response.status);
       if (response.ok && response.status === 200) {
         const jsonResponse = await response.json();
-        clearTimeout(timeoutHandler);
         return jsonResponse as T;
       }
       if (
         // response codes when backend authorization fails
         response.status === 401 ||
-        response.status === 403 ||
-        response.status === 404
+        response.status === 403
       ) {
-        window.showErrorMessage("Invalid credentials");
-        this.telemetry.sendTelemetryEvent("invalidCredentials");
+        this.telemetry.sendTelemetryEvent("invalidCredentials", { url });
+        throw new ForbiddenError(
+          "To use this feature, please add a valid API Key and an instance name in the settings.",
+        );
+      }
+      if (response.status === 404) {
+        this.telemetry.sendTelemetryEvent("resourceNotFound", { url });
+        throw new NotFoundError("Resource Not found");
       }
       const textResponse = await response.text();
       this.dbtTerminal.debug(
@@ -362,14 +357,16 @@ export class AltimateRequest {
         status: response.status,
         textResponse,
       });
-      clearTimeout(timeoutHandler);
-      return {} as T;
+      throw new APIError(
+        `Could not process request, server responded with ${response.status}: ${textResponse}`,
+      );
     } catch (e) {
       this.dbtTerminal.error("apiCatchAllError", "catchAllError", e, true, {
         endpoint,
       });
-      clearTimeout(timeoutHandler);
       throw e;
+    } finally {
+      clearTimeout(timeoutHandler);
     }
   }
 
@@ -394,12 +391,6 @@ export class AltimateRequest {
     });
   }
 
-  async getDocPromptOptions() {
-    await this.fetch<DocPromptOptionsResponse>("dbt/v1/doc_prompt_options", {
-      method: "POST",
-    });
-  }
-
   async getColumnLevelLineage(req: DBTColumnLineageRequest) {
     return this.fetch<DBTColumnLineageResponse>("dbt/v3/lineage", {
       method: "POST",
@@ -409,20 +400,6 @@ export class AltimateRequest {
 
   async runModeller(req: SQLToModelRequest) {
     return this.fetch<SQLToModelResponse>("dbt/v1/sqltomodel", {
-      method: "POST",
-      body: JSON.stringify(req),
-    });
-  }
-
-  async getQuerySummary(compiled_sql: string, adapter: string) {
-    return this.fetch<QuerySummaryResponse>("dbt/v1/query-explain", {
-      method: "POST",
-      body: JSON.stringify({ compiled_sql, adapter }),
-    });
-  }
-
-  async validateSql(req: ValidateSqlRequest) {
-    return this.fetch<ValidateSqlParseErrorResponse>("dbt/v1/modelvalidation", {
       method: "POST",
       body: JSON.stringify(req),
     });
