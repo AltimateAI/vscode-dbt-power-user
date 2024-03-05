@@ -5,9 +5,9 @@ import { DeferConfig } from "../webview_provider/insightsPanel";
 
 @provideSingleton(DeferToProdService)
 export class DeferToProdService {
-  public constructor(protected dbtProjectContainer: DBTProjectContainer) {}
+  public constructor(private dbtProjectContainer: DBTProjectContainer) {}
 
-  private getCurrentProjectRoot() {
+  private getCurrentProjectRoot(): string {
     const currentFilePath = window.activeTextEditor?.document.uri;
     if (!currentFilePath) {
       throw new Error("Invalid current file");

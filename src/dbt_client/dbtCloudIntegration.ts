@@ -33,6 +33,7 @@ import { DeferConfig } from "../webview_provider/insightsPanel";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync } from "fs";
 import { ValidationProvider } from "../validation_provider";
+import { DeferToProdService } from "../services/deferToProdService";
 
 function getDBTPath(
   pythonEnvironment: PythonEnvironment,
@@ -161,11 +162,11 @@ export class DBTCloudProjectIntegration
       path: Uri,
       dbtPath: string,
     ) => DBTCommandExecutionStrategy,
-    private altimate: AltimateRequest,
     private telemetry: TelemetryService,
     private pythonEnvironment: PythonEnvironment,
     private terminal: DBTTerminal,
     private validationProvider: ValidationProvider,
+    private deferToProdService: DeferToProdService,
     private projectRoot: Uri,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
@@ -376,11 +377,11 @@ export class DBTCloudProjectIntegration
     return this.dbtCloudCommand(command).execute();
   }
 
-  private getDeferParams(projectRoot: Uri): string[] {
+  private async getDeferParams(): Promise<string[]> {
     this.throwIfNotAuthenticated();
     // https://docs.getdbt.com/docs/cloud/about-cloud-develop-defer#defer-in-dbt-cloud-cli
     // For dbt cloud, defer is enabled by default. We need to send flag only if it is disabled
-    const currentConfig: Record<string, DeferConfig> = workspace
+    const currentConfig: Record<string, DeferConfig> = await workspace
       .getConfiguration("dbt", window.activeTextEditor?.document.uri)
       .get("deferConfigPerProject", {});
 
@@ -405,7 +406,7 @@ export class DBTCloudProjectIntegration
   }
 
   private async addDeferParams(command: DBTCommand) {
-    const deferParams = this.getDeferParams(this.projectRoot);
+    const deferParams = await this.getDeferParams(this.projectRoot);
     deferParams.forEach((param) => command.addArgument(param));
     return command;
   }

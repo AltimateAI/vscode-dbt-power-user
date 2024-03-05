@@ -42,10 +42,10 @@ import {
   ValidateSqlParseErrorResponse,
 } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { getProjectRelativePath } from "../utils";
 import { ManifestPathType } from "../constants";
 import { DBTTerminal } from "./dbtTerminal";
 import { ValidationProvider } from "../validation_provider";
+import { DeferToProdService } from "../services/deferToProdService";
 
 const DEFAULT_QUERY_TEMPLATE = "select * from ({query}) as query limit {limit}";
 
@@ -221,6 +221,7 @@ export class DBTCoreProjectIntegration
     private altimateRequest: AltimateRequest,
     private dbtTerminal: DBTTerminal,
     private validationProvider: ValidationProvider,
+    private deferToProdService: DeferToProdService,
     private projectRoot: Uri,
     private projectConfigDiagnostics: DiagnosticCollection,
   ) {
@@ -575,28 +576,17 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  private async getDeferParams(projectRoot: Uri): Promise<string[]> {
-    const currentConfig: Record<string, DeferConfig> = await workspace
-      .getConfiguration("dbt", window.activeTextEditor?.document.uri)
-      .get("deferConfigPerProject", {});
-
-    const deferConfigInProject =
-      currentConfig[getProjectRelativePath(projectRoot)];
-
-    if (!deferConfigInProject) {
-      this.dbtTerminal.debug(
-        "deferToProd",
-        "No defer to prod configuration found",
-      );
-      return [];
-    }
+  private async getDeferParams(): Promise<string[]> {
+    const deferConfig = this.deferToProdService.getDeferConfigByProjectRoot(
+      this.projectRoot.fsPath,
+    );
     const {
       deferToProduction,
       manifestPathForDeferral,
       favorState,
       manifestPathType,
       dbtCoreIntegrationId,
-    } = deferConfigInProject;
+    } = deferConfig;
     if (!deferToProduction) {
       this.dbtTerminal.debug("deferToProd", "defer to prod not enabled");
       return [];
@@ -673,7 +663,7 @@ export class DBTCoreProjectIntegration
   }
 
   private async addDeferParams(command: DBTCommand) {
-    const deferParams = await this.getDeferParams(this.projectRoot);
+    const deferParams = await this.getDeferParams();
     deferParams.forEach((param) => command.addArgument(param));
     return command;
   }
