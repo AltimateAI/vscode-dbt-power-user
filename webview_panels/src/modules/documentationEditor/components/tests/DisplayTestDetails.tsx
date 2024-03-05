@@ -262,7 +262,11 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
                   <EditIcon />
                 </IconButton>
               ) : null}
-              <IconButton title="Delete test" onClick={handleDelete}>
+              <IconButton
+                style={{ color: "var(--action-red)" }}
+                title="Delete test"
+                onClick={handleDelete}
+              >
                 <DeleteIcon />
               </IconButton>
             </span>
