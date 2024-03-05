@@ -34,9 +34,8 @@ export class DeferToProductionStatusBar implements Disposable {
       window.onDidChangeActiveTextEditor(
         async (event: TextEditor | undefined) => {
           if (event === undefined) {
-            return;
+            this.statusBar.hide();
           }
-
           this.updateStatusBar();
         },
       ),
@@ -62,14 +61,16 @@ export class DeferToProductionStatusBar implements Disposable {
     this.statusBar.show();
   }
 
-  private updateStatusBar() {
+  public updateStatusBar() {
     try {
       const config = this.deferToProdService.getDeferConfigInCurrentProject();
       if (config?.deferToProduction) {
         this.showTextInStatusBar("$(sync) Defer");
+        this.statusBar.show();
         return;
       }
       this.showTextInStatusBar("$(sync-ignored) Defer");
+      this.statusBar.show();
     } catch (err) {
       console.error("Unable to update defer status bar", err);
     }

@@ -15,6 +15,10 @@ export class StatusBars implements Disposable {
     this.disposables.push(this.deferToProductionStatusBar);
   }
 
+  initialize() {
+    this.deferToProductionStatusBar.updateStatusBar();
+  }
+
   dispose() {
     while (this.disposables.length) {
       const x = this.disposables.pop();
