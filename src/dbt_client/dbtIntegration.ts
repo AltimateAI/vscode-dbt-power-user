@@ -21,7 +21,11 @@ import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync } from "fs";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./dbtTerminal";
-import { ValidateSqlParseErrorResponse } from "../altimate";
+import {
+  AltimateRequest,
+  NoCredentialsError,
+  ValidateSqlParseErrorResponse,
+} from "../altimate";
 
 interface DBTCommandExecution {
   command: (token?: CancellationToken) => Promise<void>;
@@ -358,6 +362,7 @@ export class DBTCommandExecutionInfrastructure {
   constructor(
     private pythonEnvironment: PythonEnvironment,
     private telemetry: TelemetryService,
+    private altimate: AltimateRequest,
   ) {}
 
   createPythonBridge(cwd: string): PythonBridge {
@@ -416,6 +421,10 @@ export class DBTCommandExecutionInfrastructure {
         try {
           await command(token);
         } catch (error) {
+          if (error instanceof NoCredentialsError) {
+            this.altimate.handlePreviewFeatures();
+            return;
+          }
           window.showErrorMessage(
             extendErrorWithSupportLinks(
               `Could not run command '${statusMessage}': ` + error + ".",

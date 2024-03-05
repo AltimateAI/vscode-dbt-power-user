@@ -1,6 +1,6 @@
 import { Disposable, window, workspace } from "vscode";
 import { provideSingleton } from "../utils";
-import { AltimateRequest } from "../altimate";
+import { AltimateRequest, NoCredentialsError } from "../altimate";
 
 const validTenantRegex = new RegExp(/^[a-z_][a-z0-9_]*$/);
 
@@ -75,7 +75,7 @@ export class ValidationProvider implements Disposable {
       const message =
         this.altimate.getCredentialsMessage() ||
         "To use this feature, please add a valid API Key and an instance name in the settings.";
-      throw new Error(message);
+      throw new NoCredentialsError(message);
     }
   }
 
