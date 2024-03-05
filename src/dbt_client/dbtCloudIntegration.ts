@@ -190,7 +190,6 @@ export class DBTCloudProjectIntegration
       this.rebuildManifestDiagnostics,
       this.pythonBridgeDiagnostics,
     );
-    this.validationProvider.validateCredentialsSilently();
   }
 
   async refreshProjectConfig(): Promise<void> {

@@ -164,6 +164,8 @@ container
           container.get(TelemetryService),
           container.get("Factory<DBTCoreProjectIntegration>"),
           container.get("Factory<DBTCloudProjectIntegration>"),
+          container.get(AltimateRequest),
+          container.get(ValidationProvider),
           path,
           projectConfig,
           _onManifestChanged,
