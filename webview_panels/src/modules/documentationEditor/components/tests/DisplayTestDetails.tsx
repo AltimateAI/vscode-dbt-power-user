@@ -16,6 +16,7 @@ import {
   CardFooter,
   CardTitle,
   CodeBlock,
+  IconButton,
   ListGroup,
   ListGroupItem,
   Stack,
@@ -25,8 +26,9 @@ import { useState } from "react";
 import AcceptedValues from "./forms/AcceptedValues";
 import Relationships from "./forms/Relationships";
 import { SaveRequest } from "./types";
-import useTestFormSave from "./hooks/useTestFormSave";
+import useTestFormSave, { TestOperation } from "./hooks/useTestFormSave";
 import classes from "../../styles.module.scss";
+import { DeleteIcon, EditIcon } from "@assets/icons";
 
 const schema = Yup.object({
   to: Yup.string().optional(),
@@ -49,6 +51,20 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
 
   const [testCode, setTestCode] = useState("");
   const [isInEditMode, setIsInEditMode] = useState(false);
+
+  const isEditableTest =
+    test.test_metadata?.name !== DbtGenericTests.NOT_NULL &&
+    test.test_metadata?.name !== DbtGenericTests.UNIQUE;
+
+  const handleDelete = () => {
+    panelLogger.info("delete test", test);
+    handleSave(
+      { test: test.test_metadata?.name as DbtGenericTests },
+      column,
+      TestOperation.DELETE,
+    );
+    onClose();
+  };
 
   const handleEdit = () => {
     setIsInEditMode(true);
@@ -86,7 +102,7 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
           <Button type="submit" disabled={isSaving}>
             Update
           </Button>
-          <Button onClick={handleCancel} disabled={isSaving}>
+          <Button outline onClick={handleCancel} disabled={isSaving}>
             Cancel
           </Button>
         </Stack>
@@ -112,7 +128,11 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
       return;
     }
 
-    handleSave({ ...data, test: testName as DbtGenericTests }, column, false);
+    handleSave(
+      { ...data, test: testName as DbtGenericTests },
+      column,
+      TestOperation.UPDATE,
+    );
     onClose();
   };
 
@@ -126,10 +146,6 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
           <Card>
             <CardBody>
               <div>
-                <p className="mb-0">Selected</p>
-                <Tag className="mb-2" color="primary">
-                  {test.test_metadata?.name}
-                </Tag>
                 <AcceptedValues
                   control={control}
                   value={(
@@ -147,10 +163,6 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
           <Card>
             <CardBody>
               <div>
-                <p>Selected</p>
-                <Tag className="mb-2" color="primary">
-                  {test.test_metadata?.name}
-                </Tag>
                 <Relationships
                   control={control}
                   toValue={
@@ -187,7 +199,7 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
           <Card>
             <CardBody>
               <CardTitle className="d-flex justify-content-between">
-                Values <Button onClick={handleEdit}>Edit</Button>
+                Values
               </CardTitle>
               <ListGroup className={classes.testListGroup}>
                 {(
@@ -206,7 +218,7 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
           <Card>
             <CardBody>
               <CardTitle className="d-flex justify-content-between">
-                Values <Button onClick={handleEdit}>Edit</Button>
+                Values
               </CardTitle>
               <div>
                 To:{" "}
@@ -239,10 +251,26 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
       <Card>
         <CardTitle>Column: {test.column_name}</CardTitle>
         <CardBody>
-          <div className={classes.title}>
-            Test:{" "}
-            <Tag color="primary">{test.test_metadata?.name ?? test.key}</Tag>
-          </div>
+          <Stack className={classes.title}>
+            <span>
+              Test:{" "}
+              <Tag color="primary">{test.test_metadata?.name ?? test.key}</Tag>
+            </span>
+            <span>
+              {isEditableTest ? (
+                <IconButton title="Edit test" onClick={handleEdit}>
+                  <EditIcon />
+                </IconButton>
+              ) : null}
+              <IconButton
+                style={{ color: "var(--action-red)" }}
+                title="Delete test"
+                onClick={handleDelete}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </span>
+          </Stack>
         </CardBody>
       </Card>
 

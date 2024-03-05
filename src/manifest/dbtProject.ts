@@ -43,6 +43,7 @@ import {
   DBTProjectIntegration,
   DBTCommandFactory,
   RunModelParams,
+  Catalog,
 } from "../dbt_client/dbtIntegration";
 import { DBTCoreProjectIntegration } from "../dbt_client/dbtCoreIntegration";
 import { DBTCloudProjectIntegration } from "../dbt_client/dbtCloudIntegration";
@@ -359,7 +360,11 @@ export class DBTProject implements Disposable {
       // Unknown error
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Encountered an unknown issue: " + exc + ".",
+          "Could not compile model " +
+            modelName +
+            ": " +
+            (exc as Error).message +
+            ".",
         ),
       );
       return "Detailed error information:\n" + exc;
@@ -431,7 +436,7 @@ export class DBTProject implements Disposable {
       // Unknown error
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Encountered an unknown issue: " + exc + ".",
+          "Could not compile query: " + (exc as Error).message,
         ),
       );
       return undefined;
@@ -470,7 +475,7 @@ export class DBTProject implements Disposable {
     return this.dbtProjectIntegration.getColumnsOfSource(sourceName, tableName);
   }
 
-  async getCatalog(): Promise<{ [key: string]: string }[]> {
+  async getCatalog(): Promise<Catalog> {
     try {
       return this.dbtProjectIntegration.getCatalog();
     } catch (exc: any) {
@@ -540,7 +545,7 @@ export class DBTProject implements Disposable {
       });
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Encountered an unknown issue:" + exc + ".",
+          "Could not generate schema yaml: " + (exc as Error).message,
         ),
       );
     }

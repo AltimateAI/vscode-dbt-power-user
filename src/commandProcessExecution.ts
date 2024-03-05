@@ -32,6 +32,12 @@ export class CommandProcessExecutionFactory {
   }
 }
 
+export interface CommandProcessResult {
+  stdout: string;
+  stderr: string;
+  fullOutput: string;
+}
+
 export class CommandProcessExecution {
   private disposables: Disposable[] = [];
 
@@ -70,26 +76,25 @@ export class CommandProcessExecution {
     }
   }
 
-  async complete(): Promise<string> {
-    return new Promise<string>((resolve, reject) => {
+  async complete(): Promise<CommandProcessResult> {
+    return new Promise<CommandProcessResult>((resolve, reject) => {
       const commandProcess = this.spawn();
       let stdoutBuffer = "";
       let stderrBuffer = "";
-      commandProcess.stdout!.on(
-        "data",
-        (chunk) => (stdoutBuffer += chunk.toString()),
-      );
-      commandProcess.stderr!.on(
-        "data",
-        (chunk) => (stderrBuffer += chunk.toString()),
-      );
+      let fullOutput = "";
+      commandProcess.stdout!.on("data", (chunk) => {
+        chunk = chunk.toString();
+        stdoutBuffer += chunk;
+        fullOutput += chunk;
+      });
+      commandProcess.stderr!.on("data", (chunk) => {
+        chunk = chunk.toString();
+        stderrBuffer += chunk;
+        fullOutput += chunk;
+      });
 
       commandProcess.once("close", () => {
-        if (stderrBuffer) {
-          reject(new Error(stderrBuffer));
-        } else {
-          resolve(stdoutBuffer);
-        }
+        resolve({ stdout: stdoutBuffer, stderr: stderrBuffer, fullOutput });
       });
 
       commandProcess.once("error", (error) => {
@@ -104,28 +109,29 @@ export class CommandProcessExecution {
     });
   }
 
-  async completeWithTerminalOutput(terminal: DBTTerminal): Promise<string> {
+  async completeWithTerminalOutput(
+    terminal: DBTTerminal,
+  ): Promise<CommandProcessResult> {
     return new Promise((resolve, reject) => {
       const commandProcess = this.spawn();
       let stdoutBuffer = "";
       let stderrBuffer = "";
+      let fullOutput = "";
       commandProcess.stdout!.on("data", (chunk) => {
         const line = `${this.formatText(chunk.toString())}`;
         stdoutBuffer += line;
         terminal.log(line);
+        fullOutput += line;
       });
       commandProcess.stderr!.on("data", (chunk) => {
         const line = `${this.formatText(chunk.toString())}`;
         stderrBuffer += line;
         terminal.log(line);
+        fullOutput += line;
       });
       commandProcess.once("close", () => {
-        if (stderrBuffer) {
-          reject(new Error(stderrBuffer));
-        } else {
-          terminal.log("");
-          resolve(stdoutBuffer);
-        }
+        resolve({ stdout: stdoutBuffer, stderr: stderrBuffer, fullOutput });
+        terminal.log("");
         this.dispose();
       });
       commandProcess.once("error", (error) => {

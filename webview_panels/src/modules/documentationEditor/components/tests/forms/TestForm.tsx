@@ -6,7 +6,7 @@ import { Card, CardTitle, CardBody, CardFooter, Button, Stack } from "@uicore";
 import AcceptedValues from "./AcceptedValues";
 import Relationships from "./Relationships";
 import { useEffect } from "react";
-import useTestFormSave from "../hooks/useTestFormSave";
+import useTestFormSave, { TestOperation } from "../hooks/useTestFormSave";
 import { SaveRequest } from "../types";
 
 interface Props {
@@ -33,7 +33,7 @@ const TestForm = ({ formType, onClose, column }: Props): JSX.Element | null => {
       formType === DbtGenericTests.NOT_NULL ||
       formType === DbtGenericTests.UNIQUE
     ) {
-      handleSave({ test: formType }, column, true);
+      handleSave({ test: formType }, column, TestOperation.CREATE);
       onClose();
       return;
     }
@@ -77,7 +77,11 @@ const TestForm = ({ formType, onClose, column }: Props): JSX.Element | null => {
         <Stack className="mt-3">
           <Button
             onClick={handleSubmit((d) => {
-              handleSave({ ...d, test: formType }, column, true);
+              handleSave(
+                { ...d, test: formType },
+                column,
+                TestOperation.CREATE,
+              );
               onClose();
             })}
             color="primary"

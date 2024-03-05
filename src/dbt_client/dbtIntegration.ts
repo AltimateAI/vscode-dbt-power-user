@@ -48,12 +48,19 @@ export class CLIDBTCommandExecutionStrategy
     protected dbtPath: string,
   ) {}
 
-  execute(command: DBTCommand, token?: CancellationToken): Promise<string> {
+  async execute(
+    command: DBTCommand,
+    token?: CancellationToken,
+  ): Promise<string> {
     const commandExecution = this.executeCommand(command, token);
-    if (command.logToTerminal) {
-      return commandExecution.completeWithTerminalOutput(this.terminal);
+    const executionPromise = command.logToTerminal
+      ? commandExecution.completeWithTerminalOutput(this.terminal)
+      : commandExecution.complete();
+    const { stdout, stderr } = await executionPromise;
+    if (stderr) {
+      throw new Error(stderr);
     }
-    return commandExecution.complete();
+    return stdout;
   }
 
   protected executeCommand(
@@ -108,10 +115,18 @@ export class PythonDBTCommandExecutionStrategy
     private telemetry: TelemetryService,
   ) {}
 
-  execute(command: DBTCommand, token?: CancellationToken): Promise<string> {
-    return this.executeCommand(command, token).completeWithTerminalOutput(
-      this.terminal,
-    );
+  async execute(
+    command: DBTCommand,
+    token?: CancellationToken,
+  ): Promise<string> {
+    const { stdout, stderr } = await this.executeCommand(
+      command,
+      token,
+    ).completeWithTerminalOutput(this.terminal);
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    return stdout;
   }
 
   private executeCommand(
@@ -259,6 +274,33 @@ export class QueryExecution {
   }
 }
 
+export type DBColumn = { column: string; dtype: string };
+
+export type Node = {
+  unique_id: string;
+  name: string;
+  resource_type: string;
+};
+
+export type SourceNode = {
+  unique_id: string;
+  name: string;
+  resource_type: "source";
+  table: string;
+};
+
+export type DBTNode = Node | SourceNode;
+
+type CatalogItem = {
+  table_database: string;
+  table_schema: string;
+  table_name: string;
+  column_name: string;
+  column_type: string;
+};
+
+export type Catalog = CatalogItem[];
+
 export interface DBTProjectIntegration extends Disposable {
   // initialize execution infrastructure
   initializeProject(): Promise<void>;
@@ -298,9 +340,9 @@ export interface DBTProjectIntegration extends Disposable {
   getColumnsOfSource(
     sourceName: string,
     tableName: string,
-  ): Promise<{ [key: string]: string }[]>; // TODO: this should be typed
-  getColumnsOfModel(modelName: string): Promise<{ [key: string]: string }[]>; // TODO: this should be typed
-  getCatalog(): Promise<{ [key: string]: string }[]>; // TODO: this should be typed
+  ): Promise<DBColumn[]>;
+  getColumnsOfModel(modelName: string): Promise<DBColumn[]>;
+  getCatalog(): Promise<Catalog>;
   getDebounceForRebuildManifest(): number;
 }
 
