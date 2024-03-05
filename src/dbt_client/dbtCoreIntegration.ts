@@ -591,10 +591,16 @@ export class DBTCoreProjectIntegration
       this.dbtTerminal.debug("deferToProd", "defer to prod not enabled");
       return [];
     }
+    if (!manifestPathType) {
+      const configNotPresent = new Error(
+        "manifestPathType config is not present, use the actions panel to set the Defer to production configuration.",
+      );
+      throw configNotPresent;
+    }
     if (manifestPathType === ManifestPathType.LOCAL) {
       if (!manifestPathForDeferral) {
         const configNotPresent = new Error(
-          "manifestPathForDeferral config is not present, use the actions panel to set the configuration",
+          "manifestPathForDeferral config is not present, use the actions panel to set the Defer to production configuration.",
         );
         this.dbtTerminal.error(
           "manifestPathForDeferral",
