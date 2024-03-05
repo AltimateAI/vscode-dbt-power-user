@@ -74,11 +74,17 @@ export class InsightsPanel extends AltimateWebviewProvider {
               .getConfiguration("dbt")
               .get<string>("dbtIntegration", "core");
 
+            const projectPath = this.getCurrentProject();
+            if (!projectPath) {
+              throw new Error("No project selected");
+            }
+
             this._panel!.webview.postMessage({
               command: "updateDeferConfig",
               args: {
-                config:
-                  this.deferToProdService.getDeferConfigInCurrentProject(),
+                config: this.deferToProdService.getDeferConfigByProjectRoot(
+                  projectPath.projectRoot.fsPath,
+                ),
                 projectPath: currentProject?.projectRoot.fsPath,
                 dbtIntegrationMode,
               },
@@ -399,11 +405,13 @@ export class InsightsPanel extends AltimateWebviewProvider {
         break;
       case "getDeferToProductionConfig":
         const { projectRoot } = params as { projectRoot?: string };
-        const config = projectRoot
-          ? this.deferToProdService.getDeferConfigByProjectRoot(projectRoot)
-          : this.deferToProdService.getDeferConfigInCurrentProject();
         const projectPath =
           projectRoot || (await this.getCurrentProject())?.projectRoot.fsPath;
+        if (!projectPath) {
+          throw new Error("No project selected");
+        }
+        const config =
+          this.deferToProdService.getDeferConfigByProjectRoot(projectPath);
         this.dbtTerminal.debug(
           "InsightsPanel",
           `getting defer config for ${projectPath}`,
