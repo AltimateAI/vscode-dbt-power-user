@@ -11,7 +11,7 @@ export class DeferToProdService {
       .get("deferConfigPerProject", {});
   }
 
-  public getDeferConfigByProjectRoot(projectRoot: string) {
+  public getDeferConfigByProjectRoot(projectRoot: string): DeferConfig {
     const relativePath = getProjectRelativePath(Uri.parse(projectRoot));
     const currentConfig: Record<string, DeferConfig> =
       this.getDeferConfigByWorkspace();
@@ -21,7 +21,11 @@ export class DeferToProdService {
       .get<string>("dbtIntegration", "core");
 
     if (dbtIntegrationMode === "core" || currentConfig[relativePath]) {
-      return currentConfig[relativePath];
+      const coreConfig = currentConfig[relativePath];
+      if (!coreConfig) {
+        return {} as DeferConfig;
+      }
+      return coreConfig;
     }
 
     // In dbt cloud, defer is enabled by default
