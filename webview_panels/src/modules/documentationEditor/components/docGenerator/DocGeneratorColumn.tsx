@@ -3,6 +3,7 @@ import { updateColumnsInCurrentDocsData } from "@modules/documentationEditor/sta
 import {
   DocsGenerateModelRequestV2,
   DBTDocumentationColumn,
+  DBTModelTest,
 } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import {
@@ -14,11 +15,13 @@ import useAppContext from "@modules/app/useAppContext";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
+import EntityWithTests from "../tests/EntityWithTests";
 
 interface Props {
   column: DBTDocumentationColumn;
+  tests: DBTModelTest[];
 }
-const DocGeneratorColumn = ({ column }: Props): JSX.Element => {
+const DocGeneratorColumn = ({ column, tests }: Props): JSX.Element => {
   const {
     state: { currentDocsData, project },
     dispatch,
@@ -87,6 +90,11 @@ const DocGeneratorColumn = ({ column }: Props): JSX.Element => {
         placeholder={`Describe ${column.name}`}
         type={EntityType.COLUMN}
         entity={column}
+      />
+      <EntityWithTests
+        title={column.name}
+        tests={tests}
+        type={EntityType.COLUMN}
       />
     </div>
   );

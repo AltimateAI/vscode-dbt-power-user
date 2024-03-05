@@ -5,10 +5,12 @@ import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
 import { Label, Stack } from "@uicore";
+import { useMemo } from "react";
 import DocGeneratorColumnsList from "./components/docGenerator/DocGeneratorColumnsList";
 import DocGeneratorInput from "./components/docGenerator/DocGeneratorInput";
 import DocumentationHelpContent from "./components/help/DocumentationHelpContent";
 import SaveDocumentation from "./components/saveDocumentation/SaveDocumentation";
+import EntityWithTests from "./components/tests/EntityWithTests";
 import { updateCurrentDocsData } from "./state/documentationSlice";
 import { DocsGenerateModelRequestV2 } from "./state/types";
 import useDocumentationContext from "./state/useDocumentationContext";
@@ -17,10 +19,14 @@ import { addDefaultActions } from "./utils";
 
 const DocumentationEditor = (): JSX.Element => {
   const {
-    state: { currentDocsData },
+    state: { currentDocsData, currentDocsTests },
     dispatch,
   } = useDocumentationContext();
   const { postMessageToDataPilot } = useAppContext();
+
+  const modelTests = useMemo(() => {
+    return currentDocsTests?.filter((test) => !test.column_name);
+  }, [currentDocsTests]);
 
   const onModelDocSubmit = async (data: DocsGenerateModelRequestV2) => {
     if (!currentDocsData) {
@@ -104,6 +110,11 @@ const DocumentationEditor = (): JSX.Element => {
                 type={EntityType.MODEL}
                 onSubmit={onModelDocSubmit}
                 placeholder="Describe your model"
+              />
+              <EntityWithTests
+                title={currentDocsData.name}
+                tests={modelTests}
+                type={EntityType.MODEL}
               />
             </Stack>
             <DocGeneratorColumnsList />

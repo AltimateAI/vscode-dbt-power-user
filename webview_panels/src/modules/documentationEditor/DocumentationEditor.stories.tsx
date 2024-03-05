@@ -8,7 +8,7 @@ import {
 import { faker } from "@faker-js/faker";
 import DocumentationWrapper from "./DocumentationWrapper";
 import { initialState } from "./state/documentationSlice";
-import { DocumentationStateProps, Pages } from "./state/types";
+import { Pages } from "./state/types";
 
 const meta = {
   title: "Documentation Editor",
@@ -35,24 +35,6 @@ export const DefaultHelpView = {
   ],
 };
 
-export const ModelDocGenView = {
-  render: (): JSX.Element => {
-    return <DocumentationWrapper />;
-  },
-  decorators: [
-    withReactContext({
-      Context: DocumentationContext,
-      initialState: {
-        state: {
-          ...initialState,
-          currentDocsData: DBTDocumentationFactory.build(),
-          project: faker.system.fileName(),
-        },
-      },
-    }),
-  ],
-};
-
 const docsDataForTests = DBTDocumentationFactory.build();
 const testsDataForTests = docsDataForTests.columns
   .map((c, i) =>
@@ -75,8 +57,7 @@ const testsDataForTests = docsDataForTests.columns
     }
     return test;
   });
-
-export const DocumentationTestsView = {
+export const ModelDocGenView = {
   render: (): JSX.Element => {
     return <DocumentationWrapper />;
   },
@@ -86,11 +67,12 @@ export const DocumentationTestsView = {
       initialState: {
         state: {
           ...initialState,
+          selectedPages: [Pages.DOCUMENTATION, Pages.TESTS],
+          testsEnabled: true,
           currentDocsData: docsDataForTests,
           currentDocsTests: testsDataForTests,
           project: faker.system.fileName(),
-          activePage: Pages.TESTS,
-        } as DocumentationStateProps,
+        },
       },
     }),
   ],

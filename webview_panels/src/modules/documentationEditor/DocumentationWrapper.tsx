@@ -1,7 +1,6 @@
 import { Button, ButtonGroup } from "@uicore";
 import DocumentationEditor from "./DocumentationEditor";
-import DocumentationTests from "./DocumentationTests";
-import { setActivePage } from "./state/documentationSlice";
+import { addToSelectedPage } from "./state/documentationSlice";
 import { Pages } from "./state/types";
 import useDocumentationContext from "./state/useDocumentationContext";
 import classes from "./styles.module.scss";
@@ -9,10 +8,10 @@ import classes from "./styles.module.scss";
 const DocumentationWrapper = (): JSX.Element => {
   const {
     dispatch,
-    state: { activePage, testsEnabled },
+    state: { selectedPages, testsEnabled },
   } = useDocumentationContext();
   const handleClick = (page: Pages) => {
-    dispatch(setActivePage(page));
+    dispatch(addToSelectedPage(page));
   };
 
   return (
@@ -20,13 +19,19 @@ const DocumentationWrapper = (): JSX.Element => {
       {testsEnabled ? (
         <ButtonGroup>
           <Button
-            color={activePage === Pages.DOCUMENTATION ? "primary" : "secondary"}
+            color={
+              selectedPages.includes(Pages.DOCUMENTATION)
+                ? "primary"
+                : "secondary"
+            }
             onClick={() => handleClick(Pages.DOCUMENTATION)}
           >
             Documentation
           </Button>
           <Button
-            color={activePage === Pages.TESTS ? "primary" : "secondary"}
+            color={
+              selectedPages.includes(Pages.TESTS) ? "primary" : "secondary"
+            }
             onClick={() => handleClick(Pages.TESTS)}
           >
             Tests
@@ -39,8 +44,7 @@ const DocumentationWrapper = (): JSX.Element => {
         </Button> */}
         </ButtonGroup>
       ) : null}
-      {activePage === Pages.DOCUMENTATION ? <DocumentationEditor /> : null}
-      {activePage === Pages.TESTS ? <DocumentationTests /> : null}
+      <DocumentationEditor />
     </div>
   );
 };

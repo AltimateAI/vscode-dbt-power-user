@@ -4,11 +4,34 @@ import DocGeneratorColumn from "./DocGeneratorColumn";
 import classes from "../../styles.module.scss";
 import BulkGenerateButton from "./BulkGenerateButton";
 import SyncWithDatabase from "./SyncWithDatabase";
+import { useMemo } from "react";
+import { DBTModelTest } from "@modules/documentationEditor/state/types";
 
 const DocGeneratorColumnsList = (): JSX.Element => {
   const {
-    state: { currentDocsData },
+    state: { currentDocsData, currentDocsTests },
   } = useDocumentationContext();
+
+  const testsPerColumns = useMemo(() => {
+    return (
+      currentDocsTests?.reduce(
+        (acc: Record<string, DBTModelTest[]>, columnTest) => {
+          if (!columnTest.column_name) {
+            return acc;
+          }
+          acc[columnTest.column_name] = acc[columnTest.column_name] ?? [];
+          return {
+            ...acc,
+            [columnTest.column_name]: [
+              ...acc[columnTest.column_name],
+              columnTest,
+            ],
+          };
+        },
+        {},
+      ) ?? {}
+    );
+  }, [currentDocsTests]);
 
   return (
     <div>
@@ -32,7 +55,11 @@ const DocGeneratorColumnsList = (): JSX.Element => {
       ) : null}
       <Stack direction="column" className={classes.columns}>
         {currentDocsData?.columns.map((column) => (
-          <DocGeneratorColumn key={column.name} column={column} />
+          <DocGeneratorColumn
+            key={column.name}
+            column={column}
+            tests={testsPerColumns[column.name]}
+          />
         ))}
       </Stack>
     </div>

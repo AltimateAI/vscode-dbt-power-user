@@ -32,9 +32,9 @@ const AutoCollapsingNotif: FC<{ text: string; delay: number }> = ({
 
 const CommonActionButtons = (): JSX.Element => {
   const {
-    state: { activePage },
+    state: { selectedPages },
   } = useDocumentationContext();
-  
+
   const showOldUx = () => {
     executeRequestInAsync("enableNewDocsPanel", { enable: false });
   };
@@ -48,7 +48,7 @@ const CommonActionButtons = (): JSX.Element => {
 
   return (
     <Stack className="align-items-center text-nowrap">
-      {activePage === Pages.DOCUMENTATION ? (
+      {selectedPages.includes(Pages.DOCUMENTATION) ? (
         <>
           <AutoCollapsingNotif
             text="New language support added! (Check Settings)"
