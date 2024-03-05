@@ -376,11 +376,11 @@ export class DBTCloudProjectIntegration
     return this.dbtCloudCommand(command).execute();
   }
 
-  private async getDeferParams(projectRoot: Uri): Promise<string[]> {
+  private getDeferParams(projectRoot: Uri): string[] {
     this.throwIfNotAuthenticated();
     // https://docs.getdbt.com/docs/cloud/about-cloud-develop-defer#defer-in-dbt-cloud-cli
     // For dbt cloud, defer is enabled by default. We need to send flag only if it is disabled
-    const currentConfig: Record<string, DeferConfig> = await workspace
+    const currentConfig: Record<string, DeferConfig> = workspace
       .getConfiguration("dbt", window.activeTextEditor?.document.uri)
       .get("deferConfigPerProject", {});
 
@@ -405,7 +405,7 @@ export class DBTCloudProjectIntegration
   }
 
   private async addDeferParams(command: DBTCommand) {
-    const deferParams = await this.getDeferParams(this.projectRoot);
+    const deferParams = this.getDeferParams(this.projectRoot);
     deferParams.forEach((param) => command.addArgument(param));
     return command;
   }
