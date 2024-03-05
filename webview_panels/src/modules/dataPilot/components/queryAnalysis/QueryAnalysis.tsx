@@ -1,6 +1,6 @@
 import { Alert, Card, CardBody, CardTitle, CodeBlock, Stack } from "@uicore";
 import QueryAnalysisActionButton from "./QueryAnalysisActionButton";
-import QueryAnalysisResultComponent from "./QueryAnalysisResult";
+import DatapilotChatFollowupComponent from "../common/DatapilotChatFollowup";
 import useQueryAnalysisContext, {
   MAX_ALLOWED_FOLLOWUP_QUESTIONS,
 } from "./provider/useQueryAnalysisContext";
@@ -23,7 +23,8 @@ const DefaultActions = [
 ] as DataPilotChatAction[];
 
 const QueryAnalysis = (): JSX.Element | null => {
-  const { chat, results, isMaxFollowupReached } = useQueryAnalysisContext();
+  const { chat, isMaxFollowupReached } = useQueryAnalysisContext();
+  const followups = chat?.followups;
 
   if (!chat) {
     return null;
@@ -53,7 +54,7 @@ const QueryAnalysis = (): JSX.Element | null => {
       ) : null}
 
       {/* show actions only if this is start of chat */}
-      {results.length > 0 ? null : (
+      {followups?.length ? null : (
         <Stack style={{ flexWrap: "wrap" }}>
           {actions.map((action) => (
             <QueryAnalysisActionButton
@@ -63,13 +64,13 @@ const QueryAnalysis = (): JSX.Element | null => {
           ))}
         </Stack>
       )}
-      {results.map((result, i) => (
-        <QueryAnalysisResultComponent
-          key={result.session_id}
+      {followups?.map((result, i) => (
+        <DatapilotChatFollowupComponent
+          key={result.id}
           response={result}
           command={`queryAnalysis:${chat.analysisType ?? ""}`}
           // show followup and ask textbox for last result only
-          showFollowup={i === results.length - 1}
+          showFollowup={i === followups.length - 1}
         />
       ))}
       {isMaxFollowupReached ? (

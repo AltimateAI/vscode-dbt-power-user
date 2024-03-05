@@ -4,7 +4,7 @@ import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import {
   DatapilotQueryAnalysisChat,
   QueryAnalysisType,
-  QueryAnalysisResult,
+  QueryAnalysisFollowup,
 } from "@modules/dataPilot/components/queryAnalysis/types";
 
 export const DatapilotQueryAnalysisFactory =
@@ -32,7 +32,8 @@ export const DatapilotQueryExplainFactory =
   });
 
 export const DatapilotQueryExplainResultFactory =
-  Sync.makeFactory<QueryAnalysisResult>({
+  Sync.makeFactory<QueryAnalysisFollowup>({
+    id: each(() => faker.string.uuid()),
     datapilot_title: "Query explanation",
     response: each(() =>
       [
@@ -107,6 +108,5 @@ export const DatapilotQueryExplainResultFactory =
       ].join("\n"),
     ),
     user_prompt: "Explain the query",
-    session_id: each(() => faker.string.uuid()),
     state: RequestState.COMPLETED,
   });

@@ -1,8 +1,7 @@
-import { AltimateIcon, AskIcon } from "@assets/icons";
-import TextareaAutosize from "react-textarea-autosize";
+import { AltimateIcon } from "@assets/icons";
 import ResultFeedbackButtons from "@modules/feedback/ResultFeedbackButtons";
-import { Button, Card, CardBody, CardTitle, IconButton, Stack } from "@uicore";
-import { QueryAnalysisResult } from "./types";
+import { Button, Card, CardBody, CardTitle, Stack } from "@uicore";
+import { QueryAnalysisFollowup } from "../queryAnalysis/types";
 import classes from "../../datapilot.module.scss";
 import {
   Feedback,
@@ -10,37 +9,31 @@ import {
   FeedbackType,
 } from "../../../feedback/types";
 import { panelLogger } from "@modules/logger";
-import UserQuery from "../common/UserQuery";
-import QueryAnalysisActionButton from "./QueryAnalysisActionButton";
-import { ChangeEvent, FormEvent, KeyboardEvent, useState } from "react";
+import UserQuery from "./UserQuery";
+import QueryAnalysisActionButton from "../queryAnalysis/QueryAnalysisActionButton";
 import { DataPilotChatAction, RequestState } from "@modules/dataPilot/types";
-import useQueryAnalysisAction from "./useQueryAnalysisAction";
-import useQueryAnalysisContext from "./provider/useQueryAnalysisContext";
-import useAiGenerationUtils from "../common/useAiGenerationUtils";
+import useQueryAnalysisAction from "../queryAnalysis/useQueryAnalysisAction";
+import useQueryAnalysisContext from "../queryAnalysis/provider/useQueryAnalysisContext";
+import useAiGenerationUtils from "./useAiGenerationUtils";
 import MarkdownRenderer from "@modules/markdown/Renderer";
+import AskDatapilotInput from "./AskDatapilotInput";
 
 interface Props {
-  response: QueryAnalysisResult;
+  response: QueryAnalysisFollowup;
   command: DataPilotChatAction["command"];
   showFollowup: boolean;
+  hideFeedback?: boolean;
 }
-const QueryAnalysisResultComponent = ({
-  response: {
-    datapilot_title,
-    response,
-    user_prompt,
-    actions,
-    state,
-    session_id,
-  },
+const DatapilotChatFollowupComponent = ({
+  response: { datapilot_title, response, user_prompt, actions, state, id },
   command,
   showFollowup,
+  hideFeedback,
 }: Props): JSX.Element => {
-  const { chat, results, onNewGeneration, history, isMaxFollowupReached } =
+  const { chat, onNewGeneration, history, isMaxFollowupReached } =
     useQueryAnalysisContext();
+  const results = chat?.followups ?? [];
   const { onAiGenerationRender } = useAiGenerationUtils();
-
-  const [userRequest, setUserRequest] = useState("");
 
   const { executeQueryAnalysis, isLoading } = useQueryAnalysisAction();
 
@@ -62,7 +55,7 @@ const QueryAnalysisResultComponent = ({
             response: r.response,
             type: FeedbackType.RESPONSE,
           };
-          if (session_id === r.session_id) {
+          if (id === r.id) {
             return { ...feedbackData, ...baseData };
           }
           return baseData;
@@ -72,14 +65,7 @@ const QueryAnalysisResultComponent = ({
     return data;
   };
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    panelLogger.info("submitting user request", userRequest, history);
-
-    if (!userRequest) {
-      return;
-    }
-
+  const handleSubmit = (userRequest: string) => {
     executeQueryAnalysis({
       command,
       onNewGeneration,
@@ -89,18 +75,6 @@ const QueryAnalysisResultComponent = ({
     }).catch((err) =>
       panelLogger.error("error while querying by user input", err),
     );
-  };
-
-  const handleOnChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    setUserRequest(e.target.value);
-  };
-
-  const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      e.stopPropagation();
-      handleSubmit(e);
-    }
   };
 
   return (
@@ -125,7 +99,7 @@ const QueryAnalysisResultComponent = ({
                   <Button color="warning">Loading...</Button>
                 </Stack>
               ) : null}
-              {state === RequestState.COMPLETED ? (
+              {!hideFeedback && state === RequestState.COMPLETED ? (
                 <Stack className={classes.actionButtons}>
                   <Stack>&nbsp;</Stack>
                   <ResultFeedbackButtons
@@ -148,30 +122,14 @@ const QueryAnalysisResultComponent = ({
         </Stack>
       ) : null}
       {showFollowup && state === RequestState.COMPLETED ? (
-        <Stack className={classes.askInput}>
-          <form onSubmit={handleSubmit}>
-            <TextareaAutosize
-              disabled={isLoading}
-              placeholder="Ask a followup"
-              value={userRequest}
-              onChange={handleOnChange}
-              rows={1}
-              maxRows={3}
-              className="form-control"
-              onKeyDown={onKeyDown}
-            />
-
-            <IconButton
-              type="submit"
-              disabled={isLoading || isMaxFollowupReached}
-            >
-              <AskIcon style={{ color: "var(--icon--default)" }} />
-            </IconButton>
-          </form>
-        </Stack>
+        <AskDatapilotInput
+          handleSubmit={handleSubmit}
+          disabled={isLoading || isMaxFollowupReached}
+          loading={isLoading}
+        />
       ) : null}
     </>
   );
 };
 
-export default QueryAnalysisResultComponent;
+export default DatapilotChatFollowupComponent;

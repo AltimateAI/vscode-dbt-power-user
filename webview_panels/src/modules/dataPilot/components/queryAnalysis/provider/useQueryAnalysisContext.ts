@@ -23,16 +23,17 @@ const useQueryAnalysisContext = (): {
     ? (items[currentSessionId] as DatapilotQueryAnalysisChat | undefined)
     : undefined;
   const context = useContext(QueryAnalysisContext);
+  const followups = chat?.followups;
 
   const history = useMemo(() => {
     const intialMessage = [] as QueryAnalysisHistory[];
-    if (!context.results.length) {
+    if (!followups?.length) {
       return intialMessage;
     }
 
     return [
       ...intialMessage,
-      ...context.results
+      ...followups
         .map((result) => [
           { content: result.user_prompt, type: QueryAnalysisHistoryType.HUMAN },
           { content: result.response, type: QueryAnalysisHistoryType.SYSTEM },
@@ -40,14 +41,14 @@ const useQueryAnalysisContext = (): {
         .flat()
         .filter((r) => !!r.content),
     ] as QueryAnalysisHistory[];
-  }, [chat, context.results]);
+  }, [chat, followups]);
 
   return {
     chat,
     ...context,
     history,
     isMaxFollowupReached:
-      MAX_ALLOWED_FOLLOWUP_QUESTIONS <= context.results.length,
+      MAX_ALLOWED_FOLLOWUP_QUESTIONS <= (followups?.length ?? 0),
   };
 };
 

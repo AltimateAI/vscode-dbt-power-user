@@ -1,5 +1,9 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { DataPilotChat, DataPilotStateProps } from "./types";
+import {
+  DataPilotChat,
+  DataPilotChatFollowup,
+  DataPilotStateProps,
+} from "./types";
 
 export const initialState = {
   items: {},
@@ -23,6 +27,34 @@ const dataPilotSlice = createSlice({
     ) => {
       state.showHelp = action.payload;
     },
+    upsertFollowup: (
+      state,
+      {
+        payload: { followup, sessionId },
+      }: PayloadAction<{
+        sessionId: DataPilotChat["id"];
+        followup: DataPilotChatFollowup;
+      }>,
+    ) => {
+      const { followups } = state.items[sessionId];
+
+      if (!followups?.length) {
+        state.items[sessionId].followups = [followup];
+        return;
+      }
+      const currentIndex = followups.findIndex((r) => r.id === followup.id);
+      if (currentIndex === -1) {
+        state.items[sessionId].followups = [...followups, followup];
+        return;
+      }
+
+      const clone = [...followups];
+      clone[currentIndex] = {
+        ...clone[currentIndex],
+        ...followup,
+      };
+      state.items[sessionId].followups = clone;
+    },
     upsertItem: (
       state,
       action: PayloadAction<
@@ -39,6 +71,11 @@ const dataPilotSlice = createSlice({
   },
 });
 
-export const { upsertItem, reset, setCurrentSessionId, setShowHelp } =
-  dataPilotSlice.actions;
+export const {
+  upsertItem,
+  reset,
+  setCurrentSessionId,
+  setShowHelp,
+  upsertFollowup,
+} = dataPilotSlice.actions;
 export default dataPilotSlice;

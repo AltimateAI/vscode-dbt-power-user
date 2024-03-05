@@ -13,12 +13,7 @@ import { SharedStateService } from "../services/sharedStateService";
 import { QueryAnalysisService } from "../services/queryAnalysisService";
 import { DbtProjectService } from "../services/dbtProjectService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-
-enum DatapilotEvents {
-  QUERY_EXPLAIN_ONLOAD = "queryAnalysis:load:explain",
-  QUERY_ONLOAD = "queryAnalysis:load",
-  QUERY_CHANGE_ONLOAD = "queryAnalysis:load:change",
-}
+import { DbtTestService } from "../services/dbtTestService";
 
 @provideSingleton(DataPilotPanel)
 export class DataPilotPanel extends AltimateWebviewProvider {
@@ -36,6 +31,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     protected queryAnalysisService: QueryAnalysisService,
     private dbtProjectService: DbtProjectService,
     dbtTerminal: DBTTerminal,
+    private dbtTestService: DbtTestService,
   ) {
     super(
       dbtProjectContainer,
@@ -164,6 +160,27 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           });
         }
         break;
+      case "dbttest:create":
+        try {
+          const response = await this.dbtTestService.createTest(
+            this.eventMap,
+            params,
+            syncRequestId,
+          );
+
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            data: { response },
+          });
+        } catch (err) {
+          this.sendResponseToWebview({
+            command: "response",
+            syncRequestId,
+            error: (err as Error).message,
+          });
+        }
+        break;
       case "queryanalysis:followup":
         try {
           const response = await this.queryAnalysisService.getFollowupQuestions(
@@ -203,16 +220,13 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         this.postToWebview(payload);
         break;
       case "dbtPowerUser.summarizeQuery":
-        this.handleDatapilotEvent(
-          DatapilotEvents.QUERY_EXPLAIN_ONLOAD,
-          payload,
-        );
+        this.handleDatapilotEvent(QueryAnalysisType.EXPLAIN, payload);
         break;
       case "dbtPowerUser.changeQuery":
-        this.handleDatapilotEvent(DatapilotEvents.QUERY_CHANGE_ONLOAD, payload);
+        this.handleDatapilotEvent(QueryAnalysisType.MODIFY, payload);
         break;
       case "dbtPowerUser.openDatapilotWithQuery":
-        this.handleDatapilotEvent(DatapilotEvents.QUERY_ONLOAD, payload);
+        this.handleDatapilotEvent(null, payload);
         break;
       case "dbtPowerUser.openHelpInDatapilot":
         this.sendResponseToWebview({
@@ -252,7 +266,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
 
   // handles events from sharedStateService events
   private handleDatapilotEvent(
-    command: DatapilotEvents,
+    analysisType: QueryAnalysisType | null,
     data?: { query?: string },
   ) {
     // reset the datapilot to start new session
@@ -267,10 +281,14 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     this.emitterService.fire({
       command: "datapilot:message",
       payload: {
-        command,
+        command: "datapilot:message",
         // data.query will be passed from query panel webview
         query: data?.query || queryData.query,
         fileName: queryData.fileName,
+        requestType: "QUERY_ANALYSIS",
+        state: "UNINITIALIZED",
+        //If analysis type is undefined, dont trigger api call
+        analysisType,
       },
     });
   }

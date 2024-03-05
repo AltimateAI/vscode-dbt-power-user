@@ -31,10 +31,12 @@ const DataPilotPanel = (): JSX.Element => {
             <QueryAnalysis />
           </QueryAnalysisProvider>
         );
-        case RequestTypes.ADD_CUSTOM_TEST:
-          return (
+      case RequestTypes.ADD_CUSTOM_TEST:
+        return (
+          <QueryAnalysisProvider>
             <AddCustomTest />
-          );
+          </QueryAnalysisProvider>
+        );
       default:
         break;
     }

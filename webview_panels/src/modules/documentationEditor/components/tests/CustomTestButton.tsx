@@ -2,12 +2,17 @@ import { ShinesIcon } from "@assets/icons";
 import { IconButton, ListGroupItem } from "@uicore";
 import classes from "../../styles.module.scss";
 import useAppContext from "@modules/app/useAppContext";
-import { RequestState, RequestTypes } from "@modules/dataPilot/types";
+import { RequestTypes } from "@modules/dataPilot/types";
+import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 
 interface Props {
   column: string;
 }
 const CustomTestButton = ({ column }: Props): JSX.Element => {
+  const {
+    state: { currentDocsData },
+  } = useDocumentationContext();
+
   const { postMessageToDataPilot } = useAppContext();
 
   const onClick = () => {
@@ -15,10 +20,8 @@ const CustomTestButton = ({ column }: Props): JSX.Element => {
 
     postMessageToDataPilot({
       id,
-      query: `Add Custom Test for column: ${column}`,
       requestType: RequestTypes.ADD_CUSTOM_TEST,
-      state: RequestState.UNINITIALIZED,
-      meta: {},
+      meta: { column, model: currentDocsData?.name },
       actions: [],
     });
   };

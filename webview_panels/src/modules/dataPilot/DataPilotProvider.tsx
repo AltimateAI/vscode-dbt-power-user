@@ -21,10 +21,6 @@ import {
   RequestTypes,
 } from "./types";
 import { panelLogger } from "@modules/logger";
-import {
-  DatapilotQueryAnalysisChat,
-  QueryAnalysisType,
-} from "./components/queryAnalysis/types";
 
 export const DataPilotContext = createContext<ContextProps>({
   state: initialState,
@@ -41,25 +37,33 @@ const DataPilotProvider = ({
     dataPilotSlice.getInitialState(),
   );
 
-  // Since query analysis provider is not loaded yet, have to insert the item into context in datapilot provider
-  const handleQueryAnalysisOnload = (
-    request: Partial<DatapilotQueryAnalysisChat>,
-    triggerOnLoad: boolean,
-    analysisType?: QueryAnalysisType,
-  ) => {
-    panelLogger.info("query explain onload", request);
-    const data = {
-      id: crypto.randomUUID(),
-      requestType: RequestTypes.QUERY_ANALYSIS,
-      state: RequestState.UNINITIALIZED,
-      query: request.query,
-      fileName: request.fileName,
-      //If analysis type is undefined, dont trigger api call
-      analysisType: triggerOnLoad ? analysisType : undefined,
-    } as DatapilotQueryAnalysisChat;
+  const handleIncomingDatapilotMessage = (request: Partial<DataPilotChat>) => {
+    panelLogger.info("datapilot incoming message", request);
+    const id = request.id ?? crypto.randomUUID();
 
-    dispatch(upsertItem(data));
-    dispatch(setCurrentSessionId(data.id));
+    if (request.requestType !== RequestTypes.ADD_CUSTOM_TEST) {
+      dispatch(upsertItem({ ...request, id }));
+    } else {
+      const column = request.meta?.column as string;
+      const model = request.meta?.model as string;
+      dispatch(
+        upsertItem({
+          ...request,
+          id,
+          followups: [
+            {
+              id: crypto.randomUUID(),
+              datapilot_title: " Datapilot response",
+              actions: [],
+              state: RequestState.COMPLETED,
+              user_prompt: `Add Custom Test for column: ${column}`,
+              response: `Generate Tests for column “${column}” in model “${model}“ \n\r Please provide more information about which tests you need`,
+            },
+          ],
+        }),
+      );
+    }
+    dispatch(setCurrentSessionId(id));
   };
 
   const onMesssage = useCallback(
@@ -67,20 +71,8 @@ const DataPilotProvider = ({
       const { command, args } = event.data;
       switch (command) {
         case "datapilot:message":
-          dispatch(
-            upsertItem(
-              args as Partial<DataPilotChat> & { id: DataPilotChat["id"] },
-            ),
-          );
-          break;
-        case "queryAnalysis:load:explain":
-          handleQueryAnalysisOnload(args, true, QueryAnalysisType.EXPLAIN);
-          break;
-        case "queryAnalysis:load:change":
-          handleQueryAnalysisOnload(args, true, QueryAnalysisType.MODIFY);
-          break;
-        case "queryAnalysis:load":
-          handleQueryAnalysisOnload(args, false);
+          handleIncomingDatapilotMessage(args as Partial<DataPilotChat>);
+
           break;
         case "datapilot:reset":
           dispatch(reset());

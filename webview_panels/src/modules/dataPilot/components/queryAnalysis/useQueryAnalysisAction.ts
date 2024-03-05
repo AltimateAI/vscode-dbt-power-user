@@ -35,7 +35,7 @@ const useQueryAnalysisAction = (): {
     chunk: string,
     cb: (result: QueryExplainUpdate) => void,
   ) => {
-    cb({ session_id: id, response: chunk });
+    cb({ id, response: chunk });
   };
 
   const getRequestText = (command: string) => {
@@ -65,7 +65,8 @@ const useQueryAnalysisAction = (): {
       setIsLoading(true);
 
       onNewGeneration({
-        session_id: id,
+        id,
+
         user_prompt: user_request ?? getRequestText(command),
         datapilot_title: "Datapilot Response",
         state: RequestState.LOADING,
@@ -93,7 +94,7 @@ const useQueryAnalysisAction = (): {
         followupQuestions,
       );
       onNewGeneration({
-        session_id: id,
+        id,
         response: result?.response,
         state: RequestState.COMPLETED,
         actions: Array.isArray(followupQuestions)
@@ -109,7 +110,6 @@ const useQueryAnalysisAction = (): {
     } catch (err) {
       panelLogger.error("Error while fetching explanation", err);
       onNewGeneration({
-        session_id: id,
         response: (err as Error).message,
         state: RequestState.ERROR,
       });

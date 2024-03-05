@@ -97,6 +97,12 @@ export interface QueryAnalysisRequest {
   history?: QueryAnalysisChat[];
 }
 
+export interface CreateDbtTestRequest {
+  session_id: string;
+  model: DocsGenerateModelRequestV2["dbt_model"];
+  user_request?: string;
+}
+
 interface DocsGenerateModelRequestV2 {
   columns: string[];
   dbt_model: {
