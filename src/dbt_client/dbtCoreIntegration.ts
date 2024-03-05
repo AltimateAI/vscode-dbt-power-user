@@ -611,7 +611,6 @@ export class DBTCoreProjectIntegration
           "manifestPathForDeferral is not present",
           configNotPresent,
         );
-        window.showErrorMessage("manifestPathForDeferral is not present");
         throw configNotPresent;
       }
       const args = ["--defer", "--state", manifestPathForDeferral];

@@ -275,39 +275,59 @@ export class DBTProject implements Disposable {
     });
   }
 
-  runModel(runModelParams: RunModelParams) {
-    const runModelCommand =
-      this.dbtCommandFactory.createRunModelCommand(runModelParams);
-    this.dbtProjectIntegration.runModel(runModelCommand);
-    this.telemetry.sendTelemetryEvent("runModel");
+  async runModel(runModelParams: RunModelParams) {
+    try {
+      const runModelCommand =
+        this.dbtCommandFactory.createRunModelCommand(runModelParams);
+      await this.dbtProjectIntegration.runModel(runModelCommand);
+      this.telemetry.sendTelemetryEvent("runModel");
+    } catch (err) {
+      window.showErrorMessage((err as Error).message);
+    }
   }
 
-  buildModel(runModelParams: RunModelParams) {
-    const buildModelCommand =
-      this.dbtCommandFactory.createBuildModelCommand(runModelParams);
-    this.dbtProjectIntegration.buildModel(buildModelCommand);
-    this.telemetry.sendTelemetryEvent("buildModel");
+  async buildModel(runModelParams: RunModelParams) {
+    try {
+      const buildModelCommand =
+        this.dbtCommandFactory.createBuildModelCommand(runModelParams);
+      await this.dbtProjectIntegration.buildModel(buildModelCommand);
+      this.telemetry.sendTelemetryEvent("buildModel");
+    } catch (err) {
+      window.showErrorMessage((err as Error).message);
+    }
   }
 
-  buildProject() {
-    const buildProjectCommand =
-      this.dbtCommandFactory.createBuildProjectCommand();
-    this.dbtProjectIntegration.buildProject(buildProjectCommand);
-    this.telemetry.sendTelemetryEvent("buildProject");
+  async buildProject() {
+    try {
+      const buildProjectCommand =
+        this.dbtCommandFactory.createBuildProjectCommand();
+      await this.dbtProjectIntegration.buildProject(buildProjectCommand);
+      this.telemetry.sendTelemetryEvent("buildProject");
+    } catch (err) {
+      window.showErrorMessage((err as Error).message);
+    }
   }
 
-  runTest(testName: string) {
-    const testModelCommand =
-      this.dbtCommandFactory.createTestModelCommand(testName);
-    this.dbtProjectIntegration.runTest(testModelCommand);
-    this.telemetry.sendTelemetryEvent("runTest");
+  async runTest(testName: string) {
+    try {
+      const testModelCommand =
+        this.dbtCommandFactory.createTestModelCommand(testName);
+      await this.dbtProjectIntegration.runTest(testModelCommand);
+      this.telemetry.sendTelemetryEvent("runTest");
+    } catch (err) {
+      window.showErrorMessage((err as Error).message);
+    }
   }
 
-  runModelTest(modelName: string) {
-    const testModelCommand =
-      this.dbtCommandFactory.createTestModelCommand(modelName);
-    this.dbtProjectIntegration.runModelTest(testModelCommand);
-    this.telemetry.sendTelemetryEvent("runModelTest");
+  async runModelTest(modelName: string) {
+    try {
+      const testModelCommand =
+        this.dbtCommandFactory.createTestModelCommand(modelName);
+      this.dbtProjectIntegration.runModelTest(testModelCommand);
+      await this.telemetry.sendTelemetryEvent("runModelTest");
+    } catch (err) {
+      window.showErrorMessage((err as Error).message);
+    }
   }
 
   compileModel(runModelParams: RunModelParams) {
