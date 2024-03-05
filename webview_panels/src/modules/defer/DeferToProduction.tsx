@@ -269,17 +269,21 @@ const DeferToProduction = (): JSX.Element => {
                     />
                   </>
                 ) : null}
-                <FormGroup switch className={classes.formSwitch}>
-                  <Label>
-                    Favor-state
-                    <Input
-                      type="switch"
-                      onChange={handleStateChange}
-                      checked={favorState}
-                      name="favorState"
-                    />
-                  </Label>
-                </FormGroup>
+                {dbtIntegrationMode !== DbtIntegrationMode.CLOUD ? (
+                  <>
+                    <FormGroup switch className={classes.formSwitch}>
+                      <Label>
+                        Favor-state
+                        <Input
+                          type="switch"
+                          onChange={handleStateChange}
+                          checked={favorState}
+                          name="favorState"
+                        />
+                      </Label>
+                    </FormGroup>
+                  </>
+                ) : null}
               </>
             )}
           </Form>

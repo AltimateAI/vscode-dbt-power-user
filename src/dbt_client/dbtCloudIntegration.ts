@@ -379,34 +379,20 @@ export class DBTCloudProjectIntegration
 
   private async getDeferParams(): Promise<string[]> {
     this.throwIfNotAuthenticated();
-    // https://docs.getdbt.com/docs/cloud/about-cloud-develop-defer#defer-in-dbt-cloud-cli
-    // For dbt cloud, defer is enabled by default. We need to send flag only if it is disabled
-    const currentConfig: Record<string, DeferConfig> = await workspace
-      .getConfiguration("dbt", window.activeTextEditor?.document.uri)
-      .get("deferConfigPerProject", {});
-
-    const deferConfigInProject =
-      currentConfig[getProjectRelativePath(projectRoot)];
-
-    if (!deferConfigInProject) {
-      this.terminal.debug("Defer to Prod", "defer params not set");
-      return [];
-    }
-    const { deferToProduction, favorState } = deferConfigInProject;
+    const deferConfig = this.deferToProdService.getDeferConfigByProjectRoot(
+      this.projectRoot.fsPath,
+    );
+    const { deferToProduction } = deferConfig;
     // explicitly checking false to make sure defer is disabled
-    if (deferToProduction === false) {
+    if (!deferToProduction) {
       this.terminal.debug("Defer to Prod", "defer to prod not enabled");
       return ["--no-defer"];
     }
-    if (favorState) {
-      return ["--favor-state"];
-    }
-
     return [];
   }
 
   private async addDeferParams(command: DBTCommand) {
-    const deferParams = await this.getDeferParams(this.projectRoot);
+    const deferParams = await this.getDeferParams();
     deferParams.forEach((param) => command.addArgument(param));
     return command;
   }
