@@ -5,11 +5,7 @@ import {
 import { DataPilotChatAction, RequestState } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
 import { useState } from "react";
-import {
-  QueryAnalysisHistory,
-  QueryAnalysisType,
-  QueryExplainUpdate,
-} from "./types";
+import { QueryAnalysisHistory, QueryExplainUpdate } from "./types";
 import useQueryAnalysisContext from "./provider/useQueryAnalysisContext";
 import { QueryAnalysisCommands } from "./commands";
 
@@ -19,6 +15,7 @@ interface QueryAnalysisRequest {
   sessionId?: string;
   user_request?: string;
   history?: QueryAnalysisHistory[];
+  skipFollowupQuestions?: boolean;
 }
 const useQueryAnalysisAction = (): {
   isLoading: boolean;
@@ -28,7 +25,7 @@ const useQueryAnalysisAction = (): {
   const [isLoading, setIsLoading] = useState(false);
 
   // No need for followup questions for query modify
-  const skipFollowupQuestions = chat?.analysisType === QueryAnalysisType.MODIFY;
+  // const skipFollowupQuestions = chat?.analysisType === QueryAnalysisType.MODIFY;
 
   const onProgress = (
     id: string,
@@ -55,6 +52,7 @@ const useQueryAnalysisAction = (): {
     history,
     sessionId,
     user_request,
+    skipFollowupQuestions,
   }: QueryAnalysisRequest) => {
     if (isMaxFollowupReached) {
       return;

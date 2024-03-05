@@ -53,6 +53,7 @@ const AddCustomTest = (): JSX.Element | null => {
           // show followup and ask textbox for last result only
           showFollowup={i === results.length - 1}
           hideFeedback
+          skipFollowupQuestions
         />
       ))}
     </Stack>

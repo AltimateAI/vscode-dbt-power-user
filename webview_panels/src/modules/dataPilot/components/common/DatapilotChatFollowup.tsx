@@ -23,12 +23,14 @@ interface Props {
   command: DataPilotChatAction["command"];
   showFollowup: boolean;
   hideFeedback?: boolean;
+  skipFollowupQuestions?: boolean;
 }
 const DatapilotChatFollowupComponent = ({
   response: { datapilot_title, response, user_prompt, actions, state, id },
   command,
   showFollowup,
   hideFeedback,
+  skipFollowupQuestions,
 }: Props): JSX.Element => {
   const { chat, onNewGeneration, history, isMaxFollowupReached } =
     useQueryAnalysisContext();
@@ -72,6 +74,7 @@ const DatapilotChatFollowupComponent = ({
       sessionId: chat?.id,
       history,
       user_request: userRequest,
+      skipFollowupQuestions,
     }).catch((err) =>
       panelLogger.error("error while querying by user input", err),
     );

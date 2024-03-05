@@ -55,7 +55,7 @@ export class DbtTestService {
     const queryText = window.activeTextEditor?.document.getText();
 
     return this.streamingService.fetchAsStream<CreateDbtTestRequest>({
-      endpoint: "dbt/v2/createTest",
+      endpoint: "dbt/v2/dbt-test",
       syncRequestId,
       request: {
         session_id,
