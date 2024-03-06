@@ -15,7 +15,7 @@ import {
   HandleCommandProps,
   UpdateConfigProps,
 } from "./altimateWebviewProvider";
-import { AltimateRequest } from "../altimate";
+import { AltimateRequest, NotFoundError } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DeferToProdService } from "../services/deferToProdService";
@@ -115,10 +115,6 @@ export class InsightsPanel extends AltimateWebviewProvider {
       if (!params.projectRoot) {
         window.showErrorMessage("Please select a project");
         return;
-      }
-      // defer config is preview feature, then check keys
-      if (!this.altimateRequest.handlePreviewFeatures()) {
-        throw new Error("Invalid credentials");
       }
 
       const updateConfigs = params.config;
@@ -255,12 +251,6 @@ export class InsightsPanel extends AltimateWebviewProvider {
         "manifest",
         dbtCoreIntegrationId,
       );
-      // TODO: Can be removed once the backend sends a 404
-      if (response.url === "" && response.dbt_core_integration_file_id === -1) {
-        throw new Error(
-          "No remote manifest file present for selected dbt core integration",
-        );
-      }
       if (syncRequestId) {
         this._panel!.webview.postMessage({
           command: "response",
@@ -272,8 +262,12 @@ export class InsightsPanel extends AltimateWebviewProvider {
         });
       }
     } catch (err) {
+      const errorMessage =
+        err instanceof NotFoundError
+          ? "No remote manifest file present for selected dbt core integration"
+          : (err as Error).message;
       window.showErrorMessage(
-        "Could not download remote manifest: " + (err as Error).message,
+        `Could not download remote manifest: ${errorMessage}`,
       );
       this.dbtTerminal.error(
         "InsightsPanel",
