@@ -36,9 +36,16 @@ import { DBTProject } from "../manifest/dbtProject";
 import { existsSync, readFileSync } from "fs";
 import { parse } from "yaml";
 import { TelemetryService } from "../telemetry";
-import { ValidateSqlParseErrorResponse } from "../altimate";
+import {
+  AltimateRequest,
+  NotFoundError,
+  ValidateSqlParseErrorResponse,
+} from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { ManifestPathType } from "../constants";
 import { DBTTerminal } from "./dbtTerminal";
+import { ValidationProvider } from "../validation_provider";
+import { DeferToProdService } from "../services/deferToProdService";
 
 const DEFAULT_QUERY_TEMPLATE = "select * from ({query}) as query limit {limit}";
 
@@ -55,6 +62,14 @@ interface ResolveReferenceSourceResult {
   alias: string;
   resource_type: string;
   identifier: string;
+}
+
+interface DeferConfig {
+  deferToProduction: boolean;
+  favorState: boolean;
+  manifestPathForDeferral: string;
+  manifestPathType?: ManifestPathType;
+  dbtCoreIntegrationId?: number;
 }
 
 @provideSingleton(DBTCoreDetection)
@@ -203,14 +218,20 @@ export class DBTCoreProjectIntegration
     private telemetry: TelemetryService,
     private pythonDBTCommandExecutionStrategy: PythonDBTCommandExecutionStrategy,
     private dbtProjectContainer: DBTProjectContainer,
+    private altimateRequest: AltimateRequest,
     private dbtTerminal: DBTTerminal,
+    private validationProvider: ValidationProvider,
+    private deferToProdService: DeferToProdService,
     private projectRoot: Uri,
     private projectConfigDiagnostics: DiagnosticCollection,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
-    this.dbtTerminal.log(`Registering project ${this.projectRoot}`);
+    this.dbtTerminal.debug(
+      "DBTCoreProjectIntegration",
+      `Registering project ${this.projectRoot}`,
+    );
     this.executionInfrastructure.createQueue(
       DBTCoreProjectIntegration.QUEUE_ALL,
     );
@@ -252,7 +273,11 @@ export class DBTCoreProjectIntegration
             python!`to_dict(project.execute_macro('get_limit_subquery_sql', ${args}))`,
         );
 
-        console.log("Using query template from macro", queryTemplateFromMacro);
+        this.dbtTerminal.debug(
+          "DBTCoreProjectIntegration",
+          "Using query template from macro",
+          queryTemplateFromMacro,
+        );
         return {
           queryTemplate: queryTemplateFromMacro,
           limitQuery: queryTemplateFromMacro,
@@ -494,19 +519,33 @@ export class DBTCoreProjectIntegration
   }
 
   async runModel(command: DBTCommand) {
-    this.addCommandToQueue(this.dbtCoreCommand(command));
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
+    );
   }
 
   async buildModel(command: DBTCommand) {
-    this.addCommandToQueue(this.dbtCoreCommand(command));
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
+    );
+  }
+
+  async buildProject(command: DBTCommand) {
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
+    );
   }
 
   async runTest(command: DBTCommand) {
-    this.addCommandToQueue(this.dbtCoreCommand(command));
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
+    );
   }
 
   async runModelTest(command: DBTCommand) {
-    this.addCommandToQueue(this.dbtCoreCommand(command));
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
+    );
   }
 
   async compileModel(command: DBTCommand) {
@@ -535,6 +574,104 @@ export class DBTCoreProjectIntegration
       DBTCoreProjectIntegration.QUEUE_ALL,
       command,
     );
+  }
+
+  private async getDeferParams(): Promise<string[]> {
+    const deferConfig = this.deferToProdService.getDeferConfigByProjectRoot(
+      this.projectRoot.fsPath,
+    );
+    const {
+      deferToProduction,
+      manifestPathForDeferral,
+      favorState,
+      manifestPathType,
+      dbtCoreIntegrationId,
+    } = deferConfig;
+    if (!deferToProduction) {
+      this.dbtTerminal.debug("deferToProd", "defer to prod not enabled");
+      return [];
+    }
+    if (!manifestPathType) {
+      const configNotPresent = new Error(
+        "manifestPathType config is not present, use the actions panel to set the Defer to production configuration.",
+      );
+      throw configNotPresent;
+    }
+    if (manifestPathType === ManifestPathType.LOCAL) {
+      if (!manifestPathForDeferral) {
+        const configNotPresent = new Error(
+          "manifestPathForDeferral config is not present, use the actions panel to set the Defer to production configuration.",
+        );
+        this.dbtTerminal.error(
+          "manifestPathForDeferral",
+          "manifestPathForDeferral is not present",
+          configNotPresent,
+        );
+        throw configNotPresent;
+      }
+      const args = ["--defer", "--state", manifestPathForDeferral];
+      if (favorState) {
+        args.push("--favor-state");
+      }
+      this.dbtTerminal.debug(
+        "localManifest",
+        `local defer params: ${args.join(" ")}`,
+      );
+      this.altimateRequest.sendDeferToProdEvent(ManifestPathType.LOCAL);
+      return args;
+    }
+    if (manifestPathType === ManifestPathType.REMOTE) {
+      this.validationProvider.throwIfNotAuthenticated();
+      if (dbtCoreIntegrationId! <= 0) {
+        this.dbtTerminal.debug(
+          "DBTCoreProjectIntegration",
+          "No dbtCoreIntegrationId for defer remote config",
+        );
+        return [];
+      }
+
+      this.dbtTerminal.debug(
+        "remoteManifest",
+        `fetching artifact url for dbtCoreIntegrationId: ${dbtCoreIntegrationId}`,
+      );
+      try {
+        const response = await this.altimateRequest.fetchArtifactUrl(
+          "manifest",
+          dbtCoreIntegrationId!,
+        );
+        const manifestPath = await this.altimateRequest.downloadFileLocally(
+          response.url,
+          this.projectRoot,
+        );
+        console.log(`Set remote manifest path: ${manifestPath}`);
+        const args = ["--defer", "--state", manifestPath];
+        if (favorState) {
+          args.push("--favor-state");
+        }
+        this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
+        return args;
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          const manifestNotFoundError = new Error(
+            "Unable to download remote manifest file. Did you upload your manifest using the Altimate DataPilot CLI?",
+          );
+          this.dbtTerminal.error(
+            "remoteManifestError",
+            "Unable to download remote manifest file.",
+            manifestNotFoundError,
+          );
+          throw manifestNotFoundError;
+        }
+        throw error;
+      }
+    }
+    return [];
+  }
+
+  private async addDeferParams(command: DBTCommand) {
+    const deferParams = await this.getDeferParams();
+    deferParams.forEach((param) => command.addArgument(param));
+    return command;
   }
 
   private dbtCoreCommand(command: DBTCommand) {

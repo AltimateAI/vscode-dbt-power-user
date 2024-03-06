@@ -8,7 +8,7 @@ import {
   CancellationTokenSource,
   Diagnostic,
 } from "vscode";
-import { provideSingleton } from "../utils";
+import { getProjectRelativePath, provideSingleton } from "../utils";
 import {
   Catalog,
   DBColumn,
@@ -29,9 +29,11 @@ import path = require("path");
 import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./dbtTerminal";
+import { DeferConfig } from "../webview_provider/insightsPanel";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync } from "fs";
 import { ValidationProvider } from "../validation_provider";
+import { DeferToProdService } from "../services/deferToProdService";
 
 function getDBTPath(
   pythonEnvironment: PythonEnvironment,
@@ -160,11 +162,11 @@ export class DBTCloudProjectIntegration
       path: Uri,
       dbtPath: string,
     ) => DBTCommandExecutionStrategy,
-    private altimate: AltimateRequest,
     private telemetry: TelemetryService,
     private pythonEnvironment: PythonEnvironment,
     private terminal: DBTTerminal,
     private validationProvider: ValidationProvider,
+    private deferToProdService: DeferToProdService,
     private projectRoot: Uri,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
@@ -173,7 +175,10 @@ export class DBTCloudProjectIntegration
     this.executionInfrastructure.createQueue(
       DBTCloudProjectIntegration.QUEUE_ALL,
     );
-    this.terminal.log("Registering dbt cloud project" + this.projectRoot);
+    this.terminal.debug(
+      "DBTCloudProjectIntegration",
+      "Registering dbt cloud project" + this.projectRoot,
+    );
 
     this.disposables.push(
       this.pythonEnvironment.onPythonEnvironmentChanged(() => {
@@ -185,16 +190,6 @@ export class DBTCloudProjectIntegration
       this.rebuildManifestDiagnostics,
       this.pythonBridgeDiagnostics,
     );
-    this.validationProvider.validateCredentialsSilently();
-  }
-
-  private throwIfNotAuthenticated() {
-    if (!this.validationProvider.isAuthenticated()) {
-      const message =
-        this.altimate.getCredentialsMessage() ||
-        "To use this feature, please add a valid API Key and an instance name in the settings.";
-      throw new Error(message);
-    }
   }
 
   async refreshProjectConfig(): Promise<void> {
@@ -327,28 +322,35 @@ export class DBTCloudProjectIntegration
   async runModel(command: DBTCommand) {
     this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_ALL,
-      this.dbtCloudCommand(command),
+      await this.addDeferParams(this.dbtCloudCommand(command)),
     );
   }
 
   async buildModel(command: DBTCommand) {
     this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_ALL,
-      this.dbtCloudCommand(command),
+      await this.addDeferParams(this.dbtCloudCommand(command)),
+    );
+  }
+
+  async buildProject(command: DBTCommand) {
+    this.addCommandToQueue(
+      DBTCloudProjectIntegration.QUEUE_ALL,
+      await this.addDeferParams(this.dbtCloudCommand(command)),
     );
   }
 
   async runTest(command: DBTCommand) {
     this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_ALL,
-      this.dbtCloudCommand(command),
+      await this.addDeferParams(this.dbtCloudCommand(command)),
     );
   }
 
   async runModelTest(command: DBTCommand) {
     this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_ALL,
-      this.dbtCloudCommand(command),
+      await this.addDeferParams(this.dbtCloudCommand(command)),
     );
   }
 
@@ -372,6 +374,26 @@ export class DBTCloudProjectIntegration
 
   async debug(command: DBTCommand) {
     return this.dbtCloudCommand(command).execute();
+  }
+
+  private async getDeferParams(): Promise<string[]> {
+    this.throwIfNotAuthenticated();
+    const deferConfig = this.deferToProdService.getDeferConfigByProjectRoot(
+      this.projectRoot.fsPath,
+    );
+    const { deferToProduction } = deferConfig;
+    // explicitly checking false to make sure defer is disabled
+    if (!deferToProduction) {
+      this.terminal.debug("Defer to Prod", "defer to prod not enabled");
+      return ["--no-defer"];
+    }
+    return [];
+  }
+
+  private async addDeferParams(command: DBTCommand) {
+    const deferParams = await this.getDeferParams();
+    deferParams.forEach((param) => command.addArgument(param));
+    return command;
   }
 
   private dbtCloudCommand(command: DBTCommand) {
@@ -625,6 +647,10 @@ export class DBTCloudProjectIntegration
         ? errorLines.join(", ")
         : "Could not process error output: " + rawError,
     );
+  }
+
+  private throwIfNotAuthenticated() {
+    this.validationProvider.throwIfNotAuthenticated();
   }
 
   async dispose() {

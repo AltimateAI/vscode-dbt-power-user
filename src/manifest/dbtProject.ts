@@ -47,6 +47,8 @@ import {
 } from "../dbt_client/dbtIntegration";
 import { DBTCoreProjectIntegration } from "../dbt_client/dbtCoreIntegration";
 import { DBTCloudProjectIntegration } from "../dbt_client/dbtCloudIntegration";
+import { AltimateRequest, NoCredentialsError } from "../altimate";
+import { ValidationProvider } from "../validation_provider";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -99,12 +101,16 @@ export class DBTProject implements Disposable {
     private dbtCloudIntegrationFactory: (
       path: Uri,
     ) => DBTCloudProjectIntegration,
+    private altimate: AltimateRequest,
+    private validationProvider: ValidationProvider,
     path: Uri,
     projectConfig: any,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
   ) {
     this.projectRoot = path;
     this.projectConfig = projectConfig;
+
+    this.validationProvider.validateCredentialsSilently();
 
     this.sourceFileWatchers =
       this.sourceFileWatchersFactory.createSourceFileWatchers(
@@ -227,16 +233,12 @@ export class DBTProject implements Disposable {
           ],
         );
       }
-      console.warn(
+      this.terminal.debug(
+        "DBTProject",
         `An error occurred while trying to refresh the project "${this.getProjectName()}" at ${
           this.projectRoot
         } configuration`,
         error,
-      );
-      this.terminal.log(
-        `An error occurred while trying to refresh the project "${this.getProjectName()}" at ${
-          this.projectRoot
-        } configuration: ${error}`,
       );
       this.telemetry.sendTelemetryError("projectConfigRefreshError", error);
     }
@@ -279,32 +281,67 @@ export class DBTProject implements Disposable {
     });
   }
 
-  runModel(runModelParams: RunModelParams) {
-    const runModelCommand =
-      this.dbtCommandFactory.createRunModelCommand(runModelParams);
-    this.dbtProjectIntegration.runModel(runModelCommand);
-    this.telemetry.sendTelemetryEvent("runModel");
+  async runModel(runModelParams: RunModelParams) {
+    try {
+      const runModelCommand =
+        this.dbtCommandFactory.createRunModelCommand(runModelParams);
+      await this.dbtProjectIntegration.runModel(runModelCommand);
+      this.telemetry.sendTelemetryEvent("runModel");
+    } catch (error) {
+      this.handleNoCredentialsError(error);
+    }
   }
 
-  buildModel(runModelParams: RunModelParams) {
-    const buildModelCommand =
-      this.dbtCommandFactory.createBuildModelCommand(runModelParams);
-    this.dbtProjectIntegration.buildModel(buildModelCommand);
-    this.telemetry.sendTelemetryEvent("buildModel");
+  async buildModel(runModelParams: RunModelParams) {
+    try {
+      const buildModelCommand =
+        this.dbtCommandFactory.createBuildModelCommand(runModelParams);
+      await this.dbtProjectIntegration.buildModel(buildModelCommand);
+      this.telemetry.sendTelemetryEvent("buildModel");
+    } catch (error) {
+      this.handleNoCredentialsError(error);
+    }
   }
 
-  runTest(testName: string) {
-    const testModelCommand =
-      this.dbtCommandFactory.createTestModelCommand(testName);
-    this.dbtProjectIntegration.runTest(testModelCommand);
-    this.telemetry.sendTelemetryEvent("runTest");
+  async buildProject() {
+    try {
+      const buildProjectCommand =
+        this.dbtCommandFactory.createBuildProjectCommand();
+      await this.dbtProjectIntegration.buildProject(buildProjectCommand);
+      this.telemetry.sendTelemetryEvent("buildProject");
+    } catch (error) {
+      this.handleNoCredentialsError(error);
+    }
   }
 
-  runModelTest(modelName: string) {
-    const testModelCommand =
-      this.dbtCommandFactory.createTestModelCommand(modelName);
-    this.dbtProjectIntegration.runModelTest(testModelCommand);
-    this.telemetry.sendTelemetryEvent("runModelTest");
+  async runTest(testName: string) {
+    try {
+      const testModelCommand =
+        this.dbtCommandFactory.createTestModelCommand(testName);
+      await this.dbtProjectIntegration.runTest(testModelCommand);
+      this.telemetry.sendTelemetryEvent("runTest");
+    } catch (error) {
+      this.handleNoCredentialsError(error);
+    }
+  }
+
+  async runModelTest(modelName: string) {
+    try {
+      const testModelCommand =
+        this.dbtCommandFactory.createTestModelCommand(modelName);
+      this.dbtProjectIntegration.runModelTest(testModelCommand);
+      await this.telemetry.sendTelemetryEvent("runModelTest");
+    } catch (error) {
+      this.handleNoCredentialsError(error);
+    }
+  }
+
+  private handleNoCredentialsError(error: unknown) {
+    if (error instanceof NoCredentialsError) {
+      this.altimate.handlePreviewFeatures();
+      return;
+    }
+    window.showErrorMessage((error as Error).message);
   }
 
   compileModel(runModelParams: RunModelParams) {

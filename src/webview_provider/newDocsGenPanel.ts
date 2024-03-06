@@ -5,6 +5,7 @@ import {
   workspace,
 } from "vscode";
 import { AltimateRequest } from "../altimate";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { DocGenService } from "../services/docGenService";
 import { SharedStateService } from "../services/sharedStateService";
@@ -15,7 +16,6 @@ import {
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
 import { DocsGenPanelView } from "./docsEditPanel";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 @provideSingleton(NewDocsGenPanel)
 export class NewDocsGenPanel
@@ -32,7 +32,7 @@ export class NewDocsGenPanel
     telemetry: TelemetryService,
     private docGenService: DocGenService,
     protected emitterService: SharedStateService,
-    dbtTerminal: DBTTerminal,
+    protected dbtTerminal: DBTTerminal,
   ) {
     super(
       dbtProjectContainer,

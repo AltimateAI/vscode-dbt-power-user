@@ -58,8 +58,10 @@ export class DocParser {
             }
           }
         } catch (error) {
-          this.terminal.log(
-            `File not found at '${fullPath}', probably compiled is outdated. ${error}`,
+          this.terminal.debug(
+            "DocParser",
+            `File not found at '${fullPath}', probably compiled is outdated`,
+            error,
           );
         }
       }

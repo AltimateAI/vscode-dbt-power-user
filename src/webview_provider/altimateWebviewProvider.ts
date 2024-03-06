@@ -23,7 +23,7 @@ import { AltimateRequest } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
-type UpdateConfigProps = {
+export type UpdateConfigProps = {
   key: string;
   value: string | boolean | number;
   isPreviewFeature?: boolean;
@@ -60,7 +60,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     protected altimateRequest: AltimateRequest,
     protected telemetry: TelemetryService,
     protected emitterService: SharedStateService,
-    private dbtTerminal: DBTTerminal,
+    protected dbtTerminal: DBTTerminal,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
@@ -199,6 +199,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               },
             });
           }
+          break;
+        case "showInformationMessage":
+          const { infoMessage } = params as {
+            infoMessage: string;
+          };
+          window.showInformationMessage(infoMessage);
           break;
         default:
           break;

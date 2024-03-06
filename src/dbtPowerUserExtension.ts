@@ -82,5 +82,6 @@ export class DBTPowerUserExtension implements Disposable {
     this.dbtProjectContainer.initializeWalkthrough();
     await this.dbtProjectContainer.detectDBT();
     await this.dbtProjectContainer.initializeDBTProjects();
+    await this.statusBars.initialize();
   }
 }

@@ -172,8 +172,10 @@ export class ManifestParser {
       const manifestFile = readFileSync(manifestLocation, "utf8");
       return JSON.parse(manifestFile);
     } catch (error) {
-      this.terminal.log(
-        `Could not read manifest file at ${manifestLocation}: ${error}`,
+      this.terminal.debug(
+        "ManifestParser",
+        `Could not read manifest file at ${manifestLocation}`,
+        error,
       );
     }
   }
