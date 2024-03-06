@@ -636,7 +636,7 @@ export class NewLineagePanel implements LineagePanelView {
         ),
       );
       this.telemetry.sendTelemetryError("ColumnLevelLineageError", error);
-      return { column_lineage: [] };
+      return;
     }
   }
 
