@@ -45,11 +45,11 @@ export class InsightsPanel extends AltimateWebviewProvider {
   protected panelDescription = "Toggle Defer to prod and other features";
 
   public constructor(
-    dbtProjectContainer: DBTProjectContainer,
-    altimateRequest: AltimateRequest,
-    telemetry: TelemetryService,
-    emitterService: SharedStateService,
-    dbtTerminal: DBTTerminal,
+    protected dbtProjectContainer: DBTProjectContainer,
+    protected altimateRequest: AltimateRequest,
+    protected telemetry: TelemetryService,
+    protected emitterService: SharedStateService,
+    protected dbtTerminal: DBTTerminal,
     private deferToProdService: DeferToProdService,
   ) {
     super(
