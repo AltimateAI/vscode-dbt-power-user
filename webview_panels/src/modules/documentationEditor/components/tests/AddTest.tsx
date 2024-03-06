@@ -1,4 +1,4 @@
-import { AddOutlineIcon } from "@assets/icons";
+import { AddIcon } from "@assets/icons";
 import { DbtGenericTests } from "@modules/documentationEditor/state/types";
 import {
   Card,
@@ -38,8 +38,12 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
 
   return (
     <>
-      <IconButton onClick={handleOpen}>
-        <AddOutlineIcon />
+      <IconButton
+        onClick={handleOpen}
+        color="secondary"
+        className={classes.btnAddTest}
+      >
+        <AddIcon />
       </IconButton>
       <Drawer ref={drawerRef}>
         <Stack direction="column" className={classes.addTest}>

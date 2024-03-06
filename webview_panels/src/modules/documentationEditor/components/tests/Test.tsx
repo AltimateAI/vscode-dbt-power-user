@@ -5,9 +5,10 @@ import classes from "../../styles.module.scss";
 interface Props {
   test: DBTModelTest;
   onSelect: (test: DBTModelTest) => void;
+  selectedTest: DBTModelTest | null;
 }
 
-const Test = ({ test, onSelect }: Props): JSX.Element => {
+const Test = ({ test, onSelect, selectedTest }: Props): JSX.Element => {
   const handleClick = () => {
     onSelect(test);
   };
@@ -18,7 +19,7 @@ const Test = ({ test, onSelect }: Props): JSX.Element => {
       id={`tooltip-${test.column_name ?? ""}-${test.test_metadata?.name ?? ""}`}
     >
       <Tag
-        color="primary"
+        color={selectedTest?.key === test.key ? "primary" : ""}
         key={test.key}
         onClick={handleClick}
         className={classes.testTag}

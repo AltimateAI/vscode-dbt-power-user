@@ -42,16 +42,21 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
     [selectedPages],
   );
 
-  if (!isTestEnabled) {
+  if (!isTestEnabled || (type === EntityType.MODEL && !tests?.length)) {
     return null;
   }
   return (
     <div className={classes.entityTests}>
       <Stack className={type}>
         <Stack>
-          <p>Tests:</p>
+          <p className="mb-0">Tests:</p>
           {tests?.map((test) => (
-            <Test key={test.key} test={test} onSelect={onSelect} />
+            <Test
+              key={test.key}
+              test={test}
+              onSelect={onSelect}
+              selectedTest={selectedTest}
+            />
           ))}
           {type === EntityType.COLUMN ? (
             <AddTest title={title} currentTests={currentTests} />

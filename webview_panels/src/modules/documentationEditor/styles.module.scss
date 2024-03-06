@@ -5,6 +5,10 @@
 
   .entity-tests {
     margin-top: var(--spacing-lg);
+    p{
+      margin-bottom: 0;
+      line-height: 1.8;
+    }
     :global .model {
       gap: 5px;
       h5 {
@@ -19,6 +23,28 @@
     :global .column {
       flex-direction: column;
       gap: 0;
+    }
+
+    .btn-add-test {
+      padding: 4px 6px;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      background: var(--background--02);
+      :global .codicon {
+        font-size: 14px;
+      }
+      &:hover {
+        background: var(--background--03);
+      }
+
+
+      :global .codicon{
+        color: var(--icon--active);
+      }
+      &:hover :global .codicon{
+        color: var(--primary-color);
+      }
     }
   }
 }
@@ -163,7 +189,7 @@
     border-radius: 8px;
   }
 
-  :global .card-footer{
+  :global .card-footer {
     border: none;
   }
 }

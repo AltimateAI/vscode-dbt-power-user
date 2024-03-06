@@ -1,10 +1,11 @@
+import { CheckedSquareIcon, EmptySquareIcon } from "@assets/icons";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import useAppContext from "@modules/app/useAppContext";
 import CommonActionButtons from "@modules/commonActionButtons/CommonActionButtons";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
-import { Button, ButtonGroup, Label, Stack } from "@uicore";
+import { Button, Label, Stack } from "@uicore";
 import { useMemo } from "react";
 import DocGeneratorColumnsList from "./components/docGenerator/DocGeneratorColumnsList";
 import DocGeneratorInput from "./components/docGenerator/DocGeneratorInput";
@@ -13,6 +14,7 @@ import SaveDocumentation from "./components/saveDocumentation/SaveDocumentation"
 import EntityWithTests from "./components/tests/EntityWithTests";
 import {
   addToSelectedPage,
+  removeFromSelectedPage,
   updateCurrentDocsData,
 } from "./state/documentationSlice";
 import { DocsGenerateModelRequestV2, Pages } from "./state/types";
@@ -28,12 +30,25 @@ const DocumentationEditor = (): JSX.Element => {
   const { postMessageToDataPilot } = useAppContext();
 
   const handleClick = (page: Pages) => {
+    if (selectedPages.includes(page)) {
+      dispatch(removeFromSelectedPage(page));
+      return;
+    }
     dispatch(addToSelectedPage(page));
   };
 
   const modelTests = useMemo(() => {
     return currentDocsTests?.filter((test) => !test.column_name);
   }, [currentDocsTests]);
+
+  const isDocumentationPageSelected = useMemo(
+    () => selectedPages.includes(Pages.DOCUMENTATION),
+    [selectedPages],
+  );
+  const isTestsPageSelected = useMemo(
+    () => selectedPages.includes(Pages.TESTS),
+    [selectedPages],
+  );
 
   const onModelDocSubmit = async (data: DocsGenerateModelRequestV2) => {
     if (!currentDocsData) {
@@ -102,23 +117,31 @@ const DocumentationEditor = (): JSX.Element => {
   return (
     <div className={classes.documentationWrapper}>
       {testsEnabled ? (
-        <ButtonGroup>
+        <Stack className="mb-2">
           <Button
-            color={
-              selectedPages.includes(Pages.DOCUMENTATION)
-                ? "primary"
-                : "secondary"
-            }
+            color={isDocumentationPageSelected ? "primary" : "secondary"}
             onClick={() => handleClick(Pages.DOCUMENTATION)}
           >
+            <span className="d-inline-block me-2">
+              {isDocumentationPageSelected ? (
+                <CheckedSquareIcon />
+              ) : (
+                <EmptySquareIcon />
+              )}
+            </span>
             Documentation
           </Button>
           <Button
-            color={
-              selectedPages.includes(Pages.TESTS) ? "primary" : "secondary"
-            }
+            color={isTestsPageSelected ? "primary" : "secondary"}
             onClick={() => handleClick(Pages.TESTS)}
           >
+            <span className="d-inline-block me-2">
+              {isTestsPageSelected ? (
+                <CheckedSquareIcon />
+              ) : (
+                <EmptySquareIcon />
+              )}
+            </span>
             Tests
           </Button>
           {/* <Button
@@ -127,7 +150,7 @@ const DocumentationEditor = (): JSX.Element => {
         >
           Tags
         </Button> */}
-        </ButtonGroup>
+        </Stack>
       ) : null}
       <div className={classes.docGenerator}>
         <Stack className={classes.head}>
@@ -140,13 +163,17 @@ const DocumentationEditor = (): JSX.Element => {
           <Stack direction="column" className={classes.body}>
             <Stack direction="column">
               <Stack direction="column" style={{ margin: "6px 0" }}>
-                <Label className="p1">Description</Label>
-                <DocGeneratorInput
-                  entity={currentDocsData}
-                  type={EntityType.MODEL}
-                  onSubmit={onModelDocSubmit}
-                  placeholder="Describe your model"
-                />
+                {isDocumentationPageSelected ? (
+                  <>
+                    <Label className="p1">Description</Label>
+                    <DocGeneratorInput
+                      entity={currentDocsData}
+                      type={EntityType.MODEL}
+                      onSubmit={onModelDocSubmit}
+                      placeholder="Describe your model"
+                    />
+                  </>
+                ) : null}
                 <EntityWithTests
                   title={currentDocsData.name}
                   tests={modelTests}

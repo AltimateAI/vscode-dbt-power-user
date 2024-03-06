@@ -13,8 +13,9 @@ export { default as BlogIcon } from "./blog.svg?react";
 export { default as ContactUsIcon } from "./contact.svg?react";
 export { default as DocsIcon } from "./docs.svg?react";
 export { default as SlackIcon } from "./slack.svg?react";
-export { default as AddOutlineIcon } from "./add-outline.svg?react";
 export { default as EditIcon } from "./edit.svg?react";
+export { default as EmptySquareIcon } from "./square.svg?react";
+export { default as CheckedSquareIcon } from "./checked-square.svg?react";
 
 interface Props {
   icon: string;
@@ -25,6 +26,10 @@ const Icon = ({
   ...rest
 }: Props & HTMLAttributes<HTMLElement>) => (
   <i className={`${className} codicon codicon-${icon}`} {...rest} />
+);
+
+export const AddIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
+  <Icon icon="add" {...props} />
 );
 
 export const DeleteIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
