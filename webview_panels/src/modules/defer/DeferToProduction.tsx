@@ -67,7 +67,7 @@ const DeferToProduction = (): JSX.Element => {
     (event: MessageEvent<IncomingMessageProps>) => {
       const { command, args } = event.data;
       switch (command) {
-        case "updateDeferConfig":
+        case "renderDeferConfig":
           updateDeferState(
             args as {
               config: DeferToProductionProps;

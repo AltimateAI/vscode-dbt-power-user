@@ -46,10 +46,10 @@ export class InsightsPanel extends AltimateWebviewProvider {
 
   public constructor(
     dbtProjectContainer: DBTProjectContainer,
-    protected altimateRequest: AltimateRequest,
+    altimateRequest: AltimateRequest,
     telemetry: TelemetryService,
-    protected emitterService: SharedStateService,
-    protected dbtTerminal: DBTTerminal,
+    emitterService: SharedStateService,
+    dbtTerminal: DBTTerminal,
     private deferToProdService: DeferToProdService,
   ) {
     super(
@@ -80,7 +80,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
             }
 
             this._panel!.webview.postMessage({
-              command: "updateDeferConfig",
+              command: "renderDeferConfig",
               args: {
                 config: this.deferToProdService.getDeferConfigByProjectRoot(
                   projectPath.projectRoot.fsPath,
@@ -408,7 +408,17 @@ export class InsightsPanel extends AltimateWebviewProvider {
         const projectPath =
           projectRoot || (await this.getCurrentProject())?.projectRoot.fsPath;
         if (!projectPath) {
-          throw new Error("No project selected");
+          this._panel!.webview.postMessage({
+            command: "response",
+            args: {
+              syncRequestId,
+              body: {
+                error: "No project selected",
+              },
+              status: false,
+            },
+          });
+          return;
         }
         const config =
           this.deferToProdService.getDeferConfigByProjectRoot(projectPath);
