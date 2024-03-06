@@ -545,7 +545,13 @@ export class DBTCommandFactory {
   }
 
   createBuildProjectCommand(): DBTCommand {
-    return new DBTCommand("Building dbt project...", ["build"], true);
+    return new DBTCommand(
+      "Building dbt project...",
+      ["build"],
+      true,
+      true,
+      true,
+    );
   }
 
   createTestModelCommand(testName: string): DBTCommand {
