@@ -285,22 +285,65 @@ export class AltimateRequest {
         },
       });
 
-      if (!response?.body) {
-        this.dbtTerminal.debug("fetchAsStream", "empty response");
-        return null;
-      }
-      const responseText = await processStreamResponse(
-        response.body,
-        onProgress,
-      );
+      if (response.ok && response.status === 200) {
+        if (!response?.body) {
+          this.dbtTerminal.debug("fetchAsStream", "empty response");
+          return null;
+        }
+        const responseText = await processStreamResponse(
+          response.body,
+          onProgress,
+        );
 
-      return responseText;
-    } catch (error) {
+        return responseText;
+      }
+      if (
+        // response codes when backend authorization fails
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        this.telemetry.sendTelemetryEvent("invalidCredentials", { url });
+        throw new ForbiddenError(
+          "To use this feature, please add a valid API Key and an instance name in the settings.",
+        );
+      }
+      if (response.status === 404) {
+        this.telemetry.sendTelemetryEvent("resourceNotFound", { url });
+        throw new NotFoundError("Resource Not found");
+      }
+      const textResponse = await response.text();
       this.dbtTerminal.debug(
-        "fetchAsStream",
-        "error while fetching as stream",
-        error,
+        "network:response",
+        "error from backend",
+        textResponse,
       );
+      if (response.status === 429) {
+        throw new RateLimitException(
+          textResponse,
+          response.headers.get("Retry-After")
+            ? parseInt(response.headers.get("Retry-After") || "")
+            : 1 * 60 * 1000, // default to 1 min
+        );
+      }
+      this.telemetry.sendTelemetryError("apiError", {
+        endpoint,
+        status: response.status,
+        textResponse,
+      });
+      throw new APIError(
+        `Could not process request, server responded with ${response.status}: ${textResponse}`,
+      );
+    } catch (error) {
+      this.dbtTerminal.error(
+        "apiCatchAllError",
+        "fetchAsStream catchAllError",
+        error,
+        true,
+        {
+          endpoint,
+        },
+      );
+      throw error;
     } finally {
       clearTimeout(timeoutHandler);
     }
