@@ -28,7 +28,7 @@ import {
 } from "./state/types";
 import { ContextProps } from "./types";
 import { getGenerationsInModel } from "./utils";
-import DocumentationWrapper from "./DocumentationWrapper";
+import DocumentationEditor from "./DocumentationEditor";
 
 export const DocumentationContext = createContext<ContextProps>({
   state: initialState,
@@ -162,7 +162,7 @@ const DocumentationProvider = (): JSX.Element => {
 
   return (
     <DocumentationContext.Provider value={values}>
-      <DocumentationWrapper />
+      <DocumentationEditor />
     </DocumentationContext.Provider>
   );
 };

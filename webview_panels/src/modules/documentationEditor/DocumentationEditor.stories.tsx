@@ -6,7 +6,7 @@ import {
   DBTDocumentationTestsFactory,
 } from "@testUtils";
 import { faker } from "@faker-js/faker";
-import DocumentationWrapper from "./DocumentationWrapper";
+import DocumentationEditor from "./DocumentationEditor";
 import { initialState } from "./state/documentationSlice";
 import { Pages } from "./state/types";
 
@@ -25,7 +25,7 @@ export default meta;
 
 export const DefaultHelpView = {
   render: (): JSX.Element => {
-    return <DocumentationWrapper />;
+    return <DocumentationEditor />;
   },
   decorators: [
     withReactContext({
@@ -59,7 +59,7 @@ const testsDataForTests = docsDataForTests.columns
   });
 export const ModelDocGenView = {
   render: (): JSX.Element => {
-    return <DocumentationWrapper />;
+    return <DocumentationEditor />;
   },
   decorators: [
     withReactContext({

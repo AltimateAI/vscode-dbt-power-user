@@ -4,25 +4,32 @@ import CommonActionButtons from "@modules/commonActionButtons/CommonActionButton
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
-import { Label, Stack } from "@uicore";
+import { Button, ButtonGroup, Label, Stack } from "@uicore";
 import { useMemo } from "react";
 import DocGeneratorColumnsList from "./components/docGenerator/DocGeneratorColumnsList";
 import DocGeneratorInput from "./components/docGenerator/DocGeneratorInput";
 import DocumentationHelpContent from "./components/help/DocumentationHelpContent";
 import SaveDocumentation from "./components/saveDocumentation/SaveDocumentation";
 import EntityWithTests from "./components/tests/EntityWithTests";
-import { updateCurrentDocsData } from "./state/documentationSlice";
-import { DocsGenerateModelRequestV2 } from "./state/types";
+import {
+  addToSelectedPage,
+  updateCurrentDocsData,
+} from "./state/documentationSlice";
+import { DocsGenerateModelRequestV2, Pages } from "./state/types";
 import useDocumentationContext from "./state/useDocumentationContext";
 import classes from "./styles.module.scss";
 import { addDefaultActions } from "./utils";
 
 const DocumentationEditor = (): JSX.Element => {
   const {
-    state: { currentDocsData, currentDocsTests },
+    state: { currentDocsData, currentDocsTests, testsEnabled, selectedPages },
     dispatch,
   } = useDocumentationContext();
   const { postMessageToDataPilot } = useAppContext();
+
+  const handleClick = (page: Pages) => {
+    dispatch(addToSelectedPage(page));
+  };
 
   const modelTests = useMemo(() => {
     return currentDocsTests?.filter((test) => !test.column_name);
@@ -93,35 +100,65 @@ const DocumentationEditor = (): JSX.Element => {
   }
 
   return (
-    <div className={classes.docGenerator}>
-      <Stack className={classes.head}>
-        <Stack>
-          <h3>Documentation for {currentDocsData.name}</h3>
-        </Stack>
-        <CommonActionButtons />
-      </Stack>
-      <Stack className={classes.bodyWrap}>
-        <Stack direction="column" className={classes.body}>
-          <Stack direction="column">
-            <Stack direction="column" style={{ margin: "6px 0" }}>
-              <Label className="p1">Description</Label>
-              <DocGeneratorInput
-                entity={currentDocsData}
-                type={EntityType.MODEL}
-                onSubmit={onModelDocSubmit}
-                placeholder="Describe your model"
-              />
-              <EntityWithTests
-                title={currentDocsData.name}
-                tests={modelTests}
-                type={EntityType.MODEL}
-              />
-            </Stack>
-            <DocGeneratorColumnsList />
+    <div className={classes.documentationWrapper}>
+      {testsEnabled ? (
+        <ButtonGroup>
+          <Button
+            color={
+              selectedPages.includes(Pages.DOCUMENTATION)
+                ? "primary"
+                : "secondary"
+            }
+            onClick={() => handleClick(Pages.DOCUMENTATION)}
+          >
+            Documentation
+          </Button>
+          <Button
+            color={
+              selectedPages.includes(Pages.TESTS) ? "primary" : "secondary"
+            }
+            onClick={() => handleClick(Pages.TESTS)}
+          >
+            Tests
+          </Button>
+          {/* <Button
+          color={activePage === Pages.TAGS ? "primary" : "secondary"}
+          onClick={() => handleClick(Pages.TAGS)}
+        >
+          Tags
+        </Button> */}
+        </ButtonGroup>
+      ) : null}
+      <div className={classes.docGenerator}>
+        <Stack className={classes.head}>
+          <Stack>
+            <h3>Documentation for {currentDocsData.name}</h3>
           </Stack>
-          <SaveDocumentation />
+          <CommonActionButtons />
         </Stack>
-      </Stack>
+        <Stack className={classes.bodyWrap}>
+          <Stack direction="column" className={classes.body}>
+            <Stack direction="column">
+              <Stack direction="column" style={{ margin: "6px 0" }}>
+                <Label className="p1">Description</Label>
+                <DocGeneratorInput
+                  entity={currentDocsData}
+                  type={EntityType.MODEL}
+                  onSubmit={onModelDocSubmit}
+                  placeholder="Describe your model"
+                />
+                <EntityWithTests
+                  title={currentDocsData.name}
+                  tests={modelTests}
+                  type={EntityType.MODEL}
+                />
+              </Stack>
+              <DocGeneratorColumnsList />
+            </Stack>
+            <SaveDocumentation />
+          </Stack>
+        </Stack>
+      </div>
     </div>
   );
 };
