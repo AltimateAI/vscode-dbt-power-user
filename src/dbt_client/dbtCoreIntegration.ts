@@ -645,9 +645,7 @@ export class DBTCoreProjectIntegration
         const model = node as Node;
         tables.push([model.unique_id, model.name, model.resource_type]);
       }
-      // TODO: Complete for Seed Node.
     });
-    // <Record<string, DBColumn[]>>
     const result = await this.python?.lock(
       (python) =>
         python!`to_dict(project.get_bulk_schema(${tables}, ${sources}))`,

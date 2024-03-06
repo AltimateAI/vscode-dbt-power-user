@@ -765,47 +765,6 @@ class DbtProject:
             return self.adapter.validate_sql(compiled_sql)
         except Exception as e:
             raise Exception(str(e))
-        
-        
-    # def get_bulk_schema(self, tables: List[List[str]], sources: List[List[str]]) -> dict:
-    #     """
-    #     Generate a bulk schema from the given tables and sources.
-
-    #     :param tables: A list of tables, each table is a list containing unique_id, name, and resource_type.
-    #     :param sources: A list of sources, each source is a list containing source_name and table_name.
-    #     :return: A dictionary representing the bulk schema.
-    #     """
-    #     try:
-    #         mapping = {}
-    #         relations = []
-
-    #         # Process tables
-    #         for _, name, resource_type in tables:
-    #             if resource_type == NodeType.Model.value:
-    #                 node = self.get_ref_node(name)
-    #                 relations.append(self.create_relation(node.database, node.schema, node.alias))
-    #                 fqn = ".".join(filter(None, map(str.lower, [node.database, node.schema, node.alias])))
-    #                 mapping[fqn] = node.unique_id
-
-    #         # Process sources
-    #         for _, source_name, table_name in sources:
-    #             source_node = self.get_source_node(source_name, table_name)
-    #             relations.append(self.create_relation(source_node.database, source_node.schema, source_node.identifier))
-    #             fqn = ".".join(filter(None, map(str.lower, [source_node.database, source_node.schema, source_node.identifier])))
-    #             mapping[fqn] = source_node.unique_id
-
-    #         # Create a set of unique relations
-    #         relations = set(relations)
-    #         # Fetch catalog and handle exceptions
-    #         catalog, exceptions = self.adapter.get_catalog_by_relations(self.dbt, relations=relations)
-    #         if exceptions:
-    #             raise RuntimeError(f"Error while fetching catalog: {exceptions}")
-
-    #         # Process and return the catalog data
-    #         return extract_db_columns(to_dict(catalog), mapping)
-
-    #     except Exception as e:
-    #         raise RuntimeError(f"Error in get_bulk_schema: {e}") from e
 
     def process_tables(self, tables: List[List[str]]) -> Tuple[Dict[str, str], Set]:
         mapping = {}
