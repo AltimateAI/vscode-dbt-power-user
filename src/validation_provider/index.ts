@@ -1,6 +1,10 @@
 import { Disposable, window, workspace } from "vscode";
 import { provideSingleton } from "../utils";
-import { AltimateRequest, NoCredentialsError } from "../altimate";
+import {
+  AltimateRequest,
+  ForbiddenError,
+  NoCredentialsError,
+} from "../altimate";
 
 const validTenantRegex = new RegExp(/^[a-z_][a-z0-9_]*$/);
 
@@ -72,10 +76,8 @@ export class ValidationProvider implements Disposable {
 
   throwIfNotAuthenticated() {
     if (!this.isAuthenticated()) {
-      const message =
-        this.altimate.getCredentialsMessage() ||
-        "To use this feature, please add a valid API Key and an instance name in the settings.";
-      throw new NoCredentialsError(message);
+      const message = this.altimate.getCredentialsMessage();
+      throw message ? new NoCredentialsError(message) : new ForbiddenError();
     }
   }
 

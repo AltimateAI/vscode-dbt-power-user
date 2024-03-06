@@ -14,7 +14,11 @@ export class NoCredentialsError extends Error {}
 
 export class NotFoundError extends Error {}
 
-export class ForbiddenError extends Error {}
+export class ForbiddenError extends Error {
+  constructor() {
+    super("Invalid credentials. Please check instance name and API Key.");
+  }
+}
 
 export class APIError extends Error {}
 
@@ -303,9 +307,7 @@ export class AltimateRequest {
         response.status === 403
       ) {
         this.telemetry.sendTelemetryEvent("invalidCredentials", { url });
-        throw new ForbiddenError(
-          "To use this feature, please add a valid API Key and an instance name in the settings.",
-        );
+        throw new ForbiddenError();
       }
       if (response.status === 404) {
         this.telemetry.sendTelemetryEvent("resourceNotFound", { url });
@@ -390,9 +392,7 @@ export class AltimateRequest {
         response.status === 403
       ) {
         this.telemetry.sendTelemetryEvent("invalidCredentials", { url });
-        throw new ForbiddenError(
-          "To use this feature, please add a valid API Key and an instance name in the settings.",
-        );
+        throw new ForbiddenError();
       }
       if (response.status === 404) {
         this.telemetry.sendTelemetryEvent("resourceNotFound", { url });
