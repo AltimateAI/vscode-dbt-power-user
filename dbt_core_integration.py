@@ -33,6 +33,7 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    Set,
 )
 
 import agate
@@ -134,6 +135,29 @@ def to_dict(obj):
             dict((name, getattr(obj, name)) for name in getattr(obj, "__slots__"))
         )
     return obj
+
+
+def extract_db_columns(data, mapping):
+    tables = {}
+
+    # Iterate over each row in the data
+    for row in data['rows']:
+        table_name = row[2]  # Extract the table name
+        column_name = row[22]  # Extract the column name
+        column_type = row[24]  # Extract the column type
+        fqn = ".".join([
+            v.lower() for v in [row[0], row[1], row[2]] if v is not None
+        ])
+
+        # Create the DBColumn dictionary
+        db_column = {'column': column_name, 'dtype': column_type}
+        unique_id = mapping.get(fqn)
+        # Add the column to the appropriate table in the tables dictionary
+        if unique_id not in tables:
+            tables[unique_id] = []
+        tables[unique_id].append(db_column)
+
+    return tables
 
 
 def has_jinja(query: str) -> bool:
@@ -741,3 +765,101 @@ class DbtProject:
             return self.adapter.validate_sql(compiled_sql)
         except Exception as e:
             raise Exception(str(e))
+        
+        
+    # def get_bulk_schema(self, tables: List[List[str]], sources: List[List[str]]) -> dict:
+    #     """
+    #     Generate a bulk schema from the given tables and sources.
+
+    #     :param tables: A list of tables, each table is a list containing unique_id, name, and resource_type.
+    #     :param sources: A list of sources, each source is a list containing source_name and table_name.
+    #     :return: A dictionary representing the bulk schema.
+    #     """
+    #     try:
+    #         mapping = {}
+    #         relations = []
+
+    #         # Process tables
+    #         for _, name, resource_type in tables:
+    #             if resource_type == NodeType.Model.value:
+    #                 node = self.get_ref_node(name)
+    #                 relations.append(self.create_relation(node.database, node.schema, node.alias))
+    #                 fqn = ".".join(filter(None, map(str.lower, [node.database, node.schema, node.alias])))
+    #                 mapping[fqn] = node.unique_id
+
+    #         # Process sources
+    #         for _, source_name, table_name in sources:
+    #             source_node = self.get_source_node(source_name, table_name)
+    #             relations.append(self.create_relation(source_node.database, source_node.schema, source_node.identifier))
+    #             fqn = ".".join(filter(None, map(str.lower, [source_node.database, source_node.schema, source_node.identifier])))
+    #             mapping[fqn] = source_node.unique_id
+
+    #         # Create a set of unique relations
+    #         relations = set(relations)
+    #         # Fetch catalog and handle exceptions
+    #         catalog, exceptions = self.adapter.get_catalog_by_relations(self.dbt, relations=relations)
+    #         if exceptions:
+    #             raise RuntimeError(f"Error while fetching catalog: {exceptions}")
+
+    #         # Process and return the catalog data
+    #         return extract_db_columns(to_dict(catalog), mapping)
+
+    #     except Exception as e:
+    #         raise RuntimeError(f"Error in get_bulk_schema: {e}") from e
+
+    def process_tables(self, tables: List[List[str]]) -> Tuple[Dict[str, str], Set]:
+        mapping = {}
+        relations = set()
+        for unique_id, name, resource_type in tables:
+            if resource_type == "model":
+                node = self.get_ref_node(name)
+                relations.add(self.create_relation(node.database, node.schema, node.alias))
+                fqn = ".".join(filter(None, map(str.lower, [node.database, node.schema, node.alias])))
+                mapping[fqn] = node.unique_id
+
+        return mapping, relations
+
+    def process_sources(self, sources: List[List[str]]) -> Tuple[Dict[str, str], Set]:
+        mapping = {}
+        relations = set()
+
+        for _, source_name, table_name in sources:
+            source_node = self.get_source_node(source_name, table_name)
+            relations.add(self.create_relation(source_node.database, source_node.schema, source_node.identifier))
+            fqn = ".".join(filter(None, map(str.lower, [source_node.database, source_node.schema, source_node.identifier])))
+            mapping[fqn] = source_node.unique_id
+
+        return mapping, relations
+
+    def fetch_columns_from_db(self, relations: Set) -> dict:
+        catalog, exceptions = self.adapter.get_catalog_by_relations(self.dbt, relations=relations)
+        if exceptions:
+            raise RuntimeError(f"Error while fetching catalog: {exceptions}")
+        return to_dict(catalog)
+    
+    def get_seed_schemas(self, tables: List[List[str]]) -> dict:
+        seed_schemas = {}
+        for unique_id, name, resource_type in tables:
+            if resource_type == NodeType.Seed.value:
+                node = self.get_ref_node(name)
+                columns = self.get_columns(node)
+                seed_schemas[node.unique_id] = [{'column': column, 'data_type': 'string'} for column in columns]
+        return seed_schemas
+
+    def get_bulk_schema(self, tables: List[List[str]], sources: List[List[str]]) -> dict:
+        try:
+            table_mapping, table_relations = self.process_tables(tables)
+            source_mapping, source_relations = self.process_sources(sources)
+
+            relations = table_relations.union(source_relations)
+            mapping = {**table_mapping, **source_mapping}
+
+            columns = self.fetch_columns_from_db(relations)
+            model_and_source_schemas = extract_db_columns(columns, mapping)
+            # seed_schemas = self.get_seed_schemas(tables)
+            
+            return {**model_and_source_schemas}
+
+        except Exception as e:
+            raise RuntimeError(f"Error in get_bulk_schema: {e}") from e
+   

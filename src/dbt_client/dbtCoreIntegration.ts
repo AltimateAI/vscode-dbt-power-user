@@ -635,20 +635,22 @@ export class DBTCoreProjectIntegration
   }
 
   async getBulkSchema(nodes: DBTNode[]): Promise<Record<string, DBColumn[]>> {
-    const result: Record<string, DBColumn[]> = {};
-    await Promise.all(
-      nodes.map(async (n) => {
-        if (n.resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {
-          const source = n as SourceNode;
-          result[n.unique_id] = await this.getColumnsOfSource(
-            source.name,
-            source.table,
-          );
-        } else {
-          const model = n as Node;
-          result[n.unique_id] = await this.getColumnsOfModel(model.name);
-        }
-      }),
+    const tables: string[][] = [];
+    const sources: string[][] = [];
+    nodes.forEach((node) => {
+      if (node.resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {
+        const source = node as SourceNode;
+        sources.push([source.unique_id, source.name, source.table]);
+      } else {
+        const model = node as Node;
+        tables.push([model.unique_id, model.name, model.resource_type]);
+      }
+      // TODO: Complete for Seed Node.
+    });
+    // <Record<string, DBColumn[]>>
+    const result = await this.python?.lock(
+      (python) =>
+        python!`to_dict(project.get_bulk_schema(${tables}, ${sources}))`,
     );
     return result;
   }
