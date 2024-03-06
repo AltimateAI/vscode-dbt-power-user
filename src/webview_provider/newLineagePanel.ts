@@ -609,25 +609,13 @@ export class NewLineagePanel implements LineagePanelView {
         "response",
         result,
       );
-      if ((result as DBTColumnLineageResponse).column_lineage) {
-        const column_lineage =
-          result?.column_lineage.map((c) => ({
-            source: [c.source.uniqueId, c.source.column_name],
-            target: [c.target.uniqueId, c.target.column_name],
-            type: c.type,
-          })) || [];
-        return { column_lineage, confindence: result?.confidence };
-      }
-
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "An unexpected error occured while fetching column level lineage.",
-        ),
-      );
-      this.telemetry.sendTelemetryEvent(
-        "columnLevelLineageInvalidResponse",
-        result as {},
-      );
+      const column_lineage =
+        result.column_lineage.map((c) => ({
+          source: [c.source.uniqueId, c.source.column_name],
+          target: [c.target.uniqueId, c.target.column_name],
+          type: c.type,
+        })) || [];
+      return { column_lineage, confindence: result.confidence };
     } catch (error) {
       if (error instanceof AbortError) {
         window.showErrorMessage(
@@ -648,7 +636,7 @@ export class NewLineagePanel implements LineagePanelView {
         ),
       );
       this.telemetry.sendTelemetryError("ColumnLevelLineageError", error);
-      return;
+      return { column_lineage: [] };
     }
   }
 
