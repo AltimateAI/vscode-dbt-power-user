@@ -42,6 +42,7 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
         onClick={handleOpen}
         color="secondary"
         className={classes.btnAddTest}
+        title={`Add test for ${title}`}
       >
         <AddIcon />
       </IconButton>
