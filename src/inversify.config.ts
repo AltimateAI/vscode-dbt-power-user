@@ -26,10 +26,20 @@ import {
   DBTCoreProjectIntegration,
 } from "./dbt_client/dbtCoreIntegration";
 import {
+  CLIDBTCommandExecutionStrategy,
   DBTCommandExecutionInfrastructure,
+  DBTCommandExecutionStrategy,
   DBTCommandFactory,
   PythonDBTCommandExecutionStrategy,
 } from "./dbt_client/dbtIntegration";
+import {
+  DBTCloudProjectDetection,
+  DBTCloudProjectIntegration,
+} from "./dbt_client/dbtCloudIntegration";
+import { CommandProcessExecutionFactory } from "./commandProcessExecution";
+import { AltimateRequest } from "./altimate";
+import { ValidationProvider } from "./validation_provider";
+import { DeferToProdService } from "./services/deferToProdService";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -42,8 +52,6 @@ container
       WorkspaceFolder,
       EventEmitter<ManifestCacheChangedEvent>,
       EventEmitter<ProjectRegisteredUnregisteredEvent>,
-      string,
-      EnvironmentVariables,
     ]
   >((context: interfaces.Context) => {
     return (
@@ -55,6 +63,7 @@ container
       return new DBTWorkspaceFolder(
         container.get("Factory<DBTProject>"),
         container.get(DBTCoreProjectDetection),
+        container.get(DBTCloudProjectDetection),
         container.get(TelemetryService),
         workspaceFolder,
         _onManifestChanged,
@@ -80,8 +89,55 @@ container
           container.get(TelemetryService),
           container.get(PythonDBTCommandExecutionStrategy),
           container.get(DBTProjectContainer),
+          container.get(AltimateRequest),
+          container.get(DBTTerminal),
+          container.get(ValidationProvider),
+          container.get(DeferToProdService),
           projectRoot,
           projectConfigDiagnostics,
+        );
+      };
+    },
+  );
+
+container
+  .bind<interfaces.Factory<DBTCommandExecutionStrategy>>(
+    "Factory<CLIDBTCommandExecutionStrategy>",
+  )
+  .toFactory<CLIDBTCommandExecutionStrategy, [Uri, string]>(
+    (context: interfaces.Context) => {
+      return (projectRoot: Uri, dbtPath: string) => {
+        const { container } = context;
+        return new CLIDBTCommandExecutionStrategy(
+          container.get(CommandProcessExecutionFactory),
+          container.get(PythonEnvironment),
+          container.get(DBTTerminal),
+          container.get(TelemetryService),
+          projectRoot,
+          dbtPath,
+        );
+      };
+    },
+  );
+
+container
+  .bind<interfaces.Factory<DBTCloudProjectIntegration>>(
+    "Factory<DBTCloudProjectIntegration>",
+  )
+  .toFactory<DBTCloudProjectIntegration, [Uri]>(
+    (context: interfaces.Context) => {
+      return (projectRoot: Uri) => {
+        const { container } = context;
+        return new DBTCloudProjectIntegration(
+          container.get(DBTCommandExecutionInfrastructure),
+          container.get(DBTCommandFactory),
+          container.get("Factory<CLIDBTCommandExecutionStrategy>"),
+          container.get(TelemetryService),
+          container.get(PythonEnvironment),
+          container.get(DBTTerminal),
+          container.get(ValidationProvider),
+          container.get(DeferToProdService),
+          projectRoot,
         );
       };
     },
@@ -107,6 +163,9 @@ container
           container.get(QueryResultPanel),
           container.get(TelemetryService),
           container.get("Factory<DBTCoreProjectIntegration>"),
+          container.get("Factory<DBTCloudProjectIntegration>"),
+          container.get(AltimateRequest),
+          container.get(ValidationProvider),
           path,
           projectConfig,
           _onManifestChanged,

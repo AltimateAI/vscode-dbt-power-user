@@ -3,6 +3,7 @@ import { EnvironmentVariables } from "../domain";
 import { provideSingleton, substituteSettingsVariables } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 interface PythonExecutionDetails {
   getPythonPath: () => string;
@@ -18,6 +19,7 @@ export class PythonEnvironment implements Disposable {
   constructor(
     private telemetry: TelemetryService,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
+    private dbtTerminal: DBTTerminal,
   ) {}
 
   dispose() {
@@ -127,11 +129,28 @@ export class PythonEnvironment implements Disposable {
           const env = config.terminal.integrated.env;
           // parse vs code environment variables
           for (const prop in env) {
+            // Ignore any settings not supported by the terminal
+            // We don't know which os is used in terminal unfortunately, so we just merge all of them.
+            if (!["osx", "windows", "linux"].includes(prop)) {
+              this.dbtTerminal.debug(
+                "pythonEnvironment",
+                "Loading env vars from config.terminal.integrated.env",
+                "Ignoring invalid property  " + prop,
+              );
+              continue;
+            }
             const vsCodeEnv = env[prop];
+            const newEnvVars = this.parseEnvVarsFromUserSettings(vsCodeEnv);
+            this.dbtTerminal.debug(
+              "pythonEnvironment",
+              "Loading env vars from config.terminal.integrated.env",
+              "Merging from " + prop,
+              newEnvVars,
+            );
             envVars = {
               ...process.env,
               ...envVars,
-              ...this.parseEnvVarsFromUserSettings(vsCodeEnv),
+              ...newEnvVars,
             };
           }
         }
@@ -144,12 +163,12 @@ export class PythonEnvironment implements Disposable {
               ),
             };
           }
-        } catch (e) {
-          this.telemetry.sendTelemetryError(
-            "vsCodeApiEnvironmentVariablesNotLoading",
+        } catch (e: any) {
+          this.dbtTerminal.error(
+            "getEnvVarsError",
+            "Could not call environment api",
             e,
           );
-          console.error("Could not call environment api", e);
         }
 
         return envVars;

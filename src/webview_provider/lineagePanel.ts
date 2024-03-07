@@ -20,6 +20,7 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { ModelGraphViewPanel } from "./modelGraphViewPanel";
 import { NewLineagePanel } from "./newLineagePanel";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 export interface LineagePanelView extends WebviewViewProvider {
   init(): void;
@@ -44,6 +45,7 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     private legacyLineagePanel: ModelGraphViewPanel,
     dbtProjectContainer: DBTProjectContainer,
     private telemetry: TelemetryService,
+    private dbtTerminal: DBTTerminal,
   ) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
@@ -104,7 +106,6 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     context: WebviewViewResolveContext<unknown>,
     token: CancellationToken,
   ): void | Thenable<void> {
-    console.log("abstract:resolveWebviewView -> ");
     this.panel = panel;
     this.context = context;
     this.token = token;
@@ -130,7 +131,11 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     command: string;
     args: any;
   }) => {
-    console.log("lineagePanelHost:message -> ", message);
+    this.dbtTerminal.debug(
+      "lineagePanel:handleWebviewMessage",
+      "message",
+      message,
+    );
     const { command, args } = message;
     // common commands
     if (command === "openFile") {

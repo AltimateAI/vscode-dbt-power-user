@@ -29,3 +29,13 @@ export interface ManifestCacheChangedEvent {
   added?: ManifestCacheProjectAddedEvent[];
   removed?: ManifestCacheProjectRemovedEvent[];
 }
+
+export interface RebuildManifestStatusChange {
+  project: DBTProject;
+  inProgress: boolean;
+}
+
+export interface RebuildManifestCombinedStatusChange {
+  projects: DBTProject[];
+  inProgress: boolean;
+}
