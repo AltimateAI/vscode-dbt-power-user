@@ -55,7 +55,6 @@
 
   & .head {
     justify-content: space-between;
-    margin-bottom: 1rem;
     > div {
       align-items: center;
     }
@@ -75,15 +74,13 @@
         margin-top: 12px;
       }
       & .column-header {
+        justify-content: space-between;
         .sync-btn {
           svg {
             width: 14px;
             vertical-align: bottom;
           }
-        }
-        & div:last-of-type {
-          margin-left: auto;
-        }
+        }        
       }
       .columns {
         gap: 16px;
@@ -173,6 +170,10 @@
       border-color: transparent;
       background-color: var(--background--02);
       color: var(--text-color--title);
+
+      &:global.disabled{
+        opacity: 0.3;
+      }
     }
   }
 

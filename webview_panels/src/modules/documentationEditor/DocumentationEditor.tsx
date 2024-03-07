@@ -155,17 +155,17 @@ const DocumentationEditor = (): JSX.Element => {
       <div className={classes.docGenerator}>
         <Stack className={classes.head}>
           <Stack>
-            <h3>Documentation for {currentDocsData.name}</h3>
+            <h3 className="mb-0">Documentation for {currentDocsData.name}</h3>
           </Stack>
           <CommonActionButtons />
         </Stack>
         <Stack className={classes.bodyWrap}>
           <Stack direction="column" className={classes.body}>
             <Stack direction="column">
-              <Stack direction="column" style={{ margin: "6px 0" }}>
+              <Stack direction="column" style={{ margin: "0px 0 10px 0" }}>
                 {isDocumentationPageSelected ? (
                   <>
-                    <Label className="p1">Description</Label>
+                    <Label className="p1 mt-3">Description</Label>
                     <DocGeneratorInput
                       entity={currentDocsData}
                       type={EntityType.MODEL}

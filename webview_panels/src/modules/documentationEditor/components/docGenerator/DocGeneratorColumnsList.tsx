@@ -39,12 +39,12 @@ const DocGeneratorColumnsList = (): JSX.Element => {
 
   return (
     <div>
-      <div style={{ marginBottom: 40, marginTop: 16 }}>
+      <div style={{ marginBottom: 40 }}>
         <Stack className={classes.columnHeader}>
-          <h3>Columns</h3>
-          <div>
+          <Stack>
+            <h3>Columns</h3>
             <SyncWithDatabase />
-          </div>
+          </Stack>
           {isDocumentationPageSelected ? <BulkGenerateButton /> : null}
         </Stack>
         {isDocumentationPageSelected ? (

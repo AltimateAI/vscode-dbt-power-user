@@ -1,7 +1,6 @@
 import { HelpIcon } from "@assets/icons";
-import DocumentationHelpContent from "@modules/documentationEditor/components/help/DocumentationHelpContent";
-import TestsHelpContent from "@modules/documentationEditor/components/help/TestsHelpContent";
 import { Drawer } from "@uicore";
+import HelpContent from "./HelpContent";
 
 const HelpButton = (): JSX.Element => {
   return (
@@ -14,8 +13,7 @@ const HelpButton = (): JSX.Element => {
       }
       title="Help"
     >
-      <DocumentationHelpContent />
-      <TestsHelpContent />
+      <HelpContent />
     </Drawer>
   );
 };

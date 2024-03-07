@@ -254,7 +254,9 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
           <Stack className={classes.title}>
             <span>
               Test:{" "}
-              <Tag color="primary">{test.test_metadata?.name ?? test.key}</Tag>
+              <Tag color="primary" style={{ cursor: "auto" }}>
+                {test.test_metadata?.name ?? test.key}
+              </Tag>
             </span>
             <span>
               {isEditableTest ? (

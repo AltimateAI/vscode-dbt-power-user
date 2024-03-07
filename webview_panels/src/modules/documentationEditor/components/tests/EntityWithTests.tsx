@@ -63,7 +63,7 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
           ) : null}
         </Stack>
       </Stack>
-      <Drawer ref={drawerRef}>
+      <Drawer ref={drawerRef} onClose={handleClose}>
         {selectedTest ? (
           <DisplayTestDetails
             onClose={handleClose}
