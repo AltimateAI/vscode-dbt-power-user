@@ -14,12 +14,14 @@ export class BigQueryCostEstimate {
     private telemetry: TelemetryService,
   ) {}
 
-  async estimateCost() {
+  async estimateCost({ returnResult }: { returnResult?: boolean }) {
     const modelName = path.basename(
       window.activeTextEditor!.document.fileName,
       ".sql",
     );
-    this.dbtTerminal.show(true);
+    if (!returnResult) {
+      this.dbtTerminal.show(true);
+    }
     try {
       const query = window.activeTextEditor?.document.getText();
       if (!query) {
@@ -42,6 +44,9 @@ export class BigQueryCostEstimate {
       this.dbtTerminal.log(
         `The query for ${modelName} will process ${result.bytes_processed}.\r\n`,
       );
+      if (returnResult) {
+        return { modelName, result };
+      }
     } catch (error) {
       if (error instanceof PythonException) {
         window.showErrorMessage(

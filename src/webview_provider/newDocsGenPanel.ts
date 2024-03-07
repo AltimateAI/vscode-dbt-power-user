@@ -8,6 +8,7 @@ import {
   workspace,
 } from "vscode";
 import { AltimateRequest } from "../altimate";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { DbtProjectService } from "../services/dbtProjectService";
@@ -21,7 +22,6 @@ import {
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
 import { DocsGenPanelView } from "./docsEditPanel";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 @provideSingleton(NewDocsGenPanel)
 export class NewDocsGenPanel

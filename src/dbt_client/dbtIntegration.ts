@@ -21,7 +21,11 @@ import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync } from "fs";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./dbtTerminal";
-import { ValidateSqlParseErrorResponse } from "../altimate";
+import {
+  AltimateRequest,
+  NoCredentialsError,
+  ValidateSqlParseErrorResponse,
+} from "../altimate";
 
 interface DBTCommandExecution {
   command: (token?: CancellationToken) => Promise<void>;
@@ -320,6 +324,7 @@ export interface DBTProjectIntegration extends Disposable {
   // dbt commands
   runModel(command: DBTCommand): Promise<void>;
   buildModel(command: DBTCommand): Promise<void>;
+  buildProject(command: DBTCommand): Promise<void>;
   runTest(command: DBTCommand): Promise<void>;
   runModelTest(command: DBTCommand): Promise<void>;
   compileModel(command: DBTCommand): Promise<void>;
@@ -344,6 +349,7 @@ export interface DBTProjectIntegration extends Disposable {
   getColumnsOfModel(modelName: string): Promise<DBColumn[]>;
   getCatalog(): Promise<Catalog>;
   getDebounceForRebuildManifest(): number;
+  getBulkSchema(nodes: DBTNode[]): Promise<Record<string, DBColumn[]>>;
 }
 
 @provide(DBTCommandExecutionInfrastructure)
@@ -357,6 +363,7 @@ export class DBTCommandExecutionInfrastructure {
   constructor(
     private pythonEnvironment: PythonEnvironment,
     private telemetry: TelemetryService,
+    private altimate: AltimateRequest,
   ) {}
 
   createPythonBridge(cwd: string): PythonBridge {
@@ -415,6 +422,10 @@ export class DBTCommandExecutionInfrastructure {
         try {
           await command(token);
         } catch (error) {
+          if (error instanceof NoCredentialsError) {
+            this.altimate.handlePreviewFeatures();
+            return;
+          }
           window.showErrorMessage(
             extendErrorWithSupportLinks(
               `Could not run command '${statusMessage}': ` + error + ".",
@@ -527,6 +538,16 @@ export class DBTCommandFactory {
         `${plusOperatorLeft}${modelName}${plusOperatorRight}`,
         ...buildModelCommandAdditionalParams,
       ],
+      true,
+      true,
+      true,
+    );
+  }
+
+  createBuildProjectCommand(): DBTCommand {
+    return new DBTCommand(
+      "Building dbt project...",
+      ["build"],
       true,
       true,
       true,
