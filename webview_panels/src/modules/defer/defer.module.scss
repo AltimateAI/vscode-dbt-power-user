@@ -1,0 +1,57 @@
+.insights-card {
+  & :global .form-label {
+    white-space: nowrap;
+  }
+  .card-title {
+    & button {
+      float: right;
+      padding: 0;
+      border: none;
+      margin-top: -6px;
+    }
+  }
+
+  .form-switch {
+    padding-left: 0;
+    & :global .form-label {
+      display: flex;
+      width: 100%;
+      justify-content: space-between;
+
+      & input {
+        float: none;
+      }
+    }
+  }
+
+  .path-selection {
+    padding: 16px;
+    border-radius: 10px;
+    background: var(--background--01);
+    gap: 8px;
+    margin-bottom: 20px;
+
+    .title{
+      margin-left: 10px;
+    }
+
+    .path-selection-row{
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .path-input{
+      width: 70%;
+      cursor: pointer;
+    }
+  }
+}
+
+.projectSelect{
+  margin-bottom: 20px;
+  min-width: 50vw;
+  :global .altimate-select{
+    margin-top: 6px;
+  }
+}

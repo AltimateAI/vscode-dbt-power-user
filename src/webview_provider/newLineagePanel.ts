@@ -18,7 +18,6 @@ import {
   ModelNode,
 } from "../altimate";
 import {
-  ColumnMetaData,
   ExposureMetaData,
   GraphMetaMap,
   NodeGraphMap,
@@ -33,6 +32,7 @@ import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { PythonException } from "python-bridge";
 import { AbortError } from "node-fetch";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 type Table = {
   label: string;
@@ -45,8 +45,11 @@ type Table = {
   tests: any[];
 };
 
-const CACHE_SIZE = 100;
-const CACHE_VALID_TIME = 24 * 60 * 60 * 1000;
+enum CllEvents {
+  START = "start",
+  END = "end",
+  CANCEL = "cancel",
+}
 
 const CAN_COMPILE_SQL_NODE = [
   DBTProject.RESOURCE_TYPE_MODEL,
@@ -60,14 +63,14 @@ const canCompileSQL = (nodeType: string) =>
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
-  private dbCache: Map<string, Record<string, string>[]> = new Map();
-  private lruCache: Map<string, number> = new Map();
-  private progressBarResolve?: () => void;
+  private cllIsCancelled = false;
+  private cllProgressResolve: () => void = () => {};
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private altimate: AltimateRequest,
     private telemetry: TelemetryService,
+    private terminal: DBTTerminal,
   ) {}
 
   public changedActiveTextEditor(event: TextEditor | undefined) {
@@ -82,7 +85,6 @@ export class NewLineagePanel implements LineagePanelView {
 
   eventMapChanged(eventMap: Map<string, ManifestCacheProjectAddedEvent>): void {
     this.eventMap = eventMap;
-    this.init();
   }
 
   changedActiveColorTheme() {
@@ -102,7 +104,7 @@ export class NewLineagePanel implements LineagePanelView {
   }
 
   init() {
-    console.log("lineage:init -> ", this._panel);
+    this.terminal.debug("newLineagePanel:init", "init", this._panel);
     this.changedActiveColorTheme();
     this.renderStartingNode();
   }
@@ -122,7 +124,10 @@ export class NewLineagePanel implements LineagePanelView {
     context: WebviewViewResolveContext<unknown>,
     _token: CancellationToken,
   ): void | Thenable<void> {
-    console.log("lineage:resolveWebviewView -> ");
+    this.terminal.debug(
+      "newLineagePanel:resolveWebviewView",
+      "onResolveWebviewView",
+    );
     this._panel = panel;
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
@@ -177,24 +182,43 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
 
-    if (command === "startProgressBar") {
-      window.withProgress(
-        {
-          title: "Processing column level lineage",
-          location: ProgressLocation.Notification,
-          cancellable: false,
-        },
-        async () => {
-          await new Promise<void>((resolve) => {
-            this.progressBarResolve = resolve;
-          });
-        },
-      );
+    if (command === "sendFeedback") {
+      try {
+        await this.altimate.sendFeedback({
+          feedback_src: "dbtpu-extension",
+          feedback_text: params.feedback_text,
+          feedback_value: params.feedback_value,
+          data: {},
+        });
+        this._panel?.webview.postMessage({
+          command: "response",
+          args: { id, status: true },
+        });
+      } catch (error) {
+        this._panel?.webview.postMessage({
+          command: "response",
+          args: { id, status: false },
+        });
+        window.showErrorMessage(
+          extendErrorWithSupportLinks(
+            "Could not send feedback: " + (error as Error).message,
+          ),
+        );
+        this.telemetry.sendTelemetryError(
+          "altimateLineageSendFeedbackError",
+          error,
+        );
+      }
       return;
     }
 
-    if (command === "endProgressBar") {
-      this.progressBarResolve?.();
+    if (command === "columnLineage") {
+      this.handleColumnLineage(args);
+      return;
+    }
+
+    if (command === "telemetryEvents") {
+      this.telemetry.sendTelemetryEvent(id, params);
       return;
     }
 
@@ -203,62 +227,57 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
 
-    console.error("Unsupported mssage", message);
+    if (command === "showInfoNotification") {
+      window.showInformationMessage(args.message);
+      return;
+    }
+
+    this.terminal.debug(
+      "newLineagePanel:handleCommand",
+      "Unsupported command",
+      message,
+    );
+  }
+
+  private async handleColumnLineage({ event }: { event: CllEvents }) {
+    if (event === CllEvents.START) {
+      window.withProgress(
+        {
+          title: "Retrieving column level lineage",
+          location: ProgressLocation.Notification,
+          cancellable: true,
+        },
+        async (_, token) => {
+          await new Promise<void>((resolve) => {
+            this.cllIsCancelled = false;
+            this.cllProgressResolve = resolve;
+            token.onCancellationRequested(() => {
+              this.cllIsCancelled = true;
+              this._panel?.webview.postMessage({
+                command: "columnLineage",
+                args: { event: CllEvents.CANCEL },
+              });
+            });
+          });
+        },
+      );
+      return;
+    }
+    if (event === CllEvents.END) {
+      this.cllProgressResolve();
+      return;
+    }
+    if (event === CllEvents.CANCEL) {
+      this.cllProgressResolve();
+      this.cllIsCancelled = true;
+      return;
+    }
   }
 
   private async addModelColumnsFromDB(project: DBTProject, node: NodeMetaData) {
-    // Disabling cache
-    // const now = Date.now();
-    // if (
-    //   !this.dbCache.has(node.name) ||
-    //   (this.lruCache.get(node.name) || 0) < now - CACHE_VALID_TIME
-    // ) {
-    //   const _columnsFromDB = await project.getColumnsOfModel(node.name);
-    //   this.dbCache.set(node.name, _columnsFromDB);
-    //   if (this.dbCache.size > CACHE_SIZE) {
-    //     const arr = Array.from(this.lruCache.entries());
-    //     arr.sort((a, b) => b[1] - a[1]);
-    //     arr.slice(CACHE_SIZE).forEach(([k]) => {
-    //       this.lruCache.delete(k);
-    //       this.dbCache.delete(k);
-    //     });
-    //   }
-    // }
-    // this.lruCache.set(node.name, now);
-    // const columnsFromDB = this.dbCache.get(node.name)!;
     const columnsFromDB = await project.getColumnsOfModel(node.name);
     console.log("addColumnsFromDB: ", node.name, " -> ", columnsFromDB);
-    if (!columnsFromDB || columnsFromDB.length === 0) {
-      return false;
-    }
-    if (columnsFromDB.length > 100) {
-      // Flagging events where more than 100 columns are fetched from db to get a sense of how many of these happen
-      this.telemetry.sendTelemetryEvent(
-        "columnLineageExcessiveColumnsFetchedFromDB",
-      );
-    }
-    const columns: Record<string, ColumnMetaData> = {};
-    Object.entries(node.columns).forEach(([k, v]) => {
-      columns[k.toLowerCase()] = v;
-    });
-
-    columnsFromDB.forEach((c) => {
-      const existing_column = columns[c.column.toLowerCase()];
-      if (existing_column) {
-        existing_column.data_type = existing_column.data_type || c.dtype;
-        return;
-      }
-      node.columns[c.column] = {
-        name: c.column,
-        data_type: c.dtype,
-        description: "",
-      };
-    });
-    if (Object.keys(node.columns).length > columnsFromDB.length) {
-      // Flagging events where columns fetched from db are less than the number of columns in the manifest
-      this.telemetry.sendTelemetryEvent("columnLineagePossibleStaleSchema");
-    }
-    return true;
+    return project.mergeColumnsFromDB(node, columnsFromDB);
   }
 
   private async addSourceColumnsFromDB(
@@ -266,43 +285,12 @@ export class NewLineagePanel implements LineagePanelView {
     nodeName: string,
     table: SourceTable,
   ) {
-    const now = Date.now();
     const columnsFromDB = await project.getColumnsOfSource(
       nodeName,
       table.name,
     );
     console.log("addColumnsFromDB: ", nodeName, " -> ", columnsFromDB);
-    if (!columnsFromDB || columnsFromDB.length === 0) {
-      return false;
-    }
-    if (columnsFromDB.length > 100) {
-      // Flagging events where more than 100 columns are fetched from db to get a sense of how many of these happen
-      this.telemetry.sendTelemetryEvent(
-        "columnLineageExcessiveColumnsFetchedFromDB",
-      );
-    }
-    const columns: Record<string, ColumnMetaData> = {};
-    Object.entries(table.columns).forEach(([k, v]) => {
-      columns[k.toLowerCase()] = v;
-    });
-
-    columnsFromDB.forEach((c) => {
-      const existing_column = columns[c.column.toLowerCase()];
-      if (existing_column) {
-        existing_column.data_type = existing_column.data_type || c.dtype;
-        return;
-      }
-      table.columns[c.column] = {
-        name: c.column,
-        data_type: c.dtype,
-        description: "",
-      };
-    });
-    if (Object.keys(table.columns).length > columnsFromDB.length) {
-      // Flagging events where columns fetched from db are less than the number of columns in the manifest
-      this.telemetry.sendTelemetryEvent("columnLineagePossibleStaleSchema");
-    }
-    return true;
+    return project.mergeColumnsFromDB(table, columnsFromDB);
   }
 
   private async getExposureDetails({
@@ -374,9 +362,6 @@ export class NewLineagePanel implements LineagePanelView {
             cancellable: false,
           },
           async () => {
-            // TODO: the cache should also support sources
-            // this.lruCache.delete(node.name);
-            // this.dbCache.delete(node.name);
             return await this.addSourceColumnsFromDB(
               project,
               node.name,
@@ -431,8 +416,6 @@ export class NewLineagePanel implements LineagePanelView {
           cancellable: false,
         },
         async () => {
-          // this.lruCache.delete(node.name);
-          // this.dbCache.delete(node.name);
           return await this.addModelColumnsFromDB(project, node);
         },
       );
@@ -465,183 +448,72 @@ export class NewLineagePanel implements LineagePanelView {
     };
   }
 
-  private async getNodeWithDBColumns(
-    key: string,
-  ): Promise<
-    | { dbColumnAdded: boolean; node: ModelNode; isEphemeral?: boolean }
-    | undefined
-  > {
-    const event = this.getEvent();
-    if (!event) {
-      return;
-    }
-    const project = this.getProject();
-    if (!project) {
-      return;
-    }
-    const splits = key.split(".");
-    const nodeType = splits[0];
-    const { nodeMetaMap, sourceMetaMap } = event;
-    if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
-      const source = sourceMetaMap.get(splits[2]);
-      const tableName = splits[3];
-      if (!source) {
-        return;
-      }
-      const table = source?.tables.find((t) => t.name === tableName);
-      if (!table) {
-        return;
-      }
-      const dbColumnAdded = await this.addSourceColumnsFromDB(
-        project,
-        source.name,
-        table,
-      );
-      const node = {
-        database: source.database,
-        schema: source.schema,
-        name: table.name,
-        alias: table.identifier,
-        uniqueId: key,
-        columns: table.columns,
-      };
-      return { dbColumnAdded, node };
-    }
-    const node = nodeMetaMap.get(splits[2]);
-    if (!node) {
-      return;
-    }
-    if (node.config.materialized === "ephemeral") {
-      return { dbColumnAdded: false, node, isEphemeral: true };
-    }
-    const dbColumnAdded = await this.addModelColumnsFromDB(project, node);
-    return { dbColumnAdded, node };
-  }
-
   private async getConnectedColumns({
     targets,
     upstreamExpansion,
     currAnd1HopTables,
     selectedColumn,
+    sessionId,
   }: {
     targets: [string, string][];
     upstreamExpansion: boolean;
     currAnd1HopTables: string[];
     // select_column is used for pricing not business logic
     selectedColumn: { name: string; table: string };
+    sessionId: string;
   }) {
     const event = this.getEvent();
     if (!event) {
       return;
     }
-    const { graphMetaMap } = event;
     const project = this.getProject();
     if (!project) {
       return;
     }
 
-    const modelInfos: {
-      compiled_sql: string | undefined;
-      model_node: ModelNode;
-    }[] = [];
-    const relationsWithoutColumns: string[] = [];
-    let selected_column: { model_node: ModelNode; column: string } | undefined;
+    const modelInfos: { compiled_sql?: string; model_node: ModelNode }[] = [];
     const parent_models: { model_node: ModelNode }[] = [];
     let auxiliaryTables: string[] = [];
     currAnd1HopTables = Array.from(new Set(currAnd1HopTables));
     if (upstreamExpansion) {
       const currTables = new Set(targets.map((t) => t[0]));
-      const dependencyNodes = graphMetaMap.parents;
-      const parentSet = new Set<string>();
       const hop1Tables = currAnd1HopTables.filter((t) => !currTables.has(t));
-      const visited: Record<string, boolean> = {};
-      const { nodeMetaMap } = event;
-      while (hop1Tables.length > 0) {
-        const curr = hop1Tables.shift()!;
-        if (visited[curr]) {
-          continue;
-        }
-        visited[curr] = true;
-        const parent = dependencyNodes.get(curr);
-        if (!parent) {
-          continue;
-        }
-        parent.nodes.forEach((n) => {
-          const splits = n.key.split(".");
-          const nodeType = splits[0];
-          if (nodeType !== DBTProject.RESOURCE_TYPE_MODEL) {
-            parentSet.add(n.key);
-            return;
-          }
-          if (nodeMetaMap.get(splits[2])?.config.materialized === "ephemeral") {
-            hop1Tables.push(n.key);
-          } else {
-            parentSet.add(n.key);
-          }
-        });
-      }
-      auxiliaryTables = Array.from(parentSet);
+      auxiliaryTables = DBTProject.getNonEphemeralParents(event, hop1Tables);
     }
+    const modelsToFetch = Array.from(
+      new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
+    );
+    const { mappedNode, relationsWithoutColumns } =
+      await project.getNodesWithDBColumns(event, modelsToFetch);
+
+    const selected_column = {
+      model_node: mappedNode[selectedColumn.table],
+      column: selectedColumn.name,
+    };
+    const compileSql = async (key: string) => {
+      const node = mappedNode[key];
+      if (!node) {
+        return;
+      }
+      const nodeType = key.split(".")[0];
+      if (!canCompileSQL(nodeType)) {
+        modelInfos.push({ model_node: node });
+        return;
+      }
+      const compiledSql = await project.unsafeCompileNode(node.name);
+      modelInfos.push({ compiled_sql: compiledSql, model_node: node });
+    };
     try {
-      await Promise.all([
-        ...currAnd1HopTables.map(async (key) => {
-          let compiledSql: string | undefined;
-          const result = await this.getNodeWithDBColumns(key);
-          if (!result) {
-            return;
-          }
-          const { node, dbColumnAdded, isEphemeral } = result;
-          if (isEphemeral) {
-            // ideally should not be taking this code path
-            this.telemetry.sendTelemetryError(
-              "columnLineageProcessingEphemeral",
-            );
-            return;
-          }
-          if (!dbColumnAdded) {
-            relationsWithoutColumns.push(key);
-            return;
-          }
-          const nodeType = key.split(".")[0];
-          if (canCompileSQL(nodeType)) {
-            compiledSql = await project.compileNode(node.name);
-            if (!compiledSql) {
-              return;
-            }
-          }
-          modelInfos.push({ compiled_sql: compiledSql, model_node: node });
-        }),
-        async () => {
-          const result = await this.getNodeWithDBColumns(selectedColumn.table);
-          if (!result) {
-            return;
-          }
-          const { node, dbColumnAdded } = result;
-          if (!dbColumnAdded) {
-            relationsWithoutColumns.push(selectedColumn.table);
-            return;
-          }
-          selected_column = {
-            model_node: node,
-            column: selectedColumn.name,
-          };
-        },
-        ...auxiliaryTables.map(async (key) => {
-          const result = await this.getNodeWithDBColumns(key);
-          if (!result) {
-            return;
-          }
-          const { node, dbColumnAdded, isEphemeral } = result;
-          if (isEphemeral) {
-            return;
-          }
-          if (!dbColumnAdded) {
-            relationsWithoutColumns.push(key);
-            return;
-          }
-          parent_models.push({ model_node: node });
-        }),
-      ]);
+      auxiliaryTables.forEach((key) => {
+        parent_models.push({ model_node: mappedNode[key] });
+      });
+
+      for (const key of currAnd1HopTables) {
+        if (this.cllIsCancelled) {
+          return { column_lineage: [] };
+        }
+        await compileSql(key);
+      }
     } catch (exc) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
@@ -655,15 +527,11 @@ export class NewLineagePanel implements LineagePanelView {
           "columnLineageCompileNodePythonError",
           exc,
         );
-        console.error(
-          "Error encountered while compiling/retrieving schema for model: ",
-        );
-        console.error(
-          "Exception: " +
-            exc.exception.message +
-            "\n\n" +
-            "Detailed error information:\n" +
-            exc,
+        this.terminal.debug(
+          "newLineagePanel:getConnectedColumns",
+          "Error encountered while compiling/retrieving schema for model: " +
+            exc.exception.message,
+          exc,
         );
         return;
       }
@@ -674,9 +542,7 @@ export class NewLineagePanel implements LineagePanelView {
       // Unknown error
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Encountered an unknown issue: " +
-            exc +
-            " while compiling/retrieving schema for nodes.",
+          "Column lineage failed: " + (exc as Error).message,
         ),
       );
       return;
@@ -694,8 +560,35 @@ export class NewLineagePanel implements LineagePanelView {
       // schemas we could get so not returning here
     }
 
+    const targetTables = Array.from(new Set(targets.map((t) => t[0])));
+    // targets should not empty
+    if (targets.length === 0 || modelInfos.length < targetTables.length) {
+      this.telemetry.sendTelemetryError("columnLineageLogicError", {
+        targets,
+        modelInfos,
+        upstreamExpansion,
+        currAnd1HopTables,
+        selectedColumn,
+      });
+      return { column_lineage: [] };
+    }
+
+    // the case where upstream/downstream only has ephemeral models
+    if (modelInfos.length === targetTables.length) {
+      return { column_lineage: [] };
+    }
+    const models = modelInfos.map((m) => m.model_node.uniqueId);
+    const hasAllModels = targets.every((t) => models.includes(t[0]));
+    if (!hasAllModels) {
+      // most probably error message is already shown in above checks
+      return { column_lineage: [] };
+    }
+
     const modelDialect = project.getAdapterType();
     try {
+      if (this.cllIsCancelled) {
+        return { column_lineage: [] };
+      }
       const request = {
         model_dialect: modelDialect,
         model_info: modelInfos,
@@ -703,32 +596,26 @@ export class NewLineagePanel implements LineagePanelView {
         targets: targets.map((t) => ({ uniqueId: t[0], column_name: t[1] })),
         selected_column: selected_column!,
         parent_models,
+        session_id: sessionId,
       };
-      console.log("cll:request -> ", request);
-      if (targets.length === 0) {
-        return;
-      }
+      this.terminal.debug(
+        "newLineagePanel:getConnectedColumns",
+        "request",
+        request,
+      );
       const result = await this.altimate.getColumnLevelLineage(request);
-      console.log("cll:response -> ", result);
-      if ((result as DBTColumnLineageResponse).column_lineage) {
-        const column_lineage =
-          result?.column_lineage.map((c) => ({
-            source: [c.source.uniqueId, c.source.column_name],
-            target: [c.target.uniqueId, c.target.column_name],
-            type: c.type,
-          })) || [];
-        return { column_lineage, confindence: result?.confidence };
-      }
-
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "An unexpected error occured while fetching column level lineage.",
-        ),
+      this.terminal.debug(
+        "newLineagePanel:getConnectedColumns",
+        "response",
+        result,
       );
-      this.telemetry.sendTelemetryEvent(
-        "columnLevelLineageInvalidResponse",
-        result as {},
-      );
+      const column_lineage =
+        result.column_lineage.map((c) => ({
+          source: [c.source.uniqueId, c.source.column_name],
+          target: [c.target.uniqueId, c.target.column_name],
+          type: c.type,
+        })) || [];
+      return { column_lineage, confindence: result.confidence };
     } catch (error) {
       if (error instanceof AbortError) {
         window.showErrorMessage(
@@ -744,7 +631,8 @@ export class NewLineagePanel implements LineagePanelView {
       }
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "An unexpected error occured while fetching column level lineage.",
+          "Could not generate column level lineage: " +
+            (error as Error).message,
         ),
       );
       this.telemetry.sendTelemetryError("ColumnLevelLineageError", error);

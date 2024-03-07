@@ -1,0 +1,10 @@
+.dropdownButton {
+  gap: 0;
+  & button:first-child {
+    border-radius: 2px 0 0 2px;
+  }
+  & button:last-child {
+    border-radius: 0 2px 2px 0;
+    background: var(--action-brand-dark);
+  }
+}

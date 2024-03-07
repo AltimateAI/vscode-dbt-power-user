@@ -5,6 +5,7 @@ import { PythonException } from "python-bridge";
 import {
   commands,
   Diagnostic,
+  DiagnosticCollection,
   Disposable,
   Event,
   EventEmitter,
@@ -24,7 +25,11 @@ import {
   setupWatcherHandler,
 } from "../utils";
 import { QueryResultPanel } from "../webview_provider/queryResultPanel";
-import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
+import {
+  ManifestCacheChangedEvent,
+  RebuildManifestStatusChange,
+  ManifestCacheProjectAddedEvent,
+} from "./event/manifestCacheChangedEvent";
 import { ProjectConfigChangedEvent } from "./event/projectConfigChangedEvent";
 import { DBTProjectLog, DBTProjectLogFactory } from "./modules/dbtProjectLog";
 import {
@@ -39,8 +44,17 @@ import {
   DBTProjectIntegration,
   DBTCommandFactory,
   RunModelParams,
+  Catalog,
+  DBTNode,
+  DBColumn,
+  SourceNode,
 } from "../dbt_client/dbtIntegration";
 import { DBTCoreProjectIntegration } from "../dbt_client/dbtCoreIntegration";
+import { DBTCloudProjectIntegration } from "../dbt_client/dbtCloudIntegration";
+import { AltimateRequest, NoCredentialsError } from "../altimate";
+import { ValidationProvider } from "../validation_provider";
+import { ModelNode } from "../altimate";
+import { ColumnMetaData } from "../domain";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -72,6 +86,10 @@ export class DBTProject implements Disposable {
   private readonly projectConfigDiagnostics =
     languages.createDiagnosticCollection("dbt");
   public readonly projectHealth = languages.createDiagnosticCollection("dbt");
+  private _onRebuildManifestStatusChange =
+    new EventEmitter<RebuildManifestStatusChange>();
+  readonly onRebuildManifestStatusChange =
+    this._onRebuildManifestStatusChange.event;
 
   constructor(
     private PythonEnvironment: PythonEnvironment,
@@ -82,7 +100,15 @@ export class DBTProject implements Disposable {
     private terminal: DBTTerminal,
     private queryResultPanel: QueryResultPanel,
     private telemetry: TelemetryService,
-    private dbtCoreIntegrationFactory: (path: Uri) => DBTCoreProjectIntegration,
+    private dbtCoreIntegrationFactory: (
+      path: Uri,
+      projectConfigDiagnostics: DiagnosticCollection,
+    ) => DBTCoreProjectIntegration,
+    private dbtCloudIntegrationFactory: (
+      path: Uri,
+    ) => DBTCloudProjectIntegration,
+    private altimate: AltimateRequest,
+    private validationProvider: ValidationProvider,
     path: Uri,
     projectConfig: any,
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
@@ -90,15 +116,31 @@ export class DBTProject implements Disposable {
     this.projectRoot = path;
     this.projectConfig = projectConfig;
 
+    this.validationProvider.validateCredentialsSilently();
+
     this.sourceFileWatchers =
       this.sourceFileWatchersFactory.createSourceFileWatchers(
         this.onProjectConfigChanged,
       );
     this.onSourceFileChanged = this.sourceFileWatchers.onSourceFileChanged;
 
-    this.dbtProjectIntegration = this.dbtCoreIntegrationFactory(
-      this.projectRoot,
-    );
+    const dbtIntegrationMode = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+
+    switch (dbtIntegrationMode) {
+      case "cloud":
+        this.dbtProjectIntegration = this.dbtCloudIntegrationFactory(
+          this.projectRoot,
+        );
+        break;
+      default:
+        this.dbtProjectIntegration = this.dbtCoreIntegrationFactory(
+          this.projectRoot,
+          this.projectConfigDiagnostics,
+        );
+        break;
+    }
 
     this.disposables.push(
       this.dbtProjectIntegration,
@@ -140,9 +182,13 @@ export class DBTProject implements Disposable {
     const dbtProjectConfigWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
     );
-    setupWatcherHandler(dbtProjectConfigWatcher, () => this.tryRefresh());
+    setupWatcherHandler(dbtProjectConfigWatcher, async () => {
+      await this.refreshProjectConfig();
+      this.rebuildManifest();
+    });
     await this.dbtProjectIntegration.initializeProject();
-    await this.tryRefresh();
+    await this.refreshProjectConfig();
+    this.rebuildManifest();
     this.dbtProjectLog = this.dbtProjectLogFactory.createDBTProjectLog(
       this.onProjectConfigChanged,
     );
@@ -152,7 +198,10 @@ export class DBTProject implements Disposable {
       this.dbtProjectLog,
       dbtProjectConfigWatcher,
       this.onSourceFileChanged(
-        debounce(async () => await this.rebuildManifest(), 2000),
+        debounce(
+          async () => await this.rebuildManifest(),
+          this.dbtProjectIntegration.getDebounceForRebuildManifest(),
+        ),
       ),
     );
   }
@@ -161,27 +210,41 @@ export class DBTProject implements Disposable {
     await this.initialize();
   }
 
-  private async tryRefresh() {
+  private async refreshProjectConfig() {
     try {
-      await this.refresh();
+      this.projectConfig = DBTProject.readAndParseProjectConfig(
+        this.projectRoot,
+      );
+      await this.dbtProjectIntegration.refreshProjectConfig();
       this.projectConfigDiagnostics.clear();
     } catch (error) {
       if (error instanceof YAMLError) {
         this.projectConfigDiagnostics.set(
           Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
-          [new Diagnostic(new Range(0, 0, 999, 999), error.message)],
+          [
+            new Diagnostic(
+              new Range(0, 0, 999, 999),
+              "dbt_project.yml is invalid : " + error.message,
+            ),
+          ],
+        );
+      } else if (error instanceof PythonException) {
+        this.projectConfigDiagnostics.set(
+          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+          [
+            new Diagnostic(
+              new Range(0, 0, 999, 999),
+              "dbt configuration is invalid : " + error.exception.message,
+            ),
+          ],
         );
       }
-      console.warn(
+      this.terminal.debug(
+        "DBTProject",
         `An error occurred while trying to refresh the project "${this.getProjectName()}" at ${
           this.projectRoot
         } configuration`,
         error,
-      );
-      this.terminal.log(
-        `An error occurred while trying to refresh the project "${this.getProjectName()}" at ${
-          this.projectRoot
-        } configuration: ${error}`,
       );
       this.telemetry.sendTelemetryError("projectConfigRefreshError", error);
     }
@@ -213,35 +276,78 @@ export class DBTProject implements Disposable {
   }
 
   private async rebuildManifest() {
-    this.dbtProjectIntegration.rebuildManifest();
+    this._onRebuildManifestStatusChange.fire({
+      project: this,
+      inProgress: true,
+    });
+    await this.dbtProjectIntegration.rebuildManifest();
+    this._onRebuildManifestStatusChange.fire({
+      project: this,
+      inProgress: false,
+    });
   }
 
-  runModel(runModelParams: RunModelParams) {
-    const runModelCommand =
-      this.dbtCommandFactory.createRunModelCommand(runModelParams);
-    this.dbtProjectIntegration.runModel(runModelCommand);
-    this.telemetry.sendTelemetryEvent("runModel");
+  async runModel(runModelParams: RunModelParams) {
+    try {
+      const runModelCommand =
+        this.dbtCommandFactory.createRunModelCommand(runModelParams);
+      await this.dbtProjectIntegration.runModel(runModelCommand);
+      this.telemetry.sendTelemetryEvent("runModel");
+    } catch (error) {
+      this.handleNoCredentialsError(error);
+    }
   }
 
-  buildModel(runModelParams: RunModelParams) {
-    const buildModelCommand =
-      this.dbtCommandFactory.createBuildModelCommand(runModelParams);
-    this.dbtProjectIntegration.buildModel(buildModelCommand);
-    this.telemetry.sendTelemetryEvent("buildModel");
+  async buildModel(runModelParams: RunModelParams) {
+    try {
+      const buildModelCommand =
+        this.dbtCommandFactory.createBuildModelCommand(runModelParams);
+      await this.dbtProjectIntegration.buildModel(buildModelCommand);
+      this.telemetry.sendTelemetryEvent("buildModel");
+    } catch (error) {
+      this.handleNoCredentialsError(error);
+    }
   }
 
-  runTest(testName: string) {
-    const testModelCommand =
-      this.dbtCommandFactory.createTestModelCommand(testName);
-    this.dbtProjectIntegration.runTest(testModelCommand);
-    this.telemetry.sendTelemetryEvent("runTest");
+  async buildProject() {
+    try {
+      const buildProjectCommand =
+        this.dbtCommandFactory.createBuildProjectCommand();
+      await this.dbtProjectIntegration.buildProject(buildProjectCommand);
+      this.telemetry.sendTelemetryEvent("buildProject");
+    } catch (error) {
+      this.handleNoCredentialsError(error);
+    }
   }
 
-  runModelTest(modelName: string) {
-    const testModelCommand =
-      this.dbtCommandFactory.createTestModelCommand(modelName);
-    this.dbtProjectIntegration.runModelTest(testModelCommand);
-    this.telemetry.sendTelemetryEvent("runModelTest");
+  async runTest(testName: string) {
+    try {
+      const testModelCommand =
+        this.dbtCommandFactory.createTestModelCommand(testName);
+      await this.dbtProjectIntegration.runTest(testModelCommand);
+      this.telemetry.sendTelemetryEvent("runTest");
+    } catch (error) {
+      this.handleNoCredentialsError(error);
+    }
+  }
+
+  async runModelTest(modelName: string) {
+    try {
+      const testModelCommand =
+        this.dbtCommandFactory.createTestModelCommand(modelName);
+      this.dbtProjectIntegration.runModelTest(testModelCommand);
+      await this.telemetry.sendTelemetryEvent("runModelTest");
+    } catch (error) {
+      this.handleNoCredentialsError(error);
+    }
+  }
+
+  private handleNoCredentialsError(error: unknown) {
+    if (error instanceof NoCredentialsError) {
+      this.altimate.handlePreviewFeatures();
+      return;
+    }
+    window.showErrorMessage((error as Error).message);
   }
 
   compileModel(runModelParams: RunModelParams) {
@@ -274,7 +380,7 @@ export class DBTProject implements Disposable {
   async compileNode(modelName: string): Promise<string | undefined> {
     this.telemetry.sendTelemetryEvent("compileNode");
     try {
-      return this.dbtProjectIntegration.unsafeCompileNode(modelName);
+      return await this.dbtProjectIntegration.unsafeCompileNode(modelName);
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
@@ -297,11 +403,20 @@ export class DBTProject implements Disposable {
       // Unknown error
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Encountered an unknown issue: " + exc + ".",
+          "Could not compile model " +
+            modelName +
+            ": " +
+            (exc as Error).message +
+            ".",
         ),
       );
       return "Detailed error information:\n" + exc;
     }
+  }
+
+  async unsafeCompileNode(modelName: string): Promise<string | undefined> {
+    this.telemetry.sendTelemetryEvent("unsafeCompileNode");
+    return await this.dbtProjectIntegration.unsafeCompileNode(modelName);
   }
 
   async validateSql(request: { sql: string; dialect: string; models: any[] }) {
@@ -347,7 +462,7 @@ export class DBTProject implements Disposable {
   async compileQuery(query: string): Promise<string | undefined> {
     this.telemetry.sendTelemetryEvent("compileQuery");
     try {
-      return this.dbtProjectIntegration.unsafeCompileQuery(query);
+      return await this.dbtProjectIntegration.unsafeCompileQuery(query);
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
@@ -364,7 +479,7 @@ export class DBTProject implements Disposable {
       // Unknown error
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Encountered an unknown issue: " + exc + ".",
+          "Could not compile query: " + (exc as Error).message,
         ),
       );
       return undefined;
@@ -403,7 +518,11 @@ export class DBTProject implements Disposable {
     return this.dbtProjectIntegration.getColumnsOfSource(sourceName, tableName);
   }
 
-  async getCatalog(): Promise<{ [key: string]: string }[]> {
+  async getBulkSchema(req: DBTNode[]) {
+    return this.dbtProjectIntegration.getBulkSchema(req);
+  }
+
+  async getCatalog(): Promise<Catalog> {
     try {
       return this.dbtProjectIntegration.getCatalog();
     } catch (exc: any) {
@@ -473,7 +592,7 @@ export class DBTProject implements Disposable {
       });
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Encountered an unknown issue:" + exc + ".",
+          "Could not generate schema yaml: " + (exc as Error).message,
         ),
       );
     }
@@ -524,7 +643,11 @@ export class DBTProject implements Disposable {
           sourceName,
           tableName,
         );
-        console.log(columnsInRelation);
+        this.terminal.debug(
+          "dbtProject:generateModel",
+          `Generating columns for source ${sourceName} and table ${tableName}`,
+          columnsInRelation,
+        );
 
         const fileContents = `with source as (
       select * from {{ source('${sourceName}', '${tableName}') }}
@@ -569,16 +692,6 @@ select * from renamed
     }
   }
 
-  async getSummary(query: string) {
-    this.telemetry.sendTelemetryEvent("getSummary");
-    const compiledSql = await this.compileQuery(query);
-    if (compiledSql === undefined) {
-      // error handling done inside compileQuery
-      return;
-    }
-    this.queryResultPanel.getSummary(compiledSql, this.getAdapterType());
-  }
-
   async executeSQL(query: string) {
     const limit = workspace
       .getConfiguration("dbt")
@@ -588,33 +701,18 @@ select * from renamed
       window.showErrorMessage("Please enter a positive number for query limit");
       return;
     }
-    const queryTemplate = workspace
-      .getConfiguration("dbt")
-      .get<string>(
-        "queryTemplate",
-        "select * from ({query}\n) as query limit {limit}",
-      );
-
-    const limitQuery = queryTemplate
-      .replace("{query}", () => query)
-      .replace("{limit}", () => limit.toString());
-
-    this.telemetry.sendTelemetryEvent(
-      "executeSQL",
-      {
-        queryTemplate: queryTemplate,
-        adapter: this.getAdapterType(),
-      },
-      {
-        limit: limit,
-      },
-    );
-
+    this.telemetry.sendTelemetryEvent("executeSQL", {
+      adapter: this.getAdapterType(),
+      limit: limit.toString(),
+    });
+    this.terminal.debug("executeSQL", query, {
+      adapter: this.getAdapterType(),
+      limit: limit.toString(),
+    });
     // TODO: this should generate an event instead of directly going to the panel
     this.queryResultPanel.executeQuery(
       query,
-      this.dbtProjectIntegration.executeSQL(limitQuery),
-      this.getAdapterType(),
+      this.dbtProjectIntegration.executeSQL(query, limit),
     );
   }
 
@@ -662,8 +760,160 @@ select * from renamed
     }
   }
 
-  private async refresh() {
-    this.projectConfig = DBTProject.readAndParseProjectConfig(this.projectRoot);
-    await this.dbtProjectIntegration.refreshProjectConfig();
+  static isResourceNode(resource_type: string): boolean {
+    return (
+      resource_type === DBTProject.RESOURCE_TYPE_MODEL ||
+      resource_type === DBTProject.RESOURCE_TYPE_SEED ||
+      resource_type === DBTProject.RESOURCE_TYPE_ANALYSIS ||
+      resource_type === DBTProject.RESOURCE_TYPE_SNAPSHOT
+    );
+  }
+  static isResourceHasDbColumns(resource_type: string): boolean {
+    return (
+      resource_type === DBTProject.RESOURCE_TYPE_MODEL ||
+      resource_type === DBTProject.RESOURCE_TYPE_SEED ||
+      resource_type === DBTProject.RESOURCE_TYPE_SNAPSHOT
+    );
+  }
+
+  static getNonEphemeralParents(
+    event: ManifestCacheProjectAddedEvent,
+    keys: string[],
+  ): string[] {
+    const { nodeMetaMap, graphMetaMap } = event;
+    const { parents } = graphMetaMap;
+    const parentSet = new Set<string>();
+    const queue = keys;
+    const visited: Record<string, boolean> = {};
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      if (visited[curr]) {
+        continue;
+      }
+      visited[curr] = true;
+      const parent = parents.get(curr);
+      if (!parent) {
+        continue;
+      }
+      for (const n of parent.nodes) {
+        const splits = n.key.split(".");
+        const resource_type = splits[0];
+        if (resource_type !== DBTProject.RESOURCE_TYPE_MODEL) {
+          parentSet.add(n.key);
+          continue;
+        }
+        if (nodeMetaMap.get(splits[2])?.config.materialized === "ephemeral") {
+          queue.push(n.key);
+        } else {
+          parentSet.add(n.key);
+        }
+      }
+    }
+    return Array.from(parentSet);
+  }
+
+  mergeColumnsFromDB(
+    node: Pick<ModelNode, "columns">,
+    columnsFromDB: DBColumn[],
+  ) {
+    if (!columnsFromDB || columnsFromDB.length === 0) {
+      return false;
+    }
+    if (columnsFromDB.length > 100) {
+      // Flagging events where more than 100 columns are fetched from db to get a sense of how many of these happen
+      this.telemetry.sendTelemetryEvent("excessiveColumnsFetchedFromDB");
+    }
+    const columns: Record<string, ColumnMetaData> = {};
+    Object.entries(node.columns).forEach(([k, v]) => {
+      columns[k.toLowerCase()] = v;
+    });
+
+    for (const c of columnsFromDB) {
+      const existing_column = columns[c.column.toLowerCase()];
+      if (existing_column) {
+        existing_column.data_type = existing_column.data_type || c.dtype;
+        continue;
+      }
+      node.columns[c.column] = {
+        name: c.column,
+        data_type: c.dtype,
+        description: "",
+      };
+    }
+    if (Object.keys(node.columns).length > columnsFromDB.length) {
+      // Flagging events where columns fetched from db are less than the number of columns in the manifest
+      this.telemetry.sendTelemetryEvent("possibleStaleSchema");
+    }
+    return true;
+  }
+
+  async getNodesWithDBColumns(
+    event: ManifestCacheProjectAddedEvent,
+    modelsToFetch: string[],
+  ) {
+    const { nodeMetaMap, sourceMetaMap } = event;
+    const mappedNode: Record<string, ModelNode> = {};
+    const bulkSchemaRequest: DBTNode[] = [];
+    const relationsWithoutColumns: string[] = [];
+
+    for (const key of modelsToFetch) {
+      const splits = key.split(".");
+      const resource_type = splits[0];
+      if (resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {
+        const source = sourceMetaMap.get(splits[2]);
+        const tableName = splits[3];
+        if (!source) {
+          continue;
+        }
+        const table = source?.tables.find((t) => t.name === tableName);
+        if (!table) {
+          continue;
+        }
+        bulkSchemaRequest.push({
+          unique_id: key,
+          name: source.name,
+          resource_type,
+          table: table.name,
+        } as SourceNode);
+        const node = {
+          database: source.database,
+          schema: source.schema,
+          name: table.name,
+          alias: table.identifier,
+          uniqueId: key,
+          columns: table.columns,
+        };
+        mappedNode[key] = node;
+      } else if (DBTProject.isResourceNode(resource_type)) {
+        const node = nodeMetaMap.get(splits[2]);
+        if (!node) {
+          continue;
+        }
+        if (DBTProject.isResourceHasDbColumns(resource_type)) {
+          bulkSchemaRequest.push({
+            unique_id: key,
+            name: node.name,
+            resource_type,
+          });
+        }
+        mappedNode[key] = node;
+      }
+    }
+    const bulkSchemaResponse = await this.getBulkSchema(bulkSchemaRequest);
+    for (const key of modelsToFetch) {
+      const node = mappedNode[key];
+      if (!node) {
+        continue;
+      }
+      const dbColumnAdded = this.mergeColumnsFromDB(
+        node,
+        bulkSchemaResponse[key],
+      );
+      if (!dbColumnAdded) {
+        relationsWithoutColumns.push(key);
+      }
+    }
+
+    return { mappedNode, relationsWithoutColumns };
   }
 }

@@ -27,6 +27,7 @@ export interface NodeMetaData {
   patch_path: string;
   columns: { [columnName: string]: ColumnMetaData };
   config: Config;
+  resource_type: string;
 }
 
 export interface ColumnMetaData {

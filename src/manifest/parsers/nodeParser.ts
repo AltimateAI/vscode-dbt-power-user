@@ -14,12 +14,8 @@ export class NodeParser {
       if (nodesMap === null || nodesMap === undefined) {
         resolve(modelMetaMap);
       }
-      const nodesMaps = Object.values(nodesMap).filter(
-        (model) =>
-          model.resource_type === DBTProject.RESOURCE_TYPE_MODEL ||
-          model.resource_type === DBTProject.RESOURCE_TYPE_SEED ||
-          model.resource_type === DBTProject.RESOURCE_TYPE_ANALYSIS ||
-          model.resource_type === DBTProject.RESOURCE_TYPE_SNAPSHOT,
+      const nodesMaps = Object.values(nodesMap).filter((model) =>
+        DBTProject.isResourceNode(model.resource_type),
       );
       const rootPath = project.projectRoot.fsPath;
       // TODO: these things can change so we should recreate them if project config changes
@@ -43,6 +39,7 @@ export class NodeParser {
           description,
           patch_path,
           config,
+          resource_type,
         } = nodesMap;
         const fullPath = createFullPathForNode(
           projectName,
@@ -66,6 +63,7 @@ export class NodeParser {
           description,
           patch_path,
           config,
+          resource_type,
         });
       }
       resolve(modelMetaMap);

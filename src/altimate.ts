@@ -1,8 +1,26 @@
 import { env, Uri, window, workspace } from "vscode";
-import { provideSingleton } from "./utils";
+import { provideSingleton, processStreamResponse } from "./utils";
 import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
+import { join } from "path";
+import { createWriteStream, mkdirSync } from "fs";
+import * as os from "os";
+import { RateLimitException } from "./exceptions";
+import { DBTProject } from "./manifest/dbtProject";
+import { DBTTerminal } from "./dbt_client/dbtTerminal";
+
+export class NoCredentialsError extends Error {}
+
+export class NotFoundError extends Error {}
+
+export class ForbiddenError extends Error {
+  constructor() {
+    super("Invalid credentials. Please check instance name and API Key.");
+  }
+}
+
+export class APIError extends Error {}
 
 interface AltimateConfig {
   key: string;
@@ -33,7 +51,7 @@ export interface DBTColumnLineageRequest {
   model_dialect: string;
   model_info: {
     model_node: ModelNode;
-    compiled_sql: string | undefined;
+    compiled_sql?: string;
   }[];
   schemas?: Schemas | null;
   upstream_expansion: boolean;
@@ -44,6 +62,7 @@ export interface DBTColumnLineageRequest {
   parent_models: {
     model_node: ModelNode;
   }[];
+  session_id: string;
 }
 
 export interface DBTColumnLineageResponse {
@@ -58,7 +77,7 @@ interface SQLToModelRequest {
   sources: SourceMetaData[];
 }
 
-interface SQLToModelResponse {
+export interface SQLToModelResponse {
   sql: string;
 }
 
@@ -69,7 +88,57 @@ interface OnewayFeedback {
   data: any;
 }
 
-interface DocsGenerateModelRequest {
+export enum QueryAnalysisType {
+  EXPLAIN = "explain",
+  FIX = "fix",
+  MODIFY = "modify",
+}
+
+export enum QueryAnalysisChatType {
+  SYSTEM = "SystemMessage",
+  HUMAN = "HumanMessage",
+}
+
+interface QueryAnalysisChat {
+  type: QueryAnalysisChatType;
+  content: string;
+  additional_kwargs?: Record<string, unknown>;
+}
+
+export interface QueryAnalysisRequest {
+  session_id: string;
+  job_type: QueryAnalysisType;
+  model: DocsGenerateModelRequestV2["dbt_model"];
+  user_request?: string; // required for modify query
+  history?: QueryAnalysisChat[];
+}
+
+interface DocsGenerateModelRequestV2 {
+  columns: string[];
+  dbt_model: {
+    model_name: string;
+    model_description?: string;
+    compiled_sql?: string;
+    columns: {
+      column_name: string;
+      description?: string;
+      data_type?: string;
+    }[];
+    adapter?: string;
+  };
+  user_instructions?: {
+    prompt_hint: string;
+    language: string;
+    persona: string;
+  };
+  follow_up_instructions?: {
+    instruction: string;
+  };
+
+  gen_model_description: boolean;
+}
+
+export interface DocsGenerateModelRequest {
   columns: string[];
   dbt_model: {
     model_name: string;
@@ -86,7 +155,7 @@ interface DocsGenerateModelRequest {
   gen_model_description: boolean;
 }
 
-interface DocsGenerateResponse {
+export interface DocsGenerateResponse {
   column_descriptions?: {
     column_name: string;
     column_description: string;
@@ -94,24 +163,17 @@ interface DocsGenerateResponse {
   model_description?: string;
 }
 
-interface DocPromptOptionsResponse {
-  prompt_options: {
-    options: {
-      key: string;
-      value: string;
-    }[];
-  }[];
+interface DBTCoreIntegration {
+  id: number;
+  name: string;
+  created_at: string;
+  last_modified_at: string;
+  last_file_upload_time: string;
 }
 
-interface QuerySummaryResponse {
-  explanation: string;
-  ok: string;
-}
-
-interface ValidateSqlRequest {
-  sql: string;
-  adapter: string;
-  models: ModelNode[];
+interface DownloadArtifactResponse {
+  url: string;
+  dbt_core_integration_file_id: number;
 }
 
 export type ValidateSqlParseErrorType =
@@ -128,6 +190,10 @@ export interface ValidateSqlParseErrorResponse {
   }[];
 }
 
+interface FeedbackResponse {
+  ok: boolean;
+}
+
 enum PromptAnswer {
   YES = "Get your free API Key",
 }
@@ -138,7 +204,10 @@ export class AltimateRequest {
     .getConfiguration("dbt")
     .get<string>("altimateUrl", "https://api.myaltimate.com");
 
-  constructor(private telemetry: TelemetryService) {}
+  constructor(
+    private telemetry: TelemetryService,
+    private dbtTerminal: DBTTerminal,
+  ) {}
 
   getConfig(): AltimateConfig | undefined {
     const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
@@ -168,54 +237,141 @@ export class AltimateRequest {
     }
   }
 
-  handlePreviewFeatures(): boolean {
+  getCredentialsMessage(): string | undefined {
     const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
     const instance = workspace
       .getConfiguration("dbt")
       .get<string>("altimateInstanceName");
 
-    if (key && instance) {
-      return true;
-    }
-    let message = "";
     if (!key && !instance) {
-      message = `To use this feature, please add an API Key and an instance name in the settings.`;
-    } else if (!key) {
-      message = `To use this feature, please add an API key in the settings.`;
-    } else {
-      message = `To use this feature, please add an instance name in the settings.`;
+      return `To use this feature, please add an API Key and an instance name in the settings.`;
+    }
+    if (!key) {
+      return `To use this feature, please add an API key in the settings.`;
+    }
+    if (!instance) {
+      return `To use this feature, please add an instance name in the settings.`;
+    }
+    return;
+  }
+
+  handlePreviewFeatures(): boolean {
+    const message = this.getCredentialsMessage();
+    if (!message) {
+      return true;
     }
     this.showAPIKeyMessage(message);
     return false;
   }
 
-  async fetch<T>(endpoint: string, fetchArgs = {}, timeout: number = 120000) {
-    console.log("network:request:", endpoint, ":", fetchArgs);
+  async fetchAsStream<R>(
+    endpoint: string,
+    request: R,
+    onProgress: (response: string) => void,
+    timeout: number = 120000,
+  ) {
+    const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
+    this.dbtTerminal.debug("fetchAsStream:request", url, request);
+    const config = this.getConfig()!;
+    const abortController = new AbortController();
+    const timeoutHandler = setTimeout(() => {
+      abortController.abort();
+    }, timeout);
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        body: JSON.stringify(request),
+        signal: abortController.signal,
+        headers: {
+          "x-tenant": config.instance,
+          Authorization: "Bearer " + config.key,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok && response.status === 200) {
+        if (!response?.body) {
+          this.dbtTerminal.debug("fetchAsStream", "empty response");
+          return null;
+        }
+        const responseText = await processStreamResponse(
+          response.body,
+          onProgress,
+        );
+
+        return responseText;
+      }
+      if (
+        // response codes when backend authorization fails
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        this.telemetry.sendTelemetryEvent("invalidCredentials", { url });
+        throw new ForbiddenError();
+      }
+      if (response.status === 404) {
+        this.telemetry.sendTelemetryEvent("resourceNotFound", { url });
+        throw new NotFoundError("Resource Not found");
+      }
+      const textResponse = await response.text();
+      this.dbtTerminal.debug(
+        "network:response",
+        "error from backend",
+        textResponse,
+      );
+      if (response.status === 429) {
+        throw new RateLimitException(
+          textResponse,
+          response.headers.get("Retry-After")
+            ? parseInt(response.headers.get("Retry-After") || "")
+            : 1 * 60 * 1000, // default to 1 min
+        );
+      }
+      this.telemetry.sendTelemetryError("apiError", {
+        endpoint,
+        status: response.status,
+        textResponse,
+      });
+      throw new APIError(
+        `Could not process request, server responded with ${response.status}: ${textResponse}`,
+      );
+    } catch (error) {
+      this.dbtTerminal.error(
+        "apiCatchAllError",
+        "fetchAsStream catchAllError",
+        error,
+        true,
+        {
+          endpoint,
+        },
+      );
+      throw error;
+    } finally {
+      clearTimeout(timeoutHandler);
+    }
+    return null;
+  }
+
+  async fetch<T>(
+    endpoint: string,
+    fetchArgs = {},
+    timeout: number = 120000,
+  ): Promise<T> {
+    this.dbtTerminal.debug("network:request", endpoint, fetchArgs);
     const abortController = new AbortController();
     const timeoutHandler = setTimeout(() => {
       abortController.abort();
     }, timeout);
 
-    const config = this.getConfig();
-    if (config === undefined) {
-      this.showAPIKeyMessage(
-        "To use this feature, please add an API Key and an instance name in the settings.",
-      );
-      return;
+    const message = this.getCredentialsMessage();
+    if (message) {
+      throw new NoCredentialsError(message);
     }
+    const config = this.getConfig()!;
 
-    if (!config.instance || !config.key) {
-      window.showErrorMessage(
-        "Credentials are not set properly. Please refer to Altimate [docs](https://docs.myaltimate.com).",
-      );
-      return;
-    }
-
-    let response;
     try {
       const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
-      console.log("network:url:", url);
-      response = await fetch(url, {
+      const response = await fetch(url, {
         method: "GET",
         ...fetchArgs,
         signal: abortController.signal,
@@ -225,39 +381,110 @@ export class AltimateRequest {
           "Content-Type": "application/json",
         },
       });
-      console.log("network:response:", endpoint, ":", response.status);
+      this.dbtTerminal.debug("network:response", endpoint, response.status);
       if (response.ok && response.status === 200) {
         const jsonResponse = await response.json();
-        clearTimeout(timeoutHandler);
         return jsonResponse as T;
       }
       if (
         // response codes when backend authorization fails
         response.status === 401 ||
-        response.status === 403 ||
-        response.status === 404
+        response.status === 403
       ) {
-        window.showErrorMessage("Invalid credentials");
-        this.telemetry.sendTelemetryEvent("invalidCredentials");
+        this.telemetry.sendTelemetryEvent("invalidCredentials", { url });
+        throw new ForbiddenError();
+      }
+      if (response.status === 404) {
+        this.telemetry.sendTelemetryEvent("resourceNotFound", { url });
+        throw new NotFoundError("Resource Not found");
       }
       const textResponse = await response.text();
-      console.log("network:response:error:", textResponse);
+      this.dbtTerminal.debug(
+        "network:response",
+        "error from backend",
+        textResponse,
+      );
+      if (response.status === 429) {
+        throw new RateLimitException(
+          textResponse,
+          response.headers.get("Retry-After")
+            ? parseInt(response.headers.get("Retry-After") || "")
+            : 1 * 60 * 1000, // default to 1 min
+        );
+      }
       this.telemetry.sendTelemetryError("apiError", {
         endpoint,
         status: response.status,
         textResponse,
       });
-      clearTimeout(timeoutHandler);
-      return {} as T;
+      throw new APIError(
+        `Could not process request, server responded with ${response.status}: ${textResponse}`,
+      );
     } catch (e) {
-      console.log("network:response:catchAllError:", e);
-      this.telemetry.sendTelemetryError("apiCatchAllError", e, {
+      this.dbtTerminal.error("apiCatchAllError", "catchAllError", e, true, {
         endpoint,
       });
-      clearTimeout(timeoutHandler);
       throw e;
+    } finally {
+      clearTimeout(timeoutHandler);
     }
   }
+
+  async downloadFileLocally(
+    artifactUrl: string,
+    projectRoot: Uri,
+    fileName = "manifest.json",
+  ): Promise<string> {
+    const hashedProjectRoot = DBTProject.hashProjectRoot(projectRoot.fsPath);
+    const tempFolder = join(os.tmpdir(), hashedProjectRoot);
+
+    try {
+      this.dbtTerminal.debug(
+        "AltimateRequest",
+        `creating temporary folder: ${tempFolder} for file: ${fileName}`,
+      );
+      mkdirSync(tempFolder, { recursive: true });
+
+      const destinationPath = join(tempFolder, fileName);
+
+      this.dbtTerminal.debug(
+        "AltimateRequest",
+        `fetching artifactUrl: ${artifactUrl}`,
+      );
+      const response = await fetch(artifactUrl, { agent: undefined });
+
+      const fileStream = createWriteStream(destinationPath);
+      await new Promise((resolve, reject) => {
+        response.body?.pipe(fileStream);
+        response.body?.on("error", reject);
+        fileStream.on("finish", resolve);
+      });
+
+      this.dbtTerminal.debug("File downloaded successfully!", fileName);
+      return tempFolder;
+    } catch (err) {
+      this.dbtTerminal.error(
+        "downloadFileLocally",
+        `Could not save ${fileName} locally`,
+        err,
+      );
+      window.showErrorMessage(`Could not save ${fileName} locally: ${err}`);
+      throw err;
+    }
+  }
+
+  private getQueryString = (
+    params: Record<string, string | number>,
+  ): string => {
+    const queryString = Object.keys(params)
+      .map(
+        (key) =>
+          `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`,
+      )
+      .join("&");
+
+    return queryString ? `?${queryString}` : "";
+  };
 
   async isAuthenticated() {
     try {
@@ -277,16 +504,17 @@ export class AltimateRequest {
     });
   }
 
-  async sendFeedback(feedback: OnewayFeedback) {
-    await this.fetch<void>("feedbacks/ai/fb", {
+  async generateModelDocsV2(docsGenerate: DocsGenerateModelRequestV2) {
+    return this.fetch<DocsGenerateResponse>("dbt/v2", {
       method: "POST",
-      body: JSON.stringify(feedback),
+      body: JSON.stringify(docsGenerate),
     });
   }
 
-  async getDocPromptOptions() {
-    await this.fetch<DocPromptOptionsResponse>("dbt/v1/doc_prompt_options", {
+  async sendFeedback(feedback: OnewayFeedback) {
+    return await this.fetch<FeedbackResponse>("feedbacks/ai/fb", {
       method: "POST",
+      body: JSON.stringify(feedback),
     });
   }
 
@@ -304,20 +532,6 @@ export class AltimateRequest {
     });
   }
 
-  async getQuerySummary(compiled_sql: string, adapter: string) {
-    return this.fetch<QuerySummaryResponse>("dbt/v1/query-explain", {
-      method: "POST",
-      body: JSON.stringify({ compiled_sql, adapter }),
-    });
-  }
-
-  async validateSql(req: ValidateSqlRequest) {
-    return this.fetch<ValidateSqlParseErrorResponse>("dbt/v1/modelvalidation", {
-      method: "POST",
-      body: JSON.stringify(req),
-    });
-  }
-
   async validateCredentials(instance: string, key: string) {
     const url = `${AltimateRequest.ALTIMATE_URL}/dbt/v3/validate-credentials`;
     const response = await fetch(url, {
@@ -329,5 +543,25 @@ export class AltimateRequest {
       },
     });
     return (await response.json()) as Record<string, any> | undefined;
+  }
+
+  async fetchProjectIntegrations() {
+    return this.fetch<DBTCoreIntegration[]>("dbt/v1/project_integrations");
+  }
+
+  async sendDeferToProdEvent(defer_type: string) {
+    return this.fetch("dbt/v1/defer_to_prod_event", {
+      method: "POST",
+      body: JSON.stringify({ defer_type }),
+    });
+  }
+
+  async fetchArtifactUrl(artifact_type: string, dbtCoreIntegrationId: number) {
+    return this.fetch<DownloadArtifactResponse>(
+      `dbt/v1/fetch_artifact_url${this.getQueryString({
+        artifact_type: artifact_type,
+        dbt_core_integration_id: dbtCoreIntegrationId,
+      })}`,
+    );
   }
 }

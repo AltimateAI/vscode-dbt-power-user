@@ -1,4 +1,4 @@
-import { ChildProcess, spawn } from "child_process";
+import { spawn } from "child_process";
 import { provide } from "inversify-binding-decorators";
 import { CancellationToken, Disposable } from "vscode";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
@@ -11,14 +11,14 @@ export class CommandProcessExecutionFactory {
     args,
     stdin,
     cwd,
-    token,
+    tokens,
     envVars,
   }: {
     command: string;
     args?: string[];
     stdin?: string;
     cwd?: string;
-    token?: CancellationToken;
+    tokens?: CancellationToken[];
     envVars?: EnvironmentVariables;
   }) {
     return new CommandProcessExecution(
@@ -26,10 +26,16 @@ export class CommandProcessExecutionFactory {
       args,
       stdin,
       cwd,
-      token,
+      tokens,
       envVars,
     );
   }
+}
+
+export interface CommandProcessResult {
+  stdout: string;
+  stderr: string;
+  fullOutput: string;
 }
 
 export class CommandProcessExecution {
@@ -40,7 +46,7 @@ export class CommandProcessExecution {
     private args?: string[],
     private stdin?: string,
     private cwd?: string,
-    private token?: CancellationToken,
+    private tokens?: CancellationToken[],
     private envVars?: EnvironmentVariables,
   ) {}
 
@@ -49,11 +55,13 @@ export class CommandProcessExecution {
       cwd: this.cwd,
       env: this.envVars,
     });
-    if (this.token !== undefined) {
-      this.disposables.push(
-        this.token.onCancellationRequested(() => {
-          proc.kill("SIGINT");
-        }),
+    if (this.tokens !== undefined) {
+      this.tokens.forEach((token) =>
+        this.disposables.push(
+          token.onCancellationRequested(() => {
+            proc.kill("SIGTERM");
+          }),
+        ),
       );
     }
     return proc;
@@ -68,31 +76,30 @@ export class CommandProcessExecution {
     }
   }
 
-  async complete(): Promise<string> {
-    return new Promise<string>((resolve, reject) => {
+  async complete(): Promise<CommandProcessResult> {
+    return new Promise<CommandProcessResult>((resolve, reject) => {
       const commandProcess = this.spawn();
       let stdoutBuffer = "";
       let stderrBuffer = "";
-      commandProcess.stdout!.on(
-        "data",
-        (chunk) => (stdoutBuffer += chunk.toString()),
-      );
-      commandProcess.stderr!.on(
-        "data",
-        (chunk) => (stderrBuffer += chunk.toString()),
-      );
+      let fullOutput = "";
+      commandProcess.stdout!.on("data", (chunk) => {
+        chunk = chunk.toString();
+        stdoutBuffer += chunk;
+        fullOutput += chunk;
+      });
+      commandProcess.stderr!.on("data", (chunk) => {
+        chunk = chunk.toString();
+        stderrBuffer += chunk;
+        fullOutput += chunk;
+      });
 
       commandProcess.once("close", () => {
-        if (stderrBuffer) {
-          reject(stderrBuffer);
-        } else {
-          resolve(stdoutBuffer);
-        }
+        resolve({ stdout: stdoutBuffer, stderr: stderrBuffer, fullOutput });
       });
 
       commandProcess.once("error", (error) => {
         console.warn(error);
-        reject(`${error}`);
+        reject(new Error(`${error}`));
       });
 
       if (this.stdin) {
@@ -102,32 +109,33 @@ export class CommandProcessExecution {
     });
   }
 
-  async completeWithTerminalOutput(terminal: DBTTerminal): Promise<string> {
+  async completeWithTerminalOutput(
+    terminal: DBTTerminal,
+  ): Promise<CommandProcessResult> {
     return new Promise((resolve, reject) => {
       const commandProcess = this.spawn();
       let stdoutBuffer = "";
       let stderrBuffer = "";
+      let fullOutput = "";
       commandProcess.stdout!.on("data", (chunk) => {
         const line = `${this.formatText(chunk.toString())}`;
         stdoutBuffer += line;
         terminal.log(line);
+        fullOutput += line;
       });
       commandProcess.stderr!.on("data", (chunk) => {
         const line = `${this.formatText(chunk.toString())}`;
         stderrBuffer += line;
         terminal.log(line);
+        fullOutput += line;
       });
       commandProcess.once("close", () => {
-        if (stderrBuffer) {
-          reject(stderrBuffer);
-        } else {
-          terminal.log("");
-          resolve(stdoutBuffer);
-        }
+        resolve({ stdout: stdoutBuffer, stderr: stderrBuffer, fullOutput });
+        terminal.log("");
         this.dispose();
       });
       commandProcess.once("error", (error) => {
-        reject(`Error occurred during process execution: ${error}`);
+        reject(new Error(`Error occurred during process execution: ${error}`));
       });
 
       if (this.stdin) {

@@ -11,13 +11,8 @@ import styles from "./styles.module.scss";
 import classNames from "classnames";
 import { Button } from "reactstrap";
 import { getColumns, Columns, Column, Table } from "./service";
-import {
-  aiEnabled,
-  endProgressBar,
-  LineageContext,
-  previewFeature,
-  startProgressBar,
-} from "./App";
+import { aiEnabled, LineageContext } from "./App";
+import { previewFeature, showInfoNotification, CLL } from "./service_utils";
 import {
   bfsTraversal,
   expandTableLineage,
@@ -27,15 +22,14 @@ import {
 } from "./graph";
 
 // ui components
-import { ComponentLoader } from "./Loader";
-import { ColumnDatatype } from "./Column";
-import { ColorTag } from "./Tags";
+import { ComponentLoader } from "./components/Loader";
+import { ColumnDatatype, NodeTypeIcon } from "./components/Column";
+import { ColorTag } from "./components/Tags";
 
 // assets
-import ExpandLineageIcon from "./assets/icons/expand_lineage.svg?react";
+import ExpandLineageIcon from "./assets/icons/expand-lineage.svg?react";
 import Preview from "./assets/icons/preview.svg?react";
-import { NodeTypeIcon } from "./CustomNodes";
-import { CustomInput } from "./Form";
+import { CustomInput } from "./components/Form";
 import { defaultEdgeStyle, isNotColumn } from "./utils";
 import PurposeSection from "./components/Purpose";
 
@@ -115,10 +109,8 @@ const ColumnSection: FunctionComponent<{
               size="sm"
               color="primary"
               onClick={() => {
-                if (!selectedTable) {
-                  return;
-                }
-                getColumns(selectedTable, true).then((_data) => {
+                if (!selectedTable) return;
+                getColumns(selectedTable.table, true).then((_data) => {
                   setData(_data);
                   setFilteredColumn(_data.columns);
                 });
@@ -226,9 +218,7 @@ const TableDetails = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
-    if (!selectedTable) {
-      return;
-    }
+    if (!selectedTable) return;
     getColumns(selectedTable, false).then((_data) => {
       setData(_data);
       setFilteredColumn(_data.columns);
@@ -241,6 +231,13 @@ const TableDetails = () => {
       previewFeature();
       return;
     }
+
+    if (CLL.inProgress) {
+      CLL.showCllInProgressMsg();
+      return;
+    }
+
+    // remove column selection when already selected
     if (
       selectedColumn.table === _column.table &&
       selectedColumn.name === _column.name
@@ -251,12 +248,18 @@ const TableDetails = () => {
       );
       flow.setNodes(_nodes);
       flow.setEdges(_edges);
-      setSelectedColumn({ table: "", name: "" });
+      setSelectedColumn({ table: "", name: "", sessionId: "" });
       setCollectColumns({});
       setShowSidebar(false);
       return;
     }
-    startProgressBar();
+
+    const tableNodeData = flow.getNode(_column.table)?.data;
+    if (!tableNodeData) {
+      throw new Error(`table node ${_column.table} isn't visible`);
+    }
+
+    // expand 1st level if not already
     let _nodes = flow.getNodes();
     let _edges = flow.getEdges();
     const addNodesEdges = async (right: boolean) => {
@@ -268,19 +271,26 @@ const TableDetails = () => {
       );
       layoutElementsOnCanvas(_nodes, _edges);
     };
-    const tableNode = flow.getNode(_column.table);
-    if (tableNode) {
-      const {
-        data: { processed },
-      } = tableNode;
-      if (!processed[1]) await addNodesEdges(true);
-      if (!processed[0]) await addNodesEdges(false);
-    }
-    setSelectedColumn(_column);
+    const { upstreamCount, downstreamCount } = tableNodeData;
+    if (
+      upstreamCount > 0 &&
+      upstreamCount < _edges.filter((e) => e.source === _column.table).length
+    )
+      await addNodesEdges(true);
+    if (
+      downstreamCount > 0 &&
+      downstreamCount < _edges.filter((e) => e.target === _column.table).length
+    )
+      await addNodesEdges(false);
+
+    // initializing states
+    const sessionId = window.crypto.randomUUID();
+    setSelectedColumn({ ..._column, sessionId });
     setShowSidebar(false);
     setCollectColumns({});
+    setConfidence({ confidence: "high" });
 
-    // resetting existing styles
+    // resetting canvas
     const [nodes, edges] = resetTableHighlights(
       _nodes.filter(isNotColumn),
       _edges.filter(isNotColumn)
@@ -288,8 +298,9 @@ const TableDetails = () => {
     edges.forEach((_e) => (_e.style = defaultEdgeStyle));
     flow.setNodes(nodes);
     flow.setEdges(edges);
-    setConfidence({ confidence: "high" });
     rerender();
+
+    // starting column lineage
     const _bfsTraversal = (right: boolean) =>
       bfsTraversal(
         nodes,
@@ -299,24 +310,55 @@ const TableDetails = () => {
         setConfidence,
         setMoreTables,
         setCollectColumns,
-        flow
+        flow,
+        sessionId
       );
-    await Promise.all([_bfsTraversal(true), _bfsTraversal(false)]);
-    endProgressBar();
+    try {
+      CLL.start();
+      const result = await Promise.all([
+        _bfsTraversal(true),
+        _bfsTraversal(false),
+      ]);
+      if (result.every((isLineage) => !isLineage)) {
+        if (CLL.isCancelled) {
+          setSelectedColumn({ table: "", name: "", sessionId: "" });
+        } else {
+          showInfoNotification(
+            `No lineage found for model ${_column.table} and column ${_column.name}`
+          );
+        }
+      }
+    } catch (e) {
+      console.error(
+        "Error while performing cll for ",
+        _column.table,
+        _column.name,
+        ", error:",
+        e
+      );
+      setSelectedColumn({ table: "", name: "", sessionId: "" });
+    } finally {
+      CLL.end();
+    }
   };
+  const selectedTableData = flow.getNode(selectedTable)?.data;
   if (isLoading || !data || !selectedTable) return <ComponentLoader />;
+  const tabs = ["Column"];
+  if (selectedTableData.tests.length) tabs.push("Tests");
 
   return (
     <div className="p-2 h-100 d-flex flex-column gap-md overflow-y">
       <div className={styles.table_details_header}>
-        <NodeTypeIcon nodeType={selectedTable.nodeType} />
+        <NodeTypeIcon nodeType={selectedTableData.nodeType} />
         <div className="d-flex align-items-center">
-          <div className="fw-semibold fs-5 lines-2">{selectedTable.label}</div>
+          <div className="fw-semibold fs-5 lines-2">
+            {selectedTableData.label}
+          </div>
         </div>
       </div>
       {data.purpose && <PurposeSection purpose={data.purpose} />}
       <div className={styles.table_details_tabs}>
-        {["Column", "Tests"].map((label, i) => (
+        {tabs.map((label, i) => (
           <div
             className={classNames(styles.tab, { [styles.selected]: tab === i })}
             onClick={() => setTab(i)}
@@ -327,7 +369,7 @@ const TableDetails = () => {
       </div>
       {tab === 0 && (
         <ColumnSection
-          selectedTable={selectedTable}
+          selectedTable={selectedTableData}
           selectedColumn={selectedColumn}
           filteredColumn={filteredColumn}
           setFilteredColumn={setFilteredColumn}
@@ -336,7 +378,7 @@ const TableDetails = () => {
           setData={setData}
         />
       )}
-      {tab === 1 && <TestSection tests={selectedTable.tests} />}
+      {tab === 1 && <TestSection tests={selectedTableData.tests} />}
     </div>
   );
 };

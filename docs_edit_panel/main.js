@@ -62,7 +62,11 @@ const app = createApp({
     async generateDocsForModel(promptHint) {
       await executeCommand("generateDocsForModel", {
         description: this.docs?.description,
-        promptHint,
+        user_instructions: {
+          promptHint,
+          language: "English",
+          persona: "Data Analyst",
+        },
         columns: this.docs?.columns.map((col) => ({
           name: col.name,
           type: col.type,
@@ -84,6 +88,9 @@ const app = createApp({
     },
     async fetchMetadataFromDatabase() {
       await executeCommand("fetchMetadataFromDatabase");
+    },
+    async showBetaUX() {
+      await executeCommand("enableNewDocsPanel", { enable: true });
     },
     async saveDocumentation() {
       await executeCommand(
