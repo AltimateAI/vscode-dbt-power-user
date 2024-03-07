@@ -59,12 +59,10 @@ export class MacroParser {
             }
           }
         } catch (error) {
-          console.log(
-            `File not found at '${fullPath}', project may need to be recompiled.`,
+          this.terminal.debug(
+            "MacroParser",
+            `File not found at '${fullPath}', probably compiled is outdated.`,
             error,
-          );
-          this.terminal.log(
-            `File not found at '${fullPath}', probably compiled is outdated. ${error}`,
           );
         }
       }

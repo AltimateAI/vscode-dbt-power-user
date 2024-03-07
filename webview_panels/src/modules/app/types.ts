@@ -1,8 +1,12 @@
 import { DataPilotChat } from "@modules/dataPilot/types";
 import { UnknownAction } from "@reduxjs/toolkit";
 
+export enum Themes {
+  Dark = "dark",
+  Light = "light",
+}
 export interface AppStateProps {
-  theme: string;
+  theme: Themes;
 }
 
 export interface ContextProps {

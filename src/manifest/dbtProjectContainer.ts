@@ -15,7 +15,10 @@ import { EnvironmentVariables, RunModelType } from "../domain";
 import { provideSingleton } from "../utils";
 import { DBTProject } from "./dbtProject";
 import { DBTWorkspaceFolder } from "./dbtWorkspaceFolder";
-import { ManifestCacheChangedEvent } from "./event/manifestCacheChangedEvent";
+import {
+  ManifestCacheChangedEvent,
+  RebuildManifestCombinedStatusChange,
+} from "./event/manifestCacheChangedEvent";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 enum PromptAnswer {
@@ -44,6 +47,11 @@ export class DBTProjectContainer implements Disposable {
   ];
   private context?: ExtensionContext;
   private projects: Map<Uri, string> = new Map<Uri, string>();
+  private _onRebuildManifestStatusChange =
+    new EventEmitter<RebuildManifestCombinedStatusChange>();
+  readonly onRebuildManifestStatusChange =
+    this._onRebuildManifestStatusChange.event;
+  private rebuildManifestStatusChangeMap = new Map<string, boolean>();
 
   constructor(
     private dbtClient: DBTClient,
@@ -55,6 +63,7 @@ export class DBTProjectContainer implements Disposable {
       pythonPath?: string,
       envVars?: EnvironmentVariables,
     ) => DBTWorkspaceFolder,
+    private dbtTerminal: DBTTerminal,
   ) {
     this.disposables.push(
       workspace.onDidChangeWorkspaceFolders(async (event) => {
@@ -150,10 +159,20 @@ export class DBTProjectContainer implements Disposable {
       "showSetupWalkthrough",
     );
     if (showSetupWalkthrough === undefined || showSetupWalkthrough === true) {
+      this.dbtTerminal.debug(
+        "dbtProjectContainer:setupWalkthroughDisplayed",
+        "showing SetupWalkthrough: value of showSetupWalkthrough is" +
+          showSetupWalkthrough,
+      );
       this.showWalkthrough();
     }
 
     const allProjects = await this.getProjects();
+    this.dbtTerminal.debug(
+      "dbtProjectContainer:initializeWalkthrough",
+      "getProjects",
+      allProjects,
+    );
 
     commands.executeCommand(
       "setContext",
@@ -163,6 +182,11 @@ export class DBTProjectContainer implements Disposable {
     const existingAssociations = workspace
       .getConfiguration("files")
       .get<any>("associations", {});
+    this.dbtTerminal.debug(
+      "dbtProjectContainer:fileAssociationsCheck",
+      "already existing fileAssociations",
+      existingAssociations,
+    );
     let showFileAssociationsStep = false;
     Object.entries({
       "*.sql": ["jinja-sql", "sql"],
@@ -228,10 +252,6 @@ export class DBTProjectContainer implements Disposable {
     this.findDBTProject(uri)?.executeSQL(query);
   }
 
-  getSummary(uri: Uri, query: string): void {
-    this.findDBTProject(uri)?.getSummary(query);
-  }
-
   runModel(modelPath: Uri, type?: RunModelType) {
     this.findDBTProject(modelPath)?.runModel(
       this.createModelParams(modelPath, type),
@@ -242,6 +262,10 @@ export class DBTProjectContainer implements Disposable {
     this.findDBTProject(modelPath)?.buildModel(
       this.createModelParams(modelPath, type),
     );
+  }
+
+  buildProject(modelPath: Uri, type?: RunModelType) {
+    this.findDBTProject(modelPath)?.buildProject();
   }
 
   runTest(modelPath: Uri, testName: string) {
@@ -339,7 +363,32 @@ export class DBTProjectContainer implements Disposable {
       this._onManifestChanged,
       this._onProjectRegisteredUnregistered,
     );
+    this.disposables.push(
+      dbtProjectWorkspaceFolder.onRebuildManifestStatusChange((e) => {
+        this.rebuildManifestStatusChangeMap.set(
+          e.project.projectRoot.fsPath,
+          e.inProgress,
+        );
+        const inProgressProjects: DBTProject[] = Array.from(
+          this.rebuildManifestStatusChangeMap.entries(),
+        )
+          .filter(([_, inProgress]) => inProgress)
+          .map(([root, _]) => root)
+          .map((root) => this.findDBTProject(Uri.file(root)))
+          .filter((project) => project !== undefined) as DBTProject[];
+
+        this._onRebuildManifestStatusChange.fire({
+          projects: inProgressProjects,
+          inProgress: inProgressProjects.length > 0,
+        });
+      }),
+    );
     this.dbtWorkspaceFolders.push(dbtProjectWorkspaceFolder);
+    this.dbtTerminal.debug(
+      "dbtProjectContainer:registerWorkspaceFolder",
+      "dbtWorkspaceFolders",
+      this.dbtWorkspaceFolders,
+    );
     await dbtProjectWorkspaceFolder.discoverProjects();
   }
 

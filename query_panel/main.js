@@ -14,6 +14,10 @@ async function updateConfig(config) {
   return await executeCommand("updateConfig", config);
 }
 
+async function cancelQuery() {
+  return await executeCommand("cancelQuery");
+}
+
 const DEFAULT_HEIGHT = 455;
 
 class Grid {
@@ -92,7 +96,6 @@ const app = createApp({
       error: {},
       loading: false,
       limit: undefined,
-      queryTemplate: undefined,
       queryStart: Date.now(),
       queryEnd: undefined,
       timer: undefined,
@@ -117,6 +120,9 @@ const app = createApp({
       setTimeout(() => {
         document.querySelector("#panel-manager").activeid = "tab-1";
       }, 100);
+    },
+    cancelQuery() {
+      cancelQuery();
     },
     // Converts the provided data to CSV format.
     dataToCsv(columns, rows) {
@@ -214,9 +220,6 @@ const app = createApp({
       if (data.limit) {
         this.limit = data.limit;
       }
-      if (data.queryTemplate) {
-        this.queryTemplate = data.queryTemplate;
-      }
       if (data.scale) {
         this.scale = data.scale;
       }
@@ -224,59 +227,17 @@ const app = createApp({
       this.isDarkMode = data.darkMode;
       this.aiEnabled = data.aiEnabled || false;
     },
-    updateSummary(data) {
-      if (data.summary) {
-        // this.summary = data.summary;
-        console.log(data);
-        // If the query we're getting summary for is different from the one
-        // we're currently displaying, clear the data as it will create confusion.
-        let newCompiledCode = data.compiled_sql;
-        try {
-          const queryRegex = new RegExp(
-            this.queryTemplate
-              .replace(/\(/g, "\\(")
-              .replace(/\)/g, "\\)")
-              .replace(/\*/g, "\\*")
-              .replace("{query}", "([\\w\\W]+)")
-              .replace("{limit}", this.limit.toString()),
-            "gm",
-          );
-          const result = queryRegex.exec(data.compiled_sql);
-          newCompiledCode = result[1];
-        } catch (err) {}
-
-        if (this.hasCode && newCompiledCode !== this.compiledCode) {
-          this.clearData();
-        }
-        this.summary = data.summary;
-        this.compiledCode = newCompiledCode;
-      }
-    },
     focusSummaryTab() {
       document.querySelector("#panel-manager").activeid = "tab-6";
     },
     updateDispatchedCode(raw_stmt, compiled_stmt) {
       this.rawCode = raw_stmt;
-      let newCompiledCode = compiled_stmt;
-      try {
-        const queryRegex = new RegExp(
-          this.queryTemplate
-            .replace(/\(/g, "\\(")
-            .replace(/\)/g, "\\)")
-            .replace(/\*/g, "\\*")
-            .replace("{query}", "([\\w\\W]+)")
-            .replace("{limit}", this.limit.toString()),
-          "gm",
-        );
-        const result = queryRegex.exec(compiled_stmt);
-        newCompiledCode = result[1].trim();
-      } catch (err) {}
-      if (newCompiledCode !== this.previousCode && this.previousSummary) {
+      if (compiled_stmt !== this.previousCode && this.previousSummary) {
         this.summary = undefined;
         this.previousCode = undefined;
         this.previousSummary = undefined;
       }
-      this.compiledCode = newCompiledCode;
+      this.compiledCode = compiled_stmt;
       this.summary = this.previousSummary;
     },
     clearData() {
@@ -294,6 +255,9 @@ const app = createApp({
     },
     focusPreviewPane() {
       document.querySelector("#panel-manager").activeid = "tab-1";
+    },
+    focusWelcomePane() {
+      document.querySelector("#panel-manager").activeid = "tab-3";
     },
     timeExecution() {
       this.timer = setInterval(() => {
@@ -466,11 +430,10 @@ const app = createApp({
           this.updateConfig(event.data);
           break;
         case "resetState":
+          this.loading = false;
+          this.endTimer();
           this.clearData();
-          break;
-        case "renderSummary":
-          this.updateSummary(event.data);
-          this.focusSummaryTab();
+          this.focusWelcomePane();
           break;
       }
     });

@@ -11,7 +11,7 @@ import { Button, DropdownButton, List, Popover, PopoverBody } from "@uicore";
 import { useRef, useState } from "react";
 import classes from "../../styles.module.scss";
 
-const BulkGenerateButton = () => {
+const BulkGenerateButton = (): JSX.Element => {
   const [openPopover, setOpenPopover] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
   const {
@@ -45,20 +45,31 @@ const BulkGenerateButton = () => {
     return columns;
   };
   const generateDocsForMissingColumns = async () => {
-    if (!currentDocsData) {
-      return;
-    }
+    try {
+      const { columns } = (await executeRequestInSync(
+        "fetchMetadataFromDatabase",
+        {},
+      )) as { columns: DBTDocumentationColumn[] };
 
-    const columnsWithoutDescription = currentDocsData.columns.filter(
-      (column) => !column.description,
-    );
-    return bulkGenerateDocs(columnsWithoutDescription);
+      const columnsWithoutDescription = columns.filter(
+        (column) => !column.description,
+      );
+      return await bulkGenerateDocs(columnsWithoutDescription);
+    } catch (err) {
+      panelLogger.error("Unable to generate docs for missing columns");
+    }
   };
   const generateForAll = async () => {
-    if (!currentDocsData) {
-      return;
+    try {
+      const { columns } = (await executeRequestInSync(
+        "fetchMetadataFromDatabase",
+        {},
+      )) as { columns: DBTDocumentationColumn[] };
+
+      return await bulkGenerateDocs(columns);
+    } catch (err) {
+      panelLogger.error("Unable to generate docs for all columns");
     }
-    return bulkGenerateDocs(currentDocsData.columns);
   };
 
   const sendTelemetryEvent = (

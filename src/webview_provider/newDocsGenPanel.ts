@@ -5,9 +5,10 @@ import {
   workspace,
 } from "vscode";
 import { AltimateRequest } from "../altimate";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { DocGenService } from "../services/docGenService";
-import { SharedStateService } from "../services/SharedStateService";
+import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
 import { provideSingleton } from "../utils";
 import {
@@ -31,8 +32,15 @@ export class NewDocsGenPanel
     telemetry: TelemetryService,
     private docGenService: DocGenService,
     protected emitterService: SharedStateService,
+    protected dbtTerminal: DBTTerminal,
   ) {
-    super(dbtProjectContainer, altimateRequest, telemetry, emitterService);
+    super(
+      dbtProjectContainer,
+      altimateRequest,
+      telemetry,
+      emitterService,
+      dbtTerminal,
+    );
   }
   resolveWebview(
     panel: WebviewView,

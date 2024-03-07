@@ -3,9 +3,11 @@ import { UnknownAction } from "@reduxjs/toolkit";
 export enum RequestTypes {
   AI_DOC_GENERATION,
   AI_DOC_REGENERATION,
+  QUERY_ANALYSIS,
 }
 
 export enum RequestState {
+  UNINITIALIZED,
   LOADING,
   ERROR,
   COMPLETED,
@@ -32,6 +34,8 @@ export interface DataPilotChat {
 
 export interface DataPilotStateProps {
   items: Record<DataPilotChat["id"], DataPilotChat>;
+  currentSessionId?: DataPilotChat["id"];
+  showHelp: boolean;
 }
 
 export interface ContextProps {

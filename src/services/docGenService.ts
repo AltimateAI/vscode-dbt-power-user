@@ -16,6 +16,7 @@ import {
   DBTDocumentation,
   Source,
 } from "../webview_provider/docsEditPanel";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 interface GenerateDocsForColumnsProps {
   panel: WebviewView | undefined;
@@ -37,6 +38,7 @@ interface FeedbackRequestProps {
   queryText: string;
   message: any;
   eventMap: Map<string, ManifestCacheProjectAddedEvent>;
+  syncRequestId?: string;
 }
 
 const COLUMNS_PER_CHUNK = 3;
@@ -47,6 +49,7 @@ export class DocGenService {
     private altimateRequest: AltimateRequest,
     protected dbtProjectContainer: DBTProjectContainer,
     protected telemetry: TelemetryService,
+    private dbtTerminal: DBTTerminal,
   ) {}
 
   private async generateDocsForColumn(
@@ -93,11 +96,19 @@ export class DocGenService {
 
         return resolve(result);
       } catch (err) {
-        console.error("error while generating column doc", err, columns);
+        this.dbtTerminal.debug(
+          "docGenService:generateDocsForColumn",
+          "error while generating column doc" + err,
+          columns,
+        );
 
         if (err instanceof RateLimitException) {
           setTimeout(async () => {
-            console.debug("retrying generating column doc", columns);
+            this.dbtTerminal.debug(
+              "docGenService:generateDocsForColumn",
+              "retrying generating column doc",
+              columns,
+            );
             return resolve(
               await this.generateDocsForColumn(
                 documentation,
@@ -281,7 +292,8 @@ export class DocGenService {
                 chunk,
               );
               results.push(chunkResult);
-              console.log(
+              this.dbtTerminal.debug(
+                "docGenService:generateDocsForColumns",
                 "generate docs for columns chunk result",
                 chunkResult,
               );
@@ -334,8 +346,7 @@ export class DocGenService {
           this.transmitError(panel);
           window.showErrorMessage(
             extendErrorWithSupportLinks(
-              "An unexpected error occurred while generating documentation: " +
-                error,
+              "Could not generate documentation: " + (error as Error).message,
             ),
           );
           this.telemetry.sendTelemetryError(
@@ -433,8 +444,7 @@ export class DocGenService {
           this.transmitError(panel);
           window.showErrorMessage(
             extendErrorWithSupportLinks(
-              "An unexpected error occurred while generating documentation: " +
-                error,
+              "Could not generate documentation: " + (error as Error).message,
             ),
           );
           this.telemetry.sendTelemetryError("generateDocsForModelError", error);
@@ -448,6 +458,7 @@ export class DocGenService {
     message,
     eventMap,
     panel,
+    syncRequestId,
   }: FeedbackRequestProps) {
     this.telemetry.sendTelemetryEvent("altimateGenerateDocsSendFeedback");
     window.withProgress(
@@ -482,11 +493,23 @@ export class DocGenService {
             feedback_text: message.comment,
             feedback_value: message.rating,
           });
+          if (panel) {
+            await panel.webview.postMessage({
+              command: "response",
+              args: {
+                syncRequestId,
+                body: {
+                  status: true,
+                },
+                status: true,
+              },
+            });
+          }
         } catch (error) {
           this.transmitError(panel);
           window.showErrorMessage(
             extendErrorWithSupportLinks(
-              "An unexpected error occurred while sending feedback: " + error,
+              "Could not send feedback: " + (error as Error).message,
             ),
           );
           this.telemetry.sendTelemetryError(

@@ -8,6 +8,7 @@ import {
   TextDocumentContentProvider,
   Uri,
   workspace,
+  window,
 } from "vscode";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { debounce, provideSingleton } from "../utils";
@@ -61,7 +62,7 @@ export class SqlPreviewContentProvider
     return this.requestCompilation(uri);
   }
 
-  private requestCompilation(uri: Uri) {
+  private async requestCompilation(uri: Uri) {
     try {
       const fsPath = decodeURI(uri.fsPath);
       const query = readFileSync(fsPath, "utf8");
@@ -71,8 +72,11 @@ export class SqlPreviewContentProvider
         return "Still loading dbt project, please try again later...";
       }
       this.telemetry.sendTelemetryEvent("requestCompilation");
-      return project.unsafeCompileQuery(query);
+      return await project.unsafeCompileQuery(query);
     } catch (error: any) {
+      window.showErrorMessage(
+        `Error while compiling: ${JSON.stringify(error)}`,
+      );
       return error;
     }
   }

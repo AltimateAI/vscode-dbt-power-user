@@ -10,9 +10,21 @@ import {
 import dataPilotSlice, {
   initialState,
   reset,
+  setCurrentSessionId,
+  setShowHelp,
   upsertItem,
 } from "./dataPilotSlice";
-import { ContextProps, DataPilotChat } from "./types";
+import {
+  ContextProps,
+  DataPilotChat,
+  RequestState,
+  RequestTypes,
+} from "./types";
+import { panelLogger } from "@modules/logger";
+import {
+  DatapilotQueryAnalysisChat,
+  QueryAnalysisType,
+} from "./components/queryAnalysis/types";
 
 export const DataPilotContext = createContext<ContextProps>({
   state: initialState,
@@ -29,6 +41,27 @@ const DataPilotProvider = ({
     dataPilotSlice.getInitialState(),
   );
 
+  // Since query analysis provider is not loaded yet, have to insert the item into context in datapilot provider
+  const handleQueryAnalysisOnload = (
+    request: Partial<DatapilotQueryAnalysisChat>,
+    triggerOnLoad: boolean,
+    analysisType?: QueryAnalysisType,
+  ) => {
+    panelLogger.info("query explain onload", request);
+    const data = {
+      id: crypto.randomUUID(),
+      requestType: RequestTypes.QUERY_ANALYSIS,
+      state: RequestState.UNINITIALIZED,
+      query: request.query,
+      fileName: request.fileName,
+      //If analysis type is undefined, dont trigger api call
+      analysisType: triggerOnLoad ? analysisType : undefined,
+    } as DatapilotQueryAnalysisChat;
+
+    dispatch(upsertItem(data));
+    dispatch(setCurrentSessionId(data.id));
+  };
+
   const onMesssage = useCallback(
     (event: MessageEvent<IncomingMessageProps>) => {
       const { command, args } = event.data;
@@ -40,8 +73,20 @@ const DataPilotProvider = ({
             ),
           );
           break;
+        case "queryAnalysis:load:explain":
+          handleQueryAnalysisOnload(args, true, QueryAnalysisType.EXPLAIN);
+          break;
+        case "queryAnalysis:load:change":
+          handleQueryAnalysisOnload(args, true, QueryAnalysisType.MODIFY);
+          break;
+        case "queryAnalysis:load":
+          handleQueryAnalysisOnload(args, false);
+          break;
         case "datapilot:reset":
           dispatch(reset());
+          break;
+        case "datapilot:showHelp":
+          dispatch(setShowHelp(true));
           break;
         default:
           break;
