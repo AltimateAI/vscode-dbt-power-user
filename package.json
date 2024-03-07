@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.34.5",
+  "version": "0.35.0",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -160,6 +160,33 @@
             },
             "default": [],
             "description": "Add additional params to `sqlfmt`"
+          },
+          "dbt.deferConfigPerProject": {
+            "type": "object",
+            "description": "Run subset of models without building their parent models",
+            "scope": "resource",
+            "patternProperties": {
+              ".*": {
+                "type": "object",
+                "properties": {
+                  "deferToProduction": {
+                    "type": "boolean",
+                    "description": "Run subset of models without building their parent models",
+                    "default": false
+                  },
+                  "manifestPathForDeferral": {
+                    "type": "string",
+                    "description": "Manifest path to defer the parent models",
+                    "default": ""
+                  },
+                  "favorState": {
+                    "type": "boolean",
+                    "description": "If a given model exists in both the current environment and the defined defer state, turn this flag on to use the latter always",
+                    "default": false
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -193,6 +220,11 @@
         {
           "id": "docs_edit_view",
           "title": "Documentation Editor",
+          "icon": "./media/images/dbt_icon.svg"
+        },
+        {
+          "id": "insights_view",
+          "title": "Actions",
           "icon": "./media/images/dbt_icon.svg"
         }
       ]
@@ -248,16 +280,30 @@
           "name": "",
           "icon": "./media/images/dbt_icon.svg"
         }
+      ],
+      "insights_view": [
+        {
+          "id": "dbtPowerUser.Insights",
+          "name": "",
+          "type": "webview"
+        }
       ]
     },
     "commands": [
       {
         "command": "dbtPowerUser.puQuickPick",
+        "category": "dbt Power User",
         "title": "dbt Power User Quick Pick"
+      },
+      {
+        "command": "dbtPowerUser.openInsights",
+        "category": "dbt Power User",
+        "title": "Open dbt Power User insights panel"
       },
       {
         "command": "dbtPowerUser.sqlQuickPick",
         "title": "SQL Actions",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/sql-action-light.svg",
           "dark": "./media/images/sql-action-dark.svg"
@@ -266,6 +312,7 @@
       {
         "command": "dbtPowerUser.runCurrentModel",
         "title": "Run dbt Model",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/run-light.svg",
           "dark": "./media/images/run-dark.svg"
@@ -290,6 +337,7 @@
         "command": "dbtPowerUser.sqlToModel",
         "title": "Convert to dbt Model (Preview feature)",
         "shortTitle": "Convert to dbt Model",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/preview-dbt-light.svg",
           "dark": "./media/images/preview-dbt-dark.svg"
@@ -298,24 +346,29 @@
       {
         "command": "dbtPowerUser.validateSql",
         "title": "Validate SQL",
+        "category": "dbt Power User",
         "icon": "$(circuit-board)"
       },
       {
         "command": "dbtPowerUser.altimateScan",
         "title": "Project Health Check",
+        "category": "dbt Power User",
         "icon": "$(circuit-board)"
       },
       {
         "command": "dbtPowerUser.clearAltimateScanResults",
+        "category": "dbt Power User",
         "title": "Clear Health Check Results"
       },
       {
         "command": "dbtPowerUser.bigqueryCostEstimate",
+        "category": "dbt Power User",
         "title": "Estimate cost for BigQuery"
       },
       {
         "command": "dbtPowerUser.compileCurrentModel",
         "title": "Compile dbt Model",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build_light.svg",
           "dark": "./media/images/build_dark.svg"
@@ -324,31 +377,37 @@
       {
         "command": "dbtPowerUser.sqlPreview",
         "title": "Compiled dbt Preview",
+        "category": "dbt Power User",
         "icon": "$(diff)"
       },
       {
         "command": "dbtPowerUser.runTest",
         "title": "Run Test",
+        "category": "dbt Power User",
         "icon": "$(pass)"
       },
       {
         "command": "dbtPowerUser.testCurrentModel",
         "title": "Test dbt Model",
+        "category": "dbt Power User",
         "icon": "$(pass)"
       },
       {
         "command": "dbtPowerUser.runChildrenModels",
         "title": "Run Downstream Models",
+        "category": "dbt Power User",
         "icon": "$(run-below)"
       },
       {
         "command": "dbtPowerUser.runParentModels",
         "title": "Run Upstream Models",
+        "category": "dbt Power User",
         "icon": "$(run-above)"
       },
       {
         "command": "dbtPowerUser.showRunSQL",
         "title": "Open dbt target folder run SQL",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/file-code_light.svg",
           "dark": "./media/images/file-code_dark.svg"
@@ -357,6 +416,7 @@
       {
         "command": "dbtPowerUser.generateSchemaYML",
         "title": "Generate Documentation YML",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/file-code_light.svg",
           "dark": "./media/images/file-code_dark.svg"
@@ -365,6 +425,7 @@
       {
         "command": "dbtPowerUser.goToDocumentationEditor",
         "title": "Open Documentation Editor",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/file-code_light.svg",
           "dark": "./media/images/file-code_dark.svg"
@@ -373,6 +434,7 @@
       {
         "command": "dbtPowerUser.generateDBTDocs",
         "title": "Run Dbt Docs Generate",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/run-light.svg",
           "dark": "./media/images/run-dark.svg"
@@ -387,6 +449,7 @@
       {
         "command": "dbtPowerUser.maximizeDatapilot",
         "title": "Maximize",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/fullscreen-light.svg",
           "dark": "./media/images/fullscreen-dark.svg"
@@ -395,11 +458,13 @@
       {
         "command": "dbtPowerUser.showHelpDatapilot",
         "title": "Help",
+        "category": "dbt Power User",
         "icon": "$(question)"
       },
       {
         "command": "dbtPowerUser.showCompiledSQL",
         "title": "Open dbt target folder compiled SQL",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/file-code_light.svg",
           "dark": "./media/images/file-code_dark.svg"
@@ -408,11 +473,13 @@
       {
         "command": "dbtPowerUser.executeSQL",
         "title": "Execute dbt SQL",
+        "category": "dbt Power User",
         "icon": "$(play)"
       },
       {
         "command": "dbtPowerUser.buildCurrentModel",
         "title": "Build dbt Model",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
@@ -421,6 +488,7 @@
       {
         "command": "dbtPowerUser.buildChildrenModels",
         "title": "Build Downstream Models",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
@@ -429,6 +497,7 @@
       {
         "command": "dbtPowerUser.buildParentModels",
         "title": "Build Upstream Models",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
@@ -437,6 +506,16 @@
       {
         "command": "dbtPowerUser.buildChildrenParentModels",
         "title": "Build Upstream and Downstream Models",
+        "category": "dbt Power User",
+        "icon": {
+          "light": "./media/images/build-model_light.svg",
+          "dark": "./media/images/build-model_dark.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.buildCurrentProject",
+        "title": "Build dbt Project",
+        "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
@@ -561,6 +640,11 @@
         }
       ],
       "editor/title/run": [
+        {
+          "command": "dbtPowerUser.buildCurrentProject",
+          "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
+          "group": "inline"
+        },
         {
           "command": "dbtPowerUser.buildCurrentModel",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/",
@@ -890,7 +974,7 @@
     "@types/mocha": "^10.0.1",
     "@types/node": "^20.9.1",
     "@types/vscode": "^1.81.0",
-    "@types/which": "^3.0.0",
+    "@types/which": "^3.0.3",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "@vscode/test-electron": "^2.3.7",
@@ -902,14 +986,14 @@
     "eslint-plugin-prettier": "^5.0.1",
     "file-loader": "^6.1.0",
     "glob": "^10.3.10",
-    "husky": "^8.0.3",
+    "husky": "^9.0.11",
     "lint-staged": "^14.0.1",
     "mocha": "^10.2.0",
     "ovsx": "^0.8.3",
     "prettier": "^3.0.3",
     "prettier-eslint": "^15.0.1",
     "prettier-plugin-organize-imports": "^3.2.4",
-    "terser-webpack-plugin": "^5.3.9",
+    "terser-webpack-plugin": "^5.3.10",
     "ts-loader": "^9.4.4",
     "typescript": "^4.9.5",
     "webpack": "^5.88.2",
@@ -922,10 +1006,10 @@
   "dependencies": {
     "@vscode/codicons": "^0.0.33",
     "@vscode/extension-telemetry": "^0.8.4",
-    "@vscode/vsce": "^2.21.1",
-    "@vscode/webview-ui-toolkit": "^1.2.2",
+    "@vscode/vsce": "^2.22.0",
+    "@vscode/webview-ui-toolkit": "^1.4.0",
     "dayjs": "^1.11.10",
-    "inversify": "^6.0.1",
+    "inversify": "^6.0.2",
     "inversify-binding-decorators": "^4.0.0",
     "node-abort-controller": "^3.1.1",
     "node-fetch": "^3.3.2",

@@ -65,17 +65,20 @@ export class DbtDocumentFormattingEditProvider
         sqlFmtPath: sqlFmtPathSetting ? "setting" : "path",
       });
       try {
-        await this.commandProcessExecutionFactory
+        const { stderr } = await this.commandProcessExecutionFactory
           .createCommandProcessExecution({
             command: sqlFmtPath,
             args: sqlFmtArgs,
             stdin: document.getText(),
           })
           .complete();
+        if (stderr) {
+          throw new Error(stderr);
+        }
         return [];
-      } catch (diffOutput) {
+      } catch (e) {
         try {
-          return this.processDiffOutput(document, diffOutput as string);
+          return this.processDiffOutput(document, (e as Error).message);
         } catch (error) {
           this.telemetry.sendTelemetryError(
             "formatDbtModelApplyDiffFailed",

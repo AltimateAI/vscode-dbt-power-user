@@ -1,17 +1,16 @@
 import { HelpIcon } from "@assets/icons";
 import RightSidePanel from "@modules/panel/RightSidePanel";
 import { Button } from "@uicore";
-import { useState } from "react";
-import HelpContent from "./HelpContent";
+import { ReactNode, useState } from "react";
 
-const HelpButton = (): JSX.Element => {
+const HelpButton = ({ children }: { children: ReactNode }): JSX.Element => {
   const [showHelpPanel, setShowHelpPanel] = useState(false);
 
   return (
     <>
       {showHelpPanel ? (
         <RightSidePanel title="Help" onClose={() => setShowHelpPanel(false)}>
-          <HelpContent />
+          {children}
         </RightSidePanel>
       ) : null}
       <Button outline onClick={() => setShowHelpPanel(true)}>

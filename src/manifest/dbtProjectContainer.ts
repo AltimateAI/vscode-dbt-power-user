@@ -264,6 +264,10 @@ export class DBTProjectContainer implements Disposable {
     );
   }
 
+  buildProject(modelPath: Uri, type?: RunModelType) {
+    this.findDBTProject(modelPath)?.buildProject();
+  }
+
   runTest(modelPath: Uri, testName: string) {
     this.findDBTProject(modelPath)?.runTest(testName);
   }

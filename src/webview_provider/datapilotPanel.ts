@@ -33,7 +33,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     private docGenService: DocGenService,
     protected emitterService: SharedStateService,
     protected queryAnalysisService: QueryAnalysisService,
-    dbtTerminal: DBTTerminal,
+    protected dbtTerminal: DBTTerminal,
   ) {
     super(
       dbtProjectContainer,

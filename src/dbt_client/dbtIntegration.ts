@@ -21,7 +21,11 @@ import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync } from "fs";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./dbtTerminal";
-import { ValidateSqlParseErrorResponse } from "../altimate";
+import {
+  AltimateRequest,
+  NoCredentialsError,
+  ValidateSqlParseErrorResponse,
+} from "../altimate";
 
 interface DBTCommandExecution {
   command: (token?: CancellationToken) => Promise<void>;
@@ -48,12 +52,19 @@ export class CLIDBTCommandExecutionStrategy
     protected dbtPath: string,
   ) {}
 
-  execute(command: DBTCommand, token?: CancellationToken): Promise<string> {
+  async execute(
+    command: DBTCommand,
+    token?: CancellationToken,
+  ): Promise<string> {
     const commandExecution = this.executeCommand(command, token);
-    if (command.logToTerminal) {
-      return commandExecution.completeWithTerminalOutput(this.terminal);
+    const executionPromise = command.logToTerminal
+      ? commandExecution.completeWithTerminalOutput(this.terminal)
+      : commandExecution.complete();
+    const { stdout, stderr } = await executionPromise;
+    if (stderr) {
+      throw new Error(stderr);
     }
-    return commandExecution.complete();
+    return stdout;
   }
 
   protected executeCommand(
@@ -108,10 +119,18 @@ export class PythonDBTCommandExecutionStrategy
     private telemetry: TelemetryService,
   ) {}
 
-  execute(command: DBTCommand, token?: CancellationToken): Promise<string> {
-    return this.executeCommand(command, token).completeWithTerminalOutput(
-      this.terminal,
-    );
+  async execute(
+    command: DBTCommand,
+    token?: CancellationToken,
+  ): Promise<string> {
+    const { stdout, stderr } = await this.executeCommand(
+      command,
+      token,
+    ).completeWithTerminalOutput(this.terminal);
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    return stdout;
   }
 
   private executeCommand(
@@ -259,6 +278,33 @@ export class QueryExecution {
   }
 }
 
+export type DBColumn = { column: string; dtype: string };
+
+export type Node = {
+  unique_id: string;
+  name: string;
+  resource_type: string;
+};
+
+export type SourceNode = {
+  unique_id: string;
+  name: string;
+  resource_type: "source";
+  table: string;
+};
+
+export type DBTNode = Node | SourceNode;
+
+type CatalogItem = {
+  table_database: string;
+  table_schema: string;
+  table_name: string;
+  column_name: string;
+  column_type: string;
+};
+
+export type Catalog = CatalogItem[];
+
 export interface DBTProjectIntegration extends Disposable {
   // initialize execution infrastructure
   initializeProject(): Promise<void>;
@@ -278,6 +324,7 @@ export interface DBTProjectIntegration extends Disposable {
   // dbt commands
   runModel(command: DBTCommand): Promise<void>;
   buildModel(command: DBTCommand): Promise<void>;
+  buildProject(command: DBTCommand): Promise<void>;
   runTest(command: DBTCommand): Promise<void>;
   runModelTest(command: DBTCommand): Promise<void>;
   compileModel(command: DBTCommand): Promise<void>;
@@ -298,10 +345,11 @@ export interface DBTProjectIntegration extends Disposable {
   getColumnsOfSource(
     sourceName: string,
     tableName: string,
-  ): Promise<{ [key: string]: string }[]>; // TODO: this should be typed
-  getColumnsOfModel(modelName: string): Promise<{ [key: string]: string }[]>; // TODO: this should be typed
-  getCatalog(): Promise<{ [key: string]: string }[]>; // TODO: this should be typed
+  ): Promise<DBColumn[]>;
+  getColumnsOfModel(modelName: string): Promise<DBColumn[]>;
+  getCatalog(): Promise<Catalog>;
   getDebounceForRebuildManifest(): number;
+  getBulkSchema(nodes: DBTNode[]): Promise<Record<string, DBColumn[]>>;
 }
 
 @provide(DBTCommandExecutionInfrastructure)
@@ -315,6 +363,7 @@ export class DBTCommandExecutionInfrastructure {
   constructor(
     private pythonEnvironment: PythonEnvironment,
     private telemetry: TelemetryService,
+    private altimate: AltimateRequest,
   ) {}
 
   createPythonBridge(cwd: string): PythonBridge {
@@ -373,6 +422,10 @@ export class DBTCommandExecutionInfrastructure {
         try {
           await command(token);
         } catch (error) {
+          if (error instanceof NoCredentialsError) {
+            this.altimate.handlePreviewFeatures();
+            return;
+          }
           window.showErrorMessage(
             extendErrorWithSupportLinks(
               `Could not run command '${statusMessage}': ` + error + ".",
@@ -485,6 +538,16 @@ export class DBTCommandFactory {
         `${plusOperatorLeft}${modelName}${plusOperatorRight}`,
         ...buildModelCommandAdditionalParams,
       ],
+      true,
+      true,
+      true,
+    );
+  }
+
+  createBuildProjectCommand(): DBTCommand {
+    return new DBTCommand(
+      "Building dbt project...",
+      ["build"],
       true,
       true,
       true,
