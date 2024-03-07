@@ -1009,7 +1009,7 @@
     "@vscode/vsce": "^2.21.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "dayjs": "^1.11.10",
-    "inversify": "^6.0.1",
+    "inversify": "^6.0.2",
     "inversify-binding-decorators": "^4.0.0",
     "node-abort-controller": "^3.1.1",
     "node-fetch": "^3.3.2",
