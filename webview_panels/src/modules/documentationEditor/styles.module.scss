@@ -166,7 +166,7 @@
   .test-list-group {
     gap: 10px;
 
-    div {
+    div, button {
       border-color: var(--stroke--disable);
       background-color: var(--background--02);
       color: var(--text-color--title);
@@ -198,7 +198,7 @@
 
   :global .card-footer {
     border: none;
-  }
+  }  
 }
 
 .popover {

@@ -27,6 +27,7 @@ export {
   NavLink,
   ListGroup,
   ListGroupItem,
+  Fade,
 } from "reactstrap";
 
 export { default as Tag } from "./components/tag/Tag";

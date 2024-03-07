@@ -4,16 +4,17 @@ import {
   Card,
   CardTitle,
   CardBody,
-  ListGroup,
-  ListGroupItem,
   Stack,
   Drawer,
   DrawerRef,
   IconButton,
+  Tag,
+  Fade,
 } from "@uicore";
 import { useRef, useState } from "react";
 import TestForm from "./forms/TestForm";
 import classes from "../../styles.module.scss";
+import useTestFormSave, { TestOperation } from "./hooks/useTestFormSave";
 
 interface Props {
   title: string;
@@ -22,14 +23,21 @@ interface Props {
 
 const AddTest = ({ title, currentTests }: Props): JSX.Element => {
   const [formType, setFormType] = useState<DbtGenericTests | null>(null);
+  const [showButtons, setShowButtons] = useState(false);
   const drawerRef = useRef<DrawerRef>(null);
+  const { handleSave } = useTestFormSave();
 
   const handleNewTestClick = (test: DbtGenericTests) => {
+    if (test === DbtGenericTests.NOT_NULL || test === DbtGenericTests.UNIQUE) {
+      handleSave({ test }, title, TestOperation.CREATE);
+      return;
+    }
     setFormType(test);
+    drawerRef.current?.open();
   };
 
   const handleOpen = () => {
-    drawerRef.current?.open();
+    setShowButtons((prev) => !prev);
   };
   const onClose = () => {
     setFormType(null);
@@ -46,34 +54,28 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
       >
         <AddIcon />
       </IconButton>
+      {showButtons ? (
+        <Fade>
+          <Stack>
+            {Object.values(DbtGenericTests)
+              .filter((t) => !currentTests?.includes(t))
+              .map((test) => (
+                <Tag key={test} onClick={() => handleNewTestClick(test)}>
+                  {test}
+                </Tag>
+              ))}
+          </Stack>
+        </Fade>
+      ) : null}
       <Drawer ref={drawerRef}>
         <Stack direction="column" className={classes.addTest}>
           <Card>
             <CardTitle>Add new test</CardTitle>
             <CardBody className={classes.title}>Column: {title}</CardBody>
           </Card>
-          {!formType ? (
-            <Card>
-              <CardTitle>Select test for next step</CardTitle>
-              <CardBody>
-                <ListGroup className={classes.testListGroup}>
-                  {Object.values(DbtGenericTests).map((test) => (
-                    <ListGroupItem
-                      onClick={() => handleNewTestClick(test)}
-                      key={test}
-                      action
-                      tag="button"
-                      disabled={currentTests?.includes(test)}
-                    >
-                      {test}
-                    </ListGroupItem>
-                  ))}
-                </ListGroup>
-              </CardBody>
-            </Card>
-          ) : (
+          {formType ? (
             <TestForm formType={formType} onClose={onClose} column={title} />
-          )}
+          ) : null}
         </Stack>
       </Drawer>
     </>

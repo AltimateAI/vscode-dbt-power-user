@@ -4,5 +4,8 @@
     border-color: transparent;
     background-color: var(--background--01);
   }
+  input {
+    caret-color: var(--text-color--title);
+  }
 }
 }
