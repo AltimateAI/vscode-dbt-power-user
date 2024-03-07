@@ -10,14 +10,14 @@ Describe the implemented solution. Add external references if needed.
 
 ### Screenshot/Demo
 
+A picture is worth a thousand words. Please highlight the changes if applicable.
+
 ### How to test
 
 - Steps to be followed to verify the solution or code changes
-- Mention if there is any config change or backend change to be synced
+- Mention if there is any settings configuration added/changed/deleted
 
 ## Checklist
 
 - [ ] I have run this code and it appears to resolve the stated issue
-- [ ] I have added the necessary tests
 - [ ] `README.md` updated and added information about my change
-- [ ] Documentation website is updated with information related to this change
