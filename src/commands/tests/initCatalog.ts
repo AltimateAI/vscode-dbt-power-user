@@ -1,3 +1,4 @@
+import { Catalog } from "../../dbt_client/dbtIntegration";
 import { provideSingleton } from "../../utils";
 import { ScanContext } from "./scanContext";
 import { AltimateScanStep } from "./step";
@@ -17,21 +18,18 @@ export class InitCatalog implements AltimateScanStep {
         project.getProjectName() + project.projectRoot
       ] = true;
     }
-    const modelDict: { [key: string]: any[] } = cata.reduce(
-      (mdict: { [key: string]: any[] }, model) => {
-        const modelKey: string = JSON.stringify({
-          projectroot: project.projectRoot.fsPath,
-          project: project.getProjectName(),
-          database: model.table_database.toLowerCase(),
-          schema: model.table_schema.toLowerCase(),
-          name: model.table_name.toLowerCase(),
-        });
-        mdict[modelKey] = mdict[modelKey] || [];
-        mdict[modelKey].push(model);
-        return mdict;
-      },
-      Object.create(null),
-    );
+    const modelDict: Record<string, Catalog> = Object.create(null);
+    cata.forEach((model) => {
+      const modelKey = JSON.stringify({
+        projectroot: project.projectRoot.fsPath,
+        project: project.getProjectName(),
+        database: model.table_database.toLowerCase(),
+        schema: model.table_schema.toLowerCase(),
+        name: model.table_name.toLowerCase(),
+      });
+      modelDict[modelKey] = modelDict[modelKey] || [];
+      modelDict[modelKey].push(model);
+    });
     return modelDict;
   }
 }

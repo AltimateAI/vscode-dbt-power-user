@@ -1,7 +1,7 @@
 import { Disposable, EventEmitter, Terminal, window } from "vscode";
 import { provideSingleton, stripANSI } from "../utils";
-import { CustomException } from "./exception";
 import { TelemetryService } from "../telemetry";
+import { PythonException } from "python-bridge";
 
 @provideSingleton(DBTTerminal)
 export class DBTTerminal {
@@ -21,8 +21,9 @@ export class DBTTerminal {
     }
   }
 
-  log(message: string) {
-    this.outputChannel.info(stripANSI(message));
+  log(message: string, ...args: any[]) {
+    this.outputChannel.info(stripANSI(message), args);
+    console.log(stripANSI(message), args);
     if (this.terminal !== undefined) {
       this.writeEmitter.fire(message);
     }
@@ -33,34 +34,55 @@ export class DBTTerminal {
     console.log(message);
   }
 
-  debug(message: string) {
-    this.outputChannel?.debug(stripANSI(message));
-    console.debug(message);
+  debug(name: string, message: string, ...args: any[]) {
+    this.outputChannel?.debug(`${name}:${stripANSI(message)}`, args);
+    console.debug(message, args);
   }
 
-  info(name: string, message: string, sendTelemetry: boolean = true) {
-    this.outputChannel?.info(stripANSI(message));
-    console.info(`${name}:${message}`);
+  info(
+    name: string,
+    message: string,
+    sendTelemetry: boolean = true,
+    ...args: any[]
+  ) {
+    this.outputChannel?.info(`${name}:${stripANSI(message)}`, args);
+    console.info(`${name}:${message}`, args);
     if (sendTelemetry) {
-      this.telemetry.sendTelemetryEvent(name, { message });
+      this.telemetry.sendTelemetryEvent(name, { message, level: "info" });
     }
   }
 
-  warn(e: CustomException, sendTelemetry: boolean = true) {
-    const message = e.getMessage();
-    this.outputChannel?.warn(stripANSI(message));
-    console.warn(`${e.name}:${message}`);
+  warn(
+    name: string,
+    message: string,
+    sendTelemetry: boolean = true,
+    ...args: any[]
+  ) {
+    this.outputChannel?.warn(`${name}:${stripANSI(message)}`, args);
+    console.warn(`${name}:${message}`, args);
     if (sendTelemetry) {
-      this.telemetry.sendTelemetryError(e.name, e.error, { message });
+      this.telemetry.sendTelemetryEvent(name, { message, level: "warn" });
     }
   }
 
-  error(e: CustomException, sendTelemetry = true) {
-    const message = e.getMessage();
-    this.outputChannel?.error(stripANSI(message));
-    console.error(`${e.name}:${message}`);
+  error(
+    name: string,
+    message: string,
+    e: PythonException | Error | unknown,
+    sendTelemetry = true,
+    ...args: any[]
+  ) {
+    if (e instanceof PythonException) {
+      message += `:${e.exception.message}`;
+    } else if (e instanceof Error) {
+      message += `:${e.message}`;
+    } else {
+      message += `:${e}`;
+    }
+    this.outputChannel?.error(`${name}:${stripANSI(message)}`, args);
+    console.error(`${name}:${message}`, args);
     if (sendTelemetry) {
-      this.telemetry.sendTelemetryError(e.name, e.error, { message });
+      this.telemetry.sendTelemetryError(name, e, { message });
     }
   }
 

@@ -12,7 +12,7 @@ import {
   updateColumnsInCurrentDocsData,
   updateCurrentDocsData,
 } from "@modules/documentationEditor/state/documentationSlice";
-import { EntityType } from "@modules/dataPilot/components/types";
+import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 
 interface Props {

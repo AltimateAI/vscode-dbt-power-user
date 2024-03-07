@@ -2,7 +2,6 @@ import {
   Diagnostic,
   DiagnosticCollection,
   Disposable,
-  FileSystemWatcher,
   languages,
   Range,
   RelativePattern,
@@ -17,7 +16,10 @@ import {
   setupWatcherHandler,
 } from "../utils";
 import {
+  Catalog,
   CompilationResult,
+  DBColumn,
+  DBTNode,
   DBTCommand,
   DBTCommandExecutionInfrastructure,
   DBTDetection,
@@ -25,15 +27,30 @@ import {
   DBTProjectIntegration,
   ExecuteSQLResult,
   PythonDBTCommandExecutionStrategy,
+  QueryExecution,
+  SourceNode,
+  Node,
 } from "./dbtIntegration";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonBridge, PythonException } from "python-bridge";
 import * as path from "path";
 import { DBTProject } from "../manifest/dbtProject";
+import { existsSync, readFileSync } from "fs";
+import { parse } from "yaml";
 import { TelemetryService } from "../telemetry";
-import { ValidateSqlParseErrorResponse } from "../altimate";
+import {
+  AltimateRequest,
+  NotFoundError,
+  ValidateSqlParseErrorResponse,
+} from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { ManifestPathType } from "../constants";
+import { DBTTerminal } from "./dbtTerminal";
+import { ValidationProvider } from "../validation_provider";
+import { DeferToProdService } from "../services/deferToProdService";
+
+const DEFAULT_QUERY_TEMPLATE = "select * from ({query}) as query limit {limit}";
 
 // TODO: we shouold really get these from manifest directly
 interface ResolveReferenceNodeResult {
@@ -48,6 +65,14 @@ interface ResolveReferenceSourceResult {
   alias: string;
   resource_type: string;
   identifier: string;
+}
+
+interface DeferConfig {
+  deferToProduction: boolean;
+  favorState: boolean;
+  manifestPathForDeferral: string;
+  manifestPathType?: ManifestPathType;
+  dbtCoreIntegrationId?: number;
 }
 
 @provideSingleton(DBTCoreDetection)
@@ -66,7 +91,10 @@ export class DBTCoreDetection implements DBTDetection {
           cwd: getFirstWorkspacePath(),
           envVars: this.pythonEnvironment.environmentVariables,
         });
-      await checkDBTInstalledProcess.complete();
+      const { stderr } = await checkDBTInstalledProcess.complete();
+      if (stderr) {
+        throw new Error(stderr);
+      }
       return true;
     } catch (error) {
       return false;
@@ -80,7 +108,30 @@ export class DBTCoreProjectDetection
 {
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
+    private dbtTerminal: DBTTerminal,
   ) {}
+
+  private getPackageInstallPathFallback(
+    projectDirectory: Uri,
+    packageInstallPath: string,
+  ): string {
+    const dbtProjectFile = path.join(
+      projectDirectory.fsPath,
+      "dbt_project.yml",
+    );
+    if (existsSync(dbtProjectFile)) {
+      const dbtProjectConfig: any = parse(readFileSync(dbtProjectFile, "utf8"));
+      const packagesInstallPath = dbtProjectConfig["packages-install-path"];
+      if (packagesInstallPath) {
+        if (path.isAbsolute(packagesInstallPath)) {
+          return packagesInstallPath;
+        } else {
+          return path.join(projectDirectory.fsPath, packagesInstallPath);
+        }
+      }
+    }
+    return packageInstallPath;
+  }
 
   async discoverProjects(projectDirectories: Uri[]): Promise<Uri[]> {
     let packagesInstallPaths = projectDirectories.map((projectDirectory) =>
@@ -92,7 +143,7 @@ export class DBTCoreProjectDetection
         getFirstWorkspacePath(),
       );
 
-      await python.ex`from dbt_integration import *`;
+      await python.ex`from dbt_core_integration import *`;
       const packagesInstallPathsFromPython = await python.lock<string[]>(
         (python) =>
           python`to_dict(find_package_paths(${projectDirectories.map(
@@ -110,7 +161,17 @@ export class DBTCoreProjectDetection
         },
       );
     } catch (error) {
-      console.log("An error occured while finding package paths: " + error);
+      this.dbtTerminal.debug(
+        "dbtCoreIntegration:discoverProjects",
+        "An error occured while finding package paths: " + error,
+      );
+      // Fallback to reading yaml files
+      packagesInstallPaths = projectDirectories.map((projectDirectory, idx) =>
+        this.getPackageInstallPathFallback(
+          projectDirectory,
+          packagesInstallPaths[idx],
+        ),
+      );
     } finally {
       if (python) {
         this.executionInfrastructure.closePythonBridge(python);
@@ -152,6 +213,7 @@ export class DBTCoreProjectIntegration
     languages.createDiagnosticCollection("dbt");
   private readonly pythonBridgeDiagnostics =
     languages.createDiagnosticCollection("dbt");
+  private static QUEUE_ALL = "all";
 
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
@@ -159,13 +221,23 @@ export class DBTCoreProjectIntegration
     private telemetry: TelemetryService,
     private pythonDBTCommandExecutionStrategy: PythonDBTCommandExecutionStrategy,
     private dbtProjectContainer: DBTProjectContainer,
+    private altimateRequest: AltimateRequest,
+    private dbtTerminal: DBTTerminal,
+    private validationProvider: ValidationProvider,
+    private deferToProdService: DeferToProdService,
     private projectRoot: Uri,
     private projectConfigDiagnostics: DiagnosticCollection,
   ) {
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
-    console.log(`Registering project ${this.projectRoot}`);
+    this.dbtTerminal.debug(
+      "DBTCoreProjectIntegration",
+      `Registering project ${this.projectRoot}`,
+    );
+    this.executionInfrastructure.createQueue(
+      DBTCoreProjectIntegration.QUEUE_ALL,
+    );
 
     this.disposables.push(
       this.pythonEnvironment.onPythonEnvironmentChanged(() => {
@@ -184,8 +256,64 @@ export class DBTCoreProjectIntegration
     return input?.replace(/\\+$/, "");
   }
 
+  private getLimitQuery(queryTemplate: string, query: string, limit: number) {
+    return queryTemplate
+      .replace("{query}", () => query)
+      .replace("{limit}", () => limit.toString());
+  }
+
+  private async getQuery(
+    query: string,
+    limit: number,
+  ): Promise<{ queryTemplate: string; limitQuery: string }> {
+    try {
+      const dbtVersion = await this.version;
+      //dbt supports limit macro after v1.5
+      if (dbtVersion && dbtVersion[0] >= 1 && dbtVersion[1] >= 5) {
+        const args = { sql: query, limit };
+        const queryTemplateFromMacro = await this.python?.lock(
+          (python) =>
+            python!`to_dict(project.execute_macro('get_limit_subquery_sql', ${args}))`,
+        );
+
+        this.dbtTerminal.debug(
+          "DBTCoreProjectIntegration",
+          "Using query template from macro",
+          queryTemplateFromMacro,
+        );
+        return {
+          queryTemplate: queryTemplateFromMacro,
+          limitQuery: queryTemplateFromMacro,
+        };
+      }
+    } catch (err) {
+      console.error("Error while getting get_limit_subquery_sql macro", err);
+      this.telemetry.sendTelemetryError(
+        "executeMacroGetLimitSubquerySQLError",
+        err,
+        { adapter: this.adapterType || "unknown" },
+      );
+    }
+
+    const queryTemplate = workspace
+      .getConfiguration("dbt")
+      .get<string>("queryTemplate");
+
+    if (queryTemplate && queryTemplate !== DEFAULT_QUERY_TEMPLATE) {
+      console.log("Using user provided query template", queryTemplate);
+      const limitQuery = this.getLimitQuery(queryTemplate, query, limit);
+
+      return { queryTemplate, limitQuery };
+    }
+
+    return {
+      queryTemplate: DEFAULT_QUERY_TEMPLATE,
+      limitQuery: this.getLimitQuery(DEFAULT_QUERY_TEMPLATE, query, limit),
+    };
+  }
+
   async refreshProjectConfig(): Promise<void> {
-    await this.createPythonDbtProject();
+    await this.createPythonDbtProject(this.python);
     await this.python.ex`project.init_project()`;
     this.targetPath = await this.findTargetPath();
     this.modelPaths = await this.findModelPaths();
@@ -195,26 +323,62 @@ export class DBTCoreProjectIntegration
     this.adapterType = await this.findAdapterType();
   }
 
-  executeSQL(query: string): Promise<ExecuteSQLResult> {
-    return this.python!.lock<ExecuteSQLResult>(
-      (python) => python`to_dict(project.execute_sql(${query}))`,
+  async executeSQL(query: string, limit: number): Promise<QueryExecution> {
+    this.throwBridgeErrorIfAvailable();
+    const { limitQuery, queryTemplate } = await this.getQuery(query, limit);
+
+    const queryThread = this.executionInfrastructure.createPythonBridge(
+      this.projectRoot.fsPath,
+    );
+    await this.createPythonDbtProject(queryThread);
+    await queryThread.ex`project.init_project()`;
+    return new QueryExecution(
+      async () => {
+        queryThread.kill(2);
+      },
+      async () => {
+        const compiledQuery = await this.unsafeCompileQuery(limitQuery);
+        const result = await queryThread!.lock<ExecuteSQLResult>(
+          (python) => python`to_dict(project.execute_sql(${compiledQuery}))`,
+        );
+        let compiled_stmt = result.compiled_sql;
+        try {
+          const queryRegex = new RegExp(
+            queryTemplate
+              .replace(/\(/g, "\\(")
+              .replace(/\)/g, "\\)")
+              .replace(/\*/g, "\\*")
+              .replace("{query}", "([\\w\\W]+)")
+              .replace("{limit}", limit.toString()),
+            "g",
+          );
+          const matches = queryRegex.exec(result.compiled_sql);
+          if (matches) {
+            compiled_stmt = matches[1].trim();
+          }
+        } catch (err) {
+          console.error("error while executing querytemplate conversion", err);
+        }
+
+        return { ...result, compiled_stmt };
+      },
     );
   }
 
-  private async createPythonDbtProject() {
-    await this.python.ex`from dbt_integration import *`;
+  private async createPythonDbtProject(bridge: PythonBridge) {
+    await bridge.ex`from dbt_core_integration import *`;
     const targetPath = this.removeTrailingSlashes(
-      await this.python.lock(
+      await bridge.lock(
         (python) => python`target_path(${this.projectRoot.fsPath})`,
       ),
     );
-    await this.python
-      .ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.profilesDir}, target_path=${targetPath}) if 'project' not in locals() else project`;
+    await bridge.ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.profilesDir}, target_path=${targetPath}) if 'project' not in locals() else project`;
   }
 
   async initializeProject(): Promise<void> {
     try {
-      await this.python.ex`from dbt_integration import default_profiles_dir`;
+      await this.python
+        .ex`from dbt_core_integration import default_profiles_dir`;
       this.profilesDir = this.removeTrailingSlashes(
         await this.python.lock(
           (python) => python`default_profiles_dir(${this.projectRoot.fsPath})`,
@@ -235,7 +399,7 @@ export class DBTCoreProjectIntegration
           ),
         );
       }
-      await this.createPythonDbtProject();
+      await this.createPythonDbtProject(this.python);
       this.pythonBridgeDiagnostics.clear();
     } catch (exc: any) {
       if (exc instanceof PythonException) {
@@ -358,19 +522,33 @@ export class DBTCoreProjectIntegration
   }
 
   async runModel(command: DBTCommand) {
-    this.addCommandToQueue(this.dbtCoreCommand(command));
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
+    );
   }
 
   async buildModel(command: DBTCommand) {
-    this.addCommandToQueue(this.dbtCoreCommand(command));
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
+    );
+  }
+
+  async buildProject(command: DBTCommand) {
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
+    );
   }
 
   async runTest(command: DBTCommand) {
-    this.addCommandToQueue(this.dbtCoreCommand(command));
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
+    );
   }
 
   async runModelTest(command: DBTCommand) {
-    this.addCommandToQueue(this.dbtCoreCommand(command));
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
+    );
   }
 
   async compileModel(command: DBTCommand) {
@@ -395,7 +573,108 @@ export class DBTCoreProjectIntegration
     if (!isInstalled) {
       return;
     }
-    this.executionInfrastructure.addCommandToQueue(command);
+    this.executionInfrastructure.addCommandToQueue(
+      DBTCoreProjectIntegration.QUEUE_ALL,
+      command,
+    );
+  }
+
+  private async getDeferParams(): Promise<string[]> {
+    const deferConfig = this.deferToProdService.getDeferConfigByProjectRoot(
+      this.projectRoot.fsPath,
+    );
+    const {
+      deferToProduction,
+      manifestPathForDeferral,
+      favorState,
+      manifestPathType,
+      dbtCoreIntegrationId,
+    } = deferConfig;
+    if (!deferToProduction) {
+      this.dbtTerminal.debug("deferToProd", "defer to prod not enabled");
+      return [];
+    }
+    if (!manifestPathType) {
+      const configNotPresent = new Error(
+        "manifestPathType config is not present, use the actions panel to set the Defer to production configuration.",
+      );
+      throw configNotPresent;
+    }
+    if (manifestPathType === ManifestPathType.LOCAL) {
+      if (!manifestPathForDeferral) {
+        const configNotPresent = new Error(
+          "manifestPathForDeferral config is not present, use the actions panel to set the Defer to production configuration.",
+        );
+        this.dbtTerminal.error(
+          "manifestPathForDeferral",
+          "manifestPathForDeferral is not present",
+          configNotPresent,
+        );
+        throw configNotPresent;
+      }
+      const args = ["--defer", "--state", manifestPathForDeferral];
+      if (favorState) {
+        args.push("--favor-state");
+      }
+      this.dbtTerminal.debug(
+        "localManifest",
+        `local defer params: ${args.join(" ")}`,
+      );
+      this.altimateRequest.sendDeferToProdEvent(ManifestPathType.LOCAL);
+      return args;
+    }
+    if (manifestPathType === ManifestPathType.REMOTE) {
+      this.validationProvider.throwIfNotAuthenticated();
+      if (dbtCoreIntegrationId! <= 0) {
+        this.dbtTerminal.debug(
+          "DBTCoreProjectIntegration",
+          "No dbtCoreIntegrationId for defer remote config",
+        );
+        return [];
+      }
+
+      this.dbtTerminal.debug(
+        "remoteManifest",
+        `fetching artifact url for dbtCoreIntegrationId: ${dbtCoreIntegrationId}`,
+      );
+      try {
+        const response = await this.altimateRequest.fetchArtifactUrl(
+          "manifest",
+          dbtCoreIntegrationId!,
+        );
+        const manifestPath = await this.altimateRequest.downloadFileLocally(
+          response.url,
+          this.projectRoot,
+        );
+        console.log(`Set remote manifest path: ${manifestPath}`);
+        const args = ["--defer", "--state", manifestPath];
+        if (favorState) {
+          args.push("--favor-state");
+        }
+        this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
+        return args;
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          const manifestNotFoundError = new Error(
+            "Unable to download remote manifest file. Did you upload your manifest using the Altimate DataPilot CLI?",
+          );
+          this.dbtTerminal.error(
+            "remoteManifestError",
+            "Unable to download remote manifest file.",
+            manifestNotFoundError,
+          );
+          throw manifestNotFoundError;
+        }
+        throw error;
+      }
+    }
+    return [];
+  }
+
+  private async addDeferParams(command: DBTCommand) {
+    const deferParams = await this.getDeferParams();
+    deferParams.forEach((param) => command.addArgument(param));
+    return command;
   }
 
   private dbtCoreCommand(command: DBTCommand) {
@@ -454,6 +733,7 @@ export class DBTCoreProjectIntegration
     if (!node) {
       return [];
     }
+    // TODO: fix this type
     return this.getColumsOfRelation(
       node.database,
       node.schema,
@@ -483,17 +763,36 @@ export class DBTCoreProjectIntegration
     database: string | undefined,
     schema: string | undefined,
     objectName: string,
-  ) {
+  ): Promise<DBColumn[]> {
     this.throwBridgeErrorIfAvailable();
-    return this.python?.lock<{ [key: string]: string }[]>(
+    return this.python?.lock<DBColumn[]>(
       (python) =>
         python!`to_dict(project.get_columns_in_relation(project.create_relation(${database}, ${schema}, ${objectName})))`,
     );
   }
 
-  async getCatalog() {
+  async getBulkSchema(nodes: DBTNode[]): Promise<Record<string, DBColumn[]>> {
+    const result: Record<string, DBColumn[]> = {};
+    await Promise.all(
+      nodes.map(async (n) => {
+        if (n.resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {
+          const source = n as SourceNode;
+          result[n.unique_id] = await this.getColumnsOfSource(
+            source.name,
+            source.table,
+          );
+        } else {
+          const model = n as Node;
+          result[n.unique_id] = await this.getColumnsOfModel(model.name);
+        }
+      }),
+    );
+    return result;
+  }
+
+  async getCatalog(): Promise<Catalog> {
     this.throwBridgeErrorIfAvailable();
-    return await this.python?.lock<{ [key: string]: string }[]>(
+    return await this.python?.lock<Catalog>(
       (python) => python!`to_dict(project.get_catalog())`,
     );
   }
@@ -510,6 +809,10 @@ export class DBTCoreProjectIntegration
       return modelPath;
     });
     return modelPaths;
+  }
+
+  getDebounceForRebuildManifest() {
+    return 2000;
   }
 
   private async findMacroPaths(): Promise<string[]> {
@@ -555,8 +858,9 @@ export class DBTCoreProjectIntegration
   }
 
   private throwBridgeErrorIfAvailable() {
-    const allDiagnostics = [
+    const allDiagnostics: DiagnosticCollection[] = [
       this.pythonBridgeDiagnostics,
+      this.projectConfigDiagnostics,
       this.rebuildManifestDiagnostics,
     ];
 

@@ -69,7 +69,7 @@ export const getExposureDetails = (name: string) => {
   }) as Promise<ExposureMetaData>;
 };
 
-export const getColumns = ({ table }: { table: string }, refresh: boolean) => {
+export const getColumns = (table: string, refresh: boolean) => {
   return requestExecutor("getColumns", {
     table,
     refresh,

@@ -1,0 +1,37 @@
+.markdown {
+  ul,
+  ol {
+    padding: 0;
+  }
+  .pre {
+    position: relative;
+
+    pre {
+      transition: 0.3s ease all;
+      :global .card {
+        background: var(--background--03) !important;
+        :global .card-body {
+          code {
+            max-height: none;
+          }
+        }
+      }
+    }
+  }
+
+  :global .code__icons {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 1;
+  }
+
+  :global .code__icons button {
+    background-color: transparent;
+    border: none;
+    border-radius: 50%;
+    background-color: var(--icon--default);
+    padding: 6px;
+    cursor: pointer;
+  }
+}

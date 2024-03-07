@@ -33,7 +33,8 @@ export class ManifestParser {
   public async parseManifest(project: DBTProject) {
     const targetPath = project.getTargetPath();
     if (!targetPath) {
-      console.error(
+      this.terminal.debug(
+        "parsers:parseManifest",
         "targetPath should be defined at this stage for project " +
           project.projectRoot.fsPath,
       );
@@ -171,8 +172,10 @@ export class ManifestParser {
       const manifestFile = readFileSync(manifestLocation, "utf8");
       return JSON.parse(manifestFile);
     } catch (error) {
-      this.terminal.log(
-        `Could not read manifest file at ${manifestLocation}: ${error}`,
+      this.terminal.debug(
+        "ManifestParser",
+        `Could not read manifest file at ${manifestLocation}`,
+        error,
       );
     }
   }

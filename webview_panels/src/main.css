@@ -23,6 +23,7 @@ body {
   --action--secondary: #eaf3ff;
   --action--disable: #8390a3;
   --action--brand: #004fbf;
+  --action-yellow: #ffce73;
   --action-red: #ee140f;
   --action-brand-dark: #004fbf;
   --icon--active: #535456;
@@ -59,6 +60,7 @@ body.vscode-dark {
   --action--secondary: #8390a3;
   --action--disable: #424750;
   --action-red: #ee140f;
+  --action-yellow: #ffce73;
   --action-brand-dark: #004fbf;
   --stroke--active: #e8e8e8;
   --stroke--default: #8390a3;
@@ -98,4 +100,13 @@ strong {
 
 .cursor-pointer {
   cursor: pointer;
+}
+
+.codicon {
+  vertical-align: sub;
+  color: inherit;
+}
+
+code {
+  color: inherit;
 }

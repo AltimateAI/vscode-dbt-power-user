@@ -78,14 +78,6 @@ export class RunModel {
     this.executeSQL(window.activeTextEditor!.document.uri, query, queryName);
   }
 
-  getSummaryOnActiveWindow() {
-    const query = this.getQuery();
-    if (query === undefined) {
-      return;
-    }
-    this.getSummary(window.activeTextEditor!.document.uri, query);
-  }
-
   runModelOnNodeTreeItem(type: RunModelType) {
     return (model?: NodeTreeItem) => {
       if (model === undefined) {
@@ -176,10 +168,6 @@ export class RunModel {
 
   async executeSQL(uri: Uri, query: string, title: string) {
     this.dbtProjectContainer.executeSQL(uri, query);
-  }
-
-  async getSummary(uri: Uri, query: string) {
-    this.dbtProjectContainer.getSummary(uri, query);
   }
 
   showCompiledSQL(modelPath: Uri) {

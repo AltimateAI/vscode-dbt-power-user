@@ -29,5 +29,6 @@ export { default as Select } from "./components/select";
 export { default as IconButton } from "./components/iconButton/IconButton";
 export { default as DropdownButton } from "./components/dropdownButton/DropdownButton";
 export { default as Avatar } from "./components/avatar/Avatar";
+export { default as CodeBlock } from "./components/codeblock/index";
 
 export type { OptionType } from "./components/select";

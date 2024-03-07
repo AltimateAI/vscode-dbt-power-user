@@ -29,7 +29,7 @@ const AppProvider = ({ children }: { children: ReactNode }): JSX.Element => {
     executeRequestInAsync("datapilot:toggle", { open });
   };
 
-  useListeners();
+  useListeners(dispatch);
 
   const values = useMemo(
     () => ({
