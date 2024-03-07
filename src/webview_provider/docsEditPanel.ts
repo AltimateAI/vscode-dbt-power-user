@@ -143,7 +143,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   private getPanel() {
     const enableNewDocsPanel = workspace
       .getConfiguration("dbt")
-      .get<boolean>("enableNewDocsPanel", false);
+      .get<boolean>("enableNewDocsPanel", true);
     return enableNewDocsPanel ? this.newDocsPanel : this.legacyDocsPanel;
   }
 

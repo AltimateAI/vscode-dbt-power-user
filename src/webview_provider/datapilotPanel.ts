@@ -60,7 +60,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
       case "getNewDocsPanelState":
         const newDocsPanelState = workspace
           .getConfiguration("dbt")
-          .get<boolean>("enableNewDocsPanel", false);
+          .get<boolean>("enableNewDocsPanel", true);
 
         this.sendResponseToWebview({
           command: "response",

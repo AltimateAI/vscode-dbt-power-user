@@ -16,6 +16,7 @@ export { default as SlackIcon } from "./slack.svg?react";
 export { default as EditIcon } from "./edit.svg?react";
 export { default as EmptySquareIcon } from "./square.svg?react";
 export { default as CheckedSquareIcon } from "./checked-square.svg?react";
+export { default as TestsIcon } from "./tests.svg?react";
 
 interface Props {
   icon: string;

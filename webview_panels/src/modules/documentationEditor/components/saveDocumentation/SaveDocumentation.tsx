@@ -55,7 +55,7 @@ const SaveDocumentation = (): JSX.Element | null => {
 
   return (
     <Stack direction="row" className={classes.save}>
-      <h4>Save documentation</h4>
+      <h4>Path:</h4>
       <p>{currentDocsData?.patchPath ?? "Write path"}</p>
 
       {currentDocsData?.patchPath ? null : (
@@ -90,7 +90,9 @@ const SaveDocumentation = (): JSX.Element | null => {
           </Popover>
         </>
       )}
-      <Button onClick={saveDocumentation}>Save documentation</Button>
+      <Button color="primary" onClick={saveDocumentation}>
+        Save
+      </Button>
     </Stack>
   );
 };

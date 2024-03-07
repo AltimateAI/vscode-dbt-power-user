@@ -7,6 +7,7 @@ import { useMemo, useRef, useState } from "react";
 import DisplayTestDetails from "./DisplayTestDetails";
 import classes from "../../styles.module.scss";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
+import { TestsIcon } from "@assets/icons";
 
 interface Props {
   title: string;
@@ -49,7 +50,9 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
     <div className={classes.entityTests}>
       <Stack className={type}>
         <Stack>
-          <p className="mb-0">Tests:</p>
+          <p className="mb-0">
+            <TestsIcon /> Tests:
+          </p>
           {tests?.map((test) => (
             <Test
               key={test.key}

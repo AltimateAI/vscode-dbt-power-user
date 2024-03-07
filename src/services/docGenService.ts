@@ -67,7 +67,7 @@ export class DocGenService {
       }
       const enableNewDocsPanel = workspace
         .getConfiguration("dbt")
-        .get<boolean>("enableNewDocsPanel", false);
+        .get<boolean>("enableNewDocsPanel", true);
 
       const baseRequest = {
         columns,
@@ -414,7 +414,7 @@ export class DocGenService {
           const compiledSql = await project.unsafeCompileQuery(queryText);
           const enableNewDocsPanel = workspace
             .getConfiguration("dbt")
-            .get<boolean>("enableNewDocsPanel", false);
+            .get<boolean>("enableNewDocsPanel", true);
 
           const baseRequest = {
             columns: [],

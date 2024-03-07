@@ -33,6 +33,9 @@ const documentationSlice = createSlice({
       state.selectedPages.push(action.payload);
     },
     removeFromSelectedPage: (state, action: PayloadAction<Pages>) => {
+      if (state.selectedPages.length === 1) {
+        return;
+      }
       state.selectedPages = state.selectedPages.filter(
         (p) => p !== action.payload,
       );

@@ -205,7 +205,7 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
                 {(
                   test.test_metadata.kwargs as TestMetadataAcceptedValuesKwArgs
                 ).values?.map((value) => (
-                  <ListGroupItem key={value} action tag="button">
+                  <ListGroupItem key={value} tag="div">
                     {value}
                   </ListGroupItem>
                 ))}
@@ -220,21 +220,27 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
               <CardTitle className="d-flex justify-content-between">
                 Values
               </CardTitle>
-              <div>
-                To:{" "}
-                {
-                  (test.test_metadata.kwargs as TestMetadataRelationshipsKwArgs)
-                    .to
-                }
-              </div>
+              <ListGroup className={classes.testListGroup}>
+                <ListGroupItem action tag="div">
+                  <caption>To:</caption>{" "}
+                  {
+                    (
+                      test.test_metadata
+                        .kwargs as TestMetadataRelationshipsKwArgs
+                    ).to
+                  }
+                </ListGroupItem>
 
-              <div>
-                Field:{" "}
-                {
-                  (test.test_metadata.kwargs as TestMetadataRelationshipsKwArgs)
-                    .field
-                }
-              </div>
+                <ListGroupItem action tag="div">
+                  <caption>Field:</caption>{" "}
+                  {
+                    (
+                      test.test_metadata
+                        .kwargs as TestMetadataRelationshipsKwArgs
+                    ).field
+                  }
+                </ListGroupItem>
+              </ListGroup>
             </CardBody>
           </Card>
         );
