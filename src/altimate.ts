@@ -167,10 +167,15 @@ interface ValidateSqlRequest {
   models: ModelNode[];
 }
 
-interface ShareQueryRequest {
+interface ShareQuerySignedUrlRequest {
   name: string;
   compile_sql: string;
   csv_result: string;
+}
+
+interface VerifyShareQueryUploadRequest {
+  name: string;
+  signed_url: string;
 }
 
 interface InviteUserRequest {
@@ -471,11 +476,29 @@ export class AltimateRequest {
     return (await response.json()) as Record<string, any> | undefined;
   }
 
-  async shareQueryResult(req: ShareQueryRequest) {
-    return this.fetch<{ share_url: string }>("dbt/v3/query-result/share", {
-      method: "POST",
+  async getShareQuerySignedUrl() {
+    return this.fetch<{ signed_url: string }>("dbt/v3/query-result/signed_url");
+  }
+
+  async uploadDataToSignedUrl(url: string, req: ShareQuerySignedUrlRequest) {
+    const response = await this.fetch(url, {
+      method: "PUT",
       body: JSON.stringify(req),
+      headers: {
+        "Content-Type": "application/json",
+      },
     });
+    return response;
+  }
+
+  async verifyShareQueryUpload(req: VerifyShareQueryUploadRequest) {
+    return this.fetch<{ ok: boolean; share_url: string }>(
+      "dbt/v3/query-result/verify",
+      {
+        method: "POST",
+        body: JSON.stringify(req),
+      },
+    );
   }
 
   async inviteUser(req: InviteUserRequest) {

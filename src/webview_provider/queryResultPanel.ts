@@ -224,16 +224,38 @@ export class QueryResultPanel implements WebviewViewProvider {
               },
               async () => {
                 try {
-                  const result = await this.altimate.shareQueryResult(message);
-                  if (result?.share_url) {
-                    await env.clipboard.writeText(result.share_url);
-                    window.showInformationMessage(
-                      `URL is copied to clipboard: [${result.share_url}](${result.share_url})`,
+                  const result = await this.altimate.getShareQuerySignedUrl();
+                  if (result?.signed_url) {
+                    const response = await this.altimate.uploadDataToSignedUrl(
+                      result.signed_url,
+                      message,
                     );
+                    const data = response as Response;
+                    if (data.status === 200) {
+                      // verifying upload
+                      const verifyResponse =
+                        await this.altimate.verifyShareQueryUpload({
+                          name: message.name,
+                          signed_url: result.signed_url,
+                        });
+
+                      const verifyData = verifyResponse as {
+                        ok: boolean;
+                        share_url: string;
+                      };
+                      if (verifyData.ok) {
+                        await env.clipboard.writeText(verifyData.share_url);
+                        window.showInformationMessage(
+                          `URL is copied to clipboard: [${verifyData.share_url}](${verifyData.share_url})`,
+                        );
+                      } else {
+                        window.showErrorMessage(
+                          "Unable to verify upload. Please try again.",
+                        );
+                      }
+                    }
                   } else {
-                    window.showErrorMessage(
-                      "Unable to upload data to Altimate backend.",
-                    );
+                    window.showErrorMessage("Error generating signed url");
                   }
                 } catch (error) {
                   window.showErrorMessage(
