@@ -93,6 +93,7 @@ export class DbtSQLAction {
                 new ThemeIcon("dashboard"),
                 "Estimate cost for BigQuery",
                 "dbtPowerUser.bigqueryCostEstimate",
+                [true],
               ),
             );
           }
