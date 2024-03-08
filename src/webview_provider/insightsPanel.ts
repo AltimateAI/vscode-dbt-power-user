@@ -15,7 +15,11 @@ import {
   HandleCommandProps,
   UpdateConfigProps,
 } from "./altimateWebviewProvider";
-import { AltimateRequest, NotFoundError } from "../altimate";
+import {
+  AltimateRequest,
+  DBTCoreIntegration,
+  NotFoundError,
+} from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DeferToProdService } from "../services/deferToProdService";
@@ -43,6 +47,8 @@ export class InsightsPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.Insights";
   protected viewPath = "/insights";
   protected panelDescription = "Toggle Defer to prod and other features";
+
+  private projectIntegrations: DBTCoreIntegration[] | undefined;
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
@@ -188,11 +194,43 @@ export class InsightsPanel extends AltimateWebviewProvider {
     }
   }
 
-  private async fetchProjectIntegrations(syncRequestId: string | undefined) {
+  private async fetchProjectIntegrations(
+    syncRequestId: string | undefined,
+    params: { clearCache?: boolean },
+  ) {
     try {
-      if (!this.altimateRequest.handlePreviewFeatures()) {
+      if (params.clearCache) {
+        this.projectIntegrations = undefined;
+      }
+      if (this.projectIntegrations) {
+        if (syncRequestId) {
+          this._panel!.webview.postMessage({
+            command: "response",
+            args: {
+              syncRequestId,
+              body: this.projectIntegrations,
+              status: true,
+            },
+          });
+        }
         return;
       }
+
+      if (!this.altimateRequest.handlePreviewFeatures()) {
+        this.projectIntegrations = [];
+        if (syncRequestId) {
+          this._panel!.webview.postMessage({
+            command: "response",
+            args: {
+              syncRequestId,
+              body: this.projectIntegrations,
+              status: true,
+            },
+          });
+        }
+        return;
+      }
+
       this.dbtTerminal.debug("InsightsPanel", "Fetching project integrations");
       const response = await this.altimateRequest.fetchProjectIntegrations();
 
@@ -212,6 +250,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
           });
       }
 
+      this.projectIntegrations = response;
       if (syncRequestId) {
         this._panel!.webview.postMessage({
           command: "response",
@@ -440,7 +479,10 @@ export class InsightsPanel extends AltimateWebviewProvider {
         });
         break;
       case "fetchProjectIntegrations":
-        await this.fetchProjectIntegrations(syncRequestId);
+        await this.fetchProjectIntegrations(
+          syncRequestId,
+          params as { clearCache?: boolean },
+        );
         break;
       case "testRemoteManifest":
         const { dbtCoreIntegrationId } = params as {

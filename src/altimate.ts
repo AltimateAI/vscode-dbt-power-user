@@ -163,7 +163,7 @@ export interface DocsGenerateResponse {
   model_description?: string;
 }
 
-interface DBTCoreIntegration {
+export interface DBTCoreIntegration {
   id: number;
   name: string;
   created_at: string;

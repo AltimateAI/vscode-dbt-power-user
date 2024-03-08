@@ -624,13 +624,12 @@ export class DBTCoreProjectIntegration
       return args;
     }
     if (manifestPathType === ManifestPathType.REMOTE) {
-      this.validationProvider.throwIfNotAuthenticated();
-      if (dbtCoreIntegrationId! <= 0) {
-        this.dbtTerminal.debug(
-          "DBTCoreProjectIntegration",
-          "No dbtCoreIntegrationId for defer remote config",
+      try {
+        this.validationProvider.throwIfNotAuthenticated();
+      } catch (err) {
+        throw new Error(
+          "Defer to production is currently enabled with 'DataPilot dbt integration' mode. It requires a valid Altimate AI API key and instance name in the settings. In order to run dbt commands, please either switch to Local Path mode or disable the feature or add an API key / instance name.",
         );
-        return [];
       }
 
       this.dbtTerminal.debug(
