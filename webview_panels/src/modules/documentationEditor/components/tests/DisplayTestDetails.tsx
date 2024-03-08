@@ -148,10 +148,12 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
               <div>
                 <AcceptedValues
                   control={control}
-                  value={(
-                    test.test_metadata
-                      .kwargs as TestMetadataAcceptedValuesKwArgs
-                  ).values?.join(",")}
+                  values={
+                    (
+                      test.test_metadata
+                        .kwargs as TestMetadataAcceptedValuesKwArgs
+                    ).values
+                  }
                 />
                 {getFooter()}
               </div>

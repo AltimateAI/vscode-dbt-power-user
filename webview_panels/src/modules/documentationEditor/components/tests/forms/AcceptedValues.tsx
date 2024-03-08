@@ -1,23 +1,30 @@
-import { Label, Input } from "@uicore";
+import { Select } from "@uicore";
 import { Control, Controller } from "react-hook-form";
 import { SaveRequest } from "../types";
 
 interface Props {
   control: Control<SaveRequest, unknown>;
-  value?: string;
+  values?: string[];
 }
-const AcceptedValues = ({ control, value }: Props): JSX.Element => {
+const AcceptedValues = ({ control, values }: Props): JSX.Element => {
   return (
     <div>
-      <Label>Add comma separated list of values</Label>
       <Controller
         control={control}
         name="accepted_values"
         render={({ field: { onChange } }) => (
-          <Input
-            defaultValue={value}
+          <Select
+            components={{
+              DropdownIndicator: null,
+              Menu: () => null,
+            }}
+            hideOptionIcon
+            isCreatable
+            defaultValue={values?.map((v) => ({ label: v, value: v }) ?? [])}
+            isMulti
+            name="accepted_values"
             onChange={onChange}
-            placeholder="Entire home/apt,Private room,Shared room"
+            placeholder="Type a value and press enter to add"
           />
         )}
       />
