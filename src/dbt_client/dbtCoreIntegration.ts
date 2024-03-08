@@ -628,7 +628,7 @@ export class DBTCoreProjectIntegration
         this.validationProvider.throwIfNotAuthenticated();
       } catch (err) {
         throw new Error(
-          "Defer to production is currently enabled, it requires a valid Altimate API key and instance. In order to run dbt commands you will need to disable the feature or enter a valid Altimate API key.",
+          "Defer to production is currently enabled with 'DataPilot dbt integration' mode. It requires a valid Altimate AI API key and instance name in the settings. In order to run dbt commands, please either switch to Local Path mode or disable the feature or add an API key / instance name.",
         );
       }
 
