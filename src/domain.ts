@@ -62,7 +62,7 @@ interface DocMetaData {
   character: number;
 }
 
-interface TestMetadata
+interface TestMetadataSpecification
   extends TestMetadataAcceptedValues,
     TestMetadataRelationships {
   column_name: string;
@@ -88,7 +88,7 @@ export interface TestMetaData {
   raw_sql: string;
   column_name?: string;
   test_metadata?: {
-    kwargs: TestMetadata;
+    kwargs: TestMetadataSpecification;
     name: string;
     namespace?: string;
   };
