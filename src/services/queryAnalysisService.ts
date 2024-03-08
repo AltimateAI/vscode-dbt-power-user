@@ -47,7 +47,6 @@ export class QueryAnalysisService {
   }
 
   public async executeQueryAnalysis(
-    eventMap: Map<string, ManifestCacheProjectAddedEvent>,
     params: Partial<QueryAnalysisRequest>,
     job_type: QueryAnalysisType,
     syncRequestId?: string,
@@ -91,7 +90,7 @@ export class QueryAnalysisService {
     }
 
     const adapter = dbtProject.getAdapterType() || "unknown";
-    const documentation = await this.docGenService.getDocumentation(eventMap);
+    const documentation = await this.docGenService.getDocumentation();
     if (!documentation) {
       const error = new Error("Invalid model");
       this.dbtTerminal.error(
@@ -121,10 +120,13 @@ export class QueryAnalysisService {
     });
   }
 
-  public async getFollowupQuestions(
-    eventMap: Map<string, ManifestCacheProjectAddedEvent>,
-    { query, user_request }: { query: string; user_request: string },
-  ) {
+  public async getFollowupQuestions({
+    query,
+    user_request,
+  }: {
+    query: string;
+    user_request: string;
+  }) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
     }
@@ -140,7 +142,7 @@ export class QueryAnalysisService {
     }
 
     const adapter = dbtProject.getAdapterType() || "unknown";
-    const documentation = await this.docGenService.getDocumentation(eventMap);
+    const documentation = await this.docGenService.getDocumentation();
 
     if (!documentation) {
       const error = new Error("Unable to find documentation for the model");

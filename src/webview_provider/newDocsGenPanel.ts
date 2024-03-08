@@ -84,9 +84,7 @@ export class NewDocsGenPanel
   }
 
   private async transmitTestsData() {
-    const tests = await this.docGenService.getTestsForCurrentModel(
-      this.eventMap,
-    );
+    const tests = await this.docGenService.getTestsForCurrentModel();
     this.sendResponseToWebview({
       command: "renderTests",
       tests,
@@ -111,13 +109,11 @@ export class NewDocsGenPanel
         this.toggleDocsPanel(args);
         break;
       case "getCurrentModelDocumentation":
-        if (!this.eventMap || !this._panel) {
+        if (!this._panel) {
           return;
         }
 
-        const documentation = await this.docGenService.getDocumentation(
-          this.eventMap,
-        );
+        const documentation = await this.docGenService.getDocumentation();
         this.sendResponseToWebview({
           command: "renderDocumentation",
           docs: documentation,
@@ -140,7 +136,6 @@ export class NewDocsGenPanel
         break;
       case "getModelsFromProject":
         const models = this.dbtProjectService.getModelsFromProject(
-          this.eventMap,
           window.activeTextEditor?.document.uri,
         );
 

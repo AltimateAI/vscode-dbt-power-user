@@ -38,7 +38,6 @@ interface FeedbackRequestProps {
   panel: WebviewView | undefined;
   queryText: string;
   message: any;
-  eventMap: Map<string, ManifestCacheProjectAddedEvent>;
   syncRequestId?: string;
 }
 
@@ -176,19 +175,14 @@ export class DocGenService {
     }
   }
 
-  public async getDocumentation(
-    eventMap: Map<string, ManifestCacheProjectAddedEvent>,
-  ): Promise<DBTDocumentation | undefined> {
-    if (window.activeTextEditor === undefined || eventMap === undefined) {
+  public async getDocumentation(): Promise<DBTDocumentation | undefined> {
+    if (window.activeTextEditor === undefined) {
       return undefined;
     }
 
     const currentFilePath = window.activeTextEditor.document.uri;
-    const project = this.dbtProjectService.getProject();
-    if (project === undefined) {
-      return undefined;
-    }
-    const event = eventMap.get(project.projectRoot.fsPath);
+
+    const event = this.dbtProjectService.getEventByCurrentProject();
     if (event === undefined) {
       return undefined;
     }
@@ -220,36 +214,6 @@ export class DocGenService {
     return [...Array(Math.ceil(a.length / n))].map((_, i) =>
       a.slice(n * i, n + n * i),
     );
-  }
-
-  private getEventByProject(
-    eventMap: Map<string, ManifestCacheProjectAddedEvent>,
-  ): ManifestCacheProjectAddedEvent | undefined {
-    if (window.activeTextEditor === undefined || eventMap === undefined) {
-      return;
-    }
-
-    const currentFilePath = window.activeTextEditor.document.uri;
-    this.dbtTerminal.debug(
-      "getting event for project, currentFilePath: ",
-      currentFilePath.fsPath,
-    );
-    const projectRootpath =
-      this.dbtProjectContainer.getProjectRootpath(currentFilePath);
-    if (projectRootpath === undefined) {
-      this.dbtTerminal.debug(
-        "no project for currentFilePath: ",
-        currentFilePath.fsPath,
-      );
-      return;
-    }
-
-    const event = eventMap.get(projectRootpath.fsPath);
-    if (event === undefined) {
-      this.dbtTerminal.debug("no event for project: ", projectRootpath.fsPath);
-      return;
-    }
-    return event;
   }
 
   /**
@@ -481,10 +445,8 @@ export class DocGenService {
     return path.basename(window.activeTextEditor!.document.fileName, ".sql");
   }
 
-  public async getTestsForCurrentModel(
-    eventMap: Map<string, ManifestCacheProjectAddedEvent>,
-  ) {
-    const event = this.getEventByProject(eventMap);
+  public async getTestsForCurrentModel() {
+    const event = this.dbtProjectService.getEventByCurrentProject();
     if (!event) {
       return;
     }
@@ -512,7 +474,6 @@ export class DocGenService {
   public async sendFeedback({
     queryText,
     message,
-    eventMap,
     panel,
     syncRequestId,
   }: FeedbackRequestProps) {
@@ -529,7 +490,7 @@ export class DocGenService {
           if (!project) {
             throw new Error("Unable to find project");
           }
-          const documentation = await this.getDocumentation(eventMap);
+          const documentation = await this.getDocumentation();
           const compiledSql = await project.unsafeCompileQuery(queryText);
           const request = message.data;
           request["feedback_text"] = message.comment;
