@@ -30,7 +30,7 @@ const DefaultDeferState = {
   manifestPathForDeferral: "",
   manifestPathType: ManifestPathType.EMPTY,
   projectIntegrations: [],
-  dbtCoreIntegrationId: -1,
+  dbtCoreIntegrationId: undefined,
 };
 
 const DeferToProduction = (): JSX.Element => {
@@ -45,7 +45,8 @@ const DeferToProduction = (): JSX.Element => {
     },
     setDeferState,
   ] = useState<DeferToProductionProps>(DefaultDeferState);
-
+  const [fetchingProjectIntegrations, setFetchingProjectIntegrations] =
+    useState(false);
   const [dbtProjects, setDbtProjects] = useState<DbtProject[]>([]);
   const [dbtProjectRoot, setDbtProjectRoot] = useState("");
   const [dbtIntegrationMode, setDbtIntegrationMode] = useState(
@@ -165,8 +166,11 @@ const DeferToProduction = (): JSX.Element => {
     }
   };
 
-  const setProjectIntegrations = async () => {
-    const response = await executeRequestInSync("fetchProjectIntegrations", {});
+  const setProjectIntegrations = async (clearCache?: boolean) => {
+    setFetchingProjectIntegrations(true);
+    const response = await executeRequestInSync("fetchProjectIntegrations", {
+      clearCache,
+    });
     if (Array.isArray(response)) {
       setDeferState((prevState) => ({
         ...prevState,
@@ -178,8 +182,8 @@ const DeferToProduction = (): JSX.Element => {
         ),
         manifestPathType: ManifestPathType.REMOTE,
       }));
-      return;
     }
+    setFetchingProjectIntegrations(false);
   };
 
   const handleProjectSelect = (selectedOption: {
@@ -259,6 +263,7 @@ const DeferToProduction = (): JSX.Element => {
                 {dbtIntegrationMode !== DbtIntegrationMode.CLOUD ? (
                   <>
                     <ManifestSelection
+                      fetchingProjectIntegrations={fetchingProjectIntegrations}
                       dbtProjectRoot={dbtProjectRoot}
                       manifestPathForDeferral={manifestPathForDeferral}
                       manifestPathType={manifestPathType}
