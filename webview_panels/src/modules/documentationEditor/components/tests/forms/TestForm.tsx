@@ -18,7 +18,7 @@ interface Props {
 const schema = Yup.object({
   to: Yup.string().optional(),
   field: Yup.string().optional(),
-  accepted_values: Yup.string().optional(),
+  accepted_values: Yup.array().of(Yup.string().required()).optional(),
 }).required();
 
 const TestForm = ({ formType, onClose, column }: Props): JSX.Element | null => {

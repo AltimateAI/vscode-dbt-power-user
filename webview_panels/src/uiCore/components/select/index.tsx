@@ -65,6 +65,10 @@ const AltimateSelect = (props: Props): JSX.Element => {
         isFocused || isSelected ? "var(--background--base)" : "transparent",
     }),
     indicatorSeparator: (styles) => ({ ...styles, display: "none" }),
+    input: (styles) => ({
+      ...styles,
+      color: "var(--text-color--title)",
+    }),
     singleValue: (styles) => ({
       ...styles,
       color: "var(--text-color--paragraph)",

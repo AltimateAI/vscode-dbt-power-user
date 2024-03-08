@@ -1,4 +1,4 @@
-import { Select } from "@uicore";
+import { OptionType, Select } from "@uicore";
 import { Control, Controller } from "react-hook-form";
 import { SaveRequest } from "../types";
 
@@ -12,18 +12,22 @@ const AcceptedValues = ({ control, values }: Props): JSX.Element => {
       <Controller
         control={control}
         name="accepted_values"
-        render={({ field: { onChange } }) => (
+        render={({ field: { onChange, ref } }) => (
           <Select
             components={{
               DropdownIndicator: null,
               Menu: () => null,
             }}
+            ref={ref}
             hideOptionIcon
             isCreatable
             defaultValue={values?.map((v) => ({ label: v, value: v }) ?? [])}
             isMulti
-            name="accepted_values"
-            onChange={onChange}
+            onChange={(updates: unknown) => {
+              return onChange(
+                ((updates ?? []) as OptionType[])?.map((val) => val.value),
+              );
+            }}
             placeholder="Type a value and press enter to add"
           />
         )}

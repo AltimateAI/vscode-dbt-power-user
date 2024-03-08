@@ -33,7 +33,7 @@ import { DeleteIcon, EditIcon } from "@assets/icons";
 const schema = Yup.object({
   to: Yup.string().optional(),
   field: Yup.string().optional(),
-  accepted_values: Yup.string().optional(),
+  accepted_values: Yup.array().of(Yup.string().required()).optional(),
 }).required();
 
 interface Props {
@@ -71,9 +71,7 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
     if (test.test_metadata?.name === DbtGenericTests.ACCEPTED_VALUES) {
       setValue(
         "accepted_values",
-        (
-          test.test_metadata.kwargs as TestMetadataAcceptedValuesKwArgs
-        ).values?.join(","),
+        (test.test_metadata.kwargs as TestMetadataAcceptedValuesKwArgs).values,
       );
       return;
     }
