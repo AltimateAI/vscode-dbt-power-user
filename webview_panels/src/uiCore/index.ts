@@ -28,6 +28,7 @@ export {
   ListGroup,
   ListGroupItem,
   Fade,
+  Spinner,
 } from "reactstrap";
 
 export { default as Tag } from "./components/tag/Tag";
