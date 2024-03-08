@@ -1,4 +1,4 @@
-import { AddIcon } from "@assets/icons";
+import { AddIcon, CloseIcon } from "@assets/icons";
 import { DbtGenericTests } from "@modules/documentationEditor/state/types";
 import {
   Card,
@@ -10,6 +10,7 @@ import {
   IconButton,
   Tag,
   Fade,
+  Tooltip,
 } from "@uicore";
 import { useRef, useState } from "react";
 import TestForm from "./forms/TestForm";
@@ -48,11 +49,11 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
     <>
       <IconButton
         onClick={handleOpen}
-        color="secondary"
+        color={showButtons ? "primary" : "secondary"}
         className={classes.btnAddTest}
         title={`Add test for ${title}`}
       >
-        <AddIcon />
+        {showButtons ? <CloseIcon /> : <AddIcon />}
       </IconButton>
       {showButtons ? (
         <Fade>
@@ -60,9 +61,11 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
             {Object.values(DbtGenericTests)
               .filter((t) => !currentTests?.includes(t))
               .map((test) => (
-                <Tag key={test} onClick={() => handleNewTestClick(test)}>
+                <Tooltip key={test} title="Click to add">
+                <Tag className={classes.newTestTag} onClick={() => handleNewTestClick(test)}>
                   {test}
                 </Tag>
+                </Tooltip>
               ))}
           </Stack>
         </Fade>

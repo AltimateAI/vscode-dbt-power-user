@@ -84,3 +84,7 @@ export const InfoCircleIcon = (
 export const AskIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
   <Icon icon="send" {...props} />
 );
+
+export const CloseIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
+  <Icon icon="close" {...props} />
+);
