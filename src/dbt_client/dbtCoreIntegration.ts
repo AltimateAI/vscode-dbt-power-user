@@ -624,7 +624,13 @@ export class DBTCoreProjectIntegration
       return args;
     }
     if (manifestPathType === ManifestPathType.REMOTE) {
-      this.validationProvider.throwIfNotAuthenticated();
+      try {
+        this.validationProvider.throwIfNotAuthenticated();
+      } catch (err) {
+        throw new Error(
+          "Defer to production is currently enabled, it requires a valid Altimate API key and instance. In order to run dbt commands you will need to disable the feature or enter a valid Altimate API key.",
+        );
+      }
       if (dbtCoreIntegrationId! <= 0) {
         this.dbtTerminal.debug(
           "DBTCoreProjectIntegration",

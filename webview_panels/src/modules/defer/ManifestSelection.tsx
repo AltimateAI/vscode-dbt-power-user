@@ -1,4 +1,4 @@
-import { FormGroup, Input, Label, Select } from "@uicore";
+import { FormGroup, IconButton, Input, Label, Select, Spinner } from "@uicore";
 import {
   executeRequestInAsync,
   executeRequestInSync,
@@ -7,6 +7,7 @@ import classes from "./defer.module.scss";
 import { ManifestPathType } from "./constants";
 import { ManifestSelectionProps } from "./types";
 import { panelLogger } from "@modules/logger";
+import { RefreshIcon } from "@assets/icons";
 
 export const ManifestSelection = ({
   dbtProjectRoot,
@@ -16,6 +17,7 @@ export const ManifestSelection = ({
   dbtCoreIntegrationId,
   setDeferState,
   setProjectIntegrations,
+  fetchingProjectIntegrations,
 }: ManifestSelectionProps): JSX.Element => {
   const updateConfigWithManifestPath = async (path: string) => {
     panelLogger.info("updating defer config for manifest path", path);
@@ -118,6 +120,8 @@ export const ManifestSelection = ({
     await updateConfigWithManifestPath(path);
   };
 
+  const handleRefresh = () => setProjectIntegrations(true);
+
   return (
     <FormGroup check className={classes.pathSelection}>
       <div className={classes.pathSelectionRow}>
@@ -168,18 +172,29 @@ export const ManifestSelection = ({
         </Label>
         {manifestPathType === ManifestPathType.REMOTE &&
           projectIntegrations && (
-            <Select
-              options={projectIntegrations}
-              className={classes.pathInput}
-              value={projectIntegrations.find(
-                (i) => i.value === dbtCoreIntegrationId,
-              )}
-              onChange={(newValue) =>
-                handleIntegrationSelect(
-                  newValue as { label: string; value: number },
-                )
-              }
-            />
+            <>
+              <Select
+                options={projectIntegrations}
+                className={classes.pathInput}
+                value={projectIntegrations.find(
+                  (i) => i.value === dbtCoreIntegrationId,
+                )}
+                onChange={(newValue) =>
+                  handleIntegrationSelect(
+                    newValue as { label: string; value: number },
+                  )
+                }
+              />
+              <IconButton
+                title="Refetch Project Integrations"
+                onClick={handleRefresh}
+                color="outline"
+                className={classes.refreshBtn}
+                disabled={fetchingProjectIntegrations}
+              >
+                {!fetchingProjectIntegrations ? <RefreshIcon /> : <Spinner />}
+              </IconButton>
+            </>
           )}
       </div>
     </FormGroup>

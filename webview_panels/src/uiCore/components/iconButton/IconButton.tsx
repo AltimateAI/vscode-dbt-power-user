@@ -20,6 +20,7 @@ const IconButton = (props: Props): JSX.Element => {
         className={`btn ${props.color ? `btn-${props.color}` : ""} ${
           props.className ?? ""
         } ${classes.iconButton}`}
+        type={props.type ?? "button"}
       >
         {props.children}
       </button>
