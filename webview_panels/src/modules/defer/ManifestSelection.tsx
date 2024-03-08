@@ -47,7 +47,7 @@ export const ManifestSelection = ({
   const handleManifestPathTypeChange = async (option: ManifestPathType) => {
     if (option === ManifestPathType.REMOTE) {
       await setProjectIntegrations();
-      if (dbtCoreIntegrationId > 0) {
+      if (dbtCoreIntegrationId) {
         await executeRequestInSync("updateDeferConfig", {
           config: [
             {

@@ -631,13 +631,6 @@ export class DBTCoreProjectIntegration
           "Defer to production is currently enabled, it requires a valid Altimate API key and instance. In order to run dbt commands you will need to disable the feature or enter a valid Altimate API key.",
         );
       }
-      if (dbtCoreIntegrationId! <= 0) {
-        this.dbtTerminal.debug(
-          "DBTCoreProjectIntegration",
-          "No dbtCoreIntegrationId for defer remote config",
-        );
-        return [];
-      }
 
       this.dbtTerminal.debug(
         "remoteManifest",
