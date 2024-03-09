@@ -596,7 +596,7 @@ export class DBTCoreProjectIntegration
     }
     if (!manifestPathType) {
       const configNotPresent = new Error(
-        "manifestPathType config is not present, use the actions panel to set the Defer to production configuration.",
+        "Please configure defer to production functionality by specifying manifest path in Actions panel before using it.",
       );
       throw configNotPresent;
     }
@@ -624,13 +624,12 @@ export class DBTCoreProjectIntegration
       return args;
     }
     if (manifestPathType === ManifestPathType.REMOTE) {
-      this.validationProvider.throwIfNotAuthenticated();
-      if (dbtCoreIntegrationId! <= 0) {
-        this.dbtTerminal.debug(
-          "DBTCoreProjectIntegration",
-          "No dbtCoreIntegrationId for defer remote config",
+      try {
+        this.validationProvider.throwIfNotAuthenticated();
+      } catch (err) {
+        throw new Error(
+          "Defer to production is currently enabled with 'DataPilot dbt integration' mode. It requires a valid Altimate AI API key and instance name in the settings. In order to run dbt commands, please either switch to Local Path mode or disable the feature or add an API key / instance name.",
         );
-        return [];
       }
 
       this.dbtTerminal.debug(

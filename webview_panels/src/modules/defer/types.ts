@@ -16,17 +16,18 @@ export interface DeferToProductionProps {
   manifestPathForDeferral: string;
   manifestPathType: ManifestPathType;
   projectIntegrations: DropdownOptions[];
-  dbtCoreIntegrationId: number;
+  dbtCoreIntegrationId?: number;
 }
 
 export interface ManifestSelectionProps {
+  fetchingProjectIntegrations: boolean;
   dbtProjectRoot: string;
   manifestPathForDeferral: string;
   manifestPathType: ManifestPathType;
   projectIntegrations: DropdownOptions[];
-  dbtCoreIntegrationId: number;
+  dbtCoreIntegrationId?: number;
   setDeferState: React.Dispatch<React.SetStateAction<DeferToProductionProps>>;
-  setProjectIntegrations: () => Promise<void>;
+  setProjectIntegrations: (clearCache?: boolean) => Promise<void>;
 }
 
 export interface DbtProject {

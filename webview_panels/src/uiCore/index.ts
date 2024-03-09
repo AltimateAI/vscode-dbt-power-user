@@ -21,6 +21,7 @@ export {
   Offcanvas,
   OffcanvasHeader,
   OffcanvasBody,
+  Spinner,
 } from "reactstrap";
 
 export { default as Tag } from "./components/tag/Tag";
