@@ -2,7 +2,7 @@ import Test from "./Test";
 import AddTest from "./AddTest";
 import { DBTModelTest, Pages } from "@modules/documentationEditor/state/types";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
-import { Stack, Drawer, DrawerRef } from "@uicore";
+import { Stack, Drawer, DrawerRef, Button } from "@uicore";
 import { useMemo, useRef, useState } from "react";
 import DisplayTestDetails from "./DisplayTestDetails";
 import classes from "../../styles.module.scss";
@@ -15,16 +15,21 @@ interface Props {
   type: EntityType;
 }
 
+const MaxVisibleTests = 3;
+
 const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
   const {
     state: { selectedPages },
   } = useDocumentationContext();
   const [selectedTest, setSelectedTest] = useState<DBTModelTest | null>(null);
+  const [showAllTests, setshowAllTests] = useState(false);
   const drawerRef = useRef<DrawerRef | null>(null);
   const handleClose = () => {
     setSelectedTest(null);
     drawerRef.current?.close();
   };
+
+  const handleShowAllTests = () => setshowAllTests(true);
 
   const onSelect = (test: DBTModelTest) => {
     setSelectedTest(test);
@@ -43,6 +48,11 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
     [selectedPages],
   );
 
+  const visibleTests = showAllTests
+    ? tests
+    : (tests ?? []).slice(0, MaxVisibleTests);
+  const remainingTests = (tests ?? []).length - MaxVisibleTests;
+
   if (!isTestEnabled || (type === EntityType.MODEL && !tests?.length)) {
     return null;
   }
@@ -53,7 +63,7 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
           <p className="mb-0">
             <TestsIcon /> Tests:
           </p>
-          {tests?.map((test) => (
+          {visibleTests?.map((test) => (
             <Test
               key={test.key}
               test={test}
@@ -61,6 +71,11 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
               selectedTest={selectedTest}
             />
           ))}
+          {!showAllTests && tests && tests.length > MaxVisibleTests ? (
+            <Button onClick={handleShowAllTests} title={`Show all tests`}>
+              + {remainingTests} {remainingTests > 1 ? "tests" : "test"}
+            </Button>
+          ) : null}
           {type === EntityType.COLUMN ? (
             <AddTest title={title} currentTests={currentTests} />
           ) : null}
