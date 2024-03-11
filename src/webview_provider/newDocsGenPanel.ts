@@ -11,7 +11,7 @@ import { AltimateRequest } from "../altimate";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheChangedEvent } from "../manifest/event/manifestCacheChangedEvent";
-import { DbtProjectService } from "../services/dbtProjectService";
+import { QueryManifestService } from "../services/queryManifestService";
 import { DocGenService } from "../services/docGenService";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
@@ -38,7 +38,7 @@ export class NewDocsGenPanel
     telemetry: TelemetryService,
     private docGenService: DocGenService,
     protected emitterService: SharedStateService,
-    protected dbtProjectService: DbtProjectService,
+    protected queryManifestService: QueryManifestService,
     protected dbtTerminal: DBTTerminal,
   ) {
     super(
@@ -88,7 +88,7 @@ export class NewDocsGenPanel
     this.sendResponseToWebview({
       command: "renderTests",
       tests,
-      project: this.dbtProjectService.getProject()?.getProjectName(),
+      project: this.queryManifestService.getProject()?.getProjectName(),
     });
   }
 
@@ -117,13 +117,13 @@ export class NewDocsGenPanel
         this.sendResponseToWebview({
           command: "renderDocumentation",
           docs: documentation,
-          project: this.dbtProjectService.getProject()?.getProjectName(),
+          project: this.queryManifestService.getProject()?.getProjectName(),
           testsEnabled: workspace
             .getConfiguration("dbt")
             .get<boolean>("enableTests", false),
         });
       case "getColumnsOfModel":
-        const columns = await this.dbtProjectService
+        const columns = await this.queryManifestService
           .getProject()
           ?.getColumnsOfModel(args.model as string);
         this.sendResponseToWebview({
@@ -135,7 +135,7 @@ export class NewDocsGenPanel
         });
         break;
       case "getModelsFromProject":
-        const models = this.dbtProjectService.getModelsFromProject(
+        const models = this.queryManifestService.getModelsFromProject(
           window.activeTextEditor?.document.uri,
         );
 

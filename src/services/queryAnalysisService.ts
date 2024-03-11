@@ -6,7 +6,7 @@ import {
 } from "../altimate";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
-import { DbtProjectService } from "./dbtProjectService";
+import { QueryManifestService } from "./queryManifestService";
 import { DocGenService } from "./docGenService";
 import { StreamingService } from "./streamingService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
@@ -17,7 +17,7 @@ export class QueryAnalysisService {
     private docGenService: DocGenService,
     private streamingService: StreamingService,
     private altimateRequest: AltimateRequest,
-    private dbtProjectService: DbtProjectService,
+    private queryManifestService: QueryManifestService,
     private dbtTerminal: DBTTerminal,
   ) {}
 
@@ -77,7 +77,7 @@ export class QueryAnalysisService {
       throw error;
     }
     const { query } = selectionData;
-    const dbtProject = this.dbtProjectService.getProject();
+    const dbtProject = this.queryManifestService.getProject();
 
     if (!dbtProject) {
       const error = new Error("Invalid dbt project");
@@ -130,7 +130,7 @@ export class QueryAnalysisService {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
     }
-    const dbtProject = this.dbtProjectService.getProject();
+    const dbtProject = this.queryManifestService.getProject();
     if (!dbtProject) {
       const error = new Error("Invalid dbt project");
       this.dbtTerminal.error(

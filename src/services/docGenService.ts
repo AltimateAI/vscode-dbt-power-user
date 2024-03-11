@@ -17,7 +17,7 @@ import {
   DBTDocumentation,
   Source,
 } from "../webview_provider/docsEditPanel";
-import { DbtProjectService } from "./dbtProjectService";
+import { QueryManifestService } from "./queryManifestService";
 
 interface GenerateDocsForColumnsProps {
   panel: WebviewView | undefined;
@@ -49,7 +49,7 @@ export class DocGenService {
     private altimateRequest: AltimateRequest,
     protected dbtProjectContainer: DBTProjectContainer,
     protected telemetry: TelemetryService,
-    private dbtProjectService: DbtProjectService,
+    private queryManifestService: QueryManifestService,
     private dbtTerminal: DBTTerminal,
   ) {}
 
@@ -176,17 +176,17 @@ export class DocGenService {
   }
 
   public async getDocumentation(): Promise<DBTDocumentation | undefined> {
-    if (window.activeTextEditor === undefined) {
+    const eventResult = this.queryManifestService.getEventByCurrentProject();
+    if (!eventResult) {
+      return undefined;
+    }
+    const { event, currentDocument } = eventResult;
+
+    if (!event || !currentDocument) {
       return undefined;
     }
 
-    const currentFilePath = window.activeTextEditor.document.uri;
-
-    const event = this.dbtProjectService.getEventByCurrentProject();
-    if (event === undefined) {
-      return undefined;
-    }
-    const modelName = path.basename(currentFilePath.fsPath, ".sql");
+    const modelName = path.basename(currentDocument.uri.fsPath, ".sql");
     const currentNode = event.nodeMetaMap.get(modelName);
     if (currentNode === undefined) {
       return undefined;
@@ -441,17 +441,17 @@ export class DocGenService {
     );
   }
 
-  private getFilename() {
-    return path.basename(window.activeTextEditor!.document.fileName, ".sql");
-  }
-
   public async getTestsForCurrentModel() {
-    const event = this.dbtProjectService.getEventByCurrentProject();
-    if (!event) {
-      return;
+    const eventResult = this.queryManifestService.getEventByCurrentProject();
+    if (!eventResult?.event || !eventResult?.currentDocument) {
+      return undefined;
     }
-    const { nodeMetaMap, graphMetaMap, testMetaMap } = event;
-    const tableName = this.getFilename();
+
+    const {
+      event: { nodeMetaMap, graphMetaMap, testMetaMap },
+      currentDocument,
+    } = eventResult;
+    const tableName = path.basename(currentDocument.fileName, ".sql");
     this.dbtTerminal.info(
       "Tests",
       "getting tests by tableName:",
@@ -486,7 +486,7 @@ export class DocGenService {
       },
       async () => {
         try {
-          const project = this.dbtProjectService.getProject();
+          const project = this.queryManifestService.getProject();
           if (!project) {
             throw new Error("Unable to find project");
           }

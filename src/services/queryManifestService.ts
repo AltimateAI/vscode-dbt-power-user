@@ -1,4 +1,4 @@
-import { Uri, window } from "vscode";
+import { TextDocument, Uri, window } from "vscode";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -8,8 +8,8 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
 
-@provideSingleton(DbtProjectService)
-export class DbtProjectService {
+@provideSingleton(QueryManifestService)
+export class QueryManifestService {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
 
   public constructor(
@@ -40,13 +40,14 @@ export class DbtProjectService {
   }
 
   public getEventByCurrentProject():
-    | ManifestCacheProjectAddedEvent
+    | { event: ManifestCacheProjectAddedEvent; currentDocument: TextDocument }
     | undefined {
     if (window.activeTextEditor === undefined || this.eventMap === undefined) {
       return;
     }
 
-    const currentFilePath = window.activeTextEditor.document.uri;
+    const currentDocument = window.activeTextEditor.document;
+    const currentFilePath = currentDocument.uri;
     this.dbtTerminal.debug(
       "getting event for project, currentFilePath: ",
       currentFilePath.fsPath,
@@ -66,7 +67,7 @@ export class DbtProjectService {
       this.dbtTerminal.debug("no event for project: ", projectRootpath.fsPath);
       return;
     }
-    return event;
+    return { event, currentDocument };
   }
 
   public getModelsFromProject(currentFilePath?: Uri) {
