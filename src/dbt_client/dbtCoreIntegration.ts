@@ -617,10 +617,11 @@ export class DBTCoreProjectIntegration
         args.push("--favor-state");
       }
       this.dbtTerminal.debug(
-        "localManifest",
-        `local defer params: ${args.join(" ")}`,
+        "deferToProd",
+        "executing dbt command with defer params local mode",
+        true,
+        args,
       );
-      this.altimateRequest.sendDeferToProdEvent(ManifestPathType.LOCAL);
       return args;
     }
     if (manifestPathType === ManifestPathType.REMOTE) {
@@ -651,6 +652,12 @@ export class DBTCoreProjectIntegration
           args.push("--favor-state");
         }
         this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
+        this.dbtTerminal.debug(
+          "deferToProd",
+          "executing dbt command with defer params remote mode",
+          true,
+          args,
+        );
         return args;
       } catch (error) {
         if (error instanceof NotFoundError) {
