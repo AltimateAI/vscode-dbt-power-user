@@ -57,10 +57,6 @@
         color: var(--primary-color);
       }
     }
-
-    .new-test-tag{
-      border-color: var(--primary-color);
-    }
   }
 }
 .doc-generator {
@@ -143,6 +139,15 @@
     & .result-body {
       width: 40%;
       overflow: overlay;
+    }
+    .show-all-tests{
+      border-radius: 4px;
+      padding: 3px 9px;
+      &:hover{
+        background-color: transparent;
+        border-color: var(--primary-color);
+        color: initial;
+      }
     }
   }
 

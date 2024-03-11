@@ -72,8 +72,13 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
             />
           ))}
           {!showAllTests && tests && tests.length > MaxVisibleTests ? (
-            <Button onClick={handleShowAllTests} title={`Show all tests`}>
-              + {remainingTests} {remainingTests > 1 ? "tests" : "test"}
+            <Button
+              outline
+              onClick={handleShowAllTests}
+              className={classes.showAllTests}
+              title={`Show all tests`}
+            >
+              {remainingTests} {remainingTests > 1 ? "tests" : "test"} +
             </Button>
           ) : null}
           {type === EntityType.COLUMN ? (
