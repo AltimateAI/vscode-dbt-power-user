@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.35.2",
+  "version": "0.35.3",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -1010,7 +1010,7 @@
   ],
   "dependencies": {
     "@vscode/codicons": "^0.0.35",
-    "@vscode/extension-telemetry": "^0.8.4",
+    "@vscode/extension-telemetry": "^0.9.3",
     "@vscode/vsce": "^2.23.0",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "dayjs": "^1.11.10",
