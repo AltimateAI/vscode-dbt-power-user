@@ -21,6 +21,7 @@ const AcceptedValues = ({ control, values }: Props): JSX.Element => {
             ref={ref}
             hideOptionIcon
             isCreatable
+            isClearable
             defaultValue={values?.map((v) => ({ label: v, value: v }) ?? [])}
             isMulti
             onChange={(updates: unknown) => {
