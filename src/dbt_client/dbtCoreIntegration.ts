@@ -617,10 +617,6 @@ export class DBTCoreProjectIntegration
         args.push("--favor-state");
       }
       this.dbtTerminal.debug(
-        "localManifest",
-        `local defer params: ${args.join(" ")}`,
-      );
-      this.dbtTerminal.info(
         "deferToProd",
         "executing dbt command with defer params local mode",
         true,
@@ -656,7 +652,7 @@ export class DBTCoreProjectIntegration
           args.push("--favor-state");
         }
         this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
-        this.dbtTerminal.info(
+        this.dbtTerminal.debug(
           "deferToProd",
           "executing dbt command with defer params remote mode",
           true,
