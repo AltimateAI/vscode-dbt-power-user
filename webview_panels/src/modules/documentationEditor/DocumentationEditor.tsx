@@ -65,6 +65,7 @@ const DocumentationEditor = (): JSX.Element => {
         updateCurrentDocsData({
           name: currentDocsData.name,
           description: result.description,
+          isNewGeneration: true,
         }),
       );
     } catch (error) {
