@@ -596,7 +596,7 @@ export class DBTCoreProjectIntegration
     }
     if (!manifestPathType) {
       const configNotPresent = new Error(
-        "manifestPathType config is not present, use the actions panel to set the Defer to production configuration.",
+        "Please configure defer to production functionality by specifying manifest path in Actions panel before using it.",
       );
       throw configNotPresent;
     }
