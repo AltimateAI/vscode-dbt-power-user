@@ -22,7 +22,7 @@ import {
   Stack,
   Tag,
 } from "@uicore";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import AcceptedValues from "./forms/AcceptedValues";
 import Relationships from "./forms/Relationships";
 import { SaveRequest } from "./types";
@@ -43,7 +43,7 @@ interface Props {
 }
 
 const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
-  const { control, handleSubmit, setValue } = useForm<SaveRequest>({
+  const { control, handleSubmit, setValue, watch } = useForm<SaveRequest>({
     resolver: yupResolver(schema),
   });
 
@@ -93,11 +93,26 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
     setIsInEditMode(false);
   };
 
+  const acceptedValues = watch("accepted_values");
+  const fieldValue = watch("field");
+  const toValue = watch("to");
+  const formType = test.test_metadata?.name;
+
+  const disableFormSubmit = useMemo(() => {
+    if (formType === DbtGenericTests.ACCEPTED_VALUES) {
+      return !acceptedValues?.length;
+    }
+    if (formType === DbtGenericTests.RELATIONSHIPS) {
+      return !fieldValue || !toValue;
+    }
+    return false;
+  }, [formType, fieldValue, toValue, acceptedValues]);
+
   const getFooter = () => {
     return (
       <CardFooter>
         <Stack className="mt-3">
-          <Button type="submit" disabled={isSaving}>
+          <Button type="submit" disabled={isSaving || disableFormSubmit}>
             Update
           </Button>
           <Button outline onClick={handleCancel} disabled={isSaving}>
@@ -146,12 +161,9 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
               <div>
                 <AcceptedValues
                   control={control}
-                  values={
-                    (
-                      test.test_metadata
-                        .kwargs as TestMetadataAcceptedValuesKwArgs
-                    ).values
-                  }
+                  values={acceptedValues}
+                  column={column}
+                  setValue={setValue}
                 />
                 {getFooter()}
               </div>

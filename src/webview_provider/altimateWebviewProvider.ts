@@ -233,10 +233,21 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           }
           break;
         case "showInformationMessage":
-          const { infoMessage } = params as {
+          const { infoMessage, items } = params as {
             infoMessage: string;
+            items: any[];
           };
-          window.showInformationMessage(infoMessage);
+          const result = await window.showInformationMessage(
+            infoMessage,
+            ...items,
+          );
+          if (syncRequestId) {
+            this.sendResponseToWebview({
+              command: "response",
+              data: result,
+              syncRequestId,
+            });
+          }
           break;
         default:
           break;

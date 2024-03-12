@@ -105,6 +105,16 @@ export class NewDocsGenPanel
           syncRequestId,
         });
         break;
+      case "getDistinctColumnValues":
+        const result = await this.queryManifestService
+          .getProject()
+          ?.getColumnsValues(args.model as string, args.column as string);
+        this.sendResponseToWebview({
+          command: "response",
+          data: result,
+          syncRequestId,
+        });
+        break;
       case "enableNewDocsPanel":
         this.toggleDocsPanel(args);
         break;
