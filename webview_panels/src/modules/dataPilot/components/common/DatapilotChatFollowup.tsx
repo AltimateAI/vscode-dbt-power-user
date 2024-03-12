@@ -1,3 +1,4 @@
+import { parse } from "yaml";
 import { AltimateIcon } from "@assets/icons";
 import ResultFeedbackButtons from "@modules/feedback/ResultFeedbackButtons";
 import { Button, Card, CardBody, CardTitle, Stack } from "@uicore";
@@ -11,12 +12,18 @@ import {
 import { panelLogger } from "@modules/logger";
 import UserQuery from "./UserQuery";
 import QueryAnalysisActionButton from "../queryAnalysis/QueryAnalysisActionButton";
-import { DataPilotChatAction, RequestState } from "@modules/dataPilot/types";
+import {
+  DataPilotChatAction,
+  RequestState,
+  RequestTypes,
+} from "@modules/dataPilot/types";
 import useQueryAnalysisAction from "../queryAnalysis/useQueryAnalysisAction";
 import useQueryAnalysisContext from "../queryAnalysis/provider/useQueryAnalysisContext";
 import useAiGenerationUtils from "./useAiGenerationUtils";
 import MarkdownRenderer from "@modules/markdown/Renderer";
 import AskDatapilotInput from "./AskDatapilotInput";
+import { useCallback, useMemo } from "react";
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
 
 interface Props {
   response: QueryAnalysisFollowup;
@@ -80,6 +87,66 @@ const DatapilotChatFollowupComponent = ({
     );
   };
 
+  const getCodeblock = useCallback(() => {
+    const regex = /```(.*?)```/gs;
+    const matches = response?.match(regex);
+    const match = matches?.[0];
+    if (!match) {
+      return;
+    }
+    const [type, ...rest] = match.replace(/`/g, "").split("\n");
+    return { type, code: rest.join("\n") };
+  }, [response]);
+
+  const handleCodeblockAction = async () => {
+    const codeblock = getCodeblock();
+    if (!codeblock) {
+      return;
+    }
+
+    if (codeblock.type === "yaml") {
+      try {
+        const modelData = parse(codeblock.code) as {
+          models: [
+            { name: string; columns: [{ name: string; tests: unknown[] }] },
+          ];
+        };
+        const tests = modelData.models
+          .find((m) => m.name === chat?.meta?.model)
+          ?.columns.find(
+            (c) => c.name === chat?.meta?.column && c.tests.length,
+          );
+        panelLogger.log("sending tests data to test panel", tests, chat?.meta);
+        executeRequestInAsync("testgen:insert", { tests, ...chat?.meta });
+
+        return;
+      } catch (err) {
+        panelLogger.error("error while sending test yaml", err);
+      }
+    }
+    await navigator.clipboard.writeText(codeblock.code);
+  };
+
+  const codeActions = useMemo(() => {
+    if (chat?.requestType !== RequestTypes.ADD_CUSTOM_TEST) {
+      return [];
+    }
+
+    const codeblockResponse = getCodeblock();
+    if (!codeblockResponse) {
+      return [];
+    }
+    if (codeblockResponse) {
+      return [
+        {
+          title: codeblockResponse.type === "yaml" ? "Insert" : "Copy",
+          action: handleCodeblockAction,
+        },
+      ];
+    }
+    return [];
+  }, [getCodeblock, chat?.requestType]);
+
   return (
     <>
       <UserQuery query={user_prompt} />
@@ -104,7 +171,13 @@ const DatapilotChatFollowupComponent = ({
               ) : null}
               {!hideFeedback && state === RequestState.COMPLETED ? (
                 <Stack className={classes.actionButtons}>
-                  <Stack>&nbsp;</Stack>
+                  <Stack>
+                    {codeActions.map((button) => (
+                      <Button key={button.title} onClick={button.action}>
+                        {button.title}
+                      </Button>
+                    ))}
+                  </Stack>
                   <ResultFeedbackButtons
                     getFeedbackData={(data) => onFeedbackSubmit(data)}
                   />

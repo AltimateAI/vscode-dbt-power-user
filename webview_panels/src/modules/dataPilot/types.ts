@@ -41,6 +41,7 @@ export interface DataPilotChatFollowup {
   response?: string;
   actions?: DataPilotChatAction[];
   state: RequestState;
+  hideFeedback?: boolean;
 }
 
 export interface DataPilotStateProps {

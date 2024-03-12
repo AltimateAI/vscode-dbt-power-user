@@ -3,9 +3,9 @@ import { AltimateRequest, CreateDbtTestRequest } from "../altimate";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
-import { DbtProjectService } from "./dbtProjectService";
 import { DocGenService } from "./docGenService";
 import { StreamingService } from "./streamingService";
+import { QueryManifestService } from "./queryManifestService";
 
 @provideSingleton(DbtTestService)
 export class DbtTestService {
@@ -13,7 +13,7 @@ export class DbtTestService {
     private docGenService: DocGenService,
     private streamingService: StreamingService,
     private altimateRequest: AltimateRequest,
-    private dbtProjectService: DbtProjectService,
+    private queryManifestService: QueryManifestService,
     private dbtTerminal: DBTTerminal,
   ) {}
 
@@ -33,7 +33,7 @@ export class DbtTestService {
       throw error;
     }
 
-    const dbtProject = this.dbtProjectService.getProject();
+    const dbtProject = this.queryManifestService.getProject();
 
     if (!dbtProject) {
       const error = new Error("Invalid dbt project");
@@ -42,7 +42,7 @@ export class DbtTestService {
     }
 
     const adapter = dbtProject.getAdapterType() || "unknown";
-    const documentation = await this.docGenService.getDocumentation(eventMap);
+    const documentation = await this.docGenService.getDocumentation();
     if (!documentation) {
       const error = new Error("Invalid model");
       this.dbtTerminal.error(

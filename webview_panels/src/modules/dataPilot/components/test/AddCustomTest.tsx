@@ -34,6 +34,7 @@ const AddCustomTest = (): JSX.Element | null => {
           }” in model “${
             meta?.model as string
           }“ \n\r Please provide more information about which tests you need`,
+          hideFeedback: true,
         },
       }),
     );
@@ -52,7 +53,7 @@ const AddCustomTest = (): JSX.Element | null => {
           command="dbttest:create"
           // show followup and ask textbox for last result only
           showFollowup={i === results.length - 1}
-          hideFeedback
+          hideFeedback={result.hideFeedback}
           skipFollowupQuestions
         />
       ))}

@@ -1,5 +1,5 @@
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SaveRequest } from "../types";
 import {
   setIsDocGeneratedForAnyColumn,
@@ -12,11 +12,18 @@ import {
   TestMetadataRelationshipsKwArgs,
   TestMetadataAcceptedValuesKwArgs,
 } from "@modules/documentationEditor/state/types";
+import { IncomingMessageProps } from "@modules/app/types";
 
 export enum TestOperation {
   CREATE,
   UPDATE,
   DELETE,
+}
+
+interface IncomingTest {
+  tests: { name: string; tests: Record<string, string>[] };
+  model: string;
+  column: string;
 }
 const useTestFormSave = (): {
   handleSave: (
@@ -31,6 +38,48 @@ const useTestFormSave = (): {
     state: { currentDocsData, currentDocsTests },
     dispatch,
   } = useDocumentationContext();
+
+  const onMesssage = useCallback(
+    (event: MessageEvent<IncomingMessageProps & IncomingTest>) => {
+      const { command, ...params } = event.data;
+      switch (command) {
+        case "testgen:insert":
+          panelLogger.info("received new test gen", event.data);
+          handleTestInsert(params);
+          break;
+
+        default:
+          break;
+      }
+    },
+    [],
+  );
+
+  const handleTestInsert = (params: IncomingTest) => {
+    const testsData = [...(currentDocsTests ?? [])];
+    params.tests.tests.forEach((t) => {
+      const keys = Object.keys(t);
+      testsData.push({
+        alias: "",
+        database: "",
+        schema: "",
+        column_name: params.column,
+        key: `${keys[0]}_${params.column}`,
+        path: `${keys[0]}_${params.column}`,
+      });
+    });
+    panelLogger.info("insert test data", testsData);
+    dispatch(updateCurrentDocsTests(testsData));
+    dispatch(setIsDocGeneratedForAnyColumn(true));
+  };
+
+  useEffect(() => {
+    window.addEventListener("message", onMesssage);
+
+    return () => {
+      window.removeEventListener("message", onMesssage);
+    };
+  }, []);
 
   const updateTests = (
     testsData: DBTModelTest[],

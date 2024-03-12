@@ -14,12 +14,7 @@ import dataPilotSlice, {
   setShowHelp,
   upsertItem,
 } from "./dataPilotSlice";
-import {
-  ContextProps,
-  DataPilotChat,
-  RequestState,
-  RequestTypes,
-} from "./types";
+import { ContextProps, DataPilotChat } from "./types";
 import { panelLogger } from "@modules/logger";
 
 export const DataPilotContext = createContext<ContextProps>({
@@ -41,28 +36,7 @@ const DataPilotProvider = ({
     panelLogger.info("datapilot incoming message", request);
     const id = request.id ?? crypto.randomUUID();
 
-    if (request.requestType !== RequestTypes.ADD_CUSTOM_TEST) {
-      dispatch(upsertItem({ ...request, id }));
-    } else {
-      const column = request.meta?.column as string;
-      const model = request.meta?.model as string;
-      dispatch(
-        upsertItem({
-          ...request,
-          id,
-          followups: [
-            {
-              id: crypto.randomUUID(),
-              datapilot_title: " Datapilot response",
-              actions: [],
-              state: RequestState.COMPLETED,
-              user_prompt: `Add Custom Test for column: ${column}`,
-              response: `Generate Tests for column “${column}” in model “${model}“ \n\r Please provide more information about which tests you need`,
-            },
-          ],
-        }),
-      );
-    }
+    dispatch(upsertItem({ ...request, id }));
     dispatch(setCurrentSessionId(id));
   };
 

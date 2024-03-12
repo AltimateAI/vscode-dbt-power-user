@@ -104,8 +104,9 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         });
         break;
       case "docgen:insert":
+      case "testgen:insert":
         this.emitterService.eventEmitter.fire({
-          command: "docgen:insert",
+          command: command,
           payload: params,
         });
         break;

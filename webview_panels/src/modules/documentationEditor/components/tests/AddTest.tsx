@@ -15,8 +15,8 @@ import {
 import { useRef, useState } from "react";
 import TestForm from "./forms/TestForm";
 import classes from "../../styles.module.scss";
-import CustomTestButton from "./CustomTestButton";
 import useTestFormSave, { TestOperation } from "./hooks/useTestFormSave";
+import CustomTestButton from "./CustomTestButton";
 
 interface Props {
   title: string;
@@ -63,11 +63,15 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
               .filter((t) => !currentTests?.includes(t))
               .map((test) => (
                 <Tooltip key={test} title="Click to add">
-                <Tag className={classes.newTestTag} onClick={() => handleNewTestClick(test)}>
-                  {test}
-                </Tag>
+                  <Tag
+                    className={classes.newTestTag}
+                    onClick={() => handleNewTestClick(test)}
+                  >
+                    {test}
+                  </Tag>
                 </Tooltip>
               ))}
+            <CustomTestButton column={title} />
           </Stack>
         </Fade>
       ) : null}
