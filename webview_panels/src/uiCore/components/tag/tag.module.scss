@@ -1,14 +1,21 @@
 .tag {
   display: inline-block;
-  background: var(--background--04);
+  background: var(--background--02);
   padding: 3px 10px;
-  border-radius: 26px;
-  color: var(--Text-white, #fff);
+  border-radius: 4px;
+  color: var(--text-color--paragraph);
   font-size: 10px;
   font-weight: 300;
   height: 26px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  line-height: 1.8;
 
+  &:hover{
+    border-color: var(--primary-color);
+  }
   &:global.primary{
     background-color: var(--primary-color);
+    color: var(--text-color--white);
   }
 }

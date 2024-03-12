@@ -1,26 +1,54 @@
+import { CheckedSquareIcon, EmptySquareIcon } from "@assets/icons";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import useAppContext from "@modules/app/useAppContext";
 import CommonActionButtons from "@modules/commonActionButtons/CommonActionButtons";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
-import { Label, Stack } from "@uicore";
+import { Button, Stack } from "@uicore";
+import { useMemo } from "react";
 import DocGeneratorColumnsList from "./components/docGenerator/DocGeneratorColumnsList";
 import DocGeneratorInput from "./components/docGenerator/DocGeneratorInput";
 import DocumentationHelpContent from "./components/help/DocumentationHelpContent";
 import SaveDocumentation from "./components/saveDocumentation/SaveDocumentation";
-import { updateCurrentDocsData } from "./state/documentationSlice";
-import { DocsGenerateModelRequestV2 } from "./state/types";
+import EntityWithTests from "./components/tests/EntityWithTests";
+import {
+  addToSelectedPage,
+  removeFromSelectedPage,
+  updateCurrentDocsData,
+} from "./state/documentationSlice";
+import { DocsGenerateModelRequestV2, Pages } from "./state/types";
 import useDocumentationContext from "./state/useDocumentationContext";
 import classes from "./styles.module.scss";
 import { addDefaultActions } from "./utils";
 
 const DocumentationEditor = (): JSX.Element => {
   const {
-    state: { currentDocsData },
+    state: { currentDocsData, currentDocsTests, testsEnabled, selectedPages },
     dispatch,
   } = useDocumentationContext();
   const { postMessageToDataPilot } = useAppContext();
+
+  const handleClick = (page: Pages) => {
+    if (selectedPages.includes(page)) {
+      dispatch(removeFromSelectedPage(page));
+      return;
+    }
+    dispatch(addToSelectedPage(page));
+  };
+
+  const modelTests = useMemo(() => {
+    return currentDocsTests?.filter((test) => !test.column_name);
+  }, [currentDocsTests]);
+
+  const isDocumentationPageSelected = useMemo(
+    () => selectedPages.includes(Pages.DOCUMENTATION),
+    [selectedPages],
+  );
+  const isTestsPageSelected = useMemo(
+    () => selectedPages.includes(Pages.TESTS),
+    [selectedPages],
+  );
 
   const onModelDocSubmit = async (data: DocsGenerateModelRequestV2) => {
     if (!currentDocsData) {
@@ -65,6 +93,7 @@ const DocumentationEditor = (): JSX.Element => {
         updateCurrentDocsData({
           name: currentDocsData.name,
           description: result.description,
+          isNewGeneration: true,
         }),
       );
     } catch (error) {
@@ -87,30 +116,76 @@ const DocumentationEditor = (): JSX.Element => {
   }
 
   return (
-    <div className={classes.docGenerator}>
-      <Stack className={classes.head}>
-        <Stack>
-          <h3>Documentation for {currentDocsData.name}</h3>
-        </Stack>
-        <CommonActionButtons />
-      </Stack>
-      <Stack className={classes.bodyWrap}>
-        <Stack direction="column" className={classes.body}>
-          <Stack direction="column">
-            <Stack direction="column" style={{ margin: "6px 0" }}>
-              <Label className="p1">Description</Label>
-              <DocGeneratorInput
-                entity={currentDocsData}
-                type={EntityType.MODEL}
-                onSubmit={onModelDocSubmit}
-                placeholder="Describe your model"
-              />
-            </Stack>
-            <DocGeneratorColumnsList />
+    <div className={classes.documentationWrapper}>
+      {testsEnabled ? (
+        <Stack className="mb-2 justify-content-between">
+          <Stack>
+            <Button
+              color={isDocumentationPageSelected ? "primary" : "secondary"}
+              onClick={() => handleClick(Pages.DOCUMENTATION)}
+            >
+              <span className="d-inline-block me-2">
+                {isDocumentationPageSelected ? (
+                  <CheckedSquareIcon />
+                ) : (
+                  <EmptySquareIcon />
+                )}
+              </span>
+              Documentation
+            </Button>
+            <Button
+              color={isTestsPageSelected ? "primary" : "secondary"}
+              onClick={() => handleClick(Pages.TESTS)}
+            >
+              <span className="d-inline-block me-2">
+                {isTestsPageSelected ? (
+                  <CheckedSquareIcon />
+                ) : (
+                  <EmptySquareIcon />
+                )}
+              </span>
+              Tests
+            </Button>
+            {/* <Button
+          color={activePage === Pages.TAGS ? "primary" : "secondary"}
+          onClick={() => handleClick(Pages.TAGS)}
+        >
+          Tags
+        </Button> */}
           </Stack>
-          <SaveDocumentation />
+          <CommonActionButtons />
         </Stack>
-      </Stack>
+      ) : null}
+      <div className={classes.docGenerator}>
+        <Stack className={classes.head}>
+          <Stack>
+            <h3 className="mb-2">Documentation for {currentDocsData.name}</h3>
+          </Stack>
+        </Stack>
+        <Stack className={classes.bodyWrap}>
+          <Stack direction="column" className={classes.body}>
+            <Stack direction="column">
+              <Stack direction="column" style={{ margin: "0px 0 10px 0" }}>
+                {isDocumentationPageSelected ? (
+                  <DocGeneratorInput
+                    entity={currentDocsData}
+                    type={EntityType.MODEL}
+                    onSubmit={onModelDocSubmit}
+                    placeholder="Describe your model"
+                  />
+                ) : null}
+                <EntityWithTests
+                  title={currentDocsData.name}
+                  tests={modelTests}
+                  type={EntityType.MODEL}
+                />
+              </Stack>
+              <DocGeneratorColumnsList />
+            </Stack>
+            <SaveDocumentation />
+          </Stack>
+        </Stack>
+      </div>
     </div>
   );
 };

@@ -5,19 +5,13 @@ import { Button, IconButton, Popover, PopoverBody, List, Stack } from "@uicore";
 import { useEffect, useState } from "react";
 import { setIsDocGeneratedForAnyColumn } from "@modules/documentationEditor/state/documentationSlice";
 import classes from "../../styles.module.scss";
-import { Pages } from "@modules/documentationEditor/state/types";
 
 const SaveDocumentation = (): JSX.Element | null => {
   const [patchPath, setPatchPath] = useState("");
   const [dialogType, setDialogType] = useState("Existing file");
   const [openPopover, setOpenPopover] = useState(false);
   const {
-    state: {
-      currentDocsData,
-      isDocGeneratedForAnyColumn,
-      currentDocsTests,
-      activePage,
-    },
+    state: { currentDocsData, isDocGeneratedForAnyColumn, currentDocsTests },
     dispatch,
   } = useDocumentationContext();
 
@@ -61,11 +55,7 @@ const SaveDocumentation = (): JSX.Element | null => {
 
   return (
     <Stack direction="row" className={classes.save}>
-      <h4>
-        {activePage === Pages.DOCUMENTATION
-          ? "Save documentation"
-          : "Save tests"}
-      </h4>
+      <h4>Path:</h4>
       <p>{currentDocsData?.patchPath ?? "Write path"}</p>
 
       {currentDocsData?.patchPath ? null : (
@@ -100,10 +90,8 @@ const SaveDocumentation = (): JSX.Element | null => {
           </Popover>
         </>
       )}
-      <Button onClick={saveDocumentation}>
-        {activePage === Pages.DOCUMENTATION
-          ? "Save documentation"
-          : "Save tests"}
+      <Button color="primary" onClick={saveDocumentation}>
+        Save
       </Button>
     </Stack>
   );

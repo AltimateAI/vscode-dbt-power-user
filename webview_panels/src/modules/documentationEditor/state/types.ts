@@ -61,7 +61,7 @@ export interface DocumentationStateProps {
   userInstructions: DocsGenerateUserInstructions;
   isDocGeneratedForAnyColumn: boolean;
   insertedEntityName?: string;
-  activePage: Pages;
+  selectedPages: Pages[];
   testsEnabled: boolean;
 }
 

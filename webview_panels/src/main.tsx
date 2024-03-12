@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import App from "./App";
 import { AvailableRoutes } from "./AppConstants";
-import "./main.css";
+import "./main.scss";
 
 declare global {
   interface Window {

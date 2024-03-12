@@ -4,26 +4,55 @@ import DocGeneratorColumn from "./DocGeneratorColumn";
 import classes from "../../styles.module.scss";
 import BulkGenerateButton from "./BulkGenerateButton";
 import SyncWithDatabase from "./SyncWithDatabase";
+import { useMemo } from "react";
+import { DBTModelTest, Pages } from "@modules/documentationEditor/state/types";
 
 const DocGeneratorColumnsList = (): JSX.Element => {
   const {
-    state: { currentDocsData },
+    state: { currentDocsData, currentDocsTests, selectedPages },
   } = useDocumentationContext();
+  const isDocumentationPageSelected = useMemo(
+    () => selectedPages.includes(Pages.DOCUMENTATION),
+    [selectedPages],
+  );
+
+  const testsPerColumns = useMemo(() => {
+    return (
+      currentDocsTests?.reduce(
+        (acc: Record<string, DBTModelTest[]>, columnTest) => {
+          if (!columnTest.column_name) {
+            return acc;
+          }
+          acc[columnTest.column_name] = acc[columnTest.column_name] ?? [];
+          return {
+            ...acc,
+            [columnTest.column_name]: [
+              ...acc[columnTest.column_name],
+              columnTest,
+            ],
+          };
+        },
+        {},
+      ) ?? {}
+    );
+  }, [currentDocsTests]);
 
   return (
     <div>
-      <div style={{ marginBottom: 40, marginTop: 16 }}>
+      <div style={{ marginBottom: 40 }}>
         <Stack className={classes.columnHeader}>
-          <h3>Columns</h3>
-          <div>
+          <Stack>
+            <h3>Columns</h3>
             <SyncWithDatabase />
-          </div>
-          <BulkGenerateButton />
+          </Stack>
+          {isDocumentationPageSelected ? <BulkGenerateButton /> : null}
         </Stack>
-        <Alert color="warning">
-          Note: If you don’t want to override existing documentation, please
-          (re)generate documentation at the individual column level below
-        </Alert>
+        {isDocumentationPageSelected ? (
+          <Alert color="warning">
+            Note: If you don’t want to override existing documentation, please
+            (re)generate documentation at the individual column level below
+          </Alert>
+        ) : null}
       </div>
       {!currentDocsData?.columns ? (
         <Stack>
@@ -32,7 +61,11 @@ const DocGeneratorColumnsList = (): JSX.Element => {
       ) : null}
       <Stack direction="column" className={classes.columns}>
         {currentDocsData?.columns.map((column) => (
-          <DocGeneratorColumn key={column.name} column={column} />
+          <DocGeneratorColumn
+            key={column.name}
+            column={column}
+            tests={testsPerColumns[column.name]}
+          />
         ))}
       </Stack>
     </div>

@@ -21,7 +21,7 @@ export const initialState = {
     persona: undefined,
     prompt_hint: undefined,
   },
-  activePage: Pages.DOCUMENTATION,
+  selectedPages: [Pages.DOCUMENTATION],
   testsEnabled: false,
 } as DocumentationStateProps;
 
@@ -29,11 +29,16 @@ const documentationSlice = createSlice({
   name: "documentationState",
   initialState,
   reducers: {
-    setActivePage: (
-      state,
-      action: PayloadAction<DocumentationStateProps["activePage"]>,
-    ) => {
-      state.activePage = action.payload;
+    addToSelectedPage: (state, action: PayloadAction<Pages>) => {
+      state.selectedPages.push(action.payload);
+    },
+    removeFromSelectedPage: (state, action: PayloadAction<Pages>) => {
+      if (state.selectedPages.length === 1) {
+        return;
+      }
+      state.selectedPages = state.selectedPages.filter(
+        (p) => p !== action.payload,
+      );
     },
     setProject: (
       state,
@@ -191,6 +196,7 @@ export const {
   setIsDocGeneratedForAnyColumn,
   setInsertedEntityName,
   updateCurrentDocsTests,
-  setActivePage,
+  addToSelectedPage,
+  removeFromSelectedPage,
 } = documentationSlice.actions;
 export default documentationSlice;

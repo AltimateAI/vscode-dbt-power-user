@@ -16,6 +16,7 @@ For any issues or bugs, please [contact us](https://www.altimate.ai/support) via
 | [Column lineage](#lineage)                                  | Model lineage as well as column lineage                                                                                               |
 | [Generate dbt Models](#genmodel)                            | from source files or convert SQL to dbt Model (docs)                                                                                  |
 | [Generate documentation](#gendoc)                           | Generate model and column descriptions or write in the UI editor. Save formatted text in YAML files.                                  |
+| [Defer to prod](#defertoprod)                               | Build your model in development without building (by defering) your upstream models                                                   |
 | [Click to run parent / child models and tests](#clicktorun) | Just click to do common dbt operations like running tests, parent / child models or previewing data.                                  |
 | [Compiled query preview and explanation](#queryexplanation) | Get live preview of compiled query as your write code. Also, generate explanations for dbt code written previously (by somebody else) |
 | [Project health check](#healthcheck)                        | Identify issues in your dbt project like columns not present, models not materialized                                                 |
@@ -57,6 +58,10 @@ Generate dbt models from sources defined in YAML. You can also convert existing 
 Generate model and column descriptions automatically or write descriptions manually in the UI editor. Your descriptions are automatically formatted and saved in YAML files. [(docs)](https://docs.myaltimate.com/document/generatedoc/)
 
 ![gendoc](media/images/gendoc.gif)
+
+### <a id="defertoprod">Defer to prod</a>
+
+Defer building your upstream models when you make changes in development by referencing production models. Here's [(more info)](https://docs.getdbt.com/blog/defer-to-prod) about the concept. This functionality can be used in dbt core with the extension. [(docs)](https://docs.myaltimate.com/test/defertoprod/)
 
 ### <a id="clicktorun"> Click to run parent/child models and tests</a>
 

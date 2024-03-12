@@ -62,14 +62,20 @@ interface DocMetaData {
   character: number;
 }
 
-interface TestMetadataKwArgs {
+interface TestMetadataSpecification
+  extends TestMetadataAcceptedValues,
+    TestMetadataRelationships {
   column_name: string;
   model: string;
+}
 
-  // for accepted_values
+// for accepted_values
+interface TestMetadataAcceptedValues {
   values?: string[];
+}
 
-  // for relationship
+// for relationship
+interface TestMetadataRelationships {
   field?: string;
   to?: string;
 }
@@ -82,7 +88,7 @@ export interface TestMetaData {
   raw_sql: string;
   column_name?: string;
   test_metadata?: {
-    kwargs: TestMetadataKwArgs;
+    kwargs: TestMetadataSpecification;
     name: string;
     namespace?: string;
   };

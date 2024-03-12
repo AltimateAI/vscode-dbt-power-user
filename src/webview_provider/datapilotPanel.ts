@@ -11,7 +11,7 @@ import { DocGenService } from "../services/docGenService";
 import { AltimateRequest, QueryAnalysisType } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
 import { QueryAnalysisService } from "../services/queryAnalysisService";
-import { DbtProjectService } from "../services/dbtProjectService";
+import { QueryManifestService } from "../services/queryManifestService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DbtTestService } from "../services/dbtTestService";
 
@@ -29,8 +29,8 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     private docGenService: DocGenService,
     protected emitterService: SharedStateService,
     protected queryAnalysisService: QueryAnalysisService,
-    private dbtProjectService: DbtProjectService,
-    dbtTerminal: DBTTerminal,
+    private queryManifestService: QueryManifestService,
+    protected dbtTerminal: DBTTerminal,
     private dbtTestService: DbtTestService,
   ) {
     super(
@@ -56,7 +56,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
       case "getNewDocsPanelState":
         const newDocsPanelState = workspace
           .getConfiguration("dbt")
-          .get<boolean>("enableNewDocsPanel", false);
+          .get<boolean>("enableNewDocsPanel", true);
 
         this.sendResponseToWebview({
           command: "response",
@@ -79,7 +79,6 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         this.docGenService.sendFeedback({
           queryText,
           message,
-          eventMap: this.eventMap,
           panel: this._panel,
           syncRequestId,
         });
@@ -90,22 +89,18 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         }
         this.docGenService.generateDocsForModel({
           queryText,
-          documentation: await this.docGenService.getDocumentation(
-            this.eventMap,
-          ),
+          documentation: await this.docGenService.getDocumentation(),
           message,
           panel: this._panel,
-          project: this.dbtProjectService.getProject(),
+          project: this.queryManifestService.getProject(),
         });
         break;
       case "generateDocsForColumn":
         await this.docGenService.generateDocsForColumns({
-          documentation: await this.docGenService.getDocumentation(
-            this.eventMap,
-          ),
+          documentation: await this.docGenService.getDocumentation(),
           panel: this._panel,
           message,
-          project: this.dbtProjectService.getProject(),
+          project: this.queryManifestService.getProject(),
         });
         break;
       case "docgen:insert":
@@ -117,7 +112,6 @@ export class DataPilotPanel extends AltimateWebviewProvider {
       case "queryAnalysis:explain":
         try {
           const response = await this.queryAnalysisService.executeQueryAnalysis(
-            this.eventMap,
             params,
             QueryAnalysisType.EXPLAIN,
             syncRequestId,
@@ -141,7 +135,6 @@ export class DataPilotPanel extends AltimateWebviewProvider {
       case "queryAnalysis:modify":
         try {
           const response = await this.queryAnalysisService.executeQueryAnalysis(
-            this.eventMap,
             params,
             QueryAnalysisType.MODIFY,
             syncRequestId,
@@ -184,7 +177,6 @@ export class DataPilotPanel extends AltimateWebviewProvider {
       case "queryanalysis:followup":
         try {
           const response = await this.queryAnalysisService.getFollowupQuestions(
-            this.eventMap,
             params as { query: string; user_request: string },
           );
 

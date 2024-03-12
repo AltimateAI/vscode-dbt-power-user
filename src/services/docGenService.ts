@@ -17,7 +17,7 @@ import {
   DBTDocumentation,
   Source,
 } from "../webview_provider/docsEditPanel";
-import { DbtProjectService } from "./dbtProjectService";
+import { QueryManifestService } from "./queryManifestService";
 
 interface GenerateDocsForColumnsProps {
   panel: WebviewView | undefined;
@@ -38,7 +38,6 @@ interface FeedbackRequestProps {
   panel: WebviewView | undefined;
   queryText: string;
   message: any;
-  eventMap: Map<string, ManifestCacheProjectAddedEvent>;
   syncRequestId?: string;
 }
 
@@ -50,7 +49,7 @@ export class DocGenService {
     private altimateRequest: AltimateRequest,
     protected dbtProjectContainer: DBTProjectContainer,
     protected telemetry: TelemetryService,
-    private dbtProjectService: DbtProjectService,
+    private queryManifestService: QueryManifestService,
     private dbtTerminal: DBTTerminal,
   ) {}
 
@@ -67,7 +66,7 @@ export class DocGenService {
       }
       const enableNewDocsPanel = workspace
         .getConfiguration("dbt")
-        .get<boolean>("enableNewDocsPanel", false);
+        .get<boolean>("enableNewDocsPanel", true);
 
       const baseRequest = {
         columns,
@@ -176,23 +175,18 @@ export class DocGenService {
     }
   }
 
-  public async getDocumentation(
-    eventMap: Map<string, ManifestCacheProjectAddedEvent>,
-  ): Promise<DBTDocumentation | undefined> {
-    if (window.activeTextEditor === undefined || eventMap === undefined) {
+  public async getDocumentation(): Promise<DBTDocumentation | undefined> {
+    const eventResult = this.queryManifestService.getEventByCurrentProject();
+    if (!eventResult) {
+      return undefined;
+    }
+    const { event, currentDocument } = eventResult;
+
+    if (!event || !currentDocument) {
       return undefined;
     }
 
-    const currentFilePath = window.activeTextEditor.document.uri;
-    const project = this.dbtProjectService.getProject();
-    if (project === undefined) {
-      return undefined;
-    }
-    const event = eventMap.get(project.projectRoot.fsPath);
-    if (event === undefined) {
-      return undefined;
-    }
-    const modelName = path.basename(currentFilePath.fsPath, ".sql");
+    const modelName = path.basename(currentDocument.uri.fsPath, ".sql");
     const currentNode = event.nodeMetaMap.get(modelName);
     if (currentNode === undefined) {
       return undefined;
@@ -220,36 +214,6 @@ export class DocGenService {
     return [...Array(Math.ceil(a.length / n))].map((_, i) =>
       a.slice(n * i, n + n * i),
     );
-  }
-
-  private getEventByProject(
-    eventMap: Map<string, ManifestCacheProjectAddedEvent>,
-  ): ManifestCacheProjectAddedEvent | undefined {
-    if (window.activeTextEditor === undefined || eventMap === undefined) {
-      return;
-    }
-
-    const currentFilePath = window.activeTextEditor.document.uri;
-    this.dbtTerminal.debug(
-      "getting event for project, currentFilePath: ",
-      currentFilePath.fsPath,
-    );
-    const projectRootpath =
-      this.dbtProjectContainer.getProjectRootpath(currentFilePath);
-    if (projectRootpath === undefined) {
-      this.dbtTerminal.debug(
-        "no project for currentFilePath: ",
-        currentFilePath.fsPath,
-      );
-      return;
-    }
-
-    const event = eventMap.get(projectRootpath.fsPath);
-    if (event === undefined) {
-      this.dbtTerminal.debug("no event for project: ", projectRootpath.fsPath);
-      return;
-    }
-    return event;
   }
 
   /**
@@ -414,7 +378,7 @@ export class DocGenService {
           const compiledSql = await project.unsafeCompileQuery(queryText);
           const enableNewDocsPanel = workspace
             .getConfiguration("dbt")
-            .get<boolean>("enableNewDocsPanel", false);
+            .get<boolean>("enableNewDocsPanel", true);
 
           const baseRequest = {
             columns: [],
@@ -477,19 +441,17 @@ export class DocGenService {
     );
   }
 
-  private getFilename() {
-    return path.basename(window.activeTextEditor!.document.fileName, ".sql");
-  }
-
-  public async getTestsForCurrentModel(
-    eventMap: Map<string, ManifestCacheProjectAddedEvent>,
-  ) {
-    const event = this.getEventByProject(eventMap);
-    if (!event) {
-      return;
+  public async getTestsForCurrentModel() {
+    const eventResult = this.queryManifestService.getEventByCurrentProject();
+    if (!eventResult?.event || !eventResult?.currentDocument) {
+      return undefined;
     }
-    const { nodeMetaMap, graphMetaMap, testMetaMap } = event;
-    const tableName = this.getFilename();
+
+    const {
+      event: { nodeMetaMap, graphMetaMap, testMetaMap },
+      currentDocument,
+    } = eventResult;
+    const tableName = path.basename(currentDocument.fileName, ".sql");
     this.dbtTerminal.info(
       "Tests",
       "getting tests by tableName:",
@@ -512,7 +474,6 @@ export class DocGenService {
   public async sendFeedback({
     queryText,
     message,
-    eventMap,
     panel,
     syncRequestId,
   }: FeedbackRequestProps) {
@@ -525,11 +486,11 @@ export class DocGenService {
       },
       async () => {
         try {
-          const project = this.dbtProjectService.getProject();
+          const project = this.queryManifestService.getProject();
           if (!project) {
             throw new Error("Unable to find project");
           }
-          const documentation = await this.getDocumentation(eventMap);
+          const documentation = await this.getDocumentation();
           const compiledSql = await project.unsafeCompileQuery(queryText);
           const request = message.data;
           request["feedback_text"] = message.comment;

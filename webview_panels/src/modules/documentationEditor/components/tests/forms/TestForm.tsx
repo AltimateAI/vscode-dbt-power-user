@@ -5,7 +5,7 @@ import { DbtGenericTests } from "@modules/documentationEditor/state/types";
 import { Card, CardTitle, CardBody, CardFooter, Button, Stack } from "@uicore";
 import AcceptedValues from "./AcceptedValues";
 import Relationships from "./Relationships";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import useTestFormSave, { TestOperation } from "../hooks/useTestFormSave";
 import { SaveRequest } from "../types";
 
@@ -18,15 +18,16 @@ interface Props {
 const schema = Yup.object({
   to: Yup.string().optional(),
   field: Yup.string().optional(),
-  accepted_values: Yup.string().optional(),
+  accepted_values: Yup.array().of(Yup.string().required()).optional(),
 }).required();
 
 const TestForm = ({ formType, onClose, column }: Props): JSX.Element | null => {
   const { isSaving, handleSave } = useTestFormSave();
 
-  const { control, handleSubmit, reset } = useForm<SaveRequest>({
-    resolver: yupResolver(schema),
-  });
+  const { control, handleSubmit, reset, setValue, watch } =
+    useForm<SaveRequest>({
+      resolver: yupResolver(schema),
+    });
 
   const saveGenericTest = () => {
     if (
@@ -53,6 +54,20 @@ const TestForm = ({ formType, onClose, column }: Props): JSX.Element | null => {
     }
   };
 
+  const acceptedValues = watch("accepted_values");
+  const fieldValue = watch("field");
+  const toValue = watch("to");
+
+  const disableFormSubmit = useMemo(() => {
+    if (formType === DbtGenericTests.ACCEPTED_VALUES) {
+      return !acceptedValues?.length;
+    }
+    if (formType === DbtGenericTests.RELATIONSHIPS) {
+      return !fieldValue || !toValue;
+    }
+    return false;
+  }, [formType, fieldValue, toValue, acceptedValues]);
+
   if (
     formType !== DbtGenericTests.RELATIONSHIPS &&
     formType !== DbtGenericTests.ACCEPTED_VALUES
@@ -70,7 +85,12 @@ const TestForm = ({ formType, onClose, column }: Props): JSX.Element | null => {
         {formType === DbtGenericTests.RELATIONSHIPS ? (
           <Relationships control={control} />
         ) : (
-          <AcceptedValues control={control} />
+          <AcceptedValues
+            control={control}
+            column={column}
+            setValue={setValue}
+            values={acceptedValues}
+          />
         )}
       </CardBody>
       <CardFooter>
@@ -85,6 +105,7 @@ const TestForm = ({ formType, onClose, column }: Props): JSX.Element | null => {
               onClose();
             })}
             color="primary"
+            disabled={disableFormSubmit}
           >
             Add
           </Button>

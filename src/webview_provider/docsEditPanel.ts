@@ -110,9 +110,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         if (event === undefined) {
           return;
         }
-        this.documentation = await this.docGenService.getDocumentation(
-          this.eventMap,
-        );
+        this.documentation = await this.docGenService.getDocumentation();
         if (this._panel) {
           this.transmitData();
           this.updateGraphStyle();
@@ -143,7 +141,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   private getPanel() {
     const enableNewDocsPanel = workspace
       .getConfiguration("dbt")
-      .get<boolean>("enableNewDocsPanel", false);
+      .get<boolean>("enableNewDocsPanel", true);
     return enableNewDocsPanel ? this.newDocsPanel : this.legacyDocsPanel;
   }
 
@@ -221,9 +219,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     this.getPanel().resolveWebview(panel, context, token);
     this.setupWebviewHooks(context);
     this.transmitConfig();
-    this.documentation = await this.docGenService.getDocumentation(
-      this.eventMap,
-    );
+    this.documentation = await this.docGenService.getDocumentation();
     this.transmitData();
   }
 
@@ -257,7 +253,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     const tests = message.tests as undefined | TestMetaData[];
 
     if (!tests?.length) {
-      this.terminal.debug("tests", "No test data passed");
+      this.terminal.debug(
+        "docsEditViewPanel:getTestDataByColumn",
+        "No test data passed",
+      );
       return;
     }
 
@@ -311,7 +310,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       }, {});
 
     const data = Object.values(filteredTests);
-    this.terminal.info("tests", "test data", false, data, columnName);
+    this.terminal.info(
+      "docsEditViewPanel:getTestDataByColumn",
+      "test data",
+      false,
+      data,
+      columnName,
+    );
 
     if (!data.length) {
       return;
@@ -449,7 +454,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             this.docGenService.sendFeedback({
               queryText,
               message,
-              eventMap: this.eventMap,
               panel: this._panel,
             });
             break;
@@ -577,11 +581,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   this.loadedFromManifest = false;
                   writeFileSync(patchPath, stringify(parsedDocFile));
                   this.documentation =
-                    await this.docGenService.getDocumentation(this.eventMap);
+                    await this.docGenService.getDocumentation();
                   const tests =
-                    await this.docGenService.getTestsForCurrentModel(
-                      this.eventMap,
-                    );
+                    await this.docGenService.getTestsForCurrentModel();
                   if (syncRequestId) {
                     this._panel!.webview.postMessage({
                       command: "response",
@@ -647,9 +649,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       //  documentation will be overwritten by the one coming from the manifest
       return;
     }
-    this.documentation = await this.docGenService.getDocumentation(
-      this.eventMap,
-    );
+    this.documentation = await this.docGenService.getDocumentation();
     this.loadedFromManifest = true;
     if (this._panel) {
       this.transmitData();

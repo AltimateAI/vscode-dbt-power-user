@@ -23,7 +23,7 @@ import { AltimateRequest } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
-type UpdateConfigProps = {
+export type UpdateConfigProps = {
   key: string;
   value: string | boolean | number;
   isPreviewFeature?: boolean;
@@ -229,6 +229,23 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
                 },
                 status: true,
               },
+            });
+          }
+          break;
+        case "showInformationMessage":
+          const { infoMessage, items } = params as {
+            infoMessage: string;
+            items: any[];
+          };
+          const result = await window.showInformationMessage(
+            infoMessage,
+            ...items,
+          );
+          if (syncRequestId) {
+            this.sendResponseToWebview({
+              command: "response",
+              data: result,
+              syncRequestId,
             });
           }
           break;

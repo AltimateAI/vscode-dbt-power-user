@@ -1,11 +1,16 @@
+@use '../../variables'; 
+
+
 .documentation-wrapper {
   :global .btn-group {
     margin-bottom: var(--spacing-3xl);
   }
 
   .entity-tests {
-    h5 {
-      margin-bottom: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
+    p {
+      margin-bottom: 0;
+      line-height: 1.8;
     }
     :global .model {
       gap: 5px;
@@ -22,6 +27,36 @@
       flex-direction: column;
       gap: 0;
     }
+
+    .btn-add-test {
+      padding: 4px 6px;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      background: var(--background--02);
+
+      :global .codicon {
+        font-size: 14px;
+        color: var(--icon--active);
+      }
+      &:hover {
+        background: var(--background--03);
+      }
+
+      &:global.btn-primary {
+        background: var(--primary-color);
+
+        &:hover :global .codicon,
+        :global .codicon {
+          font-size: 14px;
+          color: #fff;
+        }
+      }
+
+      &:hover :global .codicon {
+        color: var(--primary-color);
+      }
+    }
   }
 }
 .doc-generator {
@@ -31,7 +66,6 @@
 
   & .head {
     justify-content: space-between;
-    margin-bottom: 1rem;
     > div {
       align-items: center;
     }
@@ -51,14 +85,12 @@
         margin-top: 12px;
       }
       & .column-header {
+        justify-content: space-between;
         .sync-btn {
           svg {
             width: 14px;
             vertical-align: bottom;
           }
-        }
-        & div:last-of-type {
-          margin-left: auto;
         }
       }
       .columns {
@@ -108,6 +140,15 @@
       width: 40%;
       overflow: overlay;
     }
+    .show-all-tests{
+      border-radius: 4px;
+      padding: 3px 9px;
+      &:hover{
+        background-color: transparent;
+        border-color: var(--primary-color);
+        color: initial;
+      }
+    }
   }
 
   &.docTests {
@@ -126,10 +167,10 @@
   gap: var(--spacing-2xl);
 
   :global .card {
-    background-color: var(--background--03);
+    background-color: var(--background--base);
+    border-color: transparent;
   }
   .title {
-    background-color: var(--background--02);
     border-radius: 8px;
     justify-content: space-between;
 
@@ -142,14 +183,32 @@
       margin-left: 3px;
     }
   }
+  :global .spinner-border{
+    width: 1rem;
+  height: 1rem;
+  margin-top: 0.15rem;
+  border-width: 2px;
+  }
   .test-list-group {
     gap: 10px;
 
+    div,
     button {
-      border-color: transparent;
+      border-color: var(--stroke--disable);
       background-color: var(--background--02);
       color: var(--text-color--title);
-      
+      border-radius: 8px;
+      border-top-width: 1px;
+      cursor: default;
+      caption {
+        color: var(--text-color--caption);
+        font-size: 1rem;
+        display: inline-block;
+      }
+
+      &:global.disabled {
+        opacity: 0.3;
+      }
     }
     :global .btn-primary{
       background-color: var(--primary-color);
@@ -170,12 +229,9 @@
   }
 
   :global .card-body {
-    background-color: var(--background--02);
-    padding: 1rem;
-    border-radius: 8px;
   }
 
-  :global .card-footer{
+  :global .card-footer {
     border: none;
   }
 }

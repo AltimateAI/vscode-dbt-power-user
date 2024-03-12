@@ -70,7 +70,7 @@ const useTestFormSave = (): {
     operation: TestOperation,
   ) => {
     const testsData = [...(currentDocsTests ?? [])];
-    const newValues = data.accepted_values?.split(",").map((s) => s.trim());
+    const newValues = data.accepted_values?.map((s) => s.trim());
     if (operation === TestOperation.DELETE) {
       return testsData.filter((test: DBTModelTest) => {
         if (test.test_metadata?.kwargs.column_name !== column) {

@@ -22,7 +22,7 @@ import {
   Stack,
   Tag,
 } from "@uicore";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import AcceptedValues from "./forms/AcceptedValues";
 import Relationships from "./forms/Relationships";
 import { SaveRequest } from "./types";
@@ -33,7 +33,7 @@ import { DeleteIcon, EditIcon } from "@assets/icons";
 const schema = Yup.object({
   to: Yup.string().optional(),
   field: Yup.string().optional(),
-  accepted_values: Yup.string().optional(),
+  accepted_values: Yup.array().of(Yup.string().required()).optional(),
 }).required();
 
 interface Props {
@@ -43,7 +43,7 @@ interface Props {
 }
 
 const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
-  const { control, handleSubmit, setValue } = useForm<SaveRequest>({
+  const { control, handleSubmit, setValue, watch } = useForm<SaveRequest>({
     resolver: yupResolver(schema),
   });
 
@@ -71,9 +71,7 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
     if (test.test_metadata?.name === DbtGenericTests.ACCEPTED_VALUES) {
       setValue(
         "accepted_values",
-        (
-          test.test_metadata.kwargs as TestMetadataAcceptedValuesKwArgs
-        ).values?.join(","),
+        (test.test_metadata.kwargs as TestMetadataAcceptedValuesKwArgs).values,
       );
       return;
     }
@@ -95,11 +93,26 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
     setIsInEditMode(false);
   };
 
+  const acceptedValues = watch("accepted_values");
+  const fieldValue = watch("field");
+  const toValue = watch("to");
+  const formType = test.test_metadata?.name;
+
+  const disableFormSubmit = useMemo(() => {
+    if (formType === DbtGenericTests.ACCEPTED_VALUES) {
+      return !acceptedValues?.length;
+    }
+    if (formType === DbtGenericTests.RELATIONSHIPS) {
+      return !fieldValue || !toValue;
+    }
+    return false;
+  }, [formType, fieldValue, toValue, acceptedValues]);
+
   const getFooter = () => {
     return (
       <CardFooter>
         <Stack className="mt-3">
-          <Button type="submit" disabled={isSaving}>
+          <Button type="submit" disabled={isSaving || disableFormSubmit}>
             Update
           </Button>
           <Button outline onClick={handleCancel} disabled={isSaving}>
@@ -148,10 +161,9 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
               <div>
                 <AcceptedValues
                   control={control}
-                  value={(
-                    test.test_metadata
-                      .kwargs as TestMetadataAcceptedValuesKwArgs
-                  ).values?.join(",")}
+                  values={acceptedValues}
+                  column={column}
+                  setValue={setValue}
                 />
                 {getFooter()}
               </div>
@@ -205,7 +217,7 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
                 {(
                   test.test_metadata.kwargs as TestMetadataAcceptedValuesKwArgs
                 ).values?.map((value) => (
-                  <ListGroupItem key={value} action tag="button">
+                  <ListGroupItem key={value} tag="div">
                     {value}
                   </ListGroupItem>
                 ))}
@@ -220,21 +232,27 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
               <CardTitle className="d-flex justify-content-between">
                 Values
               </CardTitle>
-              <div>
-                To:{" "}
-                {
-                  (test.test_metadata.kwargs as TestMetadataRelationshipsKwArgs)
-                    .to
-                }
-              </div>
+              <ListGroup className={classes.testListGroup}>
+                <ListGroupItem action tag="div">
+                  <caption>To:</caption>{" "}
+                  {
+                    (
+                      test.test_metadata
+                        .kwargs as TestMetadataRelationshipsKwArgs
+                    ).to
+                  }
+                </ListGroupItem>
 
-              <div>
-                Field:{" "}
-                {
-                  (test.test_metadata.kwargs as TestMetadataRelationshipsKwArgs)
-                    .field
-                }
-              </div>
+                <ListGroupItem action tag="div">
+                  <caption>Field:</caption>{" "}
+                  {
+                    (
+                      test.test_metadata
+                        .kwargs as TestMetadataRelationshipsKwArgs
+                    ).field
+                  }
+                </ListGroupItem>
+              </ListGroup>
             </CardBody>
           </Card>
         );
@@ -254,7 +272,9 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
           <Stack className={classes.title}>
             <span>
               Test:{" "}
-              <Tag color="primary">{test.test_metadata?.name ?? test.key}</Tag>
+              <Tag color="primary" style={{ cursor: "auto" }}>
+                {test.test_metadata?.name ?? test.key}
+              </Tag>
             </span>
             <span>
               {isEditableTest ? (
