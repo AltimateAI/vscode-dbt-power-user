@@ -106,14 +106,23 @@ export class NewDocsGenPanel
         });
         break;
       case "getDistinctColumnValues":
-        const result = await this.queryManifestService
-          .getProject()
-          ?.getColumnsValues(args.model as string, args.column as string);
-        this.sendResponseToWebview({
-          command: "response",
-          data: result,
-          syncRequestId,
-        });
+        try {
+          const result = await this.queryManifestService
+            .getProject()
+            ?.getColumnsValues(args.model as string, args.column as string);
+          this.sendResponseToWebview({
+            command: "response",
+            data: result,
+            syncRequestId,
+          });
+        } catch (err) {
+          window.showErrorMessage((err as Error).message);
+          this.sendResponseToWebview({
+            command: "response",
+            data: [],
+            syncRequestId,
+          });
+        }
         break;
       case "enableNewDocsPanel":
         this.toggleDocsPanel(args);

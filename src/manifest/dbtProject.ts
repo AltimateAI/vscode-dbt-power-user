@@ -542,8 +542,9 @@ export class DBTProject implements Disposable {
         true,
         { model, column },
       );
+
+      throw err;
     }
-    return [];
   }
 
   async getBulkSchema(req: DBTNode[]) {
