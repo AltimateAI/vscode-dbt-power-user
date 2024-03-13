@@ -22,7 +22,6 @@ export const initialState = {
     prompt_hint: undefined,
   },
   selectedPages: [Pages.DOCUMENTATION],
-  testsEnabled: false,
 } as DocumentationStateProps;
 
 const documentationSlice = createSlice({
@@ -45,12 +44,6 @@ const documentationSlice = createSlice({
       action: PayloadAction<DocumentationStateProps["project"]>,
     ) => {
       state.project = action.payload;
-    },
-    setTestsEnabled: (
-      state,
-      action: PayloadAction<DocumentationStateProps["testsEnabled"]>,
-    ) => {
-      state.testsEnabled = action.payload;
     },
     updateCurrentDocsTests: (
       state,
@@ -188,7 +181,6 @@ export const {
   updateColumnsInCurrentDocsData,
   updateColumnsAfterSync,
   setProject,
-  setTestsEnabled,
   addToGenerationsHistory,
   resetGenerationsHistory,
   setGenerationsHistory,

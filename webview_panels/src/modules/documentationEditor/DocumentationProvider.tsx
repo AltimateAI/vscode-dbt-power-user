@@ -13,7 +13,6 @@ import documentationSlice, {
   setGenerationsHistory,
   setInsertedEntityName,
   setProject,
-  setTestsEnabled,
   updateColumnsAfterSync,
   updateColumnsInCurrentDocsData,
   updateCurrentDocsData,
@@ -60,7 +59,6 @@ const DocumentationProvider = (): JSX.Element => {
           model?: string;
           name?: string;
           description?: string;
-          testsEnabled?: boolean;
         }
       >,
     ) => {
@@ -74,7 +72,6 @@ const DocumentationProvider = (): JSX.Element => {
         case "renderDocumentation":
           dispatch(updateCurrentDocsData(event.data.docs));
           dispatch(setProject(event.data.project));
-          dispatch(setTestsEnabled(!!event.data.testsEnabled));
           break;
         case "renderColumnsFromMetadataFetch":
           if (event.data.columns) {

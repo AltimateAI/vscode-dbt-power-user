@@ -62,7 +62,6 @@ export interface DocumentationStateProps {
   isDocGeneratedForAnyColumn: boolean;
   insertedEntityName?: string;
   selectedPages: Pages[];
-  testsEnabled: boolean;
 }
 
 export interface DBTModelTest {

@@ -171,9 +171,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         command: "renderDocumentation",
         docs: this.documentation,
         project: this.getProject()?.getProjectName(),
-        testsEnabled: workspace
-          .getConfiguration("dbt")
-          .get<boolean>("enableTests", false),
       });
     }
   }

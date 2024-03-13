@@ -6,6 +6,13 @@
     margin-bottom: var(--spacing-3xl);
   }
 
+  .newTestTag{
+    &:hover{
+      border-color: var(--primary-color);
+      background-color: transparent;
+      color: var(--text-color--title)
+    }
+  }
   .entity-tests {
     margin-top: var(--spacing-lg);
     p {

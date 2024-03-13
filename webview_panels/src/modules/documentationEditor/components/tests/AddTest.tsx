@@ -8,7 +8,7 @@ import {
   Drawer,
   DrawerRef,
   IconButton,
-  Tag,
+  Button,
   Fade,
   Tooltip,
 } from "@uicore";
@@ -64,12 +64,13 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
               .filter((t) => !currentTests?.includes(t))
               .map((test) => (
                 <Tooltip key={test} title="Click to add">
-                  <Tag
+                  <Button
                     className={classes.newTestTag}
                     onClick={() => handleNewTestClick(test)}
+                    outline
                   >
                     {test}
-                  </Tag>
+                  </Button>
                 </Tooltip>
               ))}
           </Stack>
