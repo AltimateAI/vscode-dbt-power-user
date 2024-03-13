@@ -20,32 +20,34 @@ const Relationships = ({
   const [toSourceOptions, setSources] = useState<OptionType[]>([]);
 
   const getColumnsOfModel = async (model: string) => {
-    // @ts-expect-error valid type
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-    const matches = model.matchAll(/['"]([^'"]*)['"]/g).toArray();
-
-    if (!Array.isArray(matches)) {
+    const iterator = model.matchAll(/['"]([^'"]*)['"]/g);
+    const matches = [];
+    for (const match of iterator) {
+      matches.push((match as RegExpMatchArray).map((m) => m.toString()));
+    }
+    if (!matches.length) {
       panelLogger.info("No model name parsed", matches);
       return;
     }
+
     // Refs
     if (matches.length === 1) {
       const columnsResult = (await executeRequestInSync("getColumnsOfModel", {
-        model: (matches as string[])[0][1],
+        model: matches[0][1],
       })) as { columns: string[] };
       setToFieldOptions(
-        columnsResult.columns.map((m) => ({ label: m, value: m })),
+        columnsResult.columns.map((m) => ({ label: m, value: m }))
       );
       return;
     }
     // sources
-    if (matches.length === 2) {
+    if (matches.length > 1) {
       const columnsResult = (await executeRequestInSync("getColumnsOfSources", {
-        source: (matches as string[])[0][1],
-        table: (matches as string[])[1][1],
+        source: matches[0][1],
+        table: matches[1][1],
       })) as { columns: string[] };
       setToFieldOptions(
-        columnsResult.columns.map((m) => ({ label: m, value: m })),
+        columnsResult.columns.map((m) => ({ label: m, value: m }))
       );
       return;
     }
@@ -61,7 +63,7 @@ const Relationships = ({
           (modelsResponse as { models: string[] }).models.map((m) => ({
             label: `ref('${m}')`,
             value: `ref('${m}')`,
-          })),
+          }))
         );
         setSources(
           (
@@ -78,7 +80,7 @@ const Relationships = ({
                 value: `source('${name}', '${t}')`,
               }));
             })
-            .flat(),
+            .flat()
         );
       })
       .catch((err) => panelLogger.error("error while getting models", err));
@@ -109,8 +111,8 @@ const Relationships = ({
                 getColumnsOfModel(selectedModel).catch((err) =>
                   panelLogger.error(
                     `error while fetching colums of model: ${selectedModel}`,
-                    err,
-                  ),
+                    err
+                  )
                 );
                 return onChange(selectedModel);
               }}

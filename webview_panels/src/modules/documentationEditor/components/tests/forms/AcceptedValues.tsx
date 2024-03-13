@@ -58,6 +58,7 @@ const AcceptedValues = ({
               Menu: () => null,
             }}
             ref={ref}
+            inputId="accepted_values"
             hideOptionIcon
             isCreatable
             isClearable
