@@ -296,9 +296,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         const { to, field } = test.test_metadata.kwargs;
         return {
           relationships: {
+            ...existingConfig?.["relationships"],
             field,
             to,
-            ...existingConfig?.["relationships"],
           },
         };
       }
@@ -307,8 +307,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       if (this.isAcceptedValues(test.test_metadata.kwargs)) {
         return {
           accepted_values: {
-            values: test.test_metadata.kwargs.values,
             ...existingConfig?.["accepted_values"],
+            values: test.test_metadata.kwargs.values,
           },
         };
       }
