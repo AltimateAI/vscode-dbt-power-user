@@ -22,6 +22,7 @@ import {
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
 import { DocsGenPanelView } from "./docsEditPanel";
+import { PythonException } from "python-bridge";
 
 @provideSingleton(NewDocsGenPanel)
 export class NewDocsGenPanel
@@ -115,10 +116,12 @@ export class NewDocsGenPanel
             data: result,
             syncRequestId,
           });
-        } catch (err) {
-          window.showErrorMessage(
-            extendErrorWithSupportLinks((err as Error).message),
-          );
+        } catch (error) {
+          const message =
+            error instanceof PythonException
+              ? error.exception.message
+              : (error as Error).message;
+          window.showErrorMessage(extendErrorWithSupportLinks(message));
           this.sendResponseToWebview({
             command: "response",
             data: [],
@@ -154,10 +157,12 @@ export class NewDocsGenPanel
             },
             syncRequestId,
           });
-        } catch (err) {
-          window.showErrorMessage(
-            extendErrorWithSupportLinks((err as Error).message),
-          );
+        } catch (error) {
+          const message =
+            error instanceof PythonException
+              ? error.exception.message
+              : (error as Error).message;
+          window.showErrorMessage(extendErrorWithSupportLinks(message));
           this.sendResponseToWebview({
             command: "response",
             data: { columns: [] },
