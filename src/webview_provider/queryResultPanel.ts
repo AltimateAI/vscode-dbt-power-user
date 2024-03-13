@@ -219,23 +219,24 @@ export class QueryResultPanel implements WebviewViewProvider {
             window.withProgress(
               {
                 location: ProgressLocation.Notification,
-                title: "Uploading data to Altimate backend",
+                title: "Generating Shareable URL",
                 cancellable: false,
               },
               async () => {
                 try {
                   const result = await this.altimate.getShareQuerySignedUrl();
                   if (result?.signed_url) {
+                    window.showInformationMessage(
+                      "Generated signed url. Uploading data...",
+                    );
                     const response = await this.altimate.uploadDataToSignedUrl(
                       result.signed_url,
                       message,
                     );
-                    const data = response as Response;
-                    if (data.status === 200) {
+                    if (response.status === 200) {
                       // verifying upload
                       const verifyResponse =
                         await this.altimate.verifyShareQueryUpload({
-                          name: message.name,
                           signed_url: result.signed_url,
                         });
 
@@ -253,13 +254,17 @@ export class QueryResultPanel implements WebviewViewProvider {
                           "Unable to verify upload. Please try again.",
                         );
                       }
+                    } else {
+                      window.showErrorMessage(
+                        "Error verifying upload. Please try again.",
+                      );
                     }
                   } else {
                     window.showErrorMessage("Error generating signed url");
                   }
                 } catch (error) {
                   window.showErrorMessage(
-                    `Unable to upload data to Altimate backend:${error}`,
+                    `Error generating shareable URL:${error}`,
                   );
                 }
               },

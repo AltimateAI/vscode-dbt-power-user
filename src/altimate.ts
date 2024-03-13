@@ -5,6 +5,7 @@ import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
 import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
 import { RateLimitException } from "./exceptions";
+import { Readable } from "stream";
 
 interface AltimateConfig {
   key: string;
@@ -174,7 +175,6 @@ interface ShareQuerySignedUrlRequest {
 }
 
 interface VerifyShareQueryUploadRequest {
-  name: string;
   signed_url: string;
 }
 
@@ -481,13 +481,22 @@ export class AltimateRequest {
   }
 
   async uploadDataToSignedUrl(url: string, req: ShareQuerySignedUrlRequest) {
-    const response = await this.fetch(url, {
-      method: "PUT",
-      body: JSON.stringify(req),
-      headers: {
-        "Content-Type": "application/json",
+    console.log("network:request:", url, ":", req);
+
+    const jsonStream = new Readable({
+      read() {
+        this.push(JSON.stringify(JSON.stringify(req)));
+        this.push(null);
       },
     });
+
+    const blob = new Blob([jsonStream.read()]);
+
+    const response = await fetch(url, {
+      method: "PUT",
+      body: blob,
+    });
+    console.log("network:response:", response.status, response.statusText);
     return response;
   }
 
