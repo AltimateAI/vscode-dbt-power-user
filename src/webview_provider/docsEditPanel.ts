@@ -29,7 +29,11 @@ import { NewDocsGenPanel } from "./newDocsGenPanel";
 import { DBTProject } from "../manifest/dbtProject";
 import { DocGenService } from "../services/docGenService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { TestMetaData } from "../domain";
+import {
+  TestMetaData,
+  TestMetadataAcceptedValues,
+  TestMetadataRelationships,
+} from "../domain";
 
 export enum Source {
   YAML = "YAML",
@@ -249,6 +253,18 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     await this.resolveWebviewView(this.panel!, this.context!, this.token!);
   };
 
+  private isRelationship(
+    metadata: TestMetadataRelationships | TestMetadataAcceptedValues,
+  ): metadata is TestMetadataRelationships {
+    return (metadata as TestMetadataRelationships).field !== undefined;
+  }
+
+  private isAcceptedValues(
+    metadata: TestMetadataRelationships | TestMetadataAcceptedValues,
+  ): metadata is TestMetadataAcceptedValues {
+    return (metadata as TestMetadataAcceptedValues).values !== undefined;
+  }
+
   private getTestDataByColumn(message: any, columnName: string) {
     const tests = message.tests as undefined | TestMetaData[];
 
@@ -262,55 +278,31 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
     const columnTests = tests.filter((test) => test.column_name === columnName);
 
-    const filteredTests = columnTests
-      .map((test, i) => {
-        // If relationships test, set field and to
-        if (
-          test.test_metadata?.name === "relationships" &&
-          test.test_metadata.kwargs.field &&
-          test.test_metadata.kwargs.to
-        ) {
-          const { to, field } = test.test_metadata.kwargs;
-          return {
-            relationships: {
-              field,
-              to,
-            },
-          };
-        }
+    const data = columnTests.map((test, i) => {
+      if (!test.test_metadata) {
+        return null;
+      }
+      // If relationships test, set field and to
+      if (this.isRelationship(test.test_metadata.kwargs)) {
+        const { to, field } = test.test_metadata.kwargs;
+        return {
+          relationships: {
+            field,
+            to,
+          },
+        };
+      }
 
-        // set values if test is accepted_values
-        if (test.test_metadata?.name === "accepted_values") {
-          return {
-            accepted_values: { values: test.test_metadata.kwargs.values },
-          };
-        }
-        return test.test_metadata?.name;
-      })
-      // Filter duplicate values
-      .reduce((acc: Record<string, any>, test) => {
-        if (!test) {
-          return acc;
-        }
-        if (typeof test === "string") {
-          acc[test] = test;
-          return acc;
-        }
+      // set values if test is accepted_values
+      if (this.isAcceptedValues(test.test_metadata.kwargs)) {
+        return {
+          accepted_values: { values: test.test_metadata.kwargs.values },
+        };
+      }
+      return test.test_metadata.name;
+    });
 
-        if (test.accepted_values) {
-          acc["accepted_values"] = { accepted_values: test.accepted_values };
-          return acc;
-        }
-
-        if (test.relationships) {
-          acc["relationships"] = { relationships: test.relationships };
-          return acc;
-        }
-        return acc;
-      }, {});
-
-    const data = Object.values(filteredTests);
-    this.terminal.info(
+    this.terminal.debug(
       "docsEditViewPanel:getTestDataByColumn",
       "test data",
       false,

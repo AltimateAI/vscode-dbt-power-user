@@ -452,8 +452,8 @@ export class DocGenService {
       currentDocument,
     } = eventResult;
     const tableName = path.basename(currentDocument.fileName, ".sql");
-    this.dbtTerminal.info(
-      "Tests",
+    this.dbtTerminal.debug(
+      "dbtTests",
       "getting tests by tableName:",
       false,
       tableName,

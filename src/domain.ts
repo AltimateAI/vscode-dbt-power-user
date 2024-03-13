@@ -62,20 +62,18 @@ interface DocMetaData {
   character: number;
 }
 
-interface TestMetadataSpecification
-  extends TestMetadataAcceptedValues,
-    TestMetadataRelationships {
+interface TestMetadataSpecification {
   column_name: string;
   model: string;
 }
 
 // for accepted_values
-interface TestMetadataAcceptedValues {
+export interface TestMetadataAcceptedValues extends TestMetadataSpecification {
   values?: string[];
 }
 
 // for relationship
-interface TestMetadataRelationships {
+export interface TestMetadataRelationships extends TestMetadataSpecification {
   field?: string;
   to?: string;
 }
@@ -88,7 +86,7 @@ export interface TestMetaData {
   raw_sql: string;
   column_name?: string;
   test_metadata?: {
-    kwargs: TestMetadataSpecification;
+    kwargs: TestMetadataAcceptedValues | TestMetadataRelationships;
     name: string;
     namespace?: string;
   };

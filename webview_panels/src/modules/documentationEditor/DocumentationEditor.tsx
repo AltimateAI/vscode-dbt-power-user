@@ -159,7 +159,7 @@ const DocumentationEditor = (): JSX.Element => {
       <div className={classes.docGenerator}>
         <Stack className={classes.head}>
           <Stack>
-            <h3 className="mb-2">Documentation for {currentDocsData.name}</h3>
+            <h3 className="mb-2">Model: {currentDocsData.name}</h3>
           </Stack>
         </Stack>
         <Stack className={classes.bodyWrap}>

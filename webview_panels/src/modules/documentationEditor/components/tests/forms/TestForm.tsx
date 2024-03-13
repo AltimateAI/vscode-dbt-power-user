@@ -2,7 +2,15 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import { useForm } from "react-hook-form";
 import { DbtGenericTests } from "@modules/documentationEditor/state/types";
-import { Card, CardTitle, CardBody, CardFooter, Button, Stack } from "@uicore";
+import {
+  Card,
+  CardTitle,
+  CardBody,
+  CardFooter,
+  Button,
+  Stack,
+  Tag,
+} from "@uicore";
 import AcceptedValues from "./AcceptedValues";
 import Relationships from "./Relationships";
 import { useEffect, useMemo } from "react";
@@ -78,8 +86,10 @@ const TestForm = ({ formType, onClose, column }: Props): JSX.Element | null => {
   return (
     <Card>
       <CardTitle>
-        <div>Selected test</div>
-        <Button color="primary">{formType}</Button>
+        <div className="mb-1">Selected test</div>
+        <Tag color="primary" style={{ cursor: "auto" }}>
+          {formType}
+        </Tag>
       </CardTitle>
       <CardBody>
         {formType === DbtGenericTests.RELATIONSHIPS ? (

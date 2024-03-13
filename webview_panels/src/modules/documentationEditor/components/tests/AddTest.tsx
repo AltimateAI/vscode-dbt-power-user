@@ -31,6 +31,7 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
   const handleNewTestClick = (test: DbtGenericTests) => {
     if (test === DbtGenericTests.NOT_NULL || test === DbtGenericTests.UNIQUE) {
       handleSave({ test }, title, TestOperation.CREATE);
+      setShowButtons(false);
       return;
     }
     setFormType(test);
@@ -43,6 +44,7 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
   const onClose = () => {
     setFormType(null);
     drawerRef.current?.close();
+    setShowButtons(false);
   };
 
   return (
@@ -62,9 +64,12 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
               .filter((t) => !currentTests?.includes(t))
               .map((test) => (
                 <Tooltip key={test} title="Click to add">
-                <Tag className={classes.newTestTag} onClick={() => handleNewTestClick(test)}>
-                  {test}
-                </Tag>
+                  <Tag
+                    className={classes.newTestTag}
+                    onClick={() => handleNewTestClick(test)}
+                  >
+                    {test}
+                  </Tag>
                 </Tooltip>
               ))}
           </Stack>
@@ -73,7 +78,9 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
       <Drawer ref={drawerRef}>
         <Stack direction="column" className={classes.addTest}>
           <Card>
-            <CardTitle>Add new test</CardTitle>
+            <CardTitle>
+              <h5>Add new test</h5>
+            </CardTitle>
             <CardBody className={classes.title}>Column: {title}</CardBody>
           </Card>
           {formType ? (
