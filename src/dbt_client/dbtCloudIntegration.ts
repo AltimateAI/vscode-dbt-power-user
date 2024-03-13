@@ -8,7 +8,7 @@ import {
   CancellationTokenSource,
   Diagnostic,
 } from "vscode";
-import { getProjectRelativePath, provideSingleton } from "../utils";
+import { provideSingleton } from "../utils";
 import {
   Catalog,
   DBColumn,
@@ -30,7 +30,6 @@ import path = require("path");
 import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./dbtTerminal";
-import { DeferConfig } from "../webview_provider/insightsPanel";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync } from "fs";
 import { ValidationProvider } from "../validation_provider";
@@ -219,32 +218,31 @@ export class DBTCloudProjectIntegration
         cancellationTokenSource.cancel();
       },
       async () => {
-        try {
-          const output = await showCommand.execute(
-            cancellationTokenSource.token,
-          );
-          const previewLine = output
-            .trim()
-            .split("\n")
-            .map((line) => JSON.parse(line.trim()))
-            .filter((line) => line.data.hasOwnProperty("preview"));
-          const preview = JSON.parse(previewLine[0].data.preview);
-
-          return {
-            table: {
-              column_names: preview.length > 0 ? Object.keys(preview[0]) : [],
-              column_types:
-                preview.length > 0
-                  ? Object.keys(preview[0]).map((obj: any) => "string")
-                  : [],
-              rows: preview.map((obj: any) => Object.values(obj)),
-            },
-            compiled_sql: "",
-            raw_sql: query,
-          };
-        } catch (error) {
-          throw this.processJSONErrors(error);
+        const { stdout, stderr } = await showCommand.execute(
+          cancellationTokenSource.token,
+        );
+        const previewLine = stdout
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line.trim()))
+          .filter((line) => line.data.hasOwnProperty("preview"));
+        const preview = JSON.parse(previewLine[0].data.preview);
+        const exception = this.processJSONErrors(stderr);
+        if (exception) {
+          throw exception;
         }
+        return {
+          table: {
+            column_names: preview.length > 0 ? Object.keys(preview[0]) : [],
+            column_types:
+              preview.length > 0
+                ? Object.keys(preview[0]).map((obj: any) => "string")
+                : [],
+            rows: preview.map((obj: any) => Object.values(obj)),
+          },
+          compiled_sql: "",
+          raw_sql: query,
+        };
       },
     );
   }
@@ -254,7 +252,11 @@ export class DBTCloudProjectIntegration
       await this.python
         .ex`from dbt_cloud_integration import validate_sql, to_dict`;
     } catch (error) {
-      // TODO: telemetry + better error
+      this.terminal.error(
+        "dbtCloudIntegration",
+        "Could not initalize Python environemnt",
+        error,
+      );
       window.showErrorMessage(
         "Error occurred while initializing Python environment: " + error,
       );
@@ -299,24 +301,35 @@ export class DBTCloudProjectIntegration
       this.rebuildManifestCancellationTokenSource =
         new CancellationTokenSource();
       command.setToken(this.rebuildManifestCancellationTokenSource.token);
-      await command.execute();
+      const { stderr } = await command.execute();
       this.rebuildManifestDiagnostics.clear();
+      if (stderr) {
+        this.rebuildManifestDiagnostics.set(
+          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+          [
+            new Diagnostic(
+              new Range(0, 0, 999, 999),
+              "There is a problem in your dbt project. Compilation failed: " +
+                stderr,
+            ),
+          ],
+        );
+        this.telemetry.sendTelemetryEvent(
+          "dbtCloudCannotParseProjectUserError",
+          {
+            error: stderr,
+            adapter: this.getAdapterType() || "unknown",
+          },
+        );
+      }
     } catch (error) {
-      const exception = (error as Error).message;
-      this.rebuildManifestDiagnostics.set(
-        Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
-        [
-          new Diagnostic(
-            new Range(0, 0, 999, 999),
-            "There is a problem in your dbt project. Compilation failed: " +
-              exception,
-          ),
-        ],
+      this.telemetry.sendTelemetryError(
+        "dbtCloudCannotParseProjectUnknownError",
+        error,
+        {
+          adapter: this.getAdapterType() || "unknown",
+        },
       );
-      this.telemetry.sendTelemetryEvent("dbtCloudCannotParseProjectUserError", {
-        error: exception,
-        adapter: this.getAdapterType() || "unknown",
-      });
     }
   }
 
@@ -369,12 +382,12 @@ export class DBTCloudProjectIntegration
     );
   }
 
-  async deps(command: DBTCommand) {
-    return this.dbtCloudCommand(command).execute();
+  async deps(command: DBTCommand): Promise<string> {
+    throw new Error("dbt deps is not supported in dbt cloud");
   }
 
-  async debug(command: DBTCommand) {
-    return this.dbtCloudCommand(command).execute();
+  async debug(command: DBTCommand): Promise<string> {
+    throw new Error("dbt debug is not supported in dbt cloud");
   }
 
   private async getDeferParams(): Promise<string[]> {
@@ -430,17 +443,17 @@ export class DBTCloudProjectIntegration
         "json",
       ]),
     );
-    try {
-      const output = await compileQueryCommand.execute();
-      const compiledLine = output
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()))
-        .filter((line) => line.data.hasOwnProperty("compiled"));
-      return compiledLine[0].data.compiled;
-    } catch (error) {
-      throw this.processJSONErrors(error);
+    const { stdout, stderr } = await compileQueryCommand.execute();
+    const compiledLine = stdout
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line.trim()))
+      .filter((line) => line.data.hasOwnProperty("compiled"));
+    const exception = this.processJSONErrors(stderr);
+    if (exception) {
+      throw exception;
     }
+    return compiledLine[0].data.compiled;
   }
 
   async unsafeCompileQuery(query: string): Promise<string | undefined> {
@@ -456,17 +469,17 @@ export class DBTCloudProjectIntegration
         "json",
       ]),
     );
-    try {
-      const output = await compileQueryCommand.execute();
-      const compiledLine = output
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()))
-        .filter((line) => line.data.hasOwnProperty("compiled"));
-      return compiledLine[0].data.compiled;
-    } catch (error) {
-      throw this.processJSONErrors(error);
+    const { stdout, stderr } = await compileQueryCommand.execute();
+    const compiledLine = stdout
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line.trim()))
+      .filter((line) => line.data.hasOwnProperty("compiled"));
+    const exception = this.processJSONErrors(stderr);
+    if (exception) {
+      throw exception;
     }
+    return compiledLine[0].data.compiled;
   }
 
   async validateSql(
@@ -495,17 +508,17 @@ export class DBTCloudProjectIntegration
         "json",
       ]),
     );
-    try {
-      const output = await validateSqlCommand.execute();
-      const compiledLine = output
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()))
-        .filter((line) => line.data.hasOwnProperty("compiled"));
-      return JSON.parse(compiledLine[0].data.compiled);
-    } catch (error) {
-      throw this.processJSONErrors(error);
+    const { stdout, stderr } = await validateSqlCommand.execute();
+    const compiledLine = stdout
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line.trim()))
+      .filter((line) => line.data.hasOwnProperty("compiled"));
+    const exception = this.processJSONErrors(stderr);
+    if (exception) {
+      throw exception;
     }
+    return JSON.parse(compiledLine[0].data.compiled);
   }
 
   async getColumnsOfSource(
@@ -524,17 +537,17 @@ export class DBTCloudProjectIntegration
         "json",
       ]),
     );
-    try {
-      const output = await compileQueryCommand.execute();
-      const compiledLine = output
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()))
-        .filter((line) => line.data.hasOwnProperty("compiled"));
-      return JSON.parse(compiledLine[0].data.compiled);
-    } catch (error) {
-      throw this.processJSONErrors(error);
+    const { stdout, stderr } = await compileQueryCommand.execute();
+    const compiledLine = stdout
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line.trim()))
+      .filter((line) => line.data.hasOwnProperty("compiled"));
+    const exception = this.processJSONErrors(stderr);
+    if (exception) {
+      throw exception;
     }
+    return JSON.parse(compiledLine[0].data.compiled);
   }
 
   async getColumnsOfModel(modelName: string): Promise<DBColumn[]> {
@@ -550,17 +563,17 @@ export class DBTCloudProjectIntegration
         "json",
       ]),
     );
-    try {
-      const output = await compileQueryCommand.execute();
-      const compiledLine = output
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()))
-        .filter((line) => line.data.hasOwnProperty("compiled"));
-      return JSON.parse(compiledLine[0].data.compiled);
-    } catch (error) {
-      throw this.processJSONErrors(error);
+    const { stdout, stderr } = await compileQueryCommand.execute();
+    const compiledLine = stdout
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line.trim()))
+      .filter((line) => line.data.hasOwnProperty("compiled"));
+    const exception = this.processJSONErrors(stderr);
+    if (exception) {
+      throw exception;
     }
+    return JSON.parse(compiledLine[0].data.compiled);
   }
 
   async getBulkSchema(nodes: DBTNode[]): Promise<Record<string, DBColumn[]>> {
@@ -595,19 +608,22 @@ export class DBTCloudProjectIntegration
         "json",
       ]),
     );
-    const output = await compileQueryCommand.execute();
-    const compiledLine = output
+    const { stdout, stderr } = await compileQueryCommand.execute();
+    const compiledLine = stdout
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line.trim()))
       .filter((line) => line.data.hasOwnProperty("compiled"));
+    const exception = this.processJSONErrors(stderr);
+    if (exception) {
+      throw exception;
+    }
     return JSON.parse(compiledLine[0].data.compiled);
   }
 
   async getCatalog(): Promise<Catalog> {
     this.throwIfNotAuthenticated();
-    try {
-      const bulkModelQuery = `
+    const bulkModelQuery = `
 {% set result = [] %}
 {% for n in graph.nodes.values() %}
   {% if n.resource_type == "test" or 
@@ -641,28 +657,29 @@ export class DBTCloudProjectIntegration
 {% endfor %}
 {{ tojson(result) }}`;
 
-      const compileQueryCommand = this.dbtCloudCommand(
-        new DBTCommand("Getting catalog...", [
-          "compile",
-          "--inline",
-          bulkModelQuery.trim().split("\n").join(""),
-          "--output",
-          "json",
-          "--log-format",
-          "json",
-        ]),
-      );
-      const output = await compileQueryCommand.execute();
-      const compiledLine = output
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()))
-        .filter((line) => line.data.hasOwnProperty("compiled"));
-      const result: Catalog = JSON.parse(compiledLine[0].data.compiled);
-      return result;
-    } catch (error) {
-      throw this.processJSONErrors(error);
+    const compileQueryCommand = this.dbtCloudCommand(
+      new DBTCommand("Getting catalog...", [
+        "compile",
+        "--inline",
+        bulkModelQuery.trim().split("\n").join(""),
+        "--output",
+        "json",
+        "--log-format",
+        "json",
+      ]),
+    );
+    const { stdout, stderr } = await compileQueryCommand.execute();
+    const compiledLine = stdout
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line.trim()))
+      .filter((line) => line.data.hasOwnProperty("compiled"));
+    const exception = this.processJSONErrors(stderr);
+    if (exception) {
+      throw exception;
     }
+    const result: Catalog = JSON.parse(compiledLine[0].data.compiled);
+    return result;
   }
 
   getDebounceForRebuildManifest() {
@@ -691,39 +708,54 @@ export class DBTCloudProjectIntegration
       ]),
     );
     try {
-      const output = await adapterTypeCommand.execute();
-      const compiledLine = output
+      const { stdout, stderr } = await adapterTypeCommand.execute();
+      if (stderr) {
+        this.terminal.warn(
+          "DbtCloudIntegrationAdapterDetectioStdErrError",
+          "adapter type returns stderr, ignoring",
+          true,
+          stderr,
+        );
+      }
+      const compiledLine = stdout
         .trim()
         .split("\n")
         .map((line) => JSON.parse(line.trim()))
         .filter((line) => line.data.hasOwnProperty("compiled"));
       this.adapterType = compiledLine[0].data.compiled;
     } catch (error) {
-      throw this.processJSONErrors(error);
+      this.terminal.warn(
+        "DbtCloudIntegrationAdapterDetectionExceptionError",
+        "adapter type throws error, ignoring",
+        true,
+        error,
+      );
     }
   }
 
-  private processJSONErrors(jsonErrors: unknown) {
-    const rawError = (jsonErrors as Error).message;
-    const errorLines: string[] = [];
+  private processJSONErrors(jsonErrors: string) {
+    if (!jsonErrors) {
+      return;
+    }
     try {
+      const errorLines: string[] = [];
       // eslint-disable-next-line prefer-spread
       errorLines.push.apply(
         errorLines,
-        rawError
+        jsonErrors
           .trim()
           .split("\n")
-          .map((line) => JSON.parse(line.trim()).info.msg),
+          .map((line) => JSON.parse(line.trim()))
+          .filter((line) => line.info.level === "error")
+          .map((line) => line.info.msg),
       );
+      if (errorLines.length) {
+        return new Error(errorLines.join(", "));
+      }
     } catch (error) {
       // ideally we never come here, this is a bug in our code
-      return new Error("Could not process " + rawError + ": " + error);
+      return new Error("Could not process " + jsonErrors + ": " + error);
     }
-    return new Error(
-      errorLines.length
-        ? errorLines.join(", ")
-        : "Could not process error output: " + rawError,
-    );
   }
 
   private throwIfNotAuthenticated() {

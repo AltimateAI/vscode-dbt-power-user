@@ -16,6 +16,7 @@ import { provide } from "inversify-binding-decorators";
 import {
   CommandProcessExecution,
   CommandProcessExecutionFactory,
+  CommandProcessResult,
 } from "../commandProcessExecution";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync } from "fs";
@@ -36,7 +37,10 @@ interface DBTCommandExecution {
 }
 
 export interface DBTCommandExecutionStrategy {
-  execute(command: DBTCommand, token?: CancellationToken): Promise<string>;
+  execute(
+    command: DBTCommand,
+    token?: CancellationToken,
+  ): Promise<CommandProcessResult>;
 }
 
 @provideSingleton(CLIDBTCommandExecutionStrategy)
@@ -55,16 +59,12 @@ export class CLIDBTCommandExecutionStrategy
   async execute(
     command: DBTCommand,
     token?: CancellationToken,
-  ): Promise<string> {
+  ): Promise<CommandProcessResult> {
     const commandExecution = this.executeCommand(command, token);
     const executionPromise = command.logToTerminal
       ? commandExecution.completeWithTerminalOutput(this.terminal)
       : commandExecution.complete();
-    const { stdout, stderr } = await executionPromise;
-    if (stderr) {
-      throw new Error(stderr);
-    }
-    return stdout;
+    return executionPromise;
   }
 
   protected executeCommand(
@@ -122,15 +122,10 @@ export class PythonDBTCommandExecutionStrategy
   async execute(
     command: DBTCommand,
     token?: CancellationToken,
-  ): Promise<string> {
-    const { stdout, stderr } = await this.executeCommand(
-      command,
-      token,
-    ).completeWithTerminalOutput(this.terminal);
-    if (stderr) {
-      throw new Error(stderr);
-    }
-    return stdout;
+  ): Promise<CommandProcessResult> {
+    return this.executeCommand(command, token).completeWithTerminalOutput(
+      this.terminal,
+    );
   }
 
   private executeCommand(

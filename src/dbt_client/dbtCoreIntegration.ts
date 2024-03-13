@@ -559,12 +559,20 @@ export class DBTCoreProjectIntegration
     this.addCommandToQueue(this.dbtCoreCommand(command));
   }
 
-  deps(command: DBTCommand) {
-    return this.dbtCoreCommand(command).execute();
+  async deps(command: DBTCommand) {
+    const { stdout, stderr } = await this.dbtCoreCommand(command).execute();
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    return stdout;
   }
 
-  debug(command: DBTCommand) {
-    return this.dbtCoreCommand(command).execute();
+  async debug(command: DBTCommand) {
+    const { stdout, stderr } = await this.dbtCoreCommand(command).execute();
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    return stdout;
   }
 
   private addCommandToQueue(command: DBTCommand) {
