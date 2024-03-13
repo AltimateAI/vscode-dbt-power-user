@@ -1,7 +1,7 @@
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import { OptionType, Label, Select } from "@uicore";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Control, Controller } from "react-hook-form";
 import { SaveRequest } from "../types";
 
@@ -17,29 +17,76 @@ const Relationships = ({
 }: Props): JSX.Element => {
   const [toFieldOptions, setToFieldOptions] = useState<OptionType[]>([]);
   const [toModelOptions, setModels] = useState<OptionType[]>([]);
+  const [toSourceOptions, setSources] = useState<OptionType[]>([]);
 
   const getColumnsOfModel = async (model: string) => {
-    const columnsResult = (await executeRequestInSync("getColumnsOfModel", {
-      model,
-    })) as { columns: string[] };
-    setToFieldOptions(
-      columnsResult.columns.map((m) => ({ label: m, value: m })),
-    );
+    // @ts-expect-error valid type
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+    const matches = model.matchAll(/['"]([^'"]*)['"]/g).toArray();
+
+    if (!Array.isArray(matches)) {
+      panelLogger.info("No model name parsed", matches);
+      return;
+    }
+    // Refs
+    if (matches.length === 1) {
+      const columnsResult = (await executeRequestInSync("getColumnsOfModel", {
+        model: (matches as string[])[0][1],
+      })) as { columns: string[] };
+      setToFieldOptions(
+        columnsResult.columns.map((m) => ({ label: m, value: m })),
+      );
+      return;
+    }
+    // sources
+    if (matches.length === 2) {
+      const columnsResult = (await executeRequestInSync("getColumnsOfSources", {
+        source: (matches as string[])[0][1],
+        table: (matches as string[])[1][1],
+      })) as { columns: string[] };
+      setToFieldOptions(
+        columnsResult.columns.map((m) => ({ label: m, value: m })),
+      );
+      return;
+    }
   };
 
   useEffect(() => {
-    executeRequestInSync("getModelsFromProject", {})
-      .then((resultModels) => {
+    Promise.all([
+      executeRequestInSync("getModelsInProject", {}),
+      executeRequestInSync("getSourcesInProject", {}),
+    ])
+      .then(([modelsResponse, sourcesResponse]) => {
         setModels(
-          (resultModels as { models: string[] }).models.map((m) => ({
-            label: m,
-            value: m,
+          (modelsResponse as { models: string[] }).models.map((m) => ({
+            label: `ref('${m}')`,
+            value: `ref('${m}')`,
           })),
+        );
+        setSources(
+          (
+            sourcesResponse as {
+              sources: {
+                name: string;
+                tables: string[];
+              }[];
+            }
+          ).sources
+            .map(({ name, tables }) => {
+              return tables.map((t) => ({
+                label: `source('${name}', '${t}')`,
+                value: `source('${name}', '${t}')`,
+              }));
+            })
+            .flat(),
         );
       })
       .catch((err) => panelLogger.error("error while getting models", err));
   }, []);
 
+  const toOptions = useMemo(() => {
+    return [...toModelOptions, ...toSourceOptions];
+  }, [toModelOptions, toSourceOptions]);
   return (
     <div>
       <div style={{ marginBottom: "var(--spacing-xl)" }}>
@@ -52,8 +99,8 @@ const Relationships = ({
               inputId="relationship-to"
               ref={ref}
               openMenuOnFocus
-              options={toModelOptions}
-              value={toModelOptions.find((c) => c.value === value)}
+              options={toOptions}
+              value={toOptions.find((c) => c.value === value)}
               defaultValue={
                 toValue ? { label: toValue, value: toValue } : undefined
               }

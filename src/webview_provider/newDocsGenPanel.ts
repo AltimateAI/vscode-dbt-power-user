@@ -140,6 +140,31 @@ export class NewDocsGenPanel
           docs: documentation,
           project: this.queryManifestService.getProject()?.getProjectName(),
         });
+      case "getColumnsOfSources":
+        try {
+          const columnsFromSources = await this.queryManifestService
+            .getProject()
+            ?.getColumnsOfSource(args.source as string, args.table as string);
+          this.sendResponseToWebview({
+            command: "response",
+            data: {
+              columns: columnsFromSources
+                ? columnsFromSources.map((c) => c.column)
+                : [],
+            },
+            syncRequestId,
+          });
+        } catch (err) {
+          window.showErrorMessage(
+            extendErrorWithSupportLinks((err as Error).message),
+          );
+          this.sendResponseToWebview({
+            command: "response",
+            data: { columns: [] },
+            syncRequestId,
+          });
+        }
+        break;
       case "getColumnsOfModel":
         const columns = await this.queryManifestService
           .getProject()
@@ -152,8 +177,21 @@ export class NewDocsGenPanel
           syncRequestId,
         });
         break;
-      case "getModelsFromProject":
-        const models = this.queryManifestService.getModelsFromProject(
+      case "getSourcesInProject":
+        const sources = this.queryManifestService.getSourcesInProject(
+          window.activeTextEditor?.document.uri,
+        );
+
+        this.sendResponseToWebview({
+          command: "response",
+          data: {
+            sources,
+          },
+          syncRequestId,
+        });
+        break;
+      case "getModelsInProject":
+        const models = this.queryManifestService.getModelsInProject(
           window.activeTextEditor?.document.uri,
         );
 

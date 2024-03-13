@@ -70,7 +70,33 @@ export class QueryManifestService {
     return { event, currentDocument };
   }
 
-  public getModelsFromProject(currentFilePath?: Uri) {
+  public getSourcesInProject(currentFilePath?: Uri) {
+    if (!currentFilePath) {
+      return;
+    }
+
+    const projectRootpath =
+      this.dbtProjectContainer.getProjectRootpath(currentFilePath);
+    if (projectRootpath === undefined) {
+      return;
+    }
+
+    const event = this.eventMap.get(projectRootpath.fsPath);
+    if (!event) {
+      return;
+    }
+
+    const sources = event.sourceMetaMap.entries();
+    console.log(event.sourceMetaMap.size, sources);
+    const items = Array.from(sources).map(([key, source]) => ({
+      name: key,
+      tables: source.tables.map((t) => t.name),
+    }));
+
+    return items;
+  }
+
+  public getModelsInProject(currentFilePath?: Uri) {
     if (!currentFilePath) {
       return;
     }

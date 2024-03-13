@@ -7,6 +7,8 @@
   }
 
   .newTestTag{
+    padding: 3px 10px;
+    border-radius: 4px;
     &:hover{
       border-color: var(--primary-color);
       background-color: transparent;

@@ -90,6 +90,7 @@ export interface TestMetaData {
     name: string;
     namespace?: string;
   };
+  attached_node?: string;
 }
 
 export interface ExposureMetaData {
