@@ -15,7 +15,7 @@ import { QueryManifestService } from "../services/queryManifestService";
 import { DocGenService } from "../services/docGenService";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
-import { provideSingleton } from "../utils";
+import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import {
   AltimateWebviewProvider,
   HandleCommandProps,
@@ -116,7 +116,9 @@ export class NewDocsGenPanel
             syncRequestId,
           });
         } catch (err) {
-          window.showErrorMessage((err as Error).message);
+          window.showErrorMessage(
+            extendErrorWithSupportLinks((err as Error).message),
+          );
           this.sendResponseToWebview({
             command: "response",
             data: [],
