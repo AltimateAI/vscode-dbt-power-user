@@ -265,7 +265,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     return (metadata as TestMetadataAcceptedValues).values !== undefined;
   }
 
-  private getTestDataByColumn(message: any, columnName: string) {
+  private getTestDataByColumn(
+    message: any,
+    columnName: string,
+    existingColumn?: any,
+  ) {
     const tests = message.tests as undefined | TestMetaData[];
 
     if (!tests?.length) {
@@ -282,6 +286,14 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       if (!test.test_metadata) {
         return null;
       }
+      const existingConfig = existingColumn?.tests?.find((t: any) => {
+        if (typeof t === "string") {
+          return t === test.test_metadata?.name;
+        }
+        const [key] = Object.keys(t);
+        return key === test.test_metadata?.name;
+      });
+
       // If relationships test, set field and to
       if (this.isRelationship(test.test_metadata.kwargs)) {
         const { to, field } = test.test_metadata.kwargs;
@@ -289,6 +301,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
           relationships: {
             field,
             to,
+            ...existingConfig?.["relationships"],
           },
         };
       }
@@ -296,9 +309,19 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       // set values if test is accepted_values
       if (this.isAcceptedValues(test.test_metadata.kwargs)) {
         return {
-          accepted_values: { values: test.test_metadata.kwargs.values },
+          accepted_values: {
+            values: test.test_metadata.kwargs.values,
+            ...existingConfig?.["accepted_values"],
+          },
         };
       }
+
+      if (existingConfig?.[test.test_metadata.name]) {
+        return {
+          [test.test_metadata.name]: existingConfig?.[test.test_metadata.name],
+        };
+      }
+
       return test.test_metadata.name;
     });
 
@@ -548,6 +571,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                 ...this.getTestDataByColumn(
                                   message,
                                   column.name,
+                                  existingColumn,
                                 ),
                               };
                             } else {
