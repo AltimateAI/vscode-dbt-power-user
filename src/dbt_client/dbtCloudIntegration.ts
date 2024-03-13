@@ -7,6 +7,7 @@ import {
   window,
   CancellationTokenSource,
   Diagnostic,
+  DiagnosticCollection,
 } from "vscode";
 import { provideSingleton } from "../utils";
 import {
@@ -198,6 +199,7 @@ export class DBTCloudProjectIntegration
 
   async executeSQL(query: string, limit: number): Promise<QueryExecution> {
     this.throwIfNotAuthenticated();
+    this.throwBridgeErrorIfAvailable();
     const showCommand = this.dbtCloudCommand(
       new DBTCommand("Running sql...", [
         "show",
@@ -432,6 +434,7 @@ export class DBTCloudProjectIntegration
   // internal commands
   async unsafeCompileNode(modelName: string): Promise<string | undefined> {
     this.throwIfNotAuthenticated();
+    this.throwBridgeErrorIfAvailable();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Compiling model...", [
         "compile",
@@ -458,6 +461,7 @@ export class DBTCloudProjectIntegration
 
   async unsafeCompileQuery(query: string): Promise<string | undefined> {
     this.throwIfNotAuthenticated();
+    this.throwBridgeErrorIfAvailable();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Compiling sql...", [
         "compile",
@@ -488,6 +492,7 @@ export class DBTCloudProjectIntegration
     models: any,
   ): Promise<ValidateSqlParseErrorResponse> {
     this.throwIfNotAuthenticated();
+    this.throwBridgeErrorIfAvailable();
     const result = await this.python?.lock<ValidateSqlParseErrorResponse>(
       (python) =>
         python!`to_dict(validate_sql(${query}, ${dialect}, ${models}))`,
@@ -497,6 +502,7 @@ export class DBTCloudProjectIntegration
 
   async validateSQLDryRun(query: string): Promise<{ bytes_processed: string }> {
     this.throwIfNotAuthenticated();
+    this.throwBridgeErrorIfAvailable();
     const validateSqlCommand = this.dbtCloudCommand(
       new DBTCommand("Estimating BigQuery cost...", [
         "compile",
@@ -526,6 +532,7 @@ export class DBTCloudProjectIntegration
     tableName: string,
   ): Promise<DBColumn[]> {
     this.throwIfNotAuthenticated();
+    this.throwBridgeErrorIfAvailable();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting columns of source...", [
         "compile",
@@ -552,6 +559,7 @@ export class DBTCloudProjectIntegration
 
   async getColumnsOfModel(modelName: string): Promise<DBColumn[]> {
     this.throwIfNotAuthenticated();
+    this.throwBridgeErrorIfAvailable();
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting columns of model...", [
         "compile",
@@ -577,6 +585,8 @@ export class DBTCloudProjectIntegration
   }
 
   async getBulkSchema(nodes: DBTNode[]): Promise<Record<string, DBColumn[]>> {
+    this.throwIfNotAuthenticated();
+    this.throwBridgeErrorIfAvailable();
     const bulkModelQuery = `
 {% set result = {} %}
 {% for n in ${JSON.stringify(nodes)} %}
@@ -623,6 +633,7 @@ export class DBTCloudProjectIntegration
 
   async getCatalog(): Promise<Catalog> {
     this.throwIfNotAuthenticated();
+    this.throwBridgeErrorIfAvailable();
     const bulkModelQuery = `
 {% set result = [] %}
 {% for n in graph.nodes.values() %}
@@ -772,6 +783,22 @@ export class DBTCloudProjectIntegration
       const x = this.disposables.pop();
       if (x) {
         x.dispose();
+      }
+    }
+  }
+
+  private throwBridgeErrorIfAvailable() {
+    const allDiagnostics: DiagnosticCollection[] = [
+      this.pythonBridgeDiagnostics,
+      this.rebuildManifestDiagnostics,
+    ];
+
+    for (const diagnosticCollection of allDiagnostics) {
+      for (const [_, diagnostics] of diagnosticCollection) {
+        if (diagnostics.length > 0) {
+          const firstError = diagnostics[0];
+          throw new Error(firstError.message);
+        }
       }
     }
   }
