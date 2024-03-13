@@ -559,12 +559,20 @@ export class DBTCoreProjectIntegration
     this.addCommandToQueue(this.dbtCoreCommand(command));
   }
 
-  deps(command: DBTCommand) {
-    return this.dbtCoreCommand(command).execute();
+  async deps(command: DBTCommand) {
+    const { stdout, stderr } = await this.dbtCoreCommand(command).execute();
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    return stdout;
   }
 
-  debug(command: DBTCommand) {
-    return this.dbtCoreCommand(command).execute();
+  async debug(command: DBTCommand) {
+    const { stdout, stderr } = await this.dbtCoreCommand(command).execute();
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    return stdout;
   }
 
   private addCommandToQueue(command: DBTCommand) {
@@ -617,10 +625,11 @@ export class DBTCoreProjectIntegration
         args.push("--favor-state");
       }
       this.dbtTerminal.debug(
-        "localManifest",
-        `local defer params: ${args.join(" ")}`,
+        "deferToProd",
+        "executing dbt command with defer params local mode",
+        true,
+        args,
       );
-      this.altimateRequest.sendDeferToProdEvent(ManifestPathType.LOCAL);
       return args;
     }
     if (manifestPathType === ManifestPathType.REMOTE) {
@@ -651,6 +660,12 @@ export class DBTCoreProjectIntegration
           args.push("--favor-state");
         }
         this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
+        this.dbtTerminal.debug(
+          "deferToProd",
+          "executing dbt command with defer params remote mode",
+          true,
+          args,
+        );
         return args;
       } catch (error) {
         if (error instanceof NotFoundError) {
