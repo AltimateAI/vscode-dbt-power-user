@@ -176,16 +176,34 @@ export class NewDocsGenPanel
         }
         break;
       case "getColumnsOfModel":
-        const columns = await this.queryManifestService
-          .getProject()
-          ?.getColumnsOfModel(args.model as string);
-        this.sendResponseToWebview({
-          command: "response",
-          data: {
-            columns: columns ? columns.map((c) => c.column) : [],
-          },
-          syncRequestId,
-        });
+        try {
+          const columns = await this.queryManifestService
+            .getProject()
+            ?.getColumnsOfModel(args.model as string);
+          this.sendResponseToWebview({
+            command: "response",
+            data: {
+              columns: columns ? columns.map((c) => c.column) : [],
+            },
+            syncRequestId,
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "newDocsGenPanel:getColumnsOfModel",
+            "unable to get columns of models",
+            error,
+          );
+          const message =
+            error instanceof PythonException
+              ? error.exception.message
+              : (error as Error).message;
+          window.showErrorMessage(extendErrorWithSupportLinks(message));
+          this.sendResponseToWebview({
+            command: "response",
+            data: { columns: [] },
+            syncRequestId,
+          });
+        }
         break;
       case "getSourcesInProject":
         const sources = this.queryManifestService.getSourcesInProject(

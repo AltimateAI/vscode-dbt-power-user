@@ -53,8 +53,9 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
   const [isInEditMode, setIsInEditMode] = useState(false);
 
   const isEditableTest =
-    test.test_metadata?.name !== DbtGenericTests.NOT_NULL &&
-    test.test_metadata?.name !== DbtGenericTests.UNIQUE;
+    test.test_metadata?.name === DbtGenericTests.ACCEPTED_VALUES ||
+    test.test_metadata?.name === DbtGenericTests.RELATIONSHIPS;
+  const isCustomTest = !test.test_metadata;
 
   const handleDelete = () => {
     panelLogger.info("delete test", test);
@@ -282,13 +283,15 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
                   <EditIcon />
                 </IconButton>
               ) : null}
-              <IconButton
-                style={{ color: "var(--action-red)" }}
-                title="Delete test"
-                onClick={handleDelete}
-              >
-                <DeleteIcon />
-              </IconButton>
+              {isCustomTest ? null : (
+                <IconButton
+                  style={{ color: "var(--action-red)" }}
+                  title="Delete test"
+                  onClick={handleDelete}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              )}
             </span>
           </Stack>
         </CardBody>
@@ -298,7 +301,7 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
         {isInEditMode ? getEditableContent() : getDisplayContent()}
       </form>
       {testCode ? (
-        <CodeBlock code={testCode} language="sql" fileName="Values" />
+        <CodeBlock code={testCode} language="sql" fileName="Details" />
       ) : null}
     </Stack>
   );
