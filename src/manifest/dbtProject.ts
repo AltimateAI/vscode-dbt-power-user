@@ -154,6 +154,13 @@ export class DBTProject implements Disposable {
       this.sourceFileWatchers,
       this.projectConfigDiagnostics,
     );
+
+    this.terminal.debug(
+      "DbtProject",
+      `Created ${dbtIntegrationMode} dbt project ${this.getProjectName()} at ${
+        this.projectRoot
+      }`,
+    );
   }
 
   public getProjectName() {
@@ -209,9 +216,20 @@ export class DBTProject implements Disposable {
         }, this.dbtProjectIntegration.getDebounceForRebuildManifest()),
       ),
     );
+
+    this.terminal.debug(
+      "DbtProject",
+      `Initialized dbt project ${this.getProjectName()} at ${this.projectRoot}`,
+    );
   }
 
   private async onPythonEnvironmentChanged() {
+    this.terminal.debug(
+      "DbtProject",
+      `Python environment for dbt project ${this.getProjectName()} at ${
+        this.projectRoot
+      } has changed`,
+    );
     await this.initialize();
   }
 
