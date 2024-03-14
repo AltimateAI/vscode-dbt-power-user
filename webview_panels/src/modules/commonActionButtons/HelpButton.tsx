@@ -1,22 +1,44 @@
 import { HelpIcon } from "@assets/icons";
-import RightSidePanel from "@modules/panel/RightSidePanel";
-import { Button } from "@uicore";
-import { ReactNode, useState } from "react";
+import DocumentationHelpContent from "@modules/documentationEditor/components/help/DocumentationHelpContent";
+import TestsHelpContent from "@modules/documentationEditor/components/help/TestsHelpContent";
+import { Pages } from "@modules/documentationEditor/state/types";
+import { Button, ButtonGroup, Drawer } from "@uicore";
+import { useState } from "react";
 
-const HelpButton = ({ children }: { children: ReactNode }): JSX.Element => {
-  const [showHelpPanel, setShowHelpPanel] = useState(false);
-
+const HelpButton = (): JSX.Element => {
+  const [selectedPage, setSelectedPage] = useState(Pages.DOCUMENTATION);
+  const handleClick = (page: Pages) => {
+    setSelectedPage(page);
+  };
   return (
-    <>
-      {showHelpPanel ? (
-        <RightSidePanel title="Help" onClose={() => setShowHelpPanel(false)}>
-          {children}
-        </RightSidePanel>
+    <Drawer
+      buttonProps={{ outline: true }}
+      buttonText={
+        <>
+          <HelpIcon /> Help
+        </>
+      }
+      title="Help"
+    >
+      <ButtonGroup className="mb-2">
+        <Button
+          color={selectedPage === Pages.DOCUMENTATION ? "primary" : "secondary"}
+          onClick={() => handleClick(Pages.DOCUMENTATION)}
+        >
+          Documentation
+        </Button>
+        <Button
+          color={selectedPage === Pages.TESTS ? "primary" : "secondary"}
+          onClick={() => handleClick(Pages.TESTS)}
+        >
+          Tests
+        </Button>
+      </ButtonGroup>
+      {selectedPage === Pages.DOCUMENTATION ? (
+        <DocumentationHelpContent />
       ) : null}
-      <Button outline onClick={() => setShowHelpPanel(true)}>
-        <HelpIcon /> Help
-      </Button>
-    </>
+      {selectedPage === Pages.TESTS ? <TestsHelpContent /> : null}
+    </Drawer>
   );
 };
 

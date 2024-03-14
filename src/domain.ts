@@ -62,13 +62,35 @@ interface DocMetaData {
   character: number;
 }
 
-interface TestMetaData {
+interface TestMetadataSpecification {
+  column_name: string;
+  model: string;
+}
+
+// for accepted_values
+export interface TestMetadataAcceptedValues extends TestMetadataSpecification {
+  values?: string[];
+}
+
+// for relationship
+export interface TestMetadataRelationships extends TestMetadataSpecification {
+  field?: string;
+  to?: string;
+}
+
+export interface TestMetaData {
   path: string;
   database: string;
   schema: string;
   alias: string;
   raw_sql: string;
   column_name?: string;
+  test_metadata?: {
+    kwargs: TestMetadataAcceptedValues | TestMetadataRelationships;
+    name: string;
+    namespace?: string;
+  };
+  attached_node?: string;
 }
 
 export interface ExposureMetaData {

@@ -26,6 +26,11 @@ html {
       color: var(--text-color--paragraph, #c4cad2);
     }
   }
+  & .card-footer {
+    background-color: transparent;
+    padding: 0;
+  }
+
 }
 
 .btn {

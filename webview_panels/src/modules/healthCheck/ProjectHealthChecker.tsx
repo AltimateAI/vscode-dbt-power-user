@@ -22,7 +22,7 @@ const ProjectHealthChecker = (): JSX.Element => {
       <Card>
         <CardTitle tag="h5">
           Perform project health check
-          <Tag color="primary">Performance</Tag>
+          <Tag>Performance</Tag>
         </CardTitle>
         <CardBody>
           <CardText>Run project health check</CardText>
