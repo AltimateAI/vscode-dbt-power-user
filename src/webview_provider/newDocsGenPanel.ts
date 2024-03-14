@@ -158,6 +158,11 @@ export class NewDocsGenPanel
             syncRequestId,
           });
         } catch (error) {
+          this.dbtTerminal.error(
+            "newDocsGenPanel:getColumnsOfSources",
+            "unable to get columns of sources",
+            error,
+          );
           const message =
             error instanceof PythonException
               ? error.exception.message
