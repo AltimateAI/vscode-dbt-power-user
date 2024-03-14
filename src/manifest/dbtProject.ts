@@ -566,6 +566,23 @@ export class DBTProject implements Disposable {
     return this.dbtProjectIntegration.getColumnsOfSource(sourceName, tableName);
   }
 
+  async getColumnValues(model: string, column: string) {
+    this.terminal.debug(
+      "getColumnValues",
+      "finding distinct values for column",
+      true,
+      { model, column },
+    );
+    const query = `select ${column} as values from ${model} group by ${column}`;
+    const queryExecution = await this.dbtProjectIntegration.executeSQL(
+      query,
+      100, // setting this 100 as executeSql needs a limit and distinct values will be usually less in number
+    );
+    const result = await queryExecution.executeQuery();
+
+    return result.table.rows.flat();
+  }
+
   async getBulkSchema(req: DBTNode[]) {
     return this.dbtProjectIntegration.getBulkSchema(req);
   }

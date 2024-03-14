@@ -39,6 +39,13 @@ export interface SharedStateEventEmitterProps {
   payload: Record<string, unknown>;
 }
 
+interface SendMessageProps extends Record<string, unknown> {
+  command: string;
+  syncRequestId?: string;
+  error?: string;
+  data?: unknown;
+}
+
 /**
  * This class is responsible for rendering the webview
  * Each panel needs to have its own provider which extends this class with correct viewPath and description
@@ -62,8 +69,10 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     protected emitterService: SharedStateService,
     protected dbtTerminal: DBTTerminal,
   ) {
-    dbtProjectContainer.onManifestChanged((event) =>
-      this.onManifestCacheChanged(event),
+    this._disposables.push(
+      dbtProjectContainer.onManifestChanged((event) =>
+        this.onManifestCacheChanged(event),
+      ),
     );
 
     const t = this;
@@ -74,7 +83,26 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     );
   }
 
-  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+  protected sendResponseToWebview({
+    command,
+    data,
+    error,
+    syncRequestId,
+    ...rest
+  }: SendMessageProps) {
+    this._panel?.webview.postMessage({
+      command,
+      args: {
+        syncRequestId,
+        body: data,
+        status: !error,
+        error,
+      },
+      ...rest,
+    });
+  }
+
+  protected onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
       this.eventMap.set(added.project.projectRoot.fsPath, added);
     });
@@ -119,6 +147,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     try {
       switch (command) {
+        case "openFile":
+          workspace.openTextDocument(params.path as string).then((doc) => {
+            window.showTextDocument(doc);
+          });
+          break;
         case "webview:ready":
           this.onWebviewReady();
           break;
@@ -201,10 +234,21 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           }
           break;
         case "showInformationMessage":
-          const { infoMessage } = params as {
+          const { infoMessage, items } = params as {
             infoMessage: string;
+            items: any[];
           };
-          window.showInformationMessage(infoMessage);
+          const result = await window.showInformationMessage(
+            infoMessage,
+            ...items,
+          );
+          if (syncRequestId) {
+            this.sendResponseToWebview({
+              command: "response",
+              data: result,
+              syncRequestId,
+            });
+          }
           break;
         default:
           break;

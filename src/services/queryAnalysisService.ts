@@ -6,6 +6,7 @@ import {
 } from "../altimate";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
+import { QueryManifestService } from "./queryManifestService";
 import { DocGenService } from "./docGenService";
 import { StreamingService } from "./streamingService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
@@ -16,6 +17,7 @@ export class QueryAnalysisService {
     private docGenService: DocGenService,
     private streamingService: StreamingService,
     private altimateRequest: AltimateRequest,
+    private queryManifestService: QueryManifestService,
     private dbtTerminal: DBTTerminal,
   ) {}
 
@@ -45,7 +47,6 @@ export class QueryAnalysisService {
   }
 
   public async executeQueryAnalysis(
-    eventMap: Map<string, ManifestCacheProjectAddedEvent>,
     params: Partial<QueryAnalysisRequest>,
     job_type: QueryAnalysisType,
     syncRequestId?: string,
@@ -76,7 +77,7 @@ export class QueryAnalysisService {
       throw error;
     }
     const { query } = selectionData;
-    const dbtProject = this.docGenService.getProject();
+    const dbtProject = this.queryManifestService.getProject();
 
     if (!dbtProject) {
       const error = new Error("Invalid dbt project");
@@ -89,7 +90,7 @@ export class QueryAnalysisService {
     }
 
     const adapter = dbtProject.getAdapterType() || "unknown";
-    const documentation = await this.docGenService.getDocumentation(eventMap);
+    const documentation = await this.docGenService.getDocumentation();
     if (!documentation) {
       const error = new Error("Invalid model");
       this.dbtTerminal.error(
@@ -119,18 +120,17 @@ export class QueryAnalysisService {
     });
   }
 
-  public async getFollowupQuestions(
-    eventMap: Map<string, ManifestCacheProjectAddedEvent>,
-    { query, user_request }: { query: string; user_request: string },
-  ) {
+  public async getFollowupQuestions({
+    query,
+    user_request,
+  }: {
+    query: string;
+    user_request: string;
+  }) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
     }
-    const adapter =
-      this.docGenService.getProject()?.getAdapterType() || "unknown";
-    const documentation = await this.docGenService.getDocumentation(eventMap);
-    const dbtProject = this.docGenService.getProject();
-
+    const dbtProject = this.queryManifestService.getProject();
     if (!dbtProject) {
       const error = new Error("Invalid dbt project");
       this.dbtTerminal.error(
@@ -140,6 +140,9 @@ export class QueryAnalysisService {
       );
       throw error;
     }
+
+    const adapter = dbtProject.getAdapterType() || "unknown";
+    const documentation = await this.docGenService.getDocumentation();
 
     if (!documentation) {
       const error = new Error("Unable to find documentation for the model");

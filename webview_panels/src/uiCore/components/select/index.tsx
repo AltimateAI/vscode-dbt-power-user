@@ -4,9 +4,10 @@ import Select, {
   OptionProps,
   GroupBase,
 } from "react-select";
+import CreatableSelect from "react-select/creatable";
 import { Label } from "../../index";
 import { CheckBlueIcon, UncheckIcon } from "@assets/icons";
-import "./select.module.scss"
+import "./select.module.scss";
 
 const { Option } = components;
 
@@ -18,12 +19,14 @@ export interface OptionType {
 const IconOption = (
   props: OptionProps<OptionType, boolean, GroupBase<OptionType>> & {
     selectName: string;
+    hideOptionIcon?: boolean;
   },
 ) => {
   const {
     data: { label },
     isMulti,
     isSelected,
+    hideOptionIcon,
   } = props;
 
   return (
@@ -31,7 +34,11 @@ const IconOption = (
       <div className="flex items-center gap-2">
         <Label check={isMulti}>
           <span style={{ marginRight: 10 }}>
-            {isSelected ? <CheckBlueIcon /> : <UncheckIcon />}
+            {hideOptionIcon ? null : isSelected ? (
+              <CheckBlueIcon />
+            ) : (
+              <UncheckIcon />
+            )}
           </span>
           {label}
         </Label>
@@ -40,7 +47,11 @@ const IconOption = (
   );
 };
 
-const AltimateSelect = (props: Parameters<typeof Select>[0]): JSX.Element => {
+type Props = Parameters<typeof Select>[0] & {
+  isCreatable?: boolean;
+  hideOptionIcon?: boolean;
+};
+const AltimateSelect = (props: Props): JSX.Element => {
   const colourStyles: StylesConfig<OptionType> = {
     menu: (styles) => ({
       ...styles,
@@ -48,13 +59,30 @@ const AltimateSelect = (props: Parameters<typeof Select>[0]): JSX.Element => {
       borderRadius: "0 0 4px 4px",
       backgroundColor: "var(--stroke--disable)",
     }),
-    option: (styles, {isFocused, isSelected}) => ({...styles, 
-      backgroundColor: isFocused || isSelected ? "var(--background--base)" : "transparent",
+    option: (styles, { isFocused, isSelected }) => ({
+      ...styles,
+      backgroundColor:
+        isFocused || isSelected ? "var(--background--base)" : "transparent",
     }),
-    indicatorSeparator: (styles) => ({...styles, display: "none"}),
+    indicatorSeparator: (styles) => ({ ...styles, display: "none" }),
+    input: (styles) => ({
+      ...styles,
+      color: "var(--text-color--title)",
+    }),
     singleValue: (styles) => ({
       ...styles,
       color: "var(--text-color--paragraph)",
+    }),
+    multiValue: (styles) => ({
+      ...styles,
+      color: "var(--text-color--title)",
+      backgroundColor: "var(--background--04)",
+      borderRadius: 26,
+      padding: "0 6px",
+    }),
+    multiValueLabel: (styles) => ({
+      ...styles,
+      color: "inherit",
     }),
     control: (styles) => ({
       ...styles,
@@ -65,6 +93,27 @@ const AltimateSelect = (props: Parameters<typeof Select>[0]): JSX.Element => {
   };
   const selectName = props.name ?? `select-${Math.random()}`;
 
+  if (props.isCreatable) {
+    return (
+      <CreatableSelect<OptionType>
+        {...props}
+        styles={colourStyles}
+        className={`${props.className} altimate-select`}
+        // @ts-expect-error TODO fix this type
+        components={{
+          ...props.components,
+          Option: (optionProps) => (
+            // @ts-expect-error TODO fix this type
+            <IconOption
+              {...optionProps}
+              hideOptionIcon={props.hideOptionIcon}
+              selectName={selectName}
+            />
+          ),
+        }}
+      />
+    );
+  }
   return (
     <Select<OptionType>
       {...props}
@@ -75,7 +124,11 @@ const AltimateSelect = (props: Parameters<typeof Select>[0]): JSX.Element => {
         ...props.components,
         Option: (optionProps) => (
           // @ts-expect-error TODO fix this type
-          <IconOption {...optionProps} selectName={selectName} />
+          <IconOption
+            {...optionProps}
+            hideOptionIcon={props.hideOptionIcon}
+            selectName={selectName}
+          />
         ),
       }}
     />

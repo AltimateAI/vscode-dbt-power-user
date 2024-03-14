@@ -35,6 +35,8 @@ export class TestParser {
             schema,
             alias,
             column_name,
+            test_metadata,
+            attached_node,
           }) => {
             const fullPath = path.join(rootPath, original_file_path);
             testMetaMap.set(name, {
@@ -44,6 +46,8 @@ export class TestParser {
               schema,
               alias,
               column_name,
+              test_metadata,
+              attached_node,
             });
           },
         );

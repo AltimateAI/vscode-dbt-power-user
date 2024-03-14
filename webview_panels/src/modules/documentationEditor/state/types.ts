@@ -5,6 +5,11 @@ export enum Source {
   YAML = "YAML",
 }
 
+export enum Pages {
+  DOCUMENTATION,
+  TESTS,
+  TAGS,
+}
 export interface MetadataColumn {
   name: string;
   type?: string;
@@ -25,13 +30,61 @@ export interface DBTDocumentation {
   patchPath?: string;
 }
 
+export interface TestMetadataKwArgs {
+  column_name: string;
+  model: string;
+}
+
+export enum DbtTestTypes {
+  EXTERNAL_PACKAGE = "external",
+  GENERIC = "generic",
+  MACRO = "macro",
+  SINGULAR = "singular", // sql queries in dbt tests directory
+  UNKNOWN = "unknown",
+}
+
+export enum DbtGenericTests {
+  ACCEPTED_VALUES = "accepted_values",
+  NOT_NULL = "not_null",
+  RELATIONSHIPS = "relationships",
+  UNIQUE = "unique",
+}
+
+// for accepted_values
+export interface TestMetadataAcceptedValuesKwArgs extends TestMetadataKwArgs {
+  values?: string[];
+}
+
+// for relationship
+export interface TestMetadataRelationshipsKwArgs extends TestMetadataKwArgs {
+  field?: string;
+  to?: string;
+}
+
 export interface DocumentationStateProps {
   currentDocsData?: DBTDocumentation;
+  currentDocsTests?: DBTModelTest[];
   project?: string;
   generationHistory: GenerationDBDataProps[];
   userInstructions: DocsGenerateUserInstructions;
   isDocGeneratedForAnyColumn: boolean;
+  isTestUpdatedForAnyColumn: boolean;
   insertedEntityName?: string;
+  selectedPages: Pages[];
+}
+
+export interface DBTModelTest {
+  alias: string;
+  column_name?: string;
+  database: string;
+  key: string;
+  path: string;
+  schema: string;
+  test_metadata?: {
+    kwargs: TestMetadataAcceptedValuesKwArgs | TestMetadataRelationshipsKwArgs;
+    name: string;
+    namespace?: string;
+  };
 }
 
 export interface DocsGenerateFollowupInstructions {
