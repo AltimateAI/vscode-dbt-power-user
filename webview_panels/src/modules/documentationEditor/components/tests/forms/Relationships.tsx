@@ -23,7 +23,7 @@ const Relationships = ({
     const iterator = model.matchAll(/['"]([^'"]*)['"]/g);
     const matches = [];
     for (const match of iterator) {
-      matches.push((match as RegExpMatchArray).map((m) => m.toString()));
+      matches.push(match.map((m) => m.toString()));
     }
     if (!matches.length) {
       panelLogger.info("No model name parsed", matches);
@@ -36,7 +36,7 @@ const Relationships = ({
         model: matches[0][1],
       })) as { columns: string[] };
       setToFieldOptions(
-        columnsResult.columns.map((m) => ({ label: m, value: m }))
+        columnsResult.columns.map((m) => ({ label: m, value: m })),
       );
       return;
     }
@@ -47,7 +47,7 @@ const Relationships = ({
         table: matches[1][1],
       })) as { columns: string[] };
       setToFieldOptions(
-        columnsResult.columns.map((m) => ({ label: m, value: m }))
+        columnsResult.columns.map((m) => ({ label: m, value: m })),
       );
       return;
     }
@@ -63,7 +63,7 @@ const Relationships = ({
           (modelsResponse as { models: string[] }).models.map((m) => ({
             label: `ref('${m}')`,
             value: `ref('${m}')`,
-          }))
+          })),
         );
         setSources(
           (
@@ -80,7 +80,7 @@ const Relationships = ({
                 value: `source('${name}', '${t}')`,
               }));
             })
-            .flat()
+            .flat(),
         );
       })
       .catch((err) => panelLogger.error("error while getting models", err));
@@ -111,8 +111,8 @@ const Relationships = ({
                 getColumnsOfModel(selectedModel).catch((err) =>
                   panelLogger.error(
                     `error while fetching colums of model: ${selectedModel}`,
-                    err
-                  )
+                    err,
+                  ),
                 );
                 return onChange(selectedModel);
               }}

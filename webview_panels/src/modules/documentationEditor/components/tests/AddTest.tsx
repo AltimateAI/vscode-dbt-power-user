@@ -1,4 +1,4 @@
-import { AddIcon, CloseIcon } from "@assets/icons";
+import { AddIcon, RemoveIcon } from "@assets/icons";
 import { DbtGenericTests } from "@modules/documentationEditor/state/types";
 import {
   Card,
@@ -53,9 +53,9 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
         onClick={handleOpen}
         color={showButtons ? "primary" : "secondary"}
         className={classes.btnAddTest}
-        title={`Add test for ${title}`}
+        title={showButtons ? "Minimize" : `Add test for ${title}`}
       >
-        {showButtons ? <CloseIcon /> : <AddIcon />}
+        {showButtons ? <RemoveIcon /> : <AddIcon />}
       </IconButton>
       {showButtons ? (
         <Fade>
