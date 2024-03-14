@@ -18,8 +18,7 @@ export class DbtTestService {
   ) {}
 
   public async createTest(
-    eventMap: Map<string, ManifestCacheProjectAddedEvent>,
-    params: Partial<CreateDbtTestRequest>,
+    params: Record<string, unknown>,
     syncRequestId?: string,
   ) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
@@ -58,7 +57,9 @@ export class DbtTestService {
       endpoint: "dbt/v2/dbt-test",
       syncRequestId,
       request: {
-        session_id,
+        ...params,
+        session_id: session_id as string,
+        column_name: params.column as string,
         model: {
           model_name: documentation.name,
           adapter,
@@ -68,7 +69,6 @@ export class DbtTestService {
             data_type: c.type,
           })),
         },
-        ...params,
       },
     });
   }

@@ -21,7 +21,7 @@ export enum TestOperation {
 }
 
 interface IncomingTest {
-  tests: { name: string; tests: Record<string, string>[] };
+  tests: { name: string; tests: (string | Record<string, unknown>)[] };
   model: string;
   column: string;
 }
@@ -58,15 +58,30 @@ const useTestFormSave = (): {
   const handleTestInsert = (params: IncomingTest) => {
     const testsData = [...(currentDocsTests ?? [])];
     params.tests.tests.forEach((t) => {
-      const keys = Object.keys(t);
-      testsData.push({
-        alias: "",
-        database: "",
-        schema: "",
-        column_name: params.column,
-        key: `${keys[0]}_${params.column}`,
-        path: `${keys[0]}_${params.column}`,
-      });
+      const key = typeof t === "string" ? t : Object.keys(t)?.[0];
+      const rest =
+        typeof t === "object" && typeof t[key] === "object"
+          ? (t[key] as Record<string, unknown>)
+          : {};
+
+      if (key) {
+        testsData.push({
+          alias: "",
+          database: "",
+          schema: "",
+          column_name: params.column,
+          key: `${key}_${params.column}`,
+          path: `${key}_${params.column}`,
+          test_metadata: {
+            kwargs: {
+              column_name: params.column,
+              model: params.model,
+              ...rest,
+            },
+            name: key,
+          },
+        });
+      }
     });
     panelLogger.info("insert test data", testsData);
     dispatch(updateCurrentDocsTests(testsData));

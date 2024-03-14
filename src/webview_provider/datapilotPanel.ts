@@ -158,7 +158,6 @@ export class DataPilotPanel extends AltimateWebviewProvider {
       case "dbttest:create":
         try {
           const response = await this.dbtTestService.createTest(
-            this.eventMap,
             params,
             syncRequestId,
           );

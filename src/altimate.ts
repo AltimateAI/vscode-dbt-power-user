@@ -116,6 +116,7 @@ export interface QueryAnalysisRequest {
 export interface CreateDbtTestRequest {
   session_id: string;
   model: DocsGenerateModelRequestV2["dbt_model"];
+  column_name: string;
   user_request?: string;
 }
 

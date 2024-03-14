@@ -60,7 +60,7 @@ const useQueryAnalysisAction = (): {
     }
     const id = crypto.randomUUID();
     try {
-      panelLogger.info("executeQueryAnalysis", sessionId, id);
+      panelLogger.info("executeQueryAnalysis", sessionId, id, chat?.meta);
       setIsLoading(true);
 
       onNewGeneration({
@@ -80,6 +80,7 @@ const useQueryAnalysisAction = (): {
             user_request,
             dbt_expectations: Boolean(packageVersions.dbt_expectations),
             dbt_utils: Boolean(packageVersions.dbt_utils),
+            ...chat?.meta,
           },
           (chunk: string) => {
             onProgress(id, chunk, onNewGeneration);
@@ -115,6 +116,7 @@ const useQueryAnalysisAction = (): {
     } catch (err) {
       panelLogger.error("Error while fetching explanation", err);
       onNewGeneration({
+        id,
         response: (err as Error).message,
         state: RequestState.ERROR,
       });

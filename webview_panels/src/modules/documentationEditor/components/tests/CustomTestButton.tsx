@@ -30,7 +30,7 @@ const CustomTestButton = ({ column }: Props): JSX.Element => {
     <ListGroupItem
       action
       tag="button"
-      className={classes.customTest}
+      className={`${classes.customTest} ${classes.newTestTag} btn btn-outline-secondary`}
       onClick={onClick}
     >
       Custom Test

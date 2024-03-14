@@ -15,6 +15,16 @@
       color: var(--text-color--title)
     }
   }
+  .custom-test{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--bs-btn-color);
+    gap: 4px;
+    :global .btn{
+      padding: 0 3px;
+    }
+  }
   .entity-tests {
     margin-top: var(--spacing-lg);
     p {
@@ -224,11 +234,7 @@
       background-color: var(--primary-color);
 
       }
-      .custom-test{
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
+      
   }
 
   :global .card-title {

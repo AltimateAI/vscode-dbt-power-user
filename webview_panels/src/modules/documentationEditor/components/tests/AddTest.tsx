@@ -74,7 +74,9 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
                   </Button>
                 </Tooltip>
               ))}
-            <CustomTestButton column={title} />
+            <Tooltip title="Generate test using Datapilot">
+              <CustomTestButton column={title} />
+            </Tooltip>
           </Stack>
         </Fade>
       ) : null}
