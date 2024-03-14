@@ -1,4 +1,10 @@
-import { window, QuickPickItem, ProgressLocation, commands } from "vscode";
+import {
+  window,
+  QuickPickItem,
+  ProgressLocation,
+  commands,
+  workspace,
+} from "vscode";
 import { getFirstWorkspacePath, provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
@@ -113,6 +119,57 @@ export class WalkthroughCommands {
   }
 
   async installDbt(): Promise<void> {
+    if (
+      workspace
+        .getConfiguration("dbt")
+        .get<string>("dbtIntegration", "core") === "cloud"
+    ) {
+      this.installDbtCloud();
+    } else {
+      this.installDbtCore();
+    }
+  }
+
+  private async installDbtCloud(): Promise<void> {
+    let error = undefined;
+    await window.withProgress(
+      {
+        title: `Installing dbt cloud...`,
+        location: ProgressLocation.Notification,
+        cancellable: false,
+      },
+      async () => {
+        try {
+          const { stderr } = await this.commandProcessExecutionFactory
+            .createCommandProcessExecution({
+              command: this.pythonEnvironment.pythonPath,
+              args: ["-m", "pip", "install", `dbt`],
+              cwd: getFirstWorkspacePath(),
+              envVars: this.pythonEnvironment.environmentVariables,
+            })
+            .completeWithTerminalOutput(this.dbtTerminal);
+          if (stderr) {
+            throw new Error(stderr);
+          }
+          await this.dbtProjectContainer.detectDBT();
+          this.dbtProjectContainer.initialize();
+        } catch (err) {
+          error = err;
+        }
+      },
+    );
+    if (error) {
+      const answer = await window.showErrorMessage(
+        "Could not install dbt: " + (error as Error).message,
+        DbtInstallationPromptAnswer.INSTALL,
+      );
+      if (answer === DbtInstallationPromptAnswer.INSTALL) {
+        commands.executeCommand("dbtPowerUser.installDbt");
+      }
+    }
+  }
+
+  private async installDbtCore(): Promise<void> {
     const dbtVersion: QuickPickItem | undefined = await window.showQuickPick(
       ["1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7"].map((value) => ({
         label: value,

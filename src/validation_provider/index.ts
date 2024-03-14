@@ -30,7 +30,7 @@ export class ValidationProvider implements Disposable {
     const isDBTCore =
       workspace
         .getConfiguration("dbt")
-        .get<string>("dbtIntegration", "core") === "core";
+        .get<string>("dbtIntegration", "core") !== "cloud";
     commands.executeCommand("setContext", "dbtPowerUser.isDBTCore", isDBTCore);
   }
 
