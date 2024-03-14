@@ -46,7 +46,7 @@ export class TargetWatchers implements Disposable {
     _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
     onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
     private manifestParser: ManifestParser,
-    private dbtTerminal: DBTTerminal,
+    private terminal: DBTTerminal,
   ) {
     this._onManifestChanged = _onManifestChanged;
     this.disposables.push(
@@ -72,13 +72,25 @@ export class TargetWatchers implements Disposable {
     const projectName = event.project.getProjectName();
     const targetPath = event.project.getTargetPath();
     if (!targetPath) {
-      this.dbtTerminal.debug(
+      this.terminal.debug(
         "targetWatchers:onProjectConfigChanged",
         "targetPath should be defined at this stage for project " +
           event.project.projectRoot.fsPath,
       );
       return;
     }
+    this.terminal.debug(
+      "ManifestParser",
+      `Evaluating if project config has changed "${event.project.getProjectName()}" at ${
+        event.project.projectRoot
+      }`,
+      {
+        currentTargetPath: this.currentTargetPath,
+        targetPath,
+        currentProjectName: this.currentProjectName,
+        projectName,
+      },
+    );
     if (
       this.currentTargetPath === undefined ||
       this.currentTargetPath !== targetPath ||
@@ -92,6 +104,12 @@ export class TargetWatchers implements Disposable {
         const manifestCacheChangedEvent =
           await this.manifestParser.parseManifest(event.project);
         if (manifestCacheChangedEvent) {
+          this.terminal.debug(
+            "ManifestParser",
+            `Firing ManifestCacheChangedEvent event from watcher event for "${event.project.getProjectName()}" at ${
+              event.project.projectRoot
+            }`,
+          );
           this._onManifestChanged.fire(manifestCacheChangedEvent);
         }
       };
@@ -111,6 +129,12 @@ export class TargetWatchers implements Disposable {
         event.project,
       );
       if (manifestCacheChangedEvent) {
+        this.terminal.debug(
+          "ManifestParser",
+          `Firing ManifestCacheChangedEvent event from initialization for "${event.project.getProjectName()}" at ${
+            event.project.projectRoot
+          }`,
+        );
         this._onManifestChanged.fire(manifestCacheChangedEvent);
       }
     }
@@ -124,14 +148,20 @@ export class TargetWatchers implements Disposable {
       const error = new Error(
         "targetPath is undefined in " + event.project.projectRoot.fsPath,
       );
-      this.dbtTerminal.error(
+      this.terminal.error(
         "createManifestWatcherError",
         "targetPath is undefined",
         error,
       );
       throw error;
     }
-    const projectRoot = event.project.projectRoot;
+    this.terminal.debug(
+      "ManifestParser",
+      `Create ManifestWatcher for "${event.project.getProjectName()}" at ${
+        event.project.projectRoot
+      }`,
+      targetPath,
+    );
     const manifestWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(targetPath, DBTProject.MANIFEST_FILE),
     );
@@ -146,7 +176,7 @@ export class TargetWatchers implements Disposable {
       const error = new Error(
         "targetPath is undefined in " + event.project.projectRoot.fsPath,
       );
-      this.dbtTerminal.error(
+      this.terminal.error(
         "createTargetFolderWatcherError",
         "targetPath is undefined",
         error,
@@ -155,6 +185,13 @@ export class TargetWatchers implements Disposable {
     }
     const targetFolderWatcher = workspace.createFileSystemWatcher(
       new RelativePattern(targetPath, "*"),
+    );
+    this.terminal.debug(
+      "ManifestParser",
+      `Create TargetFolderWatcher for "${event.project.getProjectName()}" at ${
+        event.project.projectRoot
+      }`,
+      targetPath,
     );
     return targetFolderWatcher;
   }

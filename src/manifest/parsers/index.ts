@@ -67,19 +67,11 @@ export class ManifestParser {
           },
         ],
       };
-      this.terminal.debug(
-        "ManifestParser",
-        `Firing ManifestCacheChangedEvent event for "${project.getProjectName()}" at ${
-          project.projectRoot
-        }`,
-        event,
-      );
       return event;
     }
 
     const { nodes, sources, macros, parent_map, child_map, docs, exposures } =
       manifest;
-    const rootPath = projectRoot.fsPath;
 
     const nodeMetaMapPromise = this.nodeParser.createNodeMetaMap(
       nodes,
