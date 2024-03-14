@@ -35,6 +35,14 @@ export interface TestMetadataKwArgs {
   model: string;
 }
 
+export enum DbtTestTypes {
+  EXTERNAL_PACKAGE = "external",
+  GENERIC = "generic",
+  MACRO = "macro",
+  SINGULAR = "singular", // sql queries in dbt tests directory
+  UNKNOWN = "unknown",
+}
+
 export enum DbtGenericTests {
   ACCEPTED_VALUES = "accepted_values",
   NOT_NULL = "not_null",

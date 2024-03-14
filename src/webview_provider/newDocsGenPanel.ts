@@ -23,6 +23,8 @@ import {
 } from "./altimateWebviewProvider";
 import { DocsGenPanelView } from "./docsEditPanel";
 import { PythonException } from "python-bridge";
+import { TestMetaData } from "../domain";
+import { parse, stringify } from "yaml";
 
 @provideSingleton(NewDocsGenPanel)
 export class NewDocsGenPanel
@@ -93,6 +95,94 @@ export class NewDocsGenPanel
     });
   }
 
+  private stringifyTest = (
+    tests: Record<string, unknown>[],
+    test: TestMetaData,
+  ) => {
+    if (!tests?.length) {
+      return null;
+    }
+
+    const selectedTest = tests.find((t: Record<string, unknown>) => {
+      if (!test.test_metadata) {
+        return false;
+      }
+      const { name, namespace } = test.test_metadata;
+      const fullName = namespace ? `${namespace}.${name}` : name;
+      return Boolean(t[fullName]);
+    });
+
+    if (!selectedTest) {
+      this.dbtTerminal.debug("getDbtTestCode", "no test available in yml");
+      return null;
+    }
+
+    this.dbtTerminal.debug(
+      "getDbtTestCode",
+      "sending selected test from yml",
+      selectedTest,
+    );
+    return stringify(selectedTest);
+  };
+
+  private getDbtTestCode(test: TestMetaData, modelName: string) {
+    const { path, column_name } = test;
+    if (path.endsWith(".sql")) {
+      this.dbtTerminal.debug("getDbtTestCode", "reading sql test", path);
+      return readFileSync(path, { encoding: "utf-8" });
+    }
+
+    if (path.endsWith(".yml")) {
+      this.dbtTerminal.debug("getDbtTestCode", "finding test from yaml", path);
+      const parsedDocFile = parse(readFileSync(path, { encoding: "utf-8" }), {
+        strict: false,
+        uniqueKeys: false,
+        maxAliasCount: -1,
+      });
+
+      if (!parsedDocFile) {
+        this.dbtTerminal.debug(
+          "getDbtTestCode",
+          "yml file does not have any content",
+          path,
+        );
+        return null;
+      }
+
+      const model = parsedDocFile.models?.find(
+        (m: any) => m.name === modelName,
+      );
+
+      // model test
+      if (!column_name) {
+        this.dbtTerminal.debug(
+          "getDbtTestCode",
+          "finding model test from yml",
+          parsedDocFile,
+          model,
+        );
+        return this.stringifyTest(model?.tests, test);
+      }
+
+      const column =
+        model.columns &&
+        model.columns.find(
+          (yamlColumn: any) => yamlColumn.name === column_name,
+        );
+      this.dbtTerminal.debug(
+        "getDbtTestCode",
+        "finding column test from yml",
+        parsedDocFile,
+        model,
+        column,
+      );
+
+      return this.stringifyTest(column?.tests, test);
+    }
+
+    return null;
+  }
+
   async handleCommand(message: HandleCommandProps): Promise<void> {
     const { command, syncRequestId, ...args } = message;
 
@@ -101,7 +191,10 @@ export class NewDocsGenPanel
         this.sendResponseToWebview({
           command: "response",
           data: {
-            code: readFileSync(args.path as string, { encoding: "utf-8" }),
+            code: this.getDbtTestCode(
+              args.test as TestMetaData,
+              args.model as string,
+            ),
           },
           syncRequestId,
         });
