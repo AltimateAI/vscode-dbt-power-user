@@ -31,10 +31,16 @@ export class ManifestParser {
   ) {}
 
   public async parseManifest(project: DBTProject) {
+    this.terminal.debug(
+      "ManifestParser",
+      `Going to parse manifest for "${project.getProjectName()}" at ${
+        project.projectRoot
+      }`,
+    );
     const targetPath = project.getTargetPath();
     if (!targetPath) {
       this.terminal.debug(
-        "parsers:parseManifest",
+        "ManifestParser",
         "targetPath should be defined at this stage for project " +
           project.projectRoot.fsPath,
       );
@@ -61,6 +67,13 @@ export class ManifestParser {
           },
         ],
       };
+      this.terminal.debug(
+        "ManifestParser",
+        `Firing ManifestCacheChangedEvent event for "${project.getProjectName()}" at ${
+          project.projectRoot
+        }`,
+        event,
+      );
       return event;
     }
 
@@ -86,7 +99,7 @@ export class ManifestParser {
     );
     const exposuresMetaMapPromise = this.exposureParser.createExposureMetaMap(
       exposures,
-      rootPath,
+      project,
     );
 
     const docMetaMapPromise = this.docParser.createDocMetaMap(docs, project);
@@ -108,6 +121,7 @@ export class ManifestParser {
     ]);
 
     const graphMetaMap = this.graphParser.createGraphMetaMap(
+      project,
       parent_map,
       child_map,
       nodeMetaMap,
@@ -167,6 +181,10 @@ export class ManifestParser {
       pathParts.unshift(projectRoot.fsPath);
     }
     const manifestLocation = path.join(...pathParts, DBTProject.MANIFEST_FILE);
+    this.terminal.debug(
+      "ManifestParser",
+      `Reading manifest at ${manifestLocation} for project at ${projectRoot}`,
+    );
 
     try {
       const manifestFile = readFileSync(manifestLocation, "utf8");
@@ -174,7 +192,7 @@ export class ManifestParser {
     } catch (error) {
       this.terminal.debug(
         "ManifestParser",
-        `Could not read manifest file at ${manifestLocation}`,
+        `Could not read manifest file at ${manifestLocation}, ignoring error`,
         error,
       );
     }

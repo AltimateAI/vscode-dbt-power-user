@@ -2,14 +2,23 @@ import { provide } from "inversify-binding-decorators";
 import * as path from "path";
 import { TestMetaMap } from "../../domain";
 import { DBTProject } from "../dbtProject";
+import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 
 @provide(TestParser)
 export class TestParser {
+  constructor(private terminal: DBTTerminal) {}
+
   createTestMetaMap(
     testsMap: any[],
     project: DBTProject,
   ): Promise<TestMetaMap> {
     return new Promise((resolve) => {
+      this.terminal.debug(
+        "TestParser",
+        `Parsing tests for "${project.getProjectName()}" at ${
+          project.projectRoot
+        }`,
+      );
       const testMetaMap: TestMetaMap = new Map();
       if (testsMap === null || testsMap === undefined) {
         resolve(testMetaMap);
@@ -38,6 +47,13 @@ export class TestParser {
             });
           },
         );
+      this.terminal.debug(
+        "TestParser",
+        `Returning tests for "${project.getProjectName()}" at ${
+          project.projectRoot
+        }`,
+        testMetaMap,
+      );
       resolve(testMetaMap);
     });
   }
