@@ -70,7 +70,7 @@ const useTestFormSave = (): {
     });
     panelLogger.info("insert test data", testsData);
     dispatch(updateCurrentDocsTests(testsData));
-    dispatch(setIsDocGeneratedForAnyColumn(true));
+    dispatch(setIsTestUpdatedForAnyColumn(true));
   };
 
   useEffect(() => {

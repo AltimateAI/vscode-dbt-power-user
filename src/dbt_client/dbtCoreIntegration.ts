@@ -888,6 +888,30 @@ export class DBTCoreProjectIntegration
     }
   }
 
+  findPackageVersion(packageName: string) {
+    if (!this.packagesInstallPath || !packageName) {
+      return;
+    }
+
+    const dbtProjectYmlFilePath = path.join(
+      this.packagesInstallPath,
+      packageName,
+      "dbt_project.yml",
+    );
+    const fileContents = readFileSync(dbtProjectYmlFilePath, {
+      encoding: "utf-8",
+    });
+    if (!fileContents) {
+      return;
+    }
+    const parsedConfig = parse(fileContents, {
+      strict: false,
+      uniqueKeys: false,
+      maxAliasCount: -1,
+    });
+    return parsedConfig?.version;
+  }
+
   async dispose() {
     try {
       await this.executionInfrastructure.closePythonBridge(this.python);

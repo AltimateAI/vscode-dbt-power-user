@@ -826,6 +826,10 @@ export class DBTCloudProjectIntegration
     }
   }
 
+  findPackageVersion(packageName: string) {
+    return undefined;
+  }
+
   private throwBridgeErrorIfAvailable() {
     const allDiagnostics: DiagnosticCollection[] = [
       this.pythonBridgeDiagnostics,

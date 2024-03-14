@@ -14,9 +14,10 @@ const useQueryAnalysisContext = (): {
   chat?: DatapilotQueryAnalysisChat;
   history: QueryAnalysisHistory[];
   isMaxFollowupReached: boolean;
+  packageVersions: Record<string, string>;
 } & QueryAnalysisContextProps => {
   const {
-    state: { items, currentSessionId },
+    state: { items, currentSessionId, packageVersions },
   } = useDataPilotContext();
 
   const chat = currentSessionId
@@ -47,6 +48,7 @@ const useQueryAnalysisContext = (): {
     chat,
     ...context,
     history,
+    packageVersions,
     isMaxFollowupReached:
       MAX_ALLOWED_FOLLOWUP_QUESTIONS <= (followups?.length ?? 0),
   };

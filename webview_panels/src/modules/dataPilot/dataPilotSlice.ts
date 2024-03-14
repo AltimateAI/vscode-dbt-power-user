@@ -9,12 +9,19 @@ export const initialState = {
   items: {},
   currentSessionId: undefined,
   showHelp: false,
+  packageVersions: {},
 } as DataPilotStateProps;
 
 const dataPilotSlice = createSlice({
   name: "dataPilotState",
   initialState,
   reducers: {
+    updatePackageVersions: (
+      state,
+      action: PayloadAction<DataPilotStateProps["packageVersions"]>,
+    ) => {
+      state.packageVersions = { ...state.packageVersions, ...action.payload };
+    },
     setCurrentSessionId: (
       state,
       action: PayloadAction<DataPilotStateProps["currentSessionId"]>,
@@ -72,6 +79,7 @@ const dataPilotSlice = createSlice({
 });
 
 export const {
+  updatePackageVersions,
   upsertItem,
   reset,
   setCurrentSessionId,

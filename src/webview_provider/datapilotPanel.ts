@@ -29,7 +29,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     private docGenService: DocGenService,
     protected emitterService: SharedStateService,
     protected queryAnalysisService: QueryAnalysisService,
-    private queryManifestService: QueryManifestService,
+    protected queryManifestService: QueryManifestService,
     protected dbtTerminal: DBTTerminal,
     private dbtTestService: DbtTestService,
   ) {
@@ -39,6 +39,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
       telemetry,
       emitterService,
       dbtTerminal,
+      queryManifestService,
     );
 
     commands.registerCommand("dbtPowerUser.resetDatapilot", () =>

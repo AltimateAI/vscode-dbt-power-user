@@ -21,7 +21,8 @@ const useQueryAnalysisAction = (): {
   isLoading: boolean;
   executeQueryAnalysis: (args: QueryAnalysisRequest) => Promise<void>;
 } => {
-  const { chat, isMaxFollowupReached } = useQueryAnalysisContext();
+  const { chat, isMaxFollowupReached, packageVersions } =
+    useQueryAnalysisContext();
   const [isLoading, setIsLoading] = useState(false);
 
   // No need for followup questions for query modify
@@ -73,7 +74,13 @@ const useQueryAnalysisAction = (): {
         executeStreamRequest(
           command,
           // use the original chat session id to track the whole conversation
-          { session_id: sessionId, history, user_request },
+          {
+            session_id: sessionId,
+            history,
+            user_request,
+            dbt_expectations: Boolean(packageVersions.dbt_expectations),
+            dbt_utils: Boolean(packageVersions.dbt_utils),
+          },
           (chunk: string) => {
             onProgress(id, chunk, onNewGeneration);
           },

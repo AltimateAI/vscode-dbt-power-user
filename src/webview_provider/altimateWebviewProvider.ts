@@ -22,6 +22,7 @@ import {
 import { AltimateRequest } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { QueryManifestService } from "../services/queryManifestService";
 
 export type UpdateConfigProps = {
   key: string;
@@ -68,6 +69,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     protected telemetry: TelemetryService,
     protected emitterService: SharedStateService,
     protected dbtTerminal: DBTTerminal,
+    protected queryManifestService: QueryManifestService,
   ) {
     this._disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
@@ -248,6 +250,15 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               syncRequestId,
             });
           }
+          break;
+        case "findPackageVersion":
+          this.sendResponseToWebview({
+            command: "response",
+            data: this.queryManifestService
+              .getProject()
+              ?.findPackageVersion(params.packageName as string),
+            syncRequestId,
+          });
           break;
         default:
           break;

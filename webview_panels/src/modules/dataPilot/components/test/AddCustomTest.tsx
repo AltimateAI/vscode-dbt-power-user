@@ -3,7 +3,12 @@ import useDataPilotContext from "@modules/dataPilot/useDataPilotContext";
 import { useEffect } from "react";
 import { RequestState } from "@modules/dataPilot/types";
 import DatapilotChatFollowupComponent from "../common/DatapilotChatFollowup";
-import { upsertFollowup } from "@modules/dataPilot/dataPilotSlice";
+import {
+  updatePackageVersions,
+  upsertFollowup,
+} from "@modules/dataPilot/dataPilotSlice";
+import { executeRequestInSync } from "@modules/app/requestExecutor";
+import { panelLogger } from "@modules/logger";
 
 const AddCustomTest = (): JSX.Element | null => {
   const {
@@ -13,6 +18,29 @@ const AddCustomTest = (): JSX.Element | null => {
 
   const chat = currentSessionId ? items[currentSessionId] : undefined;
   const results = chat?.followups ?? [];
+
+  const loadDependentPackageVersions = () => {
+    Promise.all(
+      ["dbt_expectations", "dbt_utils"].map((packageName) =>
+        executeRequestInSync("findPackageVersion", { packageName }),
+      ),
+    )
+      .then(([dbt_expectations_version, dbt_utils_version]) =>
+        dispatch(
+          updatePackageVersions({
+            dbt_utils: dbt_utils_version as string,
+            dbt_expectations: dbt_expectations_version as string,
+          }),
+        ),
+      )
+      .catch((err) =>
+        panelLogger.error("error while loading package version", err),
+      );
+  };
+
+  useEffect(() => {
+    loadDependentPackageVersions();
+  }, []);
 
   useEffect(() => {
     if (!chat?.id || results.length) {

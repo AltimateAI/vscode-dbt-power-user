@@ -50,6 +50,7 @@ export class NewDocsGenPanel
       telemetry,
       emitterService,
       dbtTerminal,
+      queryManifestService,
     );
 
     this._disposables.push(
