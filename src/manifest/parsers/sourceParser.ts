@@ -13,6 +13,12 @@ export class SourceParser {
     project: DBTProject,
   ): Promise<SourceMetaMap> {
     return new Promise((resolve) => {
+      this.terminal.debug(
+        "SourceParser",
+        `Parsing sources for "${project.getProjectName()}" at ${
+          project.projectRoot
+        }`,
+      );
       const sourceMetaMap: SourceMetaMap = new Map();
       if (sourcesMap === null || sourcesMap === undefined) {
         resolve(sourceMetaMap);
@@ -68,6 +74,13 @@ export class SourceParser {
           },
           sourceMetaMap,
         );
+      this.terminal.debug(
+        "SourceParser",
+        `Returning sources for "${project.getProjectName()}" at ${
+          project.projectRoot
+        }`,
+        sourceMetaMap,
+      );
       resolve(sourceMetaMap);
     });
   }

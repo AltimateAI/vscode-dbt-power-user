@@ -11,6 +11,12 @@ export class DocParser {
 
   createDocMetaMap(docs: any[], project: DBTProject): Promise<DocMetaMap> {
     return new Promise(async (resolve) => {
+      this.terminal.debug(
+        "DocParser",
+        `Parsing docs for "${project.getProjectName()}" at ${
+          project.projectRoot
+        }`,
+      );
       const docMetaMap: DocMetaMap = new Map();
       if (docs === null || docs === undefined) {
         resolve(docMetaMap);
@@ -60,11 +66,18 @@ export class DocParser {
         } catch (error) {
           this.terminal.debug(
             "DocParser",
-            `File not found at '${fullPath}', probably compiled is outdated`,
+            `File not found at '${fullPath}', probably compiled is outdated, error is ignored`,
             error,
           );
         }
       }
+      this.terminal.debug(
+        "DocParser",
+        `Returning docs for "${project.getProjectName()}" at ${
+          project.projectRoot
+        }`,
+        docMetaMap,
+      );
       resolve(docMetaMap);
     });
   }

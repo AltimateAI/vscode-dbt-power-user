@@ -86,6 +86,14 @@ const Relationships = ({
       .catch((err) => panelLogger.error("error while getting models", err));
   }, []);
 
+  useEffect(() => {
+    if (toValue) {
+      getColumnsOfModel(toValue).catch((err) =>
+        panelLogger.info("error while getting columns", err),
+      );
+    }
+  }, [toValue]);
+
   const toOptions = useMemo(() => {
     return [...toModelOptions, ...toSourceOptions];
   }, [toModelOptions, toSourceOptions]);

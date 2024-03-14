@@ -1,10 +1,10 @@
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import { useForm } from "react-hook-form";
-import { executeRequestInSync } from "@modules/app/requestExecutor";
 import {
   DbtGenericTests,
   DBTModelTest,
+  DbtTestTypes,
   TestMetadataAcceptedValuesKwArgs,
   TestMetadataRelationshipsKwArgs,
 } from "@modules/documentationEditor/state/types";
@@ -15,7 +15,6 @@ import {
   CardBody,
   CardFooter,
   CardTitle,
-  CodeBlock,
   IconButton,
   ListGroup,
   ListGroupItem,
@@ -29,6 +28,8 @@ import { SaveRequest } from "./types";
 import useTestFormSave, { TestOperation } from "./hooks/useTestFormSave";
 import classes from "../../styles.module.scss";
 import { DeleteIcon, EditIcon } from "@assets/icons";
+import { findDbtTestType } from "./utils";
+import DbtTestCode from "./DbtTestCode";
 
 const schema = Yup.object({
   to: Yup.string().optional(),
@@ -49,13 +50,14 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
 
   const { isSaving, handleSave } = useTestFormSave();
 
-  const [testCode, setTestCode] = useState("");
   const [isInEditMode, setIsInEditMode] = useState(false);
 
   const isEditableTest =
     test.test_metadata?.name === DbtGenericTests.ACCEPTED_VALUES ||
     test.test_metadata?.name === DbtGenericTests.RELATIONSHIPS;
-  const isCustomTest = !test.test_metadata;
+  const testType = findDbtTestType(test);
+  const canDeleteTest =
+    testType !== DbtTestTypes.SINGULAR && testType !== DbtTestTypes.UNKNOWN;
 
   const handleDelete = () => {
     panelLogger.info("delete test", test);
@@ -122,13 +124,6 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
         </Stack>
       </CardFooter>
     );
-  };
-
-  const renderCode = async () => {
-    const result = (await executeRequestInSync("getTestCode", {
-      path: test.path,
-    })) as { code: string };
-    setTestCode(result.code);
   };
 
   const onSubmit = (data: SaveRequest) => {
@@ -203,65 +198,72 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
   };
 
   const getDisplayContent = () => {
-    switch (test.test_metadata?.name) {
-      case DbtGenericTests.UNIQUE:
-      case DbtGenericTests.NOT_NULL:
-        return null;
-      case DbtGenericTests.ACCEPTED_VALUES:
-        return (
-          <Card>
-            <CardBody>
-              <CardTitle className="d-flex justify-content-between">
-                Values
-              </CardTitle>
-              <ListGroup className={classes.testListGroup}>
-                {(
-                  test.test_metadata.kwargs as TestMetadataAcceptedValuesKwArgs
-                ).values?.map((value) => (
-                  <ListGroupItem key={value} tag="div">
-                    {value}
-                  </ListGroupItem>
-                ))}
-              </ListGroup>
-            </CardBody>
-          </Card>
-        );
-      case DbtGenericTests.RELATIONSHIPS:
-        return (
-          <Card>
-            <CardBody>
-              <CardTitle className="d-flex justify-content-between">
-                Values
-              </CardTitle>
-              <ListGroup className={classes.testListGroup}>
-                <ListGroupItem action tag="div">
-                  <caption>To:</caption>{" "}
-                  {
-                    (
+    switch (testType) {
+      case DbtTestTypes.GENERIC:
+        switch (test.test_metadata?.name) {
+          case DbtGenericTests.UNIQUE:
+          case DbtGenericTests.NOT_NULL:
+            return null;
+          case DbtGenericTests.ACCEPTED_VALUES:
+            return (
+              <Card>
+                <CardBody>
+                  <CardTitle className="d-flex justify-content-between">
+                    Values
+                  </CardTitle>
+                  <ListGroup className={classes.testListGroup}>
+                    {(
                       test.test_metadata
-                        .kwargs as TestMetadataRelationshipsKwArgs
-                    ).to
-                  }
-                </ListGroupItem>
+                        .kwargs as TestMetadataAcceptedValuesKwArgs
+                    ).values?.map((value) => (
+                      <ListGroupItem key={value} tag="div">
+                        {value}
+                      </ListGroupItem>
+                    ))}
+                  </ListGroup>
+                </CardBody>
+              </Card>
+            );
+          case DbtGenericTests.RELATIONSHIPS:
+            return (
+              <Card>
+                <CardBody>
+                  <CardTitle className="d-flex justify-content-between">
+                    Values
+                  </CardTitle>
+                  <ListGroup className={classes.testListGroup}>
+                    <ListGroupItem action tag="div">
+                      <caption>To:</caption>{" "}
+                      {
+                        (
+                          test.test_metadata
+                            .kwargs as TestMetadataRelationshipsKwArgs
+                        ).to
+                      }
+                    </ListGroupItem>
 
-                <ListGroupItem action tag="div">
-                  <caption>Field:</caption>{" "}
-                  {
-                    (
-                      test.test_metadata
-                        .kwargs as TestMetadataRelationshipsKwArgs
-                    ).field
-                  }
-                </ListGroupItem>
-              </ListGroup>
-            </CardBody>
-          </Card>
-        );
+                    <ListGroupItem action tag="div">
+                      <caption>Field:</caption>{" "}
+                      {
+                        (
+                          test.test_metadata
+                            .kwargs as TestMetadataRelationshipsKwArgs
+                        ).field
+                      }
+                    </ListGroupItem>
+                  </ListGroup>
+                </CardBody>
+              </Card>
+            );
 
+          default:
+            return null;
+        }
+      case DbtTestTypes.MACRO:
+      case DbtTestTypes.SINGULAR:
+      case DbtTestTypes.EXTERNAL_PACKAGE:
+        return <DbtTestCode test={test} />;
       default:
-        renderCode().catch((err) =>
-          panelLogger.error("error while getting code for test", err, test),
-        );
         return null;
     }
   };
@@ -283,7 +285,7 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
                   <EditIcon />
                 </IconButton>
               ) : null}
-              {isCustomTest ? null : (
+              {canDeleteTest ? (
                 <IconButton
                   style={{ color: "var(--action-red)" }}
                   title="Delete test"
@@ -291,7 +293,7 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
                 >
                   <DeleteIcon />
                 </IconButton>
-              )}
+              ) : null}
             </span>
           </Stack>
         </CardBody>
@@ -300,9 +302,6 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
       <form onSubmit={handleSubmit(onSubmit)}>
         {isInEditMode ? getEditableContent() : getDisplayContent()}
       </form>
-      {testCode ? (
-        <CodeBlock code={testCode} language="sql" fileName="Details" />
-      ) : null}
     </Stack>
   );
 };

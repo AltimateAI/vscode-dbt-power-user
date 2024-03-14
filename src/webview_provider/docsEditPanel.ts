@@ -283,12 +283,14 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       if (!test.test_metadata) {
         return null;
       }
+      const { name, namespace } = test.test_metadata;
+      const fullName: string = namespace ? `${namespace}.${name}` : name;
       const existingConfig = existingColumn?.tests?.find((t: any) => {
         if (typeof t === "string") {
-          return t === test.test_metadata?.name;
+          return t === fullName;
         }
         const [key] = Object.keys(t);
-        return key === test.test_metadata?.name;
+        return key === fullName;
       });
 
       // If relationships test, set field and to
@@ -313,13 +315,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         };
       }
 
-      if (existingConfig?.[test.test_metadata.name]) {
+      if (existingConfig?.[fullName]) {
         return {
-          [test.test_metadata.name]: existingConfig?.[test.test_metadata.name],
+          [fullName]: existingConfig?.[fullName],
         };
       }
 
-      return test.test_metadata.name;
+      return fullName;
     });
 
     this.terminal.debug(
