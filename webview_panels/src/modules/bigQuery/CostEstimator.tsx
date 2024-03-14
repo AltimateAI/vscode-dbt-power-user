@@ -26,7 +26,7 @@ const BigQueryCostEstimator = (): JSX.Element => {
         <Card>
           <CardTitle tag="h6">
             BigQuery Cost Estimator
-            <Tag color="primary">Performance</Tag>
+            <Tag>Performance</Tag>
           </CardTitle>
           <CardBody>
             <CardText>Estimate the cost of a BigQuery query</CardText>

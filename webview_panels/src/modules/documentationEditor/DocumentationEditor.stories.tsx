@@ -1,13 +1,19 @@
 import { withReactContext } from "storybook-react-context";
 import type { Meta } from "@storybook/react";
-import DocumentationEditor from "./DocumentationEditor";
 import { DocumentationContext } from "./DocumentationProvider";
-import { DATA, PROJECT } from "./state/sampleData";
+import {
+  DBTDocumentationFactory,
+  DBTDocumentationTestsFactory,
+} from "@testUtils";
+import { faker } from "@faker-js/faker";
+import DocumentationEditor from "./DocumentationEditor";
+import { initialState } from "./state/documentationSlice";
+import { Pages } from "./state/types";
 
 const meta = {
   title: "Documentation Editor",
   parameters: {
-    layout: "centered",
+    layout: "padded",
   },
   tags: ["autodocs"],
   argTypes: {
@@ -29,6 +35,28 @@ export const DefaultHelpView = {
   ],
 };
 
+const docsDataForTests = DBTDocumentationFactory.build();
+const testsDataForTests = docsDataForTests.columns
+  .map((c, i) =>
+    DBTDocumentationTestsFactory.build({
+      column_name: i % 3 === 0 ? undefined : c.name,
+    }),
+  )
+  .map((test) => {
+    if (test.test_metadata) {
+      return {
+        ...test,
+        test_metadata: {
+          ...test.test_metadata,
+          kwargs: {
+            ...test.test_metadata.kwargs,
+            column_name: test.column_name,
+          },
+        },
+      };
+    }
+    return test;
+  });
 export const ModelDocGenView = {
   render: (): JSX.Element => {
     return <DocumentationEditor />;
@@ -38,11 +66,23 @@ export const ModelDocGenView = {
       Context: DocumentationContext,
       initialState: {
         state: {
-          currentDocsData: DATA,
-          project: PROJECT,
-          userInstructions: {},
+          ...initialState,
+          selectedPages: [Pages.DOCUMENTATION, Pages.TESTS],
+          currentDocsData: docsDataForTests,
+          currentDocsTests: testsDataForTests,
+          project: faker.system.fileName(),
         },
       },
     }),
   ],
+  parameters: {
+    vscode: {
+      func: (request: Record<string, unknown>): unknown => {
+        if (request.command === "getTestCode") {
+          return { code: `select * from users` };
+        }
+      },
+      timer: 500,
+    },
+  },
 };

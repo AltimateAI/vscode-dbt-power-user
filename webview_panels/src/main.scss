@@ -1,3 +1,5 @@
+@use 'variables'; 
+
 :root {
   --bs-body-font-family: "Lexend", var(--bs-font-sans-serif);
 }
@@ -6,7 +8,7 @@ html {
 }
 
 body {
-  --primary-color: #247efe;
+  --primary-color: #{variables.$primaryColor};
   --text-color--title: #171717;
   --text-color--paragraph: #4a4d51;
   --text-color--caption: #808080;

@@ -29,6 +29,11 @@ import { NewDocsGenPanel } from "./newDocsGenPanel";
 import { DBTProject } from "../manifest/dbtProject";
 import { DocGenService } from "../services/docGenService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import {
+  TestMetaData,
+  TestMetadataAcceptedValues,
+  TestMetadataRelationships,
+} from "../domain";
 
 export enum Source {
   YAML = "YAML",
@@ -109,9 +114,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         if (event === undefined) {
           return;
         }
-        this.documentation = await this.docGenService.getDocumentation(
-          this.eventMap,
-        );
+        this.documentation = await this.docGenService.getDocumentation();
         if (this._panel) {
           this.transmitData();
           this.updateGraphStyle();
@@ -142,7 +145,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   private getPanel() {
     const enableNewDocsPanel = workspace
       .getConfiguration("dbt")
-      .get<boolean>("enableNewDocsPanel", false);
+      .get<boolean>("enableNewDocsPanel", true);
     return enableNewDocsPanel ? this.newDocsPanel : this.legacyDocsPanel;
   }
 
@@ -217,9 +220,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     this.getPanel().resolveWebview(panel, context, token);
     this.setupWebviewHooks(context);
     this.transmitConfig();
-    this.documentation = await this.docGenService.getDocumentation(
-      this.eventMap,
-    );
+    this.documentation = await this.docGenService.getDocumentation();
     this.transmitData();
   }
 
@@ -248,6 +249,96 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   private init = async () => {
     await this.resolveWebviewView(this.panel!, this.context!, this.token!);
   };
+
+  private isRelationship(
+    metadata: TestMetadataRelationships | TestMetadataAcceptedValues,
+  ): metadata is TestMetadataRelationships {
+    return (metadata as TestMetadataRelationships).field !== undefined;
+  }
+
+  private isAcceptedValues(
+    metadata: TestMetadataRelationships | TestMetadataAcceptedValues,
+  ): metadata is TestMetadataAcceptedValues {
+    return (metadata as TestMetadataAcceptedValues).values !== undefined;
+  }
+
+  private getTestDataByColumn(
+    message: any,
+    columnName: string,
+    existingColumn?: any,
+  ) {
+    const tests = message.tests as undefined | TestMetaData[];
+
+    if (!tests?.length) {
+      this.terminal.debug(
+        "docsEditViewPanel:getTestDataByColumn",
+        "No test data passed",
+      );
+      return;
+    }
+
+    const columnTests = tests.filter((test) => test.column_name === columnName);
+
+    const data = columnTests.map((test, i) => {
+      if (!test.test_metadata) {
+        return null;
+      }
+      const { name, namespace } = test.test_metadata;
+      const fullName: string = namespace ? `${namespace}.${name}` : name;
+      const existingConfig = existingColumn?.tests?.find((t: any) => {
+        if (typeof t === "string") {
+          return t === fullName;
+        }
+        const [key] = Object.keys(t);
+        return key === fullName;
+      });
+
+      // If relationships test, set field and to
+      if (this.isRelationship(test.test_metadata.kwargs)) {
+        const { to, field } = test.test_metadata.kwargs;
+        return {
+          relationships: {
+            ...existingConfig?.["relationships"],
+            field,
+            to,
+          },
+        };
+      }
+
+      // set values if test is accepted_values
+      if (this.isAcceptedValues(test.test_metadata.kwargs)) {
+        return {
+          accepted_values: {
+            ...existingConfig?.["accepted_values"],
+            values: test.test_metadata.kwargs.values,
+          },
+        };
+      }
+
+      if (existingConfig?.[fullName]) {
+        return {
+          [fullName]: existingConfig?.[fullName],
+        };
+      }
+
+      return fullName;
+    });
+
+    this.terminal.debug(
+      "docsEditViewPanel:getTestDataByColumn",
+      "test data",
+      false,
+      data,
+      columnName,
+    );
+
+    if (!data.length) {
+      return;
+    }
+    return {
+      tests: data,
+    };
+  }
 
   private setupWebviewHooks(context: WebviewViewResolveContext) {
     // Clear this listener before subscribing again
@@ -377,7 +468,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
             this.docGenService.sendFeedback({
               queryText,
               message,
-              eventMap: this.eventMap,
               panel: this._panel,
             });
             break;
@@ -454,6 +544,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                         name: column.name,
                         description: column.description,
                         ...(column?.type ? { data_type: column.type } : {}),
+                        ...this.getTestDataByColumn(message, column.name),
                       })),
                     });
                   } else {
@@ -476,6 +567,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                   ? { data_type: column.type }
                                   : {}),
                                 description: column.description,
+                                ...this.getTestDataByColumn(
+                                  message,
+                                  column.name,
+                                  existingColumn,
+                                ),
                               };
                             } else {
                               return {
@@ -484,6 +580,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                 ...(column?.type
                                   ? { data_type: column.type }
                                   : {}),
+                                ...this.getTestDataByColumn(
+                                  message,
+                                  column.name,
+                                ),
                               };
                             }
                           });
@@ -496,7 +596,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   this.loadedFromManifest = false;
                   writeFileSync(patchPath, stringify(parsedDocFile));
                   this.documentation =
-                    await this.docGenService.getDocumentation(this.eventMap);
+                    await this.docGenService.getDocumentation();
+                  const tests =
+                    await this.docGenService.getTestsForCurrentModel();
                   if (syncRequestId) {
                     this._panel!.webview.postMessage({
                       command: "response",
@@ -504,6 +606,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                         syncRequestId,
                         body: {
                           saved: true,
+                          tests,
                         },
                         status: true,
                       },
@@ -561,9 +664,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       //  documentation will be overwritten by the one coming from the manifest
       return;
     }
-    this.documentation = await this.docGenService.getDocumentation(
-      this.eventMap,
-    );
+    this.documentation = await this.docGenService.getDocumentation();
     this.loadedFromManifest = true;
     if (this._panel) {
       this.transmitData();

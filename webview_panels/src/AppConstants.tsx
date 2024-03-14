@@ -1,5 +1,4 @@
 // import { lazy } from "react";
-import DocumentationEditor from "./modules/documentationEditor/DocumentationEditor";
 import Insights from "./modules/insights/Insights";
 import Home from "./modules/home/Home";
 import DocumentationProvider from "@modules/documentationEditor/DocumentationProvider";
@@ -20,10 +19,6 @@ export const AvailableRoutes = {
   "/insights": { component: <Insights /> },
   "/datapilot": { component: <DataPilotPanel /> },
   "/docs-generator": {
-    component: (
-      <DocumentationProvider>
-        <DocumentationEditor />
-      </DocumentationProvider>
-    ),
+    component: <DocumentationProvider />,
   },
 };

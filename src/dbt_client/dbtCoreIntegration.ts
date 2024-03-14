@@ -228,12 +228,12 @@ export class DBTCoreProjectIntegration
     private projectRoot: Uri,
     private projectConfigDiagnostics: DiagnosticCollection,
   ) {
-    this.python = this.executionInfrastructure.createPythonBridge(
-      this.projectRoot.fsPath,
-    );
     this.dbtTerminal.debug(
       "DBTCoreProjectIntegration",
-      `Registering project ${this.projectRoot}`,
+      `Registering dbt core project at ${this.projectRoot}`,
+    );
+    this.python = this.executionInfrastructure.createPythonBridge(
+      this.projectRoot.fsPath,
     );
     this.executionInfrastructure.createQueue(
       DBTCoreProjectIntegration.QUEUE_ALL,
@@ -559,12 +559,20 @@ export class DBTCoreProjectIntegration
     this.addCommandToQueue(this.dbtCoreCommand(command));
   }
 
-  deps(command: DBTCommand) {
-    return this.dbtCoreCommand(command).execute();
+  async deps(command: DBTCommand) {
+    const { stdout, stderr } = await this.dbtCoreCommand(command).execute();
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    return stdout;
   }
 
-  debug(command: DBTCommand) {
-    return this.dbtCoreCommand(command).execute();
+  async debug(command: DBTCommand) {
+    const { stdout, stderr } = await this.dbtCoreCommand(command).execute();
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    return stdout;
   }
 
   private addCommandToQueue(command: DBTCommand) {
@@ -596,7 +604,7 @@ export class DBTCoreProjectIntegration
     }
     if (!manifestPathType) {
       const configNotPresent = new Error(
-        "manifestPathType config is not present, use the actions panel to set the Defer to production configuration.",
+        "Please configure defer to production functionality by specifying manifest path in Actions panel before using it.",
       );
       throw configNotPresent;
     }
@@ -617,20 +625,20 @@ export class DBTCoreProjectIntegration
         args.push("--favor-state");
       }
       this.dbtTerminal.debug(
-        "localManifest",
-        `local defer params: ${args.join(" ")}`,
+        "deferToProd",
+        "executing dbt command with defer params local mode",
+        true,
+        args,
       );
-      this.altimateRequest.sendDeferToProdEvent(ManifestPathType.LOCAL);
       return args;
     }
     if (manifestPathType === ManifestPathType.REMOTE) {
-      this.validationProvider.throwIfNotAuthenticated();
-      if (dbtCoreIntegrationId! <= 0) {
-        this.dbtTerminal.debug(
-          "DBTCoreProjectIntegration",
-          "No dbtCoreIntegrationId for defer remote config",
+      try {
+        this.validationProvider.throwIfNotAuthenticated();
+      } catch (err) {
+        throw new Error(
+          "Defer to production is currently enabled with 'DataPilot dbt integration' mode. It requires a valid Altimate AI API key and instance name in the settings. In order to run dbt commands, please either switch to Local Path mode or disable the feature or add an API key / instance name.",
         );
-        return [];
       }
 
       this.dbtTerminal.debug(
@@ -652,6 +660,12 @@ export class DBTCoreProjectIntegration
           args.push("--favor-state");
         }
         this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
+        this.dbtTerminal.debug(
+          "deferToProd",
+          "executing dbt command with defer params remote mode",
+          true,
+          args,
+        );
         return args;
       } catch (error) {
         if (error instanceof NotFoundError) {

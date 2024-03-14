@@ -1,13 +1,82 @@
+@use '../../variables'; 
+
+
+.documentation-wrapper {
+  :global .btn-group {
+    margin-bottom: var(--spacing-3xl);
+  }
+
+  .newTestTag{
+    padding: 3px 10px;
+    border-radius: 4px;
+    &:hover{
+      border-color: var(--primary-color);
+      background-color: transparent;
+      color: var(--text-color--title)
+    }
+  }
+  .entity-tests {
+    margin-top: var(--spacing-lg);
+    p {
+      margin-bottom: 0;
+      line-height: 1.8;
+    }
+    :global .model {
+      gap: 5px;
+      h5 {
+        font-weight: 400;
+        font-size: 1rem;
+        margin-bottom: 0;
+        line-height: 1.6;
+      }
+      flex-direction: row;
+      margin-bottom: var(--spacing-lg);
+    }
+    :global .column {
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .btn-add-test {
+      padding: 4px 6px;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      background: var(--background--02);
+
+      :global .codicon {
+        font-size: 14px;
+        color: var(--icon--active);
+      }
+      &:hover {
+        background: var(--background--03);
+      }
+
+      &:global.btn-primary {
+        background: var(--primary-color);
+
+        &:hover :global .codicon,
+        :global .codicon {
+          font-size: 14px;
+          color: #fff;
+        }
+      }
+
+      &:hover :global .codicon {
+        color: var(--primary-color);
+      }
+    }
+  }
+}
 .doc-generator {
-  max-height: calc(100vh - 50px);
+  max-height: calc(100vh - 100px);
   display: flex;
   flex-direction: column;
 
   & .head {
     justify-content: space-between;
-    margin-bottom: 1rem;
-    > div{
-    align-items: center;
+    > div {
+      align-items: center;
     }
     & p {
       text-decoration: underline;
@@ -25,14 +94,12 @@
         margin-top: 12px;
       }
       & .column-header {
-        .sync-btn{
-          svg{
+        justify-content: space-between;
+        .sync-btn {
+          svg {
             width: 14px;
             vertical-align: bottom;
           }
-        }
-        & div:last-of-type {
-          margin-left: auto;
         }
       }
       .columns {
@@ -74,7 +141,7 @@
         }
         & :global #file-path {
           background: var(--background--02);
-          color: #fff;
+          color: var(--text-color--title);
         }
       }
     }
@@ -82,33 +149,118 @@
       width: 40%;
       overflow: overlay;
     }
+    .show-all-tests{
+      border-radius: 4px;
+      padding: 3px 9px;
+      &:hover{
+        background-color: transparent;
+        border-color: var(--primary-color);
+      }
+    }
+  }
+
+  &.docTests {
+    .column-header {
+      margin-top: var(--spacing-3xl);
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .test-tag {
+      cursor: pointer;
+    }
+  }
+}
+
+.add-test {
+  gap: var(--spacing-2xl);
+
+  :global .card {
+    background-color: var(--background--base);
+    border-color: transparent;
+  }
+  .title {
+    border-radius: 8px;
+    padding: 1rem;
+    background-color: var(--background--03);
+    justify-content: space-between;
+
+    :global .primary {
+      max-width: 100%;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      vertical-align: middle;
+      margin-left: 3px;
+    }
+  }
+  :global .spinner-border{
+    width: 1rem;
+  height: 1rem;
+  margin-top: 0.15rem;
+  border-width: 2px;
+  }
+  .test-list-group {
+    gap: 10px;
+
+    div,
+    button {
+      border-color: var(--stroke--disable);
+      background-color: var(--background--02);
+      color: var(--text-color--title);
+      border-radius: 8px;
+      border-top-width: 1px;
+      cursor: default;
+      caption {
+        color: var(--text-color--caption);
+        font-size: 1rem;
+        display: inline-block;
+      }
+
+      &:global.disabled {
+        opacity: 0.3;
+      }
+    }
+  }
+
+  :global .card-title {
+    border: none;
+    margin: 0;
+    font-weight: 400;
+    margin-bottom: 1rem;
+  }
+
+  :global .card-body {
+  }
+
+  :global .card-footer {
+    border: none;
   }
 }
 
 .popover {
-  :global .popover{
-  margin-top: -18px;
-  :global .popover-body{
-  padding: 0;
+  :global .popover {
+    margin-top: -18px;
+    :global .popover-body {
+      padding: 0;
 
-  &  ul {
-    padding: 0.5rem 0;
-    margin: 0;
-    list-style: none;
-    li{
-      :global .btn-link {
-        text-decoration: none;
-        color: #1e1e1e;
-        width: 100%;
-        text-align: left;
-        &:hover,
-        &.active {
-        color: var(--primary-color);
-          background-color: #eee;
+      & ul {
+        padding: 0.5rem 0;
+        margin: 0;
+        list-style: none;
+        li {
+          :global .btn-link {
+            text-decoration: none;
+            color: #1e1e1e;
+            width: 100%;
+            text-align: left;
+            &:hover,
+            &.active {
+              color: var(--primary-color);
+              background-color: #eee;
+            }
+          }
         }
       }
     }
-  }
-}
   }
 }

@@ -2,14 +2,23 @@ import { provide } from "inversify-binding-decorators";
 import { NodeMetaMap } from "../../domain";
 import { DBTProject } from "../dbtProject";
 import { createFullPathForNode } from ".";
+import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 
 @provide(NodeParser)
 export class NodeParser {
+  constructor(private terminal: DBTTerminal) {}
+
   createNodeMetaMap(
     nodesMap: any[],
     project: DBTProject,
   ): Promise<NodeMetaMap> {
     return new Promise(async (resolve) => {
+      this.terminal.debug(
+        "NodeParser",
+        `Parsing nodes for "${project.getProjectName()}" at ${
+          project.projectRoot
+        }`,
+      );
       const modelMetaMap: NodeMetaMap = new Map();
       if (nodesMap === null || nodesMap === undefined) {
         resolve(modelMetaMap);
@@ -66,6 +75,13 @@ export class NodeParser {
           resource_type,
         });
       }
+      this.terminal.debug(
+        "NodeParser",
+        `Returning nodes for "${project.getProjectName()}" at ${
+          project.projectRoot
+        }`,
+        modelMetaMap,
+      );
       resolve(modelMetaMap);
     });
   }
