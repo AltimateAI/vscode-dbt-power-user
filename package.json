@@ -845,7 +845,7 @@
             "id": "pickProject",
             "title": "%walkthrough.initialSetup.steps.pickProject.title%",
             "description": "%walkthrough.initialSetup.steps.pickProject.description%",
-            "when": "dbtPowerUser.projectCount > 1",
+            "when": "dbtPowerUser.isDBTCore && dbtPowerUser.projectCount > 1",
             "media": {
               "markdown": "media/pickProject.md"
             },
@@ -857,7 +857,7 @@
             "id": "installDeps",
             "title": "%walkthrough.initialSetup.steps.installDeps.title%",
             "description": "%walkthrough.initialSetup.steps.installDeps.description%",
-            "when": "dbtPowerUser.walkthroughProjectSelected",
+            "when": "dbtPowerUser.isDBTCore && dbtPowerUser.walkthroughProjectSelected",
             "media": {
               "markdown": "media/installDeps.md"
             },
@@ -869,7 +869,7 @@
             "id": "validateProject",
             "title": "%walkthrough.initialSetup.steps.validateProject.title%",
             "description": "%walkthrough.initialSetup.steps.validateProject.description%",
-            "when": "dbtPowerUser.walkthroughProjectSelected",
+            "when": "dbtPowerUser.isDBTCore && dbtPowerUser.walkthroughProjectSelected",
             "media": {
               "markdown": "media/validateProject.md"
             },
