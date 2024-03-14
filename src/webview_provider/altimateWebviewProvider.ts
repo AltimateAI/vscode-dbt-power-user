@@ -98,6 +98,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         syncRequestId,
         body: data,
         status: !error,
+        error,
       },
       ...rest,
     });

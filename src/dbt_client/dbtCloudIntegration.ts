@@ -319,7 +319,7 @@ export class DBTCloudProjectIntegration
         )
         .map((line) => line.info.msg);
       const warnings = errorsAndWarnings
-        .filter((line) => line.info.level === "warnig")
+        .filter((line) => line.info.level === "warning")
         .map((line) => line.info.msg);
 
       this.rebuildManifestDiagnostics.clear();
