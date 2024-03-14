@@ -972,7 +972,7 @@
   "devDependencies": {
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.1",
-    "@types/node": "^20.9.1",
+    "@types/node": "^20.11.27",
     "@types/vscode": "^1.81.0",
     "@types/which": "^3.0.3",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
