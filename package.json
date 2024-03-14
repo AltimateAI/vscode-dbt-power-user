@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.35.3",
+  "version": "0.35.5",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -74,10 +74,6 @@
             "type": "boolean",
             "description": "Enable the new docs panel in dbt.",
             "default": true
-          },
-          "dbt.enableTests": {
-            "type": "boolean",
-            "description": "Enable the new tests experience in documentation editor."
           },
           "dbt.enableNewQueryPanel": {
             "type": "boolean",

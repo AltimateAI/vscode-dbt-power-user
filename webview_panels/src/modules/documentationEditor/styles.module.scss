@@ -6,6 +6,15 @@
     margin-bottom: var(--spacing-3xl);
   }
 
+  .newTestTag{
+    padding: 3px 10px;
+    border-radius: 4px;
+    &:hover{
+      border-color: var(--primary-color);
+      background-color: transparent;
+      color: var(--text-color--title)
+    }
+  }
   .entity-tests {
     margin-top: var(--spacing-lg);
     p {
@@ -146,7 +155,6 @@
       &:hover{
         background-color: transparent;
         border-color: var(--primary-color);
-        color: initial;
       }
     }
   }
@@ -172,6 +180,8 @@
   }
   .title {
     border-radius: 8px;
+    padding: 1rem;
+    background-color: var(--background--03);
     justify-content: space-between;
 
     :global .primary {

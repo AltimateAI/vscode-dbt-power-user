@@ -24,7 +24,7 @@ import { addDefaultActions } from "./utils";
 
 const DocumentationEditor = (): JSX.Element => {
   const {
-    state: { currentDocsData, currentDocsTests, testsEnabled, selectedPages },
+    state: { currentDocsData, currentDocsTests, selectedPages },
     dispatch,
   } = useDocumentationContext();
   const { postMessageToDataPilot } = useAppContext();
@@ -117,49 +117,47 @@ const DocumentationEditor = (): JSX.Element => {
 
   return (
     <div className={classes.documentationWrapper}>
-      {testsEnabled ? (
-        <Stack className="mb-2 justify-content-between">
-          <Stack>
-            <Button
-              color={isDocumentationPageSelected ? "primary" : "secondary"}
-              onClick={() => handleClick(Pages.DOCUMENTATION)}
-            >
-              <span className="d-inline-block me-2">
-                {isDocumentationPageSelected ? (
-                  <CheckedSquareIcon />
-                ) : (
-                  <EmptySquareIcon />
-                )}
-              </span>
-              Documentation
-            </Button>
-            <Button
-              color={isTestsPageSelected ? "primary" : "secondary"}
-              onClick={() => handleClick(Pages.TESTS)}
-            >
-              <span className="d-inline-block me-2">
-                {isTestsPageSelected ? (
-                  <CheckedSquareIcon />
-                ) : (
-                  <EmptySquareIcon />
-                )}
-              </span>
-              Tests
-            </Button>
-            {/* <Button
+      <Stack className="mb-2 justify-content-between">
+        <Stack>
+          <Button
+            color={isDocumentationPageSelected ? "primary" : "secondary"}
+            onClick={() => handleClick(Pages.DOCUMENTATION)}
+          >
+            <span className="d-inline-block me-2">
+              {isDocumentationPageSelected ? (
+                <CheckedSquareIcon />
+              ) : (
+                <EmptySquareIcon />
+              )}
+            </span>
+            Documentation
+          </Button>
+          <Button
+            color={isTestsPageSelected ? "primary" : "secondary"}
+            onClick={() => handleClick(Pages.TESTS)}
+          >
+            <span className="d-inline-block me-2">
+              {isTestsPageSelected ? (
+                <CheckedSquareIcon />
+              ) : (
+                <EmptySquareIcon />
+              )}
+            </span>
+            Tests
+          </Button>
+          {/* <Button
           color={activePage === Pages.TAGS ? "primary" : "secondary"}
           onClick={() => handleClick(Pages.TAGS)}
         >
           Tags
         </Button> */}
-          </Stack>
-          <CommonActionButtons />
         </Stack>
-      ) : null}
+        <CommonActionButtons />
+      </Stack>
       <div className={classes.docGenerator}>
         <Stack className={classes.head}>
           <Stack>
-            <h3 className="mb-2">Documentation for {currentDocsData.name}</h3>
+            <h3 className="mb-2">Model: {currentDocsData.name}</h3>
           </Stack>
         </Stack>
         <Stack className={classes.bodyWrap}>

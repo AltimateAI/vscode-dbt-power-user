@@ -3,7 +3,10 @@ import { executeRequestInSync } from "@modules/app/requestExecutor";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { Button, IconButton, Popover, PopoverBody, List, Stack } from "@uicore";
 import { useEffect, useState } from "react";
-import { setIsDocGeneratedForAnyColumn } from "@modules/documentationEditor/state/documentationSlice";
+import {
+  setIsDocGeneratedForAnyColumn,
+  setIsTestUpdatedForAnyColumn,
+} from "@modules/documentationEditor/state/documentationSlice";
 import classes from "../../styles.module.scss";
 
 const SaveDocumentation = (): JSX.Element | null => {
@@ -11,19 +14,25 @@ const SaveDocumentation = (): JSX.Element | null => {
   const [dialogType, setDialogType] = useState("Existing file");
   const [openPopover, setOpenPopover] = useState(false);
   const {
-    state: { currentDocsData, isDocGeneratedForAnyColumn, currentDocsTests },
+    state: {
+      currentDocsData,
+      isDocGeneratedForAnyColumn,
+      currentDocsTests,
+      isTestUpdatedForAnyColumn,
+    },
     dispatch,
   } = useDocumentationContext();
 
   const saveDocumentation = async () => {
     const result = (await executeRequestInSync("saveDocumentation", {
       ...currentDocsData,
-      tests: currentDocsTests,
+      tests: isTestUpdatedForAnyColumn ? currentDocsTests : undefined,
       patchPath,
       dialogType,
     })) as { saved: boolean };
     if (result.saved) {
       dispatch(setIsDocGeneratedForAnyColumn(false));
+      dispatch(setIsTestUpdatedForAnyColumn(false));
     }
   };
 
@@ -49,7 +58,7 @@ const SaveDocumentation = (): JSX.Element | null => {
     { label: "New file", value: "New file" },
   ];
 
-  if (!isDocGeneratedForAnyColumn) {
+  if (!isDocGeneratedForAnyColumn && !isTestUpdatedForAnyColumn) {
     return null;
   }
 

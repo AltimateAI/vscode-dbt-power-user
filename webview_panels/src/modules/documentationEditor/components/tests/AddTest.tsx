@@ -1,4 +1,4 @@
-import { AddIcon, CloseIcon } from "@assets/icons";
+import { AddIcon, RemoveIcon } from "@assets/icons";
 import { DbtGenericTests } from "@modules/documentationEditor/state/types";
 import {
   Card,
@@ -8,7 +8,7 @@ import {
   Drawer,
   DrawerRef,
   IconButton,
-  Tag,
+  Button,
   Fade,
   Tooltip,
 } from "@uicore";
@@ -32,6 +32,7 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
   const handleNewTestClick = (test: DbtGenericTests) => {
     if (test === DbtGenericTests.NOT_NULL || test === DbtGenericTests.UNIQUE) {
       handleSave({ test }, title, TestOperation.CREATE);
+      setShowButtons(false);
       return;
     }
     setFormType(test);
@@ -44,6 +45,7 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
   const onClose = () => {
     setFormType(null);
     drawerRef.current?.close();
+    setShowButtons(false);
   };
 
   return (
@@ -52,9 +54,9 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
         onClick={handleOpen}
         color={showButtons ? "primary" : "secondary"}
         className={classes.btnAddTest}
-        title={`Add test for ${title}`}
+        title={showButtons ? "Minimize" : `Add test for ${title}`}
       >
-        {showButtons ? <CloseIcon /> : <AddIcon />}
+        {showButtons ? <RemoveIcon /> : <AddIcon />}
       </IconButton>
       {showButtons ? (
         <Fade>
@@ -63,12 +65,13 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
               .filter((t) => !currentTests?.includes(t))
               .map((test) => (
                 <Tooltip key={test} title="Click to add">
-                  <Tag
+                  <Button
                     className={classes.newTestTag}
                     onClick={() => handleNewTestClick(test)}
+                    outline
                   >
                     {test}
-                  </Tag>
+                  </Button>
                 </Tooltip>
               ))}
             <CustomTestButton column={title} />
@@ -78,7 +81,9 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
       <Drawer ref={drawerRef}>
         <Stack direction="column" className={classes.addTest}>
           <Card>
-            <CardTitle>Add new test</CardTitle>
+            <CardTitle>
+              <h5>Add new test</h5>
+            </CardTitle>
             <CardBody className={classes.title}>Column: {title}</CardBody>
           </Card>
           {formType ? (

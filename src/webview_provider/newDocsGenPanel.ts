@@ -15,13 +15,14 @@ import { QueryManifestService } from "../services/queryManifestService";
 import { DocGenService } from "../services/docGenService";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
-import { provideSingleton } from "../utils";
+import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import {
   AltimateWebviewProvider,
   HandleCommandProps,
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
 import { DocsGenPanelView } from "./docsEditPanel";
+import { PythonException } from "python-bridge";
 
 @provideSingleton(NewDocsGenPanel)
 export class NewDocsGenPanel
@@ -115,8 +116,12 @@ export class NewDocsGenPanel
             data: result,
             syncRequestId,
           });
-        } catch (err) {
-          window.showErrorMessage((err as Error).message);
+        } catch (error) {
+          const message =
+            error instanceof PythonException
+              ? error.exception.message
+              : (error as Error).message;
+          window.showErrorMessage(extendErrorWithSupportLinks(message));
           this.sendResponseToWebview({
             command: "response",
             data: [],
@@ -137,24 +142,84 @@ export class NewDocsGenPanel
           command: "renderDocumentation",
           docs: documentation,
           project: this.queryManifestService.getProject()?.getProjectName(),
-          testsEnabled: workspace
-            .getConfiguration("dbt")
-            .get<boolean>("enableTests", false),
         });
+      case "getColumnsOfSources":
+        try {
+          const columnsFromSources = await this.queryManifestService
+            .getProject()
+            ?.getColumnsOfSource(args.source as string, args.table as string);
+          this.sendResponseToWebview({
+            command: "response",
+            data: {
+              columns: columnsFromSources
+                ? columnsFromSources.map((c) => c.column)
+                : [],
+            },
+            syncRequestId,
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "newDocsGenPanel:getColumnsOfSources",
+            "unable to get columns of sources",
+            error,
+          );
+          const message =
+            error instanceof PythonException
+              ? error.exception.message
+              : (error as Error).message;
+          window.showErrorMessage(extendErrorWithSupportLinks(message));
+          this.sendResponseToWebview({
+            command: "response",
+            data: { columns: [] },
+            syncRequestId,
+          });
+        }
+        break;
       case "getColumnsOfModel":
-        const columns = await this.queryManifestService
-          .getProject()
-          ?.getColumnsOfModel(args.model as string);
+        try {
+          const columns = await this.queryManifestService
+            .getProject()
+            ?.getColumnsOfModel(args.model as string);
+          this.sendResponseToWebview({
+            command: "response",
+            data: {
+              columns: columns ? columns.map((c) => c.column) : [],
+            },
+            syncRequestId,
+          });
+        } catch (error) {
+          this.dbtTerminal.error(
+            "newDocsGenPanel:getColumnsOfModel",
+            "unable to get columns of models",
+            error,
+          );
+          const message =
+            error instanceof PythonException
+              ? error.exception.message
+              : (error as Error).message;
+          window.showErrorMessage(extendErrorWithSupportLinks(message));
+          this.sendResponseToWebview({
+            command: "response",
+            data: { columns: [] },
+            syncRequestId,
+          });
+        }
+        break;
+      case "getSourcesInProject":
+        const sources = this.queryManifestService.getSourcesInProject(
+          window.activeTextEditor?.document.uri,
+        );
+
         this.sendResponseToWebview({
           command: "response",
           data: {
-            columns: columns ? columns.map((c) => c.column) : [],
+            sources,
           },
           syncRequestId,
         });
         break;
-      case "getModelsFromProject":
-        const models = this.queryManifestService.getModelsFromProject(
+      case "getModelsInProject":
+        const models = this.queryManifestService.getModelsInProject(
           window.activeTextEditor?.document.uri,
         );
 

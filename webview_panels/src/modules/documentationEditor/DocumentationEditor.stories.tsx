@@ -68,7 +68,6 @@ export const ModelDocGenView = {
         state: {
           ...initialState,
           selectedPages: [Pages.DOCUMENTATION, Pages.TESTS],
-          testsEnabled: true,
           currentDocsData: docsDataForTests,
           currentDocsTests: testsDataForTests,
           project: faker.system.fileName(),

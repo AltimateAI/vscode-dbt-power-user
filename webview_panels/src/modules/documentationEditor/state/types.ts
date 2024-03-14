@@ -60,9 +60,9 @@ export interface DocumentationStateProps {
   generationHistory: GenerationDBDataProps[];
   userInstructions: DocsGenerateUserInstructions;
   isDocGeneratedForAnyColumn: boolean;
+  isTestUpdatedForAnyColumn: boolean;
   insertedEntityName?: string;
   selectedPages: Pages[];
-  testsEnabled: boolean;
 }
 
 export interface DBTModelTest {

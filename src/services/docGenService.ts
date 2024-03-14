@@ -9,7 +9,6 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { RateLimitException } from "../exceptions";
 import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { TelemetryService } from "../telemetry";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import {
@@ -451,24 +450,43 @@ export class DocGenService {
       event: { nodeMetaMap, graphMetaMap, testMetaMap },
       currentDocument,
     } = eventResult;
-    const tableName = path.basename(currentDocument.fileName, ".sql");
-    this.dbtTerminal.info(
-      "Tests",
-      "getting tests by tableName:",
+    const modelName = path.basename(currentDocument.uri.fsPath, ".sql");
+    this.dbtTerminal.debug(
+      "dbtTests",
+      "getting tests by modelName:",
       false,
-      tableName,
+      modelName,
     );
-    const _node = nodeMetaMap.get(tableName);
+    const _node = nodeMetaMap.get(modelName);
     if (!_node) {
-      this.dbtTerminal.debug("no node for tableName:", tableName);
+      this.dbtTerminal.debug("no node for tableName:", modelName);
       return;
     }
     const key = _node.uniqueId;
 
-    return (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
-      const testKey = n.label.split(".")[0];
-      return { ...testMetaMap.get(testKey), key: testKey };
-    });
+    return (graphMetaMap["tests"].get(key)?.nodes || [])
+      .map((n) => {
+        const testKey = n.label.split(".")[0];
+        const testData = testMetaMap.get(testKey);
+
+        if (!testData) {
+          return null;
+        }
+
+        // For singular tests, attached_node will be undefined
+        if (!testData.attached_node) {
+          return { ...testData, key: testKey };
+        }
+
+        // dbt sends tests (ex: relationships) to both source and connected models
+        // do not send the test which has different model in attached_node
+        if (testData.attached_node !== key) {
+          return null;
+        }
+
+        return { ...testData, key: testKey };
+      })
+      .filter((t) => Boolean(t));
   }
 
   public async sendFeedback({

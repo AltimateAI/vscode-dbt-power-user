@@ -15,6 +15,7 @@ export const initialState = {
   project: undefined,
   generationHistory: [],
   isDocGeneratedForAnyColumn: false,
+  isTestUpdatedForAnyColumn: false,
   insertedEntityName: undefined,
   userInstructions: {
     language: undefined,
@@ -22,7 +23,6 @@ export const initialState = {
     prompt_hint: undefined,
   },
   selectedPages: [Pages.DOCUMENTATION],
-  testsEnabled: false,
 } as DocumentationStateProps;
 
 const documentationSlice = createSlice({
@@ -45,12 +45,6 @@ const documentationSlice = createSlice({
       action: PayloadAction<DocumentationStateProps["project"]>,
     ) => {
       state.project = action.payload;
-    },
-    setTestsEnabled: (
-      state,
-      action: PayloadAction<DocumentationStateProps["testsEnabled"]>,
-    ) => {
-      state.testsEnabled = action.payload;
     },
     updateCurrentDocsTests: (
       state,
@@ -171,6 +165,9 @@ const documentationSlice = createSlice({
     setIsDocGeneratedForAnyColumn: (state, action: PayloadAction<boolean>) => {
       state.isDocGeneratedForAnyColumn = action.payload;
     },
+    setIsTestUpdatedForAnyColumn: (state, action: PayloadAction<boolean>) => {
+      state.isTestUpdatedForAnyColumn = action.payload;
+    },
     resetGenerationsHistory: (state, _action: PayloadAction<undefined>) => {
       state.generationHistory = [];
     },
@@ -188,12 +185,12 @@ export const {
   updateColumnsInCurrentDocsData,
   updateColumnsAfterSync,
   setProject,
-  setTestsEnabled,
   addToGenerationsHistory,
   resetGenerationsHistory,
   setGenerationsHistory,
   updateUserInstructions,
   setIsDocGeneratedForAnyColumn,
+  setIsTestUpdatedForAnyColumn,
   setInsertedEntityName,
   updateCurrentDocsTests,
   addToSelectedPage,
