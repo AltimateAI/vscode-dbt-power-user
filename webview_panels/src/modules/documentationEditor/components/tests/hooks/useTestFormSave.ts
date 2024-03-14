@@ -2,7 +2,7 @@ import useDocumentationContext from "@modules/documentationEditor/state/useDocum
 import { useState } from "react";
 import { SaveRequest } from "../types";
 import {
-  setIsDocGeneratedForAnyColumn,
+  setIsTestUpdatedForAnyColumn,
   updateCurrentDocsTests,
 } from "@modules/documentationEditor/state/documentationSlice";
 import { panelLogger } from "@modules/logger";
@@ -139,7 +139,7 @@ const useTestFormSave = (): {
     const testsData = getUpdatedTestsData(data, column, operation);
     panelLogger.info("add/update test data", testsData);
     dispatch(updateCurrentDocsTests(testsData));
-    dispatch(setIsDocGeneratedForAnyColumn(true));
+    dispatch(setIsTestUpdatedForAnyColumn(true));
   };
 
   return { handleSave, isSaving };

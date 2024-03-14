@@ -15,6 +15,7 @@ export const initialState = {
   project: undefined,
   generationHistory: [],
   isDocGeneratedForAnyColumn: false,
+  isTestUpdatedForAnyColumn: false,
   insertedEntityName: undefined,
   userInstructions: {
     language: undefined,
@@ -164,6 +165,9 @@ const documentationSlice = createSlice({
     setIsDocGeneratedForAnyColumn: (state, action: PayloadAction<boolean>) => {
       state.isDocGeneratedForAnyColumn = action.payload;
     },
+    setIsTestUpdatedForAnyColumn: (state, action: PayloadAction<boolean>) => {
+      state.isTestUpdatedForAnyColumn = action.payload;
+    },
     resetGenerationsHistory: (state, _action: PayloadAction<undefined>) => {
       state.generationHistory = [];
     },
@@ -186,6 +190,7 @@ export const {
   setGenerationsHistory,
   updateUserInstructions,
   setIsDocGeneratedForAnyColumn,
+  setIsTestUpdatedForAnyColumn,
   setInsertedEntityName,
   updateCurrentDocsTests,
   addToSelectedPage,
