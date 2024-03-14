@@ -110,13 +110,21 @@ export class NewDocsGenPanel
         try {
           const result = await this.queryManifestService
             .getProject()
-            ?.getColumnsValues(args.model as string, args.column as string);
+            ?.getColumnValues(args.model as string, args.column as string);
           this.sendResponseToWebview({
             command: "response",
             data: result,
             syncRequestId,
           });
         } catch (error) {
+          this.dbtTerminal.error(
+            "getDistinctColumnValues",
+            "Unable to find distinct values for column",
+            error,
+            true,
+            args,
+          );
+
           const message =
             error instanceof PythonException
               ? error.exception.message
