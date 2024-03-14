@@ -359,6 +359,7 @@ export class DBTCommandExecutionInfrastructure {
     private pythonEnvironment: PythonEnvironment,
     private telemetry: TelemetryService,
     private altimate: AltimateRequest,
+    private terminal: DBTTerminal,
   ) {}
 
   createPythonBridge(cwd: string): PythonBridge {
@@ -369,9 +370,21 @@ export class DBTCommandExecutionInfrastructure {
       // replace python.exe with pythonw.exe if path exists
       const pythonwPath = pythonPath.replace("python.exe", "pythonw.exe");
       if (existsSync(pythonwPath)) {
+        this.terminal.debug(
+          "DBTCommandExecutionInfrastructure",
+          `Changing python path to ${pythonwPath}`,
+        );
         pythonPath = pythonwPath;
       }
     }
+    this.terminal.debug(
+      "DBTCommandExecutionInfrastructure",
+      "Starting python bridge",
+      {
+        pythonPath,
+        cwd,
+      },
+    );
     return pythonBridge({
       python: pythonPath,
       cwd: cwd,
@@ -384,6 +397,7 @@ export class DBTCommandExecutionInfrastructure {
   }
 
   async closePythonBridge(bridge: PythonBridge) {
+    this.terminal.debug("dbtIntegration", `Closing python bridge`);
     try {
       await bridge.disconnect();
       await bridge.end();

@@ -15,6 +15,8 @@ import {
   TestMetaMap,
 } from "../../domain";
 import { notEmpty } from "../../utils";
+import { DBTTerminal } from "../../dbt_client/dbtTerminal";
+import { DBTProject } from "../dbtProject";
 
 type DBTGraphType = {
   [name: string]: string[];
@@ -22,13 +24,22 @@ type DBTGraphType = {
 
 @provide(GraphParser)
 export class GraphParser {
+  constructor(private terminal: DBTTerminal) {}
+
   createGraphMetaMap(
+    project: DBTProject,
     parentMap: DBTGraphType,
     childrenMap: DBTGraphType,
     nodeMetaMap: NodeMetaMap,
     sourceMetaMap: SourceMetaMap,
     testMetaMap: TestMetaMap,
   ): GraphMetaMap {
+    this.terminal.debug(
+      "GraphParser",
+      `Parsing graph for "${project.getProjectName()}" at ${
+        project.projectRoot
+      }`,
+    );
     const unique = (nodes: any[]) => Array.from(new Set(nodes));
 
     const parents: NodeGraphMap = Object.entries(parentMap).reduce(
@@ -66,11 +77,19 @@ export class GraphParser {
       new Map(),
     );
 
-    return {
+    const graph = {
       parents,
       children,
       tests,
     };
+    this.terminal.debug(
+      "GraphParser",
+      `Returning graph for "${project.getProjectName()}" at ${
+        project.projectRoot
+      }`,
+      graph,
+    );
+    return graph;
   }
 
   mapToNode(

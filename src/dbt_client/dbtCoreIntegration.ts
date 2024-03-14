@@ -228,12 +228,12 @@ export class DBTCoreProjectIntegration
     private projectRoot: Uri,
     private projectConfigDiagnostics: DiagnosticCollection,
   ) {
-    this.python = this.executionInfrastructure.createPythonBridge(
-      this.projectRoot.fsPath,
-    );
     this.dbtTerminal.debug(
       "DBTCoreProjectIntegration",
-      `Registering project ${this.projectRoot}`,
+      `Registering dbt core project at ${this.projectRoot}`,
+    );
+    this.python = this.executionInfrastructure.createPythonBridge(
+      this.projectRoot.fsPath,
     );
     this.executionInfrastructure.createQueue(
       DBTCoreProjectIntegration.QUEUE_ALL,

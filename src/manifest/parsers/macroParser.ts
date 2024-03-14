@@ -14,6 +14,12 @@ export class MacroParser {
     project: DBTProject,
   ): Promise<MacroMetaMap> {
     return new Promise(async (resolve) => {
+      this.terminal.debug(
+        "MacroParser",
+        `Parsing macros for "${project.getProjectName()}" at ${
+          project.projectRoot
+        }`,
+      );
       const macroMetaMap: MacroMetaMap = new Map();
       if (macros === null || macros === undefined) {
         resolve(macroMetaMap);
@@ -66,6 +72,13 @@ export class MacroParser {
           );
         }
       }
+      this.terminal.debug(
+        "MacroParser",
+        `Returning macros for "${project.getProjectName()}" at ${
+          project.projectRoot
+        }`,
+        macroMetaMap,
+      );
       resolve(macroMetaMap);
     });
   }

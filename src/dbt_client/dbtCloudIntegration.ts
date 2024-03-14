@@ -8,6 +8,7 @@ import {
   CancellationTokenSource,
   Diagnostic,
   DiagnosticCollection,
+  DiagnosticSeverity,
 } from "vscode";
 import { provideSingleton } from "../utils";
 import {
@@ -84,13 +85,15 @@ export class DBTCloudDetection implements DBTDetection {
         );
       }
     } catch (error) {
-      console.warn(error);
-      this.terminal.error(
+      this.terminal.warn(
         "DBTCLIDetectionError",
-        "detection failed with error : ",
-        error,
+        "Detection failed with error : " + (error as Error).message,
       );
     }
+    this.terminal.debug(
+      "DBTCLIDetectionFailed",
+      "dbt cloud cli was not found. Detection command returning false",
+    );
     return false;
   }
 
@@ -170,15 +173,15 @@ export class DBTCloudProjectIntegration
     private deferToProdService: DeferToProdService,
     private projectRoot: Uri,
   ) {
+    this.terminal.debug(
+      "DBTCloudProjectIntegration",
+      `Registering dbt cloud project at ${this.projectRoot}`,
+    );
     this.python = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
     this.executionInfrastructure.createQueue(
       DBTCloudProjectIntegration.QUEUE_ALL,
-    );
-    this.terminal.debug(
-      "DBTCloudProjectIntegration",
-      "Registering dbt cloud project" + this.projectRoot,
     );
 
     this.disposables.push(
@@ -300,22 +303,51 @@ export class DBTCloudProjectIntegration
       const command = this.dbtCloudCommand(
         this.dbtCommandFactory.createParseCommand(),
       );
+      command.addArgument("--log-format");
+      command.addArgument("json");
       this.rebuildManifestCancellationTokenSource =
         new CancellationTokenSource();
       command.setToken(this.rebuildManifestCancellationTokenSource.token);
       const { stderr } = await command.execute();
+      const errorsAndWarnings = stderr
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line.trim()));
+      const errors = errorsAndWarnings
+        .filter(
+          (line) => line.info.level === "error" || line.info.level === "fatal",
+        )
+        .map((line) => line.info.msg);
+      const warnings = errorsAndWarnings
+        .filter((line) => line.info.level === "warnig")
+        .map((line) => line.info.msg);
+
       this.rebuildManifestDiagnostics.clear();
-      if (stderr) {
+      errors.forEach((error) =>
         this.rebuildManifestDiagnostics.set(
           Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
           [
             new Diagnostic(
               new Range(0, 0, 999, 999),
-              "There is a problem in your dbt project. Compilation failed: " +
-                stderr,
+              error,
+              DiagnosticSeverity.Error,
             ),
           ],
-        );
+        ),
+      );
+      warnings.forEach((warning) =>
+        this.rebuildManifestDiagnostics.set(
+          Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
+          [
+            new Diagnostic(
+              new Range(0, 0, 999, 999),
+              warning,
+              DiagnosticSeverity.Warning,
+            ),
+          ],
+        ),
+      );
+      if (stderr) {
         this.telemetry.sendTelemetryEvent(
           "dbtCloudCannotParseProjectUserError",
           {
@@ -734,6 +766,10 @@ export class DBTCloudProjectIntegration
         .map((line) => JSON.parse(line.trim()))
         .filter((line) => line.data.hasOwnProperty("compiled"));
       this.adapterType = compiledLine[0].data.compiled;
+      this.terminal.debug(
+        "dbtCloudIntegration",
+        `Set adapter type to ${this.adapterType}`,
+      );
     } catch (error) {
       this.terminal.warn(
         "DbtCloudIntegrationAdapterDetectionExceptionError",
@@ -757,7 +793,10 @@ export class DBTCloudProjectIntegration
           .trim()
           .split("\n")
           .map((line) => JSON.parse(line.trim()))
-          .filter((line) => line.info.level === "error")
+          .filter(
+            (line) =>
+              line.info.level === "error" || line.info.level === "fatal",
+          )
           .map((line) => line.info.msg),
       );
       if (errorLines.length) {
