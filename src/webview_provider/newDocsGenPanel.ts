@@ -204,51 +204,47 @@ export class NewDocsGenPanel
 
     switch (command) {
       case "getTestCode":
-        this.sendResponseToWebview({
-          command: "response",
-          data: {
+        this.handleSyncRequestFromWebview(syncRequestId, async () => {
+          return {
             code: this.getDbtTestCode(
               args.test as TestMetaData,
               args.model as string,
             ),
-          },
-          syncRequestId,
+          };
         });
         break;
-      case "getDistinctColumnValues":
-        try {
-          const result = await this.queryManifestService
-            .getProject()
-            ?.getColumnValues(args.model as string, args.column as string);
-          this.sendResponseToWebview({
-            command: "response",
-            data: result,
-            syncRequestId,
-          });
-        } catch (error) {
-          this.dbtTerminal.error(
-            "getDistinctColumnValues",
-            "Unable to find distinct values for column",
-            error,
-            true,
-            args,
-          );
 
-          const message =
-            error instanceof PythonException
-              ? error.exception.message
-              : (error as Error).message;
-          window.showErrorMessage(extendErrorWithSupportLinks(message));
-          this.sendResponseToWebview({
-            command: "response",
-            data: [],
-            syncRequestId,
-          });
-        }
+      case "getDistinctColumnValues":
+        this.handleSyncRequestFromWebview(syncRequestId, async () => {
+          try {
+            const result = await this.queryManifestService
+              .getProject()
+              ?.getColumnValues(args.model as string, args.column as string);
+            return result;
+          } catch (error) {
+            this.dbtTerminal.error(
+              "getDistinctColumnValues",
+              "Unable to find distinct values for column",
+              error,
+              true,
+              args,
+            );
+
+            const message =
+              error instanceof PythonException
+                ? error.exception.message
+                : (error as Error).message;
+            window.showErrorMessage(extendErrorWithSupportLinks(message));
+            return [];
+          }
+        });
+
         break;
+
       case "enableNewDocsPanel":
         this.toggleDocsPanel(args);
         break;
+
       case "getCurrentModelDocumentation":
         if (!this._panel) {
           return;
@@ -260,93 +256,84 @@ export class NewDocsGenPanel
           docs: documentation,
           project: this.queryManifestService.getProject()?.getProjectName(),
         });
+        break;
+
       case "getColumnsOfSources":
-        try {
-          const columnsFromSources = await this.queryManifestService
-            .getProject()
-            ?.getColumnsOfSource(args.source as string, args.table as string);
-          this.sendResponseToWebview({
-            command: "response",
-            data: {
+        this.handleSyncRequestFromWebview(syncRequestId, async () => {
+          try {
+            const columnsFromSources = await this.queryManifestService
+              .getProject()
+              ?.getColumnsOfSource(args.source as string, args.table as string);
+            return {
               columns: columnsFromSources
                 ? columnsFromSources.map((c) => c.column)
                 : [],
-            },
-            syncRequestId,
-          });
-        } catch (error) {
-          this.dbtTerminal.error(
-            "newDocsGenPanel:getColumnsOfSources",
-            "unable to get columns of sources",
-            error,
-          );
-          const message =
-            error instanceof PythonException
-              ? error.exception.message
-              : (error as Error).message;
-          window.showErrorMessage(extendErrorWithSupportLinks(message));
-          this.sendResponseToWebview({
-            command: "response",
-            data: { columns: [] },
-            syncRequestId,
-          });
-        }
+            };
+          } catch (error) {
+            this.dbtTerminal.error(
+              "newDocsGenPanel:getColumnsOfSources",
+              "unable to get columns of sources",
+              error,
+            );
+            const message =
+              error instanceof PythonException
+                ? error.exception.message
+                : (error as Error).message;
+            window.showErrorMessage(extendErrorWithSupportLinks(message));
+            return { columns: [] };
+          }
+        });
         break;
+
       case "getColumnsOfModel":
-        try {
-          const columns = await this.queryManifestService
-            .getProject()
-            ?.getColumnsOfModel(args.model as string);
-          this.sendResponseToWebview({
-            command: "response",
-            data: {
+        this.handleSyncRequestFromWebview(syncRequestId, async () => {
+          try {
+            const columns = await this.queryManifestService
+              .getProject()
+              ?.getColumnsOfModel(args.model as string);
+            return {
               columns: columns ? columns.map((c) => c.column) : [],
-            },
-            syncRequestId,
-          });
-        } catch (error) {
-          this.dbtTerminal.error(
-            "newDocsGenPanel:getColumnsOfModel",
-            "unable to get columns of models",
-            error,
-          );
-          const message =
-            error instanceof PythonException
-              ? error.exception.message
-              : (error as Error).message;
-          window.showErrorMessage(extendErrorWithSupportLinks(message));
-          this.sendResponseToWebview({
-            command: "response",
-            data: { columns: [] },
-            syncRequestId,
-          });
-        }
+            };
+          } catch (error) {
+            this.dbtTerminal.error(
+              "newDocsGenPanel:getColumnsOfModel",
+              "unable to get columns of models",
+              error,
+            );
+            const message =
+              error instanceof PythonException
+                ? error.exception.message
+                : (error as Error).message;
+            window.showErrorMessage(extendErrorWithSupportLinks(message));
+            return { columns: [] };
+          }
+        });
         break;
+
       case "getSourcesInProject":
-        const sources = this.queryManifestService.getSourcesInProject(
-          window.activeTextEditor?.document.uri,
-        );
+        this.handleSyncRequestFromWebview(syncRequestId, async () => {
+          const sources = this.queryManifestService.getSourcesInProject(
+            window.activeTextEditor?.document.uri,
+          );
 
-        this.sendResponseToWebview({
-          command: "response",
-          data: {
+          return {
             sources,
-          },
-          syncRequestId,
+          };
         });
         break;
-      case "getModelsInProject":
-        const models = this.queryManifestService.getModelsInProject(
-          window.activeTextEditor?.document.uri,
-        );
 
-        this.sendResponseToWebview({
-          command: "response",
-          data: {
+      case "getModelsInProject":
+        this.handleSyncRequestFromWebview(syncRequestId, async () => {
+          const models = this.queryManifestService.getModelsInProject(
+            window.activeTextEditor?.document.uri,
+          );
+
+          return {
             models,
-          },
-          syncRequestId,
+          };
         });
+        break;
+
       default:
         super.handleCommand(message);
         break;

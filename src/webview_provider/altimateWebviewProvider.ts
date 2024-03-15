@@ -104,6 +104,27 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     });
   }
 
+  protected async handleSyncRequestFromWebview(
+    syncRequestId: string | undefined,
+    callback: () => any,
+  ) {
+    try {
+      const response = await callback();
+
+      this.sendResponseToWebview({
+        command: "response",
+        syncRequestId,
+        data: response,
+      });
+    } catch (err) {
+      this.sendResponseToWebview({
+        command: "response",
+        syncRequestId,
+        error: (err as Error).message,
+      });
+    }
+  }
+
   protected onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
       this.eventMap.set(added.project.projectRoot.fsPath, added);

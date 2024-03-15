@@ -67,12 +67,14 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           syncRequestId,
         });
         break;
+
       case "enableNewDocsPanel":
         this.emitterService.fire({
           command: "enableNewDocsPanel",
           payload: params,
         });
         break;
+
       case "sendFeedback":
         if (!queryText) {
           return;
@@ -84,6 +86,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           syncRequestId,
         });
         break;
+
       case "generateDocsForModel":
         if (!queryText) {
           return;
@@ -96,6 +99,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           project: this.queryManifestService.getProject(),
         });
         break;
+
       case "generateDocsForColumn":
         await this.docGenService.generateDocsForColumns({
           documentation: await this.docGenService.getDocumentation(),
@@ -104,6 +108,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           project: this.queryManifestService.getProject(),
         });
         break;
+
       case "docgen:insert":
       case "testgen:insert":
         this.emitterService.eventEmitter.fire({
@@ -111,88 +116,48 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           payload: params,
         });
         break;
+
       case "queryAnalysis:explain":
-        try {
+        this.handleSyncRequestFromWebview(syncRequestId, async () => {
           const response = await this.queryAnalysisService.executeQueryAnalysis(
             params,
             QueryAnalysisType.EXPLAIN,
             syncRequestId,
           );
-
-          this.sendResponseToWebview({
-            command: "response",
-            data: {
-              response,
-            },
-            syncRequestId,
-          });
-        } catch (err) {
-          this.sendResponseToWebview({
-            command: "response",
-            syncRequestId,
-            error: (err as Error).message,
-          });
-        }
+          return { response };
+        });
         break;
+
       case "queryAnalysis:modify":
-        try {
+        this.handleSyncRequestFromWebview(syncRequestId, async () => {
           const response = await this.queryAnalysisService.executeQueryAnalysis(
             params,
             QueryAnalysisType.MODIFY,
             syncRequestId,
           );
-
-          this.sendResponseToWebview({
-            command: "response",
-            syncRequestId,
-            data: { response },
-          });
-        } catch (err) {
-          this.sendResponseToWebview({
-            command: "response",
-            syncRequestId,
-            error: (err as Error).message,
-          });
-        }
+          return { response };
+        });
         break;
+
       case "dbttest:create":
-        try {
+        this.handleSyncRequestFromWebview(syncRequestId, async () => {
           const response = await this.dbtTestService.createTest(
             params,
             syncRequestId,
           );
-
-          this.sendResponseToWebview({
-            command: "response",
-            syncRequestId,
-            data: { response },
-          });
-        } catch (err) {
-          this.sendResponseToWebview({
-            command: "response",
-            syncRequestId,
-            error: (err as Error).message,
-          });
-        }
+          return { response };
+        });
         break;
+
       case "queryanalysis:followup":
-        try {
+        this.handleSyncRequestFromWebview(syncRequestId, async () => {
           const response = await this.queryAnalysisService.getFollowupQuestions(
             params as { query: string; user_request: string },
           );
+          return { response };
+        });
+        break;
 
-          this.sendResponseToWebview({
-            command: "response",
-            syncRequestId,
-            data: { response },
-          });
-        } catch (err) {
-          this.sendResponseToWebview({
-            command: "response",
-            syncRequestId,
-            error: (err as Error).message,
-          });
-        }
       default:
         super.handleCommand(message);
         break;
@@ -204,6 +169,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
       case "datapilot:toggle":
         await commands.executeCommand("dbtPowerUser.datapilot-webview.focus");
         break;
+
       case "datapilot:message":
         await commands.executeCommand("dbtPowerUser.datapilot-webview.focus");
         if (!this.isWebviewReady) {
@@ -212,20 +178,25 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         }
         this.postToWebview(payload);
         break;
+
       case "dbtPowerUser.summarizeQuery":
         this.handleDatapilotEvent(QueryAnalysisType.EXPLAIN, payload);
         break;
+
       case "dbtPowerUser.changeQuery":
         this.handleDatapilotEvent(QueryAnalysisType.MODIFY, payload);
         break;
+
       case "dbtPowerUser.openDatapilotWithQuery":
         this.handleDatapilotEvent(null, payload);
         break;
+
       case "dbtPowerUser.openHelpInDatapilot":
         this.sendResponseToWebview({
           command: "datapilot:showHelp",
         });
         break;
+
       default:
         super.onEvent({ command, payload });
         break;
