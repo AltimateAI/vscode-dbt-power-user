@@ -27,11 +27,18 @@ export class ValidationProvider implements Disposable {
   }
 
   setDBTContext() {
-    const isDBTCore =
-      workspace
-        .getConfiguration("dbt")
-        .get<string>("dbtIntegration", "core") !== "cloud";
-    commands.executeCommand("setContext", "dbtPowerUser.isDBTCore", isDBTCore);
+    let dbtIntegration = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+
+    if (!["core", "cloud"].includes(dbtIntegration)) {
+      dbtIntegration = "core";
+    }
+    commands.executeCommand(
+      "setContext",
+      "dbtPowerUser.dbtIntegration",
+      dbtIntegration,
+    );
   }
 
   validateCredentials() {

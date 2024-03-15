@@ -143,7 +143,7 @@ export class WalkthroughCommands {
           const { stderr } = await this.commandProcessExecutionFactory
             .createCommandProcessExecution({
               command: this.pythonEnvironment.pythonPath,
-              args: ["-m", "pip", "install", `dbt`],
+              args: ["-m", "pip", "install", "dbt", "--no-cache-dir"],
               cwd: getFirstWorkspacePath(),
               envVars: this.pythonEnvironment.environmentVariables,
             })
