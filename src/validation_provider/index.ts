@@ -1,4 +1,4 @@
-import { Disposable, window, workspace } from "vscode";
+import { Disposable, commands, window, workspace } from "vscode";
 import { provideSingleton } from "../utils";
 import {
   AltimateRequest,
@@ -20,7 +20,24 @@ export class ValidationProvider implements Disposable {
           return;
         }
         this.validateCredentials();
+        this.setDBTContext();
       }),
+    );
+    this.setDBTContext();
+  }
+
+  setDBTContext() {
+    let dbtIntegration = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+
+    if (!["core", "cloud"].includes(dbtIntegration)) {
+      dbtIntegration = "core";
+    }
+    commands.executeCommand(
+      "setContext",
+      "dbtPowerUser.dbtIntegration",
+      dbtIntegration,
     );
   }
 
