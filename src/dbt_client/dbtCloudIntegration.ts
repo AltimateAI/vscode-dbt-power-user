@@ -147,6 +147,7 @@ export class DBTCloudProjectIntegration
   private adapterType: string = "unknown";
   private packagesInstallPath?: string;
   private modelPaths?: string[];
+  private seedPaths?: string[];
   private macroPaths?: string[];
   private python: PythonBridge;
   private dbtPath: string = "dbt";
@@ -275,6 +276,10 @@ export class DBTCloudProjectIntegration
 
   getModelPaths(): string[] | undefined {
     return this.modelPaths;
+  }
+
+  getSeedPaths(): string[] | undefined {
+    return this.seedPaths;
   }
 
   getMacroPaths(): string[] | undefined {
@@ -736,6 +741,7 @@ export class DBTCloudProjectIntegration
     //  TODO: read from dbt_project.yml instead
     this.targetPath = join(this.projectRoot.fsPath, "target");
     this.modelPaths = [join(this.projectRoot.fsPath, "models")];
+    this.seedPaths = [join(this.projectRoot.fsPath, "seeds")];
     this.macroPaths = [join(this.projectRoot.fsPath, "macros")];
     this.packagesInstallPath = join(this.projectRoot.fsPath, "dbt_packages");
 

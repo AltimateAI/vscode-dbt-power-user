@@ -206,6 +206,7 @@ export class DBTCoreProjectIntegration
   private version?: number[];
   private packagesInstallPath?: string;
   private modelPaths?: string[];
+  private seedPaths?: string[];
   private macroPaths?: string[];
   private python: PythonBridge;
   private disposables: Disposable[] = [];
@@ -317,6 +318,7 @@ export class DBTCoreProjectIntegration
     await this.python.ex`project.init_project()`;
     this.targetPath = await this.findTargetPath();
     this.modelPaths = await this.findModelPaths();
+    this.seedPaths = await this.findSeedPaths();
     this.macroPaths = await this.findMacroPaths();
     this.packagesInstallPath = await this.findPackagesInstallPath();
     this.version = await this.findVersion();
@@ -445,6 +447,10 @@ export class DBTCoreProjectIntegration
 
   getModelPaths(): string[] | undefined {
     return this.modelPaths;
+  }
+
+  getSeedPaths(): string[] | undefined {
+    return this.seedPaths;
   }
 
   getMacroPaths(): string[] | undefined {
@@ -813,16 +819,29 @@ export class DBTCoreProjectIntegration
 
   // get dbt config
   private async findModelPaths(): Promise<string[]> {
-    let modelPaths = await this.python.lock(
-      (python) => python`to_dict(project.config.model_paths)`,
-    );
-    modelPaths = modelPaths.map((modelPath: string) => {
+    return (
+      await this.python.lock<string[]>(
+        (python) => python`to_dict(project.config.model_paths)`,
+      )
+    ).map((modelPath: string) => {
       if (!path.isAbsolute(modelPath)) {
         return path.join(this.projectRoot.fsPath, modelPath);
       }
       return modelPath;
     });
-    return modelPaths;
+  }
+
+  private async findSeedPaths(): Promise<string[]> {
+    return (
+      await this.python.lock<string[]>(
+        (python) => python`to_dict(project.config.seed_paths)`,
+      )
+    ).map((seedPath: string) => {
+      if (!path.isAbsolute(seedPath)) {
+        return path.join(this.projectRoot.fsPath, seedPath);
+      }
+      return seedPath;
+    });
   }
 
   getDebounceForRebuildManifest() {
@@ -830,16 +849,16 @@ export class DBTCoreProjectIntegration
   }
 
   private async findMacroPaths(): Promise<string[]> {
-    let macroPaths = await this.python.lock(
-      (python) => python`to_dict(project.config.macro_paths)`,
-    );
-    macroPaths = macroPaths.map((macroPath: string) => {
+    return (
+      await this.python.lock<string[]>(
+        (python) => python`to_dict(project.config.macro_paths)`,
+      )
+    ).map((macroPath: string) => {
       if (!path.isAbsolute(macroPath)) {
         return path.join(this.projectRoot.fsPath, macroPath);
       }
       return macroPath;
     });
-    return macroPaths;
   }
 
   private async findTargetPath(): Promise<string> {

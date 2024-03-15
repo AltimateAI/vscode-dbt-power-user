@@ -308,6 +308,7 @@ export interface DBTProjectIntegration extends Disposable {
   // retrieve dbt configs
   getTargetPath(): string | undefined;
   getModelPaths(): string[] | undefined;
+  getSeedPaths(): string[] | undefined;
   getMacroPaths(): string[] | undefined;
   getPackageInstallPath(): string | undefined;
   getAdapterType(): string | undefined;

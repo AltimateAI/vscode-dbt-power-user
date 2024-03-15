@@ -53,7 +53,7 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
     : (tests ?? []).slice(0, MaxVisibleTests);
   const remainingTests = (tests ?? []).length - MaxVisibleTests;
 
-  if (!isTestEnabled || (type === EntityType.MODEL && !tests?.length)) {
+  if (!isTestEnabled) {
     return null;
   }
   return (
@@ -81,9 +81,7 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
               {remainingTests} {remainingTests > 1 ? "tests" : "test"} +
             </Button>
           ) : null}
-          {type === EntityType.COLUMN ? (
-            <AddTest title={title} currentTests={currentTests} />
-          ) : null}
+          <AddTest title={title} currentTests={currentTests} type={type} />
         </Stack>
       </Stack>
       <Drawer ref={drawerRef} onClose={handleClose}>
