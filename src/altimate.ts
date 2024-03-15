@@ -171,11 +171,14 @@ interface ValidateSqlRequest {
 interface ShareQuerySignedUrlRequest {
   name: string;
   compile_sql: string;
+}
+
+interface UploadQueryResultDataRequest {
   csv_result: string;
 }
 
 interface VerifyShareQueryUploadRequest {
-  signed_url: string;
+  sharing_table_id: number;
 }
 
 interface InviteUserRequest {
@@ -476,16 +479,22 @@ export class AltimateRequest {
     return (await response.json()) as Record<string, any> | undefined;
   }
 
-  async getShareQuerySignedUrl() {
-    return this.fetch<{ signed_url: string }>("dbt/v3/query-result/signed_url");
+  async shareQueryResult(req: ShareQuerySignedUrlRequest) {
+    return this.fetch<{ sharing_table_id: number; signed_url: string }>(
+      "dbt/v3/query-result/share",
+      {
+        method: "POST",
+        body: JSON.stringify(req),
+      },
+    );
   }
 
-  async uploadDataToSignedUrl(url: string, req: ShareQuerySignedUrlRequest) {
+  async uploadDataToSignedUrl(url: string, req: UploadQueryResultDataRequest) {
     console.log("network:request:", url, ":", req);
 
     const jsonStream = new Readable({
       read() {
-        this.push(JSON.stringify(JSON.stringify(req)));
+        this.push(JSON.stringify(req.csv_result));
         this.push(null);
       },
     });

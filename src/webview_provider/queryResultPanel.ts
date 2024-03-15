@@ -224,20 +224,21 @@ export class QueryResultPanel implements WebviewViewProvider {
               },
               async () => {
                 try {
-                  const result = await this.altimate.getShareQuerySignedUrl();
+                  const result = await this.altimate.shareQueryResult(message);
                   if (result?.signed_url) {
                     window.showInformationMessage(
                       "Generated signed url. Uploading data...",
                     );
-                    const response = await this.altimate.uploadDataToSignedUrl(
-                      result.signed_url,
-                      message,
-                    );
-                    if (response.status === 200) {
+                    const uploadResponse =
+                      await this.altimate.uploadDataToSignedUrl(
+                        result.signed_url,
+                        message,
+                      );
+                    if (uploadResponse.status === 200) {
                       // verifying upload
                       const verifyResponse =
                         await this.altimate.verifyShareQueryUpload({
-                          signed_url: result.signed_url,
+                          sharing_table_id: result.sharing_table_id,
                         });
 
                       const verifyData = verifyResponse as {
