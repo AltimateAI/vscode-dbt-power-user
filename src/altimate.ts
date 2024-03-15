@@ -5,6 +5,7 @@ import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
 import { DBTProjectContainer } from "./manifest/dbtProjectContainer";
 import { RateLimitException } from "./exceptions";
+import { Readable } from "stream";
 
 interface AltimateConfig {
   key: string;
@@ -167,10 +168,17 @@ interface ValidateSqlRequest {
   models: ModelNode[];
 }
 
-interface ShareQueryRequest {
+interface ShareQuerySignedUrlRequest {
   name: string;
   compile_sql: string;
+}
+
+interface UploadQueryResultDataRequest {
   csv_result: string;
+}
+
+interface VerifyShareQueryUploadRequest {
+  sharing_table_id: number;
 }
 
 interface InviteUserRequest {
@@ -471,11 +479,44 @@ export class AltimateRequest {
     return (await response.json()) as Record<string, any> | undefined;
   }
 
-  async shareQueryResult(req: ShareQueryRequest) {
-    return this.fetch<{ share_url: string }>("dbt/v3/query-result/share", {
-      method: "POST",
-      body: JSON.stringify(req),
+  async shareQueryResult(req: ShareQuerySignedUrlRequest) {
+    return this.fetch<{ sharing_table_id: number; signed_url: string }>(
+      "dbt/v3/query-result/share",
+      {
+        method: "POST",
+        body: JSON.stringify(req),
+      },
+    );
+  }
+
+  async uploadDataToSignedUrl(url: string, req: UploadQueryResultDataRequest) {
+    console.log("network:request:", url, ":", req);
+
+    const jsonStream = new Readable({
+      read() {
+        this.push(JSON.stringify(req.csv_result));
+        this.push(null);
+      },
     });
+
+    const blob = new Blob([jsonStream.read()]);
+
+    const response = await fetch(url, {
+      method: "PUT",
+      body: blob,
+    });
+    console.log("network:response:", response.status, response.statusText);
+    return response;
+  }
+
+  async verifyShareQueryUpload(req: VerifyShareQueryUploadRequest) {
+    return this.fetch<{ ok: boolean; share_url: string }>(
+      "dbt/v3/query-result/verify",
+      {
+        method: "POST",
+        body: JSON.stringify(req),
+      },
+    );
   }
 
   async inviteUser(req: InviteUserRequest) {

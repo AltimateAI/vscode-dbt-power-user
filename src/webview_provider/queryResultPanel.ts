@@ -219,25 +219,53 @@ export class QueryResultPanel implements WebviewViewProvider {
             window.withProgress(
               {
                 location: ProgressLocation.Notification,
-                title: "Uploading data to Altimate backend",
+                title: "Generating Shareable URL",
                 cancellable: false,
               },
               async () => {
                 try {
                   const result = await this.altimate.shareQueryResult(message);
-                  if (result?.share_url) {
-                    await env.clipboard.writeText(result.share_url);
+                  if (result?.signed_url) {
                     window.showInformationMessage(
-                      `URL is copied to clipboard: [${result.share_url}](${result.share_url})`,
+                      "Generated signed url. Uploading data...",
                     );
+                    const uploadResponse =
+                      await this.altimate.uploadDataToSignedUrl(
+                        result.signed_url,
+                        message,
+                      );
+                    if (uploadResponse.status === 200) {
+                      // verifying upload
+                      const verifyResponse =
+                        await this.altimate.verifyShareQueryUpload({
+                          sharing_table_id: result.sharing_table_id,
+                        });
+
+                      const verifyData = verifyResponse as {
+                        ok: boolean;
+                        share_url: string;
+                      };
+                      if (verifyData.ok) {
+                        await env.clipboard.writeText(verifyData.share_url);
+                        window.showInformationMessage(
+                          `URL is copied to clipboard: [${verifyData.share_url}](${verifyData.share_url})`,
+                        );
+                      } else {
+                        window.showErrorMessage(
+                          "Unable to verify upload. Please try again.",
+                        );
+                      }
+                    } else {
+                      window.showErrorMessage(
+                        "Error verifying upload. Please try again.",
+                      );
+                    }
                   } else {
-                    window.showErrorMessage(
-                      "Unable to upload data to Altimate backend.",
-                    );
+                    window.showErrorMessage("Error generating signed url");
                   }
                 } catch (error) {
                   window.showErrorMessage(
-                    `Unable to upload data to Altimate backend:${error}`,
+                    `Error generating shareable URL:${error}`,
                   );
                 }
               },
