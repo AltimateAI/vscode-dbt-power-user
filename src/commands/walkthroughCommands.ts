@@ -140,7 +140,7 @@ export class WalkthroughCommands {
       },
       async () => {
         try {
-          const { stderr } = await this.commandProcessExecutionFactory
+          const { stderr, stdout } = await this.commandProcessExecutionFactory
             .createCommandProcessExecution({
               command: this.pythonEnvironment.pythonPath,
               args: ["-m", "pip", "install", "dbt", "--no-cache-dir"],
@@ -148,7 +148,7 @@ export class WalkthroughCommands {
               envVars: this.pythonEnvironment.environmentVariables,
             })
             .completeWithTerminalOutput(this.dbtTerminal);
-          if (stderr) {
+          if (!stdout.includes("Successfully installed dbt") && stderr) {
             throw new Error(stderr);
           }
           await this.dbtProjectContainer.detectDBT();

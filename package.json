@@ -819,12 +819,24 @@
             ]
           },
           {
-            "id": "installDbt",
+            "id": "installDbtCore",
             "title": "%walkthrough.initialSetup.steps.installDbt.title%",
             "description": "%walkthrough.initialSetup.steps.installDbt.description%",
-            "when": "!dbtPowerUser.dbtInstalled",
+            "when": "dbtPowerUser.dbtIntegration === 'core' && !dbtPowerUser.dbtInstalled",
             "media": {
-              "markdown": "media/installDbt.md"
+              "markdown": "media/installDbtCore.md"
+            },
+            "completionEvents": [
+              "onContext:dbtPowerUser.dbtInstalled"
+            ]
+          },
+          {
+            "id": "installDbtCloud",
+            "title": "%walkthrough.initialSetup.steps.installDbt.title%",
+            "description": "%walkthrough.initialSetup.steps.installDbt.description%",
+            "when": "dbtPowerUser.dbtIntegration === 'cloud' && !dbtPowerUser.dbtInstalled",
+            "media": {
+              "markdown": "media/installDbtCloud.md"
             },
             "completionEvents": [
               "onContext:dbtPowerUser.dbtInstalled"
