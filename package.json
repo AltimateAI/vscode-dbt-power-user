@@ -83,7 +83,7 @@
           "dbt.altimateConfigPath": {
             "type": "string",
             "description": "Path for altimate config file.",
-            "default": "${workspaceFolder}/.altimate.json"
+            "default": ".altimate.json"
           }
         }
       },

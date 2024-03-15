@@ -14,6 +14,7 @@ import { RateLimitException } from "./exceptions";
 import { DBTProject } from "./manifest/dbtProject";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
 import { existsSync, readFileSync } from "fs";
+import * as path from "path";
 
 export class NoCredentialsError extends Error {}
 
@@ -210,27 +211,27 @@ export class AltimateRequest {
   ) {}
 
   private getConfigValue(key: string): string {
+    const defaultValue = workspace.getConfiguration("dbt").get<string>(key, "");
     try {
-      const altimateConfigPath = workspace
-        .getConfiguration("dbt")
-        .get<string>("altimateConfigPath", "${workspaceFolder}/.altimate.json");
+      const workspacePath = workspace.workspaceFolders![0].uri.fsPath;
+      const altimateConfigPath = path.join(
+        workspacePath,
+        workspace
+          .getConfiguration("dbt")
+          .get<string>("altimateConfigPath", ".altimate.json"),
+      );
       if (!existsSync(altimateConfigPath)) {
-        return workspace.getConfiguration("dbt").get<string>(key, "");
+        return defaultValue;
       }
-      const configFile = JSON.parse(
-        readFileSync(altimateConfigPath).toString(),
-      );
-      return (
-        configFile[key] ||
-        workspace.getConfiguration("dbt").get<string>(key, "")
-      );
+      const config = JSON.parse(readFileSync(altimateConfigPath).toString());
+      return config[key] || defaultValue;
     } catch (e) {
       this.dbtTerminal.error(
         "getConfigValue",
         `Error while getting value for ${key} from config`,
         e,
       );
-      return workspace.getConfiguration("dbt").get<string>(key, "");
+      return defaultValue;
     }
   }
 
