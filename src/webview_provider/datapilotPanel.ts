@@ -54,27 +54,6 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     const queryText = window.activeTextEditor?.document.getText();
 
     switch (command) {
-      case "getNewDocsPanelState":
-        const newDocsPanelState = workspace
-          .getConfiguration("dbt")
-          .get<boolean>("enableNewDocsPanel", true);
-
-        this.sendResponseToWebview({
-          command: "response",
-          data: {
-            enabled: newDocsPanelState,
-          },
-          syncRequestId,
-        });
-        break;
-
-      case "enableNewDocsPanel":
-        this.emitterService.fire({
-          command: "enableNewDocsPanel",
-          payload: params,
-        });
-        break;
-
       case "sendFeedback":
         if (!queryText) {
           return;
