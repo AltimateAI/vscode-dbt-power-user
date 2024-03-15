@@ -33,10 +33,8 @@ export class ValidationProvider implements Disposable {
   }
 
   private async _validateCredentials(silent: boolean) {
-    const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
-    const instance = workspace
-      .getConfiguration("dbt")
-      .get<string>("altimateInstanceName");
+    const key = this.altimate.getAIKey();
+    const instance = this.altimate.getInstanceName();
 
     // only validate when both are set
     if (!key || !instance) {

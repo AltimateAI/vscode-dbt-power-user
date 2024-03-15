@@ -209,11 +209,19 @@ export class AltimateRequest {
     private dbtTerminal: DBTTerminal,
   ) {}
 
-  getConfig(): AltimateConfig | undefined {
-    const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
-    const instance = workspace
+  getInstanceName() {
+    return workspace
       .getConfiguration("dbt")
       .get<string>("altimateInstanceName");
+  }
+
+  getAIKey() {
+    return workspace.getConfiguration("dbt").get<string>("altimateAiKey");
+  }
+
+  getConfig(): AltimateConfig | undefined {
+    const key = this.getAIKey();
+    const instance = this.getInstanceName();
 
     if (key && instance) {
       return { key, instance };
@@ -238,10 +246,8 @@ export class AltimateRequest {
   }
 
   getCredentialsMessage(): string | undefined {
-    const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
-    const instance = workspace
-      .getConfiguration("dbt")
-      .get<string>("altimateInstanceName");
+    const key = this.getAIKey();
+    const instance = this.getInstanceName();
 
     if (!key && !instance) {
       return `To use this feature, please add an API Key and an instance name in the settings.`;
