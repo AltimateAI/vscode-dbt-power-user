@@ -241,10 +241,6 @@ export class NewDocsGenPanel
 
         break;
 
-      case "enableNewDocsPanel":
-        this.toggleDocsPanel(args);
-        break;
-
       case "getCurrentModelDocumentation":
         if (!this._panel) {
           return;
@@ -349,19 +345,8 @@ export class NewDocsGenPanel
           ...payload,
         });
         break;
-      case "enableNewDocsPanel":
-        this.toggleDocsPanel(payload);
       default:
         break;
     }
-  }
-
-  private async toggleDocsPanel({ enable }: Record<string, unknown>) {
-    await workspace
-      .getConfiguration("dbt")
-      .update("enableNewDocsPanel", enable);
-    this.telemetry.sendTelemetryEvent(
-      enable ? "NewDocsPanelEnabled" : "NewDocsPanelDisabled",
-    );
   }
 }

@@ -63,10 +63,6 @@ export class DocGenService {
       if (!documentation) {
         return resolve(undefined);
       }
-      const enableNewDocsPanel = workspace
-        .getConfiguration("dbt")
-        .get<boolean>("enableNewDocsPanel", true);
-
       const baseRequest = {
         columns,
         dbt_model: {
@@ -86,13 +82,11 @@ export class DocGenService {
       >["0"];
 
       try {
-        const result = enableNewDocsPanel
-          ? await this.altimateRequest.generateModelDocsV2({
-              ...baseRequest,
-              user_instructions: message.user_instructions,
-              follow_up_instructions: message.follow_up_instructions,
-            })
-          : await this.altimateRequest.generateModelDocs(baseRequest);
+        const result = await this.altimateRequest.generateModelDocsV2({
+          ...baseRequest,
+          user_instructions: message.user_instructions,
+          follow_up_instructions: message.follow_up_instructions,
+        });
 
         return resolve(result);
       } catch (err) {
@@ -376,9 +370,6 @@ export class DocGenService {
         try {
           const startTime = Date.now();
           const compiledSql = await project.unsafeCompileQuery(queryText);
-          const enableNewDocsPanel = workspace
-            .getConfiguration("dbt")
-            .get<boolean>("enableNewDocsPanel", true);
 
           const baseRequest = {
             columns: [],
@@ -397,17 +388,16 @@ export class DocGenService {
             prompt_hint: message.promptHint || "generate",
             gen_model_description: true,
           } as unknown as DocsGenerateModelRequest;
-          const generateDocsForModel = enableNewDocsPanel
-            ? await this.altimateRequest.generateModelDocsV2({
-                ...baseRequest,
-                user_instructions: {
-                  ...message.user_instructions,
-                  prompt_hint:
-                    message.user_instructions.prompt_hint || "generate",
-                },
-                follow_up_instructions: message.follow_up_instructions,
-              })
-            : await this.altimateRequest.generateModelDocs(baseRequest);
+          const generateDocsForModel =
+            await this.altimateRequest.generateModelDocsV2({
+              ...baseRequest,
+              user_instructions: {
+                ...message.user_instructions,
+                prompt_hint:
+                  message.user_instructions.prompt_hint || "generate",
+              },
+              follow_up_instructions: message.follow_up_instructions,
+            });
 
           if (
             !generateDocsForModel ||
