@@ -224,6 +224,7 @@ export class AltimateRequest {
       .getConfiguration("dbt")
       .get<string>("altimateAiKey", "");
     aiKey = substituteSettingsVariables(aiKey);
+    console.log("thisisaikey:", aiKey);
     return aiKey;
   }
 
