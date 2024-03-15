@@ -212,25 +212,15 @@ export class AltimateRequest {
   getInstanceName() {
     return workspace
       .getConfiguration("dbt")
-      .get<string>("altimateInstanceName");
+      .get<string>("altimateInstanceName", "");
   }
 
   getAIKey() {
-    return workspace.getConfiguration("dbt").get<string>("altimateAiKey");
-  }
-
-  getConfig(): AltimateConfig | undefined {
-    const key = this.getAIKey();
-    const instance = this.getInstanceName();
-
-    if (key && instance) {
-      return { key, instance };
-    }
-    return undefined;
+    return workspace.getConfiguration("dbt").get<string>("altimateAiKey", "");
   }
 
   public enabled() {
-    return !!this.getConfig();
+    return this.getAIKey() && this.getInstanceName();
   }
 
   private async showAPIKeyMessage(message: string) {
@@ -278,7 +268,6 @@ export class AltimateRequest {
   ) {
     const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
     this.dbtTerminal.debug("fetchAsStream:request", url, request);
-    const config = this.getConfig()!;
     const abortController = new AbortController();
     const timeoutHandler = setTimeout(() => {
       abortController.abort();
@@ -289,8 +278,8 @@ export class AltimateRequest {
         body: JSON.stringify(request),
         signal: abortController.signal,
         headers: {
-          "x-tenant": config.instance,
-          Authorization: "Bearer " + config.key,
+          "x-tenant": this.getInstanceName(),
+          Authorization: "Bearer " + this.getAIKey(),
           "Content-Type": "application/json",
         },
       });
@@ -373,7 +362,6 @@ export class AltimateRequest {
     if (message) {
       throw new NoCredentialsError(message);
     }
-    const config = this.getConfig()!;
 
     try {
       const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
@@ -382,8 +370,8 @@ export class AltimateRequest {
         ...fetchArgs,
         signal: abortController.signal,
         headers: {
-          "x-tenant": config.instance,
-          Authorization: "Bearer " + config.key,
+          "x-tenant": this.getInstanceName(),
+          Authorization: "Bearer " + this.getAIKey(),
           "Content-Type": "application/json",
         },
       });
