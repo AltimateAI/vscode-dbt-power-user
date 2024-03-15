@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.36.0",
+  "version": "0.36.1",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -972,7 +972,7 @@
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
-    "@types/mocha": "^10.0.1",
+    "@types/mocha": "^10.0.6",
     "@types/node": "^20.9.1",
     "@types/vscode": "^1.81.0",
     "@types/which": "^3.0.3",
@@ -982,14 +982,14 @@
     "concurrently": "^8.2.2",
     "copy-webpack-plugin": "^11.0.0",
     "cross-env": "^7.0.3",
-    "eslint": "^8.53.0",
+    "eslint": "^8.57.0",
     "eslint-config-prettier": "^8.9.0",
     "eslint-plugin-prettier": "^5.0.1",
     "file-loader": "^6.1.0",
     "glob": "^10.3.10",
     "husky": "^9.0.11",
     "lint-staged": "^14.0.1",
-    "mocha": "^10.2.0",
+    "mocha": "^10.3.0",
     "ovsx": "^0.8.3",
     "prettier": "^3.0.3",
     "prettier-eslint": "^15.0.1",
@@ -1018,7 +1018,7 @@
     "python-bridge": "github:mdesmet/node-python-bridge#feat/detached",
     "reflect-metadata": "^0.1.13",
     "which": "^4.0.0",
-    "yaml": "^2.3.4"
+    "yaml": "^2.4.1"
   },
   "lint-staged": {
     "**/webview_panels/**/*.{ts,tsx}": [
