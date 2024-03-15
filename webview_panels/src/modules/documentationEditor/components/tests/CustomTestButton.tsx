@@ -4,11 +4,13 @@ import classes from "../../styles.module.scss";
 import useAppContext from "@modules/app/useAppContext";
 import { RequestTypes } from "@modules/dataPilot/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
+import { EntityType } from "@modules/dataPilot/components/docGen/types";
 
 interface Props {
   column: string;
+  type: EntityType;
 }
-const CustomTestButton = ({ column }: Props): JSX.Element => {
+const CustomTestButton = ({ column, type }: Props): JSX.Element => {
   const {
     state: { currentDocsData },
   } = useDocumentationContext();
@@ -21,7 +23,10 @@ const CustomTestButton = ({ column }: Props): JSX.Element => {
     postMessageToDataPilot({
       id,
       requestType: RequestTypes.ADD_CUSTOM_TEST,
-      meta: { column, model: currentDocsData?.name },
+      meta: {
+        column: type === EntityType.MODEL ? undefined : column,
+        model: currentDocsData?.name,
+      },
       actions: [],
     });
   };

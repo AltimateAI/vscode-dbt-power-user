@@ -81,9 +81,7 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
               {remainingTests} {remainingTests > 1 ? "tests" : "test"} +
             </Button>
           ) : null}
-          {type === EntityType.COLUMN ? (
-            <AddTest title={title} currentTests={currentTests} />
-          ) : null}
+          <AddTest title={title} currentTests={currentTests} type={type} />
         </Stack>
       </Stack>
       <Drawer ref={drawerRef} onClose={handleClose}>
