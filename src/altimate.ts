@@ -1,5 +1,9 @@
 import { env, Uri, window, workspace } from "vscode";
-import { provideSingleton, processStreamResponse } from "./utils";
+import {
+  provideSingleton,
+  processStreamResponse,
+  substituteSettingsVariables,
+} from "./utils";
 import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
@@ -216,11 +220,15 @@ export class AltimateRequest {
   }
 
   getAIKey() {
-    return workspace.getConfiguration("dbt").get<string>("altimateAiKey", "");
+    let aiKey = workspace
+      .getConfiguration("dbt")
+      .get<string>("altimateAiKey", "");
+    aiKey = substituteSettingsVariables(aiKey);
+    return aiKey;
   }
 
-  public enabled() {
-    return this.getAIKey() && this.getInstanceName();
+  public enabled(): boolean {
+    return !!this.getAIKey() && !!this.getInstanceName();
   }
 
   private async showAPIKeyMessage(message: string) {
