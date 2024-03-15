@@ -26,11 +26,6 @@ export class ForbiddenError extends Error {
 
 export class APIError extends Error {}
 
-interface AltimateConfig {
-  key: string;
-  instance: string;
-}
-
 export interface ColumnLineage {
   source: { uniqueId: string; column_name: string };
   target: { uniqueId: string; column_name: string };
@@ -224,7 +219,6 @@ export class AltimateRequest {
       .getConfiguration("dbt")
       .get<string>("altimateAiKey", "");
     aiKey = substituteSettingsVariables(aiKey);
-    console.log("thisisaikey:", aiKey);
     return aiKey;
   }
 

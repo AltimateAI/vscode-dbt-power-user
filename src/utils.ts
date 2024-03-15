@@ -9,6 +9,7 @@ import {
   Uri,
   workspace,
 } from "vscode";
+import { existsSync, readFileSync } from "fs";
 
 export const isEnclosedWithinCodeBlock: (
   document: TextDocument,
@@ -100,6 +101,18 @@ export function substituteSettingsVariables(value: any): any {
   if (typeof value !== "string") {
     return value;
   }
+  const workspacePath = workspace.workspaceFolders![0].uri.fsPath;
+  const envPath = path.join(workspacePath, ".env");
+  const dotenv: Record<string, string> = {};
+  if (existsSync(envPath)) {
+    for (const line of readFileSync(envPath).toString().split(" ")) {
+      const splits = line.split("=");
+      if (splits.length !== 2) {
+        continue;
+      }
+      dotenv[splits[0]] = splits[1];
+    }
+  }
   const regexVsCodeEnv = /\$\{env\:(.*?)\}/gm;
   let matchResult;
   while ((matchResult = regexVsCodeEnv.exec(value)) !== null) {
@@ -113,11 +126,14 @@ export function substituteSettingsVariables(value: any): any {
         process.env[matchResult[1]]!,
       );
     }
+    if (dotenv[matchResult[1]] !== undefined) {
+      value = value.replace(
+        new RegExp(`\\\$\\\{env\\\:${matchResult[1]}\\\}`, "gm"),
+        dotenv[matchResult[1]]!,
+      );
+    }
   }
-  value = value.replace(
-    "${workspaceFolder}",
-    workspace.workspaceFolders![0].uri.fsPath,
-  );
+  value = value.replace("${workspaceFolder}", workspacePath);
   return value;
 }
 
