@@ -116,9 +116,10 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
   protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
     switch (command) {
       case "stream:chunk":
-        this._panel!.webview.postMessage({
+        this.sendResponseToWebview({
           command: "response",
-          args: payload,
+          syncRequestId: payload.syncRequestId as string | undefined,
+          data: payload.body,
         });
         break;
 
@@ -179,14 +180,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           break;
         case "validateCredentials":
           const isValid = await this.altimateRequest.handlePreviewFeatures();
-          this._panel!.webview.postMessage({
+          this.sendResponseToWebview({
             command: "response",
-            args: {
-              syncRequestId,
-              body: {
-                isValid,
-              },
-              status: true,
+            syncRequestId,
+            data: {
+              isValid,
             },
           });
           break;
@@ -223,14 +221,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               .update(params.key, params.value);
           }
           if (syncRequestId) {
-            this._panel!.webview.postMessage({
+            this.sendResponseToWebview({
               command: "response",
-              args: {
-                syncRequestId,
-                body: {
-                  updated: shouldUpdate,
-                },
-                status: true,
+              syncRequestId,
+              data: {
+                updated: shouldUpdate,
               },
             });
           }
