@@ -179,6 +179,10 @@ export class DBTProject implements Disposable {
     return this.dbtProjectIntegration.getModelPaths();
   }
 
+  getSeedPaths() {
+    return this.dbtProjectIntegration.getSeedPaths();
+  }
+
   getMacroPaths() {
     return this.dbtProjectIntegration.getMacroPaths();
   }
@@ -284,7 +288,20 @@ export class DBTProject implements Disposable {
       `firing ProjectConfigChanged event for the project "${this.getProjectName()}" at ${
         this.projectRoot
       } configuration`,
-      event,
+      "targetPaths",
+      this.getTargetPath(),
+      "modelPaths",
+      this.getModelPaths(),
+      "seedPaths",
+      this.getSeedPaths(),
+      "macroPaths",
+      this.getMacroPaths(),
+      "packagesInstallPath",
+      this.getPackageInstallPath(),
+      "version",
+      this.getDBTVersion(),
+      "adapterType",
+      this.getAdapterType(),
     );
   }
 
@@ -495,7 +512,7 @@ export class DBTProject implements Disposable {
     }
   }
 
-  async getDBTVersion(): Promise<number[] | undefined> {
+  getDBTVersion(): number[] | undefined {
     // TODO: do this when config or python env changes and cache value
     try {
       return this.dbtProjectIntegration.getVersion();
