@@ -82,12 +82,13 @@ export class InsightsPanel extends AltimateWebviewProvider {
 
             const projectPath = this.getCurrentProject();
             if (!projectPath) {
-              throw new Error("No project selected");
+              this.dbtTerminal.warn("InsightsPanel", "No project selected");
+              return;
             }
 
-            this._panel!.webview.postMessage({
+            this.sendResponseToWebview({
               command: "renderDeferConfig",
-              args: {
+              data: {
                 config: this.deferToProdService.getDeferConfigByProjectRoot(
                   projectPath.projectRoot.fsPath,
                 ),
@@ -104,7 +105,8 @@ export class InsightsPanel extends AltimateWebviewProvider {
   private getCurrentProject() {
     const currentFilePath = window.activeTextEditor?.document.uri;
     if (!currentFilePath) {
-      throw new Error("No file selected in the editor");
+      this.dbtTerminal.debug("InsightsPanel", "No file selected in the editor");
+      return;
     }
 
     const currentProject =
@@ -164,14 +166,11 @@ export class InsightsPanel extends AltimateWebviewProvider {
         .update("deferConfigPerProject", newConfig, target);
 
       if (syncRequestId) {
-        this._panel!.webview.postMessage({
+        this.sendResponseToWebview({
           command: "response",
-          args: {
-            syncRequestId,
-            body: {
-              updated: true,
-            },
-            status: true,
+          syncRequestId,
+          data: {
+            updated: true,
           },
         });
       }
@@ -181,15 +180,13 @@ export class InsightsPanel extends AltimateWebviewProvider {
         "error while updating defer config",
         err,
       );
-      this._panel!.webview.postMessage({
+      this.sendResponseToWebview({
         command: "response",
-        args: {
-          syncRequestId,
-          body: {
-            updated: false,
-          },
-          status: false,
+        syncRequestId,
+        data: {
+          updated: false,
         },
+        error: (err as Error).message,
       });
     }
   }
@@ -204,13 +201,10 @@ export class InsightsPanel extends AltimateWebviewProvider {
       }
       if (this.projectIntegrations) {
         if (syncRequestId) {
-          this._panel!.webview.postMessage({
+          this.sendResponseToWebview({
             command: "response",
-            args: {
-              syncRequestId,
-              body: this.projectIntegrations,
-              status: true,
-            },
+            syncRequestId,
+            data: this.projectIntegrations,
           });
         }
         return;
@@ -219,13 +213,10 @@ export class InsightsPanel extends AltimateWebviewProvider {
       if (!this.altimateRequest.handlePreviewFeatures()) {
         this.projectIntegrations = [];
         if (syncRequestId) {
-          this._panel!.webview.postMessage({
+          this.sendResponseToWebview({
             command: "response",
-            args: {
-              syncRequestId,
-              body: this.projectIntegrations,
-              status: true,
-            },
+            syncRequestId,
+            data: this.projectIntegrations,
           });
         }
         return;
@@ -252,13 +243,10 @@ export class InsightsPanel extends AltimateWebviewProvider {
 
       this.projectIntegrations = response;
       if (syncRequestId) {
-        this._panel!.webview.postMessage({
+        this.sendResponseToWebview({
           command: "response",
-          args: {
-            syncRequestId,
-            body: response,
-            status: true,
-          },
+          syncRequestId,
+          data: response,
         });
       }
     } catch (err) {
@@ -267,15 +255,13 @@ export class InsightsPanel extends AltimateWebviewProvider {
         `could not fetch project integrations`,
         err,
       );
-      this._panel!.webview.postMessage({
+      this.sendResponseToWebview({
         command: "response",
-        args: {
-          syncRequestId,
-          body: {
-            response: [],
-          },
-          status: false,
+        syncRequestId,
+        data: {
+          response: [],
         },
+        error: (err as Error).message,
       });
     }
   }
@@ -291,13 +277,10 @@ export class InsightsPanel extends AltimateWebviewProvider {
         dbtCoreIntegrationId,
       );
       if (syncRequestId) {
-        this._panel!.webview.postMessage({
+        this.sendResponseToWebview({
           command: "response",
-          args: {
-            syncRequestId,
-            body: response,
-            status: true,
-          },
+          syncRequestId,
+          body: response,
         });
       }
     } catch (err) {
@@ -313,15 +296,13 @@ export class InsightsPanel extends AltimateWebviewProvider {
         `could not download remote manifest`,
         err,
       );
-      this._panel!.webview.postMessage({
+      this.sendResponseToWebview({
         command: "response",
-        args: {
-          syncRequestId,
-          body: {
-            response: [],
-          },
-          status: false,
+        syncRequestId,
+        data: {
+          response: [],
         },
+        error: (err as Error).message,
       });
     }
   }
@@ -343,13 +324,10 @@ export class InsightsPanel extends AltimateWebviewProvider {
       });
 
       if (syncRequestId) {
-        this._panel!.webview.postMessage({
+        this.sendResponseToWebview({
           command: "response",
-          args: {
-            syncRequestId,
-            body: dbtProjects,
-            status: true,
-          },
+          syncRequestId,
+          data: dbtProjects,
         });
       }
     } catch (err) {
@@ -358,15 +336,13 @@ export class InsightsPanel extends AltimateWebviewProvider {
         `could not fetch project integrations`,
         err,
       );
-      this._panel!.webview.postMessage({
+      this.sendResponseToWebview({
         command: "response",
-        args: {
-          syncRequestId,
-          body: {
-            response: [],
-          },
-          status: false,
+        syncRequestId,
+        data: {
+          response: [],
         },
+        error: (err as Error).message,
       });
     }
   }
@@ -381,24 +357,19 @@ export class InsightsPanel extends AltimateWebviewProvider {
     });
     if (openDialog === undefined || openDialog.length === 0) {
       this.dbtTerminal.debug("InsightsPanel", "opendialog cancelled");
-      this._panel!.webview.postMessage({
+      this.sendResponseToWebview({
         command: "response",
-        args: {
-          syncRequestId,
-          body: { error: "Folder not selected" },
-          status: false,
-        },
+        syncRequestId,
+        data: { error: "Folder not selected" },
+        error: "Folder not selected",
       });
       return;
     }
 
-    this._panel!.webview.postMessage({
+    this.sendResponseToWebview({
       command: "response",
-      args: {
-        syncRequestId,
-        body: { path: openDialog[0].fsPath },
-        status: true,
-      },
+      syncRequestId,
+      data: { path: openDialog[0].fsPath },
     });
   }
 
@@ -425,9 +396,10 @@ export class InsightsPanel extends AltimateWebviewProvider {
           { returnResult: true },
         );
 
-        this._panel!.webview.postMessage({
+        this.sendResponseToWebview({
           command: "response",
-          args: { syncRequestId, body: result, status: true },
+          syncRequestId,
+          data: result,
         });
         break;
       case "altimateScan":
@@ -441,15 +413,13 @@ export class InsightsPanel extends AltimateWebviewProvider {
         const projectPath =
           projectRoot || (await this.getCurrentProject())?.projectRoot.fsPath;
         if (!projectPath) {
-          this._panel!.webview.postMessage({
+          this.sendResponseToWebview({
             command: "response",
-            args: {
-              syncRequestId,
-              body: {
-                error: "No project selected",
-              },
-              status: false,
+            syncRequestId,
+            data: {
+              error: "No project selected",
             },
+            error: "No project selected",
           });
           return;
         }
@@ -465,16 +435,13 @@ export class InsightsPanel extends AltimateWebviewProvider {
           .getConfiguration("dbt")
           .get<string>("dbtIntegration", "core");
 
-        this._panel!.webview.postMessage({
+        this.sendResponseToWebview({
           command: "response",
-          args: {
-            syncRequestId,
-            body: {
-              config,
-              projectPath,
-              dbtIntegrationMode,
-            },
-            status: true,
+          syncRequestId,
+          data: {
+            config,
+            projectPath,
+            dbtIntegrationMode,
           },
         });
         break;
