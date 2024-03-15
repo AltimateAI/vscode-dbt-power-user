@@ -13,6 +13,7 @@ import * as os from "os";
 import { RateLimitException } from "./exceptions";
 import { DBTProject } from "./manifest/dbtProject";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
+import { existsSync, readFileSync } from "fs";
 
 export class NoCredentialsError extends Error {}
 
@@ -208,18 +209,37 @@ export class AltimateRequest {
     private dbtTerminal: DBTTerminal,
   ) {}
 
+  private getConfigValue(key: string): string {
+    try {
+      const altimateConfigPath = workspace
+        .getConfiguration("dbt")
+        .get<string>("altimateConfigPath", "${workspaceFolder}/.altimate.json");
+      if (!existsSync(altimateConfigPath)) {
+        return workspace.getConfiguration("dbt").get<string>(key, "");
+      }
+      const configFile = JSON.parse(
+        readFileSync(altimateConfigPath).toString(),
+      );
+      return (
+        configFile[key] ||
+        workspace.getConfiguration("dbt").get<string>(key, "")
+      );
+    } catch (e) {
+      this.dbtTerminal.error(
+        "getConfigValue",
+        `Error while getting value for ${key} from config`,
+        e,
+      );
+      return workspace.getConfiguration("dbt").get<string>(key, "");
+    }
+  }
+
   getInstanceName() {
-    return workspace
-      .getConfiguration("dbt")
-      .get<string>("altimateInstanceName", "");
+    return this.getConfigValue("altimateInstanceName");
   }
 
   getAIKey() {
-    let aiKey = workspace
-      .getConfiguration("dbt")
-      .get<string>("altimateAiKey", "");
-    aiKey = substituteSettingsVariables(aiKey);
-    return aiKey;
+    return this.getConfigValue("altimateAiKey");
   }
 
   public enabled(): boolean {

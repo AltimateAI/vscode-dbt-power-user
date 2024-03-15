@@ -79,6 +79,11 @@
             "type": "boolean",
             "description": "Enable the new query panel in dbt.",
             "default": true
+          },
+          "dbt.altimateConfigPath": {
+            "type": "string",
+            "description": "Path for altimate config file.",
+            "default": "${workspaceFolder}/.altimate.json"
           }
         }
       },
