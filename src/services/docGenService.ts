@@ -204,6 +204,7 @@ export class DocGenService {
           description: column.description,
           generated: false,
           source: Source.YAML,
+          type: column.data_type,
         };
       }),
     } as DBTDocumentation;

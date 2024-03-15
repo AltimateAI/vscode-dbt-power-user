@@ -173,7 +173,11 @@ const DatapilotChatFollowupComponent = ({
                 <Stack className={classes.actionButtons}>
                   <Stack>
                     {codeActions.map((button) => (
-                      <Button key={button.title} onClick={button.action}>
+                      <Button
+                        color="primary"
+                        key={button.title}
+                        onClick={button.action}
+                      >
                         {button.title}
                       </Button>
                     ))}
