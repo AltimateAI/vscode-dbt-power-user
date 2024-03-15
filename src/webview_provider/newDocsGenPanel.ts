@@ -63,6 +63,17 @@ export class NewDocsGenPanel
         },
       ),
     );
+
+    this._disposables.push(
+      window.onDidChangeActiveTextEditor(
+        async (event: TextEditor | undefined) => {
+          if (event === undefined) {
+            return;
+          }
+          this.transmitTestsData();
+        },
+      ),
+    );
   }
 
   protected onManifestCacheChanged(event: ManifestCacheChangedEvent): void {

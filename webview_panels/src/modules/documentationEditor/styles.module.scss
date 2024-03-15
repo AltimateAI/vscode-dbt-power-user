@@ -244,6 +244,20 @@
   :global .card-footer {
     border: none;
   }
+
+  :global .card-title {
+    border: none;
+    margin: 0;
+    font-weight: 400;
+    margin-bottom: 1rem;
+  }
+
+  :global .card-body {
+  }
+
+  :global .card-footer {
+    border: none;
+  }
 }
 
 .popover {
