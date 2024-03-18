@@ -1,5 +1,8 @@
 import { CheckedSquareIcon, EmptySquareIcon } from "@assets/icons";
-import { executeRequestInSync } from "@modules/app/requestExecutor";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
 import useAppContext from "@modules/app/useAppContext";
 import CommonActionButtons from "@modules/commonActionButtons/CommonActionButtons";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
@@ -34,6 +37,12 @@ const DocumentationEditor = (): JSX.Element => {
       dispatch(removeFromSelectedPage(page));
       return;
     }
+    executeRequestInAsync("sendTelemetryEvent", {
+      eventName: `${page}-opened`,
+      properties: {
+        model: currentDocsData?.name,
+      },
+    });
     dispatch(addToSelectedPage(page));
   };
 

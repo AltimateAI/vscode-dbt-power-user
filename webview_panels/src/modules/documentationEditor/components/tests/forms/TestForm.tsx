@@ -16,6 +16,7 @@ import Relationships from "./Relationships";
 import { useEffect, useMemo } from "react";
 import useTestFormSave, { TestOperation } from "../hooks/useTestFormSave";
 import { SaveRequest } from "../types";
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
 
 interface Props {
   formType: DbtGenericTests;
@@ -57,6 +58,12 @@ const TestForm = ({ formType, onClose, column }: Props): JSX.Element | null => {
 
   const handleCancel = () => {
     reset();
+    executeRequestInAsync("sendTelemetryEvent", {
+      eventName: `addTestCancelled`,
+      properties: {
+        column,
+      },
+    });
     if (!isSaving) {
       onClose();
     }

@@ -250,6 +250,11 @@ export class NewDocsGenPanel
         });
       case "getColumnsOfSources":
         try {
+          this.telemetry.sendTelemetryEvent("getColumnsOfSources", {
+            source: args.source as string,
+            table: args.table as string,
+          });
+
           const columnsFromSources = await this.queryManifestService
             .getProject()
             ?.getColumnsOfSource(args.source as string, args.table as string);
@@ -282,6 +287,9 @@ export class NewDocsGenPanel
         break;
       case "getColumnsOfModel":
         try {
+          this.telemetry.sendTelemetryEvent("getColumnsOfModel", {
+            source: args.model as string,
+          });
           const columns = await this.queryManifestService
             .getProject()
             ?.getColumnsOfModel(args.model as string);

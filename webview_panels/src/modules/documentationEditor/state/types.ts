@@ -6,9 +6,9 @@ export enum Source {
 }
 
 export enum Pages {
-  DOCUMENTATION,
-  TESTS,
-  TAGS,
+  DOCUMENTATION = "Documentation",
+  TAGS = "Tags",
+  TESTS = "Tests",
 }
 export interface MetadataColumn {
   name: string;

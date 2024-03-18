@@ -30,6 +30,8 @@ import classes from "../../styles.module.scss";
 import { DeleteIcon, EditIcon } from "@assets/icons";
 import { findDbtTestType } from "./utils";
 import DbtTestCode from "./DbtTestCode";
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
+import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 
 const schema = Yup.object({
   to: Yup.string().optional(),
@@ -47,6 +49,9 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
   const { control, handleSubmit, setValue, watch } = useForm<SaveRequest>({
     resolver: yupResolver(schema),
   });
+  const {
+    state: { currentDocsData },
+  } = useDocumentationContext();
 
   const { isSaving, handleSave } = useTestFormSave();
 
@@ -61,6 +66,13 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
 
   const handleDelete = () => {
     panelLogger.info("delete test", test);
+    executeRequestInAsync("sendTelemetryEvent", {
+      eventName: `deleteTest`,
+      properties: {
+        column,
+        model: currentDocsData?.name,
+      },
+    });
     handleSave(
       { test: test.test_metadata?.name as DbtGenericTests },
       column,
@@ -70,6 +82,13 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
   };
 
   const handleEdit = () => {
+    executeRequestInAsync("sendTelemetryEvent", {
+      eventName: `editTest`,
+      properties: {
+        column,
+        model: currentDocsData?.name,
+      },
+    });
     setIsInEditMode(true);
     if (test.test_metadata?.name === DbtGenericTests.ACCEPTED_VALUES) {
       setValue(
@@ -93,6 +112,13 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
   };
 
   const handleCancel = () => {
+    executeRequestInAsync("sendTelemetryEvent", {
+      eventName: `editTestCancel`,
+      properties: {
+        column,
+        model: currentDocsData?.name,
+      },
+    });
     setIsInEditMode(false);
   };
 

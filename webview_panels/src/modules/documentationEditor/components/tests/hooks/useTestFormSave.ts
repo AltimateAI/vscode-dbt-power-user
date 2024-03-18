@@ -12,6 +12,7 @@ import {
   TestMetadataRelationshipsKwArgs,
   TestMetadataAcceptedValuesKwArgs,
 } from "@modules/documentationEditor/state/types";
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
 
 export enum TestOperation {
   CREATE,
@@ -136,6 +137,15 @@ const useTestFormSave = (): {
       return;
     }
 
+    executeRequestInAsync("sendTelemetryEvent", {
+      eventName: `saveTest`,
+      properties: {
+        column,
+        model: currentDocsData?.name,
+        data,
+        operation,
+      },
+    });
     const testsData = getUpdatedTestsData(data, column, operation);
     panelLogger.info("add/update test data", testsData);
     dispatch(updateCurrentDocsTests(testsData));

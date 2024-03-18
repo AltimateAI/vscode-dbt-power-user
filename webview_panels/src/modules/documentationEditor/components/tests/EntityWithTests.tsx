@@ -8,6 +8,7 @@ import DisplayTestDetails from "./DisplayTestDetails";
 import classes from "../../styles.module.scss";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { TestsIcon } from "@assets/icons";
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
 
 interface Props {
   title: string;
@@ -19,7 +20,7 @@ const MaxVisibleTests = 3;
 
 const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
   const {
-    state: { selectedPages },
+    state: { selectedPages, currentDocsData },
   } = useDocumentationContext();
   const [selectedTest, setSelectedTest] = useState<DBTModelTest | null>(null);
   const [showAllTests, setshowAllTests] = useState(false);
@@ -32,6 +33,13 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
   const handleShowAllTests = () => setshowAllTests(true);
 
   const onSelect = (test: DBTModelTest) => {
+    executeRequestInAsync("sendTelemetryEvent", {
+      eventName: `showTestDetails`,
+      properties: {
+        column: EntityType.COLUMN === type ? title : undefined,
+        model: currentDocsData?.name,
+      },
+    });
     setSelectedTest(test);
     drawerRef.current?.open();
   };
