@@ -1,13 +1,9 @@
-import { AltimateRequest } from "../altimate";
 import { provideSingleton } from "../utils";
-import { DocGenService } from "./docGenService";
-import { StreamingService } from "./streamingService";
-import { QueryManifestService } from "./queryManifestService";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { MacroMetaMap } from "../domain";
 
 @provideSingleton(DbtTestService)
 export class DbtTestService {
+  // Find the file path of test macro
   public getMacroFilePath = (
     macros: [string],
     projectName: string,
@@ -17,10 +13,14 @@ export class DbtTestService {
     if (!testName) {
       return;
     }
+
+    // Find if current test depends on test macro in current project
     const macro = macros.find(
       (m) => m === `macro.${projectName}.test_${testName}`,
     );
+
     if (macro) {
+      // return the file path if it ends with sql
       const macroData = macroMetaMap.get(`test_${testName}`);
       return macroData?.path.endsWith(".sql") ? macroData?.path : undefined;
     }
