@@ -1,4 +1,7 @@
-import { executeRequestInSync } from "@modules/app/requestExecutor";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { Button, OptionType, Select, Spinner, Stack } from "@uicore";
 import { useEffect, useState } from "react";
@@ -23,12 +26,29 @@ const AcceptedValues = ({
   const [, setRefresh] = useState(Date.now());
   const [isLoading, setIsLoading] = useState(false);
   const getDistinctColumnValues = async () => {
+    const startTime = Date.now();
     setIsLoading(true);
+    executeRequestInAsync("sendTelemetryEvent", {
+      eventName: `getDistinctColumnValues`,
+      properties: {
+        column,
+        model: currentDocsData?.name,
+      },
+    });
     const result = (await executeRequestInSync("getDistinctColumnValues", {
       model: currentDocsData?.name,
       column,
     })) as string[] | undefined;
     setIsLoading(false);
+
+    executeRequestInAsync("sendTelemetryEvent", {
+      eventName: `getDistinctColumnValues`,
+      properties: {
+        column,
+        model: currentDocsData?.name,
+      },
+      measurements: { timeTaken: Date.now() - startTime },
+    });
 
     if (result?.length && values?.length) {
       const items = ["Yes, overwrite", "Cancel"];
@@ -69,6 +89,14 @@ const AcceptedValues = ({
               const newValues = ((updates ?? []) as OptionType[])?.map(
                 (val) => val.value,
               );
+              executeRequestInAsync("sendTelemetryEvent", {
+                eventName: `acceptedValuesAdded`,
+                properties: {
+                  column,
+                  model: currentDocsData?.name,
+                  values: newValues,
+                },
+              });
               setValue("accepted_values", newValues);
 
               return onChange(newValues);

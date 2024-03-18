@@ -16,6 +16,7 @@ import { useRef, useState } from "react";
 import TestForm from "./forms/TestForm";
 import classes from "../../styles.module.scss";
 import useTestFormSave, { TestOperation } from "./hooks/useTestFormSave";
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
 
 interface Props {
   title: string;
@@ -29,6 +30,12 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
   const { handleSave } = useTestFormSave();
 
   const handleNewTestClick = (test: DbtGenericTests) => {
+    executeRequestInAsync("sendTelemetryEvent", {
+      eventName: `addNewTest`,
+      properties: {
+        test,
+      },
+    });
     if (test === DbtGenericTests.NOT_NULL || test === DbtGenericTests.UNIQUE) {
       handleSave({ test }, title, TestOperation.CREATE);
       setShowButtons(false);
