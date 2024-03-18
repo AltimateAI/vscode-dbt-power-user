@@ -590,7 +590,7 @@ export class DBTProject implements Disposable {
       true,
       { model, column },
     );
-    const query = `select ${column} as values from ${model} group by ${column}`;
+    const query = `select ${column} from ${model} group by ${column}`;
     const queryExecution = await this.dbtProjectIntegration.executeSQL(
       query,
       100, // setting this 100 as executeSql needs a limit and distinct values will be usually less in number

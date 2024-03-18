@@ -11,9 +11,12 @@ import {
   DatapilotQueryAnalysisChat,
   QueryAnalysisType,
   QueryExplainUpdate,
-  QueryAnalysisFollowup,
 } from "../types";
-import { RequestState, RequestTypes } from "@modules/dataPilot/types";
+import {
+  DataPilotChatFollowup,
+  RequestState,
+  RequestTypes,
+} from "@modules/dataPilot/types";
 import useQueryAnalysisAction from "../useQueryAnalysisAction";
 import { panelLogger } from "@modules/logger";
 import useDataPilotContext from "@modules/dataPilot/useDataPilotContext";
@@ -53,7 +56,7 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
     datapilotDispatch(
       upsertFollowup({
         sessionId: chat?.id,
-        followup: result as QueryAnalysisFollowup,
+        followup: result as DataPilotChatFollowup,
       }),
     );
   };

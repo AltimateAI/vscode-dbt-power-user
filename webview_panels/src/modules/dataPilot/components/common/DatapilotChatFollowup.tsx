@@ -2,7 +2,6 @@ import { parse } from "yaml";
 import { AltimateIcon } from "@assets/icons";
 import ResultFeedbackButtons from "@modules/feedback/ResultFeedbackButtons";
 import { Button, Card, CardBody, CardTitle, Stack } from "@uicore";
-import { QueryAnalysisFollowup } from "../queryAnalysis/types";
 import classes from "../../datapilot.module.scss";
 import {
   Feedback,
@@ -14,6 +13,7 @@ import UserQuery from "./UserQuery";
 import QueryAnalysisActionButton from "../queryAnalysis/QueryAnalysisActionButton";
 import {
   DataPilotChatAction,
+  DataPilotChatFollowup,
   RequestState,
   RequestTypes,
 } from "@modules/dataPilot/types";
@@ -26,7 +26,7 @@ import { useCallback, useMemo } from "react";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
 
 interface Props {
-  response: QueryAnalysisFollowup;
+  response: DataPilotChatFollowup;
   command: DataPilotChatAction["command"];
   showFollowup: boolean;
   hideFeedback?: boolean;

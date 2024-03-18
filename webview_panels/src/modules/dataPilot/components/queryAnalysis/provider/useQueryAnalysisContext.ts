@@ -1,7 +1,7 @@
 import useDataPilotContext from "@modules/dataPilot/useDataPilotContext";
 import {
   DatapilotQueryAnalysisChat,
-  QueryAnalysisHistory,
+  QueryAnalysisHistory as DatapilotChatThreadHistory,
   QueryAnalysisHistoryType,
 } from "../types";
 import { useContext, useMemo } from "react";
@@ -12,7 +12,7 @@ export const MAX_ALLOWED_FOLLOWUP_QUESTIONS = 15;
 
 const useQueryAnalysisContext = (): {
   chat?: DatapilotQueryAnalysisChat;
-  history: QueryAnalysisHistory[];
+  history: DatapilotChatThreadHistory[];
   isMaxFollowupReached: boolean;
   packageVersions: Record<string, string>;
 } & QueryAnalysisContextProps => {
@@ -27,7 +27,7 @@ const useQueryAnalysisContext = (): {
   const followups = chat?.followups;
 
   const history = useMemo(() => {
-    const intialMessage = [] as QueryAnalysisHistory[];
+    const intialMessage = [] as DatapilotChatThreadHistory[];
     if (!followups?.length) {
       return intialMessage;
     }
@@ -41,7 +41,7 @@ const useQueryAnalysisContext = (): {
         ])
         .flat()
         .filter((r) => !!r.content),
-    ] as QueryAnalysisHistory[];
+    ] as DatapilotChatThreadHistory[];
   }, [chat, followups]);
 
   return {

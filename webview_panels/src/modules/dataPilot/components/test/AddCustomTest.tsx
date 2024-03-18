@@ -10,6 +10,8 @@ import {
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 
+const DependentPackages = ["dbt_expectations", "dbt_utils"];
+
 const AddCustomTest = (): JSX.Element | null => {
   const {
     state: { items, currentSessionId },
@@ -21,7 +23,7 @@ const AddCustomTest = (): JSX.Element | null => {
 
   const loadDependentPackageVersions = () => {
     Promise.all(
-      ["dbt_expectations", "dbt_utils"].map((packageName) =>
+      DependentPackages.map((packageName) =>
         executeRequestInSync("findPackageVersion", { packageName }),
       ),
     )

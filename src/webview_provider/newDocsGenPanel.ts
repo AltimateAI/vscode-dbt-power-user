@@ -15,14 +15,13 @@ import { QueryManifestService } from "../services/queryManifestService";
 import { DocGenService } from "../services/docGenService";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
+import { provideSingleton } from "../utils";
 import {
   AltimateWebviewProvider,
   HandleCommandProps,
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
 import { DocsGenPanelView } from "./docsEditPanel";
-import { PythonException } from "python-bridge";
 import { TestMetaData } from "../domain";
 import { parse, stringify } from "yaml";
 
@@ -51,17 +50,6 @@ export class NewDocsGenPanel
       emitterService,
       dbtTerminal,
       queryManifestService,
-    );
-
-    this._disposables.push(
-      window.onDidChangeActiveTextEditor(
-        async (event: TextEditor | undefined) => {
-          if (event === undefined) {
-            return;
-          }
-          this.transmitTestsData();
-        },
-      ),
     );
 
     this._disposables.push(
@@ -204,40 +192,32 @@ export class NewDocsGenPanel
 
     switch (command) {
       case "getTestCode":
-        this.handleSyncRequestFromWebview(syncRequestId, async () => {
-          return {
-            code: this.getDbtTestCode(
-              args.test as TestMetaData,
-              args.model as string,
-            ),
-          };
-        });
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            return {
+              code: this.getDbtTestCode(
+                args.test as TestMetaData,
+                args.model as string,
+              ),
+            };
+          },
+          command,
+        );
         break;
 
       case "getDistinctColumnValues":
-        this.handleSyncRequestFromWebview(syncRequestId, async () => {
-          try {
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
             const result = await this.queryManifestService
               .getProject()
               ?.getColumnValues(args.model as string, args.column as string);
             return result;
-          } catch (error) {
-            this.dbtTerminal.error(
-              "getDistinctColumnValues",
-              "Unable to find distinct values for column",
-              error,
-              true,
-              args,
-            );
-
-            const message =
-              error instanceof PythonException
-                ? error.exception.message
-                : (error as Error).message;
-            window.showErrorMessage(extendErrorWithSupportLinks(message));
-            return [];
-          }
-        });
+          },
+          command,
+          true,
+        );
 
         break;
 
@@ -259,8 +239,9 @@ export class NewDocsGenPanel
         break;
 
       case "getColumnsOfSources":
-        this.handleSyncRequestFromWebview(syncRequestId, async () => {
-          try {
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
             const columnsFromSources = await this.queryManifestService
               .getProject()
               ?.getColumnsOfSource(args.source as string, args.table as string);
@@ -269,69 +250,59 @@ export class NewDocsGenPanel
                 ? columnsFromSources.map((c) => c.column)
                 : [],
             };
-          } catch (error) {
-            this.dbtTerminal.error(
-              "newDocsGenPanel:getColumnsOfSources",
-              "unable to get columns of sources",
-              error,
-            );
-            const message =
-              error instanceof PythonException
-                ? error.exception.message
-                : (error as Error).message;
-            window.showErrorMessage(extendErrorWithSupportLinks(message));
-            return { columns: [] };
-          }
-        });
+          },
+          command,
+          true,
+        );
         break;
 
       case "getColumnsOfModel":
-        this.handleSyncRequestFromWebview(syncRequestId, async () => {
-          try {
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
             const columns = await this.queryManifestService
               .getProject()
               ?.getColumnsOfModel(args.model as string);
             return {
               columns: columns ? columns.map((c) => c.column) : [],
             };
-          } catch (error) {
-            this.dbtTerminal.error(
-              "newDocsGenPanel:getColumnsOfModel",
-              "unable to get columns of models",
-              error,
-            );
-            const message =
-              error instanceof PythonException
-                ? error.exception.message
-                : (error as Error).message;
-            window.showErrorMessage(extendErrorWithSupportLinks(message));
-            return { columns: [] };
-          }
-        });
+          },
+          command,
+          true,
+        );
         break;
 
       case "getSourcesInProject":
-        this.handleSyncRequestFromWebview(syncRequestId, async () => {
-          const sources = this.queryManifestService.getSourcesInProject(
-            window.activeTextEditor?.document.uri,
-          );
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const sources = this.queryManifestService.getSourcesInProject(
+              window.activeTextEditor?.document.uri,
+            );
 
-          return {
-            sources,
-          };
-        });
+            return {
+              sources,
+            };
+          },
+          command,
+          true,
+        );
         break;
 
       case "getModelsInProject":
-        this.handleSyncRequestFromWebview(syncRequestId, async () => {
-          const models = this.queryManifestService.getModelsInProject(
-            window.activeTextEditor?.document.uri,
-          );
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const models = this.queryManifestService.getModelsInProject(
+              window.activeTextEditor?.document.uri,
+            );
 
-          return {
-            models,
-          };
-        });
+            return {
+              models,
+            };
+          },
+          command,
+        );
         break;
 
       default:

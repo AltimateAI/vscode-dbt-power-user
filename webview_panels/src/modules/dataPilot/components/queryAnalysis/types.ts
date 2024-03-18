@@ -11,11 +11,7 @@ export interface DatapilotQueryAnalysisChat extends DataPilotChat {
   analysisType?: QueryAnalysisType;
 }
 
-export type DatapilotCustomTestChat = DataPilotChat;
-
-export type QueryAnalysisFollowup = DataPilotChatFollowup;
-
-export type QueryExplainUpdate = Partial<QueryAnalysisFollowup>;
+export type QueryExplainUpdate = Partial<DataPilotChatFollowup>;
 
 export enum QueryAnalysisHistoryType {
   HUMAN = "HumanMessage",

@@ -1,10 +1,13 @@
 import { Sync, each } from "factory.ts";
 import { faker } from "@faker-js/faker";
-import { RequestState, RequestTypes } from "@modules/dataPilot/types";
+import {
+  DataPilotChatFollowup,
+  RequestState,
+  RequestTypes,
+} from "@modules/dataPilot/types";
 import {
   DatapilotQueryAnalysisChat,
   QueryAnalysisType,
-  QueryAnalysisFollowup,
 } from "@modules/dataPilot/components/queryAnalysis/types";
 
 export const DatapilotQueryAnalysisFactory =
@@ -32,7 +35,7 @@ export const DatapilotQueryExplainFactory =
   });
 
 export const DatapilotQueryExplainResultFactory =
-  Sync.makeFactory<QueryAnalysisFollowup>({
+  Sync.makeFactory<DataPilotChatFollowup>({
     id: each(() => faker.string.uuid()),
     datapilot_title: "Query explanation",
     response: each(() =>

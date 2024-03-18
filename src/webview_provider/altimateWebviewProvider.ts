@@ -11,7 +11,7 @@ import {
   window,
   workspace,
 } from "vscode";
-import { provideSingleton } from "../utils";
+import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
 import path = require("path");
@@ -23,6 +23,7 @@ import { AltimateRequest } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { QueryManifestService } from "../services/queryManifestService";
+import { PythonException } from "python-bridge";
 
 export type UpdateConfigProps = {
   key: string;
@@ -104,9 +105,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     });
   }
 
+  /**
+   * common method to trigger the command and handle errors and send response to webview
+   * @param syncRequestId
+   * @param callback
+   * @param command
+   */
   protected async handleSyncRequestFromWebview(
     syncRequestId: string | undefined,
     callback: () => any,
+    command: string,
+    showErrorNotification?: boolean,
   ) {
     try {
       const response = await callback();
@@ -116,11 +125,19 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         syncRequestId,
         data: response,
       });
-    } catch (err) {
+    } catch (error) {
+      const message =
+        error instanceof PythonException
+          ? error.exception.message
+          : (error as Error).message;
+      this.dbtTerminal.error(command, message, error);
+      if (showErrorNotification) {
+        window.showErrorMessage(extendErrorWithSupportLinks(message));
+      }
       this.sendResponseToWebview({
         command: "response",
         syncRequestId,
-        error: (err as Error).message,
+        error: message,
       });
     }
   }

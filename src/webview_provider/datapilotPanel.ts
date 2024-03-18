@@ -118,44 +118,67 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         break;
 
       case "queryAnalysis:explain":
-        this.handleSyncRequestFromWebview(syncRequestId, async () => {
-          const response = await this.queryAnalysisService.executeQueryAnalysis(
-            params,
-            QueryAnalysisType.EXPLAIN,
-            syncRequestId,
-          );
-          return { response };
-        });
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const response =
+              await this.queryAnalysisService.executeQueryAnalysis(
+                params,
+                QueryAnalysisType.EXPLAIN,
+                syncRequestId,
+              );
+            return { response };
+          },
+          command,
+          true,
+        );
         break;
 
       case "queryAnalysis:modify":
-        this.handleSyncRequestFromWebview(syncRequestId, async () => {
-          const response = await this.queryAnalysisService.executeQueryAnalysis(
-            params,
-            QueryAnalysisType.MODIFY,
-            syncRequestId,
-          );
-          return { response };
-        });
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const response =
+              await this.queryAnalysisService.executeQueryAnalysis(
+                params,
+                QueryAnalysisType.MODIFY,
+                syncRequestId,
+              );
+            return { response };
+          },
+          command,
+          true,
+        );
         break;
 
       case "dbttest:create":
-        this.handleSyncRequestFromWebview(syncRequestId, async () => {
-          const response = await this.dbtTestService.createTest(
-            params,
-            syncRequestId,
-          );
-          return { response };
-        });
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const response = await this.dbtTestService.createTest(
+              params,
+              syncRequestId,
+            );
+            return { response };
+          },
+          command,
+          true,
+        );
         break;
 
       case "queryanalysis:followup":
-        this.handleSyncRequestFromWebview(syncRequestId, async () => {
-          const response = await this.queryAnalysisService.getFollowupQuestions(
-            params as { query: string; user_request: string },
-          );
-          return { response };
-        });
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const response =
+              await this.queryAnalysisService.getFollowupQuestions(
+                params as { query: string; user_request: string },
+              );
+            return { response };
+          },
+          command,
+          true,
+        );
         break;
 
       default:
