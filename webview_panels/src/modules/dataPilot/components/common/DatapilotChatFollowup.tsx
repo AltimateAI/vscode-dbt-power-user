@@ -111,11 +111,9 @@ const DatapilotChatFollowupComponent = ({
             { name: string; columns: [{ name: string; tests: unknown[] }] },
           ];
         };
-        const tests = modelData.models
-          .find((m) => m.name === chat?.meta?.model)
-          ?.columns.find(
-            (c) => c.name === chat?.meta?.column && c.tests.length,
-          );
+        const tests = modelData.models.find(
+          (m) => m.name === chat?.meta?.model,
+        );
         panelLogger.log("sending tests data to test panel", tests, chat?.meta);
         executeRequestInAsync("testgen:insert", { tests, ...chat?.meta });
 

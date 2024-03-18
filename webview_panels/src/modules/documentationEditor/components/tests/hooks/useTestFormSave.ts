@@ -21,7 +21,9 @@ export enum TestOperation {
 }
 
 interface IncomingTest {
-  tests: { name: string; tests: (string | Record<string, unknown>)[] };
+  tests: {
+    columns: { name: string; tests: (string | Record<string, unknown>)[] }[];
+  };
   model: string;
   column: string;
 }
@@ -58,31 +60,33 @@ const useTestFormSave = (): {
 
   const handleTestInsert = (params: IncomingTest) => {
     const testsData = [...(currentDocsTests ?? [])];
-    params.tests.tests.forEach((t) => {
-      const key = typeof t === "string" ? t : Object.keys(t)?.[0];
-      const rest =
-        typeof t === "object" && typeof t[key] === "object"
-          ? (t[key] as Record<string, unknown>)
-          : {};
+    params.tests.columns.forEach((column) => {
+      column.tests.forEach((t) => {
+        const key = typeof t === "string" ? t : Object.keys(t)?.[0];
+        const rest =
+          typeof t === "object" && typeof t[key] === "object"
+            ? (t[key] as Record<string, unknown>)
+            : {};
 
-      if (key) {
-        testsData.push({
-          alias: "",
-          database: "",
-          schema: "",
-          column_name: params.column,
-          key: `${key}_${params.column}`,
-          path: `${key}_${params.column}`,
-          test_metadata: {
-            kwargs: {
-              column_name: params.column,
-              model: params.model,
-              ...rest,
+        if (key) {
+          testsData.push({
+            alias: "",
+            database: "",
+            schema: "",
+            column_name: column.name,
+            key: `${key}_${column.name}`,
+            path: `${key}_${column.name}`,
+            test_metadata: {
+              kwargs: {
+                column_name: column.name,
+                model: params.model,
+                ...rest,
+              },
+              name: key,
             },
-            name: key,
-          },
-        });
-      }
+          });
+        }
+      });
     });
     panelLogger.info("insert test data", testsData);
     dispatch(updateCurrentDocsTests(testsData));
