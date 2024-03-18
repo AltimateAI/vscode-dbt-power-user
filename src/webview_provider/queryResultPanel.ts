@@ -336,6 +336,10 @@ export class QueryResultPanel implements WebviewViewProvider {
       const output = await queryExecution.executeQuery();
       await this.transmitDataWrapper(output, query);
     } catch (exc: any) {
+      const activeFile = window.activeTextEditor?.document.uri;
+      if (activeFile) {
+        this.dbtProjectContainer.showCompiledSQL(activeFile);
+      }
       if (exc instanceof PythonException) {
         if (exc.exception.type.name === "KeyboardInterrupt") {
           // query cancellation
