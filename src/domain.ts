@@ -78,7 +78,7 @@ export interface TestMetadataRelationships extends TestMetadataSpecification {
   to?: string;
 }
 
-interface DependsOnSpec {
+interface DependsOn {
   macros: [string];
   nodes: [string];
   sources: [string];
@@ -97,12 +97,12 @@ export interface TestMetaData {
     namespace?: string;
   };
   attached_node?: string;
-  depends_on: DependsOnSpec;
+  depends_on: DependsOn;
 }
 
 export interface ExposureMetaData {
   description?: string;
-  depends_on: DependsOnSpec;
+  depends_on: DependsOn;
   label?: string;
   maturity?: string;
   name: string;

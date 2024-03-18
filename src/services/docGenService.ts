@@ -442,7 +442,7 @@ export class DocGenService {
     );
   }
 
-  public async getTestsForCurrentModel(projectName: string) {
+  public async getTestsForCurrentModel() {
     const eventResult = this.queryManifestService.getEventByCurrentProject();
     if (!eventResult?.event || !eventResult?.currentDocument) {
       return undefined;
@@ -452,6 +452,12 @@ export class DocGenService {
       event: { nodeMetaMap, graphMetaMap, testMetaMap, macroMetaMap },
       currentDocument,
     } = eventResult;
+    const project = this.queryManifestService.getProject();
+    if (!project) {
+      return undefined;
+    }
+    const projectName = project?.getProjectName();
+
     const modelName = path.basename(currentDocument.uri.fsPath, ".sql");
     this.dbtTerminal.debug(
       "dbtTests",
