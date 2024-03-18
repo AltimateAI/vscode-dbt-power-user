@@ -10,6 +10,7 @@ import {
 import { DeferToProdService } from "../services/deferToProdService";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 @provideSingleton(DeferToProductionStatusBar)
 export class DeferToProductionStatusBar implements Disposable {
@@ -22,6 +23,7 @@ export class DeferToProductionStatusBar implements Disposable {
   constructor(
     private deferToProdService: DeferToProdService,
     private dbtProjectContainer: DBTProjectContainer,
+    private dbtTerminal: DBTTerminal,
   ) {
     this.disposables.push(
       workspace.onDidChangeConfiguration(
@@ -83,7 +85,11 @@ export class DeferToProductionStatusBar implements Disposable {
       this.statusBar.show();
     } catch (err) {
       this.statusBar.hide();
-      console.error("Unable to update defer status bar", err);
+      this.dbtTerminal.debug(
+        "DeferToProductionStatusBar",
+        "Unable to update defer status bar",
+        err,
+      );
     }
   }
 
