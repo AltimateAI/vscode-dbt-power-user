@@ -598,7 +598,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   this.documentation =
                     await this.docGenService.getDocumentation();
                   const tests =
-                    await this.docGenService.getTestsForCurrentModel();
+                    await this.docGenService.getTestsForCurrentModel("");
                   if (syncRequestId) {
                     this._panel!.webview.postMessage({
                       command: "response",
