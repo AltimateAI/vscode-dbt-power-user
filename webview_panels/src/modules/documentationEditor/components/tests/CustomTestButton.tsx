@@ -1,5 +1,5 @@
 import { ShinesIcon } from "@assets/icons";
-import { IconButton, ListGroupItem } from "@uicore";
+import { ListGroupItem, Tag } from "@uicore";
 import classes from "../../styles.module.scss";
 import useAppContext from "@modules/app/useAppContext";
 import { RequestTypes } from "@modules/dataPilot/types";
@@ -39,9 +39,8 @@ const CustomTestButton = ({ column, type }: Props): JSX.Element => {
       onClick={onClick}
     >
       Custom Test
-      <IconButton color="primary">
-        <ShinesIcon />
-      </IconButton>
+      <ShinesIcon />
+      <Tag>Beta</Tag>
     </ListGroupItem>
   );
 };

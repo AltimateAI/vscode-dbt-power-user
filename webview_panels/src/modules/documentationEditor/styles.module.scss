@@ -24,6 +24,20 @@
     :global .btn{
       padding: 0 3px;
     }
+
+    & svg path {
+      fill: var(--primary-color);
+    }
+    & span{
+      height: 18px;
+      line-height: 0.9;
+      background: var(--action-beta);
+
+      &:hover {
+      background: var(--action-beta);
+      border-color: transparent;
+      }
+    }
   }
   .entity-tests {
     margin-top: var(--spacing-lg);
