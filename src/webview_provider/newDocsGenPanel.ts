@@ -24,6 +24,7 @@ import {
 import { DocsGenPanelView } from "./docsEditPanel";
 import { TestMetaData } from "../domain";
 import { parse, stringify } from "yaml";
+import { DbtTestService } from "../services/dbtTestService";
 
 @provideSingleton(NewDocsGenPanel)
 export class NewDocsGenPanel
@@ -42,6 +43,7 @@ export class NewDocsGenPanel
     protected emitterService: SharedStateService,
     protected queryManifestService: QueryManifestService,
     protected dbtTerminal: DBTTerminal,
+    private dbtTestService: DbtTestService,
   ) {
     super(
       dbtProjectContainer,
@@ -92,7 +94,7 @@ export class NewDocsGenPanel
     }
 
     const project = this.queryManifestService.getProject()?.getProjectName();
-    const tests = await this.docGenService.getTestsForCurrentModel();
+    const tests = await this.dbtTestService.getTestsForCurrentModel();
     this.sendResponseToWebview({
       command: "renderTests",
       tests,

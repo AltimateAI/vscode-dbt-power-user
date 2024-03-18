@@ -34,6 +34,7 @@ import {
   TestMetadataAcceptedValues,
   TestMetadataRelationships,
 } from "../domain";
+import { DbtTestService } from "../services/dbtTestService";
 
 export enum Source {
   YAML = "YAML",
@@ -94,6 +95,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     private telemetry: TelemetryService,
     private newDocsPanel: NewDocsGenPanel,
     private docGenService: DocGenService,
+    private dbtTestService: DbtTestService,
     private terminal: DBTTerminal,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
@@ -598,7 +600,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   this.documentation =
                     await this.docGenService.getDocumentation();
                   const tests =
-                    await this.docGenService.getTestsForCurrentModel();
+                    await this.dbtTestService.getTestsForCurrentModel();
                   if (syncRequestId) {
                     this._panel!.webview.postMessage({
                       command: "response",
