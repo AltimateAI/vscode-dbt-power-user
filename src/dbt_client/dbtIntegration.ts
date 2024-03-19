@@ -238,6 +238,15 @@ export interface ExecuteSQLResult {
   compiled_sql: string;
 }
 
+export class ExecuteSQLError extends Error {
+  compiled_sql: string;
+  exception: unknown;
+  constructor(message: string, compiled_sql: string) {
+    super(message);
+    this.compiled_sql = compiled_sql;
+  }
+}
+
 export interface CompilationResult {
   compiled_sql: string;
 }

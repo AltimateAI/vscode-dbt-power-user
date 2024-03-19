@@ -30,6 +30,7 @@ import {
   QueryExecution,
   SourceNode,
   Node,
+  ExecuteSQLError,
 } from "./dbtIntegration";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
@@ -340,11 +341,11 @@ export class DBTCoreProjectIntegration
       },
       async () => {
         const compiledQuery = await this.unsafeCompileQuery(limitQuery);
-        const result = await queryThread!.lock<ExecuteSQLResult>(
-          (python) => python`to_dict(project.execute_sql(${compiledQuery}))`,
-        );
-        let compiled_stmt = result.compiled_sql;
         try {
+          const result = await queryThread!.lock<ExecuteSQLResult>(
+            (python) => python`to_dict(project.execute_sql(${compiledQuery}))`,
+          );
+          let compiled_stmt = result.compiled_sql;
           const queryRegex = new RegExp(
             queryTemplate
               .replace(/\(/g, "\\(")
@@ -358,11 +359,15 @@ export class DBTCoreProjectIntegration
           if (matches) {
             compiled_stmt = matches[1].trim();
           }
+          return { ...result, compiled_stmt };
         } catch (err) {
-          console.error("error while executing querytemplate conversion", err);
+          const message = `Error while executing sql: ${compiledQuery}`;
+          this.dbtTerminal.error("dbtCore:executeSQL", message, err);
+          if (err instanceof PythonException) {
+            throw new ExecuteSQLError(err.exception.message, compiledQuery!);
+          }
+          throw new ExecuteSQLError((err as Error).message, compiledQuery!);
         }
-
-        return { ...result, compiled_stmt };
       },
     );
   }
