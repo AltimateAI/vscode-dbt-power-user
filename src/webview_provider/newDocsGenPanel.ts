@@ -91,12 +91,14 @@ export class NewDocsGenPanel
       return;
     }
 
-    const project = this.queryManifestService.getProject()?.getProjectName();
+    const projectName = this.queryManifestService
+      .getProject()
+      ?.getProjectName();
     const tests = await this.docGenService.getTestsForCurrentModel();
     this.sendResponseToWebview({
       command: "renderTests",
       tests,
-      project,
+      project: projectName,
     });
   }
 
