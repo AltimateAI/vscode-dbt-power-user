@@ -502,7 +502,7 @@ export class NewLineagePanel implements LineagePanelView {
         `targets:${targets}`,
         `upstreamExpansion:${upstreamExpansion}`,
         `currAnd1HopTables:${currAnd1HopTables}`,
-        `selectedColumn:${selectedColumn}`,
+        `selectedColumn:${JSON.stringify(selectedColumn, null, 2)}`,
         `sessionId:${sessionId}`,
       ].join("\n"),
     );
@@ -531,7 +531,11 @@ export class NewLineagePanel implements LineagePanelView {
       await project.getNodesWithDBColumns(event, modelsToFetch);
     this.terminal.debug(
       "newLineagePanel:getConnectedColumns",
-      `mappedNode:${mappedNode}\nrelationsWithoutColumns:${relationsWithoutColumns}`,
+      `mappedNode:${JSON.stringify(
+        mappedNode,
+        null,
+        2,
+      )}\nrelationsWithoutColumns:${relationsWithoutColumns}`,
     );
 
     const selected_column = {
@@ -594,7 +598,11 @@ export class NewLineagePanel implements LineagePanelView {
     const targetTables = Array.from(new Set(targets.map((t) => t[0])));
     this.terminal.debug(
       "newLineagePanel:getConnectedColumns",
-      `targets:${targets} modelInfos:${modelInfos} targetTables:${targetTables}`,
+      `targets:${targets} modelInfos:${JSON.stringify(
+        modelInfos,
+        null,
+        2,
+      )} targetTables:${targetTables}`,
     );
     // targets should not empty
     if (targets.length === 0 || modelInfos.length < targetTables.length) {

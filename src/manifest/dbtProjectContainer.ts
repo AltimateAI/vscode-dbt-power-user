@@ -387,7 +387,7 @@ export class DBTProjectContainer implements Disposable {
     this.dbtTerminal.debug(
       "dbtProjectContainer:registerWorkspaceFolder",
       "dbtWorkspaceFolders",
-      this.dbtWorkspaceFolders,
+      this.dbtWorkspaceFolders.length,
     );
     await dbtProjectWorkspaceFolder.discoverProjects();
   }
