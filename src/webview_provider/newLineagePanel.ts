@@ -174,11 +174,19 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     if (command === "getConnectedColumns") {
-      const body = await this.getConnectedColumns(params);
-      this._panel?.webview.postMessage({
-        command: "response",
-        args: { id, body, status: !!body },
-      });
+      try {
+        const body = await this.getConnectedColumns(params);
+        this._panel?.webview.postMessage({
+          command: "response",
+          args: { id, body, status: !!body },
+        });
+      } catch (e) {
+        this.terminal.error(
+          "newLineagePanels:getConnectedColumns",
+          "Unable to fetch getConnectedColumns",
+          e,
+        );
+      }
       return;
     }
 

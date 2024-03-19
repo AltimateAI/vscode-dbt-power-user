@@ -933,6 +933,10 @@ select * from renamed
     event: ManifestCacheProjectAddedEvent,
     modelsToFetch: string[],
   ) {
+    this.terminal.debug(
+      "dbtProject:getNodesWithDBColumns",
+      `function start:${modelsToFetch}`,
+    );
     const { nodeMetaMap, sourceMetaMap } = event;
     const mappedNode: Record<string, ModelNode> = {};
     const bulkSchemaRequest: DBTNode[] = [];
@@ -981,7 +985,23 @@ select * from renamed
         mappedNode[key] = node;
       }
     }
+    this.terminal.debug(
+      "dbtProject:getNodesWithDBColumns",
+      `1:mappedNode:${JSON.stringify(
+        mappedNode,
+        null,
+        2,
+      )} \n bulkSchemaRequest:${JSON.stringify(
+        bulkSchemaRequest,
+        null,
+        2,
+      )} \n relationsWithoutColumns:${relationsWithoutColumns}`,
+    );
     const bulkSchemaResponse = await this.getBulkSchema(bulkSchemaRequest);
+    this.terminal.debug(
+      "dbtProject:getNodesWithDBColumns",
+      `2:bulkSchemaResponse:${bulkSchemaResponse}`,
+    );
     for (const key of modelsToFetch) {
       const node = mappedNode[key];
       if (!node) {
@@ -995,6 +1015,14 @@ select * from renamed
         relationsWithoutColumns.push(key);
       }
     }
+    this.terminal.debug(
+      "dbtProject:getNodesWithDBColumns",
+      `3:mappedNode:${JSON.stringify(
+        mappedNode,
+        null,
+        2,
+      )}  \n relationsWithoutColumns:${relationsWithoutColumns}`,
+    );
 
     return { mappedNode, relationsWithoutColumns };
   }
