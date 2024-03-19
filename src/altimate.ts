@@ -2,7 +2,7 @@ import { env, Uri, window, workspace } from "vscode";
 import {
   provideSingleton,
   processStreamResponse,
-  substituteSettingsVariables,
+  getResolvedConfigValue,
 } from "./utils";
 import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
@@ -13,8 +13,7 @@ import * as os from "os";
 import { RateLimitException } from "./exceptions";
 import { DBTProject } from "./manifest/dbtProject";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
-import { existsSync, readFileSync } from "fs";
-import * as path from "path";
+import { PythonEnvironment } from "./manifest/pythonEnvironment";
 
 export class NoCredentialsError extends Error {}
 
@@ -208,39 +207,18 @@ export class AltimateRequest {
   constructor(
     private telemetry: TelemetryService,
     private dbtTerminal: DBTTerminal,
+    private pythonEnvironment: PythonEnvironment,
   ) {}
 
-  private getConfigValue(key: string): string {
-    const defaultValue = workspace.getConfiguration("dbt").get<string>(key, "");
-    try {
-      const workspacePath = workspace.workspaceFolders![0].uri.fsPath;
-      const altimateConfigPath = path.join(
-        workspacePath,
-        workspace
-          .getConfiguration("dbt")
-          .get<string>("altimateConfigPath", ".altimate.json"),
-      );
-      if (!existsSync(altimateConfigPath)) {
-        return defaultValue;
-      }
-      const config = JSON.parse(readFileSync(altimateConfigPath).toString());
-      return config[key] || defaultValue;
-    } catch (e) {
-      this.dbtTerminal.error(
-        "getConfigValue",
-        `Error while getting value for ${key} from config`,
-        e,
-      );
-      return defaultValue;
-    }
-  }
-
   getInstanceName() {
-    return this.getConfigValue("altimateInstanceName");
+    return getResolvedConfigValue(
+      "altimateInstanceName",
+      this.pythonEnvironment.env,
+    );
   }
 
   getAIKey() {
-    return this.getConfigValue("altimateAiKey");
+    return getResolvedConfigValue("altimateAiKey", this.pythonEnvironment.env);
   }
 
   public enabled(): boolean {

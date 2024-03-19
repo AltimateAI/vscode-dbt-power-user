@@ -1,6 +1,10 @@
 import { Disposable, Event, extensions, Uri, workspace } from "vscode";
 import { EnvironmentVariables } from "../domain";
-import { provideSingleton, substituteSettingsVariables } from "../utils";
+import {
+  getResolvedConfigValue,
+  parseEnvVarsFromUserSettings,
+  provideSingleton,
+} from "../utils";
 import { TelemetryService } from "../telemetry";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
@@ -15,6 +19,7 @@ interface PythonExecutionDetails {
 export class PythonEnvironment implements Disposable {
   private executionDetails?: PythonExecutionDetails;
   private disposables: Disposable[] = [];
+  env: Record<string, string> = {};
 
   constructor(
     private telemetry: TelemetryService,
@@ -33,7 +38,8 @@ export class PythonEnvironment implements Disposable {
 
   public get pythonPath() {
     return (
-      this.getPythonPathFromConfig() || this.executionDetails!.getPythonPath()
+      getResolvedConfigValue("dbtPythonPathOverride", this.env) ||
+      this.executionDetails!.getPythonPath()
     );
   }
 
@@ -52,26 +58,6 @@ export class PythonEnvironment implements Disposable {
 
     this.executionDetails = await this.activatePythonExtension();
   }
-
-  private getPythonPathFromConfig(): string | undefined {
-    const value = workspace
-      .getConfiguration("dbt")
-      .get<string>("dbtPythonPathOverride");
-    return value ? substituteSettingsVariables(value) : undefined;
-  }
-
-  private parseEnvVarsFromUserSettings = (vsCodeEnv: {
-    [k: string]: string;
-  }) => {
-    // TODO: add any other relevant variables, maybe workspacefolder?
-    return Object.keys(vsCodeEnv).reduce(
-      (prev: { [k: string]: string }, key: string) => {
-        prev[key] = substituteSettingsVariables(vsCodeEnv[key]);
-        return prev;
-      },
-      vsCodeEnv,
-    );
-  };
 
   private async activatePythonExtension(): Promise<PythonExecutionDetails> {
     const extension = extensions.getExtension("ms-python.python")!;
@@ -140,7 +126,7 @@ export class PythonEnvironment implements Disposable {
               continue;
             }
             const vsCodeEnv = env[prop];
-            const newEnvVars = this.parseEnvVarsFromUserSettings(vsCodeEnv);
+            const newEnvVars = parseEnvVarsFromUserSettings(vsCodeEnv);
             this.dbtTerminal.debug(
               "pythonEnvironment",
               "Loading env vars from config.terminal.integrated.env",

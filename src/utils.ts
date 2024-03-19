@@ -96,7 +96,31 @@ export const provideSingleton = (identifier: any) => {
   return fluentProvide(identifier).inSingletonScope().done();
 };
 
-export function substituteSettingsVariables(value: any): any {
+export function getResolvedConfigValue(
+  key: string,
+  vsCodeEnv: Record<string, string>,
+) {
+  const value = workspace.getConfiguration("dbt").get<string>(key, "");
+  return substituteSettingsVariables(value, vsCodeEnv);
+}
+
+export function parseEnvVarsFromUserSettings(
+  vsCodeEnv: Record<string, string>,
+) {
+  const newVSCodeEnv = { ...vsCodeEnv };
+  for (const key in vsCodeEnv) {
+    newVSCodeEnv[key] = substituteSettingsVariables(key, vsCodeEnv);
+  }
+  return newVSCodeEnv;
+}
+
+function substituteSettingsVariables(
+  value: any,
+  vsCodeEnv: Record<string, string>,
+): any {
+  if (!value) {
+    return value;
+  }
   if (typeof value !== "string") {
     return value;
   }
@@ -107,10 +131,10 @@ export function substituteSettingsVariables(value: any): any {
     if (matchResult.index === regexVsCodeEnv.lastIndex) {
       regexVsCodeEnv.lastIndex++;
     }
-    if (process.env[matchResult[1]] !== undefined) {
+    if (vsCodeEnv[matchResult[1]] !== undefined) {
       value = value.replace(
         new RegExp(`\\\$\\\{env\\\:${matchResult[1]}\\\}`, "gm"),
-        process.env[matchResult[1]]!,
+        vsCodeEnv[matchResult[1]]!,
       );
     }
   }
