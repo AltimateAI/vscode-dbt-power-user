@@ -515,12 +515,24 @@ export class NewLineagePanel implements LineagePanelView {
       const currTables = new Set(targets.map((t) => t[0]));
       const hop1Tables = currAnd1HopTables.filter((t) => !currTables.has(t));
       auxiliaryTables = DBTProject.getNonEphemeralParents(event, hop1Tables);
+      this.terminal.debug(
+        "newLineagePanel:getConnectedColumns",
+        `nonEphemeralParents:${auxiliaryTables}`,
+      );
     }
     const modelsToFetch = Array.from(
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
     );
+    this.terminal.debug(
+      "newLineagePanel:getConnectedColumns",
+      `modelsToFetch:${modelsToFetch}`,
+    );
     const { mappedNode, relationsWithoutColumns } =
       await project.getNodesWithDBColumns(event, modelsToFetch);
+    this.terminal.debug(
+      "newLineagePanel:getConnectedColumns",
+      `mappedNode:${mappedNode}\nrelationsWithoutColumns:${relationsWithoutColumns}`,
+    );
 
     const selected_column = {
       model_node: mappedNode[selectedColumn.table],
@@ -552,35 +564,18 @@ export class NewLineagePanel implements LineagePanelView {
       }
     } catch (exc) {
       if (exc instanceof PythonException) {
-        window.showErrorMessage(
-          extendErrorWithSupportLinks(
-            `An error occured while trying to compute lineage of your model: ` +
-              exc.exception.message +
-              ".",
-          ),
-        );
-        this.telemetry.sendTelemetryError(
+        const message = `An error occured while trying to compute lineage of your model: ${exc.exception.message}.`;
+        window.showErrorMessage(extendErrorWithSupportLinks(message));
+        this.terminal.error(
           "columnLineageCompileNodePythonError",
-          exc,
-        );
-        this.terminal.debug(
-          "newLineagePanel:getConnectedColumns",
-          "Error encountered while compiling/retrieving schema for model: " +
-            exc.exception.message,
+          message,
           exc,
         );
         return;
       }
-      this.telemetry.sendTelemetryError(
-        "columnLineageCompileNodeUnknownError",
-        exc,
-      );
-      // Unknown error
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "Column lineage failed: " + (exc as Error).message,
-        ),
-      );
+      const message = "Column lineage failed: " + (exc as Error).message;
+      window.showErrorMessage(extendErrorWithSupportLinks(message));
+      this.terminal.error("columnLineageCompileNodeUnknownError", message, exc);
       return;
     }
 
