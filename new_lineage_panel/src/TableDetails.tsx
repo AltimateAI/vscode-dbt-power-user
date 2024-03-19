@@ -322,6 +322,7 @@ const TableDetails = () => {
       if (result.every((isLineage) => !isLineage)) {
         if (CLL.isCancelled) {
           setSelectedColumn({ table: "", name: "", sessionId: "" });
+          console.log("Column lineage is cancelled");
         } else {
           showInfoNotification(
             `No lineage found for model ${_column.table} and column ${_column.name}`

@@ -592,6 +592,10 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     const targetTables = Array.from(new Set(targets.map((t) => t[0])));
+    this.terminal.debug(
+      "newLineagePanel:getConnectedColumns",
+      `targets:${targets} modelInfos:${modelInfos} targetTables:${targetTables}`,
+    );
     // targets should not empty
     if (targets.length === 0 || modelInfos.length < targetTables.length) {
       this.telemetry.sendTelemetryError("columnLineageLogicError", {
@@ -601,23 +605,39 @@ export class NewLineagePanel implements LineagePanelView {
         currAnd1HopTables,
         selectedColumn,
       });
+      this.terminal.debug(
+        "newLineagePanel:getConnectedColumns",
+        `early return due either targets empty or models  are less than targetTables`,
+      );
       return { column_lineage: [] };
     }
 
     // the case where upstream/downstream only has ephemeral models
     if (modelInfos.length === targetTables.length) {
+      this.terminal.debug(
+        "newLineagePanel:getConnectedColumns",
+        `early return due to only ephemeral models because models is same as targetTables`,
+      );
       return { column_lineage: [] };
     }
     const models = modelInfos.map((m) => m.model_node.uniqueId);
     const hasAllModels = targets.every((t) => models.includes(t[0]));
     if (!hasAllModels) {
       // most probably error message is already shown in above checks
+      this.terminal.debug(
+        "newLineagePanel:getConnectedColumns",
+        `unable to fetch data for some model`,
+      );
       return { column_lineage: [] };
     }
 
     const modelDialect = project.getAdapterType();
     try {
       if (this.cllIsCancelled) {
+        this.terminal.debug(
+          "newLineagePanel:getConnectedColumns",
+          `column lineage is cancelled`,
+        );
         return { column_lineage: [] };
       }
       const request = {
@@ -649,24 +669,23 @@ export class NewLineagePanel implements LineagePanelView {
       return { column_lineage, confindence: result.confidence };
     } catch (error) {
       if (error instanceof AbortError) {
-        window.showErrorMessage(
-          extendErrorWithSupportLinks(
-            "Fetching column level lineage timed out.",
-          ),
-        );
-        this.telemetry.sendTelemetryError(
+        const message = "Fetching column level lineage timed out.";
+        window.showErrorMessage(extendErrorWithSupportLinks(message));
+        this.terminal.error(
           "columnLevelLineageRequestTimeout",
-          error,
+          message,
+          new Error(message),
         );
         return;
       }
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "Could not generate column level lineage: " +
-            (error as Error).message,
-        ),
+      const message =
+        "Could not generate column level lineage: " + (error as Error).message;
+      window.showErrorMessage(extendErrorWithSupportLinks(message));
+      this.terminal.error(
+        "ColumnLevelLineageError",
+        message,
+        new Error(message),
       );
-      this.telemetry.sendTelemetryError("ColumnLevelLineageError", error);
       return;
     }
   }
