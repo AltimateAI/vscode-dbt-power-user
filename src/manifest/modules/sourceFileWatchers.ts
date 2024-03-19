@@ -9,13 +9,17 @@ import {
 } from "vscode";
 import { arrayEquals, debounce, provideSingleton } from "../../utils";
 import { ProjectConfigChangedEvent } from "../event/projectConfigChangedEvent";
+import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 
+// TODO: should use inversify Factory
 @provideSingleton(SourceFileWatchersFactory)
 export class SourceFileWatchersFactory {
+  constructor(private terminal: DBTTerminal) {}
+
   createSourceFileWatchers(
     onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
   ) {
-    return new SourceFileWatchers(onProjectConfigChanged);
+    return new SourceFileWatchers(onProjectConfigChanged, this.terminal);
   }
 }
 
@@ -26,7 +30,10 @@ export class SourceFileWatchers implements Disposable {
   private watchers: FileSystemWatcher[] = [];
   private disposables: Disposable[] = [this._onSourceFileChanged];
 
-  constructor(onProjectConfigChanged: Event<ProjectConfigChangedEvent>) {
+  constructor(
+    onProjectConfigChanged: Event<ProjectConfigChangedEvent>,
+    private terminal: DBTTerminal,
+  ) {
     this.disposables.push(
       onProjectConfigChanged((event) => this.onProjectConfigChanged(event)),
     );
@@ -62,7 +69,18 @@ export class SourceFileWatchers implements Disposable {
         "macroPaths is not defined in " + project.projectRoot.fsPath,
       );
     }
-    const paths = sourcePaths.concat(macroPaths);
+    const seedPaths = project.getSeedPaths();
+    if (seedPaths === undefined) {
+      throw new Error(
+        "seedPaths is not defined in " + project.projectRoot.fsPath,
+      );
+    }
+    const paths = sourcePaths.concat(macroPaths).concat(seedPaths);
+    this.terminal.debug(
+      "SourceFileWatchers",
+      "watching following source paths for changes",
+      paths,
+    );
     if (
       this.currentSourcePaths === undefined ||
       !arrayEquals(this.currentSourcePaths, sourcePaths)
@@ -71,7 +89,7 @@ export class SourceFileWatchers implements Disposable {
       this.watchers = [];
       paths.forEach((sourcePath) => {
         const sourceFolderWatcher = workspace.createFileSystemWatcher(
-          new RelativePattern(sourcePath, "**/*.{sql,yml,yaml}"),
+          new RelativePattern(sourcePath, "**/*.{sql,yml,yaml,csv}"),
         );
 
         const debouncedSourceFileChangedEvent = debounce(

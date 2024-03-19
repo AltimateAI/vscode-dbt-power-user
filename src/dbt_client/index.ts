@@ -113,18 +113,16 @@ export class DBTClient implements Disposable {
       if (!this.shownError) {
         // We don't want to flood the user with errors
         this.shownError = true;
-        let message = "Please ensure dbt is installed.";
-        if (this.dbtIntegrationMode === "cloud") {
-          message = "Please ensure dbt cloud cli is installed.";
-          window.showErrorMessage("Please ensure dbt cloud cli is installed.");
-        } else {
-          const answer = await window.showErrorMessage(
-            "Please ensure dbt is installed.",
-            DbtInstallationPromptAnswer.INSTALL,
-          );
-          if (answer === DbtInstallationPromptAnswer.INSTALL) {
-            commands.executeCommand("dbtPowerUser.installDbt");
-          }
+        const message =
+          this.dbtIntegrationMode === "cloud"
+            ? "Please ensure dbt cloud cli is installed."
+            : "Please ensure dbt is installed.";
+        const answer = await window.showErrorMessage(
+          message,
+          DbtInstallationPromptAnswer.INSTALL,
+        );
+        if (answer === DbtInstallationPromptAnswer.INSTALL) {
+          commands.executeCommand("dbtPowerUser.installDbt");
         }
       }
       return false;
