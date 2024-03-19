@@ -24,6 +24,7 @@ import MarkdownRenderer from "@modules/markdown/Renderer";
 import AskDatapilotInput from "./AskDatapilotInput";
 import { useCallback, useMemo } from "react";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
+import { DatapilotResponseComponents } from "@modules/dataPilot/constants";
 
 interface Props {
   response: DataPilotChatFollowup;
@@ -33,7 +34,15 @@ interface Props {
   skipFollowupQuestions?: boolean;
 }
 const DatapilotChatFollowupComponent = ({
-  response: { datapilot_title, response, user_prompt, actions, state, id },
+  response: {
+    datapilot_title,
+    response,
+    user_prompt,
+    actions,
+    state,
+    id,
+    component,
+  },
   command,
   showFollowup,
   hideFeedback,
@@ -149,7 +158,7 @@ const DatapilotChatFollowupComponent = ({
     <>
       <UserQuery query={user_prompt} />
 
-      {state === RequestState.COMPLETED && !response ? null : (
+      {state === RequestState.COMPLETED && !response && !component ? null : (
         <li ref={onAiGenerationRender}>
           <Card>
             <CardTitle>
@@ -157,11 +166,12 @@ const DatapilotChatFollowupComponent = ({
               <AltimateIcon /> {datapilot_title}
             </CardTitle>
             <CardBody>
-              {response ? (
-                <div className={classes.response}>
-                  <MarkdownRenderer response={response} />
-                </div>
-              ) : null}
+              <div className={classes.response}>
+                {response ? <MarkdownRenderer response={response} /> : null}
+                {component ? (
+                  <>{DatapilotResponseComponents[component]}</>
+                ) : null}
+              </div>
               {state === RequestState.LOADING ? (
                 <Stack>
                   <Button color="warning">Loading...</Button>

@@ -87,6 +87,21 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
     });
   };
 
+  const handleQueryTranslateOnload = () => {
+    if (!chat) {
+      return;
+    }
+    panelLogger.info("handleQueryTranslateOnload");
+    datapilotDispatch(upsertItem({ ...chat, state: RequestState.LOADING }));
+    onNewGeneration({
+      datapilot_title: "Datapilot Response",
+      hideFeedback: true,
+      response: "",
+      component: "queryTranslate",
+      state: RequestState.COMPLETED,
+    });
+  };
+
   // Trigger explain query api if analysis type is set in chat request
   useEffect(() => {
     if (
@@ -109,6 +124,10 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
 
         break;
 
+      case QueryAnalysisType.TRANSLATE:
+        handleQueryTranslateOnload();
+
+        break;
       default:
         break;
     }

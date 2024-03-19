@@ -210,6 +210,10 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         this.handleDatapilotEvent(QueryAnalysisType.MODIFY, payload);
         break;
 
+      case "dbtPowerUser.translateQuery":
+        this.handleDatapilotEvent(QueryAnalysisType.TRANSLATE, payload);
+        break;
+
       case "dbtPowerUser.openDatapilotWithQuery":
         this.handleDatapilotEvent(null, payload);
         break;

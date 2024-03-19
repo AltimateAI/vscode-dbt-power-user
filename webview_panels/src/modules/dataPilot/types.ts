@@ -1,4 +1,5 @@
 import { UnknownAction } from "@reduxjs/toolkit";
+import { DatapilotResponseComponents } from "./constants";
 
 export enum RequestTypes {
   ADD_CUSTOM_TEST = "ADD_CUSTOM_TEST",
@@ -39,6 +40,7 @@ export interface DataPilotChatFollowup {
   user_prompt: string;
   datapilot_title: string;
   response?: string;
+  component?: keyof typeof DatapilotResponseComponents;
   actions?: DataPilotChatAction[];
   state: RequestState;
   hideFeedback?: boolean;

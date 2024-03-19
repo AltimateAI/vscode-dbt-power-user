@@ -9,22 +9,35 @@ import { DataPilotChatAction } from "@modules/dataPilot/types";
 import { QueryAnalysisCommands } from "./commands";
 import { AltimateIcon } from "@assets/icons";
 import { QueryAnalysisType } from "./types";
+import { useMemo } from "react";
 
 const QUERY_HAPPY_LIMIT = 10;
 const DefaultActions = [
   {
-    title: "Query explanation",
+    title: "Explain",
     command: QueryAnalysisCommands.explain,
   },
   {
-    title: "Query change",
+    title: "Change",
     command: QueryAnalysisCommands.modify,
+  },
+  {
+    title: "Translate",
+    command: QueryAnalysisCommands.translate,
   },
 ] as DataPilotChatAction[];
 
 const QueryAnalysis = (): JSX.Element | null => {
   const { chat, isMaxFollowupReached } = useQueryAnalysisContext();
   const followups = chat?.followups;
+
+  const alertText = useMemo(() => {
+    if (chat?.analysisType === QueryAnalysisType.TRANSLATE) {
+      return "Note: Query Translate (SQL Dialect) functionality works on the whole file, and not selected code snippet. DataPilot will proceed with assumption that the whole file needs to be translated.";
+    }
+
+    return null;
+  }, [chat?.analysisType]);
 
   if (!chat) {
     return null;
@@ -52,6 +65,8 @@ const QueryAnalysis = (): JSX.Element | null => {
           </CardBody>
         </Card>
       ) : null}
+
+      {alertText ? <Alert color="warning">{alertText}</Alert> : null}
 
       {/* show actions only if this is start of chat */}
       {followups?.length ? null : (

@@ -92,6 +92,7 @@ export enum QueryAnalysisType {
   EXPLAIN = "explain",
   FIX = "fix",
   MODIFY = "modify",
+  TRANSLATE = "translate",
 }
 
 export enum QueryAnalysisChatType {
