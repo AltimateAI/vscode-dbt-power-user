@@ -9,6 +9,7 @@ import {
   Card,
   CardBody,
   CardTitle,
+  Label,
   ListGroup,
   ListGroupItem,
   Stack,
@@ -57,27 +58,36 @@ const TestDetails = ({ testType, test }: Props): JSX.Element => {
                   <CardTitle className="d-flex justify-content-between">
                     Values
                   </CardTitle>
-                  <ListGroup className={classes.testListGroup}>
-                    <ListGroupItem action tag="div">
-                      <caption>To:</caption>{" "}
-                      {
-                        (
-                          test.test_metadata
-                            .kwargs as TestMetadataRelationshipsKwArgs
-                        ).to
-                      }
-                    </ListGroupItem>
-
-                    <ListGroupItem action tag="div">
-                      <caption>Field:</caption>{" "}
-                      {
-                        (
-                          test.test_metadata
-                            .kwargs as TestMetadataRelationshipsKwArgs
-                        ).field
-                      }
-                    </ListGroupItem>
-                  </ListGroup>
+                  <Stack direction="column">
+                    <div>
+                      <Label>To:</Label>
+                      <div
+                        className="p-2 px-3 rounded"
+                        style={{ background: "var(--background--02)" }}
+                      >
+                        {
+                          (
+                            test.test_metadata
+                              .kwargs as TestMetadataRelationshipsKwArgs
+                          ).to
+                        }
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Field:</Label>
+                      <div
+                        className="p-2 px-3 rounded"
+                        style={{ background: "var(--background--02)" }}
+                      >
+                        {
+                          (
+                            test.test_metadata
+                              .kwargs as TestMetadataRelationshipsKwArgs
+                          ).field
+                        }
+                      </div>
+                    </div>
+                  </Stack>
                 </CardBody>
               </Card>
             );
