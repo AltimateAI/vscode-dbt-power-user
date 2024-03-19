@@ -28,9 +28,6 @@ const TestDetails = ({ testType, test }: Props): JSX.Element => {
     switch (testType) {
       case DbtTestTypes.GENERIC:
         switch (test.test_metadata?.name) {
-          case DbtGenericTests.UNIQUE:
-          case DbtGenericTests.NOT_NULL:
-            return null;
           case DbtGenericTests.ACCEPTED_VALUES:
             return (
               <Card>
@@ -93,12 +90,14 @@ const TestDetails = ({ testType, test }: Props): JSX.Element => {
             );
 
           default:
-            return null;
+            break;
         }
+        break;
       default:
-        return null;
+        break;
     }
-  }, []);
+    return null;
+  }, [testType, test.test_metadata]);
 
   return (
     <Stack direction="column">

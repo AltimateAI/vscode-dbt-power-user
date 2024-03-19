@@ -13,7 +13,7 @@ export class DbtTestService {
     private queryManifestService: QueryManifestService,
   ) {}
 
-  private stringifyTest = (
+  private filterAndStringifyTest = (
     tests: Record<string, Record<string, unknown>>[],
     test: TestMetaData,
   ) => {
@@ -47,6 +47,7 @@ export class DbtTestService {
       selectedTest,
     );
 
+    // Remove fields which are already handled in UI
     const filteredConfig = Object.entries(selectedTest[fullName]).reduce(
       (acc: Record<string, unknown>, [key, value]) => {
         if (ignoredFields.includes(key)) {
@@ -58,7 +59,7 @@ export class DbtTestService {
       },
       {},
     );
-    // If test is from external package, show the package namespace as well
+    // If test is from external package ex: dbt_utils, show the package namespace as well
     const refinedTestConfig = namespace
       ? {
           [fullName]: filteredConfig,
@@ -67,6 +68,9 @@ export class DbtTestService {
     return stringify(refinedTestConfig);
   };
 
+  /**
+   * Find the extra config for test from schema.yml, if available
+   */
   public getConfigByTest(
     test: TestMetaData,
     modelName: string,
@@ -125,7 +129,7 @@ export class DbtTestService {
         parsedDocFile,
         model,
       );
-      return this.stringifyTest(model?.tests, test);
+      return this.filterAndStringifyTest(model?.tests, test);
     }
 
     const column =
@@ -139,7 +143,7 @@ export class DbtTestService {
       column,
     );
 
-    return this.stringifyTest(column?.tests, test);
+    return this.filterAndStringifyTest(column?.tests, test);
   }
 
   // Find the file path of test macro
