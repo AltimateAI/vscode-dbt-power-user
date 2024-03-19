@@ -131,11 +131,7 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
     command: string;
     args: any;
   }) => {
-    this.dbtTerminal.debug(
-      "lineagePanel:handleWebviewMessage",
-      "message",
-      message,
-    );
+    console.log("lineagePanel:handleWebviewMessage", "message", message);
     const { command, args } = message;
     // common commands
     if (command === "openFile") {

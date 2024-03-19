@@ -138,7 +138,7 @@ export class NewLineagePanel implements LineagePanelView {
     const { id, params } = args;
 
     if (command === "upstreamTables") {
-      const body = await this.getUpstreamTables(params);
+      const body = this.getUpstreamTables(params);
       this._panel?.webview.postMessage({
         command: "response",
         args: { id, body, status: true },
@@ -147,7 +147,7 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     if (command === "downstreamTables") {
-      const body = await this.getDownstreamTables(params);
+      const body = this.getDownstreamTables(params);
       this._panel?.webview.postMessage({
         command: "response",
         args: { id, body, status: true },
@@ -240,6 +240,10 @@ export class NewLineagePanel implements LineagePanelView {
   }
 
   private async handleColumnLineage({ event }: { event: CllEvents }) {
+    this.terminal.debug(
+      "newLineagePanel:handleColumnLineage",
+      `event:${event}`,
+    );
     if (event === CllEvents.START) {
       window.withProgress(
         {
@@ -276,7 +280,10 @@ export class NewLineagePanel implements LineagePanelView {
 
   private async addModelColumnsFromDB(project: DBTProject, node: NodeMetaData) {
     const columnsFromDB = await project.getColumnsOfModel(node.name);
-    console.log("addColumnsFromDB: ", node.name, " -> ", columnsFromDB);
+    this.terminal.debug(
+      "newLineagePanel:addModelColumnsFromDB",
+      `nodeName:${node.name}, columnsFromDB:${columnsFromDB}`,
+    );
     return project.mergeColumnsFromDB(node, columnsFromDB);
   }
 
@@ -289,7 +296,10 @@ export class NewLineagePanel implements LineagePanelView {
       nodeName,
       table.name,
     );
-    console.log("addColumnsFromDB: ", nodeName, " -> ", columnsFromDB);
+    this.terminal.debug(
+      "newLineagePanel:addSourceColumnsFromDB",
+      `nodeName:${nodeName}, columnsFromDB:${columnsFromDB}`,
+    );
     return project.mergeColumnsFromDB(table, columnsFromDB);
   }
 
@@ -340,6 +350,10 @@ export class NewLineagePanel implements LineagePanelView {
     if (!project) {
       return;
     }
+    this.terminal.debug(
+      "newLineagePanel:getColumns",
+      `For table: ${table}, refresh: ${refresh}`,
+    );
     const splits = table.split(".");
     const nodeType = splits[0];
     if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
@@ -348,10 +362,18 @@ export class NewLineagePanel implements LineagePanelView {
       const tableName = splits[3];
       const node = sourceMetaMap.get(sourceName);
       if (!node) {
+        this.terminal.debug(
+          "newLineagePanel:getColumns",
+          `Unable to find source: ${sourceName}`,
+        );
         return;
       }
       const _table = node.tables.find((t) => t.name === tableName);
       if (!_table) {
+        this.terminal.debug(
+          "newLineagePanel:getColumns",
+          `Unable to find source: ${sourceName}   table: ${tableName}`,
+        );
         return;
       }
       if (refresh) {
@@ -370,14 +392,12 @@ export class NewLineagePanel implements LineagePanelView {
           },
         );
         if (!ok) {
-          window.showErrorMessage(
-            extendErrorWithSupportLinks(
-              "Unable to get columns from DB for model: " +
-                node.name +
-                " table: " +
-                _table.name +
-                ".",
-            ),
+          const message = `Unable to get columns from DB for model:${node.name}   table:${_table.name}`;
+          window.showErrorMessage(extendErrorWithSupportLinks(message));
+          this.terminal.error(
+            "newLineagePanel:getColumns",
+            message,
+            new Error(message),
           );
           return;
         }
@@ -400,12 +420,20 @@ export class NewLineagePanel implements LineagePanelView {
     const { nodeMetaMap } = event;
     const node = nodeMetaMap.get(tableName);
     if (!node) {
+      this.terminal.debug(
+        "newLineagePanel:getColumns",
+        `Unable to find node: ${node}`,
+      );
       return;
     }
     if (refresh) {
       if (node.config.materialized === "ephemeral") {
         window.showInformationMessage(
           "Cannot fetch columns for ephemeral models.",
+        );
+        this.terminal.debug(
+          "newLineagePanel:getColumns",
+          `Cannot fetch columns for ephemeral models: ${table}`,
         );
         return;
       }
@@ -420,14 +448,12 @@ export class NewLineagePanel implements LineagePanelView {
         },
       );
       if (!ok) {
-        window.showErrorMessage(
-          extendErrorWithSupportLinks(
-            "Unable to get columns from DB for model: " +
-              node.name +
-              " table: " +
-              table +
-              ".",
-          ),
+        const message = `Unable to get columns from DB for model:${node.name}   table:${table}`;
+        window.showErrorMessage(extendErrorWithSupportLinks(message));
+        this.terminal.error(
+          "newLineagePanel:getColumns",
+          message,
+          new Error(message),
         );
         return;
       }
@@ -470,6 +496,16 @@ export class NewLineagePanel implements LineagePanelView {
     if (!project) {
       return;
     }
+    this.terminal.debug(
+      "newLineagePanel:getConnectedColumns",
+      [
+        `targets:${targets}`,
+        `upstreamExpansion:${upstreamExpansion}`,
+        `currAnd1HopTables:${currAnd1HopTables}`,
+        `selectedColumn:${selectedColumn}`,
+        `sessionId:${sessionId}`,
+      ].join("\n"),
+    );
 
     const modelInfos: { compiled_sql?: string; model_node: ModelNode }[] = [];
     const parent_models: { model_node: ModelNode }[] = [];
