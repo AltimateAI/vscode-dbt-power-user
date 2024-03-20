@@ -216,6 +216,7 @@ export class QueryResultPanel implements WebviewViewProvider {
             }
             break;
           case InboundCommand.ShareQueryResult:
+            this.telemetry.sendTelemetryEvent("ShareQueryResult");
             window.withProgress(
               {
                 location: ProgressLocation.Notification,
@@ -225,46 +226,60 @@ export class QueryResultPanel implements WebviewViewProvider {
               async () => {
                 try {
                   const result = await this.altimate.shareQueryResult(message);
-                  if (result?.signed_url) {
-                    window.showInformationMessage(
-                      "Generated signed url. Uploading data...",
-                    );
-                    const uploadResponse =
-                      await this.altimate.uploadDataToSignedUrl(
-                        result.signed_url,
-                        message,
-                      );
-                    if (uploadResponse.status === 200) {
-                      // verifying upload
-                      const verifyResponse =
-                        await this.altimate.verifyShareQueryUpload({
-                          sharing_table_id: result.sharing_table_id,
-                        });
-
-                      const verifyData = verifyResponse as {
-                        ok: boolean;
-                        share_url: string;
-                      };
-                      if (verifyData.ok) {
-                        await env.clipboard.writeText(verifyData.share_url);
-                        window.showInformationMessage(
-                          `URL is copied to clipboard: [${verifyData.share_url}](${verifyData.share_url})`,
-                        );
-                      } else {
-                        window.showErrorMessage(
-                          "Unable to verify upload. Please try again.",
-                        );
-                      }
-                    } else {
-                      window.showErrorMessage(
-                        "Error verifying upload. Please try again.",
-                      );
-                    }
-                  } else {
+                  if (!result?.signed_url) {
                     window.showErrorMessage("Error generating signed url");
+                    this.telemetry.sendTelemetryError(
+                      "ShareQueryResult",
+                      "Error generating signed url",
+                    );
                   }
+
+                  window.showInformationMessage(
+                    "Generated signed url. Uploading data...",
+                  );
+                  const uploadResponse =
+                    await this.altimate.uploadDataToSignedUrl(
+                      result!.signed_url,
+                      message,
+                    );
+                  if (uploadResponse.status !== 200) {
+                    window.showErrorMessage(
+                      "Error verifying upload. Please try again.",
+                    );
+                    this.telemetry.sendTelemetryError(
+                      "ShareQueryResult",
+                      "Upload response status not 200",
+                    );
+                  }
+                  // verifying upload
+                  const verifyResponse =
+                    await this.altimate.verifyShareQueryUpload({
+                      sharing_table_id: result!.sharing_table_id,
+                    });
+
+                  const verifyData = verifyResponse as {
+                    ok: boolean;
+                    share_url: string;
+                  };
+                  if (!verifyData.ok) {
+                    window.showErrorMessage(
+                      "Unable to verify upload. Please try again.",
+                    );
+                    this.telemetry.sendTelemetryError(
+                      "ShareQueryResult",
+                      "Error verifying upload",
+                    );
+                  }
+                  await env.clipboard.writeText(verifyData.share_url);
+                  window.showInformationMessage(
+                    `URL is copied to clipboard: [${verifyData.share_url}](${verifyData.share_url})`,
+                  );
                 } catch (error) {
                   window.showErrorMessage(
+                    `Error generating shareable URL:${error}`,
+                  );
+                  this.telemetry.sendTelemetryError(
+                    "ShareQueryResult",
                     `Error generating shareable URL:${error}`,
                   );
                 }
