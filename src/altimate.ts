@@ -1,9 +1,5 @@
 import { env, Uri, window, workspace } from "vscode";
-import {
-  provideSingleton,
-  processStreamResponse,
-  getResolvedConfigValue,
-} from "./utils";
+import { provideSingleton, processStreamResponse } from "./utils";
 import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
@@ -211,17 +207,13 @@ export class AltimateRequest {
   ) {}
 
   getInstanceName() {
-    return getResolvedConfigValue(
+    return this.pythonEnvironment.getResolvedConfigValue(
       "altimateInstanceName",
-      this.pythonEnvironment.environmentVariables,
     );
   }
 
   getAIKey() {
-    return getResolvedConfigValue(
-      "altimateAiKey",
-      this.pythonEnvironment.environmentVariables,
-    );
+    return this.pythonEnvironment.getResolvedConfigValue("altimateAiKey");
   }
 
   public enabled(): boolean {

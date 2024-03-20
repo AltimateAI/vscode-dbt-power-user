@@ -11,11 +11,7 @@ import {
 } from "vscode";
 import * as which from "which";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
-import {
-  extendErrorWithSupportLinks,
-  getResolvedConfigValue,
-  provideSingleton,
-} from "../utils";
+import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 
@@ -38,10 +34,8 @@ export class DbtDocumentFormattingEditProvider
   }
 
   private async executeSqlFmt(document: TextDocument) {
-    const sqlFmtPathSetting = getResolvedConfigValue(
-      "sqlFmtPath",
-      this.pythonEnvironment.environmentVariables,
-    );
+    const sqlFmtPathSetting =
+      this.pythonEnvironment.getResolvedConfigValue("sqlFmtPath");
     const sqlFmtAdditionalParamsSetting = workspace
       .getConfiguration("dbt")
       .get<string[]>("sqlFmtAdditionalParams", [])
