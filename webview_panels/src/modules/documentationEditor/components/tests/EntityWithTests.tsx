@@ -59,8 +59,8 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
   return (
     <div className={classes.entityTests}>
       <Stack className={type}>
-        <Stack>
-          <p className="mb-0">
+        <div className={classes.testsRow}>
+          <p className="mb-0 d-inline">
             <TestsIcon /> Tests:
           </p>
           {visibleTests?.map((test) => (
@@ -82,7 +82,7 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
             </Button>
           ) : null}
           <AddTest title={title} currentTests={currentTests} type={type} />
-        </Stack>
+        </div>
       </Stack>
       <Drawer ref={drawerRef} onClose={handleClose}>
         {selectedTest ? (

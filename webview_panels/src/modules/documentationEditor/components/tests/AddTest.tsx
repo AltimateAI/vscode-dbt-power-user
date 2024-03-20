@@ -61,27 +61,25 @@ const AddTest = ({ title, currentTests, type }: Props): JSX.Element => {
         {showButtons ? <RemoveIcon /> : <AddIcon />}
       </IconButton>
       {showButtons ? (
-        <Fade>
-          <Stack>
-            {type === EntityType.MODEL
-              ? null
-              : Object.values(DbtGenericTests)
-                  .filter((t) => !currentTests?.includes(t))
-                  .map((test) => (
-                    <Tooltip key={test} title="Click to add">
-                      <Button
-                        className={classes.newTestTag}
-                        onClick={() => handleNewTestClick(test)}
-                        outline
-                      >
-                        {test}
-                      </Button>
-                    </Tooltip>
-                  ))}
-            <Tooltip title="Generate test using Datapilot">
-              <CustomTestButton column={title} type={type} />
-            </Tooltip>
-          </Stack>
+        <Fade tag="span" className="d-inline">
+          {type === EntityType.MODEL
+            ? null
+            : Object.values(DbtGenericTests)
+                .filter((t) => !currentTests?.includes(t))
+                .map((test) => (
+                  <Tooltip key={test} title="Click to add">
+                    <Button
+                      className={classes.newTestTag}
+                      onClick={() => handleNewTestClick(test)}
+                      outline
+                    >
+                      {test}
+                    </Button>
+                  </Tooltip>
+                ))}
+          <Tooltip title="Generate test using Datapilot">
+            <CustomTestButton column={title} type={type} />
+          </Tooltip>
         </Fade>
       ) : null}
       <Drawer ref={drawerRef}>
