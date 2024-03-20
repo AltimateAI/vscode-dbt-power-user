@@ -281,6 +281,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
     const columnTests = tests.filter((test) => test.column_name === columnName);
 
+    // No tests for this column - may be all deleted
+    if (!columnTests.length) {
+      return;
+    }
+
     const data = columnTests.map((test, i) => {
       if (!test.test_metadata) {
         return null;
@@ -563,8 +568,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                   yamlColumn.name === column.name,
                               );
                             if (existingColumn !== undefined) {
+                              const { tests, ...rest } = existingColumn;
                               return {
-                                ...existingColumn,
+                                ...rest,
                                 ...(column?.type && !existingColumn?.data_type
                                   ? { data_type: column.type }
                                   : {}),
