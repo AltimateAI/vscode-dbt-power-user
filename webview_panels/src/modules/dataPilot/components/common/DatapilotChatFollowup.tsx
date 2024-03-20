@@ -48,6 +48,7 @@ const DatapilotChatFollowupComponent = ({
   hideFeedback,
   skipFollowupQuestions,
 }: Props): JSX.Element => {
+  panelLogger.info(hideFeedback, component, response);
   const { chat, onNewGeneration, history, isMaxFollowupReached } =
     useQueryAnalysisContext();
   const results = chat?.followups ?? [];

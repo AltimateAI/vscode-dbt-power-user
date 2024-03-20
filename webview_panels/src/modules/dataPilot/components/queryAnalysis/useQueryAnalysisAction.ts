@@ -16,10 +16,13 @@ interface QueryAnalysisRequest {
   user_request?: string;
   history?: QueryAnalysisHistory[];
   skipFollowupQuestions?: boolean;
+  request?: Record<string, unknown>;
 }
 const useQueryAnalysisAction = (): {
   isLoading: boolean;
-  executeQueryAnalysis: (args: QueryAnalysisRequest) => Promise<void>;
+  executeQueryAnalysis: (
+    args: QueryAnalysisRequest,
+  ) => Promise<string | undefined>;
 } => {
   const { chat, isMaxFollowupReached, packageVersions } =
     useQueryAnalysisContext();
@@ -54,13 +57,20 @@ const useQueryAnalysisAction = (): {
     sessionId,
     user_request,
     skipFollowupQuestions,
+    request,
   }: QueryAnalysisRequest) => {
     if (isMaxFollowupReached) {
       return;
     }
     const id = crypto.randomUUID();
     try {
-      panelLogger.info("executeQueryAnalysis", sessionId, id, chat?.meta);
+      panelLogger.info(
+        "executeQueryAnalysis",
+        command,
+        sessionId,
+        id,
+        chat?.meta,
+      );
       setIsLoading(true);
 
       onNewGeneration({
@@ -81,6 +91,7 @@ const useQueryAnalysisAction = (): {
             dbt_expectations: Boolean(packageVersions.dbt_expectations),
             dbt_utils: Boolean(packageVersions.dbt_utils),
             ...chat?.meta,
+            ...request,
           },
           (chunk: string) => {
             onProgress(id, chunk, onNewGeneration);
@@ -113,6 +124,7 @@ const useQueryAnalysisAction = (): {
             }))
           : [],
       });
+      return result?.response;
     } catch (err) {
       panelLogger.error("Error while fetching explanation", err);
       onNewGeneration({
@@ -122,6 +134,7 @@ const useQueryAnalysisAction = (): {
       });
     }
     setIsLoading(false);
+    return;
   };
 
   return { executeQueryAnalysis, isLoading };

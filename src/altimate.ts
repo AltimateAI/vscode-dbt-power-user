@@ -106,6 +106,19 @@ interface QueryAnalysisChat {
   additional_kwargs?: Record<string, unknown>;
 }
 
+export interface QueryTranslateRequest {
+  sql: string;
+  source: string;
+  destination: string;
+}
+
+export interface QueryTranslateExplanationRequest {
+  user_sql: string;
+  translated_sql: string;
+  source: string;
+  destination: string;
+}
+
 export interface QueryAnalysisRequest {
   session_id: string;
   job_type: QueryAnalysisType;

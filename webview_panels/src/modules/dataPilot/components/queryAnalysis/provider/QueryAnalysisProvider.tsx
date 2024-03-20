@@ -99,6 +99,7 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
       response: "",
       component: "queryTranslate",
       state: RequestState.COMPLETED,
+      hideFollowup: true,
     });
   };
 

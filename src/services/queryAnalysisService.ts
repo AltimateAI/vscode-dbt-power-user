@@ -3,6 +3,8 @@ import {
   AltimateRequest,
   QueryAnalysisRequest,
   QueryAnalysisType,
+  QueryTranslateExplanationRequest,
+  QueryTranslateRequest,
 } from "../altimate";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
@@ -44,6 +46,38 @@ export class QueryAnalysisService {
     }
 
     return { query: editor.document.getText(), fileName };
+  }
+
+  public async executeQueryTranslate(
+    params: QueryTranslateRequest,
+    syncRequestId?: string,
+  ) {
+    if (!this.altimateRequest.handlePreviewFeatures()) {
+      return;
+    }
+
+    return this.streamingService.fetchAsStream<QueryTranslateRequest>({
+      endpoint: "dbt/v3/translate",
+      syncRequestId,
+      request: params,
+    });
+  }
+
+  public async executeQueryTranslateExplanation(
+    params: QueryTranslateExplanationRequest,
+    syncRequestId?: string,
+  ) {
+    if (!this.altimateRequest.handlePreviewFeatures()) {
+      return;
+    }
+
+    return this.streamingService.fetchAsStream<QueryTranslateExplanationRequest>(
+      {
+        endpoint: "dbt/v3/translate-explanation",
+        syncRequestId,
+        request: params,
+      },
+    );
   }
 
   public async executeQueryAnalysis(

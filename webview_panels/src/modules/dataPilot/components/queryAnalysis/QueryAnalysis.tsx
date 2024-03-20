@@ -85,7 +85,12 @@ const QueryAnalysis = (): JSX.Element | null => {
           response={result}
           command={`queryAnalysis:${chat.analysisType ?? ""}`}
           // show followup and ask textbox for last result only
-          showFollowup={i === followups.length - 1}
+          showFollowup={
+            result.hideFollowup !== undefined
+              ? !result.hideFollowup
+              : i === followups.length - 1
+          }
+          hideFeedback={result.hideFeedback}
           skipFollowupQuestions={
             chat?.analysisType === QueryAnalysisType.MODIFY
           }

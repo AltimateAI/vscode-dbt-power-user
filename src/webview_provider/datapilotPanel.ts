@@ -8,7 +8,12 @@ import {
   HandleCommandProps,
 } from "./altimateWebviewProvider";
 import { DocGenService } from "../services/docGenService";
-import { AltimateRequest, QueryAnalysisType } from "../altimate";
+import {
+  AltimateRequest,
+  QueryAnalysisType,
+  QueryTranslateExplanationRequest,
+  QueryTranslateRequest,
+} from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
 import { QueryAnalysisService } from "../services/queryAnalysisService";
 import { QueryManifestService } from "../services/queryManifestService";
@@ -117,6 +122,53 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         });
         break;
 
+      case "querytranslate":
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const editor = window.activeTextEditor;
+
+            if (!editor) {
+              throw new Error("Invalid file");
+            }
+
+            const sql = editor.document.getText();
+            const response =
+              await this.queryAnalysisService.executeQueryTranslate(
+                { ...params, sql } as unknown as QueryTranslateRequest,
+                syncRequestId,
+              );
+            return { response };
+          },
+          command,
+          true,
+        );
+        break;
+      case "querytranslate:explanation":
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const editor = window.activeTextEditor;
+
+            if (!editor) {
+              throw new Error("Invalid file");
+            }
+
+            const sql = editor.document.getText();
+            const response =
+              await this.queryAnalysisService.executeQueryTranslateExplanation(
+                {
+                  ...params,
+                  user_sql: sql,
+                } as unknown as QueryTranslateExplanationRequest,
+                syncRequestId,
+              );
+            return { response };
+          },
+          command,
+          true,
+        );
+        break;
       case "queryAnalysis:explain":
         this.handleSyncRequestFromWebview(
           syncRequestId,
