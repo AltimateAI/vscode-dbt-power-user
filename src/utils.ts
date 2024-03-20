@@ -97,53 +97,6 @@ export const provideSingleton = (identifier: any) => {
   return fluentProvide(identifier).inSingletonScope().done();
 };
 
-export function getResolvedConfigValue(
-  key: string,
-  vsCodeEnv: EnvironmentVariables,
-) {
-  const value = workspace.getConfiguration("dbt").get<string>(key, "");
-  return substituteSettingsVariables(value, vsCodeEnv);
-}
-
-export function parseEnvVarsFromUserSettings(vsCodeEnv: EnvironmentVariables) {
-  const newVSCodeEnv = { ...vsCodeEnv };
-  for (const key in vsCodeEnv) {
-    newVSCodeEnv[key] = substituteSettingsVariables(key, vsCodeEnv);
-  }
-  return newVSCodeEnv;
-}
-
-function substituteSettingsVariables(
-  value: any,
-  vsCodeEnv: EnvironmentVariables,
-): any {
-  if (!value) {
-    return value;
-  }
-  if (typeof value !== "string") {
-    return value;
-  }
-  const regexVsCodeEnv = /\$\{env\:(.*?)\}/gm;
-  let matchResult;
-  while ((matchResult = regexVsCodeEnv.exec(value)) !== null) {
-    // This is necessary to avoid infinite loops with zero-width matches
-    if (matchResult.index === regexVsCodeEnv.lastIndex) {
-      regexVsCodeEnv.lastIndex++;
-    }
-    if (vsCodeEnv[matchResult[1]] !== undefined) {
-      value = value.replace(
-        new RegExp(`\\\$\\\{env\\\:${matchResult[1]}\\\}`, "gm"),
-        vsCodeEnv[matchResult[1]]!,
-      );
-    }
-  }
-  value = value.replace(
-    "${workspaceFolder}",
-    workspace.workspaceFolders![0].uri.fsPath,
-  );
-  return value;
-}
-
 export function extendErrorWithSupportLinks(error: string): string {
   return (
     (error[-1] === " " ? error : error + " ") +

@@ -1,29 +1,22 @@
 import { Disposable, Event, extensions, Uri, workspace } from "vscode";
 import { EnvironmentVariables } from "../domain";
-import {
-  getResolvedConfigValue,
-  parseEnvVarsFromUserSettings,
-  provideSingleton,
-} from "../utils";
+import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 type EnvFrom = "process" | "integrated" | "dotenv";
-type EnvVarsDebug = Record<
-  string,
-  { value: string | undefined; from: EnvFrom }
->;
 interface PythonExecutionDetails {
   getPythonPath: () => string;
   onDidChangeExecutionDetails: Event<Uri | undefined>;
-  getEnvVars: () => EnvVarsDebug;
+  getEnvVars: () => EnvironmentVariables;
 }
 
 @provideSingleton(PythonEnvironment)
 export class PythonEnvironment implements Disposable {
   private executionDetails?: PythonExecutionDetails;
   private disposables: Disposable[] = [];
+  private envFrom: Record<string, EnvFrom> = {};
   constructor(
     private telemetry: TelemetryService,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
@@ -41,20 +34,13 @@ export class PythonEnvironment implements Disposable {
 
   public get pythonPath() {
     return (
-      getResolvedConfigValue(
-        "dbtPythonPathOverride",
-        this.environmentVariables,
-      ) || this.executionDetails!.getPythonPath()
+      this.getResolvedConfigValue("dbtPythonPathOverride") ||
+      this.executionDetails!.getPythonPath()
     );
   }
 
   public get environmentVariables(): EnvironmentVariables {
-    const envVarsDebug = this.executionDetails!.getEnvVars();
-    const envVars: EnvironmentVariables = {};
-    for (const key in envVarsDebug) {
-      envVars[key] = envVarsDebug[key].value;
-    }
-    return envVars;
+    return this.executionDetails!.getEnvVars();
   }
 
   public get onPythonEnvironmentChanged() {
@@ -67,6 +53,40 @@ export class PythonEnvironment implements Disposable {
     }
 
     this.executionDetails = await this.activatePythonExtension();
+  }
+
+  getResolvedConfigValue(key: string) {
+    const value = workspace.getConfiguration("dbt").get<string>(key, "");
+    return this.substituteSettingsVariables(value);
+  }
+
+  substituteSettingsVariables(value: any): any {
+    if (!value) {
+      return value;
+    }
+    if (typeof value !== "string") {
+      return value;
+    }
+    const vsCodeEnv = this.environmentVariables;
+    const regexVsCodeEnv = /\$\{env\:(.*?)\}/gm;
+    let matchResult;
+    while ((matchResult = regexVsCodeEnv.exec(value)) !== null) {
+      // This is necessary to avoid infinite loops with zero-width matches
+      if (matchResult.index === regexVsCodeEnv.lastIndex) {
+        regexVsCodeEnv.lastIndex++;
+      }
+      if (vsCodeEnv[matchResult[1]] !== undefined) {
+        value = value.replace(
+          new RegExp(`\\\$\\\{env\\\:${matchResult[1]}\\\}`, "gm"),
+          vsCodeEnv[matchResult[1]]!,
+        );
+      }
+    }
+    value = value.replace(
+      "${workspaceFolder}",
+      workspace.workspaceFolders![0].uri.fsPath,
+    );
+    return value;
   }
 
   private async activatePythonExtension(): Promise<PythonExecutionDetails> {
@@ -114,19 +134,20 @@ export class PythonEnvironment implements Disposable {
       },
       onDidChangeExecutionDetails: api.settings.onDidChangeExecutionDetails,
       getEnvVars: () => {
-        const envVars: EnvVarsDebug = {};
+        const envVars: EnvironmentVariables = {};
         const setEnvVars = (
           _envVars: Record<string, string | undefined>,
           from: EnvFrom,
         ) => {
           for (const key in _envVars) {
-            if (envVars[key]) {
+            if (this.envFrom[key]) {
               this.dbtTerminal.debug(
                 "pythonEnvironment:envVars",
-                `Overriding env ${key} from ${envVars[key].from} to ${from}`,
+                `Overriding env ${key} from ${this.envFrom[key]} to ${from}`,
               );
+              this.envFrom[key] = from;
             }
-            envVars[key] = { value: _envVars[key], from: from };
+            envVars[key] = _envVars[key];
           }
         };
         setEnvVars(process.env, "process");
@@ -145,20 +166,17 @@ export class PythonEnvironment implements Disposable {
                 this.dbtTerminal.debug(
                   "pythonEnvironment:envVars",
                   "Loading env vars from config.terminal.integrated.env",
-                  "Ignoring invalid property  " + prop,
+                  "Ignoring invalid property " + prop,
                 );
                 continue;
               }
-              const newEnvVars = parseEnvVarsFromUserSettings(
-                integratedEnv[prop],
-              );
               this.dbtTerminal.debug(
                 "pythonEnvironment:envVars",
                 "Loading env vars from config.terminal.integrated.env",
                 "Merging from " + prop,
-                Object.keys(newEnvVars),
+                Object.keys(integratedEnv[prop]),
               );
-              setEnvVars(newEnvVars, "integrated");
+              setEnvVars(integratedEnv[prop], "integrated");
             }
           }
           if (api.environment) {
