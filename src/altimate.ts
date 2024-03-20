@@ -575,7 +575,7 @@ export class AltimateRequest {
       body: JSON.stringify(req),
     });
   }
-  
+
   async fetchProjectIntegrations() {
     return this.fetch<DBTCoreIntegration[]>("dbt/v1/project_integrations");
   }
