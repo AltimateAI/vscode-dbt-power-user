@@ -6,8 +6,10 @@ import {
 } from "../altimate";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
+import { QueryManifestService } from "./queryManifestService";
 import { DocGenService } from "./docGenService";
 import { StreamingService } from "./streamingService";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 @provideSingleton(QueryAnalysisService)
 export class QueryAnalysisService {
@@ -15,6 +17,8 @@ export class QueryAnalysisService {
     private docGenService: DocGenService,
     private streamingService: StreamingService,
     private altimateRequest: AltimateRequest,
+    private queryManifestService: QueryManifestService,
+    private dbtTerminal: DBTTerminal,
   ) {}
 
   public getSelectedQuery() {
@@ -43,7 +47,6 @@ export class QueryAnalysisService {
   }
 
   public async executeQueryAnalysis(
-    eventMap: Map<string, ManifestCacheProjectAddedEvent>,
     params: Partial<QueryAnalysisRequest>,
     job_type: QueryAnalysisType,
     syncRequestId?: string,
@@ -54,28 +57,48 @@ export class QueryAnalysisService {
 
     const { session_id } = params;
     if (!session_id) {
-      console.error("Missing session id");
-      throw new Error("Invalid session id");
+      const error = new Error("Invalid session id");
+      this.dbtTerminal.error(
+        "executeQueryAnalysisError",
+        "Missing session id",
+        error,
+      );
+      throw error;
     }
 
     const selectionData = this.getSelectedQuery();
     if (!selectionData) {
-      console.error("Missing query");
-      throw new Error("Invalid query");
+      const error = new Error("Invalid query");
+      this.dbtTerminal.error(
+        "executeQueryAnalysisError",
+        "Missing query",
+        error,
+      );
+      throw error;
     }
     const { query } = selectionData;
-    const dbtProject = this.docGenService.getProject();
+    const dbtProject = this.queryManifestService.getProject();
 
     if (!dbtProject) {
-      console.error("Invalid dbt project");
-      throw new Error("Invalid dbt project");
+      const error = new Error("Invalid dbt project");
+      this.dbtTerminal.error(
+        "executeQueryAnalysisError",
+        "Invalid dbt project",
+        error,
+      );
+      throw error;
     }
 
     const adapter = dbtProject.getAdapterType() || "unknown";
-    const documentation = await this.docGenService.getDocumentation(eventMap);
+    const documentation = await this.docGenService.getDocumentation();
     if (!documentation) {
-      console.error("Unable to find documentation for the model");
-      throw new Error("Invalid model");
+      const error = new Error("Invalid model");
+      this.dbtTerminal.error(
+        "executeQueryAnalysisError",
+        "Unable to find documentation for the model",
+        error,
+      );
+      throw error;
     }
     return this.streamingService.fetchAsStream<QueryAnalysisRequest>({
       endpoint: "dbt/v2/query-analysis",
@@ -86,7 +109,7 @@ export class QueryAnalysisService {
         model: {
           model_name: documentation.name,
           adapter,
-          compiled_sql: await dbtProject.compileQuery(query),
+          compiled_sql: await dbtProject.unsafeCompileQuery(query),
           columns: documentation.columns.map((c) => ({
             column_name: c.name,
             data_type: c.type,
@@ -97,26 +120,38 @@ export class QueryAnalysisService {
     });
   }
 
-  public async getFollowupQuestions(
-    eventMap: Map<string, ManifestCacheProjectAddedEvent>,
-    { query, user_request }: { query: string; user_request: string },
-  ) {
+  public async getFollowupQuestions({
+    query,
+    user_request,
+  }: {
+    query: string;
+    user_request: string;
+  }) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
     }
-    const adapter =
-      this.docGenService.getProject()?.getAdapterType() || "unknown";
-    const documentation = await this.docGenService.getDocumentation(eventMap);
-    const dbtProject = this.docGenService.getProject();
-
+    const dbtProject = this.queryManifestService.getProject();
     if (!dbtProject) {
-      console.error("Invalid dbt project");
-      throw new Error("Invalid dbt project");
+      const error = new Error("Invalid dbt project");
+      this.dbtTerminal.error(
+        "getFollowupQuestionsError",
+        "Invalid dbt project",
+        error,
+      );
+      throw error;
     }
 
+    const adapter = dbtProject.getAdapterType() || "unknown";
+    const documentation = await this.docGenService.getDocumentation();
+
     if (!documentation) {
-      console.error("Unable to find documentation for the model");
-      throw new Error("Invalid model");
+      const error = new Error("Unable to find documentation for the model");
+      this.dbtTerminal.error(
+        "getFollowupQuestionsError",
+        "Unable to find documentation for the model",
+        error,
+      );
+      throw error;
     }
     return this.altimateRequest.fetch("dbt/v2/follow-up-questions", {
       method: "POST",
@@ -124,7 +159,7 @@ export class QueryAnalysisService {
         model: {
           model_name: documentation.name,
           adapter,
-          compiled_sql: await dbtProject.compileQuery(query),
+          compiled_sql: await dbtProject.unsafeCompileQuery(query),
           columns: documentation.columns.map((c) => ({
             column_name: c.name,
             data_type: c.type,

@@ -9,7 +9,6 @@
     /* Bundler mode */
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "allowImportingTsExtensions": true,
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
     "noEmit": true,
@@ -22,6 +21,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    "downlevelIteration": true,
     "baseUrl": ".",
     "paths": {
       "@uicore": ["src/uiCore/index.ts"],

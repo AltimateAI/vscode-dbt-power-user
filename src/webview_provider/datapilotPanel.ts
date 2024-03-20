@@ -11,6 +11,8 @@ import { DocGenService } from "../services/docGenService";
 import { AltimateRequest, QueryAnalysisType } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
 import { QueryAnalysisService } from "../services/queryAnalysisService";
+import { QueryManifestService } from "../services/queryManifestService";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 enum DatapilotEvents {
   QUERY_EXPLAIN_ONLOAD = "queryAnalysis:load:explain",
@@ -32,16 +34,21 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     private docGenService: DocGenService,
     protected emitterService: SharedStateService,
     protected queryAnalysisService: QueryAnalysisService,
+    private queryManifestService: QueryManifestService,
+    protected dbtTerminal: DBTTerminal,
   ) {
-    super(dbtProjectContainer, altimateRequest, telemetry, emitterService);
+    super(
+      dbtProjectContainer,
+      altimateRequest,
+      telemetry,
+      emitterService,
+      dbtTerminal,
+    );
 
-    commands.registerCommand(
-      "dbtPowerUser.resetDatapilot",
-      () =>
-        this._panel?.webview.postMessage({
-          command: "datapilot:reset",
-          args: {},
-        }),
+    commands.registerCommand("dbtPowerUser.resetDatapilot", () =>
+      this.sendResponseToWebview({
+        command: "datapilot:reset",
+      }),
     );
   }
 
@@ -53,17 +60,14 @@ export class DataPilotPanel extends AltimateWebviewProvider {
       case "getNewDocsPanelState":
         const newDocsPanelState = workspace
           .getConfiguration("dbt")
-          .get<boolean>("enableNewDocsPanel", false);
+          .get<boolean>("enableNewDocsPanel", true);
 
-        this._panel!.webview.postMessage({
+        this.sendResponseToWebview({
           command: "response",
-          args: {
-            syncRequestId,
-            body: {
-              enabled: newDocsPanelState,
-            },
-            status: true,
+          data: {
+            enabled: newDocsPanelState,
           },
+          syncRequestId,
         });
         break;
       case "enableNewDocsPanel":
@@ -79,7 +83,6 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         this.docGenService.sendFeedback({
           queryText,
           message,
-          eventMap: this.eventMap,
           panel: this._panel,
           syncRequestId,
         });
@@ -90,22 +93,18 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         }
         this.docGenService.generateDocsForModel({
           queryText,
-          documentation: await this.docGenService.getDocumentation(
-            this.eventMap,
-          ),
+          documentation: await this.docGenService.getDocumentation(),
           message,
           panel: this._panel,
-          project: this.docGenService.getProject(),
+          project: this.queryManifestService.getProject(),
         });
         break;
       case "generateDocsForColumn":
         await this.docGenService.generateDocsForColumns({
-          documentation: await this.docGenService.getDocumentation(
-            this.eventMap,
-          ),
+          documentation: await this.docGenService.getDocumentation(),
           panel: this._panel,
           message,
-          project: this.docGenService.getProject(),
+          project: this.queryManifestService.getProject(),
         });
         break;
       case "docgen:insert":
@@ -117,82 +116,63 @@ export class DataPilotPanel extends AltimateWebviewProvider {
       case "queryAnalysis:explain":
         try {
           const response = await this.queryAnalysisService.executeQueryAnalysis(
-            this.eventMap,
             params,
             QueryAnalysisType.EXPLAIN,
             syncRequestId,
           );
 
-          this._panel!.webview.postMessage({
+          this.sendResponseToWebview({
             command: "response",
-            args: {
-              syncRequestId,
-              body: { response },
-              status: true,
+            data: {
+              response,
             },
+            syncRequestId,
           });
         } catch (err) {
-          this._panel!.webview.postMessage({
+          this.sendResponseToWebview({
             command: "response",
-            args: {
-              syncRequestId,
-              error: (err as Error).message,
-              status: false,
-            },
+            syncRequestId,
+            error: (err as Error).message,
           });
         }
         break;
       case "queryAnalysis:modify":
         try {
           const response = await this.queryAnalysisService.executeQueryAnalysis(
-            this.eventMap,
             params,
             QueryAnalysisType.MODIFY,
             syncRequestId,
           );
 
-          this._panel!.webview.postMessage({
+          this.sendResponseToWebview({
             command: "response",
-            args: {
-              syncRequestId,
-              body: { response },
-              status: true,
-            },
+            syncRequestId,
+            data: { response },
           });
         } catch (err) {
-          this._panel!.webview.postMessage({
+          this.sendResponseToWebview({
             command: "response",
-            args: {
-              syncRequestId,
-              error: (err as Error).message,
-              status: false,
-            },
+            syncRequestId,
+            error: (err as Error).message,
           });
         }
         break;
       case "queryanalysis:followup":
         try {
           const response = await this.queryAnalysisService.getFollowupQuestions(
-            this.eventMap,
             params as { query: string; user_request: string },
           );
 
-          this._panel!.webview.postMessage({
+          this.sendResponseToWebview({
             command: "response",
-            args: {
-              syncRequestId,
-              body: response,
-              status: true,
-            },
+            syncRequestId,
+            data: { response },
           });
         } catch (err) {
-          this._panel!.webview.postMessage({
+          this.sendResponseToWebview({
             command: "response",
-            args: {
-              syncRequestId,
-              error: (err as Error).message,
-              status: false,
-            },
+            syncRequestId,
+            error: (err as Error).message,
           });
         }
       default:
@@ -227,7 +207,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         this.handleDatapilotEvent(DatapilotEvents.QUERY_ONLOAD, payload);
         break;
       case "dbtPowerUser.openHelpInDatapilot":
-        this._panel!.webview.postMessage({
+        this.sendResponseToWebview({
           command: "datapilot:showHelp",
         });
         break;
@@ -251,10 +231,11 @@ export class DataPilotPanel extends AltimateWebviewProvider {
 
   private postToWebview(message: Record<string, unknown> | undefined) {
     if (this._panel && message) {
-      const command =
-        "command" in message ? message.command : "datapilot:message";
+      const command = (
+        "command" in message ? message.command : "datapilot:message"
+      ) as string;
 
-      this._panel.webview.postMessage({
+      this.sendResponseToWebview({
         command,
         args: message,
       });
@@ -267,7 +248,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     data?: { query?: string },
   ) {
     // reset the datapilot to start new session
-    this._panel?.webview.postMessage({
+    this.sendResponseToWebview({
       command: "datapilot:reset",
       args: {},
     });

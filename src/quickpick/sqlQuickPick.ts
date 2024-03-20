@@ -79,8 +79,8 @@ export class DbtSQLAction {
 
         const project = this.getProject();
         if (project) {
-          const adapter = await project.getAdapterType();
-          const dbtVersion = await project.getDBTVersion();
+          const adapter = project.getAdapterType();
+          const dbtVersion = project.getDBTVersion();
           if (
             adapter === "bigquery" &&
             dbtVersion &&
@@ -93,6 +93,7 @@ export class DbtSQLAction {
                 new ThemeIcon("dashboard"),
                 "Estimate cost for BigQuery",
                 "dbtPowerUser.bigqueryCostEstimate",
+                [true],
               ),
             );
           }

@@ -31,9 +31,16 @@ export class ManifestParser {
   ) {}
 
   public async parseManifest(project: DBTProject) {
+    this.terminal.debug(
+      "ManifestParser",
+      `Going to parse manifest for "${project.getProjectName()}" at ${
+        project.projectRoot
+      }`,
+    );
     const targetPath = project.getTargetPath();
     if (!targetPath) {
-      console.error(
+      this.terminal.debug(
+        "ManifestParser",
         "targetPath should be defined at this stage for project " +
           project.projectRoot.fsPath,
       );
@@ -65,7 +72,6 @@ export class ManifestParser {
 
     const { nodes, sources, macros, parent_map, child_map, docs, exposures } =
       manifest;
-    const rootPath = projectRoot.fsPath;
 
     const nodeMetaMapPromise = this.nodeParser.createNodeMetaMap(
       nodes,
@@ -85,7 +91,7 @@ export class ManifestParser {
     );
     const exposuresMetaMapPromise = this.exposureParser.createExposureMetaMap(
       exposures,
-      rootPath,
+      project,
     );
 
     const docMetaMapPromise = this.docParser.createDocMetaMap(docs, project);
@@ -107,6 +113,7 @@ export class ManifestParser {
     ]);
 
     const graphMetaMap = this.graphParser.createGraphMetaMap(
+      project,
       parent_map,
       child_map,
       nodeMetaMap,
@@ -166,13 +173,19 @@ export class ManifestParser {
       pathParts.unshift(projectRoot.fsPath);
     }
     const manifestLocation = path.join(...pathParts, DBTProject.MANIFEST_FILE);
+    this.terminal.debug(
+      "ManifestParser",
+      `Reading manifest at ${manifestLocation} for project at ${projectRoot}`,
+    );
 
     try {
       const manifestFile = readFileSync(manifestLocation, "utf8");
       return JSON.parse(manifestFile);
     } catch (error) {
-      this.terminal.log(
-        `Could not read manifest file at ${manifestLocation}: ${error}`,
+      this.terminal.debug(
+        "ManifestParser",
+        `Could not read manifest file at ${manifestLocation}, ignoring error`,
+        error,
       );
     }
   }

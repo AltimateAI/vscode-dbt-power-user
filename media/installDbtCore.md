@@ -1,4 +1,4 @@
-# About installing dbt
+# About installing dbt Core
 
 You can install dbt Core on the command line by using one of these methods:
 

@@ -21,8 +21,9 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { AltimateRequest } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
-type UpdateConfigProps = {
+export type UpdateConfigProps = {
   key: string;
   value: string | boolean | number;
   isPreviewFeature?: boolean;
@@ -36,6 +37,13 @@ export interface HandleCommandProps extends Record<string, unknown> {
 export interface SharedStateEventEmitterProps {
   command: string;
   payload: Record<string, unknown>;
+}
+
+interface SendMessageProps extends Record<string, unknown> {
+  command: string;
+  syncRequestId?: string;
+  error?: string;
+  data?: unknown;
 }
 
 /**
@@ -59,9 +67,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     protected altimateRequest: AltimateRequest,
     protected telemetry: TelemetryService,
     protected emitterService: SharedStateService,
+    protected dbtTerminal: DBTTerminal,
   ) {
-    dbtProjectContainer.onManifestChanged((event) =>
-      this.onManifestCacheChanged(event),
+    this._disposables.push(
+      dbtProjectContainer.onManifestChanged((event) =>
+        this.onManifestCacheChanged(event),
+      ),
     );
 
     const t = this;
@@ -72,7 +83,26 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     );
   }
 
-  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+  protected sendResponseToWebview({
+    command,
+    data,
+    error,
+    syncRequestId,
+    ...rest
+  }: SendMessageProps) {
+    this._panel?.webview.postMessage({
+      command,
+      args: {
+        syncRequestId,
+        body: data,
+        status: !error,
+        error,
+      },
+      ...rest,
+    });
+  }
+
+  protected onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
       this.eventMap.set(added.project.projectRoot.fsPath, added);
     });
@@ -84,9 +114,10 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
   protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
     switch (command) {
       case "stream:chunk":
-        this._panel!.webview.postMessage({
+        this.sendResponseToWebview({
           command: "response",
-          args: payload,
+          syncRequestId: payload.syncRequestId as string | undefined,
+          data: payload.body,
         });
         break;
 
@@ -117,6 +148,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     try {
       switch (command) {
+        case "openFile":
+          workspace.openTextDocument(params.path as string).then((doc) => {
+            window.showTextDocument(doc);
+          });
+          break;
         case "webview:ready":
           this.onWebviewReady();
           break;
@@ -142,14 +178,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           break;
         case "validateCredentials":
           const isValid = await this.altimateRequest.handlePreviewFeatures();
-          this._panel!.webview.postMessage({
+          this.sendResponseToWebview({
             command: "response",
-            args: {
-              syncRequestId,
-              body: {
-                isValid,
-              },
-              status: true,
+            syncRequestId,
+            data: {
+              isValid,
             },
           });
           break;
@@ -171,7 +204,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           if (!this.isUpdateConfigProps(params)) {
             return;
           }
-          console.log("Updating config", params.key, params.value);
+          this.dbtTerminal.debug(
+            "altimateWebviewProvider:handleCommand",
+            "Updating config",
+            params,
+          );
           // If config is for preview feature, then check keys
           const shouldUpdate =
             !params.isPreviewFeature ||
@@ -182,15 +219,29 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               .update(params.key, params.value);
           }
           if (syncRequestId) {
-            this._panel!.webview.postMessage({
+            this.sendResponseToWebview({
               command: "response",
-              args: {
-                syncRequestId,
-                body: {
-                  updated: shouldUpdate,
-                },
-                status: true,
+              syncRequestId,
+              data: {
+                updated: shouldUpdate,
               },
+            });
+          }
+          break;
+        case "showInformationMessage":
+          const { infoMessage, items } = params as {
+            infoMessage: string;
+            items: any[];
+          };
+          const result = await window.showInformationMessage(
+            infoMessage,
+            ...items,
+          );
+          if (syncRequestId) {
+            this.sendResponseToWebview({
+              command: "response",
+              data: result,
+              syncRequestId,
             });
           }
           break;
@@ -198,7 +249,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           break;
       }
     } catch (err) {
-      console.error("error while handling command", err);
+      this.dbtTerminal.error(
+        "altimateWebviewProvider:handleCommand",
+        "error while handling command",
+        err,
+      );
     }
   }
 
@@ -207,7 +262,6 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     context: WebviewViewResolveContext<unknown>,
     _token: CancellationToken,
   ): void | Thenable<void> {
-    console.log("AltimateWebviewProvider:resolveWebviewView -> ");
     this._panel = panel;
     this.setupWebviewOptions(context);
     this.renderWebviewView(context);
@@ -253,17 +307,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         ),
       ),
     );
-    const insightsCss = webview.asWebviewUri(
-      Uri.file(
-        path.join(
-          extensionUri.fsPath,
-          "webview_panels",
-          "dist",
-          "assets",
-          "Insights.css",
-        ),
-      ),
-    );
+    // const insightsCss = webview.asWebviewUri(
+    //   Uri.file(
+    //     path.join(
+    //       extensionUri.fsPath,
+    //       "webview_panels",
+    //       "dist",
+    //       "assets",
+    //       "Insights.css",
+    //     ),
+    //   ),
+    // );
     const codiconsUri = webview.asWebviewUri(
       Uri.joinPath(
         extensionUri,
@@ -290,7 +344,6 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}';">
             <title>VSCode DBT Power user extension</title>
             <link rel="stylesheet" type="text/css" href="${indexCss}">
-            <link rel="stylesheet" type="text/css" href="${insightsCss}">
             <link rel="stylesheet" type="text/css" href="${codiconsUri}">
           </head>
       
