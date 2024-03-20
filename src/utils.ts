@@ -9,6 +9,7 @@ import {
   Uri,
   workspace,
 } from "vscode";
+import { EnvironmentVariables } from "./domain";
 
 export const isEnclosedWithinCodeBlock: (
   document: TextDocument,
@@ -98,15 +99,13 @@ export const provideSingleton = (identifier: any) => {
 
 export function getResolvedConfigValue(
   key: string,
-  vsCodeEnv: Record<string, string>,
+  vsCodeEnv: EnvironmentVariables,
 ) {
   const value = workspace.getConfiguration("dbt").get<string>(key, "");
   return substituteSettingsVariables(value, vsCodeEnv);
 }
 
-export function parseEnvVarsFromUserSettings(
-  vsCodeEnv: Record<string, string>,
-) {
+export function parseEnvVarsFromUserSettings(vsCodeEnv: EnvironmentVariables) {
   const newVSCodeEnv = { ...vsCodeEnv };
   for (const key in vsCodeEnv) {
     newVSCodeEnv[key] = substituteSettingsVariables(key, vsCodeEnv);
@@ -116,7 +115,7 @@ export function parseEnvVarsFromUserSettings(
 
 function substituteSettingsVariables(
   value: any,
-  vsCodeEnv: Record<string, string>,
+  vsCodeEnv: EnvironmentVariables,
 ): any {
   if (!value) {
     return value;

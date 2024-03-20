@@ -40,7 +40,7 @@ export class DbtDocumentFormattingEditProvider
   private async executeSqlFmt(document: TextDocument) {
     const sqlFmtPathSetting = getResolvedConfigValue(
       "sqlFmtPath",
-      this.pythonEnvironment.env,
+      this.pythonEnvironment.environmentVariables,
     );
     const sqlFmtAdditionalParamsSetting = workspace
       .getConfiguration("dbt")

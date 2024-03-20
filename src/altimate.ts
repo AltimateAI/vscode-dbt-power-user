@@ -213,12 +213,15 @@ export class AltimateRequest {
   getInstanceName() {
     return getResolvedConfigValue(
       "altimateInstanceName",
-      this.pythonEnvironment.env,
+      this.pythonEnvironment.environmentVariables,
     );
   }
 
   getAIKey() {
-    return getResolvedConfigValue("altimateAiKey", this.pythonEnvironment.env);
+    return getResolvedConfigValue(
+      "altimateAiKey",
+      this.pythonEnvironment.environmentVariables,
+    );
   }
 
   public enabled(): boolean {

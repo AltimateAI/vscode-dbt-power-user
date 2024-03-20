@@ -19,8 +19,6 @@ interface PythonExecutionDetails {
 export class PythonEnvironment implements Disposable {
   private executionDetails?: PythonExecutionDetails;
   private disposables: Disposable[] = [];
-  env: Record<string, string> = {};
-
   constructor(
     private telemetry: TelemetryService,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
@@ -38,8 +36,10 @@ export class PythonEnvironment implements Disposable {
 
   public get pythonPath() {
     return (
-      getResolvedConfigValue("dbtPythonPathOverride", this.env) ||
-      this.executionDetails!.getPythonPath()
+      getResolvedConfigValue(
+        "dbtPythonPathOverride",
+        this.environmentVariables,
+      ) || this.executionDetails!.getPythonPath()
     );
   }
 
@@ -128,7 +128,7 @@ export class PythonEnvironment implements Disposable {
             const vsCodeEnv = env[prop];
             const newEnvVars = parseEnvVarsFromUserSettings(vsCodeEnv);
             this.dbtTerminal.debug(
-              "pythonEnvironment",
+              "pythonEnvironment:envVars",
               "Loading env vars from config.terminal.integrated.env",
               "Merging from " + prop,
               newEnvVars,
@@ -142,12 +142,18 @@ export class PythonEnvironment implements Disposable {
         }
         try {
           if (api.environment) {
-            envVars = {
-              ...envVars,
-              ...api.environments.getEnvironmentVariables(
-                workspace.workspaceFolders![0],
-              ),
-            };
+            const workspacePath = workspace.workspaceFolders![0];
+            this.dbtTerminal.debug(
+              "pythonEnvironment:envVars",
+              `workspacePath:${workspacePath.uri.fsPath}`,
+            );
+            const workspaceEnv =
+              api.environments.getEnvironmentVariables(workspacePath);
+            this.dbtTerminal.debug(
+              "pythonEnvironment:envVars",
+              `workspaceEnv:${JSON.stringify(workspaceEnv, null, 2)}`,
+            );
+            envVars = { ...envVars, ...workspaceEnv };
           }
         } catch (e: any) {
           this.dbtTerminal.error(
