@@ -568,6 +568,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                   yamlColumn.name === column.name,
                               );
                             if (existingColumn !== undefined) {
+                              // ignore tests from existing column, as it will be recreated in `getTestDataByColumn`
                               const { tests, ...rest } = existingColumn;
                               return {
                                 ...rest,
