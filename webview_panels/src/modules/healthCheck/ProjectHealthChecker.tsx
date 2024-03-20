@@ -189,12 +189,15 @@ const ProjectHealthcheckInput = ({
 
           <div className={classes.notification}>
             <span>
-              You can save your config in the ultimate AI SAS instance. Click{" "}
+              You can save your config in the altimate AI SAAS instance. Click{" "}
             </span>
-            <a href="https://docs.myaltimate.com" className={classes.link}>
+            <a
+              href="https://app.myaltimate.com/register"
+              className={classes.link}
+            >
               here
             </a>
-            <span> to go to ultimate AI SAAS instance.</span>
+            <span> to go to altimate AI SAAS instance.</span>
           </div>
 
           <Stack>
