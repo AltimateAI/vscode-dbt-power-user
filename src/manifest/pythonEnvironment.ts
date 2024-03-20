@@ -57,17 +57,34 @@ export class PythonEnvironment implements Disposable {
 
   getResolvedConfigValue(key: string) {
     const value = workspace.getConfiguration("dbt").get<string>(key, "");
-    return this.substituteSettingsVariables(value);
+    return this.substituteSettingsVariables(value, this.environmentVariables);
   }
 
-  substituteSettingsVariables(value: any): any {
+  private parseEnvVarsFromUserSettings = (
+    currEnvVars: EnvironmentVariables,
+    parentEnvVars: EnvironmentVariables,
+  ) => {
+    // TODO: add any other relevant variables, maybe workspacefolder?
+    const newEnvVars: EnvironmentVariables = {};
+    for (const key in currEnvVars) {
+      newEnvVars[key] = this.substituteSettingsVariables(
+        currEnvVars[key],
+        parentEnvVars,
+      );
+    }
+    return newEnvVars;
+  };
+
+  substituteSettingsVariables(
+    value: any,
+    vsCodeEnv: EnvironmentVariables,
+  ): any {
     if (!value) {
       return value;
     }
     if (typeof value !== "string") {
       return value;
     }
-    const vsCodeEnv = this.environmentVariables;
     const regexVsCodeEnv = /\$\{env\:(.*?)\}/gm;
     let matchResult;
     while ((matchResult = regexVsCodeEnv.exec(value)) !== null) {
@@ -176,7 +193,13 @@ export class PythonEnvironment implements Disposable {
                 "Merging from " + prop,
                 Object.keys(integratedEnv[prop]),
               );
-              setEnvVars(integratedEnv[prop], "integrated");
+              setEnvVars(
+                this.parseEnvVarsFromUserSettings(
+                  integratedEnv[prop],
+                  process.env,
+                ),
+                "integrated",
+              );
             }
           }
           if (api.environment) {
