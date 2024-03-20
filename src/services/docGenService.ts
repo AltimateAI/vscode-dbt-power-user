@@ -16,6 +16,7 @@ import {
   DBTDocumentation,
   Source,
 } from "../webview_provider/docsEditPanel";
+import { DbtTestService } from "./dbtTestsService";
 import { QueryManifestService } from "./queryManifestService";
 
 interface GenerateDocsForColumnsProps {
@@ -50,6 +51,7 @@ export class DocGenService {
     protected telemetry: TelemetryService,
     private queryManifestService: QueryManifestService,
     private dbtTerminal: DBTTerminal,
+    private dbtTestService: DbtTestService,
   ) {}
 
   private async generateDocsForColumn(
@@ -447,9 +449,15 @@ export class DocGenService {
     }
 
     const {
-      event: { nodeMetaMap, graphMetaMap, testMetaMap },
+      event: { nodeMetaMap, graphMetaMap, testMetaMap, macroMetaMap },
       currentDocument,
     } = eventResult;
+    const project = this.queryManifestService.getProject();
+    if (!project) {
+      return undefined;
+    }
+    const projectName = project?.getProjectName();
+
     const modelName = path.basename(currentDocument.uri.fsPath, ".sql");
     this.dbtTerminal.debug(
       "dbtTests",
@@ -484,7 +492,23 @@ export class DocGenService {
           return null;
         }
 
-        return { ...testData, key: testKey };
+        const {
+          depends_on: { macros },
+          test_metadata,
+        } = testData;
+
+        const macroFilepath = this.dbtTestService.getMacroFilePath(
+          macros,
+          projectName,
+          macroMetaMap,
+          test_metadata?.name,
+        );
+
+        return {
+          ...testData,
+          path: macroFilepath || testData.path,
+          key: testKey,
+        };
       })
       .filter((t) => Boolean(t));
   }

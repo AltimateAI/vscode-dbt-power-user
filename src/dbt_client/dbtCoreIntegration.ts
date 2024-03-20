@@ -558,7 +558,9 @@ export class DBTCoreProjectIntegration
   }
 
   async compileModel(command: DBTCommand) {
-    this.addCommandToQueue(this.dbtCoreCommand(command));
+    this.addCommandToQueue(
+      await this.addDeferParams(this.dbtCoreCommand(command)),
+    );
   }
 
   async generateDocs(command: DBTCommand) {
