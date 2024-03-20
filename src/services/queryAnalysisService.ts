@@ -48,34 +48,68 @@ export class QueryAnalysisService {
     return { query: editor.document.getText(), fileName };
   }
 
-  public async executeQueryTranslate(
-    params: QueryTranslateRequest,
+  public async executeQueryTranslate({
+    sql,
+    ...params
+  }: QueryTranslateRequest) {
+    if (!this.altimateRequest.handlePreviewFeatures()) {
+      return;
+    }
+
+    const dbtProject = this.queryManifestService.getProject();
+
+    if (!dbtProject) {
+      const error = new Error("Invalid dbt project");
+      this.dbtTerminal.error(
+        "executeQueryAnalysisError",
+        "Invalid dbt project",
+        error,
+      );
+      throw error;
+    }
+
+    return this.altimateRequest.fetch("dbt/v3/translate", {
+      method: "POST",
+      body: JSON.stringify({
+        ...params,
+        sql: await dbtProject.unsafeCompileQuery(sql),
+      }),
+    });
+  }
+
+  public async executeQueryTranslateExplanation(
+    { user_sql, ...params }: QueryTranslateExplanationRequest,
     syncRequestId?: string,
   ) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
     }
 
-    return this.streamingService.fetchAsStream<QueryTranslateRequest>({
-      endpoint: "dbt/v3/translate",
-      syncRequestId,
-      request: params,
-    });
-  }
+    const dbtProject = this.queryManifestService.getProject();
 
-  public async executeQueryTranslateExplanation(
-    params: QueryTranslateExplanationRequest,
-    syncRequestId?: string,
-  ) {
-    if (!this.altimateRequest.handlePreviewFeatures()) {
-      return;
+    if (!dbtProject) {
+      const error = new Error("Invalid dbt project");
+      this.dbtTerminal.error(
+        "executeQueryAnalysisError",
+        "Invalid dbt project",
+        error,
+      );
+      throw error;
+    }
+
+    const userSql = await dbtProject.unsafeCompileQuery(user_sql);
+    if (!userSql) {
+      throw new Error("Unable to compile sql");
     }
 
     return this.streamingService.fetchAsStream<QueryTranslateExplanationRequest>(
       {
         endpoint: "dbt/v3/translate-explanation",
         syncRequestId,
-        request: params,
+        request: {
+          ...params,
+          user_sql: userSql,
+        },
       },
     );
   }

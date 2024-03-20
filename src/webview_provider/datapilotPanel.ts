@@ -134,11 +134,13 @@ export class DataPilotPanel extends AltimateWebviewProvider {
 
             const sql = editor.document.getText();
             const response =
-              await this.queryAnalysisService.executeQueryTranslate(
-                { ...params, sql } as unknown as QueryTranslateRequest,
-                syncRequestId,
-              );
-            return { response };
+              (await this.queryAnalysisService.executeQueryTranslate({
+                ...params,
+                sql,
+              } as unknown as QueryTranslateRequest)) as {
+                translated_sql: string;
+              };
+            return { response: "```sql\n" + response.translated_sql + "\n```" };
           },
           command,
           true,
