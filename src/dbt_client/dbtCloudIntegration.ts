@@ -410,7 +410,7 @@ export class DBTCloudProjectIntegration
   async compileModel(command: DBTCommand) {
     this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_ALL,
-      this.dbtCloudCommand(command),
+      await this.addDeferParams(this.dbtCloudCommand(command)),
     );
   }
 
