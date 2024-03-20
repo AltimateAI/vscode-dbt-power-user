@@ -29,7 +29,6 @@ const Insights = (): JSX.Element => (
             component: <ProjectHealthChecker />,
           },
         ]}
-        defaultTab={1}
       />
     </Stack>
 
