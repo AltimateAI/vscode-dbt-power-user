@@ -7,6 +7,8 @@ import { QueryManifestService } from "./queryManifestService";
 import path = require("path");
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { MacroMetaMap, TestMetaData } from "../domain";
+import { parse, stringify } from "yaml";
+import { readFileSync } from "fs";
 
 @provideSingleton(DbtTestService)
 export class DbtTestService {
@@ -17,6 +19,139 @@ export class DbtTestService {
     private queryManifestService: QueryManifestService,
     private dbtTerminal: DBTTerminal,
   ) {}
+
+  private filterAndStringifyTest = (
+    tests: Record<string, Record<string, unknown>>[],
+    test: TestMetaData,
+  ) => {
+    if (!tests?.length) {
+      return;
+    }
+
+    // Ignore these generic fields, as we handle these fields differently in UI
+    const ignoredFields = ["model", "column_name", "field", "to", "values"];
+
+    if (!test.test_metadata) {
+      return;
+    }
+    const { name, namespace } = test.test_metadata;
+    const fullName = namespace ? `${namespace}.${name}` : name;
+
+    const selectedTest = tests.find(
+      (t: Record<string, Record<string, unknown>>) => {
+        return Boolean(t[fullName]);
+      },
+    );
+
+    if (!selectedTest) {
+      this.dbtTerminal.debug("getDbtTestCode", "no test available in yml");
+      return;
+    }
+
+    this.dbtTerminal.debug(
+      "getDbtTestCode",
+      "sending selected test from yml",
+      selectedTest,
+    );
+
+    // Remove fields which are already handled in UI
+    const filteredConfig = Object.entries(selectedTest[fullName]).reduce(
+      (acc: Record<string, unknown>, [key, value]) => {
+        if (ignoredFields.includes(key)) {
+          return acc;
+        }
+
+        acc[key] = value;
+        return acc;
+      },
+      {},
+    );
+    // If test is from external package ex: dbt_utils, show the package namespace as well
+    const refinedTestConfig = namespace
+      ? {
+          [fullName]: filteredConfig,
+        }
+      : filteredConfig;
+    return stringify(refinedTestConfig);
+  };
+
+  /**
+   * Find the extra config for test from schema.yml, if available
+   */
+  public getConfigByTest(
+    test: TestMetaData,
+    modelName: string,
+    column_name?: string,
+  ) {
+    const eventResult = this.queryManifestService.getEventByCurrentProject();
+    if (!eventResult) {
+      return;
+    }
+    const {
+      event: { nodeMetaMap },
+    } = eventResult;
+    const node = nodeMetaMap.get(modelName);
+    if (!node) {
+      return;
+    }
+    const project = this.queryManifestService.getProject();
+    if (!project) {
+      return;
+    }
+
+    const patchPath = node?.patch_path.includes("://")
+      ? path.join(project.projectRoot.fsPath, node.patch_path.split("://")[1])
+      : node.patch_path;
+
+    this.dbtTerminal.debug(
+      "getDbtTestCode",
+      "finding test from yaml",
+      patchPath,
+    );
+    const parsedDocFile = parse(
+      readFileSync(patchPath, { encoding: "utf-8" }),
+      {
+        strict: false,
+        uniqueKeys: false,
+        maxAliasCount: -1,
+      },
+    );
+
+    if (!parsedDocFile) {
+      this.dbtTerminal.debug(
+        "getDbtTestCode",
+        "yml file does not have any content",
+        patchPath,
+      );
+      return null;
+    }
+
+    const model = parsedDocFile.models?.find((m: any) => m.name === modelName);
+
+    // model test
+    if (!column_name) {
+      this.dbtTerminal.debug(
+        "getDbtTestCode",
+        "finding model test from yml",
+        parsedDocFile,
+        model,
+      );
+      return this.filterAndStringifyTest(model?.tests, test);
+    }
+
+    const column =
+      model.columns &&
+      model.columns.find((yamlColumn: any) => yamlColumn.name === column_name);
+    this.dbtTerminal.debug(
+      "getDbtTestCode",
+      "finding column test from yml",
+      parsedDocFile,
+      model,
+      column,
+    );
+
+    return this.filterAndStringifyTest(column?.tests, test);
+  }
 
   // Find the file path of test macro
   public getMacroFilePath = (

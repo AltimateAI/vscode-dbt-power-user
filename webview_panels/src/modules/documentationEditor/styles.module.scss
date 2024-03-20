@@ -16,7 +16,8 @@
     }
   }
   .custom-test{
-    display: flex;
+    display: inline-flex;
+    width: auto;
     justify-content: space-between;
     align-items: center;
     color: var(--bs-btn-color);
@@ -40,6 +41,14 @@
     }
   }
   .entity-tests {
+    .tests-row{
+      > *,
+      > span > span {
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+        display: inline-block;
+      }
+    }
     margin-top: var(--spacing-lg);
     p {
       margin-bottom: 0;
@@ -270,6 +279,7 @@
     margin: 0;
     font-weight: 400;
     margin-bottom: 1rem;
+    padding-bottom: 0;
   }
 
   :global .card-body {
