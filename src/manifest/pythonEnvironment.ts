@@ -97,6 +97,12 @@ export class PythonEnvironment implements Disposable {
           new RegExp(`\\\$\\\{env\\\:${matchResult[1]}\\\}`, "gm"),
           vsCodeEnv[matchResult[1]]!,
         );
+        this.dbtTerminal.debug(
+          "pythonEnvironment:substituteSettingsVariables",
+          `Picking env var ${matchResult[1]} from ${
+            this.envFrom[matchResult[1]]
+          }`,
+        );
       }
     }
     value = value.replace(
@@ -157,14 +163,8 @@ export class PythonEnvironment implements Disposable {
           from: EnvFrom,
         ) => {
           for (const key in _envVars) {
-            if (this.envFrom[key]) {
-              this.dbtTerminal.debug(
-                "pythonEnvironment:envVars",
-                `Overriding env ${key} from ${this.envFrom[key]} to ${from}`,
-              );
-              this.envFrom[key] = from;
-            }
             envVars[key] = _envVars[key];
+            this.envFrom[key] = from;
           }
         };
         setEnvVars(process.env, "process");
