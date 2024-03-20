@@ -66,6 +66,9 @@
 
   <body>
     <div id="app">
+      <div data-target="tab-6" class="tooltip-js">
+        Please enable the functionality in Settings
+      </div>
       <vscode-panels
         id="panel-manager"
         activeid="tab-3"
@@ -101,9 +104,21 @@
         <vscode-panel-tab id="tab-5" @click="onFeedback"
           >Feedback</vscode-panel-tab
         >
+        <vscode-panel-tab
+          id="tab-6"
+          v-show="(hasData && isPerspective)"
+          @mouseover="onMouseOver"
+          @mouseleave="onMouseLeave"
+          @click="togglePopover"
+          >Share results as link &nbsp;
+          <div class="tooltip-container">
+            <img src="__ROOT__/assets/preview.svg" />
+            <div class="tooltip-text premium-tooltip">Preview Feature</div>
+          </div>
+        </vscode-panel-tab>
 
         <vscode-panel-view
-          style="height: 100%"
+          style="height: 100%; padding: 0"
           v-show="(hasData || hasError || isLoading)"
           id="view-1"
         >
@@ -112,7 +127,49 @@
             <vscode-button @click="cancelQuery">Cancel query</vscode-button>
           </div>
           <div v-show="hasData" style="width: 100%">
-            <div v-show="isPerspective" style="width: 100%; height: 100%">
+            <div v-show="isPerspective" class="w-100 h-100">
+              <div class="popover" v-show="isPopoverVisible">
+                <div class="flex flex-column gap-sm">
+                  <div class="mb-2 flex flex-column gap-sm">
+                    <label for="result-name" class="fs-6">Result Name</label>
+                    <input id="result-name" type="text" />
+                  </div>
+                  <!-- <div class="mb-2 flex flex-column gap-sm">
+                    <label for="invite-user-email" class="fs-6"
+                      >Invite user</label
+                    >
+                    <div
+                      class="flex gap-sm align-items-center"
+                      id="invite-user"
+                    >
+                      <input id="invite-user-email" type="email" />
+                      <vscode-dropdown id="invite-user-role">
+                        <vscode-option value="Owner">Owner</vscode-option>
+                        <vscode-option value="Admin" disabled
+                          >Admin</vscode-option
+                        >
+                        <vscode-option value="User">User</vscode-option>
+                      </vscode-dropdown>
+                      <button @click="inviteUser" class="btn primary-btn">
+                        Invite
+                      </button>
+                    </div>
+                  </div> -->
+                  <button
+                    @click="shareQueryResult"
+                    class="btn primary-btn mb-2"
+                  >
+                    Copy and Share Link
+                  </button>
+                  <div class="flex align-items-center gap-sm">
+                    <img src="__ROOT__/assets/info.svg" />
+                    <div>
+                      Clicking on “Copy and Share Link” will upload the preview
+                      results to the SaaS service.
+                    </div>
+                  </div>
+                </div>
+              </div>
               <perspective-viewer
                 :style="getPerspectiveStyles()"
                 :theme="getPerspectiveTheme()"
@@ -215,6 +272,7 @@
           </div>
         </vscode-panel-view>
         <vscode-panel-view v-show="hasData"></vscode-panel-view>
+        <vscode-panel-view></vscode-panel-view>
         <vscode-panel-view></vscode-panel-view>
       </vscode-panels>
     </div>
