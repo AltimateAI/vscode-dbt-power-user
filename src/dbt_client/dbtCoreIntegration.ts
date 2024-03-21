@@ -642,6 +642,10 @@ export class DBTCoreProjectIntegration
     this.addCommandToQueue(this.dbtCoreCommand(command));
   }
 
+  async generateDocsImmediately(command: DBTCommand) {
+    return await this.dbtCoreCommand(command).execute();
+  }
+
   async deps(command: DBTCommand) {
     const { stdout, stderr } = await this.dbtCoreCommand(command).execute();
     if (stderr) {

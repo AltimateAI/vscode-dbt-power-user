@@ -221,7 +221,11 @@ export class DBTProject implements Disposable {
       if (
         args.config_schema.some((i) => i.files_required.includes("Catalog"))
       ) {
-        await this.generateDocs();
+        const docsGenerateCommand =
+          this.dbtCommandFactory.createDocsGenerateCommand();
+        await this.dbtProjectIntegration.generateDocsImmediately(
+          docsGenerateCommand,
+        );
         healthcheckArgs.catalogPath = this.getCatalogPath();
       }
     }
@@ -465,10 +469,10 @@ export class DBTProject implements Disposable {
     this.telemetry.sendTelemetryEvent("compileModel");
   }
 
-  async generateDocs() {
+  generateDocs() {
     const docsGenerateCommand =
       this.dbtCommandFactory.createDocsGenerateCommand();
-    await this.dbtProjectIntegration.generateDocs(docsGenerateCommand);
+    this.dbtProjectIntegration.generateDocs(docsGenerateCommand);
     this.telemetry.sendTelemetryEvent("generateDocs");
   }
 
