@@ -34,21 +34,24 @@ interface Props {
   skipFollowupQuestions?: boolean;
 }
 const DatapilotChatFollowupComponent = ({
-  response: {
-    datapilot_title,
-    response,
-    user_prompt,
-    actions,
-    state,
-    id,
-    component,
-  },
+  response: followup,
   command,
   showFollowup,
   hideFeedback,
   skipFollowupQuestions,
 }: Props): JSX.Element => {
-  panelLogger.info(hideFeedback, component, response);
+  const {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    datapilot_title,
+    response,
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    user_prompt,
+    actions,
+    state,
+    id,
+    component,
+    codeBlockActions,
+  } = followup;
   const { chat, onNewGeneration, history, isMaxFollowupReached } =
     useQueryAnalysisContext();
   const results = chat?.followups ?? [];
@@ -141,24 +144,22 @@ const DatapilotChatFollowupComponent = ({
   };
 
   const codeActions = useMemo(() => {
-    if (chat?.requestType !== RequestTypes.ADD_CUSTOM_TEST) {
-      return [];
+    if (chat?.requestType === RequestTypes.ADD_CUSTOM_TEST) {
+      const codeblockResponse = getCodeblock();
+      if (!codeblockResponse) {
+        return [];
+      }
+      if (codeblockResponse) {
+        return [
+          {
+            title: codeblockResponse.type === "yaml" ? "Insert" : "Copy",
+            onClick: handleCodeblockAction,
+          },
+        ];
+      }
     }
-
-    const codeblockResponse = getCodeblock();
-    if (!codeblockResponse) {
-      return [];
-    }
-    if (codeblockResponse) {
-      return [
-        {
-          title: codeblockResponse.type === "yaml" ? "Insert" : "Copy",
-          action: handleCodeblockAction,
-        },
-      ];
-    }
-    return [];
-  }, [getCodeblock, chat?.requestType]);
+    return codeBlockActions ?? [];
+  }, [getCodeblock, chat?.requestType, codeBlockActions]);
 
   return (
     <>
@@ -190,7 +191,7 @@ const DatapilotChatFollowupComponent = ({
                       <Button
                         color="primary"
                         key={button.title}
-                        onClick={button.action}
+                        onClick={() => button.onClick(followup, button.title)}
                       >
                         {button.title}
                       </Button>

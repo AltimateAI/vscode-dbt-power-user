@@ -213,7 +213,9 @@ export class QueryAnalysisService {
     const documentation = await this.docGenService.getDocumentation();
 
     if (!documentation) {
-      const error = new Error("Unable to find documentation for the model");
+      const error = new Error(
+        "To use this feature, a valid model should be open in editor.",
+      );
       this.dbtTerminal.error(
         "getFollowupQuestionsError",
         "Unable to find documentation for the model",

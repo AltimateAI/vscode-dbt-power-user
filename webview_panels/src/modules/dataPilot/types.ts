@@ -42,6 +42,13 @@ export interface DataPilotChatFollowup {
   response?: string;
   component?: keyof typeof DatapilotResponseComponents;
   actions?: DataPilotChatAction[];
+  codeBlockActions?: {
+    title: string;
+    onClick: (
+      followup: DataPilotChatFollowup,
+      buttonTitle: string,
+    ) => void | Promise<void>;
+  }[];
   state: RequestState;
   hideFeedback?: boolean;
   hideFollowup?: boolean;

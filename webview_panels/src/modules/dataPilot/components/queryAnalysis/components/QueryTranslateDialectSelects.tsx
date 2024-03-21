@@ -4,10 +4,14 @@ import { Controller, useForm } from "react-hook-form";
 import { LoadingButton, Label, OptionType, Select, Stack } from "@uicore";
 import { panelLogger } from "@modules/logger";
 import { SqlDialects } from "./constants";
-import { useEffect } from "react";
-import { executeRequestInSync } from "@modules/app/requestExecutor";
+import { useEffect, useState } from "react";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
 import useQueryAnalysisAction from "../useQueryAnalysisAction";
 import useQueryAnalysisContext from "../provider/useQueryAnalysisContext";
+import { DataPilotChatFollowup } from "@modules/dataPilot/types";
 
 const schema = Yup.object({
   source_dialect: Yup.string().required(),
@@ -32,6 +36,7 @@ const QueryTranslateDialectSelects = (): JSX.Element => {
     mode: "onChange",
   });
 
+  const [translateCompleted, setTranslateCompleted] = useState(false);
   const { executeQueryAnalysis, isLoading } = useQueryAnalysisAction();
   const { chat, onNewGeneration, history } = useQueryAnalysisContext();
 
@@ -40,12 +45,28 @@ const QueryTranslateDialectSelects = (): JSX.Element => {
     value: d,
   }));
 
+  const handleReplace = (
+    followup: DataPilotChatFollowup,
+    buttonTitle: string,
+  ) => {
+    panelLogger.info(followup, buttonTitle, chat?.meta);
+
+    executeRequestInAsync("file:replace-contents", {
+      sql: followup.response,
+      filePath: chat?.meta?.filePath,
+    });
+  };
+
   const onSubmit = async (data: QueryTranslateRequest) => {
     try {
       panelLogger.info("requesting translate", data);
       const result = await executeQueryAnalysis({
         command: "querytranslate",
-        onNewGeneration,
+        onNewGeneration: (followup) =>
+          onNewGeneration({
+            ...followup,
+            codeBlockActions: [{ title: "Replace", onClick: handleReplace }],
+          }),
         sessionId: chat?.id,
         history,
         user_request: `Translate from: ${getValues(
@@ -56,9 +77,11 @@ const QueryTranslateDialectSelects = (): JSX.Element => {
       });
 
       if (result) {
+        setTranslateCompleted(true);
         await executeQueryAnalysis({
           command: "querytranslate:explanation",
-          onNewGeneration,
+          onNewGeneration: (followup) =>
+            onNewGeneration({ ...followup, hideFollowup: true }),
           sessionId: chat?.id,
           history,
           user_request: "",
@@ -96,6 +119,7 @@ const QueryTranslateDialectSelects = (): JSX.Element => {
                 <Select
                   inputId="source-dialect"
                   ref={ref}
+                  isDisabled={translateCompleted || isLoading}
                   openMenuOnFocus
                   options={dialectOptions}
                   value={dialectOptions.find((c) => c.value === value)}
@@ -115,6 +139,7 @@ const QueryTranslateDialectSelects = (): JSX.Element => {
                 <Select
                   inputId="destination-dialect"
                   ref={ref}
+                  isDisabled={translateCompleted || isLoading}
                   openMenuOnFocus
                   options={dialectOptions}
                   value={dialectOptions.find((c) => c.value === value)}
@@ -126,16 +151,18 @@ const QueryTranslateDialectSelects = (): JSX.Element => {
             />
           </div>
 
-          <Stack className="justify-content-end">
-            <LoadingButton
-              loading={isLoading}
-              type="submit"
-              color="primary"
-              disabled={!isValid}
-            >
-              Translate
-            </LoadingButton>
-          </Stack>
+          {!translateCompleted ? (
+            <Stack className="justify-content-end">
+              <LoadingButton
+                loading={isLoading}
+                type="submit"
+                color="primary"
+                disabled={!isValid}
+              >
+                Translate
+              </LoadingButton>
+            </Stack>
+          ) : null}
         </Stack>
       </form>
     </div>

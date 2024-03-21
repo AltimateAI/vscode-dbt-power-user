@@ -1,4 +1,4 @@
-import { commands, window, workspace } from "vscode";
+import { commands, Range, TextDocument, Uri, window, workspace } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
@@ -220,6 +220,50 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         );
         break;
 
+      case "file:replace-contents":
+        if (!window.activeTextEditor || !params.sql || !params.filePath) {
+          return;
+        }
+        this.dbtTerminal.debug(
+          "file:replace-contents",
+          "replacing translated sql",
+          params,
+        );
+        workspace.openTextDocument(Uri.parse(params.filePath as string)).then(
+          (file: TextDocument) => {
+            window.showTextDocument(file, 1, false).then(
+              (e) => {
+                e.edit((edit) => {
+                  edit.replace(
+                    new Range(
+                      file.lineAt(0).range.start,
+                      file.lineAt(file.lineCount - 1).range.end,
+                    ),
+                    (params.sql as string)
+                      .replace(/```sql\n/g, "")
+                      .replace(/```/, ""),
+                  );
+                });
+              },
+              (error) => {
+                this.dbtTerminal.error(
+                  "file:replace-contents",
+                  "error replacing translated sql",
+                  error,
+                );
+              },
+            );
+          },
+          (error) => {
+            this.dbtTerminal.error(
+              "file:replace-contents",
+              "error replacing translated sql",
+              error,
+            );
+          },
+        );
+        break;
+
       case "queryanalysis:followup":
         this.handleSyncRequestFromWebview(
           syncRequestId,
@@ -265,11 +309,17 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         break;
 
       case "dbtPowerUser.translateQuery":
-        this.handleDatapilotEvent(QueryAnalysisType.TRANSLATE, payload);
+        this.handleDatapilotEvent(QueryAnalysisType.TRANSLATE, {
+          ...payload,
+          meta: { filePath: window.activeTextEditor?.document.uri.fsPath },
+        });
         break;
 
       case "dbtPowerUser.openDatapilotWithQuery":
-        this.handleDatapilotEvent(null, payload);
+        this.handleDatapilotEvent(null, {
+          ...payload,
+          meta: { filePath: window.activeTextEditor?.document.uri.fsPath },
+        });
         break;
 
       case "dbtPowerUser.openHelpInDatapilot":
@@ -312,7 +362,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
   // handles events from sharedStateService events
   private handleDatapilotEvent(
     analysisType: QueryAnalysisType | null,
-    data?: { query?: string },
+    data?: { query?: string; meta?: Record<string, unknown> },
   ) {
     // reset the datapilot to start new session
     this.sendResponseToWebview({
@@ -334,6 +384,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         state: "UNINITIALIZED",
         //If analysis type is undefined, dont trigger api call
         analysisType,
+        meta: data?.meta,
       },
     });
   }

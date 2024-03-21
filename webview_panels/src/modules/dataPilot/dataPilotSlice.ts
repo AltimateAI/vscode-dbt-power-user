@@ -43,6 +43,10 @@ const dataPilotSlice = createSlice({
         followup: DataPilotChatFollowup;
       }>,
     ) => {
+      if (!state.items[sessionId]) {
+        return;
+      }
+
       const { followups } = state.items[sessionId];
 
       if (!followups?.length) {
