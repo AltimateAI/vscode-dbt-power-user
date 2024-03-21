@@ -163,6 +163,12 @@ export class PythonEnvironment implements Disposable {
           from: EnvFrom,
         ) => {
           for (const key in _envVars) {
+            if (envVars[key]) {
+              this.dbtTerminal.debug(
+                "pythonEnvironment:envVars",
+                `Overriding env var ${key} from ${envVars[key]} to ${_envVars[key]}`,
+              );
+            }
             envVars[key] = _envVars[key];
             this.envFrom[key] = from;
           }
