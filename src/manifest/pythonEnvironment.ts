@@ -71,7 +71,7 @@ export class PythonEnvironment implements Disposable {
     return this.substituteSettingsVariables(value, this.environmentVariables);
   }
 
-  substituteSettingsVariables(
+  private substituteSettingsVariables(
     value: any,
     vsCodeEnv: EnvironmentVariables,
   ): any {
