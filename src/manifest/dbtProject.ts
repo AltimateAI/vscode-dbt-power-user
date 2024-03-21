@@ -223,6 +223,9 @@ export class DBTProject implements Disposable {
       ) {
         const docsGenerateCommand =
           this.dbtCommandFactory.createDocsGenerateCommand();
+        docsGenerateCommand.focus = false;
+        docsGenerateCommand.logToTerminal = false;
+        docsGenerateCommand.showProgress = false;
         await this.dbtProjectIntegration.generateDocsImmediately(
           docsGenerateCommand,
         );
