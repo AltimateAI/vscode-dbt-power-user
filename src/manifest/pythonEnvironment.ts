@@ -71,21 +71,6 @@ export class PythonEnvironment implements Disposable {
     return this.substituteSettingsVariables(value, this.environmentVariables);
   }
 
-  private parseEnvVarsFromUserSettings = (
-    currEnvVars: EnvironmentVariables,
-    parentEnvVars: EnvironmentVariables,
-  ) => {
-    // TODO: add any other relevant variables, maybe workspacefolder?
-    const newEnvVars: EnvironmentVariables = {};
-    for (const key in currEnvVars) {
-      newEnvVars[key] = this.substituteSettingsVariables(
-        currEnvVars[key],
-        parentEnvVars,
-      );
-    }
-    return newEnvVars;
-  };
-
   substituteSettingsVariables(
     value: any,
     vsCodeEnv: EnvironmentVariables,
@@ -169,22 +154,10 @@ export class PythonEnvironment implements Disposable {
       onDidChangeExecutionDetails: api.settings.onDidChangeExecutionDetails,
       getEnvVars: () => {
         const envVars: EnvironmentVariables = {};
-        const setEnvVars = (
-          _envVars: Record<string, string | undefined>,
-          from: EnvFrom,
-        ) => {
-          for (const key in _envVars) {
-            if (envVars[key]) {
-              this.dbtTerminal.debug(
-                "pythonEnvironment:envVars",
-                `Overriding env var ${key} from ${envVars[key]} to ${_envVars[key]}`,
-              );
-            }
-            envVars[key] = _envVars[key];
-            this.envFrom[key] = from;
-          }
-        };
-        setEnvVars(process.env, "process");
+        for (const key in process.env) {
+          envVars[key] = process.env[key];
+          this.envFrom[key] = "process";
+        }
         try {
           const integratedEnv:
             | Record<string, Record<string, string>>
@@ -210,13 +183,13 @@ export class PythonEnvironment implements Disposable {
                 "Merging from " + prop,
                 Object.keys(integratedEnv[prop]),
               );
-              setEnvVars(
-                this.parseEnvVarsFromUserSettings(
-                  integratedEnv[prop],
+              for (const key in integratedEnv[prop]) {
+                envVars[key] = this.substituteSettingsVariables(
+                  integratedEnv[prop][key],
                   process.env,
-                ),
-                "integrated",
-              );
+                );
+                this.envFrom[key] = "integrated";
+              }
             }
           }
           if (api.environment) {
@@ -231,7 +204,10 @@ export class PythonEnvironment implements Disposable {
               "pythonEnvironment:envVars",
               `workspaceEnv:${Object.keys(workspaceEnv)}`,
             );
-            setEnvVars(workspaceEnv, "dotenv");
+            for (const key in workspaceEnv) {
+              envVars[key] = workspaceEnv[key];
+              this.envFrom[key] = "dotenv";
+            }
           }
         } catch (e: any) {
           this.dbtTerminal.error(
