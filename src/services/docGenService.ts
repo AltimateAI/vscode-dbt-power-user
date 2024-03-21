@@ -16,7 +16,6 @@ import {
   DBTDocumentation,
   Source,
 } from "../webview_provider/docsEditPanel";
-import { DbtTestService } from "./dbtTestService";
 import { QueryManifestService } from "./queryManifestService";
 
 interface GenerateDocsForColumnsProps {
@@ -51,7 +50,6 @@ export class DocGenService {
     protected telemetry: TelemetryService,
     private queryManifestService: QueryManifestService,
     private dbtTerminal: DBTTerminal,
-    private dbtTestService: DbtTestService,
   ) {}
 
   private async generateDocsForColumn(
