@@ -11,7 +11,9 @@ const Tooltip = (props: Props): JSX.Element => {
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const toggle = () => setTooltipOpen(!tooltipOpen);
   const idRef = useRef(
-    props.id ?? `tooltip-${Math.random().toString(36).substring(3, 9)}`,
+    (
+      props.id ?? `tooltip-${Math.random().toString(36).substring(3, 9)}`
+    ).replace(/\s/g, "-"),
   );
 
   return (
