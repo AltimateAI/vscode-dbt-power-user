@@ -32,6 +32,17 @@ export class PythonEnvironment implements Disposable {
     }
   }
 
+  printEnvVars() {
+    const envVars = this.environmentVariables;
+    this.dbtTerminal.log("Printing environment variables...\r\n");
+    this.dbtTerminal.show(true);
+    for (const key in envVars) {
+      this.dbtTerminal.log(
+        `${key}=${envVars[key]}\t\tfrom:${this.envFrom[key]}\r\n`,
+      );
+    }
+  }
+
   public get pythonPath() {
     return (
       this.getResolvedConfigValue("dbtPythonPathOverride") ||

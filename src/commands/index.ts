@@ -20,6 +20,7 @@ import { ValidateSql } from "./validateSql";
 import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { SharedStateService } from "../services/sharedStateService";
+import { PythonEnvironment } from "../manifest/pythonEnvironment";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -35,6 +36,7 @@ export class VSCodeCommands implements Disposable {
     private bigQueryCostEstimate: BigQueryCostEstimate,
     private dbtTerminal: DBTTerminal,
     private eventEmitterService: SharedStateService,
+    private pythonEnvironment: PythonEnvironment,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -250,6 +252,9 @@ export class VSCodeCommands implements Disposable {
           command: "dbtPowerUser.openHelpInDatapilot",
           payload: {},
         }),
+      ),
+      commands.registerCommand("dbtPowerUser.printEnvVars", () =>
+        this.pythonEnvironment.printEnvVars(),
       ),
     );
   }

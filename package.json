@@ -521,6 +521,12 @@
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
         }
+      },
+      {
+        "command": "dbtPowerUser.printEnvVars",
+        "title": "Print env vars",
+        "category": "dbt Power User",
+        "icon": "$(gist-secret)"
       }
     ],
     "keybindings": [
