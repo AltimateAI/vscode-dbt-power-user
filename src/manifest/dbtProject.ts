@@ -71,6 +71,7 @@ export class DBTProject implements Disposable {
   static RESOURCE_TYPE_SEED = "seed";
   static RESOURCE_TYPE_SNAPSHOT = "snapshot";
   static RESOURCE_TYPE_TEST = "test";
+  static RESOURCE_TYPE_METRIC = "metric";
 
   readonly projectRoot: Uri;
   private projectConfig: any; // TODO: typing

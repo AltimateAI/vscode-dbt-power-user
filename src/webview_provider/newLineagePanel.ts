@@ -12,11 +12,7 @@ import {
   WebviewViewResolveContext,
   window,
 } from "vscode";
-import {
-  AltimateRequest,
-  DBTColumnLineageResponse,
-  ModelNode,
-} from "../altimate";
+import { AltimateRequest, ModelNode } from "../altimate";
 import {
   ExposureMetaData,
   GraphMetaMap,
@@ -37,7 +33,7 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 type Table = {
   label: string;
   table: string;
-  url: string;
+  url: string | undefined;
   downstreamCount: number;
   upstreamCount: number;
   nodeType: string;
@@ -671,7 +667,7 @@ export class NewLineagePanel implements LineagePanelView {
 
   private createTable(
     event: ManifestCacheProjectAddedEvent,
-    tableUrl: string,
+    tableUrl: string | undefined,
     key: string,
   ): Table | undefined {
     const nodeType = key.split(".")[0];
@@ -704,6 +700,21 @@ export class NewLineagePanel implements LineagePanelView {
         upstreamCount,
         downstreamCount,
         nodeType,
+        tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
+          const testKey = n.label.split(".")[0];
+          return { ...testMetaMap.get(testKey), key: testKey };
+        }),
+      };
+    }
+    if (nodeType === DBTProject.RESOURCE_TYPE_METRIC) {
+      return {
+        table: key,
+        label: key,
+        url: tableUrl,
+        upstreamCount,
+        downstreamCount,
+        nodeType,
+        materialization: undefined,
         tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
           const testKey = n.label.split(".")[0];
           return { ...testMetaMap.get(testKey), key: testKey };

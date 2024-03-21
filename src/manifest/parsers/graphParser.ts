@@ -3,6 +3,8 @@ import {
   Analysis,
   Exposure,
   GraphMetaMap,
+  Metric,
+  MetricMetaMap,
   Model,
   Node,
   NodeGraphMap,
@@ -33,6 +35,7 @@ export class GraphParser {
     nodeMetaMap: NodeMetaMap,
     sourceMetaMap: SourceMetaMap,
     testMetaMap: TestMetaMap,
+    metricMetaMap: MetricMetaMap,
   ): GraphMetaMap {
     this.terminal.debug(
       "GraphParser",
@@ -45,7 +48,14 @@ export class GraphParser {
     const parents: NodeGraphMap = Object.entries(parentMap).reduce(
       (map, [nodeName, nodes]) => {
         const currentNodes = unique(nodes)
-          .map(this.mapToNode(sourceMetaMap, nodeMetaMap, testMetaMap))
+          .map(
+            this.mapToNode(
+              sourceMetaMap,
+              nodeMetaMap,
+              testMetaMap,
+              metricMetaMap,
+            ),
+          )
           .filter(notEmpty);
         map.set(nodeName, { nodes: currentNodes });
         return map;
@@ -56,7 +66,14 @@ export class GraphParser {
     const children: NodeGraphMap = Object.entries(childrenMap).reduce(
       (map, [nodeName, nodes]) => {
         const currentNodes = unique(nodes)
-          .map(this.mapToNode(sourceMetaMap, nodeMetaMap, testMetaMap))
+          .map(
+            this.mapToNode(
+              sourceMetaMap,
+              nodeMetaMap,
+              testMetaMap,
+              metricMetaMap,
+            ),
+          )
           .filter((n) => !(n instanceof Test))
           .filter(notEmpty);
         map.set(nodeName, { nodes: currentNodes });
@@ -68,7 +85,33 @@ export class GraphParser {
     const tests: NodeGraphMap = Object.entries(childrenMap).reduce(
       (map, [nodeName, nodes]) => {
         const currentNodes = unique(nodes)
-          .map(this.mapToNode(sourceMetaMap, nodeMetaMap, testMetaMap))
+          .map(
+            this.mapToNode(
+              sourceMetaMap,
+              nodeMetaMap,
+              testMetaMap,
+              metricMetaMap,
+            ),
+          )
+          .filter((n) => n instanceof Test)
+          .filter(notEmpty);
+        map.set(nodeName, { nodes: currentNodes });
+        return map;
+      },
+      new Map(),
+    );
+
+    const metrics: NodeGraphMap = Object.entries(childrenMap).reduce(
+      (map, [nodeName, nodes]) => {
+        const currentNodes = unique(nodes)
+          .map(
+            this.mapToNode(
+              sourceMetaMap,
+              nodeMetaMap,
+              testMetaMap,
+              metricMetaMap,
+            ),
+          )
           .filter((n) => n instanceof Test)
           .filter(notEmpty);
         map.set(nodeName, { nodes: currentNodes });
@@ -81,6 +124,7 @@ export class GraphParser {
       parents,
       children,
       tests,
+      metrics,
     };
     this.terminal.debug(
       "GraphParser",
@@ -96,6 +140,7 @@ export class GraphParser {
     sourceMetaMap: SourceMetaMap,
     nodeMetaMap: NodeMetaMap,
     testMetaMap: TestMetaMap,
+    metricMetaMap: MetricMetaMap,
   ): (parentNodeName: string) => Node | undefined {
     return (parentNodeName) => {
       // Support dots in model names
@@ -139,6 +184,9 @@ export class GraphParser {
         case "exposure": {
           const url = nodeMetaMap.get(nodeName)?.path!;
           return new Exposure(nodeName, parentNodeName, url);
+        }
+        case "semantic_model": {
+          return new Metric(nodeName, parentNodeName);
         }
         default:
           console.log(`Node Type '${nodeType}' not implemented!`);
