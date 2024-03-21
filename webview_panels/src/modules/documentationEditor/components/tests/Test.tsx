@@ -1,5 +1,5 @@
 import { DBTModelTest } from "@modules/documentationEditor/state/types";
-import { Tag, Tooltip } from "@uicore";
+import { Tag } from "@uicore";
 import classes from "../../styles.module.scss";
 
 interface Props {
@@ -14,19 +14,14 @@ const Test = ({ test, onSelect, selectedTest }: Props): JSX.Element => {
   };
 
   return (
-    <Tooltip
-      title={"Click to view details"}
-      id={`tooltip-${test.column_name ?? ""}-${test.test_metadata?.name ?? ""}`}
+    <Tag
+      color={selectedTest?.key === test.key ? "primary" : ""}
+      key={test.key}
+      onClick={handleClick}
+      className={classes.testTag}
     >
-      <Tag
-        color={selectedTest?.key === test.key ? "primary" : ""}
-        key={test.key}
-        onClick={handleClick}
-        className={classes.testTag}
-      >
-        {test.test_metadata?.name ?? test.key}
-      </Tag>
-    </Tooltip>
+      {test.test_metadata?.name ?? test.key}
+    </Tag>
   );
 };
 
