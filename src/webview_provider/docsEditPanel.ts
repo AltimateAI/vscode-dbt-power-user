@@ -290,7 +290,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       if (!test.test_metadata) {
         return null;
       }
-      const { name, namespace } = test.test_metadata;
+      const { name, namespace, kwargs } = test.test_metadata;
       const fullName: string = namespace ? `${namespace}.${name}` : name;
       const existingConfig = existingColumn?.tests?.find((t: any) => {
         if (typeof t === "string") {
@@ -301,8 +301,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       });
 
       // If relationships test, set field and to
-      if (this.isRelationship(test.test_metadata.kwargs)) {
-        const { to, field } = test.test_metadata.kwargs;
+      if (this.isRelationship(kwargs)) {
+        const { to, field } = kwargs;
         return {
           relationships: {
             ...existingConfig?.["relationships"],
@@ -313,11 +313,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       }
 
       // set values if test is accepted_values
-      if (this.isAcceptedValues(test.test_metadata.kwargs)) {
+      if (this.isAcceptedValues(kwargs)) {
         return {
           accepted_values: {
             ...existingConfig?.["accepted_values"],
-            values: test.test_metadata.kwargs.values,
+            values: kwargs.values,
           },
         };
       }
@@ -328,6 +328,26 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         };
       }
 
+      // Add extra config from external packages or test macros
+      if (kwargs) {
+        const rest = Object.entries(kwargs).reduce(
+          (acc: Record<string, unknown>, [key, value]) => {
+            // Ignore these fields as it will be added by default
+            if (key === "column_name" || key === "model") {
+              return acc;
+            }
+
+            acc[key] = value;
+            return acc;
+          },
+          {},
+        );
+        if (Object.keys(rest)?.length) {
+          return {
+            [fullName]: rest,
+          };
+        }
+      }
       return fullName;
     });
 
