@@ -55,7 +55,12 @@ export class MacroParser {
 
           for (let index = 0; index < macroFileLines.length; index++) {
             const currentLine = macroFileLines[index];
-            if (currentLine.match(new RegExp(`macro\\s${name}\\(`))) {
+            if (
+              currentLine.match(new RegExp(`macro\\s${name}\\(`)) ||
+              currentLine.match(
+                new RegExp(`test\\s${name.replace("test_", "")}\\(`),
+              )
+            ) {
               macroMetaMap.set(macroName, {
                 path: fullPath,
                 line: index,
