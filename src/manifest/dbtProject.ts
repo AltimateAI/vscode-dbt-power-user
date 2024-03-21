@@ -206,7 +206,7 @@ export class DBTProject implements Disposable {
     return path.join(targetPath, "catalog.json");
   }
 
-  performDatapilotHealthcheck(args: AltimateConfigProps) {
+  async performDatapilotHealthcheck(args: AltimateConfigProps) {
     const manifestPath = this.getManifestPath();
     if (!manifestPath) {
       throw new Error(
@@ -221,6 +221,7 @@ export class DBTProject implements Disposable {
       if (
         args.config_schema.some((i) => i.files_required.includes("Catalog"))
       ) {
+        await this.generateDocs();
         healthcheckArgs.catalogPath = this.getCatalogPath();
       }
     }
@@ -464,10 +465,10 @@ export class DBTProject implements Disposable {
     this.telemetry.sendTelemetryEvent("compileModel");
   }
 
-  generateDocs() {
+  async generateDocs() {
     const docsGenerateCommand =
       this.dbtCommandFactory.createDocsGenerateCommand();
-    this.dbtProjectIntegration.generateDocs(docsGenerateCommand);
+    await this.dbtProjectIntegration.generateDocs(docsGenerateCommand);
     this.telemetry.sendTelemetryEvent("generateDocs");
   }
 
