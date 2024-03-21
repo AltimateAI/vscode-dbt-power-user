@@ -171,7 +171,10 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     if (!selected) return;
     e.stopPropagation();
     setShowSidebar(true);
-    if (flow.getNode(selectedTable)?.data?.nodeType === "exposure") {
+    if (nodeType === "metrics") {
+      return;
+    }
+    if (nodeType === "exposure") {
       setSidebarScreen(EXPOSURE_SIDEBAR);
       return;
     }
@@ -273,7 +276,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
               <div
                 className={classNames(
                   "nodrag",
-                  selected ? "text-blue" : "text-grey"
+                  selected && nodeType !== "metrics" ? "text-blue" : "text-grey"
                 )}
                 onClick={onDetailsClick}
                 data-testid={"view-details-btn-" + table}
