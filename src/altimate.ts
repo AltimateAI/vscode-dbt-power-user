@@ -506,7 +506,15 @@ export class AltimateRequest {
       body: blob,
     });
     console.log("network:response:", response.status, response.statusText);
-    return response;
+    if (!response.ok || response.status !== 200) {
+      this.telemetry.sendTelemetryError(
+        "ShareQueryResult",
+        "Upload response status not 200",
+      );
+      throw new Error("Failed to upload data to signed url");
+    }
+
+    window.showInformationMessage("Data uploaded successfully");
   }
 
   async verifyShareQueryUpload(req: VerifyShareQueryUploadRequest) {

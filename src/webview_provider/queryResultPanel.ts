@@ -237,20 +237,10 @@ export class QueryResultPanel implements WebviewViewProvider {
                   window.showInformationMessage(
                     "Generated signed url. Uploading data...",
                   );
-                  const uploadResponse =
-                    await this.altimate.uploadDataToSignedUrl(
-                      result!.signed_url,
-                      message,
-                    );
-                  if (uploadResponse.status !== 200) {
-                    window.showErrorMessage(
-                      "Error verifying upload. Please try again.",
-                    );
-                    this.telemetry.sendTelemetryError(
-                      "ShareQueryResult",
-                      "Upload response status not 200",
-                    );
-                  }
+                  await this.altimate.uploadDataToSignedUrl(
+                    result!.signed_url,
+                    message,
+                  );
                   // verifying upload
                   const verifyResponse =
                     await this.altimate.verifyShareQueryUpload({
