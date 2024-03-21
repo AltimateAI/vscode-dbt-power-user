@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "react-error-boundary";
 import { ReactNode, useRef, useState } from "react";
 import { Tooltip as ReactStrapTooltip } from "reactstrap";
 
@@ -17,7 +18,7 @@ const Tooltip = (props: Props): JSX.Element => {
   );
 
   return (
-    <>
+    <ErrorBoundary fallback={<span id={idRef.current}>{props.children}</span>}>
       <span id={idRef.current}>{props.children}</span>
       {props.title ? (
         <ReactStrapTooltip
@@ -29,7 +30,7 @@ const Tooltip = (props: Props): JSX.Element => {
           {props.title}
         </ReactStrapTooltip>
       ) : null}
-    </>
+    </ErrorBoundary>
   );
 };
 

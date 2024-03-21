@@ -99,7 +99,7 @@ const useTestFormSave = (): {
     return () => {
       window.removeEventListener("message", onMesssage);
     };
-  }, []);
+  }, [onMesssage]);
 
   const updateTests = (
     testsData: DBTModelTest[],

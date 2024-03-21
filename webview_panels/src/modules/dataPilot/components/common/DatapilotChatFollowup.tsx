@@ -111,6 +111,11 @@ const DatapilotChatFollowupComponent = ({
             { name: string; columns: [{ name: string; tests: unknown[] }] },
           ];
         };
+
+        if (!modelData.models) {
+          panelLogger.info("Unable to find right model", codeblock);
+          return;
+        }
         const tests = modelData.models.find(
           (m) => m.name === chat?.meta?.model,
         );
