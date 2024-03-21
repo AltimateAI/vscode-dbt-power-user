@@ -919,6 +919,9 @@ export class DBTCoreProjectIntegration
       packageName,
       "dbt_project.yml",
     );
+    if (!existsSync(dbtProjectYmlFilePath)) {
+      return;
+    }
     const fileContents = readFileSync(dbtProjectYmlFilePath, {
       encoding: "utf-8",
     });
