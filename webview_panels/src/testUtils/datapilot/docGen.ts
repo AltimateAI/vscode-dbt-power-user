@@ -46,6 +46,6 @@ export const DatapilotDocGenActionButtonFactory =
     title: "Regenerate",
     command: "regenerate",
     data: { modelName: "customers" },
-    user_prompt: "Regenerate documentation for {type} {name}",
+    userPrompt: "Regenerate documentation for {type} {name}",
     datapilotTitle: "Improving documentation based on the user suggestion",
   });

@@ -43,8 +43,7 @@ const DatapilotChatFollowupComponent = ({
   const {
     datapilotTitle,
     response,
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    user_prompt,
+    userPrompt,
     actions,
     state,
     id,
@@ -162,7 +161,7 @@ const DatapilotChatFollowupComponent = ({
 
   return (
     <>
-      <UserQuery query={user_prompt} />
+      <UserQuery query={userPrompt} />
 
       {state === RequestState.COMPLETED && !response && !component ? null : (
         <li ref={onAiGenerationRender}>

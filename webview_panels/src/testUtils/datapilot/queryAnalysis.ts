@@ -110,6 +110,6 @@ export const DatapilotQueryExplainResultFactory =
         "```",
       ].join("\n"),
     ),
-    user_prompt: "Explain the query",
+    userPrompt: "Explain the query",
     state: RequestState.COMPLETED,
   });

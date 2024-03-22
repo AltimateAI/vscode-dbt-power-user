@@ -36,7 +36,7 @@ const useQueryAnalysisContext = (): {
       ...intialMessage,
       ...followups
         .map((result) => [
-          { content: result.user_prompt, type: QueryAnalysisHistoryType.HUMAN },
+          { content: result.userPrompt, type: QueryAnalysisHistoryType.HUMAN },
           { content: result.response, type: QueryAnalysisHistoryType.SYSTEM },
         ])
         .flat()

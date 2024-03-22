@@ -76,7 +76,7 @@ const useQueryAnalysisAction = (): {
       onNewGeneration({
         id,
 
-        user_prompt: user_request ?? getRequestText(command),
+        userPrompt: user_request ?? getRequestText(command),
         datapilotTitle: "Datapilot Response",
         state: RequestState.LOADING,
       });
@@ -119,7 +119,7 @@ const useQueryAnalysisAction = (): {
               title: question,
               data: {},
               command,
-              user_prompt: question,
+              userPrompt: question,
               datapilotTitle: question,
             }))
           : [],

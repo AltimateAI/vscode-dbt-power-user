@@ -15,7 +15,7 @@ const docGenCompleted = DatapilotDocGenFactory.build({
     DatapilotDocGenActionButtonFactory.build({
       title: "Make it shorter",
       data: { modelName: "customers" },
-      user_prompt: "Make documentation shorter for {type} {name}",
+      userPrompt: "Make documentation shorter for {type} {name}",
       datapilotTitle: "Improving documentation based on the user suggestion",
     }),
   ],
