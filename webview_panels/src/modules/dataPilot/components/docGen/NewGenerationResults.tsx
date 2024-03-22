@@ -68,7 +68,7 @@ const NewGenerationResults = ({
             <Card>
               <CardTitle>
                 {" "}
-                <AltimateIcon /> {result.datapilot_title}
+                <AltimateIcon /> {result.datapilotTitle}
               </CardTitle>
               <CardBody>
                 {result.description}

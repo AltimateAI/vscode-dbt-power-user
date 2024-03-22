@@ -57,7 +57,7 @@ const QueryAnalysisActionButton = ({ action }: Props): JSX.Element => {
 
     if (analysisType === QueryAnalysisType.TRANSLATE) {
       onNewGeneration({
-        datapilot_title: "Datapilot Response",
+        datapilotTitle: "Datapilot Response",
         hideFeedback: true,
         response: "",
         component: "queryTranslate",

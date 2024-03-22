@@ -20,7 +20,7 @@ export interface DataPilotChatAction {
   data: Record<string, unknown>;
   command: string;
   user_prompt: string;
-  datapilot_title: string;
+  datapilotTitle: string;
 }
 
 export interface DataPilotChat {
@@ -38,7 +38,7 @@ export interface DataPilotChat {
 export interface DataPilotChatFollowup {
   id: string;
   user_prompt: string;
-  datapilot_title: string;
+  datapilotTitle: string;
   response?: string;
   component?: keyof typeof DatapilotResponseComponents;
   actions?: DataPilotChatAction[];

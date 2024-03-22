@@ -95,7 +95,7 @@ export const ModifyFlow = {
       func: (request: Record<string, unknown>): unknown => {
         if (request.command === QueryAnalysisCommands.modify) {
           return DatapilotQueryExplainResultFactory.build({
-            datapilot_title: "Query change",
+            datapilotTitle: "Query change",
           });
         }
 
@@ -186,7 +186,7 @@ export const TranslateFlow = {
       func: (request: Record<string, unknown>): unknown => {
         if (request.command === QueryAnalysisCommands.translate) {
           return DatapilotQueryExplainResultFactory.build({
-            datapilot_title: "Query translate",
+            datapilotTitle: "Query translate",
           });
         }
 

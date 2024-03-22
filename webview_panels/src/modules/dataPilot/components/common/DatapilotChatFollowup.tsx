@@ -41,8 +41,7 @@ const DatapilotChatFollowupComponent = ({
   skipFollowupQuestions,
 }: Props): JSX.Element => {
   const {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    datapilot_title,
+    datapilotTitle,
     response,
     // eslint-disable-next-line @typescript-eslint/naming-convention
     user_prompt,
@@ -170,7 +169,7 @@ const DatapilotChatFollowupComponent = ({
           <Card>
             <CardTitle>
               {" "}
-              <AltimateIcon /> {datapilot_title}
+              <AltimateIcon /> {datapilotTitle}
             </CardTitle>
             <CardBody>
               <div className={classes.response}>

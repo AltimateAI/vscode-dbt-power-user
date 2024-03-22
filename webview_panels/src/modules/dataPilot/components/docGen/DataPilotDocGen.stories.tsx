@@ -16,7 +16,7 @@ const docGenCompleted = DatapilotDocGenFactory.build({
       title: "Make it shorter",
       data: { modelName: "customers" },
       user_prompt: "Make documentation shorter for {type} {name}",
-      datapilot_title: "Improving documentation based on the user suggestion",
+      datapilotTitle: "Improving documentation based on the user suggestion",
     }),
   ],
 });

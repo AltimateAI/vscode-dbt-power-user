@@ -37,7 +37,7 @@ export const DatapilotQueryExplainFactory =
 export const DatapilotQueryExplainResultFactory =
   Sync.makeFactory<DataPilotChatFollowup>({
     id: each(() => faker.string.uuid()),
-    datapilot_title: "Query explanation",
+    datapilotTitle: "Query explanation",
     response: each(() =>
       [
         "### Query Explanation",

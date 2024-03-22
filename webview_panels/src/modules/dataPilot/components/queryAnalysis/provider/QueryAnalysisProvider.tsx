@@ -94,7 +94,7 @@ const QueryAnalysisProvider = ({ children }: Props): JSX.Element => {
     panelLogger.info("handleQueryTranslateOnload");
     datapilotDispatch(upsertItem({ ...chat, state: RequestState.LOADING }));
     onNewGeneration({
-      datapilot_title: "Datapilot Response",
+      datapilotTitle: "Datapilot Response",
       hideFeedback: true,
       response: "",
       component: "queryTranslate",

@@ -15,28 +15,28 @@ export const addDefaultActions = (
       data,
       command,
       user_prompt: "Regenerate documentation for {type} {name}",
-      datapilot_title: "Improving documentation based on the user suggestion",
+      datapilotTitle: "Improving documentation based on the user suggestion",
     },
     {
       title: "Make it shorter",
       data,
       command,
       user_prompt: "Make documentation shorter for {type} {name}",
-      datapilot_title: "Improving documentation based on the user suggestion",
+      datapilotTitle: "Improving documentation based on the user suggestion",
     },
     {
       title: "Make it longer",
       data,
       command,
       user_prompt: "Make documentation longer for {type} {name}",
-      datapilot_title: "Improving documentation based on the user suggestion",
+      datapilotTitle: "Improving documentation based on the user suggestion",
     },
     {
       title: "Make it fun",
       data,
       command,
       user_prompt: "Make documentation fun for {type} {name}",
-      datapilot_title: "Improving documentation based on the user suggestion",
+      datapilotTitle: "Improving documentation based on the user suggestion",
     },
     {
       title: "Generate for business user",
@@ -44,7 +44,7 @@ export const addDefaultActions = (
       command,
       user_prompt:
         "Regenerate documentation for {type} {name} as business user",
-      datapilot_title: "Improving documentation based on the user suggestion",
+      datapilotTitle: "Improving documentation based on the user suggestion",
     },
   ];
 };

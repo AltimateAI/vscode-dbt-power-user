@@ -77,7 +77,7 @@ const useQueryAnalysisAction = (): {
         id,
 
         user_prompt: user_request ?? getRequestText(command),
-        datapilot_title: "Datapilot Response",
+        datapilotTitle: "Datapilot Response",
         state: RequestState.LOADING,
       });
       const [result, followupQuestions] = await Promise.all([
@@ -120,7 +120,7 @@ const useQueryAnalysisAction = (): {
               data: {},
               command,
               user_prompt: question,
-              datapilot_title: question,
+              datapilotTitle: question,
             }))
           : [],
       });

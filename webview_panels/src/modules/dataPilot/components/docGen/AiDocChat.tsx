@@ -28,7 +28,7 @@ const AiDocChat = ({ chat }: Props): JSX.Element => {
         sessionId: chat.id,
         followup: {
           ...result,
-          datapilot_title: action.datapilot_title,
+          datapilotTitle: action.datapilotTitle,
           user_prompt: action.user_prompt
             .replace("{name}", entityName as string)
             .replace("{type}", entityType),
