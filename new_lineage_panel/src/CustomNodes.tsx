@@ -168,12 +168,12 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const expandLeft = () => expand(false);
 
   const onDetailsClick = (e: React.MouseEvent) => {
-    if (!selected) return;
     e.stopPropagation();
-    setShowSidebar(true);
-    if (nodeType === "metrics") {
+    if (!selected) return;
+    if (nodeType === "semantic_model") {
       return;
     }
+    setShowSidebar(true);
     if (nodeType === "exposure") {
       setSidebarScreen(EXPOSURE_SIDEBAR);
       return;
@@ -276,7 +276,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
               <div
                 className={classNames(
                   "nodrag",
-                  selected && nodeType !== "metrics" ? "text-blue" : "text-grey"
+                  selected && nodeType !== "semantic_model" ? "text-blue" : "text-grey"
                 )}
                 onClick={onDetailsClick}
                 data-testid={"view-details-btn-" + table}

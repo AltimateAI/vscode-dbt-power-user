@@ -670,7 +670,8 @@ export class NewLineagePanel implements LineagePanelView {
     tableUrl: string | undefined,
     key: string,
   ): Table | undefined {
-    const nodeType = key.split(".")[0];
+    const splits = key.split(".");
+    const nodeType = splits[0];
     const { graphMetaMap, testMetaMap } = event;
     const upstreamCount = this.getConnectedNodeCount(
       graphMetaMap["children"],
@@ -682,7 +683,6 @@ export class NewLineagePanel implements LineagePanelView {
     );
     if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
       const { sourceMetaMap } = event;
-      const splits = key.split(".");
       const schema = splits[2];
       const table = splits[3];
       const _node = sourceMetaMap.get(schema);
@@ -709,7 +709,7 @@ export class NewLineagePanel implements LineagePanelView {
     if (nodeType === DBTProject.RESOURCE_TYPE_METRIC) {
       return {
         table: key,
-        label: key,
+        label: splits[2],
         url: tableUrl,
         upstreamCount,
         downstreamCount,
@@ -723,9 +723,7 @@ export class NewLineagePanel implements LineagePanelView {
     }
     const { nodeMetaMap } = event;
 
-    const splits = key.split(".");
     const table = splits[2];
-
     if (nodeType === DBTProject.RESOURCE_TYPE_EXPOSURE) {
       return {
         table: key,
