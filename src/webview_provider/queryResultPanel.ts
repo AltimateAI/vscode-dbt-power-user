@@ -335,9 +335,42 @@ export class QueryResultPanel implements WebviewViewProvider {
       this.transmitLoading();
     }
     try {
-      const queryExecution = (this.queryExecution =
-        await queryExecutionPromise);
-      const output = await queryExecution.executeQuery();
+      this.queryExecution = await queryExecutionPromise;
+    } catch (exc) {
+      if (exc instanceof PythonException) {
+        if (exc.exception.type.name === "KeyboardInterrupt") {
+          // query cancellation
+          this.transmitReset();
+          return;
+        }
+        window.showErrorMessage(
+          "An error occured while trying to execute your query: " +
+            exc.exception.message,
+        );
+        await this.transmitError(
+          {
+            error: {
+              code: -1,
+              message: exc.exception.message,
+              data: JSON.stringify(exc.stack, null, 2),
+            },
+          },
+          query,
+          query,
+        );
+        return;
+      }
+      await this.transmitError(
+        {
+          error: { code: -1, message: `${exc}`, data: {} },
+        },
+        query,
+        query,
+      );
+      return;
+    }
+    try {
+      const output = await this.queryExecution.executeQuery();
       await this.transmitDataWrapper(output, query);
     } catch (exc: any) {
       if (exc instanceof PythonException) {
