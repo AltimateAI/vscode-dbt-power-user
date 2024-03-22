@@ -1,5 +1,9 @@
 import { window } from "vscode";
-import { AltimateRequest, CreateDbtTestRequest } from "../altimate";
+import {
+  AltimateRequest,
+  CreateDbtTestRequest,
+  UserInputError,
+} from "../altimate";
 import { provideSingleton } from "../utils";
 import { DocGenService } from "./docGenService";
 import { StreamingService } from "./streamingService";
@@ -177,7 +181,10 @@ export class DbtTestService {
   };
 
   public async createTest(
-    params: Partial<CreateDbtTestRequest> & { column?: string },
+    params: Partial<CreateDbtTestRequest> & {
+      column?: string;
+      filePath?: string;
+    },
     syncRequestId?: string,
   ) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
@@ -186,7 +193,11 @@ export class DbtTestService {
 
     const { session_id } = params;
     if (!session_id) {
-      throw new Error("Invalid session id");
+      throw new UserInputError("Invalid session id");
+    }
+
+    if (!params.filePath) {
+      throw new UserInputError("Invalid file path");
     }
 
     const dbtProject = this.queryManifestService.getProject();
@@ -196,7 +207,9 @@ export class DbtTestService {
     }
 
     const adapter = dbtProject.getAdapterType();
-    const documentation = await this.docGenService.getDocumentation();
+    const documentation = await this.docGenService.getDocumentation(
+      params.filePath,
+    );
     if (!documentation) {
       throw new Error("Unable to find documentation for the model");
     }

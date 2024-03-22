@@ -80,6 +80,7 @@ const useQueryAnalysisAction = (): {
             user_request,
             dbt_expectations: Boolean(packageVersions.dbt_expectations),
             dbt_utils: Boolean(packageVersions.dbt_utils),
+            filePath: chat?.filePath,
             ...chat?.meta,
           },
           (chunk: string) => {

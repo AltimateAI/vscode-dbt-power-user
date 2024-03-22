@@ -116,7 +116,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         if (event === undefined) {
           return;
         }
-        this.documentation = await this.docGenService.getDocumentation();
+        this.documentation =
+          await this.docGenService.getDocumentationForCurrentActiveFile();
         if (this._panel) {
           this.transmitData();
           this.updateGraphStyle();
@@ -222,7 +223,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     this.getPanel().resolveWebview(panel, context, token);
     this.setupWebviewHooks(context);
     this.transmitConfig();
-    this.documentation = await this.docGenService.getDocumentation();
+    this.documentation =
+      await this.docGenService.getDocumentationForCurrentActiveFile();
     this.transmitData();
   }
 
@@ -625,7 +627,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   this.loadedFromManifest = false;
                   writeFileSync(patchPath, stringify(parsedDocFile));
                   this.documentation =
-                    await this.docGenService.getDocumentation();
+                    await this.docGenService.getDocumentationForCurrentActiveFile();
                   const tests =
                     await this.dbtTestService.getTestsForCurrentModel();
                   if (syncRequestId) {
@@ -693,7 +695,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       //  documentation will be overwritten by the one coming from the manifest
       return;
     }
-    this.documentation = await this.docGenService.getDocumentation();
+    this.documentation =
+      await this.docGenService.getDocumentationForCurrentActiveFile();
     this.loadedFromManifest = true;
     if (this._panel) {
       this.transmitData();
