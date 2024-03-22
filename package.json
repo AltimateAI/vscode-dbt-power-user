@@ -336,7 +336,7 @@
       },
       {
         "command": "dbtPowerUser.translateQuery",
-        "title": "Translate (SQL Dialect)",
+        "title": "Translate to other SQL dialect",
         "category": "dbt Power User"
       },
       {
