@@ -6,12 +6,25 @@ import {
   QueryTranslateExplanationRequest,
   QueryTranslateRequest,
 } from "../altimate";
-import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
 import { QueryManifestService } from "./queryManifestService";
 import { DocGenService } from "./docGenService";
 import { StreamingService } from "./streamingService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { FileService } from "./fileService";
+
+export interface QueryTranslateIncomingRequest {
+  source?: string;
+  target?: string;
+  filePath?: string;
+}
+
+export interface QueryTranslateExplanationIncomingRequest {
+  source?: string;
+  target?: string;
+  user_sql: string;
+  translated_sql: string;
+}
 
 @provideSingleton(QueryAnalysisService)
 export class QueryAnalysisService {
@@ -21,6 +34,7 @@ export class QueryAnalysisService {
     private altimateRequest: AltimateRequest,
     private queryManifestService: QueryManifestService,
     private dbtTerminal: DBTTerminal,
+    private fileService: FileService,
   ) {}
 
   public getSelectedQuery() {
@@ -48,12 +62,21 @@ export class QueryAnalysisService {
     return { query: editor.document.getText(), fileName };
   }
 
-  public async executeQueryTranslate({
-    sql,
-    ...params
-  }: QueryTranslateRequest) {
+  public async executeQueryTranslate(params: QueryTranslateIncomingRequest) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
+    }
+
+    const editor = await this.fileService.openFileByPath(params.filePath);
+
+    const sql = editor.document.getText();
+
+    if (!params.source) {
+      throw new Error("Invalid source dialect");
+    }
+
+    if (!params.target) {
+      throw new Error("Invalid target dialect");
     }
 
     const dbtProject = this.queryManifestService.getProject();
@@ -71,19 +94,36 @@ export class QueryAnalysisService {
     return this.altimateRequest.fetch("dbt/v3/translate", {
       method: "POST",
       body: JSON.stringify({
-        ...params,
+        source_dialect: params.source,
+        target_dialect: params.target,
         sql: await dbtProject.unsafeCompileQuery(sql),
-      }),
+      } as QueryTranslateRequest),
     });
   }
 
   public async executeQueryTranslateExplanation(
-    { user_sql, ...params }: QueryTranslateExplanationRequest,
+    { user_sql, ...params }: QueryTranslateExplanationIncomingRequest,
     syncRequestId?: string,
   ) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
     }
+
+    if (!params.source) {
+      throw new Error("Invalid source dialect");
+    }
+
+    if (!params.target) {
+      throw new Error("Invalid target dialect");
+    }
+
+    const editor = window.activeTextEditor;
+
+    if (!editor) {
+      throw new Error("Invalid file");
+    }
+
+    const sql = editor.document.getText();
 
     const dbtProject = this.queryManifestService.getProject();
 
@@ -107,9 +147,11 @@ export class QueryAnalysisService {
         endpoint: "dbt/v3/translate-explanation",
         syncRequestId,
         request: {
-          ...params,
+          source_dialect: params.source,
+          target_dialect: params.target,
+          translated_sql: params.translated_sql,
           user_sql: userSql,
-        },
+        } as QueryTranslateExplanationRequest,
       },
     );
   }

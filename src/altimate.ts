@@ -108,15 +108,15 @@ interface QueryAnalysisChat {
 
 export interface QueryTranslateRequest {
   sql: string;
-  source: string;
-  destination: string;
+  target_dialect: string;
+  source_dialect: string;
 }
 
 export interface QueryTranslateExplanationRequest {
   user_sql: string;
   translated_sql: string;
-  source: string;
-  destination: string;
+  target_dialect: string;
+  source_dialect: string;
 }
 
 export interface QueryAnalysisRequest {

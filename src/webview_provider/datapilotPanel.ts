@@ -12,13 +12,17 @@ import {
   AltimateRequest,
   QueryAnalysisType,
   QueryTranslateExplanationRequest,
-  QueryTranslateRequest,
 } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
-import { QueryAnalysisService } from "../services/queryAnalysisService";
+import {
+  QueryAnalysisService,
+  QueryTranslateExplanationIncomingRequest,
+  QueryTranslateIncomingRequest,
+} from "../services/queryAnalysisService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DbtTestService } from "../services/dbtTestService";
+import { FileService } from "../services/fileService";
 
 @provideSingleton(DataPilotPanel)
 export class DataPilotPanel extends AltimateWebviewProvider {
@@ -37,6 +41,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     protected queryManifestService: QueryManifestService,
     protected dbtTerminal: DBTTerminal,
     private dbtTestService: DbtTestService,
+    private fileService: FileService,
   ) {
     super(
       dbtProjectContainer,
@@ -126,18 +131,10 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         this.handleSyncRequestFromWebview(
           syncRequestId,
           async () => {
-            const editor = window.activeTextEditor;
-
-            if (!editor) {
-              throw new Error("Invalid file");
-            }
-
-            const sql = editor.document.getText();
             const response =
-              (await this.queryAnalysisService.executeQueryTranslate({
-                ...params,
-                sql,
-              } as unknown as QueryTranslateRequest)) as {
+              (await this.queryAnalysisService.executeQueryTranslate(
+                params as unknown as QueryTranslateIncomingRequest,
+              )) as {
                 translated_sql: string;
               };
             return { response: "```sql\n" + response.translated_sql + "\n```" };
@@ -150,19 +147,9 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         this.handleSyncRequestFromWebview(
           syncRequestId,
           async () => {
-            const editor = window.activeTextEditor;
-
-            if (!editor) {
-              throw new Error("Invalid file");
-            }
-
-            const sql = editor.document.getText();
             const response =
               await this.queryAnalysisService.executeQueryTranslateExplanation(
-                {
-                  ...params,
-                  user_sql: sql,
-                } as unknown as QueryTranslateExplanationRequest,
+                params as unknown as QueryTranslateExplanationIncomingRequest,
                 syncRequestId,
               );
             return { response };
@@ -229,39 +216,20 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           "replacing translated sql",
           params,
         );
-        workspace.openTextDocument(Uri.parse(params.filePath as string)).then(
-          (file: TextDocument) => {
-            window.showTextDocument(file, 1, false).then(
-              (e) => {
-                e.edit((edit) => {
-                  edit.replace(
-                    new Range(
-                      file.lineAt(0).range.start,
-                      file.lineAt(file.lineCount - 1).range.end,
-                    ),
-                    (params.sql as string)
-                      .replace(/```sql\n/g, "")
-                      .replace(/```/, ""),
-                  );
-                });
-              },
-              (error) => {
-                this.dbtTerminal.error(
-                  "file:replace-contents",
-                  "error replacing translated sql",
-                  error,
-                );
-              },
-            );
-          },
-          (error) => {
-            this.dbtTerminal.error(
-              "file:replace-contents",
-              "error replacing translated sql",
-              error,
-            );
-          },
+        const e = await this.fileService.openFileByPath(
+          params.filePath as string,
         );
+
+        e.edit((edit) => {
+          const file = e.document;
+          edit.replace(
+            new Range(
+              file.lineAt(0).range.start,
+              file.lineAt(file.lineCount - 1).range.end,
+            ),
+            (params.sql as string).replace(/```sql\n/g, "").replace(/```/, ""),
+          );
+        });
         break;
 
       case "queryanalysis:followup":

@@ -14,13 +14,13 @@ import useQueryAnalysisContext from "../provider/useQueryAnalysisContext";
 import { DataPilotChatFollowup } from "@modules/dataPilot/types";
 
 const schema = Yup.object({
-  source_dialect: Yup.string().required(),
-  target_dialect: Yup.string().required(),
+  source: Yup.string().required(),
+  target: Yup.string().required(),
 }).required();
 
 interface QueryTranslateRequest extends Record<string, unknown> {
-  source_dialect: string;
-  target_dialect: string;
+  source: string;
+  target: string;
 }
 
 const QueryTranslateDialectSelects = (): JSX.Element => {
@@ -69,11 +69,11 @@ const QueryTranslateDialectSelects = (): JSX.Element => {
           }),
         sessionId: chat?.id,
         history,
-        user_request: `Translate from: ${getValues(
-          "source_dialect",
-        )} to: ${getValues("target_dialect")}`,
+        user_request: `Translate from: ${getValues("source")} to: ${getValues(
+          "target",
+        )}`,
         skipFollowupQuestions: true,
-        request: data,
+        request: { ...data, filePath: chat?.meta?.filePath },
       });
 
       if (result) {
@@ -100,7 +100,7 @@ const QueryTranslateDialectSelects = (): JSX.Element => {
         if (!result) {
           return;
         }
-        setValue("target_dialect", result as string, { shouldValidate: true });
+        setValue("target", result as string, { shouldValidate: true });
       })
       .catch((err) => panelLogger.info("error in getProjectAdapterType", err));
     trigger().catch((err) => panelLogger.info("error in trigger", err));
@@ -114,7 +114,7 @@ const QueryTranslateDialectSelects = (): JSX.Element => {
             <Label htmlFor="source-dialect">Source SQL dialect</Label>
             <Controller
               control={control}
-              name="source_dialect"
+              name="source"
               render={({ field: { onChange, ref, value } }) => (
                 <Select
                   inputId="source-dialect"
@@ -134,7 +134,7 @@ const QueryTranslateDialectSelects = (): JSX.Element => {
             <Label htmlFor="destination-dialect">Destination SQL dialect</Label>
             <Controller
               control={control}
-              name="target_dialect"
+              name="target"
               render={({ field: { onChange, ref, value } }) => (
                 <Select
                   inputId="destination-dialect"
