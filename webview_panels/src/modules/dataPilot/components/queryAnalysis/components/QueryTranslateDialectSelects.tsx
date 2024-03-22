@@ -46,13 +46,14 @@ const QueryTranslateDialectSelects = (): JSX.Element => {
   }));
 
   const handleReplace = (
+    translatedSql: string | undefined,
     followup: DataPilotChatFollowup,
     buttonTitle: string,
   ) => {
-    panelLogger.info(followup, buttonTitle, chat?.meta);
+    panelLogger.info(followup, buttonTitle, chat?.meta, translatedSql);
 
     executeRequestInAsync("file:replace-contents", {
-      sql: followup.response,
+      sql: translatedSql,
       filePath: chat?.meta?.filePath,
     });
   };
@@ -60,13 +61,29 @@ const QueryTranslateDialectSelects = (): JSX.Element => {
   const onSubmit = async (data: QueryTranslateRequest) => {
     try {
       panelLogger.info("requesting translate", data);
-      const result = await executeQueryAnalysis({
+      const result = (await executeQueryAnalysis({
         command: "querytranslate",
-        onNewGeneration: (followup) =>
-          onNewGeneration({
+        onNewGeneration: (followup) => {
+          const translateResponse = followup.response as unknown as
+            | { translatedSql: string; userSql: string }
+            | undefined;
+          const translatedSql = translateResponse?.translatedSql;
+          return onNewGeneration({
             ...followup,
-            codeBlockActions: [{ title: "Replace", onClick: handleReplace }],
-          }),
+            codeBlockActions: [
+              {
+                title: "Replace",
+                onClick: (...args) => handleReplace(translatedSql, ...args),
+              },
+            ],
+            response: [
+              `The translated query in \`${data.target}\` is`,
+              " ```",
+              translatedSql,
+              " ```",
+            ].join("\n"),
+          });
+        },
         sessionId: chat?.id,
         history,
         user_request: `Translate from: ${getValues("source")} to: ${getValues(
@@ -74,7 +91,7 @@ const QueryTranslateDialectSelects = (): JSX.Element => {
         )}`,
         skipFollowupQuestions: true,
         request: { ...data, filePath: chat?.meta?.filePath },
-      });
+      })) as unknown as { translatedSql: string; userSql: string };
 
       if (result) {
         setTranslateCompleted(true);
@@ -86,7 +103,7 @@ const QueryTranslateDialectSelects = (): JSX.Element => {
           history,
           user_request: "",
           skipFollowupQuestions: true,
-          request: { ...data, translated_sql: result },
+          request: { ...data, ...result },
         });
       }
     } catch (err) {

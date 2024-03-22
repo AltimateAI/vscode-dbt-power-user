@@ -135,9 +135,10 @@ export class DataPilotPanel extends AltimateWebviewProvider {
               (await this.queryAnalysisService.executeQueryTranslate(
                 params as unknown as QueryTranslateIncomingRequest,
               )) as {
-                translated_sql: string;
+                translatedSql: string;
+                userSql: string;
               };
-            return { response: "```sql\n" + response.translated_sql + "\n```" };
+            return { response };
           },
           command,
           true,
@@ -227,7 +228,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
               file.lineAt(0).range.start,
               file.lineAt(file.lineCount - 1).range.end,
             ),
-            (params.sql as string).replace(/```sql\n/g, "").replace(/```/, ""),
+            params.sql as string,
           );
         });
         break;

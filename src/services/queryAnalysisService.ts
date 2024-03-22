@@ -22,8 +22,8 @@ export interface QueryTranslateIncomingRequest {
 export interface QueryTranslateExplanationIncomingRequest {
   source?: string;
   target?: string;
-  user_sql: string;
-  translated_sql: string;
+  userSql: string;
+  translatedSql: string;
 }
 
 @provideSingleton(QueryAnalysisService)
@@ -91,18 +91,23 @@ export class QueryAnalysisService {
       throw error;
     }
 
-    return this.altimateRequest.fetch("dbt/v3/translate", {
+    const compiledSql = await dbtProject.unsafeCompileQuery(sql);
+    const response = (await this.altimateRequest.fetch("dbt/v3/translate", {
       method: "POST",
       body: JSON.stringify({
         source_dialect: params.source,
         target_dialect: params.target,
-        sql: await dbtProject.unsafeCompileQuery(sql),
+        sql: compiledSql,
       } as QueryTranslateRequest),
-    });
+    })) as { translated_sql: string };
+    return {
+      translatedSql: response.translated_sql,
+      userSql: compiledSql,
+    };
   }
 
   public async executeQueryTranslateExplanation(
-    { user_sql, ...params }: QueryTranslateExplanationIncomingRequest,
+    params: QueryTranslateExplanationIncomingRequest,
     syncRequestId?: string,
   ) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
@@ -117,31 +122,6 @@ export class QueryAnalysisService {
       throw new Error("Invalid target dialect");
     }
 
-    const editor = window.activeTextEditor;
-
-    if (!editor) {
-      throw new Error("Invalid file");
-    }
-
-    const sql = editor.document.getText();
-
-    const dbtProject = this.queryManifestService.getProject();
-
-    if (!dbtProject) {
-      const error = new Error("Invalid dbt project");
-      this.dbtTerminal.error(
-        "executeQueryAnalysisError",
-        "Invalid dbt project",
-        error,
-      );
-      throw error;
-    }
-
-    const userSql = await dbtProject.unsafeCompileQuery(user_sql);
-    if (!userSql) {
-      throw new Error("Unable to compile sql");
-    }
-
     return this.streamingService.fetchAsStream<QueryTranslateExplanationRequest>(
       {
         endpoint: "dbt/v3/translate-explanation",
@@ -149,8 +129,8 @@ export class QueryAnalysisService {
         request: {
           source_dialect: params.source,
           target_dialect: params.target,
-          translated_sql: params.translated_sql,
-          user_sql: userSql,
+          translated_sql: params.translatedSql,
+          user_sql: params.userSql,
         } as QueryTranslateExplanationRequest,
       },
     );
