@@ -910,8 +910,11 @@ export class DBTCoreProjectIntegration
   }
 
   findPackageVersion(packageName: string) {
-    if (!this.packagesInstallPath || !packageName) {
-      return;
+    if (!this.packagesInstallPath) {
+      throw new Error("Missing packages install path");
+    }
+    if (!packageName) {
+      throw new Error("Invalid package name");
     }
 
     const dbtProjectYmlFilePath = path.join(
@@ -920,20 +923,24 @@ export class DBTCoreProjectIntegration
       "dbt_project.yml",
     );
     if (!existsSync(dbtProjectYmlFilePath)) {
-      return;
+      throw new Error("Package not installed");
     }
     const fileContents = readFileSync(dbtProjectYmlFilePath, {
       encoding: "utf-8",
     });
     if (!fileContents) {
-      return;
+      throw new Error(`${packageName} has empty dbt_project.yml`);
     }
     const parsedConfig = parse(fileContents, {
       strict: false,
       uniqueKeys: false,
       maxAliasCount: -1,
     });
-    return parsedConfig?.version;
+    if (!parsedConfig?.version) {
+      throw new Error(`Missing version in ${packageName}/dbt_project.yml`);
+    }
+
+    return parsedConfig.version;
   }
 
   async dispose() {

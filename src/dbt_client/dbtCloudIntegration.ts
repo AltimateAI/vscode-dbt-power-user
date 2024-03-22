@@ -833,7 +833,7 @@ export class DBTCloudProjectIntegration
   }
 
   findPackageVersion(packageName: string) {
-    return undefined;
+    return "";
   }
 
   private throwBridgeErrorIfAvailable() {
