@@ -189,7 +189,7 @@ export class Exposure extends Node {
   displayInModelTree = true;
 }
 export class Metric extends Node {
-  displayInModelTree = true;
+  displayInModelTree = false;
 }
 export class Snapshot extends Node {}
 export class Source extends Node {

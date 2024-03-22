@@ -112,7 +112,7 @@ export class GraphParser {
               metricMetaMap,
             ),
           )
-          .filter((n) => n instanceof Test)
+          .filter((n) => n instanceof Metric)
           .filter(notEmpty);
         map.set(nodeName, { nodes: currentNodes });
         return map;
