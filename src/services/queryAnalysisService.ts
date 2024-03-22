@@ -68,6 +68,12 @@ export class QueryAnalysisService {
       return;
     }
 
+    if (!params.filePath) {
+      throw new UserInputError(
+        "Invalid file. Please open a valid file with SQL",
+      );
+    }
+
     const editor = await this.fileService.openFileByPath(params.filePath);
 
     const sql = editor.document.getText();

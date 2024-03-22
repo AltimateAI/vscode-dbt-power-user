@@ -93,7 +93,7 @@ const QueryTranslateDialectSelects = (): JSX.Element => {
         request: { ...data, filePath: chat?.meta?.filePath },
       })) as unknown as { translatedSql: string; userSql: string };
 
-      if (result) {
+      if (result.translatedSql) {
         setTranslateCompleted(true);
         await executeQueryAnalysis({
           command: "querytranslate:explanation",
