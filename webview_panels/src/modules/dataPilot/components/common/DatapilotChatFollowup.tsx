@@ -147,14 +147,12 @@ const DatapilotChatFollowupComponent = ({
       if (!codeblockResponse) {
         return [];
       }
-      if (codeblockResponse) {
-        return [
-          {
-            title: codeblockResponse.type === "yaml" ? "Insert" : "Copy",
-            onClick: handleCodeblockAction,
-          },
-        ];
-      }
+      return [
+        {
+          title: codeblockResponse.type === "yaml" ? "Insert" : "Copy",
+          onClick: handleCodeblockAction,
+        },
+      ];
     }
     return codeBlockActions ?? [];
   }, [getCodeblock, chat?.requestType, codeBlockActions]);

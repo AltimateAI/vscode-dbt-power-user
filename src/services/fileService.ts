@@ -1,6 +1,9 @@
 import { TextDocument, TextEditor, Uri, window, workspace } from "vscode";
 import { provideSingleton } from "../utils";
 
+/**
+ * service to promisify file related actions
+ */
 @provideSingleton(FileService)
 export class FileService {
   public async openFileByPath(path?: string): Promise<TextEditor> {

@@ -216,12 +216,12 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           "replacing translated sql",
           params,
         );
-        const e = await this.fileService.openFileByPath(
+        const editor = await this.fileService.openFileByPath(
           params.filePath as string,
         );
 
-        e.edit((edit) => {
-          const file = e.document;
+        editor.edit((edit) => {
+          const file = editor.document;
           edit.replace(
             new Range(
               file.lineAt(0).range.start,
