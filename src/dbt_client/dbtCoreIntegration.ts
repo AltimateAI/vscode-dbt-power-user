@@ -345,7 +345,7 @@ export class DBTCoreProjectIntegration
           const result = await queryThread!.lock<ExecuteSQLResult>(
             (python) => python`to_dict(project.execute_sql(${compiledQuery}))`,
           );
-          let compiled_stmt = result.compiled_sql;
+          let compiledStatement = result.compiled_sql;
           const queryRegex = new RegExp(
             queryTemplate
               .replace(/\(/g, "\\(")
@@ -357,9 +357,9 @@ export class DBTCoreProjectIntegration
           );
           const matches = queryRegex.exec(result.compiled_sql);
           if (matches) {
-            compiled_stmt = matches[1].trim();
+            compiledStatement = matches[1].trim();
           }
-          return { ...result, compiled_stmt };
+          return { ...result, compiled_stmt: compiledStatement };
         } catch (err) {
           const message = `Error while executing sql: ${compiledQuery}`;
           this.dbtTerminal.error("dbtCore:executeSQL", message, err);
