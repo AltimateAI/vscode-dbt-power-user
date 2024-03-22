@@ -54,7 +54,7 @@ const QueryTranslateDialectSelects = (): JSX.Element => {
 
     executeRequestInAsync("file:replace-contents", {
       sql: translatedSql,
-      filePath: chat?.meta?.filePath,
+      filePath: chat?.filePath,
     });
   };
 
@@ -90,7 +90,7 @@ const QueryTranslateDialectSelects = (): JSX.Element => {
           "target",
         )}`,
         skipFollowupQuestions: true,
-        request: { ...data, filePath: chat?.meta?.filePath },
+        request: { ...data, filePath: chat?.filePath },
       })) as unknown as { translatedSql: string; userSql: string };
 
       if (result.translatedSql) {

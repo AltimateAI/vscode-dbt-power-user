@@ -212,7 +212,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         break;
 
       case "file:replace-contents":
-        if (!window.activeTextEditor || !params.sql || !params.filePath) {
+        if (!params.sql || !params.filePath) {
           return;
         }
         this.dbtTerminal.debug(
@@ -281,17 +281,11 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         break;
 
       case "dbtPowerUser.translateQuery":
-        this.handleDatapilotEvent(QueryAnalysisType.TRANSLATE, {
-          ...payload,
-          meta: { filePath: window.activeTextEditor?.document.uri.fsPath },
-        });
+        this.handleDatapilotEvent(QueryAnalysisType.TRANSLATE, payload);
         break;
 
       case "dbtPowerUser.openDatapilotWithQuery":
-        this.handleDatapilotEvent(null, {
-          ...payload,
-          meta: { filePath: window.activeTextEditor?.document.uri.fsPath },
-        });
+        this.handleDatapilotEvent(null, payload);
         break;
 
       case "dbtPowerUser.openHelpInDatapilot":
