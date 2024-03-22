@@ -16,7 +16,7 @@ interface PythonExecutionDetails {
 export class PythonEnvironment implements Disposable {
   private executionDetails?: PythonExecutionDetails;
   private disposables: Disposable[] = [];
-  private envFrom: Record<string, EnvFrom> = {};
+  private environmentVariableSource: Record<string, EnvFrom> = {};
   constructor(
     private telemetry: TelemetryService,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
@@ -38,7 +38,7 @@ export class PythonEnvironment implements Disposable {
     this.dbtTerminal.show(true);
     for (const key in envVars) {
       this.dbtTerminal.log(
-        `${key}=${envVars[key]}\t\tfrom:${this.envFrom[key]}\r\n`,
+        `${key}=${envVars[key]}\t\tsource:${this.environmentVariableSource[key]}\r\n`,
       );
     }
   }
@@ -96,7 +96,7 @@ export class PythonEnvironment implements Disposable {
         this.dbtTerminal.debug(
           "pythonEnvironment:substituteSettingsVariables",
           `Picking env var ${matchResult[1]} from ${
-            this.envFrom[matchResult[1]]
+            this.environmentVariableSource[matchResult[1]]
           }`,
         );
       }
@@ -156,7 +156,7 @@ export class PythonEnvironment implements Disposable {
         const envVars: EnvironmentVariables = {};
         for (const key in process.env) {
           envVars[key] = process.env[key];
-          this.envFrom[key] = "process";
+          this.environmentVariableSource[key] = "process";
         }
         try {
           const integratedEnv:
@@ -188,7 +188,7 @@ export class PythonEnvironment implements Disposable {
                   integratedEnv[prop][key],
                   process.env,
                 );
-                this.envFrom[key] = "integrated";
+                this.environmentVariableSource[key] = "integrated";
               }
             }
           }
@@ -206,7 +206,7 @@ export class PythonEnvironment implements Disposable {
             );
             for (const key in workspaceEnv) {
               envVars[key] = workspaceEnv[key];
-              this.envFrom[key] = "dotenv";
+              this.environmentVariableSource[key] = "dotenv";
             }
           }
         } catch (e: any) {

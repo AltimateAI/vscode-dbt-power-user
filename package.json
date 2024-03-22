@@ -524,7 +524,7 @@
       },
       {
         "command": "dbtPowerUser.printEnvVars",
-        "title": "Print env vars",
+        "title": "Print environment variables",
         "category": "dbt Power User",
         "icon": "$(gist-secret)"
       }
