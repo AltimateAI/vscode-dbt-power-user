@@ -341,10 +341,20 @@ export class DBTCoreProjectIntegration
       },
       async () => {
         const compiledQuery = await this.unsafeCompileQuery(limitQuery);
+        let result: ExecuteSQLResult;
         try {
-          const result = await queryThread!.lock<ExecuteSQLResult>(
+          result = await queryThread!.lock<ExecuteSQLResult>(
             (python) => python`to_dict(project.execute_sql(${compiledQuery}))`,
           );
+        } catch (err) {
+          const message = `Error while executing sql: ${compiledQuery}`;
+          this.dbtTerminal.error("dbtCore:executeSQL", message, err);
+          if (err instanceof PythonException) {
+            throw new ExecuteSQLError(err.exception.message, compiledQuery!);
+          }
+          throw new ExecuteSQLError((err as Error).message, compiledQuery!);
+        }
+        try {
           let compiledStatement = result.compiled_sql;
           const queryRegex = new RegExp(
             queryTemplate
@@ -361,7 +371,7 @@ export class DBTCoreProjectIntegration
           }
           return { ...result, compiled_stmt: compiledStatement };
         } catch (err) {
-          const message = `Error while executing sql: ${compiledQuery}`;
+          const message = `Error while sanitizing compiled sql: ${compiledQuery}`;
           this.dbtTerminal.error("dbtCore:executeSQL", message, err);
           if (err instanceof PythonException) {
             throw new ExecuteSQLError(err.exception.message, compiledQuery!);
