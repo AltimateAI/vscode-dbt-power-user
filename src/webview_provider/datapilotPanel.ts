@@ -101,9 +101,11 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         if (!queryText) {
           return;
         }
+
         this.docGenService.generateDocsForModel({
           queryText,
-          documentation: await this.docGenService.getDocumentation(),
+          documentation:
+            await this.docGenService.getDocumentationForCurrentActiveFile(),
           message,
           panel: this._panel,
           project: this.queryManifestService.getProject(),
@@ -112,7 +114,8 @@ export class DataPilotPanel extends AltimateWebviewProvider {
 
       case "generateDocsForColumn":
         await this.docGenService.generateDocsForColumns({
-          documentation: await this.docGenService.getDocumentation(),
+          documentation:
+            await this.docGenService.getDocumentationForCurrentActiveFile(),
           panel: this._panel,
           message,
           project: this.queryManifestService.getProject(),
@@ -323,7 +326,10 @@ export class DataPilotPanel extends AltimateWebviewProvider {
 
       this.sendResponseToWebview({
         command,
-        args: message,
+        args: {
+          filePath: window.activeTextEditor?.document.uri.fsPath,
+          ...message,
+        },
       });
     }
   }

@@ -121,34 +121,36 @@ export interface QueryTranslateExplanationRequest {
   source_dialect: string;
 }
 
+interface DbtModel {
+  model_name: string;
+  model_description?: string;
+  compiled_sql?: string;
+  columns: {
+    column_name: string;
+    description?: string;
+    data_type?: string;
+  }[];
+  adapter?: string;
+}
+
 export interface QueryAnalysisRequest {
   session_id: string;
   job_type: QueryAnalysisType;
-  model: DocsGenerateModelRequestV2["dbt_model"];
+  model: DbtModel;
   user_request?: string; // required for modify query
   history?: QueryAnalysisChat[];
 }
 
 export interface CreateDbtTestRequest {
   session_id: string;
-  model: DocsGenerateModelRequestV2["dbt_model"];
+  model: DbtModel;
   column_name?: string;
   user_request?: string;
 }
 
 interface DocsGenerateModelRequestV2 {
   columns: string[];
-  dbt_model: {
-    model_name: string;
-    model_description?: string;
-    compiled_sql?: string;
-    columns: {
-      column_name: string;
-      description?: string;
-      data_type?: string;
-    }[];
-    adapter?: string;
-  };
+  dbt_model: DbtModel;
   user_instructions?: {
     prompt_hint: string;
     language: string;

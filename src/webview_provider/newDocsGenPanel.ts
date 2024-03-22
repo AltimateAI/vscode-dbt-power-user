@@ -162,7 +162,8 @@ export class NewDocsGenPanel
           return;
         }
 
-        const documentation = await this.docGenService.getDocumentation();
+        const documentation =
+          await this.docGenService.getDocumentationForCurrentActiveFile();
         this.sendResponseToWebview({
           command: "renderDocumentation",
           docs: documentation,

@@ -174,18 +174,24 @@ export class DocGenService {
     }
   }
 
-  public async getDocumentation(): Promise<DBTDocumentation | undefined> {
+  public async getDocumentationForCurrentActiveFile() {
+    return this.getDocumentation(window.activeTextEditor?.document?.uri.fsPath);
+  }
+
+  public async getDocumentation(
+    filePath?: string,
+  ): Promise<DBTDocumentation | undefined> {
     const eventResult = this.queryManifestService.getEventByCurrentProject();
     if (!eventResult) {
       return undefined;
     }
-    const { event, currentDocument } = eventResult;
+    const { event } = eventResult;
 
-    if (!event || !currentDocument) {
+    if (!event || !filePath) {
       return undefined;
     }
 
-    const modelName = path.basename(currentDocument.uri.fsPath, ".sql");
+    const modelName = path.basename(filePath, ".sql");
     const currentNode = event.nodeMetaMap.get(modelName);
     if (currentNode === undefined) {
       return undefined;

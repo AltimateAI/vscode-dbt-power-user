@@ -299,13 +299,25 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           }
           break;
         case "findPackageVersion":
-          this.sendResponseToWebview({
-            command: "response",
-            data: this.queryManifestService
-              .getProject()
-              ?.findPackageVersion(params.packageName as string),
+          this.handleSyncRequestFromWebview(
             syncRequestId,
-          });
+            () => {
+              try {
+                return this.queryManifestService
+                  .getProject()
+                  ?.findPackageVersion(params.packageName as string);
+              } catch (err) {
+                this.dbtTerminal.debug(
+                  "findPackageVersion",
+                  (err as Error).message,
+                );
+              }
+              return undefined;
+            },
+            command,
+            false,
+          );
+
           break;
         default:
           break;

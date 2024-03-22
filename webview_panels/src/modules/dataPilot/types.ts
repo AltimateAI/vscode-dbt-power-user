@@ -33,6 +33,7 @@ export interface DataPilotChat {
   updatedAt?: Date;
   meta?: Record<string, unknown>; // any extra data to be stored
   followups?: DataPilotChatFollowup[];
+  filePath?: string;
 }
 
 export interface DataPilotChatFollowup {
