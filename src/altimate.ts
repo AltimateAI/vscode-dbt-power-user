@@ -14,6 +14,8 @@ export class NoCredentialsError extends Error {}
 
 export class NotFoundError extends Error {}
 
+export class UserInputError extends Error {}
+
 export class ForbiddenError extends Error {
   constructor() {
     super("Invalid credentials. Please check instance name and API Key.");

@@ -5,6 +5,7 @@ import {
   QueryAnalysisType,
   QueryTranslateExplanationRequest,
   QueryTranslateRequest,
+  UserInputError,
 } from "../altimate";
 import { provideSingleton } from "../utils";
 import { QueryManifestService } from "./queryManifestService";
@@ -72,11 +73,11 @@ export class QueryAnalysisService {
     const sql = editor.document.getText();
 
     if (!params.source) {
-      throw new Error("Invalid source dialect");
+      throw new UserInputError("Invalid source dialect");
     }
 
     if (!params.target) {
-      throw new Error("Invalid target dialect");
+      throw new UserInputError("Invalid target dialect");
     }
 
     const dbtProject = this.queryManifestService.getProject();
@@ -115,11 +116,11 @@ export class QueryAnalysisService {
     }
 
     if (!params.source) {
-      throw new Error("Invalid source dialect");
+      throw new UserInputError("Invalid source dialect");
     }
 
     if (!params.target) {
-      throw new Error("Invalid target dialect");
+      throw new UserInputError("Invalid target dialect");
     }
 
     return this.streamingService.fetchAsStream<QueryTranslateExplanationRequest>(

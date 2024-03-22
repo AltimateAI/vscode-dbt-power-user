@@ -213,7 +213,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           return;
         }
         this.dbtTerminal.debug(
-          "file:replace-contents",
+          "querytranslate:replace",
           "replacing translated sql",
           params,
         );
