@@ -2,6 +2,7 @@ import * as path from "path";
 
 export type NodeMetaMap = Map<string, NodeMetaData>;
 export type MacroMetaMap = Map<string, MacroMetaData>;
+export type MetricMetaMap = Map<string, MetricMetaData>;
 export type SourceMetaMap = Map<string, SourceMetaData>;
 export type TestMetaMap = Map<string, TestMetaData>;
 export type ExposureMetaMap = Map<string, ExposureMetaData>;
@@ -13,6 +14,10 @@ interface MacroMetaData {
   path: string;
   line: number;
   character: number;
+}
+
+interface MetricMetaData {
+  name: string;
 }
 
 export interface NodeMetaData {
@@ -136,6 +141,7 @@ export interface GraphMetaMap {
   parents: NodeGraphMap;
   children: NodeGraphMap;
   tests: NodeGraphMap;
+  metrics: NodeGraphMap;
 }
 
 interface IconPath {
@@ -146,7 +152,7 @@ interface IconPath {
 export abstract class Node {
   label: string;
   key: string;
-  url: string;
+  url: string | undefined;
   iconPath: IconPath = {
     light: path.join(
       path.resolve(__dirname),
@@ -156,7 +162,7 @@ export abstract class Node {
   };
   displayInModelTree: boolean = true;
 
-  constructor(label: string, key: string, url: string) {
+  constructor(label: string, key: string, url?: string) {
     this.label = label;
     this.key = key;
     this.url = url;
@@ -181,6 +187,9 @@ export class Analysis extends Node {
 }
 export class Exposure extends Node {
   displayInModelTree = true;
+}
+export class Metric extends Node {
+  displayInModelTree = false;
 }
 export class Snapshot extends Node {}
 export class Source extends Node {

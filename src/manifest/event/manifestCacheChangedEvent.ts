@@ -4,6 +4,7 @@ import {
   ExposureMetaMap,
   GraphMetaMap,
   MacroMetaMap,
+  MetricMetaMap,
   NodeMetaMap,
   SourceMetaMap,
   TestMetaMap,
@@ -14,6 +15,7 @@ export interface ManifestCacheProjectAddedEvent {
   project: DBTProject;
   nodeMetaMap: NodeMetaMap;
   macroMetaMap: MacroMetaMap;
+  metricMetaMap: MetricMetaMap;
   sourceMetaMap: SourceMetaMap;
   graphMetaMap: GraphMetaMap;
   testMetaMap: TestMetaMap;
