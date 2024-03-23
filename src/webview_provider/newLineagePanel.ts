@@ -715,10 +715,7 @@ export class NewLineagePanel implements LineagePanelView {
         downstreamCount,
         nodeType,
         materialization: undefined,
-        tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
-          const testKey = n.label.split(".")[0];
-          return { ...testMetaMap.get(testKey), key: testKey };
-        }),
+        tests: [],
       };
     }
     const { nodeMetaMap } = event;
@@ -733,10 +730,7 @@ export class NewLineagePanel implements LineagePanelView {
         downstreamCount,
         nodeType,
         materialization: undefined,
-        tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
-          const testKey = n.label.split(".")[0];
-          return { ...testMetaMap.get(testKey), key: testKey };
-        }),
+        tests: [],
       };
     }
 
