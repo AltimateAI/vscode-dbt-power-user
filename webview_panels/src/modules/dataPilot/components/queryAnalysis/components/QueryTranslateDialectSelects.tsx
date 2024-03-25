@@ -11,7 +11,9 @@ import {
 } from "@modules/app/requestExecutor";
 import useQueryAnalysisAction from "../useQueryAnalysisAction";
 import useQueryAnalysisContext from "../provider/useQueryAnalysisContext";
-import { DataPilotChatFollowup } from "@modules/dataPilot/types";
+import { DataPilotChatFollowup, RequestState } from "@modules/dataPilot/types";
+import useDataPilotContext from "@modules/dataPilot/useDataPilotContext";
+import { deleteFollowup } from "@modules/dataPilot/dataPilotSlice";
 
 const schema = Yup.object({
   source: Yup.string().required(),
@@ -39,6 +41,7 @@ const QueryTranslateDialectSelects = (): JSX.Element => {
   const [translateCompleted, setTranslateCompleted] = useState(false);
   const { executeQueryAnalysis, isLoading } = useQueryAnalysisAction();
   const { chat, onNewGeneration, history } = useQueryAnalysisContext();
+  const { dispatch } = useDataPilotContext();
 
   const dialectOptions: OptionType[] = SqlDialects.map((d) => ({
     label: d,
@@ -64,24 +67,34 @@ const QueryTranslateDialectSelects = (): JSX.Element => {
       const result = (await executeQueryAnalysis({
         command: "querytranslate",
         onNewGeneration: (followup) => {
+          if (followup.state === RequestState.ERROR) {
+            dispatch(
+              deleteFollowup({ sessionId: chat?.id, followupId: followup.id }),
+            );
+            return;
+          }
           const translateResponse = followup.response as unknown as
             | { translatedSql: string; userSql: string }
             | undefined;
           const translatedSql = translateResponse?.translatedSql;
           return onNewGeneration({
             ...followup,
-            codeBlockActions: [
-              {
-                title: "Replace",
-                onClick: (...args) => handleReplace(translatedSql, ...args),
-              },
-            ],
-            response: [
-              `The translated query in \`${data.target}\` is`,
-              " ```",
-              translatedSql,
-              " ```",
-            ].join("\n"),
+            codeBlockActions: translatedSql
+              ? [
+                  {
+                    title: "Replace",
+                    onClick: (...args) => handleReplace(translatedSql, ...args),
+                  },
+                ]
+              : undefined,
+            response: translatedSql
+              ? [
+                  `The translated query in \`${data.target}\` is`,
+                  " ```",
+                  translatedSql,
+                  " ```",
+                ].join("\n")
+              : followup.response,
           });
         },
         sessionId: chat?.id,
