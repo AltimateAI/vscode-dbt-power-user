@@ -28,8 +28,8 @@ const AiDocChat = ({ chat }: Props): JSX.Element => {
         sessionId: chat.id,
         followup: {
           ...result,
-          datapilot_title: action.datapilot_title,
-          user_prompt: action.user_prompt
+          datapilotTitle: action.datapilotTitle,
+          userPrompt: action.userPrompt
             .replace("{name}", entityName as string)
             .replace("{type}", entityType),
         },

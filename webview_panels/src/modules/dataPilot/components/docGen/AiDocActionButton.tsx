@@ -40,7 +40,7 @@ const AiDocActionButton = ({ action, onNewGeneration }: Props): JSX.Element => {
     setIsLoading(false);
 
     let generatedResult = {
-      user_prompt: getFollowupInstruction()?.toString(),
+      userPrompt: getFollowupInstruction()?.toString(),
     } as DocGenFollowup;
 
     if ("columns" in result) {

@@ -55,10 +55,10 @@ const AddCustomTest = (): JSX.Element | null => {
         sessionId: chat?.id,
         followup: {
           id: crypto.randomUUID(),
-          datapilot_title: " Datapilot response",
+          datapilotTitle: " Datapilot response",
           actions: [],
           state: RequestState.COMPLETED,
-          user_prompt: `Add Custom Test for column: ${meta?.column as string}`,
+          userPrompt: `Add Custom Test for column: ${meta?.column as string}`,
           response: `Generate Tests for column “${
             meta?.column as string
           }” in model “${
