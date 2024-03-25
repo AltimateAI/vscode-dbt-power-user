@@ -832,8 +832,8 @@ export class DBTCloudProjectIntegration
     }
   }
 
-  findPackageVersion(packageName: string) {
-    return "";
+  findPackageVersion(_packageName: string) {
+    return undefined;
   }
 
   private throwBridgeErrorIfAvailable() {

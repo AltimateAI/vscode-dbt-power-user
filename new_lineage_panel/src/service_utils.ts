@@ -82,6 +82,7 @@ export class CLL {
 
   static start() {
     CLL.inProgress = true;
+    CLL.isCancelled = false;
     CLL.linkCount = 0;
     vscode.postMessage({
       command: "columnLineage",

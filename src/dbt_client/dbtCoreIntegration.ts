@@ -937,7 +937,7 @@ export class DBTCoreProjectIntegration
       maxAliasCount: -1,
     });
     if (!parsedConfig?.version) {
-      throw new Error(`Missing version in ${packageName}/dbt_project.yml`);
+      throw new Error(`Missing version in ${dbtProjectYmlFilePath}`);
     }
 
     return parsedConfig.version;
