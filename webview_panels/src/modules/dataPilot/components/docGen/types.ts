@@ -1,11 +1,10 @@
+import { DataPilotChatFollowup } from "@modules/dataPilot/types";
 import { DBTDocumentationColumn } from "@modules/documentationEditor/state/types";
 
-export interface GeneratedResult extends Partial<DBTDocumentationColumn> {
-  model: string;
-  id: string;
-  prompt: string;
-  user_prompt: string;
-  datapilot_title: string;
+export interface DocGenFollowup
+  extends Partial<DBTDocumentationColumn>,
+    DataPilotChatFollowup {
+  model?: string;
 }
 
 export enum EntityType {

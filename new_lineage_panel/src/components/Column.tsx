@@ -68,7 +68,7 @@ export const NodeTypeIcon: FunctionComponent<{ nodeType: string }> = ({
     {nodeType === "exposure" && <ExposureIcon />}
     {nodeType === "analysis" && <AnalysisIcon />}
     {nodeType === "snapshot" && <SnapshotIcon />}
-    {nodeType === "metrics" && <MetricsIcon />}
+    {nodeType === "semantic_model" && <MetricsIcon />}
     {nodeType === "macros" && <MacrosIcon />}
   </div>
 );
@@ -94,7 +94,7 @@ export const NODE_TYPE_STYLES = {
   source: styles.source,
   exposure: styles.exposure,
   snapshot: styles.snapshot,
-  metrics: styles.metrics,
+  semantic_model: styles.metrics,
   macros: styles.macros,
   analysis: styles.analysis,
 };
@@ -105,7 +105,7 @@ export const NODE_TYPE_SHORTHAND = {
   source: "SRC",
   exposure: "EXP",
   snapshot: "SNP",
-  metrics: "MET",
+  semantic_model: "MET",
   macros: "SEM",
   analysis: "ANY",
 };

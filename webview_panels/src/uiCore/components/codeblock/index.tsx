@@ -6,7 +6,7 @@ import { Themes } from "@modules/app/types";
 
 interface Props {
   code: string;
-  language: "sql";
+  language: "sql" | "yaml";
   fileName?: string;
 }
 const CodeBlockComponent = ({

@@ -1,16 +1,21 @@
 import { executeRequestInSync } from "@modules/app/requestExecutor";
+import useDataPilotContext from "@modules/dataPilot/useDataPilotContext";
 import { DBTDocumentationColumn } from "@modules/documentationEditor/state/types";
 import { panelLogger } from "@modules/logger";
 import { Button } from "@uicore";
 import { useState } from "react";
 import { DataPilotChatAction } from "../../types";
-import { GeneratedResult } from "./types";
+import { DocGenFollowup } from "./types";
 
 interface Props {
   action: DataPilotChatAction;
-  onNewGeneration: (column: GeneratedResult) => void;
+  onNewGeneration: (column: DocGenFollowup) => void;
 }
 const AiDocActionButton = ({ action, onNewGeneration }: Props): JSX.Element => {
+  const {
+    state: { items, currentSessionId },
+  } = useDataPilotContext();
+  const chat = currentSessionId ? items[currentSessionId] : undefined;
   const getFollowupInstruction = () => {
     switch (action.title) {
       case "Regenerate":
@@ -35,17 +40,24 @@ const AiDocActionButton = ({ action, onNewGeneration }: Props): JSX.Element => {
     setIsLoading(false);
 
     let generatedResult = {
-      model: action.data.modelName as string,
-      id: crypto.randomUUID(),
-      prompt: getFollowupInstruction()?.toString(),
-    } as GeneratedResult;
+      user_prompt: getFollowupInstruction()?.toString(),
+    } as DocGenFollowup;
 
     if ("columns" in result) {
-      generatedResult = { ...generatedResult, ...result.columns[0] };
+      generatedResult = {
+        ...generatedResult,
+        ...result.columns[0],
+      };
     }
     if ("description" in result) {
-      generatedResult = { ...generatedResult, description: result.description };
+      generatedResult = {
+        ...generatedResult,
+        description: result.description,
+        model: chat?.meta?.name as string,
+      };
     }
+
+    panelLogger.info("generated result", generatedResult);
     onNewGeneration(generatedResult);
   };
   return (
