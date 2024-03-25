@@ -84,6 +84,9 @@ export class RunModel {
         this.runModelOnActiveWindow(type);
         return;
       }
+      if (!model.url) {
+        return;
+      }
       switch (type) {
         case RunModelType.TEST: {
           if (model.label) {
