@@ -34,6 +34,7 @@ import {
   TestMetadataAcceptedValues,
   TestMetadataRelationships,
 } from "../domain";
+import { DbtTestService } from "../services/dbtTestService";
 
 export enum Source {
   YAML = "YAML",
@@ -94,6 +95,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     private telemetry: TelemetryService,
     private newDocsPanel: NewDocsGenPanel,
     private docGenService: DocGenService,
+    private dbtTestService: DbtTestService,
     private terminal: DBTTerminal,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
@@ -114,7 +116,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         if (event === undefined) {
           return;
         }
-        this.documentation = await this.docGenService.getDocumentation();
+        this.documentation =
+          await this.docGenService.getDocumentationForCurrentActiveFile();
         if (this._panel) {
           this.transmitData();
           this.updateGraphStyle();
@@ -220,7 +223,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     this.getPanel().resolveWebview(panel, context, token);
     this.setupWebviewHooks(context);
     this.transmitConfig();
-    this.documentation = await this.docGenService.getDocumentation();
+    this.documentation =
+      await this.docGenService.getDocumentationForCurrentActiveFile();
     this.transmitData();
   }
 
@@ -279,11 +283,16 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
     const columnTests = tests.filter((test) => test.column_name === columnName);
 
+    // No tests for this column - may be all deleted
+    if (!columnTests.length) {
+      return;
+    }
+
     const data = columnTests.map((test, i) => {
       if (!test.test_metadata) {
         return null;
       }
-      const { name, namespace } = test.test_metadata;
+      const { name, namespace, kwargs } = test.test_metadata;
       const fullName: string = namespace ? `${namespace}.${name}` : name;
       const existingConfig = existingColumn?.tests?.find((t: any) => {
         if (typeof t === "string") {
@@ -294,8 +303,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       });
 
       // If relationships test, set field and to
-      if (this.isRelationship(test.test_metadata.kwargs)) {
-        const { to, field } = test.test_metadata.kwargs;
+      if (this.isRelationship(kwargs)) {
+        const { to, field } = kwargs;
         return {
           relationships: {
             ...existingConfig?.["relationships"],
@@ -306,11 +315,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       }
 
       // set values if test is accepted_values
-      if (this.isAcceptedValues(test.test_metadata.kwargs)) {
+      if (this.isAcceptedValues(kwargs)) {
         return {
           accepted_values: {
             ...existingConfig?.["accepted_values"],
-            values: test.test_metadata.kwargs.values,
+            values: kwargs.values,
           },
         };
       }
@@ -321,6 +330,26 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         };
       }
 
+      // Add extra config from external packages or test macros
+      if (kwargs) {
+        const rest = Object.entries(kwargs).reduce(
+          (acc: Record<string, unknown>, [key, value]) => {
+            // Ignore these fields as it will be added by default
+            if (key === "column_name" || key === "model") {
+              return acc;
+            }
+
+            acc[key] = value;
+            return acc;
+          },
+          {},
+        );
+        if (Object.keys(rest)?.length) {
+          return {
+            [fullName]: rest,
+          };
+        }
+      }
       return fullName;
     });
 
@@ -561,8 +590,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                   yamlColumn.name === column.name,
                               );
                             if (existingColumn !== undefined) {
+                              // ignore tests from existing column, as it will be recreated in `getTestDataByColumn`
+                              const { tests, ...rest } = existingColumn;
                               return {
-                                ...existingColumn,
+                                ...rest,
                                 ...(column?.type && !existingColumn?.data_type
                                   ? { data_type: column.type }
                                   : {}),
@@ -596,9 +627,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   this.loadedFromManifest = false;
                   writeFileSync(patchPath, stringify(parsedDocFile));
                   this.documentation =
-                    await this.docGenService.getDocumentation();
+                    await this.docGenService.getDocumentationForCurrentActiveFile();
                   const tests =
-                    await this.docGenService.getTestsForCurrentModel();
+                    await this.dbtTestService.getTestsForCurrentModel();
                   if (syncRequestId) {
                     this._panel!.webview.postMessage({
                       command: "response",
@@ -664,7 +695,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       //  documentation will be overwritten by the one coming from the manifest
       return;
     }
-    this.documentation = await this.docGenService.getDocumentation();
+    this.documentation =
+      await this.docGenService.getDocumentationForCurrentActiveFile();
     this.loadedFromManifest = true;
     if (this._panel) {
       this.transmitData();

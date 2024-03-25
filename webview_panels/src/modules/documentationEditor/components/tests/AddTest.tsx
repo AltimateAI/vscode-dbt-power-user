@@ -16,13 +16,16 @@ import { useRef, useState } from "react";
 import TestForm from "./forms/TestForm";
 import classes from "../../styles.module.scss";
 import useTestFormSave, { TestOperation } from "./hooks/useTestFormSave";
+import CustomTestButton from "./CustomTestButton";
+import { EntityType } from "@modules/dataPilot/components/docGen/types";
 
 interface Props {
   title: string;
   currentTests?: string[];
+  type: EntityType;
 }
 
-const AddTest = ({ title, currentTests }: Props): JSX.Element => {
+const AddTest = ({ title, currentTests, type }: Props): JSX.Element => {
   const [formType, setFormType] = useState<DbtGenericTests | null>(null);
   const [showButtons, setShowButtons] = useState(false);
   const drawerRef = useRef<DrawerRef>(null);
@@ -58,22 +61,25 @@ const AddTest = ({ title, currentTests }: Props): JSX.Element => {
         {showButtons ? <RemoveIcon /> : <AddIcon />}
       </IconButton>
       {showButtons ? (
-        <Fade>
-          <Stack>
-            {Object.values(DbtGenericTests)
-              .filter((t) => !currentTests?.includes(t))
-              .map((test) => (
-                <Tooltip key={test} title="Click to add">
-                  <Button
-                    className={classes.newTestTag}
-                    onClick={() => handleNewTestClick(test)}
-                    outline
-                  >
-                    {test}
-                  </Button>
-                </Tooltip>
-              ))}
-          </Stack>
+        <Fade tag="span" className="d-inline">
+          {type === EntityType.MODEL
+            ? null
+            : Object.values(DbtGenericTests)
+                .filter((t) => !currentTests?.includes(t))
+                .map((test) => (
+                  <Tooltip key={test} title="Click to add">
+                    <Button
+                      className={classes.newTestTag}
+                      onClick={() => handleNewTestClick(test)}
+                      outline
+                    >
+                      {test}
+                    </Button>
+                  </Tooltip>
+                ))}
+          <Tooltip title="Generate test using Datapilot">
+            <CustomTestButton column={title} type={type} />
+          </Tooltip>
         </Fade>
       ) : null}
       <Drawer ref={drawerRef}>

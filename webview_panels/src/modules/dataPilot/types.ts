@@ -1,16 +1,17 @@
 import { UnknownAction } from "@reduxjs/toolkit";
 
 export enum RequestTypes {
-  AI_DOC_GENERATION,
-  AI_DOC_REGENERATION,
-  QUERY_ANALYSIS,
+  ADD_CUSTOM_TEST = "ADD_CUSTOM_TEST",
+  AI_DOC_GENERATION = "AI_DOC_GENERATION",
+  AI_DOC_REGENERATION = "AI_DOC_REGENERATION",
+  QUERY_ANALYSIS = "QUERY_ANALYSIS",
 }
 
 export enum RequestState {
-  UNINITIALIZED,
-  LOADING,
-  ERROR,
-  COMPLETED,
+  COMPLETED = "COMPLETED",
+  ERROR = "ERROR",
+  LOADING = "LOADING",
+  UNINITIALIZED = "UNINITIALIZED",
 }
 
 export interface DataPilotChatAction {
@@ -30,12 +31,25 @@ export interface DataPilotChat {
   actions?: DataPilotChatAction[]; // follow up actions
   updatedAt?: Date;
   meta?: Record<string, unknown>; // any extra data to be stored
+  followups?: DataPilotChatFollowup[];
+  filePath?: string;
+}
+
+export interface DataPilotChatFollowup {
+  id: string;
+  user_prompt: string;
+  datapilot_title: string;
+  response?: string;
+  actions?: DataPilotChatAction[];
+  state: RequestState;
+  hideFeedback?: boolean;
 }
 
 export interface DataPilotStateProps {
   items: Record<DataPilotChat["id"], DataPilotChat>;
   currentSessionId?: DataPilotChat["id"];
   showHelp: boolean;
+  packageVersions: Record<string, string>;
 }
 
 export interface ContextProps {

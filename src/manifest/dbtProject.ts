@@ -71,6 +71,7 @@ export class DBTProject implements Disposable {
   static RESOURCE_TYPE_SEED = "seed";
   static RESOURCE_TYPE_SNAPSHOT = "snapshot";
   static RESOURCE_TYPE_TEST = "test";
+  static RESOURCE_TYPE_METRIC = "semantic_model";
 
   readonly projectRoot: Uri;
   private projectConfig: any; // TODO: typing
@@ -927,6 +928,10 @@ select * from renamed
       this.telemetry.sendTelemetryEvent("possibleStaleSchema");
     }
     return true;
+  }
+
+  public findPackageVersion(packageName: string) {
+    return this.dbtProjectIntegration.findPackageVersion(packageName);
   }
 
   async getNodesWithDBColumns(

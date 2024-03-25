@@ -13,12 +13,7 @@ import { SharedStateService } from "../services/sharedStateService";
 import { QueryAnalysisService } from "../services/queryAnalysisService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-
-enum DatapilotEvents {
-  QUERY_EXPLAIN_ONLOAD = "queryAnalysis:load:explain",
-  QUERY_ONLOAD = "queryAnalysis:load",
-  QUERY_CHANGE_ONLOAD = "queryAnalysis:load:change",
-}
+import { DbtTestService } from "../services/dbtTestService";
 
 @provideSingleton(DataPilotPanel)
 export class DataPilotPanel extends AltimateWebviewProvider {
@@ -34,8 +29,9 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     private docGenService: DocGenService,
     protected emitterService: SharedStateService,
     protected queryAnalysisService: QueryAnalysisService,
-    private queryManifestService: QueryManifestService,
+    protected queryManifestService: QueryManifestService,
     protected dbtTerminal: DBTTerminal,
+    private dbtTestService: DbtTestService,
   ) {
     super(
       dbtProjectContainer,
@@ -43,6 +39,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
       telemetry,
       emitterService,
       dbtTerminal,
+      queryManifestService,
     );
 
     commands.registerCommand("dbtPowerUser.resetDatapilot", () =>
@@ -70,12 +67,14 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           syncRequestId,
         });
         break;
+
       case "enableNewDocsPanel":
         this.emitterService.fire({
           command: "enableNewDocsPanel",
           payload: params,
         });
         break;
+
       case "sendFeedback":
         if (!queryText) {
           return;
@@ -87,94 +86,104 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           syncRequestId,
         });
         break;
+
       case "generateDocsForModel":
         if (!queryText) {
           return;
         }
+
         this.docGenService.generateDocsForModel({
           queryText,
-          documentation: await this.docGenService.getDocumentation(),
+          documentation:
+            await this.docGenService.getDocumentationForCurrentActiveFile(),
           message,
           panel: this._panel,
           project: this.queryManifestService.getProject(),
         });
         break;
+
       case "generateDocsForColumn":
         await this.docGenService.generateDocsForColumns({
-          documentation: await this.docGenService.getDocumentation(),
+          documentation:
+            await this.docGenService.getDocumentationForCurrentActiveFile(),
           panel: this._panel,
           message,
           project: this.queryManifestService.getProject(),
         });
         break;
+
       case "docgen:insert":
+      case "testgen:insert":
         this.emitterService.eventEmitter.fire({
-          command: "docgen:insert",
+          command: command,
           payload: params,
         });
         break;
+
       case "queryAnalysis:explain":
-        try {
-          const response = await this.queryAnalysisService.executeQueryAnalysis(
-            params,
-            QueryAnalysisType.EXPLAIN,
-            syncRequestId,
-          );
-
-          this.sendResponseToWebview({
-            command: "response",
-            data: {
-              response,
-            },
-            syncRequestId,
-          });
-        } catch (err) {
-          this.sendResponseToWebview({
-            command: "response",
-            syncRequestId,
-            error: (err as Error).message,
-          });
-        }
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const response =
+              await this.queryAnalysisService.executeQueryAnalysis(
+                params,
+                QueryAnalysisType.EXPLAIN,
+                syncRequestId,
+              );
+            return { response };
+          },
+          command,
+          true,
+        );
         break;
+
       case "queryAnalysis:modify":
-        try {
-          const response = await this.queryAnalysisService.executeQueryAnalysis(
-            params,
-            QueryAnalysisType.MODIFY,
-            syncRequestId,
-          );
-
-          this.sendResponseToWebview({
-            command: "response",
-            syncRequestId,
-            data: { response },
-          });
-        } catch (err) {
-          this.sendResponseToWebview({
-            command: "response",
-            syncRequestId,
-            error: (err as Error).message,
-          });
-        }
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const response =
+              await this.queryAnalysisService.executeQueryAnalysis(
+                params,
+                QueryAnalysisType.MODIFY,
+                syncRequestId,
+              );
+            return { response };
+          },
+          command,
+          true,
+        );
         break;
-      case "queryanalysis:followup":
-        try {
-          const response = await this.queryAnalysisService.getFollowupQuestions(
-            params as { query: string; user_request: string },
-          );
 
-          this.sendResponseToWebview({
-            command: "response",
-            syncRequestId,
-            data: { response },
-          });
-        } catch (err) {
-          this.sendResponseToWebview({
-            command: "response",
-            syncRequestId,
-            error: (err as Error).message,
-          });
-        }
+      case "dbttest:create":
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const response = await this.dbtTestService.createTest(
+              params,
+              syncRequestId,
+            );
+            return { response };
+          },
+          command,
+          true,
+        );
+        break;
+
+      case "queryanalysis:followup":
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const response =
+              await this.queryAnalysisService.getFollowupQuestions(
+                params as { query: string; user_request: string },
+              );
+            return { response };
+          },
+          command,
+          true,
+        );
+        break;
+
       default:
         super.handleCommand(message);
         break;
@@ -186,6 +195,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
       case "datapilot:toggle":
         await commands.executeCommand("dbtPowerUser.datapilot-webview.focus");
         break;
+
       case "datapilot:message":
         await commands.executeCommand("dbtPowerUser.datapilot-webview.focus");
         if (!this.isWebviewReady) {
@@ -194,23 +204,25 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         }
         this.postToWebview(payload);
         break;
+
       case "dbtPowerUser.summarizeQuery":
-        this.handleDatapilotEvent(
-          DatapilotEvents.QUERY_EXPLAIN_ONLOAD,
-          payload,
-        );
+        this.handleDatapilotEvent(QueryAnalysisType.EXPLAIN, payload);
         break;
+
       case "dbtPowerUser.changeQuery":
-        this.handleDatapilotEvent(DatapilotEvents.QUERY_CHANGE_ONLOAD, payload);
+        this.handleDatapilotEvent(QueryAnalysisType.MODIFY, payload);
         break;
+
       case "dbtPowerUser.openDatapilotWithQuery":
-        this.handleDatapilotEvent(DatapilotEvents.QUERY_ONLOAD, payload);
+        this.handleDatapilotEvent(null, payload);
         break;
+
       case "dbtPowerUser.openHelpInDatapilot":
         this.sendResponseToWebview({
           command: "datapilot:showHelp",
         });
         break;
+
       default:
         super.onEvent({ command, payload });
         break;
@@ -237,14 +249,17 @@ export class DataPilotPanel extends AltimateWebviewProvider {
 
       this.sendResponseToWebview({
         command,
-        args: message,
+        args: {
+          filePath: window.activeTextEditor?.document.uri.fsPath,
+          ...message,
+        },
       });
     }
   }
 
   // handles events from sharedStateService events
   private handleDatapilotEvent(
-    command: DatapilotEvents,
+    analysisType: QueryAnalysisType | null,
     data?: { query?: string },
   ) {
     // reset the datapilot to start new session
@@ -259,10 +274,14 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     this.emitterService.fire({
       command: "datapilot:message",
       payload: {
-        command,
+        command: "datapilot:message",
         // data.query will be passed from query panel webview
         query: data?.query || queryData.query,
         fileName: queryData.fileName,
+        requestType: "QUERY_ANALYSIS",
+        state: "UNINITIALIZED",
+        //If analysis type is undefined, dont trigger api call
+        analysisType,
       },
     });
   }

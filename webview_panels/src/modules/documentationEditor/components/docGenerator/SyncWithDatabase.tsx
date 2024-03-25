@@ -4,7 +4,7 @@ import classes from "../../styles.module.scss";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 
-const SyncWithDatabase = () => {
+const SyncWithDatabase = (): JSX.Element => {
   const onSyncBtnClick = () => {
     executeRequestInSync("fetchMetadataFromDatabase", {}).catch((err) =>
       panelLogger.error("error while syncing with db", err),

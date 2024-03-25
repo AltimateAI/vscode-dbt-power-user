@@ -354,6 +354,7 @@ export interface DBTProjectIntegration extends Disposable {
   getCatalog(): Promise<Catalog>;
   getDebounceForRebuildManifest(): number;
   getBulkSchema(nodes: DBTNode[]): Promise<Record<string, DBColumn[]>>;
+  findPackageVersion(packageName: string): string | undefined;
 }
 
 @provide(DBTCommandExecutionInfrastructure)

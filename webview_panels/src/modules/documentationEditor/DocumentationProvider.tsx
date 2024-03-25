@@ -85,7 +85,7 @@ const DocumentationProvider = (): JSX.Element => {
         case "docgen:insert":
           panelLogger.info("received new doc gen", event.data);
           // insert model desc
-          if (!params.name && params.model) {
+          if (params.model) {
             dispatch(
               updateCurrentDocsData({
                 description: params.description,

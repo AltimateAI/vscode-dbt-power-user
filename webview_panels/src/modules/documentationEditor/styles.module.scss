@@ -15,7 +15,40 @@
       color: var(--text-color--title)
     }
   }
+  .custom-test{
+    display: inline-flex;
+    width: auto;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--bs-btn-color);
+    gap: 4px;
+    :global .btn{
+      padding: 0 3px;
+    }
+
+    & svg path {
+      fill: var(--primary-color);
+    }
+    & span{
+      height: 18px;
+      line-height: 0.9;
+      background: var(--action-beta);
+
+      &:hover {
+      background: var(--action-beta);
+      border-color: transparent;
+      }
+    }
+  }
   .entity-tests {
+    .tests-row{
+      > *,
+      > span > span {
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+        display: inline-block;
+      }
+    }
     margin-top: var(--spacing-lg);
     p {
       margin-bottom: 0;
@@ -220,6 +253,26 @@
         opacity: 0.3;
       }
     }
+    :global .btn-primary{
+      background-color: var(--primary-color);
+
+      }
+      
+  }
+
+  :global .card-title {
+    border: none;
+    margin: 0;
+    font-weight: 400;
+    margin-bottom: 1rem;
+    padding-bottom: 0;
+  }
+
+  :global .card-body {
+  }
+
+  :global .card-footer {
+    border: none;
   }
 
   :global .card-title {
