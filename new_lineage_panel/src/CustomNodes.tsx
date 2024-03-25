@@ -86,8 +86,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
   const {
     selectedTable,
-    setSelectedTable,
-    setShowSidebar,
     setSidebarScreen,
     collectColumns,
     selectedColumn,
@@ -194,7 +192,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
       <div
         className={styles.table_node}
         onClick={async () => {
-          setSelectedTable(table);
           const nodes = flow.getNodes();
           const edges = flow.getEdges();
           setMinRange(calculateMinLevel(nodes, edges, table));
@@ -322,15 +319,13 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
 export const SeeMoreNode: FunctionComponent<NodeProps> = ({ data }) => {
   const { tables = [], prevTable, right, level } = data as TMoreTables;
-  const { setShowSidebar, setMoreTables, setSidebarScreen } =
-    useContext(LineageContext);
+  const { setMoreTables, setSidebarScreen } = useContext(LineageContext);
   const flow = useReactFlow();
   return (
     <div
       className={styles.see_more_node}
       onClick={(e) => {
         e.stopPropagation();
-        setShowSidebar(true);
         setSidebarScreen(TABLES_SIDEBAR);
         setMoreTables((prev) => ({ ...prev, tables, prevTable, right, level }));
       }}

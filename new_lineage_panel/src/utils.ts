@@ -224,3 +224,14 @@ export const deleteIfExists = <T extends Node | Edge>(arr: T[], id: string) => {
   if (index === -1) return;
   arr.splice(index, 1);
 };
+
+export const calculateExpand = (
+  minVal: number,
+  maxVal: number,
+  defaultVal: number
+) => {
+  if (minVal === -1) return maxVal;
+  if (defaultVal >= maxVal) return maxVal;
+  if (defaultVal >= minVal) return defaultVal;
+  return minVal;
+};

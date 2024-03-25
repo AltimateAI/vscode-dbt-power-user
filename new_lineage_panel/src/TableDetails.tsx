@@ -206,10 +206,10 @@ const TableDetails = () => {
     selectedColumn,
     setSelectedColumn,
     setCollectColumns,
-    setShowSidebar,
     rerender,
     setConfidence,
     setMoreTables,
+    setSidebarScreen,
   } = useContext(LineageContext);
   const flow = useReactFlow();
   const [filteredColumn, setFilteredColumn] = useState<Column[]>([]);
@@ -250,7 +250,7 @@ const TableDetails = () => {
       flow.setEdges(_edges);
       setSelectedColumn({ table: "", name: "", sessionId: "" });
       setCollectColumns({});
-      setShowSidebar(false);
+      setSidebarScreen("");
       return;
     }
 
@@ -274,19 +274,19 @@ const TableDetails = () => {
     const { upstreamCount, downstreamCount } = tableNodeData;
     if (
       upstreamCount > 0 &&
-      upstreamCount < _edges.filter((e) => e.source === _column.table).length
+      _edges.filter((e) => e.source === _column.table).length < upstreamCount
     )
       await addNodesEdges(true);
     if (
       downstreamCount > 0 &&
-      downstreamCount < _edges.filter((e) => e.target === _column.table).length
+      _edges.filter((e) => e.target === _column.table).length < downstreamCount
     )
       await addNodesEdges(false);
 
     // initializing states
     const sessionId = window.crypto.randomUUID();
     setSelectedColumn({ ..._column, sessionId });
-    setShowSidebar(false);
+    setSidebarScreen("");
     setCollectColumns({});
     setConfidence({ confidence: "high" });
 
