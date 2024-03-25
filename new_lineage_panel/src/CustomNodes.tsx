@@ -171,7 +171,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     if (nodeType === "semantic_model") {
       return;
     }
-    setShowSidebar(true);
     if (nodeType === "exposure") {
       setSidebarScreen(EXPOSURE_SIDEBAR);
       return;
