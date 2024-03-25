@@ -11,7 +11,7 @@ import {
   window,
   workspace,
 } from "vscode";
-import { provideSingleton } from "../utils";
+import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
 import path = require("path");
@@ -22,6 +22,8 @@ import {
 import { AltimateRequest } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { QueryManifestService } from "../services/queryManifestService";
+import { PythonException } from "python-bridge";
 
 export type UpdateConfigProps = {
   key: string;
@@ -68,6 +70,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     protected telemetry: TelemetryService,
     protected emitterService: SharedStateService,
     protected dbtTerminal: DBTTerminal,
+    protected queryManifestService: QueryManifestService,
   ) {
     this._disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
@@ -100,6 +103,43 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
       },
       ...rest,
     });
+  }
+
+  /**
+   * common method to trigger the command and handle errors and send response to webview
+   * @param syncRequestId
+   * @param callback
+   * @param command
+   */
+  protected async handleSyncRequestFromWebview(
+    syncRequestId: string | undefined,
+    callback: () => any,
+    command: string,
+    showErrorNotification?: boolean,
+  ) {
+    try {
+      const response = await callback();
+
+      this.sendResponseToWebview({
+        command: "response",
+        syncRequestId,
+        data: response,
+      });
+    } catch (error) {
+      const message =
+        error instanceof PythonException
+          ? error.exception.message
+          : (error as Error).message;
+      this.dbtTerminal.error(command, message, error);
+      if (showErrorNotification) {
+        window.showErrorMessage(extendErrorWithSupportLinks(message));
+      }
+      this.sendResponseToWebview({
+        command: "response",
+        syncRequestId,
+        error: message,
+      });
+    }
   }
 
   protected onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
@@ -244,6 +284,27 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               syncRequestId,
             });
           }
+          break;
+        case "findPackageVersion":
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            () => {
+              try {
+                return this.queryManifestService
+                  .getProject()
+                  ?.findPackageVersion(params.packageName as string);
+              } catch (err) {
+                this.dbtTerminal.debug(
+                  "findPackageVersion",
+                  (err as Error).message,
+                );
+              }
+              return undefined;
+            },
+            command,
+            false,
+          );
+
           break;
         default:
           break;

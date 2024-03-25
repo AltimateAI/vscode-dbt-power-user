@@ -15,16 +15,15 @@ import { QueryManifestService } from "../services/queryManifestService";
 import { DocGenService } from "../services/docGenService";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryService } from "../telemetry";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
+import { provideSingleton } from "../utils";
 import {
   AltimateWebviewProvider,
   HandleCommandProps,
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
 import { DocsGenPanelView } from "./docsEditPanel";
-import { PythonException } from "python-bridge";
 import { TestMetaData } from "../domain";
-import { DbtTestService } from "../services/dbtTestsService";
+import { DbtTestService } from "../services/dbtTestService";
 
 @provideSingleton(NewDocsGenPanel)
 export class NewDocsGenPanel
@@ -43,7 +42,7 @@ export class NewDocsGenPanel
     protected emitterService: SharedStateService,
     protected queryManifestService: QueryManifestService,
     protected dbtTerminal: DBTTerminal,
-    private dbtTestsService: DbtTestService,
+    private dbtTestService: DbtTestService,
   ) {
     super(
       dbtProjectContainer,
@@ -51,6 +50,7 @@ export class NewDocsGenPanel
       telemetry,
       emitterService,
       dbtTerminal,
+      queryManifestService,
     );
 
     this._disposables.push(
@@ -95,7 +95,7 @@ export class NewDocsGenPanel
     const projectName = this.queryManifestService
       .getProject()
       ?.getProjectName();
-    const tests = await this.docGenService.getTestsForCurrentModel();
+    const tests = await this.dbtTestService.getTestsForCurrentModel();
     this.sendResponseToWebview({
       command: "renderTests",
       tests,
@@ -117,11 +117,7 @@ export class NewDocsGenPanel
       sql: testPath.endsWith(".sql")
         ? readFileSync(testPath, { encoding: "utf-8" })
         : undefined,
-      config: this.dbtTestsService.getConfigByTest(
-        test,
-        modelName,
-        column_name,
-      ),
+      config: this.dbtTestService.getConfigByTest(test, modelName, column_name),
     };
   }
 
@@ -130,147 +126,118 @@ export class NewDocsGenPanel
 
     switch (command) {
       case "getTestCode":
-        this.sendResponseToWebview({
-          command: "response",
-          data: this.getDbtTestCode(
-            args.test as TestMetaData,
-            args.model as string,
-          ),
+        this.handleSyncRequestFromWebview(
           syncRequestId,
-        });
+          async () => {
+            return this.getDbtTestCode(
+              args.test as TestMetaData,
+              args.model as string,
+            );
+          },
+          command,
+        );
         break;
-      case "getDistinctColumnValues":
-        try {
-          const result = await this.queryManifestService
-            .getProject()
-            ?.getColumnValues(args.model as string, args.column as string);
-          this.sendResponseToWebview({
-            command: "response",
-            data: result,
-            syncRequestId,
-          });
-        } catch (error) {
-          this.dbtTerminal.error(
-            "getDistinctColumnValues",
-            "Unable to find distinct values for column",
-            error,
-            true,
-            args,
-          );
 
-          const message =
-            error instanceof PythonException
-              ? error.exception.message
-              : (error as Error).message;
-          window.showErrorMessage(extendErrorWithSupportLinks(message));
-          this.sendResponseToWebview({
-            command: "response",
-            data: [],
-            syncRequestId,
-          });
-        }
+      case "getDistinctColumnValues":
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const result = await this.queryManifestService
+              .getProject()
+              ?.getColumnValues(args.model as string, args.column as string);
+            return result;
+          },
+          command,
+          true,
+        );
+
         break;
+
       case "enableNewDocsPanel":
         this.toggleDocsPanel(args);
         break;
+
       case "getCurrentModelDocumentation":
         if (!this._panel) {
           return;
         }
 
-        const documentation = await this.docGenService.getDocumentation();
+        const documentation =
+          await this.docGenService.getDocumentationForCurrentActiveFile();
         this.sendResponseToWebview({
           command: "renderDocumentation",
           docs: documentation,
           project: this.queryManifestService.getProject()?.getProjectName(),
         });
+        break;
+
       case "getColumnsOfSources":
-        try {
-          const columnsFromSources = await this.queryManifestService
-            .getProject()
-            ?.getColumnsOfSource(args.source as string, args.table as string);
-          this.sendResponseToWebview({
-            command: "response",
-            data: {
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const columnsFromSources = await this.queryManifestService
+              .getProject()
+              ?.getColumnsOfSource(args.source as string, args.table as string);
+            return {
               columns: columnsFromSources
                 ? columnsFromSources.map((c) => c.column)
                 : [],
-            },
-            syncRequestId,
-          });
-        } catch (error) {
-          this.dbtTerminal.error(
-            "newDocsGenPanel:getColumnsOfSources",
-            "unable to get columns of sources",
-            error,
-          );
-          const message =
-            error instanceof PythonException
-              ? error.exception.message
-              : (error as Error).message;
-          window.showErrorMessage(extendErrorWithSupportLinks(message));
-          this.sendResponseToWebview({
-            command: "response",
-            data: { columns: [] },
-            syncRequestId,
-          });
-        }
+            };
+          },
+          command,
+          true,
+        );
         break;
+
       case "getColumnsOfModel":
-        try {
-          const columns = await this.queryManifestService
-            .getProject()
-            ?.getColumnsOfModel(args.model as string);
-          this.sendResponseToWebview({
-            command: "response",
-            data: {
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const columns = await this.queryManifestService
+              .getProject()
+              ?.getColumnsOfModel(args.model as string);
+            return {
               columns: columns ? columns.map((c) => c.column) : [],
-            },
-            syncRequestId,
-          });
-        } catch (error) {
-          this.dbtTerminal.error(
-            "newDocsGenPanel:getColumnsOfModel",
-            "unable to get columns of models",
-            error,
-          );
-          const message =
-            error instanceof PythonException
-              ? error.exception.message
-              : (error as Error).message;
-          window.showErrorMessage(extendErrorWithSupportLinks(message));
-          this.sendResponseToWebview({
-            command: "response",
-            data: { columns: [] },
-            syncRequestId,
-          });
-        }
+            };
+          },
+          command,
+          true,
+        );
         break;
+
       case "getSourcesInProject":
-        const sources = this.queryManifestService.getSourcesInProject(
-          window.activeTextEditor?.document.uri,
-        );
-
-        this.sendResponseToWebview({
-          command: "response",
-          data: {
-            sources,
-          },
+        this.handleSyncRequestFromWebview(
           syncRequestId,
-        });
+          async () => {
+            const sources = this.queryManifestService.getSourcesInProject(
+              window.activeTextEditor?.document.uri,
+            );
+
+            return {
+              sources,
+            };
+          },
+          command,
+          true,
+        );
         break;
-      case "getModelsInProject":
-        const models = this.queryManifestService.getModelsInProject(
-          window.activeTextEditor?.document.uri,
-        );
 
-        this.sendResponseToWebview({
-          command: "response",
-          data: {
-            models,
-          },
+      case "getModelsInProject":
+        this.handleSyncRequestFromWebview(
           syncRequestId,
-        });
+          async () => {
+            const models = this.queryManifestService.getModelsInProject(
+              window.activeTextEditor?.document.uri,
+            );
+
+            return {
+              models,
+            };
+          },
+          command,
+        );
+        break;
+
       default:
         super.handleCommand(message);
         break;
@@ -280,6 +247,7 @@ export class NewDocsGenPanel
   protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
     switch (command) {
       case "docgen:insert":
+      case "testgen:insert":
         this.sendResponseToWebview({
           command,
           ...payload,

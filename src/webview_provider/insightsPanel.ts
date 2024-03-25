@@ -24,6 +24,7 @@ import { SharedStateService } from "../services/sharedStateService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DeferToProdService } from "../services/deferToProdService";
 import { ManifestPathType } from "../constants";
+import { QueryManifestService } from "../services/queryManifestService";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];
@@ -56,6 +57,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
     protected telemetry: TelemetryService,
     protected emitterService: SharedStateService,
     protected dbtTerminal: DBTTerminal,
+    protected queryManifestService: QueryManifestService,
     private deferToProdService: DeferToProdService,
   ) {
     super(
@@ -64,6 +66,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       telemetry,
       emitterService,
       dbtTerminal,
+      queryManifestService,
     );
 
     this._disposables.push(

@@ -1,5 +1,5 @@
 import path = require("path");
-import { ProgressLocation, Uri, WebviewView, window, workspace } from "vscode";
+import { ProgressLocation, WebviewView, window, workspace } from "vscode";
 import {
   AltimateRequest,
   DocsGenerateModelRequest,
@@ -16,7 +16,6 @@ import {
   DBTDocumentation,
   Source,
 } from "../webview_provider/docsEditPanel";
-import { DbtTestService } from "./dbtTestsService";
 import { QueryManifestService } from "./queryManifestService";
 
 interface GenerateDocsForColumnsProps {
@@ -51,7 +50,6 @@ export class DocGenService {
     protected telemetry: TelemetryService,
     private queryManifestService: QueryManifestService,
     private dbtTerminal: DBTTerminal,
-    private dbtTestService: DbtTestService,
   ) {}
 
   private async generateDocsForColumn(
@@ -176,18 +174,24 @@ export class DocGenService {
     }
   }
 
-  public async getDocumentation(): Promise<DBTDocumentation | undefined> {
+  public async getDocumentationForCurrentActiveFile() {
+    return this.getDocumentation(window.activeTextEditor?.document?.uri.fsPath);
+  }
+
+  public async getDocumentation(
+    filePath?: string,
+  ): Promise<DBTDocumentation | undefined> {
     const eventResult = this.queryManifestService.getEventByCurrentProject();
     if (!eventResult) {
       return undefined;
     }
-    const { event, currentDocument } = eventResult;
+    const { event } = eventResult;
 
-    if (!event || !currentDocument) {
+    if (!event || !filePath) {
       return undefined;
     }
 
-    const modelName = path.basename(currentDocument.uri.fsPath, ".sql");
+    const modelName = path.basename(filePath, ".sql");
     const currentNode = event.nodeMetaMap.get(modelName);
     if (currentNode === undefined) {
       return undefined;
@@ -206,6 +210,7 @@ export class DocGenService {
           description: column.description,
           generated: false,
           source: Source.YAML,
+          type: column.data_type,
         };
       }),
     } as DBTDocumentation;
@@ -440,77 +445,6 @@ export class DocGenService {
         }
       },
     );
-  }
-
-  public async getTestsForCurrentModel() {
-    const eventResult = this.queryManifestService.getEventByCurrentProject();
-    if (!eventResult?.event || !eventResult?.currentDocument) {
-      return undefined;
-    }
-
-    const {
-      event: { nodeMetaMap, graphMetaMap, testMetaMap, macroMetaMap },
-      currentDocument,
-    } = eventResult;
-    const project = this.queryManifestService.getProject();
-    if (!project) {
-      return undefined;
-    }
-    const projectName = project?.getProjectName();
-
-    const modelName = path.basename(currentDocument.uri.fsPath, ".sql");
-    this.dbtTerminal.debug(
-      "dbtTests",
-      "getting tests by modelName:",
-      false,
-      modelName,
-    );
-    const _node = nodeMetaMap.get(modelName);
-    if (!_node) {
-      this.dbtTerminal.debug("no node for tableName:", modelName);
-      return;
-    }
-    const key = _node.uniqueId;
-
-    return (graphMetaMap["tests"].get(key)?.nodes || [])
-      .map((n) => {
-        const testKey = n.label.split(".")[0];
-        const testData = testMetaMap.get(testKey);
-
-        if (!testData) {
-          return null;
-        }
-
-        // For singular tests, attached_node will be undefined
-        if (!testData.attached_node) {
-          return { ...testData, key: testKey };
-        }
-
-        // dbt sends tests (ex: relationships) to both source and connected models
-        // do not send the test which has different model in attached_node
-        if (testData.attached_node !== key) {
-          return null;
-        }
-
-        const {
-          depends_on: { macros },
-          test_metadata,
-        } = testData;
-
-        const macroFilepath = this.dbtTestService.getMacroFilePath(
-          macros,
-          projectName,
-          macroMetaMap,
-          test_metadata?.name,
-        );
-
-        return {
-          ...testData,
-          path: macroFilepath || testData.path,
-          key: testKey,
-        };
-      })
-      .filter((t) => Boolean(t));
   }
 
   public async sendFeedback({

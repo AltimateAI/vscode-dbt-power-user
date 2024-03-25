@@ -930,6 +930,10 @@ select * from renamed
     return true;
   }
 
+  public findPackageVersion(packageName: string) {
+    return this.dbtProjectIntegration.findPackageVersion(packageName);
+  }
+
   async getNodesWithDBColumns(
     event: ManifestCacheProjectAddedEvent,
     modelsToFetch: string[],

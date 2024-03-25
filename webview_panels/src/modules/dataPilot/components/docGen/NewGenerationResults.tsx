@@ -12,22 +12,22 @@ import { DataPilotChat } from "../../types";
 import UserQuery from "../common/UserQuery";
 import useAiGenerationUtils from "../common/useAiGenerationUtils";
 import { useCallback } from "react";
-import { GeneratedResult, EntityType } from "./types";
+import { DocGenFollowup, EntityType } from "./types";
 
 interface Props {
-  generatedResults: GeneratedResult[];
+  generatedResults: DocGenFollowup[];
   chat: DataPilotChat;
 }
 const NewGenerationResults = ({
   generatedResults,
   chat,
 }: Props): JSX.Element | null => {
-  const handleDocInsert = (result: GeneratedResult) =>
+  const handleDocInsert = (result: DocGenFollowup) =>
     executeRequestInAsync("docgen:insert", { ...result });
   const { onAiGenerationRender } = useAiGenerationUtils();
 
   const getFeedbackData = useCallback(
-    (result: GeneratedResult, feedbackData: Feedback) => {
+    (result: DocGenFollowup, feedbackData: Feedback) => {
       const data = {
         requestDetails: chat.meta,
         messageSequence: [
