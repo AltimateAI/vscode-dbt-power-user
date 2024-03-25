@@ -21,7 +21,11 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { AltimateRequest } from "../altimate";
-import { ExecuteSQLResult, QueryExecution } from "../dbt_client/dbtIntegration";
+import {
+  ExecuteSQLError,
+  ExecuteSQLResult,
+  QueryExecution,
+} from "../dbt_client/dbtIntegration";
 import { SharedStateService } from "../services/sharedStateService";
 
 interface JsonObj {
@@ -356,6 +360,23 @@ export class QueryResultPanel implements WebviewViewProvider {
           },
           query,
           query,
+        );
+        return;
+      }
+      if (exc instanceof ExecuteSQLError) {
+        window.showErrorMessage(
+          "An error occured while trying to execute your query: " + exc.message,
+        );
+        await this.transmitError(
+          {
+            error: {
+              code: -1,
+              message: exc.message,
+              data: JSON.stringify(exc.stack, null, 2),
+            },
+          },
+          query,
+          exc.compiled_sql,
         );
         return;
       }
