@@ -125,6 +125,15 @@ export class NewDocsGenPanel
     const { command, syncRequestId, ...args } = message;
 
     switch (command) {
+      case "share:docs":
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            return this.docGenService.shareDocs(args);
+          },
+          command,
+        );
+        break;
       case "getTestCode":
         this.handleSyncRequestFromWebview(
           syncRequestId,
