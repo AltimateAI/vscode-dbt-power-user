@@ -53,14 +53,14 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
     : (tests ?? []).slice(0, MaxVisibleTests);
   const remainingTests = (tests ?? []).length - MaxVisibleTests;
 
-  if (!isTestEnabled || (type === EntityType.MODEL && !tests?.length)) {
+  if (!isTestEnabled) {
     return null;
   }
   return (
     <div className={classes.entityTests}>
       <Stack className={type}>
-        <Stack>
-          <p className="mb-0">
+        <div className={classes.testsRow}>
+          <p className="mb-0 d-inline">
             <TestsIcon /> Tests:
           </p>
           {visibleTests?.map((test) => (
@@ -81,10 +81,8 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
               {remainingTests} {remainingTests > 1 ? "tests" : "test"} +
             </Button>
           ) : null}
-          {type === EntityType.COLUMN ? (
-            <AddTest title={title} currentTests={currentTests} />
-          ) : null}
-        </Stack>
+          <AddTest title={title} currentTests={currentTests} type={type} />
+        </div>
       </Stack>
       <Drawer ref={drawerRef} onClose={handleClose}>
         {selectedTest ? (

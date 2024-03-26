@@ -410,7 +410,7 @@ export class DBTCloudProjectIntegration
   async compileModel(command: DBTCommand) {
     this.addCommandToQueue(
       DBTCloudProjectIntegration.QUEUE_ALL,
-      this.dbtCloudCommand(command),
+      await this.addDeferParams(this.dbtCloudCommand(command)),
     );
   }
 
@@ -469,7 +469,7 @@ export class DBTCloudProjectIntegration
   }
 
   // internal commands
-  async unsafeCompileNode(modelName: string): Promise<string | undefined> {
+  async unsafeCompileNode(modelName: string): Promise<string> {
     this.throwIfNotAuthenticated();
     this.throwBridgeErrorIfAvailable();
     const compileQueryCommand = this.dbtCloudCommand(
@@ -496,7 +496,7 @@ export class DBTCloudProjectIntegration
     return compiledLine[0].data.compiled;
   }
 
-  async unsafeCompileQuery(query: string): Promise<string | undefined> {
+  async unsafeCompileQuery(query: string): Promise<string> {
     this.throwIfNotAuthenticated();
     this.throwBridgeErrorIfAvailable();
     const compileQueryCommand = this.dbtCloudCommand(
@@ -830,6 +830,10 @@ export class DBTCloudProjectIntegration
         x.dispose();
       }
     }
+  }
+
+  findPackageVersion(_packageName: string) {
+    return undefined;
   }
 
   private throwBridgeErrorIfAvailable() {

@@ -1,20 +1,21 @@
+import { upsertFollowup } from "@modules/dataPilot/dataPilotSlice";
+import useDataPilotContext from "@modules/dataPilot/useDataPilotContext";
 import { Card, CardBody, Stack } from "@uicore";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { DataPilotChat, DataPilotChatAction, RequestState } from "../../types";
 import AiDocActionButton from "./AiDocActionButton";
 import NewGenerationResults from "./NewGenerationResults";
-import { EntityType, GeneratedResult } from "./types";
+import { EntityType, DocGenFollowup } from "./types";
 
 interface Props {
   chat: DataPilotChat;
 }
 const AiDocChat = ({ chat }: Props): JSX.Element => {
-  const [generatedResults, setGeneratedResults] = useState<GeneratedResult[]>(
-    [],
-  );
+  const { dispatch } = useDataPilotContext();
+  const generatedResults = chat.followups;
 
   const onNewGeneration = (
-    result: GeneratedResult,
+    result: DocGenFollowup,
     action: DataPilotChatAction,
   ) => {
     const entityType = chat.meta?.columnName
@@ -22,16 +23,18 @@ const AiDocChat = ({ chat }: Props): JSX.Element => {
       : EntityType.MODEL;
 
     const entityName = chat.meta?.columnName ?? action.data.modelName;
-    setGeneratedResults((prev) => [
-      ...prev,
-      {
-        ...result,
-        datapilot_title: action.datapilot_title,
-        user_prompt: action.user_prompt
-          .replace("{name}", entityName as string)
-          .replace("{type}", entityType),
-      },
-    ]);
+    dispatch(
+      upsertFollowup({
+        sessionId: chat.id,
+        followup: {
+          ...result,
+          datapilotTitle: action.datapilotTitle,
+          userPrompt: action.userPrompt
+            .replace("{name}", entityName as string)
+            .replace("{type}", entityType),
+        },
+      }),
+    );
   };
 
   const onAiChatRender = useCallback((node: HTMLDivElement) => {
@@ -49,7 +52,9 @@ const AiDocChat = ({ chat }: Props): JSX.Element => {
         </Card>
       ) : null}
       {chat.state === RequestState.LOADING ? <div>Loading...</div> : null}
-      <NewGenerationResults generatedResults={generatedResults} chat={chat} />
+      {generatedResults?.length ? (
+        <NewGenerationResults generatedResults={generatedResults} chat={chat} />
+      ) : null}
       <Stack style={{ flexWrap: "wrap" }}>
         {chat.actions?.map((action) => (
           <AiDocActionButton

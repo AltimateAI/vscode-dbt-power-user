@@ -71,6 +71,7 @@ export class DBTProject implements Disposable {
   static RESOURCE_TYPE_SEED = "seed";
   static RESOURCE_TYPE_SNAPSHOT = "snapshot";
   static RESOURCE_TYPE_TEST = "test";
+  static RESOURCE_TYPE_METRIC = "semantic_model";
 
   readonly projectRoot: Uri;
   private projectConfig: any; // TODO: typing
@@ -590,7 +591,7 @@ export class DBTProject implements Disposable {
       true,
       { model, column },
     );
-    const query = `select ${column} as values from ${model} group by ${column}`;
+    const query = `select ${column} from {{ ref('${model}')}} group by ${column}`;
     const queryExecution = await this.dbtProjectIntegration.executeSQL(
       query,
       100, // setting this 100 as executeSql needs a limit and distinct values will be usually less in number
@@ -927,6 +928,15 @@ select * from renamed
       this.telemetry.sendTelemetryEvent("possibleStaleSchema");
     }
     return true;
+  }
+
+  public findPackageVersion(packageName: string) {
+    const version = this.dbtProjectIntegration.findPackageVersion(packageName);
+    this.terminal.debug(
+      "dbtProject:findPackageVersion",
+      `found ${packageName} version: ${version}`,
+    );
+    return version;
   }
 
   async getNodesWithDBColumns(

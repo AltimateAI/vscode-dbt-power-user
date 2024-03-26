@@ -290,12 +290,13 @@ class DocTreeItem extends TreeItem {
     super(node.label, TreeItemCollapsibleState.Collapsed);
     this.description = node.description !== undefined ? node.description : " ";
     // this. tooltip = "test tooltip" // node.description !== undefined ? node.description : " ";
-    this.command = {
-      command: "vscode.open",
-      title: "Open YML",
-      arguments: [Uri.file(node.url)],
-    };
-
+    if (node.url) {
+      this.command = {
+        command: "vscode.open",
+        title: "Open YML",
+        arguments: [Uri.file(node.url)],
+      };
+    }
     if (node.iconPath !== undefined) {
       this.iconPath = node.iconPath;
     }
@@ -314,7 +315,7 @@ export class DocNode extends Node {
 export class NodeTreeItem extends TreeItem {
   collapsibleState = TreeItemCollapsibleState.Collapsed;
   key: string;
-  url: string;
+  url: string | undefined;
 
   constructor(node: Node) {
     super(node.label);

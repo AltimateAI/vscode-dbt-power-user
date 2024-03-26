@@ -1,5 +1,5 @@
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SaveRequest } from "../types";
 import {
   setIsTestUpdatedForAnyColumn,
@@ -12,12 +12,22 @@ import {
   TestMetadataRelationshipsKwArgs,
   TestMetadataAcceptedValuesKwArgs,
 } from "@modules/documentationEditor/state/types";
+import { IncomingMessageProps } from "@modules/app/types";
 
 export enum TestOperation {
   CREATE,
   UPDATE,
   DELETE,
 }
+
+interface IncomingTest {
+  tests: {
+    columns: { name: string; tests: (string | Record<string, unknown>)[] }[];
+  };
+  model: string;
+  column: string;
+}
+
 const useTestFormSave = (): {
   handleSave: (
     data: SaveRequest,
@@ -31,6 +41,65 @@ const useTestFormSave = (): {
     state: { currentDocsData, currentDocsTests },
     dispatch,
   } = useDocumentationContext();
+
+  const onMesssage = useCallback(
+    (event: MessageEvent<IncomingMessageProps & IncomingTest>) => {
+      const { command, ...params } = event.data;
+      switch (command) {
+        case "testgen:insert":
+          panelLogger.info("received new test gen", event.data);
+          handleTestInsert(params);
+          break;
+
+        default:
+          break;
+      }
+    },
+    [],
+  );
+
+  const handleTestInsert = (params: IncomingTest) => {
+    const testsData = [...(currentDocsTests ?? [])];
+    params.tests.columns.forEach((column) => {
+      column.tests.forEach((t) => {
+        const key = typeof t === "string" ? t : Object.keys(t)?.[0];
+        const rest =
+          typeof t === "object" && typeof t[key] === "object"
+            ? (t[key] as Record<string, unknown>)
+            : {};
+
+        if (key) {
+          testsData.push({
+            alias: "",
+            database: "",
+            schema: "",
+            column_name: column.name,
+            key: `${key}_${column.name}`,
+            path: `${key}_${column.name}`,
+            test_metadata: {
+              kwargs: {
+                column_name: column.name,
+                model: params.model,
+                ...rest,
+              },
+              name: key,
+            },
+          });
+        }
+      });
+    });
+    panelLogger.info("insert test data", testsData);
+    dispatch(updateCurrentDocsTests(testsData));
+    dispatch(setIsTestUpdatedForAnyColumn(true));
+  };
+
+  useEffect(() => {
+    window.addEventListener("message", onMesssage);
+
+    return () => {
+      window.removeEventListener("message", onMesssage);
+    };
+  }, [onMesssage]);
 
   const updateTests = (
     testsData: DBTModelTest[],

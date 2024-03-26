@@ -11,12 +11,9 @@ import {
   WebviewView,
   WebviewViewResolveContext,
   window,
+  workspace,
 } from "vscode";
-import {
-  AltimateRequest,
-  DBTColumnLineageResponse,
-  ModelNode,
-} from "../altimate";
+import { AltimateRequest, ModelNode } from "../altimate";
 import {
   ExposureMetaData,
   GraphMetaMap,
@@ -37,7 +34,7 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 type Table = {
   label: string;
   table: string;
-  url: string;
+  url: string | undefined;
   downstreamCount: number;
   upstreamCount: number;
   nodeType: string;
@@ -229,6 +226,39 @@ export class NewLineagePanel implements LineagePanelView {
 
     if (command === "showInfoNotification") {
       window.showInformationMessage(args.message);
+      return;
+    }
+
+    if (command === "getLineageSettings") {
+      const config = workspace.getConfiguration("dbt.lineage");
+      this._panel?.webview.postMessage({
+        command: "response",
+        args: {
+          id,
+          status: true,
+          body: {
+            showSelectEdges: config.get("showSelectEdges", true),
+            showNonSelectEdges: config.get("showNonSelectEdges", true),
+            defaultExpansion: config.get("defaultExpansion", 1),
+          },
+        },
+      });
+      return;
+    }
+
+    if (command === "persistLineageSettings") {
+      const config = workspace.getConfiguration("dbt.lineage");
+      for (const k in params) {
+        await config.update(k, params[k]);
+      }
+      this._panel?.webview.postMessage({
+        command: "response",
+        args: {
+          id,
+          status: true,
+          body: { ok: true },
+        },
+      });
       return;
     }
 
@@ -671,10 +701,11 @@ export class NewLineagePanel implements LineagePanelView {
 
   private createTable(
     event: ManifestCacheProjectAddedEvent,
-    tableUrl: string,
+    tableUrl: string | undefined,
     key: string,
   ): Table | undefined {
-    const nodeType = key.split(".")[0];
+    const splits = key.split(".");
+    const nodeType = splits[0];
     const { graphMetaMap, testMetaMap } = event;
     const upstreamCount = this.getConnectedNodeCount(
       graphMetaMap["children"],
@@ -686,7 +717,6 @@ export class NewLineagePanel implements LineagePanelView {
     );
     if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
       const { sourceMetaMap } = event;
-      const splits = key.split(".");
       const schema = splits[2];
       const table = splits[3];
       const _node = sourceMetaMap.get(schema);
@@ -710,11 +740,21 @@ export class NewLineagePanel implements LineagePanelView {
         }),
       };
     }
+    if (nodeType === DBTProject.RESOURCE_TYPE_METRIC) {
+      return {
+        table: key,
+        label: splits[2],
+        url: tableUrl,
+        upstreamCount,
+        downstreamCount,
+        nodeType,
+        materialization: undefined,
+        tests: [],
+      };
+    }
     const { nodeMetaMap } = event;
 
-    const splits = key.split(".");
     const table = splits[2];
-
     if (nodeType === DBTProject.RESOURCE_TYPE_EXPOSURE) {
       return {
         table: key,
@@ -724,10 +764,7 @@ export class NewLineagePanel implements LineagePanelView {
         downstreamCount,
         nodeType,
         materialization: undefined,
-        tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
-          const testKey = n.label.split(".")[0];
-          return { ...testMetaMap.get(testKey), key: testKey };
-        }),
+        tests: [],
       };
     }
 

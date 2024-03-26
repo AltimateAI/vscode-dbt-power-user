@@ -16,8 +16,6 @@ import {
   CardFooter,
   CardTitle,
   IconButton,
-  ListGroup,
-  ListGroupItem,
   Stack,
   Tag,
 } from "@uicore";
@@ -29,7 +27,7 @@ import useTestFormSave, { TestOperation } from "./hooks/useTestFormSave";
 import classes from "../../styles.module.scss";
 import { DeleteIcon, EditIcon } from "@assets/icons";
 import { findDbtTestType } from "./utils";
-import DbtTestCode from "./DbtTestCode";
+import TestDetails from "./TestDetails";
 
 const schema = Yup.object({
   to: Yup.string().optional(),
@@ -197,76 +195,6 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
     }
   };
 
-  const getDisplayContent = () => {
-    switch (testType) {
-      case DbtTestTypes.GENERIC:
-        switch (test.test_metadata?.name) {
-          case DbtGenericTests.UNIQUE:
-          case DbtGenericTests.NOT_NULL:
-            return null;
-          case DbtGenericTests.ACCEPTED_VALUES:
-            return (
-              <Card>
-                <CardBody>
-                  <CardTitle className="d-flex justify-content-between">
-                    Values
-                  </CardTitle>
-                  <ListGroup className={classes.testListGroup}>
-                    {(
-                      test.test_metadata
-                        .kwargs as TestMetadataAcceptedValuesKwArgs
-                    ).values?.map((value) => (
-                      <ListGroupItem key={value} tag="div">
-                        {value}
-                      </ListGroupItem>
-                    ))}
-                  </ListGroup>
-                </CardBody>
-              </Card>
-            );
-          case DbtGenericTests.RELATIONSHIPS:
-            return (
-              <Card>
-                <CardBody>
-                  <CardTitle className="d-flex justify-content-between">
-                    Values
-                  </CardTitle>
-                  <ListGroup className={classes.testListGroup}>
-                    <ListGroupItem action tag="div">
-                      <caption>To:</caption>{" "}
-                      {
-                        (
-                          test.test_metadata
-                            .kwargs as TestMetadataRelationshipsKwArgs
-                        ).to
-                      }
-                    </ListGroupItem>
-
-                    <ListGroupItem action tag="div">
-                      <caption>Field:</caption>{" "}
-                      {
-                        (
-                          test.test_metadata
-                            .kwargs as TestMetadataRelationshipsKwArgs
-                        ).field
-                      }
-                    </ListGroupItem>
-                  </ListGroup>
-                </CardBody>
-              </Card>
-            );
-
-          default:
-            return null;
-        }
-      case DbtTestTypes.MACRO:
-      case DbtTestTypes.SINGULAR:
-      case DbtTestTypes.EXTERNAL_PACKAGE:
-        return <DbtTestCode test={test} />;
-      default:
-        return null;
-    }
-  };
   return (
     <Stack direction="column" className={classes.addTest}>
       <Card>
@@ -300,7 +228,11 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
       </Card>
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        {isInEditMode ? getEditableContent() : getDisplayContent()}
+        {isInEditMode ? (
+          getEditableContent()
+        ) : (
+          <TestDetails test={test} testType={testType} />
+        )}
       </form>
     </Stack>
   );

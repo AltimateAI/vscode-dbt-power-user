@@ -1,6 +1,6 @@
 import { Alert, Card, CardBody, CardTitle, CodeBlock, Stack } from "@uicore";
 import QueryAnalysisActionButton from "./QueryAnalysisActionButton";
-import QueryAnalysisResultComponent from "./QueryAnalysisResult";
+import DatapilotChatFollowupComponent from "../common/DatapilotChatFollowup";
 import useQueryAnalysisContext, {
   MAX_ALLOWED_FOLLOWUP_QUESTIONS,
 } from "./provider/useQueryAnalysisContext";
@@ -9,21 +9,35 @@ import { DataPilotChatAction } from "@modules/dataPilot/types";
 import { QueryAnalysisCommands } from "./commands";
 import { AltimateIcon } from "@assets/icons";
 import { QueryAnalysisType } from "./types";
+import { useMemo } from "react";
 
 const QUERY_HAPPY_LIMIT = 10;
 const DefaultActions = [
   {
-    title: "Query explanation",
+    title: "Explain",
     command: QueryAnalysisCommands.explain,
   },
   {
-    title: "Query change",
+    title: "Change",
     command: QueryAnalysisCommands.modify,
+  },
+  {
+    title: "Translate",
+    command: QueryAnalysisCommands.translate,
   },
 ] as DataPilotChatAction[];
 
 const QueryAnalysis = (): JSX.Element | null => {
-  const { chat, results, isMaxFollowupReached } = useQueryAnalysisContext();
+  const { chat, isMaxFollowupReached } = useQueryAnalysisContext();
+  const followups = chat?.followups;
+
+  const alertText = useMemo(() => {
+    if (chat?.analysisType === QueryAnalysisType.TRANSLATE) {
+      return "Note: Query Translate (SQL Dialect) functionality works on the whole file, and not selected code snippet. DataPilot will proceed with assumption that the whole file needs to be translated.";
+    }
+
+    return null;
+  }, [chat?.analysisType]);
 
   if (!chat) {
     return null;
@@ -52,8 +66,10 @@ const QueryAnalysis = (): JSX.Element | null => {
         </Card>
       ) : null}
 
+      {alertText ? <Alert color="warning">{alertText}</Alert> : null}
+
       {/* show actions only if this is start of chat */}
-      {results.length > 0 ? null : (
+      {followups?.length ? null : (
         <Stack style={{ flexWrap: "wrap" }}>
           {actions.map((action) => (
             <QueryAnalysisActionButton
@@ -63,13 +79,21 @@ const QueryAnalysis = (): JSX.Element | null => {
           ))}
         </Stack>
       )}
-      {results.map((result, i) => (
-        <QueryAnalysisResultComponent
-          key={result.session_id}
+      {followups?.map((result, i) => (
+        <DatapilotChatFollowupComponent
+          key={result.id}
           response={result}
           command={`queryAnalysis:${chat.analysisType ?? ""}`}
           // show followup and ask textbox for last result only
-          showFollowup={i === results.length - 1}
+          showFollowup={
+            result.hideFollowup !== undefined
+              ? !result.hideFollowup
+              : i === followups.length - 1
+          }
+          hideFeedback={result.hideFeedback}
+          skipFollowupQuestions={
+            chat?.analysisType === QueryAnalysisType.MODIFY
+          }
         />
       ))}
       {isMaxFollowupReached ? (
