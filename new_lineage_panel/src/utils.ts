@@ -138,7 +138,7 @@ export const createColumnEdge = (
     zIndex: 1000,
     markerEnd: highlightMarker,
     type: srcLevel === dstLevel ? "smoothstep" : "default",
-    hidden: edgeVisibility[type],
+    hidden: !edgeVisibility[type],
   };
 };
 
