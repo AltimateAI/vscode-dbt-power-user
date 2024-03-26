@@ -210,6 +210,8 @@ const TableDetails = () => {
     setConfidence,
     setMoreTables,
     setSidebarScreen,
+    selectCheck,
+    nonSelectCheck,
   } = useContext(LineageContext);
   const flow = useReactFlow();
   const [filteredColumn, setFilteredColumn] = useState<Column[]>([]);
@@ -311,7 +313,8 @@ const TableDetails = () => {
         setMoreTables,
         setCollectColumns,
         flow,
-        sessionId
+        sessionId,
+        { direct: selectCheck, indirect: nonSelectCheck }
       );
     try {
       CLL.start();

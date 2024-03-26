@@ -97,6 +97,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     setNodeCount,
     leftExpansion,
     rightExpansion,
+    selectCheck,
+    nonSelectCheck,
   } = useContext(LineageContext);
 
   const _columnLen = Object.keys(collectColumns[table] || {}).length;
@@ -150,7 +152,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           setMoreTables,
           setCollectColumns,
           flow,
-          selectedColumn.sessionId
+          selectedColumn.sessionId,
+          { direct: selectCheck, indirect: nonSelectCheck }
         );
         rerender();
       } catch (e) {
@@ -272,7 +275,9 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
               <div
                 className={classNames(
                   "nodrag",
-                  selected && nodeType !== "semantic_model" ? "text-blue" : "text-grey"
+                  selected && nodeType !== "semantic_model"
+                    ? "text-blue"
+                    : "text-grey"
                 )}
                 onClick={onDetailsClick}
                 data-testid={"view-details-btn-" + table}

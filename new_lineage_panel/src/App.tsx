@@ -50,6 +50,7 @@ import { handleResponse, init, columnLineage } from "./service_utils";
 import { ActionWidget } from "./ActionWidget";
 import { DEFAULT_MIN_ZOOM, createTableNode } from "./utils";
 import { Settings } from "./Settings";
+import { getLineageSettings } from "./service";
 
 export let aiEnabled = false;
 export let isDarkMode = false;
@@ -93,11 +94,11 @@ export const LineageContext = createContext<{
   nodeCount: number;
   setNodeCount: Dispatch<SetStateAction<number>>;
   selectCheck: boolean;
-  setSelectCheck: Dispatch<SetStateAction<boolean>>;
+  setSelectCheck: Dispatch<boolean>;
   nonSelectCheck: boolean;
-  setNonSelectCheck: Dispatch<SetStateAction<boolean>>;
+  setNonSelectCheck: Dispatch<boolean>;
   defaultExpansion: number;
-  setDefaultExpansion: Dispatch<SetStateAction<number>>;
+  setDefaultExpansion: Dispatch<number>;
 }>({
   selectedTable: "",
   setSelectedTable: noop,
@@ -236,6 +237,14 @@ function App() {
       document.documentElement.setAttribute("data-theme", theme);
       rerender();
     };
+
+    const applySettings = async () => {
+      const settings = await getLineageSettings();
+      setSelectCheck(settings.showSelectEdges);
+      setNonSelectCheck(settings.showNonSelectEdges);
+      setDefaultExpansion(settings.defaultExpansion);
+    };
+
     const commandMap = {
       render,
       response: handleResponse,
@@ -251,6 +260,7 @@ function App() {
     });
     console.log("lineage:onload");
     init();
+    applySettings();
 
     // hide demo button after 10s
     setTimeout(() => {

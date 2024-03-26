@@ -5,10 +5,10 @@ import styles from "./styles.module.scss";
 import { CLL } from "./service_utils";
 import { LineageContext, aiEnabled } from "./App";
 import { CustomInput } from "./components/Form";
+import { persistLineageSettings } from "./service";
 
 function Settings() {
   const {
-    selectedColumn,
     selectCheck,
     setSelectCheck,
     nonSelectCheck,
@@ -28,12 +28,14 @@ function Settings() {
             id="default-expansion"
             value={defaultExpansion}
             type="number"
-            onChange={(e) =>
-              setDefaultExpansion(Math.max(parseInt(e.target.value), 0))
-            }
+            onChange={(e) => {
+              const value = Math.max(parseInt(e.target.value), 0);
+              setDefaultExpansion(value);
+              persistLineageSettings({ defaultExpansion: value });
+            }}
           />
         </div>
-        {aiEnabled && selectedColumn.name && (
+        {aiEnabled && (
           <>
             <div className="fs-6">Edges visibility</div>
             <div className={styles.select_node_checkbox}>
@@ -48,6 +50,7 @@ function Settings() {
                     return;
                   }
                   setSelectCheck(e.target.checked);
+                  persistLineageSettings({ showSelectEdges: e.target.checked });
                 }}
               />
               <div className="d-flex flex-column">
@@ -72,6 +75,9 @@ function Settings() {
                     return;
                   }
                   setNonSelectCheck(e.target.checked);
+                  persistLineageSettings({
+                    showNonSelectEdges: e.target.checked,
+                  });
                 }}
               />
               <div className="d-flex flex-column">

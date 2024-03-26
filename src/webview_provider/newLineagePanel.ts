@@ -11,6 +11,7 @@ import {
   WebviewView,
   WebviewViewResolveContext,
   window,
+  workspace,
 } from "vscode";
 import { AltimateRequest, ModelNode } from "../altimate";
 import {
@@ -225,6 +226,39 @@ export class NewLineagePanel implements LineagePanelView {
 
     if (command === "showInfoNotification") {
       window.showInformationMessage(args.message);
+      return;
+    }
+
+    if (command === "getLineageSettings") {
+      const config = workspace.getConfiguration("dbt.lineage");
+      this._panel?.webview.postMessage({
+        command: "response",
+        args: {
+          id,
+          status: true,
+          body: {
+            showSelectEdges: config.get("showSelectEdges", true),
+            showNonSelectEdges: config.get("showNonSelectEdges", true),
+            defaultExpansion: config.get("defaultExpansion", 1),
+          },
+        },
+      });
+      return;
+    }
+
+    if (command === "persistLineageSettings") {
+      const config = workspace.getConfiguration("dbt.lineage");
+      for (const k in params) {
+        await config.update(k, params[k]);
+      }
+      this._panel?.webview.postMessage({
+        command: "response",
+        args: {
+          id,
+          status: true,
+          body: { ok: true },
+        },
+      });
       return;
     }
 
