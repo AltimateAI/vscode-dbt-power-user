@@ -20,8 +20,8 @@ import {
   RebuildManifestCombinedStatusChange,
 } from "./event/manifestCacheChangedEvent";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { AltimateDatapilot } from "../dbt_client/dbtCoreIntegration";
 import { AltimateConfigProps } from "../webview_provider/insightsPanel";
+import { AltimateDatapilot } from "../dbt_client/datapilot";
 
 enum PromptAnswer {
   YES = "Yes",

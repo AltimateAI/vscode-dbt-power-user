@@ -481,7 +481,9 @@ export class InsightsPanel extends AltimateWebviewProvider {
         return;
       }
     }
-
+    this.telemetry.sendTelemetryEvent("performDatapilotHealthcheck", {
+      args: JSON.stringify(args),
+    });
     try {
       await window.withProgress(
         {
@@ -513,7 +515,6 @@ export class InsightsPanel extends AltimateWebviewProvider {
         "Error while performing healthcheck",
         e,
       );
-      return;
     }
   }
 

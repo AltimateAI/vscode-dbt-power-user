@@ -31,6 +31,7 @@ import {
   SourceNode,
   Node,
   ExecuteSQLError,
+  HealthcheckArgs,
 } from "./dbtIntegration";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
@@ -101,7 +102,6 @@ interface ModelInsight {
   package_name: string;
   path: string;
   original_file_path: string;
-  insight_level: string;
 }
 
 export interface ProjectHealthcheck {
@@ -132,48 +132,6 @@ export class DBTCoreDetection implements DBTDetection {
       return true;
     } catch (error) {
       return false;
-    }
-  }
-}
-
-@provideSingleton(AltimateDatapilot)
-export class AltimateDatapilot {
-  private packageName = "altimate-datapilot";
-  constructor(
-    private pythonEnvironment: PythonEnvironment,
-    private commandProcessExecutionFactory: CommandProcessExecutionFactory,
-    private dbtTerminal: DBTTerminal,
-  ) {}
-
-  async checkIfAltimateDatapilotInstalled() {
-    const process =
-      this.commandProcessExecutionFactory.createCommandProcessExecution({
-        command: this.pythonEnvironment.pythonPath,
-        args: ["-c", "import datapilot"],
-        cwd: getFirstWorkspacePath(),
-        envVars: this.pythonEnvironment.environmentVariables,
-      });
-    const { stderr } = await process.complete();
-    if (stderr) {
-      return false;
-    }
-    return true;
-  }
-
-  async installAltimateDatapilot() {
-    const { stderr, stdout } = await this.commandProcessExecutionFactory
-      .createCommandProcessExecution({
-        command: this.pythonEnvironment.pythonPath,
-        args: ["-m", "pip", "install", this.packageName],
-        cwd: getFirstWorkspacePath(),
-        envVars: this.pythonEnvironment.environmentVariables,
-      })
-      .completeWithTerminalOutput(this.dbtTerminal);
-    if (stderr) {
-      throw new Error(stderr);
-    }
-    if (!stdout.includes(`Successfully installed ${this.packageName}`)) {
-      throw new Error(`Unable to install ${this.packageName}: ${stdout}`);
     }
   }
 }
@@ -1034,12 +992,7 @@ export class DBTCoreProjectIntegration
     manifestPath,
     config,
     configPath,
-  }: {
-    manifestPath: string;
-    catalogPath?: string;
-    config?: any;
-    configPath?: string;
-  }): Promise<ProjectHealthcheck> {
+  }: HealthcheckArgs): Promise<ProjectHealthcheck> {
     this.throwBridgeErrorIfAvailable();
     const result = await this.python?.lock<ProjectHealthcheck>(
       (python) =>

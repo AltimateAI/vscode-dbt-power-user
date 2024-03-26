@@ -21,7 +21,6 @@ export interface ModelInsight {
   package_name: string;
   path: string;
   original_file_path: string;
-  insight_level: string;
 }
 
 export interface ProjectHealthcheck {

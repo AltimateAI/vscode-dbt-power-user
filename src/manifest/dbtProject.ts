@@ -230,8 +230,18 @@ export class DBTProject implements Disposable {
           docsGenerateCommand,
         );
         healthcheckArgs.catalogPath = this.getCatalogPath();
+        if (!healthcheckArgs.catalogPath) {
+          throw new Error(
+            `Unable to find catalog path for project ${this.getProjectName()}`,
+          );
+        }
       }
     }
+    this.terminal.debug(
+      "performDatapilotHealthcheck",
+      "Performing healthcheck",
+      healthcheckArgs,
+    );
     return this.dbtProjectIntegration.performDatapilotHealthcheck(
       healthcheckArgs,
     );

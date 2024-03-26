@@ -23,6 +23,7 @@ import {
   DBTProjectDetection,
   DBTProjectIntegration,
   QueryExecution,
+  HealthcheckArgs,
 } from "./dbtIntegration";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonBridge } from "python-bridge";
@@ -861,12 +862,7 @@ export class DBTCloudProjectIntegration
     manifestPath,
     config,
     configPath,
-  }: {
-    manifestPath: string;
-    catalogPath?: string;
-    config?: any;
-    configPath?: string;
-  }): Promise<ProjectHealthcheck> {
+  }: HealthcheckArgs): Promise<ProjectHealthcheck> {
     this.throwBridgeErrorIfAvailable();
     const result = await this.python?.lock<ProjectHealthcheck>(
       (python) =>
