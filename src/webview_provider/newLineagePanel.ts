@@ -230,7 +230,7 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     if (command === "getLineageSettings") {
-      const config = workspace.getConfiguration("dbt");
+      const config = workspace.getConfiguration("dbt.lineage");
       this._panel?.webview.postMessage({
         command: "response",
         args: {
@@ -239,7 +239,7 @@ export class NewLineagePanel implements LineagePanelView {
           body: {
             showSelectEdges: config.get("showSelectEdges", true),
             showNonSelectEdges: config.get("showNonSelectEdges", true),
-            defaultLineageExpansion: config.get("defaultLineageExpansion", 1),
+            defaultExpansion: config.get("defaultExpansion", 1),
           },
         },
       });
@@ -247,7 +247,7 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     if (command === "persistLineageSettings") {
-      const config = workspace.getConfiguration("dbt");
+      const config = workspace.getConfiguration("dbt.lineage");
       for (const k in params) {
         await config.update(k, params[k]);
       }

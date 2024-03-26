@@ -242,7 +242,7 @@ function App() {
       const settings = await getLineageSettings();
       setSelectCheck(settings.showSelectEdges);
       setNonSelectCheck(settings.showNonSelectEdges);
-      setDefaultExpansion(settings.defaultLineageExpansion);
+      setDefaultExpansion(settings.defaultExpansion);
     };
 
     const commandMap = {

@@ -31,7 +31,7 @@ function Settings() {
             onChange={(e) => {
               const value = Math.max(parseInt(e.target.value), 0);
               setDefaultExpansion(value);
-              persistLineageSettings({ defaultLineageExpansion: value });
+              persistLineageSettings({ defaultExpansion: value });
             }}
           />
         </div>

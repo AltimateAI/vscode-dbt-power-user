@@ -55,7 +55,7 @@ interface ColumnLineageResponse {
 interface LineageSettings {
   showSelectEdges: boolean;
   showNonSelectEdges: boolean;
-  defaultLineageExpansion: number;
+  defaultExpansion: number;
 }
 
 export const upstreamTables = (table: string) => {
