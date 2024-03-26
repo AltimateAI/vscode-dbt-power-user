@@ -43,7 +43,7 @@ const QueryTranslateDialectSelects = (): JSX.Element => {
   const { chat, onNewGeneration, history } = useQueryAnalysisContext();
   const { dispatch } = useDataPilotContext();
 
-  const dialectOptions: OptionType[] = SqlDialects.map((d) => ({
+  const dialectOptions: OptionType[] = SqlDialects.sort().map((d) => ({
     label: d,
     value: d,
   }));
