@@ -26,6 +26,7 @@ import {
   getColY,
   withinExclusive,
   isSeeMore,
+  EdgeVisibility,
 } from "./utils";
 import {
   ColumnLineage,
@@ -322,7 +323,8 @@ const processColumnLineage = async (
   selectedColumn: { name: string; table: string },
   sessionId: string,
   columnEdgeType: Record<string, string>,
-  isFirst: boolean
+  isFirst: boolean,
+  edgeVisibility: EdgeVisibility
 ) => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
@@ -358,7 +360,14 @@ const processColumnLineage = async (
     const id = getColumnEdgeId(source, target);
     if (edges.find((e) => e.id === id)) return;
     edges.push(
-      createColumnEdge(source, target, levelMap[id1], levelMap[id2], type)
+      createColumnEdge(
+        source,
+        target,
+        levelMap[id1],
+        levelMap[id2],
+        type,
+        edgeVisibility
+      )
     );
   };
 
@@ -627,7 +636,8 @@ export const bfsTraversal = async (
   setMoreTables: Dispatch<SetStateAction<TMoreTables>>,
   setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>,
   flow: ReactFlowInstance,
-  sessionId: string
+  sessionId: string,
+  edgeVisibility: EdgeVisibility
 ) => {
   let isLineage = false;
   // creating helper data for current lineage once
@@ -725,7 +735,8 @@ export const bfsTraversal = async (
       columns[0],
       sessionId,
       columnEdgeType,
-      isFirst
+      isFirst,
+      edgeVisibility
     );
     isFirst = false;
     if (patchState.confidence?.confidence === "low") {
@@ -764,7 +775,8 @@ export const moveTableFromSeeMoreToCanvas = (
   nodes: Node[],
   edges: Edge[],
   _table: Table,
-  { prevTable, tables, right, level, lineage }: TMoreTables
+  { prevTable, tables, right, level, lineage }: TMoreTables,
+  edgeVisibility: EdgeVisibility
 ): boolean => {
   const { table } = _table;
   const node = nodes.find((n) => n.id === table);
@@ -778,11 +790,15 @@ export const moveTableFromSeeMoreToCanvas = (
     if (right) {
       if (e.target[0] !== table) return;
       nodes.push(createColumnNode(e.target[0], e.target[1]));
-      edges.push(createColumnEdge(src, dst, level! - 1, level!, e.type));
+      edges.push(
+        createColumnEdge(src, dst, level! - 1, level!, e.type, edgeVisibility)
+      );
     } else {
       if (e.source[0] !== table) return;
       nodes.push(createColumnNode(e.source[0], e.source[1]));
-      edges.push(createColumnEdge(src, dst, level!, level! + 1, e.type));
+      edges.push(
+        createColumnEdge(src, dst, level!, level! + 1, e.type, edgeVisibility)
+      );
     }
   });
 

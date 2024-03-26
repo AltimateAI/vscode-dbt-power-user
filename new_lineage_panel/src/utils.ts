@@ -112,12 +112,15 @@ export const createColumnNode = (t: string, c: string): Node => {
   };
 };
 
+export type EdgeVisibility = Record<string, boolean>;
+
 export const createColumnEdge = (
   source: string,
   target: string,
   srcLevel: number,
   dstLevel: number,
-  type: string
+  type: string,
+  edgeVisibility: EdgeVisibility
 ): Edge => {
   const edgeId = getColumnEdgeId(source, target);
   const [sourceHandle, targetHandle] = getSourceTargetHandles(
@@ -135,6 +138,7 @@ export const createColumnEdge = (
     zIndex: 1000,
     markerEnd: highlightMarker,
     type: srcLevel === dstLevel ? "smoothstep" : "default",
+    hidden: edgeVisibility[type],
   };
 };
 

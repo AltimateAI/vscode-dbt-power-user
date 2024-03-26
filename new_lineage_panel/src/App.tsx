@@ -50,7 +50,7 @@ import { handleResponse, init, columnLineage } from "./service_utils";
 import { ActionWidget } from "./ActionWidget";
 import { DEFAULT_MIN_ZOOM, createTableNode } from "./utils";
 import { Settings } from "./Settings";
-import { getLineageSettings, persistLineageSettings } from "./service";
+import { getLineageSettings } from "./service";
 
 export let aiEnabled = false;
 export let isDarkMode = false;
@@ -197,8 +197,8 @@ function App() {
             edges,
             node.table,
             leftExpansion,
-            rightExpansion,
-          ),
+            rightExpansion
+          )
         );
         return;
       }
@@ -226,8 +226,8 @@ function App() {
           edges,
           node.table,
           leftExpansion,
-          rightExpansion,
-        ),
+          rightExpansion
+        )
       );
       rerender();
     };
@@ -312,20 +312,11 @@ function App() {
         nodeCount,
         setNodeCount,
         selectCheck,
-        setSelectCheck: (v: boolean) => {
-          setSelectCheck(v);
-          persistLineageSettings({ showSelectEdges: v });
-        },
+        setSelectCheck,
         nonSelectCheck,
-        setNonSelectCheck: (v: boolean) => {
-          setNonSelectCheck(v);
-          persistLineageSettings({ showNonSelectEdges: v });
-        },
+        setNonSelectCheck,
         defaultExpansion,
-        setDefaultExpansion: (v: number) => {
-          setDefaultExpansion(v);
-          persistLineageSettings({ defaultLineageExpansion: v });
-        },
+        setDefaultExpansion,
       }}
     >
       <PopoverContext.Provider value={{ isOpen, setIsOpen }}>
