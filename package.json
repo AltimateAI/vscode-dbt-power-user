@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.36.4",
+  "version": "0.37.0",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -79,6 +79,21 @@
             "type": "boolean",
             "description": "Enable the new query panel in dbt.",
             "default": true
+          },
+          "dbt.lineage.showSelectEdges": {
+            "type": "boolean",
+            "description": "Show select edges in lineage panel.",
+            "default": true
+          },
+          "dbt.lineage.showNonSelectEdges": {
+            "type": "boolean",
+            "description": "Show non-select edges in lineage panel.",
+            "default": true
+          },
+          "dbt.lineage.defaultExpansion": {
+            "type": "number",
+            "description": "By default how much lineage should expand.",
+            "default": 1
           }
         }
       },
@@ -335,6 +350,11 @@
         "category": "dbt Power User"
       },
       {
+        "command": "dbtPowerUser.translateQuery",
+        "title": "Translate to other SQL dialect",
+        "category": "dbt Power User"
+      },
+      {
         "command": "dbtPowerUser.sqlToModel",
         "title": "Convert to dbt Model (Preview feature)",
         "shortTitle": "Convert to dbt Model",
@@ -549,6 +569,10 @@
         {
           "command": "dbtPowerUser.changeQuery",
           "group": "datapilot@3"
+        },
+        {
+          "command": "dbtPowerUser.translateQuery",
+          "group": "datapilot@4"
         }
       ],
       "editor/title": [

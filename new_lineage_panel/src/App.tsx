@@ -40,6 +40,7 @@ import {
   EXPOSURE_SIDEBAR,
   FEEDBACK_SIDEBAR,
   HELP_SIDEBAR,
+  SETTINGS_SIDEBAR,
 } from "./constants";
 import ExposureDetails from "./ExposureDetails";
 import { Feedback } from "./Feedback";
@@ -48,6 +49,8 @@ import { Demo } from "./Demo";
 import { handleResponse, init, columnLineage } from "./service_utils";
 import { ActionWidget } from "./ActionWidget";
 import { DEFAULT_MIN_ZOOM, createTableNode } from "./utils";
+import { Settings } from "./Settings";
+import { getLineageSettings } from "./service";
 
 export let aiEnabled = false;
 export let isDarkMode = false;
@@ -67,8 +70,6 @@ type Confidence = {
 const noop = () => {};
 
 export const LineageContext = createContext<{
-  showSidebar: boolean;
-  setShowSidebar: Dispatch<boolean>;
   selectedTable: string;
   setSelectedTable: Dispatch<SetStateAction<string>>;
   moreTables: TMoreTables;
@@ -92,9 +93,13 @@ export const LineageContext = createContext<{
   setMinRange: Dispatch<SetStateAction<[number, number]>>;
   nodeCount: number;
   setNodeCount: Dispatch<SetStateAction<number>>;
+  selectCheck: boolean;
+  setSelectCheck: Dispatch<boolean>;
+  nonSelectCheck: boolean;
+  setNonSelectCheck: Dispatch<boolean>;
+  defaultExpansion: number;
+  setDefaultExpansion: Dispatch<number>;
 }>({
-  showSidebar: false,
-  setShowSidebar: noop,
   selectedTable: "",
   setSelectedTable: noop,
   moreTables: {},
@@ -116,13 +121,18 @@ export const LineageContext = createContext<{
   setMinRange: noop,
   nodeCount: 0,
   setNodeCount: noop,
+  selectCheck: false,
+  setSelectCheck: noop,
+  nonSelectCheck: false,
+  setNonSelectCheck: noop,
+  defaultExpansion: 0,
+  setDefaultExpansion: noop,
 });
 
 function App() {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState("");
-  const [showSidebar, setShowSidebar] = useState(false);
   const [moreTables, setMoreTables] = useState<TMoreTables>({});
   const [sidebarScreen, setSidebarScreen] = useState("");
   const [showDemoModal, setShowDemoModal] = useState(false);
@@ -145,7 +155,7 @@ function App() {
 
   const [selectCheck, setSelectCheck] = useState(true);
   const [nonSelectCheck, setNonSelectCheck] = useState(true);
-
+  const [defaultExpansion, setDefaultExpansion] = useState(5);
   const [nodeCount, setNodeCount] = useState(0);
   const [minRange, setMinRange] = useState<[number, number]>([0, 0]);
 
@@ -164,7 +174,7 @@ function App() {
       aiEnabled: boolean;
     }) => {
       setIsOpen(false);
-      setShowSidebar(false);
+      setSidebarScreen("");
       if (!args) return;
       aiEnabled = args.aiEnabled;
       const { node } = args;
@@ -173,13 +183,13 @@ function App() {
       const existingNode = _flow.getNode(node.table);
       if (existingNode) {
         setSelectedTable(node.table);
-        const [nodes, edges] = highlightTableConnections(
-          _flow.getNodes(),
-          _flow.getEdges(),
-          node.table
-        );
-        _flow.setNodes(nodes);
-        _flow.setEdges(edges);
+        let nodes = _flow.getNodes();
+        let edges = _flow.getEdges();
+        if (!selectedColumn.name) {
+          [nodes, edges] = highlightTableConnections(nodes, edges, node.table);
+          _flow.setNodes(nodes);
+          _flow.setEdges(edges);
+        }
         setMinRange(calculateMinLevel(nodes, edges, node.table));
         setNodeCount(
           await calculateNodeCount(
@@ -227,6 +237,14 @@ function App() {
       document.documentElement.setAttribute("data-theme", theme);
       rerender();
     };
+
+    const applySettings = async () => {
+      const settings = await getLineageSettings();
+      setSelectCheck(settings.showSelectEdges);
+      setNonSelectCheck(settings.showNonSelectEdges);
+      setDefaultExpansion(settings.defaultExpansion);
+    };
+
     const commandMap = {
       render,
       response: handleResponse,
@@ -242,6 +260,7 @@ function App() {
     });
     console.log("lineage:onload");
     init();
+    applySettings();
 
     // hide demo button after 10s
     setTimeout(() => {
@@ -271,8 +290,6 @@ function App() {
   return (
     <LineageContext.Provider
       value={{
-        showSidebar,
-        setShowSidebar,
         selectedTable,
         setSelectedTable,
         moreTables,
@@ -294,17 +311,18 @@ function App() {
         setMinRange,
         nodeCount,
         setNodeCount,
+        selectCheck,
+        setSelectCheck,
+        nonSelectCheck,
+        setNonSelectCheck,
+        defaultExpansion,
+        setDefaultExpansion,
       }}
     >
       <PopoverContext.Provider value={{ isOpen, setIsOpen }}>
         <ReactFlowProvider>
           <div className="position-relative">
-            <ActionWidget
-              selectCheck={selectCheck}
-              setSelectCheck={setSelectCheck}
-              nonSelectCheck={nonSelectCheck}
-              setNonSelectCheck={setNonSelectCheck}
-            />
+            <ActionWidget />
             <div className="bottom-right-container">
               {showDemoButton && (
                 <Button
@@ -336,22 +354,18 @@ function App() {
               </ReactFlow>
             </div>
             <SidebarModal
-              isOpen={showSidebar}
-              toggleModal={() => setShowSidebar((b) => !b)}
+              isOpen={sidebarScreen !== ""}
+              closeModal={() => setSidebarScreen("")}
               width={446}
             >
               {sidebarScreen === TABLES_SIDEBAR && <MoreTables />}
               {sidebarScreen === COLUMNS_SIDEBAR && <TableDetails />}
               {sidebarScreen === EXPOSURE_SIDEBAR && <ExposureDetails />}
               {sidebarScreen === FEEDBACK_SIDEBAR && (
-                <Feedback
-                  close={() => {
-                    setSidebarScreen("");
-                    setShowSidebar(false);
-                  }}
-                />
+                <Feedback close={() => setSidebarScreen("")} />
               )}
               {sidebarScreen === HELP_SIDEBAR && <Help />}
+              {sidebarScreen === SETTINGS_SIDEBAR && <Settings />}
             </SidebarModal>
             <Modal isOpen={showDemoModal} close={() => setShowDemoModal(false)}>
               <Demo />

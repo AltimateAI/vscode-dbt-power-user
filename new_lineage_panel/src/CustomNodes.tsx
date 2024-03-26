@@ -86,8 +86,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
   const {
     selectedTable,
-    setSelectedTable,
-    setShowSidebar,
     setSidebarScreen,
     collectColumns,
     selectedColumn,
@@ -99,6 +97,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     setNodeCount,
     leftExpansion,
     rightExpansion,
+    selectCheck,
+    nonSelectCheck,
   } = useContext(LineageContext);
 
   const _columnLen = Object.keys(collectColumns[table] || {}).length;
@@ -152,7 +152,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           setMoreTables,
           setCollectColumns,
           flow,
-          selectedColumn.sessionId
+          selectedColumn.sessionId,
+          { direct: selectCheck, indirect: nonSelectCheck }
         );
         rerender();
       } catch (e) {
@@ -173,7 +174,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     if (nodeType === "semantic_model") {
       return;
     }
-    setShowSidebar(true);
     if (nodeType === "exposure") {
       setSidebarScreen(EXPOSURE_SIDEBAR);
       return;
@@ -194,7 +194,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
       <div
         className={styles.table_node}
         onClick={async () => {
-          setSelectedTable(table);
           const nodes = flow.getNodes();
           const edges = flow.getEdges();
           setMinRange(calculateMinLevel(nodes, edges, table));
@@ -276,7 +275,9 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
               <div
                 className={classNames(
                   "nodrag",
-                  selected && nodeType !== "semantic_model" ? "text-blue" : "text-grey"
+                  selected && nodeType !== "semantic_model"
+                    ? "text-blue"
+                    : "text-grey"
                 )}
                 onClick={onDetailsClick}
                 data-testid={"view-details-btn-" + table}
@@ -322,15 +323,13 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 
 export const SeeMoreNode: FunctionComponent<NodeProps> = ({ data }) => {
   const { tables = [], prevTable, right, level } = data as TMoreTables;
-  const { setShowSidebar, setMoreTables, setSidebarScreen } =
-    useContext(LineageContext);
+  const { setMoreTables, setSidebarScreen } = useContext(LineageContext);
   const flow = useReactFlow();
   return (
     <div
       className={styles.see_more_node}
       onClick={(e) => {
         e.stopPropagation();
-        setShowSidebar(true);
         setSidebarScreen(TABLES_SIDEBAR);
         setMoreTables((prev) => ({ ...prev, tables, prevTable, right, level }));
       }}

@@ -30,6 +30,7 @@ import {
   QueryExecution,
   SourceNode,
   Node,
+  ExecuteSQLError,
 } from "./dbtIntegration";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
@@ -402,7 +403,7 @@ export class DBTCoreProjectIntegration
 
   async executeSQL(query: string, limit: number): Promise<QueryExecution> {
     this.throwBridgeErrorIfAvailable();
-    const { limitQuery, queryTemplate } = await this.getQuery(query, limit);
+    const { limitQuery } = await this.getQuery(query, limit);
 
     const queryThread = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
@@ -414,30 +415,23 @@ export class DBTCoreProjectIntegration
         queryThread.kill(2);
       },
       async () => {
+        // compile query
         const compiledQuery = await this.unsafeCompileQuery(limitQuery);
-        const result = await queryThread!.lock<ExecuteSQLResult>(
-          (python) => python`to_dict(project.execute_sql(${compiledQuery}))`,
-        );
-        let compiled_stmt = result.compiled_sql;
+        // execute query
+        let result: ExecuteSQLResult;
         try {
-          const queryRegex = new RegExp(
-            queryTemplate
-              .replace(/\(/g, "\\(")
-              .replace(/\)/g, "\\)")
-              .replace(/\*/g, "\\*")
-              .replace("{query}", "([\\w\\W]+)")
-              .replace("{limit}", limit.toString()),
-            "g",
+          result = await queryThread!.lock<ExecuteSQLResult>(
+            (python) => python`to_dict(project.execute_sql(${compiledQuery}))`,
           );
-          const matches = queryRegex.exec(result.compiled_sql);
-          if (matches) {
-            compiled_stmt = matches[1].trim();
-          }
         } catch (err) {
-          console.error("error while executing querytemplate conversion", err);
+          const message = `Error while executing sql: ${compiledQuery}`;
+          this.dbtTerminal.error("dbtCore:executeSQL", message, err);
+          if (err instanceof PythonException) {
+            throw new ExecuteSQLError(err.exception.message, compiledQuery!);
+          }
+          throw new ExecuteSQLError((err as Error).message, compiledQuery!);
         }
-
-        return { ...result, compiled_stmt };
+        return { ...result, compiled_stmt: compiledQuery };
       },
     );
   }
@@ -790,7 +784,7 @@ export class DBTCoreProjectIntegration
   }
 
   // internal commands
-  async unsafeCompileNode(modelName: string): Promise<string | undefined> {
+  async unsafeCompileNode(modelName: string): Promise<string> {
     this.throwBridgeErrorIfAvailable();
     const output = await this.python?.lock<CompilationResult>(
       (python) =>
@@ -799,7 +793,7 @@ export class DBTCoreProjectIntegration
     return output.compiled_sql;
   }
 
-  async unsafeCompileQuery(query: string): Promise<string | undefined> {
+  async unsafeCompileQuery(query: string): Promise<string> {
     this.throwBridgeErrorIfAvailable();
     const output = await this.python?.lock<CompilationResult>(
       (python) => python!`to_dict(project.compile_sql(${query}))`,

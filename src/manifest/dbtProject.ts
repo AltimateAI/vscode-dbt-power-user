@@ -980,7 +980,12 @@ select * from renamed
   }
 
   public findPackageVersion(packageName: string) {
-    return this.dbtProjectIntegration.findPackageVersion(packageName);
+    const version = this.dbtProjectIntegration.findPackageVersion(packageName);
+    this.terminal.debug(
+      "dbtProject:findPackageVersion",
+      `found ${packageName} version: ${version}`,
+    );
+    return version;
   }
 
   async getNodesWithDBColumns(

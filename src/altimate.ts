@@ -107,6 +107,7 @@ export enum QueryAnalysisType {
   EXPLAIN = "explain",
   FIX = "fix",
   MODIFY = "modify",
+  TRANSLATE = "translate",
 }
 
 export enum QueryAnalysisChatType {
@@ -118,6 +119,19 @@ interface QueryAnalysisChat {
   type: QueryAnalysisChatType;
   content: string;
   additional_kwargs?: Record<string, unknown>;
+}
+
+export interface QueryTranslateRequest {
+  sql: string;
+  target_dialect: string;
+  source_dialect: string;
+}
+
+export interface QueryTranslateExplanationRequest {
+  user_sql: string;
+  translated_sql: string;
+  target_dialect: string;
+  source_dialect: string;
 }
 
 interface DbtModel {

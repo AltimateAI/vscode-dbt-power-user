@@ -28,6 +28,8 @@ const QueryAnalysisActionButton = ({ action }: Props): JSX.Element => {
         return QueryAnalysisType.EXPLAIN;
       case QueryAnalysisCommands.modify:
         return QueryAnalysisType.MODIFY;
+      case QueryAnalysisCommands.translate:
+        return QueryAnalysisType.TRANSLATE;
       default:
         break;
     }
@@ -49,6 +51,18 @@ const QueryAnalysisActionButton = ({ action }: Props): JSX.Element => {
     if (analysisType === QueryAnalysisType.MODIFY) {
       onNewGeneration({
         state: RequestState.COMPLETED,
+      });
+      return;
+    }
+
+    if (analysisType === QueryAnalysisType.TRANSLATE) {
+      onNewGeneration({
+        datapilotTitle: "Datapilot Response",
+        hideFeedback: true,
+        response: "",
+        component: "queryTranslate",
+        state: RequestState.COMPLETED,
+        hideFollowup: true,
       });
       return;
     }

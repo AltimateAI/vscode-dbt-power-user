@@ -34,6 +34,29 @@ const dataPilotSlice = createSlice({
     ) => {
       state.showHelp = action.payload;
     },
+    deleteFollowup: (
+      state,
+      {
+        payload: { followupId, sessionId },
+      }: PayloadAction<{
+        sessionId?: DataPilotChat["id"];
+        followupId?: DataPilotChatFollowup["id"];
+      }>,
+    ) => {
+      if (!sessionId || !followupId || !state.items[sessionId]) {
+        return;
+      }
+
+      const { followups } = state.items[sessionId];
+
+      if (!followups?.length) {
+        return;
+      }
+
+      state.items[sessionId].followups = state.items[
+        sessionId
+      ].followups?.filter((followup) => followup.id !== followupId);
+    },
     upsertFollowup: (
       state,
       {
@@ -43,6 +66,10 @@ const dataPilotSlice = createSlice({
         followup: DataPilotChatFollowup;
       }>,
     ) => {
+      if (!state.items[sessionId]) {
+        return;
+      }
+
       const { followups } = state.items[sessionId];
 
       if (!followups?.length) {
@@ -85,5 +112,6 @@ export const {
   setCurrentSessionId,
   setShowHelp,
   upsertFollowup,
+  deleteFollowup,
 } = dataPilotSlice.actions;
 export default dataPilotSlice;
