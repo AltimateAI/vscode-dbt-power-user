@@ -79,6 +79,21 @@
             "type": "boolean",
             "description": "Enable the new query panel in dbt.",
             "default": true
+          },
+          "dbt.showSelectEdges": {
+            "type": "boolean",
+            "description": "Show select edges in lineage panel.",
+            "default": true
+          },
+          "dbt.showNonSelectEdges": {
+            "type": "boolean",
+            "description": "Show non-select edges in lineage panel.",
+            "default": true
+          },
+          "dbt.defaultLineageExpansion": {
+            "type": "number",
+            "description": "By default how much lineage should expand.",
+            "default": 1
           }
         }
       },

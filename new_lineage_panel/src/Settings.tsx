@@ -8,7 +8,6 @@ import { CustomInput } from "./components/Form";
 
 function Settings() {
   const {
-    selectedColumn,
     selectCheck,
     setSelectCheck,
     nonSelectCheck,
@@ -33,7 +32,7 @@ function Settings() {
             }
           />
         </div>
-        {aiEnabled && selectedColumn.name && (
+        {aiEnabled && (
           <>
             <div className="fs-6">Edges visibility</div>
             <div className={styles.select_node_checkbox}>

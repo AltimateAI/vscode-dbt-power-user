@@ -46,9 +46,16 @@ export type ExposureMetaData = {
   metrics?: unknown[];
   meta?: Record<string, unknown>;
 };
+
 interface ColumnLineageResponse {
   column_lineage: ColumnLineage[];
   confidence?: { confidence: string; operator_list?: string[] };
+}
+
+interface LineageSettings {
+  showSelectEdges: boolean;
+  showNonSelectEdges: boolean;
+  defaultLineageExpansion: number;
 }
 
 export const upstreamTables = (table: string) => {
@@ -85,7 +92,7 @@ export const getConnectedColumns = (body: {
 }) => {
   return requestExecutor(
     "getConnectedColumns",
-    body
+    body,
   ) as Promise<ColumnLineageResponse>;
 };
 
@@ -94,4 +101,14 @@ export const sendFeedback = (body: {
   feedback_text: string;
 }) => {
   return requestExecutor("sendFeedback", body) as Promise<{ ok: boolean }>;
+};
+
+export const getLineageSettings = () => {
+  return requestExecutor("getLineageSettings", {}) as Promise<LineageSettings>;
+};
+
+export const persistLineageSettings = (body: Partial<LineageSettings>) => {
+  return requestExecutor("persistLineageSettings", body) as Promise<{
+    ok: boolean;
+  }>;
 };
