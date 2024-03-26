@@ -1,4 +1,4 @@
-@use 'variables'; 
+@use "variables";
 
 :root {
   --bs-body-font-family: "Lexend", var(--bs-font-sans-serif);
@@ -27,7 +27,7 @@ body {
   --action--brand: #004fbf;
   --action-yellow: #ffce73;
   --action-red: #ee140f;
-  --action-beta: #FF754C;
+  --action-beta: #ff754c;
   --action-brand-dark: #004fbf;
   --icon--active: #535456;
   --icon--default: #8390a3;
@@ -112,18 +112,6 @@ strong {
 
 code {
   color: inherit;
-}
-
-.align-items-center {
-  align-items: center;
-}
-
-.align-items-start {
-  align-items: start;
-}
-
-.w-full {
-  width: 100%;
 }
 
 .spacer {

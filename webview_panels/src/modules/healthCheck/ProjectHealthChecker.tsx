@@ -45,7 +45,7 @@ const ProjectHealthcheckInput = ({
   >([]);
   const [selectedProject, setSelectedProject] = useState("");
   const [configs, setConfigs] = useState<DBTConfig[]>([]);
-  // 0: no config selected; -1: manual selected
+  // 0: no config selected; -1: manual selected; +ve values are config id
   const [selectedConfig, setSelectedConfig] = useState(0);
   const [configPath, setConfigPath] = useState("");
 

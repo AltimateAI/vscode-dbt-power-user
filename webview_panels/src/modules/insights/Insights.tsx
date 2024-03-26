@@ -9,7 +9,7 @@ import classes from "./insights.module.scss";
 const Insights = (): JSX.Element => (
   <Container className={classes.insightsContainer}>
     <Stack direction="column" className="align-items-start">
-      <Stack className={`${classes.head} w-full`}>
+      <Stack className={`${classes.head} w-100`}>
         <Stack>
           <h3>Actions</h3>
         </Stack>
@@ -21,7 +21,7 @@ const Insights = (): JSX.Element => (
       <Tabs
         tabs={[
           {
-            label: "Def to prod",
+            label: "Defer to prod",
             component: <DeferToProduction />,
           },
           {

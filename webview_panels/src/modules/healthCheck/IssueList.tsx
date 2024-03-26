@@ -58,7 +58,7 @@ const IssueList = ({
     <Card className={classes.container}>
       <CardTitle>
         <Stack className="align-items-center">
-          <div className="fs-5">Issues</div>
+          <div className="h5">Issues</div>
           <div className="spacer" />
           <Dropdown
             label="File Name"
