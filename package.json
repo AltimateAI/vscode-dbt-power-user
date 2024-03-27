@@ -1025,7 +1025,7 @@
     "glob": "^10.3.10",
     "husky": "^9.0.11",
     "lint-staged": "^14.0.1",
-    "mocha": "^10.3.0",
+    "mocha": "^10.4.0",
     "ovsx": "^0.8.4",
     "prettier": "^3.0.3",
     "prettier-eslint": "^15.0.1",
