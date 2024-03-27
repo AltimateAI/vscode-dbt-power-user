@@ -48,7 +48,7 @@ interface ManualConfigProps {
 
 const ManualConfig = (props: ManualConfigProps) => {
   return (
-    <div className={classes.accordion}>
+    <div className={classes.accordionContainer}>
       <Accordion
         trigger={(open) => (
           <Stack className="align-items-center">
@@ -129,7 +129,7 @@ interface SaasConfigProps {
 
 const SaasConfig = (props: SaasConfigProps) => {
   return (
-    <div className={classes.accordion}>
+    <div className={classes.accordionContainer}>
       <Accordion
         trigger={(open) => (
           <Stack className="align-items-center">

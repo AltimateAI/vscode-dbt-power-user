@@ -56,11 +56,11 @@ export const FilesIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
 
 export const ArrowUpIcon = (
   props: HTMLAttributes<HTMLElement>,
-): JSX.Element => <Icon icon="arrow-up" {...props} />;
+): JSX.Element => <Icon icon="chevron-up" {...props} />;
 
 export const ArrowDownIcon = (
   props: HTMLAttributes<HTMLElement>,
-): JSX.Element => <Icon icon="arrow-down" {...props} />;
+): JSX.Element => <Icon icon="chevron-down" {...props} />;
 
 export const CheckedIcon = (
   props: HTMLAttributes<HTMLElement>,
