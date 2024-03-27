@@ -6,13 +6,16 @@ import { Button, Input, Drawer } from "@uicore";
 import { useState } from "react";
 
 const schema = Yup.object({
+  title: Yup.string().optional(),
   comment: Yup.string().optional(),
 }).required();
 
 interface ShareRequest {
   comment?: string;
+  title?: string;
 }
-const ShareDocumentationButton = () => {
+
+const ShareDbtDocsButton = (): JSX.Element => {
   const [sharedUrl, setSharedUrl] = useState("");
   const { control, handleSubmit } = useForm<ShareRequest>({
     resolver: yupResolver(schema),
@@ -39,6 +42,18 @@ const ShareDocumentationButton = () => {
       <form onSubmit={handleSubmit(handleShare)}>
         <Controller
           control={control}
+          name="title"
+          render={({ field: { onChange } }) => (
+            <Input
+              type="textarea"
+              onChange={onChange}
+              placeholder="Enter a title"
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
           name="comment"
           render={({ field: { onChange } }) => (
             <Input
@@ -57,4 +72,4 @@ const ShareDocumentationButton = () => {
   );
 };
 
-export default ShareDocumentationButton;
+export default ShareDbtDocsButton;
