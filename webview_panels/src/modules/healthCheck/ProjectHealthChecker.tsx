@@ -11,7 +11,13 @@ import {
 } from "@uicore";
 import { executeRequestInSync } from "../app/requestExecutor";
 import classes from "./healthcheck.module.scss";
-import { useCallback, useEffect, useState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { panelLogger } from "@modules/logger";
 import { ArrowUpIcon, ArrowDownIcon, FolderIcon } from "@assets/icons";
 import { ModelInsight, ProjectHealthcheck } from "./types";
@@ -32,6 +38,139 @@ type ConfigOption =
   | { config: unknown; config_schema: unknown[] };
 
 type AltimateConfigProps = { projectRoot: string } & ConfigOption;
+
+interface ManualConfigProps {
+  configs: DBTConfig[];
+  selectedConfig: number;
+  setSelectedConfig: Dispatch<SetStateAction<number>>;
+  setConfigPath: Dispatch<SetStateAction<string>>;
+}
+
+const ManualConfig = (props: ManualConfigProps) => {
+  return (
+    <div className={classes.accordion}>
+      <Accordion
+        trigger={(open) => (
+          <Stack className="align-items-center">
+            <div>
+              {props.selectedConfig === -1
+                ? "Manual"
+                : props.configs.find((c) => c.id === props.selectedConfig)
+                    ?.name ?? "Select Config for Checks"}
+            </div>
+            <div className="spacer" />
+            {open ? <ArrowUpIcon /> : <ArrowDownIcon />}
+          </Stack>
+        )}
+      >
+        {({ close }) => (
+          <Stack direction="column" className="gap-0">
+            {[
+              ...props.configs.map((c) => ({
+                value: c.id,
+                label: c.name,
+              })),
+              {
+                value: -1,
+                label: "Manual",
+              },
+            ].map((c) => (
+              <Stack
+                className={
+                  classes.row +
+                  " " +
+                  (c.value === props.selectedConfig ? classes.active : "")
+                }
+                key={c.value}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  props.setSelectedConfig(c.value);
+                  close();
+                }}
+              >
+                <div>{c.label}</div>
+              </Stack>
+            ))}
+          </Stack>
+        )}
+      </Accordion>
+
+      {props.selectedConfig === -1 && (
+        <Button
+          size="sm"
+          color="primary"
+          className="mt-2"
+          onClick={async (e) => {
+            e.stopPropagation();
+            const result = await executeRequestInSync("selectFiles", {
+              filters: {
+                Files: ["yml"],
+              },
+              canSelectMany: false,
+            });
+            const { path } = result as {
+              path: string[];
+            };
+            props.setConfigPath(path[0]);
+          }}
+        >
+          Select config path for manual checks
+        </Button>
+      )}
+    </div>
+  );
+};
+
+interface SaasConfigProps {
+  projects: { projectName: string; projectRoot: string }[];
+  selectedProject: string;
+  setSelectedProject: Dispatch<SetStateAction<string>>;
+}
+
+const SaasConfig = (props: SaasConfigProps) => {
+  return (
+    <div className={classes.accordion}>
+      <Accordion
+        trigger={(open) => (
+          <Stack className="align-items-center">
+            <div>
+              {props.projects.find(
+                (p) => p.projectRoot === props.selectedProject,
+              )?.projectName ?? "Select Projects"}
+            </div>
+            <div className="spacer" />
+            {open ? <ArrowUpIcon /> : <ArrowDownIcon />}
+          </Stack>
+        )}
+      >
+        {({ close }) => (
+          <Stack direction="column" className="gap-0">
+            {props.projects.map((p) => (
+              <Stack
+                className={
+                  classes.row +
+                  " " +
+                  (p.projectRoot === props.selectedProject
+                    ? classes.active
+                    : "")
+                }
+                key={p.projectRoot}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  props.setSelectedProject(p.projectRoot);
+                  close();
+                }}
+              >
+                <FolderIcon />
+                <div>{p.projectName}</div>
+              </Stack>
+            ))}
+          </Stack>
+        )}
+      </Accordion>
+    </div>
+  );
+};
 
 const ProjectHealthcheckInput = ({
   handleHealthCheck,
@@ -86,106 +225,18 @@ const ProjectHealthcheckInput = ({
       <CardBody>
         <CardText>Run project health check</CardText>
         <Stack direction="column">
-          <div className={classes.accordion}>
-            <Accordion
-              trigger={(open) => (
-                <Stack className="align-items-center">
-                  <div>
-                    {projects.find((p) => p.projectRoot === selectedProject)
-                      ?.projectName ?? "Select Projects"}
-                  </div>
-                  <div className="spacer" />
-                  {open ? <ArrowUpIcon /> : <ArrowDownIcon />}
-                </Stack>
-              )}
-            >
-              {({ close }) => (
-                <Stack direction="column" className="gap-0">
-                  {projects.map((p) => (
-                    <Stack
-                      className={
-                        classes.row +
-                        " " +
-                        (p.projectRoot === selectedProject
-                          ? classes.active
-                          : "")
-                      }
-                      key={p.projectRoot}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedProject(p.projectRoot);
-                        close();
-                      }}
-                    >
-                      <FolderIcon />
-                      <div>{p.projectName}</div>
-                    </Stack>
-                  ))}
-                </Stack>
-              )}
-            </Accordion>
-          </div>
+          <SaasConfig
+            projects={projects}
+            selectedProject={selectedProject}
+            setSelectedProject={setSelectedProject}
+          />
 
-          <div className={classes.accordion}>
-            <Accordion
-              trigger={(open) => (
-                <Stack className="align-items-center">
-                  <div>
-                    {selectedConfig === -1
-                      ? "Manual"
-                      : configs.find((c) => c.id === selectedConfig)?.name ??
-                        "Select Config for Checks"}
-                  </div>
-                  <div className="spacer" />
-                  {open ? <ArrowUpIcon /> : <ArrowDownIcon />}
-                </Stack>
-              )}
-            >
-              {({ close }) => (
-                <Stack direction="column" className="gap-0">
-                  {[
-                    ...configs.map((c) => ({ value: c.id, label: c.name })),
-                    { value: -1, label: "Manual" },
-                  ].map((c) => (
-                    <Stack
-                      className={
-                        classes.row +
-                        " " +
-                        (c.value === selectedConfig ? classes.active : "")
-                      }
-                      key={c.value}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedConfig(c.value);
-                        close();
-                      }}
-                    >
-                      <div>{c.label}</div>
-                    </Stack>
-                  ))}
-                </Stack>
-              )}
-            </Accordion>
-
-            {selectedConfig === -1 && (
-              <Button
-                size="sm"
-                color="primary"
-                className="mt-2"
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  const result = await executeRequestInSync("selectFiles", {
-                    filters: { Files: ["yml"] },
-                    canSelectMany: false,
-                  });
-                  const { path } = result as { path: string[] };
-                  setConfigPath(path[0]);
-                }}
-              >
-                Select config path for manual checks
-              </Button>
-            )}
-          </div>
+          <ManualConfig
+            configs={configs}
+            selectedConfig={selectedConfig}
+            setSelectedConfig={setSelectedConfig}
+            setConfigPath={setConfigPath}
+          />
 
           <div className={classes.notification}>
             <span>
