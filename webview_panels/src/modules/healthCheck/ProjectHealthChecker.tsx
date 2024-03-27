@@ -7,7 +7,6 @@ import {
   Button,
   Stack,
   Accordion,
-  Sidebar,
 } from "@uicore";
 import { executeRequestInSync } from "../app/requestExecutor";
 import classes from "./healthcheck.module.scss";
@@ -20,9 +19,8 @@ import {
 } from "react";
 import { panelLogger } from "@modules/logger";
 import { ArrowUpIcon, ArrowDownIcon, FolderIcon } from "@assets/icons";
-import { ModelInsight, ProjectHealthcheck } from "./types";
+import { ProjectHealthcheck } from "./types";
 import { IssueList } from "./IssueList";
-import { IssueDetail } from "./IssueDetail";
 
 interface DBTConfig {
   id: number;
@@ -282,7 +280,6 @@ const ProjectHealthcheckInput = ({
 };
 
 const ProjectHealthChecker = (): JSX.Element => {
-  const [modalOpen, setModalOpen] = useState(false);
   const [projectHealthcheck, setProjectHealthcheck] =
     useState<ProjectHealthcheck | null>(null);
   const handleHealthCheck = async (args: AltimateConfigProps) => {
@@ -295,9 +292,6 @@ const ProjectHealthChecker = (): JSX.Element => {
     panelLogger.log("projectHealthcheck:", result.projectHealthcheck);
     setProjectHealthcheck(result.projectHealthcheck);
   };
-  const [selectedInsight, setSeletedInsight] = useState<ModelInsight | null>(
-    null,
-  );
   return (
     <>
       <Stack direction="column">
@@ -306,22 +300,9 @@ const ProjectHealthChecker = (): JSX.Element => {
           handleClearProblems={() => setProjectHealthcheck(null)}
         />
         {projectHealthcheck && (
-          <IssueList
-            projectHealthcheck={projectHealthcheck}
-            setSeletedInsight={setSeletedInsight}
-            setModalOpen={setModalOpen}
-          />
+          <IssueList projectHealthcheck={projectHealthcheck} />
         )}
       </Stack>
-      <Sidebar
-        isOpen={modalOpen}
-        toggleModal={() => {
-          setModalOpen(false);
-          setSeletedInsight(null);
-        }}
-      >
-        {selectedInsight && <IssueDetail insight={selectedInsight} />}
-      </Sidebar>
     </>
   );
 };

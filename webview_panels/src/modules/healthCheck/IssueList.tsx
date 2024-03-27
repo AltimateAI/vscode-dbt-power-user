@@ -1,18 +1,15 @@
-import { Card, CardTitle, CardBody, Button, Stack, Dropdown } from "@uicore";
+import { Card, CardTitle, CardBody, Stack, Dropdown } from "@uicore";
 import classes from "./healthcheck.module.scss";
-import { Dispatch, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { panelLogger } from "@modules/logger";
 import { ArrowUpIcon, ArrowDownIcon } from "@assets/icons";
 import { ModelInsight, ProjectHealthcheck } from "./types";
+import { IssueDetail } from "./IssueDetail";
 
 const IssueList = ({
   projectHealthcheck,
-  setSeletedInsight,
-  setModalOpen,
 }: {
   projectHealthcheck: ProjectHealthcheck;
-  setSeletedInsight: Dispatch<React.SetStateAction<ModelInsight | null>>;
-  setModalOpen: Dispatch<React.SetStateAction<boolean>>;
 }): JSX.Element => {
   const [fileFilter, setFileFilter] = useState("");
   const [insightTypeFilter, setInsightTypeFilter] = useState("");
@@ -107,16 +104,7 @@ const IssueList = ({
                     <div>{insight.insight.name}</div>
                     <div>{insight.insight.type}</div>
                     <div>
-                      <Button
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSeletedInsight(insight);
-                          setModalOpen(true);
-                        }}
-                      >
-                        Details
-                      </Button>
+                      <IssueDetail insight={insight} />
                     </div>
                   </div>
                 ))}
