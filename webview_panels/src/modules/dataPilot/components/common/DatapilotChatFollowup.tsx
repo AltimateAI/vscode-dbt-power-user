@@ -24,6 +24,7 @@ import MarkdownRenderer from "@modules/markdown/Renderer";
 import AskDatapilotInput from "./AskDatapilotInput";
 import { useCallback, useMemo } from "react";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
+import { DatapilotResponseComponents } from "@modules/dataPilot/constants";
 
 interface Props {
   response: DataPilotChatFollowup;
@@ -33,12 +34,22 @@ interface Props {
   skipFollowupQuestions?: boolean;
 }
 const DatapilotChatFollowupComponent = ({
-  response: { datapilot_title, response, user_prompt, actions, state, id },
+  response: followup,
   command,
   showFollowup,
   hideFeedback,
   skipFollowupQuestions,
 }: Props): JSX.Element => {
+  const {
+    datapilotTitle,
+    response,
+    userPrompt,
+    actions,
+    state,
+    id,
+    component,
+    codeBlockActions,
+  } = followup;
   const { chat, onNewGeneration, history, isMaxFollowupReached } =
     useQueryAnalysisContext();
   const results = chat?.followups ?? [];
@@ -131,42 +142,39 @@ const DatapilotChatFollowupComponent = ({
   };
 
   const codeActions = useMemo(() => {
-    if (chat?.requestType !== RequestTypes.ADD_CUSTOM_TEST) {
-      return [];
-    }
-
-    const codeblockResponse = getCodeblock();
-    if (!codeblockResponse) {
-      return [];
-    }
-    if (codeblockResponse) {
+    if (chat?.requestType === RequestTypes.ADD_CUSTOM_TEST) {
+      const codeblockResponse = getCodeblock();
+      if (!codeblockResponse) {
+        return [];
+      }
       return [
         {
           title: codeblockResponse.type === "yaml" ? "Insert" : "Copy",
-          action: handleCodeblockAction,
+          onClick: handleCodeblockAction,
         },
       ];
     }
-    return [];
-  }, [getCodeblock, chat?.requestType]);
+    return codeBlockActions ?? [];
+  }, [getCodeblock, chat?.requestType, codeBlockActions]);
 
   return (
     <>
-      <UserQuery query={user_prompt} />
+      <UserQuery query={userPrompt} />
 
-      {state === RequestState.COMPLETED && !response ? null : (
+      {state === RequestState.COMPLETED && !response && !component ? null : (
         <li ref={onAiGenerationRender}>
           <Card>
             <CardTitle>
               {" "}
-              <AltimateIcon /> {datapilot_title}
+              <AltimateIcon /> {datapilotTitle}
             </CardTitle>
             <CardBody>
-              {response ? (
-                <div className={classes.response}>
-                  <MarkdownRenderer response={response} />
-                </div>
-              ) : null}
+              <div className={classes.response}>
+                {response ? <MarkdownRenderer response={response} /> : null}
+                {component ? (
+                  <>{DatapilotResponseComponents[component]}</>
+                ) : null}
+              </div>
               {state === RequestState.LOADING ? (
                 <Stack>
                   <Button color="warning">Loading...</Button>
@@ -179,7 +187,7 @@ const DatapilotChatFollowupComponent = ({
                       <Button
                         color="primary"
                         key={button.title}
-                        onClick={button.action}
+                        onClick={() => button.onClick(followup, button.title)}
                       >
                         {button.title}
                       </Button>

@@ -4,6 +4,7 @@ export enum QueryAnalysisType {
   EXPLAIN = "explain",
   FIX = "fix",
   MODIFY = "modify",
+  TRANSLATE = "translate",
 }
 export interface DatapilotQueryAnalysisChat extends DataPilotChat {
   query: string;

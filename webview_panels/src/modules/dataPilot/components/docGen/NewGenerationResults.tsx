@@ -62,13 +62,13 @@ const NewGenerationResults = ({
       {generatedResults.map((result) => (
         <>
           <li ref={onAiGenerationRender}>
-            <UserQuery query={result.user_prompt} />
+            <UserQuery query={result.userPrompt} />
           </li>
           <li key={result.name}>
             <Card>
               <CardTitle>
                 {" "}
-                <AltimateIcon /> {result.datapilot_title}
+                <AltimateIcon /> {result.datapilotTitle}
               </CardTitle>
               <CardBody>
                 {result.description}

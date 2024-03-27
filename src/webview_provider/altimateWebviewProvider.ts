@@ -19,7 +19,7 @@ import {
   ManifestCacheProjectAddedEvent,
   ManifestCacheChangedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
-import { AltimateRequest } from "../altimate";
+import { AltimateRequest, UserInputError } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { QueryManifestService } from "../services/queryManifestService";
@@ -130,7 +130,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         error instanceof PythonException
           ? error.exception.message
           : (error as Error).message;
-      this.dbtTerminal.error(command, message, error);
+      if (error instanceof UserInputError) {
+        this.dbtTerminal.debug(command, message, error);
+      } else {
+        this.dbtTerminal.error(command, message, error);
+      }
       if (showErrorNotification) {
         window.showErrorMessage(extendErrorWithSupportLinks(message));
       }
@@ -188,6 +192,15 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     try {
       switch (command) {
+        case "getProjectAdapterType":
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            () => {
+              return this.queryManifestService.getProject()?.getAdapterType();
+            },
+            command,
+          );
+          break;
         case "openFile":
           workspace.openTextDocument(params.path as string).then((doc) => {
             window.showTextDocument(doc);

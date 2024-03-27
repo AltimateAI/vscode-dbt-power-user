@@ -422,6 +422,10 @@ const app = createApp({
           break;
         case "renderError":
           this.updateError(event.data);
+          this.updateDispatchedCode(
+            event.data.raw_sql,
+            event.data.compiled_sql,
+          );
           this.focusPreviewPane();
           this.loading = false;
           this.endTimer();

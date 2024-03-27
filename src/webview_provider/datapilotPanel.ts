@@ -1,4 +1,4 @@
-import { commands, window, workspace } from "vscode";
+import { commands, Range, TextDocument, Uri, window, workspace } from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
@@ -8,12 +8,21 @@ import {
   HandleCommandProps,
 } from "./altimateWebviewProvider";
 import { DocGenService } from "../services/docGenService";
-import { AltimateRequest, QueryAnalysisType } from "../altimate";
+import {
+  AltimateRequest,
+  QueryAnalysisType,
+  QueryTranslateExplanationRequest,
+} from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
-import { QueryAnalysisService } from "../services/queryAnalysisService";
+import {
+  QueryAnalysisService,
+  QueryTranslateExplanationIncomingRequest,
+  QueryTranslateIncomingRequest,
+} from "../services/queryAnalysisService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DbtTestService } from "../services/dbtTestService";
+import { FileService } from "../services/fileService";
 
 @provideSingleton(DataPilotPanel)
 export class DataPilotPanel extends AltimateWebviewProvider {
@@ -32,6 +41,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     protected queryManifestService: QueryManifestService,
     protected dbtTerminal: DBTTerminal,
     private dbtTestService: DbtTestService,
+    private fileService: FileService,
   ) {
     super(
       dbtProjectContainer,
@@ -120,6 +130,38 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         });
         break;
 
+      case "querytranslate":
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const response =
+              (await this.queryAnalysisService.executeQueryTranslate(
+                params as unknown as QueryTranslateIncomingRequest,
+              )) as {
+                translatedSql: string;
+                userSql: string;
+              };
+            return { response };
+          },
+          command,
+          true,
+        );
+        break;
+      case "querytranslate:explanation":
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            const response =
+              await this.queryAnalysisService.executeQueryTranslateExplanation(
+                params as unknown as QueryTranslateExplanationIncomingRequest,
+                syncRequestId,
+              );
+            return { response };
+          },
+          command,
+          true,
+        );
+        break;
       case "queryAnalysis:explain":
         this.handleSyncRequestFromWebview(
           syncRequestId,
@@ -169,6 +211,31 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         );
         break;
 
+      case "file:replace-contents":
+        if (!params.sql || !params.filePath) {
+          return;
+        }
+        this.dbtTerminal.debug(
+          "datapilotpanel:replace_file_contents",
+          "replacing translated sql",
+          params,
+        );
+        const editor = await this.fileService.openFileByPath(
+          params.filePath as string,
+        );
+
+        editor.edit((edit) => {
+          const file = editor.document;
+          edit.replace(
+            new Range(
+              file.lineAt(0).range.start,
+              file.lineAt(file.lineCount - 1).range.end,
+            ),
+            params.sql as string,
+          );
+        });
+        break;
+
       case "queryanalysis:followup":
         this.handleSyncRequestFromWebview(
           syncRequestId,
@@ -211,6 +278,10 @@ export class DataPilotPanel extends AltimateWebviewProvider {
 
       case "dbtPowerUser.changeQuery":
         this.handleDatapilotEvent(QueryAnalysisType.MODIFY, payload);
+        break;
+
+      case "dbtPowerUser.translateQuery":
+        this.handleDatapilotEvent(QueryAnalysisType.TRANSLATE, payload);
         break;
 
       case "dbtPowerUser.openDatapilotWithQuery":
@@ -260,7 +331,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
   // handles events from sharedStateService events
   private handleDatapilotEvent(
     analysisType: QueryAnalysisType | null,
-    data?: { query?: string },
+    data?: { query?: string; meta?: Record<string, unknown> },
   ) {
     // reset the datapilot to start new session
     this.sendResponseToWebview({
@@ -282,6 +353,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         state: "UNINITIALIZED",
         //If analysis type is undefined, dont trigger api call
         analysisType,
+        meta: data?.meta,
       },
     });
   }

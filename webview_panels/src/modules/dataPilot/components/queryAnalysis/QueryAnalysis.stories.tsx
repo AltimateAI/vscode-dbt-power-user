@@ -95,7 +95,7 @@ export const ModifyFlow = {
       func: (request: Record<string, unknown>): unknown => {
         if (request.command === QueryAnalysisCommands.modify) {
           return DatapilotQueryExplainResultFactory.build({
-            datapilot_title: "Query change",
+            datapilotTitle: "Query change",
           });
         }
 
@@ -166,6 +166,50 @@ export const ExplainFlow = {
                 {
                   title: "Query explain",
                   command: QueryAnalysisCommands.explain,
+                },
+              ],
+            },
+          },
+          currentSessionId: queryAnalysisDefaultState.id,
+        },
+      },
+    }),
+  ],
+};
+
+export const TranslateFlow = {
+  render: (): JSX.Element => {
+    return <DataPilotPanel />;
+  },
+  parameters: {
+    vscode: {
+      func: (request: Record<string, unknown>): unknown => {
+        if (request.command === QueryAnalysisCommands.translate) {
+          return DatapilotQueryExplainResultFactory.build({
+            datapilotTitle: "Query translate",
+          });
+        }
+
+        if (request.command === "sendFeedback") {
+          return true;
+        }
+      },
+      timer: 500,
+    },
+  },
+  decorators: [
+    withReactContext({
+      Context: DataPilotContext,
+      initialState: {
+        state: {
+          items: {
+            [queryAnalysisDefaultState.id]: {
+              ...queryAnalysisDefaultState,
+              analysisType: QueryAnalysisType.TRANSLATE,
+              actions: [
+                {
+                  title: "Translate",
+                  command: QueryAnalysisCommands.translate,
                 },
               ],
             },

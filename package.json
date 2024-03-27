@@ -335,6 +335,11 @@
         "category": "dbt Power User"
       },
       {
+        "command": "dbtPowerUser.translateQuery",
+        "title": "Translate to other SQL dialect",
+        "category": "dbt Power User"
+      },
+      {
         "command": "dbtPowerUser.sqlToModel",
         "title": "Convert to dbt Model (Preview feature)",
         "shortTitle": "Convert to dbt Model",
@@ -549,6 +554,10 @@
         {
           "command": "dbtPowerUser.changeQuery",
           "group": "datapilot@3"
+        },
+        {
+          "command": "dbtPowerUser.translateQuery",
+          "group": "datapilot@4"
         }
       ],
       "editor/title": [

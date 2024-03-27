@@ -238,6 +238,14 @@ export interface ExecuteSQLResult {
   compiled_sql: string;
 }
 
+export class ExecuteSQLError extends Error {
+  compiled_sql: string;
+  constructor(message: string, compiled_sql: string) {
+    super(message);
+    this.compiled_sql = compiled_sql;
+  }
+}
+
 export interface CompilationResult {
   compiled_sql: string;
 }
@@ -328,8 +336,8 @@ export interface DBTProjectIntegration extends Disposable {
   deps(command: DBTCommand): Promise<string>;
   debug(command: DBTCommand): Promise<string>;
   // altimate commands
-  unsafeCompileNode(modelName: string): Promise<string | undefined>; // TODO: figure out when this is undefined
-  unsafeCompileQuery(query: string): Promise<string | undefined>; // TODO: figure out when this is undefined
+  unsafeCompileNode(modelName: string): Promise<string>;
+  unsafeCompileQuery(query: string): Promise<string>;
   validateSql(
     query: string,
     dialect: string,

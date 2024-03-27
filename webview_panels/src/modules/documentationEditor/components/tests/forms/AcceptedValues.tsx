@@ -1,6 +1,6 @@
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
-import { Button, OptionType, Select, Spinner, Stack } from "@uicore";
+import { LoadingButton, OptionType, Select, Stack } from "@uicore";
 import { useEffect, useState } from "react";
 import { Control, Controller, UseFormSetValue } from "react-hook-form";
 import { SaveRequest } from "../types";
@@ -80,9 +80,9 @@ const AcceptedValues = ({
       <Stack className="mt-2 justify-content-between align-items-baseline">
         <p className="p4">Hit enter to add value</p>
 
-        <Button disabled={isLoading} onClick={getDistinctColumnValues}>
-          {isLoading ? <Spinner /> : "Get distinct column values"}
-        </Button>
+        <LoadingButton onClick={getDistinctColumnValues} loading={isLoading}>
+          Get distinct column values
+        </LoadingButton>
       </Stack>
     </div>
   );
