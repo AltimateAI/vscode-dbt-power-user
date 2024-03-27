@@ -518,18 +518,6 @@ export class InsightsPanel extends AltimateWebviewProvider {
     }
   }
 
-  async getInsightConfigs(syncRequestId: string | undefined) {
-    const configs = await this.altimateRequest.getHealthcheckConfigs();
-    this._panel!.webview.postMessage({
-      command: "response",
-      args: {
-        syncRequestId,
-        body: { configs },
-        status: true,
-      },
-    });
-  }
-
   async handleCommand(message: HandleCommandProps): Promise<void> {
     const { command, syncRequestId, ...params } = message;
 
@@ -621,7 +609,12 @@ export class InsightsPanel extends AltimateWebviewProvider {
         await this.getProjects(syncRequestId);
         break;
       case "getInsightConfigs":
-        await this.getInsightConfigs(syncRequestId);
+        await this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => await this.altimateRequest.getHealthcheckConfigs(),
+          command,
+          true,
+        );
         break;
       default:
         super.handleCommand(message);

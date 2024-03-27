@@ -199,10 +199,10 @@ const ProjectHealthcheckInput = ({
 
   const getConfigs = useCallback(async () => {
     const result = (await executeRequestInSync("getInsightConfigs", {})) as {
-      configs: { items: DBTConfig[] };
+      items: DBTConfig[];
     };
     panelLogger.log("result->", result);
-    setConfigs(result.configs.items);
+    setConfigs(result.items);
   }, []);
 
   useEffect(() => {
