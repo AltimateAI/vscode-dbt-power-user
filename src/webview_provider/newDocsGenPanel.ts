@@ -125,11 +125,13 @@ export class NewDocsGenPanel
     const { command, syncRequestId, ...args } = message;
 
     switch (command) {
-      case "share:docs":
+      case "share:dbtdocs":
         this.handleSyncRequestFromWebview(
           syncRequestId,
           async () => {
-            return this.docGenService.shareDocs(args);
+            return this.docGenService.shareDbtDocs(
+              args as { name: string; comment?: string },
+            );
           },
           command,
         );

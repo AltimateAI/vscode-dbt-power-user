@@ -515,52 +515,66 @@ export class DocGenService {
     );
   }
 
-  private async readStreamToBlob(stream: ReadStream) {
-    return new Promise((resolve, reject) => {
-      const chunks: any[] = [];
-      stream.on("data", (chunk) => chunks.push(chunk));
-      stream.on("end", () => {
-        const blob = new Blob(chunks);
-        resolve(blob);
-      });
-      stream.on("error", reject);
-    });
-  }
-
-  public async shareDocs(data: { comment?: string }) {
-    const files = new FormData();
+  public async shareDbtDocs(data: { name: string; description?: string }) {
     const project = this.queryManifestService.getProject();
     const targetPath = project?.getTargetPath();
     if (!targetPath) {
       throw new Error("Invalid dbt project");
     }
 
-    const assetsPath = path.join(targetPath, "assets");
-    const assets = existsSync(assetsPath)
-      ? readdirSync(assetsPath).map((f) => path.join("assets", f))
-      : [];
-    await Promise.all(
-      ["manifest.json", "catalog.json", ...assets].map(async (file) =>
-        files.append(
-          "files",
-          (await this.readStreamToBlob(
-            createReadStream(path.join(targetPath, file)),
-          )) as Blob,
-          file,
-        ),
-      ),
+    this.dbtTerminal.debug(
+      "docGenService:shareDbtDocs",
+      "creating dbt share id",
+      data,
+    );
+    const createShareResult = await this.altimateRequest.fetch<{
+      share_id: number;
+      manifest_presigned_url: string;
+      catalog_presigned_url: string;
+    }>("dbt/dbt_docs_share", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+    this.dbtTerminal.debug(
+      "docGenService:shareDbtDocs",
+      "created dbt share id",
+      createShareResult,
     );
 
-    const response = await fetch("http://localhost:4000/upload", {
-      method: "POST",
-      body: files,
-    });
-    this.dbtTerminal.debug("network:response", "", response.status);
-    if (response.ok && response.status === 200) {
-      const jsonResponse = await response.json();
-      return jsonResponse.url;
-    }
+    const filePathMapping = {
+      "manifest.json": "manifest_presigned_url",
+      "catalog.json": "catalog_presigned_url",
+    };
 
-    throw new Error(response.statusText);
+    const fileUploadResponses = await Promise.all(
+      Object.keys(filePathMapping).map(async (file) => {
+        // @ts-ignore
+        const url = createShareResult[filePathMapping[file]];
+        if (!url) {
+          throw new Error(`Invalid presigned url for ${file}`);
+        }
+        return this.altimateRequest.uploadToS3(
+          url,
+          {},
+          path.join(targetPath, file),
+        );
+      }),
+    );
+
+    if (fileUploadResponses.length !== 2) {
+      throw new Error(
+        "Unable to upload required artifacts. Please try again later.",
+      );
+    }
+    const verifyResult = await this.altimateRequest.fetch<{
+      dbt_docs_share_url: string;
+    }>("dbt/dbt_docs_share/verify_upload/", {
+      method: "POST",
+      body: JSON.stringify({ share_id: createShareResult.share_id }),
+    });
+    if (!verifyResult.dbt_docs_share_url) {
+      throw new Error("Unable to verify uploads. Please try again.");
+    }
+    return verifyResult.dbt_docs_share_url;
   }
 }

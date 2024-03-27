@@ -2,17 +2,17 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import { Controller, useForm } from "react-hook-form";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
-import { Button, Input, Drawer } from "@uicore";
+import { Input, Drawer, LoadingButton } from "@uicore";
 import { useState } from "react";
 
 const schema = Yup.object({
-  title: Yup.string().optional(),
-  comment: Yup.string().optional(),
+  name: Yup.string().optional(),
+  description: Yup.string().optional(),
 }).required();
 
 interface ShareRequest {
-  comment?: string;
-  title?: string;
+  description?: string;
+  name?: string;
 }
 
 const ShareDbtDocsButton = (): JSX.Element => {
@@ -22,7 +22,7 @@ const ShareDbtDocsButton = (): JSX.Element => {
   });
 
   const handleShare = async (data: ShareRequest) => {
-    const result = (await executeRequestInSync("share:docs", {
+    const result = (await executeRequestInSync("share:dbtdocs", {
       ...data,
     })) as string;
     setSharedUrl(result);
@@ -42,7 +42,7 @@ const ShareDbtDocsButton = (): JSX.Element => {
       <form onSubmit={handleSubmit(handleShare)}>
         <Controller
           control={control}
-          name="title"
+          name="name"
           render={({ field: { onChange } }) => (
             <Input
               type="textarea"
@@ -54,7 +54,7 @@ const ShareDbtDocsButton = (): JSX.Element => {
 
         <Controller
           control={control}
-          name="comment"
+          name="description"
           render={({ field: { onChange } }) => (
             <Input
               type="textarea"
@@ -64,9 +64,9 @@ const ShareDbtDocsButton = (): JSX.Element => {
           )}
         />
 
-        <Button color="primary" type="submit">
-          Share
-        </Button>
+        <LoadingButton loading={false} color="primary" type="submit">
+          Discuss
+        </LoadingButton>
       </form>
     </Drawer>
   );
