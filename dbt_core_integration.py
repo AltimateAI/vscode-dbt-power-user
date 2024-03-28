@@ -112,21 +112,23 @@ def validate_sql(
 
 def project_healthcheck(manifest_path, catalog_path=None, config_path=None, config=None):
     try:
-        from datapilot.config.config import load_config
-        from datapilot.core.platforms.dbt.constants import MODEL
-
-        # from datapilot.core.platforms.dbt.constants import PROJECT
-        from datapilot.core.platforms.dbt.executor import DBTInsightGenerator
         import logging
         import json
 
-        logging.basicConfig(level=logging.INFO)
+        from datapilot.config.config import load_config
+        from datapilot.core.platforms.dbt.utils import load_catalog
+        from datapilot.core.platforms.dbt.utils import load_manifest
+        from datapilot.core.platforms.dbt.constants import MODEL
+        from datapilot.core.platforms.dbt.executor import DBTInsightGenerator
 
+        logging.basicConfig(level=logging.INFO)
+        manifest = load_manifest(manifest_path)
+        catalog = load_catalog(catalog_path) if catalog_path else None
         if not config and config_path:
             config = load_config(config_path)
         insight_generator = DBTInsightGenerator(
-            manifest_path,
-            catalog_path=catalog_path,
+            manifest=manifest,
+            catalog=catalog,
             config=config,
         )
         reports = insight_generator.run()

@@ -195,7 +195,7 @@ export class DBTProject implements Disposable {
     if (!targetPath) {
       return;
     }
-    return path.join(targetPath, "manifest.json");
+    return path.join(targetPath, DBTProject.MANIFEST_FILE);
   }
 
   getCatalogPath() {

@@ -860,13 +860,14 @@ export class DBTCloudProjectIntegration
 
   async performDatapilotHealthcheck({
     manifestPath,
+    catalogPath,
     config,
     configPath,
   }: HealthcheckArgs): Promise<ProjectHealthcheck> {
     this.throwBridgeErrorIfAvailable();
     const result = await this.python?.lock<ProjectHealthcheck>(
       (python) =>
-        python!`to_dict(project_healthcheck(${manifestPath}, None, ${configPath}, ${config}))`,
+        python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
     );
     return result;
   }
