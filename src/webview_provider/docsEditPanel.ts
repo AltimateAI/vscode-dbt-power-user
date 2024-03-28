@@ -266,12 +266,77 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     return (metadata as TestMetadataAcceptedValues).values !== undefined;
   }
 
+  private getTestDataByModel(message: any, modelName: string) {
+    const tests = message.updatedTests as undefined | TestMetaData[];
+
+    if (!tests?.length) {
+      this.terminal.debug(
+        "docsEditViewPanel:getTestDataByModel",
+        "No test data passed",
+      );
+      return;
+    }
+
+    const updatedTests = tests.filter((test) => {
+      const modelNameInTest = test.test_metadata?.kwargs.model;
+      if (test.column_name || !modelNameInTest) {
+        return false;
+      }
+      if (modelNameInTest === modelName) {
+        return true;
+      }
+      // model name could be {{ get_where_subquery(ref('dim_hosts_cleansed')) }}
+      if (modelNameInTest.match(/'([^']+)'/)?.[1] === modelName) {
+        return true;
+      }
+      return false;
+    });
+
+    const finalTests = updatedTests
+      .map((test) => {
+        if (!test?.test_metadata) {
+          return null;
+        }
+        const { name, namespace, kwargs } = test.test_metadata;
+        const fullName: string = namespace ? `${namespace}.${name}` : name;
+        // Add extra config from external packages or test macros
+        const testMetaKwargs = this.getTestMetadataKwArgs(kwargs, fullName);
+        return testMetaKwargs || fullName;
+      })
+      .filter((t) => Boolean(t));
+    return finalTests.length ? finalTests : undefined;
+  }
+
+  private getTestMetadataKwArgs(
+    kwargs: TestMetadataAcceptedValues | TestMetadataRelationships,
+    fullName: string,
+  ) {
+    if (kwargs) {
+      const rest = Object.entries(kwargs).reduce(
+        (acc: Record<string, unknown>, [key, value]) => {
+          // Ignore these fields as it will be added by default
+          if (key === "column_name" || key === "model") {
+            return acc;
+          }
+
+          acc[key] = value;
+          return acc;
+        },
+        {},
+      );
+      if (Object.keys(rest)?.length) {
+        return {
+          [fullName]: rest,
+        };
+      }
+    }
+  }
   private getTestDataByColumn(
     message: any,
     columnName: string,
     existingColumn?: any,
   ) {
-    const tests = message.tests as undefined | TestMetaData[];
+    const tests = message.updatedTests as undefined | TestMetaData[];
 
     if (!tests?.length) {
       this.terminal.debug(
@@ -288,7 +353,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       return;
     }
 
-    const data = columnTests.map((test, i) => {
+    const data = columnTests.map((test) => {
       if (!test.test_metadata) {
         return null;
       }
@@ -331,26 +396,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       }
 
       // Add extra config from external packages or test macros
-      if (kwargs) {
-        const rest = Object.entries(kwargs).reduce(
-          (acc: Record<string, unknown>, [key, value]) => {
-            // Ignore these fields as it will be added by default
-            if (key === "column_name" || key === "model") {
-              return acc;
-            }
-
-            acc[key] = value;
-            return acc;
-          },
-          {},
-        );
-        if (Object.keys(rest)?.length) {
-          return {
-            [fullName]: rest,
-          };
-        }
-      }
-      return fullName;
+      // Add extra config from external packages or test macros
+      const testMetaKwargs = this.getTestMetadataKwArgs(kwargs, fullName);
+      return testMetaKwargs || fullName;
     });
 
     this.terminal.debug(
@@ -582,6 +630,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       (model: any) => {
                         if (model.name === message.name) {
                           model.description = message.description;
+                          model.tests = this.getTestDataByModel(
+                            message,
+                            model.name,
+                          );
                           model.columns = message.columns.map((column: any) => {
                             const existingColumn =
                               model.columns &&

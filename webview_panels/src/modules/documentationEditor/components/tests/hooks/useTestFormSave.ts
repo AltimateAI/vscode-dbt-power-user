@@ -22,10 +22,12 @@ export enum TestOperation {
 
 interface IncomingTest {
   tests: {
-    columns: { name: string; tests: (string | Record<string, unknown>)[] }[];
+    name: string;
+    tests?: (string | Record<string, unknown>)[];
+    columns?: { name: string; tests: (string | Record<string, unknown>)[] }[];
   };
   model: string;
-  column: string;
+  column?: string;
 }
 
 const useTestFormSave = (): {
@@ -60,7 +62,35 @@ const useTestFormSave = (): {
 
   const handleTestInsert = (params: IncomingTest) => {
     const testsData = [...(currentDocsTests ?? [])];
-    params.tests.columns.forEach((column) => {
+    // model tests
+    params.tests.tests?.forEach((t) => {
+      const key = typeof t === "string" ? t : Object.keys(t)?.[0];
+      const rest =
+        typeof t === "object" && typeof t[key] === "object"
+          ? (t[key] as Record<string, unknown>)
+          : {};
+
+      if (key) {
+        testsData.push({
+          alias: "",
+          database: "",
+          schema: "",
+          key: `${key}_${params.model}`,
+          path: `${key}_${params.model}`,
+          test_metadata: {
+            // @ts-expect-error test
+            kwargs: {
+              model: params.model,
+              ...rest,
+            },
+            name: key,
+          },
+        });
+      }
+    });
+
+    // column tests
+    params.tests.columns?.forEach((column) => {
       column.tests.forEach((t) => {
         const key = typeof t === "string" ? t : Object.keys(t)?.[0];
         const rest =
