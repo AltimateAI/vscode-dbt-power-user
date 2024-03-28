@@ -192,6 +192,18 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     try {
       switch (command) {
+        case "fetch":
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            () => {
+              return this.altimateRequest.fetch(
+                params.endpoint as string,
+                params.fetchArgs as Record<string, unknown>,
+              );
+            },
+            command,
+          );
+          break;
         case "getProjectAdapterType":
           this.handleSyncRequestFromWebview(
             syncRequestId,
@@ -415,7 +427,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               and only allow scripts that have a specific nonce.
               Added unsafe-inline for css due to csp issue: https://github.com/JedWatson/react-select/issues/4631
               -->
-            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}';">
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}'; connect-src https://altimate-datapilot-dev.s3.amazonaws.com">
             <title>VSCode DBT Power user extension</title>
             <link rel="stylesheet" type="text/css" href="${indexCss}">
             <link rel="stylesheet" type="text/css" href="${codiconsUri}">

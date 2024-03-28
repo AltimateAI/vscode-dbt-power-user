@@ -3,6 +3,7 @@ import { AppStateProps, Themes } from "./types";
 
 export const initialState = {
   theme: Themes.Dark,
+  isComponentsApiInitialized: false,
 } as AppStateProps;
 
 const appSlice = createSlice({
@@ -12,8 +13,11 @@ const appSlice = createSlice({
     updateTheme: (state, action: PayloadAction<Themes>) => {
       state.theme = action.payload;
     },
+    updateIsComponentsApiInitialized: (state, action: PayloadAction<boolean>) => {
+      state.isComponentsApiInitialized = action.payload;
+    },
   },
 });
 
-export const { updateTheme } = appSlice.actions;
+export const { updateTheme, updateIsComponentsApiInitialized } = appSlice.actions;
 export default appSlice;
