@@ -17,6 +17,7 @@ export { default as EditIcon } from "./edit.svg?react";
 export { default as EmptySquareIcon } from "./square.svg?react";
 export { default as CheckedSquareIcon } from "./checked-square.svg?react";
 export { default as TestsIcon } from "./tests.svg?react";
+export { default as FolderIcon } from "./folder.svg?react";
 
 interface Props {
   icon: string;
@@ -52,6 +53,14 @@ export const GithubIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
 export const FilesIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
   <Icon icon="files" {...props} />
 );
+
+export const ArrowUpIcon = (
+  props: HTMLAttributes<HTMLElement>,
+): JSX.Element => <Icon icon="chevron-up" {...props} />;
+
+export const ArrowDownIcon = (
+  props: HTMLAttributes<HTMLElement>,
+): JSX.Element => <Icon icon="chevron-down" {...props} />;
 
 export const CheckedIcon = (
   props: HTMLAttributes<HTMLElement>,

@@ -31,6 +31,7 @@ import {
   SourceNode,
   Node,
   ExecuteSQLError,
+  HealthcheckArgs,
 } from "./dbtIntegration";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
@@ -74,6 +75,38 @@ interface DeferConfig {
   manifestPathForDeferral: string;
   manifestPathType?: ManifestPathType;
   dbtCoreIntegrationId?: number;
+}
+
+type InsightType = "Modelling" | "Test" | "structure";
+
+interface Insight {
+  name: string;
+  type: InsightType;
+  message: string;
+  recommendation: string;
+  reason_to_flag: string;
+  metadata: {
+    model?: string;
+    model_unique_id?: string;
+    model_type?: string;
+    convention?: string | null;
+  };
+}
+
+type Severity = "ERROR" | "WARNING";
+
+interface ModelInsight {
+  insight: Insight;
+  severity: Severity;
+  unique_id: string;
+  package_name: string;
+  path: string;
+  original_file_path: string;
+}
+
+export interface ProjectHealthcheck {
+  model_insights: Record<string, ModelInsight>;
+  // package_insights: any;
 }
 
 @provideSingleton(DBTCoreDetection)
@@ -561,6 +594,10 @@ export class DBTCoreProjectIntegration
     this.addCommandToQueue(this.dbtCoreCommand(command));
   }
 
+  async generateDocsImmediately(command: DBTCommand) {
+    return await this.dbtCoreCommand(command).execute();
+  }
+
   async deps(command: DBTCommand) {
     const { stdout, stderr } = await this.dbtCoreCommand(command).execute();
     if (stderr) {
@@ -949,5 +986,19 @@ export class DBTCoreProjectIntegration
         x.dispose();
       }
     }
+  }
+
+  async performDatapilotHealthcheck({
+    manifestPath,
+    catalogPath,
+    config,
+    configPath,
+  }: HealthcheckArgs): Promise<ProjectHealthcheck> {
+    this.throwBridgeErrorIfAvailable();
+    const result = await this.python?.lock<ProjectHealthcheck>(
+      (python) =>
+        python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
+    );
+    return result;
   }
 }

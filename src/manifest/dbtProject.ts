@@ -48,6 +48,7 @@ import {
   DBTNode,
   DBColumn,
   SourceNode,
+  HealthcheckArgs,
 } from "../dbt_client/dbtIntegration";
 import { DBTCoreProjectIntegration } from "../dbt_client/dbtCoreIntegration";
 import { DBTCloudProjectIntegration } from "../dbt_client/dbtCloudIntegration";
@@ -55,6 +56,7 @@ import { AltimateRequest, NoCredentialsError } from "../altimate";
 import { ValidationProvider } from "../validation_provider";
 import { ModelNode } from "../altimate";
 import { ColumnMetaData } from "../domain";
+import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -186,6 +188,63 @@ export class DBTProject implements Disposable {
 
   getMacroPaths() {
     return this.dbtProjectIntegration.getMacroPaths();
+  }
+
+  getManifestPath() {
+    const targetPath = this.getTargetPath();
+    if (!targetPath) {
+      return;
+    }
+    return path.join(targetPath, DBTProject.MANIFEST_FILE);
+  }
+
+  getCatalogPath() {
+    const targetPath = this.getTargetPath();
+    if (!targetPath) {
+      return;
+    }
+    return path.join(targetPath, "catalog.json");
+  }
+
+  async performDatapilotHealthcheck(args: AltimateConfigProps) {
+    const manifestPath = this.getManifestPath();
+    if (!manifestPath) {
+      throw new Error(
+        `Unable to find manifest path for project ${this.getProjectName()}`,
+      );
+    }
+    const healthcheckArgs: HealthcheckArgs = { manifestPath };
+    if ("configPath" in args) {
+      healthcheckArgs.configPath = args.configPath;
+    } else {
+      healthcheckArgs.config = args.config;
+      if (
+        args.config_schema.some((i) => i.files_required.includes("Catalog"))
+      ) {
+        const docsGenerateCommand =
+          this.dbtCommandFactory.createDocsGenerateCommand();
+        docsGenerateCommand.focus = false;
+        docsGenerateCommand.logToTerminal = false;
+        docsGenerateCommand.showProgress = false;
+        await this.dbtProjectIntegration.generateDocsImmediately(
+          docsGenerateCommand,
+        );
+        healthcheckArgs.catalogPath = this.getCatalogPath();
+        if (!healthcheckArgs.catalogPath) {
+          throw new Error(
+            `Unable to find catalog path for project ${this.getProjectName()}`,
+          );
+        }
+      }
+    }
+    this.terminal.debug(
+      "performDatapilotHealthcheck",
+      "Performing healthcheck",
+      healthcheckArgs,
+    );
+    return this.dbtProjectIntegration.performDatapilotHealthcheck(
+      healthcheckArgs,
+    );
   }
 
   async initialize() {
