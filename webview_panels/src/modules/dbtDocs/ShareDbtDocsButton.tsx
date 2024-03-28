@@ -17,7 +17,11 @@ interface ShareRequest {
 
 const ShareDbtDocsButton = (): JSX.Element => {
   const [sharedUrl, setSharedUrl] = useState("");
-  const { control, handleSubmit } = useForm<ShareRequest>({
+  const {
+    control,
+    handleSubmit,
+    formState: { isSubmitting },
+  } = useForm<ShareRequest>({
     resolver: yupResolver(schema),
   });
 
@@ -64,7 +68,7 @@ const ShareDbtDocsButton = (): JSX.Element => {
           )}
         />
 
-        <LoadingButton loading={false} color="primary" type="submit">
+        <LoadingButton loading={isSubmitting} color="primary" type="submit">
           Discuss
         </LoadingButton>
       </form>
