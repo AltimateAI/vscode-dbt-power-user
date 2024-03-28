@@ -54,7 +54,7 @@ const ManualConfig = (props: ManualConfigProps) => {
               {props.selectedConfig === -1
                 ? "Manual"
                 : props.configs.find((c) => c.id === props.selectedConfig)
-                    ?.name ?? "Select Config for Checks"}
+                    ?.name ?? "Select healthcheck configs"}
             </div>
             <div className="spacer" />
             {open ? <ArrowUpIcon /> : <ArrowDownIcon />}
@@ -201,12 +201,10 @@ const ProjectHealthcheckInput = ({
     const result = (await executeRequestInSync("getInsightConfigs", {})) as {
       items: DBTConfig[];
     };
-    panelLogger.log("result->", result);
     setConfigs(result.items);
   }, []);
 
   useEffect(() => {
-    panelLogger.log("project health");
     void getProjects();
     void getConfigs();
   }, []);
@@ -217,11 +215,11 @@ const ProjectHealthcheckInput = ({
   return (
     <Card className={classes.container}>
       <CardTitle tag="h5">
-        Perform project health check
-        <Tag color="primary">Performance</Tag>
+        Perform project healthcheck
+        <Tag color="primary">Governance</Tag>
       </CardTitle>
       <CardBody>
-        <CardText>Run project health check</CardText>
+        <CardText>Run project healthcheck</CardText>
         <Stack direction="column">
           <SaasConfig
             projects={projects}
