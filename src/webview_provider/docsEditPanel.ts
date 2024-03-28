@@ -292,16 +292,19 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       return false;
     });
 
-    return updatedTests.map((test) => {
-      if (!test?.test_metadata) {
-        return null;
-      }
-      const { name, namespace, kwargs } = test.test_metadata;
-      const fullName: string = namespace ? `${namespace}.${name}` : name;
-      // Add extra config from external packages or test macros
-      const testMetaKwargs = this.getTestMetadataKwArgs(kwargs, fullName);
-      return testMetaKwargs || fullName;
-    });
+    const finalTests = updatedTests
+      .map((test) => {
+        if (!test?.test_metadata) {
+          return null;
+        }
+        const { name, namespace, kwargs } = test.test_metadata;
+        const fullName: string = namespace ? `${namespace}.${name}` : name;
+        // Add extra config from external packages or test macros
+        const testMetaKwargs = this.getTestMetadataKwArgs(kwargs, fullName);
+        return testMetaKwargs || fullName;
+      })
+      .filter((t) => Boolean(t));
+    return finalTests.length ? finalTests : undefined;
   }
 
   private getTestMetadataKwArgs(
