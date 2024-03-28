@@ -39,7 +39,6 @@ import agate
 from dbt.adapters.factory import get_adapter_class_by_name
 from dbt.config.runtime import RuntimeConfig
 from dbt.contracts.graph.manifest import NodeType
-from dbt.events.functions import fire_event  # monkey-patched for perf
 from dbt.flags import set_from_args
 from dbt.node_types import NodeType
 from dbt.parser.manifest import ManifestLoader, process_node
@@ -214,6 +213,10 @@ def find_package_paths(project_directories):
 # Performance hacks
 # jinja.get_rendered = memoize_get_rendered(jinja.get_rendered)
 disable_tracking()
+try:
+    from dbt.events.functions import fire_event  # monkey-patched for perf
+except ImportError:
+    from dbt_common.events.functions import fire_event  # dbt 1.8
 fire_event = lambda e: None
 
 
