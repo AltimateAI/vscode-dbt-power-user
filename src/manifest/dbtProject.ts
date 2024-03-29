@@ -65,6 +65,7 @@ interface FileNameTemplateMap {
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
   static MANIFEST_FILE = "manifest.json";
+  static CATALOG_FILE = "catalog.json";
 
   static RESOURCE_TYPE_MODEL = "model";
   static RESOURCE_TYPE_ANALYSIS = "analysis";
@@ -203,7 +204,7 @@ export class DBTProject implements Disposable {
     if (!targetPath) {
       return;
     }
-    return path.join(targetPath, "catalog.json");
+    return path.join(targetPath, DBTProject.CATALOG_FILE);
   }
 
   async performDatapilotHealthcheck(args: AltimateConfigProps) {

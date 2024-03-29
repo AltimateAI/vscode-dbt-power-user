@@ -79,7 +79,7 @@ interface SQLToModelRequest {
   sources: SourceMetaData[];
 }
 
-interface DBTConfig {
+interface DBTProjectHealthConfig {
   id: number;
   name: string;
   description: string;
@@ -88,8 +88,8 @@ interface DBTConfig {
   config_schema: unknown[];
 }
 
-interface DBTConfigResponse {
-  items: DBTConfig[];
+interface DBTProjectHealthConfigResponse {
+  items: DBTProjectHealthConfig[];
 }
 
 export interface SQLToModelResponse {
@@ -604,7 +604,7 @@ export class AltimateRequest {
   }
 
   async getHealthcheckConfigs() {
-    return this.fetch<DBTConfigResponse>(
+    return this.fetch<DBTProjectHealthConfigResponse>(
       `dbtconfig?${new URLSearchParams({ size: "100" }).toString()}`,
     );
   }
