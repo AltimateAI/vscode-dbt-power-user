@@ -227,7 +227,7 @@ export class DBTProject implements Disposable {
         docsGenerateCommand.focus = false;
         docsGenerateCommand.logToTerminal = false;
         docsGenerateCommand.showProgress = false;
-        await this.dbtProjectIntegration.generateDocsImmediately(
+        await this.dbtProjectIntegration.executeCommandImmediately(
           docsGenerateCommand,
         );
         healthcheckArgs.catalogPath = this.getCatalogPath();

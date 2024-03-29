@@ -423,7 +423,7 @@ export class DBTCloudProjectIntegration
     );
   }
 
-  async generateDocsImmediately(command: DBTCommand) {
+  async executeCommandImmediately(command: DBTCommand) {
     return await this.dbtCloudCommand(command).execute();
   }
 
