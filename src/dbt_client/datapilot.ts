@@ -41,11 +41,8 @@ export class AltimateDatapilot {
         envVars: this.pythonEnvironment.environmentVariables,
       })
       .completeWithTerminalOutput(this.dbtTerminal);
-    if (stderr) {
+    if (!stdout.includes("Successfully installed") && stderr) {
       throw new Error(stderr);
-    }
-    if (!stdout.includes(`Successfully installed ${this.packageName}`)) {
-      throw new Error(`Unable to install ${this.packageName}: ${stdout}`);
     }
   }
 }
