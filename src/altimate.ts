@@ -608,4 +608,8 @@ export class AltimateRequest {
       `dbtconfig?${new URLSearchParams({ size: "100" }).toString()}`,
     );
   }
+
+  async logDBTHealthcheckConfig(configId: string) {
+    return this.fetch(`dbtconfig/${configId}/download`);
+  }
 }

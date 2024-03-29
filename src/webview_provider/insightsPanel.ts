@@ -608,6 +608,11 @@ export class InsightsPanel extends AltimateWebviewProvider {
       case "getProjects":
         await this.getProjects(syncRequestId);
         break;
+      case "logDBTHealthcheckConfig":
+        await this.altimateRequest.logDBTHealthcheckConfig(
+          params.configId as string,
+        );
+        break;
       case "getInsightConfigs":
         await this.handleSyncRequestFromWebview(
           syncRequestId,

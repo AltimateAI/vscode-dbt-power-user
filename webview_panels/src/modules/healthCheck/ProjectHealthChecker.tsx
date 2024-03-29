@@ -254,6 +254,11 @@ const ProjectHealthcheckInput = ({
             <Button
               color={isEnabled ? "primary" : "secondary"}
               onClick={() => {
+                if (selectedConfig !== -1) {
+                  void executeRequestInSync("logDBTHealthcheckConfig", {
+                    configId: selectedConfig,
+                  });
+                }
                 const args = {
                   projectRoot: selectedProject,
                   ...(selectedConfig === -1
