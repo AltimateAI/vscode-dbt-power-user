@@ -242,9 +242,17 @@ export class DBTProject implements Disposable {
       "Performing healthcheck",
       healthcheckArgs,
     );
-    return this.dbtProjectIntegration.performDatapilotHealthcheck(
-      healthcheckArgs,
-    );
+    const projectHealthcheck =
+      await this.dbtProjectIntegration.performDatapilotHealthcheck(
+        healthcheckArgs,
+      );
+    // temp fix: ideally datapilot should return absolute path
+    for (const key in projectHealthcheck.model_insights) {
+      for (const item of projectHealthcheck.model_insights[key]) {
+        item.path = path.join(this.projectRoot.fsPath, item.original_file_path);
+      }
+    }
+    return projectHealthcheck;
   }
 
   async initialize() {

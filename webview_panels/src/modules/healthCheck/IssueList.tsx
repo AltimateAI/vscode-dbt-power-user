@@ -5,6 +5,7 @@ import { panelLogger } from "@modules/logger";
 import { ArrowDownIcon, ArrowRightIcon } from "@assets/icons";
 import { ModelInsight, ProjectHealthcheck } from "./types";
 import { IssueDetail } from "./IssueDetail";
+import { executeRequestInSync } from "@modules/app/requestExecutor";
 
 const IssueList = ({
   projectHealthcheck,
@@ -86,6 +87,9 @@ const IssueList = ({
                 onClick={(e) => {
                   e.stopPropagation();
                   setOpenAccordion((prev) => ({ ...prev, [k]: !prev[k] }));
+                  void executeRequestInSync("openFile", {
+                    path: v[0].path,
+                  });
                 }}
               >
                 <div className="d-flex gap-sm align-items-center">

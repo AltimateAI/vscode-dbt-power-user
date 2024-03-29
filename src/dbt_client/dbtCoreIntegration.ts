@@ -105,7 +105,7 @@ interface ModelInsight {
 }
 
 export interface ProjectHealthcheck {
-  model_insights: Record<string, ModelInsight>;
+  model_insights: Record<string, ModelInsight[]>;
   // package_insights: any;
 }
 
