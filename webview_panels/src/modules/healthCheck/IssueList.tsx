@@ -2,7 +2,7 @@ import { Card, CardTitle, CardBody, Stack, Dropdown } from "@uicore";
 import classes from "./healthcheck.module.scss";
 import { useMemo, useState } from "react";
 import { panelLogger } from "@modules/logger";
-import { ArrowUpIcon, ArrowDownIcon } from "@assets/icons";
+import { ArrowDownIcon, ArrowRightIcon } from "@assets/icons";
 import { ModelInsight, ProjectHealthcheck } from "./types";
 import { IssueDetail } from "./IssueDetail";
 
@@ -89,7 +89,7 @@ const IssueList = ({
                 }}
               >
                 <div className="d-flex gap-sm align-items-center">
-                  {openAccordion[k] ? <ArrowUpIcon /> : <ArrowDownIcon />}
+                  {openAccordion[k] ? <ArrowDownIcon /> : <ArrowRightIcon />}
                   <span>{v[0].original_file_path}</span>
                 </div>
                 <div />

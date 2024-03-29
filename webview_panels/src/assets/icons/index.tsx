@@ -62,6 +62,14 @@ export const ArrowDownIcon = (
   props: HTMLAttributes<HTMLElement>,
 ): JSX.Element => <Icon icon="chevron-down" {...props} />;
 
+export const ArrowRightIcon = (
+  props: HTMLAttributes<HTMLElement>,
+): JSX.Element => <Icon icon="chevron-right" {...props} />;
+
+export const ArrowLeftIcon = (
+  props: HTMLAttributes<HTMLElement>,
+): JSX.Element => <Icon icon="chevron-left" {...props} />;
+
 export const CheckedIcon = (
   props: HTMLAttributes<HTMLElement>,
 ): JSX.Element => <Icon icon="pass-filled" {...props} />;

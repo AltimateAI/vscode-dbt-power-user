@@ -18,7 +18,7 @@ import {
   useState,
 } from "react";
 import { panelLogger } from "@modules/logger";
-import { ArrowUpIcon, ArrowDownIcon, FolderIcon } from "@assets/icons";
+import { ArrowDownIcon, FolderIcon, ArrowLeftIcon } from "@assets/icons";
 import { ProjectHealthcheck } from "./types";
 import { IssueList } from "./IssueList";
 
@@ -57,7 +57,7 @@ const ManualConfig = (props: ManualConfigProps) => {
                     ?.name ?? "Select healthcheck configs"}
             </div>
             <div className="spacer" />
-            {open ? <ArrowUpIcon /> : <ArrowDownIcon />}
+            {open ? <ArrowDownIcon /> : <ArrowLeftIcon />}
           </Stack>
         )}
       >
@@ -137,7 +137,7 @@ const SaasConfig = (props: SaasConfigProps) => {
               )?.projectName ?? "Select Projects"}
             </div>
             <div className="spacer" />
-            {open ? <ArrowUpIcon /> : <ArrowDownIcon />}
+            {open ? <ArrowDownIcon /> : <ArrowLeftIcon />}
           </Stack>
         )}
       >
