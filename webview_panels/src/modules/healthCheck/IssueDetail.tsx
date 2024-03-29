@@ -4,7 +4,7 @@ import classes from "./healthcheck.module.scss";
 
 const DetailItem = ({ label, value }: { label: string; value: string }) => (
   <div>
-    <div className="text-para mb-1">{label}</div>
+    <div className="text-para mb-1 fw-semibold">{label}</div>
     <Card className={classes.sidebarCard + " text-para"}>{value}</Card>
   </div>
 );
@@ -12,7 +12,7 @@ const DetailItem = ({ label, value }: { label: string; value: string }) => (
 const IssueDetail = ({ insight }: { insight: ModelInsight }): JSX.Element => {
   return (
     <Drawer buttonProps={{ size: "sm" }} buttonText={<>Details</>}>
-      <div className="p-2 h-100 d-flex flex-column gap-sm">
+      <div className="p-2 h-100 d-flex flex-column gap-md">
         <div className="fw-semibold fs-4">{insight.insight.name}</div>
         <DetailItem label="File" value={insight.original_file_path} />
         <DetailItem label="Type" value={insight.insight.type} />

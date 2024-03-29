@@ -219,7 +219,10 @@ const ProjectHealthcheckInput = ({
         <Tag color="primary">Governance</Tag>
       </CardTitle>
       <CardBody>
-        <CardText>Run project healthcheck</CardText>
+        <CardText>
+          Find areas of a dbt project that are misaligned with dbt best
+          practices
+        </CardText>
         <Stack direction="column">
           <SaasConfig
             projects={projects}
