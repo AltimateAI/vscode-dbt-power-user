@@ -59,6 +59,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
   protected panelDescription = "Altimate default webview";
 
   protected _panel: WebviewView | undefined = undefined;
+  protected _webview: Webview | undefined = undefined;
   protected _disposables: Disposable[] = [];
   protected eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   // Flag to know if panel's webview is rendered and ready to receive message
@@ -93,7 +94,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     syncRequestId,
     ...rest
   }: SendMessageProps) {
-    this._panel?.webview.postMessage({
+    this._webview?.postMessage({
       command,
       args: {
         syncRequestId,
@@ -170,8 +171,8 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     }
   }
 
-  protected renderWebviewView(context: WebviewViewResolveContext) {
-    const webview = this._panel!.webview!;
+  protected renderWebviewView(webview: Webview) {
+    this._webview = webview;
     this._panel!.webview.onDidReceiveMessage(this.handleCommand, this, []);
 
     webview.html = this.getHtml(webview, this.dbtProjectContainer.extensionUri);
@@ -350,7 +351,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
   ): void | Thenable<void> {
     this._panel = panel;
     this.setupWebviewOptions(context);
-    this.renderWebviewView(context);
+    this.renderWebviewView(this._panel!.webview);
   }
 
   private setupWebviewOptions(context: WebviewViewResolveContext) {
@@ -370,7 +371,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     };
   }
 
-  private getHtml(webview: Webview, extensionUri: Uri) {
+  protected getHtml(webview: Webview, extensionUri: Uri) {
     const indexJs = webview.asWebviewUri(
       Uri.file(
         path.join(

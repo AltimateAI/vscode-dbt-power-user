@@ -11,7 +11,7 @@ import appSlice, { initialState, updateIsComponentsApiInitialized } from "./appS
 import { executeRequestInAsync, executeRequestInSync } from "./requestExecutor";
 import { ContextProps } from "./types";
 import useListeners from "./useListeners";
-import { ApiHelper } from "../../lib/altimate-components.js";
+import { ApiHelper } from "../../lib/altimate/altimate-components.js";
 import { panelLogger } from "@modules/logger";
 
 export const AppContext = createContext<ContextProps>({
@@ -28,6 +28,7 @@ const AppProvider = ({ children }: { children: ReactNode }): JSX.Element => {
   );
   
   useEffect(() => {
+    panelLogger.info("updating components api helper");
     // This overrides the components library api methods
     ApiHelper.get = async (url: string, data?: Record<string, unknown>) =>
       {panelLogger.info("ApiHelper get");return executeRequestInSync("fetch", { endpoint: url, fetchArgs: {...data, method: "GET"} });}

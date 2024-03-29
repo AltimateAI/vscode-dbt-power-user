@@ -2,6 +2,7 @@ import { readFileSync } from "fs";
 import {
   CancellationToken,
   TextEditor,
+  ViewColumn,
   WebviewView,
   WebviewViewResolveContext,
   window,
@@ -24,6 +25,7 @@ import {
 import { DocsGenPanelView } from "./docsEditPanel";
 import { TestMetaData } from "../domain";
 import { DbtTestService } from "../services/dbtTestService";
+import { DbtDocsView } from "./DbtDocsView";
 
 @provideSingleton(NewDocsGenPanel)
 export class NewDocsGenPanel
@@ -43,6 +45,7 @@ export class NewDocsGenPanel
     protected queryManifestService: QueryManifestService,
     protected dbtTerminal: DBTTerminal,
     private dbtTestService: DbtTestService,
+    private dbtDocsView: DbtDocsView,
   ) {
     super(
       dbtProjectContainer,
@@ -137,6 +140,16 @@ export class NewDocsGenPanel
         );
         break;
       case "getTestCode":
+        const webview = window.createWebviewPanel(
+          DbtDocsView.viewType,
+          "Dbt docs",
+          {
+            viewColumn: ViewColumn.Active,
+          },
+          { enableScripts: true },
+        );
+        this.dbtDocsView.renderWebview(webview);
+
         this.handleSyncRequestFromWebview(
           syncRequestId,
           async () => {

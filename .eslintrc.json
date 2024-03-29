@@ -6,7 +6,6 @@
     "sourceType": "module"
   },
   "plugins": ["@typescript-eslint"],
-  "ignorePatterns": ["./webview_panels/src/lib/altimate-components.d.ts"],
   "extends": [
     "plugin:@typescript-eslint/eslint-recommended",
     // "plugin:@typescript-eslint/recommended",
