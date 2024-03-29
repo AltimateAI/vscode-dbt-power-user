@@ -7403,11 +7403,11 @@ const Ph = et, Ah = (e) => e.highlight ? JSON.parse(e.highlight) : null, Ih = (e
   dbtDocs: Vh,
   conversationRightPanel: jh
 }, Ft = {
-  get: async (e, t) => ({}),
-  post: async (e, t) => ({})
+  get: async (e, t, n) => ({}),
+  post: async (e, t, n) => ({})
 }, kh = (e) => Ft.get(`dbt/dbt_docs_share/${e}`), Fh = (e, t) => Ft.post(`dbt/dbt_docs_share/${e}/conversation_group`, t), $h = (e, t, n) => Ft.post(
   `dbt/dbt_docs_share/${e}/conversation_group/${t}/conversation`,
-  { body: JSON.stringify(n) }
+  n
 ), Bh = (e) => Ft.get(`dbt/dbt_docs_share/${e}/conversations`), Hh = (e) => Ft.get("/users/", { company: e }), Uh = () => {
   const e = Ee(
     (l) => l.newConversation
@@ -7765,12 +7765,19 @@ const Yh = /* @__PURE__ */ Ns(Wh), Gh = ({ user: e }) => {
   const n = Ee(
     (u) => u.shareId
   ), [r, i] = he(""), [s, o] = he(!1), a = (u) => i(u.target.value), l = async (u) => {
-    u.stopPropagation(), u.preventDefault(), !(!n || !t) && (o(!0), console.log("saving reply", n, t, {
-      msg: r
-    }), await $h(n, t, {
-      // @ts-expect-error valid
-      msg: r
-    }), o(!1));
+    if (u.stopPropagation(), u.preventDefault(), !(!n || !t)) {
+      o(!0), console.log("saving reply", n, t, {
+        message: r
+      });
+      try {
+        await $h(n, t, {
+          message: r
+        });
+      } catch (c) {
+        console.error("error while saving reply", c);
+      }
+      o(!1);
+    }
   };
   return /* @__PURE__ */ j.jsx("div", { children: /* @__PURE__ */ j.jsxs("form", { onSubmit: l, className: "d-flex position-relative", children: [
     /* @__PURE__ */ j.jsx("span", { className: "position-absolute", style: { zIndex: 4 }, children: /* @__PURE__ */ j.jsx(Ea, { user: e }) }),

@@ -48607,7 +48607,7 @@ const Wu = {}, Zu = ({ shareDetails: z }) => {
         }
       ) })
     ] }) }),
-    /* @__PURE__ */ pr.jsx("div", { ref: T, className: `${Vu.dbtDocs} altimate-dbt-docs`, children: /* @__PURE__ */ pr.jsx("ui-view", {}) })
+    /* @__PURE__ */ pr.jsx("div", { ref: T, className: Vu.dbtDocs, children: /* @__PURE__ */ pr.jsx("ui-view", {}) })
   ] });
 };
 export {

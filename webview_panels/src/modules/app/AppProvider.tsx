@@ -7,7 +7,10 @@ import {
   useMemo,
   useReducer,
 } from "react";
-import appSlice, { initialState, updateIsComponentsApiInitialized } from "./appSlice";
+import appSlice, {
+  initialState,
+  updateIsComponentsApiInitialized,
+} from "./appSlice";
 import { executeRequestInAsync, executeRequestInSync } from "./requestExecutor";
 import { ContextProps } from "./types";
 import useListeners from "./useListeners";
@@ -26,16 +29,35 @@ const AppProvider = ({ children }: { children: ReactNode }): JSX.Element => {
     appSlice.reducer,
     appSlice.getInitialState()
   );
-  
+
   useEffect(() => {
     panelLogger.info("updating components api helper");
     // This overrides the components library api methods
-    ApiHelper.get = async (url: string, data?: Record<string, unknown>) =>
-      {panelLogger.info("ApiHelper get");return executeRequestInSync("fetch", { endpoint: url, fetchArgs: {...data, method: "GET"} });}
-    ApiHelper.post = async (url: string, data?: Record<string, unknown>) =>
-      executeRequestInSync("fetch", { endpoint: url, fetchArgs: {...data, method: "POST"} });
-      dispatch(updateIsComponentsApiInitialized(true))
-    }, []);
+    ApiHelper.get = async (
+      url: string,
+      data?: Record<string, unknown>,
+      request?: RequestInit
+    ) => {
+      return executeRequestInSync("fetch", {
+        endpoint: url,
+        fetchArgs: { ...data, ...request, method: "GET" },
+      });
+    };
+    ApiHelper.post = async (
+      url: string,
+      data?: Record<string, unknown>,
+      request?: RequestInit
+    ) =>
+      executeRequestInSync("fetch", {
+        endpoint: url,
+        fetchArgs: {
+          ...request,
+          body: JSON.stringify(data ?? {}),
+          method: "POST",
+        },
+      });
+    dispatch(updateIsComponentsApiInitialized(true));
+  }, []);
 
   const postMessageToDataPilot = (
     data: Partial<DataPilotChat> & { id: DataPilotChat["id"] }
@@ -62,9 +84,7 @@ const AppProvider = ({ children }: { children: ReactNode }): JSX.Element => {
   return (
     <AppContext.Provider value={values}>
       <DataPilotProvider>
-        <div className="App">
-          {children}
-        </div>
+        <div className="App">{children}</div>
       </DataPilotProvider>
     </AppContext.Provider>
   );

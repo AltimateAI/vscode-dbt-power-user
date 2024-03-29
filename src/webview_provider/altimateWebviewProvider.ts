@@ -203,6 +203,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               );
             },
             command,
+            true,
           );
           break;
         case "getProjectAdapterType":
