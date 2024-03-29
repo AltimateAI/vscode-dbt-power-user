@@ -140,16 +140,6 @@ export class NewDocsGenPanel
         );
         break;
       case "getTestCode":
-        const webview = window.createWebviewPanel(
-          DbtDocsView.viewType,
-          "Dbt docs",
-          {
-            viewColumn: ViewColumn.Active,
-          },
-          { enableScripts: true },
-        );
-        this.dbtDocsView.renderWebview(webview);
-
         this.handleSyncRequestFromWebview(
           syncRequestId,
           async () => {

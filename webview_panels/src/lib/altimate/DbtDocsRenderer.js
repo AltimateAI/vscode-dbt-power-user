@@ -1,5 +1,5 @@
-import { j as pr, c as Vu } from "./main.js";
-import { useRef as Hu, useEffect as Gu } from "react";
+import { j as pr, c as Hu } from "./main.js";
+import { useRef as Gu, useEffect as Wu } from "react";
 (function(z) {
   var T = {};
   function e(u) {
@@ -14172,17 +14172,17 @@ __p+='`), fr;
                   if (!(Ja ? us in Dr : We.call(Dr, us)))
                     return !1;
                 }
-                var Fu = eo.get(wr), qu = eo.get(Dr);
-                if (Fu && qu)
-                  return Fu == Dr && qu == wr;
+                var qu = eo.get(wr), Uu = eo.get(Dr);
+                if (qu && Uu)
+                  return qu == Dr && Uu == wr;
                 var Eu = !0;
                 eo.set(wr, Dr), eo.set(Dr, wr);
                 for (var Bu = Ja; ++tl < Il; ) {
                   us = ls[tl];
                   var Su = wr[us], $u = Dr[us];
                   if (Bo)
-                    var Uu = Ja ? Bo($u, Su, us, Dr, wr, eo) : Bo(Su, $u, us, wr, Dr, eo);
-                  if (!(Uu === void 0 ? Su === $u || Ra(Su, $u, to, Bo, eo) : Uu)) {
+                    var Vu = Ja ? Bo($u, Su, us, Dr, wr, eo) : Bo(Su, $u, us, wr, Dr, eo);
+                  if (!(Vu === void 0 ? Su === $u || Ra(Su, $u, to, Bo, eo) : Vu)) {
                     Eu = !1;
                     break;
                   }
@@ -48411,36 +48411,51 @@ pre[class*="language-"] {
     ]), z.exports = e;
   }
 ]);
-const Wu = {}, Zu = ({ shareDetails: z }) => {
-  const T = Hu(null);
-  return Gu(() => {
-    console.log("dbtDocsAngularApp rendered", !!Wu);
-    const e = window.angular;
-    if (e && e.module) {
-      if (e.element(T.current).scope()) {
+const Yu = {};
+let Fu;
+const Xu = (z) => {
+  ["mouseup", "selectionchange"].map((T) => {
+    (z || document).addEventListener(T.toString(), (e) => {
+      Fu && e.type == "selectionchange" && clearTimeout(Fu), Fu = setTimeout(function() {
+        var u;
+        e.type == "mouseup" && ((u = window.getSelection()) == null ? void 0 : u.toString()) != "" && (z || document).dispatchEvent(new Event("selectionend"));
+      }, 100);
+    });
+  });
+}, Ju = ({ shareDetails: z, onSelectionEnd: T }) => {
+  const e = Gu(null);
+  return Wu(() => {
+    console.log("dbtDocsAngularApp rendered", !!Yu);
+    const u = window.angular;
+    if (u && u.module) {
+      if (u.element(e.current).scope()) {
         console.log("dbt docs already initialized");
         return;
       }
-      e.module("dbt").config([
+      u.module("dbt").config([
         "$httpProvider",
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        function(A) {
-          const w = [
+        function(w) {
+          const E = [
             "$q",
             "$rootScope",
             function() {
               return {
-                request: function(y) {
-                  return y.url.includes("manifest.json") && z.manifest_presigned_url && (y.url = z.manifest_presigned_url), y.url.includes("catalog.json") && z.catalog_presigned_url && (y.url = z.catalog_presigned_url), y;
+                request: function(x) {
+                  return x.url.includes("manifest.json") && z.manifest_presigned_url && (x.url = z.manifest_presigned_url), x.url.includes("catalog.json") && z.catalog_presigned_url && (x.url = z.catalog_presigned_url), x;
                 }
               };
             }
           ];
-          A.interceptors.push(w);
+          w.interceptors.push(E);
         }
-      ]), e.bootstrap(T.current, ["dbt"]);
+      ]), u.bootstrap(e.current, ["dbt"]), e.current && (Xu(e.current), e.current.addEventListener("selectionend", T));
     }
-  }, [z.manifest_presigned_url, z.catalog_presigned_url]), /* @__PURE__ */ pr.jsxs(pr.Fragment, { children: [
+  }, [
+    z.manifest_presigned_url,
+    z.catalog_presigned_url,
+    T
+  ]), /* @__PURE__ */ pr.jsxs(pr.Fragment, { children: [
     /* @__PURE__ */ pr.jsx("div", { style: { display: "none" }, children: /* @__PURE__ */ pr.jsxs("svg", { xmlns: "http://www.w3.org/2000/svg", viewBox: "0 0 16 16", children: [
       /* @__PURE__ */ pr.jsx("title", { children: "icons" }),
       /* @__PURE__ */ pr.jsx("g", { id: "icn", children: /* @__PURE__ */ pr.jsx("rect", { width: "16", height: "16", fill: "none" }) }),
@@ -48607,9 +48622,9 @@ const Wu = {}, Zu = ({ shareDetails: z }) => {
         }
       ) })
     ] }) }),
-    /* @__PURE__ */ pr.jsx("div", { ref: T, className: Vu.dbtDocs, children: /* @__PURE__ */ pr.jsx("ui-view", {}) })
+    /* @__PURE__ */ pr.jsx("div", { ref: e, className: Hu.dbtDocs, children: /* @__PURE__ */ pr.jsx("ui-view", {}) })
   ] });
 };
 export {
-  Zu as default
+  Ju as default
 };

@@ -193,6 +193,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     try {
       switch (command) {
+        case "dbtdocsview:render":
+          this.emitterService.fire({
+            command: "dbtdocsview:render",
+            payload: params,
+          });
+          break;
         case "fetch":
           this.handleSyncRequestFromWebview(
             syncRequestId,
