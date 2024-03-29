@@ -18,7 +18,12 @@ import {
   useState,
 } from "react";
 import { panelLogger } from "@modules/logger";
-import { ArrowDownIcon, FolderIcon, ArrowLeftIcon } from "@assets/icons";
+import {
+  ArrowDownIcon,
+  FolderIcon,
+  ArrowLeftIcon,
+  RefreshIcon,
+} from "@assets/icons";
 import { ProjectHealthcheck } from "./types";
 import { IssueList } from "./IssueList";
 
@@ -37,14 +42,15 @@ type ConfigOption =
 
 type AltimateConfigProps = { projectRoot: string } & ConfigOption;
 
-interface ManualConfigProps {
+interface SaasConfigSelectorProps {
   configs: DBTConfig[];
   selectedConfig: number;
   setSelectedConfig: Dispatch<SetStateAction<number>>;
   setConfigPath: Dispatch<SetStateAction<string>>;
+  refreshConfig: () => void;
 }
 
-const ManualConfig = (props: ManualConfigProps) => {
+const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
   return (
     <div className={classes.accordionContainer}>
       <Accordion
@@ -57,6 +63,15 @@ const ManualConfig = (props: ManualConfigProps) => {
                     ?.name ?? "Select healthcheck configs"}
             </div>
             <div className="spacer" />
+            <Button
+              color="link"
+              onClick={(e) => {
+                e.stopPropagation();
+                props.refreshConfig();
+              }}
+            >
+              <RefreshIcon />
+            </Button>
             {open ? <ArrowDownIcon /> : <ArrowLeftIcon />}
           </Stack>
         )}
@@ -119,13 +134,13 @@ const ManualConfig = (props: ManualConfigProps) => {
   );
 };
 
-interface SaasConfigProps {
+interface ProjectSelectorProps {
   projects: { projectName: string; projectRoot: string }[];
   selectedProject: string;
   setSelectedProject: Dispatch<SetStateAction<string>>;
 }
 
-const SaasConfig = (props: SaasConfigProps) => {
+const ProjectSelector = (props: ProjectSelectorProps) => {
   return (
     <div className={classes.accordionContainer}>
       <Accordion
@@ -224,17 +239,18 @@ const ProjectHealthcheckInput = ({
           practices
         </CardText>
         <Stack direction="column">
-          <SaasConfig
+          <ProjectSelector
             projects={projects}
             selectedProject={selectedProject}
             setSelectedProject={setSelectedProject}
           />
 
-          <ManualConfig
+          <SaasConfigSelector
             configs={configs}
             selectedConfig={selectedConfig}
             setSelectedConfig={setSelectedConfig}
             setConfigPath={setConfigPath}
+            refreshConfig={getConfigs}
           />
 
           <div className={classes.notification}>
