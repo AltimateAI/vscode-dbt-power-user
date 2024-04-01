@@ -6,6 +6,8 @@ import {
   Button,
   Stack,
   Accordion,
+  Input,
+  Label,
 } from "@uicore";
 import { executeRequestInSync } from "../app/requestExecutor";
 import classes from "./healthcheck.module.scss";
@@ -41,27 +43,68 @@ type ConfigOption =
 
 type AltimateConfigProps = { projectRoot: string } & ConfigOption;
 
+enum ConfigType {
+  Manual,
+  Saas,
+}
+
 interface SaasConfigSelectorProps {
   configs: DBTConfig[];
   selectedConfig: number;
   setSelectedConfig: Dispatch<SetStateAction<number>>;
   setConfigPath: Dispatch<SetStateAction<string>>;
   refreshConfig: () => void;
+  configType: ConfigType;
+  setConfigType: Dispatch<SetStateAction<ConfigType>>;
 }
 
 const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
   return (
-    <div className={classes.accordionContainer}>
-      <Accordion
-        trigger={(open) => (
-          <Stack className="align-items-center">
-            <div>
-              {props.selectedConfig === -1
-                ? "Manual"
-                : props.configs.find((c) => c.id === props.selectedConfig)
-                    ?.name ?? "Select healthcheck configs"}
-            </div>
-            <div className="spacer" />
+    <div className="d-flex flex-column gap-sm">
+      <div className="d-flex align-items-center gap-sm">
+        <Label check sm={2} style={{ whiteSpace: "nowrap" }}>
+          <Input
+            type="radio"
+            className="me-2"
+            checked={props.configType === ConfigType.Manual}
+            onClick={() => props.setConfigType(ConfigType.Manual)}
+          />
+          Manual
+        </Label>
+        {props.configType === ConfigType.Manual && (
+          <Button
+            size="sm"
+            color="primary"
+            onClick={async (e) => {
+              e.stopPropagation();
+              const result = await executeRequestInSync("selectFiles", {
+                filters: {
+                  Files: ["yml"],
+                },
+                canSelectMany: false,
+              });
+              const { path } = result as {
+                path: string[];
+              };
+              props.setConfigPath(path[0]);
+            }}
+          >
+            Select config path
+          </Button>
+        )}
+      </div>
+      <div className="d-flex align-items-center gap-sm">
+        <Label check sm={2} style={{ whiteSpace: "nowrap" }}>
+          <Input
+            type="radio"
+            className="me-2"
+            checked={props.configType === ConfigType.Saas}
+            onClick={() => props.setConfigType(ConfigType.Saas)}
+          />
+          Select config
+        </Label>
+        {props.configType === ConfigType.Saas && (
+          <>
             <Button
               color="link"
               onClick={(e) => {
@@ -71,64 +114,52 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
             >
               <RefreshIcon />
             </Button>
-            {open ? <ArrowDownIcon /> : <ArrowLeftIcon />}
-          </Stack>
-        )}
-      >
-        {({ close }) => (
-          <Stack direction="column" className="gap-0">
-            {[
-              ...props.configs.map((c) => ({
-                value: c.id,
-                label: c.name,
-              })),
-              {
-                value: -1,
-                label: "Manual",
-              },
-            ].map((c) => (
-              <Stack
-                className={
-                  classes.row +
-                  " " +
-                  (c.value === props.selectedConfig ? classes.active : "")
-                }
-                key={c.value}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  props.setSelectedConfig(c.value);
-                  close();
-                }}
+            <div className={classes.accordionContainer + " w-100"}>
+              <Accordion
+                trigger={(open) => (
+                  <Stack className="align-items-center">
+                    <div>
+                      {props.configs.find((c) => c.id === props.selectedConfig)
+                        ?.name ?? "Select healthcheck configs"}
+                    </div>
+                    <div className="spacer" />
+                    {open ? <ArrowDownIcon /> : <ArrowLeftIcon />}
+                  </Stack>
+                )}
               >
-                <div>{c.label}</div>
-              </Stack>
-            ))}
-          </Stack>
+                {({ close }) => (
+                  <Stack direction="column" className="gap-0">
+                    {props.configs
+                      .map((c) => ({
+                        value: c.id,
+                        label: c.name,
+                      }))
+                      .map((c) => (
+                        <Stack
+                          className={
+                            classes.row +
+                            " " +
+                            (c.value === props.selectedConfig
+                              ? classes.active
+                              : "")
+                          }
+                          key={c.value}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            props.setSelectedConfig(c.value);
+                            close();
+                          }}
+                        >
+                          <div>{c.label}</div>
+                        </Stack>
+                      ))}
+                  </Stack>
+                )}
+              </Accordion>
+            </div>
+          </>
         )}
-      </Accordion>
-
-      {props.selectedConfig === -1 && (
-        <Button
-          size="sm"
-          color="primary"
-          className="mt-2"
-          onClick={async (e) => {
-            e.stopPropagation();
-            const result = await executeRequestInSync("selectFiles", {
-              filters: {
-                Files: ["yml"],
-              },
-              canSelectMany: false,
-            });
-            const { path } = result as {
-              path: string[];
-            };
-            props.setConfigPath(path[0]);
-          }}
-        >
-          Select config path for manual checks
-        </Button>
-      )}
+      </div>
     </div>
   );
 };
@@ -201,8 +232,8 @@ const ProjectHealthcheckInput = ({
   >([]);
   const [selectedProject, setSelectedProject] = useState("");
   const [configs, setConfigs] = useState<DBTConfig[]>([]);
-  // 0: no config selected; -1: manual selected; +ve values are config id
   const [selectedConfig, setSelectedConfig] = useState(0);
+  const [configType, setConfigType] = useState(ConfigType.Manual);
   const [configPath, setConfigPath] = useState("");
 
   const getProjects = useCallback(async () => {
@@ -230,7 +261,7 @@ const ProjectHealthcheckInput = ({
 
   const isEnabled =
     selectedProject &&
-    ((selectedConfig === -1 && configPath) || selectedConfig > 0);
+    ((configType === ConfigType.Manual && configPath) || selectedConfig > 0);
   return (
     <Card className={classes.container}>
       <CardTitle tag="h5">Perform project healthcheck</CardTitle>
@@ -252,6 +283,8 @@ const ProjectHealthcheckInput = ({
             setSelectedConfig={setSelectedConfig}
             setConfigPath={setConfigPath}
             refreshConfig={getConfigs}
+            configType={configType}
+            setConfigType={setConfigType}
           />
 
           <div className={classes.notification}>
