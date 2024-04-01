@@ -423,6 +423,18 @@ export class DBTProject implements Disposable {
     this.telemetry.sendTelemetryEvent("compileModel");
   }
 
+  async generateDocsImmediately(args?: string[]) {
+    const docsGenerateCommand =
+      this.dbtCommandFactory.createDocsGenerateCommand();
+    args?.forEach((arg) => docsGenerateCommand.addArgument(arg));
+    docsGenerateCommand.focus = false;
+    docsGenerateCommand.logToTerminal = false;
+    await this.dbtProjectIntegration.executeCommandImmediately(
+      docsGenerateCommand,
+    );
+    this.telemetry.sendTelemetryEvent("generateDocsImmediately");
+  }
+
   generateDocs() {
     const docsGenerateCommand =
       this.dbtCommandFactory.createDocsGenerateCommand();

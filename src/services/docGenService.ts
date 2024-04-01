@@ -17,7 +17,8 @@ import {
   Source,
 } from "../webview_provider/docsEditPanel";
 import { QueryManifestService } from "./queryManifestService";
-import { ReadStream, createReadStream, existsSync, readdirSync } from "fs";
+import { rmSync } from "fs";
+import * as os from "os";
 
 interface GenerateDocsForColumnsProps {
   panel: WebviewView | undefined;
@@ -516,65 +517,123 @@ export class DocGenService {
   }
 
   public async shareDbtDocs(data: { name: string; description?: string }) {
-    const project = this.queryManifestService.getProject();
-    const targetPath = project?.getTargetPath();
-    if (!targetPath) {
-      throw new Error("Invalid dbt project");
-    }
+    return new Promise((resolve, reject) => {
+      window.withProgress(
+        {
+          title: "",
+          location: ProgressLocation.Notification,
+          cancellable: false,
+        },
+        async (progress) => {
+          const project = this.queryManifestService.getProject();
+          if (!project) {
+            reject(new Error("Invalid dbt project"));
+            return;
+          }
+          progress.report({ message: "Generating dbt docs..." });
 
-    this.dbtTerminal.debug(
-      "docGenService:shareDbtDocs",
-      "creating dbt share id",
-      data,
-    );
-    const createShareResult = await this.altimateRequest.fetch<{
-      share_id: number;
-      manifest_presigned_url: string;
-      catalog_presigned_url: string;
-    }>("dbt/dbt_docs_share", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-    this.dbtTerminal.debug(
-      "docGenService:shareDbtDocs",
-      "created dbt share id",
-      createShareResult,
-    );
+          const hashedProjectRoot = DBTProject.hashProjectRoot(
+            project.projectRoot.fsPath,
+          );
+          const tmpDirPath = path.join(os.tmpdir(), hashedProjectRoot);
 
-    const filePathMapping = {
-      "manifest.json": "manifest_presigned_url",
-      "catalog.json": "catalog_presigned_url",
-    };
+          try {
+            this.dbtTerminal.debug(
+              "docGenService:shareDbtDocs",
+              "generating docs in path:",
+              tmpDirPath,
+            );
+            // generate docs in tmp directory
+            await project.generateDocsImmediately([
+              "--target-path",
+              tmpDirPath,
+            ]);
 
-    const fileUploadResponses = await Promise.all(
-      Object.keys(filePathMapping).map(async (file) => {
-        // @ts-ignore
-        const url = createShareResult[filePathMapping[file]];
-        if (!url) {
-          throw new Error(`Invalid presigned url for ${file}`);
-        }
-        return this.altimateRequest.uploadToS3(
-          url,
-          {},
-          path.join(targetPath, file),
-        );
-      }),
-    );
+            this.dbtTerminal.debug(
+              "docGenService:shareDbtDocs",
+              "generated docs in path:",
+              tmpDirPath,
+            );
+            this.dbtTerminal.debug(
+              "docGenService:shareDbtDocs",
+              "creating dbt share id",
+              data,
+            );
 
-    if (fileUploadResponses.length !== 2) {
-      throw new Error(
-        "Unable to upload required artifacts. Please try again later.",
+            // create a shareid
+            progress.report({ message: "Creating conversation..." });
+            const createShareResult = await this.altimateRequest.fetch<{
+              share_id: number;
+              manifest_presigned_url: string;
+              catalog_presigned_url: string;
+            }>("dbt/dbt_docs_share", {
+              method: "POST",
+              body: JSON.stringify(data),
+            });
+            this.dbtTerminal.debug(
+              "docGenService:shareDbtDocs",
+              "created dbt share id",
+              createShareResult,
+            );
+
+            const filePathMapping = {
+              "manifest.json": "manifest_presigned_url",
+              "catalog.json": "catalog_presigned_url",
+            };
+
+            // Upload the artifacts
+            progress.report({ message: "Uploading artifacts..." });
+            const fileUploadResponses = await Promise.all(
+              Object.keys(filePathMapping).map(async (file) => {
+                // @ts-ignore
+                const url = createShareResult[filePathMapping[file]];
+                if (!url) {
+                  throw new Error(`Invalid presigned url for ${file}`);
+                }
+                return this.altimateRequest.uploadToS3(
+                  url,
+                  {},
+                  path.join(tmpDirPath, file),
+                );
+              }),
+            );
+
+            if (fileUploadResponses.length !== 2) {
+              reject(
+                new Error(
+                  "Unable to upload required artifacts. Please try again later.",
+                ),
+              );
+              return;
+            }
+
+            // verify the uploads
+            progress.report({ message: "Verifying uploads..." });
+            const verifyResult = await this.altimateRequest.fetch<{
+              dbt_docs_share_url: string;
+            }>("dbt/dbt_docs_share/verify_upload/", {
+              method: "POST",
+              body: JSON.stringify({ share_id: createShareResult.share_id }),
+            });
+            if (!verifyResult.dbt_docs_share_url) {
+              reject(new Error("Unable to verify uploads. Please try again."));
+              return;
+            }
+
+            progress.report({ message: "Resolving..." });
+            resolve(verifyResult.dbt_docs_share_url);
+          } catch (err) {
+            reject(err);
+          } finally {
+            this.dbtTerminal.debug(
+              "docGenService:shareDbtDocs",
+              "deleting docs tmp directory",
+              tmpDirPath,
+            );
+            rmSync(tmpDirPath, { force: true, recursive: true });
+          }
+        },
       );
-    }
-    const verifyResult = await this.altimateRequest.fetch<{
-      dbt_docs_share_url: string;
-    }>("dbt/dbt_docs_share/verify_upload/", {
-      method: "POST",
-      body: JSON.stringify({ share_id: createShareResult.share_id }),
     });
-    if (!verifyResult.dbt_docs_share_url) {
-      throw new Error("Unable to verify uploads. Please try again.");
-    }
-    return verifyResult.dbt_docs_share_url;
   }
 }

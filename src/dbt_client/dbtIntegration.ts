@@ -333,6 +333,7 @@ export interface DBTProjectIntegration extends Disposable {
   runModelTest(command: DBTCommand): Promise<void>;
   compileModel(command: DBTCommand): Promise<void>;
   generateDocs(command: DBTCommand): Promise<void>;
+  executeCommandImmediately(command: DBTCommand): Promise<CommandProcessResult>;
   deps(command: DBTCommand): Promise<string>;
   debug(command: DBTCommand): Promise<string>;
   // altimate commands

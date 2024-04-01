@@ -1,10 +1,14 @@
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import { Controller, useForm } from "react-hook-form";
-import { executeRequestInAsync, executeRequestInSync } from "@modules/app/requestExecutor";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
 import { Input, Drawer, LoadingButton, Stack, Button } from "@uicore";
 import { useState } from "react";
 import CopyToClipboard from "react-copy-to-clipboard";
+import { panelLogger } from "@modules/logger";
 
 const schema = Yup.object({
   name: Yup.string().optional(),
@@ -30,14 +34,20 @@ const ShareDbtDocsButton = (): JSX.Element => {
   const handleViewClick = () => {
     // TODO handle this properly
     const parts = sharedUrl.split("/");
-    executeRequestInAsync("dbtdocsview:render", {shareId: parts[parts.length - 1]})
-  }
+    executeRequestInAsync("dbtdocsview:render", {
+      shareId: parts[parts.length - 1],
+    });
+  };
 
   const handleShare = async (data: ShareRequest) => {
-    const result = (await executeRequestInSync("share:dbtdocs", {
-      ...data,
-    })) as string;
-    setSharedUrl(result);
+    try {
+      const result = (await executeRequestInSync("share:dbtdocs", {
+        ...data,
+      })) as string;
+      setSharedUrl(result);
+    } catch (err) {
+      panelLogger.error("error while creating dbt share url", err);
+    }
   };
   return (
     <Drawer
@@ -52,15 +62,15 @@ const ShareDbtDocsButton = (): JSX.Element => {
           <Stack>
             <Button onClick={handleViewClick}>View</Button>
             <CopyToClipboard text={sharedUrl}>
-            <Button
-              title={`${
-                !isCopied ? "Copy to clipboard" : "Copied to clipboard"
-              }`}
-              onClick={() => setIsCopied(true)}
-            >
-              {isCopied ? "Copied" : "Copy"}
-            </Button>
-          </CopyToClipboard>
+              <Button
+                title={`${
+                  !isCopied ? "Copy to clipboard" : "Copied to clipboard"
+                }`}
+                onClick={() => setIsCopied(true)}
+              >
+                {isCopied ? "Copied" : "Copy"}
+              </Button>
+            </CopyToClipboard>
           </Stack>
         </div>
       ) : (

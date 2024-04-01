@@ -137,6 +137,7 @@ export class NewDocsGenPanel
             );
           },
           command,
+          true,
         );
         break;
       case "getTestCode":

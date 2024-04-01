@@ -421,6 +421,10 @@ export class DBTCloudProjectIntegration
     );
   }
 
+  async executeCommandImmediately(command: DBTCommand) {
+    return await this.dbtCloudCommand(command).execute();
+  }
+
   async deps(command: DBTCommand): Promise<string> {
     throw new Error("dbt deps is not supported in dbt cloud");
   }
