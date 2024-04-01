@@ -49,16 +49,28 @@ enum ConfigType {
 }
 
 interface SaasConfigSelectorProps {
-  configs: DBTConfig[];
-  selectedConfig: number;
-  setSelectedConfig: Dispatch<SetStateAction<number>>;
+  selectedConfig: DBTConfig | undefined;
+  setSelectedConfig: Dispatch<SetStateAction<DBTConfig | undefined>>;
   setConfigPath: Dispatch<SetStateAction<string>>;
-  refreshConfig: () => void;
   configType: ConfigType;
   setConfigType: Dispatch<SetStateAction<ConfigType>>;
 }
 
 const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
+  const [configs, setConfigs] = useState<DBTConfig[]>([]);
+  const getConfigs = useCallback(async () => {
+    const result = (await executeRequestInSync("getInsightConfigs", {})) as {
+      items: DBTConfig[];
+    };
+    setConfigs(result.items);
+  }, []);
+
+  useEffect(() => {
+    if (props.configType === ConfigType.Saas) {
+      void getConfigs();
+    }
+  }, [props.configType]);
+
   return (
     <div className="d-flex flex-column gap-sm">
       <div className="d-flex align-items-center gap-sm">
@@ -109,7 +121,7 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
               color="link"
               onClick={(e) => {
                 e.stopPropagation();
-                props.refreshConfig();
+                void getConfigs();
               }}
             >
               <RefreshIcon />
@@ -119,8 +131,8 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
                 trigger={(open) => (
                   <Stack className="align-items-center">
                     <div>
-                      {props.configs.find((c) => c.id === props.selectedConfig)
-                        ?.name ?? "Select healthcheck configs"}
+                      {props.selectedConfig?.name ??
+                        "Select healthcheck configs"}
                     </div>
                     <div className="spacer" />
                     {open ? <ArrowDownIcon /> : <ArrowLeftIcon />}
@@ -129,7 +141,7 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
               >
                 {({ close }) => (
                   <Stack direction="column" className="gap-0">
-                    {props.configs
+                    {configs
                       .map((c) => ({
                         value: c.id,
                         label: c.name,
@@ -139,14 +151,14 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
                           className={
                             classes.row +
                             " " +
-                            (c.value === props.selectedConfig
-                              ? classes.active
-                              : "")
+                            (props.selectedConfig ? classes.active : "")
                           }
                           key={c.value}
                           onClick={(e) => {
                             e.stopPropagation();
-                            props.setSelectedConfig(c.value);
+                            props.setSelectedConfig(
+                              configs.find((item) => item.id === c.value),
+                            );
                             close();
                           }}
                         >
@@ -231,8 +243,7 @@ const ProjectHealthcheckInput = ({
     { projectName: string; projectRoot: string }[]
   >([]);
   const [selectedProject, setSelectedProject] = useState("");
-  const [configs, setConfigs] = useState<DBTConfig[]>([]);
-  const [selectedConfig, setSelectedConfig] = useState(0);
+  const [selectedConfig, setSelectedConfig] = useState<DBTConfig | undefined>();
   const [configType, setConfigType] = useState(ConfigType.Manual);
   const [configPath, setConfigPath] = useState("");
 
@@ -247,21 +258,13 @@ const ProjectHealthcheckInput = ({
     }
   }, []);
 
-  const getConfigs = useCallback(async () => {
-    const result = (await executeRequestInSync("getInsightConfigs", {})) as {
-      items: DBTConfig[];
-    };
-    setConfigs(result.items);
-  }, []);
-
   useEffect(() => {
     void getProjects();
-    void getConfigs();
   }, []);
 
   const isEnabled =
     selectedProject &&
-    ((configType === ConfigType.Manual && configPath) || selectedConfig > 0);
+    ((configType === ConfigType.Manual && configPath) || selectedConfig);
   return (
     <Card className={classes.container}>
       <CardTitle tag="h5">Perform project healthcheck</CardTitle>
@@ -278,42 +281,27 @@ const ProjectHealthcheckInput = ({
           />
 
           <SaasConfigSelector
-            configs={configs}
             selectedConfig={selectedConfig}
             setSelectedConfig={setSelectedConfig}
             setConfigPath={setConfigPath}
-            refreshConfig={getConfigs}
             configType={configType}
             setConfigType={setConfigType}
           />
-
-          <div className={classes.notification}>
-            <span>
-              You can save your config in the altimate AI SAAS instance. Click{" "}
-            </span>
-            <a
-              href="https://app.myaltimate.com/register"
-              className={classes.link}
-            >
-              here
-            </a>
-            <span> to go to altimate AI SAAS instance.</span>
-          </div>
 
           <Stack>
             <Button
               color={isEnabled ? "primary" : "secondary"}
               onClick={() => {
-                if (selectedConfig !== -1) {
+                if (configType === ConfigType.Saas) {
                   void executeRequestInSync("logDBTHealthcheckConfig", {
                     configId: selectedConfig,
                   });
                 }
                 const args = {
                   projectRoot: selectedProject,
-                  ...(selectedConfig === -1
+                  ...(configType === ConfigType.Manual
                     ? { configPath }
-                    : configs.find((c) => c.id === selectedConfig))!,
+                    : selectedConfig!),
                 };
                 void handleHealthCheck(args);
               }}
