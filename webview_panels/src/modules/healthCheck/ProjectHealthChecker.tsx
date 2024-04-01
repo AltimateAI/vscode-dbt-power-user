@@ -1,7 +1,6 @@
 import {
   Card,
   CardTitle,
-  Tag,
   CardBody,
   CardText,
   Button,
@@ -229,10 +228,7 @@ const ProjectHealthcheckInput = ({
     ((selectedConfig === -1 && configPath) || selectedConfig > 0);
   return (
     <Card className={classes.container}>
-      <CardTitle tag="h5">
-        Perform project healthcheck
-        <Tag color="primary">Governance</Tag>
-      </CardTitle>
+      <CardTitle tag="h5">Perform project healthcheck</CardTitle>
       <CardBody>
         <CardText>
           Find areas of a dbt project that are misaligned with dbt best
