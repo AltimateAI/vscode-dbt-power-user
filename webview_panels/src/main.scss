@@ -137,3 +137,24 @@ code {
 .gap-0 {
   gap: 0;
 }
+
+@mixin lines($n) {
+  display: -webkit-box;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  word-break: break-all;
+  -webkit-line-clamp: $n;
+}
+
+.lines-1 {
+  @include lines(1);
+}
+
+.lines-2 {
+  @include lines(2);
+}
+
+.lines-3 {
+  @include lines(3);
+}

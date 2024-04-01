@@ -140,15 +140,18 @@ interface ProjectSelectorProps {
 }
 
 const ProjectSelector = (props: ProjectSelectorProps) => {
+  const selectedProject = props.projects.find(
+    (p) => p.projectRoot === props.selectedProject,
+  );
   return (
     <div className={classes.accordionContainer}>
       <Accordion
         trigger={(open) => (
           <Stack className="align-items-center">
-            <div>
-              {props.projects.find(
-                (p) => p.projectRoot === props.selectedProject,
-              )?.projectName ?? "Select Projects"}
+            <div className="lines-1">
+              {selectedProject
+                ? `${selectedProject.projectName} (${selectedProject.projectRoot})`
+                : "Select Projects"}
             </div>
             <div className="spacer" />
             {open ? <ArrowDownIcon /> : <ArrowLeftIcon />}
@@ -174,7 +177,9 @@ const ProjectSelector = (props: ProjectSelectorProps) => {
                 }}
               >
                 <FolderIcon />
-                <div>{p.projectName}</div>
+                <div className="lines-1">
+                  {p.projectName} ({p.projectRoot})
+                </div>
               </Stack>
             ))}
           </Stack>

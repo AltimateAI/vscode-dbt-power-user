@@ -1,5 +1,6 @@
 .container {
   width: 60vw;
+  min-width: min(600px, 100vw);
 }
 
 .accordionContainer {
