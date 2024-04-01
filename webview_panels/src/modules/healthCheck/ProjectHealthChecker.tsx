@@ -129,7 +129,7 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
             <div className={classes.accordionContainer + " w-100"}>
               <Accordion
                 trigger={(open) => (
-                  <Stack className="align-items-center">
+                  <Stack className="align-items-start">
                     <div>
                       {props.selectedConfig?.name ??
                         "Select healthcheck configs"}
@@ -141,30 +141,25 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
               >
                 {({ close }) => (
                   <Stack direction="column" className="gap-0">
-                    {configs
-                      .map((c) => ({
-                        value: c.id,
-                        label: c.name,
-                      }))
-                      .map((c) => (
-                        <Stack
-                          className={
-                            classes.row +
-                            " " +
-                            (props.selectedConfig ? classes.active : "")
-                          }
-                          key={c.value}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            props.setSelectedConfig(
-                              configs.find((item) => item.id === c.value),
-                            );
-                            close();
-                          }}
-                        >
-                          <div>{c.label}</div>
-                        </Stack>
-                      ))}
+                    {configs.map((c) => (
+                      <Stack
+                        className={
+                          classes.row +
+                          " " +
+                          (props.selectedConfig?.id === c.id
+                            ? classes.active
+                            : "")
+                        }
+                        key={c.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          props.setSelectedConfig(c);
+                          close();
+                        }}
+                      >
+                        <div>{c.name}</div>
+                      </Stack>
+                    ))}
                   </Stack>
                 )}
               </Accordion>
