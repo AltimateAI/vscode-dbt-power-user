@@ -289,7 +289,7 @@ const ProjectHealthcheckInput = ({
               onClick={() => {
                 if (configType === ConfigType.Saas) {
                   void executeRequestInSync("logDBTHealthcheckConfig", {
-                    configId: selectedConfig,
+                    configId: selectedConfig?.id,
                   });
                 }
                 const args = {
