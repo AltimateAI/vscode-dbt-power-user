@@ -612,4 +612,10 @@ export class AltimateRequest {
   async logDBTHealthcheckConfig(configId: string) {
     return this.fetch(`dbtconfig/${configId}/download`);
   }
+
+  async getDatapilotVersion(extension_version: string) {
+    return this.fetch<{ altimate_datapilot_version: string }>(
+      `dbtconfig/datapilot_version/${extension_version}`,
+    );
+  }
 }

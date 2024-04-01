@@ -32,11 +32,16 @@ export class AltimateDatapilot {
     return true;
   }
 
-  async installAltimateDatapilot() {
+  async installAltimateDatapilot(datapilotVersion: string) {
     const { stderr, stdout } = await this.commandProcessExecutionFactory
       .createCommandProcessExecution({
         command: this.pythonEnvironment.pythonPath,
-        args: ["-m", "pip", "install", this.packageName],
+        args: [
+          "-m",
+          "pip",
+          "install",
+          `${this.packageName}==${datapilotVersion}`,
+        ],
         cwd: getFirstWorkspacePath(),
         envVars: this.pythonEnvironment.environmentVariables,
       })

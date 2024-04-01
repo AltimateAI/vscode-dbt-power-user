@@ -22,6 +22,7 @@ import {
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 import { AltimateDatapilot } from "../dbt_client/datapilot";
+import { AltimateRequest } from "../altimate";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -67,6 +68,7 @@ export class DBTProjectContainer implements Disposable {
     ) => DBTWorkspaceFolder,
     private dbtTerminal: DBTTerminal,
     private altimateDatapilot: AltimateDatapilot,
+    private altimate: AltimateRequest,
   ) {
     this.disposables.push(
       workspace.onDidChangeWorkspaceFolders(async (event) => {
@@ -414,8 +416,12 @@ export class DBTProjectContainer implements Disposable {
     return this.altimateDatapilot.checkIfAltimateDatapilotInstalled();
   }
 
-  installAltimateDatapilot() {
-    return this.altimateDatapilot.installAltimateDatapilot();
+  async installAltimateDatapilot() {
+    const { altimate_datapilot_version } =
+      await this.altimate.getDatapilotVersion(this.extensionVersion);
+    await this.altimateDatapilot.installAltimateDatapilot(
+      altimate_datapilot_version,
+    );
   }
 
   executeAltimateDatapilotHealthcheck(args: AltimateConfigProps) {
