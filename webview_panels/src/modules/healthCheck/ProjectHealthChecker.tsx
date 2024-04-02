@@ -298,9 +298,12 @@ const ProjectHealthcheckInput = ({
                     ? { configPath }
                     : selectedConfig!),
                 };
-                setRequestInProgress(true);
-                await handleHealthCheck(args);
-                setRequestInProgress(false);
+                try {
+                  setRequestInProgress(true);
+                  await handleHealthCheck(args);
+                } finally {
+                  setRequestInProgress(false);
+                }
               }}
               disabled={!(selectedProject && !requestInProgress)}
             >

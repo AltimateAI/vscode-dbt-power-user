@@ -412,8 +412,12 @@ export class DBTProjectContainer implements Disposable {
     return this.dbtWorkspaceFolders.find((folder) => folder.contains(uri));
   }
 
-  checkIfAltimateDatapilotInstalled() {
-    return this.altimateDatapilot.checkIfAltimateDatapilotInstalled();
+  async checkIfAltimateDatapilotInstalled() {
+    const datapilotVersion =
+      await this.altimateDatapilot.checkIfAltimateDatapilotInstalled();
+    const { altimate_datapilot_version } =
+      await this.altimate.getDatapilotVersion(this.extensionVersion);
+    return datapilotVersion === altimate_datapilot_version;
   }
 
   async installAltimateDatapilot() {

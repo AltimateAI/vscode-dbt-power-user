@@ -12,24 +12,24 @@ export class AltimateDatapilot {
     private dbtTerminal: DBTTerminal,
   ) {}
 
-  async checkIfAltimateDatapilotInstalled() {
+  async checkIfAltimateDatapilotInstalled(): Promise<string> {
     const process =
       this.commandProcessExecutionFactory.createCommandProcessExecution({
         command: this.pythonEnvironment.pythonPath,
-        args: ["-c", "import datapilot"],
+        args: ["-c", "import datapilot;print(datapilot.__version__)"],
         cwd: getFirstWorkspacePath(),
         envVars: this.pythonEnvironment.environmentVariables,
       });
-    const { stderr } = await process.complete();
+    const { stdout, stderr } = await process.complete();
     if (stderr) {
       this.dbtTerminal.debug(
         "AltimateDatapilot:checkIfAltimateDatapilotInstalled",
         "Datapilot not installed",
         stderr,
       );
-      return false;
+      return "";
     }
-    return true;
+    return stdout.trim();
   }
 
   async installAltimateDatapilot(datapilotVersion: string) {
