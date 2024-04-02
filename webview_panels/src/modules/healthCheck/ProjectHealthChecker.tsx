@@ -241,6 +241,7 @@ const ProjectHealthcheckInput = ({
   const [selectedConfig, setSelectedConfig] = useState<DBTConfig | undefined>();
   const [configType, setConfigType] = useState(ConfigType.Manual);
   const [configPath, setConfigPath] = useState("");
+  const [requestInProgress, setRequestInProgress] = useState(false);
 
   const getProjects = useCallback(async () => {
     const result = (await executeRequestInSync("getProjects", {})) as {
@@ -257,9 +258,6 @@ const ProjectHealthcheckInput = ({
     void getProjects();
   }, []);
 
-  const isEnabled =
-    selectedProject &&
-    ((configType === ConfigType.Manual && configPath) || selectedConfig);
   return (
     <Card className={classes.container}>
       <CardTitle tag="h5">Perform project healthcheck</CardTitle>
@@ -285,8 +283,10 @@ const ProjectHealthcheckInput = ({
 
           <Stack>
             <Button
-              color={isEnabled ? "primary" : "secondary"}
-              onClick={() => {
+              color={
+                selectedProject && !requestInProgress ? "primary" : "secondary"
+              }
+              onClick={async () => {
                 if (configType === ConfigType.Saas) {
                   void executeRequestInSync("logDBTHealthcheckConfig", {
                     configId: selectedConfig?.id,
@@ -298,16 +298,18 @@ const ProjectHealthcheckInput = ({
                     ? { configPath }
                     : selectedConfig!),
                 };
-                void handleHealthCheck(args);
+                setRequestInProgress(true);
+                await handleHealthCheck(args);
+                setRequestInProgress(false);
               }}
-              disabled={!isEnabled}
+              disabled={!(selectedProject && !requestInProgress)}
             >
               Start scan
             </Button>
             <Button
-              color={isEnabled ? "primary" : "secondary"}
+              color={selectedProject ? "primary" : "secondary"}
               onClick={handleClearProblems}
-              disabled={!isEnabled}
+              disabled={!selectedProject}
             >
               Clear problems
             </Button>
