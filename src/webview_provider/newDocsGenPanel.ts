@@ -2,7 +2,7 @@ import { readFileSync } from "fs";
 import {
   CancellationToken,
   TextEditor,
-  ViewColumn,
+  Uri,
   WebviewView,
   WebviewViewResolveContext,
   window,
@@ -26,6 +26,7 @@ import { DocsGenPanelView } from "./docsEditPanel";
 import { TestMetaData } from "../domain";
 import { DbtTestService } from "../services/dbtTestService";
 import { DbtDocsView } from "./DbtDocsView";
+import { ConversationService } from "../services/conversationService";
 
 @provideSingleton(NewDocsGenPanel)
 export class NewDocsGenPanel
@@ -46,6 +47,7 @@ export class NewDocsGenPanel
     protected dbtTerminal: DBTTerminal,
     private dbtTestService: DbtTestService,
     private dbtDocsView: DbtDocsView,
+    private conversationService: ConversationService,
   ) {
     super(
       dbtProjectContainer,
@@ -132,9 +134,10 @@ export class NewDocsGenPanel
         this.handleSyncRequestFromWebview(
           syncRequestId,
           async () => {
-            return this.docGenService.shareDbtDocs(
-              args as { name: string; comment?: string },
-            );
+            return this.conversationService.shareDbtDocs({
+              ...args,
+              uri: window.activeTextEditor?.document.uri,
+            } as { name: string; comment?: string; uri?: Uri });
           },
           command,
           true,

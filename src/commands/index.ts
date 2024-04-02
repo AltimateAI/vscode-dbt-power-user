@@ -1,5 +1,7 @@
 import {
   commands,
+  CommentReply,
+  CommentThread,
   Disposable,
   languages,
   TextEditor,
@@ -20,6 +22,10 @@ import { ValidateSql } from "./validateSql";
 import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { SharedStateService } from "../services/sharedStateService";
+import {
+  ConversationProvider,
+  NoteComment,
+} from "../comment_provider/conversationProvider";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -35,6 +41,7 @@ export class VSCodeCommands implements Disposable {
     private bigQueryCostEstimate: BigQueryCostEstimate,
     private dbtTerminal: DBTTerminal,
     private eventEmitterService: SharedStateService,
+    private conversationController: ConversationProvider,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -256,6 +263,55 @@ export class VSCodeCommands implements Disposable {
           command: "dbtPowerUser.openHelpInDatapilot",
           payload: {},
         }),
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.createConversation",
+        (reply: CommentReply) => {
+          this.conversationController.createConversation(reply);
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.replyToConversation",
+        (reply: CommentReply) => {
+          this.conversationController.replyToConversation(reply);
+        },
+      ),
+
+      commands.registerCommand(
+        "dbtPowerUser.editConversation",
+        (reply: NoteComment) => {
+          this.conversationController.editConversation(reply);
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.deleteConversation",
+        (reply: CommentThread) => {
+          this.conversationController.deleteConversation(reply);
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.saveConversation",
+        (reply: NoteComment) => {
+          this.conversationController.saveConversation(reply);
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.cancelSaveConversation",
+        (reply: NoteComment) => {
+          this.conversationController.cancelSaveConversation(reply);
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.deleteConversationComment",
+        (reply: NoteComment) => {
+          this.conversationController.deleteConversationComment(reply);
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.viewInDbtDocs",
+        (reply: CommentThread) => {
+          this.conversationController.viewInDbtDocs(reply);
+        },
       ),
     );
   }

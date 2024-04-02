@@ -43,8 +43,8 @@ const ShareDbtDocsButton = (): JSX.Element => {
     try {
       const result = (await executeRequestInSync("share:dbtdocs", {
         ...data,
-      })) as string;
-      setSharedUrl(result);
+      })) as { shareUrl: string; shareId: string };
+      setSharedUrl(result.shareUrl);
     } catch (err) {
       panelLogger.error("error while creating dbt share url", err);
     }

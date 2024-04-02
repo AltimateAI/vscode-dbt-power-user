@@ -31,12 +31,14 @@ export class QueryManifestService {
   }
 
   public getProject(): DBTProject | undefined {
-    if (!window.activeTextEditor?.document.uri) {
+    return this.getProjectByUri(window.activeTextEditor?.document.uri);
+  }
+
+  public getProjectByUri(uri?: Uri): DBTProject | undefined {
+    if (!uri) {
       return;
     }
-    return this.dbtProjectContainer.findDBTProject(
-      window.activeTextEditor.document.uri,
-    );
+    return this.dbtProjectContainer.findDBTProject(uri);
   }
 
   public getEventByCurrentProject():

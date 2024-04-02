@@ -292,6 +292,56 @@
     },
     "commands": [
       {
+        "command": "dbtPowerUser.editConversation",
+        "title": "Edit",
+        "category": "dbt Power User",
+        "icon": {
+          "dark": "resources/edit_inverse.svg",
+          "light": "resources/edit.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.deleteConversation",
+        "title": "Delete",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.deleteConversationComment",
+        "title": "Delete",
+        "category": "dbt Power User",
+        "icon": {
+          "dark": "resources/close_inverse.svg",
+          "light": "resources/close.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.saveConversation",
+        "category": "dbt Power User",
+        "title": "Save"
+      },
+      {
+        "command": "dbtPowerUser.cancelSaveConversation",
+        "category": "dbt Power User",
+        "title": "Cancel"
+      },
+      {
+        "command": "dbtPowerUser.createConversation",
+        "title": "Publish",
+        "category": "dbt Power User",
+        "enablement": "!commentIsEmpty"
+      },
+      {
+        "command": "dbtPowerUser.viewInDbtDocs",
+        "title": "View in dbt docs",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.replyToConversation",
+        "title": "Reply",
+        "enablement": "!commentIsEmpty",
+        "category": "dbt Power User"
+      },
+      {
         "command": "dbtPowerUser.puQuickPick",
         "category": "dbt Power User",
         "title": "dbt Power User Quick Pick"
@@ -542,6 +592,59 @@
       }
     ],
     "menus": {
+      "comments/comment/context": [
+        {
+          "command": "dbtPowerUser.cancelSaveConversation",
+          "group": "inline@1",
+          "when": "commentController == altimate-conversations"
+        },
+        {
+          "command": "dbtPowerUser.saveConversation",
+          "group": "inline@2",
+          "when": "commentController == altimate-conversations"
+        }
+      ],
+      "comments/comment/title": [
+        {
+          "command": "dbtPowerUser.editConversation",
+          "group": "group@1",
+          "when": "commentController == altimate-conversations"
+        },
+        {
+          "command": "dbtPowerUser.deleteConversationComment",
+          "group": "group@2",
+          "when": "commentController == altimate-conversations && comment == canDelete"
+        }
+      ],
+      "comments/commentThread/title": [
+        {
+          "command": "dbtPowerUser.viewInDbtDocs",
+          "group": "navigation",
+          "when": "commentController == altimate-conversations"
+        },
+        {
+          "command": "dbtPowerUser.deleteConversation",
+          "group": "navigation",
+          "when": "commentController == altimate-conversations"
+        }
+      ],
+      "comments/commentThread/context": [
+        {
+          "command": "dbtPowerUser.createConversation",
+          "group": "inline",
+          "when": "commentController == altimate-conversations && commentThreadIsEmpty"
+        },
+        {
+          "command": "dbtPowerUser.replyToConversation",
+          "group": "inline",
+          "when": "commentController == altimate-conversations && !commentThreadIsEmpty"
+        },
+        {
+          "command": "dbtPowerUser.viewInDbtDocs",
+          "group": "inline",
+          "when": "commentController == altimate-conversations && !commentThreadIsEmpty"
+        }
+      ],
       "dbtPowerUser.datapilotSubmenu": [
         {
           "command": "dbtPowerUser.openDatapilotWithQuery",
