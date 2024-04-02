@@ -408,6 +408,7 @@ export class DBTCoreProjectIntegration
     try {
       await this.python
         .ex`from dbt_core_integration import default_profiles_dir`;
+      await this.python.ex`from dbt_healthcheck import *`;
       this.profilesDir = this.removeTrailingSlashes(
         await this.python.lock(
           (python) => python`default_profiles_dir(${this.projectRoot.fsPath})`,

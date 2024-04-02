@@ -259,6 +259,7 @@ export class DBTCloudProjectIntegration
     try {
       await this.python
         .ex`from dbt_cloud_integration import validate_sql, to_dict`;
+      await this.python.ex`from dbt_healthcheck import *`;
     } catch (error) {
       this.terminal.error(
         "dbtCloudIntegration",
