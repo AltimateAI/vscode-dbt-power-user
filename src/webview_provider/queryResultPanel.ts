@@ -38,6 +38,7 @@ enum OutboundCommand {
   RenderError = "renderError",
   InjectConfig = "injectConfig",
   ResetState = "resetState",
+  GetContext = "getContext",
 }
 
 interface RenderQuery {
@@ -68,6 +69,7 @@ enum InboundCommand {
   OpenUrl = "openUrl",
   GetSummary = "getSummary",
   CancelQuery = "cancelQuery",
+  SetContext = "setContext",
 }
 
 interface RecInfo {
@@ -131,6 +133,11 @@ export class QueryResultPanel implements WebviewViewProvider {
     this.renderWebviewView(context);
     this.setupWebviewHooks(context);
     this.transmitConfig();
+    await this._panel?.webview.postMessage({
+      command: OutboundCommand.GetContext,
+      lastHintTimestamp:
+        this.dbtProjectContainer.getFromGlobalState("lastHintTimestamp") || 0,
+    });
     _token.onCancellationRequested(async () => {
       await this.transmitReset();
     });
@@ -202,6 +209,12 @@ export class QueryResultPanel implements WebviewViewProvider {
                 query: summary.compiledSql,
               },
             });
+            break;
+          case InboundCommand.SetContext:
+            this.dbtProjectContainer.setToGlobalState(
+              message.key,
+              message.value,
+            );
             break;
         }
       },

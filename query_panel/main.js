@@ -20,6 +20,7 @@ async function cancelQuery() {
 
 const DEFAULT_HEIGHT = 455;
 
+const HINT_VISIBILITY_DELAY = 1 * 60 * 60 * 1000; // 1 hr
 const HINTS = [
   {
     message: "Generate models from SQL or source",
@@ -145,6 +146,8 @@ const app = createApp({
       loadingLink: "",
       hintInterval: null,
       hintIndex: 0,
+      lastHintTimestamp: 0,
+      showHint: false,
     };
   },
   methods: {
@@ -469,11 +472,21 @@ const app = createApp({
           this.focusPreviewPane();
           this.loading = true;
           this.timeExecution();
-          HINTS.sort(() => Math.random() - 0.5);
-          this.updateHintText();
-          this.hintInterval = setInterval(() => {
+          const now = Date.now();
+          this.showHint = false;
+          if (this.lastHintTimestamp + HINT_VISIBILITY_DELAY < now) {
+            this.showHint = true;
+            this.lastHintTimestamp = now;
+            HINTS.sort(() => Math.random() - 0.5);
+            executeCommand("setContext", {
+              key: "lastHintTimestamp",
+              value: now,
+            });
             this.updateHintText();
-          }, 2000);
+            this.hintInterval = setInterval(() => {
+              this.updateHintText();
+            }, 2000);
+          }
           break;
         case "renderError":
           this.updateError(event.data);
@@ -495,6 +508,9 @@ const app = createApp({
           this.clearData();
           this.focusWelcomePane();
           this.cancelHintInterval();
+          break;
+        case "getContext":
+          this.lastHintTimestamp = event.data["lastHintTimestamp"];
           break;
       }
     });
