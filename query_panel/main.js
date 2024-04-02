@@ -20,6 +20,37 @@ async function cancelQuery() {
 
 const DEFAULT_HEIGHT = 455;
 
+const HINTS = [
+  {
+    message: "Generate models from SQL or source",
+    link: "https://docs.myaltimate.com/develop/genmodelSQL/",
+  },
+  {
+    message: "Generate documentation for dbt models",
+    link: "https://docs.myaltimate.com/document/generatedoc/",
+  },
+  {
+    message: "Defer building upstream models",
+    link: "https://docs.myaltimate.com/test/defertoprod/",
+  },
+  {
+    message: "Get a query explanation & ask questions",
+    link: "https://docs.myaltimate.com/develop/explanation/",
+  },
+  {
+    message: "Update dbt Model in natural language",
+    link: "https://docs.myaltimate.com/develop/updatemodel/",
+  },
+  {
+    message: "Explore real-time column lineage",
+    link: "https://docs.myaltimate.com/test/lineage/",
+  },
+  {
+    message: "Write & edit dbt tests in UI",
+    link: "https://docs.myaltimate.com/test/writetests/",
+  },
+];
+
 class Grid {
   constructor() {}
 
@@ -110,6 +141,10 @@ const app = createApp({
       previousSummary: undefined,
       previousCode: undefined,
       aiEnabled: false,
+      loadingMessage: "",
+      loadingLink: "",
+      hintInterval: null,
+      hintIndex: 0,
     };
   },
   methods: {
@@ -121,8 +156,22 @@ const app = createApp({
         document.querySelector("#panel-manager").activeid = "tab-1";
       }, 100);
     },
+    cancelHintInterval() {
+      if (!this.hintInterval) {
+        return;
+      }
+      cancelInterval(this.hintInterval);
+      this.hintInterval = null;
+    },
+    updateHintText() {
+      const hint = HINTS[this.hintIndex];
+      this.loadingMessage = hint.message;
+      this.loadingLink = hint.link;
+      this.hintIndex = (this.hintIndex + 1) % HINTS.length;
+    },
     cancelQuery() {
       cancelQuery();
+      this.cancelHintInterval();
     },
     // Converts the provided data to CSV format.
     dataToCsv(columns, rows) {
@@ -410,6 +459,7 @@ const app = createApp({
           this.focusPreviewPane();
           this.loading = false;
           this.endTimer();
+          this.cancelHintInterval();
           break;
         case "renderLoading":
           if (this.loading) {
@@ -419,6 +469,11 @@ const app = createApp({
           this.focusPreviewPane();
           this.loading = true;
           this.timeExecution();
+          HINTS.sort(() => Math.random() - 0.5);
+          this.updateHintText();
+          this.hintInterval = setInterval(() => {
+            this.updateHintText();
+          }, 2000);
           break;
         case "renderError":
           this.updateError(event.data);
@@ -429,6 +484,7 @@ const app = createApp({
           this.focusPreviewPane();
           this.loading = false;
           this.endTimer();
+          this.cancelHintInterval();
           break;
         case "injectConfig":
           this.updateConfig(event.data);
@@ -438,6 +494,7 @@ const app = createApp({
           this.endTimer();
           this.clearData();
           this.focusWelcomePane();
+          this.cancelHintInterval();
           break;
       }
     });
