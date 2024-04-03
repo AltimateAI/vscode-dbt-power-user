@@ -1,0 +1,81 @@
+.container {
+  width: 60vw;
+  min-width: min(600px, 100vw);
+}
+
+.accordionContainer {
+  background-color: var(--background--01);
+  border-radius: 0.25em;
+  padding: 0.25em 0.5em;
+
+  .row {
+    align-items: center;
+    cursor: pointer;
+    padding: 0.125em 0.5em;
+
+    &:hover {
+      background-color: var(--background--02);
+      border-radius: 0.25em;
+    }
+
+    &.active {
+      background-color: var(--background--02);
+      border-radius: 0.25em;
+    }
+  }
+}
+
+.notification {
+  border-radius: 0.25em;
+  padding: 0.25em 0.75em;
+  border: 1px solid var(--stroke--orange);
+  color: var(--text-color--caption);
+}
+
+.link {
+  color: var(--text-color--brand);
+  &:focus {
+    outline: none;
+  }
+}
+
+.issuesContainer {
+  margin-top: 1em;
+  border-radius: 0.25em;
+  border: 1px solid var(--stroke--disable);
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 6fr 1fr 1fr;
+  padding: 0.25em 0.5em;
+  align-items: center;
+}
+
+.tableHeader {
+  @extend .table-row;
+  border-bottom: 1px solid var(--stroke--disable);
+  background-color: var(--background--03);
+}
+
+.tableDataRow {
+  @extend .table-row;
+  &:not(:last-child) {
+    border-bottom: 1px solid var(--stroke--disable);
+  }
+  background-color: var(--background--02);
+  cursor: pointer;
+}
+
+.tableDataRowAccordionItem {
+  @extend .table-row;
+  &:not(:last-child) {
+    border-bottom: 1px solid var(--stroke--disable);
+  }
+  background-color: var(--background--01);
+}
+
+.sidebarCard {
+  padding: 0.25em 0.5em;
+  border-radius: 4px;
+}
