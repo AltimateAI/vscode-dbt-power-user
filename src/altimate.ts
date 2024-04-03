@@ -75,6 +75,19 @@ interface SQLToModelRequest {
   sources: SourceMetaData[];
 }
 
+interface DBTProjectHealthConfig {
+  id: number;
+  name: string;
+  description: string;
+  created_on: string;
+  config: Record<string, unknown>;
+  config_schema: unknown[];
+}
+
+interface DBTProjectHealthConfigResponse {
+  items: DBTProjectHealthConfig[];
+}
+
 export interface SQLToModelResponse {
   sql: string;
 }
@@ -594,6 +607,22 @@ export class AltimateRequest {
         artifact_type: artifact_type,
         dbt_core_integration_id: dbtCoreIntegrationId,
       })}`,
+    );
+  }
+
+  async getHealthcheckConfigs() {
+    return this.fetch<DBTProjectHealthConfigResponse>(
+      `dbtconfig?${new URLSearchParams({ size: "100" }).toString()}`,
+    );
+  }
+
+  async logDBTHealthcheckConfig(configId: string) {
+    return this.fetch(`dbtconfig/${configId}/download`);
+  }
+
+  async getDatapilotVersion(extension_version: string) {
+    return this.fetch<{ altimate_datapilot_version: string }>(
+      `dbtconfig/datapilot_version/${extension_version}`,
     );
   }
 }

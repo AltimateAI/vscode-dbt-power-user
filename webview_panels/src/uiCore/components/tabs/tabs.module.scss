@@ -1,0 +1,13 @@
+.tabs {
+  display: flex;
+  background: var(--background--02);
+  border-radius: 0.25em;
+  .tab {
+    padding: 0.25em 1em;
+    border-radius: 0.25em;
+    cursor: pointer;
+    &.selected {
+      background: var(--primary-color);
+    }
+  }
+}
