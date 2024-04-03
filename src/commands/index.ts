@@ -11,7 +11,7 @@ import {
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { RunModelType } from "../domain";
-import { provideSingleton } from "../utils";
+import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { RunModel } from "./runModel";
 import { SqlToModel } from "./sqlToModel";
 import { AltimateScan } from "./altimateScan";
@@ -267,50 +267,82 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand(
         "dbtPowerUser.createConversation",
         (reply: CommentReply) => {
-          this.conversationController.createConversation(reply);
+          try {
+            this.conversationController.createConversation(reply);
+          } catch (err) {
+            extendErrorWithSupportLinks((err as Error).message);
+          }
         },
       ),
       commands.registerCommand(
         "dbtPowerUser.replyToConversation",
         (reply: CommentReply) => {
-          this.conversationController.replyToConversation(reply);
+          try {
+            this.conversationController.replyToConversation(reply);
+          } catch (err) {
+            extendErrorWithSupportLinks((err as Error).message);
+          }
         },
       ),
 
       commands.registerCommand(
         "dbtPowerUser.editConversation",
         (reply: NoteComment) => {
-          this.conversationController.editConversation(reply);
-        },
-      ),
-      commands.registerCommand(
-        "dbtPowerUser.deleteConversation",
-        (reply: CommentThread) => {
-          this.conversationController.deleteConversation(reply);
+          try {
+            this.conversationController.editConversation(reply);
+          } catch (err) {
+            extendErrorWithSupportLinks((err as Error).message);
+          }
         },
       ),
       commands.registerCommand(
         "dbtPowerUser.saveConversation",
         (reply: NoteComment) => {
-          this.conversationController.saveConversation(reply);
+          try {
+            this.conversationController.saveConversation(reply);
+          } catch (err) {
+            extendErrorWithSupportLinks((err as Error).message);
+          }
         },
       ),
       commands.registerCommand(
         "dbtPowerUser.cancelSaveConversation",
         (reply: NoteComment) => {
-          this.conversationController.cancelSaveConversation(reply);
+          try {
+            this.conversationController.cancelSaveConversation(reply);
+          } catch (err) {
+            extendErrorWithSupportLinks((err as Error).message);
+          }
         },
       ),
       commands.registerCommand(
         "dbtPowerUser.deleteConversationComment",
         (reply: NoteComment) => {
-          this.conversationController.deleteConversationComment(reply);
+          try {
+            this.conversationController.deleteConversationComment(reply);
+          } catch (err) {
+            extendErrorWithSupportLinks((err as Error).message);
+          }
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.resolveConversation",
+        (thread: CommentThread) => {
+          try {
+            this.conversationController.resolveConversation(thread);
+          } catch (err) {
+            extendErrorWithSupportLinks((err as Error).message);
+          }
         },
       ),
       commands.registerCommand(
         "dbtPowerUser.viewInDbtDocs",
-        (reply: CommentThread) => {
-          this.conversationController.viewInDbtDocs(reply);
+        (thread: CommentThread) => {
+          try {
+            this.conversationController.viewInDbtDocs(thread);
+          } catch (err) {
+            extendErrorWithSupportLinks((err as Error).message);
+          }
         },
       ),
     );

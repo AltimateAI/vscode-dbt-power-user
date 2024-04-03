@@ -301,8 +301,8 @@
         }
       },
       {
-        "command": "dbtPowerUser.deleteConversation",
-        "title": "Delete",
+        "command": "dbtPowerUser.resolveConversation",
+        "title": "Resolve",
         "category": "dbt Power User"
       },
       {
@@ -623,24 +623,19 @@
           "when": "commentController == altimate-conversations"
         },
         {
-          "command": "dbtPowerUser.deleteConversation",
-          "group": "navigation",
-          "when": "commentController == altimate-conversations"
+          "command": "dbtPowerUser.resolveConversation",
+          "group": "inline",
+          "when": "commentController == altimate-conversations && !commentThreadIsEmpty"
         }
       ],
       "comments/commentThread/context": [
         {
           "command": "dbtPowerUser.createConversation",
-          "group": "inline",
+          "group": "inline@1",
           "when": "commentController == altimate-conversations && commentThreadIsEmpty"
         },
         {
           "command": "dbtPowerUser.replyToConversation",
-          "group": "inline",
-          "when": "commentController == altimate-conversations && !commentThreadIsEmpty"
-        },
-        {
-          "command": "dbtPowerUser.viewInDbtDocs",
           "group": "inline",
           "when": "commentController == altimate-conversations && !commentThreadIsEmpty"
         }
