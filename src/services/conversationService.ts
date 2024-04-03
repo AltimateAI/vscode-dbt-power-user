@@ -1,5 +1,5 @@
 import * as os from "os";
-import { ProgressLocation, Uri, window } from "vscode";
+import { CommentThread, ProgressLocation, Uri, window } from "vscode";
 import { provideSingleton } from "../utils";
 import { QueryManifestService } from "./queryManifestService";
 import { DBTProject } from "../manifest/dbtProject";
@@ -19,6 +19,14 @@ export interface ConversationGroup {
   owner: string;
   status: "Pending" | "Resolved";
   xpath: string;
+  meta: {
+    uniqueId: string;
+    resource_type: string;
+    range: {
+      end: CommentThread["range"]["end"];
+      start: CommentThread["range"]["start"];
+    };
+  };
   conversations: {
     conversation_id: string;
     message: string;

@@ -42,7 +42,10 @@ export class QueryManifestService {
   }
 
   public getEventByCurrentProject():
-    | { event: ManifestCacheProjectAddedEvent; currentDocument: TextDocument }
+    | {
+        event: ManifestCacheProjectAddedEvent | undefined;
+        currentDocument: TextDocument;
+      }
     | undefined {
     if (window.activeTextEditor === undefined || this.eventMap === undefined) {
       return;
@@ -50,6 +53,10 @@ export class QueryManifestService {
 
     const currentDocument = window.activeTextEditor.document;
     const currentFilePath = currentDocument.uri;
+    return { event: this.getEventByDocument(currentFilePath), currentDocument };
+  }
+
+  public getEventByDocument(currentFilePath: Uri) {
     this.dbtTerminal.debug(
       "getting event for project, currentFilePath: ",
       currentFilePath.fsPath,
@@ -69,7 +76,7 @@ export class QueryManifestService {
       this.dbtTerminal.debug("no event for project: ", projectRootpath.fsPath);
       return;
     }
-    return { event, currentDocument };
+    return event;
   }
 
   public getSourcesInProject(currentFilePath?: Uri) {

@@ -10,6 +10,7 @@ import {
   AltimateWebviewProvider,
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
+import { UsersService } from "../services/usersService";
 
 @provideSingleton(DbtDocsView)
 export class DbtDocsView extends AltimateWebviewProvider {
@@ -17,6 +18,7 @@ export class DbtDocsView extends AltimateWebviewProvider {
   protected viewPath = "/dbt-docs";
   protected panelDescription = "Dbt docs view";
   private _shareId: string | undefined;
+  private _conversationGroupId: string | undefined;
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
@@ -25,6 +27,7 @@ export class DbtDocsView extends AltimateWebviewProvider {
     protected emitterService: SharedStateService,
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
+    private usersService: UsersService,
   ) {
     super(
       dbtProjectContainer,
@@ -54,6 +57,8 @@ export class DbtDocsView extends AltimateWebviewProvider {
       command: "renderShareId",
       args: {
         shareId: this._shareId,
+        conversationGroupId: this._conversationGroupId,
+        userId: this.usersService.user?.id,
       },
     });
   }
@@ -67,6 +72,9 @@ export class DbtDocsView extends AltimateWebviewProvider {
           payload,
         );
         this._shareId = payload.shareId as string | undefined;
+        this._conversationGroupId = payload.conversationGroupId as
+          | string
+          | undefined;
         const webview = window.createWebviewPanel(
           DbtDocsView.viewType,
           "Dbt docs",
