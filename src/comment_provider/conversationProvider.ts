@@ -18,6 +18,7 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import path = require("path");
 import { ConversationService } from "../services/conversationService";
 import { SharedStateService } from "../services/sharedStateService";
+import { UsersService } from "../services/usersService";
 
 let commentId = 1;
 export class NoteComment implements Comment {
@@ -43,6 +44,7 @@ export class ConversationProvider implements Disposable {
 
   constructor(
     private conversationService: ConversationService,
+    private usersService: UsersService,
     private altimateRequest: AltimateRequest,
     private dbtTerminal: DBTTerminal,
     protected emitterService: SharedStateService,
@@ -109,33 +111,52 @@ export class ConversationProvider implements Disposable {
       .filter((c) => c.status === "Pending")
       .map((conversationGroup) => {
         if (window.activeTextEditor?.document.uri) {
-          this.commentController.createCommentThread(
+          const thread = this.commentController.createCommentThread(
             window.activeTextEditor.document.uri,
             new Range(10, 0, 10, 0),
             conversationGroup.conversations.map(
               (conversation) =>
                 new NoteComment(
-                  conversation.message,
+                  this.convertTextFromDbToCommentFormat(conversation.message),
                   CommentMode.Preview,
-                  { name: conversation.user_id },
+                  {
+                    name:
+                      this.usersService.getUserById(conversation.user_id)
+                        ?.first_name || "Unknown",
+                  },
                   undefined,
                   "canDelete",
                 ),
             ),
-          ).contextValue = this.buildContextValue(
+          );
+          thread.contextValue = this.buildContextValue(
             latest.share_id,
             conversationGroup.conversation_group_id,
           );
+          thread.label = "Discussion";
         }
       });
+  }
+
+  private convertTextFromDbToCommentFormat(text: string) {
+    return new MarkdownString(
+      text.replace(/@\[([^[\]]+)\]\((\d+)\)/g, "@$1<!--$2-->"),
+    );
+  }
+
+  private convertTextToDbFormat(text: string) {
+    return new MarkdownString(text).value.replace(
+      /@\(([^)]+)\)<!--(\d+)-->/g,
+      "@[$1]($2)",
+    );
   }
 
   private addComment(reply: CommentReply) {
     const thread = reply.thread;
     const newComment = new NoteComment(
-      reply.text,
+      new MarkdownString(reply.text),
       CommentMode.Preview,
-      { name: "vscode" },
+      { name: this.usersService.user?.first_name || "Unknown" },
       thread,
       "canDelete",
     );
@@ -164,8 +185,9 @@ export class ConversationProvider implements Disposable {
   async createConversation(reply: CommentReply) {
     const thread = this.addComment(reply);
     const model = path.basename(reply.thread.uri.fsPath, ".sql");
+    const convertedMessage = this.convertTextToDbFormat(reply.text);
     const { shareId, shareUrl } = await this.conversationService.shareDbtDocs({
-      name: reply.text,
+      name: convertedMessage,
       description: "",
       uri: reply.thread.uri,
       model,
@@ -187,7 +209,7 @@ export class ConversationProvider implements Disposable {
     }>(`dbt/dbt_docs_share/${shareId}/conversation_group`, {
       method: "POST",
       body: JSON.stringify({
-        message: reply.text,
+        message: convertedMessage,
         xpath: JSON.stringify({
           model,
           lines: {
@@ -235,7 +257,12 @@ export class ConversationProvider implements Disposable {
     }
     const result = await this.altimateRequest.fetch(
       `dbt/dbt_docs_share/${shareId}/conversation_group/${conversationGroupId}/conversation`,
-      { method: "POST", body: JSON.stringify({ message: reply.text }) },
+      {
+        method: "POST",
+        body: JSON.stringify({
+          message: this.convertTextToDbFormat(reply.text),
+        }),
+      },
     );
   }
 

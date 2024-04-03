@@ -1,19 +1,22 @@
-import { Disposable, languages } from "vscode";
+import { Disposable, DocumentFilter, languages } from "vscode";
 import { DBTPowerUserExtension } from "../dbtPowerUserExtension";
 import { provideSingleton } from "../utils";
 import { DocAutocompletionProvider } from "./docAutocompletionProvider";
 import { MacroAutocompletionProvider } from "./macroAutocompletionProvider";
 import { ModelAutocompletionProvider } from "./modelAutocompletionProvider";
 import { SourceAutocompletionProvider } from "./sourceAutocompletionProvider";
+import { UserCompletionProvider } from "./usercompletion_provider";
 
 @provideSingleton(AutocompletionProviders)
 export class AutocompletionProviders implements Disposable {
   private disposables: Disposable[] = [];
+
   constructor(
     private macroAutocompletionProvider: MacroAutocompletionProvider,
     private modelAutocompletionProvider: ModelAutocompletionProvider,
     private sourceAutocompletionProvider: SourceAutocompletionProvider,
     private docAutocompletionProvider: DocAutocompletionProvider,
+    private userCompletionProvider: UserCompletionProvider,
   ) {
     this.disposables.push(
       languages.registerCompletionItemProvider(
@@ -43,6 +46,12 @@ export class AutocompletionProviders implements Disposable {
         "(",
         '"',
         "'",
+      ),
+      // enabled only for markdowns - to work for comment inputs
+      languages.registerCompletionItemProvider(
+        { language: "markdown" },
+        this.userCompletionProvider,
+        "@",
       ),
     );
   }
