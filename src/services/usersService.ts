@@ -41,7 +41,9 @@ export class UsersService {
 
   private async loadCurrentUser() {
     this.dbtTerminal.debug("UsersService", "loading current user");
-    const user = await this.altimateRequest.fetch<TenantUser>("/users/details");
+    const user = await this.altimateRequest.fetch<TenantUser>(
+      "/dbt/dbt_docs_share/user/details",
+    );
     this.tenantUser = user;
     this.dbtTerminal.debug("UsersService", "loaded current user", user);
   }

@@ -151,10 +151,14 @@ export class ConversationProvider implements Disposable {
     );
   }
 
+  private convertUserMentions(text: string) {
+    return text.replace(/@\(([^)]+)\)<!--(\d+)-->/g, "@$1<!--$2-->");
+  }
+
   private addComment(reply: CommentReply) {
     const thread = reply.thread;
     const newComment = new NoteComment(
-      new MarkdownString(reply.text),
+      new MarkdownString(this.convertUserMentions(reply.text)),
       CommentMode.Preview,
       { name: this.usersService.user?.first_name || "Unknown" },
       thread,
