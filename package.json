@@ -1,6 +1,6 @@
 {
   "name": "vscode-dbt-power-user",
-  "displayName": "dbt Power User",
+  "displayName": "Power User for dbt™",
   "description": "This extension makes vscode seamlessly work with dbt: auto-complete, preview, column lineage, AI docs generation, health checks, cost estimation etc",
   "icon": "media/images/dbt.png",
   "publisher": "innoverio",
@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.37.4",
+  "version": "0.37.5",
   "engines": {
     "vscode": "^1.81.0"
   },
