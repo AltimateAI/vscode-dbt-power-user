@@ -5,7 +5,7 @@ import { DBTTerminal } from "./dbtTerminal";
 
 @provideSingleton(AltimateDatapilot)
 export class AltimateDatapilot {
-  private packageName = "altimate-datapilot";
+  private packageName = "altimate-datapilot-cli";
   constructor(
     private pythonEnvironment: PythonEnvironment,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,

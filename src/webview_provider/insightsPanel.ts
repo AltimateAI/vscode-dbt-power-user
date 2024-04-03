@@ -56,7 +56,7 @@ type SelectFilesProps = {
 };
 
 enum PromptAnswer {
-  YES = "Install altimate datapilot",
+  YES = "Install altimate datapilot cli",
 }
 
 @provideSingleton(InsightsPanel)
@@ -436,20 +436,20 @@ export class InsightsPanel extends AltimateWebviewProvider {
         await this.dbtProjectContainer.checkIfAltimateDatapilotInstalled();
     } catch (e) {
       window.showErrorMessage(
-        `Error while checking altimate datapilot installation: ${
+        `Error while checking altimate datapilot cli installation: ${
           (e as Error).message
         }`,
       );
       this.dbtTerminal.error(
         "atimateDatapilotInstallationCheck",
-        "Error while checking altimate datapilot installation",
+        "Error while checking altimate datapilot cli installation",
         e,
       );
       return;
     }
     if (!isInstalled) {
       const answer = await window.showInformationMessage(
-        "Altimate datapilot is not detected. Install it?",
+        "Altimate datapilot cli is not detected. Install it?",
         PromptAnswer.YES,
       );
       if (answer !== PromptAnswer.YES) {
@@ -458,20 +458,22 @@ export class InsightsPanel extends AltimateWebviewProvider {
       try {
         await window.withProgress(
           {
-            title: `Installing altimate-datapilot...`,
+            title: `Installing altimate-datapilot-cli...`,
             location: ProgressLocation.Notification,
             cancellable: false,
           },
           async () => {
             await this.dbtProjectContainer.installAltimateDatapilot();
             window.showInformationMessage(
-              "Successfully installed altimate-datapilot",
+              "Successfully installed altimate-datapilot-cli",
             );
           },
         );
       } catch (e) {
         window.showErrorMessage(
-          `Error while installing altimate datapilot: ${(e as Error).message}`,
+          `Error while installing altimate datapilot cli: ${
+            (e as Error).message
+          }`,
         );
         this.dbtTerminal.error(
           "atimateDatapilotInstallation",
