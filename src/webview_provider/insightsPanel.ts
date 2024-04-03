@@ -449,7 +449,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
     }
     if (!isInstalled) {
       const answer = await window.showInformationMessage(
-        "Altimate datapilot is not detected. Install it?",
+        "Altimate datapilot cli is not detected. Install it?",
         PromptAnswer.YES,
       );
       if (answer !== PromptAnswer.YES) {
@@ -458,14 +458,14 @@ export class InsightsPanel extends AltimateWebviewProvider {
       try {
         await window.withProgress(
           {
-            title: `Installing altimate-datapilot...`,
+            title: `Installing altimate-datapilot-cli...`,
             location: ProgressLocation.Notification,
             cancellable: false,
           },
           async () => {
             await this.dbtProjectContainer.installAltimateDatapilot();
             window.showInformationMessage(
-              "Successfully installed altimate-datapilot",
+              "Successfully installed altimate-datapilot-cli",
             );
           },
         );
@@ -475,7 +475,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
         );
         this.dbtTerminal.error(
           "atimateDatapilotInstallation",
-          "Error while installing altimate datapilot",
+          "Error while installing altimate datapilot cli. ",
           e,
         );
         return;
