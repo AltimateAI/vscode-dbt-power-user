@@ -23,6 +23,7 @@ import {
   DBTProjectDetection,
   DBTProjectIntegration,
   QueryExecution,
+  HealthcheckArgs,
 } from "./dbtIntegration";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
 import { PythonBridge } from "python-bridge";
@@ -36,6 +37,7 @@ import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { existsSync } from "fs";
 import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
+import { ProjectHealthcheck } from "./dbtCoreIntegration";
 
 function getDBTPath(
   pythonEnvironment: PythonEnvironment,
@@ -257,6 +259,7 @@ export class DBTCloudProjectIntegration
     try {
       await this.python
         .ex`from dbt_cloud_integration import validate_sql, to_dict`;
+      await this.python.ex`from dbt_healthcheck import *`;
     } catch (error) {
       this.terminal.error(
         "dbtCloudIntegration",
@@ -419,6 +422,10 @@ export class DBTCloudProjectIntegration
       DBTCloudProjectIntegration.QUEUE_ALL,
       this.dbtCloudCommand(command),
     );
+  }
+
+  async executeCommandImmediately(command: DBTCommand) {
+    return await this.dbtCloudCommand(command).execute();
   }
 
   async deps(command: DBTCommand): Promise<string> {
@@ -850,5 +857,19 @@ export class DBTCloudProjectIntegration
         }
       }
     }
+  }
+
+  async performDatapilotHealthcheck({
+    manifestPath,
+    catalogPath,
+    config,
+    configPath,
+  }: HealthcheckArgs): Promise<ProjectHealthcheck> {
+    this.throwBridgeErrorIfAvailable();
+    const result = await this.python?.lock<ProjectHealthcheck>(
+      (python) =>
+        python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
+    );
+    return result;
   }
 }
