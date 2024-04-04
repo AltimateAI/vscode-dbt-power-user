@@ -163,7 +163,7 @@ const app = createApp({
       if (!this.hintInterval) {
         return;
       }
-      cancelInterval(this.hintInterval);
+      clearInterval(this.hintInterval);
       this.hintInterval = null;
     },
     updateHintText() {
