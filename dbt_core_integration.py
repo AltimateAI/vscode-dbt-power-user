@@ -38,7 +38,7 @@ from typing import (
 import agate
 from dbt.adapters.factory import get_adapter_class_by_name
 from dbt.config.runtime import RuntimeConfig
-from dbt.contracts.graph.manifest import NodeType
+from dbt.contracts.graph.manifest import NodeType, WritableManifest
 from dbt.events.functions import fire_event  # monkey-patched for perf
 from dbt.flags import set_from_args
 from dbt.node_types import NodeType
@@ -47,7 +47,7 @@ from dbt.parser.sql import SqlBlockParser, SqlMacroParser
 from dbt.task.sql import SqlCompileRunner, SqlExecuteRunner
 from dbt.tracking import disable_tracking
 from dbt.version import __version__ as dbt_version
-
+import json
 
 try:
     # dbt <= 1.3
@@ -360,6 +360,17 @@ class DbtProject:
         self._macro_parser = None
         self._sql_compiler = None
         self._sql_runner = None
+
+    def enable_defer(self, manifest_path: str) -> None:
+        with open(manifest_path) as f:
+            manifest = WritableManifest.from_dict(json.load(f))
+            selected = set()
+            self.dbt.merge_from_artifact(
+                self.adapter, other=manifest, selected=selected, favor_state=True
+            )
+
+    def disable_defer(self) -> None:
+        self.safe_parse_project()
 
     @classmethod
     def from_args(cls, args: ConfigInterface) -> "DbtProject":

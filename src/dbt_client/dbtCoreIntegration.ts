@@ -1002,4 +1002,18 @@ export class DBTCoreProjectIntegration
     );
     return result;
   }
+
+  async enableDefer(manifestPath: string): Promise<void> {
+    this.throwBridgeErrorIfAvailable();
+    await this.python?.lock<ProjectHealthcheck>(
+      (python) => python!`to_dict(project.enable_defer(${manifestPath}))`,
+    );
+  }
+
+  async disableDefer(): Promise<void> {
+    this.throwBridgeErrorIfAvailable();
+    await this.python?.lock<ProjectHealthcheck>(
+      (python) => python!`to_dict(project.disable_defer())`,
+    );
+  }
 }

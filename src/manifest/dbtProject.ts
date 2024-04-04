@@ -1076,4 +1076,13 @@ select * from renamed
 
     return { mappedNode, relationsWithoutColumns };
   }
+
+  async changeDefer(enable: boolean, manifestFolder: string): Promise<void> {
+    if (enable) {
+      const manifestPath = path.join(manifestFolder, DBTProject.MANIFEST_FILE);
+      await this.dbtProjectIntegration.enableDefer(manifestPath);
+    } else {
+      await this.dbtProjectIntegration.disableDefer();
+    }
+  }
 }

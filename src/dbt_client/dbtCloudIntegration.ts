@@ -872,4 +872,7 @@ export class DBTCloudProjectIntegration
     );
     return result;
   }
+
+  async enableDefer(manifestPath: string): Promise<void> {}
+  async disableDefer(): Promise<void> {}
 }
