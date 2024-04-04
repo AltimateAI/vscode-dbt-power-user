@@ -485,7 +485,7 @@ const app = createApp({
             this.updateHintText();
             this.hintInterval = setInterval(() => {
               this.updateHintText();
-            }, 2000);
+            }, 3500);
           }
           break;
         case "renderError":
