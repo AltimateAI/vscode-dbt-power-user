@@ -200,7 +200,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       ) {
         await this.dbtProjectContainer
           .findDBTProject(workspaceFolder?.uri!)
-          ?.changeDefer(
+          ?.applyDeferToProject(
             newConfig[root].deferToProduction,
             newConfig[root].manifestPathForDeferral,
           );

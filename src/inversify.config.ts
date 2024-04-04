@@ -162,6 +162,7 @@ container
           container.get(DBTTerminal),
           container.get(QueryResultPanel),
           container.get(TelemetryService),
+          container.get(DeferToProdService),
           container.get("Factory<DBTCoreProjectIntegration>"),
           container.get("Factory<DBTCloudProjectIntegration>"),
           container.get(AltimateRequest),
