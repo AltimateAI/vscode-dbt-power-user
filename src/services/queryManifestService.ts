@@ -7,6 +7,7 @@ import {
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
+import { SharedStateService } from "./sharedStateService";
 
 @provideSingleton(QueryManifestService)
 export class QueryManifestService {
@@ -15,6 +16,7 @@ export class QueryManifestService {
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private dbtTerminal: DBTTerminal,
+    protected emitterService: SharedStateService,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
@@ -27,6 +29,10 @@ export class QueryManifestService {
     });
     event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);
+    });
+    this.emitterService.fire({
+      command: "manifestCacheChanged",
+      payload: {},
     });
   }
 

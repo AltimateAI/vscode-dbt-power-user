@@ -24,7 +24,8 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { SharedStateService } from "../services/sharedStateService";
 import {
   ConversationProvider,
-  NoteComment,
+  ConversationComment,
+  ConversationCommentThread,
 } from "../comment_provider/conversationProvider";
 
 @provideSingleton(VSCodeCommands)
@@ -287,7 +288,7 @@ export class VSCodeCommands implements Disposable {
 
       commands.registerCommand(
         "dbtPowerUser.editConversation",
-        (reply: NoteComment) => {
+        (reply: ConversationComment) => {
           try {
             this.conversationController.editConversation(reply);
           } catch (err) {
@@ -297,7 +298,7 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand(
         "dbtPowerUser.saveConversation",
-        (reply: NoteComment) => {
+        (reply: ConversationComment) => {
           try {
             this.conversationController.saveConversation(reply);
           } catch (err) {
@@ -307,7 +308,7 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand(
         "dbtPowerUser.cancelSaveConversation",
-        (reply: NoteComment) => {
+        (reply: ConversationComment) => {
           try {
             this.conversationController.cancelSaveConversation(reply);
           } catch (err) {
@@ -317,7 +318,7 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand(
         "dbtPowerUser.deleteConversationComment",
-        (reply: NoteComment) => {
+        (reply: ConversationComment) => {
           try {
             this.conversationController.deleteConversationComment(reply);
           } catch (err) {
@@ -329,7 +330,9 @@ export class VSCodeCommands implements Disposable {
         "dbtPowerUser.resolveConversation",
         (thread: CommentThread) => {
           try {
-            this.conversationController.resolveConversation(thread);
+            this.conversationController.resolveConversation(
+              thread as ConversationCommentThread,
+            );
           } catch (err) {
             extendErrorWithSupportLinks((err as Error).message);
           }
@@ -339,7 +342,9 @@ export class VSCodeCommands implements Disposable {
         "dbtPowerUser.viewInDbtDocs",
         (thread: CommentThread) => {
           try {
-            this.conversationController.viewInDbtDocs(thread);
+            this.conversationController.viewInDbtDocs(
+              thread as ConversationCommentThread,
+            );
           } catch (err) {
             extendErrorWithSupportLinks((err as Error).message);
           }

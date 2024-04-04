@@ -14,6 +14,13 @@ interface SharedDoc {
   description: string;
 }
 
+export interface Conversation {
+  conversation_id: string;
+  message: string;
+  timestamp: string;
+  user_id: string;
+}
+
 export interface ConversationGroup {
   conversation_group_id: string;
   owner: string;
@@ -27,12 +34,7 @@ export interface ConversationGroup {
       start: CommentThread["range"]["start"];
     };
   };
-  conversations: {
-    conversation_id: string;
-    message: string;
-    timestamp: string;
-    user_id: string;
-  }[];
+  conversations: Conversation[];
 }
 
 @provideSingleton(ConversationService)
@@ -46,11 +48,19 @@ export class ConversationService {
   ) {}
 
   public async loadSharedDocs() {
-    const shares = await this.altimateRequest.fetch<{
-      items?: [];
-    }>("dbt/dbt_docs_share");
-    this.sharedDocs = shares.items || [];
-    return this.sharedDocs;
+    try {
+      const shares = await this.altimateRequest.fetch<{
+        items?: [];
+      }>("dbt/dbt_docs_share");
+      this.sharedDocs = shares.items || [];
+      return this.sharedDocs;
+    } catch (err) {
+      this.dbtTerminal.error(
+        "ConversationService:loadSharedDocs",
+        "Unable to load shared docs",
+        err,
+      );
+    }
   }
 
   public getSharedDocs() {
@@ -123,7 +133,11 @@ export class ConversationService {
               catalog_presigned_url: string;
             }>("dbt/dbt_docs_share", {
               method: "POST",
-              body: JSON.stringify(data),
+              body: JSON.stringify({
+                description: data.description,
+                name: data.name,
+                projectName: project.getProjectName(),
+              }),
             });
             this.dbtTerminal.debug(
               "docGenService:shareDbtDocs",
