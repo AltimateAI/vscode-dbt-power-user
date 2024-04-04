@@ -2,6 +2,7 @@ import {
   commands,
   ConfigurationTarget,
   env,
+  ProgressLocation,
   TextEditor,
   Uri,
   window,
@@ -30,6 +31,12 @@ type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];
   projectRoot: string;
 };
+type ConfigOption =
+  | { configPath: string }
+  | { config: unknown; config_schema: { files_required: string }[] };
+
+export type AltimateConfigProps = { projectRoot: string } & ConfigOption;
+
 export interface DeferConfig {
   deferToProduction: boolean;
   favorState: boolean;
@@ -41,6 +48,15 @@ export interface DeferConfig {
 interface DbtProject {
   projectRoot: string;
   projectName: string;
+}
+
+type SelectFilesProps = {
+  filters: { [name: string]: string[] } | undefined;
+  canSelectMany: boolean;
+};
+
+enum PromptAnswer {
+  YES = "Install altimate datapilot cli",
 }
 
 @provideSingleton(InsightsPanel)
@@ -376,12 +392,143 @@ export class InsightsPanel extends AltimateWebviewProvider {
     });
   }
 
+  private async selectFiles(
+    syncRequestId: string | undefined,
+    { filters = {}, canSelectMany = false }: SelectFilesProps,
+  ) {
+    const openDialog = await window.showOpenDialog({
+      filters,
+      canSelectFolders: false,
+      openLabel: "Select",
+      canSelectFiles: true,
+      canSelectMany,
+    });
+    if (openDialog === undefined || openDialog.length === 0) {
+      this.dbtTerminal.debug("InsightsPanel", "opendialog cancelled");
+      this._panel!.webview.postMessage({
+        command: "response",
+        args: {
+          syncRequestId,
+          body: { error: "File not selected" },
+          status: false,
+        },
+      });
+      return;
+    }
+
+    this._panel!.webview.postMessage({
+      command: "response",
+      args: {
+        syncRequestId,
+        body: { path: openDialog.map((i) => i.fsPath) },
+        status: true,
+      },
+    });
+  }
+
+  private async altimateScan(
+    syncRequestId: string | undefined,
+    args: AltimateConfigProps,
+  ) {
+    let isInstalled = false;
+    try {
+      isInstalled =
+        await this.dbtProjectContainer.checkIfAltimateDatapilotInstalled();
+    } catch (e) {
+      window.showErrorMessage(
+        `Error while checking altimate datapilot cli installation: ${
+          (e as Error).message
+        }`,
+      );
+      this.dbtTerminal.error(
+        "atimateDatapilotInstallationCheck",
+        "Error while checking altimate datapilot cli installation",
+        e,
+      );
+      return;
+    }
+    if (!isInstalled) {
+      const answer = await window.showInformationMessage(
+        "Altimate datapilot cli is not detected. Install it?",
+        PromptAnswer.YES,
+      );
+      if (answer !== PromptAnswer.YES) {
+        return;
+      }
+      try {
+        await window.withProgress(
+          {
+            title: `Installing altimate-datapilot-cli...`,
+            location: ProgressLocation.Notification,
+            cancellable: false,
+          },
+          async () => {
+            await this.dbtProjectContainer.installAltimateDatapilot();
+            window.showInformationMessage(
+              "Successfully installed altimate-datapilot-cli",
+            );
+          },
+        );
+      } catch (e) {
+        window.showErrorMessage(
+          `Error while installing altimate datapilot cli: ${
+            (e as Error).message
+          }`,
+        );
+        this.dbtTerminal.error(
+          "atimateDatapilotInstallation",
+          "Error while installing altimate datapilot",
+          e,
+        );
+        return;
+      }
+    }
+    this.telemetry.sendTelemetryEvent("performDatapilotHealthcheck", {
+      args: JSON.stringify(args),
+    });
+    try {
+      await window.withProgress(
+        {
+          title: `Performing healthcheck...`,
+          location: ProgressLocation.Notification,
+          cancellable: false,
+        },
+        async () => {
+          const projectHealthcheck =
+            await this.dbtProjectContainer.executeAltimateDatapilotHealthcheck(
+              args,
+            );
+          this._panel!.webview.postMessage({
+            command: "response",
+            args: {
+              syncRequestId,
+              body: { projectHealthcheck },
+              status: true,
+            },
+          });
+        },
+      );
+    } catch (e) {
+      window.showErrorMessage(
+        `Error while performing healthcheck:${(e as Error).message}`,
+      );
+      this.dbtTerminal.error(
+        "atimateDatapilotHealthcheck",
+        "Error while performing healthcheck",
+        e,
+      );
+    }
+  }
+
   async handleCommand(message: HandleCommandProps): Promise<void> {
     const { command, syncRequestId, ...params } = message;
 
     switch (command) {
       case "selectDirectoryForManifest":
         this.selectDirectoryForManifest(syncRequestId);
+        break;
+      case "selectFiles":
+        this.selectFiles(syncRequestId, params as SelectFilesProps);
         break;
       case "updateDeferConfig":
         await this.updateDeferConfig(
@@ -406,7 +553,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
         });
         break;
       case "altimateScan":
-        commands.executeCommand("dbtPowerUser.altimateScan", {});
+        this.altimateScan(syncRequestId, params as AltimateConfigProps);
         break;
       case "clearAltimateScanResults":
         commands.executeCommand("dbtPowerUser.clearAltimateScanResults", {});
@@ -462,6 +609,19 @@ export class InsightsPanel extends AltimateWebviewProvider {
         break;
       case "getProjects":
         await this.getProjects(syncRequestId);
+        break;
+      case "logDBTHealthcheckConfig":
+        await this.altimateRequest.logDBTHealthcheckConfig(
+          params.configId as string,
+        );
+        break;
+      case "getInsightConfigs":
+        await this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => await this.altimateRequest.getHealthcheckConfigs(),
+          command,
+          true,
+        );
         break;
       default:
         super.handleCommand(message);

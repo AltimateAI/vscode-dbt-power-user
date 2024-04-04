@@ -1,0 +1,40 @@
+.popover {
+  :global .popover {
+    margin-top: -4px;
+    :global .popover-body {
+      padding: 0;
+
+      & ul {
+        padding: 0;
+        margin: 0;
+        list-style: none;
+        background: var(--background--02);
+        color: var(--text-color--paragraph);
+
+        li {
+          text-decoration: none;
+          width: 100%;
+          min-width: 8em;
+          text-align: left;
+          padding: 0.25em 0.5em;
+          cursor: pointer;
+          &:hover,
+          &.active {
+            color: var(--primary-color);
+            background-color: var(--background--03);
+          }
+        }
+      }
+    }
+  }
+}
+
+.dropdown {
+  padding: 0.25em 0.5em;
+  border-radius: 0.25em;
+  align-items: center;
+  border: 1px solid var(--stroke--disable);
+  background: var(--background--02);
+  color: var(--text-color--paragraph);
+  cursor: pointer;
+}

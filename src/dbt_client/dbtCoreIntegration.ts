@@ -31,6 +31,7 @@ import {
   SourceNode,
   Node,
   ExecuteSQLError,
+  HealthcheckArgs,
 } from "./dbtIntegration";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { CommandProcessExecutionFactory } from "../commandProcessExecution";
@@ -74,6 +75,38 @@ interface DeferConfig {
   manifestPathForDeferral: string;
   manifestPathType?: ManifestPathType;
   dbtCoreIntegrationId?: number;
+}
+
+type InsightType = "Modelling" | "Test" | "structure";
+
+interface Insight {
+  name: string;
+  type: InsightType;
+  message: string;
+  recommendation: string;
+  reason_to_flag: string;
+  metadata: {
+    model?: string;
+    model_unique_id?: string;
+    model_type?: string;
+    convention?: string | null;
+  };
+}
+
+type Severity = "ERROR" | "WARNING";
+
+interface ModelInsight {
+  insight: Insight;
+  severity: Severity;
+  unique_id: string;
+  package_name: string;
+  path: string;
+  original_file_path: string;
+}
+
+export interface ProjectHealthcheck {
+  model_insights: Record<string, ModelInsight[]>;
+  // package_insights: any;
 }
 
 @provideSingleton(DBTCoreDetection)
@@ -375,6 +408,7 @@ export class DBTCoreProjectIntegration
     try {
       await this.python
         .ex`from dbt_core_integration import default_profiles_dir`;
+      await this.python.ex`from dbt_healthcheck import *`;
       this.profilesDir = this.removeTrailingSlashes(
         await this.python.lock(
           (python) => python`default_profiles_dir(${this.projectRoot.fsPath})`,
@@ -559,6 +593,10 @@ export class DBTCoreProjectIntegration
 
   async generateDocs(command: DBTCommand) {
     this.addCommandToQueue(this.dbtCoreCommand(command));
+  }
+
+  async executeCommandImmediately(command: DBTCommand) {
+    return await this.dbtCoreCommand(command).execute();
   }
 
   async deps(command: DBTCommand) {
@@ -949,5 +987,19 @@ export class DBTCoreProjectIntegration
         x.dispose();
       }
     }
+  }
+
+  async performDatapilotHealthcheck({
+    manifestPath,
+    catalogPath,
+    config,
+    configPath,
+  }: HealthcheckArgs): Promise<ProjectHealthcheck> {
+    this.throwBridgeErrorIfAvailable();
+    const result = await this.python?.lock<ProjectHealthcheck>(
+      (python) =>
+        python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
+    );
+    return result;
   }
 }

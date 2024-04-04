@@ -48,6 +48,7 @@ import {
   DBTNode,
   DBColumn,
   SourceNode,
+  HealthcheckArgs,
 } from "../dbt_client/dbtIntegration";
 import { DBTCoreProjectIntegration } from "../dbt_client/dbtCoreIntegration";
 import { DBTCloudProjectIntegration } from "../dbt_client/dbtCloudIntegration";
@@ -55,6 +56,7 @@ import { AltimateRequest, NoCredentialsError } from "../altimate";
 import { ValidationProvider } from "../validation_provider";
 import { ModelNode } from "../altimate";
 import { ColumnMetaData } from "../domain";
+import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -63,6 +65,7 @@ interface FileNameTemplateMap {
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
   static MANIFEST_FILE = "manifest.json";
+  static CATALOG_FILE = "catalog.json";
 
   static RESOURCE_TYPE_MODEL = "model";
   static RESOURCE_TYPE_ANALYSIS = "analysis";
@@ -186,6 +189,71 @@ export class DBTProject implements Disposable {
 
   getMacroPaths() {
     return this.dbtProjectIntegration.getMacroPaths();
+  }
+
+  getManifestPath() {
+    const targetPath = this.getTargetPath();
+    if (!targetPath) {
+      return;
+    }
+    return path.join(targetPath, DBTProject.MANIFEST_FILE);
+  }
+
+  getCatalogPath() {
+    const targetPath = this.getTargetPath();
+    if (!targetPath) {
+      return;
+    }
+    return path.join(targetPath, DBTProject.CATALOG_FILE);
+  }
+
+  async performDatapilotHealthcheck(args: AltimateConfigProps) {
+    const manifestPath = this.getManifestPath();
+    if (!manifestPath) {
+      throw new Error(
+        `Unable to find manifest path for project ${this.getProjectName()}`,
+      );
+    }
+    const healthcheckArgs: HealthcheckArgs = { manifestPath };
+    if ("configPath" in args) {
+      healthcheckArgs.configPath = args.configPath;
+    } else {
+      healthcheckArgs.config = args.config;
+      if (
+        args.config_schema.some((i) => i.files_required.includes("Catalog"))
+      ) {
+        const docsGenerateCommand =
+          this.dbtCommandFactory.createDocsGenerateCommand();
+        docsGenerateCommand.focus = false;
+        docsGenerateCommand.logToTerminal = false;
+        docsGenerateCommand.showProgress = false;
+        await this.dbtProjectIntegration.executeCommandImmediately(
+          docsGenerateCommand,
+        );
+        healthcheckArgs.catalogPath = this.getCatalogPath();
+        if (!healthcheckArgs.catalogPath) {
+          throw new Error(
+            `Unable to find catalog path for project ${this.getProjectName()}`,
+          );
+        }
+      }
+    }
+    this.terminal.debug(
+      "performDatapilotHealthcheck",
+      "Performing healthcheck",
+      healthcheckArgs,
+    );
+    const projectHealthcheck =
+      await this.dbtProjectIntegration.performDatapilotHealthcheck(
+        healthcheckArgs,
+      );
+    // temp fix: ideally datapilot should return absolute path
+    for (const key in projectHealthcheck.model_insights) {
+      for (const item of projectHealthcheck.model_insights[key]) {
+        item.path = path.join(this.projectRoot.fsPath, item.original_file_path);
+      }
+    }
+    return projectHealthcheck;
   }
 
   async initialize() {

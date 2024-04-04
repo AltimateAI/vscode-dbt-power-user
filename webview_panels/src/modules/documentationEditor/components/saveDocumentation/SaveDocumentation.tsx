@@ -26,7 +26,7 @@ const SaveDocumentation = (): JSX.Element | null => {
   const saveDocumentation = async () => {
     const result = (await executeRequestInSync("saveDocumentation", {
       ...currentDocsData,
-      tests: isTestUpdatedForAnyColumn ? currentDocsTests : undefined,
+      updatedTests: isTestUpdatedForAnyColumn ? currentDocsTests : undefined,
       patchPath,
       dialogType,
     })) as { saved: boolean };
