@@ -11,6 +11,8 @@ import {
   TextDocument,
   Uri,
   comments,
+  window,
+  workspace,
 } from "vscode";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { AltimateRequest } from "../altimate";
@@ -47,6 +49,7 @@ export class ConversationComment implements Comment {
 export class ConversationProvider implements Disposable {
   private disposables: Disposable[] = [];
   private commentController;
+  private _timer: NodeJS.Timeout | undefined;
 
   constructor(
     private conversationService: ConversationService,
@@ -80,7 +83,24 @@ export class ConversationProvider implements Disposable {
     );
   }
 
+  // simple polling for getting latest conversations
+  private setupRefetch() {
+    clearTimeout(this._timer);
+    const pollingInterval = workspace
+      .getConfiguration("dbt")
+      .get<number>("conversationsPollingInterval", 30);
+    this.dbtTerminal.debug(
+      "ConversationProvider",
+      "refresh conversations after",
+      pollingInterval,
+    );
+    this._timer = setTimeout(() => {
+      this.loadThreads();
+    }, pollingInterval * 1000);
+  }
+
   private async loadThreads() {
+    this.setupRefetch();
     this.dbtTerminal.debug("ConversationProvider", "loading threads");
     const shares = await this.conversationService.loadSharedDocs();
     if (!shares?.length) {
@@ -201,7 +221,9 @@ export class ConversationProvider implements Disposable {
 
   async viewInDbtDocs(thread: ConversationCommentThread) {
     if (!thread.share_id) {
-      extendErrorWithSupportLinks("Unable to find conversation.");
+      window.showErrorMessage(
+        extendErrorWithSupportLinks("Unable to find conversation."),
+      );
       return;
     }
     this.dbtTerminal.debug(
@@ -257,12 +279,8 @@ export class ConversationProvider implements Disposable {
     );
 
     // create conversation group
-    const addReplyResult = await this.altimateRequest.fetch<{
-      conversation_group_id: string;
-      conversation_id: string;
-    }>(`dbt/dbt_docs_share/${shareId}/conversation_group`, {
-      method: "POST",
-      body: JSON.stringify({
+    const addReplyResult =
+      await this.conversationService.createConversationGroup(shareId, {
         message: convertedMessage,
         meta: {
           uniqueId: currentNode.uniqueId,
@@ -273,16 +291,18 @@ export class ConversationProvider implements Disposable {
           },
         },
         xpath: "",
-      }),
-    });
+      });
 
+    if (!addReplyResult) {
+      return;
+    }
     newComment.conversation_id = addReplyResult.conversation_id;
     thread.share_id = shareId;
     thread.conversation_group_id = addReplyResult.conversation_group_id;
 
     this.dbtTerminal.debug(
       "ConversationProvider",
-      "added reply to created conversation",
+      "added conversation to created conversation group",
       addReplyResult,
     );
   }
@@ -295,8 +315,10 @@ export class ConversationProvider implements Disposable {
         "Missing share id",
         new Error("Missing share id"),
       );
-      extendErrorWithSupportLinks(
-        "Unable to find conversation. Please try again later.",
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Unable to find conversation. Please try again later.",
+        ),
       );
       return;
     }
@@ -309,14 +331,11 @@ export class ConversationProvider implements Disposable {
       );
       return;
     }
-    const result = await this.altimateRequest.fetch(
-      `dbt/dbt_docs_share/${thread.share_id}/conversation_group/${thread.conversation_group_id}/conversation`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          message: this.convertTextToDbFormat(reply.text),
-        }),
-      },
+
+    await this.conversationService.addConversationToGroup(
+      thread.share_id,
+      thread.conversation_group_id,
+      this.convertTextToDbFormat(reply.text),
     );
   }
 
@@ -375,8 +394,10 @@ export class ConversationProvider implements Disposable {
         "Missing share id",
         new Error("Missing share id"),
       );
-      extendErrorWithSupportLinks(
-        "Unable to find conversation. Please try again later.",
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          "Unable to find conversation. Please try again later.",
+        ),
       );
       return;
     }
@@ -384,9 +405,9 @@ export class ConversationProvider implements Disposable {
       "ConversationProvider",
       `resolving conversation: ${commentThread.conversation_group_id} in share: ${commentThread.share_id}`,
     );
-    const result = await this.altimateRequest.fetch(
-      `dbt/dbt_docs_share/${commentThread.share_id}/conversation_group/${commentThread.conversation_group_id}/resolve`,
-      { method: "POST", body: JSON.stringify({ resolved: true }) },
+    const result = await this.conversationService.resolveConversation(
+      commentThread.share_id,
+      commentThread.conversation_group_id,
     );
     this.dbtTerminal.debug(
       "ConversationProvider",

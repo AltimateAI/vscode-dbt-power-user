@@ -1,6 +1,6 @@
 import * as os from "os";
 import { CommentThread, ProgressLocation, Uri, window } from "vscode";
-import { provideSingleton } from "../utils";
+import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { QueryManifestService } from "./queryManifestService";
 import { DBTProject } from "../manifest/dbtProject";
 import path = require("path");
@@ -63,8 +63,90 @@ export class ConversationService {
     }
   }
 
-  public getSharedDocs() {
-    return this.sharedDocs;
+  public async createConversationGroup(
+    shareId: string,
+    data: Partial<ConversationGroup> & { message: string },
+  ) {
+    try {
+      return await this.altimateRequest.fetch<{
+        conversation_group_id: string;
+        conversation_id: string;
+      }>(`dbt/dbt_docs_share/${shareId}/conversation_group`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    } catch (err) {
+      this.dbtTerminal.error(
+        "ConversationService:createConversationGroup",
+        "Unable to create conversation group",
+        err,
+      );
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          `Unable to save conversation. Error: ${(err as Error).message}`,
+        ),
+      );
+    }
+  }
+
+  public async addConversationToGroup(
+    shareId: string,
+    conversationGroupId: string,
+    message: string,
+  ) {
+    try {
+      const result = await this.altimateRequest.fetch<{ ok: boolean }>(
+        `dbt/dbt_docs_share/${shareId}/conversation_group/${conversationGroupId}/conversation`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            message,
+          }),
+        },
+      );
+      this.dbtTerminal.debug(
+        "ConversationService:addConversationToGroup",
+        "added new conversation",
+        conversationGroupId,
+      );
+      return result;
+    } catch (err) {
+      this.dbtTerminal.error(
+        "ConversationService:addConversationToGroup",
+        "Unable to add reply to conversation",
+        err,
+      );
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          `Unable to add reply to conversation. Error: ${
+            (err as Error).message
+          }`,
+        ),
+      );
+    }
+  }
+
+  public async resolveConversation(
+    shareId: string,
+    conversationGroupId: string,
+  ) {
+    try {
+      return await this.altimateRequest.fetch<{ ok: boolean }>(
+        `dbt/dbt_docs_share/${shareId}/conversation_group/${conversationGroupId}/resolve`,
+        { method: "POST", body: JSON.stringify({ resolved: true }) },
+      );
+    } catch (err) {
+      this.dbtTerminal.error(
+        "ConversationService:resolveConversation",
+        "Unable to resolve conversation group",
+        err,
+      );
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          `Unable to resolve conversation. Error: ${(err as Error).message}`,
+        ),
+      );
+    }
   }
 
   public async loadConversationsByShareId(shareId: string) {
