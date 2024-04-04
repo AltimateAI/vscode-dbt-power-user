@@ -63,6 +63,28 @@ export class ConversationService {
     }
   }
 
+  public async getAppUrlByShareId(shareId: string) {
+    try {
+      return await this.altimateRequest.fetch<{
+        name: string;
+        app_url: string;
+      }>(`dbt/dbt_docs_share/${shareId}`, {
+        method: "GET",
+      });
+    } catch (err) {
+      this.dbtTerminal.error(
+        "ConversationService:getAppUrlByShareId",
+        "Unable to get url",
+        err,
+      );
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          `Unable to get url. Error: ${(err as Error).message}`,
+        ),
+      );
+    }
+  }
+
   public async createConversationGroup(
     shareId: string,
     data: Partial<ConversationGroup> & { message: string },
@@ -216,9 +238,9 @@ export class ConversationService {
             }>("dbt/dbt_docs_share", {
               method: "POST",
               body: JSON.stringify({
-                description: data.description,
+                description: project.getProjectName() || data.description,
                 name: data.name,
-                projectName: project.getProjectName(),
+                project: project.getProjectName(),
               }),
             });
             this.dbtTerminal.debug(

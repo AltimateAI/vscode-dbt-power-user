@@ -342,6 +342,11 @@
         "category": "dbt Power User"
       },
       {
+        "command": "dbtPowerUser.copyDbtDocsLink",
+        "title": "Copy link",
+        "category": "dbt Power User"
+      },
+      {
         "command": "dbtPowerUser.replyToConversation",
         "title": "Reply",
         "enablement": "!commentIsEmpty",
@@ -623,6 +628,11 @@
         }
       ],
       "comments/commentThread/title": [
+        {
+          "command": "dbtPowerUser.copyDbtDocsLink",
+          "group": "navigation",
+          "when": "commentController == altimate-conversations"
+        },
         {
           "command": "dbtPowerUser.viewInDbtDocs",
           "group": "navigation",

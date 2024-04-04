@@ -47,6 +47,20 @@ export class QueryManifestService {
     return this.dbtProjectContainer.findDBTProject(uri);
   }
 
+  public getEventByProjectName(projectName: string) {
+    // TODO: fix this to remove hack of projects[0]
+    const projects = this.dbtProjectContainer.getProjects();
+    const project =
+      projects.find((project) => project.getProjectName() === projectName) ||
+      projects[0];
+    if (!project) {
+      this.dbtTerminal.debug("no project for projectName: ", projectName);
+      return;
+    }
+
+    return this.eventMap.get(project.projectRoot.fsPath);
+  }
+
   public getEventByCurrentProject():
     | {
         event: ManifestCacheProjectAddedEvent | undefined;

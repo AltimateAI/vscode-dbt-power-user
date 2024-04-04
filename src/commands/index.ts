@@ -271,7 +271,9 @@ export class VSCodeCommands implements Disposable {
           try {
             this.conversationController.createConversation(reply);
           } catch (err) {
-            extendErrorWithSupportLinks((err as Error).message);
+            window.showErrorMessage(
+              extendErrorWithSupportLinks((err as Error).message),
+            );
           }
         },
       ),
@@ -281,7 +283,9 @@ export class VSCodeCommands implements Disposable {
           try {
             this.conversationController.replyToConversation(reply);
           } catch (err) {
-            extendErrorWithSupportLinks((err as Error).message);
+            window.showErrorMessage(
+              extendErrorWithSupportLinks((err as Error).message),
+            );
           }
         },
       ),
@@ -292,7 +296,9 @@ export class VSCodeCommands implements Disposable {
           try {
             this.conversationController.editConversation(reply);
           } catch (err) {
-            extendErrorWithSupportLinks((err as Error).message);
+            window.showErrorMessage(
+              extendErrorWithSupportLinks((err as Error).message),
+            );
           }
         },
       ),
@@ -302,7 +308,9 @@ export class VSCodeCommands implements Disposable {
           try {
             this.conversationController.saveConversation(reply);
           } catch (err) {
-            extendErrorWithSupportLinks((err as Error).message);
+            window.showErrorMessage(
+              extendErrorWithSupportLinks((err as Error).message),
+            );
           }
         },
       ),
@@ -312,7 +320,9 @@ export class VSCodeCommands implements Disposable {
           try {
             this.conversationController.cancelSaveConversation(reply);
           } catch (err) {
-            extendErrorWithSupportLinks((err as Error).message);
+            window.showErrorMessage(
+              extendErrorWithSupportLinks((err as Error).message),
+            );
           }
         },
       ),
@@ -322,7 +332,9 @@ export class VSCodeCommands implements Disposable {
           try {
             this.conversationController.deleteConversationComment(reply);
           } catch (err) {
-            extendErrorWithSupportLinks((err as Error).message);
+            window.showErrorMessage(
+              extendErrorWithSupportLinks((err as Error).message),
+            );
           }
         },
       ),
@@ -334,7 +346,23 @@ export class VSCodeCommands implements Disposable {
               thread as ConversationCommentThread,
             );
           } catch (err) {
-            extendErrorWithSupportLinks((err as Error).message);
+            window.showErrorMessage(
+              extendErrorWithSupportLinks((err as Error).message),
+            );
+          }
+        },
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.copyDbtDocsLink",
+        (thread: CommentThread) => {
+          try {
+            this.conversationController.copyThreadLink(
+              thread as ConversationCommentThread,
+            );
+          } catch (err) {
+            window.showErrorMessage(
+              extendErrorWithSupportLinks((err as Error).message),
+            );
           }
         },
       ),
@@ -346,7 +374,9 @@ export class VSCodeCommands implements Disposable {
               thread as ConversationCommentThread,
             );
           } catch (err) {
-            extendErrorWithSupportLinks((err as Error).message);
+            window.showErrorMessage(
+              extendErrorWithSupportLinks((err as Error).message),
+            );
           }
         },
       ),
