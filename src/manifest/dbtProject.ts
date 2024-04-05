@@ -68,6 +68,7 @@ export class DBTProject implements Disposable {
   static CATALOG_FILE = "catalog.json";
 
   static RESOURCE_TYPE_MODEL = "model";
+  static RESOURCE_TYPE_MACRO = "macro";
   static RESOURCE_TYPE_ANALYSIS = "analysis";
   static RESOURCE_TYPE_SOURCE = "source";
   static RESOURCE_TYPE_EXPOSURE = "exposure";
@@ -489,6 +490,18 @@ export class DBTProject implements Disposable {
       this.dbtCommandFactory.createCompileModelCommand(runModelParams);
     this.dbtProjectIntegration.compileModel(compileModelCommand);
     this.telemetry.sendTelemetryEvent("compileModel");
+  }
+
+  async generateDocsImmediately(args?: string[]) {
+    const docsGenerateCommand =
+      this.dbtCommandFactory.createDocsGenerateCommand();
+    args?.forEach((arg) => docsGenerateCommand.addArgument(arg));
+    docsGenerateCommand.focus = false;
+    docsGenerateCommand.logToTerminal = false;
+    await this.dbtProjectIntegration.executeCommandImmediately(
+      docsGenerateCommand,
+    );
+    this.telemetry.sendTelemetryEvent("generateDocsImmediately");
   }
 
   generateDocs() {

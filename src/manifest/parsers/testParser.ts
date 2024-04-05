@@ -38,6 +38,7 @@ export class TestParser {
             test_metadata,
             attached_node,
             depends_on,
+            unique_id,
           }) => {
             const fullPath = path.join(rootPath, original_file_path);
             testMetaMap.set(name, {
@@ -50,6 +51,7 @@ export class TestParser {
               test_metadata,
               attached_node,
               depends_on,
+              uniqueId: unique_id,
             });
           },
         );

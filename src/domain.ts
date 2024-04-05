@@ -14,6 +14,7 @@ interface MacroMetaData {
   path: string;
   line: number;
   character: number;
+  uniqueId: string;
 }
 
 interface MetricMetaData {
@@ -103,6 +104,7 @@ export interface TestMetaData {
   };
   attached_node?: string;
   depends_on: DependsOn;
+  uniqueId: string;
 }
 
 export interface ExposureMetaData {

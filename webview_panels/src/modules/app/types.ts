@@ -7,6 +7,7 @@ export enum Themes {
 }
 export interface AppStateProps {
   theme: Themes;
+  isComponentsApiInitialized: boolean;
 }
 
 export interface ContextProps {

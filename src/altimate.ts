@@ -4,7 +4,7 @@ import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
 import { join } from "path";
-import { createWriteStream, mkdirSync } from "fs";
+import { createReadStream, createWriteStream, mkdirSync, ReadStream } from "fs";
 import * as os from "os";
 import { RateLimitException } from "./exceptions";
 import { DBTProject } from "./manifest/dbtProject";
@@ -388,6 +388,50 @@ export class AltimateRequest {
       clearTimeout(timeoutHandler);
     }
     return null;
+  }
+
+  private async readStreamToBlob(stream: ReadStream) {
+    return new Promise((resolve, reject) => {
+      const chunks: any[] = [];
+      stream.on("data", (chunk) => chunks.push(chunk));
+      stream.on("end", () => {
+        const blob = new Blob(chunks);
+        resolve(blob);
+      });
+      stream.on("error", reject);
+    });
+  }
+
+  async uploadToS3(
+    endpoint: string,
+    fetchArgs: Record<string, unknown>,
+    filePath: string,
+  ) {
+    this.dbtTerminal.debug("uploadToS3:", endpoint, fetchArgs, filePath);
+
+    const blob = (await this.readStreamToBlob(
+      createReadStream(filePath),
+    )) as Blob;
+    const response = await fetch(endpoint, {
+      ...fetchArgs,
+      method: "PUT",
+      body: blob,
+    });
+
+    this.dbtTerminal.debug(
+      "uploadToS3:response:",
+      `${response.status}`,
+      response.statusText,
+    );
+    if (!response.ok || response.status !== 200) {
+      this.telemetry.sendTelemetryError(
+        "uploadToS3",
+        "Upload response status not 200",
+      );
+      throw new Error("Failed to upload data to signed url");
+    }
+
+    return response;
   }
 
   async fetch<T>(

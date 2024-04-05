@@ -7,6 +7,7 @@ import {
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
+import { SharedStateService } from "./sharedStateService";
 
 @provideSingleton(QueryManifestService)
 export class QueryManifestService {
@@ -15,6 +16,7 @@ export class QueryManifestService {
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private dbtTerminal: DBTTerminal,
+    protected emitterService: SharedStateService,
   ) {
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
@@ -28,19 +30,42 @@ export class QueryManifestService {
     event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);
     });
+    this.emitterService.fire({
+      command: "manifestCacheChanged",
+      payload: {},
+    });
   }
 
   public getProject(): DBTProject | undefined {
-    if (!window.activeTextEditor?.document.uri) {
+    return this.getProjectByUri(window.activeTextEditor?.document.uri);
+  }
+
+  public getProjectByUri(uri?: Uri): DBTProject | undefined {
+    if (!uri) {
       return;
     }
-    return this.dbtProjectContainer.findDBTProject(
-      window.activeTextEditor.document.uri,
-    );
+    return this.dbtProjectContainer.findDBTProject(uri);
+  }
+
+  public getEventByProjectName(projectName: string) {
+    // TODO: fix this to remove hack of projects[0]
+    const projects = this.dbtProjectContainer.getProjects();
+    const project =
+      projects.find((project) => project.getProjectName() === projectName) ||
+      projects[0];
+    if (!project) {
+      this.dbtTerminal.debug("no project for projectName: ", projectName);
+      return;
+    }
+
+    return this.eventMap.get(project.projectRoot.fsPath);
   }
 
   public getEventByCurrentProject():
-    | { event: ManifestCacheProjectAddedEvent; currentDocument: TextDocument }
+    | {
+        event: ManifestCacheProjectAddedEvent | undefined;
+        currentDocument: TextDocument;
+      }
     | undefined {
     if (window.activeTextEditor === undefined || this.eventMap === undefined) {
       return;
@@ -48,6 +73,10 @@ export class QueryManifestService {
 
     const currentDocument = window.activeTextEditor.document;
     const currentFilePath = currentDocument.uri;
+    return { event: this.getEventByDocument(currentFilePath), currentDocument };
+  }
+
+  public getEventByDocument(currentFilePath: Uri) {
     this.dbtTerminal.debug(
       "getting event for project, currentFilePath: ",
       currentFilePath.fsPath,
@@ -67,7 +96,7 @@ export class QueryManifestService {
       this.dbtTerminal.debug("no event for project: ", projectRootpath.fsPath);
       return;
     }
-    return { event, currentDocument };
+    return event;
   }
 
   public getSourcesInProject(currentFilePath?: Uri) {

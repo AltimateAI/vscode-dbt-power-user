@@ -15,7 +15,7 @@ module.exports = {
     "plugin:you-dont-need-lodash-underscore/compatible",
     "plugin:storybook/recommended",
   ],
-  ignorePatterns: ["dist", ".eslintrc.cjs"],
+  ignorePatterns: ["dist", ".eslintrc.cjs", "**/altimate-components.d.ts"],
   parser: "@typescript-eslint/parser",
   settings: {
     react: {

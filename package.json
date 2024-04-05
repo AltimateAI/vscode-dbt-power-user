@@ -140,6 +140,12 @@
             "default": 500,
             "minimum": 1
           },
+          "dbt.conversationsPollingInterval": {
+            "type": "integer",
+            "description": "Polling interval to fetch latest conversations (in seconds)",
+            "default": 120,
+            "minimum": 30
+          },
           "dbt.queryTemplate": {
             "type": "string",
             "description": "Override the default query template that is used by the `Preview SQL Query` command. Use this if your database has special syntax to limit query results",
@@ -307,6 +313,61 @@
       ]
     },
     "commands": [
+      {
+        "command": "dbtPowerUser.editConversation",
+        "title": "Edit",
+        "category": "dbt Power User",
+        "icon": {
+          "dark": "resources/edit_inverse.svg",
+          "light": "resources/edit.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.resolveConversation",
+        "title": "Resolve",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.deleteConversationComment",
+        "title": "Delete",
+        "category": "dbt Power User",
+        "icon": {
+          "dark": "resources/close_inverse.svg",
+          "light": "resources/close.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.saveConversation",
+        "category": "dbt Power User",
+        "title": "Save"
+      },
+      {
+        "command": "dbtPowerUser.cancelSaveConversation",
+        "category": "dbt Power User",
+        "title": "Cancel"
+      },
+      {
+        "command": "dbtPowerUser.createConversation",
+        "title": "Publish",
+        "category": "dbt Power User",
+        "enablement": "!commentIsEmpty"
+      },
+      {
+        "command": "dbtPowerUser.viewInDbtDocs",
+        "title": "View in dbt docs",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.copyDbtDocsLink",
+        "title": "Copy link",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.replyToConversation",
+        "title": "Reply",
+        "enablement": "!commentIsEmpty",
+        "category": "dbt Power User"
+      },
       {
         "command": "dbtPowerUser.puQuickPick",
         "category": "dbt Power User",
@@ -558,6 +619,59 @@
       }
     ],
     "menus": {
+      "comments/comment/context": [
+        {
+          "command": "dbtPowerUser.cancelSaveConversation",
+          "group": "inline@1",
+          "when": "commentController == altimate-conversations"
+        },
+        {
+          "command": "dbtPowerUser.saveConversation",
+          "group": "inline@2",
+          "when": "commentController == altimate-conversations"
+        }
+      ],
+      "comments/comment/title": [
+        {
+          "command": "dbtPowerUser.editConversation",
+          "group": "group@1",
+          "when": "commentController == altimate-conversations"
+        },
+        {
+          "command": "dbtPowerUser.deleteConversationComment",
+          "group": "group@2",
+          "when": "commentController == altimate-conversations && comment == canDelete"
+        }
+      ],
+      "comments/commentThread/title": [
+        {
+          "command": "dbtPowerUser.copyDbtDocsLink",
+          "group": "navigation",
+          "when": "commentController == altimate-conversations"
+        },
+        {
+          "command": "dbtPowerUser.viewInDbtDocs",
+          "group": "navigation",
+          "when": "commentController == altimate-conversations"
+        },
+        {
+          "command": "dbtPowerUser.resolveConversation",
+          "group": "inline",
+          "when": "commentController == altimate-conversations && !commentThreadIsEmpty"
+        }
+      ],
+      "comments/commentThread/context": [
+        {
+          "command": "dbtPowerUser.createConversation",
+          "group": "inline@1",
+          "when": "commentController == altimate-conversations && commentThreadIsEmpty"
+        },
+        {
+          "command": "dbtPowerUser.replyToConversation",
+          "group": "inline",
+          "when": "commentController == altimate-conversations && !commentThreadIsEmpty"
+        }
+      ],
       "dbtPowerUser.datapilotSubmenu": [
         {
           "command": "dbtPowerUser.openDatapilotWithQuery",
@@ -994,7 +1108,7 @@
   "scripts": {
     "prepare": "husky install",
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production",
-    "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
+    "webpack": "npm run panel:webviews && webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "watch": "concurrently \"npm:watch --prefix ./new_lineage_panel\" \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",
