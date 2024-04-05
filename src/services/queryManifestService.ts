@@ -40,6 +40,12 @@ export class QueryManifestService {
     return this.getProjectByUri(window.activeTextEditor?.document.uri);
   }
 
+  public getProjectNamesInWorkspace(): string[] | undefined {
+    return this.dbtProjectContainer
+      .getProjects()
+      .map((project) => project.getProjectName());
+  }
+
   public getProjectByUri(uri?: Uri): DBTProject | undefined {
     if (!uri) {
       return;

@@ -56,10 +56,14 @@ export class ConversationService {
         );
         return;
       }
-      const shares = await this.altimateRequest.fetch<{
-        items?: [];
-      }>("dbt/dbt_docs_share");
-      this.sharedDocs = shares.items || [];
+      const projectNames =
+        this.queryManifestService.getProjectNamesInWorkspace();
+      const shares = await this.altimateRequest.fetch<SharedDoc[]>(
+        `dbt/dbt_docs_share/all?${projectNames
+          ?.map((p) => `projects=${p}`)
+          .join("&")}`,
+      );
+      this.sharedDocs = shares || [];
       return this.sharedDocs;
     } catch (err) {
       this.dbtTerminal.error(
@@ -263,9 +267,9 @@ export class ConversationService {
             }>("dbt/dbt_docs_share", {
               method: "POST",
               body: JSON.stringify({
-                description: project.getProjectName() || data.description,
+                description: data.description,
                 name: data.name,
-                project: project.getProjectName(),
+                project_name: project.getProjectName(),
               }),
             });
             this.dbtTerminal.debug(

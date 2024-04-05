@@ -240,27 +240,18 @@ export class ConversationProvider implements Disposable {
   }
 
   private convertTextFromDbToCommentFormat(text: string) {
-    return new MarkdownString(
-      text.replace(/@\[([^[\]]+)\]\((\d+)\)/g, "@$1<!--$2-->"),
-    );
+    return new MarkdownString(text.replace(/\[@(\w+)\]\((\w+)\)/g, "@$1"));
   }
 
   private convertTextToDbFormat(text: string) {
-    return new MarkdownString(text).value.replace(
-      /@\(([^)]+)\)<!--(\d+)-->/g,
-      "@[$1]($2)",
-    );
-  }
-
-  private convertUserMentions(text: string) {
-    return text.replace(/@\(([^)]+)\)<!--(\d+)-->/g, "@$1<!--$2-->");
+    return new MarkdownString(text).value.replace(/@(\w+)/g, "@[$1]($1)");
   }
 
   private addComment(reply: CommentReply) {
     const thread = reply.thread;
     const newComment = new ConversationComment(
       "",
-      new MarkdownString(this.convertUserMentions(reply.text)),
+      new MarkdownString(reply.text),
       CommentMode.Preview,
       { name: this.usersService.user?.first_name || "Unknown" },
       new Date().toISOString(),
@@ -358,7 +349,16 @@ export class ConversationProvider implements Disposable {
     if (!nodeMeta) {
       return;
     }
+
+    const editor = window.visibleTextEditors.find(
+      (editor) => editor.document.uri.fsPath === thread.uri.fsPath,
+    );
+    const highlight = thread.range.isSingleLine
+      ? editor?.document.lineAt(thread.range.start.line).text
+      : editor?.document.getText(thread.range);
+
     const meta = {
+      highlight,
       uniqueId: nodeMeta.uniqueId,
       resource_type: nodeMeta.resource_type,
       range: {

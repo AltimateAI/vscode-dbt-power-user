@@ -5,6 +5,7 @@ import { provideSingleton } from "../utils";
 export interface TenantUser {
   id: string;
   uuid: string;
+  display_name: string;
   first_name: string;
   last_name: string;
   email: string;
