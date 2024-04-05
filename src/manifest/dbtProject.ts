@@ -57,7 +57,6 @@ import { ValidationProvider } from "../validation_provider";
 import { ModelNode } from "../altimate";
 import { ColumnMetaData } from "../domain";
 import { AltimateConfigProps } from "../webview_provider/insightsPanel";
-import { DeferToProdService } from "../services/deferToProdService";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -105,7 +104,6 @@ export class DBTProject implements Disposable {
     private terminal: DBTTerminal,
     private queryResultPanel: QueryResultPanel,
     private telemetry: TelemetryService,
-    private deferToProdService: DeferToProdService,
     private dbtCoreIntegrationFactory: (
       path: Uri,
       projectConfigDiagnostics: DiagnosticCollection,
