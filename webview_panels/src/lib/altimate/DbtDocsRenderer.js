@@ -1,15 +1,15 @@
 import {
-  u as Gu,
-  a as Wu,
-  b as Yu,
-  g as Xu,
-  c as Hu,
-  d as Zu,
+  u as Hu,
+  a as Gu,
+  b as Wu,
+  g as Yu,
+  c as Vu,
+  d as Xu,
   j as pr,
-  e as Qu,
-  s as Ju,
+  e as Zu,
+  s as Qu,
 } from "./main.js";
-import { useRef as Ku, useCallback as tc, useEffect as ec } from "react";
+import { useRef as Ju, useCallback as Ku, useEffect as tc } from "react";
 (function (L) {
   var T = {};
   function e(u) {
@@ -21651,9 +21651,9 @@ __p+='`),
                               var us = ls[tl];
                               if (!(Ja ? us in Dr : We.call(Dr, us))) return !1;
                             }
-                            var qu = eo.get(wr),
-                              Uu = eo.get(Dr);
-                            if (qu && Uu) return qu == Dr && Uu == wr;
+                            var Fu = eo.get(wr),
+                              qu = eo.get(Dr);
+                            if (Fu && qu) return Fu == Dr && qu == wr;
                             var Eu = !0;
                             eo.set(wr, Dr), eo.set(Dr, wr);
                             for (var Bu = Ja; ++tl < Il; ) {
@@ -21661,13 +21661,13 @@ __p+='`),
                               var Su = wr[us],
                                 Cu = Dr[us];
                               if (Bo)
-                                var Vu = Ja
+                                var Uu = Ja
                                   ? Bo(Cu, Su, us, Dr, wr, eo)
                                   : Bo(Su, Cu, us, wr, Dr, eo);
                               if (
-                                !(Vu === void 0
+                                !(Uu === void 0
                                   ? Su === Cu || Ra(Su, Cu, to, Bo, eo)
-                                  : Vu)
+                                  : Uu)
                               ) {
                                 Eu = !1;
                                 break;
@@ -72077,45 +72077,21 @@ pre[class*="language-"] {
       (L.exports = e);
   },
 ]);
-const rc = {};
-let Fu;
-const nc = (L) => {
-    ["mouseup", "selectionchange"].map((T) => {
-      (L || document).addEventListener(T.toString(), (e) => {
-        Fu && e.type == "selectionchange" && clearTimeout(Fu),
-          (Fu = setTimeout(function () {
-            var u;
-            e.type == "mouseup" &&
-              ((u = window.getSelection()) == null ? void 0 : u.toString()) !=
-                "" &&
-              (L || document).dispatchEvent(
-                new CustomEvent("selectionend", { detail: {} }),
-              );
-          }, 100));
-      });
-    });
-  },
-  ac = ({ shareDetails: L, onSelectionEnd: T }) => {
-    const e = Ku(null),
-      u = Gu(),
-      A = Wu((E) => E.docsAppRendered),
-      w = tc(() => {
-        u(Yu(Xu())),
-          u(Hu(!1)),
+const ec = {},
+  ic = ({ shareDetails: L, onSelectionEnd: T }) => {
+    const e = Ju(null),
+      u = Hu(),
+      A = Gu((E) => E.docsAppRendered),
+      w = Ku(() => {
+        u(Wu(Yu())),
+          u(Vu(!1)),
           setTimeout(() => {
-            const E = Zu();
-            [E].forEach((x) => {
-              x &&
-                (nc(x),
-                x.removeEventListener("selectionend", T),
-                x.addEventListener("selectionend", T));
-            }),
-              E && u(Hu(!0));
+            Xu() && u(Vu(!0));
           }, 100);
-      }, [u, T]);
+      }, [u]);
     return (
-      ec(() => {
-        console.log("dbtDocsAngularApp rendered", !!rc);
+      tc(() => {
+        console.log("dbtDocsAngularApp rendered", !!ec);
         const E = window.angular;
         if (E && E.module) {
           if (E.element(e.current).scope()) {
@@ -72160,7 +72136,7 @@ const nc = (L) => {
                     ? void 0
                     : c.querySelector(".panel-body")
                   ).innerText !== "(loading)" &&
-                    (u(Ju(!0)), o.disconnect()));
+                    (u(Qu(!0)), o.disconnect()));
               },
               g = { attributes: !1, childList: !0, subtree: !0 },
               o = new MutationObserver(x);
@@ -72390,11 +72366,11 @@ const nc = (L) => {
           }),
           /* @__PURE__ */ pr.jsx("div", {
             ref: e,
-            className: Qu.dbtDocs,
+            className: Zu.dbtDocs,
             children: /* @__PURE__ */ pr.jsx("ui-view", {}),
           }),
         ],
       })
     );
   };
-export { ac as default };
+export { ic as default };
