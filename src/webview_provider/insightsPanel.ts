@@ -193,6 +193,9 @@ export class InsightsPanel extends AltimateWebviewProvider {
           },
         });
       }
+      await this.dbtProjectContainer
+        .findDBTProject(Uri.parse(params.projectRoot))
+        ?.rebuildManifest();
     } catch (err) {
       this.dbtTerminal.error(
         "InsightsPanel",
