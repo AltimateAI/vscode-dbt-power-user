@@ -66,6 +66,16 @@ export class ConversationProvider implements Disposable {
     private emitterService: SharedStateService,
     private queryManifestService: QueryManifestService,
   ) {
+    const enableCollaboration = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("enableCollaboration", false);
+    if (!enableCollaboration) {
+      this.dbtTerminal.debug(
+        "ConversationProvider",
+        "collaboration not enabled",
+      );
+      return;
+    }
     this.commentController = comments.createCommentController(
       "altimate-conversations",
       "Altimate dbt conversations",
@@ -190,7 +200,7 @@ export class ConversationProvider implements Disposable {
             this._threads[latest.share_id]?.[
               conversationGroup.conversation_group_id
             ] ??
-            (this.commentController.createCommentThread(
+            (this.commentController!.createCommentThread(
               uri,
               new Range(
                 conversationGroup.meta.range.start.line,

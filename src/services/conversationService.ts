@@ -49,7 +49,7 @@ export class ConversationService {
 
   public async loadSharedDocs() {
     try {
-      if (!this.altimateRequest.getCredentialsMessage()) {
+      if (this.altimateRequest.getCredentialsMessage()) {
         this.dbtTerminal.debug(
           "ConversationService:loadSharedDocs",
           "Missing credentials. skipping loadSharedDocs",
