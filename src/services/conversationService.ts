@@ -49,6 +49,13 @@ export class ConversationService {
 
   public async loadSharedDocs() {
     try {
+      if (!this.altimateRequest.getCredentialsMessage()) {
+        this.dbtTerminal.debug(
+          "ConversationService:loadSharedDocs",
+          "Missing credentials. skipping loadSharedDocs",
+        );
+        return;
+      }
       const shares = await this.altimateRequest.fetch<{
         items?: [];
       }>("dbt/dbt_docs_share");
@@ -65,6 +72,9 @@ export class ConversationService {
 
   public async getAppUrlByShareId(shareId: string) {
     try {
+      if (!this.altimateRequest.handlePreviewFeatures()) {
+        return;
+      }
       return await this.altimateRequest.fetch<{
         name: string;
         app_url: string;
@@ -90,6 +100,9 @@ export class ConversationService {
     data: Partial<ConversationGroup> & { message: string },
   ) {
     try {
+      if (!this.altimateRequest.handlePreviewFeatures()) {
+        return;
+      }
       return await this.altimateRequest.fetch<{
         conversation_group_id: string;
         conversation_id: string;
@@ -117,6 +130,9 @@ export class ConversationService {
     message: string,
   ) {
     try {
+      if (!this.altimateRequest.handlePreviewFeatures()) {
+        return;
+      }
       const result = await this.altimateRequest.fetch<{ ok: boolean }>(
         `dbt/dbt_docs_share/${shareId}/conversation_group/${conversationGroupId}/conversation`,
         {
@@ -153,6 +169,9 @@ export class ConversationService {
     conversationGroupId: string,
   ) {
     try {
+      if (!this.altimateRequest.handlePreviewFeatures()) {
+        return;
+      }
       return await this.altimateRequest.fetch<{ ok: boolean }>(
         `dbt/dbt_docs_share/${shareId}/conversation_group/${conversationGroupId}/resolve`,
         { method: "POST", body: JSON.stringify({ resolved: true }) },
@@ -172,6 +191,9 @@ export class ConversationService {
   }
 
   public async loadConversationsByShareId(shareId: string) {
+    if (!this.altimateRequest.handlePreviewFeatures()) {
+      return;
+    }
     const conversations = await this.altimateRequest.fetch<{
       dbt_docs_share_conversations: ConversationGroup[];
     }>(`dbt/dbt_docs_share/${shareId}/conversations`);
@@ -184,7 +206,10 @@ export class ConversationService {
     description?: string;
     uri?: Uri;
     model?: string;
-  }): Promise<{ shareUrl: string; shareId: string }> {
+  }): Promise<{ shareUrl: string; shareId: string } | undefined> {
+    if (!this.altimateRequest.handlePreviewFeatures()) {
+      return;
+    }
     return new Promise((resolve, reject) => {
       window.withProgress(
         {

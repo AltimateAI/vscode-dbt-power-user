@@ -16,7 +16,6 @@ import {
   workspace,
 } from "vscode";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { AltimateRequest } from "../altimate";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import path = require("path");
 import {
@@ -63,7 +62,6 @@ export class ConversationProvider implements Disposable {
   constructor(
     private conversationService: ConversationService,
     private usersService: UsersService,
-    private altimateRequest: AltimateRequest,
     private dbtTerminal: DBTTerminal,
     private emitterService: SharedStateService,
     private queryManifestService: QueryManifestService,
@@ -113,9 +111,9 @@ export class ConversationProvider implements Disposable {
   }
 
   private async loadThreads() {
-    this.setupRefetch();
     this.dbtTerminal.debug("ConversationProvider", "loading threads");
     const shares = await this.conversationService.loadSharedDocs();
+    this.setupRefetch();
     if (!shares?.length) {
       this.dbtTerminal.debug("ConversationProvider", "No conversations yet");
       return;
@@ -143,7 +141,7 @@ export class ConversationProvider implements Disposable {
         await this.conversationService.loadConversationsByShareId(
           latest.share_id,
         );
-      if (!conversations.length) {
+      if (!conversations?.length) {
         this.dbtTerminal.debug(
           "ConversationProvider",
           "No conversations in latest share",
@@ -360,12 +358,18 @@ export class ConversationProvider implements Disposable {
     };
 
     // create share
-    const { shareId, shareUrl } = await this.conversationService.shareDbtDocs({
+    const result = await this.conversationService.shareDbtDocs({
       name: convertedMessage,
       description: "",
       uri: reply.thread.uri,
       model,
     });
+    if (!result) {
+      // If share cannot be created, delete the thread
+      thread.dispose();
+      return;
+    }
+    const { shareId, shareUrl } = result;
     this.dbtTerminal.debug(
       "ConversationProvider",
       "created conversation",
