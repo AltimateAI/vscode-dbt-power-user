@@ -65,6 +65,7 @@ export class MacroParser {
                 path: fullPath,
                 line: index,
                 character: currentLine.indexOf(name),
+                uniqueId: key,
               });
               break;
             }

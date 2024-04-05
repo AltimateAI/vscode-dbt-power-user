@@ -26,6 +26,7 @@ import {
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
 import { QueryManifestService } from "../services/queryManifestService";
+import { DBTProject } from "../manifest/dbtProject";
 
 export interface ConversationCommentThread extends CommentThread {
   share_id: string;
@@ -77,6 +78,10 @@ export class ConversationProvider implements Disposable {
         document: TextDocument,
         token: CancellationToken,
       ) => {
+        // enable only for sql files
+        if (!document.uri.fsPath.endsWith(".sql")) {
+          return null;
+        }
         const lineCount = document.lineCount;
         return [new Range(0, 0, lineCount - 1, 0)];
       },
@@ -273,7 +278,7 @@ export class ConversationProvider implements Disposable {
     );
     if (result?.app_url) {
       env.clipboard.writeText(
-        `${result.app_url}#!/${thread.meta.resource_type}/${thread.meta.uniqueId}`,
+        `${result.app_url}/${thread.conversation_group_id}`,
       );
       window.showInformationMessage("Url copied", "Ok");
     }
@@ -300,24 +305,60 @@ export class ConversationProvider implements Disposable {
       },
     });
   }
+
+  private getNodeMeta(uri: Uri, resourceName: string) {
+    const event = this.queryManifestService.getEventByDocument(uri);
+    if (!event) {
+      return;
+    }
+
+    const currentNode = event.nodeMetaMap.get(resourceName);
+    // For model
+    if (currentNode) {
+      return {
+        resource_type: currentNode.resource_type,
+        uniqueId: currentNode.uniqueId,
+      };
+    }
+
+    const macroNode = event.macroMetaMap.get(resourceName);
+    // For macro
+    if (macroNode) {
+      return {
+        resource_type: DBTProject.RESOURCE_TYPE_MACRO,
+        uniqueId: macroNode.uniqueId,
+      };
+    }
+
+    const testNode = event.testMetaMap.get(resourceName);
+    // For tests
+    if (testNode) {
+      return {
+        resource_type: DBTProject.RESOURCE_TYPE_TEST,
+        uniqueId: testNode.uniqueId,
+      };
+    }
+  }
+
   async createConversation(reply: CommentReply) {
     const thread = reply.thread as ConversationCommentThread;
     const newComment = this.addComment(reply);
     const model = path.basename(reply.thread.uri.fsPath, ".sql");
     const convertedMessage = this.convertTextToDbFormat(reply.text);
-    const event = this.queryManifestService.getEventByDocument(
-      reply.thread.uri,
-    );
-    if (!event) {
-      return undefined;
-    }
 
-    const currentNode = event.nodeMetaMap.get(model);
-    if (currentNode === undefined) {
-      return undefined;
+    const nodeMeta = this.getNodeMeta(reply.thread.uri, model);
+    if (!nodeMeta) {
+      return;
     }
+    const meta = {
+      uniqueId: nodeMeta.uniqueId,
+      resource_type: nodeMeta.resource_type,
+      range: {
+        end: reply.thread.range.end,
+        start: reply.thread.range.start,
+      },
+    };
 
-    // return;
     // create share
     const { shareId, shareUrl } = await this.conversationService.shareDbtDocs({
       name: convertedMessage,
@@ -339,14 +380,6 @@ export class ConversationProvider implements Disposable {
     );
 
     // create conversation group
-    const meta = {
-      uniqueId: currentNode.uniqueId,
-      resource_type: currentNode.resource_type,
-      range: {
-        end: reply.thread.range.end,
-        start: reply.thread.range.start,
-      },
-    };
     const addReplyResult =
       await this.conversationService.createConversationGroup(shareId, {
         message: convertedMessage,
