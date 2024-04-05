@@ -12,6 +12,7 @@ import {
 import {
   extendErrorWithSupportLinks,
   getFirstWorkspacePath,
+  getProjectRelativePath,
   provideSingleton,
   setupWatcherHandler,
 } from "../utils";
@@ -511,9 +512,18 @@ export class DBTCoreProjectIntegration
       // No point in trying to rebuild the manifest if the config is not valid
       return;
     }
+    const currentConfig: Record<string, DeferConfig> =
+      this.deferToProdService.getDeferConfigByWorkspace();
+    const root = getProjectRelativePath(this.projectRoot);
+    const { deferToProduction, manifestPathForDeferral } = currentConfig[root];
+    const manifestPath = path.join(
+      manifestPathForDeferral,
+      DBTProject.MANIFEST_FILE,
+    );
     try {
       await this.python.lock(
-        (python) => python`to_dict(project.safe_parse_project())`,
+        (python) =>
+          python`to_dict(project.safe_parse_project(${deferToProduction}, ${manifestPath}))`,
       );
       this.rebuildManifestDiagnostics.clear();
     } catch (exc) {
@@ -1001,19 +1011,5 @@ export class DBTCoreProjectIntegration
         python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
     );
     return result;
-  }
-
-  async enableDefer(manifestPath: string): Promise<void> {
-    this.throwBridgeErrorIfAvailable();
-    await this.python?.lock<ProjectHealthcheck>(
-      (python) => python!`to_dict(project.enable_defer(${manifestPath}))`,
-    );
-  }
-
-  async disableDefer(): Promise<void> {
-    this.throwBridgeErrorIfAvailable();
-    await this.python?.lock<ProjectHealthcheck>(
-      (python) => python!`to_dict(project.disable_defer())`,
-    );
   }
 }

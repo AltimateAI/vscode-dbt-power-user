@@ -22,7 +22,6 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import {
   debounce,
   extendErrorWithSupportLinks,
-  getProjectRelativePath,
   setupWatcherHandler,
 } from "../utils";
 import { QueryResultPanel } from "../webview_provider/queryResultPanel";
@@ -57,10 +56,7 @@ import { AltimateRequest, NoCredentialsError } from "../altimate";
 import { ValidationProvider } from "../validation_provider";
 import { ModelNode } from "../altimate";
 import { ColumnMetaData } from "../domain";
-import {
-  AltimateConfigProps,
-  DeferConfig,
-} from "../webview_provider/insightsPanel";
+import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 import { DeferToProdService } from "../services/deferToProdService";
 
 interface FileNameTemplateMap {
@@ -415,15 +411,6 @@ export class DBTProject implements Disposable {
       inProgress: true,
     });
     await this.dbtProjectIntegration.rebuildManifest();
-    const currentConfig: Record<string, DeferConfig> =
-      this.deferToProdService.getDeferConfigByWorkspace();
-    const root = getProjectRelativePath(this.projectRoot);
-    if (currentConfig[root].deferToProduction) {
-      this.applyDeferToProject(
-        true,
-        currentConfig[root].manifestPathForDeferral,
-      );
-    }
     this._onRebuildManifestStatusChange.fire({
       project: this,
       inProgress: false,
@@ -1090,17 +1077,5 @@ select * from renamed
     }
 
     return { mappedNode, relationsWithoutColumns };
-  }
-
-  async applyDeferToProject(
-    enable: boolean,
-    manifestFolder: string,
-  ): Promise<void> {
-    if (enable) {
-      const manifestPath = path.join(manifestFolder, DBTProject.MANIFEST_FILE);
-      await this.dbtProjectIntegration.enableDefer(manifestPath);
-    } else {
-      await this.dbtProjectIntegration.disableDefer();
-    }
   }
 }

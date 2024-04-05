@@ -438,7 +438,7 @@ class DbtProject:
         """dbt manifest dict"""
         return ManifestProxy(self.dbt.flat_graph)
 
-    def safe_parse_project(self) -> None:
+    def safe_parse_project(self, deferToProduction: bool, manifestPath: str) -> None:
         self.clear_caches()
         # doing this so that we can allow inits to fail when config is
         # bad and restart after the user sets it up correctly

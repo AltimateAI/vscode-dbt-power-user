@@ -193,18 +193,6 @@ export class InsightsPanel extends AltimateWebviewProvider {
           },
         });
       }
-
-      if (
-        currentConfig[root].deferToProduction !==
-        newConfig[root].deferToProduction
-      ) {
-        await this.dbtProjectContainer
-          .findDBTProject(workspaceFolder?.uri!)
-          ?.applyDeferToProject(
-            newConfig[root].deferToProduction,
-            newConfig[root].manifestPathForDeferral,
-          );
-      }
     } catch (err) {
       this.dbtTerminal.error(
         "InsightsPanel",
