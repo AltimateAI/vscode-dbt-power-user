@@ -16,7 +16,6 @@ import {
   workspace,
 } from "vscode";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
-import { AltimateRequest } from "../altimate";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import path = require("path");
 import {
@@ -63,11 +62,20 @@ export class ConversationProvider implements Disposable {
   constructor(
     private conversationService: ConversationService,
     private usersService: UsersService,
-    private altimateRequest: AltimateRequest,
     private dbtTerminal: DBTTerminal,
     private emitterService: SharedStateService,
     private queryManifestService: QueryManifestService,
   ) {
+    const enableCollaboration = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("enableCollaboration", false);
+    if (!enableCollaboration) {
+      this.dbtTerminal.debug(
+        "ConversationProvider",
+        "collaboration not enabled",
+      );
+      return;
+    }
     this.commentController = comments.createCommentController(
       "altimate-conversations",
       "Altimate dbt conversations",
@@ -113,9 +121,9 @@ export class ConversationProvider implements Disposable {
   }
 
   private async loadThreads() {
-    this.setupRefetch();
     this.dbtTerminal.debug("ConversationProvider", "loading threads");
     const shares = await this.conversationService.loadSharedDocs();
+    this.setupRefetch();
     if (!shares?.length) {
       this.dbtTerminal.debug("ConversationProvider", "No conversations yet");
       return;
@@ -143,7 +151,7 @@ export class ConversationProvider implements Disposable {
         await this.conversationService.loadConversationsByShareId(
           latest.share_id,
         );
-      if (!conversations.length) {
+      if (!conversations?.length) {
         this.dbtTerminal.debug(
           "ConversationProvider",
           "No conversations in latest share",
@@ -192,7 +200,7 @@ export class ConversationProvider implements Disposable {
             this._threads[latest.share_id]?.[
               conversationGroup.conversation_group_id
             ] ??
-            (this.commentController.createCommentThread(
+            (this.commentController!.createCommentThread(
               uri,
               new Range(
                 conversationGroup.meta.range.start.line,
@@ -232,27 +240,18 @@ export class ConversationProvider implements Disposable {
   }
 
   private convertTextFromDbToCommentFormat(text: string) {
-    return new MarkdownString(
-      text.replace(/@\[([^[\]]+)\]\((\d+)\)/g, "@$1<!--$2-->"),
-    );
+    return new MarkdownString(text.replace(/\[@(\w+)\]\((\w+)\)/g, "@$1"));
   }
 
   private convertTextToDbFormat(text: string) {
-    return new MarkdownString(text).value.replace(
-      /@\(([^)]+)\)<!--(\d+)-->/g,
-      "@[$1]($2)",
-    );
-  }
-
-  private convertUserMentions(text: string) {
-    return text.replace(/@\(([^)]+)\)<!--(\d+)-->/g, "@$1<!--$2-->");
+    return new MarkdownString(text).value.replace(/@(\w+)/g, "@[$1]($1)");
   }
 
   private addComment(reply: CommentReply) {
     const thread = reply.thread;
     const newComment = new ConversationComment(
       "",
-      new MarkdownString(this.convertUserMentions(reply.text)),
+      new MarkdownString(reply.text),
       CommentMode.Preview,
       { name: this.usersService.user?.first_name || "Unknown" },
       new Date().toISOString(),
@@ -350,7 +349,16 @@ export class ConversationProvider implements Disposable {
     if (!nodeMeta) {
       return;
     }
+
+    const editor = window.visibleTextEditors.find(
+      (editor) => editor.document.uri.fsPath === thread.uri.fsPath,
+    );
+    const highlight = thread.range.isSingleLine
+      ? editor?.document.lineAt(thread.range.start.line).text
+      : editor?.document.getText(thread.range);
+
     const meta = {
+      highlight,
       uniqueId: nodeMeta.uniqueId,
       resource_type: nodeMeta.resource_type,
       range: {
@@ -360,12 +368,18 @@ export class ConversationProvider implements Disposable {
     };
 
     // create share
-    const { shareId, shareUrl } = await this.conversationService.shareDbtDocs({
+    const result = await this.conversationService.shareDbtDocs({
       name: convertedMessage,
       description: "",
       uri: reply.thread.uri,
       model,
     });
+    if (!result) {
+      // If share cannot be created, delete the thread
+      thread.dispose();
+      return;
+    }
+    const { shareId, shareUrl } = result;
     this.dbtTerminal.debug(
       "ConversationProvider",
       "created conversation",

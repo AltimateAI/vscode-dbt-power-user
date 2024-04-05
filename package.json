@@ -71,6 +71,11 @@
             "type": "boolean",
             "description": "Enable the new lineage panel in dbt."
           },
+          "dbt.enableCollaboration": {
+            "type": "boolean",
+            "description": "Enable dbt docs collaboration.",
+            "default": false
+          },
           "dbt.enableNewDocsPanel": {
             "type": "boolean",
             "description": "Enable the new docs panel in dbt.",

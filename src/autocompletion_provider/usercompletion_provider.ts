@@ -41,11 +41,8 @@ export class UserCompletionProvider
     context: CompletionContext,
   ): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
     return this.usersService.users.map((user) => ({
-      label: `${user.first_name} ${user.last_name}`,
+      label: `${user.display_name}`,
       kind: CompletionItemKind.User,
-      keepWhitespace: true,
-      // adding the user id as comment for parsing the user details when saving comments
-      insertText: `(${user.first_name} ${user.last_name})<!--${user.id}--> `,
     }));
   }
 }

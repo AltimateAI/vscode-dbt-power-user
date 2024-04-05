@@ -5,6 +5,7 @@ import { provideSingleton } from "../utils";
 export interface TenantUser {
   id: string;
   uuid: string;
+  display_name: string;
   first_name: string;
   last_name: string;
   email: string;
@@ -30,6 +31,13 @@ export class UsersService {
   }
 
   private async loadUsersInTenant() {
+    if (this.altimateRequest.getCredentialsMessage()) {
+      this.dbtTerminal.debug(
+        "UsersService:loadUsersInTenant",
+        "Missing credentials. skipping loadUsersInTenant",
+      );
+      return;
+    }
     this.dbtTerminal.debug("UsersService", "loading tenant users");
     const users = await this.altimateRequest.fetch<TenantUser[]>("/users/");
     this.tenantUsers = users.reduce((acc: Record<string, TenantUser>, user) => {
@@ -40,6 +48,13 @@ export class UsersService {
   }
 
   private async loadCurrentUser() {
+    if (this.altimateRequest.getCredentialsMessage()) {
+      this.dbtTerminal.debug(
+        "UsersService:loadCurrentUser",
+        "Missing credentials. skipping loadCurrentUser",
+      );
+      return;
+    }
     this.dbtTerminal.debug("UsersService", "loading current user");
     const user = await this.altimateRequest.fetch<TenantUser>(
       "/dbt/dbt_docs_share/user/details",
