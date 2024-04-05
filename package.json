@@ -636,18 +636,7 @@
           "when": "commentController == altimate-conversations"
         }
       ],
-      "comments/comment/title": [
-        {
-          "command": "dbtPowerUser.editConversation",
-          "group": "group@1",
-          "when": "commentController == altimate-conversations"
-        },
-        {
-          "command": "dbtPowerUser.deleteConversationComment",
-          "group": "group@2",
-          "when": "commentController == altimate-conversations && comment == canDelete"
-        }
-      ],
+      "comments/comment/title": [],
       "comments/commentThread/title": [
         {
           "command": "dbtPowerUser.copyDbtDocsLink",
