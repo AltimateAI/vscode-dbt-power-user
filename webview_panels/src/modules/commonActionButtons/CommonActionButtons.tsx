@@ -4,7 +4,6 @@ import useDocumentationContext from "@modules/documentationEditor/state/useDocum
 import { Pages } from "@modules/documentationEditor/state/types";
 import FeedbackButton from "./FeedbackButton";
 import HelpButton from "./HelpButton";
-import ShareDbtDocsButton from "../dbtDocs/ShareDbtDocsButton";
 
 const CommonActionButtons = (): JSX.Element => {
   const {
@@ -16,7 +15,6 @@ const CommonActionButtons = (): JSX.Element => {
       {selectedPages.includes(Pages.DOCUMENTATION) ? (
         <DocGeneratorSettings />
       ) : null}
-      <ShareDbtDocsButton />
       <HelpButton />
       <FeedbackButton url="https://docs.google.com/forms/d/e/1FAIpQLSeqFBZX_P4chScTTw8w-reRn2fr7NmeGdy8jISJOPdKEWfLaw/viewform" />
     </Stack>

@@ -130,19 +130,6 @@ export class NewDocsGenPanel
     const { command, syncRequestId, ...args } = message;
 
     switch (command) {
-      case "share:dbtdocs":
-        this.handleSyncRequestFromWebview(
-          syncRequestId,
-          async () => {
-            return this.conversationService.shareDbtDocs({
-              ...args,
-              uri: window.activeTextEditor?.document.uri,
-            } as { name: string; comment?: string; uri?: Uri });
-          },
-          command,
-          true,
-        );
-        break;
       case "getTestCode":
         this.handleSyncRequestFromWebview(
           syncRequestId,

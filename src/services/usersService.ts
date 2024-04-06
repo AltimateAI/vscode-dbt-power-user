@@ -17,9 +17,15 @@ export interface TenantUser {
   created_at: string;
   role_title: string;
 }
+
+/**
+ * Service to load and store users in tenant and current user
+ */
 @provideSingleton(UsersService)
 export class UsersService {
+  // Local cache of users in tenant
   private tenantUsers: Record<string, TenantUser> = {};
+  // Local cache of current user
   private tenantUser: TenantUser | undefined;
 
   public constructor(

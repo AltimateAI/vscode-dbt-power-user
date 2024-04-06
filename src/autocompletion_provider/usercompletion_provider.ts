@@ -1,18 +1,13 @@
 import {
-  CancellationToken,
-  CompletionContext,
   CompletionItem,
   CompletionItemKind,
   CompletionItemProvider,
   CompletionList,
   Disposable,
-  Position,
   ProviderResult,
-  TextDocument,
 } from "vscode";
 import { provideSingleton } from "../utils";
 import { UsersService } from "../services/usersService";
-import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 @provideSingleton(UserCompletionProvider)
 export class UserCompletionProvider
@@ -20,10 +15,7 @@ export class UserCompletionProvider
 {
   private disposables: Disposable[] = [];
 
-  constructor(
-    private dbtTerminal: DBTTerminal,
-    private usersService: UsersService,
-  ) {}
+  constructor(private usersService: UsersService) {}
 
   dispose() {
     while (this.disposables.length) {
@@ -34,12 +26,9 @@ export class UserCompletionProvider
     }
   }
 
-  provideCompletionItems(
-    document: TextDocument,
-    position: Position,
-    token: CancellationToken,
-    context: CompletionContext,
-  ): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
+  provideCompletionItems(): ProviderResult<
+    CompletionItem[] | CompletionList<CompletionItem>
+  > {
     return this.usersService.users.map((user) => ({
       label: `${user.display_name}`,
       kind: CompletionItemKind.User,

@@ -32,6 +32,5 @@
     }
   },
   "include": ["src", "vite.config.ts"],
-  "exclude": ["src/**/*.jsx", "src/**/*.js"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

@@ -129,10 +129,9 @@ export class ConversationProvider implements Disposable {
       return;
     }
 
-    shares.map(async (latest) => {
+    shares.map(async (dbtDocsShare) => {
       const event = this.queryManifestService.getEventByProjectName(
-        // TODO: fix this to use project field after backend changes
-        latest.description,
+        dbtDocsShare.project_name,
       );
       if (!event) {
         this.dbtTerminal.debug(
@@ -145,11 +144,11 @@ export class ConversationProvider implements Disposable {
       this.dbtTerminal.debug(
         "ConversationProvider",
         "loading conversations",
-        latest.share_id,
+        dbtDocsShare.share_id,
       );
       const conversations =
         await this.conversationService.loadConversationsByShareId(
-          latest.share_id,
+          dbtDocsShare.share_id,
         );
       if (!conversations?.length) {
         this.dbtTerminal.debug(
@@ -159,9 +158,9 @@ export class ConversationProvider implements Disposable {
         return;
       }
 
-      if (this._threads[latest.share_id]) {
+      if (this._threads[dbtDocsShare.share_id]) {
         const currentConversationGroupIds = Object.keys(
-          this._threads[latest.share_id],
+          this._threads[dbtDocsShare.share_id],
         );
         const conversationGroupIdsFromDB = conversations
           .filter((c) => c.status === "Pending")
@@ -178,7 +177,7 @@ export class ConversationProvider implements Disposable {
             missingConversationGroupIds,
           );
           missingConversationGroupIds.forEach((id) =>
-            this._threads[latest.share_id][id].dispose(),
+            this._threads[dbtDocsShare.share_id][id].dispose(),
           );
         }
       }
@@ -197,7 +196,7 @@ export class ConversationProvider implements Disposable {
           }
           const uri = Uri.parse(node?.path);
           const thread =
-            this._threads[latest.share_id]?.[
+            this._threads[dbtDocsShare.share_id]?.[
               conversationGroup.conversation_group_id
             ] ??
             (this.commentController!.createCommentThread(
@@ -229,10 +228,11 @@ export class ConversationProvider implements Disposable {
           thread.conversation_group_id =
             conversationGroup.conversation_group_id;
           thread.meta = conversationGroup.meta;
-          thread.share_id = latest.share_id;
+          thread.share_id = dbtDocsShare.share_id;
           thread.label = "Discussion";
-          this._threads[latest.share_id] = this._threads[latest.share_id] || {};
-          this._threads[latest.share_id][
+          this._threads[dbtDocsShare.share_id] =
+            this._threads[dbtDocsShare.share_id] || {};
+          this._threads[dbtDocsShare.share_id][
             conversationGroup.conversation_group_id
           ] = thread;
         });
@@ -353,9 +353,10 @@ export class ConversationProvider implements Disposable {
     const editor = window.visibleTextEditors.find(
       (editor) => editor.document.uri.fsPath === thread.uri.fsPath,
     );
-    const highlight = thread.range.isSingleLine
-      ? editor?.document.lineAt(thread.range.start.line).text
-      : editor?.document.getText(thread.range);
+    const highlight =
+      (thread.range.isSingleLine
+        ? editor?.document.lineAt(thread.range.start.line).text
+        : editor?.document.getText(thread.range)) || "";
 
     const meta = {
       highlight,
@@ -398,7 +399,6 @@ export class ConversationProvider implements Disposable {
       await this.conversationService.createConversationGroup(shareId, {
         message: convertedMessage,
         meta,
-        xpath: "",
       });
 
     if (!addReplyResult) {
@@ -453,54 +453,6 @@ export class ConversationProvider implements Disposable {
     );
   }
 
-  editConversation(comment: ConversationComment) {
-    if (!comment.parent) {
-      return;
-    }
-
-    comment.parent.comments = comment.parent.comments.map((cmt) => {
-      if (
-        (cmt as ConversationComment).conversation_id === comment.conversation_id
-      ) {
-        cmt.mode = CommentMode.Editing;
-      }
-
-      return cmt;
-    });
-  }
-  saveConversation(comment: ConversationComment) {
-    if (!comment.parent) {
-      return;
-    }
-
-    comment.parent.comments = comment.parent.comments.map((cmt) => {
-      if (
-        (cmt as ConversationComment).conversation_id === comment.conversation_id
-      ) {
-        (cmt as ConversationComment).savedBody = cmt.body;
-        cmt.mode = CommentMode.Preview;
-      }
-
-      return cmt;
-    });
-  }
-  cancelSaveConversation(comment: ConversationComment) {
-    if (!comment.parent) {
-      return;
-    }
-
-    comment.parent.comments = comment.parent.comments.map((cmt) => {
-      if (
-        (cmt as ConversationComment).conversation_id === comment.conversation_id
-      ) {
-        cmt.body = (cmt as ConversationComment).savedBody;
-        cmt.mode = CommentMode.Preview;
-      }
-
-      return cmt;
-    });
-  }
-
   async resolveConversation(commentThread: ConversationCommentThread) {
     if (!commentThread.share_id) {
       this.dbtTerminal.error(
@@ -530,23 +482,6 @@ export class ConversationProvider implements Disposable {
     );
 
     commentThread.dispose();
-  }
-
-  deleteConversationComment(comment: ConversationComment) {
-    const thread = comment.parent;
-    if (!thread) {
-      return;
-    }
-
-    thread.comments = thread.comments.filter(
-      (cmt) =>
-        (cmt as ConversationComment).conversation_id !==
-        comment.conversation_id,
-    );
-
-    if (thread.comments.length === 0) {
-      thread.dispose();
-    }
   }
 
   dispose() {

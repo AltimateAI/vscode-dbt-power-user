@@ -319,37 +319,9 @@
     },
     "commands": [
       {
-        "command": "dbtPowerUser.editConversation",
-        "title": "Edit",
-        "category": "dbt Power User",
-        "icon": {
-          "dark": "resources/edit_inverse.svg",
-          "light": "resources/edit.svg"
-        }
-      },
-      {
         "command": "dbtPowerUser.resolveConversation",
         "title": "Resolve",
         "category": "dbt Power User"
-      },
-      {
-        "command": "dbtPowerUser.deleteConversationComment",
-        "title": "Delete",
-        "category": "dbt Power User",
-        "icon": {
-          "dark": "resources/close_inverse.svg",
-          "light": "resources/close.svg"
-        }
-      },
-      {
-        "command": "dbtPowerUser.saveConversation",
-        "category": "dbt Power User",
-        "title": "Save"
-      },
-      {
-        "command": "dbtPowerUser.cancelSaveConversation",
-        "category": "dbt Power User",
-        "title": "Cancel"
       },
       {
         "command": "dbtPowerUser.createConversation",
@@ -624,19 +596,6 @@
       }
     ],
     "menus": {
-      "comments/comment/context": [
-        {
-          "command": "dbtPowerUser.cancelSaveConversation",
-          "group": "inline@1",
-          "when": "commentController == altimate-conversations"
-        },
-        {
-          "command": "dbtPowerUser.saveConversation",
-          "group": "inline@2",
-          "when": "commentController == altimate-conversations"
-        }
-      ],
-      "comments/comment/title": [],
       "comments/commentThread/title": [
         {
           "command": "dbtPowerUser.copyDbtDocsLink",
@@ -1102,7 +1061,7 @@
   "scripts": {
     "prepare": "husky install",
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production",
-    "webpack": "npm run panel:webviews && webpack --mode development",
+    "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "watch": "concurrently \"npm:watch --prefix ./new_lineage_panel\" \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",

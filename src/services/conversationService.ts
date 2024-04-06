@@ -12,6 +12,7 @@ interface SharedDoc {
   share_id: string;
   name: string;
   description: string;
+  project_name: string;
 }
 
 export interface Conversation {
@@ -25,8 +26,8 @@ export interface ConversationGroup {
   conversation_group_id: string;
   owner: string;
   status: "Pending" | "Resolved";
-  xpath: string;
   meta: {
+    highlight: string;
     uniqueId: string;
     resource_type: string;
     range: {
@@ -39,6 +40,7 @@ export interface ConversationGroup {
 
 @provideSingleton(ConversationService)
 export class ConversationService {
+  // Local cache to store shared docs
   private sharedDocs: SharedDoc[] = [];
 
   public constructor(
@@ -56,6 +58,7 @@ export class ConversationService {
         );
         return;
       }
+      // query the shared docs by current project names in workspace
       const projectNames =
         this.queryManifestService.getProjectNamesInWorkspace();
       const shares = await this.altimateRequest.fetch<SharedDoc[]>(
@@ -93,7 +96,7 @@ export class ConversationService {
       );
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          `Unable to get url. Error: ${(err as Error).message}`,
+          `Unable to get shareable url. Error: ${(err as Error).message}`,
         ),
       );
     }
@@ -122,7 +125,7 @@ export class ConversationService {
       );
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          `Unable to save conversation. Error: ${(err as Error).message}`,
+          `Unable to save your comment. Error: ${(err as Error).message}`,
         ),
       );
     }
@@ -160,9 +163,7 @@ export class ConversationService {
       );
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          `Unable to add reply to conversation. Error: ${
-            (err as Error).message
-          }`,
+          `Unable to save your reply. Error: ${(err as Error).message}`,
         ),
       );
     }
@@ -205,6 +206,15 @@ export class ConversationService {
     return conversations.dbt_docs_share_conversations;
   }
 
+  /**
+   * create shareable dbt docs
+   * Steps involved
+   * 1. generate dbt docs by current state of project in temporary directory
+   * 2. create share doc and get presigned upload urls
+   * 3. upload manifest and catalog
+   * 4. verify upload
+   * 5. delete the temporary directory
+   */
   public async shareDbtDocs(data: {
     name: string;
     description?: string;
@@ -229,6 +239,7 @@ export class ConversationService {
           }
           progress.report({ message: "Generating dbt docs..." });
 
+          // generate docs in tmp directory
           const hashedProjectRoot = DBTProject.hashProjectRoot(
             project.projectRoot.fsPath,
           );
@@ -259,7 +270,7 @@ export class ConversationService {
             );
 
             // create a shareid
-            progress.report({ message: "Creating conversation..." });
+            progress.report({ message: "Creating dbt_docs_share record..." });
             const createShareResult = await this.altimateRequest.fetch<{
               share_id: number;
               manifest_presigned_url: string;

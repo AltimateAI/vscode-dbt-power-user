@@ -291,54 +291,6 @@ export class VSCodeCommands implements Disposable {
       ),
 
       commands.registerCommand(
-        "dbtPowerUser.editConversation",
-        (reply: ConversationComment) => {
-          try {
-            this.conversationController.editConversation(reply);
-          } catch (err) {
-            window.showErrorMessage(
-              extendErrorWithSupportLinks((err as Error).message),
-            );
-          }
-        },
-      ),
-      commands.registerCommand(
-        "dbtPowerUser.saveConversation",
-        (reply: ConversationComment) => {
-          try {
-            this.conversationController.saveConversation(reply);
-          } catch (err) {
-            window.showErrorMessage(
-              extendErrorWithSupportLinks((err as Error).message),
-            );
-          }
-        },
-      ),
-      commands.registerCommand(
-        "dbtPowerUser.cancelSaveConversation",
-        (reply: ConversationComment) => {
-          try {
-            this.conversationController.cancelSaveConversation(reply);
-          } catch (err) {
-            window.showErrorMessage(
-              extendErrorWithSupportLinks((err as Error).message),
-            );
-          }
-        },
-      ),
-      commands.registerCommand(
-        "dbtPowerUser.deleteConversationComment",
-        (reply: ConversationComment) => {
-          try {
-            this.conversationController.deleteConversationComment(reply);
-          } catch (err) {
-            window.showErrorMessage(
-              extendErrorWithSupportLinks((err as Error).message),
-            );
-          }
-        },
-      ),
-      commands.registerCommand(
         "dbtPowerUser.resolveConversation",
         (thread: CommentThread) => {
           try {

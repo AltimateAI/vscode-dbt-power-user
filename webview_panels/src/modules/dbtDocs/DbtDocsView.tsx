@@ -9,17 +9,21 @@ const DbtDocsView = (): JSX.Element => {
   } = useAppContext();
 
   const [shareId, setShareId] = useState("");
-  const [conversationGroupId, setConversationGroupId] = useState<string | undefined>();
+  const [conversationGroupId, setConversationGroupId] = useState<
+    string | undefined
+  >();
   const [userId, setUserId] = useState("");
 
   const onMesssage = useCallback(
     (event: MessageEvent<IncomingMessageProps>) => {
       const { command, args } = event.data;
       switch (command) {
-        case "renderShareId":
+        case "dbtDocsShareDetails":
           setShareId(args.shareId as string);
-          setConversationGroupId(args.conversationGroupId as string | undefined)
-          setUserId(args.userId as string)
+          setConversationGroupId(
+            args.conversationGroupId as string | undefined,
+          );
+          setUserId(args.userId as string);
           break;
         default:
           break;
@@ -41,7 +45,11 @@ const DbtDocsView = (): JSX.Element => {
   }
   return (
     <div>
-      <DbtDocs shareId={shareId} userId={userId} conversationGroupId={conversationGroupId}/>
+      <DbtDocs
+        shareId={shareId}
+        userId={userId}
+        conversationGroupId={conversationGroupId}
+      />
     </div>
   );
 };

@@ -40,12 +40,6 @@ export class QueryManifestService {
     return this.getProjectByUri(window.activeTextEditor?.document.uri);
   }
 
-  public getProjectNamesInWorkspace(): string[] | undefined {
-    return this.dbtProjectContainer
-      .getProjects()
-      .map((project) => project.getProjectName());
-  }
-
   public getProjectByUri(uri?: Uri): DBTProject | undefined {
     if (!uri) {
       return;
@@ -53,14 +47,19 @@ export class QueryManifestService {
     return this.dbtProjectContainer.findDBTProject(uri);
   }
 
+  public getProjectNamesInWorkspace(): string[] | undefined {
+    return this.dbtProjectContainer
+      .getProjects()
+      .map((project) => project.getProjectName());
+  }
+
   public getEventByProjectName(projectName: string) {
-    // TODO: fix this to remove hack of projects[0]
     const projects = this.dbtProjectContainer.getProjects();
-    const project =
-      projects.find((project) => project.getProjectName() === projectName) ||
-      projects[0];
+    const project = projects.find(
+      (project) => project.getProjectName() === projectName,
+    );
     if (!project) {
-      this.dbtTerminal.debug("no project for projectName: ", projectName);
+      this.dbtTerminal.debug("no project with projectName: ", projectName);
       return;
     }
 

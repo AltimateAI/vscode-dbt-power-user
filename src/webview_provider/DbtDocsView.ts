@@ -54,7 +54,7 @@ export class DbtDocsView extends AltimateWebviewProvider {
     }
 
     this.sendResponseToWebview({
-      command: "renderShareId",
+      command: "dbtDocsShareDetails",
       args: {
         shareId: this._shareId,
         conversationGroupId: this._conversationGroupId,
@@ -91,6 +91,7 @@ export class DbtDocsView extends AltimateWebviewProvider {
         break;
     }
   }
+
   protected renderWebviewView() {
     if (!this._webview) {
       return;
@@ -104,7 +105,7 @@ export class DbtDocsView extends AltimateWebviewProvider {
     );
   }
 
-  public renderWebview(webview: WebviewPanel) {
+  private renderWebview(webview: WebviewPanel) {
     this._webview = webview.webview;
     this.renderWebviewView();
   }
