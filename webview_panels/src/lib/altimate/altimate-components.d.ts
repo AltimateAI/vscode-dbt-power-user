@@ -14,3 +14,10 @@ declare interface Props {
 }
 
 export { }
+
+declare global {
+    interface HTMLElementEventMap {
+        selectionend: CustomEvent;
+    }
+}
+
