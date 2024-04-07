@@ -109,6 +109,9 @@
         >
           <div v-if="isLoading" id="loading_container">
             <img id="spinner" src="__ROOT__/assets/spinner.gif" />
+            <div v-if="showHint" style="margin-bottom: 8px">
+              {{ loadingMessage }} <a :href="loadingLink">Docs</a>
+            </div>
             <vscode-button @click="cancelQuery">Cancel query</vscode-button>
           </div>
           <div v-show="hasData" style="width: 100%">
