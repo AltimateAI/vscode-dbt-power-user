@@ -37,11 +37,8 @@ from typing import (
 
 import agate
 from dbt.adapters.factory import get_adapter_class_by_name
-from dbt.artifacts.resources.types import NodeType
 from dbt.config.runtime import RuntimeConfig
-from dbt.artifacts.resources.types import NodeType
 from dbt.flags import set_from_args
-from dbt.node_types import NodeType
 from dbt.parser.manifest import ManifestLoader, process_node
 from dbt.parser.sql import SqlBlockParser, SqlMacroParser
 from dbt.task.sql import SqlCompileRunner, SqlExecuteRunner
@@ -55,11 +52,14 @@ DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER = (
 if DBT_MAJOR_VER >=1 and DBT_MINOR_VER >= 8:
     from dbt.contracts.graph.nodes import ManifestNode, CompiledNode  # type: ignore
     from dbt.artifacts.resources.v1.components import ColumnInfo  # type: ignore
+    from dbt.artifacts.resources.types import NodeType
 elif DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 3:
     from dbt.contracts.graph.compiled import ManifestNode, CompiledNode  # type: ignore
     from dbt.contracts.graph.parsed import ColumnInfo  # type: ignore
+    from dbt.node_types import NodeType
 else:
     from dbt.contracts.graph.nodes import ColumnInfo, ManifestNode, CompiledNode  # type: ignore
+    from dbt.node_types import NodeType
 
 
 if TYPE_CHECKING:
