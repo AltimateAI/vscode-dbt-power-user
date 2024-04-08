@@ -25,7 +25,7 @@ const Insights = (): JSX.Element => (
             component: <DeferToProduction />,
           },
           {
-            label: "Project Healthcheck",
+            label: "Project Governance",
             component: <ProjectHealthChecker />,
           },
         ]}
