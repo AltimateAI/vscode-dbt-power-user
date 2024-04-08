@@ -872,4 +872,9 @@ export class DBTCloudProjectIntegration
     );
     return result;
   }
+
+  async applyDeferConfig(
+    enable: boolean,
+    deferManifestPath: string,
+  ): Promise<void> {}
 }

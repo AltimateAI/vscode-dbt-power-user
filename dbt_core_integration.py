@@ -361,13 +361,16 @@ class DbtProject:
         self._sql_compiler = None
         self._sql_runner = None
 
-    def parse_defer_project(self, manifest_path: str) -> None:
+    def apply_defer_config(self, manifest_path: str) -> None:
         with open(manifest_path) as f:
             manifest = WritableManifest.from_dict(json.load(f))
             selected = set()
             self.dbt.merge_from_artifact(
                 self.adapter, other=manifest, selected=selected, favor_state=True
             )
+
+    def clear_defer_config(self) -> None:
+        self.safe_parse_project()
 
     @classmethod
     def from_args(cls, args: ConfigInterface) -> "DbtProject":
@@ -435,7 +438,7 @@ class DbtProject:
         """dbt manifest dict"""
         return ManifestProxy(self.dbt.flat_graph)
 
-    def safe_parse_project(self, defer_to_prod: bool, prod_manifest_path: str) -> None:
+    def safe_parse_project(self) -> None:
         self.clear_caches()
         # doing this so that we can allow inits to fail when config is
         # bad and restart after the user sets it up correctly
@@ -446,8 +449,6 @@ class DbtProject:
         try:
             self.parse_project()
             self.write_manifest_artifact()
-            if defer_to_prod:
-                self.parse_defer_project(prod_manifest_path)
         except Exception as e:
             self.config = _config_pointer
             raise Exception(str(e))

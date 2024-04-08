@@ -512,18 +512,10 @@ export class DBTCoreProjectIntegration
       // No point in trying to rebuild the manifest if the config is not valid
       return;
     }
-    const currentConfig: Record<string, DeferConfig> =
-      this.deferToProdService.getDeferConfigByWorkspace();
-    const root = getProjectRelativePath(this.projectRoot);
-    const { deferToProduction, manifestPathForDeferral } = currentConfig[root];
-    const manifestPath = path.join(
-      manifestPathForDeferral,
-      DBTProject.MANIFEST_FILE,
-    );
+
     try {
       await this.python.lock(
-        (python) =>
-          python`to_dict(project.safe_parse_project(${deferToProduction}, ${manifestPath}))`,
+        (python) => python`to_dict(project.safe_parse_project())`,
       );
       this.rebuildManifestDiagnostics.clear();
     } catch (exc) {
@@ -1011,5 +1003,22 @@ export class DBTCoreProjectIntegration
         python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
     );
     return result;
+  }
+
+  async applyDeferConfig(
+    enable: boolean,
+    deferManifestPath: string,
+  ): Promise<void> {
+    const manifestPath = path.join(deferManifestPath, DBTProject.MANIFEST_FILE);
+    if (enable) {
+      await this.python?.lock<void>(
+        (python) =>
+          python!`to_dict(project.apply_defer_config(${manifestPath}))`,
+      );
+    } else {
+      await this.python?.lock<void>(
+        (python) => python!`to_dict(project.clear_defer_config())`,
+      );
+    }
   }
 }

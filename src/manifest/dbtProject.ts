@@ -1076,4 +1076,14 @@ select * from renamed
 
     return { mappedNode, relationsWithoutColumns };
   }
+
+  async applyDeferConfig(
+    enable: boolean,
+    deferManifestPath: string,
+  ): Promise<void> {
+    await this.dbtProjectIntegration.applyDeferConfig(
+      enable,
+      deferManifestPath,
+    );
+  }
 }
