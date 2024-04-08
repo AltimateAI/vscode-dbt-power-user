@@ -5,12 +5,18 @@ export declare const ApiHelper: {
     post: (_url: string, _data: Record<string, unknown>, _request?: RequestInit) => Promise<any>;
 };
 
-export declare const DbtDocs: ({ shareId, userId, conversationGroupId }: Props) => JSX_2.Element;
+declare enum ConversationSources {
+    EXTENSION = "extension",
+    SOURCES = "sources"
+}
+
+export declare const DbtDocs: ({ shareId, userId, conversationGroupId, source }: Props) => JSX_2.Element;
 
 declare interface Props {
     shareId: string;
     userId: string;
     conversationGroupId?: string;
+    source: ConversationSources;
 }
 
 export { }

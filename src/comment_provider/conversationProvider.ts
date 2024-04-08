@@ -360,6 +360,7 @@ export class ConversationProvider implements Disposable {
 
     const meta = {
       highlight,
+      source: "extension",
       uniqueId: nodeMeta.uniqueId,
       resource_type: nodeMeta.resource_type,
       range: {

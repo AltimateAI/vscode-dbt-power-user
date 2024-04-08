@@ -49,6 +49,8 @@ const DbtDocsView = (): JSX.Element => {
         shareId={shareId}
         userId={userId}
         conversationGroupId={conversationGroupId}
+        // @ts-expect-error valid type
+        source={"extension"}
       />
     </div>
   );
