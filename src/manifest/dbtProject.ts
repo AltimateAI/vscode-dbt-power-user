@@ -397,7 +397,7 @@ export class DBTProject implements Disposable {
     );
   }
 
-  async rebuildManifest() {
+  private async rebuildManifest() {
     this.terminal.debug(
       "DBTProject",
       `Going to rebuild the manifest for "${this.getProjectName()}" at ${
