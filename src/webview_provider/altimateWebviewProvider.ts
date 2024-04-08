@@ -5,6 +5,7 @@ import {
   Uri,
   Webview,
   WebviewOptions,
+  WebviewPanel,
   WebviewView,
   WebviewViewProvider,
   WebviewViewResolveContext,
@@ -58,7 +59,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
   protected viewPath = "/"; // webview route path from AppRoutes.tsx
   protected panelDescription = "Altimate default webview";
 
-  protected _panel: WebviewView | undefined = undefined;
+  protected _panel: WebviewView | WebviewPanel | undefined = undefined;
   protected _webview: Webview | undefined = undefined;
   protected _disposables: Disposable[] = [];
   protected eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
@@ -362,7 +363,9 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
   }
 
   private setupWebviewOptions(context: WebviewViewResolveContext) {
-    this._panel!.description = this.panelDescription;
+    if (this._panel && "description" in this._panel) {
+      this._panel.description = this.panelDescription;
+    }
     this._panel!.webview.options = <WebviewOptions>{
       enableScripts: true,
       localResourceRoots: [

@@ -75,7 +75,10 @@ export class DbtDocsView extends AltimateWebviewProvider {
         this._conversationGroupId = payload.conversationGroupId as
           | string
           | undefined;
-        const webview = window.createWebviewPanel(
+        if (this._panel) {
+          (this._panel as WebviewPanel).dispose();
+        }
+        const webviewPanel = window.createWebviewPanel(
           DbtDocsView.viewType,
           "Dbt docs",
           {
@@ -83,7 +86,8 @@ export class DbtDocsView extends AltimateWebviewProvider {
           },
           { enableScripts: true, retainContextWhenHidden: true },
         );
-        this.renderWebview(webview);
+        this._panel = webviewPanel;
+        this.renderWebview(webviewPanel);
 
         break;
       default:

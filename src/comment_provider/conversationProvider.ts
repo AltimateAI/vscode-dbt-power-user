@@ -240,7 +240,7 @@ export class ConversationProvider implements Disposable {
   }
 
   private convertTextFromDbToCommentFormat(text: string) {
-    return new MarkdownString(text.replace(/\[@(\w+)\]\((\w+)\)/g, "@$1"));
+    return new MarkdownString(text.replace(/@\[(\w+)\]\((\w+)\)/g, "@$1"));
   }
 
   private convertTextToDbFormat(text: string) {
