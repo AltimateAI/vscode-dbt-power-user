@@ -26,6 +26,7 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DeferToProdService } from "../services/deferToProdService";
 import { ManifestPathType } from "../constants";
 import { QueryManifestService } from "../services/queryManifestService";
+import { ValidationProvider } from "../validation_provider";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];
@@ -75,6 +76,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     private deferToProdService: DeferToProdService,
+    private validationProvider: ValidationProvider,
   ) {
     super(
       dbtProjectContainer,
@@ -426,16 +428,31 @@ export class InsightsPanel extends AltimateWebviewProvider {
     });
   }
 
+  private emitError(syncRequestId: string | undefined, errorMsg: string) {
+    window.showErrorMessage(errorMsg);
+    this._panel!.webview.postMessage({
+      command: "response",
+      args: { syncRequestId, status: false, error: errorMsg },
+    });
+  }
+
   private async altimateScan(
     syncRequestId: string | undefined,
     args: AltimateConfigProps,
   ) {
+    try {
+      this.validationProvider.throwIfNotAuthenticated();
+    } catch (e) {
+      this.emitError(syncRequestId, (e as Error).message);
+      return;
+    }
     let isInstalled = false;
     try {
       isInstalled =
         await this.dbtProjectContainer.checkIfAltimateDatapilotInstalled();
     } catch (e) {
-      window.showErrorMessage(
+      this.emitError(
+        syncRequestId,
         `Error while checking altimate datapilot cli installation: ${
           (e as Error).message
         }`,
@@ -470,7 +487,8 @@ export class InsightsPanel extends AltimateWebviewProvider {
           },
         );
       } catch (e) {
-        window.showErrorMessage(
+        this.emitError(
+          syncRequestId,
           `Error while installing altimate datapilot cli: ${
             (e as Error).message
           }`,
@@ -509,7 +527,8 @@ export class InsightsPanel extends AltimateWebviewProvider {
         },
       );
     } catch (e) {
-      window.showErrorMessage(
+      this.emitError(
+        syncRequestId,
         `Error while performing healthcheck:${(e as Error).message}`,
       );
       this.dbtTerminal.error(
