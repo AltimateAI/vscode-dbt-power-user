@@ -27,11 +27,13 @@ import { UsersService } from "../services/usersService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { DBTProject } from "../manifest/dbtProject";
 
+// Extends vscode commentthread and add extra fields for reference
 export interface ConversationCommentThread extends CommentThread {
   share_id: string;
   conversation_group_id: string;
   meta: ConversationGroup["meta"];
 }
+
 export class ConversationComment implements Comment {
   label: string | undefined;
   timestamp: Date;
@@ -53,9 +55,11 @@ export class ConversationComment implements Comment {
 @provideSingleton(ConversationProvider)
 export class ConversationProvider implements Disposable {
   private disposables: Disposable[] = [];
-  private commentController;
+  private _commentController;
   private _timer: NodeJS.Timeout | undefined;
   // record of share id with conv group
+  // used to identify deleted records during polling
+  // can be removed in future if we get right events like delete, add etc.,
   private _threads: Record<string, Record<string, ConversationCommentThread>> =
     {};
 
@@ -66,22 +70,18 @@ export class ConversationProvider implements Disposable {
     private emitterService: SharedStateService,
     private queryManifestService: QueryManifestService,
   ) {
-    const enableCollaboration = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("enableCollaboration", false);
-    if (!enableCollaboration) {
-      this.dbtTerminal.debug(
-        "ConversationProvider",
-        "collaboration not enabled",
-      );
+    if (!this.isCollaborationEnabled()) {
       return;
     }
-    this.commentController = comments.createCommentController(
+
+    // Create comment controller
+    this._commentController = comments.createCommentController(
       "altimate-conversations",
+      // this title will be used to show in selection options when more than one extension in vscode has commenting feature
       "Altimate dbt conversations",
     );
 
-    this.commentController.commentingRangeProvider = {
+    this._commentController.commentingRangeProvider = {
       provideCommentingRanges: (
         document: TextDocument,
         token: CancellationToken,
@@ -102,6 +102,21 @@ export class ConversationProvider implements Disposable {
         }
       }),
     );
+
+    this.disposables.push(this._commentController);
+  }
+
+  private isCollaborationEnabled() {
+    const enableCollaboration = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("enableCollaboration", false);
+    this.dbtTerminal.debug(
+      "ConversationProvider:isCollaborationEnabled",
+      "collaboration status",
+      enableCollaboration,
+    );
+
+    return enableCollaboration;
   }
 
   // simple polling for getting latest conversations
@@ -111,7 +126,7 @@ export class ConversationProvider implements Disposable {
       .getConfiguration("dbt")
       .get<number>("conversationsPollingInterval", 30);
     this.dbtTerminal.debug(
-      "ConversationProvider",
+      "ConversationProvider:setupRefetch",
       "refresh conversations after",
       pollingInterval,
     );
@@ -121,28 +136,24 @@ export class ConversationProvider implements Disposable {
   }
 
   private async loadThreads() {
-    this.dbtTerminal.debug("ConversationProvider", "loading threads");
+    this.dbtTerminal.debug(
+      "ConversationProvider:loadThreads",
+      "loading threads",
+    );
     const shares = await this.conversationService.loadSharedDocs();
     this.setupRefetch();
+
     if (!shares?.length) {
-      this.dbtTerminal.debug("ConversationProvider", "No conversations yet");
+      this.dbtTerminal.debug(
+        "ConversationProvider:loadThreads",
+        "No conversations yet",
+      );
       return;
     }
 
     shares.map(async (dbtDocsShare) => {
-      const event = this.queryManifestService.getEventByProjectName(
-        dbtDocsShare.project_name,
-      );
-      if (!event) {
-        this.dbtTerminal.debug(
-          "ConversationProvider",
-          "Not able to get manifest data yet",
-        );
-        return;
-      }
-      const { nodeMetaMap } = event;
       this.dbtTerminal.debug(
-        "ConversationProvider",
+        "ConversationProvider:loadThreads",
         "loading conversations",
         dbtDocsShare.share_id,
       );
@@ -152,19 +163,26 @@ export class ConversationProvider implements Disposable {
         );
       if (!conversations?.length) {
         this.dbtTerminal.debug(
-          "ConversationProvider",
-          "No conversations in latest share",
+          "ConversationProvider:loadThreads",
+          "No conversations in share",
+          dbtDocsShare.share_id,
         );
         return;
       }
 
+      const pendingConversations = conversations.filter(
+        (c) => c.status === "Pending",
+      );
+
+      // If local cache has this share already, find if any conversation is missing from db (which as resolved)
+      // can be removed in future if we get right events like delete, add etc.,
       if (this._threads[dbtDocsShare.share_id]) {
         const currentConversationGroupIds = Object.keys(
           this._threads[dbtDocsShare.share_id],
         );
-        const conversationGroupIdsFromDB = conversations
-          .filter((c) => c.status === "Pending")
-          .map((c) => c.conversation_group_id.toString());
+        const conversationGroupIdsFromDB = pendingConversations.map((c) =>
+          c.conversation_group_id.toString(),
+        );
 
         const missingConversationGroupIds = currentConversationGroupIds.filter(
           (id) => !conversationGroupIdsFromDB.includes(id),
@@ -172,77 +190,78 @@ export class ConversationProvider implements Disposable {
 
         if (missingConversationGroupIds.length) {
           this.dbtTerminal.debug(
-            "ConversationProvider",
+            "ConversationProvider:loadThreads",
             "resolving threads",
             missingConversationGroupIds,
           );
+          // delete resolved conversations
           missingConversationGroupIds.forEach((id) =>
             this._threads[dbtDocsShare.share_id][id].dispose(),
           );
         }
       }
-      conversations
-        .filter((c) => c.status === "Pending")
-        .map((conversationGroup) => {
-          if (!conversationGroup.meta?.uniqueId) {
-            return null;
-          }
-          // TODO: handle this properly
-          const parts = conversationGroup.meta.uniqueId.split(".");
-          const modelName = parts[parts.length - 1];
-          const node = nodeMetaMap.get(modelName);
-          if (!node?.path) {
-            return null;
-          }
-          const uri = Uri.parse(node?.path);
-          const thread =
-            this._threads[dbtDocsShare.share_id]?.[
-              conversationGroup.conversation_group_id
-            ] ??
-            (this.commentController!.createCommentThread(
-              uri,
-              new Range(
-                conversationGroup.meta.range.start.line,
-                conversationGroup.meta.range.start.character,
-                conversationGroup.meta.range.end.line,
-                conversationGroup.meta.range.end.character,
-              ),
-              [],
-            ) as ConversationCommentThread);
-          thread.comments = conversationGroup.conversations.map(
-            (conversation) =>
-              new ConversationComment(
-                conversation.conversation_id,
-                this.convertTextFromDbToCommentFormat(conversation.message),
-                CommentMode.Preview,
-                {
-                  name:
-                    this.usersService.getUserById(conversation.user_id)
-                      ?.first_name || "Unknown",
-                },
-                conversation.timestamp,
-                undefined,
-                "canDelete",
-              ),
+
+      pendingConversations.map((conversationGroup) => {
+        if (!conversationGroup.meta?.uniqueId) {
+          this.dbtTerminal.debug(
+            "ConversationProvider:loadThreads",
+            "skipping conversation, missing uniqueId",
+            conversationGroup,
           );
-          thread.conversation_group_id =
-            conversationGroup.conversation_group_id;
-          thread.meta = conversationGroup.meta;
-          thread.share_id = dbtDocsShare.share_id;
-          thread.label = "Discussion";
-          this._threads[dbtDocsShare.share_id] =
-            this._threads[dbtDocsShare.share_id] || {};
-          this._threads[dbtDocsShare.share_id][
+          return null;
+        }
+
+        const uri = Uri.parse(conversationGroup.meta.filePath);
+        const thread =
+          this._threads[dbtDocsShare.share_id]?.[
             conversationGroup.conversation_group_id
-          ] = thread;
-        });
+          ] ??
+          (this._commentController!.createCommentThread(
+            uri,
+            new Range(
+              conversationGroup.meta.range.start.line,
+              conversationGroup.meta.range.start.character,
+              conversationGroup.meta.range.end.line,
+              conversationGroup.meta.range.end.character,
+            ),
+            [],
+          ) as ConversationCommentThread);
+        thread.comments = conversationGroup.conversations.map(
+          (conversation) =>
+            new ConversationComment(
+              conversation.conversation_id,
+              this.convertTextFromDbToCommentFormat(conversation.message),
+              CommentMode.Preview,
+              {
+                name:
+                  this.usersService.getUserById(conversation.user_id)
+                    ?.first_name || "Unknown",
+              },
+              conversation.timestamp,
+              undefined,
+              "canDelete",
+            ),
+        );
+        thread.conversation_group_id = conversationGroup.conversation_group_id;
+        thread.meta = conversationGroup.meta;
+        thread.share_id = dbtDocsShare.share_id;
+        thread.label = "Discussion";
+
+        // update the local cache
+        this._threads[dbtDocsShare.share_id] = {
+          ...this._threads[dbtDocsShare.share_id],
+          [conversationGroup.conversation_group_id]: thread,
+        };
+      });
     });
   }
 
+  // convert "@[john](john)" to "@john"
   private convertTextFromDbToCommentFormat(text: string) {
     return new MarkdownString(text.replace(/@\[(\w+)\]\((\w+)\)/g, "@$1"));
   }
 
+  // convert "@john" to "@[john](john)"
   private convertTextToDbFormat(text: string) {
     return new MarkdownString(text).value.replace(/@(\w+)/g, "@[$1]($1)");
   }
@@ -256,7 +275,7 @@ export class ConversationProvider implements Disposable {
       { name: this.usersService.user?.first_name || "Unknown" },
       new Date().toISOString(),
       thread as ConversationCommentThread,
-      "canDelete",
+      "",
     );
 
     thread.comments = [...thread.comments, newComment];
@@ -291,7 +310,7 @@ export class ConversationProvider implements Disposable {
       return;
     }
     this.dbtTerminal.debug(
-      "ConversationProvider",
+      "ConversationProvider:viewInDbtDocs",
       `firing render dbtdocs event`,
       thread.share_id,
     );
@@ -308,6 +327,7 @@ export class ConversationProvider implements Disposable {
   private getNodeMeta(uri: Uri, resourceName: string) {
     const event = this.queryManifestService.getEventByDocument(uri);
     if (!event) {
+      this.dbtTerminal.debug("getNodeMeta", "event not available");
       return;
     }
 
@@ -340,149 +360,177 @@ export class ConversationProvider implements Disposable {
   }
 
   async createConversation(reply: CommentReply) {
-    const thread = reply.thread as ConversationCommentThread;
-    const newComment = this.addComment(reply);
-    const model = path.basename(reply.thread.uri.fsPath, ".sql");
-    const convertedMessage = this.convertTextToDbFormat(reply.text);
+    try {
+      this.dbtTerminal.debug(
+        "ConversationProvider:createConversation",
+        "creating conversation",
+        reply,
+      );
+      const thread = reply.thread as ConversationCommentThread;
+      const newComment = this.addComment(reply);
+      const model = path.basename(reply.thread.uri.fsPath, ".sql");
+      const convertedMessage = this.convertTextToDbFormat(reply.text);
 
-    const nodeMeta = this.getNodeMeta(reply.thread.uri, model);
-    if (!nodeMeta) {
-      return;
-    }
+      const nodeMeta = this.getNodeMeta(reply.thread.uri, model);
+      if (!nodeMeta) {
+        throw new Error("Invalid file");
+      }
 
-    const editor = window.visibleTextEditors.find(
-      (editor) => editor.document.uri.fsPath === thread.uri.fsPath,
-    );
-    const highlight =
-      (thread.range.isSingleLine
-        ? editor?.document.lineAt(thread.range.start.line).text
-        : editor?.document.getText(thread.range)) || "";
+      // Find selected text
+      const editor = window.visibleTextEditors.find(
+        (editor) => editor.document.uri.fsPath === thread.uri.fsPath,
+      );
+      const highlight =
+        (thread.range.isSingleLine
+          ? editor?.document.lineAt(thread.range.start.line).text
+          : editor?.document.getText(thread.range)) || "";
 
-    const meta = {
-      highlight,
-      source: "extension",
-      uniqueId: nodeMeta.uniqueId,
-      resource_type: nodeMeta.resource_type,
-      range: {
-        end: reply.thread.range.end,
-        start: reply.thread.range.start,
-      },
-    };
+      const meta = {
+        highlight,
+        source: "extension",
+        uniqueId: nodeMeta.uniqueId,
+        filePath: thread.uri.fsPath,
+        resource_type: nodeMeta.resource_type,
+        range: {
+          end: reply.thread.range.end,
+          start: reply.thread.range.start,
+        },
+      };
 
-    // create share
-    const result = await this.conversationService.shareDbtDocs({
-      name: convertedMessage,
-      description: "",
-      uri: reply.thread.uri,
-      model,
-    });
-    if (!result) {
-      // If share cannot be created, delete the thread
-      thread.dispose();
-      return;
-    }
-    const { shareId, shareUrl } = result;
-    this.dbtTerminal.debug(
-      "ConversationProvider",
-      "created conversation",
-      shareId,
-      shareUrl,
-    );
-
-    this.dbtTerminal.debug(
-      "ConversationProvider",
-      "adding conversation to share",
-      shareId,
-    );
-
-    // create conversation group
-    const addReplyResult =
-      await this.conversationService.createConversationGroup(shareId, {
-        message: convertedMessage,
-        meta,
+      // create share
+      const result = await this.conversationService.shareDbtDocs({
+        name: convertedMessage,
+        description: "",
+        uri: reply.thread.uri,
+        model,
       });
+      if (!result) {
+        throw new Error("Unable to share dbt docs");
+      }
+      const { shareId, shareUrl } = result;
+      this.dbtTerminal.debug(
+        "ConversationProvider:createConversation",
+        "created conversation, adding conversation to group",
+        shareId,
+        shareUrl,
+      );
 
-    if (!addReplyResult) {
-      return;
+      // create conversation group
+      const addReplyResult =
+        await this.conversationService.createConversationGroup(shareId, {
+          message: convertedMessage,
+          meta,
+        });
+
+      if (!addReplyResult) {
+        throw new Error("Unable to create group");
+      }
+
+      newComment.conversation_id = addReplyResult.conversation_id;
+      thread.share_id = shareId;
+      thread.conversation_group_id = addReplyResult.conversation_group_id;
+      thread.meta = meta;
+
+      this.dbtTerminal.debug(
+        "ConversationProvider",
+        "added conversation to created conversation group",
+        addReplyResult,
+      );
+
+      this._threads[shareId] = {
+        ...this._threads[shareId],
+        [thread.conversation_group_id]: thread,
+      };
+    } catch (error) {
+      this.dbtTerminal.error(
+        "ConversationProvider:createConversation",
+        "unable to create conversation",
+        error,
+      );
+      // If share cannot be created, delete the thread
+      reply.thread.dispose();
+      window.showErrorMessage(
+        extendErrorWithSupportLinks(
+          `Unable to save your comment. ${(error as Error).message}`,
+        ),
+      );
     }
-    newComment.conversation_id = addReplyResult.conversation_id;
-    thread.share_id = shareId;
-    thread.conversation_group_id = addReplyResult.conversation_group_id;
-    thread.meta = meta;
-
-    this.dbtTerminal.debug(
-      "ConversationProvider",
-      "added conversation to created conversation group",
-      addReplyResult,
-    );
-    // TODO: optimize this
-    this._threads[shareId] = this._threads[shareId] || {};
-    this._threads[shareId][thread.conversation_group_id] =
-      this._threads[shareId][thread.conversation_group_id] || {};
-    this._threads[shareId][thread.conversation_group_id] = thread;
   }
 
   async replyToConversation(reply: CommentReply) {
     const thread = reply.thread as ConversationCommentThread;
-    if (!thread.share_id) {
+    try {
+      if (!thread.share_id) {
+        throw new Error("Unable to find conversation. Missing share id");
+      }
+
+      this.dbtTerminal.debug(
+        "ConversationProvider:replyToConversation",
+        "replying to conversation",
+        reply,
+      );
+      this.addComment(reply);
+
+      if (!thread.conversation_group_id) {
+        if (!thread.share_id) {
+          throw new Error(
+            "Unable to find conversation. Missing conversation group id",
+          );
+        }
+        return;
+      }
+
+      await this.conversationService.addConversationToGroup(
+        thread.share_id,
+        thread.conversation_group_id,
+        this.convertTextToDbFormat(reply.text),
+      );
+    } catch (error) {
       this.dbtTerminal.error(
-        "ConversationProvider",
-        "Missing share id",
-        new Error("Missing share id"),
+        "ConversationProvider:replyToConversation",
+        "unable to reply conversation",
+        error,
       );
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Unable to find conversation. Please try again later.",
+          `Unable to save your reply. ${(error as Error).message}`,
         ),
       );
-      return;
     }
-    this.addComment(reply);
-    if (!thread.conversation_group_id) {
-      this.dbtTerminal.debug(
-        "ConversationProvider",
-        "Missing conv group id",
-        thread.conversation_group_id,
-      );
-      return;
-    }
-
-    await this.conversationService.addConversationToGroup(
-      thread.share_id,
-      thread.conversation_group_id,
-      this.convertTextToDbFormat(reply.text),
-    );
   }
 
   async resolveConversation(commentThread: ConversationCommentThread) {
-    if (!commentThread.share_id) {
+    try {
+      if (!commentThread.share_id) {
+        throw new Error("Unable to find conversation. Missing share id");
+      }
+      this.dbtTerminal.debug(
+        "ConversationProvider:resolveConversation",
+        `resolving conversation: ${commentThread.conversation_group_id} in share: ${commentThread.share_id}`,
+      );
+      const result = await this.conversationService.resolveConversation(
+        commentThread.share_id,
+        commentThread.conversation_group_id,
+      );
+      this.dbtTerminal.debug(
+        "ConversationProvider:resolveConversation",
+        `resolved conversation: ${commentThread.conversation_group_id} in share: ${commentThread.share_id}`,
+        result,
+      );
+
+      commentThread.dispose();
+    } catch (error) {
       this.dbtTerminal.error(
-        "ConversationProvider",
-        "Missing share id",
-        new Error("Missing share id"),
+        "ConversationProvider:resolveConversation",
+        "unable to resolve conversation",
+        error,
       );
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Unable to find conversation. Please try again later.",
+          `Unable to resolve comment. ${(error as Error).message}`,
         ),
       );
-      return;
     }
-    this.dbtTerminal.debug(
-      "ConversationProvider",
-      `resolving conversation: ${commentThread.conversation_group_id} in share: ${commentThread.share_id}`,
-    );
-    const result = await this.conversationService.resolveConversation(
-      commentThread.share_id,
-      commentThread.conversation_group_id,
-    );
-    this.dbtTerminal.debug(
-      "ConversationProvider",
-      `resolved conversation: ${commentThread.conversation_group_id} in share: ${commentThread.share_id}`,
-      result,
-    );
-
-    commentThread.dispose();
   }
 
   dispose() {

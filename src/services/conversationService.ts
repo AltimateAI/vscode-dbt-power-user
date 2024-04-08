@@ -29,6 +29,7 @@ export interface ConversationGroup {
   meta: {
     highlight: string;
     uniqueId: string;
+    filePath: string;
     resource_type: string;
     range: {
       end: CommentThread["range"]["end"];
@@ -61,6 +62,15 @@ export class ConversationService {
       // query the shared docs by current project names in workspace
       const projectNames =
         this.queryManifestService.getProjectNamesInWorkspace();
+
+      if (!projectNames?.length) {
+        this.dbtTerminal.debug(
+          "ConversationService:loadSharedDocs",
+          "no valid project names. skipping loadSharedDocs",
+        );
+        return;
+      }
+
       const shares = await this.altimateRequest.fetch<SharedDoc[]>(
         `dbt/dbt_docs_share/all?${projectNames
           ?.map((p) => `projects=${p}`)

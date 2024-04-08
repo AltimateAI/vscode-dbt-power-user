@@ -53,19 +53,6 @@ export class QueryManifestService {
       .map((project) => project.getProjectName());
   }
 
-  public getEventByProjectName(projectName: string) {
-    const projects = this.dbtProjectContainer.getProjects();
-    const project = projects.find(
-      (project) => project.getProjectName() === projectName,
-    );
-    if (!project) {
-      this.dbtTerminal.debug("no project with projectName: ", projectName);
-      return;
-    }
-
-    return this.eventMap.get(project.projectRoot.fsPath);
-  }
-
   public getEventByCurrentProject():
     | {
         event: ManifestCacheProjectAddedEvent | undefined;
