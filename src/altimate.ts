@@ -9,6 +9,7 @@ import * as os from "os";
 import { RateLimitException } from "./exceptions";
 import { DBTProject } from "./manifest/dbtProject";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
+import { PythonEnvironment } from "./manifest/pythonEnvironment";
 
 export class NoCredentialsError extends Error {}
 
@@ -23,11 +24,6 @@ export class ForbiddenError extends Error {
 }
 
 export class APIError extends Error {}
-
-interface AltimateConfig {
-  key: string;
-  instance: string;
-}
 
 export interface ColumnLineage {
   source: { uniqueId: string; column_name: string };
@@ -232,6 +228,11 @@ interface FeedbackResponse {
   ok: boolean;
 }
 
+interface AltimateConfig {
+  key: string;
+  instance: string;
+}
+
 enum PromptAnswer {
   YES = "Get your free API Key",
 }
@@ -245,21 +246,20 @@ export class AltimateRequest {
   constructor(
     private telemetry: TelemetryService,
     private dbtTerminal: DBTTerminal,
+    private pythonEnvironment: PythonEnvironment,
   ) {}
 
-  getConfig(): AltimateConfig | undefined {
-    const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
-    const instance = workspace
-      .getConfiguration("dbt")
-      .get<string>("altimateInstanceName");
-
-    if (key && instance) {
-      return { key, instance };
-    }
-    return undefined;
+  getInstanceName() {
+    return this.pythonEnvironment.getResolvedConfigValue(
+      "altimateInstanceName",
+    );
   }
 
-  public enabled() {
+  getAIKey() {
+    return this.pythonEnvironment.getResolvedConfigValue("altimateAiKey");
+  }
+
+  public enabled(): boolean {
     return !!this.getConfig();
   }
 
@@ -275,11 +275,18 @@ export class AltimateRequest {
     }
   }
 
+  private getConfig(): AltimateConfig | undefined {
+    const key = this.getAIKey();
+    const instance = this.getInstanceName();
+    if (!key || !instance) {
+      return undefined;
+    }
+    return { key, instance };
+  }
+
   getCredentialsMessage(): string | undefined {
-    const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
-    const instance = workspace
-      .getConfiguration("dbt")
-      .get<string>("altimateInstanceName");
+    const key = this.getAIKey();
+    const instance = this.getInstanceName();
 
     if (!key && !instance) {
       return `To use this feature, please add an API Key and an instance name in the settings.`;

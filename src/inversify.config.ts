@@ -7,7 +7,6 @@ import {
   WorkspaceFolder,
 } from "vscode";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
-import { EnvironmentVariables } from "./domain";
 import { DBTProject } from "./manifest/dbtProject";
 import {
   DBTProjectContainer,
