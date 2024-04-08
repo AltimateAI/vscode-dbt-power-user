@@ -1,6 +1,9 @@
+import { Disposable } from "vscode";
 import { AltimateRequest } from "../altimate";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { provideSingleton } from "../utils";
+import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { DBTInstallationVerificationEvent } from "../dbt_client/dbtVersionEvent";
 
 export interface TenantUser {
   id: string;
@@ -22,18 +25,41 @@ export interface TenantUser {
  * Service to load and store users in tenant and current user
  */
 @provideSingleton(UsersService)
-export class UsersService {
+export class UsersService implements Disposable {
   // Local cache of users in tenant
   private tenantUsers: Record<string, TenantUser> = {};
   // Local cache of current user
   private tenantUser: TenantUser | undefined;
+  private disposables: Disposable[] = [];
 
   public constructor(
+    private dbtProjectContainer: DBTProjectContainer,
     private dbtTerminal: DBTTerminal,
     private altimateRequest: AltimateRequest,
   ) {
-    this.loadUsersInTenant();
-    this.loadCurrentUser();
+    this.disposables.push(
+      this.dbtProjectContainer.onDBTInstallationVerification((e) =>
+        this.onDBTInstallationVerification(e),
+      ),
+    );
+  }
+
+  dispose() {
+    while (this.disposables.length) {
+      const x = this.disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
+  }
+
+  private onDBTInstallationVerification(
+    event: DBTInstallationVerificationEvent,
+  ) {
+    if (event.installed) {
+      this.loadCurrentUser();
+      this.loadUsersInTenant();
+    }
   }
 
   private async loadUsersInTenant() {
