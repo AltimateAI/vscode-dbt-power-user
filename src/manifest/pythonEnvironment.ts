@@ -154,7 +154,7 @@ export class PythonEnvironment implements Disposable {
       onDidChangeExecutionDetails: api.settings.onDidChangeExecutionDetails,
       // There are 3 places from where we can get environments variables:
       // 1. process env    2. integrated terminal env    3. dot env file(we can get this from python extension)
-      // Collecting env vars from all 3 places and merging them into one
+      // Collecting env vars from all 3 places and merging them into one in the above order
       // While merging, also tagging the places from where the env var has come.
       getEnvVars: () => {
         const envVars: EnvironmentVariables = {};
