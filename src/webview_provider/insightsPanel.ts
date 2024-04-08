@@ -442,6 +442,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
   ) {
     try {
       this.validationProvider.throwIfNotAuthenticated();
+      await this.altimateRequest.logDBTHealthcheckStartScan();
     } catch (e) {
       this.emitError(syncRequestId, (e as Error).message);
       return;
