@@ -205,8 +205,10 @@ export class PythonEnvironment implements Disposable {
               `workspaceEnv:${Object.keys(workspaceEnv)}`,
             );
             for (const key in workspaceEnv) {
-              envVars[key] = workspaceEnv[key];
-              this.environmentVariableSource[key] = "dotenv";
+              if (!(key in envVars) || workspaceEnv[key] !== envVars[key]) {
+                envVars[key] = workspaceEnv[key];
+                this.environmentVariableSource[key] = "dotenv";
+              }
             }
           }
         } catch (e: any) {
