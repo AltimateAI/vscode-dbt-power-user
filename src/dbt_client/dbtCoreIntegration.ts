@@ -512,7 +512,6 @@ export class DBTCoreProjectIntegration
       // No point in trying to rebuild the manifest if the config is not valid
       return;
     }
-
     try {
       await this.python.lock(
         (python) => python`to_dict(project.safe_parse_project())`,
