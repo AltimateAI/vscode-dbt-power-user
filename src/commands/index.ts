@@ -333,6 +333,7 @@ export class VSCodeCommands implements Disposable {
             );
           }
         },
+      ),
       commands.registerCommand("dbtPowerUser.printEnvVars", () =>
         this.pythonEnvironment.printEnvVars(),
       ),
