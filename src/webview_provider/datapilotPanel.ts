@@ -244,7 +244,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
               await this.queryAnalysisService.getFollowupQuestions(
                 params as { query: string; user_request: string },
               );
-            return { response };
+            return response;
           },
           command,
           true,
