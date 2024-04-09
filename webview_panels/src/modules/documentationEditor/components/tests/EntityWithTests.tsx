@@ -90,6 +90,7 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
             onClose={handleClose}
             test={selectedTest}
             column={title}
+            type={type}
           />
         ) : null}
       </Drawer>

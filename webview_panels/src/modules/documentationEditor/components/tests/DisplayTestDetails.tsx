@@ -28,6 +28,7 @@ import classes from "../../styles.module.scss";
 import { DeleteIcon, EditIcon } from "@assets/icons";
 import { findDbtTestType } from "./utils";
 import TestDetails from "./TestDetails";
+import { EntityType } from "@modules/dataPilot/components/docGen/types";
 
 const schema = Yup.object({
   to: Yup.string().optional(),
@@ -39,9 +40,15 @@ interface Props {
   onClose: () => void;
   test: DBTModelTest;
   column: string;
+  type: EntityType;
 }
 
-const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
+const DisplayTestDetails = ({
+  onClose,
+  test,
+  column,
+  type,
+}: Props): JSX.Element => {
   const { control, handleSubmit, setValue, watch } = useForm<SaveRequest>({
     resolver: yupResolver(schema),
   });
@@ -55,7 +62,9 @@ const DisplayTestDetails = ({ onClose, test, column }: Props): JSX.Element => {
     test.test_metadata?.name === DbtGenericTests.RELATIONSHIPS;
   const testType = findDbtTestType(test);
   const canDeleteTest =
-    testType !== DbtTestTypes.SINGULAR && testType !== DbtTestTypes.UNKNOWN;
+    testType !== DbtTestTypes.SINGULAR &&
+    testType !== DbtTestTypes.UNKNOWN &&
+    type !== EntityType.MODEL;
 
   const handleDelete = () => {
     panelLogger.info("delete test", test);
