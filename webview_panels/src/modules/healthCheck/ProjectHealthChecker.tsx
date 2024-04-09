@@ -260,7 +260,7 @@ const ProjectHealthcheckInput = ({
 
   return (
     <Card className={classes.container}>
-      <CardTitle tag="h5">Perform project healthcheck</CardTitle>
+      <CardTitle tag="h5">Perform project governance</CardTitle>
       <CardBody>
         <CardText>
           Find areas of a dbt project that are misaligned with dbt best

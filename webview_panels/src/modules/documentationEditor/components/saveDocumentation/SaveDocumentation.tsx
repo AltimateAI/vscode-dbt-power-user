@@ -37,11 +37,7 @@ const SaveDocumentation = (): JSX.Element | null => {
   };
 
   useEffect(() => {
-    if (!currentDocsData?.patchPath) {
-      return;
-    }
-
-    setPatchPath(currentDocsData.patchPath);
+    setPatchPath(currentDocsData?.patchPath ?? "");
   }, [currentDocsData?.patchPath]);
 
   const handleChange = (newValue: string) => {
