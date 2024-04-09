@@ -996,7 +996,12 @@ export class DBTCoreProjectIntegration
     configPath,
   }: HealthcheckArgs): Promise<ProjectHealthcheck> {
     this.throwBridgeErrorIfAvailable();
-    const result = await this.python?.lock<ProjectHealthcheck>(
+    const queryThread = this.executionInfrastructure.createPythonBridge(
+      this.projectRoot.fsPath,
+    );
+    await this.createPythonDbtProject(queryThread);
+    await queryThread.ex`from dbt_healthcheck import *`;
+    const result = await queryThread.lock<ProjectHealthcheck>(
       (python) =>
         python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
     );
