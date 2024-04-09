@@ -530,11 +530,11 @@ export class InsightsPanel extends AltimateWebviewProvider {
     } catch (e) {
       this.emitError(
         syncRequestId,
-        `Error while performing healthcheck:${(e as Error).message}`,
+        `Error while performing governance:${(e as Error).message}`,
       );
       this.dbtTerminal.error(
-        "atimateDatapilotHealthcheck",
-        "Error while performing healthcheck",
+        "atimateDatapilotGovernance",
+        "Error while performing governance",
         e,
       );
     }
