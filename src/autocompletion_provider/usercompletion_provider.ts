@@ -32,6 +32,8 @@ export class UserCompletionProvider
     return this.usersService.users.map((user) => ({
       label: `${user.display_name}`,
       kind: CompletionItemKind.User,
+      keepWhitespace: true,
+      insertText: `${user.display_name} `,
     }));
   }
 }
