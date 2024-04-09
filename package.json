@@ -1,7 +1,7 @@
 {
   "name": "vscode-dbt-power-user",
-  "displayName": "dbt Power User",
-  "description": "Makes vscode seamlessly work with dbt: auto-complete, preview, column lineage, AI docs generation, health checks, cost estimation etc",
+  "displayName": "dbt Power User for dbt Core™",
+  "description": "a.k.a dbt™ power user extension makes vscode seamlessly work with dbt: auto-complete, preview, column lineage, AI docs generation, health checks, cost estimation etc",
   "icon": "media/images/dbt.png",
   "publisher": "innoverio",
   "license": "MIT",
@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.37.9",
+  "version": "0.37.10",
   "engines": {
     "vscode": "^1.81.0"
   },
