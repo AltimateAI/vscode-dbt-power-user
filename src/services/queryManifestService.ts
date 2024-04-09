@@ -53,6 +53,11 @@ export class QueryManifestService {
       .map((project) => project.getProjectName());
   }
 
+  public getProjectByName(projectName: string) {
+    const projects = this.dbtProjectContainer.getProjects();
+    return projects.find((project) => project.getProjectName() === projectName);
+  }
+
   public getEventByCurrentProject():
     | {
         event: ManifestCacheProjectAddedEvent | undefined;

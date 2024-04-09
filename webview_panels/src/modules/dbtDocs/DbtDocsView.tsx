@@ -1,29 +1,29 @@
+import { DbtDocs } from "@lib";
 import { IncomingMessageProps } from "@modules/app/types";
 import useAppContext from "@modules/app/useAppContext";
 import { useCallback, useEffect, useState } from "react";
-import { DbtDocs } from "../../lib/altimate/altimate-components";
 
 const DbtDocsView = (): JSX.Element => {
   const {
     state: { isComponentsApiInitialized },
   } = useAppContext();
 
-  const [shareId, setShareId] = useState("");
+  const [shareId, setShareId] = useState<number>();
   const [conversationGroupId, setConversationGroupId] = useState<
-    string | undefined
+    number
   >();
-  const [userId, setUserId] = useState("");
+  const [userId, setUserId] = useState<number>();
 
   const onMesssage = useCallback(
     (event: MessageEvent<IncomingMessageProps>) => {
       const { command, args } = event.data;
       switch (command) {
         case "dbtDocsShareDetails":
-          setShareId(args.shareId as string);
+          setShareId(args.shareId as number);
           setConversationGroupId(
-            args.conversationGroupId as string | undefined,
+            args.conversationGroupId as number | undefined,
           );
-          setUserId(args.userId as string);
+          setUserId(args.userId as number);
           break;
         default:
           break;

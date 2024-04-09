@@ -8,29 +8,29 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { AltimateRequest } from "../altimate";
 import { rmSync } from "fs";
 
-interface SharedDoc {
-  share_id: string;
+export interface SharedDoc {
+  share_id: number;
   name: string;
   description: string;
   project_name: string;
 }
 
 export interface Conversation {
-  conversation_id: string;
+  conversation_id: number;
   message: string;
   timestamp: string;
-  user_id: string;
+  user_id: number;
 }
 
 export interface ConversationGroup {
-  conversation_group_id: string;
-  owner: string;
+  conversation_group_id: number;
+  owner: number;
   status: "Pending" | "Resolved";
   meta: {
     highlight: string;
-    uniqueId: string;
+    uniqueId?: string;
     filePath: string;
-    resource_type: string;
+    resource_type?: string;
     range: {
       end: CommentThread["range"]["end"];
       start: CommentThread["range"]["start"];
@@ -87,7 +87,7 @@ export class ConversationService {
     }
   }
 
-  public async getAppUrlByShareId(shareId: string) {
+  public async getAppUrlByShareId(shareId: SharedDoc["share_id"]) {
     try {
       if (!this.altimateRequest.handlePreviewFeatures()) {
         return;
@@ -113,7 +113,7 @@ export class ConversationService {
   }
 
   public async createConversationGroup(
-    shareId: string,
+    shareId: SharedDoc["share_id"],
     data: Partial<ConversationGroup> & { message: string },
   ) {
     try {
@@ -121,8 +121,8 @@ export class ConversationService {
         return;
       }
       return await this.altimateRequest.fetch<{
-        conversation_group_id: string;
-        conversation_id: string;
+        conversation_group_id: ConversationGroup["conversation_group_id"];
+        conversation_id: Conversation["conversation_id"];
       }>(`dbt/dbt_docs_share/${shareId}/conversation_group`, {
         method: "POST",
         body: JSON.stringify(data),
@@ -142,8 +142,8 @@ export class ConversationService {
   }
 
   public async addConversationToGroup(
-    shareId: string,
-    conversationGroupId: string,
+    shareId: SharedDoc["share_id"],
+    conversationGroupId: ConversationGroup["conversation_group_id"],
     message: string,
   ) {
     try {
@@ -180,8 +180,8 @@ export class ConversationService {
   }
 
   public async resolveConversation(
-    shareId: string,
-    conversationGroupId: string,
+    shareId: SharedDoc["share_id"],
+    conversationGroupId: ConversationGroup["conversation_group_id"],
   ) {
     try {
       if (!this.altimateRequest.handlePreviewFeatures()) {
@@ -205,7 +205,7 @@ export class ConversationService {
     }
   }
 
-  public async loadConversationsByShareId(shareId: string) {
+  public async loadConversationsByShareId(shareId: SharedDoc["share_id"]) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
     }
@@ -230,7 +230,9 @@ export class ConversationService {
     description?: string;
     uri?: Uri;
     model?: string;
-  }): Promise<{ shareUrl: string; shareId: string } | undefined> {
+  }): Promise<
+    { shareUrl: string; shareId: SharedDoc["share_id"] } | undefined
+  > {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
     }
@@ -346,7 +348,7 @@ export class ConversationService {
             progress.report({ message: "Resolving..." });
             resolve({
               shareUrl: verifyResult.dbt_docs_share_url,
-              shareId: `${createShareResult.share_id}`,
+              shareId: createShareResult.share_id,
             });
           } catch (err) {
             reject(err);

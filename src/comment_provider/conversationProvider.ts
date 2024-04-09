@@ -19,8 +19,10 @@ import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import path = require("path");
 import {
+  Conversation,
   ConversationGroup,
   ConversationService,
+  SharedDoc,
 } from "../services/conversationService";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
@@ -29,8 +31,8 @@ import { DBTProject } from "../manifest/dbtProject";
 
 // Extends vscode commentthread and add extra fields for reference
 export interface ConversationCommentThread extends CommentThread {
-  share_id: string;
-  conversation_group_id: string;
+  share_id: SharedDoc["share_id"];
+  conversation_group_id: ConversationGroup["conversation_group_id"];
   meta: ConversationGroup["meta"];
 }
 
@@ -39,7 +41,7 @@ export class ConversationComment implements Comment {
   timestamp: Date;
   savedBody: string | MarkdownString; // for the Cancel button
   constructor(
-    public conversation_id: string,
+    public conversation_id: Conversation["conversation_id"],
     public body: string | MarkdownString,
     public mode: CommentMode,
     public author: CommentAuthorInformation,
@@ -52,6 +54,7 @@ export class ConversationComment implements Comment {
   }
 }
 
+const ALLOWED_FILE_EXTENSIONS = [".sql", ".yml", ".yaml"];
 @provideSingleton(ConversationProvider)
 export class ConversationProvider implements Disposable {
   private disposables: Disposable[] = [];
@@ -86,8 +89,12 @@ export class ConversationProvider implements Disposable {
         document: TextDocument,
         token: CancellationToken,
       ) => {
-        // enable only for sql files
-        if (!document.uri.fsPath.endsWith(".sql")) {
+        // enable only for allowed files
+        if (
+          !ALLOWED_FILE_EXTENSIONS.find((ext) =>
+            document.uri.fsPath.endsWith(ext),
+          )
+        ) {
           return null;
         }
         const lineCount = document.lineCount;
@@ -201,17 +208,26 @@ export class ConversationProvider implements Disposable {
         }
       }
 
-      pendingConversations.map((conversationGroup) => {
-        if (!conversationGroup.meta?.uniqueId) {
-          this.dbtTerminal.debug(
-            "ConversationProvider:loadThreads",
-            "skipping conversation, missing uniqueId",
-            conversationGroup,
-          );
-          return null;
-        }
+      const project = this.queryManifestService.getProjectByName(
+        dbtDocsShare.project_name,
+      );
 
-        const uri = Uri.parse(conversationGroup.meta.filePath);
+      if (!project) {
+        this.dbtTerminal.debug(
+          "ConversationProvider:loadThreads",
+          "not able to get project",
+          dbtDocsShare,
+        );
+        return;
+      }
+
+      pendingConversations.map((conversationGroup) => {
+        const uri = Uri.parse(
+          path.join(
+            project.projectRoot.fsPath,
+            conversationGroup.meta.filePath,
+          ),
+        );
         const thread =
           this._threads[dbtDocsShare.share_id]?.[
             conversationGroup.conversation_group_id
@@ -239,7 +255,7 @@ export class ConversationProvider implements Disposable {
               },
               conversation.timestamp,
               undefined,
-              "canDelete",
+              "",
             ),
         );
         thread.conversation_group_id = conversationGroup.conversation_group_id;
@@ -269,7 +285,7 @@ export class ConversationProvider implements Disposable {
   private addComment(reply: CommentReply) {
     const thread = reply.thread;
     const newComment = new ConversationComment(
-      "",
+      -1,
       new MarkdownString(reply.text),
       CommentMode.Preview,
       { name: this.usersService.user?.first_name || "Unknown" },
@@ -372,14 +388,12 @@ export class ConversationProvider implements Disposable {
       const convertedMessage = this.convertTextToDbFormat(reply.text);
 
       const nodeMeta = this.getNodeMeta(reply.thread.uri, model);
-      if (!nodeMeta) {
-        throw new Error("Invalid file");
-      }
 
       // Find selected text
       const editor = window.visibleTextEditors.find(
         (editor) => editor.document.uri.fsPath === thread.uri.fsPath,
       );
+      const project = this.queryManifestService.getProjectByUri(thread.uri);
       const highlight =
         (thread.range.isSingleLine
           ? editor?.document.lineAt(thread.range.start.line).text
@@ -388,9 +402,12 @@ export class ConversationProvider implements Disposable {
       const meta = {
         highlight,
         source: "extension",
-        uniqueId: nodeMeta.uniqueId,
-        filePath: thread.uri.fsPath,
-        resource_type: nodeMeta.resource_type,
+        uniqueId: nodeMeta?.uniqueId,
+        filePath: path.relative(
+          project?.projectRoot.fsPath || "",
+          thread.uri.fsPath,
+        ),
+        resource_type: nodeMeta?.resource_type,
         range: {
           end: reply.thread.range.end,
           start: reply.thread.range.start,

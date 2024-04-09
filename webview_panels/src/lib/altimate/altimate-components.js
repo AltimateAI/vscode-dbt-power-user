@@ -1,5 +1,6 @@
-import { A as p, D as r } from "./main.js";
+import { A as s, C as a, D as p } from "./main.js";
 export {
-  p as ApiHelper,
-  r as DbtDocs
+  s as ApiHelper,
+  a as CodeBlock,
+  p as DbtDocs
 };

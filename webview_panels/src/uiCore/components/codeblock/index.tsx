@@ -1,8 +1,7 @@
-import { CodeBlock, solarizedDark, solarizedLight } from "react-code-blocks";
-import { Card, CardBody, CardTitle } from "../../";
-import classes from "./codeblock.module.scss";
 import useAppContext from "@modules/app/useAppContext";
 import { Themes } from "@modules/app/types";
+import { CodeBlock as CodeblockLib } from "@lib";
+import classes from "./codeblock.module.scss";
 
 interface Props {
   code: string;
@@ -17,19 +16,18 @@ const CodeBlockComponent = ({
   const {
     state: { theme },
   } = useAppContext();
-  const codeBlockTheme = theme === Themes.Dark ? solarizedDark : solarizedLight;
+  const codeBlockTheme =
+    theme === Themes.Dark ? "solarizedDark" : "solarizedLight";
   return (
-    <Card className={classes.codeblock}>
-      {fileName ? <CardTitle>{fileName}</CardTitle> : null}
-      <CardBody>
-        <CodeBlock
-          showLineNumbers={false}
-          text={code}
-          theme={codeBlockTheme}
-          language={language}
-        />
-      </CardBody>
-    </Card>
+    <div className={classes.codeblock}>
+    <CodeblockLib
+      showLineNumbers={false}
+      code={code}
+      fileName={fileName}
+      theme={codeBlockTheme}
+      language={language}
+    />
+    </div>
   );
 };
 

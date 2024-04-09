@@ -6,7 +6,7 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { DBTInstallationVerificationEvent } from "../dbt_client/dbtVersionEvent";
 
 export interface TenantUser {
-  id: string;
+  id: number;
   uuid: string;
   display_name: string;
   first_name: string;
@@ -71,7 +71,7 @@ export class UsersService implements Disposable {
       return;
     }
     this.dbtTerminal.debug("UsersService", "loading tenant users");
-    const users = await this.altimateRequest.fetch<TenantUser[]>("/users/");
+    const users = await this.altimateRequest.fetch<TenantUser[]>("/users/chat");
     this.tenantUsers = users.reduce((acc: Record<string, TenantUser>, user) => {
       acc[user.id] = user;
       return acc;
