@@ -3,12 +3,29 @@ import {
   AltimateRequest,
   QueryAnalysisRequest,
   QueryAnalysisType,
+  QueryTranslateExplanationRequest,
+  QueryTranslateRequest,
+  UserInputError,
 } from "../altimate";
-import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
+import { QueryManifestService } from "./queryManifestService";
 import { DocGenService } from "./docGenService";
 import { StreamingService } from "./streamingService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { FileService } from "./fileService";
+
+export interface QueryTranslateIncomingRequest {
+  source?: string;
+  target?: string;
+  filePath?: string;
+}
+
+export interface QueryTranslateExplanationIncomingRequest {
+  source?: string;
+  target?: string;
+  userSql: string;
+  translatedSql: string;
+}
 
 @provideSingleton(QueryAnalysisService)
 export class QueryAnalysisService {
@@ -16,7 +33,9 @@ export class QueryAnalysisService {
     private docGenService: DocGenService,
     private streamingService: StreamingService,
     private altimateRequest: AltimateRequest,
+    private queryManifestService: QueryManifestService,
     private dbtTerminal: DBTTerminal,
+    private fileService: FileService,
   ) {}
 
   public getSelectedQuery() {
@@ -44,9 +63,90 @@ export class QueryAnalysisService {
     return { query: editor.document.getText(), fileName };
   }
 
+  public async executeQueryTranslate(params: QueryTranslateIncomingRequest) {
+    if (!this.altimateRequest.handlePreviewFeatures()) {
+      return;
+    }
+
+    if (!params.filePath) {
+      throw new UserInputError(
+        "Invalid file. Please open a valid file with SQL",
+      );
+    }
+
+    const editor = await this.fileService.openFileByPath(params.filePath);
+
+    const sql = editor.document.getText();
+
+    if (!params.source) {
+      throw new UserInputError("Invalid source dialect");
+    }
+
+    if (!params.target) {
+      throw new UserInputError("Invalid target dialect");
+    }
+
+    const dbtProject = this.queryManifestService.getProject();
+
+    if (!dbtProject) {
+      const error = new Error("Invalid dbt project");
+      this.dbtTerminal.error(
+        "executeQueryAnalysisError",
+        "Invalid dbt project",
+        error,
+      );
+      throw error;
+    }
+
+    const compiledSql = await dbtProject.unsafeCompileQuery(sql);
+    const response = (await this.altimateRequest.fetch("dbt/v3/translate", {
+      method: "POST",
+      body: JSON.stringify({
+        source_dialect: params.source,
+        target_dialect: params.target,
+        sql: compiledSql,
+      } as QueryTranslateRequest),
+    })) as { translated_sql: string };
+    return {
+      translatedSql: response.translated_sql,
+      userSql: compiledSql,
+    };
+  }
+
+  public async executeQueryTranslateExplanation(
+    params: QueryTranslateExplanationIncomingRequest,
+    syncRequestId?: string,
+  ) {
+    if (!this.altimateRequest.handlePreviewFeatures()) {
+      return;
+    }
+
+    if (!params.source) {
+      throw new UserInputError("Invalid source dialect");
+    }
+
+    if (!params.target) {
+      throw new UserInputError("Invalid target dialect");
+    }
+
+    return this.streamingService.fetchAsStream<QueryTranslateExplanationRequest>(
+      {
+        endpoint: "dbt/v3/translate-explanation",
+        syncRequestId,
+        request: {
+          source_dialect: params.source,
+          target_dialect: params.target,
+          translated_sql: params.translatedSql,
+          user_sql: params.userSql,
+        } as QueryTranslateExplanationRequest,
+      },
+    );
+  }
+
   public async executeQueryAnalysis(
-    eventMap: Map<string, ManifestCacheProjectAddedEvent>,
-    params: Partial<QueryAnalysisRequest>,
+    params: Partial<QueryAnalysisRequest> & {
+      filePath?: string;
+    },
     job_type: QueryAnalysisType,
     syncRequestId?: string,
   ) {
@@ -76,7 +176,7 @@ export class QueryAnalysisService {
       throw error;
     }
     const { query } = selectionData;
-    const dbtProject = this.docGenService.getProject();
+    const dbtProject = this.queryManifestService.getProject();
 
     if (!dbtProject) {
       const error = new Error("Invalid dbt project");
@@ -89,7 +189,9 @@ export class QueryAnalysisService {
     }
 
     const adapter = dbtProject.getAdapterType() || "unknown";
-    const documentation = await this.docGenService.getDocumentation(eventMap);
+    const documentation = await this.docGenService.getDocumentation(
+      params.filePath,
+    );
     if (!documentation) {
       const error = new Error("Invalid model");
       this.dbtTerminal.error(
@@ -119,18 +221,19 @@ export class QueryAnalysisService {
     });
   }
 
-  public async getFollowupQuestions(
-    eventMap: Map<string, ManifestCacheProjectAddedEvent>,
-    { query, user_request }: { query: string; user_request: string },
-  ) {
+  public async getFollowupQuestions({
+    query,
+    user_request,
+    filePath,
+  }: {
+    query: string;
+    user_request: string;
+    filePath?: string;
+  }) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
     }
-    const adapter =
-      this.docGenService.getProject()?.getAdapterType() || "unknown";
-    const documentation = await this.docGenService.getDocumentation(eventMap);
-    const dbtProject = this.docGenService.getProject();
-
+    const dbtProject = this.queryManifestService.getProject();
     if (!dbtProject) {
       const error = new Error("Invalid dbt project");
       this.dbtTerminal.error(
@@ -141,8 +244,13 @@ export class QueryAnalysisService {
       throw error;
     }
 
+    const adapter = dbtProject.getAdapterType() || "unknown";
+    const documentation = await this.docGenService.getDocumentation(filePath);
+
     if (!documentation) {
-      const error = new Error("Unable to find documentation for the model");
+      const error = new Error(
+        "To use this feature, a valid model should be open in editor.",
+      );
       this.dbtTerminal.error(
         "getFollowupQuestionsError",
         "Unable to find documentation for the model",

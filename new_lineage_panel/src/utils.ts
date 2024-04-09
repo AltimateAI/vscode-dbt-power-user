@@ -112,12 +112,15 @@ export const createColumnNode = (t: string, c: string): Node => {
   };
 };
 
+export type EdgeVisibility = Record<string, boolean>;
+
 export const createColumnEdge = (
   source: string,
   target: string,
   srcLevel: number,
   dstLevel: number,
-  type: string
+  type: string,
+  edgeVisibility: EdgeVisibility
 ): Edge => {
   const edgeId = getColumnEdgeId(source, target);
   const [sourceHandle, targetHandle] = getSourceTargetHandles(
@@ -135,6 +138,7 @@ export const createColumnEdge = (
     zIndex: 1000,
     markerEnd: highlightMarker,
     type: srcLevel === dstLevel ? "smoothstep" : "default",
+    hidden: !edgeVisibility[type],
   };
 };
 
@@ -223,4 +227,15 @@ export const deleteIfExists = <T extends Node | Edge>(arr: T[], id: string) => {
   const index = arr.findIndex((x) => x.id === id);
   if (index === -1) return;
   arr.splice(index, 1);
+};
+
+export const calculateExpand = (
+  minVal: number,
+  maxVal: number,
+  defaultVal: number
+) => {
+  if (minVal === -1) return maxVal;
+  if (defaultVal >= maxVal) return maxVal;
+  if (defaultVal >= minVal) return defaultVal;
+  return minVal;
 };

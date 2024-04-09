@@ -14,6 +14,12 @@ export class MacroParser {
     project: DBTProject,
   ): Promise<MacroMetaMap> {
     return new Promise(async (resolve) => {
+      this.terminal.debug(
+        "MacroParser",
+        `Parsing macros for "${project.getProjectName()}" at ${
+          project.projectRoot
+        }`,
+      );
       const macroMetaMap: MacroMetaMap = new Map();
       if (macros === null || macros === undefined) {
         resolve(macroMetaMap);
@@ -49,7 +55,12 @@ export class MacroParser {
 
           for (let index = 0; index < macroFileLines.length; index++) {
             const currentLine = macroFileLines[index];
-            if (currentLine.match(new RegExp(`macro\\s${name}\\(`))) {
+            if (
+              currentLine.match(new RegExp(`macro\\s${name}\\(`)) ||
+              currentLine.match(
+                new RegExp(`test\\s${name.replace("test_", "")}\\(`),
+              )
+            ) {
               macroMetaMap.set(macroName, {
                 path: fullPath,
                 line: index,
@@ -59,11 +70,20 @@ export class MacroParser {
             }
           }
         } catch (error) {
-          this.terminal.log(
-            `File not found at '${fullPath}', probably compiled is outdated. ${error}`,
+          this.terminal.debug(
+            "MacroParser",
+            `File not found at '${fullPath}', probably compiled is outdated.`,
+            error,
           );
         }
       }
+      this.terminal.debug(
+        "MacroParser",
+        `Returning macros for "${project.getProjectName()}" at ${
+          project.projectRoot
+        }`,
+        macroMetaMap,
+      );
       resolve(macroMetaMap);
     });
   }

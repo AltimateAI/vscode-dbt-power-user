@@ -11,7 +11,7 @@ import {
   window,
   workspace,
 } from "vscode";
-import { provideSingleton } from "../utils";
+import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
 import path = require("path");
@@ -19,11 +19,13 @@ import {
   ManifestCacheProjectAddedEvent,
   ManifestCacheChangedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
-import { AltimateRequest } from "../altimate";
+import { AltimateRequest, UserInputError } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { QueryManifestService } from "../services/queryManifestService";
+import { PythonException } from "python-bridge";
 
-type UpdateConfigProps = {
+export type UpdateConfigProps = {
   key: string;
   value: string | boolean | number;
   isPreviewFeature?: boolean;
@@ -37,6 +39,13 @@ export interface HandleCommandProps extends Record<string, unknown> {
 export interface SharedStateEventEmitterProps {
   command: string;
   payload: Record<string, unknown>;
+}
+
+interface SendMessageProps extends Record<string, unknown> {
+  command: string;
+  syncRequestId?: string;
+  error?: string;
+  data?: unknown;
 }
 
 /**
@@ -60,10 +69,13 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     protected altimateRequest: AltimateRequest,
     protected telemetry: TelemetryService,
     protected emitterService: SharedStateService,
-    private dbtTerminal: DBTTerminal,
+    protected dbtTerminal: DBTTerminal,
+    protected queryManifestService: QueryManifestService,
   ) {
-    dbtProjectContainer.onManifestChanged((event) =>
-      this.onManifestCacheChanged(event),
+    this._disposables.push(
+      dbtProjectContainer.onManifestChanged((event) =>
+        this.onManifestCacheChanged(event),
+      ),
     );
 
     const t = this;
@@ -74,7 +86,67 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     );
   }
 
-  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
+  protected sendResponseToWebview({
+    command,
+    data,
+    error,
+    syncRequestId,
+    ...rest
+  }: SendMessageProps) {
+    this._panel?.webview.postMessage({
+      command,
+      args: {
+        syncRequestId,
+        body: data,
+        status: !error,
+        error,
+      },
+      ...rest,
+    });
+  }
+
+  /**
+   * common method to trigger the command and handle errors and send response to webview
+   * @param syncRequestId
+   * @param callback
+   * @param command
+   */
+  protected async handleSyncRequestFromWebview(
+    syncRequestId: string | undefined,
+    callback: () => any,
+    command: string,
+    showErrorNotification?: boolean,
+  ) {
+    try {
+      const response = await callback();
+
+      this.sendResponseToWebview({
+        command: "response",
+        syncRequestId,
+        data: response,
+      });
+    } catch (error) {
+      const message =
+        error instanceof PythonException
+          ? error.exception.message
+          : (error as Error).message;
+      if (error instanceof UserInputError) {
+        this.dbtTerminal.debug(command, message, error);
+      } else {
+        this.dbtTerminal.error(command, message, error);
+      }
+      if (showErrorNotification) {
+        window.showErrorMessage(extendErrorWithSupportLinks(message));
+      }
+      this.sendResponseToWebview({
+        command: "response",
+        syncRequestId,
+        error: message,
+      });
+    }
+  }
+
+  protected onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     event.added?.forEach((added) => {
       this.eventMap.set(added.project.projectRoot.fsPath, added);
     });
@@ -86,9 +158,10 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
   protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
     switch (command) {
       case "stream:chunk":
-        this._panel!.webview.postMessage({
+        this.sendResponseToWebview({
           command: "response",
-          args: payload,
+          syncRequestId: payload.syncRequestId as string | undefined,
+          data: payload.body,
         });
         break;
 
@@ -119,6 +192,20 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     try {
       switch (command) {
+        case "getProjectAdapterType":
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            () => {
+              return this.queryManifestService.getProject()?.getAdapterType();
+            },
+            command,
+          );
+          break;
+        case "openFile":
+          workspace.openTextDocument(params.path as string).then((doc) => {
+            window.showTextDocument(doc);
+          });
+          break;
         case "webview:ready":
           this.onWebviewReady();
           break;
@@ -144,14 +231,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           break;
         case "validateCredentials":
           const isValid = await this.altimateRequest.handlePreviewFeatures();
-          this._panel!.webview.postMessage({
+          this.sendResponseToWebview({
             command: "response",
-            args: {
-              syncRequestId,
-              body: {
-                isValid,
-              },
-              status: true,
+            syncRequestId,
+            data: {
+              isValid,
             },
           });
           break;
@@ -188,17 +272,52 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               .update(params.key, params.value);
           }
           if (syncRequestId) {
-            this._panel!.webview.postMessage({
+            this.sendResponseToWebview({
               command: "response",
-              args: {
-                syncRequestId,
-                body: {
-                  updated: shouldUpdate,
-                },
-                status: true,
+              syncRequestId,
+              data: {
+                updated: shouldUpdate,
               },
             });
           }
+          break;
+        case "showInformationMessage":
+          const { infoMessage, items } = params as {
+            infoMessage: string;
+            items: any[];
+          };
+          const result = await window.showInformationMessage(
+            infoMessage,
+            ...items,
+          );
+          if (syncRequestId) {
+            this.sendResponseToWebview({
+              command: "response",
+              data: result,
+              syncRequestId,
+            });
+          }
+          break;
+        case "findPackageVersion":
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            () => {
+              try {
+                return this.queryManifestService
+                  .getProject()
+                  ?.findPackageVersion(params.packageName as string);
+              } catch (err) {
+                this.dbtTerminal.debug(
+                  "findPackageVersion",
+                  (err as Error).message,
+                );
+              }
+              return undefined;
+            },
+            command,
+            false,
+          );
+
           break;
         default:
           break;
@@ -304,6 +423,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
       
           <body>
             <div id="root"></div>
+            <div id="sidebar"></div>
             <script nonce="${nonce}" >
               window.viewPath = "${this.viewPath}";
             </script>

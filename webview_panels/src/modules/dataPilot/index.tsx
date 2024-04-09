@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { List } from "@uicore";
 import useDataPilotContext from "./useDataPilotContext";
 import { DataPilotChat, RequestTypes } from "./types";
@@ -8,17 +7,14 @@ import DefaultDatapilotView from "./DefaultDatapilotView";
 import QueryAnalysis from "./components/queryAnalysis/QueryAnalysis";
 import QueryAnalysisProvider from "./components/queryAnalysis/provider/QueryAnalysisProvider";
 import DataPilotHelp from "./DataPilotHelp";
+import AddCustomTest from "./components/test/AddCustomTest";
 
 const DataPilotPanel = (): JSX.Element => {
   const {
-    state: { items, showHelp },
+    state: { items, showHelp, currentSessionId },
   } = useDataPilotContext();
 
-  const chats = useMemo(() => {
-    return Object.values(items).sort((a, b) =>
-      a.updatedAt && b.updatedAt && a.updatedAt > b.updatedAt ? 1 : -1,
-    );
-  }, [items]);
+  const dpChat = currentSessionId ? items[currentSessionId] : undefined;
 
   const renderChat = (chat: DataPilotChat) => {
     switch (chat.requestType) {
@@ -28,6 +24,12 @@ const DataPilotPanel = (): JSX.Element => {
         return (
           <QueryAnalysisProvider>
             <QueryAnalysis />
+          </QueryAnalysisProvider>
+        );
+      case RequestTypes.ADD_CUSTOM_TEST:
+        return (
+          <QueryAnalysisProvider>
+            <AddCustomTest />
           </QueryAnalysisProvider>
         );
       default:
@@ -40,15 +42,13 @@ const DataPilotPanel = (): JSX.Element => {
     return <DataPilotHelp />;
   }
 
-  if (!chats.length) {
+  if (!dpChat) {
     return <DefaultDatapilotView />;
   }
 
   return (
     <List className={classes.chatList}>
-      {chats.map((chat) => (
-        <li key={chat.id}>{renderChat(chat)}</li>
-      ))}
+      <li key={dpChat.id}>{renderChat(dpChat)}</li>
     </List>
   );
 };

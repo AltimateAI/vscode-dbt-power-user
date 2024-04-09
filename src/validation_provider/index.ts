@@ -1,6 +1,10 @@
-import { Disposable, window, workspace } from "vscode";
+import { Disposable, commands, window, workspace } from "vscode";
 import { provideSingleton } from "../utils";
-import { AltimateRequest } from "../altimate";
+import {
+  AltimateRequest,
+  ForbiddenError,
+  NoCredentialsError,
+} from "../altimate";
 
 const validTenantRegex = new RegExp(/^[a-z_][a-z0-9_]*$/);
 
@@ -16,7 +20,24 @@ export class ValidationProvider implements Disposable {
           return;
         }
         this.validateCredentials();
+        this.setDBTContext();
       }),
+    );
+    this.setDBTContext();
+  }
+
+  setDBTContext() {
+    let dbtIntegration = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+
+    if (!["core", "cloud"].includes(dbtIntegration)) {
+      dbtIntegration = "core";
+    }
+    commands.executeCommand(
+      "setContext",
+      "dbtPowerUser.dbtIntegration",
+      dbtIntegration,
     );
   }
 
@@ -29,10 +50,8 @@ export class ValidationProvider implements Disposable {
   }
 
   private async _validateCredentials(silent: boolean) {
-    const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
-    const instance = workspace
-      .getConfiguration("dbt")
-      .get<string>("altimateInstanceName");
+    const key = this.altimate.getAIKey();
+    const instance = this.altimate.getInstanceName();
 
     // only validate when both are set
     if (!key || !instance) {
@@ -68,6 +87,13 @@ export class ValidationProvider implements Disposable {
 
   isAuthenticated() {
     return this._isAuthenticated;
+  }
+
+  throwIfNotAuthenticated() {
+    if (!this.isAuthenticated()) {
+      const message = this.altimate.getCredentialsMessage();
+      throw message ? new NoCredentialsError(message) : new ForbiddenError();
+    }
   }
 
   dispose() {

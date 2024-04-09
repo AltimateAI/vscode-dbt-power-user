@@ -3,6 +3,8 @@ import { updateColumnsInCurrentDocsData } from "@modules/documentationEditor/sta
 import {
   DocsGenerateModelRequestV2,
   DBTDocumentationColumn,
+  DBTModelTest,
+  Pages,
 } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import {
@@ -14,16 +16,22 @@ import useAppContext from "@modules/app/useAppContext";
 import { RequestState, RequestTypes } from "@modules/dataPilot/types";
 import { panelLogger } from "@modules/logger";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
+import EntityWithTests from "../tests/EntityWithTests";
+import { useMemo } from "react";
 
 interface Props {
   column: DBTDocumentationColumn;
+  tests: DBTModelTest[];
 }
-const DocGeneratorColumn = ({ column }: Props): JSX.Element => {
+const DocGeneratorColumn = ({ column, tests }: Props): JSX.Element => {
   const {
-    state: { currentDocsData, project },
+    state: { currentDocsData, project, selectedPages },
     dispatch,
   } = useDocumentationContext();
-
+  const isDocumentationPageSelected = useMemo(
+    () => selectedPages.includes(Pages.DOCUMENTATION),
+    [selectedPages],
+  );
   const { postMessageToDataPilot } = useAppContext();
   const handleColumnSubmit = async (data: DocsGenerateModelRequestV2) => {
     if (!currentDocsData || !project) {
@@ -63,7 +71,9 @@ const DocGeneratorColumn = ({ column }: Props): JSX.Element => {
         "generateDocsForColumn",
         requestData,
       )) as { columns: Partial<DBTDocumentationColumn>[] };
-      dispatch(updateColumnsInCurrentDocsData(result));
+      dispatch(
+        updateColumnsInCurrentDocsData({ ...result, isNewGeneration: true }),
+      );
 
       await addDocGeneration(
         project,
@@ -82,11 +92,18 @@ const DocGeneratorColumn = ({ column }: Props): JSX.Element => {
   return (
     <div>
       <h4>{column.name + (column.type ? " (" + column.type + ")" : "")}</h4>
-      <DocGeneratorInput
-        onSubmit={handleColumnSubmit}
-        placeholder={`Describe ${column.name}`}
+      {isDocumentationPageSelected ? (
+        <DocGeneratorInput
+          onSubmit={handleColumnSubmit}
+          placeholder={`Describe ${column.name}`}
+          type={EntityType.COLUMN}
+          entity={column}
+        />
+      ) : null}
+      <EntityWithTests
+        title={column.name}
+        tests={tests}
         type={EntityType.COLUMN}
-        entity={column}
       />
     </div>
   );

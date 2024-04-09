@@ -2,6 +2,7 @@ import ReactMarkdown from "react-markdown";
 import classes from "./markdown.module.scss";
 import PreTag from "./PreTag";
 import { CodeBlock } from "@uicore";
+import remarkGfm from "remark-gfm";
 
 interface Props {
   response: string;
@@ -10,6 +11,7 @@ const MarkdownRenderer = ({ response }: Props): JSX.Element => {
   return (
     <ReactMarkdown
       className={classes.markdown}
+      remarkPlugins={[remarkGfm]}
       components={{
         pre: ({ node, ...preProps }) => {
           return (

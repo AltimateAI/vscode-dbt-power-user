@@ -12,7 +12,10 @@ import { faker } from "@faker-js/faker";
 import { panelLogger } from "@modules/logger";
 import { QueryAnalysisCommands } from "./commands";
 import { QueryAnalysisType } from "./types";
+import MarkdownRenderer from "@modules/markdown/Renderer";
 
+const SAMPLE_TABLE =
+  "Let's consider the following sample data for the `dim_listings_cleansed` and `dim_hosts_cleansed` tables:\n\n`dim_listings_cleansed`:\n\n| listing_id | listing_name | room_type | minimum_nights | price | host_id | created_at | updated_at |\n|------------|--------------|-----------|----------------|-------|---------|------------|------------|\n| 1          | Cozy Cottage | Private   | 2              | 100   | 10      | 2020-01-01 | 2020-02-01 |\n| 2          | Urban Loft   | Shared    | 1              | 80    | 20      | 2020-02-01 | 2020-03-01 |\n| 3          | Beach House  | Entire    | 3              | 200   | 30      | 2020-03-01 | 2020-04-01 |\n\n`dim_hosts_cleansed`:\n\n| host_id | host_name | is_superhost | created_at | updated_at |\n|---------|-----------|--------------|------------|------------|\n| 10      | Alice     | True         | 2019-12-01 | 2020-01-15 |\n| 20      | Bob       | False        | 2020-01-01 | 2020-02-15 |\n| 40      | Charlie   | True         | 2020-02-01 | 2020-03-15 |\n\nThe SQL query you provided will join these two tables on the `host_id` field, and select the most recent `updated_at` value between the two tables for each record. \n\nHere's what the result would look like:\n\n| listing_id | listing_name | room_type | minimum_nights | price | host_id | host_name | host_is_superhost | created_at | updated_at |\n|------------|--------------|-----------|----------------|-------|---------|-----------|-------------------|------------|------------|\n| 1          | Cozy Cottage | Private   | 2              | 100   | 10      | Alice     | True              | 2020-01-01 | 2020-02-01 |\n| 2          | Urban Loft   | Shared    | 1              | 80    | 20      | Bob       | False             | 2020-02-01 | 2020-03-01 |\n| 3          | Beach House  | Entire    | 3              | 200   | 30      | NULL      | NULL              | 2020-03-01 | 2020-04-01 |\n\nNote that for the third record, the `host_name` and `host_is_superhost` fields are NULL because there is no host with `host_id` 30 in the `dim_hosts_cleansed` table. The `updated_at` field for each record is the later of the `updated_at` values in the `dim_listings_cleansed` and `dim_hosts_cleansed` tables.";
 const queryAnalysisLoadingState = DatapilotQueryAnalysisFactory.build({
   state: RequestState.LOADING,
 });
@@ -92,7 +95,7 @@ export const ModifyFlow = {
       func: (request: Record<string, unknown>): unknown => {
         if (request.command === QueryAnalysisCommands.modify) {
           return DatapilotQueryExplainResultFactory.build({
-            datapilot_title: "Query change",
+            datapilotTitle: "Query change",
           });
         }
 
@@ -172,4 +175,54 @@ export const ExplainFlow = {
       },
     }),
   ],
+};
+
+export const TranslateFlow = {
+  render: (): JSX.Element => {
+    return <DataPilotPanel />;
+  },
+  parameters: {
+    vscode: {
+      func: (request: Record<string, unknown>): unknown => {
+        if (request.command === QueryAnalysisCommands.translate) {
+          return DatapilotQueryExplainResultFactory.build({
+            datapilotTitle: "Query translate",
+          });
+        }
+
+        if (request.command === "sendFeedback") {
+          return true;
+        }
+      },
+      timer: 500,
+    },
+  },
+  decorators: [
+    withReactContext({
+      Context: DataPilotContext,
+      initialState: {
+        state: {
+          items: {
+            [queryAnalysisDefaultState.id]: {
+              ...queryAnalysisDefaultState,
+              analysisType: QueryAnalysisType.TRANSLATE,
+              actions: [
+                {
+                  title: "Translate",
+                  command: QueryAnalysisCommands.translate,
+                },
+              ],
+            },
+          },
+          currentSessionId: queryAnalysisDefaultState.id,
+        },
+      },
+    }),
+  ],
+};
+
+export const MarkdownWithTable = {
+  render: (): JSX.Element => {
+    return <MarkdownRenderer response={SAMPLE_TABLE} />;
+  },
 };

@@ -7,7 +7,6 @@ import {
   WorkspaceFolder,
 } from "vscode";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
-import { EnvironmentVariables } from "./domain";
 import { DBTProject } from "./manifest/dbtProject";
 import {
   DBTProjectContainer,
@@ -39,6 +38,7 @@ import {
 import { CommandProcessExecutionFactory } from "./commandProcessExecution";
 import { AltimateRequest } from "./altimate";
 import { ValidationProvider } from "./validation_provider";
+import { DeferToProdService } from "./services/deferToProdService";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -51,8 +51,6 @@ container
       WorkspaceFolder,
       EventEmitter<ManifestCacheChangedEvent>,
       EventEmitter<ProjectRegisteredUnregisteredEvent>,
-      string,
-      EnvironmentVariables,
     ]
   >((context: interfaces.Context) => {
     return (
@@ -90,7 +88,10 @@ container
           container.get(TelemetryService),
           container.get(PythonDBTCommandExecutionStrategy),
           container.get(DBTProjectContainer),
+          container.get(AltimateRequest),
           container.get(DBTTerminal),
+          container.get(ValidationProvider),
+          container.get(DeferToProdService),
           projectRoot,
           projectConfigDiagnostics,
         );
@@ -130,11 +131,11 @@ container
           container.get(DBTCommandExecutionInfrastructure),
           container.get(DBTCommandFactory),
           container.get("Factory<CLIDBTCommandExecutionStrategy>"),
-          container.get(AltimateRequest),
           container.get(TelemetryService),
           container.get(PythonEnvironment),
           container.get(DBTTerminal),
           container.get(ValidationProvider),
+          container.get(DeferToProdService),
           projectRoot,
         );
       };
@@ -162,6 +163,8 @@ container
           container.get(TelemetryService),
           container.get("Factory<DBTCoreProjectIntegration>"),
           container.get("Factory<DBTCloudProjectIntegration>"),
+          container.get(AltimateRequest),
+          container.get(ValidationProvider),
           path,
           projectConfig,
           _onManifestChanged,

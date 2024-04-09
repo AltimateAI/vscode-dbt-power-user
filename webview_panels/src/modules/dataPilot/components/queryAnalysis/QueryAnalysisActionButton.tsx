@@ -15,11 +15,12 @@ interface Props {
 
 const QueryAnalysisActionButton = ({ action }: Props): JSX.Element => {
   const { executeQueryAnalysis, isLoading } = useQueryAnalysisAction();
-  const { chat, onNewGeneration, isMaxFollowupReached, results } =
+  const { chat, onNewGeneration, isMaxFollowupReached } =
     useQueryAnalysisContext();
   const { dispatch } = useDataPilotContext();
+  const results = chat?.followups;
 
-  const isDefaultButton = results.length === 0;
+  const isDefaultButton = results?.length === 0;
 
   const getAnalysisType = () => {
     switch (action.command) {
@@ -27,6 +28,8 @@ const QueryAnalysisActionButton = ({ action }: Props): JSX.Element => {
         return QueryAnalysisType.EXPLAIN;
       case QueryAnalysisCommands.modify:
         return QueryAnalysisType.MODIFY;
+      case QueryAnalysisCommands.translate:
+        return QueryAnalysisType.TRANSLATE;
       default:
         break;
     }
@@ -47,8 +50,19 @@ const QueryAnalysisActionButton = ({ action }: Props): JSX.Element => {
 
     if (analysisType === QueryAnalysisType.MODIFY) {
       onNewGeneration({
-        session_id: crypto.randomUUID(),
         state: RequestState.COMPLETED,
+      });
+      return;
+    }
+
+    if (analysisType === QueryAnalysisType.TRANSLATE) {
+      onNewGeneration({
+        datapilotTitle: "Datapilot Response",
+        hideFeedback: true,
+        response: "",
+        component: "queryTranslate",
+        state: RequestState.COMPLETED,
+        hideFollowup: true,
       });
       return;
     }

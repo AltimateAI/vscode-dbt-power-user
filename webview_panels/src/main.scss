@@ -1,3 +1,5 @@
+@use "variables";
+
 :root {
   --bs-body-font-family: "Lexend", var(--bs-font-sans-serif);
 }
@@ -6,7 +8,7 @@ html {
 }
 
 body {
-  --primary-color: #247efe;
+  --primary-color: #{variables.$primaryColor};
   --text-color--title: #171717;
   --text-color--paragraph: #4a4d51;
   --text-color--caption: #808080;
@@ -25,6 +27,7 @@ body {
   --action--brand: #004fbf;
   --action-yellow: #ffce73;
   --action-red: #ee140f;
+  --action-beta: #ff754c;
   --action-brand-dark: #004fbf;
   --icon--active: #535456;
   --icon--default: #8390a3;
@@ -98,6 +101,18 @@ strong {
   gap: 0.5rem;
 }
 
+.gap-md {
+  gap: 0.75rem;
+}
+
+.gap-lg {
+  gap: 1rem;
+}
+
+.gap-xl {
+  gap: 1.5rem;
+}
+
 .cursor-pointer {
   cursor: pointer;
 }
@@ -109,4 +124,37 @@ strong {
 
 code {
   color: inherit;
+}
+
+.spacer {
+  flex-grow: 1;
+}
+
+.text-para {
+  color: var(--text-color--paragraph);
+}
+
+.gap-0 {
+  gap: 0;
+}
+
+@mixin lines($n) {
+  display: -webkit-box;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  word-break: break-all;
+  -webkit-line-clamp: $n;
+}
+
+.lines-1 {
+  @include lines(1);
+}
+
+.lines-2 {
+  @include lines(2);
+}
+
+.lines-3 {
+  @include lines(3);
 }

@@ -5,31 +5,52 @@ import {
   DocsGenerateUserInstructions,
   DocumentationStateProps,
   MetadataColumn,
+  Pages,
   Source,
 } from "./types";
 
 export const initialState = {
   currentDocsData: undefined,
+  currentDocsTests: undefined,
   project: undefined,
   generationHistory: [],
   isDocGeneratedForAnyColumn: false,
+  isTestUpdatedForAnyColumn: false,
   insertedEntityName: undefined,
   userInstructions: {
     language: undefined,
     persona: undefined,
     prompt_hint: undefined,
   },
+  selectedPages: [Pages.DOCUMENTATION],
 } as DocumentationStateProps;
 
 const documentationSlice = createSlice({
   name: "documentationState",
   initialState,
   reducers: {
+    addToSelectedPage: (state, action: PayloadAction<Pages>) => {
+      state.selectedPages.push(action.payload);
+    },
+    removeFromSelectedPage: (state, action: PayloadAction<Pages>) => {
+      if (state.selectedPages.length === 1) {
+        return;
+      }
+      state.selectedPages = state.selectedPages.filter(
+        (p) => p !== action.payload,
+      );
+    },
     setProject: (
       state,
       action: PayloadAction<DocumentationStateProps["project"]>,
     ) => {
       state.project = action.payload;
+    },
+    updateCurrentDocsTests: (
+      state,
+      action: PayloadAction<DocumentationStateProps["currentDocsTests"]>,
+    ) => {
+      state.currentDocsTests = action.payload;
     },
     setInsertedEntityName: (
       state,
@@ -144,6 +165,9 @@ const documentationSlice = createSlice({
     setIsDocGeneratedForAnyColumn: (state, action: PayloadAction<boolean>) => {
       state.isDocGeneratedForAnyColumn = action.payload;
     },
+    setIsTestUpdatedForAnyColumn: (state, action: PayloadAction<boolean>) => {
+      state.isTestUpdatedForAnyColumn = action.payload;
+    },
     resetGenerationsHistory: (state, _action: PayloadAction<undefined>) => {
       state.generationHistory = [];
     },
@@ -166,6 +190,10 @@ export const {
   setGenerationsHistory,
   updateUserInstructions,
   setIsDocGeneratedForAnyColumn,
+  setIsTestUpdatedForAnyColumn,
   setInsertedEntityName,
+  updateCurrentDocsTests,
+  addToSelectedPage,
+  removeFromSelectedPage,
 } = documentationSlice.actions;
 export default documentationSlice;

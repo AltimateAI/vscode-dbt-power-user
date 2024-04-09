@@ -13,6 +13,11 @@ export { default as BlogIcon } from "./blog.svg?react";
 export { default as ContactUsIcon } from "./contact.svg?react";
 export { default as DocsIcon } from "./docs.svg?react";
 export { default as SlackIcon } from "./slack.svg?react";
+export { default as EditIcon } from "./edit.svg?react";
+export { default as EmptySquareIcon } from "./square.svg?react";
+export { default as CheckedSquareIcon } from "./checked-square.svg?react";
+export { default as TestsIcon } from "./tests.svg?react";
+export { default as FolderIcon } from "./folder.svg?react";
 
 interface Props {
   icon: string;
@@ -23,6 +28,18 @@ const Icon = ({
   ...rest
 }: Props & HTMLAttributes<HTMLElement>) => (
   <i className={`${className} codicon codicon-${icon}`} {...rest} />
+);
+
+export const RemoveIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
+  <Icon icon="remove" {...props} />
+);
+
+export const AddIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
+  <Icon icon="add" {...props} />
+);
+
+export const DeleteIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
+  <Icon icon="trash" {...props} />
 );
 
 export const GlobeIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
@@ -36,6 +53,22 @@ export const GithubIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
 export const FilesIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
   <Icon icon="files" {...props} />
 );
+
+export const ArrowUpIcon = (
+  props: HTMLAttributes<HTMLElement>,
+): JSX.Element => <Icon icon="chevron-up" {...props} />;
+
+export const ArrowDownIcon = (
+  props: HTMLAttributes<HTMLElement>,
+): JSX.Element => <Icon icon="chevron-down" {...props} />;
+
+export const ArrowRightIcon = (
+  props: HTMLAttributes<HTMLElement>,
+): JSX.Element => <Icon icon="chevron-right" {...props} />;
+
+export const ArrowLeftIcon = (
+  props: HTMLAttributes<HTMLElement>,
+): JSX.Element => <Icon icon="chevron-left" {...props} />;
 
 export const CheckedIcon = (
   props: HTMLAttributes<HTMLElement>,
@@ -71,4 +104,8 @@ export const InfoCircleIcon = (
 
 export const AskIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
   <Icon icon="send" {...props} />
+);
+
+export const CloseIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
+  <Icon icon="close" {...props} />
 );

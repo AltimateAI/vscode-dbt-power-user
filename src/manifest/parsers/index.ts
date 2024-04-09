@@ -13,6 +13,7 @@ import { SourceParser } from "./sourceParser";
 import { TestParser } from "./testParser";
 import { TelemetryService } from "../../telemetry";
 import { ExposureParser } from "./exposureParser";
+import { MetricParser } from "./metricParser";
 
 @provide(ManifestParser)
 export class ManifestParser {
@@ -21,6 +22,7 @@ export class ManifestParser {
   constructor(
     private nodeParser: NodeParser,
     private macroParser: MacroParser,
+    private metricParser: MetricParser,
     private graphParser: GraphParser,
     private sourceParser: SourceParser,
     private testParser: TestParser,
@@ -31,10 +33,16 @@ export class ManifestParser {
   ) {}
 
   public async parseManifest(project: DBTProject) {
+    this.terminal.debug(
+      "ManifestParser",
+      `Going to parse manifest for "${project.getProjectName()}" at ${
+        project.projectRoot
+      }`,
+    );
     const targetPath = project.getTargetPath();
     if (!targetPath) {
       this.terminal.debug(
-        "parsers:parseManifest",
+        "ManifestParser",
         "targetPath should be defined at this stage for project " +
           project.projectRoot.fsPath,
       );
@@ -49,12 +57,14 @@ export class ManifestParser {
             project,
             nodeMetaMap: new Map(),
             macroMetaMap: new Map(),
+            metricMetaMap: new Map(),
             sourceMetaMap: new Map(),
             testMetaMap: new Map(),
             graphMetaMap: {
               parents: new Map(),
               children: new Map(),
               tests: new Map(),
+              metrics: new Map(),
             },
             docMetaMap: new Map(),
             exposureMetaMap: new Map(),
@@ -64,9 +74,16 @@ export class ManifestParser {
       return event;
     }
 
-    const { nodes, sources, macros, parent_map, child_map, docs, exposures } =
-      manifest;
-    const rootPath = projectRoot.fsPath;
+    const {
+      nodes,
+      sources,
+      macros,
+      semantic_models,
+      parent_map,
+      child_map,
+      docs,
+      exposures,
+    } = manifest;
 
     const nodeMetaMapPromise = this.nodeParser.createNodeMetaMap(
       nodes,
@@ -74,6 +91,10 @@ export class ManifestParser {
     );
     const macroMetaMapPromise = this.macroParser.createMacroMetaMap(
       macros,
+      project,
+    );
+    const metricMetaMapPromise = this.metricParser.createMetricMetaMap(
+      semantic_models,
       project,
     );
     const sourceMetaMapPromise = this.sourceParser.createSourceMetaMap(
@@ -86,7 +107,7 @@ export class ManifestParser {
     );
     const exposuresMetaMapPromise = this.exposureParser.createExposureMetaMap(
       exposures,
-      rootPath,
+      project,
     );
 
     const docMetaMapPromise = this.docParser.createDocMetaMap(docs, project);
@@ -94,6 +115,7 @@ export class ManifestParser {
     const [
       nodeMetaMap,
       macroMetaMap,
+      metricMetaMap,
       sourceMetaMap,
       testMetaMap,
       docMetaMap,
@@ -101,6 +123,7 @@ export class ManifestParser {
     ] = await Promise.all([
       nodeMetaMapPromise,
       macroMetaMapPromise,
+      metricMetaMapPromise,
       sourceMetaMapPromise,
       testMetaMapPromise,
       docMetaMapPromise,
@@ -108,11 +131,13 @@ export class ManifestParser {
     ]);
 
     const graphMetaMap = this.graphParser.createGraphMetaMap(
+      project,
       parent_map,
       child_map,
       nodeMetaMap,
       sourceMetaMap,
       testMetaMap,
+      metricMetaMap,
     );
 
     const nodeCounts = Object.values(nodes as any[]).reduce((map, node) => {
@@ -150,6 +175,7 @@ export class ManifestParser {
           project,
           nodeMetaMap: nodeMetaMap,
           macroMetaMap: macroMetaMap,
+          metricMetaMap: metricMetaMap,
           sourceMetaMap: sourceMetaMap,
           graphMetaMap: graphMetaMap,
           testMetaMap: testMetaMap,
@@ -167,13 +193,19 @@ export class ManifestParser {
       pathParts.unshift(projectRoot.fsPath);
     }
     const manifestLocation = path.join(...pathParts, DBTProject.MANIFEST_FILE);
+    this.terminal.debug(
+      "ManifestParser",
+      `Reading manifest at ${manifestLocation} for project at ${projectRoot}`,
+    );
 
     try {
       const manifestFile = readFileSync(manifestLocation, "utf8");
       return JSON.parse(manifestFile);
     } catch (error) {
-      this.terminal.log(
-        `Could not read manifest file at ${manifestLocation}: ${error}`,
+      this.terminal.debug(
+        "ManifestParser",
+        `Could not read manifest file at ${manifestLocation}, ignoring error`,
+        error,
       );
     }
   }

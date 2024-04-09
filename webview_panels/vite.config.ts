@@ -2,10 +2,24 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import svgr from "vite-plugin-svgr";
 import path from "path";
+import { cpSync } from "fs";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [svgr(), react()],
+  plugins: [
+    svgr(),
+    react(),
+    {
+      name: "copy-codicons",
+      renderStart: () => {
+        cpSync(
+          "./node_modules/@vscode/codicons/dist",
+          "./dist/assets/codicons/",
+          { recursive: true },
+        );
+      },
+    },
+  ],
   build: {
     rollupOptions: {
       input: "./src/main.tsx",

@@ -1,13 +1,10 @@
-import {
-  DataPilotChat,
-  DataPilotChatAction,
-  RequestState,
-} from "@modules/dataPilot/types";
+import { DataPilotChat, DataPilotChatFollowup } from "@modules/dataPilot/types";
 
 export enum QueryAnalysisType {
   EXPLAIN = "explain",
   FIX = "fix",
   MODIFY = "modify",
+  TRANSLATE = "translate",
 }
 export interface DatapilotQueryAnalysisChat extends DataPilotChat {
   query: string;
@@ -15,18 +12,7 @@ export interface DatapilotQueryAnalysisChat extends DataPilotChat {
   analysisType?: QueryAnalysisType;
 }
 
-export interface QueryAnalysisResult {
-  session_id: string;
-  user_prompt: string;
-  datapilot_title: string;
-  response?: string;
-  actions?: DataPilotChatAction[];
-  state: RequestState;
-}
-
-export type QueryExplainUpdate = Partial<QueryAnalysisResult> & {
-  session_id: string;
-};
+export type QueryExplainUpdate = Partial<DataPilotChatFollowup>;
 
 export enum QueryAnalysisHistoryType {
   HUMAN = "HumanMessage",

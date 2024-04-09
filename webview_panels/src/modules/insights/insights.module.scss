@@ -1,4 +1,7 @@
 .insights-container {
+  .head{
+    justify-content: space-between;
+  }
   & :global .card {
     margin-bottom: 1rem;
 

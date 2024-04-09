@@ -3,21 +3,27 @@ import { provideSingleton, processStreamResponse } from "./utils";
 import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
+import { join } from "path";
+import { createWriteStream, mkdirSync } from "fs";
+import * as os from "os";
 import { RateLimitException } from "./exceptions";
+import { DBTProject } from "./manifest/dbtProject";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
+import { PythonEnvironment } from "./manifest/pythonEnvironment";
 
 export class NoCredentialsError extends Error {}
 
 export class NotFoundError extends Error {}
 
-export class ForbiddenError extends Error {}
+export class UserInputError extends Error {}
+
+export class ForbiddenError extends Error {
+  constructor() {
+    super("Invalid credentials. Please check instance name and API Key.");
+  }
+}
 
 export class APIError extends Error {}
-
-interface AltimateConfig {
-  key: string;
-  instance: string;
-}
 
 export interface ColumnLineage {
   source: { uniqueId: string; column_name: string };
@@ -69,7 +75,20 @@ interface SQLToModelRequest {
   sources: SourceMetaData[];
 }
 
-interface SQLToModelResponse {
+interface DBTProjectHealthConfig {
+  id: number;
+  name: string;
+  description: string;
+  created_on: string;
+  config: Record<string, unknown>;
+  config_schema: unknown[];
+}
+
+interface DBTProjectHealthConfigResponse {
+  items: DBTProjectHealthConfig[];
+}
+
+export interface SQLToModelResponse {
   sql: string;
 }
 
@@ -84,6 +103,7 @@ export enum QueryAnalysisType {
   EXPLAIN = "explain",
   FIX = "fix",
   MODIFY = "modify",
+  TRANSLATE = "translate",
 }
 
 export enum QueryAnalysisChatType {
@@ -97,27 +117,49 @@ interface QueryAnalysisChat {
   additional_kwargs?: Record<string, unknown>;
 }
 
+export interface QueryTranslateRequest {
+  sql: string;
+  target_dialect: string;
+  source_dialect: string;
+}
+
+export interface QueryTranslateExplanationRequest {
+  user_sql: string;
+  translated_sql: string;
+  target_dialect: string;
+  source_dialect: string;
+}
+
+interface DbtModel {
+  model_name: string;
+  model_description?: string;
+  compiled_sql?: string;
+  columns: {
+    column_name: string;
+    description?: string;
+    data_type?: string;
+  }[];
+  adapter?: string;
+}
+
 export interface QueryAnalysisRequest {
   session_id: string;
   job_type: QueryAnalysisType;
-  model: DocsGenerateModelRequestV2["dbt_model"];
+  model: DbtModel;
   user_request?: string; // required for modify query
   history?: QueryAnalysisChat[];
 }
 
+export interface CreateDbtTestRequest {
+  session_id: string;
+  model: DbtModel;
+  column_name?: string;
+  user_request?: string;
+}
+
 interface DocsGenerateModelRequestV2 {
   columns: string[];
-  dbt_model: {
-    model_name: string;
-    model_description?: string;
-    compiled_sql?: string;
-    columns: {
-      column_name: string;
-      description?: string;
-      data_type?: string;
-    }[];
-    adapter?: string;
-  };
+  dbt_model: DbtModel;
   user_instructions?: {
     prompt_hint: string;
     language: string;
@@ -155,6 +197,19 @@ export interface DocsGenerateResponse {
   model_description?: string;
 }
 
+export interface DBTCoreIntegration {
+  id: number;
+  name: string;
+  created_at: string;
+  last_modified_at: string;
+  last_file_upload_time: string;
+}
+
+interface DownloadArtifactResponse {
+  url: string;
+  dbt_core_integration_file_id: number;
+}
+
 export type ValidateSqlParseErrorType =
   | "sql_parse_error"
   | "sql_invalid_error"
@@ -173,6 +228,11 @@ interface FeedbackResponse {
   ok: boolean;
 }
 
+interface AltimateConfig {
+  key: string;
+  instance: string;
+}
+
 enum PromptAnswer {
   YES = "Get your free API Key",
 }
@@ -186,21 +246,20 @@ export class AltimateRequest {
   constructor(
     private telemetry: TelemetryService,
     private dbtTerminal: DBTTerminal,
+    private pythonEnvironment: PythonEnvironment,
   ) {}
 
-  getConfig(): AltimateConfig | undefined {
-    const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
-    const instance = workspace
-      .getConfiguration("dbt")
-      .get<string>("altimateInstanceName");
-
-    if (key && instance) {
-      return { key, instance };
-    }
-    return undefined;
+  getInstanceName() {
+    return this.pythonEnvironment.getResolvedConfigValue(
+      "altimateInstanceName",
+    );
   }
 
-  public enabled() {
+  getAIKey() {
+    return this.pythonEnvironment.getResolvedConfigValue("altimateAiKey");
+  }
+
+  public enabled(): boolean {
     return !!this.getConfig();
   }
 
@@ -216,11 +275,18 @@ export class AltimateRequest {
     }
   }
 
+  private getConfig(): AltimateConfig | undefined {
+    const key = this.getAIKey();
+    const instance = this.getInstanceName();
+    if (!key || !instance) {
+      return undefined;
+    }
+    return { key, instance };
+  }
+
   getCredentialsMessage(): string | undefined {
-    const key = workspace.getConfiguration("dbt").get<string>("altimateAiKey");
-    const instance = workspace
-      .getConfiguration("dbt")
-      .get<string>("altimateInstanceName");
+    const key = this.getAIKey();
+    const instance = this.getInstanceName();
 
     if (!key && !instance) {
       return `To use this feature, please add an API Key and an instance name in the settings.`;
@@ -268,22 +334,63 @@ export class AltimateRequest {
         },
       });
 
-      if (!response?.body) {
-        this.dbtTerminal.debug("fetchAsStream", "empty response");
-        return null;
-      }
-      const responseText = await processStreamResponse(
-        response.body,
-        onProgress,
-      );
+      if (response.ok && response.status === 200) {
+        if (!response?.body) {
+          this.dbtTerminal.debug("fetchAsStream", "empty response");
+          return null;
+        }
+        const responseText = await processStreamResponse(
+          response.body,
+          onProgress,
+        );
 
-      return responseText;
-    } catch (error) {
+        return responseText;
+      }
+      if (
+        // response codes when backend authorization fails
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        this.telemetry.sendTelemetryEvent("invalidCredentials", { url });
+        throw new ForbiddenError();
+      }
+      if (response.status === 404) {
+        this.telemetry.sendTelemetryEvent("resourceNotFound", { url });
+        throw new NotFoundError("Resource Not found");
+      }
+      const textResponse = await response.text();
       this.dbtTerminal.debug(
-        "fetchAsStream",
-        "error while fetching as stream",
-        error,
+        "network:response",
+        "error from backend",
+        textResponse,
       );
+      if (response.status === 429) {
+        throw new RateLimitException(
+          textResponse,
+          response.headers.get("Retry-After")
+            ? parseInt(response.headers.get("Retry-After") || "")
+            : 1 * 60 * 1000, // default to 1 min
+        );
+      }
+      this.telemetry.sendTelemetryError("apiError", {
+        endpoint,
+        status: response.status,
+        textResponse,
+      });
+      throw new APIError(
+        `Could not process request, server responded with ${response.status}: ${textResponse}`,
+      );
+    } catch (error) {
+      this.dbtTerminal.error(
+        "apiCatchAllError",
+        "fetchAsStream catchAllError",
+        error,
+        true,
+        {
+          endpoint,
+        },
+      );
+      throw error;
     } finally {
       clearTimeout(timeoutHandler);
     }
@@ -330,9 +437,7 @@ export class AltimateRequest {
         response.status === 403
       ) {
         this.telemetry.sendTelemetryEvent("invalidCredentials", { url });
-        throw new ForbiddenError(
-          "To use this feature, please add a valid API Key and an instance name in the settings.",
-        );
+        throw new ForbiddenError();
       }
       if (response.status === 404) {
         this.telemetry.sendTelemetryEvent("resourceNotFound", { url });
@@ -368,6 +473,73 @@ export class AltimateRequest {
     } finally {
       clearTimeout(timeoutHandler);
     }
+  }
+
+  async downloadFileLocally(
+    artifactUrl: string,
+    projectRoot: Uri,
+    fileName = "manifest.json",
+  ): Promise<string> {
+    const hashedProjectRoot = DBTProject.hashProjectRoot(projectRoot.fsPath);
+    const tempFolder = join(os.tmpdir(), hashedProjectRoot);
+
+    try {
+      this.dbtTerminal.debug(
+        "AltimateRequest",
+        `creating temporary folder: ${tempFolder} for file: ${fileName}`,
+      );
+      mkdirSync(tempFolder, { recursive: true });
+
+      const destinationPath = join(tempFolder, fileName);
+
+      this.dbtTerminal.debug(
+        "AltimateRequest",
+        `fetching artifactUrl: ${artifactUrl}`,
+      );
+      const response = await fetch(artifactUrl, { agent: undefined });
+
+      const fileStream = createWriteStream(destinationPath);
+      await new Promise((resolve, reject) => {
+        response.body?.pipe(fileStream);
+        response.body?.on("error", reject);
+        fileStream.on("finish", resolve);
+      });
+
+      this.dbtTerminal.debug("File downloaded successfully!", fileName);
+      return tempFolder;
+    } catch (err) {
+      this.dbtTerminal.error(
+        "downloadFileLocally",
+        `Could not save ${fileName} locally`,
+        err,
+      );
+      window.showErrorMessage(`Could not save ${fileName} locally: ${err}`);
+      throw err;
+    }
+  }
+
+  private getQueryString = (
+    params: Record<string, string | number>,
+  ): string => {
+    const queryString = Object.keys(params)
+      .map(
+        (key) =>
+          `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`,
+      )
+      .join("&");
+
+    return queryString ? `?${queryString}` : "";
+  };
+
+  async isAuthenticated() {
+    try {
+      await this.fetch<void>("auth_health", {
+        method: "POST",
+      });
+    } catch (error) {
+      return false;
+    }
+    return true;
   }
 
   async generateModelDocs(docsGenerate: DocsGenerateModelRequest) {
@@ -416,5 +588,45 @@ export class AltimateRequest {
       },
     });
     return (await response.json()) as Record<string, any> | undefined;
+  }
+
+  async fetchProjectIntegrations() {
+    return this.fetch<DBTCoreIntegration[]>("dbt/v1/project_integrations");
+  }
+
+  async sendDeferToProdEvent(defer_type: string) {
+    return this.fetch("dbt/v1/defer_to_prod_event", {
+      method: "POST",
+      body: JSON.stringify({ defer_type }),
+    });
+  }
+
+  async fetchArtifactUrl(artifact_type: string, dbtCoreIntegrationId: number) {
+    return this.fetch<DownloadArtifactResponse>(
+      `dbt/v1/fetch_artifact_url${this.getQueryString({
+        artifact_type: artifact_type,
+        dbt_core_integration_id: dbtCoreIntegrationId,
+      })}`,
+    );
+  }
+
+  async getHealthcheckConfigs() {
+    return this.fetch<DBTProjectHealthConfigResponse>(
+      `dbtconfig?${new URLSearchParams({ size: "100" }).toString()}`,
+    );
+  }
+
+  async logDBTHealthcheckConfig(configId: string) {
+    return this.fetch(`dbtconfig/${configId}/download`);
+  }
+
+  async logDBTHealthcheckStartScan() {
+    return this.fetch(`dbtconfig/extension/start_scan`);
+  }
+
+  async getDatapilotVersion(extension_version: string) {
+    return this.fetch<{ altimate_datapilot_version: string }>(
+      `dbtconfig/datapilot_version/${extension_version}`,
+    );
   }
 }

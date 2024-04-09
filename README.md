@@ -2,29 +2,30 @@
 
 ![Last updated](https://img.shields.io/visual-studio-marketplace/last-updated/innoverio.vscode-dbt-power-user) ![Version](https://img.shields.io/visual-studio-marketplace/v/innoverio.vscode-dbt-power-user) ![Installs](https://img.shields.io/visual-studio-marketplace/i/innoverio.vscode-dbt-power-user) ![Build passing](https://github.com/innoverio/vscode-dbt-power-user/workflows/.github/workflows/ci.yml/badge.svg)
 
-This [open source](https://github.com/AltimateAI/vscode-dbt-power-user) extension makes VSCode seamlessly work with [dbt](https://www.getdbt.com/).
+This [open source](https://github.com/AltimateAI/vscode-dbt-power-user) extension makes VSCode seamlessly work with [dbt™](https://www.getdbt.com/).
 
 If you need help with setting up the extension, please check the [documentation](https://docs.myaltimate.com/setup/installation/).
 For any issues or bugs, please [contact us](https://www.altimate.ai/support) via chat or Slack.
 
 **Features:**
 
-| Feature                                                     | Details                                                                                                                               |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| [Auto-complete dbt code](#autocomplete)                     | Auto-fill model names, macros, sources and docs. Click on model names, macros, sources to go to definitions.                          |
-| [Preview Query results and Analyze](#querypreview)          | Generate dbt model / query results. Export as CSV or analyze results by creating graphs, filters, groups                              |
-| [Column lineage](#lineage)                                  | Model lineage as well as column lineage                                                                                               |
-| [Generate dbt Models](#genmodel)                            | from source files or convert SQL to dbt Model (docs)                                                                                  |
-| [Generate documentation](#gendoc)                           | Generate model and column descriptions or write in the UI editor. Save formatted text in YAML files.                                  |
-| [Click to run parent / child models and tests](#clicktorun) | Just click to do common dbt operations like running tests, parent / child models or previewing data.                                  |
-| [Compiled query preview and explanation](#queryexplanation) | Get live preview of compiled query as your write code. Also, generate explanations for dbt code written previously (by somebody else) |
-| [Project health check](#healthcheck)                        | Identify issues in your dbt project like columns not present, models not materialized                                                 |
-| [SQL validator](#validateSQL)                               | Identify issues in SQL like typos in keywords, missing or extra parentheses, non-existent columns                                     |
-| [Big Query cost estimator](#bqcost)                         | Estimate data that will be processed by dbt model in BigQuery                                                                         |
-| [Other features](#otherfeatures)                            | dbt logs viewer (force tailing)                                                                                                       |
+| Feature                                                     | Details                                                                                                                                 |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| [Auto-complete dbt™ code](#autocomplete)                   | Auto-fill model names, macros, sources and docs. Click on model names, macros, sources to go to definitions.                            |
+| [Preview Query results and Analyze](#querypreview)          | Generate dbt™ model / query results. Export as CSV or analyze results by creating graphs, filters, groups                              |
+| [Column lineage](#lineage)                                  | Model lineage as well as column lineage                                                                                                 |
+| [Generate dbt™ Models](#genmodel)                          | from source files or convert SQL to dbt™ Model (docs)                                                                                  |
+| [Generate documentation](#gendoc)                           | Generate model and column descriptions or write in the UI editor. Save formatted text in YAML files.                                    |
+| [Defer to prod](#defertoprod)                               | Build your model in development without building (by defering) your upstream models                                                     |
+| [Click to run parent / child models and tests](#clicktorun) | Just click to do common dbt™ operations like running tests, parent / child models or previewing data.                                  |
+| [Compiled query preview and explanation](#queryexplanation) | Get live preview of compiled query as your write code. Also, generate explanations for dbt™ code written previously (by somebody else) |
+| [Project health check](#healthcheck)                        | Identify issues in your dbt™ project like columns not present, models not materialized                                                 |
+| [SQL validator](#validateSQL)                               | Identify issues in SQL like typos in keywords, missing or extra parentheses, non-existent columns                                       |
+| [Big Query cost estimator](#bqcost)                         | Estimate data that will be processed by dbt™ model in BigQuery                                                                         |
+| [Other features](#otherfeatures)                            | dbt™ logs viewer (force tailing)                                                                                                       |
 
 Note: This extension is fully compatible with dev containers, code spaces and remote extension. See [Visual Studio Code Remote - Containers](https://code.visualstudio.com/docs/remote/containers) and [Visual Studio Code Remote - WSL](https://code.visualstudio.com/docs/remote/wsl).
-The extension is supported for dbt versions above 1.0.
+The extension is supported for dbt™ versions above 1.0.
 
 ## Features
 
@@ -36,7 +37,7 @@ Auto-fill model names, macros, sources and docs. Click on model names, macros, s
 
 ### <a id="querypreview">Preview query results and analyze</a>
 
-Generate dbt model / query results. Export as CSV or analyze results by creating graphs, filters, groups. [(docs)](https://docs.myaltimate.com/test/queryResults/)
+Generate dbt™ model / query results. Export as CSV or analyze results by creating graphs, filters, groups. [(docs)](https://docs.myaltimate.com/test/queryResults/)
 
 ![previewquery](media/images/previewquery.gif)
 
@@ -46,9 +47,9 @@ View model lineage as well as column lineage with components like models, seeds,
 
 ![lineage](media/images/lineage.gif)
 
-### <a id="genmodel"> Generate dbt Models from source or SQL</a>
+### <a id="genmodel"> Generate dbt™ Models from source or SQL</a>
 
-Generate dbt models from sources defined in YAML. You can also convert existing SQL to a dbt model where references get populated automatically. [(docs)](https://docs.myaltimate.com/develop/clicktorun/)
+Generate dbt™ models from sources defined in YAML. You can also convert existing SQL to a dbt™ model where references get populated automatically. [(docs)](https://docs.myaltimate.com/develop/clicktorun/)
 
 ![genmodel](media/images/genmodel.gif)
 
@@ -58,6 +59,10 @@ Generate model and column descriptions automatically or write descriptions manua
 
 ![gendoc](media/images/gendoc.gif)
 
+### <a id="defertoprod">Defer to prod</a>
+
+Defer building your upstream models when you make changes in development by referencing production models. Here's [(more info)](https://docs.getdbt.com/blog/defer-to-prod) about the concept. This functionality can be used in dbt™ core with the extension. [(docs)](https://docs.myaltimate.com/test/defertoprod/)
+
 ### <a id="clicktorun"> Click to run parent/child models and tests</a>
 
 Just click to do common button operations like executing tests, building or running parent / child models. [(docs)](https://docs.myaltimate.com/develop/clicktorun/)
@@ -66,13 +71,13 @@ Just click to do common button operations like executing tests, building or runn
 
 ### <a id="queryexplanation"> Compiled query preview and explanation</a>
 
-Get live preview of compiled query as your write code. Also, generate explanations for dbt code written previously (by somebody else). [(docs)](https://docs.myaltimate.com/develop/explanation/)
+Get live preview of compiled query as your write code. Also, generate explanations for dbt™ code written previously (by somebody else). [(docs)](https://docs.myaltimate.com/develop/explanation/)
 
 ![explanation](media/images/explanation.gif)
 
 ### <a id="healthcheck"> Project health check</a>
 
-Identify issues in your dbt project like columns not present, models not materialized. [(docs)](https://docs.myaltimate.com/test/healthcheck/)
+Identify issues in your dbt™ project like columns not present, models not materialized. [(docs)](https://docs.myaltimate.com/test/healthcheck/)
 
 ![healthcheck](media/images/healthcheck.gif)
 
@@ -84,13 +89,13 @@ Validate SQL to identify issues like mistyped keywords, extra parentheses, colum
 
 ### <a id="bqcost"> Big Query cost estimator</a>
 
-Estimate data that will be processed by dbt model in BigQuery [(docs)](https://docs.myaltimate.com/test/bigquerycost/)
+Estimate data that will be processed by dbt™ model in BigQuery [(docs)](https://docs.myaltimate.com/test/bigquerycost/)
 
 ![bqcostestimator](media/images/bqcostestimator.gif)
 
 ### <a id="otherfeatures"> Other features</a>
 
-**dbt logs view (force tailing)**
+**dbt™ logs view (force tailing)**
 
 ![dbt-log](media/images/dbt-log.gif)
 

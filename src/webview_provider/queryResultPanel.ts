@@ -21,7 +21,11 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { AltimateRequest } from "../altimate";
-import { ExecuteSQLResult, QueryExecution } from "../dbt_client/dbtIntegration";
+import {
+  ExecuteSQLError,
+  ExecuteSQLResult,
+  QueryExecution,
+} from "../dbt_client/dbtIntegration";
 import { SharedStateService } from "../services/sharedStateService";
 
 interface JsonObj {
@@ -34,6 +38,7 @@ enum OutboundCommand {
   RenderError = "renderError",
   InjectConfig = "injectConfig",
   ResetState = "resetState",
+  GetContext = "getContext",
 }
 
 interface RenderQuery {
@@ -64,6 +69,7 @@ enum InboundCommand {
   OpenUrl = "openUrl",
   GetSummary = "getSummary",
   CancelQuery = "cancelQuery",
+  SetContext = "setContext",
 }
 
 interface RecInfo {
@@ -127,6 +133,11 @@ export class QueryResultPanel implements WebviewViewProvider {
     this.renderWebviewView(context);
     this.setupWebviewHooks(context);
     this.transmitConfig();
+    await this._panel?.webview.postMessage({
+      command: OutboundCommand.GetContext,
+      lastHintTimestamp:
+        this.dbtProjectContainer.getFromGlobalState("lastHintTimestamp") || 0,
+    });
     _token.onCancellationRequested(async () => {
       await this.transmitReset();
     });
@@ -198,6 +209,12 @@ export class QueryResultPanel implements WebviewViewProvider {
                 query: summary.compiledSql,
               },
             });
+            break;
+          case InboundCommand.SetContext:
+            this.dbtProjectContainer.setToGlobalState(
+              message.key,
+              message.value,
+            );
             break;
         }
       },
@@ -356,6 +373,23 @@ export class QueryResultPanel implements WebviewViewProvider {
           },
           query,
           query,
+        );
+        return;
+      }
+      if (exc instanceof ExecuteSQLError) {
+        window.showErrorMessage(
+          "An error occured while trying to execute your query: " + exc.message,
+        );
+        await this.transmitError(
+          {
+            error: {
+              code: -1,
+              message: exc.message,
+              data: JSON.stringify(exc.stack, null, 2),
+            },
+          },
+          query,
+          exc.compiled_sql,
         );
         return;
       }

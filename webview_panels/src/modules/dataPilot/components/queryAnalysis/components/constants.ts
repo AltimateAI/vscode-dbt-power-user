@@ -1,0 +1,20 @@
+// reference: altimate_packages/altimate/utils.py
+export const SqlDialects = [
+  "bigquery",
+  "clickhouse",
+  "databricks",
+  "duckdb",
+  "hive",
+  "mysql",
+  "oracle",
+  "postgres",
+  "redshift",
+  "snowflake",
+  "spark",
+  "starrocks",
+  "teradata",
+  "trino",
+  "synapse",
+  "sqlserver",
+  "doris",
+];

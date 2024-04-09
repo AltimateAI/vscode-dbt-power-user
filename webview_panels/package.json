@@ -10,8 +10,8 @@
   "packageManager": "npm@9.6.7",
   "scripts": {
     "dev": "vite",
-    "watch": "rm -Rf ./dist; tsc && vite build --watch && cp -r ./node_modules/@vscode/codicons/dist ./dist/assets/codicons/",
-    "build": "rm -Rf ./dist; tsc && vite build && cp -r ./node_modules/@vscode/codicons/dist ./dist/assets/codicons/",
+    "watch": "rm -Rf ./dist; tsc && vite build --watch",
+    "build": "rm -Rf ./dist; tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 5",
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006",
@@ -27,6 +27,7 @@
     "react-code-blocks": "^0.1.6",
     "react-copy-to-clipboard": "^5.1.0",
     "react-dom": "^18.2.0",
+    "react-error-boundary": "^4.0.13",
     "react-hook-form": "^7.49.3",
     "react-markdown": "^9.0.1",
     "react-router-dom": "^6.21.1",
@@ -34,7 +35,9 @@
     "react-syntax-highlighter": "^15.5.0",
     "react-textarea-autosize": "^8.5.3",
     "reactstrap": "^9.2.1",
+    "remark-gfm": "^4.0.0",
     "vite-plugin-svgr": "^4.2.0",
+    "yaml": "^2.4.1",
     "yup": "^1.3.3"
   },
   "devDependencies": {
@@ -42,7 +45,6 @@
     "@storybook/addon-essentials": "^7.6.6",
     "@storybook/addon-interactions": "^7.6.6",
     "@storybook/addon-links": "^7.6.6",
-    "@storybook/addon-onboarding": "^1.0.10",
     "@storybook/blocks": "^7.6.6",
     "@storybook/builder-vite": "^7.6.6",
     "@storybook/jest": "^0.2.3",

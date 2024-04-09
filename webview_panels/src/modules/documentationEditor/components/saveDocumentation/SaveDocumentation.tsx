@@ -3,7 +3,10 @@ import { executeRequestInSync } from "@modules/app/requestExecutor";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { Button, IconButton, Popover, PopoverBody, List, Stack } from "@uicore";
 import { useEffect, useState } from "react";
-import { setIsDocGeneratedForAnyColumn } from "@modules/documentationEditor/state/documentationSlice";
+import {
+  setIsDocGeneratedForAnyColumn,
+  setIsTestUpdatedForAnyColumn,
+} from "@modules/documentationEditor/state/documentationSlice";
 import classes from "../../styles.module.scss";
 
 const SaveDocumentation = (): JSX.Element | null => {
@@ -11,27 +14,30 @@ const SaveDocumentation = (): JSX.Element | null => {
   const [dialogType, setDialogType] = useState("Existing file");
   const [openPopover, setOpenPopover] = useState(false);
   const {
-    state: { currentDocsData, isDocGeneratedForAnyColumn },
+    state: {
+      currentDocsData,
+      isDocGeneratedForAnyColumn,
+      currentDocsTests,
+      isTestUpdatedForAnyColumn,
+    },
     dispatch,
   } = useDocumentationContext();
 
   const saveDocumentation = async () => {
     const result = (await executeRequestInSync("saveDocumentation", {
       ...currentDocsData,
+      updatedTests: isTestUpdatedForAnyColumn ? currentDocsTests : undefined,
       patchPath,
       dialogType,
     })) as { saved: boolean };
     if (result.saved) {
       dispatch(setIsDocGeneratedForAnyColumn(false));
+      dispatch(setIsTestUpdatedForAnyColumn(false));
     }
   };
 
   useEffect(() => {
-    if (!currentDocsData?.patchPath) {
-      return;
-    }
-
-    setPatchPath(currentDocsData.patchPath);
+    setPatchPath(currentDocsData?.patchPath ?? "");
   }, [currentDocsData?.patchPath]);
 
   const handleChange = (newValue: string) => {
@@ -48,13 +54,13 @@ const SaveDocumentation = (): JSX.Element | null => {
     { label: "New file", value: "New file" },
   ];
 
-  if (!isDocGeneratedForAnyColumn) {
+  if (!isDocGeneratedForAnyColumn && !isTestUpdatedForAnyColumn) {
     return null;
   }
 
   return (
     <Stack direction="row" className={classes.save}>
-      <h4>Save documentation</h4>
+      <h4>Path:</h4>
       <p>{currentDocsData?.patchPath ?? "Write path"}</p>
 
       {currentDocsData?.patchPath ? null : (
@@ -89,7 +95,9 @@ const SaveDocumentation = (): JSX.Element | null => {
           </Popover>
         </>
       )}
-      <Button onClick={saveDocumentation}>Save documentation</Button>
+      <Button color="primary" onClick={saveDocumentation}>
+        Save
+      </Button>
     </Stack>
   );
 };

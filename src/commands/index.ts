@@ -18,7 +18,9 @@ import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { ValidateSql } from "./validateSql";
 import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { SharedStateService } from "../services/sharedStateService";
+import { PythonEnvironment } from "../manifest/pythonEnvironment";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -32,7 +34,9 @@ export class VSCodeCommands implements Disposable {
     private altimateScan: AltimateScan,
     private walkthroughCommands: WalkthroughCommands,
     private bigQueryCostEstimate: BigQueryCostEstimate,
+    private dbtTerminal: DBTTerminal,
     private eventEmitterService: SharedStateService,
+    private pythonEnvironment: PythonEnvironment,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -54,8 +58,10 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.compileCurrentModel", () =>
         this.runModel.compileModelOnActiveWindow(),
       ),
-      commands.registerCommand("dbtPowerUser.bigqueryCostEstimate", () =>
-        this.bigQueryCostEstimate.estimateCost(),
+      commands.registerCommand(
+        "dbtPowerUser.bigqueryCostEstimate",
+        ({ returnResult }: { returnResult?: boolean }) =>
+          this.bigQueryCostEstimate.estimateCost({ returnResult }),
       ),
       commands.registerTextEditorCommand(
         "dbtPowerUser.sqlPreview",
@@ -124,6 +130,12 @@ export class VSCodeCommands implements Disposable {
           payload: {},
         }),
       ),
+      commands.registerCommand("dbtPowerUser.translateQuery", () =>
+        this.eventEmitterService.fire({
+          command: "dbtPowerUser.translateQuery",
+          payload: {},
+        }),
+      ),
       commands.registerCommand(
         "dbtPowerUser.createModelBasedonSourceConfig",
         (params) => {
@@ -133,6 +145,37 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.buildCurrentModel", () =>
         this.runModel.buildModelOnActiveWindow(),
       ),
+      commands.registerCommand("dbtPowerUser.buildCurrentProject", () => {
+        if (!window.activeTextEditor) {
+          return;
+        }
+        const activeFileUri = window.activeTextEditor.document.uri;
+        if (!activeFileUri) {
+          this.dbtTerminal.debug(
+            "buildCurrentProject",
+            "skipping buildCurrentProject without active file",
+          );
+          return;
+        }
+
+        const dbtProject =
+          this.dbtProjectContainer.findDBTProject(activeFileUri);
+        if (!dbtProject) {
+          this.dbtTerminal.debug(
+            "buildCurrentProject",
+            `buildCurrentProject unable to find dbtproject by active file: ${activeFileUri.path}`,
+          );
+          return;
+        }
+        this.dbtTerminal.debug(
+          "buildCurrentProject",
+          `building current project: ${dbtProject.getProjectName()} with active file: ${
+            activeFileUri.path
+          }`,
+        );
+
+        dbtProject.buildProject();
+      }),
       commands.registerCommand("dbtPowerUser.buildChildrenModels", () =>
         this.runModel.buildModelOnActiveWindow(RunModelType.BUILD_CHILDREN),
       ),
@@ -215,6 +258,9 @@ export class VSCodeCommands implements Disposable {
           command: "dbtPowerUser.openHelpInDatapilot",
           payload: {},
         }),
+      ),
+      commands.registerCommand("dbtPowerUser.printEnvVars", () =>
+        this.pythonEnvironment.printEnvVars(),
       ),
     );
   }
