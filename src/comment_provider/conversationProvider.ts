@@ -274,7 +274,7 @@ export class ConversationProvider implements Disposable {
 
   // convert "@[john](john)" to "@john"
   private convertTextFromDbToCommentFormat(text: string) {
-    return new MarkdownString(text.replace(/@\[(.*?)\]\((.*?)\)/g, "@$1"));
+    return new MarkdownString(text.replace(/@\[(.*?)\]\((.*?)\)/g, "@$2"));
   }
 
   // convert "@john" to "@[john](john)"

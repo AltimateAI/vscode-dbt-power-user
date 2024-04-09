@@ -4183,7 +4183,7 @@ const Js = { vs: Gs, solarizedDark: Ys, solarizedLight: Ks },
   aa = (e, t, o) =>
     nt.post(`dbt/dbt_docs_share/${e}/conversation_group/${t}/conversation`, o),
   ua = (e) => nt.get(`dbt/dbt_docs_share/${e}/conversations`),
-  ca = (e) => nt.get("/users/", { company: e }),
+  ca = (e) => nt.get("/users/chat", { company: e }),
   la = (e, t) =>
     nt.post(`dbt/dbt_docs_share/${e}/conversation_group/${t}/resolve`, {
       resolved: !0,
@@ -10141,7 +10141,7 @@ const Gu = {
         });
       },
       s = (a) => {
-        console.log(a.target.value), t(a.target.value);
+        t(a.target.value);
       };
     return /* @__PURE__ */ P.jsx(Yu, {
       autoFocus: !0,
@@ -10796,7 +10796,7 @@ const rc = /* @__PURE__ */ tt(nc),
         /* @__PURE__ */ P.jsx(So, { user: t, timestamp: e.timestamp }),
         /* @__PURE__ */ P.jsx(Mt, {
           children: /* @__PURE__ */ P.jsx("p", {
-            children: e.message.replace(/@\[(.*?)\]\(\w+\)/g, "@$1"),
+            children: e.message.replace(/@\[(.*?)\]\((.*?)\)/g, "@$2"),
           }),
         }),
       ],
@@ -10891,7 +10891,7 @@ const rc = /* @__PURE__ */ tt(nc),
               filePath: e.meta.filePath,
             }),
             /* @__PURE__ */ P.jsx("p", {
-              children: c.message.replace(/@\[(.*?)\]\(\w+\)/g, "@$1"),
+              children: c.message.replace(/@\[(.*?)\]\((.*?)\)/g, "@$2"),
             }),
             /* @__PURE__ */ P.jsx(Pt, {
               onClick: () => s((h) => !h),
