@@ -274,12 +274,12 @@ export class ConversationProvider implements Disposable {
 
   // convert "@[john](john)" to "@john"
   private convertTextFromDbToCommentFormat(text: string) {
-    return new MarkdownString(text.replace(/@\[(\w+)\]\((\w+)\)/g, "@$1"));
+    return new MarkdownString(text.replace(/@\[(.*?)\]\((.*?)\)/g, "@$1"));
   }
 
   // convert "@john" to "@[john](john)"
   private convertTextToDbFormat(text: string) {
-    return new MarkdownString(text).value.replace(/@(\w+)/g, "@[$1]($1)");
+    return new MarkdownString(text).value.replace(/@(\S+)\s/g, "@[$1]($1) ");
   }
 
   private addComment(reply: CommentReply) {
@@ -416,13 +416,15 @@ export class ConversationProvider implements Disposable {
 
       // create share
       const result = await this.conversationService.shareDbtDocs({
-        name: convertedMessage,
+        name: convertedMessage, // `dbt docs discussion on ${nodeMeta?.uniqueId}`,
         description: "",
         uri: reply.thread.uri,
         model,
       });
+      // Failing silently, because this case will happen if key is not added
+      // message for adding key will be already shown
       if (!result) {
-        throw new Error("Unable to share dbt docs");
+        return;
       }
       const { shareId, shareUrl } = result;
       this.dbtTerminal.debug(
