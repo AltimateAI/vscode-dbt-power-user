@@ -219,8 +219,20 @@ export class DBTCloudProjectIntegration
         "json",
       ]),
     );
+    const compileCommand = this.dbtCloudCommand(
+      new DBTCommand("Running sql...", [
+        "compile",
+        "--inline",
+        query,
+        "--output",
+        "json",
+        "--log-format",
+        "json",
+      ]),
+    );
     const cancellationTokenSource = new CancellationTokenSource();
     showCommand.setToken(cancellationTokenSource.token);
+    compileCommand.setToken(cancellationTokenSource.token);
     return new QueryExecution(
       async () => {
         cancellationTokenSource.cancel();
@@ -239,6 +251,19 @@ export class DBTCloudProjectIntegration
         if (exception) {
           throw exception;
         }
+
+        const { stdout: compileStdout, stderr: compileStderr } =
+          await compileCommand.execute(cancellationTokenSource.token);
+        const compilePreviewLine = compileStdout
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line.trim()))
+          .filter((line) => line.data.hasOwnProperty("compiled"));
+        const compiledSQL = compilePreviewLine[0].data.compiled;
+        const compiledException = this.processJSONErrors(compileStderr);
+        if (compiledException) {
+          throw compiledException;
+        }
         return {
           table: {
             column_names: preview.length > 0 ? Object.keys(preview[0]) : [],
@@ -248,7 +273,7 @@ export class DBTCloudProjectIntegration
                 : [],
             rows: preview.map((obj: any) => Object.values(obj)),
           },
-          compiled_sql: "",
+          compiled_sql: compiledSQL,
           raw_sql: query,
         };
       },
