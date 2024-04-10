@@ -664,6 +664,10 @@ export class AltimateRequest {
     return this.fetch(`dbtconfig/${configId}/download`);
   }
 
+  async logDBTHealthcheckStartScan() {
+    return this.fetch(`dbtconfig/extension/start_scan`);
+  }
+
   async getDatapilotVersion(extension_version: string) {
     return this.fetch<{ altimate_datapilot_version: string }>(
       `dbtconfig/datapilot_version/${extension_version}`,
