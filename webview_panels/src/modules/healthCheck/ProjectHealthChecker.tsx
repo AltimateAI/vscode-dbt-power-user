@@ -51,6 +51,7 @@ enum ConfigType {
 interface SaasConfigSelectorProps {
   selectedConfig: DBTConfig | undefined;
   setSelectedConfig: Dispatch<SetStateAction<DBTConfig | undefined>>;
+  configPath: string;
   setConfigPath: Dispatch<SetStateAction<string>>;
   configType: ConfigType;
   setConfigType: Dispatch<SetStateAction<ConfigType>>;
@@ -87,6 +88,7 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
           <Button
             size="sm"
             color="primary"
+            className="text-overflow"
             onClick={async (e) => {
               e.stopPropagation();
               const result = await executeRequestInSync("selectFiles", {
@@ -101,7 +103,7 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
               props.setConfigPath(path[0]);
             }}
           >
-            Select config path
+            {props.configPath || "Select config path"}
           </Button>
         )}
       </div>
@@ -258,7 +260,11 @@ const ProjectHealthcheckInput = ({
     void getProjects();
   }, []);
 
-  const isStartScanEnabled = selectedProject && !requestInProgress;
+  const isStartScanEnabled =
+    !requestInProgress &&
+    selectedProject &&
+    ((configType === ConfigType.Manual && configPath) ||
+      (configType === ConfigType.Saas && selectedConfig));
 
   return (
     <Card className={classes.container}>
@@ -278,6 +284,7 @@ const ProjectHealthcheckInput = ({
           <SaasConfigSelector
             selectedConfig={selectedConfig}
             setSelectedConfig={setSelectedConfig}
+            configPath={configPath}
             setConfigPath={setConfigPath}
             configType={configType}
             setConfigType={setConfigType}
