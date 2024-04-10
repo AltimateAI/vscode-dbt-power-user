@@ -873,9 +873,5 @@ export class DBTCloudProjectIntegration
     return result;
   }
 
-  async applyDeferConfig(
-    enable: boolean,
-    deferManifestPath: string,
-    favorState: boolean,
-  ): Promise<void> {}
+  async applyDeferConfig(): Promise<void> {}
 }

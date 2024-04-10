@@ -56,10 +56,7 @@ import { AltimateRequest, NoCredentialsError } from "../altimate";
 import { ValidationProvider } from "../validation_provider";
 import { ModelNode } from "../altimate";
 import { ColumnMetaData } from "../domain";
-import {
-  AltimateConfigProps,
-  DeferConfig,
-} from "../webview_provider/insightsPanel";
+import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -1080,21 +1077,7 @@ select * from renamed
     return { mappedNode, relationsWithoutColumns };
   }
 
-  async applyDeferConfig(
-    oldConfig: DeferConfig,
-    newConfig: DeferConfig,
-  ): Promise<void> {
-    if (
-      oldConfig.deferToProduction === newConfig.deferToProduction &&
-      oldConfig.manifestPathForDeferral === newConfig.manifestPathForDeferral &&
-      oldConfig.favorState === newConfig.favorState
-    ) {
-      return;
-    }
-    await this.dbtProjectIntegration.applyDeferConfig(
-      newConfig.deferToProduction,
-      newConfig.manifestPathForDeferral,
-      newConfig.favorState,
-    );
+  async applyDeferConfig(): Promise<void> {
+    await this.dbtProjectIntegration.applyDeferConfig();
   }
 }

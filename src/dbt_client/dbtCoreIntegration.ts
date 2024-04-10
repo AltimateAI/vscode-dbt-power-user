@@ -517,6 +517,7 @@ export class DBTCoreProjectIntegration
         (python) => python`to_dict(project.safe_parse_project())`,
       );
       this.rebuildManifestDiagnostics.clear();
+      this.applyDeferConfig();
     } catch (exc) {
       if (exc instanceof PythonException) {
         // dbt errors can be about anything, so we just associate the error with the project file
@@ -1009,20 +1010,24 @@ export class DBTCoreProjectIntegration
     return result;
   }
 
-  async applyDeferConfig(
-    enable: boolean,
-    deferManifestPath: string,
-    favorState: boolean,
-  ): Promise<void> {
-    const manifestPath = path.join(deferManifestPath, DBTProject.MANIFEST_FILE);
-    if (enable) {
+  async applyDeferConfig(): Promise<void> {
+    const root = getProjectRelativePath(this.projectRoot);
+    const currentConfig: Record<string, DeferConfig> =
+      this.deferToProdService.getDeferConfigByWorkspace();
+    const { deferToProduction, manifestPathForDeferral, favorState } =
+      currentConfig[root];
+    const manifestPath = path.join(
+      manifestPathForDeferral,
+      DBTProject.MANIFEST_FILE,
+    );
+    if (deferToProduction) {
       await this.python?.lock<void>(
         (python) =>
-          python!`to_dict(project.apply_defer_config(${manifestPath}, ${favorState}))`,
+          python!`project.apply_defer_config(${manifestPath}, ${favorState})`,
       );
     } else {
       await this.python?.lock<void>(
-        (python) => python!`to_dict(project.clear_defer_config())`,
+        (python) => python!`project.clear_defer_config()`,
       );
     }
   }

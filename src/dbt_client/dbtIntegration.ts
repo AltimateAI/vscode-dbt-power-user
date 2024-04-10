@@ -367,11 +367,7 @@ export interface DBTProjectIntegration extends Disposable {
   performDatapilotHealthcheck(
     args: HealthcheckArgs,
   ): Promise<ProjectHealthcheck>;
-  applyDeferConfig(
-    enable: boolean,
-    deferManifestPath: string,
-    favorState: boolean,
-  ): Promise<void>;
+  applyDeferConfig(): Promise<void>;
 }
 
 @provide(DBTCommandExecutionInfrastructure)

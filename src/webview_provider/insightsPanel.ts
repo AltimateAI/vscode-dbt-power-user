@@ -195,9 +195,20 @@ export class InsightsPanel extends AltimateWebviewProvider {
           },
         });
       }
-      await this.dbtProjectContainer
-        .findDBTProject(Uri.parse(params.projectRoot))
-        ?.applyDeferConfig(currentConfig[root], newConfig[root]);
+
+      if (
+        !(
+          currentConfig[root].deferToProduction ===
+            newConfig[root].deferToProduction &&
+          currentConfig[root].manifestPathForDeferral ===
+            newConfig[root].manifestPathForDeferral &&
+          currentConfig[root].favorState === newConfig[root].favorState
+        )
+      ) {
+        await this.dbtProjectContainer
+          .findDBTProject(Uri.parse(params.projectRoot))
+          ?.applyDeferConfig();
+      }
     } catch (err) {
       this.dbtTerminal.error(
         "InsightsPanel",
