@@ -95,6 +95,22 @@
             "type": "number",
             "description": "By default how much lineage should expand.",
             "default": 1
+          },
+          "dbt.enableDbtIntegration": {
+            "type": "boolean",
+            "description": "Allow changing dbt integration to dbt cloud",
+            "default": false,
+            "order": 0
+          },
+          "dbt.dbtIntegration": {
+            "type": "string",
+            "description": "Should use dbt core or cloud",
+            "enum": [
+              "core",
+              "cloud"
+            ],
+            "default": "core",
+            "order": 1
           }
         }
       },
