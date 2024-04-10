@@ -9,6 +9,7 @@ import { DBTDetection } from "./dbtIntegration";
 
 enum DbtInstallationPromptAnswer {
   INSTALL = "Install dbt",
+  INSTALL_CLOUD = "Install dbt cli",
 }
 
 enum PythonInterpreterPromptAnswer {
@@ -108,21 +109,31 @@ export class DBTClient implements Disposable {
     return this.showErrorIfDbtIsNotInstalled();
   }
 
+  private async executeInstallDbtCommand(
+    message: string,
+    option: DbtInstallationPromptAnswer,
+  ) {
+    const answer = await window.showErrorMessage(message, option);
+    if (answer === option) {
+      commands.executeCommand("dbtPowerUser.installDbt");
+    }
+  }
+
   async showErrorIfDbtIsNotInstalled() {
     if (!this.dbtInstalled) {
       if (!this.shownError) {
         // We don't want to flood the user with errors
         this.shownError = true;
-        const message =
-          this.dbtIntegrationMode === "cloud"
-            ? "Please ensure dbt cloud cli is installed."
-            : "Please ensure dbt is installed.";
-        const answer = await window.showErrorMessage(
-          message,
-          DbtInstallationPromptAnswer.INSTALL,
-        );
-        if (answer === DbtInstallationPromptAnswer.INSTALL) {
-          commands.executeCommand("dbtPowerUser.installDbt");
+        if (this.dbtIntegrationMode === "cloud") {
+          await this.executeInstallDbtCommand(
+            "Please ensure dbt cloud cli is installed.",
+            DbtInstallationPromptAnswer.INSTALL_CLOUD,
+          );
+        } else {
+          await this.executeInstallDbtCommand(
+            "Please ensure dbt is installed.",
+            DbtInstallationPromptAnswer.INSTALL,
+          );
         }
       }
       return false;
