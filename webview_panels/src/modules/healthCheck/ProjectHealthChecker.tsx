@@ -258,6 +258,8 @@ const ProjectHealthcheckInput = ({
     void getProjects();
   }, []);
 
+  const isStartScanEnabled = selectedProject && !requestInProgress;
+
   return (
     <Card className={classes.container}>
       <CardTitle tag="h5">Perform project governance</CardTitle>
@@ -283,9 +285,7 @@ const ProjectHealthcheckInput = ({
 
           <Stack>
             <Button
-              color={
-                selectedProject && !requestInProgress ? "primary" : "secondary"
-              }
+              color={isStartScanEnabled ? "primary" : "secondary"}
               onClick={async () => {
                 if (configType === ConfigType.Saas) {
                   void executeRequestInSync("logDBTHealthcheckConfig", {
@@ -305,7 +305,7 @@ const ProjectHealthcheckInput = ({
                   setRequestInProgress(false);
                 }
               }}
-              disabled={!(selectedProject && !requestInProgress)}
+              disabled={!isStartScanEnabled}
             >
               Start scan
             </Button>
