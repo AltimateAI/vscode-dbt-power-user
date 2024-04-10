@@ -1012,12 +1012,13 @@ export class DBTCoreProjectIntegration
   async applyDeferConfig(
     enable: boolean,
     deferManifestPath: string,
+    favorState: boolean,
   ): Promise<void> {
     const manifestPath = path.join(deferManifestPath, DBTProject.MANIFEST_FILE);
     if (enable) {
       await this.python?.lock<void>(
         (python) =>
-          python!`to_dict(project.apply_defer_config(${manifestPath}))`,
+          python!`to_dict(project.apply_defer_config(${manifestPath}, ${favorState}))`,
       );
     } else {
       await this.python?.lock<void>(

@@ -361,12 +361,12 @@ class DbtProject:
         self._sql_compiler = None
         self._sql_runner = None
 
-    def apply_defer_config(self, manifest_path: str) -> None:
+    def apply_defer_config(self, manifest_path: str, favor_state: bool) -> None:
         with open(manifest_path) as f:
             manifest = WritableManifest.from_dict(json.load(f))
             selected = set()
             self.dbt.merge_from_artifact(
-                self.adapter, other=manifest, selected=selected, favor_state=True
+                self.adapter, other=manifest, selected=selected, favor_state=favor_state
             )
 
     def clear_defer_config(self) -> None:
