@@ -213,7 +213,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
           },
           async () => {
             await this.dbtProjectContainer
-              .findDBTProject(Uri.parse(params.projectRoot))
+              .findDBTProject(Uri.file(params.projectRoot))
               ?.applyDeferConfig();
           },
         );
