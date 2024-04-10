@@ -205,9 +205,18 @@ export class InsightsPanel extends AltimateWebviewProvider {
           currentConfig[root].favorState === newConfig[root].favorState
         )
       ) {
-        await this.dbtProjectContainer
-          .findDBTProject(Uri.parse(params.projectRoot))
-          ?.applyDeferConfig();
+        window.withProgress(
+          {
+            location: ProgressLocation.Notification,
+            title: "Applying defer config...",
+            cancellable: false,
+          },
+          async () => {
+            await this.dbtProjectContainer
+              .findDBTProject(Uri.parse(params.projectRoot))
+              ?.applyDeferConfig();
+          },
+        );
       }
     } catch (err) {
       this.dbtTerminal.error(
