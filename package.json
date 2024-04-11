@@ -1016,7 +1016,7 @@
   "devDependencies": {
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.6",
-    "@types/node": "^20.11.30",
+    "@types/node": "^20.12.7",
     "@types/vscode": "^1.81.0",
     "@types/which": "^3.0.3",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
