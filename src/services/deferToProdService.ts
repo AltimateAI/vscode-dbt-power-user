@@ -12,7 +12,7 @@ export class DeferToProdService {
   }
 
   public getDeferConfigByProjectRoot(projectRoot: string): DeferConfig {
-    const relativePath = getProjectRelativePath(Uri.parse(projectRoot));
+    const relativePath = getProjectRelativePath(Uri.file(projectRoot));
     const currentConfig: Record<string, DeferConfig> =
       this.getDeferConfigByWorkspace();
 
