@@ -504,7 +504,7 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  async rebuildManifest(): Promise<void> {
+  async parseProject(): Promise<void> {
     const errors = this.projectConfigDiagnostics.get(
       Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
     );
@@ -517,7 +517,6 @@ export class DBTCoreProjectIntegration
         (python) => python`to_dict(project.safe_parse_project())`,
       );
       this.rebuildManifestDiagnostics.clear();
-      this.applyDeferConfig();
     } catch (exc) {
       if (exc instanceof PythonException) {
         // dbt errors can be about anything, so we just associate the error with the project file
@@ -555,6 +554,11 @@ export class DBTCoreProjectIntegration
         ),
       );
     }
+  }
+
+  async rebuildManifest(): Promise<void> {
+    await this.parseProject();
+    await this.applyDeferConfig();
   }
 
   async runModel(command: DBTCommand) {
@@ -1036,9 +1040,7 @@ export class DBTCoreProjectIntegration
           python!`project.apply_defer_config(${manifestPath}, ${favorState})`,
       );
     } else {
-      await this.python.lock(
-        (python) => python`to_dict(project.safe_parse_project())`,
-      );
+      await this.parseProject();
     }
   }
 }
