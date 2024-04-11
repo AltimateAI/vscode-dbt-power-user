@@ -402,7 +402,9 @@ export class DBTCoreProjectIntegration
         (python) => python`target_path(${this.projectRoot.fsPath})`,
       ),
     );
-    await bridge.ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.profilesDir}, target_path=${targetPath}) if 'project' not in locals() else project`;
+    const { deferToProduction, manifestPath, favorState } =
+      await this.getDeferConfig();
+    await bridge.ex`project = DbtProject(project_dir=${this.projectRoot.fsPath}, profiles_dir=${this.profilesDir}, target_path=${targetPath}, defer_to_prod=${deferToProduction}, manifest_path=${manifestPath}, favor_state=${favorState}) if 'project' not in locals() else project`;
   }
 
   async initializeProject(): Promise<void> {
@@ -1012,9 +1014,8 @@ export class DBTCoreProjectIntegration
     return result;
   }
 
-  async applyDeferConfig(): Promise<void> {
+  private async getDeferConfig() {
     const root = getProjectRelativePath(this.projectRoot);
-    const manifestPath: string = null;
     const currentConfig: Record<string, DeferConfig> =
       this.deferToProdService.getDeferConfigByWorkspace();
     const {
@@ -1024,17 +1025,21 @@ export class DBTCoreProjectIntegration
       manifestPathType,
       dbtCoreIntegrationId,
     } = currentConfig[root];
-    if (deferToProduction) {
-      const manifestFolder = await this.getDeferManifestPath(
-        manifestPathType,
-        manifestPathForDeferral,
-        dbtCoreIntegrationId,
-      );
-      const manifestPath = path.join(manifestFolder, DBTProject.MANIFEST_FILE);
-    }
+    const manifestFolder = await this.getDeferManifestPath(
+      manifestPathType,
+      manifestPathForDeferral,
+      dbtCoreIntegrationId,
+    );
+    const manifestPath = path.join(manifestFolder, DBTProject.MANIFEST_FILE);
+    return { deferToProduction, manifestPath, favorState };
+  }
+
+  async applyDeferConfig(): Promise<void> {
+    const { deferToProduction, manifestPath, favorState } =
+      await this.getDeferConfig();
     await this.python?.lock<void>(
       (python) =>
-        python!`project.apply_defer_config(${deferToProduction}, ${manifestPath}, ${favorState})`,
+        python!`project.set_defer_config(${deferToProduction}, ${manifestPath}, ${favorState})`,
     );
     await this.rebuildManifest();
   }
