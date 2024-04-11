@@ -369,9 +369,6 @@ class DbtProject:
                 self.adapter, other=manifest, selected=selected, favor_state=favor_state
             )
 
-    def clear_defer_config(self) -> None:
-        self.safe_parse_project()
-
     @classmethod
     def from_args(cls, args: ConfigInterface) -> "DbtProject":
         """Instatiate the DbtProject directly from a ConfigInterface instance"""

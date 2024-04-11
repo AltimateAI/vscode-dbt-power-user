@@ -1036,8 +1036,8 @@ export class DBTCoreProjectIntegration
           python!`project.apply_defer_config(${manifestPath}, ${favorState})`,
       );
     } else {
-      await this.python?.lock<void>(
-        (python) => python!`project.clear_defer_config()`,
+      await this.python.lock(
+        (python) => python`to_dict(project.safe_parse_project())`,
       );
     }
   }
