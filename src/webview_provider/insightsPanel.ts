@@ -158,7 +158,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
 
       const currentConfig: Record<string, DeferConfig> =
         this.deferToProdService.getDeferConfigByWorkspace();
-      const root = getProjectRelativePath(Uri.parse(params.projectRoot));
+      const root = getProjectRelativePath(Uri.file(params.projectRoot));
 
       this.dbtTerminal.info(
         "Defer config",
@@ -180,7 +180,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       };
 
       const workspaceFolder = workspace.getWorkspaceFolder(
-        Uri.parse(params.projectRoot),
+        Uri.file(params.projectRoot),
       );
       await workspace
         .getConfiguration("dbt", workspaceFolder)
