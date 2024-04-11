@@ -504,7 +504,7 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  async parseProject(): Promise<void> {
+  async rebuildManifest(): Promise<void> {
     const errors = this.projectConfigDiagnostics.get(
       Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
     );
@@ -554,11 +554,6 @@ export class DBTCoreProjectIntegration
         ),
       );
     }
-  }
-
-  async rebuildManifest(): Promise<void> {
-    await this.parseProject();
-    await this.applyDeferConfig();
   }
 
   async runModel(command: DBTCommand) {
@@ -1019,6 +1014,7 @@ export class DBTCoreProjectIntegration
 
   async applyDeferConfig(): Promise<void> {
     const root = getProjectRelativePath(this.projectRoot);
+    const manifestPath: string = null;
     const currentConfig: Record<string, DeferConfig> =
       this.deferToProdService.getDeferConfigByWorkspace();
     const {
@@ -1035,12 +1031,11 @@ export class DBTCoreProjectIntegration
         dbtCoreIntegrationId,
       );
       const manifestPath = path.join(manifestFolder, DBTProject.MANIFEST_FILE);
-      await this.python?.lock<void>(
-        (python) =>
-          python!`project.apply_defer_config(${manifestPath}, ${favorState})`,
-      );
-    } else {
-      await this.parseProject();
     }
+    await this.python?.lock<void>(
+      (python) =>
+        python!`project.apply_defer_config(${deferToProduction}, ${manifestPath}, ${favorState})`,
+    );
+    await this.rebuildManifest();
   }
 }

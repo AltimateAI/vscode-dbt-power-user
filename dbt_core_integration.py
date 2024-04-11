@@ -316,6 +316,9 @@ class DbtProject:
         # Tracks internal state version
         self._version: int = 1
         self.mutex = threading.Lock()
+        self.defer_tp_prod = False
+        self.defer_to_prod_manifest_path = None
+        self.favor_state = False
 
     def get_adapter(self):
         """This inits a new Adapter which is fundamentally different than
@@ -361,13 +364,12 @@ class DbtProject:
         self._sql_compiler = None
         self._sql_runner = None
 
-    def apply_defer_config(self, manifest_path: str, favor_state: bool) -> None:
-        with open(manifest_path) as f:
-            manifest = WritableManifest.from_dict(json.load(f))
-            selected = set()
-            self.dbt.merge_from_artifact(
-                self.adapter, other=manifest, selected=selected, favor_state=favor_state
-            )
+    def apply_defer_config(self, defer_to_prod: boolean, manifest_path: str, favor_state: bool) -> None:
+
+        self.defer_tp_prod = defer_to_prod
+        self.defer_to_prod_manifest_path = manifest_path
+        self.favor_state = favor_state
+
 
     @classmethod
     def from_args(cls, args: ConfigInterface) -> "DbtProject":
@@ -446,6 +448,14 @@ class DbtProject:
         try:
             self.parse_project()
             self.write_manifest_artifact()
+
+            if self.defer_tp_prod:
+                with open(self.defer_to_prod_manifest_path) as f:
+                    manifest = WritableManifest.from_dict(json.load(f))
+                    selected = set()
+                    self.dbt.merge_from_artifact(
+                        self.adapter, other=manifest, selected=selected, favor_state=self.favor_state
+                    )
         except Exception as e:
             self.config = _config_pointer
             raise Exception(str(e))
