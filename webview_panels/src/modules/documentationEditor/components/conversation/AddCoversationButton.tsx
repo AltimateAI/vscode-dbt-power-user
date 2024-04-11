@@ -22,7 +22,7 @@ const AddCoversationButton = ({ field, column }: Props): JSX.Element => {
     setIsLoading(true);
     panelLogger.info("adding conversation", comment);
     const result = await executeRequestInSync("createConversation", {
-      comment,
+      comment: comment.replace(/@\[(.*?)\]\((.*?)\)/g, "@$2"),
       meta: { field, column },
     });
     panelLogger.info("added conversation", result);

@@ -28,6 +28,7 @@ import { TestMetaData } from "../domain";
 import { DbtTestService } from "../services/dbtTestService";
 import { UsersService } from "../services/usersService";
 import { ConversationProvider } from "../comment_provider/conversationProvider";
+import { DbtDocsView } from "./DbtDocsView";
 
 @provideSingleton(NewDocsGenPanel)
 export class NewDocsGenPanel
@@ -48,6 +49,7 @@ export class NewDocsGenPanel
     protected dbtTerminal: DBTTerminal,
     private dbtTestService: DbtTestService,
     protected userService: UsersService,
+    private dbtDocsView: DbtDocsView,
     private conversationProvider: ConversationProvider,
   ) {
     super(
@@ -128,7 +130,13 @@ export class NewDocsGenPanel
     };
   }
 
-  private createConversation({ comment, ...params }: { [x: string]: unknown }) {
+  private createConversation({
+    comment,
+    ...params
+  }: {
+    meta?: Record<string, unknown>;
+    comment?: string;
+  }) {
     if (!window.activeTextEditor?.document.uri) {
       throw new Error("Invalid file");
     }
@@ -155,7 +163,7 @@ export class NewDocsGenPanel
         text: comment as string,
         thread,
       },
-      params,
+      params.meta,
     );
   }
 
