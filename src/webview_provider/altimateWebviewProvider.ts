@@ -25,6 +25,7 @@ import { SharedStateService } from "../services/sharedStateService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { QueryManifestService } from "../services/queryManifestService";
 import { PythonException } from "python-bridge";
+import { UsersService } from "../services/usersService";
 
 export type UpdateConfigProps = {
   key: string;
@@ -73,6 +74,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     protected emitterService: SharedStateService,
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
+    protected usersService: UsersService,
   ) {
     this._disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
@@ -199,6 +201,26 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             command: "dbtdocsview:render",
             payload: params,
           });
+          break;
+        case "getUsers":
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            () => {
+              return this.usersService.users;
+            },
+            command,
+            true,
+          );
+          break;
+        case "getCurrentUser":
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            () => {
+              return this.usersService.user;
+            },
+            command,
+            true,
+          );
           break;
         case "fetch":
           this.handleSyncRequestFromWebview(

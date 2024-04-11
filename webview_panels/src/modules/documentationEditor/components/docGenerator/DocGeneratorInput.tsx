@@ -14,6 +14,7 @@ import {
 } from "@modules/documentationEditor/state/documentationSlice";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
+import AddCoversationButton from "../conversation/AddCoversationButton";
 
 interface Props {
   entity: DBTDocumentationColumn | DBTDocumentation;
@@ -104,7 +105,13 @@ const DocGeneratorInput = ({
         />
 
         {showButton ? (
-          <GenerateButton onSubmit={handleSubmit} variant={variant} />
+          <>
+            <AddCoversationButton
+              field="description"
+              column={type === EntityType.COLUMN ? entity.name : undefined}
+            />
+            <GenerateButton onSubmit={handleSubmit} variant={variant} />
+          </>
         ) : null}
       </InputGroup>
     </Stack>

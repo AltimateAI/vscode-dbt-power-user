@@ -1,8 +1,9 @@
 import { readFileSync } from "fs";
 import {
   CancellationToken,
+  CommentThreadCollapsibleState,
+  Range,
   TextEditor,
-  Uri,
   WebviewView,
   WebviewViewResolveContext,
   window,
@@ -25,8 +26,8 @@ import {
 import { DocsGenPanelView } from "./docsEditPanel";
 import { TestMetaData } from "../domain";
 import { DbtTestService } from "../services/dbtTestService";
-import { DbtDocsView } from "./DbtDocsView";
-import { ConversationService } from "../services/conversationService";
+import { UsersService } from "../services/usersService";
+import { ConversationProvider } from "../comment_provider/conversationProvider";
 
 @provideSingleton(NewDocsGenPanel)
 export class NewDocsGenPanel
@@ -46,8 +47,8 @@ export class NewDocsGenPanel
     protected queryManifestService: QueryManifestService,
     protected dbtTerminal: DBTTerminal,
     private dbtTestService: DbtTestService,
-    private dbtDocsView: DbtDocsView,
-    private conversationService: ConversationService,
+    protected userService: UsersService,
+    private conversationProvider: ConversationProvider,
   ) {
     super(
       dbtProjectContainer,
@@ -56,6 +57,7 @@ export class NewDocsGenPanel
       emitterService,
       dbtTerminal,
       queryManifestService,
+      userService,
     );
 
     this._disposables.push(
@@ -126,10 +128,50 @@ export class NewDocsGenPanel
     };
   }
 
+  private createConversation({ comment, ...params }: { [x: string]: unknown }) {
+    if (!window.activeTextEditor?.document.uri) {
+      throw new Error("Invalid file");
+    }
+    if (!comment) {
+      throw new Error("Invalid comment");
+    }
+
+    const range = new Range(0, 0, 0, 0);
+    const thread = this.conversationProvider.createCommentThread(
+      window.activeTextEditor.document.uri,
+      range,
+    );
+
+    if (!thread) {
+      throw new Error("Unable to create comment, Please try again");
+    }
+    thread.collapsibleState = CommentThreadCollapsibleState.Expanded;
+
+    // model editor loses focus when creating comment thread
+    window.showTextDocument(window.activeTextEditor.document);
+
+    this.conversationProvider.createConversation(
+      {
+        text: comment as string,
+        thread,
+      },
+      params,
+    );
+  }
+
   async handleCommand(message: HandleCommandProps): Promise<void> {
     const { command, syncRequestId, ...args } = message;
 
     switch (command) {
+      case "createConversation":
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            return this.createConversation(args);
+          },
+          command,
+        );
+        break;
       case "getTestCode":
         this.handleSyncRequestFromWebview(
           syncRequestId,

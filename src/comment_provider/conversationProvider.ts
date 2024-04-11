@@ -377,7 +377,14 @@ export class ConversationProvider implements Disposable {
     }
   }
 
-  async createConversation(reply: CommentReply) {
+  createCommentThread(uri: Uri, range: Range) {
+    return this._commentController?.createCommentThread(uri, range, []);
+  }
+
+  async createConversation(
+    reply: CommentReply,
+    extraMeta?: Record<string, unknown>,
+  ) {
     try {
       this.dbtTerminal.debug(
         "ConversationProvider:createConversation",
@@ -386,11 +393,11 @@ export class ConversationProvider implements Disposable {
       );
       const thread = reply.thread as ConversationCommentThread;
       thread.state = CommentThreadState.Unresolved;
-      const newComment = this.addComment(reply);
-      const model = path.basename(reply.thread.uri.fsPath, ".sql");
+      this.addComment(reply);
+      const model = path.basename(thread.uri.fsPath, ".sql");
       const convertedMessage = this.convertTextToDbFormat(reply.text);
 
-      const nodeMeta = this.getNodeMeta(reply.thread.uri, model);
+      const nodeMeta = this.getNodeMeta(thread.uri, model);
 
       // Find selected text
       const editor = window.visibleTextEditors.find(
@@ -403,6 +410,7 @@ export class ConversationProvider implements Disposable {
           : editor?.document.getText(thread.range)) || "";
 
       const meta = {
+        ...extraMeta,
         highlight,
         source: "extension",
         uniqueId: nodeMeta?.uniqueId,
@@ -412,8 +420,8 @@ export class ConversationProvider implements Disposable {
         ),
         resource_type: nodeMeta?.resource_type,
         range: {
-          end: reply.thread.range.end,
-          start: reply.thread.range.start,
+          end: thread.range.end,
+          start: thread.range.start,
         },
       };
 
@@ -421,7 +429,7 @@ export class ConversationProvider implements Disposable {
       const result = await this.conversationService.shareDbtDocs({
         name: convertedMessage, // `dbt docs discussion on ${nodeMeta?.uniqueId}`,
         description: "",
-        uri: reply.thread.uri,
+        uri: thread.uri,
         model,
       });
       // Failing silently, because this case will happen if key is not added
@@ -448,7 +456,8 @@ export class ConversationProvider implements Disposable {
         throw new Error("Unable to create group");
       }
 
-      newComment.conversation_id = addReplyResult.conversation_id;
+      (thread.comments[0] as ConversationComment).conversation_id =
+        addReplyResult.conversation_id;
       thread.share_id = shareId;
       thread.conversation_group_id = addReplyResult.conversation_group_id;
       thread.meta = meta;

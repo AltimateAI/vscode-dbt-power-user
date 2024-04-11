@@ -27,7 +27,7 @@ export class DbtDocsView extends AltimateWebviewProvider {
     protected emitterService: SharedStateService,
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
-    private usersService: UsersService,
+    protected usersService: UsersService,
   ) {
     super(
       dbtProjectContainer,
@@ -36,6 +36,7 @@ export class DbtDocsView extends AltimateWebviewProvider {
       emitterService,
       dbtTerminal,
       queryManifestService,
+      usersService,
     );
 
     const t = this;
