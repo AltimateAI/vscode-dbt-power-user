@@ -5,6 +5,7 @@ import {
   CommentMode,
   CommentReply,
   CommentThread,
+  CommentThreadState,
   Disposable,
   MarkdownString,
   Range,
@@ -54,7 +55,7 @@ export class ConversationComment implements Comment {
   }
 }
 
-const ALLOWED_FILE_EXTENSIONS = [".sql", ".yml", ".yaml"];
+const ALLOWED_FILE_EXTENSIONS = [".sql"];
 @provideSingleton(ConversationProvider)
 export class ConversationProvider implements Disposable {
   private disposables: Disposable[] = [];
@@ -242,6 +243,7 @@ export class ConversationProvider implements Disposable {
             ),
             [],
           ) as ConversationCommentThread);
+        thread.state = CommentThreadState.Unresolved;
         thread.comments = conversationGroup.conversations.map(
           (conversation) =>
             new ConversationComment(
@@ -383,6 +385,7 @@ export class ConversationProvider implements Disposable {
         reply,
       );
       const thread = reply.thread as ConversationCommentThread;
+      thread.state = CommentThreadState.Unresolved;
       const newComment = this.addComment(reply);
       const model = path.basename(reply.thread.uri.fsPath, ".sql");
       const convertedMessage = this.convertTextToDbFormat(reply.text);
