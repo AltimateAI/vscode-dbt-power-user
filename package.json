@@ -340,6 +340,11 @@
         "category": "dbt Power User"
       },
       {
+        "command": "dbtPowerUser.viewInDocEditor",
+        "title": "View in documentation editor",
+        "category": "dbt Power User"
+      },
+      {
         "command": "dbtPowerUser.replyToConversation",
         "title": "Reply",
         "enablement": "!commentIsEmpty",
@@ -603,6 +608,11 @@
     ],
     "menus": {
       "comments/commentThread/title": [
+        {
+          "command": "dbtPowerUser.viewInDocEditor",
+          "group": "navigation",
+          "when": "commentController == altimate-conversations && commentThread =~ /docEditor/"
+        },
         {
           "command": "dbtPowerUser.copyDbtDocsLink",
           "group": "navigation",

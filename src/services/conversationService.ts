@@ -27,6 +27,8 @@ export interface ConversationGroup {
   owner: number;
   status: "Pending" | "Resolved";
   meta: {
+    field?: "description";
+    column?: string;
     highlight: string;
     uniqueId?: string;
     filePath: string;

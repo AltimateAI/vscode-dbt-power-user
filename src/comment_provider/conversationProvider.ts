@@ -11,6 +11,7 @@ import {
   Range,
   TextDocument,
   Uri,
+  commands,
   comments,
   env,
   window,
@@ -244,6 +245,8 @@ export class ConversationProvider implements Disposable {
             [],
           ) as ConversationCommentThread);
         thread.state = CommentThreadState.Unresolved;
+        const isInDocsEditor = !!conversationGroup.meta.field;
+        thread.contextValue = isInDocsEditor ? "docEditor" : "";
         thread.comments = conversationGroup.conversations.map(
           (conversation) =>
             new ConversationComment(
@@ -260,6 +263,23 @@ export class ConversationProvider implements Disposable {
               "",
             ),
         );
+
+        if (isInDocsEditor) {
+          thread.comments = [
+            new ConversationComment(
+              -1,
+              'This comment is added from documentation editor. Please click "View in documentation editor" button to view in documentation editor',
+              CommentMode.Preview,
+              {
+                name: "Altimate",
+              },
+              new Date().toISOString(),
+              undefined,
+              "",
+            ),
+            ...thread.comments,
+          ];
+        }
         thread.conversation_group_id = conversationGroup.conversation_group_id;
         thread.meta = conversationGroup.meta;
         thread.share_id = dbtDocsShare.share_id;
@@ -318,6 +338,10 @@ export class ConversationProvider implements Disposable {
       );
       window.showInformationMessage("Url copied", "Ok");
     }
+  }
+
+  async viewInDocEditor(thread: ConversationCommentThread) {
+    commands.executeCommand("dbtPowerUser.DocsEdit.focus");
   }
 
   async viewInDbtDocs(thread: ConversationCommentThread) {

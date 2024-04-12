@@ -321,6 +321,20 @@ export class VSCodeCommands implements Disposable {
         },
       ),
       commands.registerCommand(
+        "dbtPowerUser.viewInDocEditor",
+        (thread: CommentThread) => {
+          try {
+            this.conversationController.viewInDocEditor(
+              thread as ConversationCommentThread,
+            );
+          } catch (err) {
+            window.showErrorMessage(
+              extendErrorWithSupportLinks((err as Error).message),
+            );
+          }
+        },
+      ),
+      commands.registerCommand(
         "dbtPowerUser.viewInDbtDocs",
         (thread: CommentThread) => {
           try {
