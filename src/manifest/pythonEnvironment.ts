@@ -32,10 +32,11 @@ export class PythonEnvironment implements Disposable {
     }
   }
 
-  printEnvVars() {
+  async printEnvVars() {
+    this.dbtTerminal.show(true);
+    await new Promise((resolve) => setTimeout(resolve, 100));
     const envVars = this.environmentVariables;
     this.dbtTerminal.log("Printing environment variables...\r\n");
-    this.dbtTerminal.show(true);
     for (const key in envVars) {
       this.dbtTerminal.log(
         `${key}=${envVars[key]}\t\tsource:${this.environmentVariableSource[key]}\r\n`,
