@@ -1018,6 +1018,9 @@ export class DBTCoreProjectIntegration
     const root = getProjectRelativePath(this.projectRoot);
     const currentConfig: Record<string, DeferConfig> =
       this.deferToProdService.getDeferConfigByWorkspace();
+    if (!currentConfig[root]) {
+      return { deferToProduction: false, manifestPath: "", favorState: false };
+    }
     const {
       deferToProduction,
       manifestPathForDeferral,
