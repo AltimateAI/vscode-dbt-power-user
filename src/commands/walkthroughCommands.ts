@@ -20,6 +20,7 @@ enum PromptAnswer {
 
 enum DbtInstallationPromptAnswer {
   INSTALL = "Install dbt",
+  INSTALL_CLOUD = "Install dbt cli",
 }
 
 @provideSingleton(WalkthroughCommands)
@@ -134,7 +135,7 @@ export class WalkthroughCommands {
     let error = undefined;
     await window.withProgress(
       {
-        title: `Installing dbt cloud...`,
+        title: `Installing dbt cloud cli...`,
         location: ProgressLocation.Notification,
         cancellable: false,
       },
@@ -161,9 +162,9 @@ export class WalkthroughCommands {
     if (error) {
       const answer = await window.showErrorMessage(
         "Could not install dbt: " + (error as Error).message,
-        DbtInstallationPromptAnswer.INSTALL,
+        DbtInstallationPromptAnswer.INSTALL_CLOUD,
       );
-      if (answer === DbtInstallationPromptAnswer.INSTALL) {
+      if (answer === DbtInstallationPromptAnswer.INSTALL_CLOUD) {
         commands.executeCommand("dbtPowerUser.installDbt");
       }
     }
