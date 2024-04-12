@@ -198,6 +198,29 @@ export class InsightsPanel extends AltimateWebviewProvider {
           },
         });
       }
+
+      if (
+        !(
+          currentConfig[root].deferToProduction ===
+            newConfig[root].deferToProduction &&
+          currentConfig[root].manifestPathForDeferral ===
+            newConfig[root].manifestPathForDeferral &&
+          currentConfig[root].favorState === newConfig[root].favorState
+        )
+      ) {
+        window.withProgress(
+          {
+            location: ProgressLocation.Notification,
+            title: "Applying defer config...",
+            cancellable: false,
+          },
+          async () => {
+            await this.dbtProjectContainer
+              .findDBTProject(Uri.file(params.projectRoot))
+              ?.applyDeferConfig();
+          },
+        );
+      }
     } catch (err) {
       this.dbtTerminal.error(
         "InsightsPanel",

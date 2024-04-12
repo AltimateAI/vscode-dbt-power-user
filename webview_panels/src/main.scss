@@ -158,3 +158,9 @@ code {
 .lines-3 {
   @include lines(3);
 }
+
+.text-overflow {
+  text-overflow: ellipsis;
+  overflow-x: hidden;
+  white-space: nowrap;
+}

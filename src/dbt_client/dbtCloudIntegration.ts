@@ -872,4 +872,6 @@ export class DBTCloudProjectIntegration
     );
     return result;
   }
+
+  async applyDeferConfig(): Promise<void> {}
 }

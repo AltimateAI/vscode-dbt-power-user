@@ -4,6 +4,7 @@ import {
   StatusBarAlignment,
   StatusBarItem,
   window,
+  workspace,
 } from "vscode";
 import { DBTInstallationVerificationEvent } from "../dbt_client/dbtVersionEvent";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -40,15 +41,25 @@ export class VersionStatusBar implements Disposable {
     this.statusBar.dispose();
   }
 
+  private getDbtText() {
+    const dbtIntegrationMode = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+    return dbtIntegrationMode === "cloud" ? "dbt cli" : "dbt";
+  }
+
   private onRebuildManifestStatusChange(
     event: RebuildManifestCombinedStatusChange,
   ) {
     if (!event.inProgress) {
       if (!this.installed) {
-        this.showTextInStatusBar("$(error) dbt is not installed");
+        this.showTextInStatusBar(
+          `$(error) ${this.getDbtText()} is not installed`,
+        );
+
         return;
       }
-      this.showTextInStatusBar(`$(check) dbt`);
+      this.showTextInStatusBar(`$(check) ${this.getDbtText()}`);
       return;
     }
     if (event.projects.length === 1) {
@@ -69,10 +80,12 @@ export class VersionStatusBar implements Disposable {
       return;
     }
     if (!event.installed) {
-      this.showTextInStatusBar("$(error) dbt is not installed");
+      this.showTextInStatusBar(
+        `$(error) ${this.getDbtText()} is not installed`,
+      );
       return;
     }
-    this.showTextInStatusBar(`$(check) dbt`);
+    this.showTextInStatusBar(`$(check) ${this.getDbtText()}`);
   }
 
   private showTextInStatusBar(text: string, command?: Command) {

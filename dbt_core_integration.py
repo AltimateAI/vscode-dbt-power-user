@@ -38,7 +38,7 @@ from typing import (
 import agate
 from dbt.adapters.factory import get_adapter_class_by_name
 from dbt.config.runtime import RuntimeConfig
-from dbt.contracts.graph.manifest import NodeType
+from dbt.contracts.graph.manifest import NodeType, WritableManifest
 from dbt.events.functions import fire_event  # monkey-patched for perf
 from dbt.flags import set_from_args
 from dbt.node_types import NodeType
@@ -47,7 +47,7 @@ from dbt.parser.sql import SqlBlockParser, SqlMacroParser
 from dbt.task.sql import SqlCompileRunner, SqlExecuteRunner
 from dbt.tracking import disable_tracking
 from dbt.version import __version__ as dbt_version
-
+import json
 
 try:
     # dbt <= 1.3
@@ -297,6 +297,9 @@ class DbtProject:
         threads: Optional[int] = 1,
         profile: Optional[str] = None,
         target_path: Optional[str] = None,
+        defer_to_prod: bool = False,
+        manifest_path: Optional[str] = None,
+        favor_state: bool = False,
     ):
         self.args = ConfigInterface(
             threads=threads,
@@ -316,6 +319,9 @@ class DbtProject:
         # Tracks internal state version
         self._version: int = 1
         self.mutex = threading.Lock()
+        self.defer_to_prod = defer_to_prod
+        self.defer_to_prod_manifest_path = manifest_path
+        self.favor_state = favor_state
 
     def get_adapter(self):
         """This inits a new Adapter which is fundamentally different than
@@ -360,6 +366,13 @@ class DbtProject:
         self._macro_parser = None
         self._sql_compiler = None
         self._sql_runner = None
+
+    def set_defer_config(
+        self, defer_to_prod: bool, manifest_path: str, favor_state: bool
+    ) -> None:
+        self.defer_to_prod = defer_to_prod
+        self.defer_to_prod_manifest_path = manifest_path
+        self.favor_state = favor_state
 
     @classmethod
     def from_args(cls, args: ConfigInterface) -> "DbtProject":
@@ -438,6 +451,17 @@ class DbtProject:
         try:
             self.parse_project()
             self.write_manifest_artifact()
+
+            if self.defer_to_prod:
+                with open(self.defer_to_prod_manifest_path) as f:
+                    manifest = WritableManifest.from_dict(json.load(f))
+                    selected = set()
+                    self.dbt.merge_from_artifact(
+                        self.adapter,
+                        other=manifest,
+                        selected=selected,
+                        favor_state=self.favor_state,
+                    )
         except Exception as e:
             self.config = _config_pointer
             raise Exception(str(e))
