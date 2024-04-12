@@ -9,7 +9,7 @@ export declare const ApiHelper: {
 
 export declare const CodeBlock: ({ code, language, fileName, theme, showLineNumbers, }: Props_3) => JSX.Element;
 
-export declare const ConversationInputForm: ({ comment, setComment, loading, users, currentUser, }: Props_2) => JSX_2.Element;
+export declare const ConversationInputForm: ({ comment, setComment, loading, users, currentUser, placeholder, onEnterKeypress, }: Props_2) => JSX_2.Element;
 
 declare enum ConversationSources {
     EXTENSION = "extension",
@@ -31,11 +31,13 @@ declare interface Props_2 {
     loading: boolean;
     users: User[];
     currentUser: User | null;
+    placeholder?: string;
+    onEnterKeypress?: () => void;
 }
 
 declare interface Props_3 {
     code: string;
-    language: "sql" | "yaml";
+    language: "sql" | "yaml" | "markdown";
     fileName?: string;
     showLineNumbers?: boolean;
     theme?: "vs" | "solarizedDark" | "solarizedLight";

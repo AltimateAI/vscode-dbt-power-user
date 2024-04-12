@@ -3,14 +3,20 @@ import { ConversationInputForm } from "@lib";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import useAppContext from "@modules/app/useAppContext";
 import { panelLogger } from "@modules/logger";
-import { Drawer } from "@uicore";
+import { Drawer, Card, CardBody, Label, Stack } from "@uicore";
 import { FormEvent, useState } from "react";
+import classes from "../../styles.module.scss";
+import { EntityType } from "@modules/dataPilot/components/docGen/types";
 
 interface Props {
   field: "description";
-  column?: string;
+  value: string;
+  name: string;
+  model?: string;
+  type: EntityType;
+
 }
-const AddCoversationButton = ({ field, column }: Props): JSX.Element => {
+const AddCoversationButton = ({ model, value, field, name, type }: Props): JSX.Element => {
   const [comment, setComment] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const {
@@ -23,7 +29,7 @@ const AddCoversationButton = ({ field, column }: Props): JSX.Element => {
     panelLogger.info("adding conversation", comment);
     const result = await executeRequestInSync("createConversation", {
       comment: comment.replace(/@\[(.*?)\]\((.*?)\)/g, "@$2"),
-      meta: { field, column },
+      meta: { field, column: type === EntityType.COLUMN ? name : "", value },
     });
     panelLogger.info("added conversation", result);
     setIsLoading(false);
@@ -32,17 +38,38 @@ const AddCoversationButton = ({ field, column }: Props): JSX.Element => {
 
   return (
     <Drawer
-      buttonProps={{ outline: true, style: { right: 50 } }}
+      buttonProps={{ color: "primary", title: "Start conversation" }}
       buttonText={<CommentIcon />}
       title="Start conversation"
     >
-      <form onSubmit={handleSubmit}>
+      <Card className="mb-4">
+        <CardBody>
+          <Stack direction="column">
+            <Stack>
+              <Label className="mb-0">Model:</Label>
+              <div>{model}</div>
+            </Stack>
+            {type === EntityType.COLUMN ? (
+              <Stack>
+                <Label className="mb-0">Column:</Label>
+                <div>{name}</div>
+              </Stack>
+            ) : null}
+            <Stack>
+              <Label className="mb-0">Field:</Label>
+              <div>{field}</div>
+            </Stack>
+          </Stack>
+        </CardBody>
+      </Card>
+      <form onSubmit={handleSubmit} className={classes.conversationInputForm}>
         <ConversationInputForm
           comment={comment}
           setComment={setComment}
           loading={isLoading}
           users={Object.values(users)}
           currentUser={currentUser}
+          placeholder="Start a conversation or add others with @"
         />
       </form>
     </Drawer>

@@ -105,13 +105,16 @@ const DocGeneratorInput = ({
         />
 
         {showButton ? (
-          <>
+          <Stack className={classes.actionButtons}>
             <AddCoversationButton
               field="description"
-              column={type === EntityType.COLUMN ? entity.name : undefined}
+              value={description}
+              name={entity.name}
+              type={type}
+              model={currentDocsData?.name}
             />
             <GenerateButton onSubmit={handleSubmit} variant={variant} />
-          </>
+          </Stack>
         ) : null}
       </InputGroup>
     </Stack>

@@ -6,9 +6,12 @@
     font-size: 13px;
   }
   :global .btn {
+    border-radius: 2px !important;
+  }
+
+  .actionButtons{
     position: absolute;
     right: 10px;
     top: 10px;
-    border-radius: 2px !important;
   }
 }

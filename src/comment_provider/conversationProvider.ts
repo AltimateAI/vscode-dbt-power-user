@@ -407,7 +407,7 @@ export class ConversationProvider implements Disposable {
 
   async createConversation(
     reply: CommentReply,
-    extraMeta?: Record<string, unknown>,
+    extraMeta: Record<string, unknown> = {},
   ) {
     try {
       this.dbtTerminal.debug(
@@ -428,13 +428,16 @@ export class ConversationProvider implements Disposable {
         (editor) => editor.document.uri.fsPath === thread.uri.fsPath,
       );
       const project = this.queryManifestService.getProjectByUri(thread.uri);
+      const { value, ...rest } = extraMeta;
       const highlight =
-        (thread.range.isSingleLine
-          ? editor?.document.lineAt(thread.range.start.line).text
-          : editor?.document.getText(thread.range)) || "";
+        rest.field === "description"
+          ? (value as string)
+          : (thread.range.isSingleLine
+              ? editor?.document.lineAt(thread.range.start.line).text
+              : editor?.document.getText(thread.range)) || "";
 
       const meta = {
-        ...extraMeta,
+        ...rest,
         highlight,
         source: "extension",
         uniqueId: nodeMeta?.uniqueId,

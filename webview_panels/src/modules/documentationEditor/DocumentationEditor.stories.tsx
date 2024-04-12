@@ -81,6 +81,23 @@ export const ModelDocGenView = {
         if (request.command === "getTestCode") {
           return { code: `select * from users` };
         }
+        if (request.command === "getUsers"){
+          return [{
+            id: 2,
+            uuid: "ff90f395-f74c-4146-8730-e40981d12aa6",
+            first_name: "John",
+            last_name: "Doe",
+            email: "john.doe@example.com",
+            phone: null,
+            is_active: true,
+            is_verified: true,
+            is_invited: true,
+            is_onboarded: true,
+            created_at: "09-Apr-24 05:28",
+            role_title: "Owner",
+            display_name: "John.Doe.john.doe@example.com",
+          }];
+        }
       },
       timer: 500,
     },
