@@ -1028,6 +1028,9 @@ export class DBTCoreProjectIntegration
       manifestPathType,
       dbtCoreIntegrationId,
     } = currentConfig[root];
+    if (!deferToProduction) {
+      return { deferToProduction: false, manifestPath: "", favorState: false };
+    }
     const manifestFolder = await this.getDeferManifestPath(
       manifestPathType,
       manifestPathForDeferral,
