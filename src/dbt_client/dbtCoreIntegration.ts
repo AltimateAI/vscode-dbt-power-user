@@ -1015,23 +1015,32 @@ export class DBTCoreProjectIntegration
   }
 
   private async getDeferConfig() {
-    const root = getProjectRelativePath(this.projectRoot);
-    const currentConfig: Record<string, DeferConfig> =
-      this.deferToProdService.getDeferConfigByWorkspace();
-    const {
-      deferToProduction,
-      manifestPathForDeferral,
-      favorState,
-      manifestPathType,
-      dbtCoreIntegrationId,
-    } = currentConfig[root];
-    const manifestFolder = await this.getDeferManifestPath(
-      manifestPathType,
-      manifestPathForDeferral,
-      dbtCoreIntegrationId,
-    );
-    const manifestPath = path.join(manifestFolder, DBTProject.MANIFEST_FILE);
-    return { deferToProduction, manifestPath, favorState };
+    try {
+      const root = getProjectRelativePath(this.projectRoot);
+      const currentConfig: Record<string, DeferConfig> =
+        this.deferToProdService.getDeferConfigByWorkspace();
+      const {
+        deferToProduction,
+        manifestPathForDeferral,
+        favorState,
+        manifestPathType,
+        dbtCoreIntegrationId,
+      } = currentConfig[root];
+      const manifestFolder = await this.getDeferManifestPath(
+        manifestPathType,
+        manifestPathForDeferral,
+        dbtCoreIntegrationId,
+      );
+      const manifestPath = path.join(manifestFolder, DBTProject.MANIFEST_FILE);
+      return { deferToProduction, manifestPath, favorState };
+    } catch (error) {
+      this.dbtTerminal.debug(
+        "dbtCoreIntegration:getDeferConfig",
+        "An error occured while getting defer config: " +
+          (error as Error).message,
+      );
+    }
+    return { deferToProduction: false, manifestPath: "", favorState: false };
   }
 
   async applyDeferConfig(): Promise<void> {
