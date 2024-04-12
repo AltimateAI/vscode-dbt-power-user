@@ -1040,7 +1040,7 @@ export class DBTCoreProjectIntegration
           (error as Error).message,
       );
     }
-    return { deferToProduction: false, manifestPath: "", favorState: false };
+    return { deferToProduction: false, manifestPath: null, favorState: false };
   }
 
   async applyDeferConfig(): Promise<void> {
