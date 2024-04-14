@@ -63,17 +63,17 @@ export class CLIDBTCommandExecutionStrategy
   ): Promise<CommandProcessResult> {
     const commandExecution = this.executeCommand(command, token);
     const executionPromise = command.logToTerminal
-      ? commandExecution.completeWithTerminalOutput(this.terminal)
-      : commandExecution.complete();
+      ? (await commandExecution).completeWithTerminalOutput(this.terminal)
+      : (await commandExecution).complete();
     return executionPromise;
   }
 
-  protected executeCommand(
+  protected async executeCommand(
     command: DBTCommand,
     token?: CancellationToken,
-  ): CommandProcessExecution {
+  ): Promise<CommandProcessExecution> {
     if (command.logToTerminal && command.focus) {
-      this.terminal.show(true);
+      await this.terminal.show(true);
     }
     this.telemetry.sendTelemetryEvent("dbtCommand", {
       command: command.getCommandAsString(),
@@ -124,21 +124,21 @@ export class PythonDBTCommandExecutionStrategy
     command: DBTCommand,
     token?: CancellationToken,
   ): Promise<CommandProcessResult> {
-    return this.executeCommand(command, token).completeWithTerminalOutput(
-      this.terminal,
-    );
+    return (
+      await this.executeCommand(command, token)
+    ).completeWithTerminalOutput(this.terminal);
   }
 
-  private executeCommand(
+  private async executeCommand(
     command: DBTCommand,
     token?: CancellationToken,
-  ): CommandProcessExecution {
+  ): Promise<CommandProcessExecution> {
     this.terminal.log(`> Executing task: ${command.getCommandAsString()}\n\r`);
     this.telemetry.sendTelemetryEvent("dbtCommand", {
       command: command.getCommandAsString(),
     });
     if (command.focus) {
-      this.terminal.show(true);
+      await this.terminal.show(true);
     }
 
     const { args } = command!;
