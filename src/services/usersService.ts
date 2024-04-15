@@ -1,25 +1,9 @@
 import { Disposable } from "vscode";
-import { AltimateRequest } from "../altimate";
+import { AltimateRequest, TenantUser } from "../altimate";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { DBTInstallationVerificationEvent } from "../dbt_client/dbtVersionEvent";
-
-export interface TenantUser {
-  id: number;
-  uuid: string;
-  display_name: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string;
-  is_active: boolean;
-  is_verified: boolean;
-  is_invited: boolean;
-  is_onboarded: boolean;
-  created_at: string;
-  role_title: string;
-}
 
 /**
  * Service to load and store users in tenant and current user
@@ -71,7 +55,7 @@ export class UsersService implements Disposable {
       return;
     }
     this.dbtTerminal.debug("UsersService", "loading tenant users");
-    const users = await this.altimateRequest.fetch<TenantUser[]>("/users/chat");
+    const users = await this.altimateRequest.getUsersInTenant();
     this.tenantUsers = users.reduce((acc: Record<string, TenantUser>, user) => {
       acc[user.id] = user;
       return acc;
@@ -88,9 +72,7 @@ export class UsersService implements Disposable {
       return;
     }
     this.dbtTerminal.debug("UsersService", "loading current user");
-    const user = await this.altimateRequest.fetch<TenantUser>(
-      "/dbt/dbt_docs_share/user/details",
-    );
+    const user = await this.altimateRequest.getCurrentUser();
     this.tenantUser = user;
     this.dbtTerminal.debug("UsersService", "loaded current user", user);
   }

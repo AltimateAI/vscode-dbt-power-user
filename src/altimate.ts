@@ -224,6 +224,22 @@ export interface ValidateSqlParseErrorResponse {
   }[];
 }
 
+export interface TenantUser {
+  id: number;
+  uuid: string;
+  display_name: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  is_active: boolean;
+  is_verified: boolean;
+  is_invited: boolean;
+  is_onboarded: boolean;
+  created_at: string;
+  role_title: string;
+}
+
 interface FeedbackResponse {
   ok: boolean;
 }
@@ -431,10 +447,12 @@ export class AltimateRequest {
       response.statusText,
     );
     if (!response.ok || response.status !== 200) {
-      this.telemetry.sendTelemetryError(
-        "uploadToS3",
-        "Upload response status not 200",
-      );
+      const textResponse = await response.text();
+      this.telemetry.sendTelemetryError("uploadToS3", {
+        endpoint,
+        status: response.status,
+        textResponse,
+      });
       throw new Error("Failed to upload data to signed url");
     }
 
@@ -672,5 +690,13 @@ export class AltimateRequest {
     return this.fetch<{ altimate_datapilot_version: string }>(
       `dbtconfig/datapilot_version/${extension_version}`,
     );
+  }
+
+  async getUsersInTenant() {
+    return await this.fetch<TenantUser[]>("/users/chat");
+  }
+
+  async getCurrentUser() {
+    return await this.fetch<TenantUser>("/dbt/dbt_docs_share/user/details");
   }
 }

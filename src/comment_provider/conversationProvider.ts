@@ -60,8 +60,8 @@ const ALLOWED_FILE_EXTENSIONS = [".sql"];
 @provideSingleton(ConversationProvider)
 export class ConversationProvider implements Disposable {
   private disposables: Disposable[] = [];
-  private _commentController;
-  private _timer: NodeJS.Timeout | undefined;
+  private commentController;
+  private timer: NodeJS.Timeout | undefined;
   // record of share id with conv group
   // used to identify deleted records during polling
   // can be removed in future if we get right events like delete, add etc.,
@@ -80,13 +80,13 @@ export class ConversationProvider implements Disposable {
     }
 
     // Create comment controller
-    this._commentController = comments.createCommentController(
+    this.commentController = comments.createCommentController(
       "altimate-conversations",
       // this title will be used to show in selection options when more than one extension in vscode has commenting feature
       "Altimate dbt conversations",
     );
 
-    this._commentController.commentingRangeProvider = {
+    this.commentController.commentingRangeProvider = {
       provideCommentingRanges: (
         document: TextDocument,
         token: CancellationToken,
@@ -112,7 +112,7 @@ export class ConversationProvider implements Disposable {
       }),
     );
 
-    this.disposables.push(this._commentController);
+    this.disposables.push(this.commentController);
   }
 
   private isCollaborationEnabled() {
@@ -129,8 +129,8 @@ export class ConversationProvider implements Disposable {
   }
 
   // simple polling for getting latest conversations
-  private setupRefetch() {
-    clearTimeout(this._timer);
+  private setupPolling() {
+    clearTimeout(this.timer);
     const pollingInterval = workspace
       .getConfiguration("dbt")
       .get<number>("conversationsPollingInterval", 30);
@@ -139,7 +139,7 @@ export class ConversationProvider implements Disposable {
       "refresh conversations after",
       pollingInterval,
     );
-    this._timer = setTimeout(() => {
+    this.timer = setTimeout(() => {
       this.loadThreads();
     }, pollingInterval * 1000);
   }
@@ -150,7 +150,7 @@ export class ConversationProvider implements Disposable {
       "loading threads",
     );
     const shares = await this.conversationService.loadSharedDocs();
-    this.setupRefetch();
+    this.setupPolling();
 
     if (!shares?.length) {
       this.dbtTerminal.debug(
@@ -234,7 +234,7 @@ export class ConversationProvider implements Disposable {
           this._threads[dbtDocsShare.share_id]?.[
             conversationGroup.conversation_group_id
           ] ??
-          (this._commentController!.createCommentThread(
+          (this.commentController!.createCommentThread(
             uri,
             new Range(
               conversationGroup.meta.range.start.line,
@@ -402,7 +402,7 @@ export class ConversationProvider implements Disposable {
   }
 
   createCommentThread(uri: Uri, range: Range) {
-    return this._commentController?.createCommentThread(uri, range, []);
+    return this.commentController?.createCommentThread(uri, range, []);
   }
 
   async createConversation(
