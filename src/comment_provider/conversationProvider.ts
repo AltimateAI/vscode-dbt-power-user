@@ -245,6 +245,7 @@ export class ConversationProvider implements Disposable {
             [],
           ) as ConversationCommentThread);
         thread.state = CommentThreadState.Unresolved;
+        // Only from docs editor, we can start conversation per field
         const isInDocsEditor = !!conversationGroup.meta.field;
         thread.contextValue = isInDocsEditor ? "docEditor" : "";
         thread.comments = conversationGroup.conversations.map(
@@ -429,6 +430,7 @@ export class ConversationProvider implements Disposable {
       );
       const project = this.queryManifestService.getProjectByUri(thread.uri);
       const { value, ...rest } = extraMeta;
+      // update highlighted text as desc if conversation is created from desc field in doc editor
       const highlight =
         rest.field === "description"
           ? (value as string)
