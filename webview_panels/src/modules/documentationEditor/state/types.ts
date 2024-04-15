@@ -73,6 +73,8 @@ export interface DocumentationStateProps {
   insertedEntityName?: string;
   selectedPages: Pages[];
   conversations: Record<DbtDocsShareDetails["share_id"], ConversationGroup[]>;
+  showConversationsRightPanel: boolean;
+  selectedConversationGroupId?: ConversationGroup["conversation_group_id"];
 }
 
 export interface DBTModelTest {

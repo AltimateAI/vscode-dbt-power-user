@@ -21,7 +21,7 @@ export declare const CodeBlock: ({
   fileName,
   theme,
   showLineNumbers,
-}: Props_3) => JSX.Element;
+}: Props_4) => JSX.Element;
 
 export declare interface Conversation {
   timestamp: string;
@@ -54,6 +54,17 @@ export declare interface ConversationGroup {
     };
   };
 }
+
+export declare const ConversationGroupProvider: ({
+  currentUser,
+  conversationGroup,
+  shareId,
+  onSelect,
+  isSelected,
+  users,
+  onResolve,
+  onReplyAdd,
+}: Props_3) => JSX.Element | null;
 
 export declare const ConversationInputForm: ({
   comment,
@@ -101,6 +112,17 @@ declare interface Props_2 {
 }
 
 declare interface Props_3 {
+  currentUser?: User;
+  conversationGroup?: ConversationGroup;
+  shareId?: DbtDocsShareDetails["share_id"];
+  isSelected: boolean;
+  users: Record<User["id"], User>;
+  onSelect: () => void;
+  onResolve: () => void;
+  onReplyAdd: () => void;
+}
+
+declare interface Props_4 {
   code: string;
   language: "sql" | "yaml" | "markdown";
   fileName?: string;

@@ -1,8 +1,9 @@
-import { A as a, i as e, h as r, C as n, D as t } from "./main.js";
+import { A as s, k as a, i as e, h as n, C as i, D as t } from "./main.js";
 export {
-  a as ApiHelper,
-  e as CodeBlock,
-  r as ConversationInputForm,
-  n as ConversationSources,
+  s as ApiHelper,
+  a as CodeBlock,
+  e as ConversationGroupProvider,
+  n as ConversationInputForm,
+  i as ConversationSources,
   t as DbtDocs,
 };

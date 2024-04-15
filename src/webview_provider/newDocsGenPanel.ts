@@ -68,6 +68,11 @@ export class NewDocsGenPanel
           if (event === undefined) {
             return;
           }
+          this.emitterService.fire({
+            command: "refetchConversations",
+            payload: {},
+          });
+
           this.transmitTestsData();
         },
       ),
@@ -171,6 +176,9 @@ export class NewDocsGenPanel
     const { command, syncRequestId, ...args } = message;
 
     switch (command) {
+      case "refetchConversations":
+        this.emitterService.fire({ command, payload: args });
+        break;
       case "createConversation":
         this.handleSyncRequestFromWebview(
           syncRequestId,
