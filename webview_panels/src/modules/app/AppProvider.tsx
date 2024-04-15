@@ -27,26 +27,28 @@ export const AppContext = createContext<ContextProps>({
 const AppProvider = ({ children }: { children: ReactNode }): JSX.Element => {
   const [state, dispatch] = useReducer(
     appSlice.reducer,
-    appSlice.getInitialState()
+    appSlice.getInitialState(),
   );
 
   useEffect(() => {
     panelLogger.info("updating components api helper");
     // This overrides the components library api methods
+    // @ts-expect-error TODO: add type generic for executeRequestInSync
     ApiHelper.get = async (
       url: string,
       data?: Record<string, unknown>,
-      request?: RequestInit
+      request?: RequestInit,
     ) => {
       return executeRequestInSync("fetch", {
         endpoint: url,
         fetchArgs: { ...data, ...request, method: "GET" },
       });
     };
+    // @ts-expect-error TODO: add type generic for executeRequestInSync
     ApiHelper.post = async (
       url: string,
       data?: Record<string, unknown>,
-      request?: RequestInit
+      request?: RequestInit,
     ) =>
       executeRequestInSync("fetch", {
         endpoint: url,
@@ -60,7 +62,7 @@ const AppProvider = ({ children }: { children: ReactNode }): JSX.Element => {
   }, []);
 
   const postMessageToDataPilot = (
-    data: Partial<DataPilotChat> & { id: DataPilotChat["id"] }
+    data: Partial<DataPilotChat> & { id: DataPilotChat["id"] },
   ) => {
     executeRequestInAsync("datapilot:message", data);
   };
@@ -78,7 +80,7 @@ const AppProvider = ({ children }: { children: ReactNode }): JSX.Element => {
       postMessageToDataPilot,
       toggleDataPilot,
     }),
-    [state, dispatch]
+    [state, dispatch],
   );
 
   return (

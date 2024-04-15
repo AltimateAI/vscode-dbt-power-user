@@ -83,16 +83,6 @@ export declare interface DbtDocsShareDetails {
   share_id: number;
 }
 
-export declare enum LoadingState {
-  LOADING = 0,
-  UNINITIALIZED = 1,
-  INITIALIZED = 2,
-}
-
-export declare interface NewConversation {
-  meta?: ConversationGroup["meta"];
-}
-
 declare interface Props {
   shareId: number;
   userId?: number;
