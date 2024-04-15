@@ -5,6 +5,7 @@ import {
   DBTDocumentationFactory,
   DBTDocumentationTestsFactory,
   TenantUserFactory,
+  ConversationGroupFactory,
 } from "@testUtils";
 import { faker } from "@faker-js/faker";
 import DocumentationEditor from "./DocumentationEditor";
@@ -36,6 +37,7 @@ export const DefaultHelpView = {
   ],
 };
 
+const conversationsList = ConversationGroupFactory.buildList(5);
 const docsDataForTests = DBTDocumentationFactory.build();
 const testsDataForTests = docsDataForTests.columns
   .map((c, i) =>
@@ -72,6 +74,8 @@ export const ModelDocGenView = {
           currentDocsData: docsDataForTests,
           currentDocsTests: testsDataForTests,
           project: faker.system.fileName(),
+          conversations: { 1: conversationsList },
+          showConversationsRightPanel: true,
         },
       },
     }),

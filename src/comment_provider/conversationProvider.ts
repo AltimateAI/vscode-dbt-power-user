@@ -279,7 +279,15 @@ export class ConversationProvider implements Disposable {
           thread.comments = [
             new ConversationComment(
               -1,
-              'This comment is added from documentation editor. Please click "View in documentation editor" button to view in documentation editor',
+              [
+                "This comment is added from documentation editor.",
+                'Please click "View in documentation editor" button to view in documentation editor.\n',
+                conversationGroup.meta.column
+                  ? `Column: ${conversationGroup.meta.column}\n`
+                  : "",
+                "Description:",
+                conversationGroup.meta.highlight,
+              ].join(" "),
               CommentMode.Preview,
               {
                 name: "Altimate",

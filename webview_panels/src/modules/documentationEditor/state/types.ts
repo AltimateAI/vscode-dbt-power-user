@@ -29,6 +29,8 @@ export interface DBTDocumentation {
   generated: boolean;
   aiEnabled: boolean;
   patchPath?: string;
+  resource_type: string;
+  uniqueId: string;
 }
 
 export interface TestMetadataKwArgs {

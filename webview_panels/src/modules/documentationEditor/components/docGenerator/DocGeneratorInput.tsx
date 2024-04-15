@@ -5,7 +5,14 @@ import {
 } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { Input, InputGroup, Stack } from "@uicore";
-import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import GenerateButton, { Variants } from "./GenerateButton";
 import classes from "./docGenInput.module.scss";
 import {
@@ -15,6 +22,7 @@ import {
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import AddCoversationButton from "../conversation/AddCoversationButton";
+import { panelLogger } from "@modules/logger";
 
 interface Props {
   entity: DBTDocumentationColumn | DBTDocumentation;
@@ -28,13 +36,51 @@ const DocGeneratorInput = ({
   placeholder,
   type,
 }: Props): JSX.Element => {
+  const stackRef = useRef<HTMLDivElement | null>(null);
   const {
-    state: { userInstructions, currentDocsData, insertedEntityName },
+    state: {
+      userInstructions,
+      currentDocsData,
+      insertedEntityName,
+      selectedConversationGroupId,
+      conversations,
+    },
     dispatch,
   } = useDocumentationContext();
   const [showButton, setShowButton] = useState(true);
   const [description, setDescription] = useState("");
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+
+  const selectedConversationGroup = useMemo(() => {
+    if (!selectedConversationGroupId) {
+      return null;
+    }
+
+    const allConversationGroups = Object.values(conversations).flat();
+    return allConversationGroups.find(
+      (c) => c.conversation_group_id === selectedConversationGroupId,
+    );
+  }, [conversations, selectedConversationGroupId]);
+
+  useEffect(() => {
+    if (!selectedConversationGroup) {
+      return;
+    }
+    const {
+      meta: { field, column },
+    } = selectedConversationGroup;
+
+    if (field === "description") {
+      const isMatchingEntity = column ? entity.name === column : true;
+      if (isMatchingEntity) {
+        panelLogger.log("scrolling");
+        stackRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+    }
+  }, [selectedConversationGroup]);
 
   useEffect(() => {
     setDescription(entity.description ?? "");
@@ -91,7 +137,7 @@ const DocGeneratorInput = ({
   const variant = entity.description ? Variants.ICON : Variants.ICON_WITH_TEXT;
 
   return (
-    <Stack>
+    <Stack ref={stackRef}>
       <InputGroup className={classes.inputGroup}>
         <Input
           innerRef={inputRef}

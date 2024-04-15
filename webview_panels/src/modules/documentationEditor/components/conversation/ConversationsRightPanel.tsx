@@ -1,8 +1,12 @@
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { Drawer, DrawerRef } from "@uicore";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import classes from "../../styles.module.scss";
-import { ConversationGroup, ConversationGroupProvider } from "@lib";
+import {
+  ConversationGroup,
+  ConversationGroupProvider,
+  DbtDocsShareDetails,
+} from "@lib";
 import { panelLogger } from "@modules/logger";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import {
@@ -15,14 +19,46 @@ const ConversationsRightPanel = (): JSX.Element => {
   const {
     state: {
       showConversationsRightPanel,
-      conversations,
+      conversations: allConversations,
       selectedConversationGroupId,
+      currentDocsData,
     },
     dispatch,
   } = useDocumentationContext();
   const {
     state: { currentUser, users },
   } = useAppContext();
+
+  // Get only conversation groups specific to this model
+  const conversations = useMemo(() => {
+    if (!currentDocsData?.uniqueId || !currentDocsData?.resource_type) {
+      return {};
+    }
+
+    return Object.entries(allConversations).reduce(
+      (
+        acc: Record<DbtDocsShareDetails["share_id"], ConversationGroup[]>,
+        [shareId, conversationGroups],
+      ) => {
+        // match the first conversation
+        const conversationGroup = conversationGroups[0];
+        if (
+          conversationGroup &&
+          conversationGroup.meta.uniqueId === currentDocsData.uniqueId &&
+          conversationGroup.meta.resource_type === currentDocsData.resource_type
+        ) {
+          acc[shareId as unknown as number] = conversationGroups;
+        }
+        return acc;
+      },
+      {},
+    );
+  }, [
+    allConversations,
+    currentDocsData?.resource_type,
+    currentDocsData?.uniqueId,
+  ]);
+
   const drawerRef = useRef<DrawerRef | null>(null);
 
   const onClose = () => {
@@ -32,7 +68,7 @@ const ConversationsRightPanel = (): JSX.Element => {
   const onResolve = (
     conversationGroupId: ConversationGroup["conversation_group_id"],
   ) => {
-    panelLogger.log("onReonResolveplyAdd", conversationGroupId);
+    panelLogger.log("onResolve", conversationGroupId);
     executeRequestInAsync("refetchConversations", {});
   };
   const onSelect = (

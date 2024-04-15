@@ -10391,7 +10391,7 @@ const dc = {
       color: "rgba(0, 5, 15, 0.85)",
     },
     suggestions: {
-      backgroundColor: "#fff",
+      backgroundColor: "var(--background--01)",
       border: "1px solid rgba(0,0,0,0.1)",
       borderRadius: "8px",
       padding: "5px",
@@ -10405,7 +10405,7 @@ const dc = {
         borderRadius: "4px",
         fontWeight: "500",
         "&focused": {
-          backgroundColor: "#F5F6F8",
+          backgroundColor: "var(--background--02)",
         },
       },
     },

@@ -210,6 +210,8 @@ export class DocGenService {
       patchPath: currentNode.patch_path,
       description: currentNode.description,
       generated: false,
+      resource_type: currentNode.resource_type,
+      uniqueId: currentNode.uniqueId,
       columns: Object.values(docColumns).map((column) => {
         return {
           name: column.name,
