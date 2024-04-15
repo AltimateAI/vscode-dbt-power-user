@@ -16,8 +16,10 @@ import documentationSlice, {
   updatConversations,
   updateColumnsAfterSync,
   updateColumnsInCurrentDocsData,
+  updateConversationsRightPanelState,
   updateCurrentDocsData,
   updateCurrentDocsTests,
+  updateSelectedConversationGroup,
   updateUserInstructions,
 } from "./state/documentationSlice";
 import {
@@ -61,6 +63,23 @@ const DocumentationProvider = (): JSX.Element => {
     dispatch(updatConversations({ [shareId]: conversationGroups }));
   };
 
+  const handleViewConversation = ({
+    shareId,
+    conversation_group_id,
+  }: {
+    shareId: DbtDocsShareDetails["share_id"];
+    conversation_group_id: ConversationGroup["conversation_group_id"];
+  }) => {
+    panelLogger.info("handleViewConversation", shareId, conversation_group_id);
+    dispatch(updateConversationsRightPanelState(true));
+    dispatch(
+      updateSelectedConversationGroup({
+        shareId,
+        conversationGroupId: conversation_group_id,
+      }),
+    );
+  };
+
   const onMesssage = useCallback(
     (
       event: MessageEvent<
@@ -77,6 +96,11 @@ const DocumentationProvider = (): JSX.Element => {
     ) => {
       const { command, ...params } = event.data;
       switch (command) {
+        case "viewConversation":
+          handleViewConversation(
+            params as unknown as Parameters<typeof handleViewConversation>["0"],
+          );
+          break;
         case "conversations:updates":
           handleConversationUpdates(
             params as unknown as Parameters<

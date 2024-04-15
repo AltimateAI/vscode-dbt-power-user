@@ -45,12 +45,20 @@ export interface ConversationGroup {
 export class ConversationService {
   // Local cache to store shared docs
   private sharedDocs: SharedDoc[] = [];
+  private conversationsBySharedDoc: Record<
+    SharedDoc["share_id"],
+    ConversationGroup[]
+  > = {};
 
   public constructor(
     private queryManifestService: QueryManifestService,
     private dbtTerminal: DBTTerminal,
     private altimateRequest: AltimateRequest,
   ) {}
+
+  public getConversations() {
+    return this.conversationsBySharedDoc;
+  }
 
   public async loadSharedDocs() {
     try {
@@ -215,6 +223,8 @@ export class ConversationService {
       dbt_docs_share_conversations: ConversationGroup[];
     }>(`dbt/dbt_docs_share/${shareId}/conversations`);
 
+    this.conversationsBySharedDoc[shareId] =
+      conversations.dbt_docs_share_conversations;
     return conversations.dbt_docs_share_conversations;
   }
 

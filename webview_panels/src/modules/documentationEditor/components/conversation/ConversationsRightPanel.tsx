@@ -11,7 +11,7 @@ import { panelLogger } from "@modules/logger";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import {
   updateConversationsRightPanelState,
-  updateSelectedConversationGroupId,
+  updateSelectedConversationGroup,
 } from "@modules/documentationEditor/state/documentationSlice";
 import useAppContext from "@modules/app/useAppContext";
 
@@ -20,7 +20,7 @@ const ConversationsRightPanel = (): JSX.Element => {
     state: {
       showConversationsRightPanel,
       conversations: allConversations,
-      selectedConversationGroupId,
+      selectedConversationGroup,
       currentDocsData,
     },
     dispatch,
@@ -72,9 +72,10 @@ const ConversationsRightPanel = (): JSX.Element => {
     executeRequestInAsync("refetchConversations", {});
   };
   const onSelect = (
+    shareId: DbtDocsShareDetails["share_id"],
     conversationGroupId: ConversationGroup["conversation_group_id"],
   ) => {
-    dispatch(updateSelectedConversationGroupId(conversationGroupId));
+    dispatch(updateSelectedConversationGroup({ conversationGroupId, shareId }));
   };
 
   const onReplyAdd = (
@@ -107,7 +108,7 @@ const ConversationsRightPanel = (): JSX.Element => {
                 conversationGroup={conversationGroup}
                 shareId={shareId as unknown as number}
                 isSelected={
-                  selectedConversationGroupId ===
+                  selectedConversationGroup?.conversationGroupId ===
                   conversationGroup.conversation_group_id
                 }
                 currentUser={currentUser ?? undefined}
@@ -115,7 +116,10 @@ const ConversationsRightPanel = (): JSX.Element => {
                   onResolve(conversationGroup.conversation_group_id)
                 }
                 onSelect={() =>
-                  onSelect(conversationGroup.conversation_group_id)
+                  onSelect(
+                    shareId as unknown as number,
+                    conversationGroup.conversation_group_id,
+                  )
                 }
                 users={users}
                 onReplyAdd={() =>

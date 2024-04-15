@@ -10492,18 +10492,19 @@ const dc = {
       ],
     }),
   To = hc,
-  gc = ({ meta: { highlight: e, filePath: t, field: o } }) =>
-    e
-      ? /* @__PURE__ */ w.jsx("div", {
-          className: Pe.highlightText,
-          children: /* @__PURE__ */ w.jsx(ma, {
-            code: e,
-            language: o ? "markdown" : "sql",
-            showLineNumbers: !o,
-            fileName: t,
-          }),
-        })
-      : null,
+  gc = ({ meta: { highlight: e, filePath: t, field: o, column: n } }) => {
+    if (!e) return null;
+    const r = n ? `${t} (${n})` : t;
+    return /* @__PURE__ */ w.jsx("div", {
+      className: Pe.highlightText,
+      children: /* @__PURE__ */ w.jsx(ma, {
+        code: e,
+        language: o ? "markdown" : "sql",
+        showLineNumbers: !o,
+        fileName: r,
+      }),
+    });
+  },
   Oo = gc,
   vc = () => {
     const e = ce((a) => a.users),
@@ -11168,14 +11169,15 @@ const Ec = /* @__PURE__ */ Ve(yc),
       [s, u] = ge(!1),
       c = Me(
         (h) => {
-          i ||
+          !i ||
             !h ||
+            (console.log("ConversationGroupComponent scrolling"),
             setTimeout(() => {
               h.scrollIntoView({
                 behavior: "smooth",
                 block: "center",
               });
-            }, 100);
+            }, 100));
         },
         [i],
       );

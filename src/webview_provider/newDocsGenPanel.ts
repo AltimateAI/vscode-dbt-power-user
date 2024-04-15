@@ -29,6 +29,7 @@ import { DbtTestService } from "../services/dbtTestService";
 import { UsersService } from "../services/usersService";
 import { ConversationProvider } from "../comment_provider/conversationProvider";
 import { DbtDocsView } from "./DbtDocsView";
+import { ConversationService } from "../services/conversationService";
 
 @provideSingleton(NewDocsGenPanel)
 export class NewDocsGenPanel
@@ -51,6 +52,7 @@ export class NewDocsGenPanel
     protected userService: UsersService,
     private dbtDocsView: DbtDocsView,
     private conversationProvider: ConversationProvider,
+    private conversationService: ConversationService,
   ) {
     super(
       dbtProjectContainer,
@@ -68,10 +70,6 @@ export class NewDocsGenPanel
           if (event === undefined) {
             return;
           }
-          this.emitterService.fire({
-            command: "refetchConversations",
-            payload: {},
-          });
 
           this.transmitTestsData();
         },
@@ -91,6 +89,21 @@ export class NewDocsGenPanel
   protected onWebviewReady() {
     super.onWebviewReady();
     this.transmitTestsData();
+    this.transmitConversationsData();
+  }
+
+  private transmitConversationsData() {
+    const conversations = this.conversationService.getConversations();
+    if (!conversations) {
+      return;
+    }
+    Object.entries(conversations).forEach(([shareId, conversationGroups]) => {
+      this.sendResponseToWebview({
+        command: "conversations:updates",
+        shareId,
+        conversationGroups,
+      });
+    });
   }
 
   resolveWebview(
@@ -309,6 +322,9 @@ export class NewDocsGenPanel
 
   protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
     switch (command) {
+      case "viewConversation":
+        this.sendResponseToWebview({ command, ...payload });
+        break;
       case "conversations:updates":
         this.sendResponseToWebview({ command, ...payload });
         break;

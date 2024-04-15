@@ -50,13 +50,13 @@ const documentationSlice = createSlice({
     ) => {
       state.showConversationsRightPanel = action.payload;
     },
-    updateSelectedConversationGroupId: (
+    updateSelectedConversationGroup: (
       state,
       action: PayloadAction<
-        DocumentationStateProps["selectedConversationGroupId"]
+        DocumentationStateProps["selectedConversationGroup"]
       >,
     ) => {
-      state.selectedConversationGroupId = action.payload;
+      state.selectedConversationGroup = action.payload;
     },
     removeFromSelectedPage: (state, action: PayloadAction<Pages>) => {
       if (state.selectedPages.length === 1) {
@@ -223,6 +223,6 @@ export const {
   removeFromSelectedPage,
   updatConversations,
   updateConversationsRightPanelState,
-  updateSelectedConversationGroupId,
+  updateSelectedConversationGroup,
 } = documentationSlice.actions;
 export default documentationSlice;

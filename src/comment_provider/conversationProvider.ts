@@ -360,7 +360,28 @@ export class ConversationProvider implements Disposable {
   }
 
   async viewInDocEditor(thread: ConversationCommentThread) {
+    this.dbtTerminal.debug(
+      "ConversationProvider:viewInDocEditor",
+      "viewing conversation",
+      thread.share_id,
+      thread.conversation_group_id,
+    );
     commands.executeCommand("dbtPowerUser.DocsEdit.focus");
+    this.emitterService.fire({
+      command: "viewConversation",
+      payload: {
+        shareId: thread.share_id,
+        conversation_group_id: thread.conversation_group_id,
+      },
+    });
+    // When clicking button in vscode comment, active text editor changes to comment
+    // refocussing the model to make sure documentation shows up
+    const editor = window.visibleTextEditors.find(
+      (editor) => editor.document.uri.fsPath === thread.uri.fsPath,
+    );
+    if (editor?.document) {
+      window.showTextDocument(editor.document);
+    }
   }
 
   async viewInDbtDocs(thread: ConversationCommentThread) {

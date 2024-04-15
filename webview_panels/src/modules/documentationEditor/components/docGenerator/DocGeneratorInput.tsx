@@ -42,7 +42,7 @@ const DocGeneratorInput = ({
       userInstructions,
       currentDocsData,
       insertedEntityName,
-      selectedConversationGroupId,
+      selectedConversationGroup,
       conversations,
     },
     dispatch,
@@ -51,33 +51,38 @@ const DocGeneratorInput = ({
   const [description, setDescription] = useState("");
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
 
-  const selectedConversationGroup = useMemo(() => {
-    if (!selectedConversationGroupId) {
-      return null;
+  const selectedConversationGroupData = useMemo(() => {
+    if (!selectedConversationGroup) {
+      return undefined;
     }
 
-    const allConversationGroups = Object.values(conversations).flat();
-    return allConversationGroups.find(
-      (c) => c.conversation_group_id === selectedConversationGroupId,
+    return conversations[selectedConversationGroup.shareId]?.find(
+      (c) =>
+        c.conversation_group_id ===
+        selectedConversationGroup.conversationGroupId,
     );
-  }, [conversations, selectedConversationGroupId]);
+  }, [conversations, selectedConversationGroup]);
 
   useEffect(() => {
-    if (!selectedConversationGroup) {
+    if (!selectedConversationGroupData || !stackRef.current) {
       return;
     }
     const {
       meta: { field, column },
-    } = selectedConversationGroup;
+    } = selectedConversationGroupData;
 
     if (field === "description") {
-      const isMatchingEntity = column ? entity.name === column : true;
+      const isMatchingEntity = column
+        ? entity.name === column
+        : type === EntityType.MODEL;
       if (isMatchingEntity) {
         panelLogger.log("scrolling");
-        stackRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
+        setTimeout(() => {
+          stackRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        }, 500);
       }
     }
   }, [selectedConversationGroup]);
