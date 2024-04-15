@@ -20,7 +20,7 @@ export class BigQueryCostEstimate {
       ".sql",
     );
     if (!returnResult) {
-      this.dbtTerminal.show(true);
+      await this.dbtTerminal.show(true);
     }
     try {
       const query = window.activeTextEditor?.document.getText();

@@ -14,9 +14,9 @@ export class DBTTerminal {
 
   constructor(private telemetry: TelemetryService) {}
 
-  show(status: boolean) {
+  async show(status: boolean) {
     if (status) {
-      this.requireTerminal();
+      await this.requireTerminal();
       this.terminal!.show(!status);
     }
   }
@@ -93,7 +93,7 @@ export class DBTTerminal {
     }
   }
 
-  private requireTerminal() {
+  private async requireTerminal() {
     if (this.terminal === undefined) {
       this.terminal = window.createTerminal({
         name: "Tasks - dbt",
@@ -106,6 +106,7 @@ export class DBTTerminal {
           },
         },
       });
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
 }
