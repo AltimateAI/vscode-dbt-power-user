@@ -183,6 +183,13 @@ export class ConversationProvider implements Disposable {
         (c) => c.status === "Pending",
       );
 
+      this.emitterService.fire({
+        command: "conversations:updates",
+        payload: {
+          shareId: dbtDocsShare.share_id,
+          conversationGroups: pendingConversations,
+        },
+      });
       // If local cache has this share already, find if any conversation is missing from db (which as resolved)
       // can be removed in future if we get right events like delete, add etc.,
       if (this._threads[dbtDocsShare.share_id]) {

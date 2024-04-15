@@ -13,6 +13,7 @@ import documentationSlice, {
   setGenerationsHistory,
   setInsertedEntityName,
   setProject,
+  updatConversations,
   updateColumnsAfterSync,
   updateColumnsInCurrentDocsData,
   updateCurrentDocsData,
@@ -28,6 +29,7 @@ import {
 import { ContextProps } from "./types";
 import { getGenerationsInModel } from "./utils";
 import DocumentationEditor from "./DocumentationEditor";
+import { ConversationGroup, DbtDocsShareDetails } from "@lib";
 
 export const DocumentationContext = createContext<ContextProps>({
   state: initialState,
@@ -48,6 +50,17 @@ const DocumentationProvider = (): JSX.Element => {
     }, 1000);
   };
 
+  const handleConversationUpdates = ({
+    shareId,
+    conversationGroups,
+  }: {
+    shareId: DbtDocsShareDetails["share_id"];
+    conversationGroups: ConversationGroup[];
+  }) => {
+    panelLogger.info("handleConversationUpdates", shareId, conversationGroups);
+    dispatch(updatConversations({ [shareId]: conversationGroups }));
+  };
+
   const onMesssage = useCallback(
     (
       event: MessageEvent<
@@ -64,6 +77,13 @@ const DocumentationProvider = (): JSX.Element => {
     ) => {
       const { command, ...params } = event.data;
       switch (command) {
+        case "conversations:updates":
+          handleConversationUpdates(
+            params as unknown as Parameters<
+              typeof handleConversationUpdates
+            >["0"],
+          );
+          break;
         case "renderTests":
           panelLogger.info("tests data", event.data);
           dispatch(updateCurrentDocsTests(event.data.tests));

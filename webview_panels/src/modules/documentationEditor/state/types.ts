@@ -1,3 +1,4 @@
+import { ConversationGroup, DbtDocsShareDetails } from "@lib";
 import { GenerationDBDataProps } from "../types";
 
 export enum Source {
@@ -71,6 +72,7 @@ export interface DocumentationStateProps {
   isTestUpdatedForAnyColumn: boolean;
   insertedEntityName?: string;
   selectedPages: Pages[];
+  conversations: Record<DbtDocsShareDetails["share_id"], ConversationGroup[]>;
 }
 
 export interface DBTModelTest {

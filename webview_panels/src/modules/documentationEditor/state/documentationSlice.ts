@@ -23,12 +23,21 @@ export const initialState = {
     prompt_hint: undefined,
   },
   selectedPages: [Pages.DOCUMENTATION],
+  conversations: {},
 } as DocumentationStateProps;
 
 const documentationSlice = createSlice({
   name: "documentationState",
   initialState,
   reducers: {
+    updatConversations: (
+      state,
+      { payload }: PayloadAction<DocumentationStateProps["conversations"]>,
+    ) => {
+      Object.entries(payload).forEach(([shareId, conversationGroups]) => {
+        state.conversations[parseInt(shareId)] = conversationGroups;
+      });
+    },
     addToSelectedPage: (state, action: PayloadAction<Pages>) => {
       state.selectedPages.push(action.payload);
     },
@@ -195,5 +204,6 @@ export const {
   updateCurrentDocsTests,
   addToSelectedPage,
   removeFromSelectedPage,
+  updatConversations,
 } = documentationSlice.actions;
 export default documentationSlice;

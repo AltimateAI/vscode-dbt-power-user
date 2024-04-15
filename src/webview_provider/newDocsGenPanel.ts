@@ -301,6 +301,9 @@ export class NewDocsGenPanel
 
   protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
     switch (command) {
+      case "conversations:updates":
+        this.sendResponseToWebview({ command, ...payload });
+        break;
       case "docgen:insert":
       case "testgen:insert":
         this.sendResponseToWebview({
