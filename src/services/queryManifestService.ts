@@ -48,9 +48,14 @@ export class QueryManifestService {
   }
 
   public getProjectNamesInWorkspace(): string[] | undefined {
-    return this.dbtProjectContainer
-      .getProjects()
-      .map((project) => project.getProjectName());
+    // remove duplicates
+    return [
+      ...new Set(
+        this.dbtProjectContainer
+          .getProjects()
+          .map((project) => project.getProjectName()),
+      ),
+    ];
   }
 
   public getProjectByName(projectName: string) {

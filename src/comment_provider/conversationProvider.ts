@@ -20,16 +20,12 @@ import {
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import path = require("path");
-import {
-  Conversation,
-  ConversationGroup,
-  ConversationService,
-  SharedDoc,
-} from "../services/conversationService";
+import { ConversationService } from "../services/conversationService";
 import { SharedStateService } from "../services/sharedStateService";
 import { UsersService } from "../services/usersService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { DBTProject } from "../manifest/dbtProject";
+import { SharedDoc, ConversationGroup, Conversation } from "../altimate";
 
 // Extends vscode commentthread and add extra fields for reference
 export interface ConversationCommentThread extends CommentThread {

@@ -1,4 +1,4 @@
-import { env, Uri, window, workspace } from "vscode";
+import { CommentThread, env, Uri, window, workspace } from "vscode";
 import { provideSingleton, processStreamResponse } from "./utils";
 import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
@@ -251,6 +251,39 @@ interface AltimateConfig {
 
 enum PromptAnswer {
   YES = "Get your free API Key",
+}
+
+export interface SharedDoc {
+  share_id: number;
+  name: string;
+  description: string;
+  project_name: string;
+}
+
+export interface Conversation {
+  conversation_id: number;
+  message: string;
+  timestamp: string;
+  user_id: number;
+}
+
+export interface ConversationGroup {
+  conversation_group_id: number;
+  owner: number;
+  status: "Pending" | "Resolved";
+  meta: {
+    field?: "description";
+    column?: string;
+    highlight: string;
+    uniqueId?: string;
+    filePath: string;
+    resource_type?: string;
+    range: {
+      end: CommentThread["range"]["end"];
+      start: CommentThread["range"]["start"];
+    };
+  };
+  conversations: Conversation[];
 }
 
 @provideSingleton(AltimateRequest)
@@ -698,5 +731,99 @@ export class AltimateRequest {
 
   async getCurrentUser() {
     return await this.fetch<TenantUser>("/dbt/dbt_docs_share/user/details");
+  }
+
+  async getAllSharedDbtDocs(projectNames: string[]) {
+    const params = new URLSearchParams();
+    projectNames.forEach((p) => params.append("projects", p));
+    return await this.fetch<SharedDoc[]>(
+      `dbt/dbt_docs_share/all?${params.toString()}`,
+    );
+  }
+
+  async getAppUrlByShareId(shareId: SharedDoc["share_id"]) {
+    return await this.fetch<{
+      name: string;
+      app_url: string;
+    }>(`dbt/dbt_docs_share/${shareId}`, {
+      method: "GET",
+    });
+  }
+
+  async addConversationToGroup(
+    shareId: SharedDoc["share_id"],
+    conversationGroupId: ConversationGroup["conversation_group_id"],
+    message: string,
+  ) {
+    return await this.fetch<{ ok: boolean }>(
+      `dbt/dbt_docs_share/${shareId}/conversation_group/${conversationGroupId}/conversation`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          message,
+        }),
+      },
+    );
+  }
+
+  async createConversationGroup(
+    shareId: SharedDoc["share_id"],
+    data: Partial<ConversationGroup> & { message: string },
+  ) {
+    return await this.fetch<{
+      conversation_group_id: ConversationGroup["conversation_group_id"];
+      conversation_id: Conversation["conversation_id"];
+    }>(`dbt/dbt_docs_share/${shareId}/conversation_group`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async resolveConversation(
+    shareId: SharedDoc["share_id"],
+    conversationGroupId: ConversationGroup["conversation_group_id"],
+  ) {
+    return await this.fetch<{ ok: boolean }>(
+      `dbt/dbt_docs_share/${shareId}/conversation_group/${conversationGroupId}/resolve`,
+      { method: "POST", body: JSON.stringify({ resolved: true }) },
+    );
+  }
+
+  async loadConversationsByShareId(shareId: SharedDoc["share_id"]) {
+    return await this.fetch<{
+      dbt_docs_share_conversations: ConversationGroup[];
+    }>(`dbt/dbt_docs_share/${shareId}/conversations`);
+  }
+
+  async createDbtDocsShare(
+    data: {
+      name: string;
+      description?: string;
+      uri?: Uri;
+      model?: string;
+    },
+    projectName: string,
+  ) {
+    return await this.fetch<{
+      share_id: number;
+      manifest_presigned_url: string;
+      catalog_presigned_url: string;
+    }>("dbt/dbt_docs_share", {
+      method: "POST",
+      body: JSON.stringify({
+        description: data.description,
+        name: data.name,
+        project_name: projectName,
+      }),
+    });
+  }
+
+  async verifyDbtDocsUpload(share_id: number) {
+    return this.fetch<{
+      dbt_docs_share_url: string;
+    }>("dbt/dbt_docs_share/verify_upload/", {
+      method: "POST",
+      body: JSON.stringify({ share_id }),
+    });
   }
 }
