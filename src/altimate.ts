@@ -726,7 +726,7 @@ export class AltimateRequest {
   }
 
   async getUsersInTenant() {
-    return await this.fetch<TenantUser[]>("/users/chat");
+    return await this.fetch<TenantUser[]>("users/chat");
   }
 
   async getCurrentUser() {
