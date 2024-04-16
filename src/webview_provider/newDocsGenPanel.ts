@@ -1,7 +1,6 @@
 import { readFileSync } from "fs";
 import {
   CancellationToken,
-  CommentThreadCollapsibleState,
   Range,
   TextEditor,
   WebviewView,
@@ -162,28 +161,23 @@ export class NewDocsGenPanel
       throw new Error("Invalid comment");
     }
 
-    const range = new Range(0, 0, 0, 0);
-    const thread = this.conversationProvider.createCommentThread(
+    const result = await this.conversationProvider.saveConversation(
+      comment as string,
       window.activeTextEditor.document.uri,
-      range,
-    );
 
-    if (!thread) {
-      throw new Error("Unable to create comment, Please try again");
-    }
-    thread.collapsibleState = CommentThreadCollapsibleState.Expanded;
-
-    // model editor loses focus when creating comment thread
-    window.showTextDocument(window.activeTextEditor.document);
-
-    await this.conversationProvider.createConversation(
-      {
-        text: comment as string,
-        thread,
-      },
       params.meta,
+      new Range(0, 0, 0, 0),
       "documentation-editor",
     );
+    if (!result?.shareId) {
+      return;
+    }
+    return {
+      [result.shareId]:
+        await this.conversationService.loadConversationsByShareId(
+          result.shareId,
+        ),
+    };
   }
 
   async handleCommand(message: HandleCommandProps): Promise<void> {

@@ -252,6 +252,10 @@ export class ConversationProvider implements Disposable {
             ),
             [],
           ) as ConversationCommentThread);
+        // whenever new comment thread is added, active editor loses focus
+        if (window.activeTextEditor?.document.uri.fsPath === uri.fsPath) {
+          window.showTextDocument(window.activeTextEditor.document);
+        }
         thread.state = CommentThreadState.Unresolved;
         thread.comments = conversationGroup.conversations.map(
           (conversation) =>
@@ -461,15 +465,99 @@ export class ConversationProvider implements Disposable {
     return this.commentController?.createCommentThread(uri, range, []);
   }
 
+  async saveConversation(
+    message: string,
+    uri: Uri,
+    extraMeta: Record<string, unknown> = {},
+    range: Range,
+    source: "vscode" | "documentation-editor" = "vscode",
+  ) {
+    this.telemetry.sendTelemetryEvent("dbtCollaboration:create", {
+      source,
+    });
+    const model = path.basename(uri.fsPath, ".sql");
+    const convertedMessage = this.convertTextToDbFormat(message);
+
+    const nodeMeta = this.getNodeMeta(uri, model);
+
+    // Find selected text
+    const editor = window.visibleTextEditors.find(
+      (editor) => editor.document.uri.fsPath === uri.fsPath,
+    );
+    const project = this.queryManifestService.getProjectByUri(uri);
+    const { value, ...rest } = extraMeta;
+    // update highlighted text as desc if conversation is created from desc field in doc editor
+    const highlight =
+      rest.field === "description"
+        ? (value as string)
+        : (range.isSingleLine
+            ? editor?.document.lineAt(range.start.line).text
+            : editor?.document.getText(range)) || "";
+
+    const meta = {
+      ...rest,
+      highlight,
+      source: "extension",
+      uniqueId: nodeMeta?.uniqueId,
+      filePath: path.relative(project?.projectRoot.fsPath || "", uri.fsPath),
+      resource_type: nodeMeta?.resource_type,
+      range: {
+        end: range.end,
+        start: range.start,
+      },
+    };
+
+    // create share
+    const result = await this.conversationService.shareDbtDocs({
+      name: convertedMessage, // `dbt docs discussion on ${nodeMeta?.uniqueId}`,
+      description: "",
+      uri,
+      model,
+    });
+    // Failing silently, because this case will happen if key is not added
+    // message for adding key will be already shown
+    if (!result) {
+      return;
+    }
+    const { shareId, shareUrl } = result;
+    this.dbtTerminal.debug(
+      "ConversationProvider:createConversation",
+      "created conversation, adding conversation to group",
+      shareId,
+      shareUrl,
+    );
+
+    // create conversation group
+    const addReplyResult =
+      await this.conversationService.createConversationGroup(shareId, {
+        message: convertedMessage,
+        meta,
+      });
+
+    if (!addReplyResult) {
+      throw new Error("Unable to create group");
+    }
+
+    this.dbtTerminal.debug(
+      "ConversationProvider",
+      "added conversation to created conversation group",
+      addReplyResult,
+    );
+
+    return {
+      conversation_id: addReplyResult.conversation_id,
+      shareId,
+      conversation_group_id: addReplyResult.conversation_group_id,
+      meta,
+    };
+  }
+
   async createConversation(
     reply: CommentReply,
     extraMeta: Record<string, unknown> = {},
     source: "vscode" | "documentation-editor" = "vscode",
   ) {
     try {
-      this.telemetry.sendTelemetryEvent("dbtCollaboration:create", {
-        source,
-      });
       this.dbtTerminal.debug(
         "ConversationProvider:createConversation",
         "creating conversation",
@@ -479,83 +567,25 @@ export class ConversationProvider implements Disposable {
       thread.state = CommentThreadState.Unresolved;
       this.addComment(reply);
       thread.label = "Pending";
-      const model = path.basename(thread.uri.fsPath, ".sql");
-      const convertedMessage = this.convertTextToDbFormat(reply.text);
 
-      const nodeMeta = this.getNodeMeta(thread.uri, model);
-
-      // Find selected text
-      const editor = window.visibleTextEditors.find(
-        (editor) => editor.document.uri.fsPath === thread.uri.fsPath,
+      const result = await this.saveConversation(
+        reply.text,
+        thread.uri,
+        extraMeta,
+        thread.range,
+        source,
       );
-      const project = this.queryManifestService.getProjectByUri(thread.uri);
-      const { value, ...rest } = extraMeta;
-      // update highlighted text as desc if conversation is created from desc field in doc editor
-      const highlight =
-        rest.field === "description"
-          ? (value as string)
-          : (thread.range.isSingleLine
-              ? editor?.document.lineAt(thread.range.start.line).text
-              : editor?.document.getText(thread.range)) || "";
 
-      const meta = {
-        ...rest,
-        highlight,
-        source: "extension",
-        uniqueId: nodeMeta?.uniqueId,
-        filePath: path.relative(
-          project?.projectRoot.fsPath || "",
-          thread.uri.fsPath,
-        ),
-        resource_type: nodeMeta?.resource_type,
-        range: {
-          end: thread.range.end,
-          start: thread.range.start,
-        },
-      };
-
-      // create share
-      const result = await this.conversationService.shareDbtDocs({
-        name: convertedMessage, // `dbt docs discussion on ${nodeMeta?.uniqueId}`,
-        description: "",
-        uri: thread.uri,
-        model,
-      });
-      // Failing silently, because this case will happen if key is not added
-      // message for adding key will be already shown
       if (!result) {
         return;
       }
-      const { shareId, shareUrl } = result;
-      this.dbtTerminal.debug(
-        "ConversationProvider:createConversation",
-        "created conversation, adding conversation to group",
-        shareId,
-        shareUrl,
-      );
-
-      // create conversation group
-      const addReplyResult =
-        await this.conversationService.createConversationGroup(shareId, {
-          message: convertedMessage,
-          meta,
-        });
-
-      if (!addReplyResult) {
-        throw new Error("Unable to create group");
-      }
+      const { conversation_id, shareId, conversation_group_id, meta } = result;
 
       (thread.comments[0] as ConversationComment).conversation_id =
-        addReplyResult.conversation_id;
+        conversation_id;
       thread.share_id = shareId;
-      thread.conversation_group_id = addReplyResult.conversation_group_id;
+      thread.conversation_group_id = conversation_group_id;
       thread.meta = meta;
-
-      this.dbtTerminal.debug(
-        "ConversationProvider",
-        "added conversation to created conversation group",
-        addReplyResult,
-      );
 
       this._threads[shareId] = {
         ...this._threads[shareId],
