@@ -611,22 +611,22 @@
         {
           "command": "dbtPowerUser.viewInDocEditor",
           "group": "navigation",
-          "when": "commentController == altimate-conversations && commentThread =~ /docEditor/"
+          "when": "commentController == altimate-conversations && (commentThread =~ /saved/) && commentThread =~ /docEditor/"
         },
         {
           "command": "dbtPowerUser.copyDbtDocsLink",
           "group": "navigation",
-          "when": "commentController == altimate-conversations"
+          "when": "commentController == altimate-conversations && (commentThread =~ /saved/)"
         },
         {
           "command": "dbtPowerUser.viewInDbtDocs",
           "group": "navigation",
-          "when": "commentController == altimate-conversations"
+          "when": "commentController == altimate-conversations && (commentThread =~ /saved/)"
         },
         {
           "command": "dbtPowerUser.resolveConversation",
           "group": "inline",
-          "when": "commentController == altimate-conversations && !commentThreadIsEmpty"
+          "when": "commentController == altimate-conversations && !commentThreadIsEmpty && (commentThread =~ /saved/)"
         }
       ],
       "comments/commentThread/context": [

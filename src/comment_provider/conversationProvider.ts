@@ -321,6 +321,7 @@ export class ConversationProvider implements Disposable {
 
   private addComment(reply: CommentReply) {
     const thread = reply.thread;
+    thread.contextValue = "saving";
     const newComment = new ConversationComment(
       -1,
       new MarkdownString(reply.text),
@@ -536,6 +537,7 @@ export class ConversationProvider implements Disposable {
         ...this._threads[shareId],
         [thread.conversation_group_id]: thread,
       };
+      thread.contextValue = "saved";
     } catch (error) {
       this.dbtTerminal.error(
         "ConversationProvider:createConversation",
@@ -592,6 +594,7 @@ export class ConversationProvider implements Disposable {
         ),
       );
     }
+    thread.contextValue = "saved";
   }
 
   async resolveConversation(commentThread: ConversationCommentThread) {
