@@ -26,6 +26,7 @@ import { UsersService } from "../services/usersService";
 import { QueryManifestService } from "../services/queryManifestService";
 import { DBTProject } from "../manifest/dbtProject";
 import { SharedDoc, ConversationGroup, Conversation } from "../altimate";
+import { TelemetryService } from "../telemetry";
 
 // Extends vscode commentthread and add extra fields for reference
 export interface ConversationCommentThread extends CommentThread {
@@ -70,6 +71,7 @@ export class ConversationProvider implements Disposable {
     private dbtTerminal: DBTTerminal,
     private emitterService: SharedStateService,
     private queryManifestService: QueryManifestService,
+    private telemetry: TelemetryService,
   ) {
     if (!this.isCollaborationEnabled()) {
       return;
@@ -251,9 +253,6 @@ export class ConversationProvider implements Disposable {
             [],
           ) as ConversationCommentThread);
         thread.state = CommentThreadState.Unresolved;
-        // Only from docs editor, we can start conversation per field
-        const isInDocsEditor = !!conversationGroup.meta.field;
-        thread.contextValue = isInDocsEditor ? "docEditor" : "";
         thread.comments = conversationGroup.conversations.map(
           (conversation) =>
             new ConversationComment(
@@ -271,6 +270,7 @@ export class ConversationProvider implements Disposable {
             ),
         );
 
+        const isInDocsEditor = !!conversationGroup.meta.field;
         if (isInDocsEditor) {
           thread.comments = [
             new ConversationComment(
@@ -299,6 +299,7 @@ export class ConversationProvider implements Disposable {
         thread.meta = conversationGroup.meta;
         thread.share_id = dbtDocsShare.share_id;
         thread.label = "Discussion";
+        this.addContextValue(thread);
 
         // update the local cache
         this._threads[dbtDocsShare.share_id] = {
@@ -307,6 +308,15 @@ export class ConversationProvider implements Disposable {
         };
       });
     });
+  }
+
+  private addContextValue(thread: ConversationCommentThread) {
+    let contextValue = "saved";
+
+    if (thread.meta.field === "description") {
+      contextValue += "|description";
+    }
+    thread.contextValue = contextValue;
   }
 
   // convert "@[john](john)" to "@john"
@@ -338,6 +348,9 @@ export class ConversationProvider implements Disposable {
   }
 
   async copyThreadLink(thread: ConversationCommentThread) {
+    this.telemetry.sendTelemetryEvent("dbtCollaboration:copyLink", {
+      source: "vscode",
+    });
     if (!thread.share_id) {
       window.showErrorMessage(
         extendErrorWithSupportLinks("Unable to find conversation."),
@@ -357,6 +370,9 @@ export class ConversationProvider implements Disposable {
   }
 
   async viewInDocEditor(thread: ConversationCommentThread) {
+    this.telemetry.sendTelemetryEvent("dbtCollaboration:viewInDocEditor", {
+      source: "vscode",
+    });
     this.dbtTerminal.debug(
       "ConversationProvider:viewInDocEditor",
       "viewing conversation",
@@ -382,6 +398,9 @@ export class ConversationProvider implements Disposable {
   }
 
   async viewInDbtDocs(thread: ConversationCommentThread) {
+    this.telemetry.sendTelemetryEvent("dbtCollaboration:viewInDbtDocs", {
+      source: "vscode",
+    });
     if (!thread.share_id) {
       window.showErrorMessage(
         extendErrorWithSupportLinks("Unable to find conversation."),
@@ -445,8 +464,12 @@ export class ConversationProvider implements Disposable {
   async createConversation(
     reply: CommentReply,
     extraMeta: Record<string, unknown> = {},
+    source: "vscode" | "documentation-editor" = "vscode",
   ) {
     try {
+      this.telemetry.sendTelemetryEvent("dbtCollaboration:create", {
+        source,
+      });
       this.dbtTerminal.debug(
         "ConversationProvider:createConversation",
         "creating conversation",
@@ -455,6 +478,7 @@ export class ConversationProvider implements Disposable {
       const thread = reply.thread as ConversationCommentThread;
       thread.state = CommentThreadState.Unresolved;
       this.addComment(reply);
+      thread.label = "Pending";
       const model = path.basename(thread.uri.fsPath, ".sql");
       const convertedMessage = this.convertTextToDbFormat(reply.text);
 
@@ -537,7 +561,8 @@ export class ConversationProvider implements Disposable {
         ...this._threads[shareId],
         [thread.conversation_group_id]: thread,
       };
-      thread.contextValue = "saved";
+      thread.label = "Discussion";
+      this.addContextValue(thread);
     } catch (error) {
       this.dbtTerminal.error(
         "ConversationProvider:createConversation",
@@ -555,6 +580,10 @@ export class ConversationProvider implements Disposable {
   }
 
   async replyToConversation(reply: CommentReply) {
+    this.telemetry.sendTelemetryEvent("dbtCollaboration:reply", {
+      source: "vscode",
+    });
+
     const thread = reply.thread as ConversationCommentThread;
     try {
       if (!thread.share_id) {
@@ -594,11 +623,14 @@ export class ConversationProvider implements Disposable {
         ),
       );
     }
-    thread.contextValue = "saved";
+    this.addContextValue(thread);
   }
 
   async resolveConversation(commentThread: ConversationCommentThread) {
     try {
+      this.telemetry.sendTelemetryEvent("dbtCollaboration:resolve", {
+        source: "vscode",
+      });
       if (!commentThread.share_id) {
         throw new Error("Unable to find conversation. Missing share id");
       }

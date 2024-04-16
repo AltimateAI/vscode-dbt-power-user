@@ -611,7 +611,7 @@
         {
           "command": "dbtPowerUser.viewInDocEditor",
           "group": "navigation",
-          "when": "commentController == altimate-conversations && (commentThread =~ /saved/) && commentThread =~ /docEditor/"
+          "when": "commentController == altimate-conversations && (commentThread =~ /saved/) && commentThread =~ /description/"
         },
         {
           "command": "dbtPowerUser.copyDbtDocsLink",

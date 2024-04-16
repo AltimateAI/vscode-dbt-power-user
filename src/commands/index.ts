@@ -24,7 +24,6 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { SharedStateService } from "../services/sharedStateService";
 import {
   ConversationProvider,
-  ConversationComment,
   ConversationCommentThread,
 } from "../comment_provider/conversationProvider";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";

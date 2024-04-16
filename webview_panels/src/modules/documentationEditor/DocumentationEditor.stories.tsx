@@ -75,7 +75,7 @@ export const ModelDocGenView = {
           currentDocsTests: testsDataForTests,
           project: faker.system.fileName(),
           conversations: { 1: conversationsList },
-          showConversationsRightPanel: true,
+          showConversationsRightPanel: false,
         },
       },
     }),

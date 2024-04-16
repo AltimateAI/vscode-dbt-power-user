@@ -64,6 +64,7 @@ export declare const ConversationGroupProvider: ({
   users,
   onResolve,
   onReplyAdd,
+  source,
 }: Props_3) => JSX.Element | null;
 
 export declare const ConversationInputForm: ({
@@ -77,8 +78,9 @@ export declare const ConversationInputForm: ({
 }: Props_2) => JSX_2.Element;
 
 export declare enum ConversationSources {
-  EXTENSION = "extension",
-  SOURCES = "sources",
+  DBT_DOCS = "dbt-docs",
+  DOCUMENTATION_EDITOR = "documentation-editor",
+  SAAS = "saas",
 }
 
 export declare const DbtDocs: ({
@@ -120,6 +122,7 @@ declare interface Props_3 {
   onSelect: () => void;
   onResolve: () => void;
   onReplyAdd: () => void;
+  source: ConversationSources;
 }
 
 declare interface Props_4 {

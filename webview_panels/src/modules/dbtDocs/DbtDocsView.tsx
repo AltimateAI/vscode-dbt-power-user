@@ -1,4 +1,4 @@
-import { DbtDocs } from "@lib";
+import { ConversationSources, DbtDocs } from "@lib";
 import { IncomingMessageProps } from "@modules/app/types";
 import useAppContext from "@modules/app/useAppContext";
 import { useCallback, useEffect, useState } from "react";
@@ -9,9 +9,7 @@ const DbtDocsView = (): JSX.Element => {
   } = useAppContext();
 
   const [shareId, setShareId] = useState<number>();
-  const [conversationGroupId, setConversationGroupId] = useState<
-    number
-  >();
+  const [conversationGroupId, setConversationGroupId] = useState<number>();
   const [userId, setUserId] = useState<number>();
 
   const onMesssage = useCallback(
@@ -49,8 +47,7 @@ const DbtDocsView = (): JSX.Element => {
         shareId={shareId}
         userId={userId}
         conversationGroupId={conversationGroupId}
-        // @ts-expect-error valid type
-        source={"extension"}
+        source={ConversationSources.DBT_DOCS}
       />
     </div>
   );

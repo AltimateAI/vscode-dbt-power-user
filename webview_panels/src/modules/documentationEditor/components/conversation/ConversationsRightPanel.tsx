@@ -5,6 +5,7 @@ import classes from "../../styles.module.scss";
 import {
   ConversationGroup,
   ConversationGroupProvider,
+  ConversationSources,
   DbtDocsShareDetails,
 } from "@lib";
 import { panelLogger } from "@modules/logger";
@@ -40,14 +41,18 @@ const ConversationsRightPanel = (): JSX.Element => {
         acc: Record<DbtDocsShareDetails["share_id"], ConversationGroup[]>,
         [shareId, conversationGroups],
       ) => {
-        // match the first conversation
-        const conversationGroup = conversationGroups[0];
-        if (
-          conversationGroup &&
-          conversationGroup.meta.uniqueId === currentDocsData.uniqueId &&
-          conversationGroup.meta.resource_type === currentDocsData.resource_type
-        ) {
-          acc[shareId as unknown as number] = conversationGroups;
+        // Find conversation groups which are added for this model and has field column
+        const conversationGroupsInCurrentModel = conversationGroups.filter(
+          (conversationGroup) =>
+            conversationGroup.meta.uniqueId === currentDocsData.uniqueId &&
+            conversationGroup.meta.resource_type ===
+              currentDocsData.resource_type &&
+            conversationGroup.meta.field,
+        );
+
+        // show the share doc only if atleast one conv group is in this model
+        if (conversationGroupsInCurrentModel.length) {
+          acc[shareId as unknown as number] = conversationGroupsInCurrentModel;
         }
         return acc;
       },
@@ -125,6 +130,7 @@ const ConversationsRightPanel = (): JSX.Element => {
                 onReplyAdd={() =>
                   onReplyAdd(conversationGroup.conversation_group_id)
                 }
+                source={ConversationSources.DOCUMENTATION_EDITOR}
               />
             )),
           )

@@ -148,7 +148,7 @@ export class NewDocsGenPanel
     };
   }
 
-  private createConversation({
+  private async createConversation({
     comment,
     ...params
   }: {
@@ -176,12 +176,13 @@ export class NewDocsGenPanel
     // model editor loses focus when creating comment thread
     window.showTextDocument(window.activeTextEditor.document);
 
-    this.conversationProvider.createConversation(
+    await this.conversationProvider.createConversation(
       {
         text: comment as string,
         thread,
       },
       params.meta,
+      "documentation-editor",
     );
   }
 

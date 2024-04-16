@@ -39,6 +39,11 @@ const AppProvider = ({ children }: { children: ReactNode }): JSX.Element => {
       data?: Record<string, unknown>,
       request?: RequestInit,
     ) => {
+      if (data?.telemetry) {
+        executeRequestInAsync("sendTelemetryEvent", {
+          ...data.telemetry,
+        });
+      }
       return executeRequestInSync("fetch", {
         endpoint: url,
         fetchArgs: { ...data, ...request, method: "GET" },
@@ -49,8 +54,14 @@ const AppProvider = ({ children }: { children: ReactNode }): JSX.Element => {
       url: string,
       data?: Record<string, unknown>,
       request?: RequestInit,
-    ) =>
-      executeRequestInSync("fetch", {
+    ) => {
+      if (data?.telemetry) {
+        executeRequestInAsync("sendTelemetryEvent", {
+          ...data.telemetry,
+        });
+      }
+
+      return executeRequestInSync("fetch", {
         endpoint: url,
         fetchArgs: {
           ...request,
@@ -58,6 +69,7 @@ const AppProvider = ({ children }: { children: ReactNode }): JSX.Element => {
           method: "POST",
         },
       });
+    };
     dispatch(updateIsComponentsApiInitialized(true));
   }, []);
 
