@@ -38,20 +38,26 @@ import { existsSync } from "fs";
 import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
 import { ProjectHealthcheck } from "./dbtCoreIntegration";
+import which = require("which");
 
-function getDBTPath(
+async function getDBTPath(
   pythonEnvironment: PythonEnvironment,
   terminal: DBTTerminal,
-): string {
+): Promise<string> {
   if (pythonEnvironment.pythonPath) {
     const dbtPythonPath = join(dirname(pythonEnvironment.pythonPath), "dbt");
     if (existsSync(dbtPythonPath)) {
-      terminal.debug("Found dbt path in Python bin directory:", dbtPythonPath);
+      terminal.debug(
+        "getDBTPath",
+        "Found dbt path in Python bin directory:",
+        dbtPythonPath,
+      );
       return dbtPythonPath;
     }
   }
-  terminal.debug("Using default dbt path:", "dbt");
-  return "dbt";
+  const defaultDbtPath = await which("sqlfmt");
+  terminal.debug("getDBTPath", "Using default dbt path:", defaultDbtPath);
+  return defaultDbtPath;
 }
 
 @provideSingleton(DBTCloudDetection)
@@ -63,7 +69,7 @@ export class DBTCloudDetection implements DBTDetection {
   ) {}
 
   async detectDBT(): Promise<boolean> {
-    const dbtPath = getDBTPath(this.pythonEnvironment, this.terminal);
+    const dbtPath = await getDBTPath(this.pythonEnvironment, this.terminal);
     try {
       this.terminal.debug("DBTCLIDetection", "Detecting dbt cloud cli");
       const checkDBTInstalledProcess =
@@ -270,7 +276,7 @@ export class DBTCloudProjectIntegration
         "Error occurred while initializing Python environment: " + error,
       );
     }
-    this.dbtPath = getDBTPath(this.pythonEnvironment, this.terminal);
+    this.dbtPath = await getDBTPath(this.pythonEnvironment, this.terminal);
   }
 
   getTargetPath(): string | undefined {
