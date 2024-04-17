@@ -55,7 +55,7 @@ async function getDBTPath(
       return dbtPythonPath;
     }
   }
-  const defaultDbtPath = await which("sqlfmt");
+  const defaultDbtPath = await which("dbt");
   terminal.debug("getDBTPath", "Using default dbt path:", defaultDbtPath);
   return defaultDbtPath;
 }
