@@ -71,6 +71,11 @@
             "type": "boolean",
             "description": "Enable the new lineage panel in dbt."
           },
+          "dbt.enableCollaboration": {
+            "type": "boolean",
+            "description": "Enable dbt docs collaboration.",
+            "default": false
+          },
           "dbt.enableNewDocsPanel": {
             "type": "boolean",
             "description": "Enable the new docs panel in dbt.",
@@ -139,6 +144,12 @@
             "description": "The maximum number of rows the `Preview SQL Query` command returns.",
             "default": 500,
             "minimum": 1
+          },
+          "dbt.conversationsPollingInterval": {
+            "type": "integer",
+            "description": "Polling interval to fetch latest conversations (in seconds)",
+            "default": 120,
+            "minimum": 30
           },
           "dbt.queryTemplate": {
             "type": "string",
@@ -307,6 +318,38 @@
       ]
     },
     "commands": [
+      {
+        "command": "dbtPowerUser.resolveConversation",
+        "title": "Resolve",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.createConversation",
+        "title": "Publish",
+        "category": "dbt Power User",
+        "enablement": "!commentIsEmpty"
+      },
+      {
+        "command": "dbtPowerUser.viewInDbtDocs",
+        "title": "View in dbt docs",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.copyDbtDocsLink",
+        "title": "Copy link",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.viewInDocEditor",
+        "title": "View in documentation editor",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.replyToConversation",
+        "title": "Reply",
+        "enablement": "!commentIsEmpty",
+        "category": "dbt Power User"
+      },
       {
         "command": "dbtPowerUser.puQuickPick",
         "category": "dbt Power User",
@@ -564,6 +607,40 @@
       }
     ],
     "menus": {
+      "comments/commentThread/title": [
+        {
+          "command": "dbtPowerUser.viewInDocEditor",
+          "group": "navigation",
+          "when": "commentController == altimate-conversations && (commentThread =~ /saved/) && commentThread =~ /description/"
+        },
+        {
+          "command": "dbtPowerUser.copyDbtDocsLink",
+          "group": "navigation",
+          "when": "commentController == altimate-conversations && (commentThread =~ /saved/)"
+        },
+        {
+          "command": "dbtPowerUser.viewInDbtDocs",
+          "group": "navigation",
+          "when": "commentController == altimate-conversations && (commentThread =~ /saved/)"
+        },
+        {
+          "command": "dbtPowerUser.resolveConversation",
+          "group": "inline",
+          "when": "commentController == altimate-conversations && !commentThreadIsEmpty && (commentThread =~ /saved/)"
+        }
+      ],
+      "comments/commentThread/context": [
+        {
+          "command": "dbtPowerUser.createConversation",
+          "group": "inline@1",
+          "when": "commentController == altimate-conversations && commentThreadIsEmpty"
+        },
+        {
+          "command": "dbtPowerUser.replyToConversation",
+          "group": "inline",
+          "when": "commentController == altimate-conversations && !commentThreadIsEmpty"
+        }
+      ],
       "dbtPowerUser.datapilotSubmenu": [
         {
           "command": "dbtPowerUser.openDatapilotWithQuery",

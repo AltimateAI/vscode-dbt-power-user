@@ -108,5 +108,11 @@ module.exports = {
         ],
       },
     },
+      {
+        "files": ["src/lib/altimate/altimate-components.d.ts"],
+        "rules": {
+          "@typescript-eslint/naming-convention": "off"
+        }
+      }
   ],
 };

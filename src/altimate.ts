@@ -1,10 +1,10 @@
-import { env, Uri, window, workspace } from "vscode";
+import { CommentThread, env, Uri, window, workspace } from "vscode";
 import { provideSingleton, processStreamResponse } from "./utils";
 import fetch from "node-fetch";
 import { ColumnMetaData, NodeMetaData, SourceMetaData } from "./domain";
 import { TelemetryService } from "./telemetry";
 import { join } from "path";
-import { createWriteStream, mkdirSync } from "fs";
+import { createReadStream, createWriteStream, mkdirSync, ReadStream } from "fs";
 import * as os from "os";
 import { RateLimitException } from "./exceptions";
 import { DBTProject } from "./manifest/dbtProject";
@@ -224,6 +224,22 @@ export interface ValidateSqlParseErrorResponse {
   }[];
 }
 
+export interface TenantUser {
+  id: number;
+  uuid: string;
+  display_name: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  is_active: boolean;
+  is_verified: boolean;
+  is_invited: boolean;
+  is_onboarded: boolean;
+  created_at: string;
+  role_title: string;
+}
+
 interface FeedbackResponse {
   ok: boolean;
 }
@@ -235,6 +251,39 @@ interface AltimateConfig {
 
 enum PromptAnswer {
   YES = "Get your free API Key",
+}
+
+export interface SharedDoc {
+  share_id: number;
+  name: string;
+  description: string;
+  project_name: string;
+}
+
+export interface Conversation {
+  conversation_id: number;
+  message: string;
+  timestamp: string;
+  user_id: number;
+}
+
+export interface ConversationGroup {
+  conversation_group_id: number;
+  owner: number;
+  status: "Pending" | "Resolved";
+  meta: {
+    field?: "description";
+    column?: string;
+    highlight: string;
+    uniqueId?: string;
+    filePath: string;
+    resource_type?: string;
+    range: {
+      end: CommentThread["range"]["end"];
+      start: CommentThread["range"]["start"];
+    };
+  };
+  conversations: Conversation[];
 }
 
 @provideSingleton(AltimateRequest)
@@ -395,6 +444,52 @@ export class AltimateRequest {
       clearTimeout(timeoutHandler);
     }
     return null;
+  }
+
+  private async readStreamToBlob(stream: ReadStream) {
+    return new Promise((resolve, reject) => {
+      const chunks: any[] = [];
+      stream.on("data", (chunk) => chunks.push(chunk));
+      stream.on("end", () => {
+        const blob = new Blob(chunks);
+        resolve(blob);
+      });
+      stream.on("error", reject);
+    });
+  }
+
+  async uploadToS3(
+    endpoint: string,
+    fetchArgs: Record<string, unknown>,
+    filePath: string,
+  ) {
+    this.dbtTerminal.debug("uploadToS3:", endpoint, fetchArgs, filePath);
+
+    const blob = (await this.readStreamToBlob(
+      createReadStream(filePath),
+    )) as Blob;
+    const response = await fetch(endpoint, {
+      ...fetchArgs,
+      method: "PUT",
+      body: blob,
+    });
+
+    this.dbtTerminal.debug(
+      "uploadToS3:response:",
+      `${response.status}`,
+      response.statusText,
+    );
+    if (!response.ok || response.status !== 200) {
+      const textResponse = await response.text();
+      this.telemetry.sendTelemetryError("uploadToS3", {
+        endpoint,
+        status: response.status,
+        textResponse,
+      });
+      throw new Error("Failed to upload data to signed url");
+    }
+
+    return response;
   }
 
   async fetch<T>(
@@ -628,5 +723,107 @@ export class AltimateRequest {
     return this.fetch<{ altimate_datapilot_version: string }>(
       `dbtconfig/datapilot_version/${extension_version}`,
     );
+  }
+
+  async getUsersInTenant() {
+    return await this.fetch<TenantUser[]>("users/chat");
+  }
+
+  async getCurrentUser() {
+    return await this.fetch<TenantUser>("/dbt/dbt_docs_share/user/details");
+  }
+
+  async getAllSharedDbtDocs(projectNames: string[]) {
+    const params = new URLSearchParams();
+    projectNames.forEach((p) => params.append("projects", p));
+    return await this.fetch<SharedDoc[]>(
+      `dbt/dbt_docs_share/all?${params.toString()}`,
+    );
+  }
+
+  async getAppUrlByShareId(shareId: SharedDoc["share_id"]) {
+    return await this.fetch<{
+      name: string;
+      app_url: string;
+    }>(`dbt/dbt_docs_share/${shareId}`, {
+      method: "GET",
+    });
+  }
+
+  async addConversationToGroup(
+    shareId: SharedDoc["share_id"],
+    conversationGroupId: ConversationGroup["conversation_group_id"],
+    message: string,
+  ) {
+    return await this.fetch<{ ok: boolean }>(
+      `dbt/dbt_docs_share/${shareId}/conversation_group/${conversationGroupId}/conversation`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          message,
+        }),
+      },
+    );
+  }
+
+  async createConversationGroup(
+    shareId: SharedDoc["share_id"],
+    data: Partial<ConversationGroup> & { message: string },
+  ) {
+    return await this.fetch<{
+      conversation_group_id: ConversationGroup["conversation_group_id"];
+      conversation_id: Conversation["conversation_id"];
+    }>(`dbt/dbt_docs_share/${shareId}/conversation_group`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async resolveConversation(
+    shareId: SharedDoc["share_id"],
+    conversationGroupId: ConversationGroup["conversation_group_id"],
+  ) {
+    return await this.fetch<{ ok: boolean }>(
+      `dbt/dbt_docs_share/${shareId}/conversation_group/${conversationGroupId}/resolve`,
+      { method: "POST", body: JSON.stringify({ resolved: true }) },
+    );
+  }
+
+  async loadConversationsByShareId(shareId: SharedDoc["share_id"]) {
+    return await this.fetch<{
+      dbt_docs_share_conversations: ConversationGroup[];
+    }>(`dbt/dbt_docs_share/${shareId}/conversations`);
+  }
+
+  async createDbtDocsShare(
+    data: {
+      name: string;
+      description?: string;
+      uri?: Uri;
+      model?: string;
+    },
+    projectName: string,
+  ) {
+    return await this.fetch<{
+      share_id: number;
+      manifest_presigned_url: string;
+      catalog_presigned_url: string;
+    }>("dbt/dbt_docs_share", {
+      method: "POST",
+      body: JSON.stringify({
+        description: data.description,
+        name: data.name,
+        project_name: projectName,
+      }),
+    });
+  }
+
+  async verifyDbtDocsUpload(share_id: number) {
+    return this.fetch<{
+      dbt_docs_share_url: string;
+    }>("dbt/dbt_docs_share/verify_upload/", {
+      method: "POST",
+      body: JSON.stringify({ share_id }),
+    });
   }
 }

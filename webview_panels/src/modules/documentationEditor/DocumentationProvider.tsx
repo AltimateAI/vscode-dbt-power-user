@@ -13,10 +13,14 @@ import documentationSlice, {
   setGenerationsHistory,
   setInsertedEntityName,
   setProject,
+  updatConversations,
+  updateCollaborationEnabled,
   updateColumnsAfterSync,
   updateColumnsInCurrentDocsData,
+  updateConversationsRightPanelState,
   updateCurrentDocsData,
   updateCurrentDocsTests,
+  updateSelectedConversationGroup,
   updateUserInstructions,
 } from "./state/documentationSlice";
 import {
@@ -28,6 +32,7 @@ import {
 import { ContextProps } from "./types";
 import { getGenerationsInModel } from "./utils";
 import DocumentationEditor from "./DocumentationEditor";
+import { ConversationGroup, DbtDocsShareDetails } from "@lib";
 
 export const DocumentationContext = createContext<ContextProps>({
   state: initialState,
@@ -48,6 +53,34 @@ const DocumentationProvider = (): JSX.Element => {
     }, 1000);
   };
 
+  const handleConversationUpdates = ({
+    shareId,
+    conversationGroups,
+  }: {
+    shareId: DbtDocsShareDetails["share_id"];
+    conversationGroups: ConversationGroup[];
+  }) => {
+    panelLogger.info("handleConversationUpdates", shareId, conversationGroups);
+    dispatch(updatConversations({ [shareId]: conversationGroups }));
+  };
+
+  const handleViewConversation = ({
+    shareId,
+    conversation_group_id,
+  }: {
+    shareId: DbtDocsShareDetails["share_id"];
+    conversation_group_id: ConversationGroup["conversation_group_id"];
+  }) => {
+    panelLogger.info("handleViewConversation", shareId, conversation_group_id);
+    dispatch(updateConversationsRightPanelState(true));
+    dispatch(
+      updateSelectedConversationGroup({
+        shareId,
+        conversationGroupId: conversation_group_id,
+      }),
+    );
+  };
+
   const onMesssage = useCallback(
     (
       event: MessageEvent<
@@ -59,11 +92,24 @@ const DocumentationProvider = (): JSX.Element => {
           model?: string;
           name?: string;
           description?: string;
+          collaborationEnabled?: boolean;
         }
       >,
     ) => {
       const { command, ...params } = event.data;
       switch (command) {
+        case "viewConversation":
+          handleViewConversation(
+            params as unknown as Parameters<typeof handleViewConversation>["0"],
+          );
+          break;
+        case "conversations:updates":
+          handleConversationUpdates(
+            params as unknown as Parameters<
+              typeof handleConversationUpdates
+            >["0"],
+          );
+          break;
         case "renderTests":
           panelLogger.info("tests data", event.data);
           dispatch(updateCurrentDocsTests(event.data.tests));
@@ -72,6 +118,11 @@ const DocumentationProvider = (): JSX.Element => {
         case "renderDocumentation":
           dispatch(updateCurrentDocsData(event.data.docs));
           dispatch(setProject(event.data.project));
+          dispatch(
+            updateCollaborationEnabled(
+              Boolean(event.data.collaborationEnabled),
+            ),
+          );
           break;
         case "renderColumnsFromMetadataFetch":
           if (event.data.columns) {

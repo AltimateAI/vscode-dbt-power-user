@@ -30,6 +30,8 @@ export const DBTDocumentationFactory = Sync.makeFactory<DBTDocumentation>({
   generated: faker.datatype.boolean(),
   name: each(() => faker.database.column()),
   patchPath: undefined,
+  uniqueId: "",
+  resource_type: "model",
 });
 
 const getName = (i: number) => {

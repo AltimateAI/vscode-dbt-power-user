@@ -8,16 +8,8 @@
 
   :global .card-body {
     > span {
-      background: transparent !important;
-
-      code {
-        background: transparent !important;
-        span{
-         background: transparent !important;
-      }
         padding: 0 !important;
         max-height: 250px;
-      }
     }
   }
 }

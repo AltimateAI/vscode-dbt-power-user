@@ -27,6 +27,7 @@ import { DeferToProdService } from "../services/deferToProdService";
 import { ManifestPathType } from "../constants";
 import { QueryManifestService } from "../services/queryManifestService";
 import { ValidationProvider } from "../validation_provider";
+import { UsersService } from "../services/usersService";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];
@@ -77,6 +78,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
     protected queryManifestService: QueryManifestService,
     private deferToProdService: DeferToProdService,
     private validationProvider: ValidationProvider,
+    protected usersService: UsersService,
   ) {
     super(
       dbtProjectContainer,
@@ -85,6 +87,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       emitterService,
       dbtTerminal,
       queryManifestService,
+      usersService,
     );
 
     this._disposables.push(

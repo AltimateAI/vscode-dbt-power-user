@@ -37,7 +37,7 @@ const GenerateButton = ({
     }
   };
   return (
-    <Button color="primary" onClick={onSubmit}>
+    <Button color="primary" onClick={onSubmit} title="Generate description">
       {getButtonText()}
     </Button>
   );

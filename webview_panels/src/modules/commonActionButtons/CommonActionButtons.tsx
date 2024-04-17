@@ -4,6 +4,7 @@ import useDocumentationContext from "@modules/documentationEditor/state/useDocum
 import { Pages } from "@modules/documentationEditor/state/types";
 import FeedbackButton from "./FeedbackButton";
 import HelpButton from "./HelpButton";
+import ShowConversationsButton from "@modules/documentationEditor/components/conversation/ShowConversationsButton";
 
 const CommonActionButtons = (): JSX.Element => {
   const {
@@ -12,6 +13,7 @@ const CommonActionButtons = (): JSX.Element => {
 
   return (
     <Stack className="align-items-center text-nowrap">
+      <ShowConversationsButton />
       {selectedPages.includes(Pages.DOCUMENTATION) ? (
         <DocGeneratorSettings />
       ) : null}

@@ -7,6 +7,9 @@ export enum Themes {
 }
 export interface AppStateProps {
   theme: Themes;
+  isComponentsApiInitialized: boolean;
+  users: Record<number, User>;
+  currentUser: User | null;
 }
 
 export interface ContextProps {
@@ -28,4 +31,11 @@ export interface IncomingSyncResponse {
   body: unknown;
   status: boolean;
   error: string;
+}
+
+export interface User {
+  display_name: string;
+  first_name: string;
+  last_name: string;
+  id: number;
 }

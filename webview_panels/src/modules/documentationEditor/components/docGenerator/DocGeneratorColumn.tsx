@@ -91,7 +91,7 @@ const DocGeneratorColumn = ({ column, tests }: Props): JSX.Element => {
   };
   return (
     <div>
-      <h4>{column.name + (column.type ? " (" + column.type + ")" : "")}</h4>
+      <h4>{column.name + (column.type ? " (" + column.type + ")" : "")} </h4>
       {isDocumentationPageSelected ? (
         <DocGeneratorInput
           onSubmit={handleColumnSubmit}
