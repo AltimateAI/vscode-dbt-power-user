@@ -239,6 +239,9 @@ export class NewDocsGenPanel
           command: "renderDocumentation",
           docs: documentation,
           project: this.queryManifestService.getProject()?.getProjectName(),
+          collaborationEnabled: workspace
+            .getConfiguration("dbt")
+            .get<boolean>("enableCollaboration", false),
         });
         break;
 

@@ -31,14 +31,17 @@ const AddCoversationButton = ({
   field,
   name,
   type,
-}: Props): JSX.Element => {
+}: Props): JSX.Element | null => {
   const [comment, setComment] = useState("");
   const drawerRef = useRef<DrawerRef | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const {
     state: { users, currentUser },
   } = useAppContext();
-  const { dispatch } = useDocumentationContext();
+  const {
+    dispatch,
+    state: { collaborationEnabled },
+  } = useDocumentationContext();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -67,6 +70,10 @@ const AddCoversationButton = ({
     setIsLoading(false);
     setComment("");
   };
+
+  if (!collaborationEnabled) {
+    return null;
+  }
 
   return (
     <Drawer

@@ -1,6 +1,7 @@
 import { ChevronDownIcon } from "@assets/icons";
 import { HTMLAttributes } from "react";
-import { Button, IconButton, Stack } from "../../";
+import { Button } from "reactstrap";
+import { IconButton, Stack } from "../../";
 import classes from "./styles.module.scss";
 
 interface Props extends HTMLAttributes<HTMLButtonElement> {

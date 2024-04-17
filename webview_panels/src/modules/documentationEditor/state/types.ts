@@ -80,6 +80,7 @@ export interface DocumentationStateProps {
     shareId: DbtDocsShareDetails["share_id"];
     conversationGroupId: ConversationGroup["conversation_group_id"];
   };
+  collaborationEnabled: boolean;
 }
 
 export interface DBTModelTest {

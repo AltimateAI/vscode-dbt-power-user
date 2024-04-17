@@ -14,6 +14,7 @@ import documentationSlice, {
   setInsertedEntityName,
   setProject,
   updatConversations,
+  updateCollaborationEnabled,
   updateColumnsAfterSync,
   updateColumnsInCurrentDocsData,
   updateConversationsRightPanelState,
@@ -91,6 +92,7 @@ const DocumentationProvider = (): JSX.Element => {
           model?: string;
           name?: string;
           description?: string;
+          collaborationEnabled?: boolean;
         }
       >,
     ) => {
@@ -116,6 +118,11 @@ const DocumentationProvider = (): JSX.Element => {
         case "renderDocumentation":
           dispatch(updateCurrentDocsData(event.data.docs));
           dispatch(setProject(event.data.project));
+          dispatch(
+            updateCollaborationEnabled(
+              Boolean(event.data.collaborationEnabled),
+            ),
+          );
           break;
         case "renderColumnsFromMetadataFetch":
           if (event.data.columns) {

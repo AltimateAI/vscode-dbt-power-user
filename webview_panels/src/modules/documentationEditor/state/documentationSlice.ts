@@ -25,6 +25,7 @@ export const initialState = {
   selectedPages: [Pages.DOCUMENTATION],
   conversations: {},
   showConversationsRightPanel: false,
+  collaborationEnabled: false,
 } as DocumentationStateProps;
 
 const documentationSlice = createSlice({
@@ -49,6 +50,12 @@ const documentationSlice = createSlice({
       >,
     ) => {
       state.showConversationsRightPanel = action.payload;
+    },
+    updateCollaborationEnabled: (
+      state,
+      action: PayloadAction<DocumentationStateProps["collaborationEnabled"]>,
+    ) => {
+      state.collaborationEnabled = action.payload;
     },
     updateSelectedConversationGroup: (
       state,
@@ -224,5 +231,6 @@ export const {
   updatConversations,
   updateConversationsRightPanelState,
   updateSelectedConversationGroup,
+  updateCollaborationEnabled,
 } = documentationSlice.actions;
 export default documentationSlice;
