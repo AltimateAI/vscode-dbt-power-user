@@ -164,7 +164,11 @@ const DocGeneratorInput = ({
               type={type}
               model={currentDocsData?.name}
             />
-            <GenerateButton onSubmit={handleSubmit} variant={variant} />
+            <GenerateButton
+              onSubmit={handleSubmit}
+              variant={variant}
+              entityName={entity.name}
+            />
           </Stack>
         ) : null}
       </InputGroup>
