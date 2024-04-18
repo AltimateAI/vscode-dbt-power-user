@@ -442,6 +442,9 @@ class DbtProject:
 
     def safe_parse_project(self) -> None:
         self.clear_caches()
+        # reinit the project because config may change
+        # this operation is cheap anyway
+        self.init_project()
         # doing this so that we can allow inits to fail when config is
         # bad and restart after the user sets it up correctly
         if hasattr(self, "config"):

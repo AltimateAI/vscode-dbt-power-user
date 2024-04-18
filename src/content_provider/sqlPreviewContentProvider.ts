@@ -80,6 +80,7 @@ export class SqlPreviewContentProvider
         return "Still loading dbt project, please try again later...";
       }
       this.telemetry.sendTelemetryEvent("requestCompilation");
+      await project.refreshProjectConfig();
       return await project.unsafeCompileQuery(query);
     } catch (error: any) {
       window.showErrorMessage(
