@@ -24,6 +24,7 @@ import {
   FolderIcon,
   ArrowLeftIcon,
   RefreshIcon,
+  LoadingIcon,
 } from "@assets/icons";
 import { ProjectHealthcheck } from "./types";
 import { IssueList } from "./IssueList";
@@ -59,10 +60,13 @@ interface SaasConfigSelectorProps {
 
 const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
   const [configs, setConfigs] = useState<DBTConfig[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const getConfigs = useCallback(async () => {
+    setIsLoading(true);
     const result = (await executeRequestInSync("getInsightConfigs", {})) as {
       items: DBTConfig[];
     };
+    setIsLoading(false);
     setConfigs(result.items);
   }, []);
 
@@ -126,7 +130,7 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
                 void getConfigs();
               }}
             >
-              <RefreshIcon />
+              {isLoading ? <LoadingIcon /> : <RefreshIcon />}
             </Button>
             <div className={classes.accordionContainer + " w-100"}>
               <Accordion
