@@ -307,7 +307,7 @@ export class DBTProject implements Disposable {
     await this.initialize();
   }
 
-  private async refreshProjectConfig() {
+  async refreshProjectConfig() {
     this.terminal.debug(
       "DBTProject",
       `Going to refresh the project "${this.getProjectName()}" at ${
