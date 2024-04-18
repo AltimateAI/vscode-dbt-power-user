@@ -21,6 +21,7 @@ import { DBTProject } from "../manifest/dbtProject";
 export class ModelAutocompletionProvider
   implements CompletionItemProvider, Disposable
 {
+  private static readonly JINJA_TEMPLATE_PATTERN = /\{\{\s*\w*$/;
   private static readonly MODEL_PATTERN = /ref\s*\(\s*(['|"])?\s*\w*$/;
   private static readonly PACKAGE_PATTERN =
     /ref\s*\(\s*('[^)']*'|"[^)"]*")\s*,\s*('|")\s*\w*$/;
@@ -56,6 +57,12 @@ export class ModelAutocompletionProvider
     const linePrefix = document
       .lineAt(position)
       .text.substring(0, position.character);
+    // if (linePrefix.match(ModelAutocompletionProvider.JINJA_TEMPLATE_PATTERN)) {
+    //   return [
+    //     { insertText: "ref", label: "ref", additionalTextEdits: [] },
+    //     { insertText: "source", label: "source" },
+    //   ];
+    // }
     if (
       (linePrefix.match(ModelAutocompletionProvider.MODEL_PATTERN) ||
         linePrefix.match(ModelAutocompletionProvider.PACKAGE_PATTERN)) &&
