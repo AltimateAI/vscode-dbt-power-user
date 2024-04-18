@@ -44,8 +44,15 @@ function getDBTPath(
   terminal: DBTTerminal,
 ): string {
   if (pythonEnvironment.pythonPath) {
-    const dbtPythonPath = join(dirname(pythonEnvironment.pythonPath), "dbt");
-    if (existsSync(dbtPythonPath)) {
+    const allowedDbtPaths = ["dbt", "dbt.exe"];
+    const dbtPath = allowedDbtPaths.find((path) =>
+      existsSync(join(dirname(pythonEnvironment.pythonPath), path)),
+    );
+    if (dbtPath) {
+      const dbtPythonPath = join(
+        dirname(pythonEnvironment.pythonPath),
+        dbtPath,
+      );
       terminal.debug("Found dbt path in Python bin directory:", dbtPythonPath);
       return dbtPythonPath;
     }
