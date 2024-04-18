@@ -57,12 +57,12 @@ export class ModelAutocompletionProvider
     const linePrefix = document
       .lineAt(position)
       .text.substring(0, position.character);
-    // if (linePrefix.match(ModelAutocompletionProvider.JINJA_TEMPLATE_PATTERN)) {
-    //   return [
-    //     { insertText: "ref", label: "ref", additionalTextEdits: [] },
-    //     { insertText: "source", label: "source" },
-    //   ];
-    // }
+    if (linePrefix.match(ModelAutocompletionProvider.JINJA_TEMPLATE_PATTERN)) {
+      return [
+        { insertText: "ref", label: "ref", additionalTextEdits: [] },
+        { insertText: "source", label: "source" },
+      ];
+    }
     if (
       (linePrefix.match(ModelAutocompletionProvider.MODEL_PATTERN) ||
         linePrefix.match(ModelAutocompletionProvider.PACKAGE_PATTERN)) &&
