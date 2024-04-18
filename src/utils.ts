@@ -15,12 +15,12 @@ export const isEnclosedWithinCodeBlock: (
   document: TextDocument,
   rangeOrPosition: Range | Position,
 ) => boolean = (document, rangeOrPosition) => {
-  const isWithinCodeBlock: (
+  const isWithinCodeBlock = (
     startPosition: Position,
     direction: "asc" | "desc",
     lookupChar: "{" | "}",
     stopChar: "{" | "}",
-  ) => boolean = (startPosition, direction, lookupChar, stopChar) => {
+  ): boolean => {
     const increment = direction === "desc" ? -1 : 1;
     let characterPosition: number | undefined = startPosition.character;
     let lineNumber = startPosition.line;

@@ -55,7 +55,7 @@ export class ModelAutocompletionProvider
   ): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
     const linePrefix = document
       .lineAt(position)
-      .text.substr(0, position.character);
+      .text.substring(0, position.character);
     if (
       (linePrefix.match(ModelAutocompletionProvider.MODEL_PATTERN) ||
         linePrefix.match(ModelAutocompletionProvider.PACKAGE_PATTERN)) &&
