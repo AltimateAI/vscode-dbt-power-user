@@ -34,7 +34,7 @@ import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "./dbtTerminal";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { existsSync } from "fs";
+import { readdirSync } from "fs";
 import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
 import { ProjectHealthcheck } from "./dbtCoreIntegration";
@@ -44,8 +44,14 @@ function getDBTPath(
   terminal: DBTTerminal,
 ): string {
   if (pythonEnvironment.pythonPath) {
-    const dbtPythonPath = join(dirname(pythonEnvironment.pythonPath), "dbt");
-    if (existsSync(dbtPythonPath)) {
+    const dbtPath = readdirSync(
+      join(dirname(pythonEnvironment.pythonPath)),
+    ).find((fileName) => fileName === "dbt" || fileName === "dbt.exe");
+    if (dbtPath) {
+      const dbtPythonPath = join(
+        dirname(pythonEnvironment.pythonPath),
+        dbtPath,
+      );
       terminal.debug("Found dbt path in Python bin directory:", dbtPythonPath);
       return dbtPythonPath;
     }
