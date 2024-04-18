@@ -12,6 +12,7 @@ import documentationSlice, {
   initialState,
   setGenerationsHistory,
   setInsertedEntityName,
+  setIsTestUpdatedForAnyColumn,
   setProject,
   updatConversations,
   updateCollaborationEnabled,
@@ -131,6 +132,8 @@ const DocumentationProvider = (): JSX.Element => {
                 columns: event.data.columns,
               }),
             );
+            // this is to send tests data to host to save the tests for columns as well
+            dispatch(setIsTestUpdatedForAnyColumn(true));
           }
           break;
         case "docgen:insert":
