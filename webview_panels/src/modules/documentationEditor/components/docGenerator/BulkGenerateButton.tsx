@@ -3,10 +3,7 @@ import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
-import {
-  setIsTestUpdatedForAnyColumn,
-  updateColumnsInCurrentDocsData,
-} from "@modules/documentationEditor/state/documentationSlice";
+import { updateColumnsInCurrentDocsData } from "@modules/documentationEditor/state/documentationSlice";
 import { DBTDocumentationColumn } from "@modules/documentationEditor/state/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { panelLogger } from "@modules/logger";
@@ -44,8 +41,6 @@ const BulkGenerateButton = (): JSX.Element => {
         isNewGeneration: true,
       }),
     );
-    // this is to send tests data to host to save the tests for columns as well
-    dispatch(setIsTestUpdatedForAnyColumn(true));
 
     return columns;
   };
