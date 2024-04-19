@@ -23,8 +23,15 @@ export class ModelAutocompletionProvider
 {
   private static readonly MODEL_PATTERN = /ref\s*\(\s*(['"])?\s*\w*$/;
   private static readonly PACKAGE_PATTERN =
-    /ref\s*\(\s*('[^)']*'|"[^)"]*")\s*,\s*('|")\s*\w*$/;
-  private modelAutocompleteMap: Map<string, CompletionItem[]> = new Map();
+    /ref\s*\(\s*('[^)']*'|"[^)"]*")\s*,\s*(['"])?\s*\w*$/;
+  private modelAutocompleteMap: Map<
+    string,
+    {
+      projectName: string;
+      packageName: string;
+      modelName: string;
+    }[]
+  > = new Map();
   private disposables: Disposable[] = [];
 
   constructor(
@@ -64,43 +71,51 @@ export class ModelAutocompletionProvider
     const packageMatch = linePrefix.match(
       ModelAutocompletionProvider.PACKAGE_PATTERN,
     );
+    if (!modelMatch && !packageMatch) {
+      return undefined;
+    }
+    let autoCompleteItems = this.getAutoCompleteItems(document.uri);
+    if (!autoCompleteItems) {
+      return undefined;
+    }
     if (modelMatch) {
       if (!modelMatch[1]) {
-        return this.getAutoCompleteItems(document.uri)?.map(
-          (completionItem) => ({
-            ...completionItem,
-            insertText: `"${completionItem.insertText}"`,
-          }),
-        );
+        return autoCompleteItems.map((completionItem) => ({
+          label: `(${completionItem.packageName}) ${completionItem.modelName}`,
+          kind: CompletionItemKind.Value,
+          detail: "Model",
+          insertText:
+            completionItem.projectName === completionItem.packageName
+              ? `"${completionItem.modelName}"`
+              : `"${completionItem.packageName}", "${completionItem.modelName}"`,
+        }));
       }
-      return this.getAutoCompleteItems(document.uri)?.map((completionItem) => ({
-        ...completionItem,
-        insertText: `${completionItem.insertText}${
-          line[position.character] === modelMatch[1] ? "" : modelMatch[1]
-        }`,
+      const enclosing =
+        line[position.character] === modelMatch[1] ? "" : modelMatch[1];
+      return autoCompleteItems.map((completionItem) => ({
+        label: `(${completionItem.packageName}) ${completionItem.modelName}`,
+        kind: CompletionItemKind.Value,
+        detail: "Model",
+        insertText:
+          completionItem.projectName === completionItem.packageName
+            ? `${completionItem.modelName}${enclosing}`
+            : `${completionItem.packageName}${enclosing}, ${enclosing}${completionItem.modelName}${enclosing}`,
       }));
     }
     if (packageMatch) {
-      let quoteFound = false;
-      let quote = "";
-      if (linePrefix.endsWith("'")) {
-        quoteFound = true;
-        quote = "'";
-      } else if (linePrefix.endsWith('"')) {
-        quoteFound = true;
-        quote = '"';
-      }
-      const autoCompleteItems = this.getAutoCompleteItems(document.uri)?.map(
-        (completionItem) => ({
-          ...completionItem,
-          insertText: this.encloseWithQuotes(
-            completionItem.insertText as string,
-            quoteFound,
-            quote,
-          ),
-        }),
+      const packageName = packageMatch[1].replace(/['"]/g, "");
+      autoCompleteItems = autoCompleteItems.filter(
+        (completionItem) => completionItem.packageName === packageName,
       );
-      return autoCompleteItems;
+      return autoCompleteItems.map((completionItem) => ({
+        label: completionItem.modelName,
+        kind: CompletionItemKind.Value,
+        detail: "Model",
+        insertText:
+          completionItem.projectName === completionItem.packageName
+            ? `"${completionItem.modelName}"`
+            : `"${completionItem.packageName}", "${completionItem.modelName}"`,
+      }));
     }
 
     return undefined;
@@ -128,13 +143,9 @@ export class ModelAutocompletionProvider
               model.resource_type !== DBTProject.RESOURCE_TYPE_ANALYSIS,
           )
           .map(([key, model]) => ({
-            label: `(${model.package_name}) ${key}`,
-            insertText:
-              model.package_name === projectName
-                ? key
-                : `${model.package_name}, ${key}`,
-            kind: CompletionItemKind.Value,
-            detail: "Model",
+            projectName,
+            packageName: model.package_name,
+            modelName: key,
           })),
       );
     });
