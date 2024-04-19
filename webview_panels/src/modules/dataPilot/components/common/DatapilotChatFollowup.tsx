@@ -169,7 +169,7 @@ const DatapilotChatFollowupComponent = ({
               <AltimateIcon /> {datapilotTitle}
             </CardTitle>
             <CardBody>
-              <div className={classes.response}>
+              <div className={classes.response} title="Datapilot response">
                 {response ? <MarkdownRenderer response={response} /> : null}
                 {component ? (
                   <>{DatapilotResponseComponents[component]}</>
