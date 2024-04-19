@@ -21,8 +21,7 @@ import { DBTProject } from "../manifest/dbtProject";
 export class ModelAutocompletionProvider
   implements CompletionItemProvider, Disposable
 {
-  private static readonly JINJA_TEMPLATE_PATTERN = /\{\{\s*\w*$/;
-  private static readonly MODEL_PATTERN = /ref\s*\(\s*(['|"])?\s*\w*$/;
+  private static readonly MODEL_PATTERN = /ref\s*\(\s*(['"])?\s*\w*$/;
   private static readonly PACKAGE_PATTERN =
     /ref\s*\(\s*('[^)']*'|"[^)"]*")\s*,\s*('|")\s*\w*$/;
   private modelAutocompleteMap: Map<string, CompletionItem[]> = new Map();
@@ -54,20 +53,34 @@ export class ModelAutocompletionProvider
     token: CancellationToken,
     context: CompletionContext,
   ): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
-    const linePrefix = document
-      .lineAt(position)
-      .text.substring(0, position.character);
-    if (linePrefix.match(ModelAutocompletionProvider.JINJA_TEMPLATE_PATTERN)) {
-      return [
-        { insertText: "ref", label: "ref", additionalTextEdits: [] },
-        { insertText: "source", label: "source" },
-      ];
+    const line = document.lineAt(position).text;
+    const linePrefix = line.substring(0, position.character);
+    if (!isEnclosedWithinCodeBlock(document, position)) {
+      return undefined;
     }
-    if (
-      (linePrefix.match(ModelAutocompletionProvider.MODEL_PATTERN) ||
-        linePrefix.match(ModelAutocompletionProvider.PACKAGE_PATTERN)) &&
-      isEnclosedWithinCodeBlock(document, position)
-    ) {
+    const modelMatch = linePrefix.match(
+      ModelAutocompletionProvider.MODEL_PATTERN,
+    );
+    const packageMatch = linePrefix.match(
+      ModelAutocompletionProvider.PACKAGE_PATTERN,
+    );
+    if (modelMatch) {
+      if (!modelMatch[1]) {
+        return this.getAutoCompleteItems(document.uri)?.map(
+          (completionItem) => ({
+            ...completionItem,
+            insertText: `"${completionItem.insertText}"`,
+          }),
+        );
+      }
+      return this.getAutoCompleteItems(document.uri)?.map((completionItem) => ({
+        ...completionItem,
+        insertText: `${completionItem.insertText}${
+          line[position.character] === modelMatch[1] ? "" : modelMatch[1]
+        }`,
+      }));
+    }
+    if (packageMatch) {
       let quoteFound = false;
       let quote = "";
       if (linePrefix.endsWith("'")) {
@@ -98,10 +111,7 @@ export class ModelAutocompletionProvider
     quoteFound: boolean,
     quote: string,
   ) {
-    let enclosing = "";
-    if (!quoteFound) {
-      enclosing = '"';
-    }
+    const enclosing = quoteFound ? "" : '"';
     return `${enclosing}${insertText.replace('"', quote)}${enclosing}`;
   }
 

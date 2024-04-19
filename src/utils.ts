@@ -11,10 +11,10 @@ import {
 } from "vscode";
 import { EnvironmentVariables } from "./domain";
 
-export const isEnclosedWithinCodeBlock: (
+export const isEnclosedWithinCodeBlock = (
   document: TextDocument,
   rangeOrPosition: Range | Position,
-) => boolean = (document, rangeOrPosition) => {
+): boolean => {
   const isWithinCodeBlock = (
     startPosition: Position,
     direction: "asc" | "desc",
