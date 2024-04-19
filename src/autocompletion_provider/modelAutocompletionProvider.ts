@@ -79,7 +79,10 @@ export class ModelAutocompletionProvider
       return undefined;
     }
     if (modelMatch) {
+      // capture group for first quote after parenthesis
+      // can be one of [`'`, `"`, undefined]
       if (!modelMatch[1]) {
+        // if no quotes surround insertText by "
         return autoCompleteItems.map((completionItem) => ({
           label: `(${completionItem.packageName}) ${completionItem.modelName}`,
           kind: CompletionItemKind.Value,
@@ -90,7 +93,8 @@ export class ModelAutocompletionProvider
               : `"${completionItem.packageName}", "${completionItem.modelName}"`,
         }));
       }
-      const enclosing =
+      // if quotes match insertText ending quote
+      const endQuote =
         line[position.character] === modelMatch[1] ? "" : modelMatch[1];
       return autoCompleteItems.map((completionItem) => ({
         label: `(${completionItem.packageName}) ${completionItem.modelName}`,
@@ -98,8 +102,8 @@ export class ModelAutocompletionProvider
         detail: "Model",
         insertText:
           completionItem.projectName === completionItem.packageName
-            ? `${completionItem.modelName}${enclosing}`
-            : `${completionItem.packageName}${enclosing}, ${enclosing}${completionItem.modelName}${enclosing}`,
+            ? `${completionItem.modelName}${endQuote}`
+            : `${completionItem.packageName}${endQuote}, ${endQuote}${completionItem.modelName}${endQuote}`,
       }));
     }
     if (packageMatch) {
@@ -107,27 +111,28 @@ export class ModelAutocompletionProvider
       autoCompleteItems = autoCompleteItems.filter(
         (completionItem) => completionItem.packageName === packageName,
       );
+      // capture group for second quote after parenthesis
+      // can be one of [`'`, `"`, undefined]
+      if (!packageMatch[2]) {
+        return autoCompleteItems.map((completionItem) => ({
+          label: completionItem.modelName,
+          kind: CompletionItemKind.Value,
+          detail: "Model",
+          insertText: `"${completionItem.modelName}"`,
+        }));
+      }
+      // if quotes match insertText ending quote
+      const endQuote =
+        line[position.character] === packageMatch[2] ? "" : packageMatch[2];
       return autoCompleteItems.map((completionItem) => ({
         label: completionItem.modelName,
         kind: CompletionItemKind.Value,
         detail: "Model",
-        insertText:
-          completionItem.projectName === completionItem.packageName
-            ? `"${completionItem.modelName}"`
-            : `"${completionItem.packageName}", "${completionItem.modelName}"`,
+        insertText: `${completionItem.modelName}${endQuote}`,
       }));
     }
 
     return undefined;
-  }
-
-  private encloseWithQuotes(
-    insertText: string,
-    quoteFound: boolean,
-    quote: string,
-  ) {
-    const enclosing = quoteFound ? "" : '"';
-    return `${enclosing}${insertText.replace('"', quote)}${enclosing}`;
   }
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
