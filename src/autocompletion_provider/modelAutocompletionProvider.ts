@@ -103,7 +103,7 @@ export class ModelAutocompletionProvider
         insertText:
           completionItem.projectName === completionItem.packageName
             ? `${completionItem.modelName}${endQuote}`
-            : `${completionItem.packageName}${endQuote}, ${endQuote}${completionItem.modelName}${endQuote}`,
+            : `${completionItem.packageName}${modelMatch[1]}, ${modelMatch[1]}${completionItem.modelName}${endQuote}`,
       }));
     }
     if (packageMatch) {
