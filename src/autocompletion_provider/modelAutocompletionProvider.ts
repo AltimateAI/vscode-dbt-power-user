@@ -93,7 +93,7 @@ export class ModelAutocompletionProvider
               : `"${completionItem.packageName}", "${completionItem.modelName}"`,
         }));
       }
-      // if quotes match insertText ending quote
+      // if quotes then add end quote to match start quote
       const endQuote =
         line[position.character] === modelMatch[1] ? "" : modelMatch[1];
       return autoCompleteItems.map((completionItem) => ({
@@ -121,7 +121,7 @@ export class ModelAutocompletionProvider
           insertText: `"${completionItem.modelName}"`,
         }));
       }
-      // if quotes match insertText ending quote
+      // if quotes then add end quote to match start quote
       const endQuote =
         line[position.character] === packageMatch[2] ? "" : packageMatch[2];
       return autoCompleteItems.map((completionItem) => ({
