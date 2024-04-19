@@ -47,6 +47,7 @@ type AltimateConfigProps = { projectRoot: string } & ConfigOption;
 enum ConfigType {
   Manual,
   Saas,
+  All,
 }
 
 interface SaasConfigSelectorProps {
@@ -173,6 +174,17 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
           </>
         )}
       </div>
+      <div className="d-flex align-items-center gap-sm">
+        <Label check sm={2} style={{ whiteSpace: "nowrap" }}>
+          <Input
+            type="radio"
+            className="me-2"
+            checked={props.configType === ConfigType.All}
+            onClick={() => props.setConfigType(ConfigType.All)}
+          />
+          Scan everything
+        </Label>
+      </div>
     </div>
   );
 };
@@ -245,7 +257,7 @@ const ProjectHealthcheckInput = ({
   >([]);
   const [selectedProject, setSelectedProject] = useState("");
   const [selectedConfig, setSelectedConfig] = useState<DBTConfig | undefined>();
-  const [configType, setConfigType] = useState(ConfigType.Manual);
+  const [configType, setConfigType] = useState(ConfigType.All);
   const [configPath, setConfigPath] = useState("");
   const [requestInProgress, setRequestInProgress] = useState(false);
 
@@ -267,7 +279,8 @@ const ProjectHealthcheckInput = ({
   const isStartScanEnabled =
     !requestInProgress &&
     selectedProject &&
-    ((configType === ConfigType.Manual && configPath) ||
+    (configType === ConfigType.All ||
+      (configType === ConfigType.Manual && configPath) ||
       (configType === ConfigType.Saas && selectedConfig));
 
   return (
