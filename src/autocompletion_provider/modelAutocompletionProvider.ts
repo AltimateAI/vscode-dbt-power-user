@@ -21,10 +21,17 @@ import { DBTProject } from "../manifest/dbtProject";
 export class ModelAutocompletionProvider
   implements CompletionItemProvider, Disposable
 {
-  private static readonly MODEL_PATTERN = /ref\s*\(\s*(['|"])?\s*\w*$/;
+  private static readonly MODEL_PATTERN = /ref\s*\(\s*(['"])?\s*\w*$/;
   private static readonly PACKAGE_PATTERN =
-    /ref\s*\(\s*('[^)']*'|"[^)"]*")\s*,\s*('|")\s*\w*$/;
-  private modelAutocompleteMap: Map<string, CompletionItem[]> = new Map();
+    /ref\s*\(\s*('[^)']*'|"[^)"]*")\s*,\s*(['"])?\s*\w*$/;
+  private modelAutocompleteMap: Map<
+    string,
+    {
+      projectName: string;
+      packageName: string;
+      modelName: string;
+    }[]
+  > = new Map();
   private disposables: Disposable[] = [];
 
   constructor(
@@ -53,49 +60,79 @@ export class ModelAutocompletionProvider
     token: CancellationToken,
     context: CompletionContext,
   ): ProviderResult<CompletionItem[] | CompletionList<CompletionItem>> {
-    const linePrefix = document
-      .lineAt(position)
-      .text.substr(0, position.character);
-    if (
-      (linePrefix.match(ModelAutocompletionProvider.MODEL_PATTERN) ||
-        linePrefix.match(ModelAutocompletionProvider.PACKAGE_PATTERN)) &&
-      isEnclosedWithinCodeBlock(document, position)
-    ) {
-      let quoteFound = false;
-      let quote = "";
-      if (linePrefix.endsWith("'")) {
-        quoteFound = true;
-        quote = "'";
-      } else if (linePrefix.endsWith('"')) {
-        quoteFound = true;
-        quote = '"';
+    const line = document.lineAt(position).text;
+    const linePrefix = line.substring(0, position.character);
+    if (!isEnclosedWithinCodeBlock(document, position)) {
+      return undefined;
+    }
+    const modelMatch = linePrefix.match(
+      ModelAutocompletionProvider.MODEL_PATTERN,
+    );
+    const packageMatch = linePrefix.match(
+      ModelAutocompletionProvider.PACKAGE_PATTERN,
+    );
+    if (!modelMatch && !packageMatch) {
+      return undefined;
+    }
+    let autoCompleteItems = this.getAutoCompleteItems(document.uri);
+    if (!autoCompleteItems) {
+      return undefined;
+    }
+    if (modelMatch) {
+      // capture group for first quote after parenthesis
+      // can be one of [`'`, `"`, undefined]
+      if (!modelMatch[1]) {
+        // if no quotes surround insertText by "
+        return autoCompleteItems.map((completionItem) => ({
+          label: `(${completionItem.packageName}) ${completionItem.modelName}`,
+          kind: CompletionItemKind.Value,
+          detail: "Model",
+          insertText:
+            completionItem.projectName === completionItem.packageName
+              ? `"${completionItem.modelName}"`
+              : `"${completionItem.packageName}", "${completionItem.modelName}"`,
+        }));
       }
-      const autoCompleteItems = this.getAutoCompleteItems(document.uri)?.map(
-        (completionItem) => ({
-          ...completionItem,
-          insertText: this.encloseWithQuotes(
-            completionItem.insertText as string,
-            quoteFound,
-            quote,
-          ),
-        }),
+      // if quotes then add end quote to match start quote
+      const endQuote =
+        line[position.character] === modelMatch[1] ? "" : modelMatch[1];
+      return autoCompleteItems.map((completionItem) => ({
+        label: `(${completionItem.packageName}) ${completionItem.modelName}`,
+        kind: CompletionItemKind.Value,
+        detail: "Model",
+        insertText:
+          completionItem.projectName === completionItem.packageName
+            ? `${completionItem.modelName}${endQuote}`
+            : `${completionItem.packageName}${modelMatch[1]}, ${modelMatch[1]}${completionItem.modelName}${endQuote}`,
+      }));
+    }
+    if (packageMatch) {
+      const packageName = packageMatch[1].replace(/['"]/g, "");
+      autoCompleteItems = autoCompleteItems.filter(
+        (completionItem) => completionItem.packageName === packageName,
       );
-      return autoCompleteItems;
+      // capture group for second quote after parenthesis
+      // can be one of [`'`, `"`, undefined]
+      if (!packageMatch[2]) {
+        return autoCompleteItems.map((completionItem) => ({
+          label: completionItem.modelName,
+          kind: CompletionItemKind.Value,
+          detail: "Model",
+          insertText: `"${completionItem.modelName}"`,
+        }));
+      }
+      // if quotes then add end quote to match start quote
+      const endQuote =
+        line[position.character] === packageMatch[2] ? "" : packageMatch[2];
+      return autoCompleteItems.map((completionItem) => ({
+        label: completionItem.modelName,
+        kind: CompletionItemKind.Value,
+        detail: "Model",
+        insertText: `${completionItem.modelName}${endQuote}`,
+      }));
     }
 
     return undefined;
-  }
-
-  private encloseWithQuotes(
-    insertText: string,
-    quoteFound: boolean,
-    quote: string,
-  ) {
-    let enclosing = "";
-    if (!quoteFound) {
-      enclosing = '"';
-    }
-    return `${enclosing}${insertText.replace('"', quote)}${enclosing}`;
   }
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
@@ -111,13 +148,9 @@ export class ModelAutocompletionProvider
               model.resource_type !== DBTProject.RESOURCE_TYPE_ANALYSIS,
           )
           .map(([key, model]) => ({
-            label: `(${model.package_name}) ${key}`,
-            insertText:
-              model.package_name === projectName
-                ? key
-                : `${model.package_name}, ${key}`,
-            kind: CompletionItemKind.Value,
-            detail: "Model",
+            projectName,
+            packageName: model.package_name,
+            modelName: key,
           })),
       );
     });
