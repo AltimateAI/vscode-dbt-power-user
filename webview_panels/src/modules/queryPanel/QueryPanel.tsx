@@ -2,14 +2,14 @@ import FeedbackButton from "@modules/commonActionButtons/FeedbackButton";
 import { Stack } from "@uicore";
 import HelpButton from "./components/help/HelpButton";
 import ClearResultsButton from "./components/clearResultsButton/ClearResultsButton";
-import useListeners from "./useListeners";
+import useQueryPanelListeners from "./useQueryPanelListeners";
 import QueryPanelTitle from "./components/QueryPanelContents/QueryPanelTitle";
 import QueryPanelContent from "./components/QueryPanelContents/QueryPanelContent";
 import { useState } from "react";
 
 const QueryPanel = (): JSX.Element => {
   const [showCompiledCode, setShowCompiledCode] = useState(false);
-  useListeners();
+  useQueryPanelListeners();
   return (
     <div>
       <Stack className="mb-2 justify-content-between">

@@ -8,6 +8,7 @@ export const initialState = {
   queryResultsError: undefined,
   compiledCodeMarkup: undefined,
   hintIndex: -1,
+  lastHintTimestamp: 0,
 } as QueryPanelStateProps;
 
 const queryPanelSlice = createSlice({
@@ -28,6 +29,12 @@ const queryPanelSlice = createSlice({
       action: PayloadAction<QueryPanelStateProps["compiledCodeMarkup"]>,
     ) => {
       state.compiledCodeMarkup = action.payload;
+    },
+    setLastHintTimestamp: (
+      state,
+      action: PayloadAction<QueryPanelStateProps["lastHintTimestamp"]>,
+    ) => {
+      state.lastHintTimestamp = action.payload;
     },
     setQueryResultsError: (
       state,
@@ -64,6 +71,7 @@ export const {
   setQueryResultsError,
   setQueryExecutionInfo,
   setQueryResults,
+  setLastHintTimestamp,
 } = queryPanelSlice.actions;
 
 export default queryPanelSlice;

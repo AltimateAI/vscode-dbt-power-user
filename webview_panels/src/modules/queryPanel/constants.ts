@@ -1,3 +1,5 @@
+export const HINT_VISIBILITY_DELAY = 1 * 60 * 60 * 1000; // 1 hr
+
 export const HINTS = [
   {
     message: "Generate models from SQL or source",

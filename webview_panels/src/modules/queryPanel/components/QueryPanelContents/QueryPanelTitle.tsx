@@ -5,14 +5,23 @@ const QueryPanelTitle = ({
 }: {
   setShowCompiledCode: (show: boolean) => void;
 }): JSX.Element => {
-  const { loading, hasData, hasError, queryExecutionInfo, compiledCodeMarkup } =
-    useQueryPanelState();
+  const {
+    loading,
+    hasData,
+    hasError,
+    queryExecutionInfo,
+    compiledCodeMarkup,
+    queryResultsRowCount,
+  } = useQueryPanelState();
 
   if (loading || hasData || hasError) {
     return (
       <div>
         <span onClick={() => setShowCompiledCode(false)}>
-          Preview <span>{queryExecutionInfo}</span>
+          Preview{" "}
+          <span>
+            {queryResultsRowCount} rows in {queryExecutionInfo?.elapsedTime}s
+          </span>
         </span>
         {compiledCodeMarkup ? (
           <span onClick={() => setShowCompiledCode(true)}>SQL</span>

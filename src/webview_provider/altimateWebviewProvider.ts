@@ -296,6 +296,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             params.properties as { [key: string]: string },
           );
           break;
+        case "setContext":
+          this.dbtProjectContainer.setToGlobalState(
+            params.key as string,
+            params.value,
+          );
+          break;
         case "updateConfig":
           if (!this.isUpdateConfigProps(params)) {
             return;
