@@ -352,6 +352,9 @@ class DbtProject:
             self.init_config()
             self.adapter = self.get_adapter()
             self.adapter.connections.set_connection_name()
+            if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
+                from dbt.context.providers import generate_runtime_macro_context
+                self.adapter.set_macro_context_generator(generate_runtime_macro_context)
             self.config.adapter = self.adapter
         except Exception as e:
             # reset project
@@ -534,9 +537,14 @@ class DbtProject:
         make_schema_fn = get_macro_function('make_schema')\n
         make_schema_fn({'name': '__test_schema_1'})\n
         make_schema_fn({'name': '__test_schema_2'})"""
-        return partial(
-            self.adapter.execute_macro, macro_name=macro_name, manifest=self.dbt
-        )
+        if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
+            return partial(
+                self.adapter.execute_macro, macro_name=macro_name
+            )
+        else:
+            return partial(
+                self.adapter.execute_macro, macro_name=macro_name, manifest=self.dbt
+            )
 
     def adapter_execute(
         self, sql: str, auto_begin: bool = True, fetch: bool = False
