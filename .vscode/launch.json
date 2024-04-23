@@ -35,6 +35,14 @@
       ],
       "outFiles": ["${workspaceFolder}/out/test/**/*.js"],
       "preLaunchTask": "npm: test-compile"
+    },
+    {
+      "name": "Debug Python: Current File including library code",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": false
     }
   ]
 }

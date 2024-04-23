@@ -23,6 +23,7 @@ import { QueryManifestService } from "../services/queryManifestService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DbtTestService } from "../services/dbtTestService";
 import { FileService } from "../services/fileService";
+import { UsersService } from "../services/usersService";
 
 @provideSingleton(DataPilotPanel)
 export class DataPilotPanel extends AltimateWebviewProvider {
@@ -42,6 +43,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
     protected dbtTerminal: DBTTerminal,
     private dbtTestService: DbtTestService,
     private fileService: FileService,
+    protected usersService: UsersService,
   ) {
     super(
       dbtProjectContainer,
@@ -50,6 +52,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
       emitterService,
       dbtTerminal,
       queryManifestService,
+      usersService,
     );
 
     commands.registerCommand("dbtPowerUser.resetDatapilot", () =>
@@ -244,7 +247,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
               await this.queryAnalysisService.getFollowupQuestions(
                 params as { query: string; user_request: string },
               );
-            return { response };
+            return response;
           },
           command,
           true,

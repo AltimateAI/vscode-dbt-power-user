@@ -1,5 +1,11 @@
 import path = require("path");
-import { ProgressLocation, WebviewView, window, workspace } from "vscode";
+import {
+  ProgressLocation,
+  WebviewPanel,
+  WebviewView,
+  window,
+  workspace,
+} from "vscode";
 import {
   AltimateRequest,
   DocsGenerateModelRequest,
@@ -19,14 +25,14 @@ import {
 import { QueryManifestService } from "./queryManifestService";
 
 interface GenerateDocsForColumnsProps {
-  panel: WebviewView | undefined;
+  panel: WebviewView | WebviewPanel | undefined;
   message: any;
   project: DBTProject | undefined;
   documentation: DBTDocumentation | undefined;
 }
 
 interface GenerateDocsForModelProps {
-  panel: WebviewView | undefined;
+  panel: WebviewView | WebviewPanel | undefined;
   documentation: DBTDocumentation | undefined;
   queryText: string;
   project: DBTProject | undefined;
@@ -34,7 +40,7 @@ interface GenerateDocsForModelProps {
 }
 
 interface FeedbackRequestProps {
-  panel: WebviewView | undefined;
+  panel: WebviewView | WebviewPanel | undefined;
   queryText: string;
   message: any;
   syncRequestId?: string;
@@ -125,7 +131,7 @@ export class DocGenService {
   }
 
   private async transmitAIGeneratedColumnDocs(
-    panel: WebviewView | undefined,
+    panel: WebviewView | WebviewPanel | undefined,
     generatedColumnDescriptions: AIColumnDescription[],
     syncRequestId?: string,
   ) {
@@ -147,7 +153,7 @@ export class DocGenService {
     }
   }
 
-  private async transmitError(panel?: WebviewView) {
+  private async transmitError(panel?: WebviewView | WebviewPanel) {
     if (panel) {
       await panel.webview.postMessage({
         command: "renderError",
@@ -158,7 +164,7 @@ export class DocGenService {
   private async transmitAIGeneratedModelDocs(
     description: string,
     syncRequestId?: string,
-    panel?: WebviewView,
+    panel?: WebviewView | WebviewPanel,
   ) {
     if (panel) {
       const result = syncRequestId
@@ -204,6 +210,8 @@ export class DocGenService {
       patchPath: currentNode.patch_path,
       description: currentNode.description,
       generated: false,
+      resource_type: currentNode.resource_type,
+      uniqueId: currentNode.uniqueId,
       columns: Object.values(docColumns).map((column) => {
         return {
           name: column.name,

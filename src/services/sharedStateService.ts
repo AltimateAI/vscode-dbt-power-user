@@ -7,7 +7,7 @@ export class SharedStateService {
   public eventEmitter;
 
   public constructor() {
-    this.eventEmitter = new EventEmitter();
+    this.eventEmitter = new EventEmitter<SharedStateEventEmitterProps>();
   }
 
   public fire(data: SharedStateEventEmitterProps) {

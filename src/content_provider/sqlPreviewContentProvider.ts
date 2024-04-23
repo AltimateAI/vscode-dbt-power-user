@@ -9,6 +9,7 @@ import {
   Uri,
   workspace,
   window,
+  ProgressLocation,
 } from "vscode";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { debounce, provideSingleton } from "../utils";
@@ -59,7 +60,14 @@ export class SqlPreviewContentProvider
       watcher.onDidChange(debounce(() => this._onDidChange.fire(uri), 500));
       // TODO: onDelete? onCreate?
     }
-    return this.requestCompilation(uri);
+    return window.withProgress(
+      {
+        location: ProgressLocation.Notification,
+        title: "Compiling dbt model...",
+        cancellable: false,
+      },
+      async () => await this.requestCompilation(uri),
+    );
   }
 
   private async requestCompilation(uri: Uri) {
@@ -72,6 +80,7 @@ export class SqlPreviewContentProvider
         return "Still loading dbt project, please try again later...";
       }
       this.telemetry.sendTelemetryEvent("requestCompilation");
+      await project.refreshProjectConfig();
       return await project.unsafeCompileQuery(query);
     } catch (error: any) {
       window.showErrorMessage(

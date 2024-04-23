@@ -1,3 +1,4 @@
+import { ConversationGroup, DbtDocsShareDetails } from "@lib";
 import { GenerationDBDataProps } from "../types";
 
 export enum Source {
@@ -28,6 +29,8 @@ export interface DBTDocumentation {
   generated: boolean;
   aiEnabled: boolean;
   patchPath?: string;
+  resource_type: string;
+  uniqueId: string;
 }
 
 export interface TestMetadataKwArgs {
@@ -71,6 +74,13 @@ export interface DocumentationStateProps {
   isTestUpdatedForAnyColumn: boolean;
   insertedEntityName?: string;
   selectedPages: Pages[];
+  conversations: Record<DbtDocsShareDetails["share_id"], ConversationGroup[]>;
+  showConversationsRightPanel: boolean;
+  selectedConversationGroup?: {
+    shareId: DbtDocsShareDetails["share_id"];
+    conversationGroupId: ConversationGroup["conversation_group_id"];
+  };
+  collaborationEnabled: boolean;
 }
 
 export interface DBTModelTest {

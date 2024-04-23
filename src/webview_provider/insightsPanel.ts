@@ -26,6 +26,8 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { DeferToProdService } from "../services/deferToProdService";
 import { ManifestPathType } from "../constants";
 import { QueryManifestService } from "../services/queryManifestService";
+import { ValidationProvider } from "../validation_provider";
+import { UsersService } from "../services/usersService";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];
@@ -75,6 +77,8 @@ export class InsightsPanel extends AltimateWebviewProvider {
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     private deferToProdService: DeferToProdService,
+    private validationProvider: ValidationProvider,
+    protected usersService: UsersService,
   ) {
     super(
       dbtProjectContainer,
@@ -83,6 +87,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       emitterService,
       dbtTerminal,
       queryManifestService,
+      usersService,
     );
 
     this._disposables.push(
@@ -156,7 +161,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
 
       const currentConfig: Record<string, DeferConfig> =
         this.deferToProdService.getDeferConfigByWorkspace();
-      const root = getProjectRelativePath(Uri.parse(params.projectRoot));
+      const root = getProjectRelativePath(Uri.file(params.projectRoot));
 
       this.dbtTerminal.info(
         "Defer config",
@@ -178,7 +183,7 @@ export class InsightsPanel extends AltimateWebviewProvider {
       };
 
       const workspaceFolder = workspace.getWorkspaceFolder(
-        Uri.parse(params.projectRoot),
+        Uri.file(params.projectRoot),
       );
       await workspace
         .getConfiguration("dbt", workspaceFolder)
@@ -192,6 +197,29 @@ export class InsightsPanel extends AltimateWebviewProvider {
             updated: true,
           },
         });
+      }
+
+      if (
+        !(
+          currentConfig[root].deferToProduction ===
+            newConfig[root].deferToProduction &&
+          currentConfig[root].manifestPathForDeferral ===
+            newConfig[root].manifestPathForDeferral &&
+          currentConfig[root].favorState === newConfig[root].favorState
+        )
+      ) {
+        window.withProgress(
+          {
+            location: ProgressLocation.Notification,
+            title: "Applying defer config...",
+            cancellable: false,
+          },
+          async () => {
+            await this.dbtProjectContainer
+              .findDBTProject(Uri.file(params.projectRoot))
+              ?.applyDeferConfig();
+          },
+        );
       }
     } catch (err) {
       this.dbtTerminal.error(
@@ -426,16 +454,32 @@ export class InsightsPanel extends AltimateWebviewProvider {
     });
   }
 
+  private emitError(syncRequestId: string | undefined, errorMsg: string) {
+    window.showErrorMessage(errorMsg);
+    this._panel!.webview.postMessage({
+      command: "response",
+      args: { syncRequestId, status: false, error: errorMsg },
+    });
+  }
+
   private async altimateScan(
     syncRequestId: string | undefined,
     args: AltimateConfigProps,
   ) {
+    try {
+      this.validationProvider.throwIfNotAuthenticated();
+      await this.altimateRequest.logDBTHealthcheckStartScan();
+    } catch (e) {
+      this.emitError(syncRequestId, (e as Error).message);
+      return;
+    }
     let isInstalled = false;
     try {
       isInstalled =
         await this.dbtProjectContainer.checkIfAltimateDatapilotInstalled();
     } catch (e) {
-      window.showErrorMessage(
+      this.emitError(
+        syncRequestId,
         `Error while checking altimate datapilot cli installation: ${
           (e as Error).message
         }`,
@@ -470,7 +514,8 @@ export class InsightsPanel extends AltimateWebviewProvider {
           },
         );
       } catch (e) {
-        window.showErrorMessage(
+        this.emitError(
+          syncRequestId,
           `Error while installing altimate datapilot cli: ${
             (e as Error).message
           }`,
@@ -509,12 +554,15 @@ export class InsightsPanel extends AltimateWebviewProvider {
         },
       );
     } catch (e) {
-      window.showErrorMessage(
-        `Error while performing healthcheck:${(e as Error).message}`,
+      this.emitError(
+        syncRequestId,
+        `Error while performing project governance checks:${
+          (e as Error).message
+        }`,
       );
       this.dbtTerminal.error(
-        "atimateDatapilotHealthcheck",
-        "Error while performing healthcheck",
+        "atimateDatapilotGovernance",
+        "Error while performing project governance checks",
         e,
       );
     }

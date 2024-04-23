@@ -3,6 +3,7 @@ import Insights from "./modules/insights/Insights";
 import Home from "./modules/home/Home";
 import DocumentationProvider from "@modules/documentationEditor/DocumentationProvider";
 import DataPilotPanel from "@modules/dataPilot";
+import DbtDocsView from "@modules/dbtDocs/DbtDocsView";
 
 // TODO: lazy loading breaks loading dynamic webviews when having css because of vite dynamic loading
 // research on how to fix that and then use lazy loading
@@ -21,4 +22,5 @@ export const AvailableRoutes = {
   "/docs-generator": {
     component: <DocumentationProvider />,
   },
+  "/dbt-docs": { component: <DbtDocsView /> },
 };

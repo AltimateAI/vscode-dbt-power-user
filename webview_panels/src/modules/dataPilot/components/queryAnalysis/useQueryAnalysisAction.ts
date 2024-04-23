@@ -102,6 +102,7 @@ const useQueryAnalysisAction = (): {
           ? undefined
           : (executeRequestInSync("queryanalysis:followup", {
               user_request,
+              filePath: chat?.filePath,
               query: chat?.query,
             }) as Promise<string[] | null>),
       ]);

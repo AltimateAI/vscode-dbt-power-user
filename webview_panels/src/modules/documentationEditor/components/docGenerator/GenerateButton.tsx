@@ -11,12 +11,14 @@ interface Props {
   variant?: Variants;
   buttonText?: string;
   onSubmit: () => void;
+  entityName: string;
 }
 
 const GenerateButton = ({
   variant = Variants.ICON,
   buttonText = "Generate",
   onSubmit,
+  entityName,
 }: Props): JSX.Element => {
   const getButtonText = () => {
     switch (variant) {
@@ -37,7 +39,11 @@ const GenerateButton = ({
     }
   };
   return (
-    <Button color="primary" onClick={onSubmit}>
+    <Button
+      color="primary"
+      onClick={onSubmit}
+      title={`Generate description for ${entityName}`}
+    >
       {getButtonText()}
     </Button>
   );

@@ -26,7 +26,7 @@ const SaveDocumentation = (): JSX.Element | null => {
   const saveDocumentation = async () => {
     const result = (await executeRequestInSync("saveDocumentation", {
       ...currentDocsData,
-      updatedTests: isTestUpdatedForAnyColumn ? currentDocsTests : undefined,
+      updatedTests: currentDocsTests,
       patchPath,
       dialogType,
     })) as { saved: boolean };
@@ -37,11 +37,7 @@ const SaveDocumentation = (): JSX.Element | null => {
   };
 
   useEffect(() => {
-    if (!currentDocsData?.patchPath) {
-      return;
-    }
-
-    setPatchPath(currentDocsData.patchPath);
+    setPatchPath(currentDocsData?.patchPath ?? "");
   }, [currentDocsData?.patchPath]);
 
   const handleChange = (newValue: string) => {

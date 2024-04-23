@@ -5,6 +5,7 @@ import {
   Uri,
   Webview,
   WebviewOptions,
+  WebviewPanel,
   WebviewView,
   WebviewViewProvider,
   WebviewViewResolveContext,
@@ -24,6 +25,7 @@ import { SharedStateService } from "../services/sharedStateService";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { QueryManifestService } from "../services/queryManifestService";
 import { PythonException } from "python-bridge";
+import { UsersService } from "../services/usersService";
 
 export type UpdateConfigProps = {
   key: string;
@@ -58,7 +60,8 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
   protected viewPath = "/"; // webview route path from AppRoutes.tsx
   protected panelDescription = "Altimate default webview";
 
-  protected _panel: WebviewView | undefined = undefined;
+  protected _panel: WebviewView | WebviewPanel | undefined = undefined;
+  protected _webview: Webview | undefined = undefined;
   protected _disposables: Disposable[] = [];
   protected eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   // Flag to know if panel's webview is rendered and ready to receive message
@@ -71,6 +74,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     protected emitterService: SharedStateService,
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
+    protected usersService: UsersService,
   ) {
     this._disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
@@ -93,7 +97,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     syncRequestId,
     ...rest
   }: SendMessageProps) {
-    this._panel?.webview.postMessage({
+    this._webview?.postMessage({
       command,
       args: {
         syncRequestId,
@@ -170,8 +174,8 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     }
   }
 
-  protected renderWebviewView(context: WebviewViewResolveContext) {
-    const webview = this._panel!.webview!;
+  protected renderWebviewView(webview: Webview) {
+    this._webview = webview;
     this._panel!.webview.onDidReceiveMessage(this.handleCommand, this, []);
 
     webview.html = this.getHtml(webview, this.dbtProjectContainer.extensionUri);
@@ -192,6 +196,45 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     try {
       switch (command) {
+        case "dbtdocsview:render":
+          this.emitterService.fire({
+            command: "dbtdocsview:render",
+            payload: params,
+          });
+          break;
+        case "getUsers":
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            () => {
+              return this.usersService.users;
+            },
+            command,
+            true,
+          );
+          break;
+        case "getCurrentUser":
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            () => {
+              return this.usersService.user;
+            },
+            command,
+            true,
+          );
+          break;
+        case "fetch":
+          this.handleSyncRequestFromWebview(
+            syncRequestId,
+            () => {
+              return this.altimateRequest.fetch(
+                params.endpoint as string,
+                params.fetchArgs as Record<string, unknown>,
+              );
+            },
+            command,
+            true,
+          );
+          break;
         case "getProjectAdapterType":
           this.handleSyncRequestFromWebview(
             syncRequestId,
@@ -338,11 +381,13 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
   ): void | Thenable<void> {
     this._panel = panel;
     this.setupWebviewOptions(context);
-    this.renderWebviewView(context);
+    this.renderWebviewView(this._panel!.webview);
   }
 
   private setupWebviewOptions(context: WebviewViewResolveContext) {
-    this._panel!.description = this.panelDescription;
+    if (this._panel && "description" in this._panel) {
+      this._panel.description = this.panelDescription;
+    }
     this._panel!.webview.options = <WebviewOptions>{
       enableScripts: true,
       localResourceRoots: [
@@ -358,7 +403,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     };
   }
 
-  private getHtml(webview: Webview, extensionUri: Uri) {
+  protected getHtml(webview: Webview, extensionUri: Uri) {
     const indexJs = webview.asWebviewUri(
       Uri.file(
         path.join(
@@ -415,7 +460,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               and only allow scripts that have a specific nonce.
               Added unsafe-inline for css due to csp issue: https://github.com/JedWatson/react-select/issues/4631
               -->
-            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}';">
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}' https://*.vscode-resource.vscode-cdn.net; connect-src https://*.s3.amazonaws.com">
             <title>VSCode DBT Power user extension</title>
             <link rel="stylesheet" type="text/css" href="${indexCss}">
             <link rel="stylesheet" type="text/css" href="${codiconsUri}">

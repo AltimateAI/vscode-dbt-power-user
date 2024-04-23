@@ -88,7 +88,7 @@ export class DbtTestService {
     column_name?: string,
   ) {
     const eventResult = this.queryManifestService.getEventByCurrentProject();
-    if (!eventResult) {
+    if (!eventResult?.event) {
       return;
     }
     const {

@@ -21,6 +21,7 @@ import { DocsGenerateModelRequestV2, Pages } from "./state/types";
 import useDocumentationContext from "./state/useDocumentationContext";
 import classes from "./styles.module.scss";
 import { addDefaultActions } from "./utils";
+import ConversationsRightPanel from "./components/conversation/ConversationsRightPanel";
 
 const DocumentationEditor = (): JSX.Element => {
   const {
@@ -184,6 +185,7 @@ const DocumentationEditor = (): JSX.Element => {
           </Stack>
         </Stack>
       </div>
+      <ConversationsRightPanel />
     </div>
   );
 };

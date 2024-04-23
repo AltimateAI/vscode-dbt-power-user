@@ -109,3 +109,7 @@ export const AskIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
 export const CloseIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
   <Icon icon="close" {...props} />
 );
+
+export const CommentIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
+  <Icon icon="comment" {...props} />
+);

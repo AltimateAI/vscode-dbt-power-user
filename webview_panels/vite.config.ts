@@ -37,6 +37,7 @@ export default defineConfig({
       "@modules": path.resolve(__dirname, "./src/modules"),
       "@testUtils": path.resolve(__dirname, "./src/testUtils"),
       "@vscodeApi": path.resolve(__dirname, "./src/modules/vscode"),
+      "@lib": path.resolve(__dirname, "./src/lib"),
     },
   },
   css: {

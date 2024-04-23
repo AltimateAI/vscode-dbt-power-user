@@ -1,6 +1,7 @@
 import { readFileSync } from "fs";
 import {
   CancellationToken,
+  Range,
   TextEditor,
   WebviewView,
   WebviewViewResolveContext,
@@ -24,6 +25,10 @@ import {
 import { DocsGenPanelView } from "./docsEditPanel";
 import { TestMetaData } from "../domain";
 import { DbtTestService } from "../services/dbtTestService";
+import { UsersService } from "../services/usersService";
+import { ConversationProvider } from "../comment_provider/conversationProvider";
+import { DbtDocsView } from "./DbtDocsView";
+import { ConversationService } from "../services/conversationService";
 
 @provideSingleton(NewDocsGenPanel)
 export class NewDocsGenPanel
@@ -43,6 +48,10 @@ export class NewDocsGenPanel
     protected queryManifestService: QueryManifestService,
     protected dbtTerminal: DBTTerminal,
     private dbtTestService: DbtTestService,
+    protected userService: UsersService,
+    private dbtDocsView: DbtDocsView,
+    private conversationProvider: ConversationProvider,
+    private conversationService: ConversationService,
   ) {
     super(
       dbtProjectContainer,
@@ -51,6 +60,7 @@ export class NewDocsGenPanel
       emitterService,
       dbtTerminal,
       queryManifestService,
+      userService,
     );
 
     this._disposables.push(
@@ -59,6 +69,7 @@ export class NewDocsGenPanel
           if (event === undefined) {
             return;
           }
+
           this.transmitTestsData();
         },
       ),
@@ -77,6 +88,21 @@ export class NewDocsGenPanel
   protected onWebviewReady() {
     super.onWebviewReady();
     this.transmitTestsData();
+    this.transmitConversationsData();
+  }
+
+  private transmitConversationsData() {
+    const conversations = this.conversationService.getConversations();
+    if (!conversations) {
+      return;
+    }
+    Object.entries(conversations).forEach(([shareId, conversationGroups]) => {
+      this.sendResponseToWebview({
+        command: "conversations:updates",
+        shareId,
+        conversationGroups,
+      });
+    });
   }
 
   resolveWebview(
@@ -121,10 +147,55 @@ export class NewDocsGenPanel
     };
   }
 
+  private async createConversation({
+    comment,
+    ...params
+  }: {
+    meta?: Record<string, unknown>;
+    comment?: string;
+  }) {
+    if (!window.activeTextEditor?.document.uri) {
+      throw new Error("Invalid file");
+    }
+    if (!comment) {
+      throw new Error("Invalid comment");
+    }
+
+    const result = await this.conversationProvider.saveConversation(
+      comment as string,
+      window.activeTextEditor.document.uri,
+
+      params.meta,
+      new Range(0, 0, 0, 0),
+      "documentation-editor",
+    );
+    if (!result?.shareId) {
+      return;
+    }
+    return {
+      [result.shareId]:
+        await this.conversationService.loadConversationsByShareId(
+          result.shareId,
+        ),
+    };
+  }
+
   async handleCommand(message: HandleCommandProps): Promise<void> {
     const { command, syncRequestId, ...args } = message;
 
     switch (command) {
+      case "refetchConversations":
+        this.emitterService.fire({ command, payload: args });
+        break;
+      case "createConversation":
+        this.handleSyncRequestFromWebview(
+          syncRequestId,
+          async () => {
+            return this.createConversation(args);
+          },
+          command,
+        );
+        break;
       case "getTestCode":
         this.handleSyncRequestFromWebview(
           syncRequestId,
@@ -168,6 +239,9 @@ export class NewDocsGenPanel
           command: "renderDocumentation",
           docs: documentation,
           project: this.queryManifestService.getProject()?.getProjectName(),
+          collaborationEnabled: workspace
+            .getConfiguration("dbt")
+            .get<boolean>("enableCollaboration", false),
         });
         break;
 
@@ -246,6 +320,12 @@ export class NewDocsGenPanel
 
   protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
     switch (command) {
+      case "viewConversation":
+        this.sendResponseToWebview({ command, ...payload });
+        break;
+      case "conversations:updates":
+        this.sendResponseToWebview({ command, ...payload });
+        break;
       case "docgen:insert":
       case "testgen:insert":
         this.sendResponseToWebview({

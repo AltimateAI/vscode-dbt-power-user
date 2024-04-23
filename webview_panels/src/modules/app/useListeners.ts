@@ -1,12 +1,13 @@
 import { Dispatch, useCallback, useEffect } from "react";
 import {
   executeRequestInAsync,
+  executeRequestInSync,
   handleIncomingResponse,
 } from "./requestExecutor";
-import { IncomingMessageProps, IncomingSyncResponse, Themes } from "./types";
+import { IncomingMessageProps, IncomingSyncResponse, Themes, User } from "./types";
 import { panelLogger } from "@modules/logger";
 import { UnknownAction } from "@reduxjs/toolkit";
-import { updateTheme } from "./appSlice";
+import { setCurrentUser, setUsers, updateTheme } from "./appSlice";
 
 const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
   const onMesssage = useCallback(
@@ -28,6 +29,25 @@ const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
     dispatch(updateTheme(isDark ? Themes.Dark : Themes.Light));
   };
 
+  const loadUsersDetails = () => {
+    executeRequestInSync("getUsers", {})
+      .then((data) => {
+        panelLogger.log("getUsers", data);
+        dispatch(setUsers(data as User[]));
+      })
+      .catch((err) => panelLogger.error("error while fetching users list", err));
+  }
+
+  const loadCurrentUser = () => {
+    executeRequestInSync("getCurrentUser", {})
+      .then((data) => {
+        panelLogger.log("getCurrentUser", data);
+        dispatch(setCurrentUser(data as User));
+
+      })
+      .catch((err) => panelLogger.error("error while fetching current user", err));
+  }
+
   useEffect(() => {
     window.addEventListener("message", onMesssage);
 
@@ -38,6 +58,9 @@ const useListeners = (dispatch: Dispatch<UnknownAction>): void => {
         setTheme(mu.target as HTMLElement);
       });
     });
+
+    loadUsersDetails();
+    loadCurrentUser();
 
     themeObserver.observe(document.body, {
       attributes: true,

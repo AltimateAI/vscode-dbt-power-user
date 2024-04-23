@@ -1,7 +1,7 @@
 {
   "name": "vscode-dbt-power-user",
-  "displayName": "dbt Power User",
-  "description": "Makes vscode seamlessly work with dbt: auto-complete, preview, column lineage, AI docs generation, health checks, cost estimation etc",
+  "displayName": "Power User for dbt Core™",
+  "description": "a.k.a. dbt™ power user makes vscode seamlessly work with dbt™: auto-complete, preview, column lineage, AI docs generation, health checks, cost estimation etc",
   "icon": "media/images/dbt.png",
   "publisher": "innoverio",
   "license": "MIT",
@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.37.8",
+  "version": "0.38.3",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -70,6 +70,11 @@
           "dbt.enableNewLineagePanel": {
             "type": "boolean",
             "description": "Enable the new lineage panel in dbt."
+          },
+          "dbt.enableCollaboration": {
+            "type": "boolean",
+            "description": "Enable dbt docs collaboration.",
+            "default": false
           },
           "dbt.enableNewDocsPanel": {
             "type": "boolean",
@@ -139,6 +144,12 @@
             "description": "The maximum number of rows the `Preview SQL Query` command returns.",
             "default": 500,
             "minimum": 1
+          },
+          "dbt.conversationsPollingInterval": {
+            "type": "integer",
+            "description": "Polling interval to fetch latest conversations (in seconds)",
+            "default": 120,
+            "minimum": 30
           },
           "dbt.queryTemplate": {
             "type": "string",
@@ -307,6 +318,38 @@
       ]
     },
     "commands": [
+      {
+        "command": "dbtPowerUser.resolveConversation",
+        "title": "Resolve",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.createConversation",
+        "title": "Publish",
+        "category": "dbt Power User",
+        "enablement": "!commentIsEmpty"
+      },
+      {
+        "command": "dbtPowerUser.viewInDbtDocs",
+        "title": "View in dbt docs",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.copyDbtDocsLink",
+        "title": "Copy link",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.viewInDocEditor",
+        "title": "View in documentation editor",
+        "category": "dbt Power User"
+      },
+      {
+        "command": "dbtPowerUser.replyToConversation",
+        "title": "Reply",
+        "enablement": "!commentIsEmpty",
+        "category": "dbt Power User"
+      },
       {
         "command": "dbtPowerUser.puQuickPick",
         "category": "dbt Power User",
@@ -542,6 +585,12 @@
           "light": "./media/images/build-model_light.svg",
           "dark": "./media/images/build-model_dark.svg"
         }
+      },
+      {
+        "command": "dbtPowerUser.printEnvVars",
+        "title": "Print environment variables",
+        "category": "dbt Power User",
+        "icon": "$(gist-secret)"
       }
     ],
     "keybindings": [
@@ -558,6 +607,40 @@
       }
     ],
     "menus": {
+      "comments/commentThread/title": [
+        {
+          "command": "dbtPowerUser.viewInDocEditor",
+          "group": "navigation",
+          "when": "commentController == altimate-conversations && (commentThread =~ /saved/) && commentThread =~ /description/"
+        },
+        {
+          "command": "dbtPowerUser.copyDbtDocsLink",
+          "group": "navigation",
+          "when": "commentController == altimate-conversations && (commentThread =~ /saved/)"
+        },
+        {
+          "command": "dbtPowerUser.viewInDbtDocs",
+          "group": "navigation",
+          "when": "commentController == altimate-conversations && (commentThread =~ /saved/)"
+        },
+        {
+          "command": "dbtPowerUser.resolveConversation",
+          "group": "inline",
+          "when": "commentController == altimate-conversations && !commentThreadIsEmpty && (commentThread =~ /saved/)"
+        }
+      ],
+      "comments/commentThread/context": [
+        {
+          "command": "dbtPowerUser.createConversation",
+          "group": "inline@1",
+          "when": "commentController == altimate-conversations && commentThreadIsEmpty"
+        },
+        {
+          "command": "dbtPowerUser.replyToConversation",
+          "group": "inline",
+          "when": "commentController == altimate-conversations && !commentThreadIsEmpty"
+        }
+      ],
       "dbtPowerUser.datapilotSubmenu": [
         {
           "command": "dbtPowerUser.openDatapilotWithQuery",
@@ -1043,7 +1126,7 @@
   ],
   "dependencies": {
     "@vscode/codicons": "^0.0.35",
-    "@vscode/extension-telemetry": "^0.9.5",
+    "@vscode/extension-telemetry": "^0.9.6",
     "@vscode/vsce": "^2.24.0",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "dayjs": "^1.11.10",

@@ -9,17 +9,18 @@ import {
   Uri,
   workspace,
 } from "vscode";
+import { EnvironmentVariables } from "./domain";
 
-export const isEnclosedWithinCodeBlock: (
+export const isEnclosedWithinCodeBlock = (
   document: TextDocument,
   rangeOrPosition: Range | Position,
-) => boolean = (document, rangeOrPosition) => {
-  const isWithinCodeBlock: (
+): boolean => {
+  const isWithinCodeBlock = (
     startPosition: Position,
     direction: "asc" | "desc",
     lookupChar: "{" | "}",
     stopChar: "{" | "}",
-  ) => boolean = (startPosition, direction, lookupChar, stopChar) => {
+  ): boolean => {
     const increment = direction === "desc" ? -1 : 1;
     let characterPosition: number | undefined = startPosition.character;
     let lineNumber = startPosition.line;
@@ -95,31 +96,6 @@ export const setupWatcherHandler: (
 export const provideSingleton = (identifier: any) => {
   return fluentProvide(identifier).inSingletonScope().done();
 };
-
-export function substituteSettingsVariables(value: any): any {
-  if (typeof value !== "string") {
-    return value;
-  }
-  const regexVsCodeEnv = /\$\{env\:(.*?)\}/gm;
-  let matchResult;
-  while ((matchResult = regexVsCodeEnv.exec(value)) !== null) {
-    // This is necessary to avoid infinite loops with zero-width matches
-    if (matchResult.index === regexVsCodeEnv.lastIndex) {
-      regexVsCodeEnv.lastIndex++;
-    }
-    if (process.env[matchResult[1]] !== undefined) {
-      value = value.replace(
-        new RegExp(`\\\$\\\{env\\\:${matchResult[1]}\\\}`, "gm"),
-        process.env[matchResult[1]]!,
-      );
-    }
-  }
-  value = value.replace(
-    "${workspaceFolder}",
-    workspace.workspaceFolders![0].uri.fsPath,
-  );
-  return value;
-}
 
 export function extendErrorWithSupportLinks(error: string): string {
   return (

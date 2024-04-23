@@ -7,13 +7,13 @@ import {
 import { ReactNode, useState } from "react";
 import {
   ButtonProps,
-  Button,
   Offcanvas,
   OffcanvasBody,
   OffcanvasHeader,
 } from "reactstrap";
 import IconButton from "../iconButton/IconButton";
 import classes from "./styles.module.scss";
+import { Button } from "../..";
 
 interface Props {
   title?: string;

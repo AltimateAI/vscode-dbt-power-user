@@ -23,14 +23,47 @@ export const initialState = {
     prompt_hint: undefined,
   },
   selectedPages: [Pages.DOCUMENTATION],
+  conversations: {},
+  showConversationsRightPanel: false,
+  collaborationEnabled: false,
 } as DocumentationStateProps;
 
 const documentationSlice = createSlice({
   name: "documentationState",
   initialState,
   reducers: {
+    updatConversations: (
+      state,
+      { payload }: PayloadAction<DocumentationStateProps["conversations"]>,
+    ) => {
+      Object.entries(payload).forEach(([shareId, conversationGroups]) => {
+        state.conversations[parseInt(shareId)] = conversationGroups;
+      });
+    },
     addToSelectedPage: (state, action: PayloadAction<Pages>) => {
       state.selectedPages.push(action.payload);
+    },
+    updateConversationsRightPanelState: (
+      state,
+      action: PayloadAction<
+        DocumentationStateProps["showConversationsRightPanel"]
+      >,
+    ) => {
+      state.showConversationsRightPanel = action.payload;
+    },
+    updateCollaborationEnabled: (
+      state,
+      action: PayloadAction<DocumentationStateProps["collaborationEnabled"]>,
+    ) => {
+      state.collaborationEnabled = action.payload;
+    },
+    updateSelectedConversationGroup: (
+      state,
+      action: PayloadAction<
+        DocumentationStateProps["selectedConversationGroup"]
+      >,
+    ) => {
+      state.selectedConversationGroup = action.payload;
     },
     removeFromSelectedPage: (state, action: PayloadAction<Pages>) => {
       if (state.selectedPages.length === 1) {
@@ -195,5 +228,9 @@ export const {
   updateCurrentDocsTests,
   addToSelectedPage,
   removeFromSelectedPage,
+  updatConversations,
+  updateConversationsRightPanelState,
+  updateSelectedConversationGroup,
+  updateCollaborationEnabled,
 } = documentationSlice.actions;
 export default documentationSlice;
