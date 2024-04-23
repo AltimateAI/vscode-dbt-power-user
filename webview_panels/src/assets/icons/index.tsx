@@ -18,6 +18,7 @@ export { default as EmptySquareIcon } from "./square.svg?react";
 export { default as CheckedSquareIcon } from "./checked-square.svg?react";
 export { default as TestsIcon } from "./tests.svg?react";
 export { default as FolderIcon } from "./folder.svg?react";
+import LoadingSpinnerUrl from "./spinner.gif";
 
 interface Props {
   icon: string;
@@ -110,6 +111,10 @@ export const CloseIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
   <Icon icon="close" {...props} />
 );
 
-export const CommentIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
-  <Icon icon="comment" {...props} />
+export const CommentIcon = (
+  props: HTMLAttributes<HTMLElement>,
+): JSX.Element => <Icon icon="comment" {...props} />;
+
+export const LoadingSpinner = (): JSX.Element => (
+  <img src={LoadingSpinnerUrl} alt="Altimate loader" />
 );

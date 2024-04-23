@@ -1,5 +1,5 @@
 import type { Meta } from "@storybook/react";
-import QueryPanel from "./QueryPanel";
+import QueryPanelProvider from "./QueryPanelProvider";
 
 const meta = {
   title: "Query Panel",
@@ -16,6 +16,6 @@ export default meta;
 
 export const DefaultQueryPanelView = {
   render: (): JSX.Element => {
-    return <QueryPanel />;
+    return <QueryPanelProvider />;
   },
 };
