@@ -512,7 +512,7 @@ export class ConversationProvider implements Disposable {
     } else if (model) {
       shareName += model;
     } else {
-      shareName += "Untitled Discussion";
+      shareName = "Untitled Discussion";
     }
 
     // create share
