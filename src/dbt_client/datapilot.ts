@@ -45,7 +45,7 @@ export class AltimateDatapilot {
         cwd: getFirstWorkspacePath(),
         envVars: this.pythonEnvironment.environmentVariables,
       })
-      .completeWithTerminalOutput(this.dbtTerminal);
+      .completeWithTerminalOutput();
     if (!stdout.includes("Successfully installed") && stderr) {
       throw new Error(stderr);
     }
