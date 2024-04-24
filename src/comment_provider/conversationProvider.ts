@@ -506,13 +506,13 @@ export class ConversationProvider implements Disposable {
         start: range.start,
       },
     };
-    let share_name = "";
-    if (nodeMeta?.uniqueId !== undefined) {
-      share_name = "Discussion on " + nodeMeta?.uniqueId;
-    } else if (model !== undefined) {
-      share_name = "Discussion on " + model;
+    let share_name = "Discussion on ";
+    if (nodeMeta?.uniqueId) {
+      share_name += nodeMeta.uniqueId;
+    } else if (model) {
+      share_name += model;
     } else {
-      share_name = "Discussion on " + highlight.trim().substring(0, 30);
+      share_name += highlight.trim().substring(0, 30);
     }
 
     // create share
