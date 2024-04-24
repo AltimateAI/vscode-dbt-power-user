@@ -113,12 +113,14 @@ export class CommandProcessExecution {
       });
 
       commandProcess.once("error", (error) => {
-        this.terminal.debug(
-          "CommandProcessExecution",
+        this.terminal.error(
+          "CommandProcessExecutionError",
           "Command errored: " + this.command,
+          error,
+          true,
+          this.command,
           this.args,
-          fullOutput,
-          (error as Error).message,
+          error,
         );
         reject(new Error(`${error}`));
       });
