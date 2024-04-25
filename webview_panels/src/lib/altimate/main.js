@@ -6284,7 +6284,7 @@ const ga = { vs: fa, solarizedDark: la, solarizedLight: da },
       },
     }),
   Oa = (e) => rt.get(`dbt/dbt_docs_share/${e}/conversations`),
-  Aa = (e) => rt.get("/users/chat", { company: e }),
+  Aa = (e) => rt.get("users/chat", { company: e }),
   Ra = (e, t, o) =>
     rt.post(`dbt/dbt_docs_share/${e}/conversation_group/${t}/resolve`, {
       resolved: !0,
