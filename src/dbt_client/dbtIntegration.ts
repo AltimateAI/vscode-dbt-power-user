@@ -63,7 +63,7 @@ export class CLIDBTCommandExecutionStrategy
   ): Promise<CommandProcessResult> {
     const commandExecution = this.executeCommand(command, token);
     const executionPromise = command.logToTerminal
-      ? (await commandExecution).completeWithTerminalOutput(this.terminal)
+      ? (await commandExecution).completeWithTerminalOutput()
       : (await commandExecution).complete();
     return executionPromise;
   }
@@ -126,7 +126,7 @@ export class PythonDBTCommandExecutionStrategy
   ): Promise<CommandProcessResult> {
     return (
       await this.executeCommand(command, token)
-    ).completeWithTerminalOutput(this.terminal);
+    ).completeWithTerminalOutput();
   }
 
   private async executeCommand(
