@@ -108,7 +108,7 @@ export class ConversationProvider implements Disposable {
           d.command === "manifestCacheChanged" ||
           d.command === "refetchConversations"
         ) {
-          this.loadThreads();
+          // this.loadThreads();
         }
       }),
     );
@@ -141,7 +141,7 @@ export class ConversationProvider implements Disposable {
       pollingInterval,
     );
     this.timer = setTimeout(() => {
-      this.loadThreads();
+      // this.loadThreads();
     }, pollingInterval * 1000);
   }
 

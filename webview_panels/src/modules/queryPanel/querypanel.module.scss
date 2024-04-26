@@ -1,0 +1,11 @@
+.queryPanel {
+  position: absolute;
+    width: 100vw;
+    height: 100vh;
+    box-sizing: border-box;
+    top: 0;
+    left: 0;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+}

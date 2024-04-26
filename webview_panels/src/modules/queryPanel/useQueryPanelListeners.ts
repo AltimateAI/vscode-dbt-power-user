@@ -84,7 +84,9 @@ const useQueryPanelListeners = (): void => {
 
   const handleQueryResults = (args: Record<string, unknown>) => {
     dispatch(setLoading(false));
-    dispatch(setQueryResults(args as QueryPanelStateProps["queryResults"]));
+    dispatch(
+      setQueryResults(args.rows as QueryPanelStateProps["queryResults"]),
+    );
     dispatch(setCompiledCodeMarkup(args.compiled_sql as string));
     clearHintInterval();
     endQueryExecutionTimer();
@@ -98,7 +100,7 @@ const useQueryPanelListeners = (): void => {
 
   const onMesssage = useCallback(
     (event: MessageEvent<IncomingMessageProps>) => {
-      const { command, args } = event.data;
+      const { command, ...args } = event.data;
       panelLogger.info("query panel onMesssage", command, args);
       switch (command) {
         case "renderError":

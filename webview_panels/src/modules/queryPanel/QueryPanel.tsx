@@ -6,12 +6,13 @@ import useQueryPanelListeners from "./useQueryPanelListeners";
 import QueryPanelTitle from "./components/QueryPanelContents/QueryPanelTitle";
 import QueryPanelContent from "./components/QueryPanelContents/QueryPanelContent";
 import { useState } from "react";
+import classes from "./querypanel.module.scss";
 
 const QueryPanel = (): JSX.Element => {
   const [showCompiledCode, setShowCompiledCode] = useState(false);
   useQueryPanelListeners();
   return (
-    <div>
+    <div className={classes.queryPanel}>
       <Stack className="mb-2 justify-content-between">
         <Stack direction="column" style={{ flex: 1 }}>
           <QueryPanelTitle setShowCompiledCode={setShowCompiledCode} />
@@ -22,7 +23,9 @@ const QueryPanel = (): JSX.Element => {
           <FeedbackButton url="https://docs.google.com/forms/d/19wX5b5_xXL6J_Q_GpuWzYddIXbvLxuarv09Y3VRk_EU/viewform" />
         </Stack>
       </Stack>
-      <QueryPanelContent showCompiledCode={showCompiledCode} />
+      <div style={{ flex: 1 }}>
+        <QueryPanelContent showCompiledCode={showCompiledCode} />
+      </div>
     </div>
   );
 };

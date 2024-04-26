@@ -27,6 +27,10 @@ import {
   QueryExecution,
 } from "../dbt_client/dbtIntegration";
 import { SharedStateService } from "../services/sharedStateService";
+import { AltimateWebviewProvider } from "./altimateWebviewProvider";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { QueryManifestService } from "../services/queryManifestService";
+import { UsersService } from "../services/usersService";
 
 interface JsonObj {
   [key: string]: string | number | undefined;
@@ -95,27 +99,60 @@ interface RecOpenUrl {
 }
 
 @provideSingleton(QueryResultPanel)
-export class QueryResultPanel implements WebviewViewProvider {
+export class QueryResultPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.PreviewResults";
+  protected viewPath = "/query-panel";
+  protected panelDescription = "Query results panel";
 
-  private _disposables: Disposable[] = [];
-  private _panel: WebviewView | undefined;
+  protected _panel: WebviewView | undefined;
   private queryExecution?: QueryExecution;
 
   public constructor(
-    private dbtProjectContainer: DBTProjectContainer,
-    private telemetry: TelemetryService,
+    protected dbtProjectContainer: DBTProjectContainer,
+    protected telemetry: TelemetryService,
     private altimate: AltimateRequest,
     private eventEmitterService: SharedStateService,
+    protected dbtTerminal: DBTTerminal,
+    protected queryManifestService: QueryManifestService,
+    protected usersService: UsersService,
   ) {
+    super(
+      dbtProjectContainer,
+      altimate,
+      telemetry,
+      eventEmitterService,
+      dbtTerminal,
+      queryManifestService,
+      usersService,
+    );
+    this._disposables.push(
+      workspace.onDidChangeConfiguration(
+        (e) => {
+          if (!e.affectsConfiguration("dbt.enableQueryPanelV2")) {
+            return;
+          }
+          if (this._panel) {
+            this.renderWebviewView(this._panel.webview);
+          }
+        },
+        this,
+        this._disposables,
+      ),
+    );
     window.onDidChangeActiveColorTheme(
       (e) => {
         if (this._panel) {
-          this._panel.webview.html = getHtml(
-            this._panel.webview,
-            this.dbtProjectContainer.extensionUri,
-          );
-          this.transmitConfig();
+          const enableQueryPanelV2 = workspace
+            .getConfiguration("dbt")
+            .get<boolean>("enableQueryPanelV2", false);
+
+          if (!enableQueryPanelV2) {
+            this._panel.webview.html = getHtml(
+              this._panel.webview,
+              this.dbtProjectContainer.extensionUri,
+            );
+            this.transmitConfig();
+          }
         }
       },
       null,
@@ -129,8 +166,8 @@ export class QueryResultPanel implements WebviewViewProvider {
     _token: CancellationToken,
   ) {
     this._panel = panel;
-    this.setupWebviewOptions(context);
-    this.renderWebviewView(context);
+    this.bindWebviewOptions(context);
+    this.renderWebviewView(panel.webview);
     this.setupWebviewHooks(context);
     this.transmitConfig();
     await this._panel?.webview.postMessage({
@@ -144,7 +181,7 @@ export class QueryResultPanel implements WebviewViewProvider {
   }
 
   /** Sets options, note that retainContextWhen hidden is set on registration */
-  private setupWebviewOptions(context: WebviewViewResolveContext) {
+  private bindWebviewOptions(context: WebviewViewResolveContext) {
     this._panel!.title = "Query Results";
     this._panel!.description = "Preview dbt SQL Results";
     this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
@@ -231,8 +268,18 @@ export class QueryResultPanel implements WebviewViewProvider {
   }
 
   /** Renders webview content */
-  private renderWebviewView(context: WebviewViewResolveContext) {
-    const webview = this._panel!.webview!;
+  protected renderWebviewView(webview: Webview) {
+    const enableQueryPanelV2 = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("enableQueryPanelV2", false);
+
+    if (enableQueryPanelV2) {
+      this._panel!.webview.html = super.getHtml(
+        webview,
+        this.dbtProjectContainer.extensionUri,
+      );
+      return;
+    }
     this._panel!.webview.html = getHtml(
       webview,
       this.dbtProjectContainer.extensionUri,

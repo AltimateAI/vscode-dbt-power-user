@@ -1,0 +1,25 @@
+regular-table{
+tbody {
+    tr:nth-child(even) {
+      background-color: rgb(239, 239, 239);
+    }
+    tr:hover {
+      background-color: rgb(187, 187, 187);
+      cursor: pointer;
+    }
+    td {
+      color: var(--text-color--paragraph) !important;
+    }
+  }
+}
+
+regular-table[theme="dark"] {
+  tbody {
+    tr:nth-child(even) {
+      background-color: var(--background--03);
+    }
+    tr:hover {
+      background-color: var(--background--01);
+    }
+  }
+}
