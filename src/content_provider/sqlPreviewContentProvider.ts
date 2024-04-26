@@ -83,10 +83,9 @@ export class SqlPreviewContentProvider
       await project.refreshProjectConfig();
       return await project.unsafeCompileQuery(query);
     } catch (error: any) {
-      window.showErrorMessage(
-        `Error while compiling: ${JSON.stringify(error)}`,
-      );
-      return error;
+      const errorMessage = (error as Error).message;
+      window.showErrorMessage(`Error while compiling: ${errorMessage}`);
+      return errorMessage;
     }
   }
 }
