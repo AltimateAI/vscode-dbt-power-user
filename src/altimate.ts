@@ -730,7 +730,7 @@ export class AltimateRequest {
   }
 
   async getCurrentUser() {
-    return await this.fetch<TenantUser>("/dbt/dbt_docs_share/user/details");
+    return await this.fetch<TenantUser>("dbt/dbt_docs_share/user/details");
   }
 
   async getAllSharedDbtDocs(projectNames: string[]) {
