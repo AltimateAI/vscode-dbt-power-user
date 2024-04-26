@@ -1,9 +1,12 @@
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
+import { Nav, NavItem, NavLink } from "@uicore";
 
 const QueryPanelTitle = ({
   setShowCompiledCode,
+  showCompiledCode,
 }: {
   setShowCompiledCode: (show: boolean) => void;
+  showCompiledCode: boolean;
 }): JSX.Element => {
   const {
     loading,
@@ -16,21 +19,39 @@ const QueryPanelTitle = ({
 
   if (loading || hasData || hasError) {
     return (
-      <div>
-        <span onClick={() => setShowCompiledCode(false)}>
-          Preview{" "}
-          <span>
-            {queryResultsRowCount} rows in {queryExecutionInfo?.elapsedTime}s
-          </span>
-        </span>
+      <Nav>
+        <NavItem>
+          <NavLink
+            active={!showCompiledCode}
+            onClick={() => setShowCompiledCode(false)}
+          >
+            Preview{" "}
+            <span>
+              {queryResultsRowCount} rows in {queryExecutionInfo?.elapsedTime}s
+            </span>
+          </NavLink>
+        </NavItem>
         {compiledCodeMarkup ? (
-          <span onClick={() => setShowCompiledCode(true)}>SQL</span>
+          <NavItem>
+            <NavLink
+              active={showCompiledCode}
+              onClick={() => setShowCompiledCode(true)}
+            >
+              SQL
+            </NavLink>
+          </NavItem>
         ) : null}
-      </div>
+      </Nav>
     );
   }
 
-  return <div>Welcome 🚀</div>;
+  return (
+    <Nav>
+      <NavItem>
+        <NavLink active>Welcome 🚀</NavLink>
+      </NavItem>
+    </Nav>
+  );
 };
 
 export default QueryPanelTitle;

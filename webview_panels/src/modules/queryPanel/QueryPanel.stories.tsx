@@ -23,10 +23,7 @@ const ActionButton = ({
   title: string;
 }) => {
   const handleAction = () => {
-    window.postMessage({
-      command: data.command,
-      args: data,
-    });
+    window.postMessage(data);
   };
   return <Button onClick={handleAction}>{title}</Button>;
 };
@@ -63,7 +60,9 @@ export const DefaultQueryPanelView = {
           />
           <ActionButton data={{ command: "resetState" }} title="Reset state" />
         </Stack>
-        <QueryPanelProvider />
+        <div style={{ position: "relative" }}>
+          <QueryPanelProvider />
+        </div>
       </div>
     );
   },

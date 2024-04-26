@@ -27,7 +27,10 @@ import {
   QueryExecution,
 } from "../dbt_client/dbtIntegration";
 import { SharedStateService } from "../services/sharedStateService";
-import { AltimateWebviewProvider } from "./altimateWebviewProvider";
+import {
+  AltimateWebviewProvider,
+  HandleCommandProps,
+} from "./altimateWebviewProvider";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { QueryManifestService } from "../services/queryManifestService";
 import { UsersService } from "../services/usersService";
@@ -74,6 +77,7 @@ enum InboundCommand {
   GetSummary = "getSummary",
   CancelQuery = "cancelQuery",
   SetContext = "setContext",
+  GetQueryPanelContext = "getQueryPanelContext",
 }
 
 interface RecInfo {
@@ -165,10 +169,15 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     context: WebviewViewResolveContext,
     _token: CancellationToken,
   ) {
+    const enableQueryPanelV2 = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("enableQueryPanelV2", false);
     this._panel = panel;
     this.bindWebviewOptions(context);
     this.renderWebviewView(panel.webview);
-    this.setupWebviewHooks(context);
+    // if (!enableQueryPanelV2) {
+    this.setupWebviewHooks();
+    // }
     this.transmitConfig();
     await this._panel?.webview.postMessage({
       command: OutboundCommand.GetContext,
@@ -180,6 +189,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     });
   }
 
+  async handleCommand(message: HandleCommandProps): Promise<void> {
+    this.onMessage(message);
+  }
+
   /** Sets options, note that retainContextWhen hidden is set on registration */
   private bindWebviewOptions(context: WebviewViewResolveContext) {
     this._panel!.title = "Query Results";
@@ -187,75 +200,88 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
   }
 
-  /** Primary interface for WebviewView inbound communication */
-  private setupWebviewHooks(context: WebviewViewResolveContext) {
-    this._panel!.webview.onDidReceiveMessage(
-      async (message) => {
-        switch (message.command) {
-          case InboundCommand.CancelQuery:
-            if (this.queryExecution) {
-              this.queryExecution.cancel();
-            }
-          case InboundCommand.Error:
-            const error = message as RecError;
-            window.showErrorMessage(error.text);
-            break;
-          case InboundCommand.Info:
-            const info = message as RecInfo;
-            window.withProgress(
-              {
-                title: info.text,
-                location: ProgressLocation.Notification,
-                cancellable: false,
-              },
-              async () => {
-                await new Promise((timer) => setTimeout(timer, 3000));
-              },
-            );
-            break;
-          case InboundCommand.UpdateConfig:
-            const configMessage = message as RecConfig;
-            if (configMessage.limit !== undefined) {
-              workspace
-                .getConfiguration("dbt")
-                .update("queryLimit", configMessage.limit);
-            }
-            if (configMessage.scale) {
-              workspace
-                .getConfiguration("dbt")
-                .update("queryScale", configMessage.scale);
-            }
-            if ("enableNewQueryPanel" in configMessage) {
-              workspace
-                .getConfiguration("dbt")
-                .update(
-                  "enableNewQueryPanel",
-                  configMessage.enableNewQueryPanel,
-                );
-            }
-            break;
-          case InboundCommand.OpenUrl:
-            const config = message as RecOpenUrl;
-            env.openExternal(Uri.parse(config.url));
-            break;
-          case InboundCommand.GetSummary:
-            const summary = message as RecSummary;
-            this.eventEmitterService.fire({
-              command: "dbtPowerUser.summarizeQuery",
-              payload: {
-                query: summary.compiledSql,
-              },
-            });
-            break;
-          case InboundCommand.SetContext:
-            this.dbtProjectContainer.setToGlobalState(
-              message.key,
-              message.value,
-            );
-            break;
+  private async onMessage(message: any) {
+    switch (message.command) {
+      case InboundCommand.GetQueryPanelContext:
+        this.handleSyncRequestFromWebview(
+          message.syncRequestId,
+          () => {
+            return {
+              lastHintTimestamp:
+                this.dbtProjectContainer.getFromGlobalState(
+                  "lastHintTimestamp",
+                ) || 0,
+            };
+          },
+          message.command,
+        );
+        break;
+      case InboundCommand.CancelQuery:
+        if (this.queryExecution) {
+          this.queryExecution.cancel();
         }
-      },
-      null,
+        break;
+      case InboundCommand.Error:
+        const error = message as RecError;
+        window.showErrorMessage(error.text);
+        break;
+      case InboundCommand.Info:
+        const info = message as RecInfo;
+        window.withProgress(
+          {
+            title: info.text,
+            location: ProgressLocation.Notification,
+            cancellable: false,
+          },
+          async () => {
+            await new Promise((timer) => setTimeout(timer, 3000));
+          },
+        );
+        break;
+      case InboundCommand.UpdateConfig:
+        const configMessage = message as RecConfig;
+        if (configMessage.limit !== undefined) {
+          workspace
+            .getConfiguration("dbt")
+            .update("queryLimit", configMessage.limit);
+        }
+        if (configMessage.scale) {
+          workspace
+            .getConfiguration("dbt")
+            .update("queryScale", configMessage.scale);
+        }
+        if ("enableNewQueryPanel" in configMessage) {
+          workspace
+            .getConfiguration("dbt")
+            .update("enableNewQueryPanel", configMessage.enableNewQueryPanel);
+        }
+        break;
+      case InboundCommand.OpenUrl:
+        const config = message as RecOpenUrl;
+        env.openExternal(Uri.parse(config.url));
+        break;
+      case InboundCommand.GetSummary:
+        const summary = message as RecSummary;
+        this.eventEmitterService.fire({
+          command: "dbtPowerUser.summarizeQuery",
+          payload: {
+            query: summary.compiledSql,
+          },
+        });
+        break;
+      case InboundCommand.SetContext:
+        this.dbtProjectContainer.setToGlobalState(message.key, message.value);
+        break;
+      default:
+        super.handleCommand(message);
+    }
+  }
+
+  /** Primary interface for WebviewView inbound communication */
+  private setupWebviewHooks() {
+    this._panel!.webview.onDidReceiveMessage(
+      this.onMessage,
+      this,
       this._disposables,
     );
     const sendQueryPanelViewEvent = () => {

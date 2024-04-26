@@ -15,7 +15,10 @@ const QueryPanel = (): JSX.Element => {
     <div className={classes.queryPanel}>
       <Stack className="mb-2 justify-content-between">
         <Stack direction="column" style={{ flex: 1 }}>
-          <QueryPanelTitle setShowCompiledCode={setShowCompiledCode} />
+          <QueryPanelTitle
+            setShowCompiledCode={setShowCompiledCode}
+            showCompiledCode={showCompiledCode}
+          />
         </Stack>
         <Stack>
           <ClearResultsButton />

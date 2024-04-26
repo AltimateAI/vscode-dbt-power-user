@@ -5,7 +5,7 @@ import TableScale from "./components/tableScale/TableScale";
 
 const QueryPanelDefaultView = (): JSX.Element => {
   return (
-    <Stack>
+    <Stack style={{ gap: 30, paddingTop: "1rem" }}>
       <div>
         <QueryLimit />
         <TableScale />
