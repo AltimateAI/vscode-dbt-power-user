@@ -366,6 +366,7 @@ export class AltimateRequest {
   ) {
     const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
     this.dbtTerminal.debug("fetchAsStream:request", url, request);
+    this.throwIfLocalMode(endpoint);
     const config = this.getConfig()!;
     const abortController = new AbortController();
     const timeoutHandler = setTimeout(() => {
@@ -492,12 +493,24 @@ export class AltimateRequest {
     return response;
   }
 
+  private throwIfLocalMode(endpoint: string) {
+    const isLocalMode = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("isLocalMode", false);
+
+    if (!["auth_health"].includes(endpoint) && isLocalMode) {
+      throw new Error("This feature is not supported in local mode.");
+    }
+  }
+
   async fetch<T>(
     endpoint: string,
     fetchArgs = {},
     timeout: number = 120000,
   ): Promise<T> {
     this.dbtTerminal.debug("network:request", endpoint, fetchArgs);
+    this.throwIfLocalMode(endpoint);
+
     const abortController = new AbortController();
     const timeoutHandler = setTimeout(() => {
       abortController.abort();
