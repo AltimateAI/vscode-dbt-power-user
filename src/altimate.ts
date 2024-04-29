@@ -286,10 +286,6 @@ export interface ConversationGroup {
   conversations: Conversation[];
 }
 
-const PROJECT_HEALTH_CONFIG_URL = `dbtconfig?${new URLSearchParams({
-  size: "100",
-}).toString()}`;
-
 @provideSingleton(AltimateRequest)
 export class AltimateRequest {
   private static ALTIMATE_URL = workspace
@@ -505,10 +501,24 @@ export class AltimateRequest {
     if (!isLocalMode) {
       return;
     }
-    if (/^dbtconfig\/datapilot_version\/.*$/.test(endpoint)) {
+    endpoint = endpoint.split("?")[0];
+    if (
+      [/^dbtconfig\/datapilot_version\/.*$/, /^dbtconfig\/.*\/download$/].some(
+        (regex) => regex.test(endpoint),
+      )
+    ) {
       return;
     }
-    if (["auth_health", PROJECT_HEALTH_CONFIG_URL].includes(endpoint)) {
+    if (
+      [
+        "auth_health",
+        "dbtconfig",
+        "dbt/v1/fetch_artifact_url",
+        "dbtconfig/extension/start_scan",
+        "dbt/v1/project_integrations",
+        "dbt/v1/defer_to_prod_event",
+      ].includes(endpoint)
+    ) {
       return;
     }
     throw new Error("This feature is not supported in local mode.");
@@ -731,7 +741,9 @@ export class AltimateRequest {
 
   async getHealthcheckConfigs() {
     return this.fetch<DBTProjectHealthConfigResponse>(
-      PROJECT_HEALTH_CONFIG_URL,
+      `dbtconfig?${new URLSearchParams({
+        size: "100",
+      }).toString()}`,
     );
   }
 
