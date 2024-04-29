@@ -517,6 +517,7 @@ export class AltimateRequest {
         "dbtconfig/extension/start_scan",
         "dbt/v1/project_integrations",
         "dbt/v1/defer_to_prod_event",
+        "dbt/v3/validate-credentials",
       ].includes(endpoint)
     ) {
       return;
