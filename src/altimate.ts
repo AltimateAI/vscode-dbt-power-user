@@ -364,6 +364,7 @@ export class AltimateRequest {
     onProgress: (response: string) => void,
     timeout: number = 120000,
   ) {
+    this.throwIfLocalMode(endpoint);
     const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
     this.dbtTerminal.debug("fetchAsStream:request", url, request);
     const config = this.getConfig()!;
@@ -464,6 +465,7 @@ export class AltimateRequest {
     filePath: string,
   ) {
     this.dbtTerminal.debug("uploadToS3:", endpoint, fetchArgs, filePath);
+    this.throwIfLocalMode(endpoint);
 
     const blob = (await this.readStreamToBlob(
       createReadStream(filePath),
@@ -492,12 +494,45 @@ export class AltimateRequest {
     return response;
   }
 
+  private throwIfLocalMode(endpoint: string) {
+    const isLocalMode = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("isLocalMode", false);
+    if (!isLocalMode) {
+      return;
+    }
+    endpoint = endpoint.split("?")[0];
+    if (
+      [/^dbtconfig\/datapilot_version\/.*$/, /^dbtconfig\/.*\/download$/].some(
+        (regex) => regex.test(endpoint),
+      )
+    ) {
+      return;
+    }
+    if (
+      [
+        "auth_health",
+        "dbtconfig",
+        "dbt/v1/fetch_artifact_url",
+        "dbtconfig/extension/start_scan",
+        "dbt/v1/project_integrations",
+        "dbt/v1/defer_to_prod_event",
+        "dbt/v3/validate-credentials",
+      ].includes(endpoint)
+    ) {
+      return;
+    }
+    throw new Error("This feature is not supported in local mode.");
+  }
+
   async fetch<T>(
     endpoint: string,
     fetchArgs = {},
     timeout: number = 120000,
   ): Promise<T> {
     this.dbtTerminal.debug("network:request", endpoint, fetchArgs);
+    this.throwIfLocalMode(endpoint);
+
     const abortController = new AbortController();
     const timeoutHandler = setTimeout(() => {
       abortController.abort();
@@ -707,7 +742,7 @@ export class AltimateRequest {
 
   async getHealthcheckConfigs() {
     return this.fetch<DBTProjectHealthConfigResponse>(
-      `dbtconfig?${new URLSearchParams({ size: "100" }).toString()}`,
+      `dbtconfig${this.getQueryString({ size: "100" })}`,
     );
   }
 

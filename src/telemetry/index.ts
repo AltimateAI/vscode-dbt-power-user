@@ -23,6 +23,11 @@ export class TelemetryService implements vscode.Disposable {
         dbtIntegrationMode: vscode.workspace
           .getConfiguration("dbt")
           .get<string>("dbtIntegration", "core"),
+        localMode: vscode.workspace
+          .getConfiguration("dbt")
+          .get<boolean>("isLocalMode", false)
+          ? "true"
+          : "false",
       },
       measurements,
     );
@@ -44,6 +49,11 @@ export class TelemetryService implements vscode.Disposable {
         dbtIntegrationMode: vscode.workspace
           .getConfiguration("dbt")
           .get<string>("dbtIntegration", "core"),
+        localMode: vscode.workspace
+          .getConfiguration("dbt")
+          .get<boolean>("isLocalMode", false)
+          ? "true"
+          : "false",
         stack:
           error !== undefined && error instanceof Error
             ? error.stack
