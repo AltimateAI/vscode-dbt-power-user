@@ -364,6 +364,7 @@ export class AltimateRequest {
     onProgress: (response: string) => void,
     timeout: number = 120000,
   ) {
+    this.throwIfLocalMode(endpoint);
     const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
     this.dbtTerminal.debug("fetchAsStream:request", url, request);
     this.throwIfLocalMode(endpoint);
@@ -465,6 +466,7 @@ export class AltimateRequest {
     filePath: string,
   ) {
     this.dbtTerminal.debug("uploadToS3:", endpoint, fetchArgs, filePath);
+    this.throwIfLocalMode(endpoint);
 
     const blob = (await this.readStreamToBlob(
       createReadStream(filePath),
