@@ -42,7 +42,10 @@ type ConfigOption =
   | { configPath: string }
   | { config: unknown; config_schema: unknown[] };
 
-type AltimateConfigProps = { projectRoot: string } & ConfigOption;
+type AltimateConfigProps = {
+  projectRoot: string;
+  configType: string;
+} & ConfigOption;
 
 enum ConfigType {
   Manual,
@@ -182,7 +185,7 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
             checked={props.configType === ConfigType.All}
             onClick={() => props.setConfigType(ConfigType.All)}
           />
-          Scan everything
+          Run all checks
         </Label>
       </div>
     </div>
@@ -318,6 +321,7 @@ const ProjectHealthcheckInput = ({
                 }
                 const args = {
                   projectRoot: selectedProject,
+                  configType: ConfigType[configType],
                   ...(configType === ConfigType.Manual
                     ? { configPath }
                     : selectedConfig!),
