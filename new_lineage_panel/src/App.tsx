@@ -216,6 +216,7 @@ function App() {
       setMoreTables({});
       [nodes, edges] = highlightTableConnections(nodes, edges, node.table);
       layoutElementsOnCanvas(nodes, edges);
+      console.log("thsisit->", nodes, edges);
       _flow.setNodes(nodes);
       _flow.setEdges(edges);
       _flow.fitView({ minZoom: DEFAULT_MIN_ZOOM, duration: 500 });
