@@ -30,6 +30,7 @@ import { SharedStateService } from "../services/sharedStateService";
 import {
   AltimateWebviewProvider,
   HandleCommandProps,
+  SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { QueryManifestService } from "../services/queryManifestService";
@@ -162,6 +163,19 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       null,
       this._disposables,
     );
+  }
+
+  protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
+    switch (command) {
+      case "executeQuery":
+        this.executeQuery(
+          payload.query as string,
+          payload.fn as Promise<QueryExecution>,
+        );
+        break;
+      default:
+        super.onEvent({ command, payload });
+    }
   }
 
   public async resolveWebviewView(
