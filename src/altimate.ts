@@ -371,7 +371,6 @@ export class AltimateRequest {
     this.throwIfLocalMode(endpoint);
     const url = `${AltimateRequest.ALTIMATE_URL}/${endpoint}`;
     this.dbtTerminal.debug("fetchAsStream:request", url, request);
-    this.throwIfLocalMode(endpoint);
     const config = this.getConfig()!;
     const abortController = new AbortController();
     const timeoutHandler = setTimeout(() => {
