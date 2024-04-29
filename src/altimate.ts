@@ -741,9 +741,7 @@ export class AltimateRequest {
 
   async getHealthcheckConfigs() {
     return this.fetch<DBTProjectHealthConfigResponse>(
-      `dbtconfig?${new URLSearchParams({
-        size: "100",
-      }).toString()}`,
+      `dbtconfig${this.getQueryString({ size: "100" })}`,
     );
   }
 
