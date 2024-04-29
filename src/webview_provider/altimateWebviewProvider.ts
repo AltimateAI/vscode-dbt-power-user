@@ -432,17 +432,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         ),
       ),
     );
-    // const insightsCss = webview.asWebviewUri(
-    //   Uri.file(
-    //     path.join(
-    //       extensionUri.fsPath,
-    //       "webview_panels",
-    //       "dist",
-    //       "assets",
-    //       "Insights.css",
-    //     ),
-    //   ),
-    // );
+    const SpinnerUrl = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "spinner.gif",
+        ),
+      ),
+    );
     const codiconsUri = webview.asWebviewUri(
       Uri.joinPath(
         extensionUri,
@@ -477,6 +477,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             <div id="sidebar"></div>
             <script nonce="${nonce}" >
               window.viewPath = "${this.viewPath}";
+              var spinnerUrl = "${SpinnerUrl}"
             </script>
             
             <script nonce="${nonce}" type="module" src="${indexJs}"></script>

@@ -116,5 +116,9 @@ export const CommentIcon = (
 ): JSX.Element => <Icon icon="comment" {...props} />;
 
 export const LoadingSpinner = (): JSX.Element => (
-  <img src={LoadingSpinnerUrl} alt="Altimate loader" />
+  <img
+    // @ts-expect-error added in altimateWebViewProvider
+    src={(window.spinnerUrl as string) ?? LoadingSpinnerUrl}
+    alt="Altimate loader"
+  />
 );
