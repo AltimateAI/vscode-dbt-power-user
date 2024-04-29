@@ -286,6 +286,10 @@ export interface ConversationGroup {
   conversations: Conversation[];
 }
 
+const PROJECT_HEALTH_CONFIG_URL = `dbtconfig?${new URLSearchParams({
+  size: "100",
+}).toString()}`;
+
 @provideSingleton(AltimateRequest)
 export class AltimateRequest {
   private static ALTIMATE_URL = workspace
@@ -499,10 +503,16 @@ export class AltimateRequest {
     const isLocalMode = workspace
       .getConfiguration("dbt")
       .get<boolean>("isLocalMode", false);
-
-    if (!["auth_health"].includes(endpoint) && isLocalMode) {
-      throw new Error("This feature is not supported in local mode.");
+    if (!isLocalMode) {
+      return;
     }
+    if (/^dbtconfig\/datapilot_version\/.*$/.test(endpoint)) {
+      return;
+    }
+    if (["auth_health", PROJECT_HEALTH_CONFIG_URL].includes(endpoint)) {
+      return;
+    }
+    throw new Error("This feature is not supported in local mode.");
   }
 
   async fetch<T>(
@@ -722,7 +732,7 @@ export class AltimateRequest {
 
   async getHealthcheckConfigs() {
     return this.fetch<DBTProjectHealthConfigResponse>(
-      `dbtconfig?${new URLSearchParams({ size: "100" }).toString()}`,
+      PROJECT_HEALTH_CONFIG_URL,
     );
   }
 
