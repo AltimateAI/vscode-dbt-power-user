@@ -183,15 +183,11 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     context: WebviewViewResolveContext,
     _token: CancellationToken,
   ) {
-    const enableQueryPanelV2 = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("enableQueryPanelV2", false);
     this._panel = panel;
+    this._webview = panel.webview;
     this.bindWebviewOptions(context);
     this.renderWebviewView(panel.webview);
-    // if (!enableQueryPanelV2) {
     this.setupWebviewHooks();
-    // }
     this.transmitConfig();
     await this._panel?.webview.postMessage({
       command: OutboundCommand.GetContext,
@@ -217,18 +213,12 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   private async onMessage(message: any) {
     switch (message.command) {
       case InboundCommand.GetQueryPanelContext:
-        this.handleSyncRequestFromWebview(
-          message.syncRequestId,
-          () => {
-            return {
-              lastHintTimestamp:
-                this.dbtProjectContainer.getFromGlobalState(
-                  "lastHintTimestamp",
-                ) || 0,
-            };
-          },
-          message.command,
-        );
+        await this._panel!.webview.postMessage({
+          command: OutboundCommand.GetContext,
+          lastHintTimestamp:
+            this.dbtProjectContainer.getFromGlobalState("lastHintTimestamp") ||
+            0,
+        });
         break;
       case InboundCommand.CancelQuery:
         if (this.queryExecution) {

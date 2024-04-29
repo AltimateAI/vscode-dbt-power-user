@@ -13,24 +13,26 @@ import {
 } from "./context/queryPanelSlice";
 import useQueryPanelState from "./useQueryPanelState";
 import { panelLogger } from "@modules/logger";
-import {
-  executeRequestInAsync,
-  executeRequestInSync,
-} from "@modules/app/requestExecutor";
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import { HINTS, HINT_VISIBILITY_DELAY } from "./constants";
 import { QueryPanelStateProps } from "./context/types";
 
 const useQueryPanelListeners = (): void => {
   const dispatch = useQueryPanelDispatch();
   const { loading, lastHintTimestamp, hintIndex } = useQueryPanelState();
+  const lastHintTimestampRef = useRef(0);
   const hintInterval = useRef<NodeJS.Timeout>();
   const queryExecutionTimer = useRef<NodeJS.Timeout>();
   const queryStart = useRef(Date.now());
 
-  const handleHintMessage = () => {
+  useEffect(() => {
+    lastHintTimestampRef.current = lastHintTimestamp;
+  }, [lastHintTimestamp]);
+
+  const handleHintMessage = useCallback(() => {
     const now = Date.now();
     dispatch(setHintIndex(-1));
-    if (lastHintTimestamp + HINT_VISIBILITY_DELAY < now) {
+    if (lastHintTimestampRef.current + HINT_VISIBILITY_DELAY < now) {
       dispatch(setLastHintTimestamp(now));
       HINTS.sort(() => Math.random() - 0.5);
       executeRequestInAsync("setContext", {
@@ -43,7 +45,7 @@ const useQueryPanelListeners = (): void => {
         dispatch(setHintIndex((hintIndex + 1) % HINTS.length));
       }, 3500);
     }
-  };
+  }, [dispatch, lastHintTimestampRef.current]);
 
   const clearData = () => {
     dispatch(resetData());
@@ -53,7 +55,7 @@ const useQueryPanelListeners = (): void => {
   const endQueryExecutionTimer = () =>
     clearTimeout(queryExecutionTimer.current);
 
-  const handleLoading = () => {
+  const handleLoading = useCallback(() => {
     if (loading) {
       return;
     }
@@ -66,7 +68,7 @@ const useQueryPanelListeners = (): void => {
       dispatch(setQueryExecutionInfo({ elapsedTime: time }));
     }, 100);
     handleHintMessage();
-  };
+  }, [loading, dispatch, handleHintMessage]);
 
   const clearHintInterval = () => {
     clearInterval(hintInterval.current);
@@ -100,8 +102,8 @@ const useQueryPanelListeners = (): void => {
 
   const onMesssage = useCallback(
     (event: MessageEvent<IncomingMessageProps>) => {
+      panelLogger.info("query panel onMesssage", event.data);
       const { command, ...args } = event.data;
-      panelLogger.info("query panel onMesssage", command, args);
       switch (command) {
         case "renderError":
           handleError(args);
@@ -113,30 +115,31 @@ const useQueryPanelListeners = (): void => {
           handleQueryResults(args);
           break;
         case "renderLoading":
+          panelLogger.info(lastHintTimestampRef.current);
           handleLoading();
+          break;
+        case "getContext":
+          // @ts-expect-error valid type
+          dispatch(setLastHintTimestamp(args.lastHintTimestamp as number));
           break;
         default:
           break;
       }
     },
-    [handleLoading],
+    [handleLoading, dispatch],
   );
 
-  const getContext = async () => {
-    const result = (await executeRequestInSync("getQueryPanelContext", {})) as {
-      lastHintTimestamp: number;
-    };
-    dispatch(setLastHintTimestamp(result.lastHintTimestamp));
-  };
+  useEffect(() => {
+    executeRequestInAsync("getQueryPanelContext", {});
+  }, []);
 
   useEffect(() => {
     window.addEventListener("message", onMesssage);
-    void getContext();
 
     return () => {
       window.removeEventListener("message", onMesssage);
     };
-  }, []);
+  }, [onMesssage]);
 };
 
 export default useQueryPanelListeners;
