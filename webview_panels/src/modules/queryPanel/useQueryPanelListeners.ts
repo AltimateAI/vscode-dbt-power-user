@@ -87,7 +87,11 @@ const useQueryPanelListeners = (): void => {
   const handleQueryResults = (args: Record<string, unknown>) => {
     dispatch(setLoading(false));
     dispatch(
-      setQueryResults(args.rows as QueryPanelStateProps["queryResults"]),
+      setQueryResults({
+        data: args.rows,
+        columnNames: args.columnNames,
+        columnTypes: args.columnTypes,
+      } as QueryPanelStateProps["queryResults"]),
     );
     dispatch(setCompiledCodeMarkup(args.compiled_sql as string));
     clearHintInterval();

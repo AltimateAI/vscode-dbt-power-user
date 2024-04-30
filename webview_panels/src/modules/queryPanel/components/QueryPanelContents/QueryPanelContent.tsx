@@ -3,7 +3,8 @@ import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import QueryPanelLoader from "./QueryPanelLoader";
 import PerspectiveViewer from "../perspective/PerspectiveViewer";
 import QueryPanelError from "./QueryPanelError";
-import { CodeBlock } from "@lib";
+import { CodeBlock } from "@uicore";
+import PreTag from "@modules/markdown/PreTag";
 
 const QueryPanelContent = ({
   showCompiledCode,
@@ -14,7 +15,13 @@ const QueryPanelContent = ({
     useQueryPanelState();
 
   if (showCompiledCode && compiledCodeMarkup) {
-    return <CodeBlock code={compiledCodeMarkup} language="sql" />;
+    return (
+      <div style={{ width: "fit-content" }}>
+        <PreTag text={compiledCodeMarkup}>
+          <CodeBlock code={compiledCodeMarkup} language="sql" />
+        </PreTag>
+      </div>
+    );
   }
 
   if (loading) {
@@ -22,7 +29,13 @@ const QueryPanelContent = ({
   }
 
   if (queryResults) {
-    return <PerspectiveViewer data={queryResults} />;
+    return (
+      <PerspectiveViewer
+        data={queryResults.data}
+        columnNames={queryResults.columnNames}
+        columnTypes={queryResults.columnTypes}
+      />
+    );
   }
 
   if (hasError) {

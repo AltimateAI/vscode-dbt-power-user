@@ -1,6 +1,13 @@
 regular-table{
+  th {
+    font-weight: 800 !important;
+  }
   th,td {
-    color: var(--text-color--paragraph) !important;
+    font-size: 13px !important;
+  }
+  tbody tr::after,
+  thead tr:last-child::after{
+    width: 0px !important;
   }
 tbody {
     tr:nth-child(even) {
@@ -10,6 +17,22 @@ tbody {
       background-color: rgb(187, 187, 187);
       cursor: pointer;
     }    
+  }
+
+  perspective-export-menu {
+    display: none;
+  }
+  
+  .psp-align-left {
+    border-left: solid 1px var(--inactive--border-color, #8b868045);
+  }
+  
+  .psp-align-right {
+    border-left: solid 1px var(--inactive--border-color, #8b868045);
+  }
+  
+  .psp-header-leaf:first-child {
+    border-left-color: transparent;
   }
 }
 

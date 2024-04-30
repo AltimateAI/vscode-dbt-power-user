@@ -16,8 +16,14 @@ import perspectiveStyles from "./perspective.scss?inline";
 
 interface Props {
   data: TableData;
+  columnNames: string[];
+  columnTypes: string[];
 }
-const PerspectiveViewer = ({ data }: Props): JSX.Element => {
+const PerspectiveViewer = ({
+  columnNames,
+  columnTypes,
+  data,
+}: Props): JSX.Element => {
   const {
     state: { theme },
   } = useAppContext();
@@ -27,6 +33,23 @@ const PerspectiveViewer = ({ data }: Props): JSX.Element => {
   const config: PerspectiveViewerConfig = {
     theme: theme === Themes.Dark ? "Pro Dark" : "Pro Light",
     title: "query result",
+    columns: [], // reset columns
+    settings: false,
+    plugin_config: { editable: false },
+  };
+
+  const mapType = (agateType: string) => {
+    switch (agateType) {
+      case "Text":
+        return "string";
+      case "Integer":
+        return "float";
+      case "Number":
+        return "float";
+      default:
+        // treat any unknown types as string
+        return "string";
+    }
   };
 
   const loadPerspectiveData = async () => {
@@ -50,8 +73,16 @@ const PerspectiveViewer = ({ data }: Props): JSX.Element => {
         },
       },
     };
+
+    const schema: Record<string, string> = {};
+    for (let i = 0; i < columnNames.length; i++) {
+      schema[columnNames[i]] = mapType(columnTypes[i]);
+    }
+
     // @ts-expect-error valid parameter
-    const table = await perspective.worker(styles).table(data);
+    const worker = perspective.worker(styles);
+    const table = await worker.table(schema);
+    await table.replace(data);
 
     await perspectiveViewerRef.current.load(table);
     await perspectiveViewerRef.current.resetThemes(["Pro Light"]);
