@@ -10,7 +10,6 @@ export const initialState = {
   hintIndex: -1,
   lastHintTimestamp: 0,
   limit: undefined,
-  scale: 1,
 } as QueryPanelStateProps;
 
 const queryPanelSlice = createSlice({
@@ -40,9 +39,6 @@ const queryPanelSlice = createSlice({
     },
     setLimit: (state, action: PayloadAction<QueryPanelStateProps["limit"]>) => {
       state.limit = action.payload;
-    },
-    setScale: (state, action: PayloadAction<QueryPanelStateProps["scale"]>) => {
-      state.scale = action.payload;
     },
     setQueryResultsError: (
       state,
@@ -81,7 +77,6 @@ export const {
   setQueryExecutionInfo,
   setQueryResults,
   setLastHintTimestamp,
-  setScale,
   setLimit,
 } = queryPanelSlice.actions;
 
