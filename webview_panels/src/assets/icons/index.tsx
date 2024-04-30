@@ -19,6 +19,7 @@ export { default as CheckedSquareIcon } from "./checked-square.svg?react";
 export { default as TestsIcon } from "./tests.svg?react";
 export { default as FolderIcon } from "./folder.svg?react";
 import LoadingSpinnerUrl from "./spinner.gif";
+import "./styles.css";
 
 interface Props {
   icon: string;
@@ -122,3 +123,7 @@ export const LoadingSpinner = (): JSX.Element => (
     alt="Altimate loader"
   />
 );
+
+export const LoadingIcon = (
+  props: HTMLAttributes<HTMLElement>,
+): JSX.Element => <Icon icon="loading" className="rotate" {...props} />;

@@ -506,10 +506,18 @@ export class ConversationProvider implements Disposable {
         start: range.start,
       },
     };
+    let shareName = "Discussion on ";
+    if (nodeMeta?.uniqueId) {
+      shareName += nodeMeta.uniqueId;
+    } else if (model) {
+      shareName += model;
+    } else {
+      shareName = "Untitled Discussion";
+    }
 
     // create share
     const result = await this.conversationService.shareDbtDocs({
-      name: convertedMessage, // `dbt docs discussion on ${nodeMeta?.uniqueId}`,
+      name: shareName, // `dbt docs discussion on ${nodeMeta?.uniqueId}`,
       description: "",
       uri,
       model,

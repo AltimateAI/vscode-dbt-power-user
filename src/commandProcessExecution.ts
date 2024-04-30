@@ -6,6 +6,8 @@ import { EnvironmentVariables } from "./domain";
 
 @provide(CommandProcessExecutionFactory)
 export class CommandProcessExecutionFactory {
+  constructor(private terminal: DBTTerminal) {}
+
   createCommandProcessExecution({
     command,
     args,
@@ -22,6 +24,7 @@ export class CommandProcessExecutionFactory {
     envVars?: EnvironmentVariables;
   }) {
     return new CommandProcessExecution(
+      this.terminal,
       command,
       args,
       stdin,
@@ -42,6 +45,7 @@ export class CommandProcessExecution {
   private disposables: Disposable[] = [];
 
   constructor(
+    private terminal: DBTTerminal,
     private command: string,
     private args?: string[],
     private stdin?: string,
@@ -78,6 +82,11 @@ export class CommandProcessExecution {
 
   async complete(): Promise<CommandProcessResult> {
     return new Promise<CommandProcessResult>((resolve, reject) => {
+      this.terminal.debug(
+        "CommandProcessExecution",
+        "Going to execute command : " + this.command,
+        this.args,
+      );
       const commandProcess = this.spawn();
       let stdoutBuffer = "";
       let stderrBuffer = "";
@@ -94,11 +103,25 @@ export class CommandProcessExecution {
       });
 
       commandProcess.once("close", () => {
+        this.terminal.debug(
+          "CommandProcessExecution",
+          "Return value from command: " + this.command,
+          this.args,
+          fullOutput,
+        );
         resolve({ stdout: stdoutBuffer, stderr: stderrBuffer, fullOutput });
       });
 
       commandProcess.once("error", (error) => {
-        console.warn(error);
+        this.terminal.error(
+          "CommandProcessExecutionError",
+          "Command errored: " + this.command,
+          error,
+          true,
+          this.command,
+          this.args,
+          error,
+        );
         reject(new Error(`${error}`));
       });
 
@@ -109,9 +132,7 @@ export class CommandProcessExecution {
     });
   }
 
-  async completeWithTerminalOutput(
-    terminal: DBTTerminal,
-  ): Promise<CommandProcessResult> {
+  async completeWithTerminalOutput(): Promise<CommandProcessResult> {
     return new Promise((resolve, reject) => {
       const commandProcess = this.spawn();
       let stdoutBuffer = "";
@@ -120,18 +141,18 @@ export class CommandProcessExecution {
       commandProcess.stdout!.on("data", (chunk) => {
         const line = `${this.formatText(chunk.toString())}`;
         stdoutBuffer += line;
-        terminal.log(line);
+        this.terminal.log(line);
         fullOutput += line;
       });
       commandProcess.stderr!.on("data", (chunk) => {
         const line = `${this.formatText(chunk.toString())}`;
         stderrBuffer += line;
-        terminal.log(line);
+        this.terminal.log(line);
         fullOutput += line;
       });
       commandProcess.once("close", () => {
         resolve({ stdout: stdoutBuffer, stderr: stderrBuffer, fullOutput });
-        terminal.log("");
+        this.terminal.log("");
         this.dispose();
       });
       commandProcess.once("error", (error) => {
