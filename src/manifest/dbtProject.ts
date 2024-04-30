@@ -216,11 +216,14 @@ export class DBTProject implements Disposable {
       );
     }
     const healthcheckArgs: HealthcheckArgs = { manifestPath };
-    if ("configPath" in args) {
+    if (args.configType === "Manual") {
       healthcheckArgs.configPath = args.configPath;
     } else {
-      healthcheckArgs.config = args.config;
+      if (args.configType === "Saas") {
+        healthcheckArgs.config = args.config;
+      }
       if (
+        args.configType === "All" ||
         args.config_schema.some((i) => i.files_required.includes("Catalog"))
       ) {
         const docsGenerateCommand =

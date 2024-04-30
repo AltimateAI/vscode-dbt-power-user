@@ -39,8 +39,13 @@ interface DBTConfig {
 }
 
 type ConfigOption =
-  | { configPath: string }
-  | { config: unknown; config_schema: unknown[] };
+  | { configPath: string; configType: "Manual" }
+  | {
+      config: unknown;
+      config_schema: { files_required: string }[];
+      configType: "Saas";
+    }
+  | { configType: "All" };
 
 type AltimateConfigProps = { projectRoot: string } & ConfigOption;
 
@@ -182,7 +187,7 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
             checked={props.configType === ConfigType.All}
             onClick={() => props.setConfigType(ConfigType.All)}
           />
-          Scan everything
+          Run all checks
         </Label>
       </div>
     </div>
@@ -316,15 +321,20 @@ const ProjectHealthcheckInput = ({
                     configId: selectedConfig?.id,
                   });
                 }
-                const args = {
-                  projectRoot: selectedProject,
-                  ...(configType === ConfigType.Manual
-                    ? { configPath }
-                    : selectedConfig!),
-                };
+                let args: Record<string, unknown>;
+                if (configType === ConfigType.Manual) {
+                  args = { configPath, configType: "Manual" };
+                } else if (configType === ConfigType.Saas) {
+                  args = { ...selectedConfig!, configType: "Saas" };
+                } else {
+                  args = { configType: "All" };
+                }
                 try {
                   setRequestInProgress(true);
-                  await handleHealthCheck(args);
+                  await handleHealthCheck({
+                    projectRoot: selectedProject,
+                    ...args,
+                  } as AltimateConfigProps);
                 } finally {
                   setRequestInProgress(false);
                 }
