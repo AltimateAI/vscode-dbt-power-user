@@ -9,11 +9,13 @@ export interface QueryPanelStateProps {
   };
   queryExecutionInfo?: { elapsedTime: number };
   queryResultsError?: {
-    errorTitle: string;
-    errorMessage: string;
-    errorDataMarkup: string;
+    message: string;
+    code: number;
+    data: string;
   };
   compiledCodeMarkup?: string;
   hintIndex: number;
   lastHintTimestamp: number;
+  limit?: number;
+  scale: number;
 }

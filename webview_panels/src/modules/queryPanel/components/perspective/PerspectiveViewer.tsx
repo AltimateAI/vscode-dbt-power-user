@@ -13,6 +13,7 @@ import useAppContext from "@modules/app/useAppContext";
 import { Themes } from "@modules/app/types";
 import classes from "./perspective.module.scss";
 import perspectiveStyles from "./perspective.scss?inline";
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
 
 interface Props {
   data: TableData;
@@ -52,6 +53,61 @@ const PerspectiveViewer = ({
     }
   };
 
+  // Converts the provided data to CSV format.
+  const dataToCsv = (columns: string[], rows: TableData) => {
+    if (!Array.isArray(rows)) {
+      return;
+    }
+
+    if (!rows || rows.length === 0) {
+      panelLogger.error("No data available to convert to CSV");
+      return "";
+    }
+    const replacer = (_key: string, value: unknown) =>
+      value === null ? "" : value;
+    const csv = [
+      columns.join(","),
+      ...rows.map((row) =>
+        columns
+          .map((fieldName) => {
+            const fieldData = row[fieldName];
+            if (fieldData && typeof fieldData === "string") {
+              return `"${(fieldData as string).replace(/"/g, '""')}"`; // escape double quotes and Wrap in double quotes
+            }
+            return JSON.stringify(fieldData, replacer);
+          })
+          .join(","),
+      ),
+    ].join("\r\n");
+    return csv;
+  };
+
+  const downloadAsCSV = () => {
+    try {
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        panelLogger.error("No data available for downloading.");
+        return;
+      }
+      const csvContent = dataToCsv(columnNames, data);
+      if (!csvContent) {
+        panelLogger.info("empty csv content", columnNames, data);
+        return;
+      }
+      const blob = new Blob([csvContent], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `power_user_data_${new Date().toISOString()}.csv`; // Filename with a timestamp
+      a.click();
+    } catch (error) {
+      // Log error for debugging
+      panelLogger.error("Failed to download CSV:", error);
+      executeRequestInAsync("error", {
+        text: "Unable to download data as CSV. " + (error as Error).message,
+      });
+    }
+  };
+
   const loadPerspectiveData = async () => {
     if (!perspectiveViewerRef.current) {
       return;
@@ -87,7 +143,15 @@ const PerspectiveViewer = ({
     await perspectiveViewerRef.current.load(table);
     await perspectiveViewerRef.current.resetThemes(["Pro Light"]);
     await perspectiveViewerRef.current.restore(config);
-
+    const datagridShadowRoot = perspectiveViewerRef.current?.shadowRoot;
+    if (datagridShadowRoot) {
+      const exportButton = datagridShadowRoot.getElementById("export");
+      if (!exportButton) {
+        return;
+      }
+      exportButton.removeEventListener("click", downloadAsCSV);
+      exportButton.addEventListener("click", downloadAsCSV);
+    }
     const shadowRoot = perspectiveViewerRef.current?.querySelector(
       "perspective-viewer-datagrid",
     )?.shadowRoot;
@@ -98,6 +162,7 @@ const PerspectiveViewer = ({
     style.textContent = perspectiveStyles;
     shadowRoot.appendChild(style);
     shadowRoot.querySelector("regular-table")?.setAttribute("theme", theme);
+
     setTableRendered(true);
   };
 

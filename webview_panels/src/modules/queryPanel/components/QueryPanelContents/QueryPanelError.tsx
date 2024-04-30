@@ -1,4 +1,5 @@
 import { CodeBlock } from "@lib";
+import PreTag from "@modules/markdown/PreTag";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 
 const QueryPanelError = (): JSX.Element => {
@@ -6,15 +7,23 @@ const QueryPanelError = (): JSX.Element => {
 
   return (
     <div>
-      <h3 className="error-title">{queryResultsError?.errorTitle}</h3>
-      <h4>{queryResultsError?.errorMessage}</h4>
+      <h3 style={{ color: "var(--action-red" }}>
+        {queryResultsError?.message?.split(/\r?\n/)[0] ?? "Error"}
+      </h3>
+      <h4>
+        {queryResultsError?.message?.split(/\r?\n/).slice(1).join(" ") ?? ""}
+      </h4>
       <br />
       <details>
         <summary>View Detailed Error 🚨</summary>
-        <CodeBlock
-          code={queryResultsError?.errorDataMarkup ?? ""}
-          language="sql"
-        />
+        <div style={{ width: "fit-content", maxWidth: "90%" }}>
+          <PreTag text={JSON.stringify(queryResultsError, null, 2)}>
+            <CodeBlock
+              code={JSON.stringify(queryResultsError, null, 2)}
+              language="sql"
+            />
+          </PreTag>
+        </div>
       </details>
     </div>
   );

@@ -77,7 +77,9 @@ const useQueryPanelListeners = (): void => {
 
   const handleError = (args: Record<string, unknown>) => {
     dispatch(
-      setQueryResultsError(args as QueryPanelStateProps["queryResultsError"]),
+      setQueryResultsError(
+        args.error as QueryPanelStateProps["queryResultsError"],
+      ),
     );
     dispatch(setCompiledCodeMarkup(args.compiled_sql as string));
     clearHintInterval();

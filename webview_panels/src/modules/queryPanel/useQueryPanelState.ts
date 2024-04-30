@@ -11,14 +11,15 @@ const useQueryPanelState = (): QueryPanelStateProps & {
   const { state } = useContext(QueryPanelContext);
 
   const hasData = Boolean(state.queryResults);
-  const hasError = Boolean(state.queryResultsError?.errorTitle);
+  const hasError = Boolean(state.queryResultsError?.data);
   const hasCode = Boolean(state.compiledCodeMarkup);
+  const data = state.queryResults?.data;
   return {
     ...state,
     hasData,
     hasError,
     hasCode,
-    queryResultsRowCount: (state.queryResults as [] | undefined)?.length ?? 0,
+    queryResultsRowCount: (data as [] | undefined)?.length ?? 0,
   };
 };
 

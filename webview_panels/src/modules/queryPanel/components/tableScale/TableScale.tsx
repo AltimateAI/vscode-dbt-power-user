@@ -1,10 +1,18 @@
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
+import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
+import { setScale } from "@modules/queryPanel/context/queryPanelSlice";
+import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import { FormGroup, Label } from "@uicore";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent } from "react";
 
 const TableScale = (): JSX.Element => {
-  const [scale, setScale] = useState(1);
+  const { scale } = useQueryPanelState();
+  const dispatch = useQueryPanelDispatch();
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setScale(parseInt(e.target.value) / 10);
+    dispatch(setScale(parseInt(e.target.value) / 10));
+    executeRequestInAsync("updateConfig", {
+      scale: parseInt(e.target.value) / 10,
+    });
   };
   return (
     <FormGroup>

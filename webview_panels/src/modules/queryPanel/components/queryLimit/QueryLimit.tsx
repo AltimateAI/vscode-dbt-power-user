@@ -1,10 +1,16 @@
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
+import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
+import { setLimit } from "@modules/queryPanel/context/queryPanelSlice";
+import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import { FormGroup, Label, Input } from "@uicore";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent } from "react";
 
 const QueryLimit = (): JSX.Element => {
-  const [limit, setLimit] = useState(500);
+  const { limit } = useQueryPanelState();
+  const dispatch = useQueryPanelDispatch();
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setLimit(parseInt(e.target.value));
+    dispatch(setLimit(parseInt(e.target.value)));
+    executeRequestInAsync("updateConfig", { limit: parseInt(e.target.value) });
   };
   return (
     <FormGroup>
