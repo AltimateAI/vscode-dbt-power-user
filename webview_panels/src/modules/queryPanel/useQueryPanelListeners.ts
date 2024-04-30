@@ -6,6 +6,7 @@ import {
   setCompiledCodeMarkup,
   setHintIndex,
   setLastHintTimestamp,
+  setLimit,
   setLoading,
   setQueryExecutionInfo,
   setQueryResults,
@@ -127,6 +128,8 @@ const useQueryPanelListeners = (): void => {
         case "getContext":
           // @ts-expect-error valid type
           dispatch(setLastHintTimestamp(args.lastHintTimestamp as number));
+          // @ts-expect-error valid type
+          dispatch(setLimit(args.limit as number));
           break;
         default:
           break;

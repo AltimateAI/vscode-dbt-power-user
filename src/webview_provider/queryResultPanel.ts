@@ -213,11 +213,15 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   private async onMessage(message: any) {
     switch (message.command) {
       case InboundCommand.GetQueryPanelContext:
+        const limit = workspace
+          .getConfiguration("dbt")
+          .get<number>("queryLimit");
         await this._panel!.webview.postMessage({
           command: OutboundCommand.GetContext,
           lastHintTimestamp:
             this.dbtProjectContainer.getFromGlobalState("lastHintTimestamp") ||
             0,
+          limit,
         });
         break;
       case InboundCommand.CancelQuery:

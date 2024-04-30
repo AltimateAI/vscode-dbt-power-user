@@ -16,8 +16,14 @@ const queryPanelSlice = createSlice({
   name: "queryPanelState",
   initialState,
   reducers: {
-    resetData: () => {
-      return initialState;
+    resetData: (state) => {
+      return {
+        ...state,
+        queryResults: undefined,
+        queryExecutionInfo: undefined,
+        queryResultsError: undefined,
+        compiledCodeMarkup: undefined,
+      };
     },
     setHintIndex: (
       state,

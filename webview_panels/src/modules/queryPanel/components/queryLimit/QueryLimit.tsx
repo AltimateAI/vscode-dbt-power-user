@@ -21,6 +21,7 @@ const QueryLimit = (): JSX.Element => {
         type="number"
         onChange={handleChange}
         value={limit}
+        min={1}
       />
     </FormGroup>
   );
