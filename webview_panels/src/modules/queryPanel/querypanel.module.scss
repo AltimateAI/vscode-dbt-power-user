@@ -1,29 +1,30 @@
 .queryPanel {
   position: absolute;
-    width: 100vw;
-    height: 100vh;
-    box-sizing: border-box;
-    top: 0;
-    left: 0;
-    padding: 0.5rem;
-    display: flex;
-    flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  box-sizing: border-box;
+  top: 0;
+  left: 0;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
 
-    :global .nav-link{
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      color: var(--text-color--title);
+  :global .nav-link {
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    color: var(--text-color--title);
 
-      &:global.active{
-        border-bottom: 2px solid var(--text-color--title);
-      }
+    &:global.active {
+      border-bottom: 2px solid var(--text-color--title);
     }
+  }
 
-    .loader{
-      justify-content: center;
-      align-items: center;
-      img {
-        width: 10rem;
-      }
+  .loader {
+    justify-content: center;
+    align-items: center;
+
+    img {
+      width: 10rem;
     }
+  }
 }

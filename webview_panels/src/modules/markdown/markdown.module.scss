@@ -3,8 +3,10 @@
 
   pre {
     transition: 0.3s ease all;
+
     :global .card {
       background: var(--background--03) !important;
+
       :global .card-body {
         code {
           max-height: none;
@@ -12,6 +14,7 @@
       }
     }
   }
+
   :global .code__icons {
     position: absolute;
     top: 6px;
@@ -28,12 +31,14 @@
     cursor: pointer;
   }
 }
+
 .markdown {
+
   ul,
   ol {
     padding: 0;
   }
-  
+
   table {
     border-collapse: collapse;
   }

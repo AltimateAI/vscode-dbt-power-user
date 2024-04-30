@@ -1,12 +1,13 @@
 .altimatePerspectiveViewer {
   height: 100%;
   font-size: 1rem !important;
-  font-family: var(--bs-body-font-family) !important;  
+  font-family: var(--bs-body-font-family) !important;
   width: auto;
   --plugin--background: var(--background--base);
   --icon--color: var(--text-color--paragraph) !important;
   color: var(--text-color--paragraph) !important;
 }
+
 perspective-export-menu {
   display: none;
 }

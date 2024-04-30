@@ -41,8 +41,8 @@ export class UsersService implements Disposable {
     event: DBTInstallationVerificationEvent,
   ) {
     if (event.installed) {
-      // this.loadCurrentUser();
-      // this.loadUsersInTenant();
+      this.loadCurrentUser();
+      this.loadUsersInTenant();
     }
   }
 

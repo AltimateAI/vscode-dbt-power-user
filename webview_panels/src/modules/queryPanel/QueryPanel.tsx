@@ -10,7 +10,9 @@ import classes from "./querypanel.module.scss";
 
 const QueryPanel = (): JSX.Element => {
   const [showCompiledCode, setShowCompiledCode] = useState(false);
+
   useQueryPanelListeners();
+
   return (
     <div className={classes.queryPanel}>
       <Stack className="mb-2 justify-content-between">
