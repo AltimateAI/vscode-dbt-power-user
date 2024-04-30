@@ -515,6 +515,7 @@ const app = createApp({
       }
     });
     window.addEventListener("resize", this.handleResize);
+    executeCommand("webview:ready", {});
   },
   unmounted() {
     window.removeEventListener("resize", this.handleResize);

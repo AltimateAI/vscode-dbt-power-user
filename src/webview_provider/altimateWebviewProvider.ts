@@ -43,7 +43,7 @@ export interface SharedStateEventEmitterProps {
   payload: Record<string, unknown>;
 }
 
-interface SendMessageProps extends Record<string, unknown> {
+export interface SendMessageProps extends Record<string, unknown> {
   command: string;
   syncRequestId?: string;
   error?: string;

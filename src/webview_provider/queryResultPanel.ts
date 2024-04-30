@@ -2,14 +2,12 @@ import {
   CancellationToken,
   ColorThemeKind,
   commands,
-  Disposable,
   env,
   ProgressLocation,
   Uri,
   Webview,
   WebviewOptions,
   WebviewView,
-  WebviewViewProvider,
   WebviewViewResolveContext,
   window,
   workspace,
@@ -18,7 +16,7 @@ import {
 import { readFileSync } from "fs";
 import { PythonException } from "python-bridge";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
+import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { AltimateRequest } from "../altimate";
 import {
@@ -30,6 +28,7 @@ import { SharedStateService } from "../services/sharedStateService";
 import {
   AltimateWebviewProvider,
   HandleCommandProps,
+  SendMessageProps,
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
@@ -111,6 +110,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
 
   protected _panel: WebviewView | undefined;
   private queryExecution?: QueryExecution;
+  private incomingMessages: SendMessageProps[] = [];
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
@@ -378,10 +378,17 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   /** Sends VSCode render loading command to webview */
   private async transmitLoading() {
     if (this._panel) {
-      await this._panel.webview.postMessage({
-        command: OutboundCommand.RenderLoading,
-      });
+      if (this.isWebviewReady) {
+        await this._panel.webview.postMessage({
+          command: OutboundCommand.RenderLoading,
+        });
+        return;
+      }
     }
+
+    this.incomingMessages.push({
+      command: OutboundCommand.RenderLoading,
+    });
   }
 
   /** Sends VSCode clear state command */
@@ -422,8 +429,8 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     if (this._panel) {
       this._panel.show(); // Show the view
       this._panel.webview.postMessage({ command: "focus" }); // keyboard focus
-      this.transmitLoading();
     }
+    this.transmitLoading();
     try {
       const queryExecution = (this.queryExecution =
         await queryExecutionPromise);
@@ -479,6 +486,21 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       );
     } finally {
       this.queryExecution = undefined;
+    }
+  }
+
+  protected onWebviewReady() {
+    super.onWebviewReady();
+
+    if (!this._panel) {
+      return;
+    }
+
+    while (this.incomingMessages.length) {
+      const message = this.incomingMessages.pop();
+      if (message) {
+        this.sendResponseToWebview(message);
+      }
     }
   }
 }
