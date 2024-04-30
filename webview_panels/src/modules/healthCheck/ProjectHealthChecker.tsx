@@ -24,6 +24,7 @@ import {
   FolderIcon,
   ArrowLeftIcon,
   RefreshIcon,
+  LoadingIcon,
 } from "@assets/icons";
 import { ProjectHealthcheck } from "./types";
 import { IssueList } from "./IssueList";
@@ -38,14 +39,20 @@ interface DBTConfig {
 }
 
 type ConfigOption =
-  | { configPath: string }
-  | { config: unknown; config_schema: unknown[] };
+  | { configPath: string; configType: "Manual" }
+  | {
+      config: unknown;
+      config_schema: { files_required: string }[];
+      configType: "Saas";
+    }
+  | { configType: "All" };
 
 type AltimateConfigProps = { projectRoot: string } & ConfigOption;
 
 enum ConfigType {
   Manual,
   Saas,
+  All,
 }
 
 interface SaasConfigSelectorProps {
@@ -59,10 +66,13 @@ interface SaasConfigSelectorProps {
 
 const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
   const [configs, setConfigs] = useState<DBTConfig[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const getConfigs = useCallback(async () => {
+    setIsLoading(true);
     const result = (await executeRequestInSync("getInsightConfigs", {})) as {
       items: DBTConfig[];
     };
+    setIsLoading(false);
     setConfigs(result.items);
   }, []);
 
@@ -126,7 +136,7 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
                 void getConfigs();
               }}
             >
-              <RefreshIcon />
+              {isLoading ? <LoadingIcon /> : <RefreshIcon />}
             </Button>
             <div className={classes.accordionContainer + " w-100"}>
               <Accordion
@@ -168,6 +178,17 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
             </div>
           </>
         )}
+      </div>
+      <div className="d-flex align-items-center gap-sm">
+        <Label check sm={2} style={{ whiteSpace: "nowrap" }}>
+          <Input
+            type="radio"
+            className="me-2"
+            checked={props.configType === ConfigType.All}
+            onClick={() => props.setConfigType(ConfigType.All)}
+          />
+          Run all checks
+        </Label>
       </div>
     </div>
   );
@@ -241,7 +262,7 @@ const ProjectHealthcheckInput = ({
   >([]);
   const [selectedProject, setSelectedProject] = useState("");
   const [selectedConfig, setSelectedConfig] = useState<DBTConfig | undefined>();
-  const [configType, setConfigType] = useState(ConfigType.Manual);
+  const [configType, setConfigType] = useState(ConfigType.All);
   const [configPath, setConfigPath] = useState("");
   const [requestInProgress, setRequestInProgress] = useState(false);
 
@@ -263,7 +284,8 @@ const ProjectHealthcheckInput = ({
   const isStartScanEnabled =
     !requestInProgress &&
     selectedProject &&
-    ((configType === ConfigType.Manual && configPath) ||
+    (configType === ConfigType.All ||
+      (configType === ConfigType.Manual && configPath) ||
       (configType === ConfigType.Saas && selectedConfig));
 
   return (
@@ -299,15 +321,20 @@ const ProjectHealthcheckInput = ({
                     configId: selectedConfig?.id,
                   });
                 }
-                const args = {
-                  projectRoot: selectedProject,
-                  ...(configType === ConfigType.Manual
-                    ? { configPath }
-                    : selectedConfig!),
-                };
+                let args: Record<string, unknown>;
+                if (configType === ConfigType.Manual) {
+                  args = { configPath, configType: "Manual" };
+                } else if (configType === ConfigType.Saas) {
+                  args = { ...selectedConfig!, configType: "Saas" };
+                } else {
+                  args = { configType: "All" };
+                }
                 try {
                   setRequestInProgress(true);
-                  await handleHealthCheck(args);
+                  await handleHealthCheck({
+                    projectRoot: selectedProject,
+                    ...args,
+                  } as AltimateConfigProps);
                 } finally {
                   setRequestInProgress(false);
                 }

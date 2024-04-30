@@ -160,10 +160,16 @@ export class DBTProjectContainer implements Disposable {
 
   async initializeWalkthrough() {
     // show setup walkthrough if needed
+    const isWalkthroughDisabledFromSettings = workspace
+      .getConfiguration("dbt")
+      .get("hideWalkthrough", false);
     const showSetupWalkthrough = this.getFromGlobalState(
       "showSetupWalkthrough",
     );
-    if (showSetupWalkthrough === undefined || showSetupWalkthrough === true) {
+    if (
+      !isWalkthroughDisabledFromSettings &&
+      (showSetupWalkthrough === undefined || showSetupWalkthrough === true)
+    ) {
       this.dbtTerminal.debug(
         "dbtProjectContainer:setupWalkthroughDisplayed",
         "showing SetupWalkthrough: value of showSetupWalkthrough is" +
