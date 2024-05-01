@@ -367,6 +367,13 @@ export class VSCodeCommands implements Disposable {
             this.dbtTerminal.log("\r\nPython not detected\r\n");
             return;
           }
+          this.dbtTerminal.log("\r\n");
+          this.dbtTerminal.log("Environment variables...\r\n");
+          const envVars = this.pythonEnvironment.environmentVariables;
+          for (const k in envVars) {
+            this.dbtTerminal.log(`${k}=${envVars[k]}\r\n`);
+          }
+          this.dbtTerminal.log("\r\n");
           const dbtIntegrationMode = workspace
             .getConfiguration("dbt")
             .get<string>("dbtIntegration", "core");
@@ -386,15 +393,23 @@ export class VSCodeCommands implements Disposable {
             this.dbtTerminal.log("\r\nProjects not detected\r\n");
             return;
           }
-          const project = projects[0];
-          const dbtVersion = project.getDBTVersion();
-          if (!dbtVersion) {
-            this.dbtTerminal.log("\r\nDBT is not initialized properly\r\n");
-            return;
+          for (const project of projects) {
+            this.dbtTerminal.log("---------------------------------------\r\n");
+            this.dbtTerminal.log(
+              `Project Name=${project.getProjectName()}\r\n`,
+            );
+            this.dbtTerminal.log(
+              `Adapter Type=${project.getAdapterType()}\r\n`,
+            );
+            const dbtVersion = project.getDBTVersion();
+            if (!dbtVersion) {
+              this.dbtTerminal.log("DBT is not initialized properly\r\n");
+            } else {
+              this.dbtTerminal.log(`DBT version=${dbtVersion.join(".")}\r\n`);
+            }
+            await project.debug();
+            this.dbtTerminal.log("---------------------------------------\r\n");
           }
-          this.dbtTerminal.log(`DBT version=${dbtVersion.join(".")}\r\n`);
-          this.dbtTerminal.log(`DBT adapter=${project.getAdapterType()}\r\n`);
-          await project.debug();
           this.dbtTerminal.log("\r\n\r\nEverything looks good\r\n");
         } catch (e) {
           this.dbtTerminal.log(`\r\nError occurred=${e}\r\n`);
