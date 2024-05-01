@@ -118,19 +118,22 @@ export class ValidateSql {
     const parentModels: ModelNode[] = [];
     let relationsWithoutColumns: string[] = [];
     let compiledQuery: string | undefined;
+    const cancellable = new Cancellable();
     await window.withProgress(
       {
         location: ProgressLocation.Notification,
-        title: "Fetching metadata",
-        cancellable: false,
+        title: "Validating SQL",
+        cancellable: true,
       },
       async (_, token) => {
         try {
-          const cancellable = new Cancellable();
           token.onCancellationRequested(() => {
             cancellable.cancel();
           });
           const fileContentBytes = await workspace.fs.readFile(currentFilePath);
+          if (cancellable.isCancelled) {
+            return;
+          }
           try {
             compiledQuery = await project.unsafeCompileQuery(
               fileContentBytes.toString(),
@@ -144,6 +147,9 @@ export class ValidateSql {
                   error,
               ),
             );
+            return;
+          }
+          if (cancellable.isCancelled) {
             return;
           }
           const modelsToFetch = DBTProject.getNonEphemeralParents(event, [
@@ -164,6 +170,9 @@ export class ValidateSql {
         }
       },
     );
+    if (cancellable.isCancelled) {
+      return;
+    }
     if (!compiledQuery) {
       return;
     }
