@@ -30,7 +30,11 @@ export class UserCompletionProvider
     CompletionItem[] | CompletionList<CompletionItem>
   > {
     return this.usersService.users.map((user) => ({
-      label: `${user.display_name}`,
+      label: {
+        label: `${user.display_name}`,
+        // description: "Altimate",
+        detail: " (Altimate)",
+      },
       kind: CompletionItemKind.User,
       keepWhitespace: true,
       insertText: `${user.display_name} `,
