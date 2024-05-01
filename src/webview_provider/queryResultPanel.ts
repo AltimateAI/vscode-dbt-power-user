@@ -275,6 +275,16 @@ export class QueryResultPanel extends AltimateWebviewProvider {
                 .getConfiguration("dbt")
                 .update("perspectiveTheme", configMessage.perspectiveTheme);
             }
+            if ("enableQueryPanelV2" in configMessage) {
+              workspace
+                .getConfiguration("dbt")
+                .update("enableQueryPanelV2", configMessage.enableQueryPanelV2);
+              this.telemetry.sendTelemetryEvent(
+                configMessage.enableQueryPanelV2
+                  ? "QueryPanelV2Activated"
+                  : "QueryPanelV2Deactivated",
+              );
+            }
             break;
           case InboundCommand.OpenUrl:
             const config = message as RecOpenUrl;

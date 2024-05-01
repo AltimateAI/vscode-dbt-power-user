@@ -7,6 +7,7 @@ import QueryPanelTitle from "./components/QueryPanelContents/QueryPanelTitle";
 import QueryPanelContent from "./components/QueryPanelContents/QueryPanelContent";
 import { useState } from "react";
 import classes from "./querypanel.module.scss";
+import ShowOldUxButton from "./components/showOldUxButton/ShowOldUxButton";
 
 const QueryPanel = (): JSX.Element => {
   const [showCompiledCode, setShowCompiledCode] = useState(false);
@@ -23,6 +24,7 @@ const QueryPanel = (): JSX.Element => {
           />
         </Stack>
         <Stack>
+          <ShowOldUxButton />
           <ClearResultsButton />
           <HelpButton />
           <FeedbackButton url="https://docs.google.com/forms/d/19wX5b5_xXL6J_Q_GpuWzYddIXbvLxuarv09Y3VRk_EU/viewform" />

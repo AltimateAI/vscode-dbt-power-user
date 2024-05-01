@@ -134,6 +134,13 @@
                   >Download as CSV</vscode-button
                 >
               </div>
+              <br />
+              <div class="new-ux-alert">
+                This legacy query results view will be deprecated soon.
+                <vscode-button class="btn-new-ux" @click="toggleV2"
+                  >Switch to new UX
+                </vscode-button>
+              </div>
               <div id="query-results" :style="getTableStyles()"></div>
             </div>
           </div>
@@ -199,6 +206,12 @@
           </div>
 
           <div class="help-body">
+            <div class="new-ux-alert">
+              We are launching new and improved query results panel.
+              <vscode-button class="btn-new-ux" @click="toggleV2"
+                >Switch to new UX
+              </vscode-button>
+            </div>
             <h2>Previewing Query</h2>
             <p>
               Press Cmd+Enter (Mac) or Control+Enter (Windows/Linux) to run a

@@ -363,6 +363,9 @@ const app = createApp({
         compiledSql: this.compiledCode,
       });
     },
+    toggleV2() {
+      updateConfig({ enableQueryPanelV2: true });
+    },
     onFeedback() {
       const prevTab = document.querySelector("#panel-manager").activeid;
       executeCommand("openUrl", {
