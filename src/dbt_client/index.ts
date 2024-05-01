@@ -6,6 +6,7 @@ import { existsSync } from "fs";
 import { DBTCoreDetection } from "./dbtCoreIntegration";
 import { DBTCloudDetection } from "./dbtCloudIntegration";
 import { DBTDetection } from "./dbtIntegration";
+import { DBTTerminal } from "./dbtTerminal";
 
 enum DbtInstallationPromptAnswer {
   INSTALL = "Install dbt",
@@ -35,6 +36,7 @@ export class DBTClient implements Disposable {
     private pythonEnvironment: PythonEnvironment,
     private dbtCoreDetection: DBTCoreDetection,
     private dbtCloudDetection: DBTCloudDetection,
+    private dbtTerminal: DBTTerminal,
   ) {
     this.dbtIntegrationMode = workspace
       .getConfiguration("dbt")
@@ -150,5 +152,21 @@ export class DBTClient implements Disposable {
       this.pythonEnvironment.pythonPath !== undefined &&
       existsSync(this.pythonEnvironment.pythonPath)
     );
+  }
+
+  async troubleshoot() {
+    await this.dbtTerminal.show(true);
+    this.dbtTerminal.log("Troubleshooting started");
+    if (!this.pythonPathExists()) {
+      this.dbtTerminal.log("Python not detected");
+      this.dbtTerminal.log(`Python Path:${this.pythonEnvironment.pythonPath}`);
+      return;
+    }
+    if (!this.dbtInstalled) {
+      this.dbtTerminal.log("DBT not detected");
+      this.dbtTerminal.log(`DBT integration mode:${this.dbtIntegrationMode}`);
+      return;
+    }
+    this.dbtTerminal.log("Everything looks okay");
   }
 }

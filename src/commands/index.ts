@@ -27,6 +27,7 @@ import {
   ConversationCommentThread,
 } from "../comment_provider/conversationProvider";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
+import { DBTClient } from "../dbt_client";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -44,6 +45,7 @@ export class VSCodeCommands implements Disposable {
     private eventEmitterService: SharedStateService,
     private conversationController: ConversationProvider,
     private pythonEnvironment: PythonEnvironment,
+    private dbtClient: DBTClient,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -350,6 +352,9 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.printEnvVars", () =>
         this.pythonEnvironment.printEnvVars(),
       ),
+      commands.registerCommand("dbtPowerUser.troubleshoot", () => {
+        this.dbtClient.troubleshoot();
+      }),
     );
   }
 
