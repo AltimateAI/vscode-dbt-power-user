@@ -41,8 +41,16 @@ export class WalkthroughCommands {
       );
       return;
     }
+    let debugCommand = "dbt debug";
+    if (
+      workspace
+        .getConfiguration("dbt")
+        .get<string>("dbtIntegration", "core") === "cloud"
+    ) {
+      debugCommand = "dbt environment show";
+    }
     const answer = await window.showInformationMessage(
-      `Do you want to validate the project: ${projectContext.label}? This will run the command 'dbt debug' inside this project. Do you want to continue?`,
+      `Do you want to validate the project: ${projectContext.label}? This will run the command '${debugCommand}' inside this project. Do you want to continue?`,
       PromptAnswer.YES,
       PromptAnswer.NO,
     );

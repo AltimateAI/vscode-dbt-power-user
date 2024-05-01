@@ -987,15 +987,27 @@
             ]
           },
           {
-            "id": "validateProject",
-            "title": "%walkthrough.initialSetup.steps.validateProject.title%",
-            "description": "%walkthrough.initialSetup.steps.validateProject.description%",
+            "id": "validateProjectCore",
+            "title": "%walkthrough.initialSetup.steps.validateProjectCore.title%",
+            "description": "%walkthrough.initialSetup.steps.validateProjectCore.description%",
             "when": "dbtPowerUser.dbtIntegration === 'core' && dbtPowerUser.walkthroughProjectSelected",
             "media": {
-              "markdown": "media/validateProject.md"
+              "markdown": "media/validateProjectCore.md"
             },
             "completionEvents": [
-              "onCommand:dbtPowerUser.validateProject"
+              "onCommand:dbtPowerUser.validateProjectCore"
+            ]
+          },
+          {
+            "id": "validateProjectCloud",
+            "title": "%walkthrough.initialSetup.steps.validateProjectCloud.title%",
+            "description": "%walkthrough.initialSetup.steps.validateProjectCloud.description%",
+            "when": "dbtPowerUser.dbtIntegration === 'cloud' && dbtPowerUser.walkthroughProjectSelected",
+            "media": {
+              "markdown": "media/validateProjectCloud.md"
+            },
+            "completionEvents": [
+              "onCommand:dbtPowerUser.validateProjectCloud"
             ]
           },
           {
