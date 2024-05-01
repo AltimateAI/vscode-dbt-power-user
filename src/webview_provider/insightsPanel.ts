@@ -34,8 +34,13 @@ type UpdateConfigPropsArray = {
   projectRoot: string;
 };
 type ConfigOption =
-  | { configPath: string }
-  | { config: unknown; config_schema: { files_required: string }[] };
+  | { configPath: string; configType: "Manual" }
+  | {
+      config: unknown;
+      config_schema: { files_required: string }[];
+      configType: "Saas";
+    }
+  | { configType: "All" };
 
 export type AltimateConfigProps = { projectRoot: string } & ConfigOption;
 
