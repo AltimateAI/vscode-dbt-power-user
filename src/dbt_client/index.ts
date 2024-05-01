@@ -157,14 +157,14 @@ export class DBTClient implements Disposable {
   async troubleshoot() {
     await this.dbtTerminal.show(true);
     this.dbtTerminal.log("Troubleshooting started");
+    this.dbtTerminal.log(`Python Path:${this.pythonEnvironment.pythonPath}`);
     if (!this.pythonPathExists()) {
       this.dbtTerminal.log("Python not detected");
-      this.dbtTerminal.log(`Python Path:${this.pythonEnvironment.pythonPath}`);
       return;
     }
+    this.dbtTerminal.log(`DBT integration mode:${this.dbtIntegrationMode}`);
     if (!this.dbtInstalled) {
       this.dbtTerminal.log("DBT not detected");
-      this.dbtTerminal.log(`DBT integration mode:${this.dbtIntegrationMode}`);
       return;
     }
     this.dbtTerminal.log("Everything looks okay");
