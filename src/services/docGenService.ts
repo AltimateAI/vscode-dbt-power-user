@@ -65,7 +65,7 @@ export class DocGenService {
     message: any,
     columns: string[],
   ): Promise<DocsGenerateResponse | undefined> {
-    return new Promise(async (resolve) => {
+    return new Promise(async (resolve, reject) => {
       if (!documentation) {
         return resolve(undefined);
       }
@@ -125,7 +125,9 @@ export class DocGenService {
               ),
             );
           }, err.retryAfter);
+          return;
         }
+        reject(err);
       }
     });
   }

@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.38.4",
+  "version": "0.39.1",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -74,7 +74,7 @@
           "dbt.enableCollaboration": {
             "type": "boolean",
             "description": "Enable dbt docs collaboration.",
-            "default": false
+            "default": true
           },
           "dbt.enableNewDocsPanel": {
             "type": "boolean",
