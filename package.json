@@ -150,6 +150,20 @@
             "default": 500,
             "minimum": 1
           },
+          "dbt.perspectiveTheme": {
+            "type": "string",
+            "description": "Theme for perspective viewer in query results panel",
+            "default": "Vintage",
+            "enum": [
+              "Vintage",
+              "Pro Light",
+              "Pro Dark",
+              "Vaporwave",
+              "Solarized",
+              "Solarized Dark",
+              "Monokai"
+            ]
+          },
           "dbt.conversationsPollingInterval": {
             "type": "integer",
             "description": "Polling interval to fetch latest conversations (in seconds)",

@@ -8,6 +8,7 @@ import {
   setLastHintTimestamp,
   setLimit,
   setLoading,
+  setPerspectiveTheme,
   setQueryExecutionInfo,
   setQueryResults,
   setQueryResultsError,
@@ -130,6 +131,9 @@ const useQueryPanelListeners = (): void => {
           dispatch(setLastHintTimestamp(args.lastHintTimestamp as number));
           // @ts-expect-error valid type
           dispatch(setLimit(args.limit as number));
+          // @ts-expect-error valid type
+          dispatch(setPerspectiveTheme(args.perspectiveTheme as string));
+
           break;
         default:
           break;

@@ -10,6 +10,7 @@ export const initialState = {
   hintIndex: -1,
   lastHintTimestamp: 0,
   limit: undefined,
+  perspectiveTheme: "Vintage",
 } as QueryPanelStateProps;
 
 const queryPanelSlice = createSlice({
@@ -30,6 +31,12 @@ const queryPanelSlice = createSlice({
       action: PayloadAction<QueryPanelStateProps["hintIndex"]>,
     ) => {
       state.hintIndex = action.payload;
+    },
+    setPerspectiveTheme: (
+      state,
+      action: PayloadAction<QueryPanelStateProps["perspectiveTheme"]>,
+    ) => {
+      state.perspectiveTheme = action.payload || "Vintage";
     },
     setCompiledCodeMarkup: (
       state,
@@ -84,6 +91,7 @@ export const {
   setQueryResults,
   setLastHintTimestamp,
   setLimit,
+  setPerspectiveTheme,
 } = queryPanelSlice.actions;
 
 export default queryPanelSlice;

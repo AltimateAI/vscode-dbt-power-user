@@ -212,6 +212,9 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       async (message) => {
         switch (message.command) {
           case InboundCommand.GetQueryPanelContext:
+            const perspectiveTheme = workspace
+              .getConfiguration("dbt")
+              .get("perspectiveTheme", "Vintage");
             const limit = workspace
               .getConfiguration("dbt")
               .get<number>("queryLimit");
@@ -222,6 +225,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
                   "lastHintTimestamp",
                 ) || 0,
               limit,
+              perspectiveTheme,
             });
             break;
           case InboundCommand.CancelQuery:
@@ -265,6 +269,11 @@ export class QueryResultPanel extends AltimateWebviewProvider {
                   "enableNewQueryPanel",
                   configMessage.enableNewQueryPanel,
                 );
+            }
+            if ("perspectiveTheme" in configMessage) {
+              workspace
+                .getConfiguration("dbt")
+                .update("perspectiveTheme", configMessage.perspectiveTheme);
             }
             break;
           case InboundCommand.OpenUrl:

@@ -17,4 +17,5 @@ export interface QueryPanelStateProps {
   hintIndex: number;
   lastHintTimestamp: number;
   limit?: number;
+  perspectiveTheme: string;
 }
