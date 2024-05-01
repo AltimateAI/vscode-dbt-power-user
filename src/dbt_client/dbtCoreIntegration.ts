@@ -52,6 +52,7 @@ import { ManifestPathType } from "../constants";
 import { DBTTerminal } from "./dbtTerminal";
 import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
+import { Cancellable } from "../webview_provider/newLineagePanel";
 
 const DEFAULT_QUERY_TEMPLATE = "select * from ({query}) as query limit {limit}";
 
@@ -831,22 +832,26 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  async getBulkSchema(nodes: DBTNode[]): Promise<Record<string, DBColumn[]>> {
+  async getBulkSchema(
+    nodes: DBTNode[],
+    cancellable: Cancellable,
+  ): Promise<Record<string, DBColumn[]>> {
     const result: Record<string, DBColumn[]> = {};
-    await Promise.all(
-      nodes.map(async (n) => {
-        if (n.resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {
-          const source = n as SourceNode;
-          result[n.unique_id] = await this.getColumnsOfSource(
-            source.name,
-            source.table,
-          );
-        } else {
-          const model = n as Node;
-          result[n.unique_id] = await this.getColumnsOfModel(model.name);
-        }
-      }),
-    );
+    for (const n of nodes) {
+      if (cancellable.isCancelled) {
+        break;
+      }
+      if (n.resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {
+        const source = n as SourceNode;
+        result[n.unique_id] = await this.getColumnsOfSource(
+          source.name,
+          source.table,
+        );
+      } else {
+        const model = n as Node;
+        result[n.unique_id] = await this.getColumnsOfModel(model.name);
+      }
+    }
     return result;
   }
 

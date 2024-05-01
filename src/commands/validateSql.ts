@@ -28,6 +28,7 @@ import {
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { PythonException } from "python-bridge";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { Cancellable } from "../webview_provider/newLineagePanel";
 
 @provideSingleton(ValidateSql)
 export class ValidateSql {
@@ -123,8 +124,12 @@ export class ValidateSql {
         title: "Fetching metadata",
         cancellable: false,
       },
-      async () => {
+      async (_, token) => {
         try {
+          const cancellable = new Cancellable();
+          token.onCancellationRequested(() => {
+            cancellable.cancel();
+          });
           const fileContentBytes = await workspace.fs.readFile(currentFilePath);
           try {
             compiledQuery = await project.unsafeCompileQuery(
@@ -147,7 +152,11 @@ export class ValidateSql {
           const {
             mappedNode,
             relationsWithoutColumns: _relationsWithoutColumns,
-          } = await project.getNodesWithDBColumns(event, modelsToFetch);
+          } = await project.getNodesWithDBColumns(
+            event,
+            modelsToFetch,
+            cancellable,
+          );
           parentModels.push(...modelsToFetch.map((n) => mappedNode[n]));
           relationsWithoutColumns = _relationsWithoutColumns;
         } catch (exc) {

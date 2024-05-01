@@ -57,6 +57,7 @@ import { ValidationProvider } from "../validation_provider";
 import { ModelNode } from "../altimate";
 import { ColumnMetaData } from "../domain";
 import { AltimateConfigProps } from "../webview_provider/insightsPanel";
+import { Cancellable } from "../webview_provider/newLineagePanel";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -685,8 +686,8 @@ export class DBTProject implements Disposable {
     return result.table.rows.flat();
   }
 
-  async getBulkSchema(req: DBTNode[]) {
-    return this.dbtProjectIntegration.getBulkSchema(req);
+  async getBulkSchema(req: DBTNode[], cancellable: Cancellable) {
+    return this.dbtProjectIntegration.getBulkSchema(req, cancellable);
   }
 
   async getCatalog(): Promise<Catalog> {
@@ -1026,6 +1027,7 @@ select * from renamed
   async getNodesWithDBColumns(
     event: ManifestCacheProjectAddedEvent,
     modelsToFetch: string[],
+    cancellable: Cancellable,
   ) {
     const { nodeMetaMap, sourceMetaMap } = event;
     const mappedNode: Record<string, ModelNode> = {};
@@ -1075,7 +1077,10 @@ select * from renamed
         mappedNode[key] = node;
       }
     }
-    const bulkSchemaResponse = await this.getBulkSchema(bulkSchemaRequest);
+    const bulkSchemaResponse = await this.getBulkSchema(
+      bulkSchemaRequest,
+      cancellable,
+    );
     for (const key of modelsToFetch) {
       const node = mappedNode[key];
       if (!node) {

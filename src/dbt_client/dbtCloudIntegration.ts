@@ -38,6 +38,7 @@ import { existsSync } from "fs";
 import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
 import { ProjectHealthcheck } from "./dbtCoreIntegration";
+import { Cancellable } from "../webview_provider/newLineagePanel";
 
 function getDBTPath(
   pythonEnvironment: PythonEnvironment,
@@ -635,7 +636,10 @@ export class DBTCloudProjectIntegration
     return JSON.parse(compiledLine[0].data.compiled);
   }
 
-  async getBulkSchema(nodes: DBTNode[]): Promise<Record<string, DBColumn[]>> {
+  async getBulkSchema(
+    nodes: DBTNode[],
+    cancellable: Cancellable,
+  ): Promise<Record<string, DBColumn[]>> {
     this.throwIfNotAuthenticated();
     this.throwBridgeErrorIfAvailable();
     const bulkModelQuery = `

@@ -56,11 +56,21 @@ const CAN_COMPILE_SQL_NODE = [
 const canCompileSQL = (nodeType: string) =>
   CAN_COMPILE_SQL_NODE.includes(nodeType);
 
+export class Cancellable {
+  private _isCancelled = false;
+  public get isCancelled() {
+    return this._isCancelled;
+  }
+  cancel() {
+    this._isCancelled = true;
+  }
+}
+
 @provideSingleton(NewLineagePanel)
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
-  private cllIsCancelled = false;
+  private cancellableCLL = new Cancellable();
   private cllProgressResolve: () => void = () => {};
 
   public constructor(
@@ -279,10 +289,10 @@ export class NewLineagePanel implements LineagePanelView {
         },
         async (_, token) => {
           await new Promise<void>((resolve) => {
-            this.cllIsCancelled = false;
+            this.cancellableCLL = new Cancellable();
             this.cllProgressResolve = resolve;
             token.onCancellationRequested(() => {
-              this.cllIsCancelled = true;
+              this.cancellableCLL.cancel();
               this._panel?.webview.postMessage({
                 command: "columnLineage",
                 args: { event: CllEvents.CANCEL },
@@ -299,7 +309,7 @@ export class NewLineagePanel implements LineagePanelView {
     }
     if (event === CllEvents.CANCEL) {
       this.cllProgressResolve();
-      this.cllIsCancelled = true;
+      this.cancellableCLL.cancel();
       return;
     }
   }
@@ -514,7 +524,11 @@ export class NewLineagePanel implements LineagePanelView {
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
     );
     const { mappedNode, relationsWithoutColumns } =
-      await project.getNodesWithDBColumns(event, modelsToFetch);
+      await project.getNodesWithDBColumns(
+        event,
+        modelsToFetch,
+        this.cancellableCLL,
+      );
 
     const selected_column = {
       model_node: mappedNode[selectedColumn.table],
@@ -539,7 +553,7 @@ export class NewLineagePanel implements LineagePanelView {
       });
 
       for (const key of currAnd1HopTables) {
-        if (this.cllIsCancelled) {
+        if (this.cancellableCLL.isCancelled) {
           return { column_lineage: [] };
         }
         await compileSql(key);
@@ -616,7 +630,7 @@ export class NewLineagePanel implements LineagePanelView {
 
     const modelDialect = project.getAdapterType();
     try {
-      if (this.cllIsCancelled) {
+      if (this.cancellableCLL.isCancelled) {
         return { column_lineage: [] };
       }
       const request = {
