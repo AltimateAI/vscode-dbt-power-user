@@ -357,30 +357,49 @@ export class VSCodeCommands implements Disposable {
         this.pythonEnvironment.printEnvVars(),
       ),
       commands.registerCommand("dbtPowerUser.troubleshoot", async () => {
-        await this.dbtTerminal.show(true);
-        this.dbtTerminal.log("Troubleshooting started...\r\n");
-        this.dbtTerminal.log(
-          `Python Path=${this.pythonEnvironment.pythonPath}\r\n`,
-        );
-        if (!this.dbtClient.pythonInstalled) {
-          this.dbtTerminal.log("\r\nPython not detected\r\n");
-          return;
+        try {
+          await this.dbtTerminal.show(true);
+          this.dbtTerminal.log("Troubleshooting started...\r\n");
+          this.dbtTerminal.log(
+            `Python Path=${this.pythonEnvironment.pythonPath}\r\n`,
+          );
+          if (!this.dbtClient.pythonInstalled) {
+            this.dbtTerminal.log("\r\nPython not detected\r\n");
+            return;
+          }
+          const dbtIntegrationMode = workspace
+            .getConfiguration("dbt")
+            .get<string>("dbtIntegration", "core");
+          this.dbtTerminal.log(
+            `DBT integration mode=${dbtIntegrationMode}\r\n`,
+          );
+          this.dbtTerminal.log(
+            `First workspace path=${getFirstWorkspacePath()}\r\n`,
+          );
+          if (!this.dbtClient.dbtInstalled) {
+            this.dbtTerminal.log("\r\nDBT not detected\r\n");
+            return;
+          }
+          const projects = this.dbtProjectContainer.getProjects();
+          this.dbtTerminal.log(`Number of projects=${projects.length}\r\n`);
+          if (projects.length === 0) {
+            this.dbtTerminal.log("\r\nProjects not detected\r\n");
+            return;
+          }
+          const project = projects[0];
+          const dbtVersion = project.getDBTVersion();
+          if (!dbtVersion) {
+            this.dbtTerminal.log("\r\nDBT is not initialized properly\r\n");
+            return;
+          }
+          this.dbtTerminal.log(`DBT version=${dbtVersion.join(".")}\r\n`);
+          this.dbtTerminal.log(`DBT adapter=${project.getAdapterType()}\r\n`);
+          const output = await project.debug();
+          this.dbtTerminal.log(`DBT debug output=${output}\r\n`);
+          this.dbtTerminal.log("\r\n\r\nEverything looks good\r\n");
+        } catch (e) {
+          this.dbtTerminal.log(`\r\nError occurred=${e}\r\n`);
         }
-        const dbtIntegrationMode = workspace
-          .getConfiguration("dbt")
-          .get<string>("dbtIntegration", "core");
-        this.dbtTerminal.log(`DBT integration mode=${dbtIntegrationMode}\r\n`);
-        this.dbtTerminal.log(
-          `First workspace path=${getFirstWorkspacePath()}\r\n`,
-        );
-        if (!this.dbtClient.dbtInstalled) {
-          this.dbtTerminal.log("\r\nDBT not detected\r\n");
-          return;
-        }
-        this.dbtTerminal.log(
-          `Number of projects=${this.dbtProjectContainer.getProjects().length}`,
-        );
-        this.dbtTerminal.log("\r\n\r\nEverything looks good\r\n");
       }),
     );
   }
