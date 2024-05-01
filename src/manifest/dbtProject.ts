@@ -208,6 +208,10 @@ export class DBTProject implements Disposable {
     return path.join(targetPath, DBTProject.CATALOG_FILE);
   }
 
+  getAllDiagnostic(): Diagnostic[] {
+    return this.dbtProjectIntegration.getAllDiagnostic();
+  }
+
   async performDatapilotHealthcheck(args: AltimateConfigProps) {
     const manifestPath = this.getManifestPath();
     if (!manifestPath) {

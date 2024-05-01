@@ -32,6 +32,7 @@ import {
 } from "../comment_provider/conversationProvider";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { DBTClient } from "../dbt_client";
+import { existsSync } from "fs";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -359,7 +360,7 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.troubleshoot", async () => {
         try {
           await this.dbtTerminal.show(true);
-          this.dbtTerminal.log("Troubleshooting started...\r\n");
+          this.dbtTerminal.log("Troubleshooting started...\r\n\r\n");
           this.dbtTerminal.log(
             `Python Path=${this.pythonEnvironment.pythonPath}\r\n`,
           );
@@ -406,6 +407,21 @@ export class VSCodeCommands implements Disposable {
               this.dbtTerminal.log("DBT is not initialized properly\r\n");
             } else {
               this.dbtTerminal.log(`DBT version=${dbtVersion.join(".")}\r\n`);
+            }
+            const manifestPath = project.getManifestPath();
+            if (!manifestPath) {
+              this.dbtTerminal.log("Manifest path not found\r\n");
+            } else {
+              this.dbtTerminal.log(`Manifest path=${manifestPath}\r\n`);
+              if (!existsSync(manifestPath)) {
+                this.dbtTerminal.log(`Manifest file doesn't exists\r\n`);
+              }
+            }
+            const diagnostics = project.getAllDiagnostic();
+            if (diagnostics.length > 0) {
+              this.dbtTerminal.log(
+                `Number of diagnostics issues=${diagnostics.length}\r\n`,
+              );
             }
             await project.debug();
             this.dbtTerminal.log("---------------------------------------\r\n");

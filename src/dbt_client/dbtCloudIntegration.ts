@@ -309,6 +309,13 @@ export class DBTCloudProjectIntegration
     return [0, 0, 0];
   }
 
+  getAllDiagnostic(): Diagnostic[] {
+    return [
+      ...(this.pythonBridgeDiagnostics.get(this.projectRoot) || []),
+      ...(this.rebuildManifestDiagnostics.get(this.projectRoot) || []),
+    ];
+  }
+
   async rebuildManifest(): Promise<void> {
     if (this.rebuildManifestCancellationTokenSource) {
       this.rebuildManifestCancellationTokenSource.cancel();
