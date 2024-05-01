@@ -105,7 +105,7 @@ export class ConversationProvider implements Disposable {
     this.disposables.push(
       emitterService.eventEmitter.event((d) => {
         if (
-          d.command === "manifestCacheChanged" ||
+          d.command === "dbtProjectsInitialized" ||
           d.command === "refetchConversations"
         ) {
           this.loadThreads();
