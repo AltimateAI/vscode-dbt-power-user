@@ -1,6 +1,6 @@
 import { commands, Disposable, EventEmitter, window, workspace } from "vscode";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { provideSingleton } from "../utils";
+import { getFirstWorkspacePath, provideSingleton } from "../utils";
 import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
 import { existsSync } from "fs";
 import { DBTCoreDetection } from "./dbtCoreIntegration";
@@ -156,17 +156,20 @@ export class DBTClient implements Disposable {
 
   async troubleshoot() {
     await this.dbtTerminal.show(true);
-    this.dbtTerminal.log("Troubleshooting started");
-    this.dbtTerminal.log(`Python Path:${this.pythonEnvironment.pythonPath}`);
+    this.dbtTerminal.log("Troubleshooting started...\r\n");
+    this.dbtTerminal.log(
+      `Python Path:${this.pythonEnvironment.pythonPath}\r\n`,
+    );
     if (!this.pythonPathExists()) {
-      this.dbtTerminal.log("Python not detected");
+      this.dbtTerminal.log("Python not detected\r\n");
       return;
     }
-    this.dbtTerminal.log(`DBT integration mode:${this.dbtIntegrationMode}`);
+    this.dbtTerminal.log(`DBT integration mode=${this.dbtIntegrationMode}\r\n`);
+    this.dbtTerminal.log(`First workspace path=${getFirstWorkspacePath()}\r\n`);
     if (!this.dbtInstalled) {
-      this.dbtTerminal.log("DBT not detected");
+      this.dbtTerminal.log("DBT not detected\r\n");
       return;
     }
-    this.dbtTerminal.log("Everything looks okay");
+    this.dbtTerminal.log("\r\n\r\nEverything looks good\r\n");
   }
 }
