@@ -11,7 +11,11 @@ import {
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { RunModelType } from "../domain";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
+import {
+  extendErrorWithSupportLinks,
+  getFirstWorkspacePath,
+  provideSingleton,
+} from "../utils";
 import { RunModel } from "./runModel";
 import { SqlToModel } from "./sqlToModel";
 import { AltimateScan } from "./altimateScan";
@@ -352,8 +356,31 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.printEnvVars", () =>
         this.pythonEnvironment.printEnvVars(),
       ),
-      commands.registerCommand("dbtPowerUser.troubleshoot", () => {
-        this.dbtClient.troubleshoot();
+      commands.registerCommand("dbtPowerUser.troubleshoot", async () => {
+        await this.dbtTerminal.show(true);
+        this.dbtTerminal.log("Troubleshooting started...\r\n");
+        this.dbtTerminal.log(
+          `Python Path=${this.pythonEnvironment.pythonPath}\r\n`,
+        );
+        if (!this.dbtClient.pythonInstalled) {
+          this.dbtTerminal.log("\r\nPython not detected\r\n");
+          return;
+        }
+        const dbtIntegrationMode = workspace
+          .getConfiguration("dbt")
+          .get<string>("dbtIntegration", "core");
+        this.dbtTerminal.log(`DBT integration mode=${dbtIntegrationMode}\r\n`);
+        this.dbtTerminal.log(
+          `First workspace path=${getFirstWorkspacePath()}\r\n`,
+        );
+        if (!this.dbtClient.dbtInstalled) {
+          this.dbtTerminal.log("\r\nDBT not detected\r\n");
+          return;
+        }
+        this.dbtTerminal.log(
+          `Number of projects=${this.dbtProjectContainer.getProjects().length}`,
+        );
+        this.dbtTerminal.log("\r\n\r\nEverything looks good\r\n");
       }),
     );
   }

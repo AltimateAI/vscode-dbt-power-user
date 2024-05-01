@@ -1,12 +1,11 @@
 import { commands, Disposable, EventEmitter, window, workspace } from "vscode";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
-import { getFirstWorkspacePath, provideSingleton } from "../utils";
+import { provideSingleton } from "../utils";
 import { DBTInstallationVerificationEvent } from "./dbtVersionEvent";
 import { existsSync } from "fs";
 import { DBTCoreDetection } from "./dbtCoreIntegration";
 import { DBTCloudDetection } from "./dbtCloudIntegration";
 import { DBTDetection } from "./dbtIntegration";
-import { DBTTerminal } from "./dbtTerminal";
 
 enum DbtInstallationPromptAnswer {
   INSTALL = "Install dbt",
@@ -23,8 +22,14 @@ export class DBTClient implements Disposable {
     new EventEmitter<DBTInstallationVerificationEvent>();
   public readonly onDBTInstallationVerification =
     this._onDBTInstallationVerificationEvent.event;
-  private dbtInstalled?: boolean;
-  private pythonInstalled?: boolean;
+  private _dbtInstalled?: boolean;
+  private _pythonInstalled?: boolean;
+  public get dbtInstalled() {
+    return this._dbtInstalled;
+  }
+  public get pythonInstalled() {
+    return this._pythonInstalled;
+  }
   private disposables: Disposable[] = [
     this._onDBTInstallationVerificationEvent,
   ];
@@ -36,7 +41,6 @@ export class DBTClient implements Disposable {
     private pythonEnvironment: PythonEnvironment,
     private dbtCoreDetection: DBTCoreDetection,
     private dbtCloudDetection: DBTCloudDetection,
-    private dbtTerminal: DBTTerminal,
   ) {
     this.dbtIntegrationMode = workspace
       .getConfiguration("dbt")
@@ -76,25 +80,25 @@ export class DBTClient implements Disposable {
       inProgress: true,
     });
     this.shownError = false;
-    this.dbtInstalled = undefined;
-    this.pythonInstalled = this.pythonPathExists();
-    this.dbtInstalled = await this.dbtDetection.detectDBT();
+    this._dbtInstalled = undefined;
+    this._pythonInstalled = this.pythonPathExists();
+    this._dbtInstalled = await this.dbtDetection.detectDBT();
     this._onDBTInstallationVerificationEvent.fire({
       inProgress: false,
-      installed: this.dbtInstalled,
+      installed: this._dbtInstalled,
     });
     commands.executeCommand(
       "setContext",
       "dbtPowerUser.dbtInstalled",
-      this.dbtInstalled,
+      this._dbtInstalled,
     );
-    if (!this.dbtInstalled) {
+    if (!this._dbtInstalled) {
       this.showErrorIfDbtOrPythonNotInstalled();
     }
   }
 
   async showErrorIfDbtOrPythonNotInstalled() {
-    if (!this.pythonInstalled) {
+    if (!this._pythonInstalled) {
       if (!this.shownError) {
         // We don't want to flood the user with errors
         this.shownError = true;
@@ -122,7 +126,7 @@ export class DBTClient implements Disposable {
   }
 
   async showErrorIfDbtIsNotInstalled() {
-    if (!this.dbtInstalled) {
+    if (!this._dbtInstalled) {
       if (!this.shownError) {
         // We don't want to flood the user with errors
         this.shownError = true;
@@ -152,24 +156,5 @@ export class DBTClient implements Disposable {
       this.pythonEnvironment.pythonPath !== undefined &&
       existsSync(this.pythonEnvironment.pythonPath)
     );
-  }
-
-  async troubleshoot() {
-    await this.dbtTerminal.show(true);
-    this.dbtTerminal.log("Troubleshooting started...\r\n");
-    this.dbtTerminal.log(
-      `Python Path:${this.pythonEnvironment.pythonPath}\r\n`,
-    );
-    if (!this.pythonPathExists()) {
-      this.dbtTerminal.log("Python not detected\r\n");
-      return;
-    }
-    this.dbtTerminal.log(`DBT integration mode=${this.dbtIntegrationMode}\r\n`);
-    this.dbtTerminal.log(`First workspace path=${getFirstWorkspacePath()}\r\n`);
-    if (!this.dbtInstalled) {
-      this.dbtTerminal.log("DBT not detected\r\n");
-      return;
-    }
-    this.dbtTerminal.log("\r\n\r\nEverything looks good\r\n");
   }
 }
