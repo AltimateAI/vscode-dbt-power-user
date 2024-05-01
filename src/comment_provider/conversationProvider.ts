@@ -167,10 +167,7 @@ export class ConversationProvider implements Disposable {
         "loading conversations",
         dbtDocsShare.share_id,
       );
-      const conversations =
-        await this.conversationService.loadConversationsByShareId(
-          dbtDocsShare.share_id,
-        );
+      const conversations = dbtDocsShare.conversation_group;
       if (!conversations?.length) {
         this.dbtTerminal.debug(
           "ConversationProvider:loadThreads",

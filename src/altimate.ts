@@ -258,6 +258,7 @@ export interface SharedDoc {
   name: string;
   description: string;
   project_name: string;
+  conversation_group: [ConversationGroup];
 }
 
 export interface Conversation {
