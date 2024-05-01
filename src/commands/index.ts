@@ -394,8 +394,7 @@ export class VSCodeCommands implements Disposable {
           }
           this.dbtTerminal.log(`DBT version=${dbtVersion.join(".")}\r\n`);
           this.dbtTerminal.log(`DBT adapter=${project.getAdapterType()}\r\n`);
-          const output = await project.debug();
-          this.dbtTerminal.log(`DBT debug output=${output}\r\n`);
+          await project.debug();
           this.dbtTerminal.log("\r\n\r\nEverything looks good\r\n");
         } catch (e) {
           this.dbtTerminal.log(`\r\nError occurred=${e}\r\n`);
