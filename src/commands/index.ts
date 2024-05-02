@@ -364,20 +364,39 @@ export class VSCodeCommands implements Disposable {
         try {
           await this.dbtTerminal.show(true);
           this.dbtTerminal.log("Troubleshooting started...\r\n\r\n");
+
+          // Printing env vars
           this.dbtTerminal.log("Environment variables...\r\n");
           const envVars = this.pythonEnvironment.environmentVariables;
           for (const k in envVars) {
             this.dbtTerminal.log(`${k}=${envVars[k]}\r\n`);
           }
           this.dbtTerminal.log("\r\n");
+
+          // Printing extension settings
+          this.dbtTerminal.log("Extension settings...\r\n");
+          const defaultValues: any =
+            workspace.getConfiguration().inspect("dbt")?.defaultValue || {};
+          const settingsKey = Object.keys(defaultValues);
+          for (const key of settingsKey) {
+            const value = workspace.getConfiguration("dbt").get(key);
+            const isOverridentext = !deepEqual(value, defaultValues[key])
+              ? `${key} is overridden`
+              : "";
+            const valueText =
+              Array.isArray(value) || typeof value === "object"
+                ? JSON.stringify(value)
+                : value;
+            this.dbtTerminal.log(
+              `${key}=${valueText}\t\t${isOverridentext}\r\n`,
+            );
+          }
+          this.dbtTerminal.log("\r\n");
+
+          // Printing extension and setup info
           this.dbtTerminal.log(
             `Python Path=${this.pythonEnvironment.pythonPath}\r\n`,
           );
-          if (!this.dbtClient.pythonInstalled) {
-            this.dbtTerminal.log("Python is not installed\r\n");
-            return;
-          }
-          this.dbtTerminal.log("Python is installed\r\n");
           this.dbtTerminal.log(`VSCode version=${version}\r\n`);
           this.dbtTerminal.log(
             `Extension version=${extensions.getExtension(
@@ -393,6 +412,11 @@ export class VSCodeCommands implements Disposable {
           this.dbtTerminal.log(
             `First workspace path=${getFirstWorkspacePath()}\r\n`,
           );
+          if (!this.dbtClient.pythonInstalled) {
+            this.dbtTerminal.log("Python is not installed\r\n");
+            return;
+          }
+          this.dbtTerminal.log("Python is installed\r\n");
           if (!this.dbtClient.dbtInstalled) {
             this.dbtTerminal.log("DBT is not installed\r\n");
             return;
@@ -402,7 +426,6 @@ export class VSCodeCommands implements Disposable {
           this.dbtTerminal.log(`Number of projects=${projects.length}\r\n`);
           if (projects.length === 0) {
             this.dbtTerminal.log("Projects not detected\r\n");
-            return;
           }
           for (const project of projects) {
             this.dbtTerminal.log("---------------------------------------\r\n");
@@ -433,31 +456,16 @@ export class VSCodeCommands implements Disposable {
               this.dbtTerminal.log("Python bridge is connected\r\n");
             }
             const diagnostics = project.getAllDiagnostic();
-            if (diagnostics.length > 0) {
-              this.dbtTerminal.log(
-                `Number of diagnostics issues=${diagnostics.length}\r\n`,
-              );
+            this.dbtTerminal.log(
+              `Number of diagnostics issues=${diagnostics.length}\r\n`,
+            );
+            for (const d of diagnostics) {
+              this.dbtTerminal.log(d.message);
             }
             await project.debug();
             this.dbtTerminal.log("---------------------------------------\r\n");
           }
           this.dbtTerminal.log("\r\n");
-          const defaultValues: any =
-            workspace.getConfiguration().inspect("dbt")?.defaultValue || {};
-          const settingsKey = Object.keys(defaultValues);
-          for (const key of settingsKey) {
-            const value = workspace.getConfiguration("dbt").get(key);
-            const isOverridentext = !deepEqual(value, defaultValues[key])
-              ? `${key} is overridden`
-              : "";
-            const valueText =
-              Array.isArray(value) || typeof value === "object"
-                ? JSON.stringify(value)
-                : value;
-            this.dbtTerminal.log(
-              `${key}=${valueText}\t\t${isOverridentext}\r\n`,
-            );
-          }
         } catch (e) {
           this.dbtTerminal.log(`\r\nError occurred=${e}\r\n`);
         }
