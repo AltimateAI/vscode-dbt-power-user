@@ -431,6 +431,21 @@ export class VSCodeCommands implements Disposable {
             await project.debug();
             this.dbtTerminal.log("---------------------------------------\r\n");
           }
+          this.dbtTerminal.log("\r\n");
+          const sqlFmtPath = workspace
+            .getConfiguration("dbt")
+            .get<string>("sqlFmtPath", "");
+          const sqlFmtAdditionalParams = workspace
+            .getConfiguration("dbt")
+            .get<string[]>("sqlFmtAdditionalParams", []);
+          if (sqlFmtPath || sqlFmtAdditionalParams.length > 0) {
+            this.dbtTerminal.log("SQL format settings detected\r\n");
+            this.dbtTerminal.log(`sqlFmtPath=${sqlFmtPath}\r\n`);
+            this.dbtTerminal.log(
+              `sqlFmtAdditionalParams=${sqlFmtAdditionalParams}\r\n`,
+            );
+          }
+
           this.dbtTerminal.log("\r\n\r\nEverything looks good\r\n");
         } catch (e) {
           this.dbtTerminal.log(`\r\nError occurred=${e}\r\n`);
