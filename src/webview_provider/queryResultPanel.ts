@@ -232,6 +232,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             if (this.queryExecution) {
               this.queryExecution.cancel();
             }
+            await this.transmitReset();
             break;
           case InboundCommand.Error:
             const error = message as RecError;

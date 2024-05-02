@@ -24,6 +24,7 @@ const queryPanelSlice = createSlice({
         queryExecutionInfo: undefined,
         queryResultsError: undefined,
         compiledCodeMarkup: undefined,
+        loading: false,
       };
     },
     setHintIndex: (
