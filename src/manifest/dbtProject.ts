@@ -3,6 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from "fs";
 import * as path from "path";
 import { PythonException } from "python-bridge";
 import {
+  CancellationToken,
   commands,
   Diagnostic,
   DiagnosticCollection,
@@ -57,7 +58,6 @@ import { ValidationProvider } from "../validation_provider";
 import { ModelNode } from "../altimate";
 import { ColumnMetaData } from "../domain";
 import { AltimateConfigProps } from "../webview_provider/insightsPanel";
-import { Cancellable } from "../webview_provider/newLineagePanel";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -686,7 +686,7 @@ export class DBTProject implements Disposable {
     return result.table.rows.flat();
   }
 
-  async getBulkSchema(req: DBTNode[], cancellable: Cancellable) {
+  async getBulkSchema(req: DBTNode[], cancellable: CancellationToken) {
     return this.dbtProjectIntegration.getBulkSchema(req, cancellable);
   }
 
@@ -1027,7 +1027,7 @@ select * from renamed
   async getNodesWithDBColumns(
     event: ManifestCacheProjectAddedEvent,
     modelsToFetch: string[],
-    cancellable: Cancellable,
+    cancellable: CancellationToken,
   ) {
     const { nodeMetaMap, sourceMetaMap } = event;
     const mappedNode: Record<string, ModelNode> = {};

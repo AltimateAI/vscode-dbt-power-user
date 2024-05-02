@@ -28,7 +28,6 @@ import {
   ValidateSqlParseErrorResponse,
 } from "../altimate";
 import { ProjectHealthcheck } from "./dbtCoreIntegration";
-import { Cancellable } from "../webview_provider/newLineagePanel";
 
 interface DBTCommandExecution {
   command: (token?: CancellationToken) => Promise<void>;
@@ -365,7 +364,7 @@ export interface DBTProjectIntegration extends Disposable {
   getDebounceForRebuildManifest(): number;
   getBulkSchema(
     nodes: DBTNode[],
-    cancellable: Cancellable,
+    cancellable: CancellationToken,
   ): Promise<Record<string, DBColumn[]>>;
   findPackageVersion(packageName: string): string | undefined;
   performDatapilotHealthcheck(

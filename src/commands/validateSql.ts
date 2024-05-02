@@ -9,6 +9,7 @@ import {
 import { TelemetryService } from "../telemetry";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import {
+  CancellationToken,
   DiagnosticCollection,
   ProgressLocation,
   Uri,
@@ -28,7 +29,6 @@ import {
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { PythonException } from "python-bridge";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
-import { Cancellable } from "../webview_provider/newLineagePanel";
 
 @provideSingleton(ValidateSql)
 export class ValidateSql {
@@ -118,7 +118,7 @@ export class ValidateSql {
     const parentModels: ModelNode[] = [];
     let relationsWithoutColumns: string[] = [];
     let compiledQuery: string | undefined;
-    const cancellable = new Cancellable();
+    let cancellable: CancellationToken | undefined;
     await window.withProgress(
       {
         location: ProgressLocation.Notification,
@@ -127,11 +127,9 @@ export class ValidateSql {
       },
       async (_, token) => {
         try {
-          token.onCancellationRequested(() => {
-            cancellable.cancel();
-          });
+          cancellable = token;
           const fileContentBytes = await workspace.fs.readFile(currentFilePath);
-          if (cancellable.isCancelled) {
+          if (cancellable.isCancellationRequested) {
             return;
           }
           try {
@@ -149,7 +147,7 @@ export class ValidateSql {
             );
             return;
           }
-          if (cancellable.isCancelled) {
+          if (cancellable.isCancellationRequested) {
             return;
           }
           const modelsToFetch = DBTProject.getNonEphemeralParents(event, [
@@ -170,7 +168,7 @@ export class ValidateSql {
         }
       },
     );
-    if (cancellable.isCancelled) {
+    if (cancellable?.isCancellationRequested) {
       return;
     }
     if (!compiledQuery) {

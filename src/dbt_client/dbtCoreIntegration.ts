@@ -1,4 +1,5 @@
 import {
+  CancellationToken,
   Diagnostic,
   DiagnosticCollection,
   Disposable,
@@ -52,7 +53,6 @@ import { ManifestPathType } from "../constants";
 import { DBTTerminal } from "./dbtTerminal";
 import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
-import { Cancellable } from "../webview_provider/newLineagePanel";
 
 const DEFAULT_QUERY_TEMPLATE = "select * from ({query}) as query limit {limit}";
 
@@ -834,11 +834,11 @@ export class DBTCoreProjectIntegration
 
   async getBulkSchema(
     nodes: DBTNode[],
-    cancellable: Cancellable,
+    cancellable: CancellationToken,
   ): Promise<Record<string, DBColumn[]>> {
     const result: Record<string, DBColumn[]> = {};
     for (const n of nodes) {
-      if (cancellable.isCancelled) {
+      if (cancellable.isCancellationRequested) {
         break;
       }
       if (n.resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {

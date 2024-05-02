@@ -9,6 +9,7 @@ import {
   Diagnostic,
   DiagnosticCollection,
   DiagnosticSeverity,
+  CancellationToken,
 } from "vscode";
 import { provideSingleton } from "../utils";
 import {
@@ -38,7 +39,6 @@ import { existsSync } from "fs";
 import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
 import { ProjectHealthcheck } from "./dbtCoreIntegration";
-import { Cancellable } from "../webview_provider/newLineagePanel";
 
 function getDBTPath(
   pythonEnvironment: PythonEnvironment,
@@ -638,7 +638,7 @@ export class DBTCloudProjectIntegration
 
   async getBulkSchema(
     nodes: DBTNode[],
-    cancellable: Cancellable,
+    cancellable: CancellationToken,
   ): Promise<Record<string, DBColumn[]>> {
     this.throwIfNotAuthenticated();
     this.throwBridgeErrorIfAvailable();
