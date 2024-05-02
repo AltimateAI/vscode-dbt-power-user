@@ -12,6 +12,7 @@ import {
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { RunModelType } from "../domain";
 import {
+  deepEqual,
   extendErrorWithSupportLinks,
   getFirstWorkspacePath,
   provideSingleton,
@@ -440,27 +441,14 @@ export class VSCodeCommands implements Disposable {
             this.dbtTerminal.log("---------------------------------------\r\n");
           }
           this.dbtTerminal.log("\r\n");
-          const sqlFmtPath = workspace
-            .getConfiguration("dbt")
-            .get<string>("sqlFmtPath", "");
-          const sqlFmtAdditionalParams = workspace
-            .getConfiguration("dbt")
-            .get<string[]>("sqlFmtAdditionalParams", []);
-          if (sqlFmtPath || sqlFmtAdditionalParams.length > 0) {
-            this.dbtTerminal.log("SQL format settings detected\r\n");
-            this.dbtTerminal.log(`sqlFmtPath=${sqlFmtPath}\r\n`);
-            this.dbtTerminal.log(
-              `sqlFmtAdditionalParams=${sqlFmtAdditionalParams}\r\n`,
-            );
-          }
-          const settingsKey = Object.keys(
-            workspace.getConfiguration().inspect("dbt")?.defaultValue || {},
-          );
+          const defaultValues: any =
+            workspace.getConfiguration().inspect("dbt")?.defaultValue || {};
+          const settingsKey = Object.keys(defaultValues);
           for (const key of settingsKey) {
-            const isOverridentext = !this.isDefaultSetting(key)
+            const value = workspace.getConfiguration("dbt").get(key);
+            const isOverridentext = !deepEqual(value, defaultValues[key])
               ? `${key} is overridden`
               : "";
-            const value = workspace.getConfiguration("dbt").get(key);
             const valueText =
               Array.isArray(value) || typeof value === "object"
                 ? JSON.stringify(value)
@@ -473,13 +461,6 @@ export class VSCodeCommands implements Disposable {
           this.dbtTerminal.log(`\r\nError occurred=${e}\r\n`);
         }
       }),
-    );
-  }
-
-  private isDefaultSetting(key: string): boolean {
-    return (
-      workspace.getConfiguration("dbt").get(key) ===
-      workspace.getConfiguration("dbt").inspect(key)?.defaultValue
     );
   }
 
