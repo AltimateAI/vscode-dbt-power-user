@@ -209,6 +209,20 @@ const PerspectiveViewer = ({
 
   useEffect(() => {
     loadPerspectiveData().catch((err) => panelLogger.error(err));
+
+    return () => {
+      perspectiveViewerRef.current
+        ?.getTable()
+        .then((table) => table.delete())
+        .catch((err) =>
+          panelLogger.error("error while deleting perspective table", err),
+        );
+      perspectiveViewerRef.current
+        ?.delete()
+        .catch((err) =>
+          panelLogger.error("error while deleting perspective viewer", err),
+        );
+    };
   }, []);
 
   useEffect(() => {

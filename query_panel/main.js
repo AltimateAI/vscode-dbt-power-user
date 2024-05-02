@@ -153,7 +153,12 @@ const app = createApp({
   methods: {
     togglePerspective() {
       this.isPerspective = !this.isPerspective;
-      updateConfig({ enableNewQueryPanel: this.isPerspective });
+      // If user is in legacy view v0, and switches to new ui, take to v2
+      // if user is in v1, switches to legacy v0, take to v0
+      updateConfig({
+        enableNewQueryPanel: this.isPerspective,
+        enableQueryPanelV2: this.isPerspective,
+      });
       this.updateTable(this.data);
       setTimeout(() => {
         document.querySelector("#panel-manager").activeid = "tab-1";

@@ -7,7 +7,7 @@ const ShowOldUxButton = (): JSX.Element => {
   };
   return (
     <Button outline onClick={handleClick}>
-      Show old UX
+      Switch to legacy UI
     </Button>
   );
 };
