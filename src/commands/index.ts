@@ -467,7 +467,7 @@ export class VSCodeCommands implements Disposable {
             "deferConfigPerProject",
           ];
           for (const key of settingsKey) {
-            if (this.isDefaultSetting(key)) {
+            if (!this.isDefaultSetting(key)) {
               this.dbtTerminal.log(`${key} is overridden\r\n`);
               this.dbtTerminal.log(
                 `${key}=${workspace.getConfiguration("dbt").get(key)}\r\n`,
