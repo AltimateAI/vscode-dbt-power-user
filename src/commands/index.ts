@@ -418,9 +418,7 @@ export class VSCodeCommands implements Disposable {
               }
             }
             if (!project.getPythonBridgeStatus()) {
-              this.dbtTerminal.log(
-                "Python bridge connected. Check your python setup\r\n",
-              );
+              this.dbtTerminal.log("Python bridge is not connected\r\n");
             } else {
               this.dbtTerminal.log("Python bridge is connected\r\n");
             }
