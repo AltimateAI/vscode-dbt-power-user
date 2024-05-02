@@ -596,7 +596,7 @@
         "command": "dbtPowerUser.troubleshoot",
         "title": "Troubleshoot dbt extension",
         "category": "dbt Power User",
-        "icon": "$(gist-secret)"
+        "icon": "$(debug-console)"
       }
     ],
     "keybindings": [
