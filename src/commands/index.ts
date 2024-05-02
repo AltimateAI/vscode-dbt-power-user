@@ -364,6 +364,14 @@ export class VSCodeCommands implements Disposable {
           this.dbtTerminal.log(
             `Python Path=${this.pythonEnvironment.pythonPath}\r\n`,
           );
+          const dbtPythonPathOverride = workspace
+            .getConfiguration("dbt")
+            .get<string>("dbtPythonPathOverride", "");
+          if (dbtPythonPathOverride) {
+            this.dbtTerminal.log(
+              `Python Path Override=${dbtPythonPathOverride}\r\n`,
+            );
+          }
           if (!this.dbtClient.pythonInstalled) {
             this.dbtTerminal.log("\r\nPython not detected\r\n");
             return;
