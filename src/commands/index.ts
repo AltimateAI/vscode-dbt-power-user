@@ -370,14 +370,14 @@ export class VSCodeCommands implements Disposable {
             this.dbtTerminal.log(`${k}=${envVars[k]}\r\n`);
           }
           this.dbtTerminal.log("\r\n");
+          this.dbtTerminal.log(
+            `Python Path=${this.pythonEnvironment.pythonPath}\r\n`,
+          );
           if (!this.dbtClient.pythonInstalled) {
             this.dbtTerminal.log("Python is not installed\r\n");
             return;
           }
           this.dbtTerminal.log("Python is installed\r\n");
-          this.dbtTerminal.log(
-            `Python Path=${this.pythonEnvironment.pythonPath}\r\n`,
-          );
           this.dbtTerminal.log(`VSCode version=${version}\r\n`);
           this.dbtTerminal.log(
             `Extension version=${extensions.getExtension(
