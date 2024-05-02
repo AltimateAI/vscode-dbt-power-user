@@ -834,11 +834,11 @@ export class DBTCoreProjectIntegration
 
   async getBulkSchema(
     nodes: DBTNode[],
-    cancellable: CancellationToken,
+    cancellationToken: CancellationToken,
   ): Promise<Record<string, DBColumn[]>> {
     const result: Record<string, DBColumn[]> = {};
     for (const n of nodes) {
-      if (cancellable.isCancellationRequested) {
+      if (cancellationToken.isCancellationRequested) {
         break;
       }
       if (n.resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {

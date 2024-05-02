@@ -60,7 +60,7 @@ const canCompileSQL = (nodeType: string) =>
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
-  private cancellableCLL: CancellationToken | undefined;
+  private cancellationToken: CancellationToken | undefined;
   private cllProgressResolve: () => void = () => {};
 
   public constructor(
@@ -279,7 +279,7 @@ export class NewLineagePanel implements LineagePanelView {
         },
         async (_, token) => {
           await new Promise<void>((resolve) => {
-            this.cancellableCLL = token;
+            this.cancellationToken = token;
             this.cllProgressResolve = resolve;
             token.onCancellationRequested(() => {
               this._panel?.webview.postMessage({
@@ -517,7 +517,7 @@ export class NewLineagePanel implements LineagePanelView {
       await project.getNodesWithDBColumns(
         event,
         modelsToFetch,
-        this.cancellableCLL!,
+        this.cancellationToken!,
       );
 
     const selected_column = {
@@ -543,7 +543,7 @@ export class NewLineagePanel implements LineagePanelView {
       });
 
       for (const key of currAnd1HopTables) {
-        if (this.cancellableCLL?.isCancellationRequested) {
+        if (this.cancellationToken?.isCancellationRequested) {
           return { column_lineage: [] };
         }
         await compileSql(key);
@@ -620,7 +620,7 @@ export class NewLineagePanel implements LineagePanelView {
 
     const modelDialect = project.getAdapterType();
     try {
-      if (this.cancellableCLL?.isCancellationRequested) {
+      if (this.cancellationToken?.isCancellationRequested) {
         return { column_lineage: [] };
       }
       const request = {

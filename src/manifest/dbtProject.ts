@@ -686,8 +686,8 @@ export class DBTProject implements Disposable {
     return result.table.rows.flat();
   }
 
-  async getBulkSchema(req: DBTNode[], cancellable: CancellationToken) {
-    return this.dbtProjectIntegration.getBulkSchema(req, cancellable);
+  async getBulkSchema(req: DBTNode[], cancellationToken: CancellationToken) {
+    return this.dbtProjectIntegration.getBulkSchema(req, cancellationToken);
   }
 
   async getCatalog(): Promise<Catalog> {
@@ -1027,7 +1027,7 @@ select * from renamed
   async getNodesWithDBColumns(
     event: ManifestCacheProjectAddedEvent,
     modelsToFetch: string[],
-    cancellable: CancellationToken,
+    cancellationToken: CancellationToken,
   ) {
     const { nodeMetaMap, sourceMetaMap } = event;
     const mappedNode: Record<string, ModelNode> = {};
@@ -1079,7 +1079,7 @@ select * from renamed
     }
     const bulkSchemaResponse = await this.getBulkSchema(
       bulkSchemaRequest,
-      cancellable,
+      cancellationToken,
     );
     for (const key of modelsToFetch) {
       const node = mappedNode[key];

@@ -638,7 +638,7 @@ export class DBTCloudProjectIntegration
 
   async getBulkSchema(
     nodes: DBTNode[],
-    cancellable: CancellationToken,
+    cancellationToken: CancellationToken,
   ): Promise<Record<string, DBColumn[]>> {
     this.throwIfNotAuthenticated();
     this.throwBridgeErrorIfAvailable();

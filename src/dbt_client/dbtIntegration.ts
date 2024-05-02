@@ -364,7 +364,7 @@ export interface DBTProjectIntegration extends Disposable {
   getDebounceForRebuildManifest(): number;
   getBulkSchema(
     nodes: DBTNode[],
-    cancellable: CancellationToken,
+    cancellationToken: CancellationToken,
   ): Promise<Record<string, DBColumn[]>>;
   findPackageVersion(packageName: string): string | undefined;
   performDatapilotHealthcheck(

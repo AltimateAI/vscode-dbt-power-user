@@ -118,7 +118,7 @@ export class ValidateSql {
     const parentModels: ModelNode[] = [];
     let relationsWithoutColumns: string[] = [];
     let compiledQuery: string | undefined;
-    let cancellable: CancellationToken | undefined;
+    let cancellationToken: CancellationToken | undefined;
     await window.withProgress(
       {
         location: ProgressLocation.Notification,
@@ -127,9 +127,9 @@ export class ValidateSql {
       },
       async (_, token) => {
         try {
-          cancellable = token;
+          cancellationToken = token;
           const fileContentBytes = await workspace.fs.readFile(currentFilePath);
-          if (cancellable.isCancellationRequested) {
+          if (cancellationToken.isCancellationRequested) {
             return;
           }
           try {
@@ -147,7 +147,7 @@ export class ValidateSql {
             );
             return;
           }
-          if (cancellable.isCancellationRequested) {
+          if (cancellationToken.isCancellationRequested) {
             return;
           }
           const modelsToFetch = DBTProject.getNonEphemeralParents(event, [
@@ -159,7 +159,7 @@ export class ValidateSql {
           } = await project.getNodesWithDBColumns(
             event,
             modelsToFetch,
-            cancellable,
+            cancellationToken,
           );
           parentModels.push(...modelsToFetch.map((n) => mappedNode[n]));
           relationsWithoutColumns = _relationsWithoutColumns;
@@ -168,7 +168,7 @@ export class ValidateSql {
         }
       },
     );
-    if (cancellable?.isCancellationRequested) {
+    if (cancellationToken?.isCancellationRequested) {
       return;
     }
     if (!compiledQuery) {
