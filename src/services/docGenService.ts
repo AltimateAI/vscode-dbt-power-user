@@ -1,16 +1,6 @@
 import path = require("path");
-import {
-  ProgressLocation,
-  WebviewPanel,
-  WebviewView,
-  window,
-  workspace,
-} from "vscode";
-import {
-  AltimateRequest,
-  DocsGenerateModelRequest,
-  DocsGenerateResponse,
-} from "../altimate";
+import { ProgressLocation, WebviewPanel, WebviewView, window } from "vscode";
+import { AltimateRequest, DocsGenerateResponse } from "../altimate";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { RateLimitException } from "../exceptions";
 import { DBTProject } from "../manifest/dbtProject";
@@ -70,27 +60,21 @@ export class DocGenService {
         return resolve(undefined);
       }
 
-      const baseRequest = {
-        columns,
-        dbt_model: {
-          model_name: documentation.name,
-          model_description: message.description,
-          compiled_sql: compiledSql,
-          columns: message.columns.map((column: any) => ({
-            column_name: column.name,
-            description: column.description,
-            data_type: column.type,
-          })),
-          adapter,
-        },
-        gen_model_description: false,
-      } as unknown as Parameters<
-        typeof this.altimateRequest.generateModelDocs
-      >["0"];
-
       try {
         const result = await this.altimateRequest.generateModelDocsV2({
-          ...baseRequest,
+          columns,
+          dbt_model: {
+            model_name: documentation.name,
+            model_description: message.description,
+            compiled_sql: compiledSql,
+            columns: message.columns.map((column: any) => ({
+              column_name: column.name,
+              description: column.description,
+              data_type: column.type,
+            })),
+            adapter,
+          },
+          gen_model_description: false,
           user_instructions: message.user_instructions,
           follow_up_instructions: message.follow_up_instructions,
         });
@@ -387,26 +371,23 @@ export class DocGenService {
           const startTime = Date.now();
           const compiledSql = await project.unsafeCompileQuery(queryText);
 
-          const baseRequest = {
-            columns: [],
-            dbt_model: {
-              model_name: documentation?.name,
-              model_description: message.description,
-              compiled_sql: compiledSql,
-              columns: message.columns.map((column: any) => ({
-                column_name: column.name,
-                description: column.description,
-                data_type: column.type,
-                modelName: documentation?.name,
-              })),
-              adapter: project.getAdapterType(),
-            },
-            prompt_hint: message.promptHint || "generate",
-            gen_model_description: true,
-          } as unknown as DocsGenerateModelRequest;
           const generateDocsForModel =
             await this.altimateRequest.generateModelDocsV2({
-              ...baseRequest,
+              columns: [],
+              dbt_model: {
+                model_name: documentation?.name,
+                model_description: message.description,
+                compiled_sql: compiledSql,
+                columns: message.columns.map((column: any) => ({
+                  column_name: column.name,
+                  description: column.description,
+                  data_type: column.type,
+                  modelName: documentation?.name,
+                })),
+                adapter: project.getAdapterType(),
+              },
+              prompt_hint: message.promptHint || "generate",
+              gen_model_description: true,
               user_instructions: {
                 ...message.user_instructions,
                 prompt_hint:
