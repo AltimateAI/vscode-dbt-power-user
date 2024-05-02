@@ -506,6 +506,10 @@ export class DBTCoreProjectIntegration
     );
   }
 
+  getPythonBridgeStatus(): boolean {
+    return this.python.connected;
+  }
+
   getAllDiagnostic(): Diagnostic[] {
     return [
       ...(this.pythonBridgeDiagnostics.get(this.projectRoot) || []),

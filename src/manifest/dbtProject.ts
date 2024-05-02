@@ -208,6 +208,10 @@ export class DBTProject implements Disposable {
     return path.join(targetPath, DBTProject.CATALOG_FILE);
   }
 
+  getPythonBridgeStatus() {
+    return this.dbtProjectIntegration.getPythonBridgeStatus();
+  }
+
   getAllDiagnostic(): Diagnostic[] {
     return this.dbtProjectIntegration.getAllDiagnostic();
   }

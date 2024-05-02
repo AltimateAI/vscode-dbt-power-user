@@ -417,6 +417,13 @@ export class VSCodeCommands implements Disposable {
                 this.dbtTerminal.log(`Manifest file doesn't exists\r\n`);
               }
             }
+            if (!project.getPythonBridgeStatus()) {
+              this.dbtTerminal.log(
+                "Python bridge connected. Check your python setup\r\n",
+              );
+            } else {
+              this.dbtTerminal.log("Python bridge is connected\r\n");
+            }
             const diagnostics = project.getAllDiagnostic();
             if (diagnostics.length > 0) {
               this.dbtTerminal.log(
