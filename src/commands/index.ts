@@ -8,6 +8,8 @@ import {
   ViewColumn,
   window,
   workspace,
+  version,
+  extensions,
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { RunModelType } from "../domain";
@@ -362,28 +364,26 @@ export class VSCodeCommands implements Disposable {
         try {
           await this.dbtTerminal.show(true);
           this.dbtTerminal.log("Troubleshooting started...\r\n\r\n");
-          this.dbtTerminal.log(
-            `Python Path=${this.pythonEnvironment.pythonPath}\r\n`,
-          );
-          const dbtPythonPathOverride = workspace
-            .getConfiguration("dbt")
-            .get<string>("dbtPythonPathOverride", "");
-          if (dbtPythonPathOverride) {
-            this.dbtTerminal.log(
-              `Python Path Override=${dbtPythonPathOverride}\r\n`,
-            );
-          }
-          if (!this.dbtClient.pythonInstalled) {
-            this.dbtTerminal.log("\r\nPython not detected\r\n");
-            return;
-          }
-          this.dbtTerminal.log("\r\n");
           this.dbtTerminal.log("Environment variables...\r\n");
           const envVars = this.pythonEnvironment.environmentVariables;
           for (const k in envVars) {
             this.dbtTerminal.log(`${k}=${envVars[k]}\r\n`);
           }
           this.dbtTerminal.log("\r\n");
+          if (!this.dbtClient.pythonInstalled) {
+            this.dbtTerminal.log("Python is not installed\r\n");
+            return;
+          }
+          this.dbtTerminal.log("Python is installed\r\n");
+          this.dbtTerminal.log(
+            `Python Path=${this.pythonEnvironment.pythonPath}\r\n`,
+          );
+          this.dbtTerminal.log(`VSCode version=${version}\r\n`);
+          this.dbtTerminal.log(
+            `Extension version=${extensions.getExtension(
+              "innoverio.vscode-dbt-power-user",
+            )?.packageJSON?.version}\r\n`,
+          );
           const dbtIntegrationMode = workspace
             .getConfiguration("dbt")
             .get<string>("dbtIntegration", "core");
@@ -394,13 +394,14 @@ export class VSCodeCommands implements Disposable {
             `First workspace path=${getFirstWorkspacePath()}\r\n`,
           );
           if (!this.dbtClient.dbtInstalled) {
-            this.dbtTerminal.log("\r\nDBT not detected\r\n");
+            this.dbtTerminal.log("DBT is not installed\r\n");
             return;
           }
+          this.dbtTerminal.log("DBT is installed\r\n");
           const projects = this.dbtProjectContainer.getProjects();
           this.dbtTerminal.log(`Number of projects=${projects.length}\r\n`);
           if (projects.length === 0) {
-            this.dbtTerminal.log("\r\nProjects not detected\r\n");
+            this.dbtTerminal.log("Projects not detected\r\n");
             return;
           }
           for (const project of projects) {
