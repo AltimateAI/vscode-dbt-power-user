@@ -453,28 +453,22 @@ export class VSCodeCommands implements Disposable {
               `sqlFmtAdditionalParams=${sqlFmtAdditionalParams}\r\n`,
             );
           }
-          const settingsKey = [
-            "dbtCustomRunnerImport",
-            "allowListFolders",
-            "runModelCommandAdditionalParams",
-            "buildModelCommandAdditionalParams",
-            "queryLimit",
-            "conversationsPollingInterval",
-            "queryTemplate",
-            "queryScale",
-            "fileNameTemplateGenerateModel",
-            "prefixGenerateModel",
-            "deferConfigPerProject",
-          ];
+          const settingsKey = Object.keys(
+            workspace.getConfiguration().inspect("dbt")?.defaultValue || {},
+          );
           for (const key of settingsKey) {
-            if (!this.isDefaultSetting(key)) {
-              this.dbtTerminal.log(`${key} is overridden\r\n`);
-              this.dbtTerminal.log(
-                `${key}=${workspace.getConfiguration("dbt").get(key)}\r\n`,
-              );
-            }
+            const isOverridentext = !this.isDefaultSetting(key)
+              ? `${key} is overridden`
+              : "";
+            const value = workspace.getConfiguration("dbt").get(key);
+            const valueText =
+              Array.isArray(value) || typeof value === "object"
+                ? JSON.stringify(value)
+                : value;
+            this.dbtTerminal.log(
+              `${key}=${valueText}\t\t${isOverridentext}\r\n`,
+            );
           }
-          this.dbtTerminal.log("\r\n\r\nEverything looks good\r\n");
         } catch (e) {
           this.dbtTerminal.log(`\r\nError occurred=${e}\r\n`);
         }
