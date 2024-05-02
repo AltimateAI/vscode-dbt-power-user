@@ -453,12 +453,39 @@ export class VSCodeCommands implements Disposable {
               `sqlFmtAdditionalParams=${sqlFmtAdditionalParams}\r\n`,
             );
           }
-
+          const settingsKey = [
+            "dbtCustomRunnerImport",
+            "allowListFolders",
+            "runModelCommandAdditionalParams",
+            "buildModelCommandAdditionalParams",
+            "queryLimit",
+            "conversationsPollingInterval",
+            "queryTemplate",
+            "queryScale",
+            "fileNameTemplateGenerateModel",
+            "prefixGenerateModel",
+            "deferConfigPerProject",
+          ];
+          for (const key of settingsKey) {
+            if (this.isDefaultSetting(key)) {
+              this.dbtTerminal.log(`${key} is overridden\r\n`);
+              this.dbtTerminal.log(
+                `${key}=${workspace.getConfiguration("dbt").get(key)}\r\n`,
+              );
+            }
+          }
           this.dbtTerminal.log("\r\n\r\nEverything looks good\r\n");
         } catch (e) {
           this.dbtTerminal.log(`\r\nError occurred=${e}\r\n`);
         }
       }),
+    );
+  }
+
+  private isDefaultSetting(key: string): boolean {
+    return (
+      workspace.getConfiguration("dbt").get(key) ===
+      workspace.getConfiguration("dbt").inspect(key)?.defaultValue
     );
   }
 
