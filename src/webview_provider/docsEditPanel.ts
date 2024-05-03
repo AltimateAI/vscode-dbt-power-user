@@ -124,32 +124,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         }
       },
     );
-
-    this._disposables.push(
-      workspace.onDidChangeConfiguration(
-        (e) => {
-          if (!e.affectsConfiguration("dbt.enableNewDocsPanel")) {
-            return;
-          }
-          if (this._panel && this.context && this.token) {
-            this.getPanel().resolveWebview(
-              this._panel,
-              this.context,
-              this.token,
-            );
-          }
-        },
-        this,
-        this._disposables,
-      ),
-    );
-  }
-
-  private getPanel() {
-    const enableNewDocsPanel = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("enableNewDocsPanel", true);
-    return enableNewDocsPanel ? this.newDocsPanel : this.legacyDocsPanel;
   }
 
   private getProject(): DBTProject | undefined {
@@ -223,7 +197,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     this.context = context;
     this.token = token;
     this._panel = panel;
-    this.getPanel().resolveWebview(panel, context, token);
+    this.newDocsPanel.resolveWebview(panel, context, token);
     this.setupWebviewHooks(context);
     this.transmitConfig();
     this.documentation =
@@ -448,15 +422,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
         const { command, syncRequestId, args } = message;
         switch (command) {
-          case "enableNewDocsPanel":
-            await workspace
-              .getConfiguration("dbt")
-              .update("enableNewDocsPanel", message.enable);
-            this.init();
-            this.telemetry.sendTelemetryEvent(
-              message.enable ? "NewDocsPanelEnabled" : "NewDocsPanelDisabled",
-            );
-            break;
           case "fetchMetadataFromDatabase":
             this.telemetry.sendTelemetryEvent("syncColumnsFromDatabaseForDocs");
             window.withProgress(

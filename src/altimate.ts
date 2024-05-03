@@ -168,24 +168,7 @@ interface DocsGenerateModelRequestV2 {
   follow_up_instructions?: {
     instruction: string;
   };
-
-  gen_model_description: boolean;
-}
-
-export interface DocsGenerateModelRequest {
-  columns: string[];
-  dbt_model: {
-    model_name: string;
-    model_description?: string;
-    compiled_sql?: string;
-    columns: {
-      column_name: string;
-      description?: string;
-      data_type?: string;
-    }[];
-    adapter?: string;
-  };
-  prompt_hint: string;
+  prompt_hint?: string;
   gen_model_description: boolean;
 }
 
@@ -671,13 +654,6 @@ export class AltimateRequest {
       return false;
     }
     return true;
-  }
-
-  async generateModelDocs(docsGenerate: DocsGenerateModelRequest) {
-    return this.fetch<DocsGenerateResponse>("dbt/v1", {
-      method: "POST",
-      body: JSON.stringify(docsGenerate),
-    });
   }
 
   async generateModelDocsV2(docsGenerate: DocsGenerateModelRequestV2) {
