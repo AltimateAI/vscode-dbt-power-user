@@ -1,10 +1,10 @@
 import FeedbackButton from "@modules/commonActionButtons/FeedbackButton";
-import HelpButton from "@modules/commonActionButtons/HelpButton";
 import { Container, Stack, Tabs } from "@uicore";
 // import BigQueryCostEstimator from "../bigQuery/CostEstimator";
 import DeferToProduction from "../defer/DeferToProduction";
 import ProjectHealthChecker from "../healthCheck/ProjectHealthChecker";
 import classes from "./insights.module.scss";
+import HelpButton from "./components/help/HelpButton";
 
 const Insights = (): JSX.Element => (
   <Container className={classes.insightsContainer}>
