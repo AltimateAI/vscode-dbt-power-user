@@ -1128,7 +1128,7 @@
   "dependencies": {
     "@vscode/codicons": "^0.0.35",
     "@vscode/extension-telemetry": "^0.9.6",
-    "@vscode/vsce": "^2.24.0",
+    "@vscode/vsce": "^2.25.0",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "dayjs": "^1.11.10",
     "inversify": "^6.0.2",
