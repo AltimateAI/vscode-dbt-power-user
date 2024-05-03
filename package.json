@@ -76,11 +76,6 @@
             "description": "Enable dbt docs collaboration.",
             "default": true
           },
-          "dbt.enableNewDocsPanel": {
-            "type": "boolean",
-            "description": "Enable the new docs panel in dbt.",
-            "default": true
-          },
           "dbt.enableNewQueryPanel": {
             "type": "boolean",
             "description": "Enable the new query panel in dbt.",

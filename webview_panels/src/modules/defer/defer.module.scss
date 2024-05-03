@@ -39,10 +39,11 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap:10px;
     }
 
     .path-input{
-      width: 70%;
+      max-width: 70%;
       cursor: pointer;
     }
 

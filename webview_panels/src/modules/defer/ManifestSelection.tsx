@@ -128,7 +128,6 @@ export const ManifestSelection = ({
         <Label
           check
           for="localManifestPathRadio"
-          sm={2}
           className={classes.title}
           style={{ whiteSpace: "nowrap" }}
         >
@@ -158,7 +157,6 @@ export const ManifestSelection = ({
         <Label
           check
           for="manifestPathRadio"
-          sm={2}
           className={classes.title}
           style={{ whiteSpace: "nowrap" }}
           onClick={() => handleManifestPathTypeChange(ManifestPathType.REMOTE)}
