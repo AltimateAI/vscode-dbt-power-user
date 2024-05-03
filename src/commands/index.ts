@@ -363,15 +363,20 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.troubleshoot", async () => {
         try {
           await this.dbtTerminal.show(true);
-          this.dbtTerminal.log("Troubleshooting started...\r\n\r\n");
+          this.dbtTerminal.logLine("Diagnostics started...");
+          this.dbtTerminal.logNewLine();
 
           // Printing env vars
-          this.dbtTerminal.log("Environment variables...\r\n");
-          const envVars = this.pythonEnvironment.environmentVariables;
-          for (const k in envVars) {
-            this.dbtTerminal.log(`${k}=${envVars[k]}\r\n`);
-          }
-          this.dbtTerminal.log("\r\n");
+          this.dbtTerminal.logBlockWithHeader(
+            [
+              "Environment variables...",
+              "* Please remove any sensitive information before sending it to us",
+            ],
+            Object.entries(this.pythonEnvironment.environmentVariables).map(
+              ([key, value]) => `${key}=${value}`,
+            ),
+          );
+          this.dbtTerminal.logNewLine();
 
           // Printing extension settings
           this.dbtTerminal.log("Extension settings...\r\n");
@@ -391,7 +396,7 @@ export class VSCodeCommands implements Disposable {
               `${key}=${valueText}\t\t${isOverridentext}\r\n`,
             );
           }
-          this.dbtTerminal.log("\r\n");
+          this.dbtTerminal.logNewLine();
 
           // Printing extension and setup info
           this.dbtTerminal.log(
@@ -465,9 +470,12 @@ export class VSCodeCommands implements Disposable {
             await project.debug();
             this.dbtTerminal.log("---------------------------------------\r\n");
           }
-          this.dbtTerminal.log("\r\n");
+          this.dbtTerminal.logNewLine();
+          this.dbtTerminal.logLine("Diagnostics completed successfully...");
         } catch (e) {
-          this.dbtTerminal.log(`\r\nError occurred=${e}\r\n`);
+          this.dbtTerminal.logNewLine();
+          this.dbtTerminal.logLine("Diagnostics ended with error...");
+          this.dbtTerminal.logLine(`Error=${e}`);
         }
       }),
     );
