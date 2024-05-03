@@ -104,6 +104,7 @@ export class DocGenService {
               ),
             );
           }, err.retryAfter);
+          return;
         }
         reject(err);
       }
