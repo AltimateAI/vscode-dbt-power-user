@@ -71,7 +71,7 @@ const NewGenerationResults = ({
                 <AltimateIcon /> {result.datapilotTitle}
               </CardTitle>
               <CardBody>
-                {result.description}
+                <span title="Datapilot response">{result.description}</span>
                 <Stack className={classes.actionButtons}>
                   <Stack>
                     <Button
