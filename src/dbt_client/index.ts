@@ -22,8 +22,14 @@ export class DBTClient implements Disposable {
     new EventEmitter<DBTInstallationVerificationEvent>();
   public readonly onDBTInstallationVerification =
     this._onDBTInstallationVerificationEvent.event;
-  private dbtInstalled?: boolean;
-  private pythonInstalled?: boolean;
+  private _dbtInstalled?: boolean;
+  private _pythonInstalled?: boolean;
+  public get dbtInstalled() {
+    return this._dbtInstalled;
+  }
+  public get pythonInstalled() {
+    return this._pythonInstalled;
+  }
   private disposables: Disposable[] = [
     this._onDBTInstallationVerificationEvent,
   ];
@@ -74,25 +80,25 @@ export class DBTClient implements Disposable {
       inProgress: true,
     });
     this.shownError = false;
-    this.dbtInstalled = undefined;
-    this.pythonInstalled = this.pythonPathExists();
-    this.dbtInstalled = await this.dbtDetection.detectDBT();
+    this._dbtInstalled = undefined;
+    this._pythonInstalled = this.pythonPathExists();
+    this._dbtInstalled = await this.dbtDetection.detectDBT();
     this._onDBTInstallationVerificationEvent.fire({
       inProgress: false,
-      installed: this.dbtInstalled,
+      installed: this._dbtInstalled,
     });
     commands.executeCommand(
       "setContext",
       "dbtPowerUser.dbtInstalled",
-      this.dbtInstalled,
+      this._dbtInstalled,
     );
-    if (!this.dbtInstalled) {
+    if (!this._dbtInstalled) {
       this.showErrorIfDbtOrPythonNotInstalled();
     }
   }
 
   async showErrorIfDbtOrPythonNotInstalled() {
-    if (!this.pythonInstalled) {
+    if (!this._pythonInstalled) {
       if (!this.shownError) {
         // We don't want to flood the user with errors
         this.shownError = true;
@@ -120,7 +126,7 @@ export class DBTClient implements Disposable {
   }
 
   async showErrorIfDbtIsNotInstalled() {
-    if (!this.dbtInstalled) {
+    if (!this._dbtInstalled) {
       if (!this.shownError) {
         // We don't want to flood the user with errors
         this.shownError = true;

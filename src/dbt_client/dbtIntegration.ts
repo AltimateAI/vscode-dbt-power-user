@@ -1,5 +1,6 @@
 import {
   CancellationToken,
+  Diagnostic,
   Disposable,
   ProgressLocation,
   Uri,
@@ -368,6 +369,8 @@ export interface DBTProjectIntegration extends Disposable {
     args: HealthcheckArgs,
   ): Promise<ProjectHealthcheck>;
   applyDeferConfig(): Promise<void>;
+  getAllDiagnostic(): Diagnostic[];
+  getPythonBridgeStatus(): boolean;
 }
 
 @provide(DBTCommandExecutionInfrastructure)

@@ -21,6 +21,41 @@ export class DBTTerminal {
     }
   }
 
+  logNewLine() {
+    this.log("\r\n");
+  }
+
+  logLine(line: string) {
+    this.log(line);
+    this.logNewLine();
+  }
+
+  logHorizontalRule() {
+    this.logLine(
+      "--------------------------------------------------------------------------",
+    );
+  }
+
+  logBlock(block: string[]) {
+    this.logHorizontalRule();
+    for (const line of block) {
+      this.logLine(line);
+    }
+    this.logHorizontalRule();
+  }
+
+  logBlockWithHeader(header: string[], block: string[]) {
+    this.logHorizontalRule();
+    for (const line of header) {
+      this.logLine(line);
+    }
+    this.logHorizontalRule();
+    for (const line of block) {
+      this.logLine(line);
+    }
+    this.logHorizontalRule();
+  }
+
   log(message: string, ...args: any[]) {
     this.outputChannel.info(stripANSI(message), args);
     console.log(stripANSI(message), args);

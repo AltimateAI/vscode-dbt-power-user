@@ -586,6 +586,12 @@
         "title": "Print environment variables",
         "category": "dbt Power User",
         "icon": "$(gist-secret)"
+      },
+      {
+        "command": "dbtPowerUser.troubleshoot",
+        "title": "Troubleshoot dbt extension",
+        "category": "dbt Power User",
+        "icon": "$(debug-console)"
       }
     ],
     "keybindings": [

@@ -506,6 +506,18 @@ export class DBTCoreProjectIntegration
     );
   }
 
+  getPythonBridgeStatus(): boolean {
+    return this.python.connected;
+  }
+
+  getAllDiagnostic(): Diagnostic[] {
+    return [
+      ...(this.pythonBridgeDiagnostics.get(this.projectRoot) || []),
+      ...(this.projectConfigDiagnostics.get(this.projectRoot) || []),
+      ...(this.rebuildManifestDiagnostics.get(this.projectRoot) || []),
+    ];
+  }
+
   async rebuildManifest(): Promise<void> {
     const errors = this.projectConfigDiagnostics.get(
       Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
