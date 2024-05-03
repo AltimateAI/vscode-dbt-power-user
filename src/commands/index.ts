@@ -379,23 +379,36 @@ export class VSCodeCommands implements Disposable {
           this.dbtTerminal.logNewLine();
 
           // Printing extension settings
-          const defaultValues: any =
-            workspace.getConfiguration().inspect("dbt")?.defaultValue || {};
+          const dbtSettings = workspace.getConfiguration().inspect("dbt");
+          const globalValue: any = dbtSettings?.globalValue || {};
+          const defaultValue: any = dbtSettings?.defaultValue || {};
+          const workspaceValue: any = dbtSettings?.workspaceValue || {};
+          const settingKeys = [
+            ...Object.keys(globalValue),
+            ...Object.keys(defaultValue),
+            ...Object.keys(workspaceValue),
+          ];
           this.dbtTerminal.logBlockWithHeader(
             [
               "Printing extension settings...",
               "* Please remove any sensitive information before sending it to us",
             ],
-            Object.keys(defaultValues).map((key) => {
+            settingKeys.map((key) => {
               const value = workspace.getConfiguration("dbt").get(key);
-              const isOverridentext = !deepEqual(value, defaultValues[key])
-                ? `${key} is overridden`
-                : "";
+              let overridenText = "";
+              if (!deepEqual(value, defaultValue[key])) {
+                if (deepEqual(value, workspaceValue[key])) {
+                  overridenText = `${key} is overridden in workspace settings`;
+                } else if (deepEqual(value, globalValue[key])) {
+                  overridenText = `${key} is overridden in user settings`;
+                }
+              }
+
               const valueText =
                 Array.isArray(value) || typeof value === "object"
                   ? JSON.stringify(value)
                   : value;
-              return `${key}=${valueText}\t\t${isOverridentext}`;
+              return `${key}=${valueText}\t\t${overridenText}`;
             }),
           );
           this.dbtTerminal.logNewLine();
