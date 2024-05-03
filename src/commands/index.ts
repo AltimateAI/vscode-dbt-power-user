@@ -369,7 +369,7 @@ export class VSCodeCommands implements Disposable {
           // Printing env vars
           this.dbtTerminal.logBlockWithHeader(
             [
-              "Environment variables...",
+              "Printing environment variables...",
               "* Please remove any sensitive information before sending it to us",
             ],
             Object.entries(this.pythonEnvironment.environmentVariables).map(
@@ -379,96 +379,116 @@ export class VSCodeCommands implements Disposable {
           this.dbtTerminal.logNewLine();
 
           // Printing extension settings
-          this.dbtTerminal.log("Extension settings...\r\n");
           const defaultValues: any =
             workspace.getConfiguration().inspect("dbt")?.defaultValue || {};
-          const settingsKey = Object.keys(defaultValues);
-          for (const key of settingsKey) {
-            const value = workspace.getConfiguration("dbt").get(key);
-            const isOverridentext = !deepEqual(value, defaultValues[key])
-              ? `${key} is overridden`
-              : "";
-            const valueText =
-              Array.isArray(value) || typeof value === "object"
-                ? JSON.stringify(value)
-                : value;
-            this.dbtTerminal.log(
-              `${key}=${valueText}\t\t${isOverridentext}\r\n`,
-            );
-          }
+          this.dbtTerminal.logBlockWithHeader(
+            [
+              "Printing extension settings...",
+              "* Please remove any sensitive information before sending it to us",
+            ],
+            Object.keys(defaultValues).map((key) => {
+              const value = workspace.getConfiguration("dbt").get(key);
+              const isOverridentext = !deepEqual(value, defaultValues[key])
+                ? `${key} is overridden`
+                : "";
+              const valueText =
+                Array.isArray(value) || typeof value === "object"
+                  ? JSON.stringify(value)
+                  : value;
+              return `${key}=${valueText}\t\t${isOverridentext}`;
+            }),
+          );
           this.dbtTerminal.logNewLine();
 
           // Printing extension and setup info
-          this.dbtTerminal.log(
-            `Python Path=${this.pythonEnvironment.pythonPath}\r\n`,
-          );
-          this.dbtTerminal.log(`VSCode version=${version}\r\n`);
-          this.dbtTerminal.log(
-            `Extension version=${extensions.getExtension(
-              "innoverio.vscode-dbt-power-user",
-            )?.packageJSON?.version}\r\n`,
-          );
           const dbtIntegrationMode = workspace
             .getConfiguration("dbt")
             .get<string>("dbtIntegration", "core");
-          this.dbtTerminal.log(
-            `DBT integration mode=${dbtIntegrationMode}\r\n`,
-          );
-          this.dbtTerminal.log(
-            `First workspace path=${getFirstWorkspacePath()}\r\n`,
-          );
+          this.dbtTerminal.logBlock([
+            `Python Path=${this.pythonEnvironment.pythonPath}`,
+            `VSCode version=${version}`,
+            `Extension version=${extensions.getExtension(
+              "innoverio.vscode-dbt-power-user",
+            )?.packageJSON?.version}`,
+            `DBT integration mode=${dbtIntegrationMode}`,
+            `First workspace path=${getFirstWorkspacePath()}`,
+          ]);
+          this.dbtTerminal.logNewLine();
+
           if (!this.dbtClient.pythonInstalled) {
-            this.dbtTerminal.log("Python is not installed\r\n");
+            this.dbtTerminal.logLine("Python is not installed");
+            this.dbtTerminal.logLine(
+              "Can't proceed further without fixing python installation",
+            );
             return;
           }
-          this.dbtTerminal.log("Python is installed\r\n");
+          this.dbtTerminal.logLine("Python is installed");
           if (!this.dbtClient.dbtInstalled) {
-            this.dbtTerminal.log("DBT is not installed\r\n");
+            this.dbtTerminal.logLine("DBT is not installed");
+            this.dbtTerminal.logLine(
+              "Can't proceed further without fixing dbt installation",
+            );
             return;
           }
-          this.dbtTerminal.log("DBT is installed\r\n");
+          this.dbtTerminal.logLine("DBT is installed");
           const projects = this.dbtProjectContainer.getProjects();
-          this.dbtTerminal.log(`Number of projects=${projects.length}\r\n`);
+          this.dbtTerminal.logLine(`Number of projects=${projects.length}`);
           if (projects.length === 0) {
-            this.dbtTerminal.log("Projects not detected\r\n");
+            this.dbtTerminal.logLine("No project detected");
+            this.dbtTerminal.logLine("Can't proceed further without project");
+            return;
           }
+          this.dbtTerminal.logNewLine();
+
           for (const project of projects) {
-            this.dbtTerminal.log("---------------------------------------\r\n");
-            this.dbtTerminal.log(
-              `Project Name=${project.getProjectName()}\r\n`,
+            this.dbtTerminal.logHorizontalRule();
+            this.dbtTerminal.logLine(
+              `Printing information for ${project.getProjectName()}`,
             );
-            this.dbtTerminal.log(
-              `Adapter Type=${project.getAdapterType()}\r\n`,
+            this.dbtTerminal.logHorizontalRule();
+            this.dbtTerminal.logLine(
+              `Project Name=${project.getProjectName()}`,
             );
+            this.dbtTerminal.logLine(
+              `Adapter Type=${project.getAdapterType()}`,
+            );
+
             const dbtVersion = project.getDBTVersion();
             if (!dbtVersion) {
-              this.dbtTerminal.log("DBT is not initialized properly\r\n");
+              this.dbtTerminal.logLine("DBT is not initialized properly");
             } else {
-              this.dbtTerminal.log(`DBT version=${dbtVersion.join(".")}\r\n`);
+              this.dbtTerminal.logLine(`DBT version=${dbtVersion.join(".")}`);
             }
+
             const manifestPath = project.getManifestPath();
             if (!manifestPath) {
-              this.dbtTerminal.log("Manifest path not found\r\n");
+              this.dbtTerminal.logLine("Manifest path not found");
             } else {
-              this.dbtTerminal.log(`Manifest path=${manifestPath}\r\n`);
+              this.dbtTerminal.logLine(`Manifest path=${manifestPath}`);
               if (!existsSync(manifestPath)) {
-                this.dbtTerminal.log(`Manifest file doesn't exists\r\n`);
+                this.dbtTerminal.logLine(
+                  `Manifest file doesn't exists at location`,
+                );
+              } else {
+                this.dbtTerminal.logLine(`Manifest file exists at location`);
               }
             }
+
             if (!project.getPythonBridgeStatus()) {
-              this.dbtTerminal.log("Python bridge is not connected\r\n");
+              this.dbtTerminal.logLine("Python bridge is not connected");
             } else {
-              this.dbtTerminal.log("Python bridge is connected\r\n");
+              this.dbtTerminal.logLine("Python bridge is connected");
             }
+
             const diagnostics = project.getAllDiagnostic();
-            this.dbtTerminal.log(
-              `Number of diagnostics issues=${diagnostics.length}\r\n`,
+            this.dbtTerminal.logLine(
+              `Number of diagnostics issues=${diagnostics.length}`,
             );
             for (const d of diagnostics) {
-              this.dbtTerminal.log(d.message);
+              this.dbtTerminal.logLine(d.message);
             }
             await project.debug();
-            this.dbtTerminal.log("---------------------------------------\r\n");
+            this.dbtTerminal.logHorizontalRule();
           }
           this.dbtTerminal.logNewLine();
           this.dbtTerminal.logLine("Diagnostics completed successfully...");
