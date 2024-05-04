@@ -229,7 +229,7 @@ export class ConversationProvider implements Disposable {
       }
 
       pendingConversations.map((conversationGroup) => {
-        const uri = Uri.parse(
+        const uri = Uri.file(
           path.join(
             project.projectRoot.fsPath,
             conversationGroup.meta.filePath,
