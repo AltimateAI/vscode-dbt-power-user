@@ -673,7 +673,8 @@ export class DBTCloudProjectIntegration
         "json",
       ]),
     );
-    const { stdout, stderr } = await compileQueryCommand.execute();
+    const { stdout, stderr } =
+      await compileQueryCommand.execute(cancellationToken);
     const compiledLine = stdout
       .trim()
       .split("\n")
