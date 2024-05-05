@@ -475,6 +475,8 @@ export class DBTCloudProjectIntegration
         this.dbtPath,
       ),
     );
+    command.addArgument("--source");
+    command.addArgument("dbtPowerUser");
     return command;
   }
 
