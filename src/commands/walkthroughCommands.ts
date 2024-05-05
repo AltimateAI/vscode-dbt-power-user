@@ -207,6 +207,7 @@ export class WalkthroughCommands {
         "clickhouse",
         "trino",
         "synapse",
+        "fabric",
       ].map((value) => ({ label: value })),
       {
         title: "Select your adapter",
@@ -290,6 +291,8 @@ export class WalkthroughCommands {
         return "dbt-trino";
       case "synapse":
         return "dbt-synapse";
+      case "fabric":
+        return "dbt-fabric";
     }
     throw new Error("Adapter is not supported" + adapter);
   }
