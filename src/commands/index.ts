@@ -206,6 +206,21 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.clearAltimateScanResults", () =>
         this.altimateScan.clearProblems(),
       ),
+      commands.registerCommand(
+        "dbtPowerUser.switchDbtIntegration",
+        async () => {
+          const dbtIntegration = workspace
+            .getConfiguration("dbt")
+            .get<string>("dbtIntegration", "core");
+          await workspace
+            .getConfiguration("dbt")
+            .update(
+              "dbtIntegration",
+              dbtIntegration === "cloud" ? "core" : "cloud",
+            );
+          await commands.executeCommand("workbench.action.reloadWindow");
+        },
+      ),
       commands.registerCommand("dbtPowerUser.validateProject", () => {
         const pickedProject: ProjectQuickPickItem | undefined =
           this.dbtProjectContainer.getFromWorkspaceState(

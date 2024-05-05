@@ -109,13 +109,20 @@ export class DBTClient implements Disposable {
     return this.showErrorIfDbtIsNotInstalled();
   }
 
-  private async executeInstallDbtCommand(
-    message: string,
-    option: DbtInstallationPromptAnswer,
-  ) {
-    const answer = await window.showErrorMessage(message, option);
+  private async executeInstallDbtCommand(message: string, option: string) {
+    const dbtIntegration = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+    const answer = await window.showErrorMessage(
+      message,
+      option,
+      dbtIntegration === "cloud" ? "Switch to dbt core" : "Switch to dbt cloud",
+    );
     if (answer === option) {
       commands.executeCommand("dbtPowerUser.installDbt");
+    }
+    if (answer?.includes("Switch")) {
+      commands.executeCommand("dbtPowerUser.switchDbtIntegration");
     }
   }
 

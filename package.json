@@ -101,6 +101,15 @@
       {
         "title": "dbt Power User",
         "properties": {
+          "dbt.dbtIntegration": {
+            "type": "string",
+            "enum": [
+              "core",
+              "cloud"
+            ],
+            "default": "core",
+            "description": "Select dbt core or dbt cloud"
+          },
           "dbt.dbtPythonPathOverride": {
             "type": "string",
             "description": "Path to a python executable or entrypoint. If undefined, we will use the Python extension's configured environment. Most users will not need to change this setting without specific reasoning such as custom wrappers and should instead modify the Python extensions selected interpreter."

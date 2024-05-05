@@ -6,6 +6,7 @@ import {
   Uri,
   commands,
   window,
+  workspace,
 } from "vscode";
 import { provideSingleton } from "../utils";
 
@@ -13,6 +14,9 @@ import { provideSingleton } from "../utils";
 export class DbtPowerUserControlCenterAction {
   async openPuQuickPick() {
     const disposables: Disposable[] = [];
+    const dbtIntegration = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
     try {
       return await new Promise<Uri | undefined>((resolve, reject) => {
         const dbtpuquickpick = window.createQuickPick<
@@ -25,6 +29,16 @@ export class DbtPowerUserControlCenterAction {
             "debug",
             "Open the extension setup walkthrough",
             "dbtPowerUser.openSetupWalkthrough",
+          ),
+          new DbtPowerUserControlPanelItem(
+            dbtIntegration === "core"
+              ? "Switch to dbt cloud"
+              : "Switch to dbt core",
+            "debug",
+            dbtIntegration === "core"
+              ? "Are you using dbt cloud?"
+              : "Are you using dbt core?",
+            "dbtPowerUser.switchDbtIntegration",
           ),
           new DbtPowerUserControlPanelItem(
             "dbt Power User Tutorials",
