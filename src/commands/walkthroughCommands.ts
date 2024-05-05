@@ -230,7 +230,7 @@ export class WalkthroughCommands {
           const args = ["-m", "pip", "install"];
           if (packageVersion >= "1.8") {
             args.push(`dbt-core==${packageVersion}`);
-            args.push(packageName);
+            args.push(`${packageName}>=${packageVersion}`);
           } else {
             args.push(`${packageName}==${packageVersion}`);
           }
