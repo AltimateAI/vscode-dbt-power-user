@@ -12,7 +12,7 @@ export class FileService {
         reject(new Error("Invalid file path"));
         return;
       }
-      workspace.openTextDocument(Uri.parse(path)).then(
+      workspace.openTextDocument(Uri.file(path)).then(
         (file: TextDocument) => {
           window.showTextDocument(file, 1, false).then(
             (e) => {
