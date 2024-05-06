@@ -25,12 +25,6 @@ export class DbtPowerUserControlCenterAction {
         dbtpuquickpick.title = "dbt Power User Control Panel";
         dbtpuquickpick.items = [
           new DbtPowerUserControlPanelItem(
-            "Setup Extension",
-            "debug",
-            "Open the extension setup walkthrough",
-            "dbtPowerUser.openSetupWalkthrough",
-          ),
-          new DbtPowerUserControlPanelItem(
             dbtIntegration === "core"
               ? "Switch to dbt cloud"
               : "Switch to dbt core",
@@ -39,6 +33,12 @@ export class DbtPowerUserControlCenterAction {
               ? "Are you using dbt cloud?"
               : "Are you using dbt core?",
             "dbtPowerUser.switchDbtIntegration",
+          ),
+          new DbtPowerUserControlPanelItem(
+            "Setup Extension",
+            "debug",
+            "Open the extension setup walkthrough",
+            "dbtPowerUser.openSetupWalkthrough",
           ),
           new DbtPowerUserControlPanelItem(
             "dbt Power User Tutorials",

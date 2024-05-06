@@ -143,7 +143,7 @@ export class WalkthroughCommands {
     let error = undefined;
     await window.withProgress(
       {
-        title: `Installing dbt cloud cli...`,
+        title: `Installing dbt cloud...`,
         location: ProgressLocation.Notification,
         cancellable: false,
       },
@@ -157,7 +157,11 @@ export class WalkthroughCommands {
               envVars: this.pythonEnvironment.environmentVariables,
             })
             .completeWithTerminalOutput();
-          if (!stdout.includes("Successfully installed") && stderr) {
+          if (
+            !stdout.includes("Successfully installed") &&
+            !stdout.includes("Requirement already satisfied") &&
+            stderr
+          ) {
             throw new Error(stderr);
           }
           await this.dbtProjectContainer.detectDBT();
@@ -169,7 +173,7 @@ export class WalkthroughCommands {
     );
     if (error) {
       const answer = await window.showErrorMessage(
-        "Could not install dbt: " + (error as Error).message,
+        "Could not install dbt cloud: " + (error as Error).message,
         DbtInstallationPromptAnswer.INSTALL_CLOUD,
       );
       if (answer === DbtInstallationPromptAnswer.INSTALL_CLOUD) {
@@ -244,7 +248,11 @@ export class WalkthroughCommands {
               envVars: this.pythonEnvironment.environmentVariables,
             })
             .completeWithTerminalOutput();
-          if (!stdout.includes("Successfully installed") && stderr) {
+          if (
+            !stdout.includes("Successfully installed") &&
+            !stdout.includes("Requirement already satisfied") &&
+            stderr
+          ) {
             throw new Error(stderr);
           }
           await this.dbtProjectContainer.detectDBT();

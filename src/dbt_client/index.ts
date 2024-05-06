@@ -8,8 +8,8 @@ import { DBTCloudDetection } from "./dbtCloudIntegration";
 import { DBTDetection } from "./dbtIntegration";
 
 enum DbtInstallationPromptAnswer {
-  INSTALL = "Install dbt",
-  INSTALL_CLOUD = "Install dbt cli",
+  INSTALL = "Install dbt core",
+  INSTALL_CLOUD = "Install dbt Cloud",
 }
 
 enum PythonInterpreterPromptAnswer {
