@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from "fs";
 import * as path from "path";
 import {
   CancellationToken,
+  CancellationTokenSource,
   ColorThemeKind,
   ProgressLocation,
   TextEditor,
@@ -56,11 +57,21 @@ const CAN_COMPILE_SQL_NODE = [
 const canCompileSQL = (nodeType: string) =>
   CAN_COMPILE_SQL_NODE.includes(nodeType);
 
+class DerivedCancellationTokenSource extends CancellationTokenSource {
+  constructor(linkedToken: CancellationToken) {
+    super();
+    linkedToken.onCancellationRequested(() => {
+      super.cancel();
+    });
+  }
+}
+
 @provideSingleton(NewLineagePanel)
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
-  private cllIsCancelled = false;
+  // since lineage can be cancelled from 2 places: progress bar and panel actions
+  private cancellationTokenSource: DerivedCancellationTokenSource | undefined;
   private cllProgressResolve: () => void = () => {};
 
   public constructor(
@@ -279,10 +290,11 @@ export class NewLineagePanel implements LineagePanelView {
         },
         async (_, token) => {
           await new Promise<void>((resolve) => {
-            this.cllIsCancelled = false;
+            this.cancellationTokenSource = new DerivedCancellationTokenSource(
+              token,
+            );
             this.cllProgressResolve = resolve;
             token.onCancellationRequested(() => {
-              this.cllIsCancelled = true;
               this._panel?.webview.postMessage({
                 command: "columnLineage",
                 args: { event: CllEvents.CANCEL },
@@ -293,13 +305,17 @@ export class NewLineagePanel implements LineagePanelView {
       );
       return;
     }
+    this.cancellationTokenSource?.token.onCancellationRequested((e) => {
+      console.log(e);
+    });
     if (event === CllEvents.END) {
       this.cllProgressResolve();
+      this.cancellationTokenSource?.dispose();
       return;
     }
     if (event === CllEvents.CANCEL) {
       this.cllProgressResolve();
-      this.cllIsCancelled = true;
+      this.cancellationTokenSource?.cancel();
       return;
     }
   }
@@ -514,7 +530,11 @@ export class NewLineagePanel implements LineagePanelView {
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
     );
     const { mappedNode, relationsWithoutColumns } =
-      await project.getNodesWithDBColumns(event, modelsToFetch);
+      await project.getNodesWithDBColumns(
+        event,
+        modelsToFetch,
+        this.cancellationTokenSource!.token,
+      );
 
     const selected_column = {
       model_node: mappedNode[selectedColumn.table],
@@ -539,7 +559,7 @@ export class NewLineagePanel implements LineagePanelView {
       });
 
       for (const key of currAnd1HopTables) {
-        if (this.cllIsCancelled) {
+        if (this.cancellationTokenSource?.token.isCancellationRequested) {
           return { column_lineage: [] };
         }
         await compileSql(key);
@@ -616,7 +636,7 @@ export class NewLineagePanel implements LineagePanelView {
 
     const modelDialect = project.getAdapterType();
     try {
-      if (this.cllIsCancelled) {
+      if (this.cancellationTokenSource?.token.isCancellationRequested) {
         return { column_lineage: [] };
       }
       const request = {

@@ -51,6 +51,10 @@ export class ConversationService {
       const shares =
         await this.altimateRequest.getAllSharedDbtDocs(projectNames);
       this.sharedDocs = shares || [];
+      shares.forEach((share) => {
+        this.conversationsBySharedDoc[share.share_id] =
+          share.conversation_group;
+      });
       return this.sharedDocs;
     } catch (err) {
       this.dbtTerminal.error(
