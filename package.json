@@ -116,7 +116,7 @@
           },
           "dbt.dbtCustomRunnerImport": {
             "type": "string",
-            "description": "Python import string to import custom dbt runner. ",
+            "description": "Python import string to import custom dbt runner. (Only supported for dbt core)",
             "default": "from dbt.cli.main import dbtRunner"
           },
           "dbt.allowListFolders": {
