@@ -19,8 +19,8 @@ enum PromptAnswer {
 }
 
 enum DbtInstallationPromptAnswer {
-  INSTALL = "Install dbt",
-  INSTALL_CLOUD = "Install dbt cli",
+  INSTALL = "Install dbt core",
+  INSTALL_CLOUD = "Install dbt cloud",
 }
 
 @provideSingleton(WalkthroughCommands)
