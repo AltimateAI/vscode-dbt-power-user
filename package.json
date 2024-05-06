@@ -589,7 +589,7 @@
       },
       {
         "command": "dbtPowerUser.diagnostics",
-        "title": "command to collect diagnostics infromation for the extension",
+        "title": "command to collect diagnostics information for the extension",
         "category": "dbt Power User",
         "icon": "$(debug-console)"
       }
