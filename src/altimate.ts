@@ -6,7 +6,7 @@ import { TelemetryService } from "./telemetry";
 import { join } from "path";
 import { createReadStream, createWriteStream, mkdirSync, ReadStream } from "fs";
 import * as os from "os";
-import { RateLimitException } from "./exceptions";
+import { RateLimitException, ExecutionsExhaustedException } from "./exceptions";
 import { DBTProject } from "./manifest/dbtProject";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
@@ -392,6 +392,10 @@ export class AltimateRequest {
         this.telemetry.sendTelemetryEvent("resourceNotFound", { url });
         throw new NotFoundError("Resource Not found");
       }
+      if (response.status === 402) {
+        const jsonResponse = (await response.json()) as { detail: string };
+        throw new ExecutionsExhaustedException(jsonResponse.detail);
+      }
       const textResponse = await response.text();
       this.dbtTerminal.debug(
         "network:response",
@@ -556,6 +560,10 @@ export class AltimateRequest {
       if (response.status === 404) {
         this.telemetry.sendTelemetryEvent("resourceNotFound", { url });
         throw new NotFoundError("Resource Not found");
+      }
+      if (response.status === 402) {
+        const jsonResponse = (await response.json()) as { detail: string };
+        throw new ExecutionsExhaustedException(jsonResponse.detail);
       }
       const textResponse = await response.text();
       this.dbtTerminal.debug(
