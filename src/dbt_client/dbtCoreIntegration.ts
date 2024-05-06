@@ -1,4 +1,5 @@
 import {
+  CancellationToken,
   Diagnostic,
   DiagnosticCollection,
   Disposable,
@@ -506,6 +507,18 @@ export class DBTCoreProjectIntegration
     );
   }
 
+  getPythonBridgeStatus(): boolean {
+    return this.python.connected;
+  }
+
+  getAllDiagnostic(): Diagnostic[] {
+    return [
+      ...(this.pythonBridgeDiagnostics.get(this.projectRoot) || []),
+      ...(this.projectConfigDiagnostics.get(this.projectRoot) || []),
+      ...(this.rebuildManifestDiagnostics.get(this.projectRoot) || []),
+    ];
+  }
+
   async rebuildManifest(): Promise<void> {
     const errors = this.projectConfigDiagnostics.get(
       Uri.joinPath(this.projectRoot, DBTProject.DBT_PROJECT_FILE),
@@ -831,22 +844,26 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  async getBulkSchema(nodes: DBTNode[]): Promise<Record<string, DBColumn[]>> {
+  async getBulkSchema(
+    nodes: DBTNode[],
+    cancellationToken: CancellationToken,
+  ): Promise<Record<string, DBColumn[]>> {
     const result: Record<string, DBColumn[]> = {};
-    await Promise.all(
-      nodes.map(async (n) => {
-        if (n.resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {
-          const source = n as SourceNode;
-          result[n.unique_id] = await this.getColumnsOfSource(
-            source.name,
-            source.table,
-          );
-        } else {
-          const model = n as Node;
-          result[n.unique_id] = await this.getColumnsOfModel(model.name);
-        }
-      }),
-    );
+    for (const n of nodes) {
+      if (cancellationToken.isCancellationRequested) {
+        break;
+      }
+      if (n.resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {
+        const source = n as SourceNode;
+        result[n.unique_id] = await this.getColumnsOfSource(
+          source.name,
+          source.table,
+        );
+      } else {
+        const model = n as Node;
+        result[n.unique_id] = await this.getColumnsOfModel(model.name);
+      }
+    }
     return result;
   }
 

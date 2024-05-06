@@ -1,5 +1,6 @@
 import {
   CancellationToken,
+  Diagnostic,
   Disposable,
   ProgressLocation,
   Uri,
@@ -362,12 +363,17 @@ export interface DBTProjectIntegration extends Disposable {
   getColumnsOfModel(modelName: string): Promise<DBColumn[]>;
   getCatalog(): Promise<Catalog>;
   getDebounceForRebuildManifest(): number;
-  getBulkSchema(nodes: DBTNode[]): Promise<Record<string, DBColumn[]>>;
+  getBulkSchema(
+    nodes: DBTNode[],
+    cancellationToken: CancellationToken,
+  ): Promise<Record<string, DBColumn[]>>;
   findPackageVersion(packageName: string): string | undefined;
   performDatapilotHealthcheck(
     args: HealthcheckArgs,
   ): Promise<ProjectHealthcheck>;
   applyDeferConfig(): Promise<void>;
+  getAllDiagnostic(): Diagnostic[];
+  getPythonBridgeStatus(): boolean;
 }
 
 @provide(DBTCommandExecutionInfrastructure)

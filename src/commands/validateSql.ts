@@ -9,6 +9,7 @@ import {
 import { TelemetryService } from "../telemetry";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import {
+  CancellationToken,
   DiagnosticCollection,
   ProgressLocation,
   Uri,
@@ -117,15 +118,20 @@ export class ValidateSql {
     const parentModels: ModelNode[] = [];
     let relationsWithoutColumns: string[] = [];
     let compiledQuery: string | undefined;
+    let cancellationToken: CancellationToken | undefined;
     await window.withProgress(
       {
         location: ProgressLocation.Notification,
-        title: "Fetching metadata",
-        cancellable: false,
+        title: "Validating SQL",
+        cancellable: true,
       },
-      async () => {
+      async (_, token) => {
         try {
+          cancellationToken = token;
           const fileContentBytes = await workspace.fs.readFile(currentFilePath);
+          if (cancellationToken.isCancellationRequested) {
+            return;
+          }
           try {
             compiledQuery = await project.unsafeCompileQuery(
               fileContentBytes.toString(),
@@ -141,13 +147,20 @@ export class ValidateSql {
             );
             return;
           }
+          if (cancellationToken.isCancellationRequested) {
+            return;
+          }
           const modelsToFetch = DBTProject.getNonEphemeralParents(event, [
             node.uniqueId,
           ]);
           const {
             mappedNode,
             relationsWithoutColumns: _relationsWithoutColumns,
-          } = await project.getNodesWithDBColumns(event, modelsToFetch);
+          } = await project.getNodesWithDBColumns(
+            event,
+            modelsToFetch,
+            cancellationToken,
+          );
           parentModels.push(...modelsToFetch.map((n) => mappedNode[n]));
           relationsWithoutColumns = _relationsWithoutColumns;
         } catch (exc) {
@@ -155,6 +168,9 @@ export class ValidateSql {
         }
       },
     );
+    if (cancellationToken?.isCancellationRequested) {
+      return;
+    }
     if (!compiledQuery) {
       return;
     }

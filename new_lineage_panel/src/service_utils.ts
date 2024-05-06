@@ -74,6 +74,7 @@ export class CLL {
 
   static cancel() {
     // this is used to cancel from webview
+    CLL.onCancel();
     vscode.postMessage({
       command: "columnLineage",
       args: { event: CllEvents.CANCEL },
@@ -112,7 +113,7 @@ export class CLL {
 
   static showCllInProgressMsg() {
     showInfoNotification(
-      "Column lineage is in progress. Either wait for it to complete or cancel the current one."
+      "Column lineage is in progress. Either wait for it to complete or cancel the current one.",
     );
   }
 }

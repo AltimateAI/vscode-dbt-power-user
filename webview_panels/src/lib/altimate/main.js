@@ -11216,7 +11216,7 @@ const Ec = /* @__PURE__ */ Ve(yc),
                 behavior: "smooth",
                 block: "center",
               });
-            }, 500));
+            }, 1e3));
         },
         [e.conversation_group_id, i],
       );
