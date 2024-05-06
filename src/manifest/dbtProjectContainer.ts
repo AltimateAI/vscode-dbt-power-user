@@ -35,10 +35,16 @@ export interface ProjectRegisteredUnregisteredEvent {
   registered: boolean;
 }
 
+export interface DBTProjectsInitializationEvent {}
+
 @provideSingleton(DBTProjectContainer)
 export class DBTProjectContainer implements Disposable {
   public onDBTInstallationVerification =
     this.dbtClient.onDBTInstallationVerification;
+  private _onDBTProjectsInitializationEvent =
+    new EventEmitter<DBTProjectsInitializationEvent>();
+  public readonly onDBTProjectsInitialization =
+    this._onDBTProjectsInitializationEvent.event;
   private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
   private _onManifestChanged = new EventEmitter<ManifestCacheChangedEvent>();
   private _onProjectRegisteredUnregistered =
@@ -139,6 +145,7 @@ export class DBTProjectContainer implements Disposable {
     await Promise.all(
       folders.map((folder) => this.registerWorkspaceFolder(folder)),
     );
+    this._onDBTProjectsInitializationEvent.fire({});
   }
 
   async showWalkthrough() {

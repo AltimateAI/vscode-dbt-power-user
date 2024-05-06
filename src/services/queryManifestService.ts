@@ -18,6 +18,13 @@ export class QueryManifestService {
     private dbtTerminal: DBTTerminal,
     protected emitterService: SharedStateService,
   ) {
+    dbtProjectContainer.onDBTProjectsInitialization(() => {
+      this.emitterService.fire({
+        command: "dbtProjectsInitialized",
+        payload: {},
+      });
+    });
+
     dbtProjectContainer.onManifestChanged((event) =>
       this.onManifestCacheChanged(event),
     );
@@ -29,10 +36,6 @@ export class QueryManifestService {
     });
     event.removed?.forEach((removed) => {
       this.eventMap.delete(removed.projectRoot.fsPath);
-    });
-    this.emitterService.fire({
-      command: "manifestCacheChanged",
-      payload: {},
     });
   }
 

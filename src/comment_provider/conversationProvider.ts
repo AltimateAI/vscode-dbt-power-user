@@ -105,7 +105,7 @@ export class ConversationProvider implements Disposable {
     this.disposables.push(
       emitterService.eventEmitter.event((d) => {
         if (
-          d.command === "manifestCacheChanged" ||
+          d.command === "dbtProjectsInitialized" ||
           d.command === "refetchConversations"
         ) {
           this.loadThreads();
@@ -167,10 +167,7 @@ export class ConversationProvider implements Disposable {
         "loading conversations",
         dbtDocsShare.share_id,
       );
-      const conversations =
-        await this.conversationService.loadConversationsByShareId(
-          dbtDocsShare.share_id,
-        );
+      const conversations = dbtDocsShare.conversation_group;
       if (!conversations?.length) {
         this.dbtTerminal.debug(
           "ConversationProvider:loadThreads",
@@ -232,7 +229,7 @@ export class ConversationProvider implements Disposable {
       }
 
       pendingConversations.map((conversationGroup) => {
-        const uri = Uri.parse(
+        const uri = Uri.file(
           path.join(
             project.projectRoot.fsPath,
             conversationGroup.meta.filePath,
