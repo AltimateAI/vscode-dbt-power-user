@@ -3,6 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from "fs";
 import * as path from "path";
 import { PythonException } from "python-bridge";
 import {
+  CancellationToken,
   commands,
   Diagnostic,
   DiagnosticCollection,
@@ -693,8 +694,8 @@ export class DBTProject implements Disposable {
     return result.table.rows.flat();
   }
 
-  async getBulkSchema(req: DBTNode[]) {
-    return this.dbtProjectIntegration.getBulkSchema(req);
+  async getBulkSchema(req: DBTNode[], cancellationToken: CancellationToken) {
+    return this.dbtProjectIntegration.getBulkSchema(req, cancellationToken);
   }
 
   async getCatalog(): Promise<Catalog> {
@@ -1034,6 +1035,7 @@ select * from renamed
   async getNodesWithDBColumns(
     event: ManifestCacheProjectAddedEvent,
     modelsToFetch: string[],
+    cancellationToken: CancellationToken,
   ) {
     const { nodeMetaMap, sourceMetaMap } = event;
     const mappedNode: Record<string, ModelNode> = {};
@@ -1083,7 +1085,10 @@ select * from renamed
         mappedNode[key] = node;
       }
     }
-    const bulkSchemaResponse = await this.getBulkSchema(bulkSchemaRequest);
+    const bulkSchemaResponse = await this.getBulkSchema(
+      bulkSchemaRequest,
+      cancellationToken,
+    );
     for (const key of modelsToFetch) {
       const node = mappedNode[key];
       if (!node) {

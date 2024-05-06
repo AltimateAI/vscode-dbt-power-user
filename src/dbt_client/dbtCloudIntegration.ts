@@ -9,6 +9,7 @@ import {
   Diagnostic,
   DiagnosticCollection,
   DiagnosticSeverity,
+  CancellationToken,
 } from "vscode";
 import { provideSingleton } from "../utils";
 import {
@@ -646,7 +647,10 @@ export class DBTCloudProjectIntegration
     return JSON.parse(compiledLine[0].data.compiled);
   }
 
-  async getBulkSchema(nodes: DBTNode[]): Promise<Record<string, DBColumn[]>> {
+  async getBulkSchema(
+    nodes: DBTNode[],
+    cancellationToken: CancellationToken,
+  ): Promise<Record<string, DBColumn[]>> {
     this.throwIfNotAuthenticated();
     this.throwBridgeErrorIfAvailable();
     const bulkModelQuery = `
@@ -680,7 +684,8 @@ export class DBTCloudProjectIntegration
         "json",
       ]),
     );
-    const { stdout, stderr } = await compileQueryCommand.execute();
+    const { stdout, stderr } =
+      await compileQueryCommand.execute(cancellationToken);
     const compiledLine = stdout
       .trim()
       .split("\n")
