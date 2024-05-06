@@ -360,7 +360,7 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.printEnvVars", () =>
         this.pythonEnvironment.printEnvVars(),
       ),
-      commands.registerCommand("dbtPowerUser.troubleshoot", async () => {
+      commands.registerCommand("dbtPowerUser.diagnostics", async () => {
         try {
           await this.dbtTerminal.show(true);
           this.dbtTerminal.logLine("Diagnostics started...");
