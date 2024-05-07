@@ -11,6 +11,7 @@ import {
 import documentationSlice, {
   initialState,
   setGenerationsHistory,
+  setIncomingDocsData,
   setInsertedEntityName,
   setProject,
   updatConversations,
@@ -33,6 +34,7 @@ import { ContextProps } from "./types";
 import { getGenerationsInModel } from "./utils";
 import DocumentationEditor from "./DocumentationEditor";
 import { ConversationGroup, DbtDocsShareDetails } from "@lib";
+import IncomingDocsDataHandler from "./IncomingDocsDataHandler";
 
 export const DocumentationContext = createContext<ContextProps>({
   state: initialState,
@@ -88,6 +90,7 @@ const DocumentationProvider = (): JSX.Element => {
           docs?: DBTDocumentation;
           tests?: DBTModelTest[];
           project?: string;
+          filePath?: string;
           columns?: MetadataColumn[];
           model?: string;
           name?: string;
@@ -116,7 +119,12 @@ const DocumentationProvider = (): JSX.Element => {
           dispatch(setProject(event.data.project));
           break;
         case "renderDocumentation":
-          dispatch(updateCurrentDocsData(event.data.docs));
+          dispatch(
+            setIncomingDocsData({
+              incomingDocsData: event.data.docs,
+              currentFilePath: event.data.filePath,
+            }),
+          );
           dispatch(setProject(event.data.project));
           dispatch(
             updateCollaborationEnabled(
@@ -211,6 +219,7 @@ const DocumentationProvider = (): JSX.Element => {
   return (
     <DocumentationContext.Provider value={values}>
       <DocumentationEditor />
+      <IncomingDocsDataHandler />
     </DocumentationContext.Provider>
   );
 };

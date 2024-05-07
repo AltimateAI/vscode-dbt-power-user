@@ -148,6 +148,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         command: "renderDocumentation",
         docs: this.documentation,
         project: this.getProject()?.getProjectName(),
+        filePath: window.activeTextEditor?.document.uri.fsPath,
         collaborationEnabled: workspace
           .getConfiguration("dbt")
           .get<boolean>("enableCollaboration", false),

@@ -10,9 +10,11 @@ import {
 } from "./types";
 
 export const initialState = {
+  incomingDocsData: undefined,
   currentDocsData: undefined,
   currentDocsTests: undefined,
   project: undefined,
+  currentFilePath: undefined,
   generationHistory: [],
   isDocGeneratedForAnyColumn: false,
   isTestUpdatedForAnyColumn: false,
@@ -57,6 +59,12 @@ const documentationSlice = createSlice({
     ) => {
       state.collaborationEnabled = action.payload;
     },
+    setCurrentFilePath: (
+      state,
+      action: PayloadAction<DocumentationStateProps["currentFilePath"]>,
+    ) => {
+      state.currentFilePath = action.payload;
+    },
     updateSelectedConversationGroup: (
       state,
       action: PayloadAction<
@@ -91,13 +99,49 @@ const documentationSlice = createSlice({
     ) => {
       state.insertedEntityName = action.payload;
     },
+    setIncomingDocsData: (
+      state,
+      action: PayloadAction<{
+        incomingDocsData: DocumentationStateProps["incomingDocsData"];
+        currentFilePath: DocumentationStateProps["currentFilePath"];
+      }>,
+    ) => {
+      const originalFilePath = state.currentFilePath;
+      state.currentFilePath = action.payload.currentFilePath;
+      const isFileChanged = originalFilePath !== action.payload.currentFilePath;
+      // if first load, currentDocsData will be undefined
+      // if current file is not changed, then update the docs
+      // if test/docs data is not changes, then update the docs
+      if (
+        !state.currentDocsData ||
+        !isFileChanged ||
+        (!state.isDocGeneratedForAnyColumn && !state.isTestUpdatedForAnyColumn)
+      ) {
+        // if user comes back to changed model, show updated data
+        if (
+          state.currentDocsData?.uniqueId !==
+          action.payload.incomingDocsData?.uniqueId
+        ) {
+          state.currentDocsData = action.payload.incomingDocsData;
+          return;
+        }
+      }
+
+      // If any changes are done in current model, then show alert
+      // mocking as DBTDocumentation incase of switching to file which are not models
+      state.incomingDocsData =
+        action.payload.incomingDocsData ?? ({} as DBTDocumentation);
+      return;
+    },
     updateCurrentDocsData: (
       state,
       action: PayloadAction<
         (Partial<DBTDocumentation> & { isNewGeneration?: boolean }) | undefined
       >,
     ) => {
-      if (!action.payload) {
+      state.incomingDocsData = undefined;
+      // incase of yml files, incoming docs data will be {}, so checking for keys length as well
+      if (!action.payload || !Object.keys(action.payload).length) {
         state.currentDocsData = undefined;
         return;
       }
@@ -214,7 +258,9 @@ const documentationSlice = createSlice({
 });
 
 export const {
+  setIncomingDocsData,
   updateCurrentDocsData,
+  setCurrentFilePath,
   updateColumnsInCurrentDocsData,
   updateColumnsAfterSync,
   setProject,

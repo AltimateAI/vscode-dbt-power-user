@@ -65,9 +65,11 @@ export interface TestMetadataRelationshipsKwArgs extends TestMetadataKwArgs {
 }
 
 export interface DocumentationStateProps {
+  incomingDocsData?: DBTDocumentation;
   currentDocsData?: DBTDocumentation;
   currentDocsTests?: DBTModelTest[];
   project?: string;
+  currentFilePath?: string;
   generationHistory: GenerationDBDataProps[];
   userInstructions: DocsGenerateUserInstructions;
   isDocGeneratedForAnyColumn: boolean;
