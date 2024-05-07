@@ -101,6 +101,11 @@
       {
         "title": "dbt Power User",
         "properties": {
+          "dbt.showColumnNamesInLowercase": {
+            "type": "boolean",
+            "description": "If enabled, documentation editor will show the column names in lower case regardless of database.",
+            "default": false
+          },
           "dbt.dbtPythonPathOverride": {
             "type": "string",
             "description": "Path to a python executable or entrypoint. If undefined, we will use the Python extension's configured environment. Most users will not need to change this setting without specific reasoning such as custom wrappers and should instead modify the Python extensions selected interpreter."

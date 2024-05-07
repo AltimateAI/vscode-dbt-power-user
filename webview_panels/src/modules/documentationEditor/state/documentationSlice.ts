@@ -26,6 +26,7 @@ export const initialState = {
   conversations: {},
   showConversationsRightPanel: false,
   collaborationEnabled: false,
+  showColumnNamesInLowercase: false,
 } as DocumentationStateProps;
 
 const documentationSlice = createSlice({
@@ -78,6 +79,14 @@ const documentationSlice = createSlice({
       action: PayloadAction<DocumentationStateProps["project"]>,
     ) => {
       state.project = action.payload;
+    },
+    setShowColumnNamesInLowercase: (
+      state,
+      action: PayloadAction<
+        DocumentationStateProps["showColumnNamesInLowercase"]
+      >,
+    ) => {
+      state.showColumnNamesInLowercase = action.payload;
     },
     updateCurrentDocsTests: (
       state,
@@ -232,5 +241,6 @@ export const {
   updateConversationsRightPanelState,
   updateSelectedConversationGroup,
   updateCollaborationEnabled,
+  setShowColumnNamesInLowercase,
 } = documentationSlice.actions;
 export default documentationSlice;

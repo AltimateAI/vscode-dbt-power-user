@@ -25,7 +25,12 @@ interface Props {
 }
 const DocGeneratorColumn = ({ column, tests }: Props): JSX.Element => {
   const {
-    state: { currentDocsData, project, selectedPages },
+    state: {
+      currentDocsData,
+      project,
+      selectedPages,
+      showColumnNamesInLowercase,
+    },
     dispatch,
   } = useDocumentationContext();
   const isDocumentationPageSelected = useMemo(
@@ -89,9 +94,14 @@ const DocGeneratorColumn = ({ column, tests }: Props): JSX.Element => {
       });
     }
   };
+
+  const columnName = showColumnNamesInLowercase
+    ? column.name.toLowerCase()
+    : column.name;
+
   return (
     <div>
-      <h4>{column.name + (column.type ? " (" + column.type + ")" : "")} </h4>
+      <h4>{columnName + (column.type ? " (" + column.type + ")" : "")} </h4>
       {isDocumentationPageSelected ? (
         <DocGeneratorInput
           onSubmit={handleColumnSubmit}

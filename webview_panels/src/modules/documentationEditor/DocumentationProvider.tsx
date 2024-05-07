@@ -13,6 +13,7 @@ import documentationSlice, {
   setGenerationsHistory,
   setInsertedEntityName,
   setProject,
+  setShowColumnNamesInLowercase,
   updatConversations,
   updateCollaborationEnabled,
   updateColumnsAfterSync,
@@ -93,6 +94,7 @@ const DocumentationProvider = (): JSX.Element => {
           name?: string;
           description?: string;
           collaborationEnabled?: boolean;
+          showColumnNamesInLowercase?: boolean;
         }
       >,
     ) => {
@@ -121,6 +123,11 @@ const DocumentationProvider = (): JSX.Element => {
           dispatch(
             updateCollaborationEnabled(
               Boolean(event.data.collaborationEnabled),
+            ),
+          );
+          dispatch(
+            setShowColumnNamesInLowercase(
+              Boolean(event.data.showColumnNamesInLowercase),
             ),
           );
           break;
