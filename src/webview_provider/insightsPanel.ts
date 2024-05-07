@@ -502,6 +502,10 @@ export class InsightsPanel extends AltimateWebviewProvider {
         PromptAnswer.YES,
       );
       if (answer !== PromptAnswer.YES) {
+        this.emitError(
+          syncRequestId,
+          "Altimate datapilot cli is not installed.",
+        );
         return;
       }
       try {
