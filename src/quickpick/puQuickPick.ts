@@ -28,7 +28,7 @@ export class DbtPowerUserControlCenterAction {
             dbtIntegration === "core"
               ? "Switch to dbt cloud"
               : "Switch to dbt core",
-            "debug",
+            "compare-changes",
             dbtIntegration === "core"
               ? "Are you using dbt cloud?"
               : "Are you using dbt core?",
