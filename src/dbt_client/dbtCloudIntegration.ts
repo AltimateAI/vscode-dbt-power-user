@@ -209,6 +209,7 @@ export class DBTCloudProjectIntegration
 
   async refreshProjectConfig(): Promise<void> {
     await this.initializePaths();
+    this.findAdapterType();
   }
 
   async executeSQL(query: string, limit: number): Promise<QueryExecution> {
@@ -776,7 +777,9 @@ export class DBTCloudProjectIntegration
     this.seedPaths = [join(this.projectRoot.fsPath, "seeds")];
     this.macroPaths = [join(this.projectRoot.fsPath, "macros")];
     this.packagesInstallPath = join(this.projectRoot.fsPath, "dbt_packages");
+  }
 
+  private async findAdapterType() {
     const adapterTypeCommand = this.dbtCloudCommand(
       new DBTCommand("Getting adapter type...", [
         "compile",
