@@ -45,7 +45,7 @@ export class VersionStatusBar implements Disposable {
     const dbtIntegrationMode = workspace
       .getConfiguration("dbt")
       .get<string>("dbtIntegration", "core");
-    return dbtIntegrationMode === "cloud" ? "dbt cli" : "dbt";
+    return dbtIntegrationMode === "cloud" ? "dbt cloud" : "dbt";
   }
 
   private onRebuildManifestStatusChange(
