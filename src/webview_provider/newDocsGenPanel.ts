@@ -238,9 +238,6 @@ export class NewDocsGenPanel
           collaborationEnabled: workspace
             .getConfiguration("dbt")
             .get<boolean>("enableCollaboration", false),
-          showColumnNamesInLowercase: workspace
-            .getConfiguration("dbt")
-            .get<boolean>("showColumnNamesInLowercase", false),
         });
         break;
 

@@ -81,7 +81,6 @@ export interface DocumentationStateProps {
     conversationGroupId: ConversationGroup["conversation_group_id"];
   };
   collaborationEnabled: boolean;
-  showColumnNamesInLowercase: boolean;
 }
 
 export interface DBTModelTest {
