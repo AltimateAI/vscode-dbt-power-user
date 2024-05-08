@@ -36,6 +36,7 @@ from typing import (
 )
 
 import agate
+import json
 from dbt.adapters.factory import get_adapter_class_by_name
 from dbt.config.runtime import RuntimeConfig
 from dbt.flags import set_from_args
