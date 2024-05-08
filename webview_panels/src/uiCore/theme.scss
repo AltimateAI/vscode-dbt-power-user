@@ -175,9 +175,9 @@ body.vscode-dark {
   background-color: var(--background--base);
   color: var(--text-color--title)
 }
-.modal-title{
+.modal-header{
   color: var(--text-color--title);
-
+  border-bottom: none;
   .btn{
     position: absolute;
     top:10px;
@@ -194,4 +194,7 @@ body.vscode-dark {
   background: var(--background--02);
   border-color: var(--stroke--disable);
 
+}
+.modal-footer{
+  border-top: none;
 }

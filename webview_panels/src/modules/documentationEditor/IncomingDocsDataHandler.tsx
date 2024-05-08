@@ -6,20 +6,39 @@ import {
   updateCurrentDocsData,
   updateCurrentDocsTests,
 } from "./state/documentationSlice";
+import { executeRequestInSync } from "@modules/app/requestExecutor";
 
 enum ActionState {
   CANCEL_STAY,
+  SAVE_PROCEED,
   DISCARD_PROCEED,
 }
 
 const IncomingDocsDataHandler = (): JSX.Element => {
   const {
     dispatch,
-    state: { currentDocsData, incomingDocsData },
+    state: { currentDocsData, incomingDocsData, currentDocsTests },
   } = useDocumentationContext();
 
-  const onActionClick = (actionState: ActionState) => {
+  const saveDocumentation = async () => {
+    const result = (await executeRequestInSync("saveDocumentation", {
+      ...currentDocsData,
+      updatedTests: currentDocsTests,
+      dialogType: "Existing file",
+    })) as { saved: boolean };
+    if (result.saved) {
+      dispatch(setIsDocGeneratedForAnyColumn(false));
+      dispatch(setIsTestUpdatedForAnyColumn(false));
+      dispatch(updateCurrentDocsData(incomingDocsData?.docs));
+      dispatch(updateCurrentDocsTests(incomingDocsData?.tests));
+    }
+  };
+
+  const onActionClick = async (actionState: ActionState) => {
     switch (actionState) {
+      case ActionState.SAVE_PROCEED:
+        await saveDocumentation();
+        break;
       case ActionState.CANCEL_STAY:
         dispatch(updateCurrentDocsData(currentDocsData));
         break;
@@ -47,21 +66,32 @@ const IncomingDocsDataHandler = (): JSX.Element => {
       actionsFooter={
         <>
           <Button
-            onClick={() => onActionClick(ActionState.CANCEL_STAY)}
-            title={`Documentation editor will show ${currentDocsData?.name} changes`}
-          >
-            Stay, do not proceed
-          </Button>
-          <Button
+            outline
             onClick={() => onActionClick(ActionState.DISCARD_PROCEED)}
-            title={`Documentation editor will discard ${currentDocsData?.name} changes and show ${incomingDocsData?.docs?.name} data`}
+            title={`Documentation editor will discard "${currentDocsData?.name}" changes`}
           >
             Discard changes
+          </Button>
+          <Button
+            outline
+            onClick={() => onActionClick(ActionState.CANCEL_STAY)}
+            title={`Documentation editor will show model: "${currentDocsData?.name}" changes`}
+          >
+            Remain in the current state
+          </Button>
+          <Button
+            color="primary"
+            onClick={() => onActionClick(ActionState.SAVE_PROCEED)}
+            title={`Documentation editor will save model: "${currentDocsData?.name}" changes`}
+          >
+            Save changes
           </Button>
         </>
       }
     >
-      Your changes will be lost!
+      You have unsaved changes in the ‘{currentDocsData?.name}’ model. Would you
+      like to discard the changes, save them and proceed, or remain in the
+      current state
     </AlertModal>
   );
 };
