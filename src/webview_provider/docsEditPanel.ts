@@ -323,7 +323,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       return;
     }
 
-    const columnTests = tests.filter((test) => test.column_name === columnName);
+    const columnTests = tests.filter(
+      (test) => test.column_name?.toLowerCase() === columnName.toLowerCase(),
+    );
 
     // No tests for this column - may be all deleted
     if (!columnTests.length) {
@@ -564,6 +566,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     writeFileSync(patchPath, "");
                   }
 
+                  const showColumnNamesInLowercase = workspace
+                    .getConfiguration("dbt")
+                    .get<boolean>("showColumnNamesInLowercase", false);
                   const docFile: string =
                     readFileSync(patchPath).toString("utf8");
                   const parsedDocFile =
@@ -586,7 +591,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       name: message.name,
                       description: message.description,
                       columns: message.columns.map((column: any) => ({
-                        name: column.name,
+                        name: showColumnNamesInLowercase
+                          ? column.name.toLowerCase()
+                          : column.name,
                         description: column.description,
                         ...(column?.type ? { data_type: column.type } : {}),
                         ...this.getTestDataByColumn(message, column.name),
@@ -607,7 +614,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                               model.columns &&
                               model.columns.find(
                                 (yamlColumn: any) =>
-                                  yamlColumn.name === column.name,
+                                  yamlColumn.name.toLocaleString() ===
+                                  column.name.toLocaleString(),
                               );
                             if (existingColumn !== undefined) {
                               // ignore tests from existing column, as it will be recreated in `getTestDataByColumn`
@@ -626,7 +634,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                               };
                             } else {
                               return {
-                                name: column.name,
+                                name: showColumnNamesInLowercase
+                                  ? column.name.toLowerCase()
+                                  : column.name,
                                 description: column.description,
                                 ...(column?.type
                                   ? { data_type: column.type }

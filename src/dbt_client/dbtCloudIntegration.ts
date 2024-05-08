@@ -625,7 +625,14 @@ export class DBTCloudProjectIntegration
     if (exception) {
       throw exception;
     }
-    return JSON.parse(compiledLine[0].data.compiled);
+    const columns = JSON.parse(compiledLine[0].data.compiled) as DBColumn[];
+    const showColumnNamesInLowercase = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("showColumnNamesInLowercase", false);
+    return columns.map((c) => ({
+      ...c,
+      column: showColumnNamesInLowercase ? c.column.toLowerCase() : c.column,
+    }));
   }
 
   async getColumnsOfModel(modelName: string): Promise<DBColumn[]> {
@@ -652,7 +659,14 @@ export class DBTCloudProjectIntegration
     if (exception) {
       throw exception;
     }
-    return JSON.parse(compiledLine[0].data.compiled);
+    const columns = JSON.parse(compiledLine[0].data.compiled) as DBColumn[];
+    const showColumnNamesInLowercase = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("showColumnNamesInLowercase", false);
+    return columns.map((c) => ({
+      ...c,
+      column: showColumnNamesInLowercase ? c.column.toLowerCase() : c.column,
+    }));
   }
 
   async getBulkSchema(

@@ -20,14 +20,15 @@ const DocGeneratorColumnsList = (): JSX.Element => {
     return (
       currentDocsTests?.reduce(
         (acc: Record<string, DBTModelTest[]>, columnTest) => {
-          if (!columnTest.column_name) {
+          const columnNameInLowerCase = columnTest.column_name?.toLowerCase();
+          if (!columnNameInLowerCase) {
             return acc;
           }
-          acc[columnTest.column_name] = acc[columnTest.column_name] ?? [];
+          acc[columnNameInLowerCase] = acc[columnNameInLowerCase] ?? [];
           return {
             ...acc,
-            [columnTest.column_name]: [
-              ...acc[columnTest.column_name],
+            [columnNameInLowerCase]: [
+              ...acc[columnNameInLowerCase],
               columnTest,
             ],
           };
@@ -64,7 +65,7 @@ const DocGeneratorColumnsList = (): JSX.Element => {
           <DocGeneratorColumn
             key={column.name}
             column={column}
-            tests={testsPerColumns[column.name]}
+            tests={testsPerColumns[column.name.toLowerCase()]}
           />
         ))}
       </Stack>

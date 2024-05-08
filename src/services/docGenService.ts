@@ -1,5 +1,11 @@
 import path = require("path");
-import { ProgressLocation, WebviewPanel, WebviewView, window } from "vscode";
+import {
+  ProgressLocation,
+  WebviewPanel,
+  WebviewView,
+  window,
+  workspace,
+} from "vscode";
 import { AltimateRequest, DocsGenerateResponse } from "../altimate";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { RateLimitException } from "../exceptions";
@@ -184,6 +190,10 @@ export class DocGenService {
       return undefined;
     }
 
+    const showColumnNamesInLowercase = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("showColumnNamesInLowercase", false);
+
     const docColumns = currentNode.columns;
     return {
       aiEnabled: this.altimateRequest.enabled(),
@@ -195,7 +205,9 @@ export class DocGenService {
       uniqueId: currentNode.uniqueId,
       columns: Object.values(docColumns).map((column) => {
         return {
-          name: column.name,
+          name: showColumnNamesInLowercase
+            ? column.name.toLowerCase()
+            : column.name,
           description: column.description,
           generated: false,
           source: Source.YAML,

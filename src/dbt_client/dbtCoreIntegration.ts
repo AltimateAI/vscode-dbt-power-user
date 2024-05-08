@@ -838,10 +838,17 @@ export class DBTCoreProjectIntegration
     objectName: string,
   ): Promise<DBColumn[]> {
     this.throwBridgeErrorIfAvailable();
-    return this.python?.lock<DBColumn[]>(
+    const columns = await this.python?.lock<DBColumn[]>(
       (python) =>
         python!`to_dict(project.get_columns_in_relation(project.create_relation(${database}, ${schema}, ${objectName})))`,
     );
+    const showColumnNamesInLowercase = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("showColumnNamesInLowercase", false);
+    return columns.map((c) => ({
+      ...c,
+      column: showColumnNamesInLowercase ? c.column.toLowerCase() : c.column,
+    }));
   }
 
   async getBulkSchema(
