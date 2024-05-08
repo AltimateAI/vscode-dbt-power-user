@@ -14,7 +14,6 @@ export const initialState = {
   currentDocsData: undefined,
   currentDocsTests: undefined,
   project: undefined,
-  currentFilePath: undefined,
   generationHistory: [],
   isDocGeneratedForAnyColumn: false,
   isTestUpdatedForAnyColumn: false,
@@ -59,12 +58,6 @@ const documentationSlice = createSlice({
     ) => {
       state.collaborationEnabled = action.payload;
     },
-    setCurrentFilePath: (
-      state,
-      action: PayloadAction<DocumentationStateProps["currentFilePath"]>,
-    ) => {
-      state.currentFilePath = action.payload;
-    },
     updateSelectedConversationGroup: (
       state,
       action: PayloadAction<
@@ -103,28 +96,25 @@ const documentationSlice = createSlice({
       state,
       action: PayloadAction<{
         incomingDocsData: DocumentationStateProps["incomingDocsData"];
-        currentFilePath: DocumentationStateProps["currentFilePath"];
       }>,
     ) => {
-      const originalFilePath = state.currentFilePath;
-      state.currentFilePath = action.payload.currentFilePath;
-      const isFileChanged = originalFilePath !== action.payload.currentFilePath;
-      // if first load, currentDocsData will be undefined
-      // if current file is not changed, then update the docs
-      // if test/docs data is not changes, then update the docs
+      const isFileChanged =
+        action.payload.incomingDocsData?.uniqueId !==
+        state.currentDocsData?.uniqueId;
+      const isCleanForm =
+        !state.isDocGeneratedForAnyColumn && !state.isTestUpdatedForAnyColumn; // if test/docs data is not changes, then update the docs
+
+      // if current file is not changed, then keep the current changes
+      if (!isFileChanged) {
+        return;
+      }
+
       if (
-        !state.currentDocsData ||
-        !isFileChanged ||
-        (!state.isDocGeneratedForAnyColumn && !state.isTestUpdatedForAnyColumn)
+        !state.currentDocsData || // if first load, currentDocsData will be undefined
+        isCleanForm
       ) {
-        // if user comes back to changed model, show updated data
-        if (
-          state.currentDocsData?.uniqueId !==
-          action.payload.incomingDocsData?.uniqueId
-        ) {
-          state.currentDocsData = action.payload.incomingDocsData;
-          return;
-        }
+        state.currentDocsData = action.payload.incomingDocsData;
+        return;
       }
 
       // If any changes are done in current model, then show alert
@@ -260,7 +250,6 @@ const documentationSlice = createSlice({
 export const {
   setIncomingDocsData,
   updateCurrentDocsData,
-  setCurrentFilePath,
   updateColumnsInCurrentDocsData,
   updateColumnsAfterSync,
   setProject,

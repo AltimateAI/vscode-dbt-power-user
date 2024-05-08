@@ -1,7 +1,11 @@
 // import { useEffect, useState } from "react";
 import useDocumentationContext from "./state/useDocumentationContext";
 import { AlertModal, Button } from "@uicore";
-import { updateCurrentDocsData } from "./state/documentationSlice";
+import {
+  setIsDocGeneratedForAnyColumn,
+  setIsTestUpdatedForAnyColumn,
+  updateCurrentDocsData,
+} from "./state/documentationSlice";
 
 enum ActionState {
   CANCEL_STAY,
@@ -12,22 +16,8 @@ const IncomingDocsDataHandler = (): JSX.Element => {
   //   const [showAlert, setShowAlert] = useState(false);
   const {
     dispatch,
-    state: {
-      currentDocsData,
-      incomingDocsData,
-      //   currentFilePath
-      //   isDocGeneratedForAnyColumn,
-      //   isTestUpdatedForAnyColumn,
-    },
+    state: { currentDocsData, incomingDocsData },
   } = useDocumentationContext();
-
-  //   useEffect(() => {
-  //     // show alert if current doc editor has any unsaved changes and user switched active editor
-  //     setShowAlert(
-  //       Boolean(incomingDocsData) &&
-  //         (isDocGeneratedForAnyColumn || isTestUpdatedForAnyColumn)
-  //     );
-  //   }, [incomingDocsData, isDocGeneratedForAnyColumn, isTestUpdatedForAnyColumn]);
 
   const onActionClick = (actionState: ActionState) => {
     switch (actionState) {
@@ -36,6 +26,8 @@ const IncomingDocsDataHandler = (): JSX.Element => {
         break;
 
       case ActionState.DISCARD_PROCEED:
+        dispatch(setIsDocGeneratedForAnyColumn(false));
+        dispatch(setIsTestUpdatedForAnyColumn(false));
         dispatch(updateCurrentDocsData(incomingDocsData));
         break;
       default:

@@ -122,7 +122,6 @@ const DocumentationProvider = (): JSX.Element => {
           dispatch(
             setIncomingDocsData({
               incomingDocsData: event.data.docs,
-              currentFilePath: event.data.filePath,
             }),
           );
           dispatch(setProject(event.data.project));

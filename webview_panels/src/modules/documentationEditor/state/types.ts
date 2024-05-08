@@ -69,7 +69,6 @@ export interface DocumentationStateProps {
   currentDocsData?: DBTDocumentation;
   currentDocsTests?: DBTModelTest[];
   project?: string;
-  currentFilePath?: string;
   generationHistory: GenerationDBDataProps[];
   userInstructions: DocsGenerateUserInstructions;
   isDocGeneratedForAnyColumn: boolean;
