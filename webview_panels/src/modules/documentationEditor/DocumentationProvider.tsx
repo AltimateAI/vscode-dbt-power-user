@@ -88,7 +88,7 @@ const DocumentationProvider = (): JSX.Element => {
           docs?: DBTDocumentation;
           tests?: DBTModelTest[];
           project?: string;
-          columns?: MetadataColumn[];
+          columns?: DBTDocumentation["columns"];
           model?: string;
           name?: string;
           description?: string;

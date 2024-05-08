@@ -6,8 +6,8 @@ import {
   DocumentationStateProps,
   MetadataColumn,
   Pages,
-  Source,
 } from "./types";
+import { mergeCurrentAndIncomingDocumentationColumns } from "../utils";
 
 export const initialState = {
   currentDocsData: undefined,
@@ -130,28 +130,18 @@ const documentationSlice = createSlice({
       {
         payload: { columns },
       }: PayloadAction<{
-        columns: Partial<
-          MetadataColumn & {
-            description?: string;
-          }
-        >[];
+        columns: DBTDocumentation["columns"];
       }>,
     ) => {
       if (!state.currentDocsData) {
         return;
       }
-      state.currentDocsData.columns = columns.map((column) => {
-        const existingColumn = state.currentDocsData?.columns.find(
-          (c) => column.name?.toLowerCase() === c.name.toLowerCase(),
+
+      state.currentDocsData.columns =
+        mergeCurrentAndIncomingDocumentationColumns(
+          state.currentDocsData.columns,
+          columns,
         );
-        return {
-          name: column.name ?? "",
-          type: column.type,
-          description: existingColumn?.description ?? "",
-          generated: existingColumn?.generated ?? false,
-          source: existingColumn !== undefined ? Source.YAML : Source.DATABASE,
-        };
-      });
       state.isDocGeneratedForAnyColumn = true;
     },
     updateColumnsInCurrentDocsData: (

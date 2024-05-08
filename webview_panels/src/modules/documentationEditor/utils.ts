@@ -1,7 +1,11 @@
 import { differenceInHours } from "date-fns";
 import IndexedDBHelper from "@modules/app/indexedDb";
 import { panelLogger } from "@modules/logger";
-import { DBTDocumentationColumn } from "./state/types";
+import {
+  DBTDocumentation,
+  DBTDocumentationColumn,
+  Source,
+} from "./state/types";
 import { GenerationDBDataProps } from "./types";
 import { DataPilotChatAction } from "../dataPilot/types";
 
@@ -111,6 +115,24 @@ export const getGenerationsInModel = async (
 
     transaction.onerror = () => {
       reject("Error retrieving operations");
+    };
+  });
+};
+
+export const mergeCurrentAndIncomingDocumentationColumns = (
+  current: DBTDocumentation["columns"] | undefined,
+  incoming: DBTDocumentation["columns"],
+): DBTDocumentation["columns"] => {
+  return incoming.map((column) => {
+    const existingColumn = current?.find(
+      (c) => column.name?.toLowerCase() === c.name.toLowerCase(),
+    );
+    return {
+      name: column.name ?? "",
+      type: column.type,
+      description: existingColumn?.description ?? "",
+      generated: existingColumn?.generated ?? false,
+      source: existingColumn !== undefined ? Source.YAML : Source.DATABASE,
     };
   });
 };
