@@ -11,7 +11,7 @@ import {
   DiagnosticSeverity,
   CancellationToken,
 } from "vscode";
-import { provideSingleton } from "../utils";
+import { provideSingleton, updateColumnNameCase } from "../utils";
 import {
   Catalog,
   DBColumn,
@@ -626,13 +626,7 @@ export class DBTCloudProjectIntegration
       throw exception;
     }
     const columns = JSON.parse(compiledLine[0].data.compiled) as DBColumn[];
-    const showColumnNamesInLowercase = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("showColumnNamesInLowercase", false);
-    return columns.map((c) => ({
-      ...c,
-      column: showColumnNamesInLowercase ? c.column.toLowerCase() : c.column,
-    }));
+    return updateColumnNameCase(columns);
   }
 
   async getColumnsOfModel(modelName: string): Promise<DBColumn[]> {
@@ -660,13 +654,7 @@ export class DBTCloudProjectIntegration
       throw exception;
     }
     const columns = JSON.parse(compiledLine[0].data.compiled) as DBColumn[];
-    const showColumnNamesInLowercase = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("showColumnNamesInLowercase", false);
-    return columns.map((c) => ({
-      ...c,
-      column: showColumnNamesInLowercase ? c.column.toLowerCase() : c.column,
-    }));
+    return updateColumnNameCase(columns);
   }
 
   async getBulkSchema(

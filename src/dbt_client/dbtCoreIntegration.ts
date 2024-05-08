@@ -16,6 +16,7 @@ import {
   getProjectRelativePath,
   provideSingleton,
   setupWatcherHandler,
+  updateColumnNameCase,
 } from "../utils";
 import {
   Catalog,
@@ -842,13 +843,7 @@ export class DBTCoreProjectIntegration
       (python) =>
         python!`to_dict(project.get_columns_in_relation(project.create_relation(${database}, ${schema}, ${objectName})))`,
     );
-    const showColumnNamesInLowercase = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("showColumnNamesInLowercase", false);
-    return columns.map((c) => ({
-      ...c,
-      column: showColumnNamesInLowercase ? c.column.toLowerCase() : c.column,
-    }));
+    return updateColumnNameCase(columns);
   }
 
   async getBulkSchema(
