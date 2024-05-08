@@ -225,10 +225,6 @@ def find_package_paths(project_directories):
 # Performance hacks
 # jinja.get_rendered = memoize_get_rendered(jinja.get_rendered)
 disable_tracking()
-# try:
-#     from dbt.events.functions import fire_event  # monkey-patched for perf
-# except ImportError:
-#     from dbt_common.events.functions import fire_event  # dbt 1.8
 fire_event = lambda e: None
 
 
