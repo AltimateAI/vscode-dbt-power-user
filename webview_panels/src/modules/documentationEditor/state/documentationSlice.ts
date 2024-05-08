@@ -94,13 +94,10 @@ const documentationSlice = createSlice({
     },
     setIncomingDocsData: (
       state,
-      action: PayloadAction<{
-        incomingDocsData: DocumentationStateProps["incomingDocsData"];
-      }>,
+      action: PayloadAction<DocumentationStateProps["incomingDocsData"]>,
     ) => {
       const isFileChanged =
-        action.payload.incomingDocsData?.uniqueId !==
-        state.currentDocsData?.uniqueId;
+        action.payload?.docs?.uniqueId !== state.currentDocsData?.uniqueId;
       const isCleanForm =
         !state.isDocGeneratedForAnyColumn && !state.isTestUpdatedForAnyColumn; // if test/docs data is not changes, then update the docs
 
@@ -113,14 +110,14 @@ const documentationSlice = createSlice({
         !state.currentDocsData || // if first load, currentDocsData will be undefined
         isCleanForm
       ) {
-        state.currentDocsData = action.payload.incomingDocsData;
+        state.currentDocsData = action.payload?.docs;
+        state.currentDocsTests = action.payload?.tests;
         return;
       }
 
       // If any changes are done in current model, then show alert
       // mocking as DBTDocumentation incase of switching to file which are not models
-      state.incomingDocsData =
-        action.payload.incomingDocsData ?? ({} as DBTDocumentation);
+      state.incomingDocsData = action.payload ?? {};
       return;
     },
     updateCurrentDocsData: (

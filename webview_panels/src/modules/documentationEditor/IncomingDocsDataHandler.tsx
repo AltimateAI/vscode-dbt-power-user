@@ -1,10 +1,10 @@
-// import { useEffect, useState } from "react";
 import useDocumentationContext from "./state/useDocumentationContext";
 import { AlertModal, Button } from "@uicore";
 import {
   setIsDocGeneratedForAnyColumn,
   setIsTestUpdatedForAnyColumn,
   updateCurrentDocsData,
+  updateCurrentDocsTests,
 } from "./state/documentationSlice";
 
 enum ActionState {
@@ -13,7 +13,6 @@ enum ActionState {
 }
 
 const IncomingDocsDataHandler = (): JSX.Element => {
-  //   const [showAlert, setShowAlert] = useState(false);
   const {
     dispatch,
     state: { currentDocsData, incomingDocsData },
@@ -28,16 +27,21 @@ const IncomingDocsDataHandler = (): JSX.Element => {
       case ActionState.DISCARD_PROCEED:
         dispatch(setIsDocGeneratedForAnyColumn(false));
         dispatch(setIsTestUpdatedForAnyColumn(false));
-        dispatch(updateCurrentDocsData(incomingDocsData));
+        dispatch(updateCurrentDocsData(incomingDocsData?.docs));
+        dispatch(updateCurrentDocsTests(incomingDocsData?.tests));
         break;
       default:
         break;
     }
   };
 
+  const showAlert = incomingDocsData
+    ? Object.keys(incomingDocsData).length > 0
+    : false;
+
   return (
     <AlertModal
-      isOpen={Boolean(incomingDocsData)}
+      isOpen={showAlert}
       title="Save changes?"
       actionsFooter={
         <>
@@ -49,7 +53,7 @@ const IncomingDocsDataHandler = (): JSX.Element => {
           </Button>
           <Button
             onClick={() => onActionClick(ActionState.DISCARD_PROCEED)}
-            title={`Documentation editor will discard ${currentDocsData?.name} changes and show ${incomingDocsData?.name} data`}
+            title={`Documentation editor will discard ${currentDocsData?.name} changes and show ${incomingDocsData?.docs?.name} data`}
           >
             Cancel and proceed
           </Button>

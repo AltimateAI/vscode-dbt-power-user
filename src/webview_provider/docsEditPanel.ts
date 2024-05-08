@@ -147,6 +147,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       await this._panel.webview.postMessage({
         command: "renderDocumentation",
         docs: this.documentation,
+        tests: await this.dbtTestService.getTestsForCurrentModel(),
         project: this.getProject()?.getProjectName(),
         collaborationEnabled: workspace
           .getConfiguration("dbt")

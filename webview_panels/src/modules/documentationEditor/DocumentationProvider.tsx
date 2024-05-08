@@ -20,7 +20,6 @@ import documentationSlice, {
   updateColumnsInCurrentDocsData,
   updateConversationsRightPanelState,
   updateCurrentDocsData,
-  updateCurrentDocsTests,
   updateSelectedConversationGroup,
   updateUserInstructions,
 } from "./state/documentationSlice";
@@ -113,15 +112,11 @@ const DocumentationProvider = (): JSX.Element => {
             >["0"],
           );
           break;
-        case "renderTests":
-          panelLogger.info("tests data", event.data);
-          dispatch(updateCurrentDocsTests(event.data.tests));
-          dispatch(setProject(event.data.project));
-          break;
         case "renderDocumentation":
           dispatch(
             setIncomingDocsData({
-              incomingDocsData: event.data.docs,
+              docs: event.data.docs,
+              tests: event.data.tests,
             }),
           );
           dispatch(setProject(event.data.project));
