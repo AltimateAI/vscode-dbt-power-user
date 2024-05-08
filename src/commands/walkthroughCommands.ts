@@ -19,8 +19,8 @@ enum PromptAnswer {
 }
 
 enum DbtInstallationPromptAnswer {
-  INSTALL = "Install dbt",
-  INSTALL_CLOUD = "Install dbt cli",
+  INSTALL = "Install dbt core",
+  INSTALL_CLOUD = "Install dbt cloud",
 }
 
 @provideSingleton(WalkthroughCommands)
@@ -41,8 +41,16 @@ export class WalkthroughCommands {
       );
       return;
     }
+    let debugCommand = "dbt debug";
+    if (
+      workspace
+        .getConfiguration("dbt")
+        .get<string>("dbtIntegration", "core") === "cloud"
+    ) {
+      debugCommand = "dbt environment show";
+    }
     const answer = await window.showInformationMessage(
-      `Do you want to validate the project: ${projectContext.label}? This will run the command 'dbt debug' inside this project. Do you want to continue?`,
+      `Do you want to validate the project: ${projectContext.label}? This will run the command '${debugCommand}' inside this project. Do you want to continue?`,
       PromptAnswer.YES,
       PromptAnswer.NO,
     );
@@ -135,7 +143,7 @@ export class WalkthroughCommands {
     let error = undefined;
     await window.withProgress(
       {
-        title: `Installing dbt cloud cli...`,
+        title: `Installing dbt cloud...`,
         location: ProgressLocation.Notification,
         cancellable: false,
       },
@@ -149,7 +157,11 @@ export class WalkthroughCommands {
               envVars: this.pythonEnvironment.environmentVariables,
             })
             .completeWithTerminalOutput();
-          if (!stdout.includes("Successfully installed") && stderr) {
+          if (
+            !stdout.includes("Successfully installed") &&
+            !stdout.includes("Requirement already satisfied") &&
+            stderr
+          ) {
             throw new Error(stderr);
           }
           await this.dbtProjectContainer.detectDBT();
@@ -161,7 +173,7 @@ export class WalkthroughCommands {
     );
     if (error) {
       const answer = await window.showErrorMessage(
-        "Could not install dbt: " + (error as Error).message,
+        "Could not install dbt cloud: " + (error as Error).message,
         DbtInstallationPromptAnswer.INSTALL_CLOUD,
       );
       if (answer === DbtInstallationPromptAnswer.INSTALL_CLOUD) {
@@ -172,9 +184,11 @@ export class WalkthroughCommands {
 
   private async installDbtCore(): Promise<void> {
     const dbtVersion: QuickPickItem | undefined = await window.showQuickPick(
-      ["1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7"].map((value) => ({
-        label: value,
-      })),
+      ["1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8"].map(
+        (value) => ({
+          label: value,
+        }),
+      ),
       {
         title: "Select your dbt version",
         canPickMany: false,
@@ -197,6 +211,7 @@ export class WalkthroughCommands {
         "clickhouse",
         "trino",
         "synapse",
+        "fabric",
       ].map((value) => ({ label: value })),
       {
         title: "Select your adapter",
@@ -217,20 +232,27 @@ export class WalkthroughCommands {
       },
       async () => {
         try {
+          const args = ["-m", "pip", "install"];
+          if (packageVersion >= "1.8") {
+            args.push(`dbt-core==${packageVersion}`);
+            args.push(`${packageName}>=${packageVersion}`);
+          } else {
+            args.push(`${packageName}==${packageVersion}`);
+          }
+          args.push("--upgrade");
           const { stdout, stderr } = await this.commandProcessExecutionFactory
             .createCommandProcessExecution({
               command: this.pythonEnvironment.pythonPath,
-              args: [
-                "-m",
-                "pip",
-                "install",
-                `${packageName}==${packageVersion}`,
-              ],
+              args,
               cwd: getFirstWorkspacePath(),
               envVars: this.pythonEnvironment.environmentVariables,
             })
             .completeWithTerminalOutput();
-          if (!stdout.includes("Successfully installed") && stderr) {
+          if (
+            !stdout.includes("Successfully installed") &&
+            !stdout.includes("Requirement already satisfied") &&
+            stderr
+          ) {
             throw new Error(stderr);
           }
           await this.dbtProjectContainer.detectDBT();
@@ -277,6 +299,8 @@ export class WalkthroughCommands {
         return "dbt-trino";
       case "synapse":
         return "dbt-synapse";
+      case "fabric":
+        return "dbt-fabric";
     }
     throw new Error("Adapter is not supported" + adapter);
   }

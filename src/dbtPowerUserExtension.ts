@@ -1,4 +1,10 @@
-import { Disposable, ExtensionContext } from "vscode";
+import {
+  Disposable,
+  ExtensionContext,
+  commands,
+  window,
+  workspace,
+} from "vscode";
 import { AutocompletionProviders } from "./autocompletion_provider";
 import { CodeLensProviders } from "./code_lens_provider";
 import { VSCodeCommands } from "./commands";
@@ -15,6 +21,11 @@ import { HoverProviders } from "./hover_provider";
 import { DbtPowerUserActionsCenter } from "./quickpick";
 import { ValidationProvider } from "./validation_provider";
 import { CommentProviders } from "./comment_provider";
+
+enum PromptAnswer {
+  YES = "Yes",
+  NO = "No",
+}
 
 @provideSingleton(DBTPowerUserExtension)
 export class DBTPowerUserExtension implements Disposable {
@@ -86,5 +97,23 @@ export class DBTPowerUserExtension implements Disposable {
     await this.dbtProjectContainer.detectDBT();
     await this.dbtProjectContainer.initializeDBTProjects();
     await this.statusBars.initialize();
+    // Ask to reload the window if the dbt integration changes
+    const dbtIntegration = workspace
+      .getConfiguration("dbt")
+      .get<string>("dbtIntegration", "core");
+    workspace.onDidChangeConfiguration((e) => {
+      if (!e.affectsConfiguration("dbt")) {
+        return;
+      }
+      const newDbtIntegration = workspace
+        .getConfiguration("dbt")
+        .get<string>("dbtIntegration", "core");
+      if (
+        dbtIntegration !== newDbtIntegration &&
+        ["core", "cloud"].includes(newDbtIntegration)
+      ) {
+        commands.executeCommand("workbench.action.reloadWindow");
+      }
+    });
   }
 }

@@ -453,7 +453,12 @@ export class DBTCloudProjectIntegration
   }
 
   async debug(command: DBTCommand): Promise<string> {
-    throw new Error("dbt debug is not supported in dbt cloud");
+    command.args = ["environment", "show"];
+    const { stdout, stderr } = await this.dbtCloudCommand(command).execute();
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    return stdout;
   }
 
   private async getDeferParams(): Promise<string[]> {

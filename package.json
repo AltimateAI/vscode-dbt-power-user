@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.39.4",
+  "version": "0.39.6",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -106,13 +106,22 @@
             "description": "If enabled, documentation editor will show the column names in lower case regardless of database.",
             "default": false
           },
+          "dbt.dbtIntegration": {
+            "type": "string",
+            "enum": [
+              "core",
+              "cloud"
+            ],
+            "default": "core",
+            "description": "Select dbt core or dbt cloud"
+          },
           "dbt.dbtPythonPathOverride": {
             "type": "string",
             "description": "Path to a python executable or entrypoint. If undefined, we will use the Python extension's configured environment. Most users will not need to change this setting without specific reasoning such as custom wrappers and should instead modify the Python extensions selected interpreter."
           },
           "dbt.dbtCustomRunnerImport": {
             "type": "string",
-            "description": "Python import string to import custom dbt runner. ",
+            "description": "Python import string to import custom dbt runner. (Only supported for dbt core)",
             "default": "from dbt.cli.main import dbtRunner"
           },
           "dbt.allowListFolders": {
@@ -993,15 +1002,27 @@
             ]
           },
           {
-            "id": "validateProject",
-            "title": "%walkthrough.initialSetup.steps.validateProject.title%",
-            "description": "%walkthrough.initialSetup.steps.validateProject.description%",
+            "id": "validateProjectCore",
+            "title": "%walkthrough.initialSetup.steps.validateProjectCore.title%",
+            "description": "%walkthrough.initialSetup.steps.validateProjectCore.description%",
             "when": "dbtPowerUser.dbtIntegration === 'core' && dbtPowerUser.walkthroughProjectSelected",
             "media": {
-              "markdown": "media/validateProject.md"
+              "markdown": "media/validateProjectCore.md"
             },
             "completionEvents": [
-              "onCommand:dbtPowerUser.validateProject"
+              "onCommand:dbtPowerUser.validateProjectCore"
+            ]
+          },
+          {
+            "id": "validateProjectCloud",
+            "title": "%walkthrough.initialSetup.steps.validateProjectCloud.title%",
+            "description": "%walkthrough.initialSetup.steps.validateProjectCloud.description%",
+            "when": "dbtPowerUser.dbtIntegration === 'cloud' && dbtPowerUser.walkthroughProjectSelected",
+            "media": {
+              "markdown": "media/validateProjectCloud.md"
+            },
+            "completionEvents": [
+              "onCommand:dbtPowerUser.validateProjectCloud"
             ]
           },
           {
