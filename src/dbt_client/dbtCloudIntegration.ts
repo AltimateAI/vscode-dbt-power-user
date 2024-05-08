@@ -209,6 +209,7 @@ export class DBTCloudProjectIntegration
 
   async refreshProjectConfig(): Promise<void> {
     await this.initializePaths();
+    this.findAdapterType();
   }
 
   async executeSQL(query: string, limit: number): Promise<QueryExecution> {
@@ -452,7 +453,12 @@ export class DBTCloudProjectIntegration
   }
 
   async debug(command: DBTCommand): Promise<string> {
-    throw new Error("dbt debug is not supported in dbt cloud");
+    command.args = ["environment", "show"];
+    const { stdout, stderr } = await this.dbtCloudCommand(command).execute();
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    return stdout;
   }
 
   private async getDeferParams(): Promise<string[]> {
@@ -776,7 +782,9 @@ export class DBTCloudProjectIntegration
     this.seedPaths = [join(this.projectRoot.fsPath, "seeds")];
     this.macroPaths = [join(this.projectRoot.fsPath, "macros")];
     this.packagesInstallPath = join(this.projectRoot.fsPath, "dbt_packages");
+  }
 
+  private async findAdapterType() {
     const adapterTypeCommand = this.dbtCloudCommand(
       new DBTCommand("Getting adapter type...", [
         "compile",
