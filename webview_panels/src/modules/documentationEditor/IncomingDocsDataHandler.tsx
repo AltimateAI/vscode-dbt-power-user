@@ -43,6 +43,7 @@ const IncomingDocsDataHandler = (): JSX.Element => {
     <AlertModal
       isOpen={showAlert}
       title="Save changes?"
+      onClose={() => onActionClick(ActionState.CANCEL_STAY)}
       actionsFooter={
         <>
           <Button
@@ -55,7 +56,7 @@ const IncomingDocsDataHandler = (): JSX.Element => {
             onClick={() => onActionClick(ActionState.DISCARD_PROCEED)}
             title={`Documentation editor will discard ${currentDocsData?.name} changes and show ${incomingDocsData?.docs?.name} data`}
           >
-            Cancel and proceed
+            Discard changes
           </Button>
         </>
       }
