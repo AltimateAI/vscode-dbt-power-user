@@ -53,9 +53,11 @@ if DBT_MAJOR_VER >=1 and DBT_MINOR_VER >= 8:
     from dbt.contracts.graph.nodes import ManifestNode, CompiledNode  # type: ignore
     from dbt.artifacts.resources.v1.components import ColumnInfo  # type: ignore
     from dbt.artifacts.resources.types import NodeType
-elif DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 3:
+    from dbt.artifacts.schemas.manifest import WritableManifest
+elif DBT_MAJOR_VER >= 1 and DBT_MINOR_VER > 3:
     from dbt.contracts.graph.nodes import ColumnInfo, ManifestNode, CompiledNode  # type: ignore
     from dbt.node_types import NodeType
+    from dbt.contracts.graph.manifest import WritableManifest
 else:
     from dbt.contracts.graph.compiled import ManifestNode, CompiledNode  # type: ignore
     from dbt.contracts.graph.parsed import ColumnInfo  # type: ignore
