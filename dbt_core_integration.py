@@ -53,16 +53,19 @@ DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER = (
 if DBT_MAJOR_VER >=1 and DBT_MINOR_VER >= 8:
     from dbt.contracts.graph.nodes import ManifestNode, CompiledNode  # type: ignore
     from dbt.artifacts.resources.v1.components import ColumnInfo  # type: ignore
-    from dbt.artifacts.resources.types import NodeType
-    from dbt.artifacts.schemas.manifest import WritableManifest
+    from dbt.artifacts.resources.types import NodeType # type: ignore
+    from dbt_common.events.functions import fire_event # type: ignore
+    from dbt.artifacts.schemas.manifest import WritableManifest # type: ignore
 elif DBT_MAJOR_VER >= 1 and DBT_MINOR_VER > 3:
     from dbt.contracts.graph.nodes import ColumnInfo, ManifestNode, CompiledNode  # type: ignore
-    from dbt.node_types import NodeType
-    from dbt.contracts.graph.manifest import WritableManifest
+    from dbt.node_types import NodeType # type: ignore
+    from dbt.contracts.graph.manifest import WritableManifest # type: ignore
+    from dbt.events.functions import fire_event # type: ignore
 else:
     from dbt.contracts.graph.compiled import ManifestNode, CompiledNode  # type: ignore
     from dbt.contracts.graph.parsed import ColumnInfo  # type: ignore
-    from dbt.node_types import NodeType
+    from dbt.node_types import NodeType # type: ignore
+    from dbt.events.functions import fire_event # type: ignore
 
 
 if TYPE_CHECKING:
@@ -222,10 +225,10 @@ def find_package_paths(project_directories):
 # Performance hacks
 # jinja.get_rendered = memoize_get_rendered(jinja.get_rendered)
 disable_tracking()
-try:
-    from dbt.events.functions import fire_event  # monkey-patched for perf
-except ImportError:
-    from dbt_common.events.functions import fire_event  # dbt 1.8
+# try:
+#     from dbt.events.functions import fire_event  # monkey-patched for perf
+# except ImportError:
+#     from dbt_common.events.functions import fire_event  # dbt 1.8
 fire_event = lambda e: None
 
 
