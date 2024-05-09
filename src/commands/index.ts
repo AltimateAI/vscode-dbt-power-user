@@ -35,7 +35,7 @@ import {
 } from "../comment_provider/conversationProvider";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { DBTClient } from "../dbt_client";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -502,7 +502,13 @@ export class VSCodeCommands implements Disposable {
               this.dbtTerminal.logLine("Python bridge is connected");
             }
 
+            this.dbtTerminal.logNewLine();
+
             const paths = [
+              {
+                pathType: "DBT Project File",
+                path: project.getDBTProjectFilePath(),
+              },
               { pathType: "Target", path: project.getTargetPath() },
               {
                 pathType: "PackageInstall",
@@ -538,6 +544,18 @@ export class VSCodeCommands implements Disposable {
               this.dbtTerminal.logLine(line);
             }
 
+            const dbtProjectFilePath = project.getDBTProjectFilePath();
+            if (existsSync(dbtProjectFilePath)) {
+              this.dbtTerminal.logNewLine();
+              this.dbtTerminal.logNewLine();
+              this.dbtTerminal.logLine("dbt_project.yml");
+              this.dbtTerminal.logHorizontalRule();
+              const fileContent = readFileSync(dbtProjectFilePath, "utf8");
+              this.dbtTerminal.logLine(fileContent.replace(/\n/g, "\r\n"));
+              this.dbtTerminal.logHorizontalRule();
+            }
+
+            this.dbtTerminal.logNewLine();
             const diagnostics = project.getAllDiagnostic();
             this.dbtTerminal.logLine(
               `Number of diagnostics issues=${diagnostics.length}`,
