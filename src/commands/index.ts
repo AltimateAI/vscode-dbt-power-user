@@ -510,9 +510,18 @@ export class VSCodeCommands implements Disposable {
               },
               { pathType: "Manifest", path: project.getManifestPath() },
               { pathType: "Catalog", path: project.getCatalogPath() },
-              // { pathType: "Model", path: project.getModelPaths()?.join(", ") },
-              // { pathType: "Seed", path: project.getSeedPaths()?.join(", ") },
-              // { pathType: "Macro", path: project.getMacroPaths()?.join(", ") },
+              ...(project.getModelPaths() || []).map((path) => ({
+                pathType: "Model",
+                path,
+              })),
+              ...(project.getSeedPaths() || []).map((path) => ({
+                pathType: "Seed",
+                path,
+              })),
+              ...(project.getMacroPaths() || []).map((path) => ({
+                pathType: "Macro",
+                path,
+              })),
             ];
 
             for (const p of paths) {
