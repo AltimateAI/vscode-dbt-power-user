@@ -496,24 +496,37 @@ export class VSCodeCommands implements Disposable {
               this.dbtTerminal.logLine(`DBT version=${dbtVersion.join(".")}`);
             }
 
-            const manifestPath = project.getManifestPath();
-            if (!manifestPath) {
-              this.dbtTerminal.logLine("Manifest path not found");
-            } else {
-              this.dbtTerminal.logLine(`Manifest path=${manifestPath}`);
-              if (!existsSync(manifestPath)) {
-                this.dbtTerminal.logLine(
-                  `Manifest file doesn't exists at location`,
-                );
-              } else {
-                this.dbtTerminal.logLine(`Manifest file exists at location`);
-              }
-            }
-
             if (!project.getPythonBridgeStatus()) {
               this.dbtTerminal.logLine("Python bridge is not connected");
             } else {
               this.dbtTerminal.logLine("Python bridge is connected");
+            }
+
+            const paths = [
+              { pathType: "Target", path: project.getTargetPath() },
+              {
+                pathType: "PackageInstall",
+                path: project.getPackageInstallPath(),
+              },
+              { pathType: "Manifest", path: project.getManifestPath() },
+              { pathType: "Catalog", path: project.getCatalogPath() },
+              // { pathType: "Model", path: project.getModelPaths()?.join(", ") },
+              // { pathType: "Seed", path: project.getSeedPaths()?.join(", ") },
+              // { pathType: "Macro", path: project.getMacroPaths()?.join(", ") },
+            ];
+
+            for (const p of paths) {
+              if (!p.path) {
+                this.dbtTerminal.logLine(`${p.pathType} path not found`);
+                continue;
+              }
+              let line = `${p.pathType} path=${p.path}\t\t`;
+              if (!existsSync(p.path)) {
+                line += "File doesn't exists at location";
+              } else {
+                line += "File exists at location";
+              }
+              this.dbtTerminal.logLine(line);
             }
 
             const diagnostics = project.getAllDiagnostic();
