@@ -323,7 +323,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       return;
     }
 
-    const columnTests = tests.filter((test) => test.column_name === columnName);
+    const columnTests = tests.filter(
+      (test) => test.column_name?.toLowerCase() === columnName.toLowerCase(),
+    );
 
     // No tests for this column - may be all deleted
     if (!columnTests.length) {
@@ -607,7 +609,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                               model.columns &&
                               model.columns.find(
                                 (yamlColumn: any) =>
-                                  yamlColumn.name === column.name,
+                                  yamlColumn.name.toLowerCase() ===
+                                  column.name.toLowerCase(),
                               );
                             if (existingColumn !== undefined) {
                               // ignore tests from existing column, as it will be recreated in `getTestDataByColumn`
