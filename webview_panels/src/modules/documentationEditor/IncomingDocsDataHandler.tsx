@@ -89,9 +89,9 @@ const IncomingDocsDataHandler = (): JSX.Element => {
         </>
       }
     >
-      You have unsaved changes in the ‘{currentDocsData?.name}’ model. Would you
+      You have unsaved changes in model: ‘{currentDocsData?.name}’. Would you
       like to discard the changes, save them and proceed, or remain in the
-      current state
+      current state?
     </AlertModal>
   );
 };
