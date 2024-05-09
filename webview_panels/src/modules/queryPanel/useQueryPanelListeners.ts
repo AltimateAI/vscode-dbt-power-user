@@ -19,7 +19,7 @@ import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import { HINTS, HINT_VISIBILITY_DELAY } from "./constants";
 import { QueryPanelStateProps } from "./context/types";
 
-const useQueryPanelListeners = (): void => {
+const useQueryPanelListeners = (): { loading: boolean } => {
   const dispatch = useQueryPanelDispatch();
   const { loading, lastHintTimestamp, hintIndex } = useQueryPanelState();
   const lastHintTimestampRef = useRef(0);
@@ -153,6 +153,8 @@ const useQueryPanelListeners = (): void => {
       window.removeEventListener("message", onMesssage);
     };
   }, [onMesssage]);
+
+  return { loading };
 };
 
 export default useQueryPanelListeners;

@@ -1895,23 +1895,26 @@ caption {
   margin-top: 0.15rem;
   border-width: 2px;
 }
-._codeblock_5cqy1_1 .card-body {
+._codeblock_tsha5_1,
+._codeblock_tsha5_1 .card-body {
   padding: 0;
 }
-._codeblock_5cqy1_1 pre {
+._codeblock_tsha5_1 pre {
   background: transparent !important;
 }
-._codeblock_5cqy1_1 pre.language-markdown {
+._codeblock_tsha5_1 pre.language-markdown {
   border: none;
 }
-._codeblock_5cqy1_1 pre code {
+._codeblock_tsha5_1 pre code {
   background: transparent !important;
   white-space: pre-wrap !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
 }
-._codeblock_5cqy1_1 pre code .number {
+._codeblock_tsha5_1 pre code .number {
   margin-right: 0.75rem;
 }
-._codeblock_5cqy1_1 pre code.language-markdown {
+._codeblock_tsha5_1 pre code.language-markdown {
   white-space: normal !important;
 }
 @keyframes _pulse_14zop_1 {

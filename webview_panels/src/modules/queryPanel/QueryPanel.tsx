@@ -5,14 +5,20 @@ import ClearResultsButton from "./components/clearResultsButton/ClearResultsButt
 import useQueryPanelListeners from "./useQueryPanelListeners";
 import QueryPanelTitle from "./components/QueryPanelContents/QueryPanelTitle";
 import QueryPanelContent from "./components/QueryPanelContents/QueryPanelContent";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import classes from "./querypanel.module.scss";
 import ShowOldUxButton from "./components/showOldUxButton/ShowOldUxButton";
 
 const QueryPanel = (): JSX.Element => {
   const [showCompiledCode, setShowCompiledCode] = useState(false);
 
-  useQueryPanelListeners();
+  const { loading } = useQueryPanelListeners();
+
+  useEffect(() => {
+    if (loading) {
+      setShowCompiledCode(false);
+    }
+  }, [loading]);
 
   return (
     <div className={classes.queryPanel}>

@@ -1,4 +1,4 @@
-import { CodeBlock } from "@lib";
+import { CodeBlock } from "@uicore";
 import PreTag from "@modules/markdown/PreTag";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 
@@ -20,7 +20,7 @@ const QueryPanelError = (): JSX.Element => {
           <PreTag text={JSON.stringify(queryResultsError, null, 2)}>
             <CodeBlock
               code={JSON.stringify(queryResultsError, null, 2)}
-              language="sql"
+              language="javascript"
             />
           </PreTag>
         </div>
