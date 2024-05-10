@@ -23,6 +23,7 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import {
   debounce,
   extendErrorWithSupportLinks,
+  getColumnNameByCase,
   setupWatcherHandler,
 } from "../utils";
 import { QueryResultPanel } from "../webview_provider/queryResultPanel";
@@ -1005,11 +1006,11 @@ select * from renamed
     }
     const columns: Record<string, ColumnMetaData> = {};
     Object.entries(node.columns).forEach(([k, v]) => {
-      columns[k.toLowerCase()] = v;
+      columns[getColumnNameByCase(k)] = v;
     });
 
     for (const c of columnsFromDB) {
-      const existing_column = columns[c.column.toLowerCase()];
+      const existing_column = columns[getColumnNameByCase(c.column)];
       if (existing_column) {
         existing_column.data_type = (
           existing_column.data_type || c.dtype

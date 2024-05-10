@@ -16,7 +16,6 @@ import {
   getProjectRelativePath,
   provideSingleton,
   setupWatcherHandler,
-  updateColumnNameCase,
 } from "../utils";
 import {
   Catalog,
@@ -839,11 +838,10 @@ export class DBTCoreProjectIntegration
     objectName: string,
   ): Promise<DBColumn[]> {
     this.throwBridgeErrorIfAvailable();
-    const columns = await this.python?.lock<DBColumn[]>(
+    return this.python?.lock<DBColumn[]>(
       (python) =>
         python!`to_dict(project.get_columns_in_relation(project.create_relation(${database}, ${schema}, ${objectName})))`,
     );
-    return updateColumnNameCase(columns);
   }
 
   async getBulkSchema(

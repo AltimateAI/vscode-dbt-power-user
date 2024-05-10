@@ -12,7 +12,11 @@ import { RateLimitException } from "../exceptions";
 import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
+import {
+  extendErrorWithSupportLinks,
+  getColumnNameByCase,
+  provideSingleton,
+} from "../utils";
 import {
   AIColumnDescription,
   DBTDocumentation,
@@ -190,10 +194,6 @@ export class DocGenService {
       return undefined;
     }
 
-    const showColumnNamesInLowercase = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("showColumnNamesInLowercase", false);
-
     const docColumns = currentNode.columns;
     return {
       aiEnabled: this.altimateRequest.enabled(),
@@ -205,9 +205,7 @@ export class DocGenService {
       uniqueId: currentNode.uniqueId,
       columns: Object.values(docColumns).map((column) => {
         return {
-          name: showColumnNamesInLowercase
-            ? column.name.toLowerCase()
-            : column.name,
+          name: getColumnNameByCase(column.name),
           description: column.description,
           generated: false,
           source: Source.YAML,

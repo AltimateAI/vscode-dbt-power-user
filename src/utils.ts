@@ -175,13 +175,25 @@ export const deepEqual = (obj1: any, obj2: any): boolean => {
   return true;
 };
 
-export const updateColumnNameCase = (columns: DBColumn[]) => {
+export const getColumnNameByCase = (columnName: string) => {
   const showColumnNamesInLowercase = workspace
     .getConfiguration("dbt")
     .get<boolean>("showColumnNamesInLowercase", false);
-  return columns.map((c) => ({
-    ...c,
-    column: showColumnNamesInLowercase ? c.column.toLowerCase() : c.column,
-    dtype: c.dtype?.toLowerCase(),
-  }));
+  return showColumnNamesInLowercase ? columnName.toLowerCase() : columnName;
+};
+
+export const isColumnNameEqual = (
+  columnNameA: string | undefined,
+  columnNameB: string | undefined,
+) => {
+  if (!columnNameA || !columnNameB) {
+    return false;
+  }
+  const showColumnNamesInLowercase = workspace
+    .getConfiguration("dbt")
+    .get<boolean>("showColumnNamesInLowercase", false);
+
+  return showColumnNamesInLowercase
+    ? columnNameA.toLowerCase() === columnNameB.toLowerCase()
+    : columnNameA === columnNameB;
 };

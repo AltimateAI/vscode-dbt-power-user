@@ -11,7 +11,7 @@ import {
   DiagnosticSeverity,
   CancellationToken,
 } from "vscode";
-import { provideSingleton, updateColumnNameCase } from "../utils";
+import { provideSingleton } from "../utils";
 import {
   Catalog,
   DBColumn,
@@ -625,8 +625,7 @@ export class DBTCloudProjectIntegration
     if (exception) {
       throw exception;
     }
-    const columns = JSON.parse(compiledLine[0].data.compiled) as DBColumn[];
-    return updateColumnNameCase(columns);
+    return JSON.parse(compiledLine[0].data.compiled);
   }
 
   async getColumnsOfModel(modelName: string): Promise<DBColumn[]> {
@@ -653,8 +652,7 @@ export class DBTCloudProjectIntegration
     if (exception) {
       throw exception;
     }
-    const columns = JSON.parse(compiledLine[0].data.compiled) as DBColumn[];
-    return updateColumnNameCase(columns);
+    return JSON.parse(compiledLine[0].data.compiled);
   }
 
   async getBulkSchema(
