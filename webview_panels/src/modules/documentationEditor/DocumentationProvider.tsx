@@ -33,7 +33,6 @@ import { ContextProps } from "./types";
 import { getGenerationsInModel } from "./utils";
 import DocumentationEditor from "./DocumentationEditor";
 import { ConversationGroup, DbtDocsShareDetails } from "@lib";
-import IncomingDocsDataHandler from "./IncomingDocsDataHandler";
 
 export const DocumentationContext = createContext<ContextProps>({
   state: initialState,
@@ -212,7 +211,6 @@ const DocumentationProvider = (): JSX.Element => {
   return (
     <DocumentationContext.Provider value={values}>
       <DocumentationEditor />
-      <IncomingDocsDataHandler />
     </DocumentationContext.Provider>
   );
 };

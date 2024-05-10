@@ -17,9 +17,7 @@ import {
   Select,
   Stack,
   Tag,
-  AlertModal,
 } from "..";
-import { useState } from "react";
 
 const meta = {
   title: "UiToolKit/Components",
@@ -41,9 +39,6 @@ export const UIKit = {
       { value: "strawberry", label: "Strawberry" },
       { value: "vanilla", label: "Vanilla" },
     ];
-
-    const [openAlert, setOpenAlert] = useState(false);
-
     return (
       <Container style={{ background: "var(--background--base)" }}>
         <CardTitle tag="h3">
@@ -141,20 +136,6 @@ export const UIKit = {
         >
           hello
         </Drawer>
-
-        <Button onClick={() => setOpenAlert(true)}>Show Alert</Button>
-        <AlertModal
-          isOpen={openAlert}
-          title="Save changes?"
-          actionsFooter={
-            <>
-              <Button>Stay, do not proceed</Button>
-              <Button>Cancel and proceed</Button>
-            </>
-          }
-        >
-          Your changes will be lost!
-        </AlertModal>
       </Container>
     );
   },
