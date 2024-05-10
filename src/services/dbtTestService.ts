@@ -4,7 +4,7 @@ import {
   CreateDbtTestRequest,
   UserInputError,
 } from "../altimate";
-import { provideSingleton } from "../utils";
+import { isColumnNameEqual, provideSingleton } from "../utils";
 import { DocGenService } from "./docGenService";
 import { StreamingService } from "./streamingService";
 import { QueryManifestService } from "./queryManifestService";
@@ -145,7 +145,9 @@ export class DbtTestService {
 
     const column =
       model.columns &&
-      model.columns.find((yamlColumn: any) => yamlColumn.name === column_name);
+      model.columns.find((yamlColumn: any) =>
+        isColumnNameEqual(yamlColumn.name, column_name),
+      );
     this.dbtTerminal.debug(
       "getDbtTestCode",
       "finding column test from yml",
