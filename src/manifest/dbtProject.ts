@@ -1011,12 +1011,14 @@ select * from renamed
     for (const c of columnsFromDB) {
       const existing_column = columns[c.column.toLowerCase()];
       if (existing_column) {
-        existing_column.data_type = existing_column.data_type || c.dtype;
+        existing_column.data_type = (
+          existing_column.data_type || c.dtype
+        )?.toLowerCase();
         continue;
       }
       node.columns[c.column] = {
         name: c.column,
-        data_type: c.dtype,
+        data_type: c.dtype?.toLowerCase(),
         description: "",
       };
     }

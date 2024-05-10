@@ -182,5 +182,6 @@ export const updateColumnNameCase = (columns: DBColumn[]) => {
   return columns.map((c) => ({
     ...c,
     column: showColumnNamesInLowercase ? c.column.toLowerCase() : c.column,
+    dtype: c.dtype?.toLowerCase(),
   }));
 };

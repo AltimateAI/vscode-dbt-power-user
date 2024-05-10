@@ -595,7 +595,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                           ? column.name.toLowerCase()
                           : column.name,
                         description: column.description,
-                        ...(column?.type ? { data_type: column.type } : {}),
+                        data_type: column.type?.toLowerCase(),
                         ...this.getTestDataByColumn(message, column.name),
                       })),
                     });
@@ -622,9 +622,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                               const { tests, ...rest } = existingColumn;
                               return {
                                 ...rest,
-                                ...(column?.type && !existingColumn?.data_type
-                                  ? { data_type: column.type }
-                                  : {}),
+                                data_type: (
+                                  rest.data_type || column.type
+                                )?.toLowerCase(),
                                 description: column.description,
                                 ...this.getTestDataByColumn(
                                   message,
@@ -638,9 +638,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                   ? column.name.toLowerCase()
                                   : column.name,
                                 description: column.description,
-                                ...(column?.type
-                                  ? { data_type: column.type }
-                                  : {}),
+                                data_type: column.type?.toLowerCase(),
                                 ...this.getTestDataByColumn(
                                   message,
                                   column.name,
