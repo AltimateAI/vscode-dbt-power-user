@@ -19,7 +19,12 @@ import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
+import {
+  extendErrorWithSupportLinks,
+  getColumnNameByCase,
+  isColumnNameEqual,
+  provideSingleton,
+} from "../utils";
 import path = require("path");
 import { PythonException } from "python-bridge";
 import { TelemetryService } from "../telemetry";
@@ -323,8 +328,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       return;
     }
 
-    const columnTests = tests.filter(
-      (test) => test.column_name?.toLowerCase() === columnName.toLowerCase(),
+    const columnTests = tests.filter((test) =>
+      isColumnNameEqual(test.column_name, columnName),
     );
 
     // No tests for this column - may be all deleted
@@ -439,8 +444,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     await project.getColumnsOfModel(modelName);
                   const columns = columnsInRelation.map((column) => {
                     return {
-                      name: column.column,
-                      type: column.dtype,
+                      name: getColumnNameByCase(column.column),
+                      type: column.dtype.toLowerCase(),
                     };
                   });
                   this.transmitColumns(columns);
@@ -588,9 +593,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       name: message.name,
                       description: message.description,
                       columns: message.columns.map((column: any) => ({
-                        name: column.name,
+                        name: getColumnNameByCase(column.name),
                         description: column.description,
-                        ...(column?.type ? { data_type: column.type } : {}),
+                        data_type: column.type?.toLowerCase(),
                         ...this.getTestDataByColumn(message, column.name),
                       })),
                     });
@@ -607,19 +612,17 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                           model.columns = message.columns.map((column: any) => {
                             const existingColumn =
                               model.columns &&
-                              model.columns.find(
-                                (yamlColumn: any) =>
-                                  yamlColumn.name.toLowerCase() ===
-                                  column.name.toLowerCase(),
+                              model.columns.find((yamlColumn: any) =>
+                                isColumnNameEqual(yamlColumn.name, column.name),
                               );
                             if (existingColumn !== undefined) {
                               // ignore tests from existing column, as it will be recreated in `getTestDataByColumn`
                               const { tests, ...rest } = existingColumn;
                               return {
                                 ...rest,
-                                ...(column?.type && !existingColumn?.data_type
-                                  ? { data_type: column.type }
-                                  : {}),
+                                data_type: (
+                                  rest.data_type || column.type
+                                )?.toLowerCase(),
                                 description: column.description,
                                 ...this.getTestDataByColumn(
                                   message,
@@ -629,11 +632,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                               };
                             } else {
                               return {
-                                name: column.name,
+                                name: getColumnNameByCase(column.name),
                                 description: column.description,
-                                ...(column?.type
-                                  ? { data_type: column.type }
-                                  : {}),
+                                data_type: column.type?.toLowerCase(),
                                 ...this.getTestDataByColumn(
                                   message,
                                   column.name,

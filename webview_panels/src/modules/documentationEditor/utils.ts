@@ -124,9 +124,7 @@ export const mergeCurrentAndIncomingDocumentationColumns = (
   incoming: DBTDocumentation["columns"],
 ): DBTDocumentation["columns"] => {
   return incoming.map((column) => {
-    const existingColumn = current?.find(
-      (c) => column.name?.toLowerCase() === c.name.toLowerCase(),
-    );
+    const existingColumn = current?.find((c) => column.name === c.name);
     return {
       name: column.name ?? "",
       type: column.type,
