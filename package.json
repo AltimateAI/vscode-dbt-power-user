@@ -104,7 +104,7 @@
           "dbt.showColumnNamesInLowercase": {
             "type": "boolean",
             "description": "If enabled, documentation editor will show the column names in lower case regardless of database.",
-            "default": false
+            "default": true
           },
           "dbt.dbtIntegration": {
             "type": "string",
