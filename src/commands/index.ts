@@ -35,7 +35,8 @@ import {
 } from "../comment_provider/conversationProvider";
 import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { DBTClient } from "../dbt_client";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
+import { DBTProject } from "../manifest/dbtProject";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -215,6 +216,29 @@ export class VSCodeCommands implements Disposable {
       ),
       commands.registerCommand("dbtPowerUser.clearAltimateScanResults", () =>
         this.altimateScan.clearProblems(),
+      ),
+      commands.registerCommand(
+        "dbtPowerUser.switchDbtIntegration",
+        async () => {
+          const dbtIntegration = workspace
+            .getConfiguration("dbt")
+            .get<string>("dbtIntegration", "core");
+          const target = dbtIntegration === "cloud" ? "core" : "cloud";
+          const message = `Switching to dbt ${target} requires reloading the window, any unsaved changes will be lost.`;
+          const answer = await window.showInformationMessage(
+            message,
+            "Confirm",
+          );
+          if (answer === "Confirm") {
+            await workspace
+              .getConfiguration("dbt")
+              .update(
+                "dbtIntegration",
+                dbtIntegration === "cloud" ? "core" : "cloud",
+              );
+            await commands.executeCommand("workbench.action.reloadWindow");
+          }
+        },
       ),
       commands.registerCommand("dbtPowerUser.validateProject", () => {
         const pickedProject: ProjectQuickPickItem | undefined =
@@ -454,54 +478,22 @@ export class VSCodeCommands implements Disposable {
           this.dbtTerminal.logNewLine();
 
           for (const project of projects) {
-            this.dbtTerminal.logHorizontalRule();
-            this.dbtTerminal.logLine(
-              `Printing information for ${project.getProjectName()}`,
-            );
-            this.dbtTerminal.logHorizontalRule();
-            this.dbtTerminal.logLine(
-              `Project Name=${project.getProjectName()}`,
-            );
-            this.dbtTerminal.logLine(
-              `Adapter Type=${project.getAdapterType()}`,
-            );
-
-            const dbtVersion = project.getDBTVersion();
-            if (!dbtVersion) {
-              this.dbtTerminal.logLine("DBT is not initialized properly");
-            } else {
-              this.dbtTerminal.logLine(`DBT version=${dbtVersion.join(".")}`);
+            try {
+              this.dbtTerminal.logHorizontalRule();
+              this.dbtTerminal.logLine(
+                `Printing information for ${project.getProjectName()}`,
+              );
+              this.dbtTerminal.logHorizontalRule();
+              await this.printProjectInfo(project);
+            } catch (e) {
+              this.dbtTerminal.logNewLine();
+              this.dbtTerminal.logLine(
+                "Failed to print all the info for the project...",
+              );
+              this.dbtTerminal.logLine(`Error=${e}`);
+            } finally {
+              this.dbtTerminal.logHorizontalRule();
             }
-
-            const manifestPath = project.getManifestPath();
-            if (!manifestPath) {
-              this.dbtTerminal.logLine("Manifest path not found");
-            } else {
-              this.dbtTerminal.logLine(`Manifest path=${manifestPath}`);
-              if (!existsSync(manifestPath)) {
-                this.dbtTerminal.logLine(
-                  `Manifest file doesn't exists at location`,
-                );
-              } else {
-                this.dbtTerminal.logLine(`Manifest file exists at location`);
-              }
-            }
-
-            if (!project.getPythonBridgeStatus()) {
-              this.dbtTerminal.logLine("Python bridge is not connected");
-            } else {
-              this.dbtTerminal.logLine("Python bridge is connected");
-            }
-
-            const diagnostics = project.getAllDiagnostic();
-            this.dbtTerminal.logLine(
-              `Number of diagnostics issues=${diagnostics.length}`,
-            );
-            for (const d of diagnostics) {
-              this.dbtTerminal.logLine(d.message);
-            }
-            await project.debug();
-            this.dbtTerminal.logHorizontalRule();
           }
           this.dbtTerminal.logNewLine();
           this.dbtTerminal.logLine("Diagnostics completed successfully...");
@@ -512,6 +504,87 @@ export class VSCodeCommands implements Disposable {
         }
       }),
     );
+  }
+
+  private async printProjectInfo(project: DBTProject) {
+    this.dbtTerminal.logLine(`Project Name=${project.getProjectName()}`);
+    this.dbtTerminal.logLine(`Adapter Type=${project.getAdapterType()}`);
+
+    const dbtVersion = project.getDBTVersion();
+    if (!dbtVersion) {
+      this.dbtTerminal.logLine("DBT is not initialized properly");
+    } else {
+      this.dbtTerminal.logLine(`DBT version=${dbtVersion.join(".")}`);
+    }
+
+    if (!project.getPythonBridgeStatus()) {
+      this.dbtTerminal.logLine("Python bridge is not connected");
+    } else {
+      this.dbtTerminal.logLine("Python bridge is connected");
+    }
+
+    this.dbtTerminal.logNewLine();
+
+    const paths = [
+      {
+        pathType: "DBT Project File",
+        path: project.getDBTProjectFilePath(),
+      },
+      { pathType: "Target", path: project.getTargetPath() },
+      {
+        pathType: "PackageInstall",
+        path: project.getPackageInstallPath(),
+      },
+      { pathType: "Manifest", path: project.getManifestPath() },
+      { pathType: "Catalog", path: project.getCatalogPath() },
+      ...(project.getModelPaths() || []).map((path) => ({
+        pathType: "Model",
+        path,
+      })),
+      ...(project.getSeedPaths() || []).map((path) => ({
+        pathType: "Seed",
+        path,
+      })),
+      ...(project.getMacroPaths() || []).map((path) => ({
+        pathType: "Macro",
+        path,
+      })),
+    ];
+
+    for (const p of paths) {
+      if (!p.path) {
+        this.dbtTerminal.logLine(`${p.pathType} path not found`);
+        continue;
+      }
+      let line = `${p.pathType} path=${p.path}\t\t`;
+      if (!existsSync(p.path)) {
+        line += "File doesn't exists at location";
+      } else {
+        line += "File exists at location";
+      }
+      this.dbtTerminal.logLine(line);
+    }
+
+    const dbtProjectFilePath = project.getDBTProjectFilePath();
+    if (existsSync(dbtProjectFilePath)) {
+      this.dbtTerminal.logNewLine();
+      this.dbtTerminal.logNewLine();
+      this.dbtTerminal.logLine("dbt_project.yml");
+      this.dbtTerminal.logHorizontalRule();
+      const fileContent = readFileSync(dbtProjectFilePath, "utf8");
+      this.dbtTerminal.logLine(fileContent.replace(/\n/g, "\r\n"));
+      this.dbtTerminal.logHorizontalRule();
+    }
+
+    this.dbtTerminal.logNewLine();
+    const diagnostics = project.getAllDiagnostic();
+    this.dbtTerminal.logLine(
+      `Number of diagnostics issues=${diagnostics.length}`,
+    );
+    for (const d of diagnostics) {
+      this.dbtTerminal.logLine(d.message);
+    }
+    await project.debug();
   }
 
   dispose() {

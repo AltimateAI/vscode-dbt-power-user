@@ -691,7 +691,6 @@ export class DBTCoreProjectIntegration
           this.projectRoot,
         );
         console.log(`Set remote manifest path: ${manifestPath}`);
-        this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
         return manifestPath;
       } catch (error) {
         if (error instanceof NotFoundError) {
@@ -741,6 +740,10 @@ export class DBTCoreProjectIntegration
       true,
       args,
     );
+
+    if (manifestPathType === ManifestPathType.REMOTE) {
+      this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
+    }
     return args;
   }
 

@@ -36,32 +36,45 @@ from typing import (
 )
 
 import agate
+import json
 from dbt.adapters.factory import get_adapter_class_by_name
 from dbt.config.runtime import RuntimeConfig
-from dbt.contracts.graph.manifest import NodeType, WritableManifest
-from dbt.events.functions import fire_event  # monkey-patched for perf
 from dbt.flags import set_from_args
-from dbt.node_types import NodeType
 from dbt.parser.manifest import ManifestLoader, process_node
 from dbt.parser.sql import SqlBlockParser, SqlMacroParser
 from dbt.task.sql import SqlCompileRunner, SqlExecuteRunner
 from dbt.tracking import disable_tracking
 from dbt.version import __version__ as dbt_version
-import json
 
-try:
-    # dbt <= 1.3
+DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER = (
+    int(v) if v.isnumeric() else v for v in dbt_version.split(".")
+)
+
+if DBT_MAJOR_VER >=1 and DBT_MINOR_VER >= 8:
+    from dbt.contracts.graph.nodes import ManifestNode, CompiledNode  # type: ignore
+    from dbt.artifacts.resources.v1.components import ColumnInfo  # type: ignore
+    from dbt.artifacts.resources.types import NodeType # type: ignore
+    from dbt_common.events.functions import fire_event # type: ignore
+    from dbt.artifacts.schemas.manifest import WritableManifest # type: ignore
+elif DBT_MAJOR_VER >= 1 and DBT_MINOR_VER > 3:
+    from dbt.contracts.graph.nodes import ColumnInfo, ManifestNode, CompiledNode  # type: ignore
+    from dbt.node_types import NodeType # type: ignore
+    from dbt.contracts.graph.manifest import WritableManifest # type: ignore
+    from dbt.events.functions import fire_event # type: ignore
+else:
     from dbt.contracts.graph.compiled import ManifestNode, CompiledNode  # type: ignore
     from dbt.contracts.graph.parsed import ColumnInfo  # type: ignore
-except Exception:
-    # dbt > 1.3
-    from dbt.contracts.graph.nodes import ColumnInfo, ManifestNode, CompiledNode  # type: ignore
+    from dbt.node_types import NodeType # type: ignore
+    from dbt.events.functions import fire_event # type: ignore
 
 
 if TYPE_CHECKING:
     # These imports are only used for type checking
     from dbt.adapters.base import BaseRelation  # type: ignore
-    from dbt.contracts.connection import AdapterResponse
+    if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
+        from dbt.adapters.contracts.connection import AdapterResponse
+    else:
+        from dbt.contracts.connection import AdapterResponse
 
 Primitive = Union[bool, str, float, None]
 PrimitiveDict = Dict[str, Primitive]
@@ -71,9 +84,7 @@ CACHE_VERSION = 1
 SQL_CACHE_SIZE = 1024
 
 MANIFEST_ARTIFACT = "manifest.json"
-DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER = (
-    int(v) if v.isnumeric() else v for v in dbt_version.split(".")
-)
+
 RAW_CODE = "raw_code" if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 3 else "raw_sql"
 COMPILED_CODE = (
     "compiled_code" if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 3 else "compiled_sql"
@@ -82,7 +93,7 @@ COMPILED_CODE = (
 JINJA_CONTROL_SEQS = ["{{", "}}", "{%", "%}", "{#", "#}"]
 
 T = TypeVar("T")
-
+REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES = "REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES"
 
 @contextlib.contextmanager
 def add_path(path):
@@ -327,10 +338,19 @@ class DbtProject:
         """This inits a new Adapter which is fundamentally different than
         the singleton approach in the core lib"""
         adapter_name = self.config.credentials.type
-        return get_adapter_class_by_name(adapter_name)(self.config)
+        adapter_type = get_adapter_class_by_name(adapter_name)
+        if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
+            from dbt.mp_context import get_mp_context
+            return adapter_type(self.config, get_mp_context())
+        return adapter_type(self.config)
 
     def init_config(self):
-        set_from_args(self.args, self.args)
+        if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
+            from dbt_common.context import set_invocation_context
+            set_invocation_context(os.environ)
+            set_from_args(self.args, None)
+        else:
+            set_from_args(self.args, self.args)
         self.config = RuntimeConfig.from_args(self.args)
         if hasattr(self.config, "source_paths"):
             self.config.model_paths = self.config.source_paths
@@ -340,6 +360,10 @@ class DbtProject:
             self.init_config()
             self.adapter = self.get_adapter()
             self.adapter.connections.set_connection_name()
+            if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
+                self.args.REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES = os.environ.get(REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES, True)
+                from dbt.context.providers import generate_runtime_macro_context
+                self.adapter.set_macro_context_generator(generate_runtime_macro_context)
             self.config.adapter = self.adapter
         except Exception as e:
             # reset project
@@ -543,9 +567,14 @@ class DbtProject:
         make_schema_fn = get_macro_function('make_schema')\n
         make_schema_fn({'name': '__test_schema_1'})\n
         make_schema_fn({'name': '__test_schema_2'})"""
-        return partial(
-            self.adapter.execute_macro, macro_name=macro_name, manifest=self.dbt
-        )
+        if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
+            return partial(
+                self.adapter.execute_macro, macro_name=macro_name
+            )
+        else:
+            return partial(
+                self.adapter.execute_macro, macro_name=macro_name, manifest=self.dbt
+            )
 
     def adapter_execute(
         self, sql: str, auto_begin: bool = True, fetch: bool = False

@@ -173,6 +173,10 @@ export class DBTProject implements Disposable {
     return this.projectConfig.name;
   }
 
+  getDBTProjectFilePath() {
+    return path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE);
+  }
+
   getTargetPath() {
     return this.dbtProjectIntegration.getTargetPath();
   }
