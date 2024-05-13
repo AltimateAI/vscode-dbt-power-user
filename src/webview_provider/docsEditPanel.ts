@@ -401,6 +401,59 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     };
   }
 
+  private convertColumnNamesByCaseConfig(
+    columns: { name: string }[],
+    modelName: string,
+    project: DBTProject,
+  ) {
+    if (!columns.length) {
+      return columns;
+    }
+
+    const patchPath = this.documentation?.patchPath;
+    // if new project, and no schema.yml
+    if (!patchPath) {
+      return columns;
+    }
+
+    const docFile: string = readFileSync(
+      path.join(project.projectRoot.fsPath, patchPath.split("://")[1]),
+    ).toString("utf8");
+    const parsedDocFile =
+      parse(docFile, {
+        strict: false,
+        uniqueKeys: false,
+        maxAliasCount: -1,
+      }) || {};
+
+    const model = parsedDocFile.models.find(
+      (model: any) => model.name === modelName,
+    );
+
+    // new model and does not exist in schema.yml
+    if (!model) {
+      return columns;
+    }
+
+    const existingColumnNames = (model.columns as { name: string }[]).map(
+      (c) => c.name,
+    );
+
+    return columns.map((c) => {
+      // find a column from schema.yml with same name ignoring case
+      const existingColumn = existingColumnNames.find(
+        (name) => name.toLowerCase() === c.name.toLowerCase(),
+      );
+      // column exists with matching name, so use name from schema.yml
+      if (existingColumn) {
+        return { ...c, name: existingColumn };
+      }
+
+      // new column, save the name by checking the config
+      return { ...c, name: getColumnNameByCase(c.name) };
+    });
+  }
+
   private setupWebviewHooks(context: WebviewViewResolveContext) {
     // Clear this listener before subscribing again
     if (this.onMessageDisposable) {
@@ -442,12 +495,16 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 try {
                   const columnsInRelation =
                     await project.getColumnsOfModel(modelName);
-                  const columns = columnsInRelation.map((column) => {
-                    return {
-                      name: getColumnNameByCase(column.column),
-                      type: column.dtype.toLowerCase(),
-                    };
-                  });
+                  const columns = this.convertColumnNamesByCaseConfig(
+                    columnsInRelation.map((column) => {
+                      return {
+                        name: column.column,
+                        type: column.dtype.toLowerCase(),
+                      };
+                    }),
+                    modelName,
+                    project,
+                  );
                   this.transmitColumns(columns);
                   if (syncRequestId) {
                     this._panel!.webview.postMessage({
@@ -620,6 +677,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                               const { tests, ...rest } = existingColumn;
                               return {
                                 ...rest,
+                                name: existingColumn.name,
                                 data_type: (
                                   rest.data_type || column.type
                                 )?.toLowerCase(),

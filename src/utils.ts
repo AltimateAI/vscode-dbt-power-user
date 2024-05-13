@@ -178,7 +178,7 @@ export const deepEqual = (obj1: any, obj2: any): boolean => {
 export const getColumnNameByCase = (columnName: string) => {
   const showColumnNamesInLowercase = workspace
     .getConfiguration("dbt")
-    .get<boolean>("showColumnNamesInLowercase", false);
+    .get<boolean>("showColumnNamesInLowercase", true);
   return showColumnNamesInLowercase ? columnName.toLowerCase() : columnName;
 };
 
@@ -189,11 +189,18 @@ export const isColumnNameEqual = (
   if (!columnNameA || !columnNameB) {
     return false;
   }
+
+  if (columnNameA === columnNameB) {
+    return true;
+  }
+
   const showColumnNamesInLowercase = workspace
     .getConfiguration("dbt")
-    .get<boolean>("showColumnNamesInLowercase", false);
+    .get<boolean>("showColumnNamesInLowercase", true);
 
-  return showColumnNamesInLowercase
-    ? columnNameA.toLowerCase() === columnNameB.toLowerCase()
-    : columnNameA === columnNameB;
+  if (showColumnNamesInLowercase) {
+    return columnNameA.toLowerCase() === columnNameB.toLowerCase();
+  }
+
+  return false;
 };

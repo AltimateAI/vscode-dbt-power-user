@@ -12,11 +12,7 @@ import { RateLimitException } from "../exceptions";
 import { DBTProject } from "../manifest/dbtProject";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
-import {
-  extendErrorWithSupportLinks,
-  getColumnNameByCase,
-  provideSingleton,
-} from "../utils";
+import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import {
   AIColumnDescription,
   DBTDocumentation,
@@ -205,7 +201,7 @@ export class DocGenService {
       uniqueId: currentNode.uniqueId,
       columns: Object.values(docColumns).map((column) => {
         return {
-          name: getColumnNameByCase(column.name),
+          name: column.name,
           description: column.description,
           generated: false,
           source: Source.YAML,
