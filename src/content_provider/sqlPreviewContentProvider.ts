@@ -14,6 +14,9 @@ import {
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { debounce, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
+import { DeferToProdService } from "../services/deferToProdService";
+import { AltimateRequest } from "../altimate";
+import { ManifestPathType } from "../constants";
 
 @provideSingleton(SqlPreviewContentProvider)
 export class SqlPreviewContentProvider
@@ -28,6 +31,8 @@ export class SqlPreviewContentProvider
 
   constructor(
     private dbtProjectContainer: DBTProjectContainer,
+    private deferToProdService: DeferToProdService,
+    private altimateRequest: AltimateRequest,
     private telemetry: TelemetryService,
   ) {
     this.subscriptions = workspace.onDidCloseTextDocument((compilationDoc) =>
@@ -81,7 +86,21 @@ export class SqlPreviewContentProvider
       }
       this.telemetry.sendTelemetryEvent("requestCompilation");
       await project.refreshProjectConfig();
-      return await project.unsafeCompileQuery(query);
+      const result = await project.unsafeCompileQuery(query);
+      const { manifestPathType } =
+        this.deferToProdService.getDeferConfigByProjectRoot(
+          project.projectRoot.fsPath,
+        );
+      const dbtIntegrationMode = workspace
+        .getConfiguration("dbt")
+        .get<string>("dbtIntegration", "core");
+      if (
+        dbtIntegrationMode === "core" &&
+        manifestPathType === ManifestPathType.REMOTE
+      ) {
+        this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
+      }
+      return result;
     } catch (error: any) {
       const errorMessage = (error as Error).message;
       window.showErrorMessage(`Error while compiling: ${errorMessage}`);
