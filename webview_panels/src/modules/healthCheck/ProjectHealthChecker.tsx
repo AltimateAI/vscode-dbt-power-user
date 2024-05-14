@@ -64,7 +64,7 @@ interface SaasConfigSelectorProps {
   setConfigType: Dispatch<SetStateAction<ConfigType>>;
   isConfigLoading: boolean;
   configs: DBTConfig[];
-  getConfigs: () => Promise<void>;
+  loadConfigs: () => Promise<void>;
 }
 
 const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
@@ -119,7 +119,7 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
               color="link"
               onClick={(e) => {
                 e.stopPropagation();
-                void props.getConfigs();
+                void props.loadConfigs();
               }}
             >
               {props.isConfigLoading ? <LoadingIcon /> : <RefreshIcon />}
@@ -264,13 +264,18 @@ const ProjectHealthcheckInput = ({
     }
   }, []);
 
-  const getConfigs = useCallback(async () => {
-    setIsConfigLoading(true);
-    const result = (await executeRequestInSync("getInsightConfigs", {})) as {
-      items: DBTConfig[];
-    };
-    setIsConfigLoading(false);
-    setConfigs(result.items);
+  const loadConfigs = useCallback(async () => {
+    try {
+      setIsConfigLoading(true);
+      const result = (await executeRequestInSync("getInsightConfigs", {})) as {
+        items: DBTConfig[];
+      };
+      setConfigs(result.items);
+    } catch (e) {
+      panelLogger.log(e);
+    } finally {
+      setIsConfigLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -279,7 +284,7 @@ const ProjectHealthcheckInput = ({
 
   useEffect(() => {
     if (configType === ConfigType.Saas) {
-      void getConfigs();
+      void loadConfigs();
     }
   }, [configType]);
 
@@ -314,7 +319,7 @@ const ProjectHealthcheckInput = ({
             setConfigType={setConfigType}
             configs={configs}
             isConfigLoading={isConfigLoading}
-            getConfigs={getConfigs}
+            loadConfigs={loadConfigs}
           />
 
           <Stack>
