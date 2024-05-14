@@ -176,6 +176,9 @@ export const deepEqual = (obj1: any, obj2: any): boolean => {
 };
 
 export const getColumnNameByCase = (columnName: string) => {
+  if (isQuotedIdentifier(columnName)) {
+    return columnName;
+  }
   const showColumnNamesInLowercase = workspace
     .getConfiguration("dbt")
     .get<boolean>("showColumnNamesInLowercase", true);
@@ -204,3 +207,6 @@ export const isColumnNameEqual = (
 
   return false;
 };
+
+export const isQuotedIdentifier = (name: string) =>
+  /^\d|(?=.*[a-z])(?=.*[A-Z])|[- "']/.test(name);

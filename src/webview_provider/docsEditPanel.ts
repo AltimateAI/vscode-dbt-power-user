@@ -20,9 +20,9 @@ import {
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
 import {
-  extendErrorWithSupportLinks,
   getColumnNameByCase,
   isColumnNameEqual,
+  isQuotedIdentifier,
   provideSingleton,
 } from "../utils";
 import path = require("path");
@@ -401,19 +401,38 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     };
   }
 
+  private modifyColumnNames = (
+    columns: { name: string }[],
+    existingColumnNames?: string[],
+  ) => {
+    return columns.map((c) => {
+      // find a column from schema.yml with same name ignoring case
+      const existingColumn = existingColumnNames?.find(
+        (name) => name.toLowerCase() === c.name.toLowerCase(),
+      );
+      // column exists with matching name, so use name from schema.yml
+      if (existingColumn) {
+        return { ...c, name: existingColumn };
+      }
+
+      // new column, save the name by checking the config
+      return { ...c, name: getColumnNameByCase(c.name) };
+    });
+  };
+
   private convertColumnNamesByCaseConfig(
     columns: { name: string }[],
     modelName: string,
     project: DBTProject,
   ) {
     if (!columns.length) {
-      return columns;
+      return this.modifyColumnNames(columns);
     }
 
     const patchPath = this.documentation?.patchPath;
     // if new project, and no schema.yml
     if (!patchPath) {
-      return columns;
+      return this.modifyColumnNames(columns);
     }
 
     const docFile: string = readFileSync(
@@ -432,26 +451,14 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
     // new model and does not exist in schema.yml
     if (!model) {
-      return columns;
+      return this.modifyColumnNames(columns);
     }
 
-    const existingColumnNames = (model.columns as { name: string }[]).map(
+    const existingColumnNames = (model.columns as { name: string }[])?.map(
       (c) => c.name,
     );
 
-    return columns.map((c) => {
-      // find a column from schema.yml with same name ignoring case
-      const existingColumn = existingColumnNames.find(
-        (name) => name.toLowerCase() === c.name.toLowerCase(),
-      );
-      // column exists with matching name, so use name from schema.yml
-      if (existingColumn) {
-        return { ...c, name: existingColumn };
-      }
-
-      // new column, save the name by checking the config
-      return { ...c, name: getColumnNameByCase(c.name) };
-    });
+    return this.modifyColumnNames(columns, existingColumnNames);
   }
 
   private setupWebviewHooks(context: WebviewViewResolveContext) {
@@ -648,20 +655,26 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     // there is a models section but the model does not exist yet.
                     parsedDocFile.models.push({
                       name: message.name,
-                      description: message.description,
-                      columns: message.columns.map((column: any) => ({
-                        name: getColumnNameByCase(column.name),
-                        description: column.description,
-                        data_type: column.type?.toLowerCase(),
-                        ...this.getTestDataByColumn(message, column.name),
-                      })),
+                      description: message.description || undefined,
+                      columns: message.columns.map((column: any) => {
+                        const name = getColumnNameByCase(column.name);
+                        return {
+                          name,
+                          description: column.description || undefined,
+                          data_type: column.type?.toLowerCase(),
+                          ...this.getTestDataByColumn(message, column.name),
+                          ...(isQuotedIdentifier(name)
+                            ? { quote: true }
+                            : undefined),
+                        };
+                      }),
                     });
                   } else {
                     // The model already exists
                     parsedDocFile.models = parsedDocFile.models.map(
                       (model: any) => {
                         if (model.name === message.name) {
-                          model.description = message.description;
+                          model.description = message.description || undefined;
                           model.tests = this.getTestDataByModel(
                             message,
                             model.name,
@@ -681,7 +694,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                 data_type: (
                                   rest.data_type || column.type
                                 )?.toLowerCase(),
-                                description: column.description,
+                                description: column.description || undefined,
                                 ...this.getTestDataByColumn(
                                   message,
                                   column.name,
@@ -689,14 +702,18 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                 ),
                               };
                             } else {
+                              const name = getColumnNameByCase(column.name);
                               return {
-                                name: getColumnNameByCase(column.name),
-                                description: column.description,
+                                name,
+                                description: column.description || undefined,
                                 data_type: column.type?.toLowerCase(),
                                 ...this.getTestDataByColumn(
                                   message,
                                   column.name,
                                 ),
+                                ...(isQuotedIdentifier(name)
+                                  ? { quote: true }
+                                  : undefined),
                               };
                             }
                           });
