@@ -61,7 +61,7 @@ const useIncomingDocsDataHandler = (): void => {
 
   useEffect(() => {
     if (showAlert) {
-      executeRequestInSync("showInformationMessage", {
+      executeRequestInSync("showWarningMessage", {
         infoMessage: `You have unsaved changes in model: ‘${currentDocsData?.name}’. Would you
       like to discard the changes, save them and proceed, or remain in the
       current state?`,
