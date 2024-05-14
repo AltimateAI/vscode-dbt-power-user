@@ -85,6 +85,23 @@ export class DBTCloudDetection implements DBTDetection {
         throw new Error(stderr);
       }
       if (stdout.includes("dbt Cloud CLI")) {
+        const regex = /dbt Cloud CLI - (\d*\.\d*\.\d*)/gm;
+        const matches = regex.exec(stdout);
+        if (matches?.length === 2) {
+          const version = matches[1];
+          const minVersion = "0.37.6";
+          if (version <= minVersion) {
+            window.showErrorMessage(
+              `This version of dbt Cloud is not supported. Please update to a dbt Cloud CLI version higher than ${minVersion}`,
+            );
+            this.terminal.debug(
+              "DBTCLIDetectionFailed",
+              "dbt cloud cli was found but version is not supported. Detection command returned :  " +
+                stdout,
+            );
+            return true;
+          }
+        }
         this.terminal.debug("DBTCLIDetectionSuccess", "dbt cloud cli detected");
         return true;
       } else {
