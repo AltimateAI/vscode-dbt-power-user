@@ -183,14 +183,14 @@ export const getColumnNameByCase = (columnName: string) => {
 };
 
 export const isColumnNameEqual = (
-  columnNameA: string | undefined,
-  columnNameB: string | undefined,
+  columnNameFromYml: string | undefined,
+  columnNameFromDb: string | undefined,
 ) => {
-  if (!columnNameA || !columnNameB) {
+  if (!columnNameFromYml || !columnNameFromDb) {
     return false;
   }
 
-  if (columnNameA === columnNameB) {
+  if (columnNameFromYml === columnNameFromDb) {
     return true;
   }
 
@@ -199,7 +199,7 @@ export const isColumnNameEqual = (
     .get<boolean>("showColumnNamesInLowercase", true);
 
   if (showColumnNamesInLowercase) {
-    return columnNameA.toLowerCase() === columnNameB.toLowerCase();
+    return columnNameFromYml.toLowerCase() === columnNameFromDb.toLowerCase();
   }
 
   return false;
