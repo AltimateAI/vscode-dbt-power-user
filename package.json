@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.39.7",
+  "version": "0.39.9",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -598,7 +598,7 @@
       },
       {
         "command": "dbtPowerUser.diagnostics",
-        "title": "command to collect diagnostics information for the extension",
+        "title": "Collect diagnostics",
         "category": "dbt Power User",
         "icon": "$(debug-console)"
       }

@@ -93,7 +93,7 @@ COMPILED_CODE = (
 JINJA_CONTROL_SEQS = ["{{", "}}", "{%", "%}", "{#", "#}"]
 
 T = TypeVar("T")
-
+REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES = "REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES"
 
 @contextlib.contextmanager
 def add_path(path):
@@ -361,6 +361,7 @@ class DbtProject:
             self.adapter = self.get_adapter()
             self.adapter.connections.set_connection_name()
             if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
+                self.args.REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES = os.environ.get(REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES, True)
                 from dbt.context.providers import generate_runtime_macro_context
                 self.adapter.set_macro_context_generator(generate_runtime_macro_context)
             self.config.adapter = self.adapter
