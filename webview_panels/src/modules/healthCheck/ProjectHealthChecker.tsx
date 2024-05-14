@@ -272,7 +272,7 @@ const ProjectHealthcheckInput = ({
       };
       setConfigs(result.items);
     } catch (e) {
-      panelLogger.log(e);
+      panelLogger.log("error in loadConfigs", e);
     } finally {
       setIsConfigLoading(false);
     }
