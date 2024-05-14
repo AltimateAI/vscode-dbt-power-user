@@ -13,7 +13,11 @@ const QueryPanelLoader = (): JSX.Element => {
   };
 
   return (
-    <Stack direction="column" className={classes.loader}>
+    <Stack
+      direction="column"
+      className={classes.loader}
+      title="Query results loader"
+    >
       <LoadingSpinner />
       {hint ? (
         <div>
