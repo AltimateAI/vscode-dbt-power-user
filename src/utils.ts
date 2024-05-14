@@ -176,24 +176,37 @@ export const deepEqual = (obj1: any, obj2: any): boolean => {
 };
 
 export const getColumnNameByCase = (columnName: string) => {
+  if (isQuotedIdentifier(columnName)) {
+    return columnName;
+  }
   const showColumnNamesInLowercase = workspace
     .getConfiguration("dbt")
-    .get<boolean>("showColumnNamesInLowercase", false);
+    .get<boolean>("showColumnNamesInLowercase", true);
   return showColumnNamesInLowercase ? columnName.toLowerCase() : columnName;
 };
 
 export const isColumnNameEqual = (
-  columnNameA: string | undefined,
-  columnNameB: string | undefined,
+  columnNameFromYml: string | undefined,
+  columnNameFromDb: string | undefined,
 ) => {
-  if (!columnNameA || !columnNameB) {
+  if (!columnNameFromYml || !columnNameFromDb) {
     return false;
   }
+
+  if (columnNameFromYml === columnNameFromDb) {
+    return true;
+  }
+
   const showColumnNamesInLowercase = workspace
     .getConfiguration("dbt")
-    .get<boolean>("showColumnNamesInLowercase", false);
+    .get<boolean>("showColumnNamesInLowercase", true);
 
-  return showColumnNamesInLowercase
-    ? columnNameA.toLowerCase() === columnNameB.toLowerCase()
-    : columnNameA === columnNameB;
+  if (showColumnNamesInLowercase) {
+    return columnNameFromYml.toLowerCase() === columnNameFromDb.toLowerCase();
+  }
+
+  return false;
 };
+
+export const isQuotedIdentifier = (name: string) =>
+  /^\d|(?=.*[a-z])(?=.*[A-Z])|[- "']/.test(name);
