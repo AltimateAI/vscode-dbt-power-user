@@ -446,7 +446,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         maxAliasCount: -1,
       }) || {};
 
-    const model = parsedDocFile.models.find(
+    const model = parsedDocFile.models?.find(
       (model: any) => model.name === modelName,
     );
 
