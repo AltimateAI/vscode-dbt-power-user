@@ -22,7 +22,7 @@ import {
 import {
   getColumnNameByCase,
   isColumnNameEqual,
-  isUnquotedIdentifier,
+  isQuotedIdentifier,
   provideSingleton,
 } from "../utils";
 import path = require("path");
@@ -664,7 +664,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                           description: column.description || undefined,
                           data_type: column.type?.toLowerCase(),
                           ...this.getTestDataByColumn(message, column.name),
-                          ...(!isUnquotedIdentifier(name)
+                          ...(isQuotedIdentifier(name)
                             ? { quote: true }
                             : undefined),
                         };
@@ -712,7 +712,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                   message,
                                   column.name,
                                 ),
-                                ...(!isUnquotedIdentifier(name)
+                                ...(isQuotedIdentifier(name)
                                   ? { quote: true }
                                   : undefined),
                               };

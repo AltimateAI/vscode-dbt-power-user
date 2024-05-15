@@ -176,7 +176,7 @@ export const deepEqual = (obj1: any, obj2: any): boolean => {
 };
 
 export const getColumnNameByCase = (columnName: string) => {
-  if (!isUnquotedIdentifier(columnName)) {
+  if (isQuotedIdentifier(columnName)) {
     return columnName;
   }
   const showColumnNamesInLowercase = workspace
@@ -208,5 +208,5 @@ export const isColumnNameEqual = (
   return false;
 };
 
-export const isUnquotedIdentifier = (name: string) =>
-  /^([_A-Za-z]+[_A-Za-z0-9$]*)$/.test(name);
+export const isQuotedIdentifier = (name: string) =>
+  /^\d|(?=.*[a-z])(?=.*[A-Z])|[- "']/.test(name);
