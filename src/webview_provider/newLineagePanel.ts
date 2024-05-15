@@ -435,7 +435,7 @@ export class NewLineagePanel implements LineagePanelView {
           .map((c) => ({
             table,
             name: c.name,
-            datatype: c.data_type || "",
+            datatype: c.data_type?.toLowerCase() || "",
             can_lineage_expand: false,
             description: c.description,
           }))
@@ -486,7 +486,7 @@ export class NewLineagePanel implements LineagePanelView {
         .map((c) => ({
           table,
           name: c.name,
-          datatype: c.data_type || "",
+          datatype: c.data_type?.toLowerCase() || "",
           can_lineage_expand: false,
           description: c.description,
         }))

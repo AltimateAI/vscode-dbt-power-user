@@ -142,7 +142,7 @@ const documentationSlice = createSlice({
       }
       state.currentDocsData.columns = columns.map((column) => {
         const existingColumn = state.currentDocsData?.columns.find(
-          (c) => column.name?.toLowerCase() === c.name.toLowerCase(),
+          (c) => column.name === c.name,
         );
         return {
           name: column.name ?? "",
