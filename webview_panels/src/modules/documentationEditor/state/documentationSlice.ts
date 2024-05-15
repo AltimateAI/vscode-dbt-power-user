@@ -10,6 +10,7 @@ import {
 } from "./types";
 
 export const initialState = {
+  incomingDocsData: undefined,
   currentDocsData: undefined,
   currentDocsTests: undefined,
   project: undefined,
@@ -91,13 +92,45 @@ const documentationSlice = createSlice({
     ) => {
       state.insertedEntityName = action.payload;
     },
+    setIncomingDocsData: (
+      state,
+      action: PayloadAction<DocumentationStateProps["incomingDocsData"]>,
+    ) => {
+      const isDifferentEntity =
+        action.payload?.docs?.uniqueId !== state.currentDocsData?.uniqueId;
+
+      // if current file is not changed, then keep the current changes
+      if (!isDifferentEntity) {
+        return;
+      }
+
+      // if test/docs data is not changed, then update the state
+      const isCleanForm =
+        !state.isDocGeneratedForAnyColumn && !state.isTestUpdatedForAnyColumn;
+
+      if (
+        !state.currentDocsData || // if first load, currentDocsData will be undefined
+        isCleanForm
+      ) {
+        state.currentDocsData = action.payload?.docs;
+        state.currentDocsTests = action.payload?.tests;
+        return;
+      }
+
+      // If any changes are done in current model, then show alert
+      // empty json to handle cases of switching to file which are not models
+      state.incomingDocsData = action.payload ?? {};
+      return;
+    },
     updateCurrentDocsData: (
       state,
       action: PayloadAction<
         (Partial<DBTDocumentation> & { isNewGeneration?: boolean }) | undefined
       >,
     ) => {
-      if (!action.payload) {
+      state.incomingDocsData = undefined;
+      // incase of yml files, incoming docs data will be {}, so checking for keys length as well
+      if (!action.payload || !Object.keys(action.payload).length) {
         state.currentDocsData = undefined;
         return;
       }
@@ -142,7 +175,7 @@ const documentationSlice = createSlice({
       }
       state.currentDocsData.columns = columns.map((column) => {
         const existingColumn = state.currentDocsData?.columns.find(
-          (c) => column.name?.toLowerCase() === c.name.toLowerCase(),
+          (c) => column.name === c.name,
         );
         return {
           name: column.name ?? "",
@@ -214,6 +247,7 @@ const documentationSlice = createSlice({
 });
 
 export const {
+  setIncomingDocsData,
   updateCurrentDocsData,
   updateColumnsInCurrentDocsData,
   updateColumnsAfterSync,
