@@ -84,6 +84,12 @@ export class DBTCloudDetection implements DBTDetection {
       if (stderr) {
         throw new Error(stderr);
       }
+      if (stdout.includes("dbt-core")) {
+        window.showErrorMessage(
+          "dbt core is installed, this may conflict with dbt cloud CLI. Please uninstall dbt core and dbt by running `pip uninstall dbt-core dbt` and then reinstall dbt cloud CLI",
+        );
+        return false;
+      }
       if (stdout.includes("dbt Cloud CLI")) {
         const regex = /dbt Cloud CLI - (\d*\.\d*\.\d*)/gm;
         const matches = regex.exec(stdout);
@@ -517,7 +523,7 @@ export class DBTCloudProjectIntegration
       ),
     );
     command.addArgument("--source");
-    command.addArgument("dbtPowerUser");
+    command.addArgument("dbt-power-user");
     return command;
   }
 
