@@ -1004,21 +1004,22 @@ select * from renamed
       // Flagging events where more than 100 columns are fetched from db to get a sense of how many of these happen
       this.telemetry.sendTelemetryEvent("excessiveColumnsFetchedFromDB");
     }
-    const columns: Record<string, ColumnMetaData> = {};
+    const columnsFromManifest: Record<string, ColumnMetaData> = {};
     Object.entries(node.columns).forEach(([k, v]) => {
-      columns[getColumnNameByCase(k)] = v;
+      columnsFromManifest[getColumnNameByCase(k)] = v;
     });
 
     for (const c of columnsFromDB) {
-      const existing_column = columns[getColumnNameByCase(c.column)];
+      const columnNameFromDB = getColumnNameByCase(c.column);
+      const existing_column = columnsFromManifest[columnNameFromDB];
       if (existing_column) {
         existing_column.data_type = (
           existing_column.data_type || c.dtype
         )?.toLowerCase();
         continue;
       }
-      node.columns[c.column] = {
-        name: c.column,
+      node.columns[columnNameFromDB] = {
+        name: columnNameFromDB,
         data_type: c.dtype?.toLowerCase(),
         description: "",
       };
