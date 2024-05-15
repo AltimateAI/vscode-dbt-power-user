@@ -88,9 +88,13 @@ export class DBTCloudDetection implements DBTDetection {
         const regex = /dbt Cloud CLI - (\d*\.\d*\.\d*)/gm;
         const matches = regex.exec(stdout);
         if (matches?.length === 2) {
-          const version = matches[1];
+          const version = matches[1].split(".");
           const minVersion = "0.37.6";
-          if (version <= minVersion) {
+          if (
+            parseInt(version[0]) <= 0 &&
+            parseInt(version[1]) <= 37 &&
+            parseInt(version[2]) <= 6
+          ) {
             window.showErrorMessage(
               `This version of dbt Cloud is not supported. Please update to a dbt Cloud CLI version higher than ${minVersion}`,
             );
@@ -186,6 +190,7 @@ export class DBTCloudProjectIntegration
   private rebuildManifestCancellationTokenSource:
     | CancellationTokenSource
     | undefined;
+  private pathsInitalized = false;
 
   constructor(
     private executionInfrastructure: DBTCommandExecutionInfrastructure,
@@ -225,7 +230,13 @@ export class DBTCloudProjectIntegration
   }
 
   async refreshProjectConfig(): Promise<void> {
-    await this.initializePaths();
+    if (!this.pathsInitalized) {
+      // First time let,s block
+      await this.initializePaths();
+      this.pathsInitalized = true;
+    } else {
+      this.initializePaths();
+    }
     this.findAdapterType();
   }
 
@@ -791,14 +802,56 @@ export class DBTCloudProjectIntegration
 
   // get dbt config
   private async initializePaths() {
-    // all hardcoded as there is no way to get them reliably
-    //  we can't parse jinja
-    //  TODO: read from dbt_project.yml instead
-    this.targetPath = join(this.projectRoot.fsPath, "target");
-    this.modelPaths = [join(this.projectRoot.fsPath, "models")];
-    this.seedPaths = [join(this.projectRoot.fsPath, "seeds")];
-    this.macroPaths = [join(this.projectRoot.fsPath, "macros")];
-    this.packagesInstallPath = join(this.projectRoot.fsPath, "dbt_packages");
+    const packagePathsCommand = this.dbtCloudCommand(
+      new DBTCommand("Getting paths...", [
+        "environment",
+        "show",
+        "--project-paths",
+      ]),
+    );
+    try {
+      const { stdout, stderr } = await packagePathsCommand.execute();
+      if (stderr) {
+        this.terminal.warn(
+          "DbtCloudIntegrationInitializePathsStdError",
+          "packaging paths command returns warning, ignoring",
+          true,
+          stderr,
+        );
+      }
+      const lookupEntries = (lookupString: string) => {
+        const regexString = `${lookupString}\\s*\\[(.*)\\]`;
+        const regexp = new RegExp(regexString, "gm");
+        const matches = regexp.exec(stdout);
+        if (matches?.length === 2) {
+          return matches[1].split(",").map((m) => m.slice(1, -1));
+        }
+        throw new Error(`Could not find any entries for ${lookupString}`);
+      };
+      this.targetPath = join(this.projectRoot.fsPath, "target");
+      this.modelPaths = lookupEntries("Model paths").map((p) =>
+        join(this.projectRoot.fsPath, p),
+      );
+      this.seedPaths = lookupEntries("Seed paths").map((p) =>
+        join(this.projectRoot.fsPath, p),
+      );
+      this.macroPaths = lookupEntries("Macro paths").map((p) =>
+        join(this.projectRoot.fsPath, p),
+      );
+      this.packagesInstallPath = join(this.projectRoot.fsPath, "dbt_packages");
+    } catch (error) {
+      this.terminal.warn(
+        "DbtCloudIntegrationInitializePathsExceptionError",
+        "adapter type throws error, ignoring",
+        true,
+        error,
+      );
+      this.targetPath = join(this.projectRoot.fsPath, "target");
+      this.modelPaths = [join(this.projectRoot.fsPath, "models")];
+      this.seedPaths = [join(this.projectRoot.fsPath, "seeds")];
+      this.macroPaths = [join(this.projectRoot.fsPath, "macros")];
+      this.packagesInstallPath = join(this.projectRoot.fsPath, "dbt_packages");
+    }
   }
 
   private async findAdapterType() {
@@ -817,7 +870,7 @@ export class DBTCloudProjectIntegration
       const { stdout, stderr } = await adapterTypeCommand.execute();
       if (stderr) {
         this.terminal.warn(
-          "DbtCloudIntegrationAdapterDetectioStdErrError",
+          "DbtCloudIntegrationAdapterDetectionStdError",
           "adapter type returns stderr, ignoring",
           true,
           stderr,
