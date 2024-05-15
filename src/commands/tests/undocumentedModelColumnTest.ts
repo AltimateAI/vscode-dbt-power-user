@@ -47,12 +47,12 @@ export class UndocumentedModelColumnTest implements AltimateScanStep {
         const modelDict =
           altimateCatalog[projectName + projectRootUri][modelKey];
         const existingColumnsLowered = Object.keys(value.columns).map((key) =>
-          getColumnNameByCase(key),
+          getColumnNameByCase(key, project.getAdapterType()),
         );
         for (const column of modelDict) {
           if (
             !existingColumnsLowered.includes(
-              getColumnNameByCase(column.column_name),
+              getColumnNameByCase(column.column_name, project.getAdapterType()),
             )
           ) {
             const errMessage = `Column ${column.column_name} is undocumented in model: ${value.name}`;
