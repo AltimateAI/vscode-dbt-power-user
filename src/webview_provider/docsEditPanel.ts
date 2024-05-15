@@ -404,12 +404,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
   private modifyColumnNames = (
     columns: { name: string }[],
-    adapter: string,
-    existingColumnNames?: string[],
+    existingColumnNames: string[],
   ) => {
     return columns.map((c) => {
       // find a column from schema.yml with same name ignoring case
-      const existingColumn = existingColumnNames?.find(
+      const existingColumn = existingColumnNames.find(
         (name) => name.toLowerCase() === c.name.toLowerCase(),
       );
       // column exists with matching name, so use name from schema.yml
@@ -420,7 +419,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       // new column, save the name by checking the config
       return {
         ...c,
-        name: getColumnNameByCase(c.name, adapter),
+        name: c.name,
       };
     });
   };
@@ -430,7 +429,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     modelName: string,
     project: DBTProject,
   ) {
-    const adapter = project.getAdapterType();
     if (!columns.length) {
       return [];
     }
@@ -438,7 +436,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     const patchPath = this.documentation?.patchPath;
     // if new project, and no schema.yml
     if (!patchPath) {
-      return this.modifyColumnNames(columns, adapter);
+      return columns;
     }
 
     const docFile: string = readFileSync(
@@ -457,14 +455,14 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
     // new model and does not exist in schema.yml
     if (!model) {
-      return this.modifyColumnNames(columns, adapter);
+      return columns;
     }
 
     const existingColumnNames = (model.columns as { name: string }[])?.map(
       (c) => c.name,
     );
 
-    return this.modifyColumnNames(columns, adapter, existingColumnNames);
+    return this.modifyColumnNames(columns, existingColumnNames);
   }
 
   private setupWebviewHooks(context: WebviewViewResolveContext) {
@@ -508,12 +506,16 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 try {
                   const columnsInRelation =
                     await project.getColumnsOfModel(modelName);
-                  const columns = columnsInRelation.map((column) => {
-                    return {
-                      name: column.column,
-                      type: column.dtype.toLowerCase(),
-                    };
-                  });
+                  const columns = this.convertColumnNamesByCaseConfig(
+                    columnsInRelation.map((column) => {
+                      return {
+                        name: column.column,
+                        type: column.dtype.toLowerCase(),
+                      };
+                    }),
+                    modelName,
+                    project,
+                  );
                   this.transmitColumns(columns);
                   if (syncRequestId) {
                     this._panel!.webview.postMessage({
@@ -723,7 +725,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                   column.name,
                                 ),
                                 ...(isQuotedIdentifier(
-                                  name,
+                                  column.name,
                                   project.getAdapterType(),
                                 )
                                   ? { quote: true }
