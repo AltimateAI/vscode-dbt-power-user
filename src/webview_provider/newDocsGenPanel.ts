@@ -62,32 +62,14 @@ export class NewDocsGenPanel
       queryManifestService,
       userService,
     );
-
-    this._disposables.push(
-      window.onDidChangeActiveTextEditor(
-        async (event: TextEditor | undefined) => {
-          if (event === undefined) {
-            return;
-          }
-
-          this.transmitTestsData();
-        },
-      ),
-    );
   }
 
   protected onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     super.onManifestCacheChanged(event);
-
-    // Start sending tests data only after webview is ready
-    if (this.isWebviewReady) {
-      this.transmitTestsData();
-    }
   }
 
   protected onWebviewReady() {
     super.onWebviewReady();
-    this.transmitTestsData();
     this.transmitConversationsData();
   }
 
@@ -111,22 +93,6 @@ export class NewDocsGenPanel
     token: CancellationToken,
   ): void {
     super.resolveWebviewView(panel, context, token);
-  }
-
-  private async transmitTestsData() {
-    if (!this._panel) {
-      return;
-    }
-
-    const projectName = this.queryManifestService
-      .getProject()
-      ?.getProjectName();
-    const tests = await this.dbtTestService.getTestsForCurrentModel();
-    this.sendResponseToWebview({
-      command: "renderTests",
-      tests,
-      project: projectName,
-    });
   }
 
   private getDbtTestCode(test: TestMetaData, modelName: string) {
@@ -234,6 +200,7 @@ export class NewDocsGenPanel
         this.sendResponseToWebview({
           command: "renderDocumentation",
           docs: documentation,
+          tests: await this.dbtTestService.getTestsForCurrentModel(),
           project: this.queryManifestService.getProject()?.getProjectName(),
           collaborationEnabled: workspace
             .getConfiguration("dbt")
