@@ -85,7 +85,7 @@ export class DbtTestService {
   public getConfigByTest(
     test: TestMetaData,
     modelName: string,
-    column_name?: string,
+    columnNameFromTestMetadata?: string,
   ) {
     const eventResult = this.queryManifestService.getEventByCurrentProject();
     if (!eventResult?.event) {
@@ -133,7 +133,7 @@ export class DbtTestService {
     const model = parsedDocFile.models?.find((m: any) => m.name === modelName);
 
     // model test
-    if (!column_name) {
+    if (!columnNameFromTestMetadata) {
       this.dbtTerminal.debug(
         "getDbtTestCode",
         "finding model test from yml",
@@ -146,7 +146,7 @@ export class DbtTestService {
     const column =
       model.columns &&
       model.columns.find((yamlColumn: any) =>
-        isColumnNameEqual(yamlColumn.name, column_name),
+        isColumnNameEqual(yamlColumn.name, columnNameFromTestMetadata),
       );
     this.dbtTerminal.debug(
       "getDbtTestCode",

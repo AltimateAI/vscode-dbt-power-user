@@ -22,7 +22,7 @@ import {
 import {
   getColumnNameByCase,
   isColumnNameEqual,
-  isQuotedIdentifier,
+  isUnquotedIdentifier,
   provideSingleton,
 } from "../utils";
 import path = require("path");
@@ -315,7 +315,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   }
   private getTestDataByColumn(
     message: any,
-    columnName: string,
+    columnNameFromWebview: string,
     existingColumn?: any,
   ) {
     const tests = message.updatedTests as undefined | TestMetaData[];
@@ -329,7 +329,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     }
 
     const columnTests = tests.filter((test) =>
-      isColumnNameEqual(test.column_name, columnName),
+      isColumnNameEqual(test.column_name, columnNameFromWebview),
     );
 
     // No tests for this column - may be all deleted
@@ -390,7 +390,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       "test data",
       false,
       data,
-      columnName,
+      columnNameFromWebview,
     );
 
     if (!data.length) {
@@ -663,7 +663,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                           description: column.description || undefined,
                           data_type: column.type?.toLowerCase(),
                           ...this.getTestDataByColumn(message, column.name),
-                          ...(isQuotedIdentifier(name)
+                          ...(!isUnquotedIdentifier(name)
                             ? { quote: true }
                             : undefined),
                         };
@@ -711,7 +711,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                   message,
                                   column.name,
                                 ),
-                                ...(isQuotedIdentifier(name)
+                                ...(!isUnquotedIdentifier(name)
                                   ? { quote: true }
                                   : undefined),
                               };
