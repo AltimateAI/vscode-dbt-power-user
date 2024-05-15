@@ -47,14 +47,14 @@ const BulkGenerateButton = (): JSX.Element => {
   };
   const generateDocsForMissingColumns = async () => {
     try {
-      const { columns } = (await executeRequestInSync(
+      const { columns: columnsFromDB } = (await executeRequestInSync(
         "fetchMetadataFromDatabase",
         {},
       )) as { columns: DBTDocumentationColumn[] };
 
       const mergedColumns = mergeCurrentAndIncomingDocumentationColumns(
         currentDocsData?.columns,
-        columns,
+        columnsFromDB,
       );
 
       const columnsWithoutDescription = mergedColumns.filter(
