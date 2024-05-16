@@ -22,6 +22,7 @@ import useDocumentationContext from "./state/useDocumentationContext";
 import classes from "./styles.module.scss";
 import { addDefaultActions } from "./utils";
 import ConversationsRightPanel from "./components/conversation/ConversationsRightPanel";
+import useIncomingDocsDataHandler from "./useIncomingDocsDataHandler";
 
 const DocumentationEditor = (): JSX.Element => {
   const {
@@ -29,6 +30,7 @@ const DocumentationEditor = (): JSX.Element => {
     dispatch,
   } = useDocumentationContext();
   const { postMessageToDataPilot } = useAppContext();
+  useIncomingDocsDataHandler();
 
   const handleClick = (page: Pages) => {
     if (selectedPages.includes(page)) {

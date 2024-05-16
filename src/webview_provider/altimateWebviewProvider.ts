@@ -191,6 +191,25 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
   protected onWebviewReady() {
     this.isWebviewReady = true;
   }
+
+  private async handleWarningMessage(
+    params: {
+      infoMessage: string;
+      items: any[];
+    },
+    syncRequestId?: string,
+  ) {
+    const { infoMessage, items } = params;
+    const result = await window.showWarningMessage(infoMessage, ...items);
+    if (syncRequestId) {
+      this.sendResponseToWebview({
+        command: "response",
+        data: result,
+        syncRequestId,
+      });
+    }
+  }
+
   protected async handleCommand(message: HandleCommandProps): Promise<void> {
     const { command, syncRequestId, ...params } = message;
 
@@ -346,6 +365,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               syncRequestId,
             });
           }
+          break;
+        case "showWarningMessage":
+          this.handleWarningMessage(
+            params as Parameters<typeof this.handleWarningMessage>["0"],
+            syncRequestId,
+          );
           break;
         case "findPackageVersion":
           this.handleSyncRequestFromWebview(

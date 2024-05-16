@@ -26,7 +26,7 @@ export function generateHoverMarkdownString(
     );
     if (column.data_type !== null) {
       content.appendMarkdown(
-        `<span>-&nbsp;${column.data_type.toUpperCase()}</span>`,
+        `<span>-&nbsp;${column.data_type.toLowerCase()}</span>`,
       );
     }
     if (column.description !== "") {

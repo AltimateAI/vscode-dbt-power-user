@@ -11,6 +11,7 @@ import {
 import documentationSlice, {
   initialState,
   setGenerationsHistory,
+  setIncomingDocsData,
   setInsertedEntityName,
   setProject,
   updatConversations,
@@ -19,7 +20,6 @@ import documentationSlice, {
   updateColumnsInCurrentDocsData,
   updateConversationsRightPanelState,
   updateCurrentDocsData,
-  updateCurrentDocsTests,
   updateSelectedConversationGroup,
   updateUserInstructions,
 } from "./state/documentationSlice";
@@ -88,7 +88,7 @@ const DocumentationProvider = (): JSX.Element => {
           docs?: DBTDocumentation;
           tests?: DBTModelTest[];
           project?: string;
-          columns?: MetadataColumn[];
+          columns?: DBTDocumentation["columns"];
           model?: string;
           name?: string;
           description?: string;
@@ -110,13 +110,13 @@ const DocumentationProvider = (): JSX.Element => {
             >["0"],
           );
           break;
-        case "renderTests":
-          panelLogger.info("tests data", event.data);
-          dispatch(updateCurrentDocsTests(event.data.tests));
-          dispatch(setProject(event.data.project));
-          break;
         case "renderDocumentation":
-          dispatch(updateCurrentDocsData(event.data.docs));
+          dispatch(
+            setIncomingDocsData({
+              docs: event.data.docs,
+              tests: event.data.tests,
+            }),
+          );
           dispatch(setProject(event.data.project));
           dispatch(
             updateCollaborationEnabled(

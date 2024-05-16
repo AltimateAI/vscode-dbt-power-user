@@ -56,32 +56,18 @@ enum ConfigType {
 }
 
 interface SaasConfigSelectorProps {
-  selectedConfig: DBTConfig | undefined;
-  setSelectedConfig: Dispatch<SetStateAction<DBTConfig | undefined>>;
+  selectedConfig: number | undefined;
+  setSelectedConfig: Dispatch<SetStateAction<number | undefined>>;
   configPath: string;
   setConfigPath: Dispatch<SetStateAction<string>>;
   configType: ConfigType;
   setConfigType: Dispatch<SetStateAction<ConfigType>>;
+  isConfigLoading: boolean;
+  configs: DBTConfig[];
+  loadConfigs: () => Promise<void>;
 }
 
 const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
-  const [configs, setConfigs] = useState<DBTConfig[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const getConfigs = useCallback(async () => {
-    setIsLoading(true);
-    const result = (await executeRequestInSync("getInsightConfigs", {})) as {
-      items: DBTConfig[];
-    };
-    setIsLoading(false);
-    setConfigs(result.items);
-  }, []);
-
-  useEffect(() => {
-    if (props.configType === ConfigType.Saas) {
-      void getConfigs();
-    }
-  }, [props.configType]);
-
   return (
     <div className="d-flex flex-column gap-sm">
       <div className="d-flex align-items-center gap-sm">
@@ -133,18 +119,18 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
               color="link"
               onClick={(e) => {
                 e.stopPropagation();
-                void getConfigs();
+                void props.loadConfigs();
               }}
             >
-              {isLoading ? <LoadingIcon /> : <RefreshIcon />}
+              {props.isConfigLoading ? <LoadingIcon /> : <RefreshIcon />}
             </Button>
             <div className={classes.accordionContainer + " w-100"}>
               <Accordion
                 trigger={(open) => (
                   <Stack className="align-items-start">
                     <div>
-                      {props.selectedConfig?.name ??
-                        "Select healthcheck configs"}
+                      {props.configs.find((c) => c.id === props.selectedConfig)
+                        ?.name ?? "Select healthcheck configs"}
                     </div>
                     <div className="spacer" />
                     {open ? <ArrowDownIcon /> : <ArrowLeftIcon />}
@@ -153,19 +139,17 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
               >
                 {({ close }) => (
                   <Stack direction="column" className="gap-0">
-                    {configs.map((c) => (
+                    {props.configs.map((c) => (
                       <Stack
                         className={
                           classes.row +
                           " " +
-                          (props.selectedConfig?.id === c.id
-                            ? classes.active
-                            : "")
+                          (props.selectedConfig === c.id ? classes.active : "")
                         }
                         key={c.id}
                         onClick={(e) => {
                           e.stopPropagation();
-                          props.setSelectedConfig(c);
+                          props.setSelectedConfig(c.id);
                           close();
                         }}
                       >
@@ -261,10 +245,13 @@ const ProjectHealthcheckInput = ({
     { projectName: string; projectRoot: string }[]
   >([]);
   const [selectedProject, setSelectedProject] = useState("");
-  const [selectedConfig, setSelectedConfig] = useState<DBTConfig | undefined>();
+  const [selectedConfig, setSelectedConfig] = useState<number | undefined>();
   const [configType, setConfigType] = useState(ConfigType.All);
   const [configPath, setConfigPath] = useState("");
   const [requestInProgress, setRequestInProgress] = useState(false);
+
+  const [configs, setConfigs] = useState<DBTConfig[]>([]);
+  const [isConfigLoading, setIsConfigLoading] = useState(false);
 
   const getProjects = useCallback(async () => {
     const result = (await executeRequestInSync("getProjects", {})) as {
@@ -277,9 +264,29 @@ const ProjectHealthcheckInput = ({
     }
   }, []);
 
+  const loadConfigs = useCallback(async () => {
+    try {
+      setIsConfigLoading(true);
+      const result = (await executeRequestInSync("getInsightConfigs", {})) as {
+        items: DBTConfig[];
+      };
+      setConfigs(result.items);
+    } catch (e) {
+      panelLogger.log("error in loadConfigs", e);
+    } finally {
+      setIsConfigLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void getProjects();
   }, []);
+
+  useEffect(() => {
+    if (configType === ConfigType.Saas) {
+      void loadConfigs();
+    }
+  }, [configType]);
 
   const isStartScanEnabled =
     !requestInProgress &&
@@ -310,6 +317,9 @@ const ProjectHealthcheckInput = ({
             setConfigPath={setConfigPath}
             configType={configType}
             setConfigType={setConfigType}
+            configs={configs}
+            isConfigLoading={isConfigLoading}
+            loadConfigs={loadConfigs}
           />
 
           <Stack>
@@ -318,14 +328,17 @@ const ProjectHealthcheckInput = ({
               onClick={async () => {
                 if (configType === ConfigType.Saas) {
                   void executeRequestInSync("logDBTHealthcheckConfig", {
-                    configId: selectedConfig?.id,
+                    configId: selectedConfig,
                   });
                 }
                 let args: Record<string, unknown>;
                 if (configType === ConfigType.Manual) {
                   args = { configPath, configType: "Manual" };
                 } else if (configType === ConfigType.Saas) {
-                  args = { ...selectedConfig!, configType: "Saas" };
+                  args = {
+                    configType: "Saas",
+                    ...configs?.find((c) => c.id === selectedConfig),
+                  };
                 } else {
                   args = { configType: "All" };
                 }

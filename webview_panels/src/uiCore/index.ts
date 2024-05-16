@@ -30,7 +30,6 @@ export {
   Spinner,
 } from "reactstrap";
 
-
 export { Button } from "./components/button/Button";
 export { default as Tag } from "./components/tag/Tag";
 export { default as Tabs } from "./components/tabs/Tabs";

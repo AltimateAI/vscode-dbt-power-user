@@ -1,5 +1,11 @@
 import path = require("path");
-import { ProgressLocation, WebviewPanel, WebviewView, window } from "vscode";
+import {
+  ProgressLocation,
+  WebviewPanel,
+  WebviewView,
+  window,
+  workspace,
+} from "vscode";
 import { AltimateRequest, DocsGenerateResponse } from "../altimate";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { RateLimitException } from "../exceptions";
@@ -199,7 +205,7 @@ export class DocGenService {
           description: column.description,
           generated: false,
           source: Source.YAML,
-          type: column.data_type,
+          type: column.data_type?.toLowerCase(),
         };
       }),
     } as DBTDocumentation;

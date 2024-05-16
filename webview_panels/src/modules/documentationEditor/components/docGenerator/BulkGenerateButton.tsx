@@ -10,6 +10,7 @@ import { panelLogger } from "@modules/logger";
 import { Button, DropdownButton, List, Popover, PopoverBody } from "@uicore";
 import { useRef, useState } from "react";
 import classes from "../../styles.module.scss";
+import { mergeCurrentAndIncomingDocumentationColumns } from "@modules/documentationEditor/utils";
 
 const BulkGenerateButton = (): JSX.Element => {
   const [openPopover, setOpenPopover] = useState(false);
@@ -46,12 +47,17 @@ const BulkGenerateButton = (): JSX.Element => {
   };
   const generateDocsForMissingColumns = async () => {
     try {
-      const { columns } = (await executeRequestInSync(
+      const { columns: columnsFromDB } = (await executeRequestInSync(
         "fetchMetadataFromDatabase",
         {},
       )) as { columns: DBTDocumentationColumn[] };
 
-      const columnsWithoutDescription = columns.filter(
+      const mergedColumns = mergeCurrentAndIncomingDocumentationColumns(
+        currentDocsData?.columns,
+        columnsFromDB,
+      );
+
+      const columnsWithoutDescription = mergedColumns.filter(
         (column) => !column.description,
       );
       return await bulkGenerateDocs(columnsWithoutDescription);

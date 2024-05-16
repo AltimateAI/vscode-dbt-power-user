@@ -10,6 +10,7 @@ import {
   workspace,
 } from "vscode";
 import { EnvironmentVariables } from "./domain";
+import { DBColumn } from "./dbt_client/dbtIntegration";
 
 export const isEnclosedWithinCodeBlock = (
   document: TextDocument,
@@ -172,4 +173,58 @@ export const deepEqual = (obj1: any, obj2: any): boolean => {
   }
 
   return true;
+};
+
+export const getColumnNameByCase = (columnName: string, adapter: string) => {
+  if (isQuotedIdentifier(columnName, adapter)) {
+    return columnName;
+  }
+  const showColumnNamesInLowercase = workspace
+    .getConfiguration("dbt")
+    .get<boolean>("showColumnNamesInLowercase", true);
+  return showColumnNamesInLowercase ? columnName.toLowerCase() : columnName;
+};
+
+export const isColumnNameEqual = (
+  columnNameFromYml: string | undefined,
+  incomingColumnName: string | undefined,
+) => {
+  if (!columnNameFromYml || !incomingColumnName) {
+    return false;
+  }
+
+  if (columnNameFromYml === incomingColumnName) {
+    return true;
+  }
+
+  const showColumnNamesInLowercase = workspace
+    .getConfiguration("dbt")
+    .get<boolean>("showColumnNamesInLowercase", true);
+
+  if (showColumnNamesInLowercase) {
+    return columnNameFromYml.toLowerCase() === incomingColumnName.toLowerCase();
+  }
+
+  return false;
+};
+
+export const isQuotedIdentifier = (columnName: string, adapter: string) => {
+  const regexFromConfig = workspace
+    .getConfiguration("dbt")
+    .get<string>("unquotedCaseInsensitiveIdentifierRegex", "");
+  if (regexFromConfig) {
+    console.log(
+      "[isQuotedIdentifier] using user provider regex for",
+      regexFromConfig,
+    );
+    return !new RegExp(regexFromConfig).test(columnName);
+  }
+
+  const specialCases = ["trino", "athena", "postgres", "duckdb"];
+  if (specialCases.includes(adapter)) {
+    return !/^([_a-z]+[_a-z0-9$]*)$/.test(columnName);
+  }
+
+  // snowflake and most of the db follow standard sql spec of making the column names to uppercase by default
+  return !/^([_A-Z]+[_A-Z0-9$]*)$/.test(columnName);
 };
