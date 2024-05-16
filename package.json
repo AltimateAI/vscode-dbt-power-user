@@ -101,6 +101,10 @@
       {
         "title": "dbt Power User",
         "properties": {
+          "dbt.unquotedCaseInsensitiveIdentifierRegex": {
+            "type": "string",
+            "markdownDescription": "Regex to identify unquoted identifiers. Example: `^([_A-Z]+[_A-Z0-9$]*)$`"
+          },
           "dbt.dbtIntegration": {
             "type": "string",
             "enum": [

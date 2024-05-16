@@ -1006,11 +1006,14 @@ select * from renamed
     }
     const columnsFromManifest: Record<string, ColumnMetaData> = {};
     Object.entries(node.columns).forEach(([k, v]) => {
-      columnsFromManifest[getColumnNameByCase(k)] = v;
+      columnsFromManifest[getColumnNameByCase(k, this.getAdapterType())] = v;
     });
 
     for (const c of columnsFromDB) {
-      const columnNameFromDB = getColumnNameByCase(c.column);
+      const columnNameFromDB = getColumnNameByCase(
+        c.column,
+        this.getAdapterType(),
+      );
       const existing_column = columnsFromManifest[columnNameFromDB];
       if (existing_column) {
         existing_column.data_type = (

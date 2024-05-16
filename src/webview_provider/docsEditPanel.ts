@@ -22,7 +22,7 @@ import {
 import {
   getColumnNameByCase,
   isColumnNameEqual,
-  isUnquotedIdentifier,
+  isQuotedIdentifier,
   provideSingleton,
 } from "../utils";
 import path = require("path");
@@ -404,11 +404,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
   private modifyColumnNames = (
     columns: { name: string }[],
-    existingColumnNames?: string[],
+    existingColumnNames: string[],
   ) => {
     return columns.map((c) => {
       // find a column from schema.yml with same name ignoring case
-      const existingColumn = existingColumnNames?.find(
+      const existingColumn = existingColumnNames.find(
         (name) => name.toLowerCase() === c.name.toLowerCase(),
       );
       // column exists with matching name, so use name from schema.yml
@@ -417,7 +417,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       }
 
       // new column, save the name by checking the config
-      return { ...c, name: getColumnNameByCase(c.name) };
+      return {
+        ...c,
+        name: c.name,
+      };
     });
   };
 
@@ -427,13 +430,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     project: DBTProject,
   ) {
     if (!columns.length) {
-      return this.modifyColumnNames(columns);
+      return [];
     }
 
     const patchPath = this.documentation?.patchPath;
     // if new project, and no schema.yml
     if (!patchPath) {
-      return this.modifyColumnNames(columns);
+      return columns;
     }
 
     const docFile: string = readFileSync(
@@ -446,13 +449,13 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         maxAliasCount: -1,
       }) || {};
 
-    const model = parsedDocFile.models.find(
+    const model = parsedDocFile.models?.find(
       (model: any) => model.name === modelName,
     );
 
     // new model and does not exist in schema.yml
     if (!model) {
-      return this.modifyColumnNames(columns);
+      return columns;
     }
 
     const existingColumnNames = (model.columns as { name: string }[])?.map(
@@ -658,13 +661,19 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       name: message.name,
                       description: message.description || undefined,
                       columns: message.columns.map((column: any) => {
-                        const name = getColumnNameByCase(column.name);
+                        const name = getColumnNameByCase(
+                          column.name,
+                          project.getAdapterType(),
+                        );
                         return {
                           name,
                           description: column.description || undefined,
                           data_type: column.type?.toLowerCase(),
                           ...this.getTestDataByColumn(message, column.name),
-                          ...(!isUnquotedIdentifier(name)
+                          ...(isQuotedIdentifier(
+                            column.name,
+                            project.getAdapterType(),
+                          )
                             ? { quote: true }
                             : undefined),
                         };
@@ -703,7 +712,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                 ),
                               };
                             } else {
-                              const name = getColumnNameByCase(column.name);
+                              const name = getColumnNameByCase(
+                                column.name,
+                                project.getAdapterType(),
+                              );
                               return {
                                 name,
                                 description: column.description || undefined,
@@ -712,7 +724,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                   message,
                                   column.name,
                                 ),
-                                ...(!isUnquotedIdentifier(name)
+                                ...(isQuotedIdentifier(
+                                  column.name,
+                                  project.getAdapterType(),
+                                )
                                   ? { quote: true }
                                   : undefined),
                               };

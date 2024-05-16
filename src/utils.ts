@@ -175,8 +175,8 @@ export const deepEqual = (obj1: any, obj2: any): boolean => {
   return true;
 };
 
-export const getColumnNameByCase = (columnName: string) => {
-  if (!isUnquotedIdentifier(columnName)) {
+export const getColumnNameByCase = (columnName: string, adapter: string) => {
+  if (isQuotedIdentifier(columnName, adapter)) {
     return columnName;
   }
   const showColumnNamesInLowercase = workspace
@@ -208,5 +208,23 @@ export const isColumnNameEqual = (
   return false;
 };
 
-export const isUnquotedIdentifier = (name: string) =>
-  /^([_A-Za-z]+[_A-Za-z0-9$]*)$/.test(name);
+export const isQuotedIdentifier = (columnName: string, adapter: string) => {
+  const regexFromConfig = workspace
+    .getConfiguration("dbt")
+    .get<string>("unquotedCaseInsensitiveIdentifierRegex", "");
+  if (regexFromConfig) {
+    console.log(
+      "[isQuotedIdentifier] using user provider regex for",
+      regexFromConfig,
+    );
+    return !new RegExp(regexFromConfig).test(columnName);
+  }
+
+  const specialCases = ["trino", "athena", "postgres", "duckdb"];
+  if (specialCases.includes(adapter)) {
+    return !/^([_a-z]+[_a-z0-9$]*)$/.test(columnName);
+  }
+
+  // snowflake and most of the db follow standard sql spec of making the column names to uppercase by default
+  return !/^([_A-Z]+[_A-Z0-9$]*)$/.test(columnName);
+};
