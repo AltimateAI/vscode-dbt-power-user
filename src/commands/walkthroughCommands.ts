@@ -152,7 +152,14 @@ export class WalkthroughCommands {
           const { stdout, stderr } = await this.commandProcessExecutionFactory
             .createCommandProcessExecution({
               command: this.pythonEnvironment.pythonPath,
-              args: ["-m", "pip", "install", "dbt", "--no-cache-dir"],
+              args: [
+                "-m",
+                "pip",
+                "install",
+                "dbt",
+                "--no-cache-dir",
+                "--force-reinstall",
+              ],
               cwd: getFirstWorkspacePath(),
               envVars: this.pythonEnvironment.environmentVariables,
             })
@@ -232,7 +239,13 @@ export class WalkthroughCommands {
       },
       async () => {
         try {
-          const args = ["-m", "pip", "install"];
+          const args = [
+            "-m",
+            "pip",
+            "install",
+            "--no-cache-dir",
+            "--force-reinstall",
+          ];
           if (packageVersion >= "1.8") {
             args.push(`dbt-core==${packageVersion}`);
             args.push(`${packageName}>=${packageVersion}`);
