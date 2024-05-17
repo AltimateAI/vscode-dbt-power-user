@@ -602,6 +602,16 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               },
               async () => {
                 try {
+                  const projectByFilePath =
+                    this.dbtProjectContainer.findDBTProject(
+                      Uri.file(message.filePath),
+                    );
+                  if (!projectByFilePath) {
+                    throw new Error(
+                      "Unable to find project for saving documentation",
+                    );
+                  }
+
                   if (!patchPath) {
                     switch (message.dialogType) {
                       case "Existing file":
@@ -630,7 +640,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   } else {
                     // the location comes from the manifest, parse it
                     patchPath = path.join(
-                      project.projectRoot.fsPath,
+                      projectByFilePath.projectRoot.fsPath,
                       patchPath.split("://")[1],
                     );
                   }
@@ -663,7 +673,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       columns: message.columns.map((column: any) => {
                         const name = getColumnNameByCase(
                           column.name,
-                          project.getAdapterType(),
+                          projectByFilePath.getAdapterType(),
                         );
                         return {
                           name,
@@ -672,7 +682,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                           ...this.getTestDataByColumn(message, column.name),
                           ...(isQuotedIdentifier(
                             column.name,
-                            project.getAdapterType(),
+                            projectByFilePath.getAdapterType(),
                           )
                             ? { quote: true }
                             : undefined),
@@ -714,7 +724,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                             } else {
                               const name = getColumnNameByCase(
                                 column.name,
-                                project.getAdapterType(),
+                                projectByFilePath.getAdapterType(),
                               );
                               return {
                                 name,
@@ -726,7 +736,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                 ),
                                 ...(isQuotedIdentifier(
                                   column.name,
-                                  project.getAdapterType(),
+                                  projectByFilePath.getAdapterType(),
                                 )
                                   ? { quote: true }
                                   : undefined),
@@ -767,6 +777,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     "saveDocumentationError",
                     `Could not save documentation to ${patchPath}`,
                     error,
+                    true,
                   );
                   if (syncRequestId) {
                     this._panel!.webview.postMessage({
