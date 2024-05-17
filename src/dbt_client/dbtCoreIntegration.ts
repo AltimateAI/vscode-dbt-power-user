@@ -1083,4 +1083,8 @@ export class DBTCoreProjectIntegration
     );
     await this.rebuildManifest();
   }
+
+  throwDiagnosticsErrorIfAvailable(): void {
+    this.throwBridgeErrorIfAvailable();
+  }
 }

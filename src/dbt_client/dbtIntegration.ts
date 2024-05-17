@@ -373,6 +373,7 @@ export interface DBTProjectIntegration extends Disposable {
   ): Promise<ProjectHealthcheck>;
   applyDeferConfig(): Promise<void>;
   getAllDiagnostic(): Diagnostic[];
+  throwDiagnosticsErrorIfAvailable(): void;
   getPythonBridgeStatus(): boolean;
 }
 

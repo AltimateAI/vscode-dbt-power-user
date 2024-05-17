@@ -977,4 +977,8 @@ export class DBTCloudProjectIntegration
   }
 
   async applyDeferConfig(): Promise<void> {}
+
+  throwDiagnosticsErrorIfAvailable(): void {
+    this.throwBridgeErrorIfAvailable();
+  }
 }
