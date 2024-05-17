@@ -61,7 +61,7 @@ export class SqlToModel {
     if (!event) {
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Could not convert to model due to pending initiation, Please retry again.",
+          "The extension is still initializing, please retry again.",
         ),
       );
       this.telemetry.sendTelemetryError("sqlToModelNoManifestError");
