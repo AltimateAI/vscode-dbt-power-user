@@ -519,10 +519,14 @@ export class DBTCoreProjectIntegration
   }
 
   getAllDiagnostic(): Diagnostic[] {
+    const projectURI = Uri.joinPath(
+      this.projectRoot,
+      DBTProject.DBT_PROJECT_FILE,
+    );
     return [
-      ...(this.pythonBridgeDiagnostics.get(this.projectRoot) || []),
-      ...(this.projectConfigDiagnostics.get(this.projectRoot) || []),
-      ...(this.rebuildManifestDiagnostics.get(this.projectRoot) || []),
+      ...(this.pythonBridgeDiagnostics.get(projectURI) || []),
+      ...(this.projectConfigDiagnostics.get(projectURI) || []),
+      ...(this.rebuildManifestDiagnostics.get(projectURI) || []),
     ];
   }
 
