@@ -1120,4 +1120,8 @@ select * from renamed
   async applyDeferConfig(): Promise<void> {
     await this.dbtProjectIntegration.applyDeferConfig();
   }
+
+  throwDiagnosticsErrorIfAvailable() {
+    this.dbtProjectIntegration.throwDiagnosticsErrorIfAvailable();
+  }
 }
