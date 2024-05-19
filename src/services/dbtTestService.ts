@@ -178,7 +178,7 @@ export class DbtTestService {
     if (macro) {
       // return the file path if it ends with sql
       const macroData = macroMetaMap.get(`test_${testName}`);
-      return macroData?.path.endsWith(".sql") ? macroData?.path : undefined;
+      return macroData?.path?.endsWith(".sql") ? macroData?.path : undefined;
     }
   };
 

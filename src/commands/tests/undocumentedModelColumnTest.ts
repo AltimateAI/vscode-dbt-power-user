@@ -57,9 +57,9 @@ export class UndocumentedModelColumnTest implements AltimateScanStep {
           ) {
             const errMessage = `Column ${column.column_name} is undocumented in model: ${value.name}`;
 
-            let modelDiagnostics = projectDiagnostics[value.path];
+            let modelDiagnostics = projectDiagnostics[value.uniqueId];
             if (modelDiagnostics === undefined) {
-              projectDiagnostics[value.path] = modelDiagnostics = [];
+              projectDiagnostics[value.uniqueId] = modelDiagnostics = [];
             }
             modelDiagnostics.push(
               new Diagnostic(

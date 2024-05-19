@@ -10,7 +10,7 @@ export class ScanContext {
   project: DBTProject;
   catalog: AltimateCatalog = {};
   eventMap: ManifestCacheProjectAddedEvent | undefined;
-  diagnostics: { [filepath: string]: Diagnostic[] };
+  diagnostics: { [uniqueId: string]: Diagnostic[] };
   scanResults: { [key: string]: any } = {};
 
   constructor(
