@@ -89,7 +89,7 @@ export interface DBTModelTest {
   column_name?: string;
   database: string;
   key: string;
-  path: string;
+  path?: string;
   schema: string;
   test_metadata?: {
     kwargs: TestMetadataAcceptedValuesKwArgs | TestMetadataRelationshipsKwArgs;
