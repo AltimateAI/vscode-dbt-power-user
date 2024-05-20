@@ -99,6 +99,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     rightExpansion,
     selectCheck,
     nonSelectCheck,
+    setSelectedTable,
   } = useContext(LineageContext);
 
   const _columnLen = Object.keys(collectColumns[table] || {}).length;
@@ -207,7 +208,10 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
             )
           );
           highlightTable();
-          openFile(url);
+          setSelectedTable(table);
+          if (url) {
+            openFile(url);
+          }
         }}
       >
         <div

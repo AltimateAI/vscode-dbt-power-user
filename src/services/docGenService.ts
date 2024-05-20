@@ -199,6 +199,7 @@ export class DocGenService {
       generated: false,
       resource_type: currentNode.resource_type,
       uniqueId: currentNode.uniqueId,
+      filePath,
       columns: Object.values(docColumns).map((column) => {
         return {
           name: column.name,

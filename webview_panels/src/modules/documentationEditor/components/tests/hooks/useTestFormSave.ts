@@ -76,7 +76,6 @@ const useTestFormSave = (): {
           database: "",
           schema: "",
           key: `${key}_${params.model}`,
-          path: `${key}_${params.model}`,
           test_metadata: {
             // @ts-expect-error test
             kwargs: {
@@ -105,7 +104,6 @@ const useTestFormSave = (): {
             schema: "",
             column_name: column.name,
             key: `${key}_${column.name}`,
-            path: `${key}_${column.name}`,
             test_metadata: {
               kwargs: {
                 column_name: column.name,
@@ -186,7 +184,6 @@ const useTestFormSave = (): {
         schema: "",
         column_name: column,
         key: `${data.test}_${column}`,
-        path: `${data.test}_${column}`,
         test_metadata: {
           name: data.test!,
           kwargs: {
