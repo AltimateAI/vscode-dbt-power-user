@@ -13,18 +13,24 @@ const DbtTestCode = ({ test }: { test: DBTModelTest }): JSX.Element | null => {
   const {
     state: { currentDocsData },
   } = useDocumentationContext();
-  const [testCode, setTestCode] = useState<GetTestCodeResponse | null>(null);
+  const [testCode, setTestCode] = useState<
+    (GetTestCodeResponse & { error?: string }) | null
+  >(null);
 
   panelLogger.info(testCode);
   const loadTestCode = async () => {
     if (!currentDocsData?.name) {
       return;
     }
-    const result = (await executeRequestInSync("getTestCode", {
-      test,
-      model: currentDocsData.name,
-    })) as GetTestCodeResponse;
-    setTestCode(result);
+    try {
+      const result = (await executeRequestInSync("getTestCode", {
+        test,
+        model: currentDocsData.name,
+      })) as GetTestCodeResponse;
+      setTestCode(result);
+    } catch (err) {
+      setTestCode({ error: (err as Error).message });
+    }
   };
 
   useEffect(() => {
@@ -48,6 +54,9 @@ const DbtTestCode = ({ test }: { test: DBTModelTest }): JSX.Element | null => {
       ) : null}
       {testCode.sql ? (
         <CodeBlock code={testCode.sql} language="sql" fileName="Source" />
+      ) : null}
+      {testCode.error ? (
+        <CodeBlock code={testCode.error} language="yaml" fileName="Source" />
       ) : null}
     </>
   );
