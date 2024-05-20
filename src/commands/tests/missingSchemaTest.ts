@@ -27,11 +27,11 @@ export class MissingSchemaTest implements AltimateScanStep {
       ) {
         continue;
       }
-      if (!value.patch_path) {
+      if (!value.patch_path && value.path) {
         const errMessage = `Documentation missing for model: ${value.name}`;
-        let projDiagnostic = projectDiagnostics[value.uniqueId];
+        let projDiagnostic = projectDiagnostics[value.path];
         if (projDiagnostic === undefined) {
-          projectDiagnostics[value.uniqueId] = projDiagnostic = [];
+          projectDiagnostics[value.path] = projDiagnostic = [];
         }
         projDiagnostic.push(
           new Diagnostic(

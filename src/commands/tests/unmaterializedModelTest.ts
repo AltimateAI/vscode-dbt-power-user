@@ -36,14 +36,15 @@ export class UnmaterializedModelTest implements AltimateScanStep {
       if (
         !Object.keys(altimateCatalog[projectName + projectRootUri]).includes(
           modelKey,
-        )
+        ) &&
+        value.path
       ) {
         // When the model is not in model dict, we could not find the table or view in
         // information schema. meaning it was not materialized.
         const errMessage = `Model ${value.name} does not exist in the database`;
-        let modelDiagnostics = projectDiagnostics[value.uniqueId];
+        let modelDiagnostics = projectDiagnostics[value.path];
         if (modelDiagnostics === undefined) {
-          projectDiagnostics[value.uniqueId] = modelDiagnostics = [];
+          projectDiagnostics[value.path] = modelDiagnostics = [];
         }
         modelDiagnostics.push(
           new Diagnostic(
