@@ -57,9 +57,6 @@ export class NodeParser {
           packagePath,
           original_file_path,
         );
-        if (!fullPath) {
-          return;
-        }
         modelMetaMap.set(name, {
           path: fullPath,
           database,
