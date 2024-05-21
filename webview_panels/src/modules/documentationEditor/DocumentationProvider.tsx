@@ -13,6 +13,7 @@ import documentationSlice, {
   setGenerationsHistory,
   setIncomingDocsData,
   setInsertedEntityName,
+  setMissingDocumentationMessage,
   setProject,
   updatConversations,
   updateCollaborationEnabled,
@@ -93,6 +94,7 @@ const DocumentationProvider = (): JSX.Element => {
           name?: string;
           description?: string;
           collaborationEnabled?: boolean;
+          missingDocumentationMessage?: string;
         }
       >,
     ) => {
@@ -121,6 +123,11 @@ const DocumentationProvider = (): JSX.Element => {
           dispatch(
             updateCollaborationEnabled(
               Boolean(event.data.collaborationEnabled),
+            ),
+          );
+          dispatch(
+            setMissingDocumentationMessage(
+              event.data.missingDocumentationMessage,
             ),
           );
           break;

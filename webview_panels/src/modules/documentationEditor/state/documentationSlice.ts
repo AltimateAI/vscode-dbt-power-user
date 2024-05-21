@@ -27,6 +27,7 @@ export const initialState = {
   conversations: {},
   showConversationsRightPanel: false,
   collaborationEnabled: false,
+  missingDocumentationMessage: undefined,
 } as DocumentationStateProps;
 
 const documentationSlice = createSlice({
@@ -43,6 +44,14 @@ const documentationSlice = createSlice({
     },
     addToSelectedPage: (state, action: PayloadAction<Pages>) => {
       state.selectedPages.push(action.payload);
+    },
+    setMissingDocumentationMessage: (
+      state,
+      action: PayloadAction<
+        DocumentationStateProps["missingDocumentationMessage"]
+      >,
+    ) => {
+      state.missingDocumentationMessage = action.payload;
     },
     updateConversationsRightPanelState: (
       state,
@@ -256,5 +265,6 @@ export const {
   updateConversationsRightPanelState,
   updateSelectedConversationGroup,
   updateCollaborationEnabled,
+  setMissingDocumentationMessage,
 } = documentationSlice.actions;
 export default documentationSlice;
