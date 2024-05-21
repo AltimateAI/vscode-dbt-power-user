@@ -51,6 +51,7 @@ DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER = (
 )
 
 if DBT_MAJOR_VER >=1 and DBT_MINOR_VER >= 8:
+    from dbt.contracts.graph.manifest import Manifest # type: ignore
     from dbt.contracts.graph.nodes import ManifestNode, CompiledNode  # type: ignore
     from dbt.artifacts.resources.v1.components import ColumnInfo  # type: ignore
     from dbt.artifacts.resources.types import NodeType # type: ignore
@@ -499,14 +500,16 @@ class DbtProject:
             self.write_manifest_artifact()
 
             if self.defer_to_prod:
-                with open(self.defer_to_prod_manifest_path) as f:
-                    manifest = WritableManifest.from_dict(json.load(f))
-                    selected = set()
-                    if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
-                        self.dbt.merge_from_artifact(
-                            other=manifest,
-                        )
-                    else:
+                if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
+                    writable_manifest = WritableManifest.read_and_check_versions(self.defer_to_prod_manifest_path)
+                    manifest = Manifest.from_writable_manifest(writable_manifest)
+                    self.dbt.merge_from_artifact(
+                        other=manifest,
+                    )
+                else:
+                    with open(self.defer_to_prod_manifest_path) as f:
+                        manifest = WritableManifest.from_dict(json.load(f))
+                        selected = set()
                         self.dbt.merge_from_artifact(
                             self.adapter,
                             other=manifest,
