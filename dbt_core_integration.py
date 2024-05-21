@@ -94,6 +94,7 @@ JINJA_CONTROL_SEQS = ["{{", "}}", "{%", "%}", "{#", "#}"]
 
 T = TypeVar("T")
 REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES = "REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES"
+DBT_DEBUG = "DBT_DEBUG"
 
 @contextlib.contextmanager
 def add_path(path):
@@ -250,6 +251,9 @@ class ConfigInterface:
         self.quiet = True
         self.profile = profile
         self.target_path = target_path
+        if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
+            self.REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES = os.environ.get(REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES, True)
+            self.DEBUG = os.environ.get(DBT_DEBUG, False)
 
     def __str__(self):
         return f"ConfigInterface(threads={self.threads}, target={self.target}, profiles_dir={self.profiles_dir}, project_dir={self.project_dir}, profile={self.profile}, target_path={self.target_path})"
@@ -361,7 +365,6 @@ class DbtProject:
             self.adapter = self.get_adapter()
             self.adapter.connections.set_connection_name()
             if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
-                self.args.REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES = os.environ.get(REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES, True)
                 from dbt.context.providers import generate_runtime_macro_context
                 self.adapter.set_macro_context_generator(generate_runtime_macro_context)
             self.config.adapter = self.adapter
