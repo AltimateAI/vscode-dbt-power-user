@@ -51,6 +51,7 @@ DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER = (
 )
 
 if DBT_MAJOR_VER >=1 and DBT_MINOR_VER >= 8:
+    from dbt.contracts.graph.manifest import Manifest # type: ignore
     from dbt.contracts.graph.nodes import ManifestNode, CompiledNode  # type: ignore
     from dbt.artifacts.resources.v1.components import ColumnInfo  # type: ignore
     from dbt.artifacts.resources.types import NodeType # type: ignore
@@ -240,6 +241,8 @@ class ConfigInterface:
         project_dir: Optional[str] = None,
         profile: Optional[str] = None,
         target_path: Optional[str] = None,
+        defer: Optional[bool] = False,
+        favor_state: Optional[bool] = False,
     ):
         self.threads = threads
         self.target = target
@@ -250,6 +253,8 @@ class ConfigInterface:
         self.quiet = True
         self.profile = profile
         self.target_path = target_path
+        self.defer = defer
+        self.favor_state = favor_state
 
     def __str__(self):
         return f"ConfigInterface(threads={self.threads}, target={self.target}, profiles_dir={self.profiles_dir}, project_dir={self.project_dir}, profile={self.profile}, target_path={self.target_path})"
@@ -319,6 +324,8 @@ class DbtProject:
             project_dir=project_dir,
             profile=profile,
             target_path=target_path,
+            defer=defer_to_prod,
+            favor_state=favor_state,
         )
 
         # Utilities
@@ -480,15 +487,9 @@ class DbtProject:
             self.write_manifest_artifact()
 
             if self.defer_to_prod:
-                with open(self.defer_to_prod_manifest_path) as f:
-                    manifest = WritableManifest.from_dict(json.load(f))
-                    selected = set()
-                    self.dbt.merge_from_artifact(
-                        self.adapter,
-                        other=manifest,
-                        selected=selected,
-                        favor_state=self.favor_state,
-                    )
+                writable_manifest = WritableManifest.read_and_check_versions(self.defer_to_prod_manifest_path)
+                manifest = Manifest.from_writable_manifest(writable_manifest)
+                self.dbt.merge_from_artifact(other=manifest)
         except Exception as e:
             self.config = _config_pointer
             raise Exception(str(e))
