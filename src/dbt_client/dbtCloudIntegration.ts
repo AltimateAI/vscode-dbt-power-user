@@ -262,16 +262,16 @@ export class DBTCloudProjectIntegration
         const { stdout, stderr } = await showCommand.execute(
           cancellationTokenSource.token,
         );
+        const exception = this.processJSONErrors(stderr);
+        if (exception) {
+          throw exception;
+        }
         const previewLine = stdout
           .trim()
           .split("\n")
           .map((line) => JSON.parse(line.trim()))
           .filter((line) => line.data.hasOwnProperty("preview"));
         const preview = JSON.parse(previewLine[0].data.preview);
-        const exception = this.processJSONErrors(stderr);
-        if (exception) {
-          throw exception;
-        }
         return {
           table: {
             column_names: preview.length > 0 ? Object.keys(preview[0]) : [],
