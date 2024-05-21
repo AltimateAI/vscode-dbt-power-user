@@ -50,7 +50,7 @@ import { handleResponse, init, columnLineage } from "./service_utils";
 import { ActionWidget } from "./ActionWidget";
 import { DEFAULT_MIN_ZOOM, createTableNode } from "./utils";
 import { Settings } from "./Settings";
-import { getLineageSettings } from "./service";
+import { Table, getLineageSettings } from "./service";
 
 export let aiEnabled = false;
 export let isDarkMode = false;
@@ -160,19 +160,7 @@ function App() {
   const [minRange, setMinRange] = useState<[number, number]>([0, 0]);
 
   useEffect(() => {
-    const render = async (args: {
-      node: {
-        table: string;
-        label: string;
-        url: string;
-        nodeType: string;
-        materialization?: string;
-        downstreamCount: number;
-        upstreamCount: number;
-        tests: { key: string; path: string }[];
-      };
-      aiEnabled: boolean;
-    }) => {
+    const render = async (args: { node: Table; aiEnabled: boolean }) => {
       setIsOpen(false);
       setSidebarScreen("");
       if (!args) return;

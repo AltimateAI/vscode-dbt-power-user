@@ -106,7 +106,7 @@ export class NewDocsGenPanel
     );
 
     return {
-      sql: testPath.endsWith(".sql")
+      sql: testPath?.endsWith(".sql")
         ? readFileSync(testPath, { encoding: "utf-8" })
         : undefined,
       config: this.dbtTestService.getConfigByTest(test, modelName, column_name),
