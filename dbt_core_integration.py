@@ -95,6 +95,9 @@ JINJA_CONTROL_SEQS = ["{{", "}}", "{%", "%}", "{#", "#}"]
 T = TypeVar("T")
 REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES = "REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES"
 DBT_DEBUG = "DBT_DEBUG"
+DBT_DEFER = "DBT_DEFER"
+DBT_STATE = "DBT_STATE"
+DBT_FAVOR_STATE = "DBT_FAVOR_STATE"
 
 @contextlib.contextmanager
 def add_path(path):
@@ -241,6 +244,9 @@ class ConfigInterface:
         project_dir: Optional[str] = None,
         profile: Optional[str] = None,
         target_path: Optional[str] = None,
+        defer: Optional[bool] = False,
+        state: Optional[str] = None,
+        favor_state: Optional[bool] = False,
     ):
         self.threads = threads
         self.target = target
@@ -251,6 +257,9 @@ class ConfigInterface:
         self.quiet = True
         self.profile = profile
         self.target_path = target_path
+        self.defer = defer
+        self.state = state
+        self.favor_state = favor_state
         if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
             self.REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES = os.environ.get(REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES, True)
             self.DEBUG = os.environ.get(DBT_DEBUG, False)
@@ -323,6 +332,9 @@ class DbtProject:
             project_dir=project_dir,
             profile=profile,
             target_path=target_path,
+            defer=defer_to_prod,
+            state=manifest_path,
+            favor_state=favor_state,
         )
 
         # Utilities
@@ -397,6 +409,10 @@ class DbtProject:
     def set_defer_config(
         self, defer_to_prod: bool, manifest_path: str, favor_state: bool
     ) -> None:
+        if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
+            self.args.defer = defer_to_prod
+            self.args.state = manifest_path
+            self.args.favor_state = favor_state
         self.defer_to_prod = defer_to_prod
         self.defer_to_prod_manifest_path = manifest_path
         self.favor_state = favor_state
@@ -486,11 +502,16 @@ class DbtProject:
                 with open(self.defer_to_prod_manifest_path) as f:
                     manifest = WritableManifest.from_dict(json.load(f))
                     selected = set()
-                    self.dbt.merge_from_artifact(
-                        self.adapter,
-                        other=manifest,
-                        selected=selected,
-                        favor_state=self.favor_state,
+                    if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
+                        self.dbt.merge_from_artifact(
+                            other=manifest,
+                        )
+                    else:
+                        self.dbt.merge_from_artifact(
+                            self.adapter,
+                            other=manifest,
+                            selected=selected,
+                            favor_state=self.favor_state,
                     )
         except Exception as e:
             self.config = _config_pointer
