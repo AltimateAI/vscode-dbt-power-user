@@ -13,6 +13,7 @@ import {
   WebviewViewResolveContext,
   window,
   workspace,
+  env,
 } from "vscode";
 import { AltimateRequest, ModelNode } from "../altimate";
 import {
@@ -639,6 +640,7 @@ export class NewLineagePanel implements LineagePanelView {
       if (this.cancellationTokenSource?.token.isCancellationRequested) {
         return { column_lineage: [] };
       }
+      const session_id = `${env.sessionId}-${targets[0]}-${targets[1]}`;
       const request = {
         model_dialect: modelDialect,
         model_info: modelInfos,
@@ -646,7 +648,7 @@ export class NewLineagePanel implements LineagePanelView {
         targets: targets.map((t) => ({ uniqueId: t[0], column_name: t[1] })),
         selected_column: selected_column!,
         parent_models,
-        session_id: sessionId,
+        session_id,
       };
       this.terminal.debug(
         "newLineagePanel:getConnectedColumns",
