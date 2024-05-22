@@ -91,6 +91,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           message,
           panel: this._panel,
           project: this.queryManifestService.getProject(),
+          columnCount: 1,
         });
         break;
 

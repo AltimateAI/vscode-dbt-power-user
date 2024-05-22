@@ -33,6 +33,7 @@ interface GenerateDocsForModelProps {
   queryText: string;
   project: DBTProject | undefined;
   message: any;
+  columnCount: number;
 }
 
 interface FeedbackRequestProps {
@@ -60,6 +61,7 @@ export class DocGenService {
     adapter: string,
     message: any,
     columns: string[],
+    columnCount: number,
   ): Promise<DocsGenerateResponse | undefined> {
     return new Promise(async (resolve, reject) => {
       if (!documentation) {
@@ -83,6 +85,7 @@ export class DocGenService {
           gen_model_description: false,
           user_instructions: message.user_instructions,
           follow_up_instructions: message.follow_up_instructions,
+          columns_count: columnCount,
         });
 
         return resolve(result);
@@ -107,6 +110,7 @@ export class DocGenService {
                 adapter,
                 message,
                 columns,
+                1,
               ),
             );
           }, err.retryAfter);
@@ -280,6 +284,7 @@ export class DocGenService {
                 project.getAdapterType(),
                 message,
                 chunk,
+                i * COLUMNS_PER_CHUNK,
               );
               results.push(chunkResult);
               this.dbtTerminal.debug(
@@ -354,6 +359,7 @@ export class DocGenService {
     project,
     message,
     panel,
+    columnCount,
   }: GenerateDocsForModelProps) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
@@ -402,6 +408,7 @@ export class DocGenService {
                   message.user_instructions.prompt_hint || "generate",
               },
               follow_up_instructions: message.follow_up_instructions,
+              columns_count: columnCount,
             });
 
           if (

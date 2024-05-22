@@ -574,6 +574,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               message,
               panel: this._panel,
               project,
+              columnCount: 1,
             });
             break;
           case "generateDocsForColumn":

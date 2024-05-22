@@ -170,6 +170,7 @@ interface DocsGenerateModelRequestV2 {
   };
   prompt_hint?: string;
   gen_model_description: boolean;
+  columns_count: number;
 }
 
 export interface DocsGenerateResponse {
