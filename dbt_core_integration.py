@@ -17,6 +17,7 @@ import threading
 import uuid
 import sys
 import contextlib
+import re
 from collections import UserDict
 from collections.abc import Iterable
 from datetime import date, datetime, time
@@ -620,6 +621,9 @@ class DbtProject:
     def execute_sql(self, raw_sql: str) -> DbtAdapterExecutionResult:
         """Execute dbt SQL statement against database"""
         with self.adapter.connection_named("master"):
+            # Strip leading Jinja comments
+            raw_sql = re.sub(r'^{#.*#}\s*', '', raw_sql, flags=re.MULTILINE)
+
             # if no jinja chars then these are synonymous
             compiled_sql = raw_sql
             if has_jinja(raw_sql):
