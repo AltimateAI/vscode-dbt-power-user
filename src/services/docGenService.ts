@@ -3,6 +3,7 @@ import {
   ProgressLocation,
   WebviewPanel,
   WebviewView,
+  env,
   window,
   workspace,
 } from "vscode";
@@ -33,7 +34,8 @@ interface GenerateDocsForModelProps {
   queryText: string;
   project: DBTProject | undefined;
   message: any;
-  columnCount: number;
+  columnIndexCount: number | undefined;
+  sessionID: string | undefined;
 }
 
 interface FeedbackRequestProps {
@@ -61,7 +63,8 @@ export class DocGenService {
     adapter: string,
     message: any,
     columns: string[],
-    columnCount: number,
+    columnIndexCount: number | undefined = undefined,
+    sessionID: string | undefined = undefined,
   ): Promise<DocsGenerateResponse | undefined> {
     return new Promise(async (resolve, reject) => {
       if (!documentation) {
@@ -85,7 +88,8 @@ export class DocGenService {
           gen_model_description: false,
           user_instructions: message.user_instructions,
           follow_up_instructions: message.follow_up_instructions,
-          columns_count: columnCount,
+          column_index_count: columnIndexCount,
+          session_id: sessionID,
         });
 
         return resolve(result);
@@ -110,7 +114,6 @@ export class DocGenService {
                 adapter,
                 message,
                 columns,
-                1,
               ),
             );
           }, err.retryAfter);
@@ -275,6 +278,9 @@ export class DocGenService {
 
           const startTime = Date.now();
           const compiledSql = await project.unsafeCompileQuery(queryText);
+          const sessionID = `${env.sessionId}-${
+            documentation?.name || "model"
+          }-numColumns-${chunks.length * COLUMNS_PER_CHUNK}-${Date.now()}`;
 
           await Promise.all(
             chunks.map(async (chunk, i) => {
@@ -285,6 +291,7 @@ export class DocGenService {
                 message,
                 chunk,
                 i * COLUMNS_PER_CHUNK,
+                sessionID,
               );
               results.push(chunkResult);
               this.dbtTerminal.debug(
@@ -359,7 +366,8 @@ export class DocGenService {
     project,
     message,
     panel,
-    columnCount,
+    columnIndexCount,
+    sessionID,
   }: GenerateDocsForModelProps) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
@@ -408,7 +416,8 @@ export class DocGenService {
                   message.user_instructions.prompt_hint || "generate",
               },
               follow_up_instructions: message.follow_up_instructions,
-              columns_count: columnCount,
+              column_index_count: columnIndexCount,
+              session_id: sessionID,
             });
 
           if (
