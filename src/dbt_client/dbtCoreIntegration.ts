@@ -788,7 +788,19 @@ export class DBTCoreProjectIntegration
   async unsafeCompileQuery(query: string): Promise<string> {
     this.throwBridgeErrorIfAvailable();
     const output = await this.python?.lock<CompilationResult>(
-      (python) => python!`to_dict(project.compile_sql(${query}))`,
+      (python) => python!`
+        import re
+
+        def resolve_this(sql, model):
+          if '{{ this }}' in sql:
+            return re.sub(r'{{\s*this\s*}}', f"{model.database}.{model.schema}.{model.alias}", sql)
+          return sql
+
+        compiled = project.compile_sql(${query})
+        compiled_sql = resolve_this(compiled.compiled_sql, project.get_ref_node(compiled.node.name))
+
+        to_dict({'compiled_sql': compiled_sql})
+      `,
     );
     return output.compiled_sql;
   }
