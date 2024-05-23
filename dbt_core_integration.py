@@ -467,6 +467,15 @@ class DbtProject:
             self._sql_compiler = SqlCompileRunner(
                 self.config, self.adapter, node=None, node_index=1, num_nodes=1
             )
+
+            # Verify sql_compiler configuration
+            assert self._sql_compiler.config.has_option("compile", "handle_macros"), (
+                "sql_compiler configuration missing 'handle_macros' option"
+            )
+            assert self._sql_compiler.config.get("compile", "handle_macros"), (
+                "sql_compiler not configured to handle macros"
+            )
+
         return self._sql_compiler
 
     @property
@@ -690,12 +699,41 @@ class DbtProject:
                 )
             else:
                 # this is essentially a convenient wrapper to adapter.get_compiler
-                compiled_node = self.sql_compiler.compile(self.dbt)
-            return DbtAdapterCompilationResult(
+                compiled_node = self.sql_compiler.compile(manifest=self.dbt)
+
+            # Add debugging statements
+            self.dbtTerminal.debug(
+                "_compile_node",
+                f"Compiling node: {node.unique_id}",
+            )
+            self.dbtTerminal.debug(
+                "_compile_node",
+                f"Raw SQL: {getattr(compiled_node, RAW_CODE)}",
+            )
+            self.dbtTerminal.debug(
+                "_compile_node",
+                f"Compiled SQL: {getattr(compiled_node, COMPILED_CODE)}",
+            )
+
+            # Log compiled code
+            self.dbtTerminal.debug(
+                "_compile_node",
+                f"DBT compiled code: {getattr(compiled_node, COMPILED_CODE)}",
+            )
+
+            result = DbtAdapterCompilationResult(
                 getattr(compiled_node, RAW_CODE),
                 getattr(compiled_node, COMPILED_CODE),
                 compiled_node,
             )
+
+            # Log plugin compiled code
+            self.dbtTerminal.debug(
+                "_compile_node",
+                f"Plugin compiled code: {result.compiled_sql}",
+            )
+
+            return result
         except Exception as e:
             raise Exception(str(e))
 
