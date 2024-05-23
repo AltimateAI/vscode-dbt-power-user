@@ -302,7 +302,7 @@ export const ActionWidget = () => {
         onClick={() => {
           flow.setNodes([]);
           flow.setEdges([]);
-          setSelectedColumn({ table: "", name: "", sessionId: "" });
+          setSelectedColumn({ table: "", name: "" });
           setCollectColumns({});
           setMoreTables({});
           init();

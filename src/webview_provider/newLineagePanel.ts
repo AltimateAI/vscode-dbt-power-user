@@ -500,14 +500,12 @@ export class NewLineagePanel implements LineagePanelView {
     upstreamExpansion,
     currAnd1HopTables,
     selectedColumn,
-    sessionId,
   }: {
     targets: [string, string][];
     upstreamExpansion: boolean;
     currAnd1HopTables: string[];
     // select_column is used for pricing not business logic
-    selectedColumn: { name: string; table: string };
-    sessionId: string;
+    selectedColumn: { name: string; table: string; sessionId: string };
   }) {
     const event = this.getEvent();
     if (!event) {
