@@ -569,9 +569,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
             break;
           case "generateDocsForModel":
-            const sessionID = `${env.sessionId}-${
-              this.documentation?.name || "model"
-            }-numColumns-1-${Date.now()}`;
             this.docGenService.generateDocsForModel({
               queryText,
               documentation: this.documentation,
@@ -579,7 +576,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               panel: this._panel,
               project,
               columnIndexCount: undefined,
-              sessionID: sessionID,
               isBulkGen: false,
             });
             break;
@@ -589,6 +585,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               panel: this._panel,
               message,
               project,
+              isBulkGen: true,
             });
             break;
           case "sendFeedback":

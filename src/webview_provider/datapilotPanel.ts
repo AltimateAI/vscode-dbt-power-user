@@ -91,16 +91,15 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         if (!queryText) {
           return;
         }
-        const sessionID = `${env.sessionId}-model-numColumns-1-${Date.now()}`;
+        const documentation =
+          await this.docGenService.getDocumentationForCurrentActiveFile();
         this.docGenService.generateDocsForModel({
           queryText,
-          documentation:
-            await this.docGenService.getDocumentationForCurrentActiveFile(),
+          documentation: documentation,
           message,
           panel: this._panel,
           project: this.queryManifestService.getProject(),
           columnIndexCount: undefined,
-          sessionID: sessionID,
           isBulkGen: false,
         });
         break;
@@ -112,6 +111,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           panel: this._panel,
           message,
           project: this.queryManifestService.getProject(),
+          isBulkGen: false,
         });
         break;
 

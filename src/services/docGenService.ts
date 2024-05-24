@@ -26,6 +26,7 @@ interface GenerateDocsForColumnsProps {
   message: any;
   project: DBTProject | undefined;
   documentation: DBTDocumentation | undefined;
+  isBulkGen: boolean;
 }
 
 interface GenerateDocsForModelProps {
@@ -35,7 +36,6 @@ interface GenerateDocsForModelProps {
   project: DBTProject | undefined;
   message: any;
   columnIndexCount: number | undefined;
-  sessionID: string | undefined;
   isBulkGen: boolean;
 }
 
@@ -236,6 +236,7 @@ export class DocGenService {
     message,
     documentation,
     panel,
+    isBulkGen,
   }: GenerateDocsForColumnsProps) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
@@ -281,12 +282,12 @@ export class DocGenService {
 
           const startTime = Date.now();
           const compiledSql = await project.unsafeCompileQuery(queryText);
+          const columnIndexCount = isBulkGen
+            ? chunks.length * COLUMNS_PER_CHUNK
+            : 1;
           const sessionID = `${
             env.sessionId
-          }-${documentation?.name}-numColumns-${
-            chunks.length * COLUMNS_PER_CHUNK
-          }-${Date.now()}`;
-          const isBulkGen = true;
+          }-${documentation?.name}-numColumns-${columnIndexCount}-${Date.now()}`;
 
           await Promise.all(
             chunks.map(async (chunk, i) => {
@@ -374,7 +375,6 @@ export class DocGenService {
     message,
     panel,
     columnIndexCount,
-    sessionID,
     isBulkGen,
   }: GenerateDocsForModelProps) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
@@ -400,7 +400,9 @@ export class DocGenService {
         try {
           const startTime = Date.now();
           const compiledSql = await project.unsafeCompileQuery(queryText);
-
+          const sessionID = `${
+            env.sessionId
+          }-${documentation?.name}-numColumns-0-${Date.now()}`;
           const generateDocsForModel =
             await this.altimateRequest.generateModelDocsV2({
               columns: [],
