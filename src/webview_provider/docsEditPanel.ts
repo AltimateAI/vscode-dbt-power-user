@@ -11,6 +11,7 @@ import {
   WebviewView,
   WebviewViewProvider,
   WebviewViewResolveContext,
+  env,
   window,
   workspace,
 } from "vscode";
@@ -568,6 +569,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
 
             break;
           case "generateDocsForModel":
+            const sessionID = `${env.sessionId}-${
+              this.documentation?.name || "model"
+            }-numColumns-1-${Date.now()}`;
             this.docGenService.generateDocsForModel({
               queryText,
               documentation: this.documentation,
@@ -575,7 +579,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               panel: this._panel,
               project,
               columnIndexCount: undefined,
-              sessionID: undefined,
+              sessionID: sessionID,
+              isBulkGen: false,
             });
             break;
           case "generateDocsForColumn":

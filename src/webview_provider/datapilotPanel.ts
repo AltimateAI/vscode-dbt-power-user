@@ -1,4 +1,12 @@
-import { commands, Range, TextDocument, Uri, window, workspace } from "vscode";
+import {
+  commands,
+  env,
+  Range,
+  TextDocument,
+  Uri,
+  window,
+  workspace,
+} from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
@@ -83,7 +91,7 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         if (!queryText) {
           return;
         }
-
+        const sessionID = `${env.sessionId}-model-numColumns-1-${Date.now()}`;
         this.docGenService.generateDocsForModel({
           queryText,
           documentation:
@@ -92,7 +100,8 @@ export class DataPilotPanel extends AltimateWebviewProvider {
           panel: this._panel,
           project: this.queryManifestService.getProject(),
           columnIndexCount: undefined,
-          sessionID: undefined,
+          sessionID: sessionID,
+          isBulkGen: false,
         });
         break;
 

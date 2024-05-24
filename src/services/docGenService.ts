@@ -36,6 +36,7 @@ interface GenerateDocsForModelProps {
   message: any;
   columnIndexCount: number | undefined;
   sessionID: string | undefined;
+  isBulkGen: boolean;
 }
 
 interface FeedbackRequestProps {
@@ -65,6 +66,7 @@ export class DocGenService {
     columns: string[],
     columnIndexCount: number | undefined = undefined,
     sessionID: string | undefined = undefined,
+    isBulkGen: boolean = false,
   ): Promise<DocsGenerateResponse | undefined> {
     return new Promise(async (resolve, reject) => {
       if (!documentation) {
@@ -90,6 +92,7 @@ export class DocGenService {
           follow_up_instructions: message.follow_up_instructions,
           column_index_count: columnIndexCount,
           session_id: sessionID,
+          is_bulk_gen: isBulkGen,
         });
 
         return resolve(result);
@@ -278,9 +281,12 @@ export class DocGenService {
 
           const startTime = Date.now();
           const compiledSql = await project.unsafeCompileQuery(queryText);
-          const sessionID = `${env.sessionId}-${
-            documentation?.name || "model"
-          }-numColumns-${chunks.length * COLUMNS_PER_CHUNK}-${Date.now()}`;
+          const sessionID = `${
+            env.sessionId
+          }-${documentation?.name}-numColumns-${
+            chunks.length * COLUMNS_PER_CHUNK
+          }-${Date.now()}`;
+          const isBulkGen = true;
 
           await Promise.all(
             chunks.map(async (chunk, i) => {
@@ -292,6 +298,7 @@ export class DocGenService {
                 chunk,
                 i * COLUMNS_PER_CHUNK,
                 sessionID,
+                isBulkGen,
               );
               results.push(chunkResult);
               this.dbtTerminal.debug(
@@ -368,6 +375,7 @@ export class DocGenService {
     panel,
     columnIndexCount,
     sessionID,
+    isBulkGen,
   }: GenerateDocsForModelProps) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
@@ -418,6 +426,7 @@ export class DocGenService {
               follow_up_instructions: message.follow_up_instructions,
               column_index_count: columnIndexCount,
               session_id: sessionID,
+              is_bulk_gen: isBulkGen,
             });
 
           if (
