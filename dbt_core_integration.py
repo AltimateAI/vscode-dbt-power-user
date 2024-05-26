@@ -261,9 +261,6 @@ class ConfigInterface:
         self.defer = defer
         self.state = state
         self.favor_state = favor_state
-        if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
-            self.REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES = os.environ.get(REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES, True)
-            self.DEBUG = os.environ.get(DBT_DEBUG, False)
 
     def __str__(self):
         return f"ConfigInterface(threads={self.threads}, target={self.target}, profiles_dir={self.profiles_dir}, project_dir={self.project_dir}, profile={self.profile}, target_path={self.target_path})"
@@ -364,8 +361,11 @@ class DbtProject:
     def init_config(self):
         if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
             from dbt_common.context import set_invocation_context
+            from dbt.flags import get_flags
             set_invocation_context(os.environ)
             set_from_args(self.args, None)
+            # Copy over global_flags
+            self.args.__dict__.update(get_flags().__dict__)
         else:
             set_from_args(self.args, self.args)
         self.config = RuntimeConfig.from_args(self.args)
