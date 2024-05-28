@@ -94,7 +94,10 @@ const DocumentationProvider = (): JSX.Element => {
           name?: string;
           description?: string;
           collaborationEnabled?: boolean;
-          missingDocumentationMessage?: string;
+          missingDocumentationMessage?: {
+            message: string;
+            type: "error" | "warning";
+          };
         }
       >,
     ) => {
