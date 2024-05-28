@@ -174,7 +174,7 @@ export class DocGenService {
 
   private getMissingDocumentationMessage(filePath?: string) {
     const message =
-      "Documentation could be viewed for valid models only. Please open a valid model.";
+      "A valid dbt model file needs to be open and active in the editor area above to view documentation for that model.";
     if (!filePath) {
       return { message, type: "warning" };
     }
