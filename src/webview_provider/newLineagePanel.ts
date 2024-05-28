@@ -858,7 +858,8 @@ export class NewLineagePanel implements LineagePanelView {
   }
 
   private getMissingLineageMessage() {
-    const message = "Open a valid dbt node to view lineage";
+    const message =
+      "A valid dbt file (model, seed etc.) needs to be open and active in the editor area above to view lineage";
     try {
       this.getProject()?.throwDiagnosticsErrorIfAvailable();
     } catch (err) {
