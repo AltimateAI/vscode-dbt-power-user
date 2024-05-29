@@ -217,7 +217,7 @@ export class DbtTestService {
     }
 
     const adapter = dbtProject.getAdapterType();
-    const documentation = await this.docGenService.getDocumentation(
+    const { documentation } = await this.docGenService.getDocumentation(
       params.filePath,
     );
     if (!documentation) {

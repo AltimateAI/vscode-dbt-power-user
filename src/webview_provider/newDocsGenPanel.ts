@@ -195,11 +195,12 @@ export class NewDocsGenPanel
           return;
         }
 
-        const documentation =
+        const { documentation, message: missingDocumentationMessage } =
           await this.docGenService.getDocumentationForCurrentActiveFile();
         this.sendResponseToWebview({
           command: "renderDocumentation",
           docs: documentation,
+          missingDocumentationMessage,
           tests: await this.dbtTestService.getTestsForCurrentModel(),
           project: this.queryManifestService.getProject()?.getProjectName(),
           collaborationEnabled: workspace
