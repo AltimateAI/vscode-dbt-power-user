@@ -4,6 +4,7 @@ import {
   CancellationToken,
   CancellationTokenSource,
   ColorThemeKind,
+  commands,
   ProgressLocation,
   TextEditor,
   Uri,
@@ -145,6 +146,10 @@ export class NewLineagePanel implements LineagePanelView {
     const { command, args } = message;
     const { id, params } = args;
 
+    if (command === "openProblemsTab") {
+      commands.executeCommand("workbench.action.problems.focus");
+      return;
+    }
     if (command === "upstreamTables") {
       const body = await this.getUpstreamTables(params);
       this._panel?.webview.postMessage({
@@ -852,16 +857,41 @@ export class NewLineagePanel implements LineagePanelView {
     return this.dbtProjectContainer.findDBTProject(currentFilePath);
   }
 
-  private getStartingNode(): { node: Table; aiEnabled: boolean } | undefined {
+  private getMissingLineageMessage() {
+    const message =
+      "A valid dbt file (model, seed etc.) needs to be open and active in the editor area above to view lineage";
+    try {
+      this.getProject()?.throwDiagnosticsErrorIfAvailable();
+    } catch (err) {
+      return { message: (err as Error).message, type: "error" };
+    }
+
+    return { message, type: "warning" };
+  }
+
+  private getStartingNode():
+    | {
+        node?: Table;
+        aiEnabled: boolean;
+        missingLineageMessage?: { message: string; type: string };
+      }
+    | undefined {
+    const aiEnabled = this.altimate.enabled();
     const event = this.getEvent();
     if (!event) {
-      return;
+      return {
+        aiEnabled,
+        missingLineageMessage: this.getMissingLineageMessage(),
+      };
     }
     const { nodeMetaMap, graphMetaMap, testMetaMap } = event;
     const tableName = this.getFilename();
     const _node = nodeMetaMap.get(tableName);
     if (!_node) {
-      return;
+      return {
+        aiEnabled,
+        missingLineageMessage: this.getMissingLineageMessage(),
+      };
     }
     const key = _node.uniqueId;
     const nodeType = key.split(".")[0];
@@ -887,7 +917,7 @@ export class NewLineagePanel implements LineagePanelView {
         return { ...testMetaMap.get(testKey), key: testKey };
       }),
     };
-    return { node, aiEnabled: this.altimate.enabled() };
+    return { node, aiEnabled };
   }
 
   private setupWebviewOptions(context: WebviewViewResolveContext) {
