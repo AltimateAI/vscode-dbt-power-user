@@ -242,6 +242,8 @@ export class DBTCloudProjectIntegration
     const showCommand = this.dbtCloudCommand(
       new DBTCommand("Running sql...", [
         "show",
+        "--log-level",
+        "debug",
         "--inline",
         query,
         "--limit",
@@ -262,16 +264,23 @@ export class DBTCloudProjectIntegration
         const { stdout, stderr } = await showCommand.execute(
           cancellationTokenSource.token,
         );
-        const previewLine = stdout
-          .trim()
-          .split("\n")
-          .map((line) => JSON.parse(line.trim()))
-          .filter((line) => line.data.hasOwnProperty("preview"));
-        const preview = JSON.parse(previewLine[0].data.preview);
         const exception = this.processJSONErrors(stderr);
         if (exception) {
           throw exception;
         }
+        const parsedLines = stdout
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line.trim()));
+        const previewLine = parsedLines.filter((line) =>
+          line.data.hasOwnProperty("preview"),
+        );
+        const compiledSqlLines = parsedLines.filter((line) =>
+          line.data.hasOwnProperty("sql"),
+        );
+        const preview = JSON.parse(previewLine[0].data.preview);
+        const compiledSql =
+          compiledSqlLines[compiledSqlLines.length - 1].data.sql;
         return {
           table: {
             column_names: preview.length > 0 ? Object.keys(preview[0]) : [],
@@ -281,7 +290,7 @@ export class DBTCloudProjectIntegration
                 : [],
             rows: preview.map((obj: any) => Object.values(obj)),
           },
-          compiled_sql: "",
+          compiled_sql: compiledSql,
           raw_sql: query,
         };
       },
