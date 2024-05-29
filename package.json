@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.39.14",
+  "version": "0.39.15",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -579,7 +579,7 @@
       },
       {
         "command": "dbtPowerUser.buildChildrenModels",
-        "title": "Build Downstream Models",
+        "title": "Build Downstream Models (model+)",
         "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build-model_light.svg",
@@ -588,7 +588,7 @@
       },
       {
         "command": "dbtPowerUser.buildParentModels",
-        "title": "Build Upstream Models",
+        "title": "Build Upstream Models (+model)",
         "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build-model_light.svg",
@@ -597,7 +597,7 @@
       },
       {
         "command": "dbtPowerUser.buildChildrenParentModels",
-        "title": "Build Upstream and Downstream Models",
+        "title": "Build Upstream and Downstream Models (+model+)",
         "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build-model_light.svg",
