@@ -16,11 +16,7 @@ import {
   HandleCommandProps,
 } from "./altimateWebviewProvider";
 import { DocGenService } from "../services/docGenService";
-import {
-  AltimateRequest,
-  QueryAnalysisType,
-  QueryTranslateExplanationRequest,
-} from "../altimate";
+import { AltimateRequest, QueryAnalysisType } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
 import {
   QueryAnalysisService,
