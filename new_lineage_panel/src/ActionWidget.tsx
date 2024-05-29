@@ -1,6 +1,6 @@
 import { PropsWithChildren, useContext, useEffect, useState } from "react";
 import "reactflow/dist/style.css";
-import { Button, Card, CardBody } from "reactstrap";
+import { Alert, Button, Card, CardBody } from "reactstrap";
 import ResetIcon from "./assets/icons/reset.svg?react";
 import HelpIcon from "./assets/icons/help.svg?react";
 import FeedbackIcon from "./assets/icons/feedback.svg?react";
@@ -12,8 +12,8 @@ import ArrowRightIcon from "./assets/icons/arrow-right.svg?react";
 import GearIcon from "./assets/icons/gear.svg?react";
 import styles from "./styles.module.scss";
 import { HELP_SIDEBAR, SETTINGS_SIDEBAR } from "./constants";
-import { init, openURL, setLegacyLineageView, CLL } from "./service_utils";
-import { LineageContext, aiEnabled } from "./App";
+import { init, openURL, setLegacyLineageView, CLL, requestExecutor } from "./service_utils";
+import { LineageContext, MissingLineageMessage, aiEnabled } from "./App";
 import { useReactFlow } from "reactflow";
 import {
   calculateMinLevel,
@@ -243,7 +243,7 @@ const AutoExpansionPopover = () => {
   );
 };
 
-export const ActionWidget = () => {
+export const ActionWidget = ({missingLineageMessage}: {missingLineageMessage?: MissingLineageMessage}) => {
   const {
     selectedColumn,
     confidence,
@@ -254,8 +254,32 @@ export const ActionWidget = () => {
   } = useContext(LineageContext);
   const flow = useReactFlow();
 
+  const openProblemsTab = () => {
+    return requestExecutor("openProblemsTab", { });
+  }
+
   return (
     <div className="top-right-container">
+      {missingLineageMessage ? (
+        <Alert color="warning" className="p-2 mb-0">
+          {missingLineageMessage.message}
+          {missingLineageMessage.type === "error" ? (
+            <>
+              <Button
+                color="link"
+                className={"pt-0 pb-0"}
+                style={{ marginTop: -5 }}
+                onClick={openProblemsTab}
+              >
+                Click here
+              </Button>{" "}
+              to view Problems tab
+            </>
+          ) : (
+            ""
+          )}
+        </Alert>
+      ) : null}
       <Card className={styles.menu_card_container}>
         <CardBody className={styles.menu_card}>
           <div className="d-flex gap-sm">

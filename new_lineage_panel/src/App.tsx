@@ -67,6 +67,8 @@ type Confidence = {
   operator_list?: string[];
 };
 
+export interface MissingLineageMessage  { message: string, type: "warning" | "error" }
+
 const noop = () => {};
 
 export type SelectedColumn = { name: string; table: string };
@@ -149,6 +151,7 @@ function App() {
   const [, _rerender] = useState(0);
   const rerender = () => _rerender((x) => (x + 1) % 100);
 
+  const [missingLineageMessage, setMissingLineageMessage] = useState<MissingLineageMessage | undefined>()
   const [selectCheck, setSelectCheck] = useState(true);
   const [nonSelectCheck, setNonSelectCheck] = useState(true);
   const [defaultExpansion, setDefaultExpansion] = useState(5);
@@ -156,14 +159,15 @@ function App() {
   const [minRange, setMinRange] = useState<[number, number]>([0, 0]);
 
   useEffect(() => {
-    const render = async (args: { node: Table; aiEnabled: boolean }) => {
+    const render = async (args: { node?: Table; aiEnabled: boolean, missingLineageMessage?: MissingLineageMessage }) => {
       setIsOpen(false);
       setSidebarScreen("");
       if (!args) return;
       aiEnabled = args.aiEnabled;
+      setMissingLineageMessage(args.missingLineageMessage)
       const { node } = args;
       const _flow = flow.current;
-      if (!_flow) return;
+      if (!_flow || !node) return;
       const existingNode = _flow.getNode(node.table);
       if (existingNode) {
         setSelectedTable(node.table);
@@ -306,7 +310,7 @@ function App() {
       <PopoverContext.Provider value={{ isOpen, setIsOpen }}>
         <ReactFlowProvider>
           <div className="position-relative">
-            <ActionWidget />
+            <ActionWidget missingLineageMessage={missingLineageMessage}/>
             <div className="bottom-right-container">
               {showDemoButton && (
                 <Button
