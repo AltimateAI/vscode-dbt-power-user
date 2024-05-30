@@ -11,6 +11,7 @@ import {
   WebviewView,
   WebviewViewProvider,
   WebviewViewResolveContext,
+  env,
   window,
   workspace,
 } from "vscode";
@@ -574,6 +575,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               message,
               panel: this._panel,
               project,
+              columnIndexCount: undefined,
+              isBulkGen: false,
             });
             break;
           case "generateDocsForColumn":
@@ -582,6 +585,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               panel: this._panel,
               message,
               project,
+              isBulkGen: true,
             });
             break;
           case "sendFeedback":
