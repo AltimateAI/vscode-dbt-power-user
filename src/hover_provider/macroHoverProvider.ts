@@ -5,47 +5,57 @@ import {
   Position,
   ProviderResult,
   TextDocument,
-  MarkdownString
+  Disposable,
 } from "vscode";
-import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
-import { MacroMetaType } from "../domain";
 import { generateMacroHoverMarkdown } from "./utils";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { QueryManifestService } from "../services/queryManifestService";
+import { provideSingleton } from "../utils";
 
-export class MacroHoverProvider implements HoverProvider {
+@provideSingleton(MacroHoverProvider)
+export class MacroHoverProvider implements HoverProvider, Disposable {
+  private disposables: Disposable[] = [];
+
   constructor(
-    private dbtProjectContainer: DBTProjectContainer,
-    private telemetry: TelemetryService
+    private telemetry: TelemetryService,
+    private dbtTerminal: DBTTerminal,
+    private queryManifestService: QueryManifestService,
   ) {}
+
+  dispose() {
+    while (this.disposables.length) {
+      const x = this.disposables.pop();
+      if (x) {
+        x.dispose();
+      }
+    }
+  }
 
   provideHover(
     document: TextDocument,
     position: Position,
-    token: CancellationToken
+    token: CancellationToken,
   ): ProviderResult<Hover> {
-    const hoverText = document.getText(document.getWordRangeAtPosition(position));
-    
-    const macroNameMatch = hoverText.match(/(\w+)\(/);
-    if (!macroNameMatch) {
-      return null;
-    }
+    const hoverText = document.getText(
+      document.getWordRangeAtPosition(position),
+    );
 
-    const macroName = macroNameMatch[1];
-    const project = this.dbtProjectContainer.findDBTProject(document.uri);
-    if (!project) {
-      return null;  
+    this.dbtTerminal.debug("MacroHoverProvider", `checking: ${hoverText}`);
+    const eventResult = this.queryManifestService.getEventByDocument(
+      document.uri,
+    );
+    if (!eventResult) {
+      return;
     }
-
-    const macroMeta = project.macroMetaMap.get(macroName);
+    const { macroMetaMap } = eventResult;
+    const macroMeta = macroMetaMap.get(hoverText);
     if (!macroMeta) {
       return null;
     }
 
-    const hoverContent = this.generateMacroHoverContent(macroMeta);
+    const hoverContent = generateMacroHoverMarkdown(macroMeta);
+    this.telemetry.sendTelemetryEvent("provideMacroHover");
     return new Hover(hoverContent);
-  }
-
-  private generateMacroHoverContent(macroMeta: MacroMetaType): MarkdownString {
-    return generateMacroHoverMarkdown(macroMeta);
   }
 }

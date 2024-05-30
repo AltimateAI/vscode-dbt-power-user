@@ -10,11 +10,14 @@ export type DocMetaMap = Map<string, DocMetaData>;
 export type NodeMetaType = NodeMetaData;
 export type SourceMetaType = SourceTable;
 
-interface MacroMetaData {
+export interface MacroMetaData {
   path: string | undefined; // in dbt cloud, packages are not downloaded locally
   line: number;
   character: number;
   uniqueId: string;
+  description?: string;
+  arguments?: { name: string; type: string; description: string }[];
+  name: string;
 }
 
 interface MetricMetaData {
