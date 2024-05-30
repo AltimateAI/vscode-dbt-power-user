@@ -133,7 +133,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._disposables.push(
       workspace.onDidChangeConfiguration(
         (e) => {
-          if (!e.affectsConfiguration("dbt.enableQueryPanelV2")) {
+          if (!e.affectsConfiguration("dbt.enableNewQueryPanel")) {
             return;
           }
           if (this._panel) {
@@ -147,11 +147,11 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     window.onDidChangeActiveColorTheme(
       (e) => {
         if (this._panel) {
-          const enableQueryPanelV2 = workspace
+          const enableNewQueryPanel = workspace
             .getConfiguration("dbt")
-            .get<boolean>("enableQueryPanelV2", false);
+            .get<boolean>("enableNewQueryPanel", true);
 
-          if (!enableQueryPanelV2) {
+          if (!enableNewQueryPanel) {
             this._panel.webview.html = getHtml(
               this._panel.webview,
               this.dbtProjectContainer.extensionUri,
@@ -276,16 +276,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
                 .getConfiguration("dbt")
                 .update("perspectiveTheme", configMessage.perspectiveTheme);
             }
-            if ("enableQueryPanelV2" in configMessage) {
-              workspace
-                .getConfiguration("dbt")
-                .update("enableQueryPanelV2", configMessage.enableQueryPanelV2);
-              this.telemetry.sendTelemetryEvent(
-                configMessage.enableQueryPanelV2
-                  ? "QueryPanelV2Activated"
-                  : "QueryPanelV2Deactivated",
-              );
-            }
             break;
           case InboundCommand.OpenUrl:
             const config = message as RecOpenUrl;
@@ -324,11 +314,11 @@ export class QueryResultPanel extends AltimateWebviewProvider {
 
   /** Renders webview content */
   protected renderWebviewView(webview: Webview) {
-    const enableQueryPanelV2 = workspace
+    const enableNewQueryPanel = workspace
       .getConfiguration("dbt")
-      .get<boolean>("enableQueryPanelV2", false);
+      .get<boolean>("enableNewQueryPanel", true);
 
-    if (enableQueryPanelV2) {
+    if (enableNewQueryPanel) {
       this._panel!.webview.html = super.getHtml(
         webview,
         this.dbtProjectContainer.extensionUri,
@@ -389,7 +379,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         command: OutboundCommand.InjectConfig,
         ...(<InjectConfig>{
           limit,
-          enableNewQueryPanel,
+          enableNewQueryPanel: false,
           darkMode: ![
             ColorThemeKind.Light,
             ColorThemeKind.HighContrastLight,

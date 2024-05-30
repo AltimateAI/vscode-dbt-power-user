@@ -3,7 +3,7 @@ import { Button } from "@uicore";
 
 const ShowOldUxButton = (): JSX.Element => {
   const handleClick = () => {
-    executeRequestInAsync("updateConfig", { enableQueryPanelV2: false });
+    executeRequestInAsync("updateConfig", { enableNewQueryPanel: false });
   };
   return (
     <Button outline onClick={handleClick}>

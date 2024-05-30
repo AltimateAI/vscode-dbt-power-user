@@ -137,7 +137,7 @@ const app = createApp({
       isDarkMode: false,
       clickTimer: null,
       table: undefined,
-      isPerspective: true,
+      isPerspective: false,
       summary: undefined,
       previousSummary: undefined,
       previousCode: undefined,
@@ -157,7 +157,6 @@ const app = createApp({
       // if user is in v1, switches to legacy v0, take to v0
       updateConfig({
         enableNewQueryPanel: this.isPerspective,
-        enableQueryPanelV2: this.isPerspective,
       });
       this.updateTable(this.data);
       setTimeout(() => {
@@ -369,7 +368,7 @@ const app = createApp({
       });
     },
     toggleV2() {
-      updateConfig({ enableQueryPanelV2: true });
+      updateConfig({ enableNewQueryPanel: true });
     },
     onFeedback() {
       const prevTab = document.querySelector("#panel-manager").activeid;
