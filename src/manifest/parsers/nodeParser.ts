@@ -49,6 +49,7 @@ export class NodeParser {
           patch_path,
           config,
           resource_type,
+          depends_on,
         } = nodesMap;
         const fullPath = createFullPathForNode(
           projectName,
@@ -70,6 +71,7 @@ export class NodeParser {
           patch_path,
           config,
           resource_type,
+          depends_on,
         });
       }
       this.terminal.debug(
