@@ -82,6 +82,7 @@ export interface DocumentationStateProps {
     conversationGroupId: ConversationGroup["conversation_group_id"];
   };
   collaborationEnabled: boolean;
+  missingDocumentationMessage?: { message: string; type: "warning" | "error" };
 }
 
 export interface DBTModelTest {

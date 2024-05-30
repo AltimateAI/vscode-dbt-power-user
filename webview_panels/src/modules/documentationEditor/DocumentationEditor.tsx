@@ -113,7 +113,7 @@ const DocumentationEditor = (): JSX.Element => {
     return (
       <div className={classes.docGenerator}>
         <h2>Documentation Help</h2>
-        <DocumentationHelpContent />
+        <DocumentationHelpContent showMissingDocumentationMessage />
       </div>
     );
   }
