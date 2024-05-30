@@ -18,6 +18,7 @@ export interface MacroMetaData {
   description?: string;
   arguments?: { name: string; type: string; description: string }[];
   name: string;
+  depends_on: DependsOn;
 }
 
 interface MetricMetaData {
@@ -37,6 +38,7 @@ export interface NodeMetaData {
   columns: { [columnName: string]: ColumnMetaData };
   config: Config;
   resource_type: string;
+  depends_on: DependsOn;
 }
 
 export interface ColumnMetaData {

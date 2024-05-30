@@ -35,7 +35,7 @@ export class MacroParser {
       }
       for (const key in macros) {
         const macro = macros[key];
-        const { package_name, name, original_file_path } = macro;
+        const { package_name, name, original_file_path, depends_on } = macro;
         const packageName = package_name;
         const macroName =
           packageName === projectName ? name : `${packageName}.${name}`;
@@ -69,6 +69,7 @@ export class MacroParser {
                 description: macro.description,
                 arguments: macro.arguments,
                 name,
+                depends_on,
               });
               break;
             }
