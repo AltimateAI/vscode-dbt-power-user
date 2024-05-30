@@ -379,7 +379,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         command: OutboundCommand.InjectConfig,
         ...(<InjectConfig>{
           limit,
-          enableNewQueryPanel: false,
+          enableNewQueryPanel,
           darkMode: ![
             ColorThemeKind.Light,
             ColorThemeKind.HighContrastLight,
