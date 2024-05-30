@@ -52,7 +52,7 @@ export class MacroParser {
         try {
           const macroFile: string = readFileSync(fullPath).toString("utf8");
           const macroFileLines = macroFile.split("\n");
-
+      
           for (let index = 0; index < macroFileLines.length; index++) {
             const currentLine = macroFileLines[index];
             if (
@@ -61,11 +61,31 @@ export class MacroParser {
                 new RegExp(`test\\s${name.replace("test_", "")}\\(`),
               )
             ) {
+              let description = "";
+              let args = [];
+      
+              // Parse macro description
+              for (let i = index - 1; i >= 0; i--) {
+                const line = macroFileLines[i].trim();
+                if (line.startsWith("/*") || line.startsWith('"""')) {
+                  description = line.slice(2, -2).trim();
+                  break;
+                }
+              }
+      
+              // Parse macro arguments
+              const argsMatch = currentLine.match(/\((.*)\)/);
+              if (argsMatch) {
+                args = argsMatch[1].split(",").map(arg => arg.trim());
+              }
+      
               macroMetaMap.set(macroName, {
                 path: fullPath,
                 line: index,
                 character: currentLine.indexOf(name),
                 uniqueId: key,
+                description,
+                arguments: args
               });
               break;
             }
