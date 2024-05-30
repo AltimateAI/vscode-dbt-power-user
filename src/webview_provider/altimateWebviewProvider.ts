@@ -1,5 +1,6 @@
 import {
   CancellationToken,
+  commands,
   Disposable,
   env,
   Uri,
@@ -215,6 +216,10 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     try {
       switch (command) {
+        case "openProblemsTab":
+          commands.executeCommand("workbench.action.problems.focus");
+
+          break;
         case "dbtdocsview:render":
           this.emitterService.fire({
             command: "dbtdocsview:render",

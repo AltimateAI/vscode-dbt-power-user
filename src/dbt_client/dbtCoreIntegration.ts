@@ -397,6 +397,8 @@ export class DBTCoreProjectIntegration
             throw new ExecuteSQLError(err.exception.message, compiledQuery!);
           }
           throw new ExecuteSQLError((err as Error).message, compiledQuery!);
+        } finally {
+          await queryThread.end();
         }
         return { ...result, compiled_stmt: compiledQuery };
       },
@@ -1036,13 +1038,17 @@ export class DBTCoreProjectIntegration
     const healthCheckThread = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
-    await this.createPythonDbtProject(healthCheckThread);
-    await healthCheckThread.ex`from dbt_healthcheck import *`;
-    const result = await healthCheckThread.lock<ProjectHealthcheck>(
-      (python) =>
-        python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
-    );
-    return result;
+    try {
+      await this.createPythonDbtProject(healthCheckThread);
+      await healthCheckThread.ex`from dbt_healthcheck import *`;
+      const result = await healthCheckThread.lock<ProjectHealthcheck>(
+        (python) =>
+          python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
+      );
+      return result;
+    } finally {
+      healthCheckThread.end();
+    }
   }
 
   private async getDeferConfig() {

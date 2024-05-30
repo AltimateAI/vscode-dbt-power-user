@@ -1,8 +1,40 @@
-import { Stack } from "@uicore";
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
+import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
+import { Alert, Button, Stack } from "@uicore";
 
-const DocumentationHelpContent = (): JSX.Element => {
+const DocumentationHelpContent = ({
+  showMissingDocumentationMessage,
+}: {
+  showMissingDocumentationMessage?: boolean;
+}): JSX.Element => {
+  const {
+    state: { missingDocumentationMessage },
+  } = useDocumentationContext();
+
+  const openProblemsTab = () => {
+    executeRequestInAsync("openProblemsTab", {});
+  };
   return (
     <Stack direction="column">
+      {missingDocumentationMessage && showMissingDocumentationMessage ? (
+        <Alert color="warning" className="mt-2 mb-1">
+          {missingDocumentationMessage.message}
+          {missingDocumentationMessage.type === "error" ? (
+            <>
+              <Button
+                color="link"
+                style={{ marginTop: -5 }}
+                onClick={openProblemsTab}
+              >
+                Click here
+              </Button>{" "}
+              to view Problems tab
+            </>
+          ) : (
+            ""
+          )}
+        </Alert>
+      ) : null}
       <p>
         You can write, update, and generate descriptions for your dbt models and
         columns, and save them in YAML files with a click of a button.{" "}
