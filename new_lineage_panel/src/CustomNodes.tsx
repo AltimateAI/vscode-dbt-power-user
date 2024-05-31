@@ -281,7 +281,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                   id={"table-node-is-external-" + tableId}
                   icon={<ExternalProjectIcon />}
                   text="ext"
-                  label="External Project"
+                  label={`External Project: ${table}`}
                 /> : null}
               <div className="spacer" />
               <div
