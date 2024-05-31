@@ -18,7 +18,6 @@ import { DBTProjectLogFactory } from "./manifest/modules/dbtProjectLog";
 import { SourceFileWatchersFactory } from "./manifest/modules/sourceFileWatchers";
 import { TargetWatchersFactory } from "./manifest/modules/targetWatchers";
 import { PythonEnvironment } from "./manifest/pythonEnvironment";
-import { QueryResultPanel } from "./webview_provider/queryResultPanel";
 import { TelemetryService } from "./telemetry";
 import {
   DBTCoreProjectDetection,
@@ -39,6 +38,7 @@ import { CommandProcessExecutionFactory } from "./commandProcessExecution";
 import { AltimateRequest } from "./altimate";
 import { ValidationProvider } from "./validation_provider";
 import { DeferToProdService } from "./services/deferToProdService";
+import { SharedStateService } from "./services/sharedStateService";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -159,7 +159,7 @@ container
           container.get(TargetWatchersFactory),
           container.get(DBTCommandFactory),
           container.get(DBTTerminal),
-          container.get(QueryResultPanel),
+          container.get(SharedStateService),
           container.get(TelemetryService),
           container.get("Factory<DBTCoreProjectIntegration>"),
           container.get("Factory<DBTCloudProjectIntegration>"),

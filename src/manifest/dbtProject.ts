@@ -26,7 +26,6 @@ import {
   getColumnNameByCase,
   setupWatcherHandler,
 } from "../utils";
-import { QueryResultPanel } from "../webview_provider/queryResultPanel";
 import {
   ManifestCacheChangedEvent,
   RebuildManifestStatusChange,
@@ -59,6 +58,7 @@ import { ValidationProvider } from "../validation_provider";
 import { ModelNode } from "../altimate";
 import { ColumnMetaData } from "../domain";
 import { AltimateConfigProps } from "../webview_provider/insightsPanel";
+import { SharedStateService } from "../services/sharedStateService";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -105,7 +105,7 @@ export class DBTProject implements Disposable {
     private targetWatchersFactory: TargetWatchersFactory,
     private dbtCommandFactory: DBTCommandFactory,
     private terminal: DBTTerminal,
-    private queryResultPanel: QueryResultPanel,
+    private eventEmitterService: SharedStateService,
     private telemetry: TelemetryService,
     private dbtCoreIntegrationFactory: (
       path: Uri,
@@ -890,11 +890,14 @@ select * from renamed
       adapter: this.getAdapterType(),
       limit: limit.toString(),
     });
-    // TODO: this should generate an event instead of directly going to the panel
-    this.queryResultPanel.executeQuery(
-      query,
-      this.dbtProjectIntegration.executeSQL(query, limit),
-    );
+
+    this.eventEmitterService.fire({
+      command: "executeQuery",
+      payload: {
+        query,
+        fn: this.dbtProjectIntegration.executeSQL(query, limit),
+      },
+    });
   }
 
   async dispose() {
@@ -928,9 +931,13 @@ select * from renamed
     if (!targetPath) {
       return;
     }
-    const baseName = path.basename(modelPath.fsPath);
+    const relativePath = path.relative(
+      this.projectRoot.fsPath,
+      modelPath.fsPath,
+    );
+
     const targetModels = await workspace.findFiles(
-      new RelativePattern(targetPath, `${type}/**/${baseName}`),
+      new RelativePattern(targetPath, path.join(type, "**", relativePath)),
     );
     if (targetModels.length > 0) {
       commands.executeCommand("vscode.open", targetModels[0], {

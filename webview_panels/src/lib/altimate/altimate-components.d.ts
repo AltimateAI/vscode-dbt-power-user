@@ -127,10 +127,10 @@ declare interface Props_3 {
 
 declare interface Props_4 {
   code: string;
-  language: "sql" | "yaml" | "markdown";
+  language: "sql" | "yaml" | "markdown" | "json" | "javascript";
   fileName?: string;
   showLineNumbers?: boolean;
-  theme?: "vs" | "solarizedDark" | "solarizedLight";
+  theme?: "vs" | "vsc-dark-plus" | "solarizedLight";
 }
 
 declare interface User {

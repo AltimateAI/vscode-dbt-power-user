@@ -44,7 +44,7 @@ export interface SharedStateEventEmitterProps {
   payload: Record<string, unknown>;
 }
 
-interface SendMessageProps extends Record<string, unknown> {
+export interface SendMessageProps extends Record<string, unknown> {
   command: string;
   syncRequestId?: string;
   error?: string;
@@ -320,6 +320,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             params.properties as { [key: string]: string },
           );
           break;
+        case "setContext":
+          this.dbtProjectContainer.setToGlobalState(
+            params.key as string,
+            params.value,
+          );
+          break;
         case "updateConfig":
           if (!this.isUpdateConfigProps(params)) {
             return;
@@ -456,17 +462,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         ),
       ),
     );
-    // const insightsCss = webview.asWebviewUri(
-    //   Uri.file(
-    //     path.join(
-    //       extensionUri.fsPath,
-    //       "webview_panels",
-    //       "dist",
-    //       "assets",
-    //       "Insights.css",
-    //     ),
-    //   ),
-    // );
+    const SpinnerUrl = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "spinner.gif",
+        ),
+      ),
+    );
     const codiconsUri = webview.asWebviewUri(
       Uri.joinPath(
         extensionUri,
@@ -490,7 +496,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               and only allow scripts that have a specific nonce.
               Added unsafe-inline for css due to csp issue: https://github.com/JedWatson/react-select/issues/4631
               -->
-            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}' https://*.vscode-resource.vscode-cdn.net; connect-src https://*.s3.amazonaws.com">
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; worker-src blob:; font-src ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'unsafe-eval' 'nonce-${nonce}' https://*.vscode-resource.vscode-cdn.net; connect-src https://*.s3.amazonaws.com">
             <title>VSCode DBT Power user extension</title>
             <link rel="stylesheet" type="text/css" href="${indexCss}">
             <link rel="stylesheet" type="text/css" href="${codiconsUri}">
@@ -501,6 +507,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             <div id="sidebar"></div>
             <script nonce="${nonce}" >
               window.viewPath = "${this.viewPath}";
+              var spinnerUrl = "${SpinnerUrl}"
             </script>
             
             <script nonce="${nonce}" type="module" src="${indexJs}"></script>

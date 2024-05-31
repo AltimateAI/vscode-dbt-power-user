@@ -95,7 +95,7 @@
           "Welcome 🚀" }}
         </vscode-panel-tab>
         <vscode-panel-tab id="tab-4" v-show="hasData" @click="togglePerspective"
-          >{{ isPerspective ? "Show legacy UI" : "Show new UI"
+          >{{ isPerspective ? "Switch to legacy UI" : "Switch to new UI"
           }}</vscode-panel-tab
         >
         <vscode-panel-tab id="tab-5" @click="onFeedback"
@@ -133,6 +133,21 @@
                   style="margin-left: 5px; margin-bottom: 4px"
                   >Download as CSV</vscode-button
                 >
+              </div>
+              <br />
+              <div class="new-ux-alert">
+                <span
+                  >This legacy query results UI will be deprecated soon. The new
+                  UI includes this functionality plus additional features.
+                  Please contact us via
+                  <a href="https://getdbt.slack.com/archives/C05KPDGRMDW"
+                    >Slack</a
+                  >
+                  if needed.</span
+                >
+                <vscode-button class="btn-new-ux" @click="toggleV2"
+                  >Switch to new UI
+                </vscode-button>
               </div>
               <div id="query-results" :style="getTableStyles()"></div>
             </div>
@@ -199,6 +214,12 @@
           </div>
 
           <div class="help-body">
+            <div class="new-ux-alert">
+              We are launching new and improved query results panel.
+              <vscode-button class="btn-new-ux" @click="toggleV2"
+                >Switch to new UI
+              </vscode-button>
+            </div>
             <h2>Previewing Query</h2>
             <p>
               Press Cmd+Enter (Mac) or Control+Enter (Windows/Linux) to run a

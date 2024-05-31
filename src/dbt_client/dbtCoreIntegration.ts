@@ -368,13 +368,13 @@ export class DBTCoreProjectIntegration
     const queryThread = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
-    await this.createPythonDbtProject(queryThread);
-    await queryThread.ex`project.init_project()`;
     return new QueryExecution(
       async () => {
         queryThread.kill(2);
       },
       async () => {
+        await this.createPythonDbtProject(queryThread);
+        await queryThread.ex`project.init_project()`;
         // compile query
         const compiledQuery = await this.unsafeCompileQuery(limitQuery);
         // execute query
