@@ -22,6 +22,7 @@ import {
   GraphMetaMap,
   NodeGraphMap,
   NodeMetaData,
+  SourceMetaData,
   SourceTable,
 } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -43,6 +44,7 @@ type Table = {
   nodeType: string;
   materialization?: string;
   tests: any[];
+  isExternalProject: boolean;
 };
 
 enum CllEvents {
@@ -75,6 +77,7 @@ export class NewLineagePanel implements LineagePanelView {
   // since lineage can be cancelled from 2 places: progress bar and panel actions
   private cancellationTokenSource: DerivedCancellationTokenSource | undefined;
   private cllProgressResolve: () => void = () => {};
+  private isExternalProjectTelemetryEventSent = false;
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -153,6 +156,7 @@ export class NewLineagePanel implements LineagePanelView {
     }
     if (command === "upstreamTables") {
       const body = await this.getUpstreamTables(params);
+      this.sendExternalProjectTelemetryEventSent(body);
       this._panel?.webview.postMessage({
         command: "response",
         args: { id, body, status: true },
@@ -162,6 +166,7 @@ export class NewLineagePanel implements LineagePanelView {
 
     if (command === "downstreamTables") {
       const body = await this.getDownstreamTables(params);
+      this.sendExternalProjectTelemetryEventSent(body);
       this._panel?.webview.postMessage({
         command: "response",
         args: { id, body, status: true },
@@ -284,6 +289,20 @@ export class NewLineagePanel implements LineagePanelView {
       "Unsupported command",
       message,
     );
+  }
+
+  private sendExternalProjectTelemetryEventSent(body: {
+    tables: Table[] | undefined;
+  }) {
+    if (!this.isExternalProjectTelemetryEventSent) {
+      const hasExternalProject = body.tables?.find((t) => t.isExternalProject);
+      if (hasExternalProject) {
+        this.telemetry.sendTelemetryEvent("externalProject", {
+          project: this.getProject()?.getProjectName(),
+        });
+        this.isExternalProjectTelemetryEventSent = true;
+      }
+    }
   }
 
   private async handleColumnLineage({ event }: { event: CllEvents }) {
@@ -709,9 +728,19 @@ export class NewLineagePanel implements LineagePanelView {
     if (!node) {
       return;
     }
+
+    const projectName = this.getProject()?.getProjectName();
+    if (!projectName) {
+      this.terminal.debug(
+        "newLineagePage:getConnectedTables",
+        "No project name",
+      );
+      return;
+    }
+
     const tables: Map<string, Table> = new Map();
     node.nodes.forEach(({ url, key }) => {
-      const _node = this.createTable(event, url, key);
+      const _node = this.createTable(event, url, key, projectName);
       if (!_node) {
         return;
       }
@@ -728,6 +757,7 @@ export class NewLineagePanel implements LineagePanelView {
     event: ManifestCacheProjectAddedEvent,
     tableUrl: string | undefined,
     key: string,
+    projectName: string,
   ): Table | undefined {
     const splits = key.split(".");
     const nodeType = splits[0];
@@ -759,6 +789,7 @@ export class NewLineagePanel implements LineagePanelView {
         upstreamCount,
         downstreamCount,
         nodeType,
+        isExternalProject: this.isExternalProject(_node, projectName),
         tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
           const testKey = n.label.split(".")[0];
           return { ...testMetaMap.get(testKey), key: testKey };
@@ -775,6 +806,7 @@ export class NewLineagePanel implements LineagePanelView {
         nodeType,
         materialization: undefined,
         tests: [],
+        isExternalProject: false,
       };
     }
     const { nodeMetaMap } = event;
@@ -790,6 +822,7 @@ export class NewLineagePanel implements LineagePanelView {
         nodeType,
         materialization: undefined,
         tests: [],
+        isExternalProject: false,
       };
     }
 
@@ -805,6 +838,7 @@ export class NewLineagePanel implements LineagePanelView {
       url: tableUrl,
       upstreamCount,
       downstreamCount,
+      isExternalProject: this.isExternalProject(node, projectName),
       nodeType,
       materialization,
       tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
@@ -812,6 +846,13 @@ export class NewLineagePanel implements LineagePanelView {
         return { ...testMetaMap.get(testKey), key: testKey };
       }),
     };
+  }
+
+  private isExternalProject(
+    node: NodeMetaData | SourceMetaData,
+    projectName: string,
+  ) {
+    return node.package_name !== projectName;
   }
 
   private getUpstreamTables({ table }: { table: string }) {
@@ -912,6 +953,10 @@ export class NewLineagePanel implements LineagePanelView {
       downstreamCount,
       nodeType,
       materialization,
+      isExternalProject: this.isExternalProject(
+        _node,
+        this.getProject()?.getProjectName(),
+      ),
       tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
         const testKey = n.label.split(".")[0];
         return { ...testMetaMap.get(testKey), key: testKey };

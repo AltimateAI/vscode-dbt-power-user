@@ -49,6 +49,7 @@ export class SourceParser {
               description,
               columns,
               identifier,
+              package_name,
             },
           ) => {
             let source = previousValue.get(source_name);
@@ -59,6 +60,7 @@ export class SourceParser {
                 name: source_name,
                 database: database,
                 schema: schema,
+                package_name,
               };
               previousValue.set(source_name, source);
             }

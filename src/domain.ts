@@ -57,6 +57,7 @@ export interface SourceMetaData {
   database: string;
   schema: string;
   tables: SourceTable[];
+  package_name: string;
 }
 
 export interface SourceTable {

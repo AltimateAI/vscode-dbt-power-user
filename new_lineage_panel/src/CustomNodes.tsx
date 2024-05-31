@@ -24,6 +24,7 @@ import { TMoreTables } from "./MoreTables";
 
 import TestsIcon from "./assets/icons/tests.svg?react";
 import EphemeralIcon from "./assets/icons/ephemeral.svg?react";
+import ExternalProjectIcon from "./assets/icons/external-project.svg?react";
 import { COLUMNS_SIDEBAR, EXPOSURE_SIDEBAR, TABLES_SIDEBAR } from "./constants";
 import { NODE_TYPE_SHORTHAND } from "./components/Column";
 import {
@@ -81,6 +82,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     nodeType,
     tests,
     materialization,
+    isExternalProject
   } = data;
   const flow = useReactFlow();
 
@@ -275,6 +277,12 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                   label="Materialization"
                 />
               )}
+              {isExternalProject ? <TableNodePill
+                  id={"table-node-is-external-" + tableId}
+                  icon={<ExternalProjectIcon />}
+                  text="ext"
+                  label="External Project"
+                /> : null}
               <div className="spacer" />
               <div
                 className={classNames(
