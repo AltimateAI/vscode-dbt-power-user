@@ -507,15 +507,16 @@ class DbtProject:
                         other=manifest,
                     )
                 else:
-                    with open(self.defer_to_prod_manifest_path) as f:
-                        manifest = WritableManifest.from_dict(json.load(f))
-                        selected = set()
-                        self.dbt.merge_from_artifact(
-                            self.adapter,
-                            other=manifest,
-                            selected=selected,
-                            favor_state=self.favor_state,
-                    )
+                    with self.adapter.connection_named("master"):
+                        with open(self.defer_to_prod_manifest_path) as f:
+                            manifest = WritableManifest.from_dict(json.load(f))
+                            selected = set()
+                            self.dbt.merge_from_artifact(
+                                self.adapter,
+                                other=manifest,
+                                selected=selected,
+                                favor_state=self.favor_state,
+                        )
         except Exception as e:
             self.config = _config_pointer
             raise Exception(str(e))
