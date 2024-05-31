@@ -261,43 +261,38 @@ export class DBTCloudProjectIntegration
         cancellationTokenSource.cancel();
       },
       async () => {
-        try {
-          const { stdout, stderr } = await showCommand.execute(
-            cancellationTokenSource.token,
-          );
-          const exception = this.processJSONErrors(stderr);
-          if (exception) {
-            throw exception;
-          }
-          const parsedLines = stdout
-            .trim()
-            .split("\n")
-            .map((line) => JSON.parse(line.trim()));
-          const previewLine = parsedLines.filter((line) =>
-            line.data.hasOwnProperty("preview"),
-          );
-          const compiledSqlLines = parsedLines.filter((line) =>
-            line.data.hasOwnProperty("sql"),
-          );
-          const preview = JSON.parse(previewLine[0].data.preview);
-          const compiledSql =
-            compiledSqlLines[compiledSqlLines.length - 1].data.sql;
-          return {
-            table: {
-              column_names: preview.length > 0 ? Object.keys(preview[0]) : [],
-              column_types:
-                preview.length > 0
-                  ? Object.keys(preview[0]).map((obj: any) => "string")
-                  : [],
-              rows: preview.map((obj: any) => Object.values(obj)),
-            },
-            compiled_sql: compiledSql,
-            raw_sql: query,
-          };
-        } finally {
-          // Close the Python bridge used by the dbt cloud command
-          await this.executionInfrastructure.closePythonBridge(this.python);
+        const { stdout, stderr } = await showCommand.execute(
+          cancellationTokenSource.token,
+        );
+        const exception = this.processJSONErrors(stderr);
+        if (exception) {
+          throw exception;
         }
+        const parsedLines = stdout
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line.trim()));
+        const previewLine = parsedLines.filter((line) =>
+          line.data.hasOwnProperty("preview"),
+        );
+        const compiledSqlLines = parsedLines.filter((line) =>
+          line.data.hasOwnProperty("sql"),
+        );
+        const preview = JSON.parse(previewLine[0].data.preview);
+        const compiledSql =
+          compiledSqlLines[compiledSqlLines.length - 1].data.sql;
+        return {
+          table: {
+            column_names: preview.length > 0 ? Object.keys(preview[0]) : [],
+            column_types:
+              preview.length > 0
+                ? Object.keys(preview[0]).map((obj: any) => "string")
+                : [],
+            rows: preview.map((obj: any) => Object.values(obj)),
+          },
+          compiled_sql: compiledSql,
+          raw_sql: query,
+        };
       },
     );
   }
@@ -555,21 +550,17 @@ export class DBTCloudProjectIntegration
         "json",
       ]),
     );
-    try {
-      const { stdout, stderr } = await compileQueryCommand.execute();
-      const compiledLine = stdout
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()))
-        .filter((line) => line.data.hasOwnProperty("compiled"));
-      const exception = this.processJSONErrors(stderr);
-      if (exception) {
-        throw exception;
-      }
-      return compiledLine[0].data.compiled;
-    } finally {
-      await this.executionInfrastructure.closePythonBridge(this.python);
+    const { stdout, stderr } = await compileQueryCommand.execute();
+    const compiledLine = stdout
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line.trim()))
+      .filter((line) => line.data.hasOwnProperty("compiled"));
+    const exception = this.processJSONErrors(stderr);
+    if (exception) {
+      throw exception;
     }
+    return compiledLine[0].data.compiled;
   }
 
   async unsafeCompileQuery(query: string): Promise<string> {
@@ -586,21 +577,17 @@ export class DBTCloudProjectIntegration
         "json",
       ]),
     );
-    try {
-      const { stdout, stderr } = await compileQueryCommand.execute();
-      const compiledLine = stdout
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()))
-        .filter((line) => line.data.hasOwnProperty("compiled"));
-      const exception = this.processJSONErrors(stderr);
-      if (exception) {
-        throw exception;
-      }
-      return compiledLine[0].data.compiled;
-    } finally {
-      await this.executionInfrastructure.closePythonBridge(this.python);
+    const { stdout, stderr } = await compileQueryCommand.execute();
+    const compiledLine = stdout
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line.trim()))
+      .filter((line) => line.data.hasOwnProperty("compiled"));
+    const exception = this.processJSONErrors(stderr);
+    if (exception) {
+      throw exception;
     }
+    return compiledLine[0].data.compiled;
   }
 
   async validateSql(
@@ -610,15 +597,11 @@ export class DBTCloudProjectIntegration
   ): Promise<ValidateSqlParseErrorResponse> {
     this.throwIfNotAuthenticated();
     this.throwBridgeErrorIfAvailable();
-    try {
-      const result = await this.python?.lock<ValidateSqlParseErrorResponse>(
-        (python) =>
-          python!`to_dict(validate_sql(${query}, ${dialect}, ${models}))`,
-      );
-      return result;
-    } finally {
-      await this.executionInfrastructure.closePythonBridge(this.python);
-    }
+    const result = await this.python?.lock<ValidateSqlParseErrorResponse>(
+      (python) =>
+        python!`to_dict(validate_sql(${query}, ${dialect}, ${models}))`,
+    );
+    return result;
   }
 
   async validateSQLDryRun(query: string): Promise<{ bytes_processed: string }> {
@@ -635,21 +618,17 @@ export class DBTCloudProjectIntegration
         "json",
       ]),
     );
-    try {
-      const { stdout, stderr } = await validateSqlCommand.execute();
-      const compiledLine = stdout
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()))
-        .filter((line) => line.data.hasOwnProperty("compiled"));
-      const exception = this.processJSONErrors(stderr);
-      if (exception) {
-        throw exception;
-      }
-      return JSON.parse(compiledLine[0].data.compiled);
-    } finally {
-      await this.executionInfrastructure.closePythonBridge(this.python);
+    const { stdout, stderr } = await validateSqlCommand.execute();
+    const compiledLine = stdout
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line.trim()))
+      .filter((line) => line.data.hasOwnProperty("compiled"));
+    const exception = this.processJSONErrors(stderr);
+    if (exception) {
+      throw exception;
     }
+    return JSON.parse(compiledLine[0].data.compiled);
   }
 
   async getColumnsOfSource(
@@ -669,21 +648,17 @@ export class DBTCloudProjectIntegration
         "json",
       ]),
     );
-    try {
-      const { stdout, stderr } = await compileQueryCommand.execute();
-      const compiledLine = stdout
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()))
-        .filter((line) => line.data.hasOwnProperty("compiled"));
-      const exception = this.processJSONErrors(stderr);
-      if (exception) {
-        throw exception;
-      }
-      return JSON.parse(compiledLine[0].data.compiled);
-    } finally {
-      await this.executionInfrastructure.closePythonBridge(this.python);
+    const { stdout, stderr } = await compileQueryCommand.execute();
+    const compiledLine = stdout
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line.trim()))
+      .filter((line) => line.data.hasOwnProperty("compiled"));
+    const exception = this.processJSONErrors(stderr);
+    if (exception) {
+      throw exception;
     }
+    return JSON.parse(compiledLine[0].data.compiled);
   }
 
   async getColumnsOfModel(modelName: string): Promise<DBColumn[]> {
@@ -700,21 +675,17 @@ export class DBTCloudProjectIntegration
         "json",
       ]),
     );
-    try {
-      const { stdout, stderr } = await compileQueryCommand.execute();
-      const compiledLine = stdout
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()))
-        .filter((line) => line.data.hasOwnProperty("compiled"));
-      const exception = this.processJSONErrors(stderr);
-      if (exception) {
-        throw exception;
-      }
-      return JSON.parse(compiledLine[0].data.compiled);
-    } finally {
-      await this.executionInfrastructure.closePythonBridge(this.python);
+    const { stdout, stderr } = await compileQueryCommand.execute();
+    const compiledLine = stdout
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line.trim()))
+      .filter((line) => line.data.hasOwnProperty("compiled"));
+    const exception = this.processJSONErrors(stderr);
+    if (exception) {
+      throw exception;
     }
+    return JSON.parse(compiledLine[0].data.compiled);
   }
 
   async getBulkSchema(
@@ -754,22 +725,18 @@ export class DBTCloudProjectIntegration
         "json",
       ]),
     );
-    try {
-      const { stdout, stderr } =
-        await compileQueryCommand.execute(cancellationToken);
-      const compiledLine = stdout
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()))
-        .filter((line) => line.data.hasOwnProperty("compiled"));
-      const exception = this.processJSONErrors(stderr);
-      if (exception) {
-        throw exception;
-      }
-      return JSON.parse(compiledLine[0].data.compiled);
-    } finally {
-      await this.executionInfrastructure.closePythonBridge(this.python);
+    const { stdout, stderr } =
+      await compileQueryCommand.execute(cancellationToken);
+    const compiledLine = stdout
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line.trim()))
+      .filter((line) => line.data.hasOwnProperty("compiled"));
+    const exception = this.processJSONErrors(stderr);
+    if (exception) {
+      throw exception;
     }
+    return JSON.parse(compiledLine[0].data.compiled);
   }
 
   async getCatalog(): Promise<Catalog> {
@@ -778,9 +745,9 @@ export class DBTCloudProjectIntegration
     const bulkModelQuery = `
 {% set result = [] %}
 {% for n in graph.nodes.values() %}
-  {% if n.resource_type == "test" or
-  n.resource_type == "analysis" or
-  n.resource_type == "sql_operation" or
+  {% if n.resource_type == "test" or 
+  n.resource_type == "analysis" or 
+  n.resource_type == "sql_operation" or 
   n.config.materialized == "ephemeral" %}
     {% continue %}
   {% endif %}
@@ -820,22 +787,18 @@ export class DBTCloudProjectIntegration
         "json",
       ]),
     );
-    try {
-      const { stdout, stderr } = await compileQueryCommand.execute();
-      const compiledLine = stdout
-        .trim()
-        .split("\n")
-        .map((line) => JSON.parse(line.trim()))
-        .filter((line) => line.data.hasOwnProperty("compiled"));
-      const exception = this.processJSONErrors(stderr);
-      if (exception) {
-        throw exception;
-      }
-      const result: Catalog = JSON.parse(compiledLine[0].data.compiled);
-      return result;
-    } finally {
-      await this.executionInfrastructure.closePythonBridge(this.python);
+    const { stdout, stderr } = await compileQueryCommand.execute();
+    const compiledLine = stdout
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line.trim()))
+      .filter((line) => line.data.hasOwnProperty("compiled"));
+    const exception = this.processJSONErrors(stderr);
+    if (exception) {
+      throw exception;
     }
+    const result: Catalog = JSON.parse(compiledLine[0].data.compiled);
+    return result;
   }
 
   getDebounceForRebuildManifest() {
@@ -1011,15 +974,11 @@ export class DBTCloudProjectIntegration
     configPath,
   }: HealthcheckArgs): Promise<ProjectHealthcheck> {
     this.throwBridgeErrorIfAvailable();
-    try {
-      const result = await this.python?.lock<ProjectHealthcheck>(
-        (python) =>
-          python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
-      );
-      return result;
-    } finally {
-      await this.executionInfrastructure.closePythonBridge(this.python);
-    }
+    const result = await this.python?.lock<ProjectHealthcheck>(
+      (python) =>
+        python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
+    );
+    return result;
   }
 
   async applyDeferConfig(): Promise<void> {}

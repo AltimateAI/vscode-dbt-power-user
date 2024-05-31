@@ -28,7 +28,6 @@ import { ManifestPathType } from "../constants";
 import { QueryManifestService } from "../services/queryManifestService";
 import { ValidationProvider } from "../validation_provider";
 import { UsersService } from "../services/usersService";
-import { DBTCoreProjectIntegration } from "../dbt_client/dbtCoreIntegration";
 
 type UpdateConfigPropsArray = {
   config: UpdateConfigProps[];
@@ -221,14 +220,9 @@ export class InsightsPanel extends AltimateWebviewProvider {
             cancellable: false,
           },
           async () => {
-            const dbtProject = this.dbtProjectContainer
-              .findDBTProject(Uri.file(params.projectRoot));
-            await dbtProject?.applyDeferConfig();
-
-            // Close any Python threads created by the dbt project
-            if (dbtProject instanceof DBTCoreProjectIntegration) {
-              await dbtProject.executionInfrastructure.closePythonBridge(dbtProject.python);
-            }
+            await this.dbtProjectContainer
+              .findDBTProject(Uri.file(params.projectRoot))
+              ?.applyDeferConfig();
           },
         );
       }
