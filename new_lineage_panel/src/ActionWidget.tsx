@@ -326,7 +326,7 @@ export const ActionWidget = ({missingLineageMessage}: {missingLineageMessage?: M
         onClick={() => {
           flow.setNodes([]);
           flow.setEdges([]);
-          setSelectedColumn({ table: "", name: "", sessionId: "" });
+          setSelectedColumn({ table: "", name: "" });
           setCollectColumns({});
           setMoreTables({});
           init();

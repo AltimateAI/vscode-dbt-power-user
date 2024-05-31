@@ -4,6 +4,7 @@ import {
   Uri,
   WebviewPanel,
   WebviewView,
+  env,
   window,
   workspace,
 } from "vscode";
@@ -26,6 +27,7 @@ interface GenerateDocsForColumnsProps {
   message: any;
   project: DBTProject | undefined;
   documentation: DBTDocumentation | undefined;
+  isBulkGen: boolean;
 }
 
 interface GenerateDocsForModelProps {
@@ -34,6 +36,8 @@ interface GenerateDocsForModelProps {
   queryText: string;
   project: DBTProject | undefined;
   message: any;
+  columnIndexCount: number | undefined;
+  isBulkGen: boolean;
 }
 
 interface FeedbackRequestProps {
@@ -61,6 +65,9 @@ export class DocGenService {
     adapter: string,
     message: any,
     columns: string[],
+    columnIndexCount: number | undefined = undefined,
+    sessionID: string | undefined = undefined,
+    isBulkGen: boolean = false,
   ): Promise<DocsGenerateResponse | undefined> {
     return new Promise(async (resolve, reject) => {
       if (!documentation) {
@@ -84,6 +91,9 @@ export class DocGenService {
           gen_model_description: false,
           user_instructions: message.user_instructions,
           follow_up_instructions: message.follow_up_instructions,
+          column_index_count: columnIndexCount,
+          session_id: sessionID,
+          is_bulk_gen: isBulkGen,
         });
 
         return resolve(result);
@@ -256,6 +266,7 @@ export class DocGenService {
     message,
     documentation,
     panel,
+    isBulkGen,
   }: GenerateDocsForColumnsProps) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
@@ -301,6 +312,12 @@ export class DocGenService {
 
           const startTime = Date.now();
           const compiledSql = await project.unsafeCompileQuery(queryText);
+          const columnIndexCount = isBulkGen
+            ? chunks.length * COLUMNS_PER_CHUNK
+            : 1;
+          const sessionID = `${
+            env.sessionId
+          }-${documentation?.name}-numColumns-${columnIndexCount}-${Date.now()}`;
 
           await Promise.all(
             chunks.map(async (chunk, i) => {
@@ -310,6 +327,9 @@ export class DocGenService {
                 project.getAdapterType(),
                 message,
                 chunk,
+                i * COLUMNS_PER_CHUNK,
+                sessionID,
+                isBulkGen,
               );
               results.push(chunkResult);
               this.dbtTerminal.debug(
@@ -384,6 +404,8 @@ export class DocGenService {
     project,
     message,
     panel,
+    columnIndexCount,
+    isBulkGen,
   }: GenerateDocsForModelProps) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
@@ -408,7 +430,9 @@ export class DocGenService {
         try {
           const startTime = Date.now();
           const compiledSql = await project.unsafeCompileQuery(queryText);
-
+          const sessionID = `${
+            env.sessionId
+          }-${documentation?.name}-numColumns-0-${Date.now()}`;
           const generateDocsForModel =
             await this.altimateRequest.generateModelDocsV2({
               columns: [],
@@ -432,6 +456,9 @@ export class DocGenService {
                   message.user_instructions.prompt_hint || "generate",
               },
               follow_up_instructions: message.follow_up_instructions,
+              column_index_count: columnIndexCount,
+              session_id: sessionID,
+              is_bulk_gen: isBulkGen,
             });
 
           if (
