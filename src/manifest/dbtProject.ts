@@ -931,9 +931,13 @@ select * from renamed
     if (!targetPath) {
       return;
     }
-    const baseName = path.basename(modelPath.fsPath);
+    const relativePath = path.relative(
+      this.projectRoot.fsPath,
+      modelPath.fsPath,
+    );
+
     const targetModels = await workspace.findFiles(
-      new RelativePattern(targetPath, `${type}/**/${baseName}`),
+      new RelativePattern(targetPath, path.join(type, "**", relativePath)),
     );
     if (targetModels.length > 0) {
       commands.executeCommand("vscode.open", targetModels[0], {
