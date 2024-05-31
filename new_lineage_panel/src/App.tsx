@@ -71,6 +71,8 @@ export interface MissingLineageMessage  { message: string, type: "warning" | "er
 
 const noop = () => {};
 
+export type SelectedColumn = { name: string; table: string };
+
 export const LineageContext = createContext<{
   selectedTable: string;
   setSelectedTable: Dispatch<SetStateAction<string>>;
@@ -78,10 +80,8 @@ export const LineageContext = createContext<{
   setMoreTables: Dispatch<SetStateAction<TMoreTables>>;
   sidebarScreen: string;
   setSidebarScreen: Dispatch<string>;
-  selectedColumn: { name: string; table: string; sessionId: string };
-  setSelectedColumn: Dispatch<
-    SetStateAction<{ name: string; table: string; sessionId: string }>
-  >;
+  selectedColumn: SelectedColumn;
+  setSelectedColumn: Dispatch<SetStateAction<SelectedColumn>>;
   collectColumns: Record<string, string[]>;
   setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>;
   rerender: () => void;
@@ -108,7 +108,7 @@ export const LineageContext = createContext<{
   setMoreTables: noop,
   sidebarScreen: "",
   setSidebarScreen: noop,
-  selectedColumn: { name: "", table: "", sessionId: "" },
+  selectedColumn: { name: "", table: "" },
   setSelectedColumn: () => "",
   collectColumns: {},
   setCollectColumns: noop,
@@ -139,11 +139,7 @@ function App() {
   const [sidebarScreen, setSidebarScreen] = useState("");
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [showDemoButton, setShowDemoButton] = useState(true);
-  const [selectedColumn, setSelectedColumn] = useState({
-    name: "",
-    table: "",
-    sessionId: "",
-  });
+  const [selectedColumn, setSelectedColumn] = useState({ name: "", table: "" });
   const [leftExpansion, setLeftExpansion] = useState(0);
   const [rightExpansion, setRightExpansion] = useState(0);
   const [collectColumns, setCollectColumns] = useState<
@@ -203,7 +199,7 @@ function App() {
       if (node.upstreamCount > 0) await addNodesEdges(node.table, true);
       if (node.downstreamCount > 0) await addNodesEdges(node.table, false);
       setSelectedTable(node.table);
-      setSelectedColumn({ table: "", name: "", sessionId: "" });
+      setSelectedColumn({ table: "", name: "" });
       setCollectColumns({});
       setMoreTables({});
       [nodes, edges] = highlightTableConnections(nodes, edges, node.table);

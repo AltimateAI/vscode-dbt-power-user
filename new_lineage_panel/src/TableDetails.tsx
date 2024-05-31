@@ -250,7 +250,7 @@ const TableDetails = () => {
       );
       flow.setNodes(_nodes);
       flow.setEdges(_edges);
-      setSelectedColumn({ table: "", name: "", sessionId: "" });
+      setSelectedColumn({ table: "", name: "" });
       setCollectColumns({});
       setSidebarScreen("");
       return;
@@ -286,8 +286,7 @@ const TableDetails = () => {
       await addNodesEdges(false);
 
     // initializing states
-    const sessionId = window.crypto.randomUUID();
-    setSelectedColumn({ ..._column, sessionId });
+    setSelectedColumn({ ..._column });
     setSidebarScreen("");
     setCollectColumns({});
     setConfidence({ confidence: "high" });
@@ -313,7 +312,7 @@ const TableDetails = () => {
         setMoreTables,
         setCollectColumns,
         flow,
-        sessionId,
+        _column,
         { direct: selectCheck, indirect: nonSelectCheck }
       );
     try {
@@ -324,7 +323,7 @@ const TableDetails = () => {
       ]);
       if (result.every((isLineage) => !isLineage)) {
         if (CLL.isCancelled) {
-          setSelectedColumn({ table: "", name: "", sessionId: "" });
+          setSelectedColumn({ table: "", name: "" });
         } else {
           showInfoNotification(
             `No lineage found for model ${_column.table} and column ${_column.name}`
@@ -339,7 +338,7 @@ const TableDetails = () => {
         ", error:",
         e
       );
-      setSelectedColumn({ table: "", name: "", sessionId: "" });
+      setSelectedColumn({ table: "", name: "" });
     } finally {
       CLL.end();
     }

@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.39.16",
+  "version": "0.39.18",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -152,6 +152,20 @@
             "description": "The maximum number of rows the `Preview SQL Query` command returns.",
             "default": 500,
             "minimum": 1
+          },
+          "dbt.perspectiveTheme": {
+            "type": "string",
+            "description": "Theme for perspective viewer in query results panel",
+            "default": "Vintage",
+            "enum": [
+              "Vintage",
+              "Pro Light",
+              "Pro Dark",
+              "Vaporwave",
+              "Solarized",
+              "Solarized Dark",
+              "Monokai"
+            ]
           },
           "dbt.conversationsPollingInterval": {
             "type": "integer",
@@ -1124,7 +1138,7 @@
     "@types/which": "^3.0.3",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
-    "@vscode/test-electron": "^2.3.9",
+    "@vscode/test-electron": "^2.4.0",
     "concurrently": "^8.2.2",
     "copy-webpack-plugin": "^11.0.0",
     "cross-env": "^7.0.3",

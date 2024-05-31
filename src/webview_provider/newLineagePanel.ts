@@ -14,6 +14,7 @@ import {
   WebviewViewResolveContext,
   window,
   workspace,
+  env,
 } from "vscode";
 import { AltimateRequest, ModelNode } from "../altimate";
 import {
@@ -504,14 +505,12 @@ export class NewLineagePanel implements LineagePanelView {
     upstreamExpansion,
     currAnd1HopTables,
     selectedColumn,
-    sessionId,
   }: {
     targets: [string, string][];
     upstreamExpansion: boolean;
     currAnd1HopTables: string[];
     // select_column is used for pricing not business logic
     selectedColumn: { name: string; table: string };
-    sessionId: string;
   }) {
     const event = this.getEvent();
     if (!event) {
@@ -644,6 +643,7 @@ export class NewLineagePanel implements LineagePanelView {
       if (this.cancellationTokenSource?.token.isCancellationRequested) {
         return { column_lineage: [] };
       }
+      const sessionId = `${env.sessionId}-${selectedColumn.table}-${selectedColumn.name}`;
       const request = {
         model_dialect: modelDialect,
         model_info: modelInfos,
