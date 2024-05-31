@@ -651,11 +651,11 @@ export class DBTProject implements Disposable {
   }
 
   showCompiledSql(modelPath: Uri) {
-    this.findModelInTargetfolder(modelPath, "compiled");
+    this.findModelInTargetfolder(modelPath);
   }
 
   showRunSQL(modelPath: Uri) {
-    this.findModelInTargetfolder(modelPath, "run");
+    this.findModelInTargetfolder(modelPath);
   }
 
   createYMLContent(
@@ -923,14 +923,14 @@ select * from renamed
     return crypto.createHash("md5").update(projectRoot).digest("hex");
   }
 
-  private async findModelInTargetfolder(modelPath: Uri, type: string) {
+  private async findModelInTargetfolder(modelPath: Uri) {
     const targetPath = this.getTargetPath();
     if (!targetPath) {
       return;
     }
     const baseName = path.basename(modelPath.fsPath);
     const targetModels = await workspace.findFiles(
-      new RelativePattern(targetPath, `${type}/**/${baseName}`),
+      new RelativePattern(targetPath, `compiled/**/${baseName}`),
     );
     if (targetModels.length > 0) {
       commands.executeCommand("vscode.open", targetModels[0], {
