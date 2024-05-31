@@ -373,34 +373,36 @@ export class DBTCoreProjectIntegration
         queryThread.kill(2);
       },
       async () => {
-        await this.createPythonDbtProject(queryThread);
-        await queryThread.ex`project.init_project()`;
-        // compile query
-        const compiledQuery = await this.unsafeCompileQuery(limitQuery);
-        // execute query
-        let result: ExecuteSQLResult;
         try {
-          result = await queryThread!.lock<ExecuteSQLResult>(
-            (python) => python`to_dict(project.execute_sql(${compiledQuery}))`,
-          );
-          const { manifestPathType } =
-            this.deferToProdService.getDeferConfigByProjectRoot(
-              this.projectRoot.fsPath,
+          await this.createPythonDbtProject(queryThread);
+          await queryThread.ex`project.init_project()`;
+          // compile query
+          const compiledQuery = await this.unsafeCompileQuery(limitQuery);
+          // execute query
+          let result: ExecuteSQLResult;
+          try {
+            result = await queryThread!.lock<ExecuteSQLResult>(
+              (python) => python`to_dict(project.execute_sql(${compiledQuery}))`,
             );
-          if (manifestPathType === ManifestPathType.REMOTE) {
-            this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
+            const { manifestPathType } =
+              this.deferToProdService.getDeferConfigByProjectRoot(
+                this.projectRoot.fsPath,
+              );
+            if (manifestPathType === ManifestPathType.REMOTE) {
+              this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
+            }
+          } catch (err) {
+            const message = `Error while executing sql: ${compiledQuery}`;
+            this.dbtTerminal.error("dbtCore:executeSQL", message, err);
+            if (err instanceof PythonException) {
+              throw new ExecuteSQLError(err.exception.message, compiledQuery!);
+            }
+            throw new ExecuteSQLError((err as Error).message, compiledQuery!);
           }
-        } catch (err) {
-          const message = `Error while executing sql: ${compiledQuery}`;
-          this.dbtTerminal.error("dbtCore:executeSQL", message, err);
-          if (err instanceof PythonException) {
-            throw new ExecuteSQLError(err.exception.message, compiledQuery!);
-          }
-          throw new ExecuteSQLError((err as Error).message, compiledQuery!);
+          return { ...result, compiled_stmt: compiledQuery };
         } finally {
-          await queryThread.end();
+          await this.executionInfrastructure.closePythonBridge(queryThread);
         }
-        return { ...result, compiled_stmt: compiledQuery };
       },
     );
   }
@@ -780,72 +782,96 @@ export class DBTCoreProjectIntegration
   // internal commands
   async unsafeCompileNode(modelName: string): Promise<string> {
     this.throwBridgeErrorIfAvailable();
-    const output = await this.python?.lock<CompilationResult>(
-      (python) =>
-        python!`to_dict(project.compile_node(project.get_ref_node(${modelName})))`,
-    );
-    return output.compiled_sql;
+    try {
+      const output = await this.python?.lock<CompilationResult>(
+        (python) =>
+          python!`to_dict(project.compile_node(project.get_ref_node(${modelName})))`,
+      );
+      return output.compiled_sql;
+    } finally {
+      await this.executionInfrastructure.closePythonBridge(this.python);
+    }
   }
 
   async unsafeCompileQuery(query: string): Promise<string> {
     this.throwBridgeErrorIfAvailable();
-    const output = await this.python?.lock<CompilationResult>(
-      (python) => python!`to_dict(project.compile_sql(${query}))`,
-    );
-    return output.compiled_sql;
+    try {
+      const output = await this.python?.lock<CompilationResult>(
+        (python) => python!`to_dict(project.compile_sql(${query}))`,
+      );
+      return output.compiled_sql;
+    } finally {
+      await this.executionInfrastructure.closePythonBridge(this.python);
+    }
   }
 
   async validateSql(query: string, dialect: string, models: any) {
     this.throwBridgeErrorIfAvailable();
-    const result = await this.python?.lock<ValidateSqlParseErrorResponse>(
-      (python) =>
-        python!`to_dict(validate_sql(${query}, ${dialect}, ${models}))`,
-    );
-    return result;
+    try {
+      const result = await this.python?.lock<ValidateSqlParseErrorResponse>(
+        (python) =>
+          python!`to_dict(validate_sql(${query}, ${dialect}, ${models}))`,
+      );
+      return result;
+    } finally {
+      await this.executionInfrastructure.closePythonBridge(this.python);
+    }
   }
 
   async validateSQLDryRun(query: string) {
     this.throwBridgeErrorIfAvailable();
-    const result = await this.python?.lock<{ bytes_processed: string }>(
-      (python) => python!`to_dict(project.validate_sql_dry_run(${query}))`,
-    );
-    return result;
+    try {
+      const result = await this.python?.lock<{ bytes_processed: string }>(
+        (python) => python!`to_dict(project.validate_sql_dry_run(${query}))`,
+      );
+      return result;
+    } finally {
+      await this.executionInfrastructure.closePythonBridge(this.python);
+    }
   }
 
   async getColumnsOfModel(modelName: string) {
     this.throwBridgeErrorIfAvailable();
-    // Get database and schema
-    const node = (await this.python?.lock(
-      (python) => python!`to_dict(project.get_ref_node(${modelName}))`,
-    )) as ResolveReferenceNodeResult;
-    // Get columns
-    if (!node) {
-      return [];
+    try {
+      // Get database and schema
+      const node = (await this.python?.lock(
+        (python) => python!`to_dict(project.get_ref_node(${modelName}))`,
+      )) as ResolveReferenceNodeResult;
+      // Get columns
+      if (!node) {
+        return [];
+      }
+      // TODO: fix this type
+      return await this.getColumsOfRelation(
+        node.database,
+        node.schema,
+        node.alias || modelName,
+      );
+    } finally {
+      await this.executionInfrastructure.closePythonBridge(this.python);
     }
-    // TODO: fix this type
-    return this.getColumsOfRelation(
-      node.database,
-      node.schema,
-      node.alias || modelName,
-    );
   }
 
   async getColumnsOfSource(sourceName: string, tableName: string) {
     this.throwBridgeErrorIfAvailable();
-    // Get database and schema
-    const node = (await this.python?.lock(
-      (python) =>
-        python!`to_dict(project.get_source_node(${sourceName}, ${tableName}))`,
-    )) as ResolveReferenceSourceResult;
-    // Get columns
-    if (!node) {
-      return [];
+    try {
+      // Get database and schema
+      const node = (await this.python?.lock(
+        (python) =>
+          python!`to_dict(project.get_source_node(${sourceName}, ${tableName}))`,
+      )) as ResolveReferenceSourceResult;
+      // Get columns
+      if (!node) {
+        return [];
+      }
+      return await this.getColumsOfRelation(
+        node.database,
+        node.schema,
+        node.identifier,
+      );
+    } finally {
+      await this.executionInfrastructure.closePythonBridge(this.python);
     }
-    return this.getColumsOfRelation(
-      node.database,
-      node.schema,
-      node.identifier,
-    );
   }
 
   private async getColumsOfRelation(
@@ -854,10 +880,14 @@ export class DBTCoreProjectIntegration
     objectName: string,
   ): Promise<DBColumn[]> {
     this.throwBridgeErrorIfAvailable();
-    return this.python?.lock<DBColumn[]>(
-      (python) =>
-        python!`to_dict(project.get_columns_in_relation(project.create_relation(${database}, ${schema}, ${objectName})))`,
-    );
+    try {
+      return await this.python?.lock<DBColumn[]>(
+        (python) =>
+          python!`to_dict(project.get_columns_in_relation(project.create_relation(${database}, ${schema}, ${objectName})))`,
+      );
+    } finally {
+      await this.executionInfrastructure.closePythonBridge(this.python);
+    }
   }
 
   async getBulkSchema(
@@ -865,29 +895,37 @@ export class DBTCoreProjectIntegration
     cancellationToken: CancellationToken,
   ): Promise<Record<string, DBColumn[]>> {
     const result: Record<string, DBColumn[]> = {};
-    for (const n of nodes) {
-      if (cancellationToken.isCancellationRequested) {
-        break;
+    try {
+      for (const n of nodes) {
+        if (cancellationToken.isCancellationRequested) {
+          break;
+        }
+        if (n.resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {
+          const source = n as SourceNode;
+          result[n.unique_id] = await this.getColumnsOfSource(
+            source.name,
+            source.table,
+          );
+        } else {
+          const model = n as Node;
+          result[n.unique_id] = await this.getColumnsOfModel(model.name);
+        }
       }
-      if (n.resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {
-        const source = n as SourceNode;
-        result[n.unique_id] = await this.getColumnsOfSource(
-          source.name,
-          source.table,
-        );
-      } else {
-        const model = n as Node;
-        result[n.unique_id] = await this.getColumnsOfModel(model.name);
-      }
+      return result;
+    } finally {
+      await this.executionInfrastructure.closePythonBridge(this.python);
     }
-    return result;
   }
 
   async getCatalog(): Promise<Catalog> {
     this.throwBridgeErrorIfAvailable();
-    return await this.python?.lock<Catalog>(
-      (python) => python!`to_dict(project.get_catalog())`,
-    );
+    try {
+      return await this.python?.lock<Catalog>(
+        (python) => python!`to_dict(project.get_catalog())`,
+      );
+    } finally {
+      await this.executionInfrastructure.closePythonBridge(this.python);
+    }
   }
 
   // get dbt config
@@ -1047,7 +1085,7 @@ export class DBTCoreProjectIntegration
       );
       return result;
     } finally {
-      healthCheckThread.end();
+      await this.executionInfrastructure.closePythonBridge(healthCheckThread);
     }
   }
 
@@ -1083,11 +1121,15 @@ export class DBTCoreProjectIntegration
   async applyDeferConfig(): Promise<void> {
     const { deferToProduction, manifestPath, favorState } =
       await this.getDeferConfig();
-    await this.python?.lock<void>(
-      (python) =>
-        python!`project.set_defer_config(${deferToProduction}, ${manifestPath}, ${favorState})`,
-    );
-    await this.rebuildManifest();
+    try {
+      await this.python?.lock<void>(
+        (python) =>
+          python!`project.set_defer_config(${deferToProduction}, ${manifestPath}, ${favorState})`,
+      );
+      await this.rebuildManifest();
+    } finally {
+      await this.executionInfrastructure.closePythonBridge(this.python);
+    }
   }
 
   throwDiagnosticsErrorIfAvailable(): void {
