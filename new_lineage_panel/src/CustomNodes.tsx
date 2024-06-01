@@ -81,6 +81,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     nodeType,
     tests,
     materialization,
+    version,
   } = data;
   const flow = useReactFlow();
 
@@ -235,7 +236,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                 <NodeTypeIcon nodeType={nType} />
                 <div>{NODE_TYPE_SHORTHAND[nType]}</div>
               </div>
-              <div className="lines-2">{label}</div>
+              <div className="lines-2">{label}{version && ` ${version}`}</div>
             </div>
             <div
               className={classNames(

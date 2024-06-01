@@ -91,7 +91,12 @@ export const createTableNode = (
 ): Node => {
   return {
     id: _table.table,
-    data: { ..._table, level, parent },
+    data: {
+      ..._table,
+      level,
+      parent,
+      label: `${_table.label}${_table.version ? ` ${_table.version}` : ''}`
+    },
     position: { x: 100, y: 100 },
     type: "table",
     width: T_NODE_W,
