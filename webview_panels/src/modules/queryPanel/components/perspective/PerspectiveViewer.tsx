@@ -128,13 +128,14 @@ const PerspectiveViewer = ({
     const id = "altimate-styles";
     shadowRoot.getElementById(id)?.remove();
 
-    if (currentTheme === "Vintage") {
-      const style = document.createElement("style");
-      style.textContent = perspectiveStyles;
-      style.id = id;
-      shadowRoot.appendChild(style);
-    }
+    const style = document.createElement("style");
+    style.textContent = perspectiveStyles;
+    style.id = id;
+    shadowRoot.appendChild(style);
     shadowRoot.querySelector("regular-table")?.setAttribute("theme", theme);
+    shadowRoot
+      .querySelector("regular-table")
+      ?.setAttribute("perspective-theme", currentTheme);
   };
 
   const loadPerspectiveData = async () => {
