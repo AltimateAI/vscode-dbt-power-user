@@ -53,9 +53,14 @@ export class ModelHoverProvider implements HoverProvider, Disposable {
   ): ProviderResult<Hover> {
     return new Promise((resolve) => {
       const hover = document.getText(document.getWordRangeAtPosition(position));
-      const word = document.getText(
-        document.getWordRangeAtPosition(position, ModelHoverProvider.IS_REF),
+      const range = document.getWordRangeAtPosition(
+        position,
+        ModelHoverProvider.IS_REF,
       );
+      if (!range) {
+        resolve(undefined);
+      }
+      const word = document.getText(range);
       const project = this.dbtProjectContainer.findDBTProject(document.uri);
       if (!project) {
         this.dbtTerminal.debug(
