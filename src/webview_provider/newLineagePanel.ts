@@ -22,7 +22,6 @@ import {
   GraphMetaMap,
   NodeGraphMap,
   NodeMetaData,
-  SourceMetaData,
   SourceTable,
 } from "../domain";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
