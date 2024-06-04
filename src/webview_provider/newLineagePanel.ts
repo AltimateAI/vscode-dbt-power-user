@@ -711,19 +711,9 @@ export class NewLineagePanel implements LineagePanelView {
     if (!node) {
       return;
     }
-
-    const projectName = this.getProject()?.getProjectName();
-    if (!projectName) {
-      this.terminal.debug(
-        "newLineagePage:getConnectedTables",
-        "No project name",
-      );
-      return;
-    }
-
     const tables: Map<string, Table> = new Map();
     node.nodes.forEach(({ url, key }) => {
-      const _node = this.createTable(event, url, key, projectName);
+      const _node = this.createTable(event, url, key);
       if (!_node) {
         return;
       }
@@ -740,7 +730,6 @@ export class NewLineagePanel implements LineagePanelView {
     event: ManifestCacheProjectAddedEvent,
     tableUrl: string | undefined,
     key: string,
-    projectName: string,
   ): Table | undefined {
     const splits = key.split(".");
     const nodeType = splits[0];
