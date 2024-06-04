@@ -3,6 +3,7 @@ import * as path from "path";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 import { SourceMetaMap } from "../../domain";
 import { DBTProject } from "../dbtProject";
+import { getExternalProjectNamesFromDbtLoomConfig } from "../../utils";
 
 @provide(SourceParser)
 export class SourceParser {
@@ -32,6 +33,9 @@ export class SourceParser {
           "packagePath is not defined in " + project.projectRoot.fsPath,
         );
       }
+      const externalProjectNames = getExternalProjectNamesFromDbtLoomConfig(
+        project.projectRoot.fsPath,
+      );
       Object.values(sourcesMap)
         .filter(
           (source) => source.resource_type === DBTProject.RESOURCE_TYPE_SOURCE,
@@ -61,6 +65,9 @@ export class SourceParser {
                 database: database,
                 schema: schema,
                 package_name,
+                is_external_project: Boolean(
+                  externalProjectNames?.includes(package_name),
+                ),
               };
               previousValue.set(source_name, source);
             }

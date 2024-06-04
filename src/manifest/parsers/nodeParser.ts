@@ -3,6 +3,7 @@ import { NodeMetaMap } from "../../domain";
 import { DBTProject } from "../dbtProject";
 import { createFullPathForNode } from ".";
 import { DBTTerminal } from "../../dbt_client/dbtTerminal";
+import { getExternalProjectNamesFromDbtLoomConfig } from "../../utils";
 
 @provide(NodeParser)
 export class NodeParser {
@@ -35,6 +36,9 @@ export class NodeParser {
           "packagePath is not defined " + project.projectRoot.fsPath,
         );
       }
+      const externalProjectNames = getExternalProjectNamesFromDbtLoomConfig(
+        project.projectRoot.fsPath,
+      );
       for (const nodesMap of nodesMaps) {
         const {
           name,
@@ -72,6 +76,9 @@ export class NodeParser {
           config,
           resource_type,
           depends_on,
+          is_external_project: Boolean(
+            externalProjectNames?.includes(package_name),
+          ),
         });
       }
       this.terminal.debug(
