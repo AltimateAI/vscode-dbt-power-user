@@ -51,6 +51,7 @@ DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER = (
 )
 
 if DBT_MAJOR_VER >=1 and DBT_MINOR_VER >= 8:
+    from dbt.contracts.graph.manifest import Manifest # type: ignore
     from dbt.contracts.graph.nodes import ManifestNode, CompiledNode  # type: ignore
     from dbt.artifacts.resources.v1.components import ColumnInfo  # type: ignore
     from dbt.artifacts.resources.types import NodeType # type: ignore
@@ -94,6 +95,10 @@ JINJA_CONTROL_SEQS = ["{{", "}}", "{%", "%}", "{#", "#}"]
 
 T = TypeVar("T")
 REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES = "REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES"
+DBT_DEBUG = "DBT_DEBUG"
+DBT_DEFER = "DBT_DEFER"
+DBT_STATE = "DBT_STATE"
+DBT_FAVOR_STATE = "DBT_FAVOR_STATE"
 
 @contextlib.contextmanager
 def add_path(path):
@@ -240,6 +245,9 @@ class ConfigInterface:
         project_dir: Optional[str] = None,
         profile: Optional[str] = None,
         target_path: Optional[str] = None,
+        defer: Optional[bool] = False,
+        state: Optional[str] = None,
+        favor_state: Optional[bool] = False,
     ):
         self.threads = threads
         self.target = target
@@ -250,6 +258,9 @@ class ConfigInterface:
         self.quiet = True
         self.profile = profile
         self.target_path = target_path
+        self.defer = defer
+        self.state = state
+        self.favor_state = favor_state
 
     def __str__(self):
         return f"ConfigInterface(threads={self.threads}, target={self.target}, profiles_dir={self.profiles_dir}, project_dir={self.project_dir}, profile={self.profile}, target_path={self.target_path})"
@@ -319,6 +330,9 @@ class DbtProject:
             project_dir=project_dir,
             profile=profile,
             target_path=target_path,
+            defer=defer_to_prod,
+            state=manifest_path,
+            favor_state=favor_state,
         )
 
         # Utilities
@@ -347,8 +361,11 @@ class DbtProject:
     def init_config(self):
         if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
             from dbt_common.context import set_invocation_context
+            from dbt.flags import get_flags
             set_invocation_context(os.environ)
             set_from_args(self.args, None)
+            # Copy over global_flags
+            self.args.__dict__.update(get_flags().__dict__)
         else:
             set_from_args(self.args, self.args)
         self.config = RuntimeConfig.from_args(self.args)
@@ -361,7 +378,6 @@ class DbtProject:
             self.adapter = self.get_adapter()
             self.adapter.connections.set_connection_name()
             if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
-                self.args.REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES = os.environ.get(REQUIRE_RESOURCE_NAMES_WITHOUT_SPACES, True)
                 from dbt.context.providers import generate_runtime_macro_context
                 self.adapter.set_macro_context_generator(generate_runtime_macro_context)
             self.config.adapter = self.adapter
@@ -394,6 +410,10 @@ class DbtProject:
     def set_defer_config(
         self, defer_to_prod: bool, manifest_path: str, favor_state: bool
     ) -> None:
+        if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
+            self.args.defer = defer_to_prod
+            self.args.state = manifest_path
+            self.args.favor_state = favor_state
         self.defer_to_prod = defer_to_prod
         self.defer_to_prod_manifest_path = manifest_path
         self.favor_state = favor_state
@@ -480,14 +500,21 @@ class DbtProject:
             self.write_manifest_artifact()
 
             if self.defer_to_prod:
-                with open(self.defer_to_prod_manifest_path) as f:
-                    manifest = WritableManifest.from_dict(json.load(f))
-                    selected = set()
+                if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
+                    writable_manifest = WritableManifest.read_and_check_versions(self.defer_to_prod_manifest_path)
+                    manifest = Manifest.from_writable_manifest(writable_manifest)
                     self.dbt.merge_from_artifact(
-                        self.adapter,
                         other=manifest,
-                        selected=selected,
-                        favor_state=self.favor_state,
+                    )
+                else:
+                    with open(self.defer_to_prod_manifest_path) as f:
+                        manifest = WritableManifest.from_dict(json.load(f))
+                        selected = set()
+                        self.dbt.merge_from_artifact(
+                            self.adapter,
+                            other=manifest,
+                            selected=selected,
+                            favor_state=self.favor_state,
                     )
         except Exception as e:
             self.config = _config_pointer

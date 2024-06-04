@@ -153,7 +153,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           setMoreTables,
           setCollectColumns,
           flow,
-          selectedColumn.sessionId,
+          selectedColumn,
           { direct: selectCheck, indirect: nonSelectCheck }
         );
         rerender();

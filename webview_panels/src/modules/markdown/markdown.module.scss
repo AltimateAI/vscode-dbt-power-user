@@ -1,32 +1,18 @@
-.markdown {
-  ul,
-  ol {
-    padding: 0;
-  }
-  .pre {
-    position: relative;
+.pre {
+  position: relative;
 
-    pre {
-      transition: 0.3s ease all;
-      :global .card {
-        background: var(--background--03) !important;
-        :global .card-body {
-          code {
-            max-height: none;
-          }
+  pre {
+    transition: 0.3s ease all;
+
+    :global .card {
+      background: var(--background--03) !important;
+
+      :global .card-body {
+        code {
+          max-height: none;
         }
       }
     }
-  }
-
-  table {
-    border-collapse: collapse;
-  }
-
-  th,
-  td {
-    padding: 6px 13px;
-    border: 1px solid black;
   }
 
   :global .code__icons {
@@ -43,5 +29,23 @@
     background-color: var(--icon--default);
     padding: 6px;
     cursor: pointer;
+  }
+}
+
+.markdown {
+
+  ul,
+  ol {
+    padding: 0;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    padding: 6px 13px;
+    border: 1px solid black;
   }
 }

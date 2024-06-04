@@ -39,6 +39,7 @@ import { Dispatch, SetStateAction } from "react";
 import { COLUMN_PREFIX } from "./constants";
 import { TMoreTables } from "./MoreTables";
 import { CLL } from "./service_utils";
+import { SelectedColumn } from "./App";
 
 const getConnectedTables = (right: boolean, table: string) =>
   right ? upstreamTables(table) : downstreamTables(table);
@@ -320,8 +321,7 @@ const processColumnLineage = async (
   curr: [string, string][],
   right: boolean,
   currAnd1HopTables: string[],
-  selectedColumn: { name: string; table: string },
-  sessionId: string,
+  selectedColumn: SelectedColumn,
   columnEdgeType: Record<string, string>,
   isFirst: boolean,
   edgeVisibility: EdgeVisibility
@@ -334,7 +334,6 @@ const processColumnLineage = async (
     upstreamExpansion: right,
     currAnd1HopTables,
     selectedColumn,
-    sessionId,
   });
   CLL.addLinks(column_lineage.length);
   const columnLineage = column_lineage.filter((e) =>
@@ -636,7 +635,7 @@ export const bfsTraversal = async (
   setMoreTables: Dispatch<SetStateAction<TMoreTables>>,
   setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>,
   flow: ReactFlowInstance,
-  sessionId: string,
+  selectedColumn: SelectedColumn,
   edgeVisibility: EdgeVisibility
 ) => {
   let isLineage = false;
@@ -732,8 +731,7 @@ export const bfsTraversal = async (
       currTargetColumns,
       right,
       Array.from(new Set(currAnd1HopTables)),
-      columns[0],
-      sessionId,
+      selectedColumn,
       columnEdgeType,
       isFirst,
       edgeVisibility

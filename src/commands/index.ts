@@ -387,6 +387,7 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.diagnostics", async () => {
         try {
           await this.dbtTerminal.show(true);
+          await new Promise((resolve) => setTimeout(resolve, 1000));
           this.dbtTerminal.logLine("Diagnostics started...");
           this.dbtTerminal.logNewLine();
 

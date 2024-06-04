@@ -1,8 +1,10 @@
 import path = require("path");
 import {
   ProgressLocation,
+  Uri,
   WebviewPanel,
   WebviewView,
+  env,
   window,
   workspace,
 } from "vscode";
@@ -25,6 +27,7 @@ interface GenerateDocsForColumnsProps {
   message: any;
   project: DBTProject | undefined;
   documentation: DBTDocumentation | undefined;
+  isBulkGen: boolean;
 }
 
 interface GenerateDocsForModelProps {
@@ -33,6 +36,8 @@ interface GenerateDocsForModelProps {
   queryText: string;
   project: DBTProject | undefined;
   message: any;
+  columnIndexCount: number | undefined;
+  isBulkGen: boolean;
 }
 
 interface FeedbackRequestProps {
@@ -60,6 +65,9 @@ export class DocGenService {
     adapter: string,
     message: any,
     columns: string[],
+    columnIndexCount: number | undefined = undefined,
+    sessionID: string | undefined = undefined,
+    isBulkGen: boolean = false,
   ): Promise<DocsGenerateResponse | undefined> {
     return new Promise(async (resolve, reject) => {
       if (!documentation) {
@@ -83,6 +91,9 @@ export class DocGenService {
           gen_model_description: false,
           user_instructions: message.user_instructions,
           follow_up_instructions: message.follow_up_instructions,
+          column_index_count: columnIndexCount,
+          session_id: sessionID,
+          is_bulk_gen: isBulkGen,
         });
 
         return resolve(result);
@@ -171,45 +182,74 @@ export class DocGenService {
     return this.getDocumentation(window.activeTextEditor?.document?.uri.fsPath);
   }
 
-  public async getDocumentation(
-    filePath?: string,
-  ): Promise<DBTDocumentation | undefined> {
+  private getMissingDocumentationMessage(filePath?: string) {
+    const message =
+      "A valid dbt model file needs to be open and active in the editor area above to view documentation for that model.";
+    if (!filePath) {
+      return { message, type: "warning" };
+    }
+    try {
+      this.queryManifestService
+        .getProjectByUri(Uri.file(filePath))
+        ?.throwDiagnosticsErrorIfAvailable();
+    } catch (err) {
+      return { message: (err as Error).message, type: "error" };
+    }
+
+    return { message, type: "warning" };
+  }
+
+  public async getDocumentation(filePath?: string): Promise<{
+    documentation: DBTDocumentation | undefined;
+    message?: { message: string; type: string };
+  }> {
     const eventResult = this.queryManifestService.getEventByCurrentProject();
     if (!eventResult) {
-      return undefined;
+      return {
+        documentation: undefined,
+        message: this.getMissingDocumentationMessage(filePath),
+      };
     }
     const { event } = eventResult;
 
     if (!event || !filePath) {
-      return undefined;
+      return {
+        documentation: undefined,
+        message: this.getMissingDocumentationMessage(filePath),
+      };
     }
 
     const modelName = path.basename(filePath, ".sql");
     const currentNode = event.nodeMetaMap.get(modelName);
     if (currentNode === undefined) {
-      return undefined;
+      return {
+        documentation: undefined,
+        message: this.getMissingDocumentationMessage(filePath),
+      };
     }
 
     const docColumns = currentNode.columns;
     return {
-      aiEnabled: this.altimateRequest.enabled(),
-      name: modelName,
-      patchPath: currentNode.patch_path,
-      description: currentNode.description,
-      generated: false,
-      resource_type: currentNode.resource_type,
-      uniqueId: currentNode.uniqueId,
-      filePath,
-      columns: Object.values(docColumns).map((column) => {
-        return {
-          name: column.name,
-          description: column.description,
-          generated: false,
-          source: Source.YAML,
-          type: column.data_type?.toLowerCase(),
-        };
-      }),
-    } as DBTDocumentation;
+      documentation: {
+        aiEnabled: this.altimateRequest.enabled(),
+        name: modelName,
+        patchPath: currentNode.patch_path,
+        description: currentNode.description,
+        generated: false,
+        resource_type: currentNode.resource_type,
+        uniqueId: currentNode.uniqueId,
+        filePath,
+        columns: Object.values(docColumns).map((column) => {
+          return {
+            name: column.name,
+            description: column.description,
+            generated: false,
+            source: Source.YAML,
+            type: column.data_type?.toLowerCase(),
+          };
+        }),
+      } as DBTDocumentation,
+    };
   }
 
   private chunk(a: string[], n: number) {
@@ -226,6 +266,7 @@ export class DocGenService {
     message,
     documentation,
     panel,
+    isBulkGen,
   }: GenerateDocsForColumnsProps) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
@@ -271,6 +312,12 @@ export class DocGenService {
 
           const startTime = Date.now();
           const compiledSql = await project.unsafeCompileQuery(queryText);
+          const columnIndexCount = isBulkGen
+            ? chunks.length * COLUMNS_PER_CHUNK
+            : 1;
+          const sessionID = `${
+            env.sessionId
+          }-${documentation?.name}-numColumns-${columnIndexCount}-${Date.now()}`;
 
           await Promise.all(
             chunks.map(async (chunk, i) => {
@@ -280,6 +327,9 @@ export class DocGenService {
                 project.getAdapterType(),
                 message,
                 chunk,
+                i * COLUMNS_PER_CHUNK,
+                sessionID,
+                isBulkGen,
               );
               results.push(chunkResult);
               this.dbtTerminal.debug(
@@ -354,6 +404,8 @@ export class DocGenService {
     project,
     message,
     panel,
+    columnIndexCount,
+    isBulkGen,
   }: GenerateDocsForModelProps) {
     if (!this.altimateRequest.handlePreviewFeatures()) {
       return;
@@ -378,7 +430,9 @@ export class DocGenService {
         try {
           const startTime = Date.now();
           const compiledSql = await project.unsafeCompileQuery(queryText);
-
+          const sessionID = `${
+            env.sessionId
+          }-${documentation?.name}-numColumns-0-${Date.now()}`;
           const generateDocsForModel =
             await this.altimateRequest.generateModelDocsV2({
               columns: [],
@@ -402,6 +456,9 @@ export class DocGenService {
                   message.user_instructions.prompt_hint || "generate",
               },
               follow_up_instructions: message.follow_up_instructions,
+              column_index_count: columnIndexCount,
+              session_id: sessionID,
+              is_bulk_gen: isBulkGen,
             });
 
           if (
@@ -455,7 +512,7 @@ export class DocGenService {
           if (!project) {
             throw new Error("Unable to find project");
           }
-          const documentation = await this.getDocumentation();
+          const { documentation } = await this.getDocumentation();
           const compiledSql = await project.unsafeCompileQuery(queryText);
           const request = message.data;
           request["feedback_text"] = message.comment;

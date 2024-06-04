@@ -1,4 +1,12 @@
-import { commands, Range, TextDocument, Uri, window, workspace } from "vscode";
+import {
+  commands,
+  env,
+  Range,
+  TextDocument,
+  Uri,
+  window,
+  workspace,
+} from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { TelemetryService } from "../telemetry";
@@ -8,11 +16,7 @@ import {
   HandleCommandProps,
 } from "./altimateWebviewProvider";
 import { DocGenService } from "../services/docGenService";
-import {
-  AltimateRequest,
-  QueryAnalysisType,
-  QueryTranslateExplanationRequest,
-} from "../altimate";
+import { AltimateRequest, QueryAnalysisType } from "../altimate";
 import { SharedStateService } from "../services/sharedStateService";
 import {
   QueryAnalysisService,
@@ -83,24 +87,28 @@ export class DataPilotPanel extends AltimateWebviewProvider {
         if (!queryText) {
           return;
         }
-
         this.docGenService.generateDocsForModel({
           queryText,
-          documentation:
-            await this.docGenService.getDocumentationForCurrentActiveFile(),
+          documentation: (
+            await this.docGenService.getDocumentationForCurrentActiveFile()
+          ).documentation,
           message,
           panel: this._panel,
           project: this.queryManifestService.getProject(),
+          columnIndexCount: undefined,
+          isBulkGen: false,
         });
         break;
 
       case "generateDocsForColumn":
         await this.docGenService.generateDocsForColumns({
-          documentation:
-            await this.docGenService.getDocumentationForCurrentActiveFile(),
+          documentation: (
+            await this.docGenService.getDocumentationForCurrentActiveFile()
+          ).documentation,
           panel: this._panel,
           message,
           project: this.queryManifestService.getProject(),
+          isBulkGen: false,
         });
         break;
 

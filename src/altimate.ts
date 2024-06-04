@@ -170,6 +170,9 @@ interface DocsGenerateModelRequestV2 {
   };
   prompt_hint?: string;
   gen_model_description: boolean;
+  column_index_count: number | undefined;
+  session_id: string | undefined;
+  is_bulk_gen: boolean;
 }
 
 export interface DocsGenerateResponse {

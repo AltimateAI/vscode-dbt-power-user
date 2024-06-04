@@ -11,6 +11,7 @@ import {
   WebviewView,
   WebviewViewProvider,
   WebviewViewResolveContext,
+  env,
   window,
   workspace,
 } from "vscode";
@@ -121,8 +122,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         if (event === undefined) {
           return;
         }
-        this.documentation =
-          await this.docGenService.getDocumentationForCurrentActiveFile();
         if (this._panel) {
           this.transmitData();
           this.updateGraphStyle();
@@ -148,10 +147,14 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   }
 
   private async transmitData() {
+    const { documentation, message } =
+      await this.docGenService.getDocumentationForCurrentActiveFile();
+    this.documentation = documentation;
     if (this._panel) {
       await this._panel.webview.postMessage({
         command: "renderDocumentation",
         docs: this.documentation,
+        missingDocumentationMessage: message,
         tests: await this.dbtTestService.getTestsForCurrentModel(),
         project: this.getProject()?.getProjectName(),
         collaborationEnabled: workspace
@@ -206,8 +209,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     this.newDocsPanel.resolveWebview(panel, context, token);
     this.setupWebviewHooks(context);
     this.transmitConfig();
-    this.documentation =
-      await this.docGenService.getDocumentationForCurrentActiveFile();
     this.transmitData();
   }
 
@@ -574,6 +575,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               message,
               panel: this._panel,
               project,
+              columnIndexCount: undefined,
+              isBulkGen: false,
             });
             break;
           case "generateDocsForColumn":
@@ -582,6 +585,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               panel: this._panel,
               message,
               project,
+              isBulkGen: true,
             });
             break;
           case "sendFeedback":
@@ -751,8 +755,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   // Force reload from manifest after manifest refresh
                   this.loadedFromManifest = false;
                   writeFileSync(patchPath, stringify(parsedDocFile));
-                  this.documentation =
-                    await this.docGenService.getDocumentationForCurrentActiveFile();
+                  this.documentation = (
+                    await this.docGenService.getDocumentationForCurrentActiveFile()
+                  ).documentation;
                   const tests =
                     await this.dbtTestService.getTestsForCurrentModel();
                   if (syncRequestId) {
@@ -821,8 +826,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       //  documentation will be overwritten by the one coming from the manifest
       return;
     }
-    this.documentation =
-      await this.docGenService.getDocumentationForCurrentActiveFile();
     this.loadedFromManifest = true;
     if (this._panel) {
       this.transmitData();
