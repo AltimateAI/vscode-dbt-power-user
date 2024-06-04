@@ -27,6 +27,7 @@ import {
   withinExclusive,
   isSeeMore,
   EdgeVisibility,
+  ColumnEdgeExtra,
 } from "./utils";
 import {
   ColumnLineage,
@@ -354,7 +355,8 @@ const processColumnLineage = async (
     id2: string,
     source: string,
     target: string,
-    type: string
+    type: string,
+    extra?: ColumnEdgeExtra
   ) => {
     const id = getColumnEdgeId(source, target);
     if (edges.find((e) => e.id === id)) return;
@@ -365,7 +367,8 @@ const processColumnLineage = async (
         levelMap[id1],
         levelMap[id2],
         type,
-        edgeVisibility
+        edgeVisibility,
+        extra
       )
     );
   };
@@ -420,14 +423,14 @@ const processColumnLineage = async (
 
     const edgeType = columnEdgeType[right ? targetId : sourceId];
     if (sourceTableExist && targetTableExist) {
-      addToEdges(t0, t1, source, target, edgeType);
+      addToEdges(t0, t1, source, target, edgeType, e["extra"]);
     } else if (sourceTableExist) {
       const seeMoreId = seeMoreIdTableReverseMap[t1];
-      addToEdges(t0, seeMoreId, source, seeMoreId, edgeType);
+      addToEdges(t0, seeMoreId, source, seeMoreId, edgeType, e["extra"]);
       seeMoreLineage.push(e);
     } else if (targetTableExist) {
       const seeMoreId = seeMoreIdTableReverseMap[t0];
-      addToEdges(seeMoreId, t1, seeMoreId, target, edgeType);
+      addToEdges(seeMoreId, t1, seeMoreId, target, edgeType, e["extra"]);
       seeMoreLineage.push(e);
     } else {
       seeMoreLineage.push(e);

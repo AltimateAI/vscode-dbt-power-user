@@ -22,6 +22,14 @@ export const DEFAULT_MIN_ZOOM = 0.05;
 // node styles
 const DEFAULT_COLOR = "#7A899E";
 const HIGHLIGHT_COLOR = "#E38E00";
+
+export const LENS_TYPE_COLOR = {
+  raw: "#FB5607",
+  rename: "#FF006E",
+  transformation: "#8338EC",
+  passthrough: "#3A86FF",
+};
+
 export const defaultEdgeStyle: React.CSSProperties = {
   stroke: DEFAULT_COLOR,
   strokeWidth: 1,
@@ -42,13 +50,16 @@ export const defaultMarker = {
   height: 24,
   color: DEFAULT_COLOR,
 };
-export const highlightMarker = {
+
+const getColumnEdgeMarker = (color: string) => ({
   type: "arrow" as MarkerType,
   strokeWidth: 1,
   width: 16,
   height: 16,
-  color: HIGHLIGHT_COLOR,
-};
+  color,
+});
+
+const highlightMarker = getColumnEdgeMarker(HIGHLIGHT_COLOR);
 
 export const isColumn = (x: { id: string }) => x.id.startsWith(COLUMN_PREFIX);
 export const isSeeMore = (x: { id: string }) =>
@@ -113,6 +124,7 @@ export const createColumnNode = (t: string, c: string): Node => {
 };
 
 export type EdgeVisibility = Record<string, boolean>;
+export type ColumnEdgeExtra = {lens_type?: keyof typeof LENS_TYPE_COLOR};
 
 export const createColumnEdge = (
   source: string,
@@ -120,13 +132,15 @@ export const createColumnEdge = (
   srcLevel: number,
   dstLevel: number,
   type: string,
-  edgeVisibility: EdgeVisibility
+  edgeVisibility: EdgeVisibility,
+  extra?: ColumnEdgeExtra
 ): Edge => {
   const edgeId = getColumnEdgeId(source, target);
   const [sourceHandle, targetHandle] = getSourceTargetHandles(
     srcLevel,
     dstLevel
   );
+  const lensTypeColor = extra?.lens_type ? LENS_TYPE_COLOR[extra.lens_type] : "";
   return {
     id: edgeId,
     data: { type },
@@ -134,9 +148,11 @@ export const createColumnEdge = (
     target,
     sourceHandle,
     targetHandle,
-    style: type === "direct" ? highlightEdgeStyle : indirectHighlightEdgeStyle,
+    style: type === "direct" ? {...highlightEdgeStyle, stroke: lensTypeColor || HIGHLIGHT_COLOR,} : {...indirectHighlightEdgeStyle, stroke: lensTypeColor || HIGHLIGHT_COLOR},
     zIndex: 1000,
-    markerEnd: highlightMarker,
+    markerEnd: lensTypeColor
+    ? getColumnEdgeMarker(lensTypeColor)
+    : highlightMarker,
     type: srcLevel === dstLevel ? "smoothstep" : "default",
     hidden: !edgeVisibility[type],
   };

@@ -1,4 +1,5 @@
 import { requestExecutor } from "./service_utils";
+import { ColumnEdgeExtra } from "./utils";
 
 export type Table = {
   table: string;
@@ -27,6 +28,7 @@ export type ColumnLineage = {
   source: [string, string];
   target: [string, string];
   type: string;
+  extra?: ColumnEdgeExtra;
 };
 
 export type ExposureMetaData = {
