@@ -124,7 +124,6 @@ export const createColumnNode = (t: string, c: string): Node => {
 };
 
 export type EdgeVisibility = Record<string, boolean>;
-export type ColumnEdgeExtra = {lens_type?: keyof typeof LENS_TYPE_COLOR};
 
 export const createColumnEdge = (
   source: string,
@@ -133,14 +132,14 @@ export const createColumnEdge = (
   dstLevel: number,
   type: string,
   edgeVisibility: EdgeVisibility,
-  extra?: ColumnEdgeExtra
+  lensType?: keyof typeof LENS_TYPE_COLOR
 ): Edge => {
   const edgeId = getColumnEdgeId(source, target);
   const [sourceHandle, targetHandle] = getSourceTargetHandles(
     srcLevel,
     dstLevel
   );
-  const lensTypeColor = extra?.lens_type ? LENS_TYPE_COLOR[extra.lens_type] : "";
+  const lensTypeColor = lensType? LENS_TYPE_COLOR[lensType] : "";
   return {
     id: edgeId,
     data: { type },

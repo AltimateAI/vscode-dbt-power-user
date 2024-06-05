@@ -1,5 +1,5 @@
 import { requestExecutor } from "./service_utils";
-import { ColumnEdgeExtra } from "./utils";
+import { LENS_TYPE_COLOR } from "./utils";
 
 export type Table = {
   table: string;
@@ -29,7 +29,7 @@ export type ColumnLineage = {
   source: [string, string];
   target: [string, string];
   type: string;
-  extra?: ColumnEdgeExtra;
+  lensType?: keyof typeof LENS_TYPE_COLOR
 };
 
 export type ExposureMetaData = {

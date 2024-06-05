@@ -27,7 +27,7 @@ import {
   withinExclusive,
   isSeeMore,
   EdgeVisibility,
-  ColumnEdgeExtra,
+  LENS_TYPE_COLOR,
 } from "./utils";
 import {
   ColumnLineage,
@@ -356,7 +356,7 @@ const processColumnLineage = async (
     source: string,
     target: string,
     type: string,
-    extra?: ColumnEdgeExtra
+    lensType?: keyof typeof LENS_TYPE_COLOR
   ) => {
     const id = getColumnEdgeId(source, target);
     if (edges.find((e) => e.id === id)) return;
@@ -368,7 +368,7 @@ const processColumnLineage = async (
         levelMap[id2],
         type,
         edgeVisibility,
-        extra
+        lensType
       )
     );
   };
@@ -423,14 +423,14 @@ const processColumnLineage = async (
 
     const edgeType = columnEdgeType[right ? targetId : sourceId];
     if (sourceTableExist && targetTableExist) {
-      addToEdges(t0, t1, source, target, edgeType, e["extra"]);
+      addToEdges(t0, t1, source, target, edgeType, e.lensType);
     } else if (sourceTableExist) {
       const seeMoreId = seeMoreIdTableReverseMap[t1];
-      addToEdges(t0, seeMoreId, source, seeMoreId, edgeType, e["extra"]);
+      addToEdges(t0, seeMoreId, source, seeMoreId, edgeType, e.lensType);
       seeMoreLineage.push(e);
     } else if (targetTableExist) {
       const seeMoreId = seeMoreIdTableReverseMap[t0];
-      addToEdges(seeMoreId, t1, seeMoreId, target, edgeType, e["extra"]);
+      addToEdges(seeMoreId, t1, seeMoreId, target, edgeType, e.lensType);
       seeMoreLineage.push(e);
     } else {
       seeMoreLineage.push(e);
@@ -792,13 +792,13 @@ export const moveTableFromSeeMoreToCanvas = (
       if (e.target[0] !== table) return;
       nodes.push(createColumnNode(e.target[0], e.target[1]));
       edges.push(
-        createColumnEdge(src, dst, level! - 1, level!, e.type, edgeVisibility)
+        createColumnEdge(src, dst, level! - 1, level!, e.type, edgeVisibility, e.lensType)
       );
     } else {
       if (e.source[0] !== table) return;
       nodes.push(createColumnNode(e.source[0], e.source[1]));
       edges.push(
-        createColumnEdge(src, dst, level!, level! + 1, e.type, edgeVisibility)
+        createColumnEdge(src, dst, level!, level! + 1, e.type, edgeVisibility, e.lensType)
       );
     }
   });
