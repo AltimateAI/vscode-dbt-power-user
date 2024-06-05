@@ -4,9 +4,14 @@ import { provideSingleton } from "../utils";
 
 @provideSingleton(TelemetryService)
 export class TelemetryService implements vscode.Disposable {
+  private customAttributes: { [key: string]: string } = {};
   private telemetryReporter: TelemetryReporter = new TelemetryReporter(
     "50598369-dd83-4f9a-9a65-ca1fa6f1785c",
   );
+
+  setTelemetryCustomAttribute(key: string, value: string) {
+    this.customAttributes[key] = value;
+  }
 
   sendTelemetryEvent(
     eventName: string,
@@ -28,6 +33,7 @@ export class TelemetryService implements vscode.Disposable {
           .get<boolean>("isLocalMode", false)
           ? "true"
           : "false",
+        ...this.customAttributes,
       },
       measurements,
     );
@@ -58,6 +64,7 @@ export class TelemetryService implements vscode.Disposable {
           error !== undefined && error instanceof Error
             ? error.stack
             : JSON.stringify(error),
+        ...this.customAttributes,
       },
       measurements,
     );
