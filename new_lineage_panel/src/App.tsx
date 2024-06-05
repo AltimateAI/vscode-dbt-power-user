@@ -51,6 +51,7 @@ import { ActionWidget } from "./ActionWidget";
 import { DEFAULT_MIN_ZOOM, createTableNode } from "./utils";
 import { Settings } from "./Settings";
 import { Table, getLineageSettings } from "./service";
+import LineageLegend from "./components/LineageLegend";
 
 export let aiEnabled = false;
 export let isDarkMode = false;
@@ -339,6 +340,7 @@ function App() {
               >
                 <Background />
                 <Controls />
+                <LineageLegend />
               </ReactFlow>
             </div>
             <SidebarModal

@@ -24,10 +24,10 @@ const DEFAULT_COLOR = "#7A899E";
 const HIGHLIGHT_COLOR = "#E38E00";
 
 export const LENS_TYPE_COLOR = {
-  raw: "#FB5607",
-  rename: "#FF006E",
-  transformation: "#8338EC",
-  passthrough: "#3A86FF",
+  raw: "#FDD835",
+  rename: "#51E5E6",
+  transformation: "#EE0015",
+  passthrough: "#8454FF",
 };
 
 export const defaultEdgeStyle: React.CSSProperties = {
@@ -140,6 +140,7 @@ export const createColumnEdge = (
     dstLevel
   );
   const lensTypeColor = lensType? LENS_TYPE_COLOR[lensType] : "";
+  const color = lensTypeColor || HIGHLIGHT_COLOR;
   return {
     id: edgeId,
     data: { type },
@@ -147,13 +148,18 @@ export const createColumnEdge = (
     target,
     sourceHandle,
     targetHandle,
-    style: type === "direct" ? {...highlightEdgeStyle, stroke: lensTypeColor || HIGHLIGHT_COLOR,} : {...indirectHighlightEdgeStyle, stroke: lensTypeColor || HIGHLIGHT_COLOR},
+    style: type === "direct" ? {...highlightEdgeStyle, stroke: color,} : {...indirectHighlightEdgeStyle, stroke: color},
     zIndex: 1000,
     markerEnd: lensTypeColor
     ? getColumnEdgeMarker(lensTypeColor)
     : highlightMarker,
     type: srcLevel === dstLevel ? "smoothstep" : "default",
     hidden: !edgeVisibility[type],
+    label: lensType,
+    labelBgStyle: { stroke:color, strokeWidth:0.5,strokeLinecap:"butt",strokeLinejoin:"miter",strokeOpacity:1},
+    labelStyle: {fill: color},
+    focusable: Boolean(lensType),
+    className: "column-edge",
   };
 };
 

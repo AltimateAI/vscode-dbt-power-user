@@ -383,3 +383,40 @@ $size: 1.2em;
     }
   }
 }
+
+.column_legend {
+  position: absolute;
+  bottom: 1rem;
+  left: 3.5rem;
+  border-radius: 2px;
+  background-color: #ffffff;
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  text-transform: capitalize;
+  border: 1px solid #D5DBE4;
+
+  > div {
+    margin-right: 5px;
+
+    .dot {
+      width: 0.75rem;
+      height: 0.75rem;
+      border-radius: 50%;
+      display: inline-block;
+      vertical-align: middle;
+    }
+  }
+}
+
+:global .column-edge{
+  :global .react-flow__edge-textwrapper{
+    visibility: hidden;
+  }
+
+  &.selected {
+    :global .react-flow__edge-textwrapper{
+      visibility: visible;
+    }
+  }
+}
