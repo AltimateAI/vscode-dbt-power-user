@@ -43,6 +43,7 @@ type Table = {
   nodeType: string;
   materialization?: string;
   tests: any[];
+  isExternalProject: boolean;
 };
 
 enum CllEvents {
@@ -759,6 +760,7 @@ export class NewLineagePanel implements LineagePanelView {
         upstreamCount,
         downstreamCount,
         nodeType,
+        isExternalProject: _node.is_external_project,
         tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
           const testKey = n.label.split(".")[0];
           return { ...testMetaMap.get(testKey), key: testKey };
@@ -775,6 +777,7 @@ export class NewLineagePanel implements LineagePanelView {
         nodeType,
         materialization: undefined,
         tests: [],
+        isExternalProject: false,
       };
     }
     const { nodeMetaMap } = event;
@@ -790,6 +793,7 @@ export class NewLineagePanel implements LineagePanelView {
         nodeType,
         materialization: undefined,
         tests: [],
+        isExternalProject: false,
       };
     }
 
@@ -805,6 +809,7 @@ export class NewLineagePanel implements LineagePanelView {
       url: tableUrl,
       upstreamCount,
       downstreamCount,
+      isExternalProject: node.is_external_project,
       nodeType,
       materialization,
       tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
@@ -912,6 +917,7 @@ export class NewLineagePanel implements LineagePanelView {
       downstreamCount,
       nodeType,
       materialization,
+      isExternalProject: _node.is_external_project,
       tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
         const testKey = n.label.split(".")[0];
         return { ...testMetaMap.get(testKey), key: testKey };

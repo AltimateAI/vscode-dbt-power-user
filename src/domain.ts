@@ -39,6 +39,7 @@ export interface NodeMetaData {
   config: Config;
   resource_type: string;
   depends_on: DependsOn;
+  is_external_project: boolean;
 }
 
 export interface ColumnMetaData {
@@ -57,6 +58,8 @@ export interface SourceMetaData {
   database: string;
   schema: string;
   tables: SourceTable[];
+  package_name: string;
+  is_external_project: boolean;
 }
 
 export interface SourceTable {

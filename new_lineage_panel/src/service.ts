@@ -9,6 +9,7 @@ export type Table = {
   materialization?: string;
   downstreamCount: number;
   upstreamCount: number;
+  isExternalProject: boolean;
   tests: { key: string; path: string }[];
 };
 export type Column = {
