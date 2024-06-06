@@ -383,39 +383,50 @@ $size: 1.2em;
     }
   }
 }
-
-.column_legend {
+.lineage_legend {
   position: absolute;
   bottom: 1rem;
   left: 3.5rem;
-  border-radius: 2px;
-  background-color: #ffffff;
-  display: flex;
-  gap: 0.5rem;
-  padding: 0.25rem 0.5rem;
-  text-transform: capitalize;
-  border: 1px solid #D5DBE4;
+  z-index: 4;
+  background-color: var(--card-bg) !important;
+  color: var(--text-color) !important;
+  border: 1px solid var(--input-border-color) !important;
+  border-radius: 5px !important;
 
-  > div {
-    margin-right: 5px;
-
-    .dot {
-      width: 0.75rem;
-      height: 0.75rem;
-      border-radius: 50%;
-      display: inline-block;
-      vertical-align: middle;
-    }
+  svg{
+    margin-left: 1rem;
   }
 }
 
-:global .column-edge{
-  :global .react-flow__edge-textwrapper{
+.column_legend {
+  :global .popover {
+    border-radius: 2px;
+    background-color: #ffffff;
+    text-transform: capitalize;
+    border: 1px solid #D5DBE4;
+  :global .popover-body {
+    padding: 0.5rem 1rem;
+  > div{
+    margin-bottom: 1rem;
+  }}
+  }
+  .dot {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    display: inline-block;
+    vertical-align: baseline;
+    margin-right: 0.4rem;
+  }
+}        
+
+:global .column-edge {
+  :global .react-flow__edge-textwrapper {
     visibility: hidden;
   }
 
   &.selected {
-    :global .react-flow__edge-textwrapper{
+    :global .react-flow__edge-textwrapper {
       visibility: visible;
     }
   }
