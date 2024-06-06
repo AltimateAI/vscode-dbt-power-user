@@ -205,16 +205,32 @@ $size: 1.2em;
   width: calc($node-width - 24px);
   border-radius: 0.25em;
   padding: 4px 8px;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-  &.selected {
-    background: var(--primary-accent);
-    color: #ffffff;
-  }
+  color: var(--column-node-color);
+  position: relative;
   &.default {
     background: var(--column-node-bg);
-    color: var(--column-node-color);
+  }
+
+  .column_name{
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .column_badge{
+    display: none;
+    position: absolute;
+    top: -6px;
+    right: 4px;
+    background-color: var(--lens-color) !important;
+    font-size: 6px;
+  }
+
+  &.selected,
+  &:hover {
+    .column_badge{
+      display: block;
+    }
   }
 }
 
@@ -392,9 +408,12 @@ $size: 1.2em;
   color: var(--text-color) !important;
   border: 1px solid var(--input-border-color) !important;
   border-radius: 5px !important;
+  font-size: 10px !important;
+  padding: 6px !important;
 
   svg{
-    margin-left: 1rem;
+    margin-left: 0.6rem;
+    vertical-align: baseline;
   }
 }
 
@@ -408,6 +427,7 @@ $size: 1.2em;
     padding: 0.5rem 1rem;
   > div{
     margin-bottom: 1rem;
+    font-size: 10px;
   }}
   }
   .dot {
@@ -419,15 +439,3 @@ $size: 1.2em;
     margin-right: 0.4rem;
   }
 }        
-
-:global .column-edge {
-  :global .react-flow__edge-textwrapper {
-    visibility: hidden;
-  }
-
-  &.selected {
-    :global .react-flow__edge-textwrapper {
-      visibility: visible;
-    }
-  }
-}

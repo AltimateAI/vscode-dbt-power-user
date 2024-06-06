@@ -28,7 +28,10 @@ export const LENS_TYPE_COLOR = {
   rename: "#51E5E6",
   transformation: "#EE0015",
   passthrough: "#8454FF",
+  unknown: "#247efe"
 };
+
+export type LensTypes = keyof typeof LENS_TYPE_COLOR;
 
 export const defaultEdgeStyle: React.CSSProperties = {
   stroke: DEFAULT_COLOR,
@@ -50,16 +53,13 @@ export const defaultMarker = {
   height: 24,
   color: DEFAULT_COLOR,
 };
-
-const getColumnEdgeMarker = (color: string) => ({
+export const highlightMarker = {
   type: "arrow" as MarkerType,
   strokeWidth: 1,
   width: 16,
   height: 16,
-  color,
-});
-
-const highlightMarker = getColumnEdgeMarker(HIGHLIGHT_COLOR);
+  color: HIGHLIGHT_COLOR,
+};
 
 export const isColumn = (x: { id: string }) => x.id.startsWith(COLUMN_PREFIX);
 export const isSeeMore = (x: { id: string }) =>
@@ -110,10 +110,10 @@ export const createTableNode = (
   };
 };
 
-export const createColumnNode = (t: string, c: string): Node => {
+export const createColumnNode = (t: string, c: string, lensType?: LensTypes): Node => {
   return {
     id: getColumnId(t, c),
-    data: { column: c, table: t },
+    data: { column: c, table: t, lensType },
     parentNode: t,
     extent: "parent",
     draggable: false,
@@ -131,16 +131,13 @@ export const createColumnEdge = (
   srcLevel: number,
   dstLevel: number,
   type: string,
-  edgeVisibility: EdgeVisibility,
-  lensType?: keyof typeof LENS_TYPE_COLOR
+  edgeVisibility: EdgeVisibility
 ): Edge => {
   const edgeId = getColumnEdgeId(source, target);
   const [sourceHandle, targetHandle] = getSourceTargetHandles(
     srcLevel,
     dstLevel
   );
-  const lensTypeColor = lensType? LENS_TYPE_COLOR[lensType] : "";
-  const color = lensTypeColor || HIGHLIGHT_COLOR;
   return {
     id: edgeId,
     data: { type },
@@ -148,18 +145,11 @@ export const createColumnEdge = (
     target,
     sourceHandle,
     targetHandle,
-    style: type === "direct" ? {...highlightEdgeStyle, stroke: color,} : {...indirectHighlightEdgeStyle, stroke: color},
+    style: type === "direct" ? highlightEdgeStyle : indirectHighlightEdgeStyle,
     zIndex: 1000,
-    markerEnd: lensTypeColor
-    ? getColumnEdgeMarker(lensTypeColor)
-    : highlightMarker,
+    markerEnd: highlightMarker,
     type: srcLevel === dstLevel ? "smoothstep" : "default",
     hidden: !edgeVisibility[type],
-    label: lensType,
-    labelBgStyle: { stroke:color, strokeWidth:0.5,strokeLinecap:"butt",strokeLinejoin:"miter",strokeOpacity:1},
-    labelStyle: {fill: color},
-    focusable: Boolean(lensType),
-    className: "column-edge",
   };
 };
 

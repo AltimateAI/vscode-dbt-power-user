@@ -27,7 +27,7 @@ import {
   withinExclusive,
   isSeeMore,
   EdgeVisibility,
-  LENS_TYPE_COLOR,
+  LensTypes,
 } from "./utils";
 import {
   ColumnLineage,
@@ -341,12 +341,12 @@ const processColumnLineage = async (
     right ? contains(curr, e.source) : contains(curr, e.target)
   );
   const newCurr = columnLineage.map((e) => (right ? e.target : e.source));
-  const collectColumns: Record<string, string[]> = {};
+  const collectColumns: Record<string, {column: string, lensType?: LensTypes}[]> = {};
 
-  const addToCollectColumns = ([_table, _column]: [string, string]) => {
+  const addToCollectColumns = ([_table, _column]: [string, string], lensType?: LensTypes) => {
     collectColumns[_table] = collectColumns[_table] || [];
-    if (!collectColumns[_table].includes(_column)) {
-      collectColumns[_table].push(_column);
+    if (!collectColumns[_table].find(c=> c.column === _column)) {
+      collectColumns[_table].push({column: _column, lensType});
     }
   };
 
@@ -355,8 +355,7 @@ const processColumnLineage = async (
     id2: string,
     source: string,
     target: string,
-    type: string,
-    lensType?: keyof typeof LENS_TYPE_COLOR
+    type: string
   ) => {
     const id = getColumnEdgeId(source, target);
     if (edges.find((e) => e.id === id)) return;
@@ -367,8 +366,7 @@ const processColumnLineage = async (
         levelMap[id1],
         levelMap[id2],
         type,
-        edgeVisibility,
-        lensType
+        edgeVisibility
       )
     );
   };
@@ -410,7 +408,7 @@ const processColumnLineage = async (
 
   for (const e of columnLineage) {
     addToCollectColumns(e.source);
-    addToCollectColumns(e.target);
+    addToCollectColumns(e.target, e.lensType);
     const [t0] = e.source;
     const [t1] = e.target;
 
@@ -423,14 +421,14 @@ const processColumnLineage = async (
 
     const edgeType = columnEdgeType[right ? targetId : sourceId];
     if (sourceTableExist && targetTableExist) {
-      addToEdges(t0, t1, source, target, edgeType, e.lensType);
+      addToEdges(t0, t1, source, target, edgeType);
     } else if (sourceTableExist) {
       const seeMoreId = seeMoreIdTableReverseMap[t1];
-      addToEdges(t0, seeMoreId, source, seeMoreId, edgeType, e.lensType);
+      addToEdges(t0, seeMoreId, source, seeMoreId, edgeType);
       seeMoreLineage.push(e);
     } else if (targetTableExist) {
       const seeMoreId = seeMoreIdTableReverseMap[t0];
-      addToEdges(seeMoreId, t1, seeMoreId, target, edgeType, e.lensType);
+      addToEdges(seeMoreId, t1, seeMoreId, target, edgeType);
       seeMoreLineage.push(e);
     } else {
       seeMoreLineage.push(e);
@@ -442,7 +440,7 @@ const processColumnLineage = async (
     if (!tableNodes[t]) continue;
     collectColumns[t].sort();
     for (const c of collectColumns[t]) {
-      nodes.push(createColumnNode(t, c));
+      nodes.push(createColumnNode(t, c.column, c.lensType));
     }
   }
 
@@ -459,7 +457,13 @@ const mergeNodesEdges = (
   const edgesId: Record<string, boolean> = {};
   nodes.forEach((n) => (nodesId[n.id] = true));
   edges.forEach((e) => (edgesId[e.id] = true));
-  patchState.nodes.forEach((n) => !nodesId[n.id] && nodes.push(n));
+  patchState.nodes.forEach((n) => {
+    if (!nodesId[n.id]) {nodes.push(n)}
+    const existing = nodes.find((x) => x.id === n.id);
+    if (existing) {
+      existing.data = {...existing.data,...n.data};
+    }
+  });
   patchState.edges.forEach((e) => !edgesId[e.id] && edges.push(e));
   layoutElementsOnCanvas(nodes, edges);
   return [nodes, edges];
@@ -475,19 +479,29 @@ export const removeColumnNodes = (
 };
 
 const mergeCollectColumns = (
-  setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>,
-  newCollectColumns: Record<string, string[]>
+  setCollectColumns: Dispatch<SetStateAction<Record<string, {column: string, lensType?: LensTypes}[]>>>,
+  newCollectColumns: Record<string, {column: string, lensType?: LensTypes}[]>
 ) => {
   setCollectColumns((prev) => {
-    const collectColumns: Record<string, string[]> = { ...prev };
+    const collectColumns: Record<string, {column: string, lensType?: LensTypes}[]> = { ...prev };
     for (const t in newCollectColumns) {
       const _columns = newCollectColumns[t];
       if (!(t in collectColumns)) {
         collectColumns[t] = _columns;
         continue;
       }
+      // merge _columns with collectColumns[t]
+      const updatedColumns = _columns.map((c) => {
+        const existing = collectColumns[t].findIndex((x) => x.column === c.column);
+        if (existing === -1) return c;
+        if (c.lensType) collectColumns[t][existing].lensType = c.lensType;
+        return null;
+      }).filter((c): c is {
+        column: string;
+        lensType?: LensTypes;
+    } => c !== null)
       collectColumns[t].push(
-        ..._columns.filter((c) => !collectColumns[t].includes(c))
+        ...updatedColumns
       );
     }
     return collectColumns;
@@ -636,7 +650,7 @@ export const bfsTraversal = async (
     SetStateAction<{ confidence: string; operator_list?: string[] | undefined }>
   >,
   setMoreTables: Dispatch<SetStateAction<TMoreTables>>,
-  setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>,
+  setCollectColumns: Dispatch<SetStateAction<Record<string, {column: string, lensType?: LensTypes}[]>>>,
   flow: ReactFlowInstance,
   selectedColumn: SelectedColumn,
   edgeVisibility: EdgeVisibility
@@ -790,15 +804,15 @@ export const moveTableFromSeeMoreToCanvas = (
     const dst = getColumnId(e.target[0], e.target[1]);
     if (right) {
       if (e.target[0] !== table) return;
-      nodes.push(createColumnNode(e.target[0], e.target[1]));
+      nodes.push(createColumnNode(e.target[0], e.target[1], e.lensType));
       edges.push(
-        createColumnEdge(src, dst, level! - 1, level!, e.type, edgeVisibility, e.lensType)
+        createColumnEdge(src, dst, level! - 1, level!, e.type, edgeVisibility)
       );
     } else {
       if (e.source[0] !== table) return;
-      nodes.push(createColumnNode(e.source[0], e.source[1]));
+      nodes.push(createColumnNode(e.source[0], e.source[1], e.lensType));
       edges.push(
-        createColumnEdge(src, dst, level!, level! + 1, e.type, edgeVisibility, e.lensType)
+        createColumnEdge(src, dst, level!, level! + 1, e.type, edgeVisibility)
       );
     }
   });

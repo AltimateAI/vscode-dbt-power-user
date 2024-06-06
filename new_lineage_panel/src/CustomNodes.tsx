@@ -19,7 +19,7 @@ import {
 } from "./graph";
 import { LineageContext } from "./App";
 import { CLL, openFile } from "./service_utils";
-import { getColY, getSeeMoreId } from "./utils";
+import { getColY, getSeeMoreId, LENS_TYPE_COLOR, LensTypes } from "./utils";
 import { TMoreTables } from "./MoreTables";
 
 import TestsIcon from "./assets/icons/tests.svg?react";
@@ -32,6 +32,7 @@ import {
   NodeTypeIcon,
   TableNodePill,
 } from "./components/Column";
+import { Badge } from "reactstrap";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -150,7 +151,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           nodes,
           edges,
           right,
-          collectColumns[table].map((c) => ({ table, name: c })),
+          collectColumns[table].map((c) => ({ table, name: c.column })),
           setConfidence,
           setMoreTables,
           setCollectColumns,
@@ -366,10 +367,14 @@ export const SelfConnectingEdge: FunctionComponent<EdgeProps> = (props) => {
 };
 
 export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
-  const { column, table } = data;
+  const { column, table, lensType } = data;
   const { selectedColumn } = useContext(LineageContext);
   const isSelected =
     selectedColumn.table === table && selectedColumn.name === column;
+
+  const lensColor = lensType && LENS_TYPE_COLOR[lensType as LensTypes];
+  const customStyles =
+    lensColor ? { borderColor: lensColor } : {};
 
   return (
     <div
@@ -377,9 +382,15 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
         styles.column_node,
         isSelected ? styles.selected : styles.default
       )}
+      style={customStyles}
     >
-      {column}
+      <div className={styles.column_name}>{column}</div>
       <BidirectionalHandles />
+      {lensColor ? (
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        <Badge style={{ "--lens-color": lensColor }} className={styles.column_badge}>{lensType}</Badge>
+      ) : null}
     </div>
   );
 };
