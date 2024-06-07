@@ -892,15 +892,14 @@ export const getAllTracedNodes = (
 ) => {
   const {nodes: tracedNodes, edgeIds} = getTracedNode(node, nodes, edges, isIncomer);
 
-  // console.log(tracedNodes)
-  return {edgeIds, nodes: tracedNodes.reduce((memo, tracedNode) => {
-    memo.push(tracedNode);
+  return tracedNodes.reduce((memo, tracedNode) => {
+    memo.nodes.push(tracedNode);
+    memo.edges = Array.from(new Set([...memo.edges, ...edgeIds]));
 
-    // console.log(prevTraced)
     if (prevTraced.findIndex((n) => n.id == tracedNode.id) === -1) {
       prevTraced.push(tracedNode);
 
-      const {nodes: _nodes} = getAllTracedNodes(
+      const {nodes: _nodes, edges: _edgeIds} = getAllTracedNodes(
         tracedNode,
         nodes,
         edges,
@@ -908,16 +907,17 @@ export const getAllTracedNodes = (
         isIncomer
       );
       _nodes.forEach((foundNode) => {
-        memo.push(foundNode);
+        memo.nodes.push(foundNode);
 
         if (prevTraced.findIndex((n) => n.id == foundNode.id) === -1) {
           prevTraced.push(foundNode);
         }
       });
+      memo.edges = Array.from(new Set([...memo.edges, ..._edgeIds]));
     }
 
     return memo;
-  }, [] as Node[])};
+  }, {nodes: [] as Node[], edges: [] as string[]});
 };
 
 export const highlightColumnConnections = (
@@ -937,7 +937,6 @@ export const highlightColumnConnections = (
   edges.forEach((e) => {
     const edge = flow.getEdge(e.id);
     if (edge) {
-      edge.hidden = true;
       applyEdgeStyling(edge, false);
     }
   });
@@ -945,14 +944,14 @@ export const highlightColumnConnections = (
   const incomingNodes = getAllTracedNodes(node, nodes, edges, [], true);
   const outgoingNodes = getAllTracedNodes(node, nodes, edges, [], false);
 
-  [incomingNodes, outgoingNodes].forEach(({ nodes: tracedNodes, edgeIds }) => {
+  [incomingNodes, outgoingNodes].forEach(({ nodes: tracedNodes, edges }) => {
     tracedNodes.forEach((n) => {
       const node = flow.getNode(n.id);
       if (node) {
         applyNodeStyling(node, true);
       }
     });
-    edgeIds.forEach((edgeId) => {
+    edges.forEach((edgeId) => {
       const edge = flow.getEdge(edgeId);
       if (edge) {
       edge.hidden = false;
