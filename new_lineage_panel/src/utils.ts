@@ -31,6 +31,7 @@ export const LENS_TYPE_COLOR = {
   unknown: "#247efe"
 };
 
+export type CollectColumn = {column: string, lensType?: LensTypes}
 export type LensTypes = keyof typeof LENS_TYPE_COLOR;
 
 export const defaultEdgeStyle: React.CSSProperties = {

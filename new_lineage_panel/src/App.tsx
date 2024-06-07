@@ -48,7 +48,7 @@ import { Help } from "./Help";
 import { Demo } from "./Demo";
 import { handleResponse, init, columnLineage, CllEvents } from "./service_utils";
 import { ActionWidget } from "./ActionWidget";
-import { DEFAULT_MIN_ZOOM, LensTypes, createTableNode, toggleColumnEdges, toggleModelEdges } from "./utils";
+import { CollectColumn, DEFAULT_MIN_ZOOM, createTableNode, toggleColumnEdges, toggleModelEdges } from "./utils";
 import { Settings } from "./Settings";
 import { Table, getLineageSettings } from "./service";
 import LineageLegend from "./components/LineageLegend";
@@ -83,8 +83,8 @@ export const LineageContext = createContext<{
   setSidebarScreen: Dispatch<string>;
   selectedColumn: SelectedColumn;
   setSelectedColumn: Dispatch<SetStateAction<SelectedColumn>>;
-  collectColumns: Record<string, {column: string, lensType?: LensTypes}[]>;
-  setCollectColumns: Dispatch<SetStateAction<Record<string, {column: string, lensType?: LensTypes}[]>>>;
+  collectColumns: Record<string, CollectColumn[]>;
+  setCollectColumns: Dispatch<SetStateAction<Record<string, CollectColumn[]>>>;
   rerender: () => void;
   confidence: Confidence;
   setConfidence: Dispatch<SetStateAction<Confidence>>;
@@ -144,7 +144,7 @@ function App() {
   const [leftExpansion, setLeftExpansion] = useState(0);
   const [rightExpansion, setRightExpansion] = useState(0);
   const [collectColumns, setCollectColumns] = useState<
-    Record<string, {column: string, lensType?: LensTypes}[]>
+    Record<string, CollectColumn[]>
   >({});
   const [confidence, setConfidence] = useState<Confidence>({
     confidence: "high",
@@ -351,8 +351,8 @@ function App() {
               >
                 <Background />
                 <Controls />
-                <LineageLegend />
               </ReactFlow>
+              <LineageLegend />
             </div>
             <SidebarModal
               isOpen={sidebarScreen !== ""}

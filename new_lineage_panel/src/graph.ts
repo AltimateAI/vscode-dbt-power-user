@@ -31,6 +31,7 @@ import {
   applyNodeStyling,
   toggleModelEdges,
   toggleColumnEdges,
+  CollectColumn,
 } from "./utils";
 import {
   ColumnLineage,
@@ -349,7 +350,7 @@ const processColumnLineage = async (
     right ? contains(curr, e.source) : contains(curr, e.target)
   );
   const newCurr = columnLineage.map((e) => (right ? e.target : e.source));
-  const collectColumns: Record<string, {column: string, lensType?: LensTypes}[]> = {};
+  const collectColumns: Record<string, CollectColumn[]> = {};
 
   const addToCollectColumns = ([_table, _column]: [string, string], lensType?: LensTypes) => {
     collectColumns[_table] = collectColumns[_table] || [];
@@ -487,11 +488,11 @@ export const removeColumnNodes = (
 };
 
 const mergeCollectColumns = (
-  setCollectColumns: Dispatch<SetStateAction<Record<string, {column: string, lensType?: LensTypes}[]>>>,
-  newCollectColumns: Record<string, {column: string, lensType?: LensTypes}[]>
+  setCollectColumns: Dispatch<SetStateAction<Record<string, CollectColumn[]>>>,
+  newCollectColumns: Record<string, CollectColumn[]>
 ) => {
   setCollectColumns((prev) => {
-    const collectColumns: Record<string, {column: string, lensType?: LensTypes}[]> = { ...prev };
+    const collectColumns: Record<string, CollectColumn[]> = { ...prev };
     for (const t in newCollectColumns) {
       const _columns = newCollectColumns[t];
       if (!(t in collectColumns)) {
@@ -504,10 +505,7 @@ const mergeCollectColumns = (
         if (existing === -1) return c;
         if (c.lensType) collectColumns[t][existing].lensType = c.lensType;
         return null;
-      }).filter((c): c is {
-        column: string;
-        lensType?: LensTypes;
-    } => c !== null)
+      }).filter((c): c is CollectColumn => c !== null)
       collectColumns[t].push(
         ...updatedColumns
       );
@@ -658,7 +656,7 @@ export const bfsTraversal = async (
     SetStateAction<{ confidence: string; operator_list?: string[] | undefined }>
   >,
   setMoreTables: Dispatch<SetStateAction<TMoreTables>>,
-  setCollectColumns: Dispatch<SetStateAction<Record<string, {column: string, lensType?: LensTypes}[]>>>,
+  setCollectColumns: Dispatch<SetStateAction<Record<string, CollectColumn[]>>>,
   flow: ReactFlowInstance,
   selectedColumn: SelectedColumn,
   edgeVisibility: EdgeVisibility
@@ -875,7 +873,6 @@ const getTracedNode = (
 
       return id === node.id;
     })
-    // .map((e) => (getColumnEdgeId(isIncomer ? e.source : e.target, isIncomer ? e.target : e.source)));
 
   return {nodes: nodes.filter((n) =>
     tracedEdges
