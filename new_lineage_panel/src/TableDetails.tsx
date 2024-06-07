@@ -250,9 +250,8 @@ const TableDetails = () => {
         flow.getEdges()
       );
       // Model edges will be hidden when column lineage is selected, so unhide them
-      // _edges.forEach(edge => edge.hidden = false)
       toggleModelEdges(_edges, true);
-  toggleColumnEdges(_edges, true);
+      toggleColumnEdges(_edges, true);
 
       flow.setNodes(_nodes);
       flow.setEdges(_edges);
@@ -271,12 +270,8 @@ const TableDetails = () => {
     let _nodes = flow.getNodes();
     let _edges = flow.getEdges();
     // Model edges should be hidden when column lineage is selected
-    // _edges.forEach((edge) => {
-    //   if (isColumn(edge)) return;
-    //   edge.hidden = true;
-    // });
     toggleModelEdges(_edges, false);
-  toggleColumnEdges(_edges, true);
+    toggleColumnEdges(_edges, true);
     
     const addNodesEdges = async (right: boolean) => {
       [_nodes, _edges] = await expandTableLineage(

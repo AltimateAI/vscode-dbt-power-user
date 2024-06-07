@@ -20,7 +20,7 @@ import {
 } from "./graph";
 import { LineageContext } from "./App";
 import { CLL, openFile } from "./service_utils";
-import { getColumnId, getColY, getSeeMoreId, LENS_TYPE_COLOR, LensTypes } from "./utils";
+import { getColumnId, getColY, getSeeMoreId, LENS_TYPE_COLOR, LensTypes, toggleColumnEdges, toggleModelEdges } from "./utils";
 import { TMoreTables } from "./MoreTables";
 
 import TestsIcon from "./assets/icons/tests.svg?react";
@@ -148,6 +148,11 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     if (selectedColumn.name) {
       try {
         CLL.start();
+        const currentEdges = flow.getEdges();
+        // Model edges should be hidden when column lineage is selected
+        toggleModelEdges(currentEdges, false);
+        toggleColumnEdges(currentEdges, true);
+        flow.setEdges(currentEdges)
         await bfsTraversal(
           nodes,
           edges,

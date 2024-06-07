@@ -255,14 +255,28 @@ export const calculateExpand = (
   return minVal;
 };
 
-export const toggleModelEdges = (edges: Edge[], isVisible: boolean) => {
+export const toggleModelEdges = (
+  edges: Edge[],
+  isVisible: boolean,
+  highlight = true
+) => {
   edges.forEach((e) => {
-    if (!isColumn(e)) e.hidden = !isVisible;
+    if (!isColumn(e)) {
+      e.hidden = !isVisible;
+      if (highlight) applyEdgeStyling(e, isVisible);
+    }
   });
-}
+};
 
-export const toggleColumnEdges = (edges: Edge[], isVisible: boolean) => {
+export const toggleColumnEdges = (
+  edges: Edge[],
+  isVisible: boolean,
+  highlight = true
+) => {
   edges.forEach((e) => {
-    if (isColumn(e)) e.hidden = !isVisible;
+    if (isColumn(e)) {
+      e.hidden = !isVisible;
+      if (highlight) applyEdgeStyling(e, isVisible);
+    }
   });
-}
+};

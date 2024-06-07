@@ -46,9 +46,9 @@ import ExposureDetails from "./ExposureDetails";
 import { Feedback } from "./Feedback";
 import { Help } from "./Help";
 import { Demo } from "./Demo";
-import { handleResponse, init, columnLineage } from "./service_utils";
+import { handleResponse, init, columnLineage, CllEvents } from "./service_utils";
 import { ActionWidget } from "./ActionWidget";
-import { DEFAULT_MIN_ZOOM, LensTypes, createTableNode } from "./utils";
+import { DEFAULT_MIN_ZOOM, LensTypes, createTableNode, toggleColumnEdges, toggleModelEdges } from "./utils";
 import { Settings } from "./Settings";
 import { Table, getLineageSettings } from "./service";
 import LineageLegend from "./components/LineageLegend";
@@ -238,7 +238,18 @@ function App() {
       render,
       response: handleResponse,
       setTheme,
-      columnLineage,
+      columnLineage: (data: { event: CllEvents }
+      ) => {
+        if (data.event === CllEvents.CANCEL) {
+          if (flow.current){
+            const edges  = flow.current.getEdges();
+            toggleModelEdges(edges, true)
+            toggleColumnEdges(edges, false)
+            flow.current.setEdges(edges)
+          }
+        }
+        columnLineage(data)
+      },
     };
     window.addEventListener("message", (event) => {
       console.log("lineage:message -> ", event.data);
