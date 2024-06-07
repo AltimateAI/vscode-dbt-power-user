@@ -937,6 +937,7 @@ export const highlightColumnConnections = (
   edges.forEach((e) => {
     const edge = flow.getEdge(e.id);
     if (edge) {
+      edge.hidden = true;
       applyEdgeStyling(edge, false);
     }
   });

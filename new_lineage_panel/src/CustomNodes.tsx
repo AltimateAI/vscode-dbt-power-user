@@ -124,13 +124,13 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
       CLL.showCllInProgressMsg();
       return;
     }
-    const [nodes, edges] = await expandTableLineage(
+    let [nodes, edges] = await expandTableLineage(
       flow.getNodes(),
       flow.getEdges(),
       table,
       right
     );
-    // [nodes, edges] = highlightTableConnections(nodes, edges, selectedTable);
+    [nodes, edges] = highlightTableConnections(nodes, edges, selectedTable);
     layoutElementsOnCanvas(nodes, edges);
     flow.setNodes(nodes);
     flow.setEdges(edges);
