@@ -14,12 +14,13 @@ import {
   calculateMinLevel,
   calculateNodeCount,
   expandTableLineage,
+  highlightColumnConnections,
   highlightTableConnections,
   layoutElementsOnCanvas,
 } from "./graph";
 import { LineageContext } from "./App";
 import { CLL, openFile } from "./service_utils";
-import { getColY, getSeeMoreId, LENS_TYPE_COLOR, LensTypes } from "./utils";
+import { getColumnId, getColY, getSeeMoreId, LENS_TYPE_COLOR, LensTypes } from "./utils";
 import { TMoreTables } from "./MoreTables";
 
 import TestsIcon from "./assets/icons/tests.svg?react";
@@ -110,7 +111,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const selected = selectedTable === table;
 
   const highlightTable = () => {
-    if (selectedColumn.name) return;
+    if (selectedColumn.name && selectedColumn.table === table) return;
     const _nodes = flow.getNodes();
     const _edges = flow.getEdges();
     const [nodes, edges] = highlightTableConnections(_nodes, _edges, table);
@@ -123,13 +124,13 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
       CLL.showCllInProgressMsg();
       return;
     }
-    let [nodes, edges] = await expandTableLineage(
+    const [nodes, edges] = await expandTableLineage(
       flow.getNodes(),
       flow.getEdges(),
       table,
       right
     );
-    [nodes, edges] = highlightTableConnections(nodes, edges, selectedTable);
+    // [nodes, edges] = highlightTableConnections(nodes, edges, selectedTable);
     layoutElementsOnCanvas(nodes, edges);
     flow.setNodes(nodes);
     flow.setEdges(edges);
@@ -368,13 +369,27 @@ export const SelfConnectingEdge: FunctionComponent<EdgeProps> = (props) => {
 
 export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
   const { column, table, lensType } = data;
-  const { selectedColumn } = useContext(LineageContext);
+  const { selectedColumn, setSelectedTable, setSelectedColumn } = useContext(LineageContext);
   const isSelected =
     selectedColumn.table === table && selectedColumn.name === column;
 
   const lensColor = lensType && LENS_TYPE_COLOR[lensType as LensTypes];
   const customStyles =
     lensColor ? { borderColor: lensColor } : {};
+  const flow = useReactFlow();
+
+  const handleClick = () => {
+    const currentNode = flow.getNode(getColumnId(table, column));
+    if (!currentNode){
+      return;
+    }
+    setSelectedTable("")
+    setSelectedColumn({name: column, table});
+     highlightColumnConnections(
+      currentNode,
+      flow,
+    );
+  };
 
   return (
     <div
@@ -383,6 +398,7 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
         isSelected ? styles.selected : styles.default
       )}
       style={customStyles}
+      onClick={handleClick}
     >
       <div className={styles.column_name}>{column}</div>
       <BidirectionalHandles />

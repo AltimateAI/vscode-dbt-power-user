@@ -218,20 +218,13 @@ $size: 1.2em;
   }
 
   .column_badge{
-    display: none;
     position: absolute;
     top: -6px;
     right: 4px;
     background-color: var(--lens-color) !important;
     font-size: 6px;
-  }
-
-  &.selected,
-  &:hover {
-    .column_badge{
-      display: block;
-    }
-  }
+    text-transform: capitalize;
+  }  
 }
 
 .divider {
@@ -435,7 +428,7 @@ $size: 1.2em;
     height: 0.75rem;
     border-radius: 50%;
     display: inline-block;
-    vertical-align: baseline;
+    vertical-align: text-bottom;
     margin-right: 0.4rem;
   }
 }        

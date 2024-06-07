@@ -25,9 +25,9 @@ const HIGHLIGHT_COLOR = "#E38E00";
 
 export const LENS_TYPE_COLOR = {
   raw: "#FDD835",
-  rename: "#51E5E6",
-  transformation: "#EE0015",
-  passthrough: "#8454FF",
+  rename: "#40C8AE",
+  transformation: "#FF754C",
+  passthrough: "#BC3FBC",
   unknown: "#247efe"
 };
 
@@ -156,8 +156,12 @@ export const createColumnEdge = (
 export const getColumnEdgeId = (source: string, target: string) =>
   COLUMN_PREFIX + `${source}-${target}`;
 
-export const applyEdgeStyling = (e: Edge, highlight: boolean) => {
-  e.style = highlight ? highlightEdgeStyle : defaultEdgeStyle;
+
+export const applyNodeStyling = (n: Node, highlight: boolean) => {
+  n.style = { opacity: highlight ? 1  : 0.5 }
+}
+  export const applyEdgeStyling = (e: Edge, highlight: boolean) => {
+  e.style = highlight ? e.data?.type === "indirect" ? indirectHighlightEdgeStyle : highlightEdgeStyle : defaultEdgeStyle;
   e.markerEnd = highlight ? highlightMarker : defaultMarker;
 };
 
@@ -250,3 +254,15 @@ export const calculateExpand = (
   if (defaultVal >= minVal) return defaultVal;
   return minVal;
 };
+
+export const toggleModelEdges = (edges: Edge[], isVisible: boolean) => {
+  edges.forEach((e) => {
+    if (!isColumn(e)) e.hidden = !isVisible;
+  });
+}
+
+export const toggleColumnEdges = (edges: Edge[], isVisible: boolean) => {
+  edges.forEach((e) => {
+    if (isColumn(e)) e.hidden = !isVisible;
+  });
+}

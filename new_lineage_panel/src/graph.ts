@@ -1,4 +1,4 @@
-import { Edge, Node, ReactFlowInstance } from "reactflow";
+import { Edge, isNode, Node, ReactFlowInstance } from "reactflow";
 import {
   applyEdgeStyling,
   C_OFFSET_X,
@@ -28,6 +28,9 @@ import {
   isSeeMore,
   EdgeVisibility,
   LensTypes,
+  applyNodeStyling,
+  toggleModelEdges,
+  toggleColumnEdges,
 } from "./utils";
 import {
   ColumnLineage,
@@ -197,7 +200,7 @@ export const resetTableHighlights = (
   nodes: Node[],
   edges: Edge[]
 ): [Node[], Edge[]] => {
-  nodes.forEach((n) => (n.style = { opacity: 1 }));
+  nodes.forEach((n) => (applyNodeStyling(n, true)));
   edges.forEach((e) => applyEdgeStyling(e, false));
   return [nodes, edges];
 };
@@ -207,6 +210,11 @@ export const highlightTableConnections = (
   edges: Edge[],
   table: string
 ): [Node[], Edge[]] => {
+  // Model edges might be hidden when column lineage was selected
+  // hide column lineage edges and show all other edges
+  toggleModelEdges(edges, true);
+  toggleColumnEdges(edges, false);
+
   const highlightNode: Record<string, boolean> = {};
   const highlightEdge: Record<string, boolean> = {};
   const bfsTraversal = (src: "source" | "target", dst: "source" | "target") => {
@@ -233,7 +241,7 @@ export const highlightTableConnections = (
 
   const newNodes = [...nodes];
   newNodes.forEach(
-    (_n) => (_n.style = { opacity: highlightNode[_n.id] ? 1 : 0.5 })
+    (_n) => applyNodeStyling(_n, Boolean(highlightNode[_n.id]))
   );
 
   return [newNodes, newEdges];
@@ -461,7 +469,7 @@ const mergeNodesEdges = (
     if (!nodesId[n.id]) {nodes.push(n)}
     const existing = nodes.find((x) => x.id === n.id);
     if (existing) {
-      existing.data = {...existing.data,...n.data};
+      existing.data = {...existing.data,...n.data, lensType: existing.data.lensType || n.data.lensType};
     }
   });
   patchState.edges.forEach((e) => !edgesId[e.id] && edges.push(e));
@@ -849,4 +857,107 @@ export const calculateNodeCount = async (
     level + rightExpansion
   );
   return newNodes.length - startingNodesNum;
+};
+
+const getTracedNode = (
+  node: Node,
+  nodes: Node[],
+  edges: Edge[],
+  isIncomer: boolean
+) => {
+  if (!isNode(node)) {
+    return {nodes: [], edgeIds: []};
+  }
+
+  const tracedEdges = edges
+    .filter((e) => {
+      const id = isIncomer ? e.target : e.source;
+
+      return id === node.id;
+    })
+    // .map((e) => (getColumnEdgeId(isIncomer ? e.source : e.target, isIncomer ? e.target : e.source)));
+
+  return {nodes: nodes.filter((n) =>
+    tracedEdges
+      .find(e => e.source === n.id || e.target === n.id)
+  ), edgeIds: tracedEdges.map((e) => (getColumnEdgeId(e.source, e.target)))};
+};
+
+export const getAllTracedNodes = (
+  node: Node,
+  nodes: Node[],
+  edges: Edge[],
+  prevTraced = [] as Node[],
+  isIncomer: boolean
+) => {
+  const {nodes: tracedNodes, edgeIds} = getTracedNode(node, nodes, edges, isIncomer);
+
+  // console.log(tracedNodes)
+  return {edgeIds, nodes: tracedNodes.reduce((memo, tracedNode) => {
+    memo.push(tracedNode);
+
+    // console.log(prevTraced)
+    if (prevTraced.findIndex((n) => n.id == tracedNode.id) === -1) {
+      prevTraced.push(tracedNode);
+
+      const {nodes: _nodes} = getAllTracedNodes(
+        tracedNode,
+        nodes,
+        edges,
+        prevTraced,
+        isIncomer
+      );
+      _nodes.forEach((foundNode) => {
+        memo.push(foundNode);
+
+        if (prevTraced.findIndex((n) => n.id == foundNode.id) === -1) {
+          prevTraced.push(foundNode);
+        }
+      });
+    }
+
+    return memo;
+  }, [] as Node[])};
+};
+
+export const highlightColumnConnections = (
+  node: Node,
+  flow: ReactFlowInstance,
+) => {
+  const nodes = flow.getNodes().filter((n) => isColumn(n));
+  const edges = flow.getEdges();
+  
+  // TODO check why styles are not applied when nodes and edges are directly from flow instance
+  nodes.forEach((n) => {
+    const node = flow.getNode(n.id);
+    if (node) {
+      applyNodeStyling(node, false);
+    }
+  });
+  edges.forEach((e) => {
+    const edge = flow.getEdge(e.id);
+    if (edge) {
+      edge.hidden = true;
+      applyEdgeStyling(edge, false);
+    }
+  });
+
+  const incomingNodes = getAllTracedNodes(node, nodes, edges, [], true);
+  const outgoingNodes = getAllTracedNodes(node, nodes, edges, [], false);
+
+  [incomingNodes, outgoingNodes].forEach(({ nodes: tracedNodes, edgeIds }) => {
+    tracedNodes.forEach((n) => {
+      const node = flow.getNode(n.id);
+      if (node) {
+        applyNodeStyling(node, true);
+      }
+    });
+    edgeIds.forEach((edgeId) => {
+      const edge = flow.getEdge(edgeId);
+      if (edge) {
+      edge.hidden = false;
+      applyEdgeStyling(edge, true);
+      }
+    });
+  });
 };
