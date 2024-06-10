@@ -3,6 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from "fs";
 import * as path from "path";
 import { PythonException } from "python-bridge";
 import {
+  CancellationToken,
   commands,
   Diagnostic,
   DiagnosticCollection,
@@ -22,9 +23,9 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import {
   debounce,
   extendErrorWithSupportLinks,
+  getColumnNameByCase,
   setupWatcherHandler,
 } from "../utils";
-import { QueryResultPanel } from "../webview_provider/queryResultPanel";
 import {
   ManifestCacheChangedEvent,
   RebuildManifestStatusChange,
@@ -57,6 +58,7 @@ import { ValidationProvider } from "../validation_provider";
 import { ModelNode } from "../altimate";
 import { ColumnMetaData } from "../domain";
 import { AltimateConfigProps } from "../webview_provider/insightsPanel";
+import { SharedStateService } from "../services/sharedStateService";
 
 interface FileNameTemplateMap {
   [key: string]: string;
@@ -103,7 +105,7 @@ export class DBTProject implements Disposable {
     private targetWatchersFactory: TargetWatchersFactory,
     private dbtCommandFactory: DBTCommandFactory,
     private terminal: DBTTerminal,
-    private queryResultPanel: QueryResultPanel,
+    private eventEmitterService: SharedStateService,
     private telemetry: TelemetryService,
     private dbtCoreIntegrationFactory: (
       path: Uri,
@@ -170,6 +172,10 @@ export class DBTProject implements Disposable {
 
   public getProjectName() {
     return this.projectConfig.name;
+  }
+
+  getDBTProjectFilePath() {
+    return path.join(this.projectRoot.fsPath, DBTProject.DBT_PROJECT_FILE);
   }
 
   getTargetPath() {
@@ -693,8 +699,8 @@ export class DBTProject implements Disposable {
     return result.table.rows.flat();
   }
 
-  async getBulkSchema(req: DBTNode[]) {
-    return this.dbtProjectIntegration.getBulkSchema(req);
+  async getBulkSchema(req: DBTNode[], cancellationToken: CancellationToken) {
+    return this.dbtProjectIntegration.getBulkSchema(req, cancellationToken);
   }
 
   async getCatalog(): Promise<Catalog> {
@@ -884,11 +890,14 @@ select * from renamed
       adapter: this.getAdapterType(),
       limit: limit.toString(),
     });
-    // TODO: this should generate an event instead of directly going to the panel
-    this.queryResultPanel.executeQuery(
-      query,
-      this.dbtProjectIntegration.executeSQL(query, limit),
-    );
+
+    this.eventEmitterService.fire({
+      command: "executeQuery",
+      payload: {
+        query,
+        fn: this.dbtProjectIntegration.executeSQL(query, limit),
+      },
+    });
   }
 
   async dispose() {
@@ -922,9 +931,13 @@ select * from renamed
     if (!targetPath) {
       return;
     }
-    const baseName = path.basename(modelPath.fsPath);
+    const relativePath = path.relative(
+      this.projectRoot.fsPath,
+      modelPath.fsPath,
+    );
+
     const targetModels = await workspace.findFiles(
-      new RelativePattern(targetPath, `${type}/**/${baseName}`),
+      new RelativePattern(targetPath, path.join(type, "**", relativePath)),
     );
     if (targetModels.length > 0) {
       commands.executeCommand("vscode.open", targetModels[0], {
@@ -998,20 +1011,26 @@ select * from renamed
       // Flagging events where more than 100 columns are fetched from db to get a sense of how many of these happen
       this.telemetry.sendTelemetryEvent("excessiveColumnsFetchedFromDB");
     }
-    const columns: Record<string, ColumnMetaData> = {};
+    const columnsFromManifest: Record<string, ColumnMetaData> = {};
     Object.entries(node.columns).forEach(([k, v]) => {
-      columns[k.toLowerCase()] = v;
+      columnsFromManifest[getColumnNameByCase(k, this.getAdapterType())] = v;
     });
 
     for (const c of columnsFromDB) {
-      const existing_column = columns[c.column.toLowerCase()];
+      const columnNameFromDB = getColumnNameByCase(
+        c.column,
+        this.getAdapterType(),
+      );
+      const existing_column = columnsFromManifest[columnNameFromDB];
       if (existing_column) {
-        existing_column.data_type = existing_column.data_type || c.dtype;
+        existing_column.data_type = (
+          existing_column.data_type || c.dtype
+        )?.toLowerCase();
         continue;
       }
-      node.columns[c.column] = {
-        name: c.column,
-        data_type: c.dtype,
+      node.columns[columnNameFromDB] = {
+        name: columnNameFromDB,
+        data_type: c.dtype?.toLowerCase(),
         description: "",
       };
     }
@@ -1034,6 +1053,7 @@ select * from renamed
   async getNodesWithDBColumns(
     event: ManifestCacheProjectAddedEvent,
     modelsToFetch: string[],
+    cancellationToken: CancellationToken,
   ) {
     const { nodeMetaMap, sourceMetaMap } = event;
     const mappedNode: Record<string, ModelNode> = {};
@@ -1083,7 +1103,10 @@ select * from renamed
         mappedNode[key] = node;
       }
     }
-    const bulkSchemaResponse = await this.getBulkSchema(bulkSchemaRequest);
+    const bulkSchemaResponse = await this.getBulkSchema(
+      bulkSchemaRequest,
+      cancellationToken,
+    );
     for (const key of modelsToFetch) {
       const node = mappedNode[key];
       if (!node) {
@@ -1103,5 +1126,9 @@ select * from renamed
 
   async applyDeferConfig(): Promise<void> {
     await this.dbtProjectIntegration.applyDeferConfig();
+  }
+
+  throwDiagnosticsErrorIfAvailable() {
+    this.dbtProjectIntegration.throwDiagnosticsErrorIfAvailable();
   }
 }

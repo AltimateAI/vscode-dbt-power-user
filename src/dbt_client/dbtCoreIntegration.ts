@@ -1,4 +1,5 @@
 import {
+  CancellationToken,
   Diagnostic,
   DiagnosticCollection,
   Disposable,
@@ -284,6 +285,22 @@ export class DBTCoreProjectIntegration
       this.rebuildManifestDiagnostics,
       this.pythonBridgeDiagnostics,
     );
+
+    this.isDbtLoomInstalled().then((isInstalled) => {
+      this.telemetry.setTelemetryCustomAttribute(
+        "dbtLoomInstalled",
+        `${isInstalled}`,
+      );
+    });
+  }
+
+  private async isDbtLoomInstalled(): Promise<boolean> {
+    try {
+      await this.python.ex`from dbt_loom import *`;
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 
   // remove the trailing slashes if they exists,
@@ -367,13 +384,13 @@ export class DBTCoreProjectIntegration
     const queryThread = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
-    await this.createPythonDbtProject(queryThread);
-    await queryThread.ex`project.init_project()`;
     return new QueryExecution(
       async () => {
         queryThread.kill(2);
       },
       async () => {
+        await this.createPythonDbtProject(queryThread);
+        await queryThread.ex`project.init_project()`;
         // compile query
         const compiledQuery = await this.unsafeCompileQuery(limitQuery);
         // execute query
@@ -382,6 +399,13 @@ export class DBTCoreProjectIntegration
           result = await queryThread!.lock<ExecuteSQLResult>(
             (python) => python`to_dict(project.execute_sql(${compiledQuery}))`,
           );
+          const { manifestPathType } =
+            this.deferToProdService.getDeferConfigByProjectRoot(
+              this.projectRoot.fsPath,
+            );
+          if (manifestPathType === ManifestPathType.REMOTE) {
+            this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
+          }
         } catch (err) {
           const message = `Error while executing sql: ${compiledQuery}`;
           this.dbtTerminal.error("dbtCore:executeSQL", message, err);
@@ -389,6 +413,8 @@ export class DBTCoreProjectIntegration
             throw new ExecuteSQLError(err.exception.message, compiledQuery!);
           }
           throw new ExecuteSQLError((err as Error).message, compiledQuery!);
+        } finally {
+          await queryThread.end();
         }
         return { ...result, compiled_stmt: compiledQuery };
       },
@@ -511,10 +537,14 @@ export class DBTCoreProjectIntegration
   }
 
   getAllDiagnostic(): Diagnostic[] {
+    const projectURI = Uri.joinPath(
+      this.projectRoot,
+      DBTProject.DBT_PROJECT_FILE,
+    );
     return [
-      ...(this.pythonBridgeDiagnostics.get(this.projectRoot) || []),
-      ...(this.projectConfigDiagnostics.get(this.projectRoot) || []),
-      ...(this.rebuildManifestDiagnostics.get(this.projectRoot) || []),
+      ...(this.pythonBridgeDiagnostics.get(projectURI) || []),
+      ...(this.projectConfigDiagnostics.get(projectURI) || []),
+      ...(this.rebuildManifestDiagnostics.get(projectURI) || []),
     ];
   }
 
@@ -690,7 +720,6 @@ export class DBTCoreProjectIntegration
           this.projectRoot,
         );
         console.log(`Set remote manifest path: ${manifestPath}`);
-        this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
         return manifestPath;
       } catch (error) {
         if (error instanceof NotFoundError) {
@@ -740,6 +769,10 @@ export class DBTCoreProjectIntegration
       true,
       args,
     );
+
+    if (manifestPathType === ManifestPathType.REMOTE) {
+      this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
+    }
     return args;
   }
 
@@ -843,22 +876,26 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  async getBulkSchema(nodes: DBTNode[]): Promise<Record<string, DBColumn[]>> {
+  async getBulkSchema(
+    nodes: DBTNode[],
+    cancellationToken: CancellationToken,
+  ): Promise<Record<string, DBColumn[]>> {
     const result: Record<string, DBColumn[]> = {};
-    await Promise.all(
-      nodes.map(async (n) => {
-        if (n.resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {
-          const source = n as SourceNode;
-          result[n.unique_id] = await this.getColumnsOfSource(
-            source.name,
-            source.table,
-          );
-        } else {
-          const model = n as Node;
-          result[n.unique_id] = await this.getColumnsOfModel(model.name);
-        }
-      }),
-    );
+    for (const n of nodes) {
+      if (cancellationToken.isCancellationRequested) {
+        break;
+      }
+      if (n.resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {
+        const source = n as SourceNode;
+        result[n.unique_id] = await this.getColumnsOfSource(
+          source.name,
+          source.table,
+        );
+      } else {
+        const model = n as Node;
+        result[n.unique_id] = await this.getColumnsOfModel(model.name);
+      }
+    }
     return result;
   }
 
@@ -1017,13 +1054,17 @@ export class DBTCoreProjectIntegration
     const healthCheckThread = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
-    await this.createPythonDbtProject(healthCheckThread);
-    await healthCheckThread.ex`from dbt_healthcheck import *`;
-    const result = await healthCheckThread.lock<ProjectHealthcheck>(
-      (python) =>
-        python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
-    );
-    return result;
+    try {
+      await this.createPythonDbtProject(healthCheckThread);
+      await healthCheckThread.ex`from dbt_healthcheck import *`;
+      const result = await healthCheckThread.lock<ProjectHealthcheck>(
+        (python) =>
+          python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
+      );
+      return result;
+    } finally {
+      healthCheckThread.end();
+    }
   }
 
   private async getDeferConfig() {
@@ -1063,5 +1104,9 @@ export class DBTCoreProjectIntegration
         python!`project.set_defer_config(${deferToProduction}, ${manifestPath}, ${favorState})`,
     );
     await this.rebuildManifest();
+  }
+
+  throwDiagnosticsErrorIfAvailable(): void {
+    this.throwBridgeErrorIfAvailable();
   }
 }

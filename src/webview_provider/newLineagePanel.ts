@@ -2,7 +2,9 @@ import { readFileSync, writeFileSync } from "fs";
 import * as path from "path";
 import {
   CancellationToken,
+  CancellationTokenSource,
   ColorThemeKind,
+  commands,
   ProgressLocation,
   TextEditor,
   Uri,
@@ -12,6 +14,7 @@ import {
   WebviewViewResolveContext,
   window,
   workspace,
+  env,
 } from "vscode";
 import { AltimateRequest, ModelNode } from "../altimate";
 import {
@@ -40,6 +43,7 @@ type Table = {
   nodeType: string;
   materialization?: string;
   tests: any[];
+  isExternalProject: boolean;
 };
 
 enum CllEvents {
@@ -56,11 +60,21 @@ const CAN_COMPILE_SQL_NODE = [
 const canCompileSQL = (nodeType: string) =>
   CAN_COMPILE_SQL_NODE.includes(nodeType);
 
+class DerivedCancellationTokenSource extends CancellationTokenSource {
+  constructor(linkedToken: CancellationToken) {
+    super();
+    linkedToken.onCancellationRequested(() => {
+      super.cancel();
+    });
+  }
+}
+
 @provideSingleton(NewLineagePanel)
 export class NewLineagePanel implements LineagePanelView {
   private _panel: WebviewView | undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
-  private cllIsCancelled = false;
+  // since lineage can be cancelled from 2 places: progress bar and panel actions
+  private cancellationTokenSource: DerivedCancellationTokenSource | undefined;
   private cllProgressResolve: () => void = () => {};
 
   public constructor(
@@ -134,6 +148,10 @@ export class NewLineagePanel implements LineagePanelView {
     const { command, args } = message;
     const { id, params } = args;
 
+    if (command === "openProblemsTab") {
+      commands.executeCommand("workbench.action.problems.focus");
+      return;
+    }
     if (command === "upstreamTables") {
       const body = await this.getUpstreamTables(params);
       this._panel?.webview.postMessage({
@@ -279,10 +297,11 @@ export class NewLineagePanel implements LineagePanelView {
         },
         async (_, token) => {
           await new Promise<void>((resolve) => {
-            this.cllIsCancelled = false;
+            this.cancellationTokenSource = new DerivedCancellationTokenSource(
+              token,
+            );
             this.cllProgressResolve = resolve;
             token.onCancellationRequested(() => {
-              this.cllIsCancelled = true;
               this._panel?.webview.postMessage({
                 command: "columnLineage",
                 args: { event: CllEvents.CANCEL },
@@ -293,13 +312,17 @@ export class NewLineagePanel implements LineagePanelView {
       );
       return;
     }
+    this.cancellationTokenSource?.token.onCancellationRequested((e) => {
+      console.log(e);
+    });
     if (event === CllEvents.END) {
       this.cllProgressResolve();
+      this.cancellationTokenSource?.dispose();
       return;
     }
     if (event === CllEvents.CANCEL) {
       this.cllProgressResolve();
-      this.cllIsCancelled = true;
+      this.cancellationTokenSource?.cancel();
       return;
     }
   }
@@ -419,7 +442,7 @@ export class NewLineagePanel implements LineagePanelView {
           .map((c) => ({
             table,
             name: c.name,
-            datatype: c.data_type || "",
+            datatype: c.data_type?.toLowerCase() || "",
             can_lineage_expand: false,
             description: c.description,
           }))
@@ -470,7 +493,7 @@ export class NewLineagePanel implements LineagePanelView {
         .map((c) => ({
           table,
           name: c.name,
-          datatype: c.data_type || "",
+          datatype: c.data_type?.toLowerCase() || "",
           can_lineage_expand: false,
           description: c.description,
         }))
@@ -483,14 +506,12 @@ export class NewLineagePanel implements LineagePanelView {
     upstreamExpansion,
     currAnd1HopTables,
     selectedColumn,
-    sessionId,
   }: {
     targets: [string, string][];
     upstreamExpansion: boolean;
     currAnd1HopTables: string[];
     // select_column is used for pricing not business logic
     selectedColumn: { name: string; table: string };
-    sessionId: string;
   }) {
     const event = this.getEvent();
     if (!event) {
@@ -514,7 +535,11 @@ export class NewLineagePanel implements LineagePanelView {
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
     );
     const { mappedNode, relationsWithoutColumns } =
-      await project.getNodesWithDBColumns(event, modelsToFetch);
+      await project.getNodesWithDBColumns(
+        event,
+        modelsToFetch,
+        this.cancellationTokenSource!.token,
+      );
 
     const selected_column = {
       model_node: mappedNode[selectedColumn.table],
@@ -539,7 +564,7 @@ export class NewLineagePanel implements LineagePanelView {
       });
 
       for (const key of currAnd1HopTables) {
-        if (this.cllIsCancelled) {
+        if (this.cancellationTokenSource?.token.isCancellationRequested) {
           return { column_lineage: [] };
         }
         await compileSql(key);
@@ -616,9 +641,10 @@ export class NewLineagePanel implements LineagePanelView {
 
     const modelDialect = project.getAdapterType();
     try {
-      if (this.cllIsCancelled) {
+      if (this.cancellationTokenSource?.token.isCancellationRequested) {
         return { column_lineage: [] };
       }
+      const sessionId = `${env.sessionId}-${selectedColumn.table}-${selectedColumn.name}`;
       const request = {
         model_dialect: modelDialect,
         model_info: modelInfos,
@@ -734,6 +760,7 @@ export class NewLineagePanel implements LineagePanelView {
         upstreamCount,
         downstreamCount,
         nodeType,
+        isExternalProject: _node.is_external_project,
         tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
           const testKey = n.label.split(".")[0];
           return { ...testMetaMap.get(testKey), key: testKey };
@@ -750,6 +777,7 @@ export class NewLineagePanel implements LineagePanelView {
         nodeType,
         materialization: undefined,
         tests: [],
+        isExternalProject: false,
       };
     }
     const { nodeMetaMap } = event;
@@ -765,6 +793,7 @@ export class NewLineagePanel implements LineagePanelView {
         nodeType,
         materialization: undefined,
         tests: [],
+        isExternalProject: false,
       };
     }
 
@@ -780,6 +809,7 @@ export class NewLineagePanel implements LineagePanelView {
       url: tableUrl,
       upstreamCount,
       downstreamCount,
+      isExternalProject: node.is_external_project,
       nodeType,
       materialization,
       tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
@@ -832,16 +862,41 @@ export class NewLineagePanel implements LineagePanelView {
     return this.dbtProjectContainer.findDBTProject(currentFilePath);
   }
 
-  private getStartingNode(): { node: Table; aiEnabled: boolean } | undefined {
+  private getMissingLineageMessage() {
+    const message =
+      "A valid dbt file (model, seed etc.) needs to be open and active in the editor area above to view lineage";
+    try {
+      this.getProject()?.throwDiagnosticsErrorIfAvailable();
+    } catch (err) {
+      return { message: (err as Error).message, type: "error" };
+    }
+
+    return { message, type: "warning" };
+  }
+
+  private getStartingNode():
+    | {
+        node?: Table;
+        aiEnabled: boolean;
+        missingLineageMessage?: { message: string; type: string };
+      }
+    | undefined {
+    const aiEnabled = this.altimate.enabled();
     const event = this.getEvent();
     if (!event) {
-      return;
+      return {
+        aiEnabled,
+        missingLineageMessage: this.getMissingLineageMessage(),
+      };
     }
     const { nodeMetaMap, graphMetaMap, testMetaMap } = event;
     const tableName = this.getFilename();
     const _node = nodeMetaMap.get(tableName);
     if (!_node) {
-      return;
+      return {
+        aiEnabled,
+        missingLineageMessage: this.getMissingLineageMessage(),
+      };
     }
     const key = _node.uniqueId;
     const nodeType = key.split(".")[0];
@@ -862,12 +917,13 @@ export class NewLineagePanel implements LineagePanelView {
       downstreamCount,
       nodeType,
       materialization,
+      isExternalProject: _node.is_external_project,
       tests: (graphMetaMap["tests"].get(key)?.nodes || []).map((n) => {
         const testKey = n.label.split(".")[0];
         return { ...testMetaMap.get(testKey), key: testKey };
       }),
     };
-    return { node, aiEnabled: this.altimate.enabled() };
+    return { node, aiEnabled };
   }
 
   private setupWebviewOptions(context: WebviewViewResolveContext) {

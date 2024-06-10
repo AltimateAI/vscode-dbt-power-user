@@ -62,32 +62,14 @@ export class NewDocsGenPanel
       queryManifestService,
       userService,
     );
-
-    this._disposables.push(
-      window.onDidChangeActiveTextEditor(
-        async (event: TextEditor | undefined) => {
-          if (event === undefined) {
-            return;
-          }
-
-          this.transmitTestsData();
-        },
-      ),
-    );
   }
 
   protected onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
     super.onManifestCacheChanged(event);
-
-    // Start sending tests data only after webview is ready
-    if (this.isWebviewReady) {
-      this.transmitTestsData();
-    }
   }
 
   protected onWebviewReady() {
     super.onWebviewReady();
-    this.transmitTestsData();
     this.transmitConversationsData();
   }
 
@@ -113,22 +95,6 @@ export class NewDocsGenPanel
     super.resolveWebviewView(panel, context, token);
   }
 
-  private async transmitTestsData() {
-    if (!this._panel) {
-      return;
-    }
-
-    const projectName = this.queryManifestService
-      .getProject()
-      ?.getProjectName();
-    const tests = await this.dbtTestService.getTestsForCurrentModel();
-    this.sendResponseToWebview({
-      command: "renderTests",
-      tests,
-      project: projectName,
-    });
-  }
-
   private getDbtTestCode(test: TestMetaData, modelName: string) {
     const { path: testPath, column_name } = test;
     this.dbtTerminal.debug(
@@ -140,7 +106,7 @@ export class NewDocsGenPanel
     );
 
     return {
-      sql: testPath.endsWith(".sql")
+      sql: testPath?.endsWith(".sql")
         ? readFileSync(testPath, { encoding: "utf-8" })
         : undefined,
       config: this.dbtTestService.getConfigByTest(test, modelName, column_name),
@@ -229,11 +195,13 @@ export class NewDocsGenPanel
           return;
         }
 
-        const documentation =
+        const { documentation, message: missingDocumentationMessage } =
           await this.docGenService.getDocumentationForCurrentActiveFile();
         this.sendResponseToWebview({
           command: "renderDocumentation",
           docs: documentation,
+          missingDocumentationMessage,
+          tests: await this.dbtTestService.getTestsForCurrentModel(),
           project: this.queryManifestService.getProject()?.getProjectName(),
           collaborationEnabled: workspace
             .getConfiguration("dbt")

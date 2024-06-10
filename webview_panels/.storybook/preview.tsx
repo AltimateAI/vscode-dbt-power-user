@@ -17,6 +17,19 @@ const preview: Preview = {
     ),
   ],
   parameters: {
+    backgrounds: {
+      default: "dark",
+      values: [
+        {
+          name: "dark",
+          value: "#1e1e1e",
+        },
+        {
+          name: "light",
+          value: "#ffffff",
+        },
+      ],
+    },
     actions: { argTypesRegex: "^on[A-Z].*" },
     controls: {
       matchers: {

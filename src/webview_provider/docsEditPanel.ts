@@ -11,6 +11,7 @@ import {
   WebviewView,
   WebviewViewProvider,
   WebviewViewResolveContext,
+  env,
   window,
   workspace,
 } from "vscode";
@@ -19,7 +20,12 @@ import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
+import {
+  getColumnNameByCase,
+  isColumnNameEqual,
+  isQuotedIdentifier,
+  provideSingleton,
+} from "../utils";
 import path = require("path");
 import { PythonException } from "python-bridge";
 import { TelemetryService } from "../telemetry";
@@ -116,8 +122,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         if (event === undefined) {
           return;
         }
-        this.documentation =
-          await this.docGenService.getDocumentationForCurrentActiveFile();
         if (this._panel) {
           this.transmitData();
           this.updateGraphStyle();
@@ -143,10 +147,15 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   }
 
   private async transmitData() {
+    const { documentation, message } =
+      await this.docGenService.getDocumentationForCurrentActiveFile();
+    this.documentation = documentation;
     if (this._panel) {
       await this._panel.webview.postMessage({
         command: "renderDocumentation",
         docs: this.documentation,
+        missingDocumentationMessage: message,
+        tests: await this.dbtTestService.getTestsForCurrentModel(),
         project: this.getProject()?.getProjectName(),
         collaborationEnabled: workspace
           .getConfiguration("dbt")
@@ -200,8 +209,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     this.newDocsPanel.resolveWebview(panel, context, token);
     this.setupWebviewHooks(context);
     this.transmitConfig();
-    this.documentation =
-      await this.docGenService.getDocumentationForCurrentActiveFile();
     this.transmitData();
   }
 
@@ -310,7 +317,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   }
   private getTestDataByColumn(
     message: any,
-    columnName: string,
+    columnNameFromWebview: string,
     existingColumn?: any,
   ) {
     const tests = message.updatedTests as undefined | TestMetaData[];
@@ -323,7 +330,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       return;
     }
 
-    const columnTests = tests.filter((test) => test.column_name === columnName);
+    const columnTests = tests.filter((test) =>
+      isColumnNameEqual(test.column_name, columnNameFromWebview),
+    );
 
     // No tests for this column - may be all deleted
     if (!columnTests.length) {
@@ -383,7 +392,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       "test data",
       false,
       data,
-      columnName,
+      columnNameFromWebview,
     );
 
     if (!data.length) {
@@ -392,6 +401,69 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     return {
       tests: data,
     };
+  }
+
+  private modifyColumnNames = (
+    columns: { name: string }[],
+    existingColumnNames: string[],
+  ) => {
+    return columns.map((c) => {
+      // find a column from schema.yml with same name ignoring case
+      const existingColumn = existingColumnNames.find(
+        (name) => name.toLowerCase() === c.name.toLowerCase(),
+      );
+      // column exists with matching name, so use name from schema.yml
+      if (existingColumn) {
+        return { ...c, name: existingColumn };
+      }
+
+      // new column, save the name by checking the config
+      return {
+        ...c,
+        name: c.name,
+      };
+    });
+  };
+
+  private convertColumnNamesByCaseConfig(
+    columns: { name: string }[],
+    modelName: string,
+    project: DBTProject,
+  ) {
+    if (!columns.length) {
+      return [];
+    }
+
+    const patchPath = this.documentation?.patchPath;
+    // if new project, and no schema.yml
+    if (!patchPath) {
+      return columns;
+    }
+
+    const docFile: string = readFileSync(
+      path.join(project.projectRoot.fsPath, patchPath.split("://")[1]),
+    ).toString("utf8");
+    const parsedDocFile =
+      parse(docFile, {
+        strict: false,
+        uniqueKeys: false,
+        maxAliasCount: -1,
+      }) || {};
+
+    const model = parsedDocFile.models?.find(
+      (model: any) => model.name === modelName,
+    );
+
+    // new model and does not exist in schema.yml
+    if (!model) {
+      return columns;
+    }
+
+    const existingColumnNames = (model.columns as { name: string }[])?.map(
+      (c) => c.name,
+    );
+
+    return this.modifyColumnNames(columns, existingColumnNames);
   }
 
   private setupWebviewHooks(context: WebviewViewResolveContext) {
@@ -435,12 +507,16 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                 try {
                   const columnsInRelation =
                     await project.getColumnsOfModel(modelName);
-                  const columns = columnsInRelation.map((column) => {
-                    return {
-                      name: column.column,
-                      type: column.dtype,
-                    };
-                  });
+                  const columns = this.convertColumnNamesByCaseConfig(
+                    columnsInRelation.map((column) => {
+                      return {
+                        name: column.column,
+                        type: column.dtype.toLowerCase(),
+                      };
+                    }),
+                    modelName,
+                    project,
+                  );
                   this.transmitColumns(columns);
                   if (syncRequestId) {
                     this._panel!.webview.postMessage({
@@ -499,6 +575,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               message,
               panel: this._panel,
               project,
+              columnIndexCount: undefined,
+              isBulkGen: false,
             });
             break;
           case "generateDocsForColumn":
@@ -507,6 +585,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               panel: this._panel,
               message,
               project,
+              isBulkGen: true,
             });
             break;
           case "sendFeedback":
@@ -527,6 +606,16 @@ export class DocsEditViewPanel implements WebviewViewProvider {
               },
               async () => {
                 try {
+                  const projectByFilePath =
+                    this.dbtProjectContainer.findDBTProject(
+                      Uri.file(message.filePath),
+                    );
+                  if (!projectByFilePath) {
+                    throw new Error(
+                      "Unable to find project for saving documentation",
+                    );
+                  }
+
                   if (!patchPath) {
                     switch (message.dialogType) {
                       case "Existing file":
@@ -555,7 +644,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   } else {
                     // the location comes from the manifest, parse it
                     patchPath = path.join(
-                      project.projectRoot.fsPath,
+                      projectByFilePath.projectRoot.fsPath,
                       patchPath.split("://")[1],
                     );
                   }
@@ -584,20 +673,32 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     // there is a models section but the model does not exist yet.
                     parsedDocFile.models.push({
                       name: message.name,
-                      description: message.description,
-                      columns: message.columns.map((column: any) => ({
-                        name: column.name,
-                        description: column.description,
-                        ...(column?.type ? { data_type: column.type } : {}),
-                        ...this.getTestDataByColumn(message, column.name),
-                      })),
+                      description: message.description || undefined,
+                      columns: message.columns.map((column: any) => {
+                        const name = getColumnNameByCase(
+                          column.name,
+                          projectByFilePath.getAdapterType(),
+                        );
+                        return {
+                          name,
+                          description: column.description || undefined,
+                          data_type: column.type?.toLowerCase(),
+                          ...this.getTestDataByColumn(message, column.name),
+                          ...(isQuotedIdentifier(
+                            column.name,
+                            projectByFilePath.getAdapterType(),
+                          )
+                            ? { quote: true }
+                            : undefined),
+                        };
+                      }),
                     });
                   } else {
                     // The model already exists
                     parsedDocFile.models = parsedDocFile.models.map(
                       (model: any) => {
                         if (model.name === message.name) {
-                          model.description = message.description;
+                          model.description = message.description || undefined;
                           model.tests = this.getTestDataByModel(
                             message,
                             model.name,
@@ -605,19 +706,19 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                           model.columns = message.columns.map((column: any) => {
                             const existingColumn =
                               model.columns &&
-                              model.columns.find(
-                                (yamlColumn: any) =>
-                                  yamlColumn.name === column.name,
+                              model.columns.find((yamlColumn: any) =>
+                                isColumnNameEqual(yamlColumn.name, column.name),
                               );
                             if (existingColumn !== undefined) {
                               // ignore tests from existing column, as it will be recreated in `getTestDataByColumn`
                               const { tests, ...rest } = existingColumn;
                               return {
                                 ...rest,
-                                ...(column?.type && !existingColumn?.data_type
-                                  ? { data_type: column.type }
-                                  : {}),
-                                description: column.description,
+                                name: existingColumn.name,
+                                data_type: (
+                                  rest.data_type || column.type
+                                )?.toLowerCase(),
+                                description: column.description || undefined,
                                 ...this.getTestDataByColumn(
                                   message,
                                   column.name,
@@ -625,16 +726,24 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                 ),
                               };
                             } else {
+                              const name = getColumnNameByCase(
+                                column.name,
+                                projectByFilePath.getAdapterType(),
+                              );
                               return {
-                                name: column.name,
-                                description: column.description,
-                                ...(column?.type
-                                  ? { data_type: column.type }
-                                  : {}),
+                                name,
+                                description: column.description || undefined,
+                                data_type: column.type?.toLowerCase(),
                                 ...this.getTestDataByColumn(
                                   message,
                                   column.name,
                                 ),
+                                ...(isQuotedIdentifier(
+                                  column.name,
+                                  projectByFilePath.getAdapterType(),
+                                )
+                                  ? { quote: true }
+                                  : undefined),
                               };
                             }
                           });
@@ -646,8 +755,9 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                   // Force reload from manifest after manifest refresh
                   this.loadedFromManifest = false;
                   writeFileSync(patchPath, stringify(parsedDocFile));
-                  this.documentation =
-                    await this.docGenService.getDocumentationForCurrentActiveFile();
+                  this.documentation = (
+                    await this.docGenService.getDocumentationForCurrentActiveFile()
+                  ).documentation;
                   const tests =
                     await this.dbtTestService.getTestsForCurrentModel();
                   if (syncRequestId) {
@@ -672,6 +782,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                     "saveDocumentationError",
                     `Could not save documentation to ${patchPath}`,
                     error,
+                    true,
                   );
                   if (syncRequestId) {
                     this._panel!.webview.postMessage({
@@ -715,8 +826,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       //  documentation will be overwritten by the one coming from the manifest
       return;
     }
-    this.documentation =
-      await this.docGenService.getDocumentationForCurrentActiveFile();
     this.loadedFromManifest = true;
     if (this._panel) {
       this.transmitData();

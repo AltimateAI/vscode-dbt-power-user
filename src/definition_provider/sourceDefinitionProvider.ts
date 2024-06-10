@@ -120,7 +120,7 @@ export class SourceDefinitionProvider
     const location = sourceMap
       .get(sourceName)
       ?.tables.find((table) => table.name === tableName);
-    if (location) {
+    if (location && location.path) {
       const sourceFile: string = readFileSync(location.path).toString("utf8");
       const sourceFileLines = sourceFile.split("\n");
       for (let index = 0; index < sourceFileLines.length; index++) {

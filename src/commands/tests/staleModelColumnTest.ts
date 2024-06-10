@@ -2,7 +2,7 @@ import { Diagnostic, DiagnosticSeverity, Range, Uri } from "vscode";
 import { ScanContext } from "./scanContext";
 import { AltimateScanStep } from "./step";
 import { readFileSync } from "fs";
-import { provideSingleton } from "../../utils";
+import { getColumnNameByCase, provideSingleton } from "../../utils";
 import { createFullPathForNode } from "../../manifest/parsers";
 
 @provideSingleton(StaleModelColumnTest)
@@ -84,11 +84,8 @@ export class StaleModelColumnTest implements AltimateScanStep {
         // do model-level checks here.
         const modelDict =
           altimateCatalog[projectName + projectRootUri][modelKey];
-        const existingColumnsLowered = Object.keys(value.columns).map((key) =>
-          key.toLowerCase(),
-        );
         const allDBColumns = modelDict.map(({ column_name }) =>
-          column_name.toLowerCase(),
+          getColumnNameByCase(column_name, project.getAdapterType()),
         );
         const packagePath = project.getPackageInstallPath();
         if (packagePath === undefined) {
@@ -97,7 +94,11 @@ export class StaleModelColumnTest implements AltimateScanStep {
           );
         }
         for (const existingCol of Object.keys(value.columns)) {
-          if (!allDBColumns.includes(existingCol.toLowerCase())) {
+          if (
+            !allDBColumns.includes(
+              getColumnNameByCase(existingCol, project.getAdapterType()),
+            )
+          ) {
             const errMessage = `Column ${existingCol} listed in model ${value.name} is not found in the database.
             It may be outdated or misspelled.`;
             // If we are here, the patch_path is guaranteed to be defined since

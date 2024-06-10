@@ -59,9 +59,12 @@ export class SqlToModel {
     }
     const event = this.eventMap.get(project.projectRoot.fsPath);
     if (!event) {
+      project.throwDiagnosticsErrorIfAvailable();
+      // If we get here, we don't know what exactly is the error.
+      //  Probably the extension is still initializing
       window.showErrorMessage(
         extendErrorWithSupportLinks(
-          "Could not convert to model due to pending initiation, Please retry again.",
+          "The extension is still initializing, please retry again.",
         ),
       );
       this.telemetry.sendTelemetryError("sqlToModelNoManifestError");

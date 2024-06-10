@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.39.2",
+  "version": "0.39.19",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -101,13 +101,26 @@
       {
         "title": "dbt Power User",
         "properties": {
+          "dbt.unquotedCaseInsensitiveIdentifierRegex": {
+            "type": "string",
+            "markdownDescription": "Regex to identify unquoted identifiers. Example: `^([_A-Z]+[_A-Z0-9$]*)$`"
+          },
+          "dbt.dbtIntegration": {
+            "type": "string",
+            "enum": [
+              "core",
+              "cloud"
+            ],
+            "default": "core",
+            "description": "Select dbt core or dbt cloud"
+          },
           "dbt.dbtPythonPathOverride": {
             "type": "string",
             "description": "Path to a python executable or entrypoint. If undefined, we will use the Python extension's configured environment. Most users will not need to change this setting without specific reasoning such as custom wrappers and should instead modify the Python extensions selected interpreter."
           },
           "dbt.dbtCustomRunnerImport": {
             "type": "string",
-            "description": "Python import string to import custom dbt runner. ",
+            "description": "Python import string to import custom dbt runner. (Only supported for dbt core)",
             "default": "from dbt.cli.main import dbtRunner"
           },
           "dbt.allowListFolders": {
@@ -139,6 +152,20 @@
             "description": "The maximum number of rows the `Preview SQL Query` command returns.",
             "default": 500,
             "minimum": 1
+          },
+          "dbt.perspectiveTheme": {
+            "type": "string",
+            "description": "Theme for perspective viewer in query results panel",
+            "default": "Vintage",
+            "enum": [
+              "Vintage",
+              "Pro Light",
+              "Pro Dark",
+              "Vaporwave",
+              "Solarized",
+              "Solarized Dark",
+              "Monokai"
+            ]
           },
           "dbt.conversationsPollingInterval": {
             "type": "integer",
@@ -547,7 +574,7 @@
       },
       {
         "command": "dbtPowerUser.buildChildrenModels",
-        "title": "Build Downstream Models",
+        "title": "Build Downstream Models (model+)",
         "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build-model_light.svg",
@@ -556,7 +583,7 @@
       },
       {
         "command": "dbtPowerUser.buildParentModels",
-        "title": "Build Upstream Models",
+        "title": "Build Upstream Models (+model)",
         "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build-model_light.svg",
@@ -565,7 +592,7 @@
       },
       {
         "command": "dbtPowerUser.buildChildrenParentModels",
-        "title": "Build Upstream and Downstream Models",
+        "title": "Build Upstream and Downstream Models (+model+)",
         "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build-model_light.svg",
@@ -588,8 +615,8 @@
         "icon": "$(gist-secret)"
       },
       {
-        "command": "dbtPowerUser.troubleshoot",
-        "title": "Troubleshoot dbt extension",
+        "command": "dbtPowerUser.diagnostics",
+        "title": "Collect diagnostics",
         "category": "dbt Power User",
         "icon": "$(debug-console)"
       }
@@ -988,15 +1015,27 @@
             ]
           },
           {
-            "id": "validateProject",
-            "title": "%walkthrough.initialSetup.steps.validateProject.title%",
-            "description": "%walkthrough.initialSetup.steps.validateProject.description%",
+            "id": "validateProjectCore",
+            "title": "%walkthrough.initialSetup.steps.validateProjectCore.title%",
+            "description": "%walkthrough.initialSetup.steps.validateProjectCore.description%",
             "when": "dbtPowerUser.dbtIntegration === 'core' && dbtPowerUser.walkthroughProjectSelected",
             "media": {
-              "markdown": "media/validateProject.md"
+              "markdown": "media/validateProjectCore.md"
             },
             "completionEvents": [
-              "onCommand:dbtPowerUser.validateProject"
+              "onCommand:dbtPowerUser.validateProjectCore"
+            ]
+          },
+          {
+            "id": "validateProjectCloud",
+            "title": "%walkthrough.initialSetup.steps.validateProjectCloud.title%",
+            "description": "%walkthrough.initialSetup.steps.validateProjectCloud.description%",
+            "when": "dbtPowerUser.dbtIntegration === 'cloud' && dbtPowerUser.walkthroughProjectSelected",
+            "media": {
+              "markdown": "media/validateProjectCloud.md"
+            },
+            "completionEvents": [
+              "onCommand:dbtPowerUser.validateProjectCloud"
             ]
           },
           {
@@ -1094,12 +1133,12 @@
   "devDependencies": {
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.6",
-    "@types/node": "^20.11.30",
-    "@types/vscode": "^1.81.0",
+    "@types/node": "^20.14.2",
+    "@types/vscode": "^1.90.0",
     "@types/which": "^3.0.3",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
-    "@vscode/test-electron": "^2.3.9",
+    "@vscode/test-electron": "^2.4.0",
     "concurrently": "^8.2.2",
     "copy-webpack-plugin": "^11.0.0",
     "cross-env": "^7.0.3",
@@ -1107,12 +1146,12 @@
     "eslint-config-prettier": "^8.9.0",
     "eslint-plugin-prettier": "^5.0.1",
     "file-loader": "^6.1.0",
-    "glob": "^10.3.10",
+    "glob": "^10.3.15",
     "husky": "^9.0.11",
-    "lint-staged": "^14.0.1",
+    "lint-staged": "^15.2.5",
     "mocha": "^10.3.0",
     "ovsx": "^0.8.4",
-    "prettier": "^3.0.3",
+    "prettier": "^3.3.0",
     "prettier-eslint": "^15.0.1",
     "prettier-plugin-organize-imports": "^3.2.4",
     "terser-webpack-plugin": "^5.3.10",
@@ -1126,11 +1165,11 @@
     "ms-python.python"
   ],
   "dependencies": {
-    "@vscode/codicons": "^0.0.35",
+    "@vscode/codicons": "^0.0.36",
     "@vscode/extension-telemetry": "^0.9.6",
-    "@vscode/vsce": "^2.25.0",
+    "@vscode/vsce": "^2.26.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
-    "dayjs": "^1.11.10",
+    "dayjs": "^1.11.11",
     "inversify": "^6.0.2",
     "inversify-binding-decorators": "^4.0.0",
     "node-abort-controller": "^3.1.1",
@@ -1138,8 +1177,9 @@
     "parse-diff": "^0.11.1",
     "python-bridge": "github:mdesmet/node-python-bridge#feat/detached",
     "reflect-metadata": "^0.2.2",
+    "semver": "^7.6.2",
     "which": "^4.0.0",
-    "yaml": "^2.4.1"
+    "yaml": "^2.4.3"
   },
   "lint-staged": {
     "**/webview_panels/**/*.{ts,tsx}": [

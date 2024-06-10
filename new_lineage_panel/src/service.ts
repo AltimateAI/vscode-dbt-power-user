@@ -3,11 +3,12 @@ import { requestExecutor } from "./service_utils";
 export type Table = {
   table: string;
   label: string;
-  url: string;
+  url: string | undefined;
   nodeType: string;
   materialization?: string;
   downstreamCount: number;
   upstreamCount: number;
+  isExternalProject: boolean;
   tests: { key: string; path: string }[];
 };
 export type Column = {
@@ -88,7 +89,6 @@ export const getConnectedColumns = (body: {
   upstreamExpansion: boolean;
   currAnd1HopTables: string[];
   selectedColumn: { name: string; table: string };
-  sessionId: string;
 }) => {
   return requestExecutor(
     "getConnectedColumns",

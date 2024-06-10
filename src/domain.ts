@@ -10,11 +10,15 @@ export type DocMetaMap = Map<string, DocMetaData>;
 export type NodeMetaType = NodeMetaData;
 export type SourceMetaType = SourceTable;
 
-interface MacroMetaData {
-  path: string;
+export interface MacroMetaData {
+  path: string | undefined; // in dbt cloud, packages are not downloaded locally
   line: number;
   character: number;
   uniqueId: string;
+  description?: string;
+  arguments?: { name: string; type: string; description: string }[];
+  name: string;
+  depends_on: DependsOn;
 }
 
 interface MetricMetaData {
@@ -23,7 +27,7 @@ interface MetricMetaData {
 
 export interface NodeMetaData {
   uniqueId: string;
-  path: string;
+  path: string | undefined; // in dbt cloud, packages are not downloaded locally
   database: string;
   schema: string;
   alias: string;
@@ -34,6 +38,8 @@ export interface NodeMetaData {
   columns: { [columnName: string]: ColumnMetaData };
   config: Config;
   resource_type: string;
+  depends_on: DependsOn;
+  is_external_project: boolean;
 }
 
 export interface ColumnMetaData {
@@ -52,12 +58,14 @@ export interface SourceMetaData {
   database: string;
   schema: string;
   tables: SourceTable[];
+  package_name: string;
+  is_external_project: boolean;
 }
 
 export interface SourceTable {
   name: string;
   identifier: string;
-  path: string;
+  path: string | undefined; // in dbt cloud, packages are not downloaded locally
   description: string;
   columns: { [columnName: string]: ColumnMetaData };
 }
@@ -91,7 +99,7 @@ interface DependsOn {
 }
 
 export interface TestMetaData {
-  path: string;
+  path: string | undefined; // in dbt cloud, packages are not downloaded locally
   database: string;
   schema: string;
   alias: string;
@@ -118,7 +126,7 @@ export interface ExposureMetaData {
   url?: string;
   type: string;
   config: { enabled: boolean };
-  path: string;
+  path: string | undefined; // in dbt cloud, packages are not downloaded locally
   unique_id: string;
   sources?: [string];
   metrics?: unknown[];

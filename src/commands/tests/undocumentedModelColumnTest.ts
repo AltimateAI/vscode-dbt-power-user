@@ -1,7 +1,7 @@
 import { Diagnostic, DiagnosticSeverity, Range } from "vscode";
 import { ScanContext } from "./scanContext";
 import { AltimateScanStep } from "./step";
-import { provideSingleton } from "../../utils";
+import { getColumnNameByCase, provideSingleton } from "../../utils";
 
 @provideSingleton(UndocumentedModelColumnTest)
 export class UndocumentedModelColumnTest implements AltimateScanStep {
@@ -47,12 +47,17 @@ export class UndocumentedModelColumnTest implements AltimateScanStep {
         const modelDict =
           altimateCatalog[projectName + projectRootUri][modelKey];
         const existingColumnsLowered = Object.keys(value.columns).map((key) =>
-          key.toLowerCase(),
+          getColumnNameByCase(key, project.getAdapterType()),
         );
         for (const column of modelDict) {
           if (
-            !existingColumnsLowered.includes(column.column_name.toLowerCase())
+            !existingColumnsLowered.includes(
+              getColumnNameByCase(column.column_name, project.getAdapterType()),
+            )
           ) {
+            if (!value.path) {
+              continue;
+            }
             const errMessage = `Column ${column.column_name} is undocumented in model: ${value.name}`;
 
             let modelDiagnostics = projectDiagnostics[value.path];

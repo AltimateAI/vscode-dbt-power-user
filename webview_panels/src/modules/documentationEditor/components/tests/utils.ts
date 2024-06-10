@@ -13,7 +13,7 @@ import {
  */
 export const findDbtTestType = (test: DBTModelTest): DbtTestTypes => {
   if (!test.test_metadata?.name) {
-    if (test.path.endsWith(".sql")) {
+    if (test.path?.endsWith(".sql")) {
       return DbtTestTypes.SINGULAR;
     }
     return DbtTestTypes.UNKNOWN;

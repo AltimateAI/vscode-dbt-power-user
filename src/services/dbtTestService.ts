@@ -4,7 +4,7 @@ import {
   CreateDbtTestRequest,
   UserInputError,
 } from "../altimate";
-import { provideSingleton } from "../utils";
+import { isColumnNameEqual, provideSingleton } from "../utils";
 import { DocGenService } from "./docGenService";
 import { StreamingService } from "./streamingService";
 import { QueryManifestService } from "./queryManifestService";
@@ -85,7 +85,7 @@ export class DbtTestService {
   public getConfigByTest(
     test: TestMetaData,
     modelName: string,
-    column_name?: string,
+    columnNameFromTestMetadata?: string,
   ) {
     const eventResult = this.queryManifestService.getEventByCurrentProject();
     if (!eventResult?.event) {
@@ -103,10 +103,18 @@ export class DbtTestService {
       return;
     }
 
-    const patchPath = node?.patch_path.includes("://")
+    const patchPath = node?.patch_path?.includes("://")
       ? path.join(project.projectRoot.fsPath, node.patch_path.split("://")[1])
       : node.patch_path;
 
+    if (!patchPath) {
+      this.dbtTerminal.debug(
+        "getDbtTestCode",
+        "unable to find patch path",
+        patchPath,
+      );
+      return null;
+    }
     this.dbtTerminal.debug(
       "getDbtTestCode",
       "finding test from yaml",
@@ -133,7 +141,7 @@ export class DbtTestService {
     const model = parsedDocFile.models?.find((m: any) => m.name === modelName);
 
     // model test
-    if (!column_name) {
+    if (!columnNameFromTestMetadata) {
       this.dbtTerminal.debug(
         "getDbtTestCode",
         "finding model test from yml",
@@ -145,7 +153,9 @@ export class DbtTestService {
 
     const column =
       model.columns &&
-      model.columns.find((yamlColumn: any) => yamlColumn.name === column_name);
+      model.columns.find((yamlColumn: any) =>
+        isColumnNameEqual(yamlColumn.name, columnNameFromTestMetadata),
+      );
     this.dbtTerminal.debug(
       "getDbtTestCode",
       "finding column test from yml",
@@ -158,7 +168,7 @@ export class DbtTestService {
   }
 
   // Find the file path of test macro
-  public getMacroFilePath = (
+  private getMacroFilePath = (
     macros: [string],
     projectName: string,
     macroMetaMap: MacroMetaMap,
@@ -176,7 +186,7 @@ export class DbtTestService {
     if (macro) {
       // return the file path if it ends with sql
       const macroData = macroMetaMap.get(`test_${testName}`);
-      return macroData?.path.endsWith(".sql") ? macroData?.path : undefined;
+      return macroData?.path?.endsWith(".sql") ? macroData?.path : undefined;
     }
   };
 
@@ -207,7 +217,7 @@ export class DbtTestService {
     }
 
     const adapter = dbtProject.getAdapterType();
-    const documentation = await this.docGenService.getDocumentation(
+    const { documentation } = await this.docGenService.getDocumentation(
       params.filePath,
     );
     if (!documentation) {

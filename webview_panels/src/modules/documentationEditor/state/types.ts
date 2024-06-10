@@ -65,6 +65,7 @@ export interface TestMetadataRelationshipsKwArgs extends TestMetadataKwArgs {
 }
 
 export interface DocumentationStateProps {
+  incomingDocsData?: { docs?: DBTDocumentation; tests?: DBTModelTest[] };
   currentDocsData?: DBTDocumentation;
   currentDocsTests?: DBTModelTest[];
   project?: string;
@@ -81,6 +82,7 @@ export interface DocumentationStateProps {
     conversationGroupId: ConversationGroup["conversation_group_id"];
   };
   collaborationEnabled: boolean;
+  missingDocumentationMessage?: { message: string; type: "warning" | "error" };
 }
 
 export interface DBTModelTest {
@@ -88,7 +90,7 @@ export interface DBTModelTest {
   column_name?: string;
   database: string;
   key: string;
-  path: string;
+  path?: string;
   schema: string;
   test_metadata?: {
     kwargs: TestMetadataAcceptedValuesKwArgs | TestMetadataRelationshipsKwArgs;
