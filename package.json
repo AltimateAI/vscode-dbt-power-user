@@ -1169,7 +1169,7 @@
     "@vscode/extension-telemetry": "^0.9.6",
     "@vscode/vsce": "^2.26.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
-    "dayjs": "^1.11.10",
+    "dayjs": "^1.11.11",
     "inversify": "^6.0.2",
     "inversify-binding-decorators": "^4.0.0",
     "node-abort-controller": "^3.1.1",
