@@ -1,4 +1,11 @@
 regular-table {
+  td, th{
+    user-select: text;
+    cursor: text;
+  }
+}
+
+regular-table[perspective-theme="Vintage"] {
   th {
     font-weight: 800 !important;
     background-color: #222;
@@ -18,7 +25,7 @@ regular-table {
 
   th,
   td {
-    font-size: 13px !important;
+  font-size: 13px !important;
   }
 
   tbody tr::after,
@@ -70,7 +77,7 @@ regular-table {
   }
 }
 
-regular-table[theme="dark"] {
+regular-table[theme="dark"][perspective-theme="Vintage"] {
   tbody {
     tr:nth-child(even) {
       background-color: var(--background--03);

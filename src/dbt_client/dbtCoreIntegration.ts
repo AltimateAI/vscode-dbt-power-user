@@ -285,6 +285,22 @@ export class DBTCoreProjectIntegration
       this.rebuildManifestDiagnostics,
       this.pythonBridgeDiagnostics,
     );
+
+    this.isDbtLoomInstalled().then((isInstalled) => {
+      this.telemetry.setTelemetryCustomAttribute(
+        "dbtLoomInstalled",
+        `${isInstalled}`,
+      );
+    });
+  }
+
+  private async isDbtLoomInstalled(): Promise<boolean> {
+    try {
+      await this.python.ex`from dbt_loom import *`;
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 
   // remove the trailing slashes if they exists,
