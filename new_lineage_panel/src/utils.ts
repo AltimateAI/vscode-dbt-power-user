@@ -24,11 +24,11 @@ const DEFAULT_COLOR = "#7A899E";
 const HIGHLIGHT_COLOR = "#E38E00";
 
 export const LENS_TYPE_COLOR = {
-  raw: "#FDD835",
-  rename: "#40C8AE",
-  transformation: "#FF754C",
-  passthrough: "#BC3FBC",
-  unknown: "#247efe"
+  Original: "#FDD835",
+  Alias: "#40C8AE",
+  Transformation: "#FF754C",
+  Unchanged: "#BC3FBC",
+  Unknown: "#247efe"
 };
 
 export type CollectColumn = {column: string, lensType?: LensTypes}
