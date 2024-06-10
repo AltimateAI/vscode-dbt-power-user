@@ -103,10 +103,18 @@ export class DbtTestService {
       return;
     }
 
-    const patchPath = node?.patch_path.includes("://")
+    const patchPath = node?.patch_path?.includes("://")
       ? path.join(project.projectRoot.fsPath, node.patch_path.split("://")[1])
       : node.patch_path;
 
+    if (!patchPath) {
+      this.dbtTerminal.debug(
+        "getDbtTestCode",
+        "unable to find patch path",
+        patchPath,
+      );
+      return null;
+    }
     this.dbtTerminal.debug(
       "getDbtTestCode",
       "finding test from yaml",
@@ -160,7 +168,7 @@ export class DbtTestService {
   }
 
   // Find the file path of test macro
-  public getMacroFilePath = (
+  private getMacroFilePath = (
     macros: [string],
     projectName: string,
     macroMetaMap: MacroMetaMap,
@@ -178,7 +186,7 @@ export class DbtTestService {
     if (macro) {
       // return the file path if it ends with sql
       const macroData = macroMetaMap.get(`test_${testName}`);
-      return macroData?.path.endsWith(".sql") ? macroData?.path : undefined;
+      return macroData?.path?.endsWith(".sql") ? macroData?.path : undefined;
     }
   };
 
@@ -209,7 +217,7 @@ export class DbtTestService {
     }
 
     const adapter = dbtProject.getAdapterType();
-    const documentation = await this.docGenService.getDocumentation(
+    const { documentation } = await this.docGenService.getDocumentation(
       params.filePath,
     );
     if (!documentation) {

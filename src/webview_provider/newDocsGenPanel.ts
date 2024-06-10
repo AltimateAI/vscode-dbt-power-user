@@ -106,7 +106,7 @@ export class NewDocsGenPanel
     );
 
     return {
-      sql: testPath.endsWith(".sql")
+      sql: testPath?.endsWith(".sql")
         ? readFileSync(testPath, { encoding: "utf-8" })
         : undefined,
       config: this.dbtTestService.getConfigByTest(test, modelName, column_name),
@@ -195,11 +195,12 @@ export class NewDocsGenPanel
           return;
         }
 
-        const documentation =
+        const { documentation, message: missingDocumentationMessage } =
           await this.docGenService.getDocumentationForCurrentActiveFile();
         this.sendResponseToWebview({
           command: "renderDocumentation",
           docs: documentation,
+          missingDocumentationMessage,
           tests: await this.dbtTestService.getTestsForCurrentModel(),
           project: this.queryManifestService.getProject()?.getProjectName(),
           collaborationEnabled: workspace

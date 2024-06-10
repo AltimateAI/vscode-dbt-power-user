@@ -71,6 +71,12 @@ export class DbtPowerUserControlCenterAction {
             "Clear all problems",
             "dbtPowerUser.clearAltimateScanResults",
           ),
+          new DbtPowerUserControlPanelItem(
+            "Diagnostics",
+            "tools",
+            "Run diagnostics on the dbt project",
+            "dbtPowerUser.diagnostics",
+          ),
           {
             label: "",
             kind: QuickPickItemKind.Separator,

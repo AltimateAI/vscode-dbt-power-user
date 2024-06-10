@@ -137,7 +137,7 @@ const app = createApp({
       isDarkMode: false,
       clickTimer: null,
       table: undefined,
-      isPerspective: true,
+      isPerspective: false,
       summary: undefined,
       previousSummary: undefined,
       previousCode: undefined,
@@ -153,7 +153,11 @@ const app = createApp({
   methods: {
     togglePerspective() {
       this.isPerspective = !this.isPerspective;
-      updateConfig({ enableNewQueryPanel: this.isPerspective });
+      // If user is in legacy view v0, and switches to new ui, take to v2
+      // if user is in v1, switches to legacy v0, take to v0
+      updateConfig({
+        enableNewQueryPanel: this.isPerspective,
+      });
       this.updateTable(this.data);
       setTimeout(() => {
         document.querySelector("#panel-manager").activeid = "tab-1";
@@ -363,6 +367,9 @@ const app = createApp({
         compiledSql: this.compiledCode,
       });
     },
+    toggleV2() {
+      updateConfig({ enableNewQueryPanel: true });
+    },
     onFeedback() {
       const prevTab = document.querySelector("#panel-manager").activeid;
       executeCommand("openUrl", {
@@ -515,6 +522,7 @@ const app = createApp({
       }
     });
     window.addEventListener("resize", this.handleResize);
+    executeCommand("webview:ready", {});
   },
   unmounted() {
     window.removeEventListener("resize", this.handleResize);

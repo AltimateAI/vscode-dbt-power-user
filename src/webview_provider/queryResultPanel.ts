@@ -2,14 +2,12 @@ import {
   CancellationToken,
   ColorThemeKind,
   commands,
-  Disposable,
   env,
   ProgressLocation,
   Uri,
   Webview,
   WebviewOptions,
   WebviewView,
-  WebviewViewProvider,
   WebviewViewResolveContext,
   window,
   workspace,
@@ -18,7 +16,7 @@ import {
 import { readFileSync } from "fs";
 import { PythonException } from "python-bridge";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
+import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { AltimateRequest } from "../altimate";
 import {
@@ -27,6 +25,15 @@ import {
   QueryExecution,
 } from "../dbt_client/dbtIntegration";
 import { SharedStateService } from "../services/sharedStateService";
+import {
+  AltimateWebviewProvider,
+  HandleCommandProps,
+  SendMessageProps,
+  SharedStateEventEmitterProps,
+} from "./altimateWebviewProvider";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { QueryManifestService } from "../services/queryManifestService";
+import { UsersService } from "../services/usersService";
 
 interface JsonObj {
   [key: string]: string | number | undefined;
@@ -70,6 +77,7 @@ enum InboundCommand {
   GetSummary = "getSummary",
   CancelQuery = "cancelQuery",
   SetContext = "setContext",
+  GetQueryPanelContext = "getQueryPanelContext",
 }
 
 interface RecInfo {
@@ -95,32 +103,79 @@ interface RecOpenUrl {
 }
 
 @provideSingleton(QueryResultPanel)
-export class QueryResultPanel implements WebviewViewProvider {
+export class QueryResultPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.PreviewResults";
+  protected viewPath = "/query-panel";
+  protected panelDescription = "Query results panel";
 
-  private _disposables: Disposable[] = [];
-  private _panel: WebviewView | undefined;
+  protected _panel: WebviewView | undefined;
   private queryExecution?: QueryExecution;
+  private incomingMessages: SendMessageProps[] = [];
 
   public constructor(
-    private dbtProjectContainer: DBTProjectContainer,
-    private telemetry: TelemetryService,
+    protected dbtProjectContainer: DBTProjectContainer,
+    protected telemetry: TelemetryService,
     private altimate: AltimateRequest,
     private eventEmitterService: SharedStateService,
+    protected dbtTerminal: DBTTerminal,
+    protected queryManifestService: QueryManifestService,
+    protected usersService: UsersService,
   ) {
+    super(
+      dbtProjectContainer,
+      altimate,
+      telemetry,
+      eventEmitterService,
+      dbtTerminal,
+      queryManifestService,
+      usersService,
+    );
+    this._disposables.push(
+      workspace.onDidChangeConfiguration(
+        (e) => {
+          if (!e.affectsConfiguration("dbt.enableNewQueryPanel")) {
+            return;
+          }
+          if (this._panel) {
+            this.renderWebviewView(this._panel.webview);
+          }
+        },
+        this,
+        this._disposables,
+      ),
+    );
     window.onDidChangeActiveColorTheme(
       (e) => {
         if (this._panel) {
-          this._panel.webview.html = getHtml(
-            this._panel.webview,
-            this.dbtProjectContainer.extensionUri,
-          );
-          this.transmitConfig();
+          const enableNewQueryPanel = workspace
+            .getConfiguration("dbt")
+            .get<boolean>("enableNewQueryPanel", true);
+
+          if (!enableNewQueryPanel) {
+            this._panel.webview.html = getHtml(
+              this._panel.webview,
+              this.dbtProjectContainer.extensionUri,
+            );
+            this.transmitConfig();
+          }
         }
       },
       null,
       this._disposables,
     );
+  }
+
+  protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
+    switch (command) {
+      case "executeQuery":
+        this.executeQuery(
+          payload.query as string,
+          payload.fn as Promise<QueryExecution>,
+        );
+        break;
+      default:
+        super.onEvent({ command, payload });
+    }
   }
 
   public async resolveWebviewView(
@@ -129,9 +184,10 @@ export class QueryResultPanel implements WebviewViewProvider {
     _token: CancellationToken,
   ) {
     this._panel = panel;
-    this.setupWebviewOptions(context);
-    this.renderWebviewView(context);
-    this.setupWebviewHooks(context);
+    this._webview = panel.webview;
+    this.bindWebviewOptions(context);
+    this.renderWebviewView(panel.webview);
+    this.setupWebviewHooks();
     this.transmitConfig();
     await this._panel?.webview.postMessage({
       command: OutboundCommand.GetContext,
@@ -144,21 +200,40 @@ export class QueryResultPanel implements WebviewViewProvider {
   }
 
   /** Sets options, note that retainContextWhen hidden is set on registration */
-  private setupWebviewOptions(context: WebviewViewResolveContext) {
+  private bindWebviewOptions(context: WebviewViewResolveContext) {
     this._panel!.title = "Query Results";
     this._panel!.description = "Preview dbt SQL Results";
     this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
   }
 
   /** Primary interface for WebviewView inbound communication */
-  private setupWebviewHooks(context: WebviewViewResolveContext) {
+  private setupWebviewHooks() {
     this._panel!.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
+          case InboundCommand.GetQueryPanelContext:
+            const perspectiveTheme = workspace
+              .getConfiguration("dbt")
+              .get("perspectiveTheme", "Vintage");
+            const limit = workspace
+              .getConfiguration("dbt")
+              .get<number>("queryLimit");
+            await this._panel!.webview.postMessage({
+              command: OutboundCommand.GetContext,
+              lastHintTimestamp:
+                this.dbtProjectContainer.getFromGlobalState(
+                  "lastHintTimestamp",
+                ) || 0,
+              limit,
+              perspectiveTheme,
+            });
+            break;
           case InboundCommand.CancelQuery:
             if (this.queryExecution) {
               this.queryExecution.cancel();
             }
+            await this.transmitReset();
+            break;
           case InboundCommand.Error:
             const error = message as RecError;
             window.showErrorMessage(error.text);
@@ -196,6 +271,11 @@ export class QueryResultPanel implements WebviewViewProvider {
                   configMessage.enableNewQueryPanel,
                 );
             }
+            if ("perspectiveTheme" in configMessage) {
+              workspace
+                .getConfiguration("dbt")
+                .update("perspectiveTheme", configMessage.perspectiveTheme);
+            }
             break;
           case InboundCommand.OpenUrl:
             const config = message as RecOpenUrl;
@@ -216,9 +296,11 @@ export class QueryResultPanel implements WebviewViewProvider {
               message.value,
             );
             break;
+          default:
+            super.handleCommand(message);
         }
       },
-      null,
+      this,
       this._disposables,
     );
     const sendQueryPanelViewEvent = () => {
@@ -231,8 +313,18 @@ export class QueryResultPanel implements WebviewViewProvider {
   }
 
   /** Renders webview content */
-  private renderWebviewView(context: WebviewViewResolveContext) {
-    const webview = this._panel!.webview!;
+  protected renderWebviewView(webview: Webview) {
+    const enableNewQueryPanel = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("enableNewQueryPanel", true);
+
+    if (enableNewQueryPanel) {
+      this._panel!.webview.html = super.getHtml(
+        webview,
+        this.dbtProjectContainer.extensionUri,
+      );
+      return;
+    }
     this._panel!.webview.html = getHtml(
       webview,
       this.dbtProjectContainer.extensionUri,
@@ -301,10 +393,17 @@ export class QueryResultPanel implements WebviewViewProvider {
   /** Sends VSCode render loading command to webview */
   private async transmitLoading() {
     if (this._panel) {
-      await this._panel.webview.postMessage({
-        command: OutboundCommand.RenderLoading,
-      });
+      if (this.isWebviewReady) {
+        await this._panel.webview.postMessage({
+          command: OutboundCommand.RenderLoading,
+        });
+        return;
+      }
     }
+
+    this.incomingMessages.push({
+      command: OutboundCommand.RenderLoading,
+    });
   }
 
   /** Sends VSCode clear state command */
@@ -345,8 +444,8 @@ export class QueryResultPanel implements WebviewViewProvider {
     if (this._panel) {
       this._panel.show(); // Show the view
       this._panel.webview.postMessage({ command: "focus" }); // keyboard focus
-      this.transmitLoading();
     }
+    this.transmitLoading();
     try {
       const queryExecution = (this.queryExecution =
         await queryExecutionPromise);
@@ -402,6 +501,21 @@ export class QueryResultPanel implements WebviewViewProvider {
       );
     } finally {
       this.queryExecution = undefined;
+    }
+  }
+
+  protected onWebviewReady() {
+    super.onWebviewReady();
+
+    if (!this._panel) {
+      return;
+    }
+
+    while (this.incomingMessages.length) {
+      const message = this.incomingMessages.pop();
+      if (message) {
+        this.sendResponseToWebview(message);
+      }
     }
   }
 }

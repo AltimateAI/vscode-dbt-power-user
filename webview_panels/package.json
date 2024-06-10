@@ -18,6 +18,10 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@finos/perspective": "^2.10.0",
+    "@finos/perspective-viewer": "^2.10.0",
+    "@finos/perspective-viewer-d3fc": "^2.10.0",
+    "@finos/perspective-viewer-datagrid": "^2.10.0",
     "@hookform/resolvers": "^3.3.4",
     "@reduxjs/toolkit": "^2.0.1",
     "@vscode/codicons": "^0.0.35",

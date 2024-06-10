@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.39.10",
+  "version": "0.39.19",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -152,6 +152,20 @@
             "description": "The maximum number of rows the `Preview SQL Query` command returns.",
             "default": 500,
             "minimum": 1
+          },
+          "dbt.perspectiveTheme": {
+            "type": "string",
+            "description": "Theme for perspective viewer in query results panel",
+            "default": "Vintage",
+            "enum": [
+              "Vintage",
+              "Pro Light",
+              "Pro Dark",
+              "Vaporwave",
+              "Solarized",
+              "Solarized Dark",
+              "Monokai"
+            ]
           },
           "dbt.conversationsPollingInterval": {
             "type": "integer",
@@ -560,7 +574,7 @@
       },
       {
         "command": "dbtPowerUser.buildChildrenModels",
-        "title": "Build Downstream Models",
+        "title": "Build Downstream Models (model+)",
         "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build-model_light.svg",
@@ -569,7 +583,7 @@
       },
       {
         "command": "dbtPowerUser.buildParentModels",
-        "title": "Build Upstream Models",
+        "title": "Build Upstream Models (+model)",
         "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build-model_light.svg",
@@ -578,7 +592,7 @@
       },
       {
         "command": "dbtPowerUser.buildChildrenParentModels",
-        "title": "Build Upstream and Downstream Models",
+        "title": "Build Upstream and Downstream Models (+model+)",
         "category": "dbt Power User",
         "icon": {
           "light": "./media/images/build-model_light.svg",
@@ -1119,12 +1133,12 @@
   "devDependencies": {
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.6",
-    "@types/node": "^20.11.30",
-    "@types/vscode": "^1.81.0",
+    "@types/node": "^20.14.2",
+    "@types/vscode": "^1.90.0",
     "@types/which": "^3.0.3",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
-    "@vscode/test-electron": "^2.3.9",
+    "@vscode/test-electron": "^2.4.0",
     "concurrently": "^8.2.2",
     "copy-webpack-plugin": "^11.0.0",
     "cross-env": "^7.0.3",
@@ -1134,10 +1148,10 @@
     "file-loader": "^6.1.0",
     "glob": "^10.3.15",
     "husky": "^9.0.11",
-    "lint-staged": "^14.0.1",
+    "lint-staged": "^15.2.5",
     "mocha": "^10.3.0",
     "ovsx": "^0.8.4",
-    "prettier": "^3.0.3",
+    "prettier": "^3.3.0",
     "prettier-eslint": "^15.0.1",
     "prettier-plugin-organize-imports": "^3.2.4",
     "terser-webpack-plugin": "^5.3.10",
@@ -1153,9 +1167,9 @@
   "dependencies": {
     "@vscode/codicons": "^0.0.36",
     "@vscode/extension-telemetry": "^0.9.6",
-    "@vscode/vsce": "^2.24.0",
+    "@vscode/vsce": "^2.26.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
-    "dayjs": "^1.11.10",
+    "dayjs": "^1.11.11",
     "inversify": "^6.0.2",
     "inversify-binding-decorators": "^4.0.0",
     "node-abort-controller": "^3.1.1",
@@ -1163,8 +1177,9 @@
     "parse-diff": "^0.11.1",
     "python-bridge": "github:mdesmet/node-python-bridge#feat/detached",
     "reflect-metadata": "^0.2.2",
+    "semver": "^7.6.2",
     "which": "^4.0.0",
-    "yaml": "^2.4.2"
+    "yaml": "^2.4.3"
   },
   "lint-staged": {
     "**/webview_panels/**/*.{ts,tsx}": [

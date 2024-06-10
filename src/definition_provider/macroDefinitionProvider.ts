@@ -102,7 +102,7 @@ export class MacroDefinitionProvider implements DefinitionProvider, Disposable {
       return;
     }
     const location = macroMap.get(macroName);
-    if (location) {
+    if (location && location.path) {
       return new Location(
         Uri.file(location.path),
         new Position(location.line, location.character),

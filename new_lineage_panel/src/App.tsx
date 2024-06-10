@@ -50,7 +50,7 @@ import { handleResponse, init, columnLineage } from "./service_utils";
 import { ActionWidget } from "./ActionWidget";
 import { DEFAULT_MIN_ZOOM, createTableNode } from "./utils";
 import { Settings } from "./Settings";
-import { getLineageSettings } from "./service";
+import { Table, getLineageSettings } from "./service";
 
 export let aiEnabled = false;
 export let isDarkMode = false;
@@ -67,7 +67,11 @@ type Confidence = {
   operator_list?: string[];
 };
 
+export interface MissingLineageMessage  { message: string, type: "warning" | "error" }
+
 const noop = () => {};
+
+export type SelectedColumn = { name: string; table: string };
 
 export const LineageContext = createContext<{
   selectedTable: string;
@@ -76,10 +80,8 @@ export const LineageContext = createContext<{
   setMoreTables: Dispatch<SetStateAction<TMoreTables>>;
   sidebarScreen: string;
   setSidebarScreen: Dispatch<string>;
-  selectedColumn: { name: string; table: string; sessionId: string };
-  setSelectedColumn: Dispatch<
-    SetStateAction<{ name: string; table: string; sessionId: string }>
-  >;
+  selectedColumn: SelectedColumn;
+  setSelectedColumn: Dispatch<SetStateAction<SelectedColumn>>;
   collectColumns: Record<string, string[]>;
   setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>;
   rerender: () => void;
@@ -106,7 +108,7 @@ export const LineageContext = createContext<{
   setMoreTables: noop,
   sidebarScreen: "",
   setSidebarScreen: noop,
-  selectedColumn: { name: "", table: "", sessionId: "" },
+  selectedColumn: { name: "", table: "" },
   setSelectedColumn: () => "",
   collectColumns: {},
   setCollectColumns: noop,
@@ -137,11 +139,7 @@ function App() {
   const [sidebarScreen, setSidebarScreen] = useState("");
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [showDemoButton, setShowDemoButton] = useState(true);
-  const [selectedColumn, setSelectedColumn] = useState({
-    name: "",
-    table: "",
-    sessionId: "",
-  });
+  const [selectedColumn, setSelectedColumn] = useState({ name: "", table: "" });
   const [leftExpansion, setLeftExpansion] = useState(0);
   const [rightExpansion, setRightExpansion] = useState(0);
   const [collectColumns, setCollectColumns] = useState<
@@ -153,6 +151,7 @@ function App() {
   const [, _rerender] = useState(0);
   const rerender = () => _rerender((x) => (x + 1) % 100);
 
+  const [missingLineageMessage, setMissingLineageMessage] = useState<MissingLineageMessage | undefined>()
   const [selectCheck, setSelectCheck] = useState(true);
   const [nonSelectCheck, setNonSelectCheck] = useState(true);
   const [defaultExpansion, setDefaultExpansion] = useState(5);
@@ -160,26 +159,15 @@ function App() {
   const [minRange, setMinRange] = useState<[number, number]>([0, 0]);
 
   useEffect(() => {
-    const render = async (args: {
-      node: {
-        table: string;
-        label: string;
-        url: string;
-        nodeType: string;
-        materialization?: string;
-        downstreamCount: number;
-        upstreamCount: number;
-        tests: { key: string; path: string }[];
-      };
-      aiEnabled: boolean;
-    }) => {
+    const render = async (args: { node?: Table; aiEnabled: boolean, missingLineageMessage?: MissingLineageMessage }) => {
       setIsOpen(false);
       setSidebarScreen("");
       if (!args) return;
       aiEnabled = args.aiEnabled;
+      setMissingLineageMessage(args.missingLineageMessage)
       const { node } = args;
       const _flow = flow.current;
-      if (!_flow) return;
+      if (!_flow || !node) return;
       const existingNode = _flow.getNode(node.table);
       if (existingNode) {
         setSelectedTable(node.table);
@@ -211,7 +199,7 @@ function App() {
       if (node.upstreamCount > 0) await addNodesEdges(node.table, true);
       if (node.downstreamCount > 0) await addNodesEdges(node.table, false);
       setSelectedTable(node.table);
-      setSelectedColumn({ table: "", name: "", sessionId: "" });
+      setSelectedColumn({ table: "", name: "" });
       setCollectColumns({});
       setMoreTables({});
       [nodes, edges] = highlightTableConnections(nodes, edges, node.table);
@@ -322,7 +310,7 @@ function App() {
       <PopoverContext.Provider value={{ isOpen, setIsOpen }}>
         <ReactFlowProvider>
           <div className="position-relative">
-            <ActionWidget />
+            <ActionWidget missingLineageMessage={missingLineageMessage}/>
             <div className="bottom-right-container">
               {showDemoButton && (
                 <Button

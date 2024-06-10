@@ -39,6 +39,7 @@ import { existsSync } from "fs";
 import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
 import { ProjectHealthcheck } from "./dbtCoreIntegration";
+import semver = require("semver");
 
 function getDBTPath(
   pythonEnvironment: PythonEnvironment,
@@ -88,13 +89,8 @@ export class DBTCloudDetection implements DBTDetection {
         const regex = /dbt Cloud CLI - (\d*\.\d*\.\d*)/gm;
         const matches = regex.exec(stdout);
         if (matches?.length === 2) {
-          const version = matches[1].split(".");
           const minVersion = "0.37.6";
-          if (
-            parseInt(version[0]) <= 0 &&
-            parseInt(version[1]) <= 37 &&
-            parseInt(version[2]) <= 6
-          ) {
+          if (semver.lt(matches[1], minVersion)) {
             window.showErrorMessage(
               `This version of dbt Cloud is not supported. Please update to a dbt Cloud CLI version higher than ${minVersion}`,
             );
@@ -246,6 +242,8 @@ export class DBTCloudProjectIntegration
     const showCommand = this.dbtCloudCommand(
       new DBTCommand("Running sql...", [
         "show",
+        "--log-level",
+        "debug",
         "--inline",
         query,
         "--limit",
@@ -266,16 +264,23 @@ export class DBTCloudProjectIntegration
         const { stdout, stderr } = await showCommand.execute(
           cancellationTokenSource.token,
         );
-        const previewLine = stdout
-          .trim()
-          .split("\n")
-          .map((line) => JSON.parse(line.trim()))
-          .filter((line) => line.data.hasOwnProperty("preview"));
-        const preview = JSON.parse(previewLine[0].data.preview);
         const exception = this.processJSONErrors(stderr);
         if (exception) {
           throw exception;
         }
+        const parsedLines = stdout
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line.trim()));
+        const previewLine = parsedLines.filter((line) =>
+          line.data.hasOwnProperty("preview"),
+        );
+        const compiledSqlLines = parsedLines.filter((line) =>
+          line.data.hasOwnProperty("sql"),
+        );
+        const preview = JSON.parse(previewLine[0].data.preview);
+        const compiledSql =
+          compiledSqlLines[compiledSqlLines.length - 1].data.sql;
         return {
           table: {
             column_names: preview.length > 0 ? Object.keys(preview[0]) : [],
@@ -285,7 +290,7 @@ export class DBTCloudProjectIntegration
                 : [],
             rows: preview.map((obj: any) => Object.values(obj)),
           },
-          compiled_sql: "",
+          compiled_sql: compiledSql,
           raw_sql: query,
         };
       },

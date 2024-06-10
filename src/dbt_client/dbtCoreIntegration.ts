@@ -285,6 +285,22 @@ export class DBTCoreProjectIntegration
       this.rebuildManifestDiagnostics,
       this.pythonBridgeDiagnostics,
     );
+
+    this.isDbtLoomInstalled().then((isInstalled) => {
+      this.telemetry.setTelemetryCustomAttribute(
+        "dbtLoomInstalled",
+        `${isInstalled}`,
+      );
+    });
+  }
+
+  private async isDbtLoomInstalled(): Promise<boolean> {
+    try {
+      await this.python.ex`from dbt_loom import *`;
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 
   // remove the trailing slashes if they exists,
@@ -368,13 +384,13 @@ export class DBTCoreProjectIntegration
     const queryThread = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
-    await this.createPythonDbtProject(queryThread);
-    await queryThread.ex`project.init_project()`;
     return new QueryExecution(
       async () => {
         queryThread.kill(2);
       },
       async () => {
+        await this.createPythonDbtProject(queryThread);
+        await queryThread.ex`project.init_project()`;
         // compile query
         const compiledQuery = await this.unsafeCompileQuery(limitQuery);
         // execute query
@@ -397,6 +413,8 @@ export class DBTCoreProjectIntegration
             throw new ExecuteSQLError(err.exception.message, compiledQuery!);
           }
           throw new ExecuteSQLError((err as Error).message, compiledQuery!);
+        } finally {
+          await queryThread.end();
         }
         return { ...result, compiled_stmt: compiledQuery };
       },
@@ -1036,13 +1054,17 @@ export class DBTCoreProjectIntegration
     const healthCheckThread = this.executionInfrastructure.createPythonBridge(
       this.projectRoot.fsPath,
     );
-    await this.createPythonDbtProject(healthCheckThread);
-    await healthCheckThread.ex`from dbt_healthcheck import *`;
-    const result = await healthCheckThread.lock<ProjectHealthcheck>(
-      (python) =>
-        python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
-    );
-    return result;
+    try {
+      await this.createPythonDbtProject(healthCheckThread);
+      await healthCheckThread.ex`from dbt_healthcheck import *`;
+      const result = await healthCheckThread.lock<ProjectHealthcheck>(
+        (python) =>
+          python!`to_dict(project_healthcheck(${manifestPath}, ${catalogPath}, ${configPath}, ${config}))`,
+      );
+      return result;
+    } finally {
+      healthCheckThread.end();
+    }
   }
 
   private async getDeferConfig() {

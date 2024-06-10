@@ -126,7 +126,7 @@ export class ModelDefinitionProvider implements DefinitionProvider, Disposable {
       return;
     }
     const location = nodeMap.get(modelName);
-    if (location) {
+    if (location && location.path) {
       return new Location(Uri.file(location.path), new Range(0, 0, 999, 999));
     }
     return undefined;
