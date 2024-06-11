@@ -25,7 +25,7 @@ const LineageLegend = () => {
         <PopoverBody>
           {Object.entries(LENS_TYPE_COLOR).map(([k, v]) => (
             <div key={k}>
-              <div className={styles.dot} style={{ backgroundColor: v }} /> {k}
+              <div className={styles.dot} style={{ backgroundColor: v }} >{k[0]}</div> {k}
             </div>
           ))}
         </PopoverBody>

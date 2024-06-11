@@ -28,7 +28,7 @@ export const LENS_TYPE_COLOR = {
   Alias: "#40C8AE",
   Transformation: "#FF754C",
   Unchanged: "#BC3FBC",
-  Unknown: "#247efe"
+  "Not sure": "#247efe"
 };
 
 export type CollectColumn = {column: string, lensType?: LensTypes}

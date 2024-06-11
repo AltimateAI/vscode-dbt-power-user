@@ -410,7 +410,7 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
       {lensColor ? (
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        <Badge style={{ "--lens-color": lensColor }} className={styles.column_badge}>{lensType}</Badge>
+        <Badge style={{ "--lens-color": lensColor }} className={styles.column_badge}>{lensType[0]}</Badge>
       ) : null}
     </div>
   );

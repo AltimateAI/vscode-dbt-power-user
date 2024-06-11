@@ -224,6 +224,9 @@ $size: 1.2em;
     background-color: var(--lens-color) !important;
     font-size: 6px;
     text-transform: capitalize;
+    width: 13px;
+    height: 13px;
+    line-height: 1.67;
   }  
 }
 
@@ -430,5 +433,8 @@ $size: 1.2em;
     display: inline-block;
     vertical-align: text-bottom;
     margin-right: 0.4rem;
+    color: #fff;
+    text-align: center;
+    font-size: 8px;
   }
 }        
