@@ -1,13 +1,27 @@
-import { useContext } from "react";
+import { useContext, useEffect, useMemo } from "react";
 import { LensTypeBadge } from "./components";
 import { LineageContext } from "./App";
 import { Modal, ModalBody } from "reactstrap";
 import styles from "./styles.module.scss";
 import { HeaderSection } from "./TableDetails";
 import CloseIcon from "./assets/icons/x-close.svg?react";
+import Prism from "prismjs";
+import "prismjs/themes/prism-tomorrow.css";
+import { useReactFlow } from "reactflow";
+import classNames from "classnames";
 
 export function LensCodeModal() {
   const { lensCodeModal, setLensCodeModal } = useContext(LineageContext);
+  useEffect(() => {
+    Prism.highlightAll(true, console.log);
+  }, [lensCodeModal]);
+
+  const flow = useReactFlow();
+  const table = useMemo(() => {
+    if (!lensCodeModal) return "";
+    return flow.getNode(lensCodeModal.table)?.data?.label;
+  }, [flow, lensCodeModal]);
+
   if (!lensCodeModal) return;
   return (
     <Modal
@@ -17,6 +31,7 @@ export function LensCodeModal() {
       centered
       unmountOnClose
       scrollable
+      className="bs-modal"
     >
       <ModalBody>
         <div
@@ -26,7 +41,9 @@ export function LensCodeModal() {
           <CloseIcon />
         </div>
         <div className="d-flex flex-column gap-sm">
-          <HeaderSection nodeType={"Model"} table={lensCodeModal.table} />
+          {table && (
+            <HeaderSection nodeType={lensCodeModal.nodeType} table={table} />
+          )}
           <div className="d-flex flex-column gap-xs">
             <div className="text-dark-grey fs-xs">Type</div>
             <div className={styles.model_lens_type}>
@@ -41,7 +58,18 @@ export function LensCodeModal() {
                 <div key={src} className={styles.modal_lens_code_container}>
                   {src}
                   {lensCodeModal.lensCode[src].map((code) => (
-                    <div key={code}>{code}</div>
+                    <div key={code}>
+                      <pre className="mb-0">
+                        <code
+                          className={classNames(
+                            "language-sql",
+                            styles.code_editor
+                          )}
+                        >
+                          {code}
+                        </code>
+                      </pre>
+                    </div>
                   ))}
                 </div>
               );
