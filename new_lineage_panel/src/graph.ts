@@ -1,4 +1,4 @@
-import { Edge, Node, ReactFlowInstance } from "reactflow";
+import { Edge, isNode, Node, ReactFlowInstance } from "reactflow";
 import {
   applyEdgeStyling,
   C_OFFSET_X,
@@ -27,6 +27,11 @@ import {
   withinExclusive,
   isSeeMore,
   EdgeVisibility,
+  LensTypes,
+  applyNodeStyling,
+  toggleModelEdges,
+  toggleColumnEdges,
+  CollectColumn,
 } from "./utils";
 import {
   ColumnLineage,
@@ -196,7 +201,7 @@ export const resetTableHighlights = (
   nodes: Node[],
   edges: Edge[]
 ): [Node[], Edge[]] => {
-  nodes.forEach((n) => (n.style = { opacity: 1 }));
+  nodes.forEach((n) => (applyNodeStyling(n, true)));
   edges.forEach((e) => applyEdgeStyling(e, false));
   return [nodes, edges];
 };
@@ -206,6 +211,11 @@ export const highlightTableConnections = (
   edges: Edge[],
   table: string
 ): [Node[], Edge[]] => {
+  // Model edges might be hidden when column lineage was selected
+  // hide column lineage edges and show all other edges
+  toggleModelEdges(edges, true);
+  toggleColumnEdges(edges, false);
+
   const highlightNode: Record<string, boolean> = {};
   const highlightEdge: Record<string, boolean> = {};
   const bfsTraversal = (src: "source" | "target", dst: "source" | "target") => {
@@ -232,7 +242,7 @@ export const highlightTableConnections = (
 
   const newNodes = [...nodes];
   newNodes.forEach(
-    (_n) => (_n.style = { opacity: highlightNode[_n.id] ? 1 : 0.5 })
+    (_n) => applyNodeStyling(_n, Boolean(highlightNode[_n.id]))
   );
 
   return [newNodes, newEdges];
@@ -340,12 +350,12 @@ const processColumnLineage = async (
     right ? contains(curr, e.source) : contains(curr, e.target)
   );
   const newCurr = columnLineage.map((e) => (right ? e.target : e.source));
-  const collectColumns: Record<string, string[]> = {};
+  const collectColumns: Record<string, CollectColumn[]> = {};
 
-  const addToCollectColumns = ([_table, _column]: [string, string]) => {
+  const addToCollectColumns = ([_table, _column]: [string, string], lensType?: LensTypes) => {
     collectColumns[_table] = collectColumns[_table] || [];
-    if (!collectColumns[_table].includes(_column)) {
-      collectColumns[_table].push(_column);
+    if (!collectColumns[_table].find(c=> c.column === _column)) {
+      collectColumns[_table].push({column: _column, lensType});
     }
   };
 
@@ -407,7 +417,7 @@ const processColumnLineage = async (
 
   for (const e of columnLineage) {
     addToCollectColumns(e.source);
-    addToCollectColumns(e.target);
+    addToCollectColumns(e.target, e.lensType);
     const [t0] = e.source;
     const [t1] = e.target;
 
@@ -439,7 +449,7 @@ const processColumnLineage = async (
     if (!tableNodes[t]) continue;
     collectColumns[t].sort();
     for (const c of collectColumns[t]) {
-      nodes.push(createColumnNode(t, c));
+      nodes.push(createColumnNode(t, c.column, c.lensType));
     }
   }
 
@@ -456,7 +466,13 @@ const mergeNodesEdges = (
   const edgesId: Record<string, boolean> = {};
   nodes.forEach((n) => (nodesId[n.id] = true));
   edges.forEach((e) => (edgesId[e.id] = true));
-  patchState.nodes.forEach((n) => !nodesId[n.id] && nodes.push(n));
+  patchState.nodes.forEach((n) => {
+    if (!nodesId[n.id]) {nodes.push(n)}
+    const existing = nodes.find((x) => x.id === n.id);
+    if (existing) {
+      existing.data = {...existing.data,...n.data, lensType: existing.data.lensType || n.data.lensType};
+    }
+  });
   patchState.edges.forEach((e) => !edgesId[e.id] && edges.push(e));
   layoutElementsOnCanvas(nodes, edges);
   return [nodes, edges];
@@ -472,19 +488,26 @@ export const removeColumnNodes = (
 };
 
 const mergeCollectColumns = (
-  setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>,
-  newCollectColumns: Record<string, string[]>
+  setCollectColumns: Dispatch<SetStateAction<Record<string, CollectColumn[]>>>,
+  newCollectColumns: Record<string, CollectColumn[]>
 ) => {
   setCollectColumns((prev) => {
-    const collectColumns: Record<string, string[]> = { ...prev };
+    const collectColumns: Record<string, CollectColumn[]> = { ...prev };
     for (const t in newCollectColumns) {
       const _columns = newCollectColumns[t];
       if (!(t in collectColumns)) {
         collectColumns[t] = _columns;
         continue;
       }
+      // merge _columns with collectColumns[t]
+      const updatedColumns = _columns.map((c) => {
+        const existing = collectColumns[t].findIndex((x) => x.column === c.column);
+        if (existing === -1) return c;
+        if (c.lensType) collectColumns[t][existing].lensType = c.lensType;
+        return null;
+      }).filter((c): c is CollectColumn => c !== null)
       collectColumns[t].push(
-        ..._columns.filter((c) => !collectColumns[t].includes(c))
+        ...updatedColumns
       );
     }
     return collectColumns;
@@ -633,7 +656,7 @@ export const bfsTraversal = async (
     SetStateAction<{ confidence: string; operator_list?: string[] | undefined }>
   >,
   setMoreTables: Dispatch<SetStateAction<TMoreTables>>,
-  setCollectColumns: Dispatch<SetStateAction<Record<string, string[]>>>,
+  setCollectColumns: Dispatch<SetStateAction<Record<string, CollectColumn[]>>>,
   flow: ReactFlowInstance,
   selectedColumn: SelectedColumn,
   edgeVisibility: EdgeVisibility
@@ -787,13 +810,13 @@ export const moveTableFromSeeMoreToCanvas = (
     const dst = getColumnId(e.target[0], e.target[1]);
     if (right) {
       if (e.target[0] !== table) return;
-      nodes.push(createColumnNode(e.target[0], e.target[1]));
+      nodes.push(createColumnNode(e.target[0], e.target[1], e.lensType));
       edges.push(
         createColumnEdge(src, dst, level! - 1, level!, e.type, edgeVisibility)
       );
     } else {
       if (e.source[0] !== table) return;
-      nodes.push(createColumnNode(e.source[0], e.source[1]));
+      nodes.push(createColumnNode(e.source[0], e.source[1], e.lensType));
       edges.push(
         createColumnEdge(src, dst, level!, level! + 1, e.type, edgeVisibility)
       );
@@ -832,4 +855,106 @@ export const calculateNodeCount = async (
     level + rightExpansion
   );
   return newNodes.length - startingNodesNum;
+};
+
+const getTracedNode = (
+  node: Node,
+  nodes: Node[],
+  edges: Edge[],
+  isIncomer: boolean
+) => {
+  if (!isNode(node)) {
+    return {nodes: [], edgeIds: []};
+  }
+
+  const tracedEdges = edges
+    .filter((e) => {
+      const id = isIncomer ? e.target : e.source;
+
+      return id === node.id;
+    })
+
+  return {nodes: nodes.filter((n) =>
+    tracedEdges
+      .find(e => e.source === n.id || e.target === n.id)
+  ), edgeIds: tracedEdges.map((e) => (getColumnEdgeId(e.source, e.target)))};
+};
+
+export const getAllTracedNodes = (
+  node: Node,
+  nodes: Node[],
+  edges: Edge[],
+  prevTraced = [] as Node[],
+  isIncomer: boolean
+) => {
+  const {nodes: tracedNodes, edgeIds} = getTracedNode(node, nodes, edges, isIncomer);
+
+  return tracedNodes.reduce((memo, tracedNode) => {
+    memo.nodes.push(tracedNode);
+    memo.edges = Array.from(new Set([...memo.edges, ...edgeIds]));
+
+    if (prevTraced.findIndex((n) => n.id == tracedNode.id) === -1) {
+      prevTraced.push(tracedNode);
+
+      const {nodes: _nodes, edges: _edgeIds} = getAllTracedNodes(
+        tracedNode,
+        nodes,
+        edges,
+        prevTraced,
+        isIncomer
+      );
+      _nodes.forEach((foundNode) => {
+        memo.nodes.push(foundNode);
+
+        if (prevTraced.findIndex((n) => n.id == foundNode.id) === -1) {
+          prevTraced.push(foundNode);
+        }
+      });
+      memo.edges = Array.from(new Set([...memo.edges, ..._edgeIds]));
+    }
+
+    return memo;
+  }, {nodes: [] as Node[], edges: [] as string[]});
+};
+
+export const highlightColumnConnections = (
+  node: Node,
+  flow: ReactFlowInstance,
+) => {
+  const nodes = flow.getNodes().filter((n) => isColumn(n));
+  const edges = flow.getEdges();
+  
+  // TODO check why styles are not applied when nodes and edges are directly from flow instance
+  nodes.forEach((n) => {
+    const node = flow.getNode(n.id);
+    if (node) {
+      applyNodeStyling(node, false);
+    }
+  });
+  edges.forEach((e) => {
+    const edge = flow.getEdge(e.id);
+    if (edge) {
+      edge.hidden = true;
+      applyEdgeStyling(edge, false);
+    }
+  });
+
+  const incomingNodes = getAllTracedNodes(node, nodes, edges, [], true);
+  const outgoingNodes = getAllTracedNodes(node, nodes, edges, [], false);
+
+  [incomingNodes, outgoingNodes].forEach(({ nodes: tracedNodes, edges }) => {
+    tracedNodes.forEach((n) => {
+      const node = flow.getNode(n.id);
+      if (node) {
+        applyNodeStyling(node, true);
+      }
+    });
+    edges.forEach((edgeId) => {
+      const edge = flow.getEdge(edgeId);
+      if (edge) {
+      edge.hidden = false;
+      applyEdgeStyling(edge, true);
+      }
+    });
+  });
 };

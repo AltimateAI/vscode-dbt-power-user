@@ -30,7 +30,7 @@ import { ColorTag } from "./components/Tags";
 import ExpandLineageIcon from "./assets/icons/expand-lineage.svg?react";
 import Preview from "./assets/icons/preview.svg?react";
 import { CustomInput } from "./components/Form";
-import { defaultEdgeStyle, isNotColumn } from "./utils";
+import { defaultEdgeStyle, isNotColumn, toggleColumnEdges, toggleModelEdges } from "./utils";
 import PurposeSection from "./components/Purpose";
 
 const PreviewIcon = () => {
@@ -239,6 +239,7 @@ const TableDetails = () => {
       return;
     }
 
+    
     // remove column selection when already selected
     if (
       selectedColumn.table === _column.table &&
@@ -248,6 +249,10 @@ const TableDetails = () => {
         flow.getNodes(),
         flow.getEdges()
       );
+      // Model edges will be hidden when column lineage is selected, so unhide them
+      toggleModelEdges(_edges, true);
+      toggleColumnEdges(_edges, true);
+
       flow.setNodes(_nodes);
       flow.setEdges(_edges);
       setSelectedColumn({ table: "", name: "" });
@@ -264,6 +269,10 @@ const TableDetails = () => {
     // expand 1st level if not already
     let _nodes = flow.getNodes();
     let _edges = flow.getEdges();
+    // Model edges should be hidden when column lineage is selected
+    toggleModelEdges(_edges, false);
+    toggleColumnEdges(_edges, true);
+    
     const addNodesEdges = async (right: boolean) => {
       [_nodes, _edges] = await expandTableLineage(
         _nodes,
