@@ -88,7 +88,7 @@ export class SqlPreviewContentProvider
       }
       this.telemetry.sendTelemetryEvent("requestCompilation");
       // TODO: figure out why this one needs to be commented
-      // await project.refreshProjectConfig();
+      await project.refreshProjectConfig();
       const result = await project.unsafeCompileQuery(query, modelName);
       const { manifestPathType } =
         this.deferToProdService.getDeferConfigByProjectRoot(

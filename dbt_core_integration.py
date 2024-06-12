@@ -371,6 +371,15 @@ class DbtProject:
         self.config = RuntimeConfig.from_args(self.args)
         if hasattr(self.config, "source_paths"):
             self.config.model_paths = self.config.source_paths
+        
+    def create_parser(self) -> None:
+        project_parser = ManifestLoader(
+            self.config,
+            self.config.load_dependencies(),
+            self.adapter.connections.set_query_header,
+        )
+        self.dbt = project_parser.load()
+        project_parser.save_macros_to_adapter(self.adapter)
 
     def init_project(self):
         try:
@@ -381,6 +390,7 @@ class DbtProject:
                 from dbt.context.providers import generate_runtime_macro_context
                 self.adapter.set_macro_context_generator(generate_runtime_macro_context)
             self.config.adapter = self.adapter
+            self.create_parser()
         except Exception as e:
             # reset project
             self.config = None
@@ -389,13 +399,7 @@ class DbtProject:
 
     def parse_project(self) -> None:
         try:
-            project_parser = ManifestLoader(
-                self.config,
-                self.config.load_dependencies(),
-                self.adapter.connections.set_query_header,
-            )
-            self.dbt = project_parser.load()
-            project_parser.save_macros_to_adapter(self.adapter)
+            self.create_parser()
             self.dbt.build_flat_graph()
         except Exception as e:
             # reset manifest
