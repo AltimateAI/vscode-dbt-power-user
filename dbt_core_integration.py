@@ -371,15 +371,6 @@ class DbtProject:
         self.config = RuntimeConfig.from_args(self.args)
         if hasattr(self.config, "source_paths"):
             self.config.model_paths = self.config.source_paths
-        
-    def create_parser(self) -> None:
-        project_parser = ManifestLoader(
-            self.config,
-            self.config.load_dependencies(),
-            self.adapter.connections.set_query_header,
-        )
-        self.dbt = project_parser.load()
-        project_parser.save_macros_to_adapter(self.adapter)
 
     def init_project(self):
         try:
@@ -410,6 +401,15 @@ class DbtProject:
         self._macro_parser = None
         self._sql_compiler = None
         self._sql_runner = None
+        
+    def create_parser(self) -> None:
+        project_parser = ManifestLoader(
+            self.config,
+            self.config.load_dependencies(),
+            self.adapter.connections.set_query_header,
+        )
+        self.dbt = project_parser.load()
+        project_parser.save_macros_to_adapter(self.adapter)
 
     def set_defer_config(
         self, defer_to_prod: bool, manifest_path: str, favor_state: bool
@@ -591,7 +591,7 @@ class DbtProject:
         if original_node is not None:
             if isinstance(original_node, str):
                 original_node = self.get_ref_node(original_node)
-            if original_node is not None and original_node.node_info["materialized"] == "incremental":
+            if original_node is not None and "materialized" in original_node.node_info.keys() and original_node.node_info["materialized"] == "incremental":
                 sql_node.schema = original_node.schema
                 sql_node.database = original_node.database
                 sql_node.alias = original_node.alias
