@@ -20,7 +20,15 @@ import {
 } from "./graph";
 import { LineageContext } from "./App";
 import { CLL, openFile } from "./service_utils";
-import { getColumnId, getColY, getSeeMoreId, LENS_TYPE_COLOR, LensTypes, toggleColumnEdges, toggleModelEdges } from "./utils";
+import {
+  getColumnId,
+  getColY,
+  getSeeMoreId,
+  LENS_TYPE_COLOR,
+  LensTypes,
+  toggleColumnEdges,
+  toggleModelEdges,
+} from "./utils";
 import { TMoreTables } from "./MoreTables";
 
 import TestsIcon from "./assets/icons/tests.svg?react";
@@ -33,7 +41,7 @@ import {
   NodeTypeIcon,
   TableNodePill,
 } from "./components/Column";
-import { Badge } from "reactstrap";
+import { LensTypeBadge } from "./components";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -84,7 +92,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     nodeType,
     tests,
     materialization,
-    isExternalProject
+    isExternalProject,
   } = data;
   const flow = useReactFlow();
 
@@ -152,7 +160,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
         // Model edges should be hidden when column lineage is selected
         toggleModelEdges(currentEdges, false);
         toggleColumnEdges(currentEdges, true);
-        flow.setEdges(currentEdges)
+        flow.setEdges(currentEdges);
         await bfsTraversal(
           nodes,
           edges,
@@ -284,12 +292,14 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                   label="Materialization"
                 />
               )}
-              {isExternalProject ? <TableNodePill
+              {isExternalProject ? (
+                <TableNodePill
                   id={"table-node-is-external-" + tableId}
                   icon={<ExternalProjectIcon />}
                   text="ext"
                   label={`External Project: ${table}`}
-                /> : null}
+                />
+              ) : null}
               <div className="spacer" />
               <div
                 className={classNames(
@@ -374,26 +384,23 @@ export const SelfConnectingEdge: FunctionComponent<EdgeProps> = (props) => {
 
 export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
   const { column, table, lensType } = data;
-  const { selectedColumn, setSelectedTable, setSelectedColumn } = useContext(LineageContext);
+  const { selectedColumn, setSelectedTable, setSelectedColumn } =
+    useContext(LineageContext);
   const isSelected =
     selectedColumn.table === table && selectedColumn.name === column;
 
   const lensColor = lensType && LENS_TYPE_COLOR[lensType as LensTypes];
-  const customStyles =
-    lensColor ? { borderColor: lensColor } : {};
+  const customStyles = lensColor ? { borderColor: lensColor } : {};
   const flow = useReactFlow();
 
   const handleClick = () => {
     const currentNode = flow.getNode(getColumnId(table, column));
-    if (!currentNode){
+    if (!currentNode) {
       return;
     }
-    setSelectedTable("")
-    setSelectedColumn({name: column, table});
-     highlightColumnConnections(
-      currentNode,
-      flow,
-    );
+    setSelectedTable("");
+    setSelectedColumn({ name: column, table });
+    highlightColumnConnections(currentNode, flow);
   };
 
   return (
@@ -407,11 +414,9 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
     >
       <div className={styles.column_name}>{column}</div>
       <BidirectionalHandles />
-      {lensColor ? (
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        <Badge style={{ "--lens-color": lensColor }} className={styles.column_badge}>{lensType[0]}</Badge>
-      ) : null}
+      <div className={styles.column_top_right}>
+        {lensType && <LensTypeBadge lensType={lensType} />}
+      </div>
     </div>
   );
 };

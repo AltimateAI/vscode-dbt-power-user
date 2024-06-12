@@ -211,23 +211,17 @@ $size: 1.2em;
     background: var(--column-node-bg);
   }
 
-  .column_name{
+  .column_name {
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
   }
 
-  .column_badge{
+  .column_top_right {
     position: absolute;
     top: -6px;
     right: 4px;
-    background-color: var(--lens-color) !important;
-    font-size: 6px;
-    text-transform: capitalize;
-    width: 13px;
-    height: 13px;
-    line-height: 1.67;
-  }  
+  }
 }
 
 .divider {
@@ -395,46 +389,3 @@ $size: 1.2em;
     }
   }
 }
-.lineage_legend {
-  position: absolute;
-  bottom: 1rem;
-  left: 3.5rem;
-  z-index: 4;
-  background-color: var(--card-bg) !important;
-  color: var(--text-color) !important;
-  border: 1px solid var(--input-border-color) !important;
-  border-radius: 5px !important;
-  font-size: 10px !important;
-  padding: 6px !important;
-
-  svg{
-    margin-left: 0.6rem;
-    vertical-align: baseline;
-  }
-}
-
-.column_legend {
-  :global .popover {
-    border-radius: 2px;
-    background-color: #ffffff;
-    text-transform: capitalize;
-    border: 1px solid #D5DBE4;
-  :global .popover-body {
-    padding: 0.5rem 1rem;
-  > div{
-    margin-bottom: 1rem;
-    font-size: 10px;
-  }}
-  }
-  .dot {
-    width: 0.75rem;
-    height: 0.75rem;
-    border-radius: 50%;
-    display: inline-block;
-    vertical-align: text-bottom;
-    margin-right: 0.4rem;
-    color: #fff;
-    text-align: center;
-    font-size: 8px;
-  }
-}        
