@@ -59,7 +59,7 @@ export function LensCodeModal() {
                   {src}
                   {lensCodeModal.lensCode[src].map((code) => (
                     <div key={code}>
-                      <pre className="mb-0">
+                      <pre className="mb-0 p-2">
                         <code
                           className={classNames(
                             "language-sql",
