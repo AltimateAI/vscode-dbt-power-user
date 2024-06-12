@@ -56,10 +56,15 @@ export function LensCodeModal() {
             {Object.keys(lensCodeModal.lensCode).map((src) => {
               return (
                 <div key={src} className={styles.modal_lens_code_container}>
-                  {src}
+                  {flow.getNode(src.split("/")[0])?.data?.label}
                   {lensCodeModal.lensCode[src].map((code) => (
                     <div key={code}>
-                      <pre className="mb-0 p-2">
+                      <pre
+                        className={classNames(
+                          "mb-0 p-2",
+                          styles.code_editor_container
+                        )}
+                      >
                         <code
                           className={classNames(
                             "language-sql",
