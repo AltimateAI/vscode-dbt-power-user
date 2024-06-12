@@ -52,6 +52,11 @@ html[data-theme="dark"] {
   --divider-color: #424750;
 }
 
+html[data-theme="dark"] .bs-modal {
+  --bs-modal-bg: #28292c !important;
+  --bs-modal-color: #ffffff !important;
+}
+
 body {
   padding: 0;
   color: var(--text-color);

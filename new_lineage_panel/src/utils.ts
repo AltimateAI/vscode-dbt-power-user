@@ -115,11 +115,12 @@ export const createColumnNode = (
   t: string,
   c: string,
   lensType: LensTypes | undefined,
-  lensCode: Record<string, string[]>
+  lensCode: Record<string, string[]>,
+  nodeType: string
 ): Node => {
   return {
     id: getColumnId(t, c),
-    data: { column: c, table: t, lensType, lensCode },
+    data: { column: c, table: t, lensType, lensCode, nodeType },
     parentNode: t,
     extent: "parent",
     draggable: false,

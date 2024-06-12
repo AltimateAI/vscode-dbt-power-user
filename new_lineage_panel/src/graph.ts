@@ -323,6 +323,7 @@ export const removeRelatedNodesEdges = (
 };
 
 const processColumnLineage = async (
+  prevNodes: Node[],
   levelMap: Record<string, number>,
   seeMoreIdTableReverseMap: Record<string, string>,
   tableNodes: Record<string, boolean>,
@@ -457,7 +458,15 @@ const processColumnLineage = async (
           if (e.type === "indirect") return;
           lensCodes[e.source.join("/")] = e.lensCode || [];
         });
-      nodes.push(createColumnNode(t, c.column, c.lensType, lensCodes));
+      nodes.push(
+        createColumnNode(
+          t,
+          c.column,
+          c.lensType,
+          lensCodes,
+          prevNodes.find((n) => (n.id = t))?.data?.nodeType
+        )
+      );
     }
   }
 
@@ -764,6 +773,7 @@ export const bfsTraversal = async (
       currAnd1HopTables.push(...ephemeralAncestors[t].map((c) => c[0]));
     });
     const patchState = await processColumnLineage(
+      nodes,
       levelMap,
       seeMoreIdTableReverseMap,
       tableNodes,
@@ -833,7 +843,13 @@ export const moveTableFromSeeMoreToCanvas = (
     if (right) {
       if (e.target[0] !== table) return;
       nodes.push(
-        createColumnNode(e.target[0], e.target[1], e.lensType, lensCodes)
+        createColumnNode(
+          e.target[0],
+          e.target[1],
+          e.lensType,
+          lensCodes, // TODO: fix
+          _table.nodeType // TODO: fix
+        )
       );
       edges.push(
         createColumnEdge(src, dst, level! - 1, level!, e.type, edgeVisibility)
@@ -841,7 +857,13 @@ export const moveTableFromSeeMoreToCanvas = (
     } else {
       if (e.source[0] !== table) return;
       nodes.push(
-        createColumnNode(e.source[0], e.source[1], e.lensType, lensCodes)
+        createColumnNode(
+          e.source[0],
+          e.source[1],
+          e.lensType,
+          lensCodes, // TODO: fix
+          _table.nodeType // TODO: fix
+        )
       );
       edges.push(
         createColumnEdge(src, dst, level!, level! + 1, e.type, edgeVisibility)

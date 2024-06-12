@@ -383,7 +383,7 @@ export const SelfConnectingEdge: FunctionComponent<EdgeProps> = (props) => {
 };
 
 export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
-  const { column, table, lensType, lensCode } = data;
+  const { column, table, lensType, lensCode, nodeType } = data;
   const {
     selectedColumn,
     setSelectedTable,
@@ -429,6 +429,7 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
                 table,
                 lensType,
                 lensCode,
+                nodeType
               });
             }}
           >

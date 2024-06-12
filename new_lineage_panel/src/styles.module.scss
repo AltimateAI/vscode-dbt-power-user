@@ -392,7 +392,7 @@ $size: 1.2em;
 
 .model_lens_type {
   padding: 0.5rem;
-  background-color: #f5f6f7;
+  background-color: var(--card-bg);
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -401,7 +401,7 @@ $size: 1.2em;
 
 .modal_lens_code_container {
   padding: 0.5rem;
-  background-color: #f5f6f7;
+  background-color: var(--card-bg);
   border-radius: 6px;
   display: flex;
   flex-direction: column;
@@ -409,7 +409,7 @@ $size: 1.2em;
 }
 
 .close_button {
-  background-color: #247efe;
+  background-color: var(--primary-accent);
   padding: 0.5rem;
   position: absolute;
   top: 0;

@@ -90,6 +90,7 @@ type LensCodeModal = {
   table: string;
   lensType: LensTypes;
   lensCode: Record<string, string[]>;
+  nodeType: string;
 };
 
 const noop = () => {};
