@@ -28,10 +28,10 @@ export const LENS_TYPE_COLOR = {
   Alias: "#40C8AE",
   Transformation: "#FF754C",
   Unchanged: "#BC3FBC",
-  "Not sure": "#247efe"
+  "Not sure": "#247efe",
 };
 
-export type CollectColumn = {column: string, lensType?: LensTypes}
+export type CollectColumn = { column: string; lensType?: LensTypes };
 export type LensTypes = keyof typeof LENS_TYPE_COLOR;
 
 export const defaultEdgeStyle: React.CSSProperties = {
@@ -91,8 +91,8 @@ export const createTableEdge = (
       n1 === n2
         ? "selfConnecting"
         : n1Level === n2Level
-        ? "smoothstep"
-        : "default",
+          ? "smoothstep"
+          : "default",
   };
 };
 
@@ -111,10 +111,15 @@ export const createTableNode = (
   };
 };
 
-export const createColumnNode = (t: string, c: string, lensType?: LensTypes): Node => {
+export const createColumnNode = (
+  t: string,
+  c: string,
+  lensType: LensTypes | undefined,
+  lensCode: Record<string, string[]>
+): Node => {
   return {
     id: getColumnId(t, c),
-    data: { column: c, table: t, lensType },
+    data: { column: c, table: t, lensType, lensCode },
     parentNode: t,
     extent: "parent",
     draggable: false,
@@ -157,12 +162,15 @@ export const createColumnEdge = (
 export const getColumnEdgeId = (source: string, target: string) =>
   COLUMN_PREFIX + `${source}-${target}`;
 
-
 export const applyNodeStyling = (n: Node, highlight: boolean) => {
-  n.style = { opacity: highlight ? 1  : 0.5 }
-}
-  export const applyEdgeStyling = (e: Edge, highlight: boolean) => {
-  e.style = highlight ? e.data?.type === "indirect" ? indirectHighlightEdgeStyle : highlightEdgeStyle : defaultEdgeStyle;
+  n.style = { opacity: highlight ? 1 : 0.5 };
+};
+export const applyEdgeStyling = (e: Edge, highlight: boolean) => {
+  e.style = highlight
+    ? e.data?.type === "indirect"
+      ? indirectHighlightEdgeStyle
+      : highlightEdgeStyle
+    : defaultEdgeStyle;
   e.markerEnd = highlight ? highlightMarker : defaultMarker;
 };
 

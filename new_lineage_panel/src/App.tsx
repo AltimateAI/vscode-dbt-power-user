@@ -56,6 +56,7 @@ import { ActionWidget } from "./ActionWidget";
 import {
   CollectColumn,
   DEFAULT_MIN_ZOOM,
+  LensTypes,
   createTableNode,
   toggleColumnEdges,
   toggleModelEdges,
@@ -63,6 +64,7 @@ import {
 import { Settings } from "./Settings";
 import { Table, getLineageSettings } from "./service";
 import { LineageLegend } from "./components";
+import { LensCodeModal } from "./Modals";
 
 export let aiEnabled = false;
 export let isDarkMode = false;
@@ -83,6 +85,12 @@ export interface MissingLineageMessage {
   message: string;
   type: "warning" | "error";
 }
+
+type LensCodeModal = {
+  table: string;
+  lensType: LensTypes;
+  lensCode: Record<string, string[]>;
+};
 
 const noop = () => {};
 
@@ -116,6 +124,8 @@ export const LineageContext = createContext<{
   setNonSelectCheck: Dispatch<boolean>;
   defaultExpansion: number;
   setDefaultExpansion: Dispatch<number>;
+  lensCodeModal: LensCodeModal | null;
+  setLensCodeModal: Dispatch<SetStateAction<LensCodeModal | null>>;
 }>({
   selectedTable: "",
   setSelectedTable: noop,
@@ -144,6 +154,8 @@ export const LineageContext = createContext<{
   setNonSelectCheck: noop,
   defaultExpansion: 0,
   setDefaultExpansion: noop,
+  lensCodeModal: null,
+  setLensCodeModal: noop,
 });
 
 function App() {
@@ -174,6 +186,9 @@ function App() {
   const [defaultExpansion, setDefaultExpansion] = useState(5);
   const [nodeCount, setNodeCount] = useState(0);
   const [minRange, setMinRange] = useState<[number, number]>([0, 0]);
+  const [lensCodeModal, setLensCodeModal] = useState<LensCodeModal | null>(
+    null
+  );
 
   useEffect(() => {
     const render = async (args: {
@@ -336,6 +351,8 @@ function App() {
         setNonSelectCheck,
         defaultExpansion,
         setDefaultExpansion,
+        lensCodeModal,
+        setLensCodeModal,
       }}
     >
       <PopoverContext.Provider value={{ isOpen, setIsOpen }}>
@@ -390,6 +407,7 @@ function App() {
             <Modal isOpen={showDemoModal} close={() => setShowDemoModal(false)}>
               <Demo />
             </Modal>
+            <LensCodeModal />
           </div>
         </ReactFlowProvider>
       </PopoverContext.Provider>

@@ -671,6 +671,7 @@ export class NewLineagePanel implements LineagePanelView {
           target: [c.target.uniqueId, c.target.column_name],
           type: c.type,
           lensType: c.lens_type,
+          lensCode: c.lens_code,
         })) || [];
       return { column_lineage, confindence: result.confidence };
     } catch (error) {

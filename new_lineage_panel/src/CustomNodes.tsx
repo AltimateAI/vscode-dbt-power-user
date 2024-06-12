@@ -383,9 +383,13 @@ export const SelfConnectingEdge: FunctionComponent<EdgeProps> = (props) => {
 };
 
 export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
-  const { column, table, lensType } = data;
-  const { selectedColumn, setSelectedTable, setSelectedColumn } =
-    useContext(LineageContext);
+  const { column, table, lensType, lensCode } = data;
+  const {
+    selectedColumn,
+    setSelectedTable,
+    setSelectedColumn,
+    setLensCodeModal,
+  } = useContext(LineageContext);
   const isSelected =
     selectedColumn.table === table && selectedColumn.name === column;
 
@@ -415,7 +419,22 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
       <div className={styles.column_name}>{column}</div>
       <BidirectionalHandles />
       <div className={styles.column_top_right}>
-        {lensType && <LensTypeBadge lensType={lensType} />}
+        {lensType && (
+          <div
+            className="cursor-default"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (Object.keys(lensCode).length === 0) return;
+              setLensCodeModal({
+                table,
+                lensType,
+                lensCode,
+              });
+            }}
+          >
+            <LensTypeBadge lensType={lensType} />
+          </div>
+        )}
       </div>
     </div>
   );

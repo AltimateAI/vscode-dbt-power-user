@@ -30,6 +30,7 @@ export interface ColumnLineage {
   target: { uniqueId: string; column_name: string };
   type: string;
   lens_type?: string;
+  lens_code?: string[];
 }
 
 interface Schemas {

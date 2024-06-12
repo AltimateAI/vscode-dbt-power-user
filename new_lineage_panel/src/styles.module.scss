@@ -389,3 +389,34 @@ $size: 1.2em;
     }
   }
 }
+
+.model_lens_type {
+  padding: 0.5rem;
+  background-color: #f5f6f7;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modal_lens_code_container {
+  padding: 0.5rem;
+  background-color: #f5f6f7;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.close_button {
+  background-color: #247efe;
+  padding: 0.5rem;
+  position: absolute;
+  top: 0;
+  right: 0;
+  cursor: pointer;
+  svg {
+    width: 1rem;
+    height: 1rem;
+  }
+}

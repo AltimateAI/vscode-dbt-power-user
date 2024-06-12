@@ -1,4 +1,4 @@
-import { LENS_TYPE_COLOR } from "../utils";
+import { LENS_TYPE_COLOR, LensTypes } from "../utils";
 import styles from "./styles.module.scss";
 import { Button, Popover, PopoverBody } from "reactstrap";
 import { FunctionComponent, useState } from "react";
@@ -14,8 +14,7 @@ export const LensTypeBadge: FunctionComponent<{
       style={{
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        "--lens-color":
-          LENS_TYPE_COLOR[lensType as keyof typeof LENS_TYPE_COLOR],
+        "--lens-color": LENS_TYPE_COLOR[lensType as LensTypes],
       }}
       className={styles.lens_type_badge}
     >

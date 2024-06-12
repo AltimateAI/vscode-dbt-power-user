@@ -172,6 +172,10 @@ body {
   cursor: pointer;
 }
 
+.cursor-default {
+  cursor: default;
+}
+
 .tooltip-container {
   position: relative;
   display: flex;
