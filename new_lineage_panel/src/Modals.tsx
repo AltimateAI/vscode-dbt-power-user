@@ -13,7 +13,9 @@ import classNames from "classnames";
 export function LensCodeModal() {
   const { lensCodeModal, setLensCodeModal } = useContext(LineageContext);
   useEffect(() => {
-    Prism.highlightAll(true, console.log);
+    setTimeout(() => {
+      Prism.highlightAll(true, (e) => console.log("thisisisisisis", e));
+    }, 500);
   }, [lensCodeModal]);
 
   const flow = useReactFlow();
