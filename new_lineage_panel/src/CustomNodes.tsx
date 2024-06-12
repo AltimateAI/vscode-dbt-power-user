@@ -18,7 +18,7 @@ import {
   highlightTableConnections,
   layoutElementsOnCanvas,
 } from "./graph";
-import { LineageContext } from "./App";
+import { LineageContext, StaticLineageContext } from "./Lineage";
 import { CLL, openFile } from "./service_utils";
 import {
   getColumnId,
@@ -79,6 +79,38 @@ const BidirectionalHandles = () => (
       isConnectable={false}
       position={Position.Right}
       style={{ right: HANDLE_OFFSET }}
+    />
+    <Handle
+      id="top"
+      type="source"
+      className="invisible"
+      isConnectable={false}
+      position={Position.Top}
+      style={{ top: HANDLE_OFFSET }}
+    />
+    <Handle
+      id="bottom"
+      type="source"
+      className="invisible"
+      isConnectable={false}
+      position={Position.Bottom}
+      style={{ bottom: HANDLE_OFFSET }}
+    />
+    <Handle
+      id="top"
+      type="target"
+      className="invisible"
+      isConnectable={false}
+      position={Position.Top}
+      style={{ top: HANDLE_OFFSET }}
+    />
+    <Handle
+      id="bottom"
+      type="target"
+      className="invisible"
+      isConnectable={false}
+      position={Position.Bottom}
+      style={{ bottom: HANDLE_OFFSET }}
     />
   </>
 );
@@ -346,6 +378,75 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
         )}
       </div>
 
+      <BidirectionalHandles />
+    </div>
+  );
+};
+
+export const StaticTableNode: FunctionComponent<NodeProps> = ({ data }) => {
+  const { table, nodeType } = data;
+
+  const { selectedColumn, collectColumns, detailColumns, setSelectedTable } =
+    useContext(StaticLineageContext);
+
+  const _columnLen = Object.keys(collectColumns[table] || {}).length;
+  const _showColumns = _columnLen > 0;
+  const selected = selectedColumn?.table === table;
+  const nType = nodeType as keyof typeof NODE_TYPE_SHORTHAND;
+
+  return (
+    <div
+      className="position-relative"
+      style={{
+        opacity: !selectedColumn ? 1 : _showColumns ? 1 : 0.5,
+      }}
+    >
+      <div className={styles.table_node}>
+        <div
+          className={classNames(
+            styles.header,
+            "d-flex flex-column align-items-start",
+            {
+              [styles.selected]: selected,
+              [styles.collapse]: !_showColumns,
+            }
+          )}
+        >
+          <div className={styles.table_header}>
+            <div
+              className={classNames(styles.node_icon, NODE_TYPE_STYLES[nType])}
+            >
+              <NodeTypeIcon nodeType={nType} />
+              <div>{NODE_TYPE_SHORTHAND[nType]}</div>
+            </div>
+            <div className="lines-2">{table}</div>
+          </div>
+          <div
+            className={classNames(
+              "nodrag ms-3",
+              detailColumns ? "text-primary" : "text-muted"
+            )}
+          >
+            <span
+              className={!detailColumns ? styles.cursor_disabled : ""}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedTable(table);
+              }}
+            >
+              View Details
+            </span>
+          </div>
+        </div>
+        {_showColumns && (
+          <div
+            className={classNames(styles.content, {
+              [styles.selected]: selected,
+            })}
+            style={{ height: getColY(_columnLen) }}
+          />
+        )}
+      </div>
       <BidirectionalHandles />
     </div>
   );

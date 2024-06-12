@@ -67,7 +67,6 @@ import { LineageLegend } from "./components";
 import { ViewsCodeModal } from "./Modals";
 
 export let aiEnabled = false;
-export let isDarkMode = false;
 
 const nodeTypes: NodeTypes = {
   table: TableNode,
@@ -160,7 +159,29 @@ export const LineageContext = createContext<{
   setViewsCodeModal: noop,
 });
 
-function App() {
+export type DetailColumns = Record<
+  string,
+  {
+    columns: { name: string; datatype?: string; expression?: string }[];
+    sql: string;
+  }
+>;
+
+export const StaticLineageContext = createContext<{
+  collectColumns: Record<string, CollectColumn[]>;
+  selectedColumn: { table: string; name: string } | undefined;
+  detailColumns: DetailColumns;
+  selectedTable: string;
+  setSelectedTable: Dispatch<SetStateAction<string>>;
+}>({
+  collectColumns: {},
+  selectedColumn: undefined,
+  detailColumns: {},
+  selectedTable: "",
+  setSelectedTable: noop,
+});
+
+export const Lineage = () => {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState("");
@@ -259,7 +280,6 @@ function App() {
     };
 
     const setTheme = ({ theme }: { theme: string }) => {
-      isDarkMode = theme === "dark";
       document.documentElement.setAttribute("data-theme", theme);
       rerender();
     };
@@ -415,6 +435,4 @@ function App() {
       </PopoverContext.Provider>
     </LineageContext.Provider>
   );
-}
-
-export default App;
+};

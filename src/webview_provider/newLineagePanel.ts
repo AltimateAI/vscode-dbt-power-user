@@ -966,7 +966,8 @@ function getHtml(webview: Webview, extensionUri: Uri) {
     .replace(/\/__ROOT__/g, resourceDir)
     .replace(/__ROOT__/g, resourceDir)
     .replace(/__NONCE__/g, getNonce())
-    .replace(/__CSPSOURCE__/g, webview.cspSource);
+    .replace(/__CSPSOURCE__/g, webview.cspSource)
+    .replace(/__LINEAGE_TYPE__/g, "dynamic");
 }
 
 /** Used to enforce a secure CSP */

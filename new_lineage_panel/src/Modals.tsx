@@ -1,6 +1,6 @@
 import { useContext, useEffect, useMemo } from "react";
 import { ViewsTypeBadge } from "./components";
-import { LineageContext } from "./App";
+import { LineageContext } from "./Lineage";
 import { Modal, ModalBody } from "reactstrap";
 import styles from "./styles.module.scss";
 import { HeaderSection } from "./TableDetails";

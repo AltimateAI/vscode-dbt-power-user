@@ -3,7 +3,7 @@ import styles from "./styles.module.scss";
 import classNames from "classnames";
 import { useReactFlow } from "reactflow";
 import { layoutElementsOnCanvas, moveTableFromSeeMoreToCanvas } from "./graph";
-import { LineageContext } from "./App";
+import { LineageContext } from "./Lineage";
 import { ColumnLineage, Table } from "./service";
 import { CustomInput } from "./components/Form";
 import TestsIcon from "./assets/icons/tests.svg?react";

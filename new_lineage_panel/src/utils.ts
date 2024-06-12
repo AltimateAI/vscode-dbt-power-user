@@ -16,7 +16,9 @@ export const C_OFFSET_Y = T_NODE_H;
 const C_NODE_H = 30;
 const C_PADDING_Y = 4;
 export const T_LEVEL_SEPARATION = 280;
+export const LEVEL_SEPARATION_VERTICAL = 80;
 export const T_NODE_Y_SEPARATION = 80;
+export const T_NODE_Y_SEPARATION_VERTICAL = 250;
 
 export const DEFAULT_MIN_ZOOM = 0.05;
 // node styles
@@ -69,17 +71,40 @@ export const isSeeMore = (x: { id: string }) =>
 export const isNotColumn = (x: { id: string }) =>
   !x.id.startsWith(COLUMN_PREFIX);
 
+export const getSourceTargetHandles = (
+  l0: number,
+  l1: number,
+  isVertical: boolean
+) => {
+  if (isVertical) {
+    if (l0 < l1) return ["bottom", "top"];
+    if (l0 > l1) return ["top", "bottom"];
+    if (l0 < 0) return ["top", "top"];
+    return ["bottom", "bottom"];
+  }
+  if (l0 < l1) return ["right", "left"];
+  if (l0 > l1) return ["left", "right"];
+  if (l0 < 0) return ["left", "left"];
+  return ["right", "right"];
+};
+
 export const createTableEdge = (
   n1Level: number,
   n2Level: number,
   n1: string,
   n2: string,
-  right: boolean
+  right: boolean,
+  isVertical = false
 ): Edge => {
   const [src, dst] = right ? [n1, n2] : [n2, n1];
-  const [sourceHandle, targetHandle] = right
-    ? getSourceTargetHandles(n1Level, n2Level)
-    : getSourceTargetHandles(n2Level, n1Level);
+  let [sourceHandle, targetHandle] = isVertical
+    ? ["bottom", "top"]
+    : ["right", "left"];
+  if (n1 !== n2) {
+    [sourceHandle, targetHandle] = right
+      ? getSourceTargetHandles(n1Level, n2Level, isVertical)
+      : getSourceTargetHandles(n2Level, n1Level, isVertical);
+  }
   return {
     id: `${src}-${dst}`,
     source: src,
@@ -144,7 +169,8 @@ export const createColumnEdge = (
   const edgeId = getColumnEdgeId(source, target);
   const [sourceHandle, targetHandle] = getSourceTargetHandles(
     srcLevel,
-    dstLevel
+    dstLevel,
+    false
   );
   return {
     id: edgeId,
@@ -174,16 +200,6 @@ export const applyEdgeStyling = (e: Edge, highlight: boolean) => {
       : highlightEdgeStyle
     : defaultEdgeStyle;
   e.markerEnd = highlight ? highlightMarker : defaultMarker;
-};
-
-export const getSourceTargetHandles = (
-  l0: number,
-  l1: number
-): ["left" | "right", "left" | "right"] => {
-  if (l0 < l1) return ["right", "left"];
-  if (l0 > l1) return ["left", "right"];
-  if (l0 < 0) return ["left", "left"];
-  return ["right", "right"];
 };
 
 export const getHelperDataForCLL = (nodes: Node[], edges: Edge[]) => {

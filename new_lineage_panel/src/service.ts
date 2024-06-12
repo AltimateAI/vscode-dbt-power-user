@@ -4,7 +4,7 @@ import { ViewsTypes } from "./utils";
 export type Table = {
   table: string;
   label: string;
-  url: string | undefined;
+  url?: string;
   nodeType: string;
   materialization?: string;
   downstreamCount: number;
@@ -15,7 +15,7 @@ export type Table = {
 export type Column = {
   name: string;
   table: string;
-  datatype: string;
+  datatype?: string;
   can_lineage_expand: boolean;
   description: string;
 };
