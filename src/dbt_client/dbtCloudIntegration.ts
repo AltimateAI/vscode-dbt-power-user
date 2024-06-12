@@ -236,7 +236,11 @@ export class DBTCloudProjectIntegration
     this.findAdapterType();
   }
 
-  async executeSQL(query: string, limit: number): Promise<QueryExecution> {
+  async executeSQL(
+    query: string,
+    limit: number,
+    modelName: string,
+  ): Promise<QueryExecution> {
     this.throwIfNotAuthenticated();
     this.throwBridgeErrorIfAvailable();
     const showCommand = this.dbtCloudCommand(
