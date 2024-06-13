@@ -14,7 +14,7 @@ export function LensCodeModal() {
   const { lensCodeModal, setLensCodeModal } = useContext(LineageContext);
   useEffect(() => {
     setTimeout(() => {
-      Prism.highlightAll(true, (e) => console.log("thisisisisisis", e));
+      Prism.highlightAll(true);
     }, 500);
   }, [lensCodeModal]);
 
@@ -59,25 +59,27 @@ export function LensCodeModal() {
               return (
                 <div key={src} className={styles.modal_lens_code_container}>
                   {flow.getNode(src.split("/")[0])?.data?.label}
-                  {lensCodeModal.lensCode[src].map((code) => (
-                    <div key={code}>
-                      <pre
-                        className={classNames(
-                          "mb-0 p-2",
-                          styles.code_editor_container
-                        )}
-                      >
-                        <code
+                  {lensCodeModal.lensCode[src]
+                    .filter(([, type]) => type === "transform")
+                    .map(([code]) => (
+                      <div key={code}>
+                        <pre
                           className={classNames(
-                            "language-sql",
-                            styles.code_editor
+                            "mb-0 p-2",
+                            styles.code_editor_container,
                           )}
                         >
-                          {code}
-                        </code>
-                      </pre>
-                    </div>
-                  ))}
+                          <code
+                            className={classNames(
+                              "language-sql",
+                              styles.code_editor,
+                            )}
+                          >
+                            {code}
+                          </code>
+                        </pre>
+                      </div>
+                    ))}
                 </div>
               );
             })}
