@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useContext } from "react";
+import React, { FunctionComponent, useContext, useMemo } from "react";
 import {
   BaseEdge,
   EdgeProps,
@@ -41,6 +41,7 @@ import {
   NodeTypeIcon,
   TableNodePill,
 } from "./components/Column";
+import CodeIcon from "./assets/icons/code.svg?react";
 import { ViewsTypeBadge } from "./components";
 
 const HANDLE_OFFSET = "-1px";
@@ -407,6 +408,21 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
     highlightColumnConnections(currentNode, flow);
   };
 
+  const viewsCodesFlat = useMemo(() => {
+    const arr = Object.values(
+      (viewsCode as Record<string, [string, string][]>) || {}
+    )
+      .flat()
+      .filter(([, type]) => type === "transform")
+      .map(([code]) => code);
+    const result: string[] = [];
+    for (const item of arr) {
+      if (result.includes(item)) continue;
+      result.push(item);
+    }
+    return result;
+  }, [viewsCode]);
+
   return (
     <div
       className={classNames(
@@ -419,12 +435,11 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
       <div className={styles.column_name}>{column}</div>
       <BidirectionalHandles />
       <div className={styles.column_top_right}>
-        {viewsType && (
+        {viewsCodesFlat.length > 0 && (
           <div
-            className="cursor-default"
+            className={styles.column_code_icon}
             onClick={(e) => {
               e.stopPropagation();
-              if (Object.keys(viewsCode).length === 0) return;
               setViewsCodeModal({
                 table,
                 viewsType,
@@ -434,9 +449,10 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
               });
             }}
           >
-            <ViewsTypeBadge viewsType={viewsType} />
+            <CodeIcon />
           </div>
         )}
+        {viewsType && <ViewsTypeBadge viewsType={viewsType} />}
       </div>
     </div>
   );
