@@ -10,5 +10,17 @@ body.lineageBody {
     .lineageWrap {
       flex: 1;
     }
+
+    .menu_card {
+      padding: 0.275em !important;
+      font-size: 0.875em;
+    }
+    
+    .menu_card_container {
+      background-color: var(--card-bg) !important;
+      border-color: var(--card-border-color) !important;
+      color: var(--text-color) !important;
+    }
+    
   }
 }
