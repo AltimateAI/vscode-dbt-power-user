@@ -21,7 +21,7 @@ export declare const CodeBlock: ({
   fileName,
   theme,
   showLineNumbers,
-}: Props_4) => JSX.Element;
+}: Props) => JSX.Element;
 
 export declare interface Conversation {
   timestamp: string;
@@ -65,7 +65,7 @@ export declare const ConversationGroupProvider: ({
   onResolve,
   onReplyAdd,
   source,
-}: Props_3) => JSX.Element | null;
+}: Props_4) => JSX.Element | null;
 
 export declare const ConversationInputForm: ({
   comment,
@@ -75,7 +75,7 @@ export declare const ConversationInputForm: ({
   currentUser,
   placeholder,
   onEnterKeypress,
-}: Props_2) => JSX_2.Element;
+}: Props_3) => JSX_2.Element;
 
 export declare enum ConversationSources {
   DBT_DOCS = "dbt-docs",
@@ -88,7 +88,7 @@ export declare const DbtDocs: ({
   userId,
   conversationGroupId,
   source,
-}: Props) => JSX_2.Element;
+}: Props_2) => JSX_2.Element;
 
 export declare interface DbtDocsShareDetails {
   catalog_presigned_url?: string;
@@ -96,14 +96,39 @@ export declare interface DbtDocsShareDetails {
   share_id: number;
 }
 
+export declare const Lineage: (
+  props: Omit<Parameters<typeof LineageProvider>["0"], "children">,
+) => JSX_2.Element;
+
+declare const LineageProvider: ({
+  renderNode,
+  theme,
+}: LineageProviderProps) => JSX_2.Element;
+
+declare interface LineageProviderProps {
+  renderNode: {
+    node?: Table;
+    aiEnabled: boolean;
+  };
+  theme: "dark" | "light";
+}
+
 declare interface Props {
+  code: string;
+  language: "sql" | "yaml" | "markdown" | "json" | "javascript";
+  fileName?: string;
+  showLineNumbers?: boolean;
+  theme?: "vs" | "vsc-dark-plus" | "solarizedLight";
+}
+
+declare interface Props_2 {
   shareId: number;
   userId?: number;
   conversationGroupId?: number;
   source: ConversationSources;
 }
 
-declare interface Props_2 {
+declare interface Props_3 {
   comment: string;
   setComment: (comment: string) => void;
   loading: boolean;
@@ -113,7 +138,7 @@ declare interface Props_2 {
   onEnterKeypress?: () => void;
 }
 
-declare interface Props_3 {
+declare interface Props_4 {
   currentUser?: User;
   conversationGroup?: ConversationGroup;
   shareId?: DbtDocsShareDetails["share_id"];
@@ -125,12 +150,19 @@ declare interface Props_3 {
   source: ConversationSources;
 }
 
-declare interface Props_4 {
-  code: string;
-  language: "sql" | "yaml" | "markdown" | "json" | "javascript";
-  fileName?: string;
-  showLineNumbers?: boolean;
-  theme?: "vs" | "vsc-dark-plus" | "solarizedLight";
+declare interface Table {
+  table: string;
+  label: string;
+  url: string | undefined;
+  nodeType: string;
+  materialization?: string;
+  downstreamCount: number;
+  upstreamCount: number;
+  isExternalProject: boolean;
+  tests: {
+    key: string;
+    path: string;
+  }[];
 }
 
 declare interface User {

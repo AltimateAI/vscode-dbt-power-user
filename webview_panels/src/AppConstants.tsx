@@ -5,6 +5,7 @@ import DocumentationProvider from "@modules/documentationEditor/DocumentationPro
 import DataPilotPanel from "@modules/dataPilot";
 import DbtDocsView from "@modules/dbtDocs/DbtDocsView";
 import QueryPanelProvider from "@modules/queryPanel/QueryPanelProvider";
+import LineageView from "@modules/lineage/LineageView";
 
 // TODO: lazy loading breaks loading dynamic webviews when having css because of vite dynamic loading
 // research on how to fix that and then use lazy loading
@@ -25,4 +26,5 @@ export const AvailableRoutes = {
   },
   "/dbt-docs": { component: <DbtDocsView /> },
   "/query-panel": { component: <QueryPanelProvider /> },
+  "/lineage": { component: <LineageView /> },
 };

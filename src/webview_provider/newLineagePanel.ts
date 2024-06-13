@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { readFileSync, writeFileSync } from "fs";
 import * as path from "path";
 import {
@@ -9,12 +10,12 @@ import {
   TextEditor,
   Uri,
   Webview,
-  WebviewOptions,
   WebviewView,
   WebviewViewResolveContext,
   window,
   workspace,
   env,
+  WebviewOptions,
 } from "vscode";
 import { AltimateRequest, ModelNode } from "../altimate";
 import {
@@ -33,6 +34,10 @@ import { TelemetryService } from "../telemetry";
 import { PythonException } from "python-bridge";
 import { AbortError } from "node-fetch";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import { AltimateWebviewProvider } from "./altimateWebviewProvider";
+import { QueryManifestService } from "../services/queryManifestService";
+import { SharedStateService } from "../services/sharedStateService";
+import { UsersService } from "../services/usersService";
 
 type Table = {
   label: string;
@@ -70,19 +75,52 @@ class DerivedCancellationTokenSource extends CancellationTokenSource {
 }
 
 @provideSingleton(NewLineagePanel)
-export class NewLineagePanel implements LineagePanelView {
-  private _panel: WebviewView | undefined;
-  private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
+export class NewLineagePanel
+  extends AltimateWebviewProvider
+  implements LineagePanelView
+{
+  protected viewPath = "/lineage";
+  protected panelDescription = "Lineage panel";
+  protected _panel: WebviewView | undefined;
+  protected eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   // since lineage can be cancelled from 2 places: progress bar and panel actions
   private cancellationTokenSource: DerivedCancellationTokenSource | undefined;
   private cllProgressResolve: () => void = () => {};
 
   public constructor(
-    private dbtProjectContainer: DBTProjectContainer,
+    protected dbtProjectContainer: DBTProjectContainer,
     private altimate: AltimateRequest,
-    private telemetry: TelemetryService,
+    protected telemetry: TelemetryService,
     private terminal: DBTTerminal,
-  ) {}
+    private eventEmitterService: SharedStateService,
+    protected queryManifestService: QueryManifestService,
+    protected usersService: UsersService,
+  ) {
+    super(
+      dbtProjectContainer,
+      altimate,
+      telemetry,
+      eventEmitterService,
+      terminal,
+      queryManifestService,
+      usersService,
+    );
+
+    this._disposables.push(
+      workspace.onDidChangeConfiguration(
+        (e) => {
+          if (!e.affectsConfiguration("dbt.enableLineagePanelV2")) {
+            return;
+          }
+          if (this._panel) {
+            this.renderWebviewView(this._panel.webview);
+          }
+        },
+        this,
+        this._disposables,
+      ),
+    );
+  }
 
   public changedActiveTextEditor(event: TextEditor | undefined) {
     if (event === undefined) {
@@ -140,8 +178,7 @@ export class NewLineagePanel implements LineagePanelView {
       "onResolveWebviewView",
     );
     this._panel = panel;
-    this.setupWebviewOptions(context);
-    this.renderWebviewView(context);
+    this.renderWebviewView(panel.webview);
   }
 
   async handleCommand(message: { command: string; args: any }): Promise<void> {
@@ -927,14 +964,19 @@ export class NewLineagePanel implements LineagePanelView {
     return { node, aiEnabled };
   }
 
-  private setupWebviewOptions(context: WebviewViewResolveContext) {
-    this._panel!.description =
-      "Show table level and column level lineage SQL queries";
-    this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
-  }
+  protected renderWebviewView(webview: Webview) {
+    const enableLineagePanelV2 = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("enableLineagePanelV2", false);
 
-  private renderWebviewView(context: WebviewViewResolveContext) {
-    const webview = this._panel!.webview!;
+    if (enableLineagePanelV2){
+      this._panel!.webview.html = super.getHtml(
+        webview,
+        this.dbtProjectContainer.extensionUri,
+      );
+      return;
+    }
+    this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
     this._panel!.webview.html = getHtml(
       webview,
       this.dbtProjectContainer.extensionUri,
