@@ -473,6 +473,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
         ),
       ),
     );
+    const LineageGif = webview.asWebviewUri(
+      Uri.file(
+        path.join(
+          extensionUri.fsPath,
+          "webview_panels",
+          "dist",
+          "assets",
+          "lineage.gif",
+        ),
+      ),
+    );
     const codiconsUri = webview.asWebviewUri(
       Uri.joinPath(
         extensionUri,
@@ -505,9 +516,11 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           <body>
             <div id="root"></div>
             <div id="sidebar"></div>
+            <div id="modal"></div>
             <script nonce="${nonce}" >
               window.viewPath = "${this.viewPath}";
               var spinnerUrl = "${SpinnerUrl}"
+              var lineageGif = "${LineageGif}"
             </script>
             
             <script nonce="${nonce}" type="module" src="${indexJs}"></script>

@@ -18,7 +18,9 @@ export { default as EmptySquareIcon } from "./square.svg?react";
 export { default as CheckedSquareIcon } from "./checked-square.svg?react";
 export { default as TestsIcon } from "./tests.svg?react";
 export { default as FolderIcon } from "./folder.svg?react";
+export { default as PlayCircleIcon } from "./play-circle.svg?react";
 import LoadingSpinnerUrl from "./spinner.gif";
+import LineageGif from "./lineage.gif";
 import "./styles.css";
 
 interface Props {
@@ -121,6 +123,14 @@ export const LoadingSpinner = (): JSX.Element => (
     // @ts-expect-error added in altimateWebViewProvider
     src={(window.spinnerUrl as string) ?? LoadingSpinnerUrl}
     alt="Altimate loader"
+  />
+);
+
+export const LineageDemo = (): JSX.Element => (
+  <img
+    // @ts-expect-error added in altimateWebViewProvider
+    src={(window.lineageGif as string) ?? LineageGif}
+    alt="Lineage demo"
   />
 );
 

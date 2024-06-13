@@ -15,6 +15,24 @@ export declare const ApiHelper: {
   ) => Promise<T_1>;
 };
 
+export declare class CLL {
+  static isCancelled: boolean;
+  static inProgress: boolean;
+  static linkCount: number;
+  static onCancel(): void;
+  static cancel(): void;
+  static start(): void;
+  static end(): void;
+  static addLinks(n: number): void;
+  static showCllInProgressMsg(): void;
+}
+
+export declare enum CllEvents {
+  CANCEL = "cancel",
+  END = "end",
+  START = "start",
+}
+
 export declare const CodeBlock: ({
   code,
   language,
@@ -22,6 +40,32 @@ export declare const CodeBlock: ({
   theme,
   showLineNumbers,
 }: Props) => JSX.Element;
+
+export declare interface Column {
+  name: string;
+  table: string;
+  datatype: string;
+  can_lineage_expand: boolean;
+  description: string;
+}
+
+export declare interface ColumnLineage {
+  source: [string, string];
+  target: [string, string];
+  type: string;
+  lensType?: keyof typeof LENS_TYPE_COLOR;
+}
+
+export declare interface Columns {
+  id: string;
+  purpose: string;
+  columns: Column[];
+}
+
+export declare interface Confidence {
+  confidence: string;
+  operator_list?: string[];
+}
 
 export declare interface Conversation {
   timestamp: string;
@@ -96,6 +140,41 @@ export declare interface DbtDocsShareDetails {
   share_id: number;
 }
 
+export declare interface ExposureMetaData {
+  description?: string;
+  depends_on: {
+    macros: [string];
+    nodes: [string];
+    sources: [string];
+  };
+  label?: string;
+  maturity?: string;
+  name: string;
+  owner: {
+    email: string;
+    name: string;
+  };
+  tags: [string];
+  url?: string;
+  type: string;
+  config: {
+    enabled: boolean;
+  };
+  path: string;
+  unique_id: string;
+  sources?: [string];
+  metrics?: unknown[];
+  meta?: Record<string, unknown>;
+}
+
+declare const LENS_TYPE_COLOR: {
+  Original: string;
+  Alias: string;
+  Transformation: string;
+  Unchanged: string;
+  "Not sure": string;
+};
+
 export declare const Lineage: (
   props: Omit<Parameters<typeof LineageProvider>["0"], "children">,
 ) => JSX_2.Element;
@@ -150,7 +229,12 @@ declare interface Props_4 {
   source: ConversationSources;
 }
 
-declare interface Table {
+export declare interface SelectedColumn {
+  name: string;
+  table: string;
+}
+
+export declare interface Table {
   table: string;
   label: string;
   url: string | undefined;

@@ -168,22 +168,9 @@ export class NewLineagePanel
     });
   }
 
-  resolveWebviewView(
-    panel: WebviewView,
-    context: WebviewViewResolveContext<unknown>,
-    _token: CancellationToken,
-  ): void | Thenable<void> {
-    this.terminal.debug(
-      "newLineagePanel:resolveWebviewView",
-      "onResolveWebviewView",
-    );
-    this._panel = panel;
-    this.renderWebviewView(panel.webview);
-  }
-
-  async handleCommand(message: { command: string; args: any }): Promise<void> {
-    const { command, args } = message;
-    const { id, params } = args;
+  async handleCommand(message: { command: string; args: any, syncRequestId?: string }): Promise<void> {
+    const { command, args = {}, syncRequestId } = message;
+    const { id = syncRequestId, params } = args;
 
     if (command === "openProblemsTab") {
       commands.executeCommand("workbench.action.problems.focus");
@@ -193,7 +180,7 @@ export class NewLineagePanel
       const body = await this.getUpstreamTables(params);
       this._panel?.webview.postMessage({
         command: "response",
-        args: { id, body, status: true },
+        args: { id, syncRequestId, body, status: true },
       });
       return;
     }
@@ -202,7 +189,7 @@ export class NewLineagePanel
       const body = await this.getDownstreamTables(params);
       this._panel?.webview.postMessage({
         command: "response",
-        args: { id, body, status: true },
+        args: { id, syncRequestId, body, status: true },
       });
       return;
     }
@@ -211,7 +198,7 @@ export class NewLineagePanel
       const body = await this.getColumns(params);
       this._panel?.webview.postMessage({
         command: "response",
-        args: { id, body, status: true },
+        args: { id, syncRequestId, body, status: true },
       });
       return;
     }
@@ -220,7 +207,7 @@ export class NewLineagePanel
       const body = await this.getExposureDetails(params);
       this._panel?.webview.postMessage({
         command: "response",
-        args: { id, body, status: true },
+        args: { id, syncRequestId, body, status: true },
       });
       return;
     }
@@ -229,7 +216,7 @@ export class NewLineagePanel
       const body = await this.getConnectedColumns(params);
       this._panel?.webview.postMessage({
         command: "response",
-        args: { id, body, status: !!body },
+        args: { id, syncRequestId, body, status: !!body },
       });
       return;
     }
@@ -244,12 +231,12 @@ export class NewLineagePanel
         });
         this._panel?.webview.postMessage({
           command: "response",
-          args: { id, status: true },
+          args: { id, syncRequestId, status: true },
         });
       } catch (error) {
         this._panel?.webview.postMessage({
           command: "response",
-          args: { id, status: false },
+          args: { id, syncRequestId, status: false },
         });
         window.showErrorMessage(
           extendErrorWithSupportLinks(
@@ -290,6 +277,7 @@ export class NewLineagePanel
         command: "response",
         args: {
           id,
+          syncRequestId,
           status: true,
           body: {
             showSelectEdges: config.get("showSelectEdges", true),
@@ -310,6 +298,7 @@ export class NewLineagePanel
         command: "response",
         args: {
           id,
+          syncRequestId,
           status: true,
           body: { ok: true },
         },
@@ -322,6 +311,7 @@ export class NewLineagePanel
       "Unsupported command",
       message,
     );
+    super.handleCommand(message);
   }
 
   private async handleColumnLineage({ event }: { event: CllEvents }) {

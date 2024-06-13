@@ -1,0 +1,14 @@
+body.lineageBody {
+  padding: 0 !important;
+  .lineageView {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+
+    .lineageWrap {
+      flex: 1;
+    }
+  }
+}
