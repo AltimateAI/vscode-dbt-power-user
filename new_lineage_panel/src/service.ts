@@ -30,7 +30,7 @@ export type ColumnLineage = {
   target: [string, string];
   type: string;
   lensType?: LensTypes;
-  lensCode?: string[];
+  lensCode?: [string, string][];
 };
 
 export type ExposureMetaData = {

@@ -115,7 +115,7 @@ export const createColumnNode = (
   t: string,
   c: string,
   lensType: LensTypes | undefined,
-  lensCode: Record<string, string[]>,
+  lensCode: Record<string, [string, string][]>,
   nodeType: string
 ): Node => {
   return {

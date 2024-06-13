@@ -451,7 +451,7 @@ const processColumnLineage = async (
     if (!tableNodes[t]) continue;
     collectColumns[t].sort();
     for (const c of collectColumns[t]) {
-      const lensCodes: Record<string, string[]> = {};
+      const lensCodes: Record<string, [string, string][]> = {};
       columnLineage
         .filter((e) => e.target.join("/") === `${t}/${c.column}`)
         .forEach((e) => {
@@ -834,7 +834,7 @@ export const moveTableFromSeeMoreToCanvas = (
   lineage?.forEach((e) => {
     const src = getColumnId(e.source[0], e.source[1]);
     const dst = getColumnId(e.target[0], e.target[1]);
-    const lensCodes: Record<string, string[]> = {};
+    const lensCodes: Record<string, [string, string][]> = {};
     lineage
       .filter((e1) => e1.target.join("/") === e.target.join("/"))
       .forEach((e1) => {
