@@ -5,6 +5,7 @@ import { FunctionComponent, useState } from "react";
 import UpIcon from "../assets/icons/chevron-up.svg?react";
 import DownIcon from "../assets/icons/chevron-down.svg?react";
 import Tooltip from "./Tooltip";
+import CodeIcon from "../assets/icons/code.svg?react";
 
 export const ViewsTypeBadge: FunctionComponent<{
   viewsType: string;
@@ -47,11 +48,17 @@ const LineageLegend = () => {
       >
         <PopoverBody>
           {Object.keys(VIEWS_TYPE_COLOR).map((k) => (
-            <div key={k} className="d-flex gap-sm mb-1">
+            <div key={k} className="d-flex gap-sm mb-1 align-items-center">
               <ViewsTypeBadge viewsType={k} />
               <div>{k}</div>
             </div>
           ))}
+          <div className="d-flex gap-sm mb-1 align-items-center">
+            <div className={styles.column_code_icon}>
+              <CodeIcon />
+            </div>
+            <div>Code</div>
+          </div>
         </PopoverBody>
       </Popover>
     </>
