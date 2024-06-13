@@ -29,6 +29,7 @@ export interface ColumnLineage {
   source: { uniqueId: string; column_name: string };
   target: { uniqueId: string; column_name: string };
   type: string;
+  lens_type?: string;
 }
 
 interface Schemas {
