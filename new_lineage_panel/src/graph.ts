@@ -835,11 +835,13 @@ export const moveTableFromSeeMoreToCanvas = (
     const src = getColumnId(e.source[0], e.source[1]);
     const dst = getColumnId(e.target[0], e.target[1]);
     const lensCodes: Record<string, [string, string][]> = {};
-    lineage
-      .filter((e1) => e1.target.join("/") === e.target.join("/"))
-      .forEach((e1) => {
-        lensCodes[e1.source.join("/")] = e1.lensCode || [];
-      });
+    if (right) {
+      lineage
+        .filter((e1) => e1.target.join("/") === e.target.join("/"))
+        .forEach((e1) => {
+          lensCodes[e1.source.join("/")] = e1.lensCode || [];
+        });
+    }
     if (right) {
       if (e.target[0] !== table) return;
       nodes.push(
@@ -847,8 +849,8 @@ export const moveTableFromSeeMoreToCanvas = (
           e.target[0],
           e.target[1],
           e.lensType,
-          lensCodes, // TODO: fix
-          _table.nodeType // TODO: fix
+          lensCodes,
+          _table.nodeType
         )
       );
       edges.push(
@@ -861,8 +863,8 @@ export const moveTableFromSeeMoreToCanvas = (
           e.source[0],
           e.source[1],
           e.lensType,
-          lensCodes, // TODO: fix
-          _table.nodeType // TODO: fix
+          lensCodes,
+          _table.nodeType
         )
       );
       edges.push(
