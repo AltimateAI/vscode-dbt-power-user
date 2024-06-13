@@ -96,6 +96,13 @@ export class DBTWorkspaceFolder implements Disposable {
     );
 
     const allowListFolders = this.getAllowListFolders();
+    this.dbtTerminal.info(
+      "discoverProjects",
+      "allowListFolders",
+      false,
+      allowListFolders,
+    );
+
     const projectDirectories = dbtProjectFiles
       .filter((uri) => statSync(uri.fsPath).isFile())
       .filter((uri) => this.notInVenv(uri.fsPath))
@@ -210,6 +217,11 @@ export class DBTWorkspaceFolder implements Disposable {
         registered: true,
       });
     } catch (error) {
+      this.dbtTerminal.error(
+        "registerDBTProject",
+        `Unable to register dbt project for ${uri.fsPath}`,
+        error,
+      );
       if (error instanceof YAMLError) {
         this.projectDiscoveryDiagnostics.set(
           Uri.joinPath(uri, DBTProject.DBT_PROJECT_FILE),
