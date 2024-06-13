@@ -87,7 +87,6 @@ export class SqlPreviewContentProvider
         return "Still loading dbt project, please try again later...";
       }
       this.telemetry.sendTelemetryEvent("requestCompilation");
-      // TODO: figure out why this one needs to be commented
       await project.refreshProjectConfig();
       const result = await project.unsafeCompileQuery(query, modelName);
       const { manifestPathType } =
