@@ -88,8 +88,9 @@ export interface MissingLineageMessage {
 
 type ViewsCodeModal = {
   table: string;
+  column: string;
   viewsType: ViewsTypes;
-  viewsCode: Record<string, string[]>;
+  viewsCode: Record<string, [string, string][]>;
   nodeType: string;
 };
 

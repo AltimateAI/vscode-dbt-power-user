@@ -429,7 +429,8 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
                 table,
                 viewsType,
                 viewsCode,
-                nodeType
+                nodeType,
+                column,
               });
             }}
           >
