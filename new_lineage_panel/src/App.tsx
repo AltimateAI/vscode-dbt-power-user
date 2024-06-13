@@ -56,7 +56,7 @@ import { ActionWidget } from "./ActionWidget";
 import {
   CollectColumn,
   DEFAULT_MIN_ZOOM,
-  LensTypes,
+  ViewsTypes,
   createTableNode,
   toggleColumnEdges,
   toggleModelEdges,
@@ -64,7 +64,7 @@ import {
 import { Settings } from "./Settings";
 import { Table, getLineageSettings } from "./service";
 import { LineageLegend } from "./components";
-import { LensCodeModal } from "./Modals";
+import { ViewsCodeModal } from "./Modals";
 
 export let aiEnabled = false;
 export let isDarkMode = false;
@@ -86,10 +86,10 @@ export interface MissingLineageMessage {
   type: "warning" | "error";
 }
 
-type LensCodeModal = {
+type ViewsCodeModal = {
   table: string;
-  lensType: LensTypes;
-  lensCode: Record<string, string[]>;
+  viewsType: ViewsTypes;
+  viewsCode: Record<string, string[]>;
   nodeType: string;
 };
 
@@ -125,8 +125,8 @@ export const LineageContext = createContext<{
   setNonSelectCheck: Dispatch<boolean>;
   defaultExpansion: number;
   setDefaultExpansion: Dispatch<number>;
-  lensCodeModal: LensCodeModal | null;
-  setLensCodeModal: Dispatch<SetStateAction<LensCodeModal | null>>;
+  viewsCodeModal: ViewsCodeModal | null;
+  setViewsCodeModal: Dispatch<SetStateAction<ViewsCodeModal | null>>;
 }>({
   selectedTable: "",
   setSelectedTable: noop,
@@ -155,8 +155,8 @@ export const LineageContext = createContext<{
   setNonSelectCheck: noop,
   defaultExpansion: 0,
   setDefaultExpansion: noop,
-  lensCodeModal: null,
-  setLensCodeModal: noop,
+  viewsCodeModal: null,
+  setViewsCodeModal: noop,
 });
 
 function App() {
@@ -187,7 +187,7 @@ function App() {
   const [defaultExpansion, setDefaultExpansion] = useState(5);
   const [nodeCount, setNodeCount] = useState(0);
   const [minRange, setMinRange] = useState<[number, number]>([0, 0]);
-  const [lensCodeModal, setLensCodeModal] = useState<LensCodeModal | null>(
+  const [viewsCodeModal, setViewsCodeModal] = useState<ViewsCodeModal | null>(
     null
   );
 
@@ -352,8 +352,8 @@ function App() {
         setNonSelectCheck,
         defaultExpansion,
         setDefaultExpansion,
-        lensCodeModal,
-        setLensCodeModal,
+        viewsCodeModal,
+        setViewsCodeModal,
       }}
     >
       <PopoverContext.Provider value={{ isOpen, setIsOpen }}>
@@ -408,7 +408,7 @@ function App() {
             <Modal isOpen={showDemoModal} close={() => setShowDemoModal(false)}>
               <Demo />
             </Modal>
-            <LensCodeModal />
+            <ViewsCodeModal />
           </div>
         </ReactFlowProvider>
       </PopoverContext.Provider>

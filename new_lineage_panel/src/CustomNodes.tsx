@@ -24,8 +24,8 @@ import {
   getColumnId,
   getColY,
   getSeeMoreId,
-  LENS_TYPE_COLOR,
-  LensTypes,
+  VIEWS_TYPE_COLOR,
+  ViewsTypes,
   toggleColumnEdges,
   toggleModelEdges,
 } from "./utils";
@@ -41,7 +41,7 @@ import {
   NodeTypeIcon,
   TableNodePill,
 } from "./components/Column";
-import { LensTypeBadge } from "./components";
+import { ViewsTypeBadge } from "./components";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -383,18 +383,18 @@ export const SelfConnectingEdge: FunctionComponent<EdgeProps> = (props) => {
 };
 
 export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
-  const { column, table, lensType, lensCode, nodeType } = data;
+  const { column, table, viewsType, viewsCode, nodeType } = data;
   const {
     selectedColumn,
     setSelectedTable,
     setSelectedColumn,
-    setLensCodeModal,
+    setViewsCodeModal,
   } = useContext(LineageContext);
   const isSelected =
     selectedColumn.table === table && selectedColumn.name === column;
 
-  const lensColor = lensType && LENS_TYPE_COLOR[lensType as LensTypes];
-  const customStyles = lensColor ? { borderColor: lensColor } : {};
+  const viewsColor = viewsType && VIEWS_TYPE_COLOR[viewsType as ViewsTypes];
+  const customStyles = viewsColor ? { borderColor: viewsColor } : {};
   const flow = useReactFlow();
 
   const handleClick = () => {
@@ -419,21 +419,21 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
       <div className={styles.column_name}>{column}</div>
       <BidirectionalHandles />
       <div className={styles.column_top_right}>
-        {lensType && (
+        {viewsType && (
           <div
             className="cursor-default"
             onClick={(e) => {
               e.stopPropagation();
-              if (Object.keys(lensCode).length === 0) return;
-              setLensCodeModal({
+              if (Object.keys(viewsCode).length === 0) return;
+              setViewsCodeModal({
                 table,
-                lensType,
-                lensCode,
+                viewsType,
+                viewsCode,
                 nodeType
               });
             }}
           >
-            <LensTypeBadge lensType={lensType} />
+            <ViewsTypeBadge viewsType={viewsType} />
           </div>
         )}
       </div>

@@ -1,5 +1,5 @@
 import { requestExecutor } from "./service_utils";
-import { LensTypes } from "./utils";
+import { ViewsTypes } from "./utils";
 
 export type Table = {
   table: string;
@@ -29,8 +29,8 @@ export type ColumnLineage = {
   source: [string, string];
   target: [string, string];
   type: string;
-  lensType?: LensTypes;
-  lensCode?: [string, string][];
+  viewsType?: ViewsTypes;
+  viewsCode?: [string, string][];
 };
 
 export type ExposureMetaData = {

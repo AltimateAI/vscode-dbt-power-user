@@ -1,4 +1,4 @@
-import { LENS_TYPE_COLOR, LensTypes } from "../utils";
+import { VIEWS_TYPE_COLOR, ViewsTypes } from "../utils";
 import styles from "./styles.module.scss";
 import { Button, Popover, PopoverBody } from "reactstrap";
 import { FunctionComponent, useState } from "react";
@@ -6,19 +6,19 @@ import UpIcon from "../assets/icons/chevron-up.svg?react";
 import DownIcon from "../assets/icons/chevron-down.svg?react";
 import Tooltip from "./Tooltip";
 
-export const LensTypeBadge: FunctionComponent<{
-  lensType: string;
-}> = ({ lensType }) => (
-  <Tooltip tooltipLabel={lensType}>
+export const ViewsTypeBadge: FunctionComponent<{
+  viewsType: string;
+}> = ({ viewsType }) => (
+  <Tooltip tooltipLabel={viewsType}>
     <div
       style={{
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        "--lens-color": LENS_TYPE_COLOR[lensType as LensTypes],
+        "--views-color": VIEWS_TYPE_COLOR[viewsType as ViewsTypes],
       }}
-      className={styles.lens_type_badge}
+      className={styles.views_type_badge}
     >
-      {lensType[0]}
+      {viewsType[0]}
     </div>
   </Tooltip>
 );
@@ -46,9 +46,9 @@ const LineageLegend = () => {
         placement="top"
       >
         <PopoverBody>
-          {Object.keys(LENS_TYPE_COLOR).map((k) => (
+          {Object.keys(VIEWS_TYPE_COLOR).map((k) => (
             <div key={k} className="d-flex gap-sm mb-1">
-              <LensTypeBadge lensType={k} />
+              <ViewsTypeBadge viewsType={k} />
               <div>{k}</div>
             </div>
           ))}

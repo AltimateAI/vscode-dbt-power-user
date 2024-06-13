@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo } from "react";
-import { LensTypeBadge } from "./components";
+import { ViewsTypeBadge } from "./components";
 import { LineageContext } from "./App";
 import { Modal, ModalBody } from "reactstrap";
 import styles from "./styles.module.scss";
@@ -10,26 +10,26 @@ import "prismjs/themes/prism-tomorrow.css";
 import { useReactFlow } from "reactflow";
 import classNames from "classnames";
 
-export function LensCodeModal() {
-  const { lensCodeModal, setLensCodeModal } = useContext(LineageContext);
+export function ViewsCodeModal() {
+  const { viewsCodeModal, setViewsCodeModal } = useContext(LineageContext);
   useEffect(() => {
     setTimeout(() => {
       Prism.highlightAll(true);
     }, 500);
-  }, [lensCodeModal]);
+  }, [viewsCodeModal]);
 
   const flow = useReactFlow();
   const table = useMemo(() => {
-    if (!lensCodeModal) return "";
-    return flow.getNode(lensCodeModal.table)?.data?.label;
-  }, [flow, lensCodeModal]);
+    if (!viewsCodeModal) return "";
+    return flow.getNode(viewsCodeModal.table)?.data?.label;
+  }, [flow, viewsCodeModal]);
 
-  if (!lensCodeModal) return;
+  if (!viewsCodeModal) return;
   return (
     <Modal
       size="lg"
-      isOpen={Boolean(lensCodeModal)}
-      toggle={() => setLensCodeModal(null)}
+      isOpen={Boolean(viewsCodeModal)}
+      toggle={() => setViewsCodeModal(null)}
       centered
       unmountOnClose
       scrollable
@@ -38,28 +38,28 @@ export function LensCodeModal() {
       <ModalBody>
         <div
           className={styles.close_button}
-          onClick={() => setLensCodeModal(null)}
+          onClick={() => setViewsCodeModal(null)}
         >
           <CloseIcon />
         </div>
         <div className="d-flex flex-column gap-sm">
           {table && (
-            <HeaderSection nodeType={lensCodeModal.nodeType} table={table} />
+            <HeaderSection nodeType={viewsCodeModal.nodeType} table={table} />
           )}
           <div className="d-flex flex-column gap-xs">
             <div className="text-dark-grey fs-xs">Type</div>
-            <div className={styles.model_lens_type}>
-              <LensTypeBadge lensType={lensCodeModal.lensType} />
-              {lensCodeModal.lensType}
+            <div className={styles.model_views_type}>
+              <ViewsTypeBadge viewsType={viewsCodeModal.viewsType} />
+              {viewsCodeModal.viewsType}
             </div>
           </div>
           <div className="d-flex flex-column gap-xs">
             <div className="text-dark-grey fs-xs">Code</div>
-            {Object.keys(lensCodeModal.lensCode).map((src) => {
+            {Object.keys(viewsCodeModal.viewsCode).map((src) => {
               return (
-                <div key={src} className={styles.modal_lens_code_container}>
+                <div key={src} className={styles.modal_views_code_container}>
                   {flow.getNode(src.split("/")[0])?.data?.label}
-                  {lensCodeModal.lensCode[src]
+                  {viewsCodeModal.viewsCode[src]
                     .filter(([, type]) => type === "transform")
                     .map(([code]) => (
                       <div key={code}>

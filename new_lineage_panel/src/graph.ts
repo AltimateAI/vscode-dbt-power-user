@@ -27,7 +27,7 @@ import {
   withinExclusive,
   isSeeMore,
   EdgeVisibility,
-  LensTypes,
+  ViewsTypes,
   applyNodeStyling,
   toggleModelEdges,
   toggleColumnEdges,
@@ -353,11 +353,11 @@ const processColumnLineage = async (
 
   const addToCollectColumns = (
     [_table, _column]: [string, string],
-    lensType?: LensTypes
+    viewsType?: ViewsTypes
   ) => {
     collectColumns[_table] = collectColumns[_table] || [];
     if (!collectColumns[_table].find((c) => c.column === _column)) {
-      collectColumns[_table].push({ column: _column, lensType });
+      collectColumns[_table].push({ column: _column, viewsType });
     }
   };
 
@@ -419,7 +419,7 @@ const processColumnLineage = async (
 
   for (const e of columnLineage) {
     addToCollectColumns(e.source);
-    addToCollectColumns(e.target, e.lensType);
+    addToCollectColumns(e.target, e.viewsType);
     const [t0] = e.source;
     const [t1] = e.target;
 
@@ -451,19 +451,19 @@ const processColumnLineage = async (
     if (!tableNodes[t]) continue;
     collectColumns[t].sort();
     for (const c of collectColumns[t]) {
-      const lensCodes: Record<string, [string, string][]> = {};
+      const viewsCodes: Record<string, [string, string][]> = {};
       columnLineage
         .filter((e) => e.target.join("/") === `${t}/${c.column}`)
         .forEach((e) => {
           if (e.type === "indirect") return;
-          lensCodes[e.source.join("/")] = e.lensCode || [];
+          viewsCodes[e.source.join("/")] = e.viewsCode || [];
         });
       nodes.push(
         createColumnNode(
           t,
           c.column,
-          c.lensType,
-          lensCodes,
+          c.viewsType,
+          viewsCodes,
           prevNodes.find((n) => (n.id = t))?.data?.nodeType
         )
       );
@@ -492,7 +492,7 @@ const mergeNodesEdges = (
       existing.data = {
         ...existing.data,
         ...n.data,
-        lensType: existing.data.lensType || n.data.lensType,
+        viewsType: existing.data.viewsType || n.data.viewsType,
       };
     }
   });
@@ -529,7 +529,7 @@ const mergeCollectColumns = (
             (x) => x.column === c.column
           );
           if (existing === -1) return c;
-          if (c.lensType) collectColumns[t][existing].lensType = c.lensType;
+          if (c.viewsType) collectColumns[t][existing].viewsType = c.viewsType;
           return null;
         })
         .filter((c): c is CollectColumn => c !== null);
@@ -834,12 +834,12 @@ export const moveTableFromSeeMoreToCanvas = (
   lineage?.forEach((e) => {
     const src = getColumnId(e.source[0], e.source[1]);
     const dst = getColumnId(e.target[0], e.target[1]);
-    const lensCodes: Record<string, [string, string][]> = {};
+    const viewsCodes: Record<string, [string, string][]> = {};
     if (right) {
       lineage
         .filter((e1) => e1.target.join("/") === e.target.join("/"))
         .forEach((e1) => {
-          lensCodes[e1.source.join("/")] = e1.lensCode || [];
+          viewsCodes[e1.source.join("/")] = e1.viewsCode || [];
         });
     }
     if (right) {
@@ -848,8 +848,8 @@ export const moveTableFromSeeMoreToCanvas = (
         createColumnNode(
           e.target[0],
           e.target[1],
-          e.lensType,
-          lensCodes,
+          e.viewsType,
+          viewsCodes,
           _table.nodeType
         )
       );
@@ -862,8 +862,8 @@ export const moveTableFromSeeMoreToCanvas = (
         createColumnNode(
           e.source[0],
           e.source[1],
-          e.lensType,
-          lensCodes,
+          e.viewsType,
+          viewsCodes,
           _table.nodeType
         )
       );
