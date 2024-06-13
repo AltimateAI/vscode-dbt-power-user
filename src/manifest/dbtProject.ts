@@ -623,10 +623,16 @@ export class DBTProject implements Disposable {
     }
   }
 
-  async compileQuery(query: string): Promise<string | undefined> {
+  async compileQuery(
+    query: string,
+    originalModelName: string | undefined = undefined,
+  ): Promise<string | undefined> {
     this.telemetry.sendTelemetryEvent("compileQuery");
     try {
-      return await this.dbtProjectIntegration.unsafeCompileQuery(query);
+      return await this.dbtProjectIntegration.unsafeCompileQuery(
+        query,
+        originalModelName,
+      );
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         window.showErrorMessage(
@@ -670,8 +676,14 @@ export class DBTProject implements Disposable {
     return yamlString;
   }
 
-  async unsafeCompileQuery(query: string) {
-    return this.dbtProjectIntegration.unsafeCompileQuery(query);
+  async unsafeCompileQuery(
+    query: string,
+    originalModelName: string | undefined = undefined,
+  ) {
+    return this.dbtProjectIntegration.unsafeCompileQuery(
+      query,
+      originalModelName,
+    );
   }
 
   async getColumnsOfModel(modelName: string) {
@@ -693,6 +705,7 @@ export class DBTProject implements Disposable {
     const queryExecution = await this.dbtProjectIntegration.executeSQL(
       query,
       100, // setting this 100 as executeSql needs a limit and distinct values will be usually less in number
+      model,
     );
     const result = await queryExecution.executeQuery();
 
@@ -873,7 +886,7 @@ select * from renamed
     }
   }
 
-  async executeSQL(query: string) {
+  async executeSQL(query: string, modelName: string) {
     const limit = workspace
       .getConfiguration("dbt")
       .get<number>("queryLimit", 500);
@@ -895,7 +908,7 @@ select * from renamed
       command: "executeQuery",
       payload: {
         query,
-        fn: this.dbtProjectIntegration.executeSQL(query, limit),
+        fn: this.dbtProjectIntegration.executeSQL(query, limit, modelName),
       },
     });
   }
