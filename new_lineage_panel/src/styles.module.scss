@@ -421,6 +421,9 @@ $size: 1.2em;
 
 .code_editor_container {
   background-color: #082247 !important;
+  margin: 0 !important;
+  padding: 0.25rem !important;
+  flex-grow: 1;
 }
 
 .code_editor {

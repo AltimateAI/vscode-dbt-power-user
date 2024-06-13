@@ -79,29 +79,20 @@ export function ViewsCodeModal() {
               </div>
               {viewsCodesFlat.map((code, i) => {
                 return (
-                  <div
-                    key={code}
-                    className={classNames(
-                      "d-flex gap-sm align-items-center",
-                      styles.modal_views_code_container
-                    )}
-                  >
-                    <div>{i + 1}</div>
-                    <pre
-                      className={classNames(
-                        "mb-0 p-2",
-                        styles.code_editor_container
-                      )}
-                    >
-                      <code
-                        className={classNames(
-                          "language-sql",
-                          styles.code_editor
-                        )}
-                      >
-                        {code}
-                      </code>
-                    </pre>
+                  <div key={code} className={styles.modal_views_code_container}>
+                    <div className="d-flex gap-sm align-items-center">
+                      <div>{i + 1}</div>
+                      <pre className={styles.code_editor_container}>
+                        <code
+                          className={classNames(
+                            "language-sql",
+                            styles.code_editor,
+                          )}
+                        >
+                          {code}
+                        </code>
+                      </pre>
+                    </div>
                   </div>
                 );
               })}
