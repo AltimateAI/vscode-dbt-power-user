@@ -64,6 +64,7 @@ container
         container.get(DBTCoreProjectDetection),
         container.get(DBTCloudProjectDetection),
         container.get(TelemetryService),
+        container.get(DBTTerminal),
         workspaceFolder,
         _onManifestChanged,
         _onProjectRegisteredUnregistered,
@@ -72,103 +73,107 @@ container
   });
 
 container
-  .bind<interfaces.Factory<DBTCoreProjectIntegration>>(
-    "Factory<DBTCoreProjectIntegration>",
-  )
-  .toFactory<DBTCoreProjectIntegration, [Uri, DiagnosticCollection]>(
-    (context: interfaces.Context) => {
-      return (
-        projectRoot: Uri,
-        projectConfigDiagnostics: DiagnosticCollection,
-      ) => {
-        const { container } = context;
-        return new DBTCoreProjectIntegration(
-          container.get(DBTCommandExecutionInfrastructure),
-          container.get(PythonEnvironment),
-          container.get(TelemetryService),
-          container.get(PythonDBTCommandExecutionStrategy),
-          container.get(DBTProjectContainer),
-          container.get(AltimateRequest),
-          container.get(DBTTerminal),
-          container.get(ValidationProvider),
-          container.get(DeferToProdService),
-          projectRoot,
-          projectConfigDiagnostics,
-        );
-      };
-    },
-  );
+  .bind<
+    interfaces.Factory<DBTCoreProjectIntegration>
+  >("Factory<DBTCoreProjectIntegration>")
+  .toFactory<
+    DBTCoreProjectIntegration,
+    [Uri, DiagnosticCollection]
+  >((context: interfaces.Context) => {
+    return (
+      projectRoot: Uri,
+      projectConfigDiagnostics: DiagnosticCollection,
+    ) => {
+      const { container } = context;
+      return new DBTCoreProjectIntegration(
+        container.get(DBTCommandExecutionInfrastructure),
+        container.get(PythonEnvironment),
+        container.get(TelemetryService),
+        container.get(PythonDBTCommandExecutionStrategy),
+        container.get(DBTProjectContainer),
+        container.get(AltimateRequest),
+        container.get(DBTTerminal),
+        container.get(ValidationProvider),
+        container.get(DeferToProdService),
+        projectRoot,
+        projectConfigDiagnostics,
+      );
+    };
+  });
 
 container
-  .bind<interfaces.Factory<DBTCommandExecutionStrategy>>(
-    "Factory<CLIDBTCommandExecutionStrategy>",
-  )
-  .toFactory<CLIDBTCommandExecutionStrategy, [Uri, string]>(
-    (context: interfaces.Context) => {
-      return (projectRoot: Uri, dbtPath: string) => {
-        const { container } = context;
-        return new CLIDBTCommandExecutionStrategy(
-          container.get(CommandProcessExecutionFactory),
-          container.get(PythonEnvironment),
-          container.get(DBTTerminal),
-          container.get(TelemetryService),
-          projectRoot,
-          dbtPath,
-        );
-      };
-    },
-  );
+  .bind<
+    interfaces.Factory<DBTCommandExecutionStrategy>
+  >("Factory<CLIDBTCommandExecutionStrategy>")
+  .toFactory<
+    CLIDBTCommandExecutionStrategy,
+    [Uri, string]
+  >((context: interfaces.Context) => {
+    return (projectRoot: Uri, dbtPath: string) => {
+      const { container } = context;
+      return new CLIDBTCommandExecutionStrategy(
+        container.get(CommandProcessExecutionFactory),
+        container.get(PythonEnvironment),
+        container.get(DBTTerminal),
+        container.get(TelemetryService),
+        projectRoot,
+        dbtPath,
+      );
+    };
+  });
 
 container
-  .bind<interfaces.Factory<DBTCloudProjectIntegration>>(
-    "Factory<DBTCloudProjectIntegration>",
-  )
-  .toFactory<DBTCloudProjectIntegration, [Uri]>(
-    (context: interfaces.Context) => {
-      return (projectRoot: Uri) => {
-        const { container } = context;
-        return new DBTCloudProjectIntegration(
-          container.get(DBTCommandExecutionInfrastructure),
-          container.get(DBTCommandFactory),
-          container.get("Factory<CLIDBTCommandExecutionStrategy>"),
-          container.get(TelemetryService),
-          container.get(PythonEnvironment),
-          container.get(DBTTerminal),
-          container.get(ValidationProvider),
-          container.get(DeferToProdService),
-          projectRoot,
-        );
-      };
-    },
-  );
+  .bind<
+    interfaces.Factory<DBTCloudProjectIntegration>
+  >("Factory<DBTCloudProjectIntegration>")
+  .toFactory<
+    DBTCloudProjectIntegration,
+    [Uri]
+  >((context: interfaces.Context) => {
+    return (projectRoot: Uri) => {
+      const { container } = context;
+      return new DBTCloudProjectIntegration(
+        container.get(DBTCommandExecutionInfrastructure),
+        container.get(DBTCommandFactory),
+        container.get("Factory<CLIDBTCommandExecutionStrategy>"),
+        container.get(TelemetryService),
+        container.get(PythonEnvironment),
+        container.get(DBTTerminal),
+        container.get(ValidationProvider),
+        container.get(DeferToProdService),
+        projectRoot,
+      );
+    };
+  });
 
 container
   .bind<interfaces.Factory<DBTProject>>("Factory<DBTProject>")
-  .toFactory<DBTProject, [Uri, any, EventEmitter<ManifestCacheChangedEvent>]>(
-    (context: interfaces.Context) => {
-      return (
-        path: Uri,
-        projectConfig: any,
-        _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
-      ) => {
-        const { container } = context;
-        return new DBTProject(
-          container.get(PythonEnvironment),
-          container.get(SourceFileWatchersFactory),
-          container.get(DBTProjectLogFactory),
-          container.get(TargetWatchersFactory),
-          container.get(DBTCommandFactory),
-          container.get(DBTTerminal),
-          container.get(SharedStateService),
-          container.get(TelemetryService),
-          container.get("Factory<DBTCoreProjectIntegration>"),
-          container.get("Factory<DBTCloudProjectIntegration>"),
-          container.get(AltimateRequest),
-          container.get(ValidationProvider),
-          path,
-          projectConfig,
-          _onManifestChanged,
-        );
-      };
-    },
-  );
+  .toFactory<
+    DBTProject,
+    [Uri, any, EventEmitter<ManifestCacheChangedEvent>]
+  >((context: interfaces.Context) => {
+    return (
+      path: Uri,
+      projectConfig: any,
+      _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
+    ) => {
+      const { container } = context;
+      return new DBTProject(
+        container.get(PythonEnvironment),
+        container.get(SourceFileWatchersFactory),
+        container.get(DBTProjectLogFactory),
+        container.get(TargetWatchersFactory),
+        container.get(DBTCommandFactory),
+        container.get(DBTTerminal),
+        container.get(SharedStateService),
+        container.get(TelemetryService),
+        container.get("Factory<DBTCoreProjectIntegration>"),
+        container.get("Factory<DBTCloudProjectIntegration>"),
+        container.get(AltimateRequest),
+        container.get(ValidationProvider),
+        path,
+        projectConfig,
+        _onManifestChanged,
+      );
+    };
+  });

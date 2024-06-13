@@ -25,6 +25,7 @@ import { ProjectRegisteredUnregisteredEvent } from "./dbtProjectContainer";
 import { DBTCoreProjectDetection } from "../dbt_client/dbtCoreIntegration";
 import { DBTCloudProjectDetection } from "../dbt_client/dbtCloudIntegration";
 import { DBTProjectDetection } from "../dbt_client/dbtIntegration";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
@@ -47,6 +48,7 @@ export class DBTWorkspaceFolder implements Disposable {
     private dbtCoreProjectDetection: DBTCoreProjectDetection,
     private dbtCloudProjectDetection: DBTCloudProjectDetection,
     private telemetry: TelemetryService,
+    private dbtTerminal: DBTTerminal,
     private workspaceFolder: WorkspaceFolder,
     private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
     private _onProjectRegisteredUnregistered: EventEmitter<ProjectRegisteredUnregisteredEvent>,
@@ -86,6 +88,12 @@ export class DBTWorkspaceFolder implements Disposable {
         `**/${DBTProject.DBT_PROJECT_FILE}`,
       ),
     );
+    this.dbtTerminal.info(
+      "discoverProjects",
+      "foundProjects",
+      false,
+      dbtProjectFiles,
+    );
 
     const allowListFolders = this.getAllowListFolders();
     const projectDirectories = dbtProjectFiles
@@ -98,6 +106,13 @@ export class DBTWorkspaceFolder implements Disposable {
         );
       })
       .map((uri) => Uri.file(uri.path.split("/")!.slice(0, -1).join("/")));
+
+    this.dbtTerminal.info(
+      "discoverProjects",
+      "foundProjectsAfterFilter",
+      false,
+      projectDirectories,
+    );
 
     this.telemetry.sendTelemetryEvent(
       "discoverProjects",
@@ -121,6 +136,13 @@ export class DBTWorkspaceFolder implements Disposable {
 
     const filteredProjects =
       await dbtProjectDetection.discoverProjects(projectDirectories);
+
+    this.dbtTerminal.info(
+      "discoverProjects",
+      "foundProjectsAfterProjectIntegrationFilter",
+      false,
+      filteredProjects,
+    );
 
     await Promise.all(
       filteredProjects.map(async (uri) => {
@@ -248,7 +270,16 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   private notInVenv(path: string): boolean {
-    return !path.includes("site-packages");
+    const notInVenv = !path.includes("site-packages");
+    if (!notInVenv) {
+      this.dbtTerminal.info(
+        "discoverProjects",
+        "foundProjectInVenv",
+        false,
+        path,
+      );
+    }
+    return notInVenv;
   }
 
   private notInDBtPackages(
