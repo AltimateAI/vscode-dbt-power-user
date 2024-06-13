@@ -381,6 +381,7 @@ class DbtProject:
                 from dbt.context.providers import generate_runtime_macro_context
                 self.adapter.set_macro_context_generator(generate_runtime_macro_context)
             self.config.adapter = self.adapter
+            self.create_parser()
         except Exception as e:
             # reset project
             self.config = None
@@ -389,13 +390,7 @@ class DbtProject:
 
     def parse_project(self) -> None:
         try:
-            project_parser = ManifestLoader(
-                self.config,
-                self.config.load_dependencies(),
-                self.adapter.connections.set_query_header,
-            )
-            self.dbt = project_parser.load()
-            project_parser.save_macros_to_adapter(self.adapter)
+            self.create_parser()
             self.dbt.build_flat_graph()
         except Exception as e:
             # reset manifest
@@ -406,6 +401,15 @@ class DbtProject:
         self._macro_parser = None
         self._sql_compiler = None
         self._sql_runner = None
+        
+    def create_parser(self) -> None:
+        project_parser = ManifestLoader(
+            self.config,
+            self.config.load_dependencies(),
+            self.adapter.connections.set_query_header,
+        )
+        self.dbt = project_parser.load()
+        project_parser.save_macros_to_adapter(self.adapter)
 
     def set_defer_config(
         self, defer_to_prod: bool, manifest_path: str, favor_state: bool
@@ -579,10 +583,20 @@ class DbtProject:
         except Exception as e:
             raise Exception(str(e))
 
-    def get_server_node(self, sql: str, node_name="name"):
+    def get_server_node(self, sql: str, node_name="name", original_node: Optional[Union["ManifestNode", str]] = None):
         """Get a node for SQL execution against adapter"""
         self._clear_node(node_name)
         sql_node = self.sql_parser.parse_remote(sql, node_name)
+        # Enable copying original node properties
+        if original_node is not None:
+            if isinstance(original_node, str):
+                original_node = self.get_ref_node(original_node)
+            if original_node is not None and "materialized" in original_node.node_info.keys() and original_node.node_info["materialized"] == "incremental":
+                sql_node.schema = original_node.schema
+                sql_node.database = original_node.database
+                sql_node.alias = original_node.alias
+                sql_node.node_info["materialized"] = "incremental"
+                sql_node.node_info.update({k: v for k, v in original_node.node_info.items() if k not in sql_node.node_info.keys()})
         process_node(self.config, self.dbt, sql_node)
         return sql_node
 
@@ -617,14 +631,14 @@ class DbtProject:
         """Wraps adapter execute_macro. Execute a macro like a function."""
         return self.get_macro_function(macro)(kwargs=kwargs)
 
-    def execute_sql(self, raw_sql: str) -> DbtAdapterExecutionResult:
+    def execute_sql(self, raw_sql: str, original_node: Optional[Union["ManifestNode", str]] = None) -> DbtAdapterExecutionResult:
         """Execute dbt SQL statement against database"""
         with self.adapter.connection_named("master"):
             # if no jinja chars then these are synonymous
             compiled_sql = raw_sql
             if has_jinja(raw_sql):
                 # jinja found, compile it
-                compilation_result = self._compile_sql(raw_sql)
+                compilation_result = self._compile_sql(raw_sql, original_node)
                 compiled_sql = compilation_result.compiled_sql
 
             return DbtAdapterExecutionResult(
@@ -650,10 +664,10 @@ class DbtProject:
         except Exception as e:
             raise Exception(str(e))
 
-    def compile_sql(self, raw_sql: str) -> DbtAdapterCompilationResult:
+    def compile_sql(self, raw_sql: str, original_node: Optional["ManifestNode"] = None) -> DbtAdapterCompilationResult:
         try:
             with self.adapter.connection_named("master"):
-                return self._compile_sql(raw_sql)
+                return self._compile_sql(raw_sql, original_node)
         except Exception as e:
             raise Exception(str(e))
 
@@ -666,11 +680,12 @@ class DbtProject:
         except Exception as e:
             raise Exception(str(e))
 
-    def _compile_sql(self, raw_sql: str) -> DbtAdapterCompilationResult:
+    def _compile_sql(self, raw_sql: str, original_node: Optional[Union["ManifestNode", str]] = None) -> DbtAdapterCompilationResult:
         """Creates a node with a `dbt.parser.sql` class. Compile generated node."""
         try:
             temp_node_id = str("t_" + uuid.uuid4().hex)
-            node = self._compile_node(self.get_server_node(raw_sql, temp_node_id))
+            server_node = self.get_server_node(raw_sql, temp_node_id, original_node)
+            node = self._compile_node(server_node)
             self._clear_node(temp_node_id)
             return node
         except Exception as e:
