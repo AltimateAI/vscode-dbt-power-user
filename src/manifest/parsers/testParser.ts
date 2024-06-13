@@ -47,7 +47,10 @@ export class TestParser {
               database,
               schema,
               alias,
-              column_name,
+              // for quoted column names, remove the quotes
+              // ex: in manifest, it will be stored as "column_name": "\"Customer ID\"" for tests
+              // here we remove the extra quotes
+              column_name: column_name?.replace(/^"(.*)"$/, "$1"),
               test_metadata,
               attached_node,
               depends_on,
