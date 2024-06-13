@@ -56,7 +56,7 @@ export const setLegacyLineageView = () =>
 
 // column lineage with cancellation
 
-enum CllEvents {
+export enum CllEvents {
   START = "start",
   END = "end",
   CANCEL = "cancel",

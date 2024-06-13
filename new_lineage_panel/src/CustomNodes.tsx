@@ -14,12 +14,13 @@ import {
   calculateMinLevel,
   calculateNodeCount,
   expandTableLineage,
+  highlightColumnConnections,
   highlightTableConnections,
   layoutElementsOnCanvas,
 } from "./graph";
 import { LineageContext } from "./App";
 import { CLL, openFile } from "./service_utils";
-import { getColY, getSeeMoreId } from "./utils";
+import { getColumnId, getColY, getSeeMoreId, LENS_TYPE_COLOR, LensTypes, toggleColumnEdges, toggleModelEdges } from "./utils";
 import { TMoreTables } from "./MoreTables";
 
 import TestsIcon from "./assets/icons/tests.svg?react";
@@ -32,6 +33,7 @@ import {
   NodeTypeIcon,
   TableNodePill,
 } from "./components/Column";
+import { Badge } from "reactstrap";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -109,7 +111,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const selected = selectedTable === table;
 
   const highlightTable = () => {
-    if (selectedColumn.name) return;
+    if (selectedColumn.name && selectedColumn.table === table) return;
     const _nodes = flow.getNodes();
     const _edges = flow.getEdges();
     const [nodes, edges] = highlightTableConnections(_nodes, _edges, table);
@@ -146,11 +148,16 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     if (selectedColumn.name) {
       try {
         CLL.start();
+        const currentEdges = flow.getEdges();
+        // Model edges should be hidden when column lineage is selected
+        toggleModelEdges(currentEdges, false);
+        toggleColumnEdges(currentEdges, true);
+        flow.setEdges(currentEdges)
         await bfsTraversal(
           nodes,
           edges,
           right,
-          collectColumns[table].map((c) => ({ table, name: c })),
+          collectColumns[table].map((c) => ({ table, name: c.column })),
           setConfidence,
           setMoreTables,
           setCollectColumns,
@@ -366,10 +373,28 @@ export const SelfConnectingEdge: FunctionComponent<EdgeProps> = (props) => {
 };
 
 export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
-  const { column, table } = data;
-  const { selectedColumn } = useContext(LineageContext);
+  const { column, table, lensType } = data;
+  const { selectedColumn, setSelectedTable, setSelectedColumn } = useContext(LineageContext);
   const isSelected =
     selectedColumn.table === table && selectedColumn.name === column;
+
+  const lensColor = lensType && LENS_TYPE_COLOR[lensType as LensTypes];
+  const customStyles =
+    lensColor ? { borderColor: lensColor } : {};
+  const flow = useReactFlow();
+
+  const handleClick = () => {
+    const currentNode = flow.getNode(getColumnId(table, column));
+    if (!currentNode){
+      return;
+    }
+    setSelectedTable("")
+    setSelectedColumn({name: column, table});
+     highlightColumnConnections(
+      currentNode,
+      flow,
+    );
+  };
 
   return (
     <div
@@ -377,9 +402,16 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
         styles.column_node,
         isSelected ? styles.selected : styles.default
       )}
+      style={customStyles}
+      onClick={handleClick}
     >
-      {column}
+      <div className={styles.column_name}>{column}</div>
       <BidirectionalHandles />
+      {lensColor ? (
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        <Badge style={{ "--lens-color": lensColor }} className={styles.column_badge}>{lensType[0]}</Badge>
+      ) : null}
     </div>
   );
 };
