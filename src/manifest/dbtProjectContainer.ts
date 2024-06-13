@@ -45,7 +45,7 @@ export class DBTProjectContainer implements Disposable {
     new EventEmitter<DBTProjectsInitializationEvent>();
   public readonly onDBTProjectsInitialization =
     this._onDBTProjectsInitializationEvent.event;
-  private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
+  dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
   private _onManifestChanged = new EventEmitter<ManifestCacheChangedEvent>();
   private _onProjectRegisteredUnregistered =
     new EventEmitter<ProjectRegisteredUnregisteredEvent>();

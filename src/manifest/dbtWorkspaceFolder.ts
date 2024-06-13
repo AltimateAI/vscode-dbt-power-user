@@ -29,7 +29,7 @@ import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
-  private readonly projectDiscoveryDiagnostics =
+  readonly projectDiscoveryDiagnostics =
     languages.createDiagnosticCollection("dbt");
   private dbtProjects: DBTProject[] = [];
   private disposables: Disposable[] = [];
@@ -49,7 +49,7 @@ export class DBTWorkspaceFolder implements Disposable {
     private dbtCloudProjectDetection: DBTCloudProjectDetection,
     private telemetry: TelemetryService,
     private dbtTerminal: DBTTerminal,
-    private workspaceFolder: WorkspaceFolder,
+    public workspaceFolder: WorkspaceFolder,
     private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
     private _onProjectRegisteredUnregistered: EventEmitter<ProjectRegisteredUnregisteredEvent>,
   ) {
@@ -57,7 +57,7 @@ export class DBTWorkspaceFolder implements Disposable {
     this.disposables.push(this.watcher);
   }
 
-  private getAllowListFolders() {
+  getAllowListFolders() {
     const nonFilteredAlolowListFolders = workspace
       .getConfiguration("dbt")
       .get<string[]>("allowListFolders", [])
