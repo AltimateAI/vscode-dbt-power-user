@@ -17,6 +17,7 @@ import { TelemetryService } from "../telemetry";
 import { DeferToProdService } from "../services/deferToProdService";
 import { AltimateRequest } from "../altimate";
 import { ManifestPathType } from "../constants";
+import path = require("path");
 
 @provideSingleton(SqlPreviewContentProvider)
 export class SqlPreviewContentProvider
@@ -78,6 +79,7 @@ export class SqlPreviewContentProvider
   private async requestCompilation(uri: Uri) {
     try {
       const fsPath = decodeURI(uri.fsPath);
+      const modelName = path.basename(fsPath, ".sql");
       const query = readFileSync(fsPath, "utf8");
       const project = this.dbtProjectContainer.findDBTProject(Uri.file(fsPath));
       if (project === undefined) {
@@ -86,7 +88,7 @@ export class SqlPreviewContentProvider
       }
       this.telemetry.sendTelemetryEvent("requestCompilation");
       await project.refreshProjectConfig();
-      const result = await project.unsafeCompileQuery(query);
+      const result = await project.unsafeCompileQuery(query, modelName);
       const { manifestPathType } =
         this.deferToProdService.getDeferConfigByProjectRoot(
           project.projectRoot.fsPath,
