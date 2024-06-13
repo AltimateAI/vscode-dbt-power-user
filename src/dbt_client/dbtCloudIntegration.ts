@@ -90,7 +90,8 @@ export class DBTCloudDetection implements DBTDetection {
         const matches = regex.exec(stdout);
         if (matches?.length === 2) {
           const minVersion = "0.37.6";
-          if (semver.lt(matches[1], minVersion)) {
+          const currentVersion = matches[1];
+          if (semver.lt(currentVersion, minVersion)) {
             window.showErrorMessage(
               `This version of dbt Cloud is not supported. Please update to a dbt Cloud CLI version higher than ${minVersion}`,
             );
@@ -171,6 +172,7 @@ export class DBTCloudProjectIntegration
 {
   private static QUEUE_ALL = "all";
   private targetPath?: string;
+  private version: number[] | undefined;
   private adapterType: string = "unknown";
   private packagesInstallPath?: string;
   private modelPaths?: string[];
@@ -234,6 +236,11 @@ export class DBTCloudProjectIntegration
       this.initializePaths();
     }
     this.findAdapterType();
+    if (!this.version) {
+      await this.findVersion();
+    } else {
+      this.findVersion();
+    }
   }
 
   async executeSQL(
@@ -344,8 +351,7 @@ export class DBTCloudProjectIntegration
   }
 
   getVersion(): number[] {
-    // TODO: get version
-    return [0, 0, 0];
+    return this.version || [0, 0, 0];
   }
 
   getPythonBridgeStatus(): boolean {
@@ -527,6 +533,15 @@ export class DBTCloudProjectIntegration
     );
     command.addArgument("--source");
     command.addArgument("dbt-power-user");
+    const currentVersion = this.getVersion()
+      .map((part) => new String(part))
+      .join(".");
+    const downloadArtifactsVersion = "1.0.1";
+    if (semver.gt(currentVersion, downloadArtifactsVersion)) {
+      if (["parse"].includes(command.args[0])) {
+        command.addArgument("--download-artifacts");
+      }
+    }
     return command;
   }
 
@@ -901,6 +916,33 @@ export class DBTCloudProjectIntegration
         "adapter type throws error, ignoring",
         true,
         error,
+      );
+    }
+  }
+
+  private async findVersion() {
+    try {
+      const versionCommand = this.dbtCloudCommand(
+        new DBTCommand("Getting version...", ["--version"]),
+      );
+      const { stdout } = await versionCommand.execute();
+      if (stdout.includes("dbt Cloud CLI")) {
+        const regex = /dbt Cloud CLI - (\d*\.\d*\.\d*)/gm;
+        const matches = regex.exec(stdout);
+        if (matches?.length === 2) {
+          this.version = matches[1].split(".").map((part) => parseInt(part));
+        } else {
+          this.terminal.debug(
+            "DBTCLIDetectionFailed",
+            "dbt cloud cli was not found. Detection command returned :  " +
+              stdout,
+          );
+        }
+      }
+    } catch (error) {
+      this.terminal.warn(
+        "findVersion",
+        "Version lookup failed with error : " + (error as Error).message,
       );
     }
   }
