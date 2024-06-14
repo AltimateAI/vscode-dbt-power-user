@@ -489,9 +489,14 @@ const mergeNodesEdges = (
     }
     const existing = nodes.find((x) => x.id === n.id);
     if (existing) {
+      const viewsCode =
+        n.data.viewsCode && Object.keys(n.data.viewsCode).length
+          ? n.data.viewsCode
+          : existing.data.viewsCode;
       existing.data = {
         ...existing.data,
         ...n.data,
+        viewsCode,
         viewsType: existing.data.viewsType || n.data.viewsType,
       };
     }
@@ -730,7 +735,9 @@ export const bfsTraversal = async (
         : (_getNode(dstNode)?.data as TMoreTables)?.tables?.filter(
             (t) => !tableNodes[t.table]
           );
-      dstTables?.forEach(({ table: dstTable, materialization }) => {
+      dstTables?.forEach((dstTableData) => {
+        if (!dstTableData) return;
+        const { table: dstTable, materialization } = dstTableData;
         if (currTargetTables[srcTable]) {
           noDependents = true;
           if (materialization === "ephemeral") {

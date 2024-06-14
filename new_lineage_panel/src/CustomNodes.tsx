@@ -42,7 +42,7 @@ import {
   TableNodePill,
 } from "./components/Column";
 import CodeIcon from "./assets/icons/code.svg?react";
-import { ViewsTypeBadge } from "./components";
+import { Tooltip, ViewsTypeBadge } from "./components";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -436,21 +436,23 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
       <BidirectionalHandles />
       <div className={styles.column_top_right}>
         {viewsCodesFlat.length > 0 && (
-          <div
-            className={styles.column_code_icon}
-            onClick={(e) => {
-              e.stopPropagation();
-              setViewsCodeModal({
-                table,
-                viewsType,
-                viewsCode,
-                nodeType,
-                column,
-              });
-            }}
-          >
-            <CodeIcon />
-          </div>
+          <Tooltip tooltipLabel={"Click to view code"}>
+            <div
+              className={styles.column_code_icon}
+              onClick={(e) => {
+                e.stopPropagation();
+                setViewsCodeModal({
+                  table,
+                  viewsType,
+                  viewsCode,
+                  nodeType,
+                  column,
+                });
+              }}
+            >
+              <CodeIcon />
+            </div>
+          </Tooltip>
         )}
         {viewsType && <ViewsTypeBadge viewsType={viewsType} />}
       </div>
