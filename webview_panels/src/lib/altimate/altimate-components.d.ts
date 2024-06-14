@@ -1,5 +1,3 @@
-/// <reference types="react" />
-
 import { JSX as JSX_2 } from "react/jsx-runtime";
 
 export declare const ApiHelper: {
