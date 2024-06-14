@@ -85,9 +85,9 @@
   display: flex;
   align-items: center;
   div {
-    height: 1px;
+    height: 2px;
     width: 12px;
-    border-top: solid 1px #E38E00;
+    border-top: solid 2px #E38E00;
   }
 }
 
@@ -95,8 +95,8 @@
   display: flex;
   align-items: center;
   div {
-    height: 1px;
+    height: 2px;
     width: 12px;
-    border-top: dashed 1px #E38E00;
+    border-top: dashed 2px #E38E00;
   }
 }
