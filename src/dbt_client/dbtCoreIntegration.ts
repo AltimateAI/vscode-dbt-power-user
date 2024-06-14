@@ -377,7 +377,11 @@ export class DBTCoreProjectIntegration
     this.adapterType = await this.findAdapterType();
   }
 
-  async executeSQL(query: string, limit: number): Promise<QueryExecution> {
+  async executeSQL(
+    query: string,
+    limit: number,
+    modelName: string,
+  ): Promise<QueryExecution> {
     this.throwBridgeErrorIfAvailable();
     const { limitQuery } = await this.getQuery(query, limit);
 
@@ -391,11 +395,14 @@ export class DBTCoreProjectIntegration
       async () => {
         await this.createPythonDbtProject(queryThread);
         await queryThread.ex`project.init_project()`;
-        // compile query
-        const compiledQuery = await this.unsafeCompileQuery(limitQuery);
-        // execute query
         let result: ExecuteSQLResult;
+        // compile query
+        const compiledQuery = await this.unsafeCompileQuery(
+          limitQuery,
+          modelName,
+        );
         try {
+          // execute query
           result = await queryThread!.lock<ExecuteSQLResult>(
             (python) => python`to_dict(project.execute_sql(${compiledQuery}))`,
           );
@@ -803,10 +810,14 @@ export class DBTCoreProjectIntegration
     return output.compiled_sql;
   }
 
-  async unsafeCompileQuery(query: string): Promise<string> {
+  async unsafeCompileQuery(
+    query: string,
+    originalModelName: string | undefined = undefined,
+  ): Promise<string> {
     this.throwBridgeErrorIfAvailable();
     const output = await this.python?.lock<CompilationResult>(
-      (python) => python!`to_dict(project.compile_sql(${query}))`,
+      (python) =>
+        python!`to_dict(project.compile_sql(${query}, ${originalModelName}))`,
     );
     return output.compiled_sql;
   }

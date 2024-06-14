@@ -68,14 +68,11 @@ export class RunModel {
     if (query === undefined) {
       return;
     }
-    const cursor = window.activeTextEditor!.selection;
-    const queryName =
-      "Results: " +
-      path.basename(window.activeTextEditor!.document.uri.fsPath ?? "Ad Hoc") +
-      " " +
-      (cursor.isEmpty ? "" : "(Ad Hoc) ") +
-      new Date().toTimeString().split(" ")[0];
-    this.executeSQL(window.activeTextEditor!.document.uri, query, queryName);
+    const modelPath = window.activeTextEditor?.document.uri;
+    if (modelPath) {
+      const modelName = path.basename(modelPath.fsPath, ".sql");
+      this.executeSQL(window.activeTextEditor!.document.uri, query, modelName);
+    }
   }
 
   runModelOnNodeTreeItem(type: RunModelType) {
@@ -169,8 +166,8 @@ export class RunModel {
     this.dbtProjectContainer.runModelTest(modelPath, modelName);
   }
 
-  async executeSQL(uri: Uri, query: string, title: string) {
-    this.dbtProjectContainer.executeSQL(uri, query);
+  async executeSQL(uri: Uri, query: string, modelName: string) {
+    this.dbtProjectContainer.executeSQL(uri, query, modelName);
   }
 
   showCompiledSQL(modelPath: Uri) {
