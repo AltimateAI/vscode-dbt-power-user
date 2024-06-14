@@ -700,7 +700,8 @@ export class NewLineagePanel
           source: [c.source.uniqueId, c.source.column_name],
           target: [c.target.uniqueId, c.target.column_name],
           type: c.type,
-          lensType: c.lens_type,
+          viewsType: c.views_type,
+          viewsCode: c.views_code,
         })) || [];
       return { column_lineage, confindence: result.confidence };
     } catch (error) {

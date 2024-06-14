@@ -51,7 +51,8 @@ export declare interface ColumnLineage {
   source: [string, string];
   target: [string, string];
   type: string;
-  lensType?: keyof typeof LENS_TYPE_COLOR;
+  viewsType?: ViewsTypes;
+  viewsCode?: [string, string][];
 }
 
 export declare interface Columns {
@@ -165,14 +166,6 @@ export declare interface ExposureMetaData {
   meta?: Record<string, unknown>;
 }
 
-declare const LENS_TYPE_COLOR: {
-  Original: string;
-  Alias: string;
-  Transformation: string;
-  Unchanged: string;
-  "Not sure": string;
-};
-
 export declare const Lineage: (
   props: Omit<Parameters<typeof LineageProvider>["0"], "children">,
 ) => JSX_2.Element;
@@ -253,6 +246,24 @@ declare interface User {
   last_name: string;
   id: number;
 }
+
+declare const VIEWS_TYPE_COLOR: {
+  Original: string;
+  Alias: string;
+  Transformation: string;
+  Unchanged: string;
+  "Not sure": string;
+};
+
+export declare interface ViewsCodeModal {
+  table: string;
+  column: string;
+  viewsType: ViewsTypes;
+  viewsCode: Record<string, [string, string][]>;
+  nodeType: string;
+}
+
+declare type ViewsTypes = keyof typeof VIEWS_TYPE_COLOR;
 
 export {};
 
