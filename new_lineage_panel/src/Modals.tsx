@@ -6,6 +6,7 @@ import styles from "./styles.module.scss";
 import { HeaderSection } from "./TableDetails";
 import CloseIcon from "./assets/icons/x-close.svg?react";
 import Prism from "prismjs";
+import "prismjs/components/prism-sql";
 import "prismjs/themes/prism-tomorrow.css";
 import { useReactFlow } from "reactflow";
 import classNames from "classnames";
@@ -14,7 +15,7 @@ export function ViewsCodeModal() {
   const { viewsCodeModal, setViewsCodeModal } = useContext(LineageContext);
   useEffect(() => {
     setTimeout(() => {
-      Prism.highlightAll(true);
+      Prism.highlightAll();
     }, 500);
   }, [viewsCodeModal]);
 
@@ -81,11 +82,16 @@ export function ViewsCodeModal() {
                 return (
                   <div key={code} className={styles.modal_views_code_container}>
                     <div className="d-flex gap-sm align-items-center">
-                      <pre className={styles.code_editor_container}>
+                      <pre
+                        className={classNames(
+                          styles.code_editor_container,
+                          "language-sql"
+                        )}
+                      >
                         <code
                           className={classNames(
                             "language-sql",
-                            styles.code_editor,
+                            styles.code_editor
                           )}
                         >
                           {code}
