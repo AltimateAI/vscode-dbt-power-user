@@ -135,6 +135,7 @@ export class ValidateSql {
           try {
             compiledQuery = await project.unsafeCompileQuery(
               fileContentBytes.toString(),
+              modelName,
             );
           } catch (error) {
             window.showErrorMessage(
