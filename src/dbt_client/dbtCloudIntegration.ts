@@ -536,8 +536,8 @@ export class DBTCloudProjectIntegration
     const currentVersion = this.getVersion()
       .map((part) => new String(part))
       .join(".");
-    const downloadArtifactsVersion = "1.0.1";
-    if (semver.gt(currentVersion, downloadArtifactsVersion)) {
+    const downloadArtifactsVersion = "0.37.20";
+    if (semver.gte(currentVersion, downloadArtifactsVersion)) {
       if (["parse"].includes(command.args[0])) {
         command.addArgument("--download-artifacts");
       }
