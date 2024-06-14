@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { readFileSync, writeFileSync } from "fs";
 import * as path from "path";
 import {
@@ -168,7 +167,11 @@ export class NewLineagePanel
     });
   }
 
-  async handleCommand(message: { command: string; args: any, syncRequestId?: string }): Promise<void> {
+  async handleCommand(message: {
+    command: string;
+    args: any;
+    syncRequestId?: string;
+  }): Promise<void> {
     const { command, args = {}, syncRequestId } = message;
     const { id = syncRequestId, params } = args;
 
@@ -959,7 +962,7 @@ export class NewLineagePanel
       .getConfiguration("dbt")
       .get<boolean>("enableLineagePanelV2", false);
 
-    if (enableLineagePanelV2){
+    if (enableLineagePanelV2) {
       this._panel!.webview.html = super.getHtml(
         webview,
         this.dbtProjectContainer.extensionUri,
