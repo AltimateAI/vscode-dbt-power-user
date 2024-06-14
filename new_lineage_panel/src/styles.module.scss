@@ -434,7 +434,7 @@ $size: 1.2em;
 }
 
 .code_editor_container {
-  background-color: #171717 !important;
+  background-color: var(--code-bg) !important;
   margin: 0 !important;
   padding: 0.25rem !important;
   flex-grow: 1;
@@ -442,7 +442,7 @@ $size: 1.2em;
 }
 
 .code_editor {
-  background-color: #171717 !important;
+  background-color: var(--code-bg) !important;
   padding: 0.5rem;
   width: 100%;
 }

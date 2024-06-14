@@ -23,6 +23,7 @@ html {
   --modal-bg: #ffffff;
   --popover-bg: #ffffff;
   --divider-color: #e8e8e8;
+  --code-bg: #082247;
 }
 
 html[data-theme="dark"] {
@@ -50,6 +51,7 @@ html[data-theme="dark"] {
   --modal-bg: #484e55;
   --popover-bg: #28292c;
   --divider-color: #424750;
+  --code-bg: #171717;
 }
 
 html[data-theme="dark"] .bs-modal {
