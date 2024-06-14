@@ -1,7 +1,7 @@
 import { VIEWS_TYPE_COLOR, ViewsTypes } from "../utils";
 import styles from "./styles.module.scss";
 import { Button, Popover, PopoverBody } from "reactstrap";
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import UpIcon from "../assets/icons/chevron-up.svg?react";
 import DownIcon from "../assets/icons/chevron-down.svg?react";
 import Tooltip from "./Tooltip";
@@ -26,12 +26,18 @@ export const ViewsTypeBadge: FunctionComponent<{
 
 const LineageLegend = () => {
   const [showLegend, setShowLegend] = useState(false);
+  useEffect(() => {
+    setTimeout(() => {
+      setShowLegend(true);
+    }, 500);
+    const id = setTimeout(() => {
+      setShowLegend(false);
+    }, 3500);
+    return () => clearTimeout(id);
+  }, []);
 
   const toggleLegend = () => {
-    setShowLegend(true);
-    setTimeout(() => {
-      setShowLegend(false);
-    }, 3000);
+    setShowLegend((b) => !b);
   };
   return (
     <>
