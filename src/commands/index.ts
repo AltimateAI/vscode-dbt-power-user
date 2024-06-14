@@ -445,9 +445,10 @@ export class VSCodeCommands implements Disposable {
           this.dbtTerminal.logBlock([
             `Python Path=${this.pythonEnvironment.pythonPath}`,
             `VSCode version=${version}`,
-            `Extension version=${extensions.getExtension(
-              "innoverio.vscode-dbt-power-user",
-            )?.packageJSON?.version}`,
+            `Extension version=${
+              extensions.getExtension("innoverio.vscode-dbt-power-user")
+                ?.packageJSON?.version
+            }`,
             `DBT integration mode=${dbtIntegrationMode}`,
             `First workspace path=${getFirstWorkspacePath()}`,
           ]);
@@ -469,6 +470,30 @@ export class VSCodeCommands implements Disposable {
             return;
           }
           this.dbtTerminal.logLine("DBT is installed");
+          const dbtWorkspaces = this.dbtProjectContainer.dbtWorkspaceFolders;
+          this.dbtTerminal.logLine(
+            `Number of workspaces=${dbtWorkspaces.length}`,
+          );
+          for (const w of dbtWorkspaces) {
+            this.dbtTerminal.logHorizontalRule();
+            this.dbtTerminal.logLine(
+              `Workspace Path=${w.workspaceFolder.uri.fsPath}`,
+            );
+            this.dbtTerminal.logLine(`Adapters=${w.getAdapters()}`);
+            this.dbtTerminal.logLine(
+              `AllowList Folders=${w.getAllowListFolders()}`,
+            );
+            w.projectDiscoveryDiagnostics.forEach((uri, diagnostics) => {
+              this.dbtTerminal.logLine(`Problems for ${uri.fsPath}`);
+              diagnostics.forEach((d) => {
+                this.dbtTerminal.logLine(
+                  `source=${d.source}\tmessage=${d.message}`,
+                );
+              });
+            });
+            this.dbtTerminal.logHorizontalRule();
+          }
+
           const projects = this.dbtProjectContainer.getProjects();
           this.dbtTerminal.logLine(`Number of projects=${projects.length}`);
           if (projects.length === 0) {

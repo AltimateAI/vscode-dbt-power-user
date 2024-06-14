@@ -45,7 +45,7 @@ export class DBTProjectContainer implements Disposable {
     new EventEmitter<DBTProjectsInitializationEvent>();
   public readonly onDBTProjectsInitialization =
     this._onDBTProjectsInitializationEvent.event;
-  private dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
+  dbtWorkspaceFolders: DBTWorkspaceFolder[] = [];
   private _onManifestChanged = new EventEmitter<ManifestCacheChangedEvent>();
   private _onProjectRegisteredUnregistered =
     new EventEmitter<ProjectRegisteredUnregisteredEvent>();
@@ -266,8 +266,8 @@ export class DBTProjectContainer implements Disposable {
     this.getProjects().forEach((project) => project.initialize());
   }
 
-  executeSQL(uri: Uri, query: string): void {
-    this.findDBTProject(uri)?.executeSQL(query);
+  executeSQL(uri: Uri, query: string, modelName: string): void {
+    this.findDBTProject(uri)?.executeSQL(query, modelName);
   }
 
   runModel(modelPath: Uri, type?: RunModelType) {

@@ -333,7 +333,11 @@ export interface DBTProjectIntegration extends Disposable {
   // parse manifest
   rebuildManifest(): Promise<void>;
   // execute queries
-  executeSQL(query: string, limit: number): Promise<QueryExecution>;
+  executeSQL(
+    query: string,
+    limit: number,
+    modelName: string,
+  ): Promise<QueryExecution>;
   // dbt commands
   runModel(command: DBTCommand): Promise<void>;
   buildModel(command: DBTCommand): Promise<void>;
@@ -347,7 +351,10 @@ export interface DBTProjectIntegration extends Disposable {
   debug(command: DBTCommand): Promise<string>;
   // altimate commands
   unsafeCompileNode(modelName: string): Promise<string>;
-  unsafeCompileQuery(query: string): Promise<string>;
+  unsafeCompileQuery(
+    query: string,
+    originalModelName: string | undefined,
+  ): Promise<string>;
   validateSql(
     query: string,
     dialect: string,

@@ -30,7 +30,10 @@ export class BigQueryCostEstimate {
         );
         return;
       }
-      const compiledQuery = await this.getProject()?.unsafeCompileQuery(query);
+      const compiledQuery = await this.getProject()?.unsafeCompileQuery(
+        query,
+        modelName,
+      );
       if (!compiledQuery) {
         window.showErrorMessage(
           "We need a valid query to get a cost estimate.",

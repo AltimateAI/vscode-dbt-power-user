@@ -25,10 +25,11 @@ import { ProjectRegisteredUnregisteredEvent } from "./dbtProjectContainer";
 import { DBTCoreProjectDetection } from "../dbt_client/dbtCoreIntegration";
 import { DBTCloudProjectDetection } from "../dbt_client/dbtCloudIntegration";
 import { DBTProjectDetection } from "../dbt_client/dbtIntegration";
+import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 export class DBTWorkspaceFolder implements Disposable {
   private watcher: FileSystemWatcher;
-  private readonly projectDiscoveryDiagnostics =
+  readonly projectDiscoveryDiagnostics =
     languages.createDiagnosticCollection("dbt");
   private dbtProjects: DBTProject[] = [];
   private disposables: Disposable[] = [];
@@ -47,7 +48,8 @@ export class DBTWorkspaceFolder implements Disposable {
     private dbtCoreProjectDetection: DBTCoreProjectDetection,
     private dbtCloudProjectDetection: DBTCloudProjectDetection,
     private telemetry: TelemetryService,
-    private workspaceFolder: WorkspaceFolder,
+    private dbtTerminal: DBTTerminal,
+    public workspaceFolder: WorkspaceFolder,
     private _onManifestChanged: EventEmitter<ManifestCacheChangedEvent>,
     private _onProjectRegisteredUnregistered: EventEmitter<ProjectRegisteredUnregisteredEvent>,
   ) {
@@ -55,7 +57,7 @@ export class DBTWorkspaceFolder implements Disposable {
     this.disposables.push(this.watcher);
   }
 
-  private getAllowListFolders() {
+  getAllowListFolders() {
     const nonFilteredAlolowListFolders = workspace
       .getConfiguration("dbt")
       .get<string[]>("allowListFolders", [])
@@ -86,8 +88,21 @@ export class DBTWorkspaceFolder implements Disposable {
         `**/${DBTProject.DBT_PROJECT_FILE}`,
       ),
     );
+    this.dbtTerminal.info(
+      "discoverProjects",
+      "foundProjects",
+      false,
+      dbtProjectFiles,
+    );
 
     const allowListFolders = this.getAllowListFolders();
+    this.dbtTerminal.info(
+      "discoverProjects",
+      "allowListFolders",
+      false,
+      allowListFolders,
+    );
+
     const projectDirectories = dbtProjectFiles
       .filter((uri) => statSync(uri.fsPath).isFile())
       .filter((uri) => this.notInVenv(uri.fsPath))
@@ -98,6 +113,13 @@ export class DBTWorkspaceFolder implements Disposable {
         );
       })
       .map((uri) => Uri.file(uri.path.split("/")!.slice(0, -1).join("/")));
+
+    this.dbtTerminal.info(
+      "discoverProjects",
+      "foundProjectsAfterFilter",
+      false,
+      projectDirectories,
+    );
 
     this.telemetry.sendTelemetryEvent(
       "discoverProjects",
@@ -121,6 +143,13 @@ export class DBTWorkspaceFolder implements Disposable {
 
     const filteredProjects =
       await dbtProjectDetection.discoverProjects(projectDirectories);
+
+    this.dbtTerminal.info(
+      "discoverProjects",
+      "foundProjectsAfterProjectIntegrationFilter",
+      false,
+      filteredProjects,
+    );
 
     await Promise.all(
       filteredProjects.map(async (uri) => {
@@ -188,6 +217,11 @@ export class DBTWorkspaceFolder implements Disposable {
         registered: true,
       });
     } catch (error) {
+      this.dbtTerminal.error(
+        "registerDBTProject",
+        `Unable to register dbt project for ${uri.fsPath}`,
+        error,
+      );
       if (error instanceof YAMLError) {
         this.projectDiscoveryDiagnostics.set(
           Uri.joinPath(uri, DBTProject.DBT_PROJECT_FILE),
@@ -248,7 +282,16 @@ export class DBTWorkspaceFolder implements Disposable {
   }
 
   private notInVenv(path: string): boolean {
-    return !path.includes("site-packages");
+    const notInVenv = !path.includes("site-packages");
+    if (!notInVenv) {
+      this.dbtTerminal.info(
+        "discoverProjects",
+        "foundProjectInVenv",
+        false,
+        path,
+      );
+    }
+    return notInVenv;
   }
 
   private notInDBtPackages(
