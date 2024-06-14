@@ -102,7 +102,7 @@ const LineageView = (): JSX.Element | null => {
     );
 
     panelLogger.info("lineage:onload");
-    document.body.classList.add(styles.lineageBody);
+    document.documentElement.classList.add(styles.lineageBody);
     // hide demo button after 10s
     setTimeout(() => {
       setShowDemoButton(false);
