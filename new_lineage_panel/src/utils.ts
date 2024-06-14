@@ -29,6 +29,7 @@ export const VIEWS_TYPE_COLOR = {
   Transformation: "#FF754C",
   Unchanged: "#BC3FBC",
   "Not sure": "#247efe",
+  "Non select": "#BC3FBC",
 };
 
 export type CollectColumn = { column: string; viewsType?: ViewsTypes };

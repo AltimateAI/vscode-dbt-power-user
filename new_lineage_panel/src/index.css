@@ -53,7 +53,7 @@ html[data-theme="dark"] {
 }
 
 html[data-theme="dark"] .bs-modal {
-  --bs-modal-bg: #28292c !important;
+  --bs-modal-bg: #252526 !important;
   --bs-modal-color: #ffffff !important;
 }
 

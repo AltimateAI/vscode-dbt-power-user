@@ -77,11 +77,10 @@ export function ViewsCodeModal() {
               <div className="text-dark-grey fs-xs">
                 List of transformations
               </div>
-              {viewsCodesFlat.map((code, i) => {
+              {viewsCodesFlat.map((code) => {
                 return (
                   <div key={code} className={styles.modal_views_code_container}>
                     <div className="d-flex gap-sm align-items-center">
-                      <div>{i + 1}</div>
                       <pre className={styles.code_editor_container}>
                         <code
                           className={classNames(
