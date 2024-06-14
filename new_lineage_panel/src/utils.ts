@@ -32,6 +32,15 @@ export const VIEWS_TYPE_COLOR = {
   "Non select": "#BC3FBC",
 };
 
+export const VIEWS_TYPE_PRIORITY = {
+  Transformation: 6,
+  Alias: 5,
+  Original: 4,
+  Unchanged: 3,
+  "Non select": 2,
+  "Not sure": 1,
+};
+
 export type CollectColumn = { column: string; viewsType?: ViewsTypes };
 export type ViewsTypes = keyof typeof VIEWS_TYPE_COLOR;
 

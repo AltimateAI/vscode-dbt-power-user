@@ -32,6 +32,7 @@ import {
   toggleModelEdges,
   toggleColumnEdges,
   CollectColumn,
+  VIEWS_TYPE_PRIORITY,
 } from "./utils";
 import {
   ColumnLineage,
@@ -356,8 +357,16 @@ const processColumnLineage = async (
     viewsType?: ViewsTypes
   ) => {
     collectColumns[_table] = collectColumns[_table] || [];
-    if (!collectColumns[_table].find((c) => c.column === _column)) {
+    const item = collectColumns[_table].find((c) => c.column === _column);
+    if (!item) {
       collectColumns[_table].push({ column: _column, viewsType });
+    } else if (viewsType) {
+      if (
+        !item.viewsType ||
+        VIEWS_TYPE_PRIORITY[viewsType] > VIEWS_TYPE_PRIORITY[item.viewsType]
+      ) {
+        item.viewsType = viewsType;
+      }
     }
   };
 
