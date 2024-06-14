@@ -114,7 +114,10 @@ const LineageView = (): JSX.Element | null => {
   }
   return (
     <div className={styles.lineageView}>
-      <ActionWidget missingLineageMessage={missingLineageMessage} />
+      <ActionWidget
+        missingLineageMessage={missingLineageMessage}
+        aiEnabled={renderNode.aiEnabled}
+      />
       <div className="bottom-right-container">
         {showDemoButton && (
           <Button

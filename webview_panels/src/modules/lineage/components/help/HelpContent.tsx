@@ -1,4 +1,4 @@
-import { vscode } from "@modules/vscode";
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import { Button } from "@uicore";
 
 const HelpContent = (): JSX.Element => {
@@ -12,8 +12,7 @@ const HelpContent = (): JSX.Element => {
           color="primary"
           onClick={(e) => {
             e.stopPropagation();
-            vscode.postMessage({
-              command: "openURL",
+            executeRequestInAsync("openURL", {
               url: "https://app.myaltimate.com/contactus",
             });
           }}

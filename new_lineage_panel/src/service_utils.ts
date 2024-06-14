@@ -36,7 +36,7 @@ export const openFile = (url: string) => {
 };
 
 export const openURL = (url: string) => {
-  vscode.postMessage({ command: "openURL", args: { url } });
+  vscode.postMessage({ command: "openURL", url });
 };
 
 export const openChat = () => openURL("https://app.myaltimate.com/contactus");

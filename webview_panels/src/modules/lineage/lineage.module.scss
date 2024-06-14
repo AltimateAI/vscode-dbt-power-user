@@ -22,5 +22,14 @@ body.lineageBody {
       color: var(--text-color) !important;
     }
     
+    .action-widget {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      gap: 8px;
+      z-index: 1;
+      align-items: center;
+    }
   }
 }
