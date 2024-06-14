@@ -56,10 +56,13 @@
 .column_legend {
   :global .popover {
     border-radius: 2px;
-    background-color: #ffffff;
+    --bs-popover-bg: --popover-bg;
+    background-color: var(--popover-bg);
+    color: var(--text-color) !important;
     text-transform: capitalize;
     border: 1px solid #d5dbe4;
     :global .popover-body {
+      color: var(--text-color) !important;
       padding: 0.5rem 1rem;
       > div {
         margin-bottom: 1rem;

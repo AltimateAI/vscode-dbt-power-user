@@ -27,7 +27,12 @@ export const ViewsTypeBadge: FunctionComponent<{
 const LineageLegend = () => {
   const [showLegend, setShowLegend] = useState(false);
 
-  const toggleLegend = () => setShowLegend(!showLegend);
+  const toggleLegend = () => {
+    setShowLegend(true);
+    setTimeout(() => {
+      setShowLegend(false);
+    }, 3000);
+  };
   return (
     <>
       <Button
