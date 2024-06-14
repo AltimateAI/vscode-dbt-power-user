@@ -80,3 +80,23 @@
   border-radius: 6px;
   cursor: pointer;
 }
+
+.edge_select {
+  display: flex;
+  align-items: center;
+  div {
+    height: 1px;
+    width: 12px;
+    border-top: solid 1px #E38E00;
+  }
+}
+
+.edge_non_select {
+  display: flex;
+  align-items: center;
+  div {
+    height: 1px;
+    width: 12px;
+    border-top: dashed 1px #E38E00;
+  }
+}

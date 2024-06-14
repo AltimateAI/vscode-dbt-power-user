@@ -59,6 +59,18 @@ const LineageLegend = () => {
             </div>
             <div>Code</div>
           </div>
+          <div className="d-flex gap-sm mb-1 align-items-center">
+            <div className={styles.edge_select}>
+              <div />
+            </div>
+            <div>Select</div>
+          </div>
+          <div className="d-flex gap-sm mb-1 align-items-center">
+            <div className={styles.edge_non_select}>
+              <div />
+            </div>
+            <div>Non select</div>
+          </div>
         </PopoverBody>
       </Popover>
     </>
