@@ -454,7 +454,9 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
             </div>
           </Tooltip>
         )}
-        {viewsType && <ViewsTypeBadge viewsType={viewsType} />}
+        {viewsType && viewsType !== "Non select" && (
+          <ViewsTypeBadge viewsType={viewsType} />
+        )}
       </div>
     </div>
   );
