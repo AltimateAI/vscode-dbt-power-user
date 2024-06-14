@@ -8,6 +8,17 @@ import { DBTTerminal } from "../../dbt_client/dbtTerminal";
 export class TestParser {
   constructor(private terminal: DBTTerminal) {}
 
+  private getColumnNameWithoutQuotes(columnName: string): string | undefined {
+    if (!columnName) {
+      return undefined;
+    }
+
+    if (columnName.startsWith('"') && columnName.endsWith('"')) {
+      return columnName.slice(1, -1);
+    }
+
+    return columnName;
+  }
   createTestMetaMap(
     testsMap: any[],
     project: DBTProject,
@@ -47,7 +58,10 @@ export class TestParser {
               database,
               schema,
               alias,
-              column_name,
+              // for quoted column names, remove the quotes
+              // ex: in manifest, it will be stored as "column_name": "\"Customer ID\"" for tests
+              // here we remove the enclosing quotes
+              column_name: this.getColumnNameWithoutQuotes(column_name),
               test_metadata,
               attached_node,
               depends_on,
