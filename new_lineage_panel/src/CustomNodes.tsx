@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useContext } from "react";
+import React, { FunctionComponent, useContext, useMemo } from "react";
 import {
   BaseEdge,
   EdgeProps,
@@ -20,7 +20,15 @@ import {
 } from "./graph";
 import { LineageContext } from "./App";
 import { CLL, openFile } from "./service_utils";
-import { getColumnId, getColY, getSeeMoreId, LENS_TYPE_COLOR, LensTypes, toggleColumnEdges, toggleModelEdges } from "./utils";
+import {
+  getColumnId,
+  getColY,
+  getSeeMoreId,
+  VIEWS_TYPE_COLOR,
+  ViewsTypes,
+  toggleColumnEdges,
+  toggleModelEdges,
+} from "./utils";
 import { TMoreTables } from "./MoreTables";
 
 import TestsIcon from "./assets/icons/tests.svg?react";
@@ -33,7 +41,8 @@ import {
   NodeTypeIcon,
   TableNodePill,
 } from "./components/Column";
-import { Badge } from "reactstrap";
+import CodeIcon from "./assets/icons/code.svg?react";
+import { Tooltip, ViewsTypeBadge } from "./components";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -84,7 +93,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     nodeType,
     tests,
     materialization,
-    isExternalProject
+    isExternalProject,
   } = data;
   const flow = useReactFlow();
 
@@ -152,7 +161,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
         // Model edges should be hidden when column lineage is selected
         toggleModelEdges(currentEdges, false);
         toggleColumnEdges(currentEdges, true);
-        flow.setEdges(currentEdges)
+        flow.setEdges(currentEdges);
         await bfsTraversal(
           nodes,
           edges,
@@ -284,12 +293,14 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                   label="Materialization"
                 />
               )}
-              {isExternalProject ? <TableNodePill
+              {isExternalProject ? (
+                <TableNodePill
                   id={"table-node-is-external-" + tableId}
                   icon={<ExternalProjectIcon />}
                   text="ext"
                   label={`External Project: ${table}`}
-                /> : null}
+                />
+              ) : null}
               <div className="spacer" />
               <div
                 className={classNames(
@@ -373,28 +384,44 @@ export const SelfConnectingEdge: FunctionComponent<EdgeProps> = (props) => {
 };
 
 export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
-  const { column, table, lensType } = data;
-  const { selectedColumn, setSelectedTable, setSelectedColumn } = useContext(LineageContext);
+  const { column, table, viewsType, viewsCode, nodeType } = data;
+  const {
+    selectedColumn,
+    setSelectedTable,
+    setSelectedColumn,
+    setViewsCodeModal,
+  } = useContext(LineageContext);
   const isSelected =
     selectedColumn.table === table && selectedColumn.name === column;
 
-  const lensColor = lensType && LENS_TYPE_COLOR[lensType as LensTypes];
-  const customStyles =
-    lensColor ? { borderColor: lensColor } : {};
+  const viewsColor = viewsType && VIEWS_TYPE_COLOR[viewsType as ViewsTypes];
+  const customStyles = viewsColor ? { borderColor: viewsColor } : {};
   const flow = useReactFlow();
 
   const handleClick = () => {
     const currentNode = flow.getNode(getColumnId(table, column));
-    if (!currentNode){
+    if (!currentNode) {
       return;
     }
-    setSelectedTable("")
-    setSelectedColumn({name: column, table});
-     highlightColumnConnections(
-      currentNode,
-      flow,
-    );
+    setSelectedTable("");
+    setSelectedColumn({ name: column, table });
+    highlightColumnConnections(currentNode, flow);
   };
+
+  const viewsCodesFlat = useMemo(() => {
+    const arr = Object.values(
+      (viewsCode as Record<string, [string, string][]>) || {}
+    )
+      .flat()
+      .filter(([, type]) => type === "transform")
+      .map(([code]) => code);
+    const result: string[] = [];
+    for (const item of arr) {
+      if (result.includes(item)) continue;
+      result.push(item);
+    }
+    return result;
+  }, [viewsCode]);
 
   return (
     <div
@@ -407,11 +434,30 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
     >
       <div className={styles.column_name}>{column}</div>
       <BidirectionalHandles />
-      {lensColor ? (
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        <Badge style={{ "--lens-color": lensColor }} className={styles.column_badge}>{lensType[0]}</Badge>
-      ) : null}
+      <div className={styles.column_top_right}>
+        {viewsCodesFlat.length > 0 && (
+          <Tooltip tooltipLabel={"Click to view code"}>
+            <div
+              className={styles.column_code_icon}
+              onClick={(e) => {
+                e.stopPropagation();
+                setViewsCodeModal({
+                  table,
+                  viewsType,
+                  viewsCode,
+                  nodeType,
+                  column,
+                });
+              }}
+            >
+              <CodeIcon />
+            </div>
+          </Tooltip>
+        )}
+        {viewsType && viewsType !== "Non select" && (
+          <ViewsTypeBadge viewsType={viewsType} />
+        )}
+      </div>
     </div>
   );
 };

@@ -23,16 +23,17 @@ export const DEFAULT_MIN_ZOOM = 0.05;
 const DEFAULT_COLOR = "#7A899E";
 const HIGHLIGHT_COLOR = "#E38E00";
 
-export const LENS_TYPE_COLOR = {
+export const VIEWS_TYPE_COLOR = {
   Original: "#FDD835",
   Alias: "#40C8AE",
   Transformation: "#FF754C",
   Unchanged: "#BC3FBC",
-  "Not sure": "#247efe"
+  "Not sure": "#247efe",
+  "Non select": "#BC3FBC",
 };
 
-export type CollectColumn = {column: string, lensType?: LensTypes}
-export type LensTypes = keyof typeof LENS_TYPE_COLOR;
+export type CollectColumn = { column: string; viewsType?: ViewsTypes };
+export type ViewsTypes = keyof typeof VIEWS_TYPE_COLOR;
 
 export const defaultEdgeStyle: React.CSSProperties = {
   stroke: DEFAULT_COLOR,
@@ -91,8 +92,8 @@ export const createTableEdge = (
       n1 === n2
         ? "selfConnecting"
         : n1Level === n2Level
-        ? "smoothstep"
-        : "default",
+          ? "smoothstep"
+          : "default",
   };
 };
 
@@ -111,10 +112,16 @@ export const createTableNode = (
   };
 };
 
-export const createColumnNode = (t: string, c: string, lensType?: LensTypes): Node => {
+export const createColumnNode = (
+  t: string,
+  c: string,
+  viewsType: ViewsTypes | undefined,
+  viewsCode: Record<string, [string, string][]>,
+  nodeType: string
+): Node => {
   return {
     id: getColumnId(t, c),
-    data: { column: c, table: t, lensType },
+    data: { column: c, table: t, viewsType, viewsCode, nodeType },
     parentNode: t,
     extent: "parent",
     draggable: false,
@@ -157,12 +164,15 @@ export const createColumnEdge = (
 export const getColumnEdgeId = (source: string, target: string) =>
   COLUMN_PREFIX + `${source}-${target}`;
 
-
 export const applyNodeStyling = (n: Node, highlight: boolean) => {
-  n.style = { opacity: highlight ? 1  : 0.5 }
-}
-  export const applyEdgeStyling = (e: Edge, highlight: boolean) => {
-  e.style = highlight ? e.data?.type === "indirect" ? indirectHighlightEdgeStyle : highlightEdgeStyle : defaultEdgeStyle;
+  n.style = { opacity: highlight ? 1 : 0.5 };
+};
+export const applyEdgeStyling = (e: Edge, highlight: boolean) => {
+  e.style = highlight
+    ? e.data?.type === "indirect"
+      ? indirectHighlightEdgeStyle
+      : highlightEdgeStyle
+    : defaultEdgeStyle;
   e.markerEnd = highlight ? highlightMarker : defaultMarker;
 };
 
