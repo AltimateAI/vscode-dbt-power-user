@@ -10,7 +10,7 @@ import {
   Disposable,
   WebviewPanel,
 } from "vscode";
-import { AltimateRequest, StaticLineageResponse } from "../altimate";
+import { AltimateRequest, DetailColumns } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
@@ -19,6 +19,13 @@ import {
 import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+
+type SQLLineage = {
+  tables: { name: string; nodeType: string }[];
+  tableEdges: [string, string][];
+  detailColumns: DetailColumns;
+  errorMessage?: undefined;
+};
 
 @provideSingleton(SQLLineagePanel)
 export class SQLLineagePanel implements Disposable {
@@ -117,14 +124,16 @@ export class SQLLineagePanel implements Disposable {
     return message;
   }
 
-  async getSQLLineage(token: CancellationToken) {
+  async getSQLLineage(
+    token: CancellationToken,
+  ): Promise<{ errorMessage: string } | SQLLineage> {
     const event = this.getEvent();
     if (!event) {
       return {
         errorMessage: this.getMissingLineageMessage(),
       };
     }
-    const { graphMetaMap, nodeMetaMap } = event;
+    const { graphMetaMap, nodeMetaMap, sourceMetaMap } = event;
     const project = this.getProject();
     if (!project) {
       return { errorMessage: "Unable to find the project" };
@@ -134,12 +143,13 @@ export class SQLLineagePanel implements Disposable {
     if (!compiledSQL) {
       return { errorMessage: "Unable to compile sql" };
     }
-    const modelId = nodeMetaMap.get(modelName)?.uniqueId;
-    if (!modelId) {
+    const currNode = nodeMetaMap.get(modelName);
+    if (!currNode) {
       return { errorMessage: "Unable to find model" };
     }
-    const modelsToFetch =
-      graphMetaMap.parents.get(modelId)?.nodes?.map((n) => n.key) || [];
+    const modelId = currNode.uniqueId;
+    const parentModels = graphMetaMap.parents.get(modelId)?.nodes || [];
+    const modelsToFetch = parentModels.map((n) => n.key);
     const { mappedNode } = await project.getNodesWithDBColumns(
       event,
       modelsToFetch,
@@ -150,12 +160,26 @@ export class SQLLineagePanel implements Disposable {
       model_info: modelsToFetch.map((n) => ({ model_node: mappedNode[n] })),
       model_dialect: project.getAdapterType(),
     });
-    return response;
+    const nodeTypeMapping: Record<string, string> = {};
+    for (const modelId of modelsToFetch) {
+      const splits = modelId.split(".");
+      const _node = nodeMetaMap.get(splits[splits.length - 1]);
+      if (_node) {
+        nodeTypeMapping[_node.alias] = _node.resource_type;
+        continue;
+      }
+      // TODO: add for source
+    }
+    const tables = response.tables.map((t) => ({
+      name: t,
+      nodeType: nodeTypeMapping[t.toLowerCase()] || currNode.resource_type,
+    }));
+    return { ...response, tables };
   }
 
   resolveWebviewView(
     panel: WebviewPanel,
-    lineage: StaticLineageResponse,
+    lineage: SQLLineage,
   ): void | Thenable<void> {
     this._panel = panel;
     this.terminal.debug(

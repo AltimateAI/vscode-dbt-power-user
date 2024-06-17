@@ -555,7 +555,8 @@ export const staticProcessColumnLineage = async (
     if (!tableNodes[t]) continue;
     collect_columns[t].sort();
     for (const c of collect_columns[t]) {
-      nodes.push(createColumnNode(t, c.column, c.viewsType, {}, "model")); // TODO: fix hardcoding
+      const nodeType = _nodes.find((n) => n.id === t)?.data?.nodeType;
+      nodes.push(createColumnNode(t, c.column, c.viewsType, {}, nodeType));
     }
   }
 

@@ -37,7 +37,7 @@ type StaticLineageProps = {
   collectColumns?: Record<string, CollectColumn[]>;
   columnEdges?: [string, string][];
   tableEdges: [string, string][];
-  tables: string[];
+  tables: { name: string; nodeType: string }[];
   detailColumns: DetailColumns;
 };
 
@@ -57,11 +57,11 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
       let nodes = [
         createTableNode(
           {
-            table: tables[0],
+            table: tables[0].name,
             upstreamCount: 0,
             downstreamCount: 0,
-            label: tables[0],
-            nodeType: "",
+            label: tables[0].name,
+            nodeType: tables[0].nodeType,
             isExternalProject: false,
             tests: [],
           },
@@ -71,7 +71,7 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
       ];
       let edges: Edge[] = [];
       const bfs = (right: boolean) => {
-        const queue = [tables[0]];
+        const queue = [tables[0].name];
         const visited: Record<string, boolean> = {};
         while (queue.length > 0) {
           const curr = queue.shift()!;
@@ -89,7 +89,9 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
               label: table,
               upstreamCount: 0,
               downstreamCount: 0,
-              nodeType: "",
+              nodeType:
+                tables.find((t) => t.name === table)?.nodeType ||
+                tables[0].nodeType,
               isExternalProject: false,
               tests: [],
             })),

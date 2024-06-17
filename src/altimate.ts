@@ -78,14 +78,14 @@ interface SQLLineageRequest {
   compiled_sql: string;
 }
 
-type DetailColumns = Record<
+export type DetailColumns = Record<
   string,
   {
     columns: { name: string; datatype?: string; expression?: string }[];
     sql: string;
   }
 >;
-export type StaticLineageResponse = {
+type StaticLineageResponse = {
   tableEdges: [string, string][];
   tables: string[];
   detailColumns: DetailColumns;

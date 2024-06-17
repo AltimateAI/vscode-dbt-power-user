@@ -556,7 +556,7 @@ export class VSCodeCommands implements Disposable {
               return;
             }
             if ("errorMessage" in lineage) {
-              const { errorMessage } = lineage;
+              const errorMessage = lineage.errorMessage!;
               this.dbtTerminal.error(
                 "sqlLineage",
                 errorMessage,
