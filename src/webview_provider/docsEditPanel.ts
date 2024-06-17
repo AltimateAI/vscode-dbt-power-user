@@ -353,6 +353,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         return key === fullName;
       });
 
+      if (existingConfig) {
+        return existingConfig;
+      }
+
       // If relationships test, set field and to
       if (this.isRelationship(kwargs)) {
         const { to, field } = kwargs;
@@ -375,13 +379,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         };
       }
 
-      if (existingConfig?.[fullName]) {
-        return {
-          [fullName]: existingConfig?.[fullName],
-        };
-      }
-
-      // Add extra config from external packages or test macros
       // Add extra config from external packages or test macros
       const testMetaKwargs = this.getTestMetadataKwArgs(kwargs, fullName);
       return testMetaKwargs || fullName;
@@ -710,13 +707,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                 isColumnNameEqual(yamlColumn.name, column.name),
                               );
                             if (existingColumn !== undefined) {
-                              // ignore tests from existing column, as it will be recreated in `getTestDataByColumn`
-                              const { tests, ...rest } = existingColumn;
                               return {
-                                ...rest,
+                                ...existingColumn,
                                 name: existingColumn.name,
                                 data_type: (
-                                  rest.data_type || column.type
+                                  existingColumn.data_type || column.type
                                 )?.toLowerCase(),
                                 description: column.description || undefined,
                                 ...this.getTestDataByColumn(
