@@ -535,13 +535,29 @@ export class VSCodeCommands implements Disposable {
         }
       }),
       commands.registerCommand("dbtPowerUser.sqlLineage", async () => {
-        const panel = window.createWebviewPanel(
-          SQLLineagePanel.viewType,
-          "SQL Lineage",
-          ViewColumn.Two,
-          { retainContextWhenHidden: true, enableScripts: true },
+        window.withProgress(
+          {
+            title: "Retrieving SQL lineage",
+            location: ProgressLocation.Notification,
+            cancellable: false,
+          },
+          async (_, token) => {
+            const lineage = await this.sqlLineagePanel.getSQLLineage(token);
+            const panel = window.createWebviewPanel(
+              SQLLineagePanel.viewType,
+              "SQL Lineage",
+              ViewColumn.Two,
+              { retainContextWhenHidden: true, enableScripts: true },
+            );
+            if (!lineage) {
+              return;
+            }
+            if ("errorMessage" in lineage) {
+              return;
+            }
+            this.sqlLineagePanel.resolveWebviewView(panel, lineage);
+          },
         );
-        this.sqlLineagePanel.resolveWebviewView(panel);
       }),
     );
   }

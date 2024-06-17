@@ -85,7 +85,7 @@ type DetailColumns = Record<
     sql: string;
   }
 >;
-type StaticLineageResponse = {
+export type StaticLineageResponse = {
   tableEdges: [string, string][];
   tables: string[];
   detailColumns: DetailColumns;

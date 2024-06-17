@@ -3,19 +3,14 @@ import * as path from "path";
 import {
   CancellationToken,
   ColorThemeKind,
-  ProgressLocation,
-  TextEditor,
   Uri,
   Webview,
   WebviewOptions,
-  WebviewView,
-  WebviewViewResolveContext,
   window,
-  WebviewViewProvider,
   Disposable,
   WebviewPanel,
 } from "vscode";
-import { AltimateRequest } from "../altimate";
+import { AltimateRequest, StaticLineageResponse } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
@@ -79,33 +74,6 @@ export class SQLLineagePanel implements Disposable {
     });
   }
 
-  init() {
-    this.changedActiveColorTheme();
-    this.render();
-  }
-
-  private async render() {
-    this._panel?.webview.postMessage({
-      command: "loading",
-      args: {},
-    });
-    window.withProgress(
-      {
-        title: "Retrieving SQL lineage",
-        location: ProgressLocation.Notification,
-        cancellable: false,
-      },
-      async (_, token) => {
-        const lineage = await this.getSQLLineage(token);
-        console.log(lineage);
-        this._panel?.webview.postMessage({
-          command: "render",
-          args: lineage,
-        });
-      },
-    );
-  }
-
   private getEvent(): ManifestCacheProjectAddedEvent | undefined {
     if (window.activeTextEditor === undefined || this.eventMap === undefined) {
       return;
@@ -149,7 +117,7 @@ export class SQLLineagePanel implements Disposable {
     return { message, type: "warning" };
   }
 
-  private async getSQLLineage(token: CancellationToken) {
+  async getSQLLineage(token: CancellationToken) {
     const event = this.getEvent();
     if (!event) {
       return {
@@ -185,7 +153,10 @@ export class SQLLineagePanel implements Disposable {
     return response;
   }
 
-  resolveWebviewView(panel: WebviewPanel): void | Thenable<void> {
+  resolveWebviewView(
+    panel: WebviewPanel,
+    lineage: StaticLineageResponse,
+  ): void | Thenable<void> {
     this._panel = panel;
     this.terminal.debug(
       "sqlLineagePanel:resolveWebviewView",
@@ -193,7 +164,11 @@ export class SQLLineagePanel implements Disposable {
     );
     this.setupWebviewOptions();
     this.renderWebviewView();
-    this.init();
+    this.changedActiveColorTheme();
+    this._panel?.webview.postMessage({
+      command: "render",
+      args: lineage,
+    });
   }
 
   private setupWebviewOptions() {
