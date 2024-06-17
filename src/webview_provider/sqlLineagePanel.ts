@@ -93,7 +93,7 @@ export class SQLLineagePanel implements Disposable {
     return event;
   }
 
-  private getFilename() {
+  getFilename() {
     return path.basename(window.activeTextEditor!.document.fileName, ".sql");
   }
 
@@ -111,10 +111,10 @@ export class SQLLineagePanel implements Disposable {
     try {
       this.getProject()?.throwDiagnosticsErrorIfAvailable();
     } catch (err) {
-      return { message: (err as Error).message, type: "error" };
+      return (err as Error).message;
     }
 
-    return { message, type: "warning" };
+    return message;
   }
 
   async getSQLLineage(token: CancellationToken) {
