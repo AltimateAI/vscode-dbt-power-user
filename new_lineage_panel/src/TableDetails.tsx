@@ -425,7 +425,7 @@ export const StaticTableDetails = () => {
     <div className="p-2 h-100 d-flex flex-column gap-md overflow-y">
       <HeaderSection
         nodeType={
-          tables.find((t) => t.name === selectedTable)?.nodeType || "model"
+          tables.find((t) => t.name === selectedTable)?.nodeType || "cte"
         }
         table={selectedTable}
       />

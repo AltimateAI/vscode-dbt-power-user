@@ -173,7 +173,9 @@ export class SQLLineagePanel implements Disposable {
     const FINAL_SELECT = "__final_select__";
     const tables = response.tables.map((t) => ({
       name: t === FINAL_SELECT ? modelName : t,
-      nodeType: nodeTypeMapping[t.toLowerCase()] || currNode.resource_type,
+      nodeType:
+        nodeTypeMapping[t.toLowerCase()] ||
+        (t === FINAL_SELECT ? currNode.resource_type : "cte"),
     }));
     const tableEdges = response.tableEdges.map(
       (edge) =>

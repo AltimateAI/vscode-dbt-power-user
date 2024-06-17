@@ -90,7 +90,7 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
               upstreamCount: 0,
               downstreamCount: 0,
               nodeType:
-                tables.find((t) => t.name === table)?.nodeType || "model",
+                tables.find((t) => t.name === table)?.nodeType || "cte",
               isExternalProject: false,
               tests: [],
             })),
