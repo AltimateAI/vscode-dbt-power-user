@@ -13,6 +13,7 @@ import {
   window,
   WebviewViewProvider,
   Disposable,
+  WebviewPanel,
 } from "vscode";
 import { AltimateRequest } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -25,9 +26,8 @@ import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 @provideSingleton(SQLLineagePanel)
-export class SQLLineagePanel implements WebviewViewProvider, Disposable {
+export class SQLLineagePanel implements Disposable {
   public static readonly viewType = "dbtPowerUser.SQLLineage";
-  private _panel: WebviewView | undefined;
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private disposables: Disposable[] = [];
 
@@ -36,6 +36,7 @@ export class SQLLineagePanel implements WebviewViewProvider, Disposable {
     private altimate: AltimateRequest,
     private telemetry: TelemetryService,
     private terminal: DBTTerminal,
+    private _panel: WebviewPanel,
   ) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
@@ -51,16 +52,6 @@ export class SQLLineagePanel implements WebviewViewProvider, Disposable {
         x.dispose();
       }
     }
-  }
-
-  public changedActiveTextEditor(event: TextEditor | undefined) {
-    if (event === undefined) {
-      return;
-    }
-    if (!this._panel) {
-      return;
-    }
-    this.render();
   }
 
   private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
@@ -89,7 +80,6 @@ export class SQLLineagePanel implements WebviewViewProvider, Disposable {
   }
 
   init() {
-    this.terminal.debug("sqlLineagePanel:init", "init", this._panel);
     this.changedActiveColorTheme();
     this.render();
   }
@@ -106,9 +96,11 @@ export class SQLLineagePanel implements WebviewViewProvider, Disposable {
         cancellable: false,
       },
       async (_, token) => {
+        const lineage = await this.getSQLLineage(token);
+        console.log(lineage);
         this._panel?.webview.postMessage({
           command: "render",
-          args: await this.getSQLLineage(token),
+          args: lineage,
         });
       },
     );
@@ -193,28 +185,21 @@ export class SQLLineagePanel implements WebviewViewProvider, Disposable {
     return response;
   }
 
-  resolveWebviewView(
-    panel: WebviewView,
-    context: WebviewViewResolveContext<unknown>,
-    _token: CancellationToken,
-  ): void | Thenable<void> {
+  resolveWebviewView(): void | Thenable<void> {
     this.terminal.debug(
       "sqlLineagePanel:resolveWebviewView",
       "onResolveWebviewView",
     );
-    this._panel = panel;
-    this.setupWebviewOptions(context);
-    this.renderWebviewView(context);
+    this.setupWebviewOptions();
+    this.renderWebviewView();
     this.init();
   }
 
-  private setupWebviewOptions(context: WebviewViewResolveContext) {
-    this._panel!.description =
-      "Show table level and column level lineage SQL queries";
+  private setupWebviewOptions() {
     this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
   }
 
-  private renderWebviewView(context: WebviewViewResolveContext) {
+  private renderWebviewView() {
     const webview = this._panel!.webview!;
     this._panel!.webview.html = getHtml(
       webview,

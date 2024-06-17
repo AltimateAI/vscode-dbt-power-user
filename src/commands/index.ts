@@ -10,6 +10,8 @@ import {
   workspace,
   version,
   extensions,
+  WebviewPanel,
+  ProgressLocation,
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { RunModelType } from "../domain";
@@ -37,6 +39,8 @@ import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { DBTClient } from "../dbt_client";
 import { existsSync, readFileSync } from "fs";
 import { DBTProject } from "../manifest/dbtProject";
+import { SQLLineagePanel } from "../webview_provider/sqlLineagePanel";
+import { inject } from "inversify";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -55,6 +59,8 @@ export class VSCodeCommands implements Disposable {
     private conversationController: ConversationProvider,
     private pythonEnvironment: PythonEnvironment,
     private dbtClient: DBTClient,
+    @inject("Factory<SQLLineagePanel>")
+    private sqlLineagePanelFactory: (panel: WebviewPanel) => SQLLineagePanel,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -528,6 +534,16 @@ export class VSCodeCommands implements Disposable {
           this.dbtTerminal.logLine("Diagnostics ended with error...");
           this.dbtTerminal.logLine(`Error=${e}`);
         }
+      }),
+      commands.registerCommand("dbtPowerUser.sqlLineage", async () => {
+        const panel = window.createWebviewPanel(
+          SQLLineagePanel.viewType,
+          "SQL Lineage",
+          ViewColumn.Two,
+          { retainContextWhenHidden: true, enableScripts: true },
+        );
+        const sqlLineagePanel = this.sqlLineagePanelFactory(panel);
+        sqlLineagePanel.resolveWebviewView();
       }),
     );
   }

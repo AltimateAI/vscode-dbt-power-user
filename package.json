@@ -276,11 +276,6 @@
           "id": "insights_view",
           "title": "Actions",
           "icon": "./media/images/dbt_icon.svg"
-        },
-        {
-          "id": "sql_lineage_view",
-          "title": "SQL Lineage",
-          "icon": "./media/images/dbt_icon.svg"
         }
       ]
     },
@@ -339,13 +334,6 @@
       "insights_view": [
         {
           "id": "dbtPowerUser.Insights",
-          "name": "",
-          "type": "webview"
-        }
-      ],
-      "sql_lineage_view": [
-        {
-          "id": "dbtPowerUser.SQLLineage",
           "name": "",
           "type": "webview"
         }
@@ -629,6 +617,12 @@
       {
         "command": "dbtPowerUser.diagnostics",
         "title": "Collect diagnostics",
+        "category": "dbt Power User",
+        "icon": "$(debug-console)"
+      },
+      {
+        "command": "dbtPowerUser.sqlLineage",
+        "title": "SQL Lineage",
         "category": "dbt Power User",
         "icon": "$(debug-console)"
       }

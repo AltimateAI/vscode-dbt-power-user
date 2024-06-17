@@ -17,7 +17,6 @@ export class WebviewViewProviders implements Disposable {
     private lineagePanel: LineagePanel,
     private dataPilotPanel: DataPilotPanel,
     private insightsPanel: InsightsPanel,
-    private sqlLineagePanel: SQLLineagePanel,
   ) {
     this.disposables.push(
       window.registerWebviewViewProvider(
@@ -43,11 +42,6 @@ export class WebviewViewProviders implements Disposable {
       window.registerWebviewViewProvider(
         InsightsPanel.viewType,
         this.insightsPanel,
-        { webviewOptions: { retainContextWhenHidden: true } },
-      ),
-      window.registerWebviewViewProvider(
-        SQLLineagePanel.viewType,
-        this.sqlLineagePanel,
         { webviewOptions: { retainContextWhenHidden: true } },
       ),
     );
