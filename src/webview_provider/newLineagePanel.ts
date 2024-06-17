@@ -81,7 +81,6 @@ export class NewLineagePanel
   protected viewPath = "/lineage";
   protected panelDescription = "Lineage panel";
   protected _panel: WebviewView | undefined;
-  protected eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   // since lineage can be cancelled from 2 places: progress bar and panel actions
   private cancellationTokenSource: DerivedCancellationTokenSource | undefined;
   private cllProgressResolve: () => void = () => {};
@@ -381,16 +380,16 @@ export class NewLineagePanel
   }: {
     name: string;
   }): Promise<ExposureMetaData | undefined> {
-    const event = this.getEvent();
-    if (!event) {
+    const event = this.queryManifestService.getEventByCurrentProject();
+    if (!event?.event) {
       return;
     }
-    const project = this.getProject();
+    const project = this.queryManifestService.getProject();
     if (!project) {
       return;
     }
 
-    const { exposureMetaMap } = event;
+    const { exposureMetaMap } = event.event;
 
     return exposureMetaMap.get(name);
   }
@@ -415,18 +414,18 @@ export class NewLineagePanel
       }
     | undefined
   > {
-    const event = this.getEvent();
-    if (!event) {
+    const event = this.queryManifestService.getEventByCurrentProject();
+    if (!event?.event) {
       return;
     }
-    const project = this.getProject();
+    const project = this.queryManifestService.getProject();
     if (!project) {
       return;
     }
     const splits = table.split(".");
     const nodeType = splits[0];
     if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
-      const { sourceMetaMap } = event;
+      const { sourceMetaMap } = event.event;
       const sourceName = splits[2];
       const tableName = splits[3];
       const node = sourceMetaMap.get(sourceName);
@@ -480,7 +479,7 @@ export class NewLineagePanel
       };
     }
     const tableName = splits[2];
-    const { nodeMetaMap } = event;
+    const { nodeMetaMap } = event.event;
     const node = nodeMetaMap.get(tableName);
     if (!node) {
       return;
@@ -543,11 +542,11 @@ export class NewLineagePanel
     // select_column is used for pricing not business logic
     selectedColumn: { name: string; table: string };
   }) {
-    const event = this.getEvent();
-    if (!event) {
+    const event = this.queryManifestService.getEventByCurrentProject();
+    if (!event?.event) {
       return;
     }
-    const project = this.getProject();
+    const project = this.queryManifestService.getProject();
     if (!project) {
       return;
     }
@@ -559,14 +558,17 @@ export class NewLineagePanel
     if (upstreamExpansion) {
       const currTables = new Set(targets.map((t) => t[0]));
       const hop1Tables = currAnd1HopTables.filter((t) => !currTables.has(t));
-      auxiliaryTables = DBTProject.getNonEphemeralParents(event, hop1Tables);
+      auxiliaryTables = DBTProject.getNonEphemeralParents(
+        event.event,
+        hop1Tables,
+      );
     }
     const modelsToFetch = Array.from(
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
     );
     const { mappedNode, relationsWithoutColumns } =
       await project.getNodesWithDBColumns(
-        event,
+        event.event,
         modelsToFetch,
         this.cancellationTokenSource!.token,
       );
@@ -732,11 +734,11 @@ export class NewLineagePanel
     key: keyof GraphMetaMap,
     table: string,
   ): Table[] | undefined {
-    const event = this.getEvent();
-    if (!event) {
+    const event = this.queryManifestService.getEventByCurrentProject();
+    if (!event?.event) {
       return;
     }
-    const { graphMetaMap } = event;
+    const { graphMetaMap } = event.event;
     const dependencyNodes = graphMetaMap[key];
     const node = dependencyNodes.get(table);
     if (!node) {
@@ -744,7 +746,7 @@ export class NewLineagePanel
     }
     const tables: Map<string, Table> = new Map();
     node.nodes.forEach(({ url, key }) => {
-      const _node = this.createTable(event, url, key);
+      const _node = this.createTable(event.event!, url, key);
       if (!_node) {
         return;
       }
@@ -859,25 +861,6 @@ export class NewLineagePanel
     return { tables: this.getConnectedTables("parents", table) };
   }
 
-  private getEvent(): ManifestCacheProjectAddedEvent | undefined {
-    if (window.activeTextEditor === undefined || this.eventMap === undefined) {
-      return;
-    }
-
-    const currentFilePath = window.activeTextEditor.document.uri;
-    const projectRootpath =
-      this.dbtProjectContainer.getProjectRootpath(currentFilePath);
-    if (projectRootpath === undefined) {
-      return;
-    }
-
-    const event = this.eventMap.get(projectRootpath.fsPath);
-    if (event === undefined) {
-      return;
-    }
-    return event;
-  }
-
   private getConnectedNodeCount(g: NodeGraphMap, key: string) {
     return g.get(key)?.nodes.length || 0;
   }
@@ -886,19 +869,13 @@ export class NewLineagePanel
     return path.basename(window.activeTextEditor!.document.fileName, ".sql");
   }
 
-  private getProject() {
-    const currentFilePath = window.activeTextEditor?.document.uri;
-    if (!currentFilePath) {
-      return;
-    }
-    return this.dbtProjectContainer.findDBTProject(currentFilePath);
-  }
-
   private getMissingLineageMessage() {
     const message =
       "A valid dbt file (model, seed etc.) needs to be open and active in the editor area above to view lineage";
     try {
-      this.getProject()?.throwDiagnosticsErrorIfAvailable();
+      this.queryManifestService
+        .getProject()
+        ?.throwDiagnosticsErrorIfAvailable();
     } catch (err) {
       return { message: (err as Error).message, type: "error" };
     }
@@ -914,14 +891,14 @@ export class NewLineagePanel
       }
     | undefined {
     const aiEnabled = this.altimate.enabled();
-    const event = this.getEvent();
-    if (!event) {
+    const event = this.queryManifestService.getEventByCurrentProject();
+    if (!event?.event) {
       return {
         aiEnabled,
         missingLineageMessage: this.getMissingLineageMessage(),
       };
     }
-    const { nodeMetaMap, graphMetaMap, testMetaMap } = event;
+    const { nodeMetaMap, graphMetaMap, testMetaMap } = event.event;
     const tableName = this.getFilename();
     const _node = nodeMetaMap.get(tableName);
     if (!_node) {
