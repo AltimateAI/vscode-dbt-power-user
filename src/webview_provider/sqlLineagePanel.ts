@@ -182,7 +182,9 @@ export class SQLLineagePanel implements Disposable {
           string,
         ],
     );
-    return { tables, tableEdges, detailColumns: response.detailColumns };
+    const detailColumns = response.detailColumns;
+    detailColumns[modelName] = detailColumns[FINAL_SELECT];
+    return { tables, tableEdges, detailColumns };
   }
 
   resolveWebviewView(
