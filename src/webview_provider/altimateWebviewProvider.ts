@@ -513,7 +513,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             <link rel="stylesheet" type="text/css" href="${codiconsUri}">
           </head>
       
-          <body>
+          <body class="${this.viewPath.replace(/\//g, "")}">
             <div id="root"></div>
             <div id="sidebar"></div>
             <div id="modal"></div>

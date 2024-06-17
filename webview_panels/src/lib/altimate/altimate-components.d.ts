@@ -253,6 +253,7 @@ declare const VIEWS_TYPE_COLOR: {
   Transformation: string;
   Unchanged: string;
   "Not sure": string;
+  "Non select": string;
 };
 
 export declare interface ViewsCodeModal {
