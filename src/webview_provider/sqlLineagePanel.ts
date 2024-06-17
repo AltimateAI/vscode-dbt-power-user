@@ -170,11 +170,19 @@ export class SQLLineagePanel implements Disposable {
       }
       // TODO: add for source
     }
+    const FINAL_SELECT = "__final_select__";
     const tables = response.tables.map((t) => ({
-      name: t,
+      name: t === FINAL_SELECT ? modelName : t,
       nodeType: nodeTypeMapping[t.toLowerCase()] || currNode.resource_type,
     }));
-    return { ...response, tables };
+    const tableEdges = response.tableEdges.map(
+      (edge) =>
+        edge.map((item) => (item === FINAL_SELECT ? modelName : item)) as [
+          string,
+          string,
+        ],
+    );
+    return { tables, tableEdges, detailColumns: response.detailColumns };
   }
 
   resolveWebviewView(
