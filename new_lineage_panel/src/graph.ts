@@ -27,7 +27,7 @@ import {
   withinExclusive,
   isSeeMore,
   EdgeVisibility,
-  LensTypes,
+  ViewsTypes,
   applyNodeStyling,
   toggleModelEdges,
   toggleColumnEdges,
@@ -201,7 +201,7 @@ export const resetTableHighlights = (
   nodes: Node[],
   edges: Edge[]
 ): [Node[], Edge[]] => {
-  nodes.forEach((n) => (applyNodeStyling(n, true)));
+  nodes.forEach((n) => applyNodeStyling(n, true));
   edges.forEach((e) => applyEdgeStyling(e, false));
   return [nodes, edges];
 };
@@ -241,9 +241,7 @@ export const highlightTableConnections = (
   newEdges.forEach((_e) => applyEdgeStyling(_e, highlightEdge[_e.id]));
 
   const newNodes = [...nodes];
-  newNodes.forEach(
-    (_n) => applyNodeStyling(_n, Boolean(highlightNode[_n.id]))
-  );
+  newNodes.forEach((_n) => applyNodeStyling(_n, Boolean(highlightNode[_n.id])));
 
   return [newNodes, newEdges];
 };
@@ -325,6 +323,7 @@ export const removeRelatedNodesEdges = (
 };
 
 const processColumnLineage = async (
+  prevNodes: Node[],
   levelMap: Record<string, number>,
   seeMoreIdTableReverseMap: Record<string, string>,
   tableNodes: Record<string, boolean>,
@@ -352,10 +351,13 @@ const processColumnLineage = async (
   const newCurr = columnLineage.map((e) => (right ? e.target : e.source));
   const collectColumns: Record<string, CollectColumn[]> = {};
 
-  const addToCollectColumns = ([_table, _column]: [string, string], lensType?: LensTypes) => {
+  const addToCollectColumns = (
+    [_table, _column]: [string, string],
+    viewsType?: ViewsTypes
+  ) => {
     collectColumns[_table] = collectColumns[_table] || [];
-    if (!collectColumns[_table].find(c=> c.column === _column)) {
-      collectColumns[_table].push({column: _column, lensType});
+    if (!collectColumns[_table].find((c) => c.column === _column)) {
+      collectColumns[_table].push({ column: _column, viewsType });
     }
   };
 
@@ -417,7 +419,7 @@ const processColumnLineage = async (
 
   for (const e of columnLineage) {
     addToCollectColumns(e.source);
-    addToCollectColumns(e.target, e.lensType);
+    addToCollectColumns(e.target, e.viewsType);
     const [t0] = e.source;
     const [t1] = e.target;
 
@@ -449,7 +451,22 @@ const processColumnLineage = async (
     if (!tableNodes[t]) continue;
     collectColumns[t].sort();
     for (const c of collectColumns[t]) {
-      nodes.push(createColumnNode(t, c.column, c.lensType));
+      const viewsCodes: Record<string, [string, string][]> = {};
+      columnLineage
+        .filter((e) => e.target.join("/") === `${t}/${c.column}`)
+        .forEach((e) => {
+          if (e.type === "indirect") return;
+          viewsCodes[e.source.join("/")] = e.viewsCode || [];
+        });
+      nodes.push(
+        createColumnNode(
+          t,
+          c.column,
+          c.viewsType,
+          viewsCodes,
+          prevNodes.find((n) => (n.id = t))?.data?.nodeType
+        )
+      );
     }
   }
 
@@ -467,10 +484,21 @@ const mergeNodesEdges = (
   nodes.forEach((n) => (nodesId[n.id] = true));
   edges.forEach((e) => (edgesId[e.id] = true));
   patchState.nodes.forEach((n) => {
-    if (!nodesId[n.id]) {nodes.push(n)}
+    if (!nodesId[n.id]) {
+      nodes.push(n);
+    }
     const existing = nodes.find((x) => x.id === n.id);
     if (existing) {
-      existing.data = {...existing.data,...n.data, lensType: existing.data.lensType || n.data.lensType};
+      const viewsCode =
+        n.data.viewsCode && Object.keys(n.data.viewsCode).length
+          ? n.data.viewsCode
+          : existing.data.viewsCode;
+      existing.data = {
+        ...existing.data,
+        ...n.data,
+        viewsCode,
+        viewsType: existing.data.viewsType || n.data.viewsType,
+      };
     }
   });
   patchState.edges.forEach((e) => !edgesId[e.id] && edges.push(e));
@@ -500,15 +528,17 @@ const mergeCollectColumns = (
         continue;
       }
       // merge _columns with collectColumns[t]
-      const updatedColumns = _columns.map((c) => {
-        const existing = collectColumns[t].findIndex((x) => x.column === c.column);
-        if (existing === -1) return c;
-        if (c.lensType) collectColumns[t][existing].lensType = c.lensType;
-        return null;
-      }).filter((c): c is CollectColumn => c !== null)
-      collectColumns[t].push(
-        ...updatedColumns
-      );
+      const updatedColumns = _columns
+        .map((c) => {
+          const existing = collectColumns[t].findIndex(
+            (x) => x.column === c.column
+          );
+          if (existing === -1) return c;
+          if (c.viewsType) collectColumns[t][existing].viewsType = c.viewsType;
+          return null;
+        })
+        .filter((c): c is CollectColumn => c !== null);
+      collectColumns[t].push(...updatedColumns);
     }
     return collectColumns;
   });
@@ -705,7 +735,9 @@ export const bfsTraversal = async (
         : (_getNode(dstNode)?.data as TMoreTables)?.tables?.filter(
             (t) => !tableNodes[t.table]
           );
-      dstTables?.forEach(({ table: dstTable, materialization }) => {
+      dstTables?.forEach((dstTableData) => {
+        if (!dstTableData) return;
+        const { table: dstTable, materialization } = dstTableData;
         if (currTargetTables[srcTable]) {
           noDependents = true;
           if (materialization === "ephemeral") {
@@ -748,6 +780,7 @@ export const bfsTraversal = async (
       currAnd1HopTables.push(...ephemeralAncestors[t].map((c) => c[0]));
     });
     const patchState = await processColumnLineage(
+      nodes,
       levelMap,
       seeMoreIdTableReverseMap,
       tableNodes,
@@ -808,15 +841,39 @@ export const moveTableFromSeeMoreToCanvas = (
   lineage?.forEach((e) => {
     const src = getColumnId(e.source[0], e.source[1]);
     const dst = getColumnId(e.target[0], e.target[1]);
+    const viewsCodes: Record<string, [string, string][]> = {};
+    if (right) {
+      lineage
+        .filter((e1) => e1.target.join("/") === e.target.join("/"))
+        .forEach((e1) => {
+          viewsCodes[e1.source.join("/")] = e1.viewsCode || [];
+        });
+    }
     if (right) {
       if (e.target[0] !== table) return;
-      nodes.push(createColumnNode(e.target[0], e.target[1], e.lensType));
+      nodes.push(
+        createColumnNode(
+          e.target[0],
+          e.target[1],
+          e.viewsType,
+          viewsCodes,
+          _table.nodeType
+        )
+      );
       edges.push(
         createColumnEdge(src, dst, level! - 1, level!, e.type, edgeVisibility)
       );
     } else {
       if (e.source[0] !== table) return;
-      nodes.push(createColumnNode(e.source[0], e.source[1], e.lensType));
+      nodes.push(
+        createColumnNode(
+          e.source[0],
+          e.source[1],
+          e.viewsType,
+          viewsCodes,
+          _table.nodeType
+        )
+      );
       edges.push(
         createColumnEdge(src, dst, level!, level! + 1, e.type, edgeVisibility)
       );
@@ -864,20 +921,21 @@ const getTracedNode = (
   isIncomer: boolean
 ) => {
   if (!isNode(node)) {
-    return {nodes: [], edgeIds: []};
+    return { nodes: [], edgeIds: [] };
   }
 
-  const tracedEdges = edges
-    .filter((e) => {
-      const id = isIncomer ? e.target : e.source;
+  const tracedEdges = edges.filter((e) => {
+    const id = isIncomer ? e.target : e.source;
 
-      return id === node.id;
-    })
+    return id === node.id;
+  });
 
-  return {nodes: nodes.filter((n) =>
-    tracedEdges
-      .find(e => e.source === n.id || e.target === n.id)
-  ), edgeIds: tracedEdges.map((e) => (getColumnEdgeId(e.source, e.target)))};
+  return {
+    nodes: nodes.filter((n) =>
+      tracedEdges.find((e) => e.source === n.id || e.target === n.id)
+    ),
+    edgeIds: tracedEdges.map((e) => getColumnEdgeId(e.source, e.target)),
+  };
 };
 
 export const getAllTracedNodes = (
@@ -887,43 +945,51 @@ export const getAllTracedNodes = (
   prevTraced = [] as Node[],
   isIncomer: boolean
 ) => {
-  const {nodes: tracedNodes, edgeIds} = getTracedNode(node, nodes, edges, isIncomer);
+  const { nodes: tracedNodes, edgeIds } = getTracedNode(
+    node,
+    nodes,
+    edges,
+    isIncomer
+  );
 
-  return tracedNodes.reduce((memo, tracedNode) => {
-    memo.nodes.push(tracedNode);
-    memo.edges = Array.from(new Set([...memo.edges, ...edgeIds]));
+  return tracedNodes.reduce(
+    (memo, tracedNode) => {
+      memo.nodes.push(tracedNode);
+      memo.edges = Array.from(new Set([...memo.edges, ...edgeIds]));
 
-    if (prevTraced.findIndex((n) => n.id == tracedNode.id) === -1) {
-      prevTraced.push(tracedNode);
+      if (prevTraced.findIndex((n) => n.id == tracedNode.id) === -1) {
+        prevTraced.push(tracedNode);
 
-      const {nodes: _nodes, edges: _edgeIds} = getAllTracedNodes(
-        tracedNode,
-        nodes,
-        edges,
-        prevTraced,
-        isIncomer
-      );
-      _nodes.forEach((foundNode) => {
-        memo.nodes.push(foundNode);
+        const { nodes: _nodes, edges: _edgeIds } = getAllTracedNodes(
+          tracedNode,
+          nodes,
+          edges,
+          prevTraced,
+          isIncomer
+        );
+        _nodes.forEach((foundNode) => {
+          memo.nodes.push(foundNode);
 
-        if (prevTraced.findIndex((n) => n.id == foundNode.id) === -1) {
-          prevTraced.push(foundNode);
-        }
-      });
-      memo.edges = Array.from(new Set([...memo.edges, ..._edgeIds]));
-    }
+          if (prevTraced.findIndex((n) => n.id == foundNode.id) === -1) {
+            prevTraced.push(foundNode);
+          }
+        });
+        memo.edges = Array.from(new Set([...memo.edges, ..._edgeIds]));
+      }
 
-    return memo;
-  }, {nodes: [] as Node[], edges: [] as string[]});
+      return memo;
+    },
+    { nodes: [] as Node[], edges: [] as string[] }
+  );
 };
 
 export const highlightColumnConnections = (
   node: Node,
-  flow: ReactFlowInstance,
+  flow: ReactFlowInstance
 ) => {
   const nodes = flow.getNodes().filter((n) => isColumn(n));
   const edges = flow.getEdges();
-  
+
   // TODO check why styles are not applied when nodes and edges are directly from flow instance
   nodes.forEach((n) => {
     const node = flow.getNode(n.id);
@@ -952,8 +1018,8 @@ export const highlightColumnConnections = (
     edges.forEach((edgeId) => {
       const edge = flow.getEdge(edgeId);
       if (edge) {
-      edge.hidden = false;
-      applyEdgeStyling(edge, true);
+        edge.hidden = false;
+        applyEdgeStyling(edge, true);
       }
     });
   });

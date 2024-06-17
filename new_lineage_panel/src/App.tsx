@@ -46,12 +46,25 @@ import ExposureDetails from "./ExposureDetails";
 import { Feedback } from "./Feedback";
 import { Help } from "./Help";
 import { Demo } from "./Demo";
-import { handleResponse, init, columnLineage, CllEvents } from "./service_utils";
+import {
+  handleResponse,
+  init,
+  columnLineage,
+  CllEvents,
+} from "./service_utils";
 import { ActionWidget } from "./ActionWidget";
-import { CollectColumn, DEFAULT_MIN_ZOOM, createTableNode, toggleColumnEdges, toggleModelEdges } from "./utils";
+import {
+  CollectColumn,
+  DEFAULT_MIN_ZOOM,
+  ViewsTypes,
+  createTableNode,
+  toggleColumnEdges,
+  toggleModelEdges,
+} from "./utils";
 import { Settings } from "./Settings";
 import { Table, getLineageSettings } from "./service";
-import LineageLegend from "./components/LineageLegend";
+import { LineageLegend } from "./components";
+import { ViewsCodeModal } from "./Modals";
 
 export let aiEnabled = false;
 export let isDarkMode = false;
@@ -68,7 +81,18 @@ type Confidence = {
   operator_list?: string[];
 };
 
-export interface MissingLineageMessage  { message: string, type: "warning" | "error" }
+export interface MissingLineageMessage {
+  message: string;
+  type: "warning" | "error";
+}
+
+type ViewsCodeModal = {
+  table: string;
+  column: string;
+  viewsType: ViewsTypes;
+  viewsCode: Record<string, [string, string][]>;
+  nodeType: string;
+};
 
 const noop = () => {};
 
@@ -102,6 +126,8 @@ export const LineageContext = createContext<{
   setNonSelectCheck: Dispatch<boolean>;
   defaultExpansion: number;
   setDefaultExpansion: Dispatch<number>;
+  viewsCodeModal: ViewsCodeModal | null;
+  setViewsCodeModal: Dispatch<SetStateAction<ViewsCodeModal | null>>;
 }>({
   selectedTable: "",
   setSelectedTable: noop,
@@ -130,6 +156,8 @@ export const LineageContext = createContext<{
   setNonSelectCheck: noop,
   defaultExpansion: 0,
   setDefaultExpansion: noop,
+  viewsCodeModal: null,
+  setViewsCodeModal: noop,
 });
 
 function App() {
@@ -152,20 +180,29 @@ function App() {
   const [, _rerender] = useState(0);
   const rerender = () => _rerender((x) => (x + 1) % 100);
 
-  const [missingLineageMessage, setMissingLineageMessage] = useState<MissingLineageMessage | undefined>()
+  const [missingLineageMessage, setMissingLineageMessage] = useState<
+    MissingLineageMessage | undefined
+  >();
   const [selectCheck, setSelectCheck] = useState(true);
   const [nonSelectCheck, setNonSelectCheck] = useState(true);
   const [defaultExpansion, setDefaultExpansion] = useState(5);
   const [nodeCount, setNodeCount] = useState(0);
   const [minRange, setMinRange] = useState<[number, number]>([0, 0]);
+  const [viewsCodeModal, setViewsCodeModal] = useState<ViewsCodeModal | null>(
+    null
+  );
 
   useEffect(() => {
-    const render = async (args: { node?: Table; aiEnabled: boolean, missingLineageMessage?: MissingLineageMessage }) => {
+    const render = async (args: {
+      node?: Table;
+      aiEnabled: boolean;
+      missingLineageMessage?: MissingLineageMessage;
+    }) => {
       setIsOpen(false);
       setSidebarScreen("");
       if (!args) return;
       aiEnabled = args.aiEnabled;
-      setMissingLineageMessage(args.missingLineageMessage)
+      setMissingLineageMessage(args.missingLineageMessage);
       const { node } = args;
       const _flow = flow.current;
       if (!_flow || !node) return;
@@ -238,17 +275,16 @@ function App() {
       render,
       response: handleResponse,
       setTheme,
-      columnLineage: (data: { event: CllEvents }
-      ) => {
+      columnLineage: (data: { event: CllEvents }) => {
         if (data.event === CllEvents.CANCEL) {
-          if (flow.current){
-            const edges  = flow.current.getEdges();
-            toggleModelEdges(edges, true)
-            toggleColumnEdges(edges, false)
-            flow.current.setEdges(edges)
+          if (flow.current) {
+            const edges = flow.current.getEdges();
+            toggleModelEdges(edges, true);
+            toggleColumnEdges(edges, false);
+            flow.current.setEdges(edges);
           }
         }
-        columnLineage(data)
+        columnLineage(data);
       },
     };
     window.addEventListener("message", (event) => {
@@ -317,12 +353,14 @@ function App() {
         setNonSelectCheck,
         defaultExpansion,
         setDefaultExpansion,
+        viewsCodeModal,
+        setViewsCodeModal,
       }}
     >
       <PopoverContext.Provider value={{ isOpen, setIsOpen }}>
         <ReactFlowProvider>
           <div className="position-relative">
-            <ActionWidget missingLineageMessage={missingLineageMessage}/>
+            <ActionWidget missingLineageMessage={missingLineageMessage} />
             <div className="bottom-right-container">
               {showDemoButton && (
                 <Button
@@ -371,6 +409,7 @@ function App() {
             <Modal isOpen={showDemoModal} close={() => setShowDemoModal(false)}>
               <Demo />
             </Modal>
+            <ViewsCodeModal />
           </div>
         </ReactFlowProvider>
       </PopoverContext.Provider>
