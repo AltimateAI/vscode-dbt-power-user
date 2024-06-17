@@ -5,7 +5,6 @@ import { DocsEditViewPanel } from "./docsEditPanel";
 import { LineagePanel } from "./lineagePanel";
 import { DataPilotPanel } from "./datapilotPanel";
 import { InsightsPanel } from "./insightsPanel";
-import { SQLLineagePanel } from "./sqlLineagePanel";
 
 @provideSingleton(WebviewViewProviders)
 export class WebviewViewProviders implements Disposable {

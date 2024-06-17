@@ -30,13 +30,13 @@ export class SQLLineagePanel implements Disposable {
   public static readonly viewType = "dbtPowerUser.SQLLineage";
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private disposables: Disposable[] = [];
+  private _panel?: WebviewPanel;
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
     private altimate: AltimateRequest,
     private telemetry: TelemetryService,
     private terminal: DBTTerminal,
-    private _panel: WebviewPanel,
   ) {
     this.disposables.push(
       dbtProjectContainer.onManifestChanged((event) =>
@@ -185,7 +185,8 @@ export class SQLLineagePanel implements Disposable {
     return response;
   }
 
-  resolveWebviewView(): void | Thenable<void> {
+  resolveWebviewView(panel: WebviewPanel): void | Thenable<void> {
+    this._panel = panel;
     this.terminal.debug(
       "sqlLineagePanel:resolveWebviewView",
       "onResolveWebviewView",

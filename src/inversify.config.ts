@@ -4,7 +4,6 @@ import {
   DiagnosticCollection,
   EventEmitter,
   Uri,
-  WebviewPanel,
   WorkspaceFolder,
 } from "vscode";
 import { DBTTerminal } from "./dbt_client/dbtTerminal";
@@ -40,7 +39,6 @@ import { AltimateRequest } from "./altimate";
 import { ValidationProvider } from "./validation_provider";
 import { DeferToProdService } from "./services/deferToProdService";
 import { SharedStateService } from "./services/sharedStateService";
-import { SQLLineagePanel } from "./webview_provider/sqlLineagePanel";
 
 export const container = new Container();
 container.load(buildProviderModule());
@@ -176,21 +174,6 @@ container
         path,
         projectConfig,
         _onManifestChanged,
-      );
-    };
-  });
-
-container
-  .bind<interfaces.Factory<SQLLineagePanel>>("Factory<SQLLineagePanel>")
-  .toFactory<SQLLineagePanel, [WebviewPanel]>((context: interfaces.Context) => {
-    return (panel: WebviewPanel) => {
-      const { container } = context;
-      return new SQLLineagePanel(
-        container.get(DBTProjectContainer),
-        container.get(AltimateRequest),
-        container.get(TelemetryService),
-        container.get(DBTTerminal),
-        panel,
       );
     };
   });

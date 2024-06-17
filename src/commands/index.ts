@@ -59,8 +59,7 @@ export class VSCodeCommands implements Disposable {
     private conversationController: ConversationProvider,
     private pythonEnvironment: PythonEnvironment,
     private dbtClient: DBTClient,
-    @inject("Factory<SQLLineagePanel>")
-    private sqlLineagePanelFactory: (panel: WebviewPanel) => SQLLineagePanel,
+    private sqlLineagePanel: SQLLineagePanel,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -542,8 +541,7 @@ export class VSCodeCommands implements Disposable {
           ViewColumn.Two,
           { retainContextWhenHidden: true, enableScripts: true },
         );
-        const sqlLineagePanel = this.sqlLineagePanelFactory(panel);
-        sqlLineagePanel.resolveWebviewView();
+        this.sqlLineagePanel.resolveWebviewView(panel);
       }),
     );
   }
