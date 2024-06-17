@@ -173,12 +173,14 @@ export const StaticLineageContext = createContext<{
   detailColumns: DetailColumns;
   selectedTable: string;
   setSelectedTable: Dispatch<SetStateAction<string>>;
+  tables: { name: string; nodeType: string }[];
 }>({
   collectColumns: {},
   selectedColumn: undefined,
   detailColumns: {},
   selectedTable: "",
   setSelectedTable: noop,
+  tables: [],
 });
 
 export const Lineage = () => {

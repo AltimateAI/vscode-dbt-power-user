@@ -411,7 +411,8 @@ const TableDetails = () => {
 };
 
 export const StaticTableDetails = () => {
-  const { detailColumns, selectedTable } = useContext(StaticLineageContext);
+  const { detailColumns, selectedTable, tables } =
+    useContext(StaticLineageContext);
   const columns = (detailColumns?.[selectedTable]?.columns || []).map(
     (item) => ({ ...item, description: item.expression }),
   );
@@ -420,7 +421,12 @@ export const StaticTableDetails = () => {
 
   return (
     <div className="p-2 h-100 d-flex flex-column gap-md overflow-y">
-      <HeaderSection nodeType="" table={selectedTable} />
+      <HeaderSection
+        nodeType={
+          tables.find((t) => t.name === selectedTable)?.nodeType || "model"
+        }
+        table={selectedTable}
+      />
       {sql && (
         <div className={classNames(styles.card, "mb-0 purpose-section")}>
           <div className="d-flex flex-column gap-sm">

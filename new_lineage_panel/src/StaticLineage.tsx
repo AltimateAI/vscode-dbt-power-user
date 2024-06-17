@@ -90,8 +90,7 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
               upstreamCount: 0,
               downstreamCount: 0,
               nodeType:
-                tables.find((t) => t.name === table)?.nodeType ||
-                tables[0].nodeType,
+                tables.find((t) => t.name === table)?.nodeType || "model",
               isExternalProject: false,
               tests: [],
             })),
@@ -143,6 +142,7 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
         detailColumns,
         selectedTable,
         setSelectedTable,
+        tables,
       }}
     >
       <ReactFlowProvider>
