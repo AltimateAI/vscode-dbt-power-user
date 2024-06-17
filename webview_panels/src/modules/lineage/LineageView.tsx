@@ -16,6 +16,7 @@ const LineageView = (): JSX.Element | null => {
   const {
     state: { theme, isComponentsApiInitialized },
   } = useAppContext();
+
   const [isApiHelperInitialized, setIsApiHelperInitialized] = useState(false);
   const [renderNode, setRenderNode] = useState<{
     node?: Table;
@@ -88,7 +89,12 @@ const LineageView = (): JSX.Element | null => {
       (
         event: MessageEvent<{ command: string; args: Record<string, unknown> }>,
       ) => {
-        panelLogger.log("lineage:message -> ", event.data);
+        if (!event.origin.startsWith("vscode-webview://")) {
+          panelLogger.debug("invalid message ", event);
+          return;
+        }
+
+        panelLogger.log("lineage:message -> ", JSON.stringify(event.data));
         const { command, args } = event.data;
 
         if (command in commandMap) {
@@ -112,6 +118,7 @@ const LineageView = (): JSX.Element | null => {
   if (!isApiHelperInitialized) {
     return null;
   }
+
   return (
     <div className={styles.lineageView}>
       <ActionWidget

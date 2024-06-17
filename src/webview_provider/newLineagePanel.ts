@@ -9,8 +9,6 @@ import {
   TextEditor,
   Uri,
   Webview,
-  WebviewView,
-  WebviewViewResolveContext,
   window,
   workspace,
   env,
@@ -80,7 +78,6 @@ export class NewLineagePanel
 {
   protected viewPath = "/lineage";
   protected panelDescription = "Lineage panel";
-  protected _panel: WebviewView | undefined;
   // since lineage can be cancelled from 2 places: progress bar and panel actions
   private cancellationTokenSource: DerivedCancellationTokenSource | undefined;
   private cllProgressResolve: () => void = () => {};

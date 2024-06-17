@@ -1,6 +1,6 @@
 import { Button } from "@uicore";
 import { LineageDemo } from "@assets/icons";
-import { vscode } from "@modules/vscode";
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
 
 const Demo = (): JSX.Element => {
   return (
@@ -13,8 +13,7 @@ const Demo = (): JSX.Element => {
           color="primary"
           onClick={(e) => {
             e.stopPropagation();
-            vscode.postMessage({
-              command: "openURL",
+            executeRequestInAsync("openURL", {
               url: "https://docs.myaltimate.com",
             });
           }}
