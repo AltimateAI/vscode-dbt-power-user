@@ -1,23 +1,14 @@
-import { useContext, useEffect, useMemo } from "react";
-import { ViewsTypeBadge } from "./components";
+import { useContext, useMemo } from "react";
+import { CodeBlock, ViewsTypeBadge } from "./components";
 import { LineageContext } from "./Lineage";
 import { Modal, ModalBody } from "reactstrap";
 import styles from "./styles.module.scss";
 import { HeaderSection } from "./TableDetails";
 import CloseIcon from "./assets/icons/x-close.svg?react";
-import Prism from "prismjs";
-import "prismjs/components/prism-sql";
-import "prismjs/themes/prism-tomorrow.css";
 import { useReactFlow } from "reactflow";
-import classNames from "classnames";
 
 export function ViewsCodeModal() {
   const { viewsCodeModal, setViewsCodeModal } = useContext(LineageContext);
-  useEffect(() => {
-    setTimeout(() => {
-      Prism.highlightAll();
-    }, 500);
-  }, [viewsCodeModal]);
 
   const flow = useReactFlow();
   const table = useMemo(() => {
@@ -78,29 +69,9 @@ export function ViewsCodeModal() {
               <div className="text-dark-grey fs-xs">
                 List of transformations
               </div>
-              {viewsCodesFlat.map((code) => {
-                return (
-                  <div key={code} className={styles.modal_views_code_container}>
-                    <div className="d-flex gap-sm align-items-center">
-                      <pre
-                        className={classNames(
-                          styles.code_editor_container,
-                          "language-sql"
-                        )}
-                      >
-                        <code
-                          className={classNames(
-                            "language-sql",
-                            styles.code_editor
-                          )}
-                        >
-                          {code}
-                        </code>
-                      </pre>
-                    </div>
-                  </div>
-                );
-              })}
+              {viewsCodesFlat.map((code) => (
+                <CodeBlock key={code} code={code} />
+              ))}
             </div>
           )}
         </div>

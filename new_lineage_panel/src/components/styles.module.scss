@@ -90,7 +90,7 @@
   div {
     height: 2px;
     width: 12px;
-    border-top: solid 2px #E38E00;
+    border-top: solid 2px #e38e00;
   }
 }
 
@@ -100,6 +100,26 @@
   div {
     height: 2px;
     width: 12px;
-    border-top: dashed 2px #E38E00;
+    border-top: dashed 2px #e38e00;
   }
+}
+
+.modal_views_code_container {
+  background-color: var(--card-bg);
+  border-radius: 6px;
+}
+
+.code_editor_container {
+  background-color: var(--code-bg) !important;
+  margin: 0 !important;
+  padding: 0.25rem !important;
+  flex-grow: 1;
+  border-radius: 6px;
+}
+
+.code_editor {
+  background-color: var(--code-bg) !important;
+  padding: 0.5rem;
+  width: 100%;
+  line-height: 2 !important;
 }
