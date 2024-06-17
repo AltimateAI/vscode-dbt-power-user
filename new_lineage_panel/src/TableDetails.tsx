@@ -38,6 +38,7 @@ import {
   toggleModelEdges,
 } from "./utils";
 import PurposeSection from "./components/Purpose";
+import { CodeBlock } from "./components";
 
 const PreviewIcon = () => {
   return (
@@ -49,7 +50,7 @@ const PreviewIcon = () => {
 };
 
 const ColumnCard: FunctionComponent<{
-  column: Column;
+  column: Column & { code?: string };
   handleClick: () => void;
   selected: boolean;
   isSelectable: boolean;
@@ -81,6 +82,7 @@ const ColumnCard: FunctionComponent<{
           </div>
         </div>
       )}
+      {column.code && <CodeBlock code={column.code} />}
     </div>
   );
 };
@@ -431,9 +433,7 @@ export const StaticTableDetails = () => {
         <div className={classNames(styles.card, "mb-0 purpose-section")}>
           <div className="d-flex flex-column gap-sm">
             <div className="fs-5 fw-semibold">SQL</div>
-            <div className={styles.column_card}>
-              <div className="font-normal">{sql}</div>
-            </div>
+            <CodeBlock code={sql} />
           </div>
         </div>
       )}
@@ -465,7 +465,8 @@ export const StaticTableDetails = () => {
                   table: selectedTable,
                   datatype: _column.datatype,
                   can_lineage_expand: false,
-                  description: _column.expression || "",
+                  description: "",
+                  code: _column.expression,
                 }}
                 handleClick={() => {}}
                 selected={false}
