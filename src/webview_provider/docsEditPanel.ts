@@ -345,7 +345,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       }
       const { name, namespace, kwargs } = test.test_metadata;
       const fullName: string = namespace ? `${namespace}.${name}` : name;
-      const existingConfig = existingColumn?.tests?.find((t: any) => {
+      const existingConfigs = existingColumn?.tests?.filter((t: any) => {
         if (typeof t === "string") {
           return t === fullName;
         }
@@ -353,6 +353,27 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         return key === fullName;
       });
 
+      const existingConfig = existingConfigs.find((t: any) => {
+        if (typeof t === "string") {
+          return t === fullName;
+        }
+
+        if (this.isRelationship(kwargs)) {
+          return (
+            kwargs.field === t.relationships.field &&
+            kwargs.to === t.relationships.to
+          );
+        }
+
+        if (this.isAcceptedValues(kwargs)) {
+          return (
+            kwargs.values?.sort().toString() ===
+            t.accepted_values.values.sort().toString()
+          );
+        }
+
+        return true;
+      });
       // If relationships test, set field and to
       if (this.isRelationship(kwargs)) {
         const { to, field } = kwargs;
