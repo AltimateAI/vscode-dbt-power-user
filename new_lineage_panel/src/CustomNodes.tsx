@@ -28,6 +28,7 @@ import {
   ViewsTypes,
   toggleColumnEdges,
   toggleModelEdges,
+  T_NODE_W,
 } from "./utils";
 import { TMoreTables } from "./MoreTables";
 
@@ -567,13 +568,13 @@ export const OpNode: FunctionComponent<NodeProps> = ({ data }) => {
   const { type } = data;
   console.log("thsiisis", type, data);
   return (
-    <>
+    <div style={{ width: T_NODE_W, display: 'flex', justifyContent: 'center' }}>
       <BidirectionalHandles />
       <Tooltip tooltipLabel={data.join_on}>
         <div className={styles.op_node}>
           <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAABaklEQVR4nGNgGD5g/ZGrtjtO3lq279zdfXtO39mx9ei1rsXbTvCFlu/mj+s60pM55fyOzKnn9yb3nVwW1XjIGkXz5kPXms/fefbu4etP/2H43suP/xduP3sva9KRh51b3/3v3v4BjisW330X13W0EWrz5fBL9158QtYMNuDFh/+Ny67+r5p1+H/XtrcoBoBwzcpHH6PaD4cy7D1zexe6ZhBeeeju/9aNr/63b3z2v37xRQwDQDh98tmdDIcvPbiJzYApm24ibJt3EqsBuTMv3yTOgLknsBsw6/INhj1nb+/EZsCqQ/cIe2HK2R0MG/ZfCbl07+VHdAPuv/j4v2EpNBDRYgGEa1c8+hDXdSAQHBMbj15tPHv72Vv0aFy07ezdnMlH73dsQTWgcsm9N3FdR+pR0sKafeett5+6vWT/uXt79565s33L0Wudq/Zf4fEr3cCb0HW4K33y+e3ghNR/aklk425LOqZxWgMAIOXPlMdkSIgAAAAASUVORK5CYII=" />
         </div>
       </Tooltip>
-    </>
+    </div>
   );
 };
