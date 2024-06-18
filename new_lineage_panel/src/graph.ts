@@ -99,10 +99,8 @@ export const createNewNodesEdges = (
         const opType = details[_t.table].type;
         if (["cte", "table", "final"].includes(opType)) {
           nodes.push(createTableNode(_t, newLevel, t));
-        } else if (["join"].includes(opType)) {
-          nodes.push(createOpNode(_t.table, newLevel, t, details[_t.table]));
         } else {
-          throw new Error("this is it");
+          nodes.push(createOpNode(_t.table, newLevel, t, details[_t.table]));
         }
       }
     }
