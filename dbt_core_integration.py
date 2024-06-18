@@ -591,7 +591,7 @@ class DbtProject:
         if original_node is not None:
             if isinstance(original_node, str):
                 original_node = self.get_ref_node(original_node)
-            if original_node is not None and "materialized" in original_node.node_info.keys() and original_node.node_info["materialized"] == "incremental":
+            if original_node is not None and isinstance(original_node.node_info, dict) and "materialized" in original_node.node_info.keys() and original_node.node_info["materialized"] == "incremental":
                 sql_node.schema = original_node.schema
                 sql_node.database = original_node.database
                 sql_node.alias = original_node.alias
