@@ -428,8 +428,9 @@ $size: 1.2em;
 
 
 .op_node {
-  width: 2rem;
-  height: 2rem;
+  width: 3.2rem;
+  height: 3.2rem;
+  padding: 0.3rem;
   background: var(--table-node-content-bg);
   border-radius: 50%;
   border: 2px solid var(--table-node-border-color);
