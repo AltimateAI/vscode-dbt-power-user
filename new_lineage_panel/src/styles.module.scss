@@ -437,3 +437,12 @@ $size: 1.2em;
   justify-content: center;
   align-items: center;
 }
+
+.op_type_text {
+  position: absolute;
+  bottom: -1.5rem;
+  width: 8rem;
+  text-align: center;
+  color: var(--primary-accent);
+  left: -2.4rem;
+}
