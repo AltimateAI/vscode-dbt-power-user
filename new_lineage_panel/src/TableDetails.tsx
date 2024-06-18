@@ -413,20 +413,18 @@ const TableDetails = () => {
 };
 
 export const StaticTableDetails = () => {
-  const { detailColumns, selectedTable, tables } =
-    useContext(StaticLineageContext);
-  const columns = (detailColumns?.[selectedTable]?.columns || []).map(
-    (item) => ({ ...item, description: item.expression }),
-  );
-  const sql = detailColumns?.[selectedTable]?.sql;
+  const { details, selectedTable } = useContext(StaticLineageContext);
+  const columns = (details?.[selectedTable]?.columns || []).map((item) => ({
+    ...item,
+    description: item.expression,
+  }));
+  const sql = details?.[selectedTable]?.sql;
   const [filteredColumn, setFilteredColumn] = useState(columns);
 
   return (
     <div className="p-2 h-100 d-flex flex-column gap-md overflow-y">
       <HeaderSection
-        nodeType={
-          tables.find((t) => t.name === selectedTable)?.nodeType || "cte"
-        }
+        nodeType={details[selectedTable].nodeType || "cte"}
         table={selectedTable}
       />
       {sql && (

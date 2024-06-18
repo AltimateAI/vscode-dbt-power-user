@@ -386,7 +386,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
 export const StaticTableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const { table, nodeType } = data;
 
-  const { selectedColumn, collectColumns, detailColumns, setSelectedTable } =
+  const { selectedColumn, collectColumns, details, setSelectedTable } =
     useContext(StaticLineageContext);
 
   const _columnLen = Object.keys(collectColumns[table] || {}).length;
@@ -424,11 +424,11 @@ export const StaticTableNode: FunctionComponent<NodeProps> = ({ data }) => {
           <div
             className={classNames(
               "nodrag ms-3",
-              detailColumns ? "text-primary" : "text-muted"
+              details ? "text-primary" : "text-muted"
             )}
           >
             <span
-              className={!detailColumns ? styles.cursor_disabled : ""}
+              className={!details ? styles.cursor_disabled : ""}
               onClick={(e) => {
                 e.stopPropagation();
                 setSelectedTable(table);

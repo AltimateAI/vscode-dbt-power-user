@@ -19,7 +19,7 @@ import {
   layoutElementsOnCanvas,
   staticProcessColumnLineage,
 } from "./graph";
-import { DetailColumns, StaticLineageContext } from "./Lineage";
+import { Details, StaticLineageContext } from "./Lineage";
 import { Modal, SidebarModal } from "./components/Modal";
 import { StaticTableDetails } from "./TableDetails";
 
@@ -37,8 +37,7 @@ type StaticLineageProps = {
   collectColumns?: Record<string, CollectColumn[]>;
   columnEdges?: [string, string][];
   tableEdges: [string, string][];
-  tables: { name: string; nodeType: string }[];
-  detailColumns: DetailColumns;
+  details: Details;
 };
 
 const StaticLineage: FunctionComponent<StaticLineageProps> = ({
@@ -46,22 +45,24 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
   collectColumns = {},
   columnEdges = [],
   tableEdges,
-  tables,
-  detailColumns,
+  details,
 }) => {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
   const [selectedTable, setSelectedTable] = useState("");
 
   useEffect(() => {
     setTimeout(async () => {
+      const startingNode = Object.values(details).find(
+        (n) => n.type === "final",
+      )!;
       let nodes = [
         createTableNode(
           {
-            table: tables[0].name,
+            table: startingNode.name,
             upstreamCount: 0,
             downstreamCount: 0,
-            label: tables[0].name,
-            nodeType: tables[0].nodeType,
+            label: startingNode.name,
+            nodeType: startingNode.nodeType!,
             isExternalProject: false,
             tests: [],
           },
@@ -71,7 +72,7 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
       ];
       let edges: Edge[] = [];
       const bfs = (right: boolean) => {
-        const queue = [tables[0].name];
+        const queue = [startingNode.name];
         const visited: Record<string, boolean> = {};
         while (queue.length > 0) {
           const curr = queue.shift()!;
@@ -89,8 +90,7 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
               label: table,
               upstreamCount: 0,
               downstreamCount: 0,
-              nodeType:
-                tables.find((t) => t.name === table)?.nodeType || "cte",
+              nodeType: details[table].nodeType || "cte",
               isExternalProject: false,
               tests: [],
             })),
@@ -125,7 +125,7 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
       flow.current?.setNodes(nodes);
       flow.current?.setEdges(edges);
     }, 500);
-  }, [collectColumns, columnEdges, flow, selectedColumn, tableEdges, tables]);
+  }, [collectColumns, columnEdges, details, flow, selectedColumn, tableEdges]);
 
   useEffect(() => {
     const timerId = setTimeout(() => {
@@ -139,10 +139,9 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
       value={{
         collectColumns,
         selectedColumn,
-        detailColumns,
+        details,
         selectedTable,
         setSelectedTable,
-        tables,
       }}
     >
       <ReactFlowProvider>

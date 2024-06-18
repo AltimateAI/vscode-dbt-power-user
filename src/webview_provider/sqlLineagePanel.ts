@@ -10,7 +10,7 @@ import {
   Disposable,
   WebviewPanel,
 } from "vscode";
-import { AltimateRequest, DetailColumns } from "../altimate";
+import { AltimateRequest, Details } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
@@ -21,9 +21,8 @@ import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
 type SQLLineage = {
-  tables: { name: string; nodeType: string }[];
   tableEdges: [string, string][];
-  detailColumns: DetailColumns;
+  details: Details;
   errorMessage?: undefined;
 };
 
@@ -170,13 +169,8 @@ export class SQLLineagePanel implements Disposable {
       }
       // TODO: add for source
     }
+    nodeTypeMapping[modelName] = currNode.resource_type;
     const FINAL_SELECT = "__final_select__";
-    const tables = response.tables.map((t) => ({
-      name: t === FINAL_SELECT ? modelName : t,
-      nodeType:
-        nodeTypeMapping[t.toLowerCase()] ||
-        (t === FINAL_SELECT ? currNode.resource_type : "cte"),
-    }));
     const tableEdges = response.tableEdges.map(
       (edge) =>
         edge.map((item) => (item === FINAL_SELECT ? modelName : item)) as [
@@ -184,9 +178,16 @@ export class SQLLineagePanel implements Disposable {
           string,
         ],
     );
-    const detailColumns = response.detailColumns;
-    detailColumns[modelName] = detailColumns[FINAL_SELECT];
-    return { tables, tableEdges, detailColumns };
+    const details = response.details;
+    details[modelName] = details[FINAL_SELECT];
+    delete details[FINAL_SELECT];
+    for (const k in details) {
+      details[k]["nodeType"] = nodeTypeMapping[k];
+      if (k === modelName) {
+        details[k]["name"] = modelName;
+      }
+    }
+    return { tableEdges, details };
   }
 
   resolveWebviewView(

@@ -159,28 +159,33 @@ export const LineageContext = createContext<{
   setViewsCodeModal: noop,
 });
 
-export type DetailColumns = Record<
+export type Details = Record<
   string,
   {
-    columns: { name: string; datatype?: string; expression?: string }[];
+    columns: {
+      name: string;
+      datatype?: string;
+      expression?: string;
+    }[];
     sql: string;
+    nodeType?: string;
+    name: string;
+    type: string;
   }
 >;
 
 export const StaticLineageContext = createContext<{
   collectColumns: Record<string, CollectColumn[]>;
   selectedColumn: { table: string; name: string } | undefined;
-  detailColumns: DetailColumns;
+  details: Details;
   selectedTable: string;
   setSelectedTable: Dispatch<SetStateAction<string>>;
-  tables: { name: string; nodeType: string }[];
 }>({
   collectColumns: {},
   selectedColumn: undefined,
-  detailColumns: {},
+  details: {},
   selectedTable: "",
   setSelectedTable: noop,
-  tables: [],
 });
 
 export const Lineage = () => {
@@ -212,7 +217,7 @@ export const Lineage = () => {
   const [nodeCount, setNodeCount] = useState(0);
   const [minRange, setMinRange] = useState<[number, number]>([0, 0]);
   const [viewsCodeModal, setViewsCodeModal] = useState<ViewsCodeModal | null>(
-    null
+    null,
   );
 
   useEffect(() => {
@@ -246,8 +251,8 @@ export const Lineage = () => {
             edges,
             node.table,
             leftExpansion,
-            rightExpansion
-          )
+            rightExpansion,
+          ),
         );
         return;
       }
@@ -275,8 +280,8 @@ export const Lineage = () => {
           edges,
           node.table,
           leftExpansion,
-          rightExpansion
-        )
+          rightExpansion,
+        ),
       );
       rerender();
     };
