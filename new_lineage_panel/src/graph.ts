@@ -35,6 +35,7 @@ import {
   LEVEL_SEPARATION_VERTICAL,
   T_NODE_Y_SEPARATION_VERTICAL,
   defaultEdgeStyle,
+  createOpNode,
 } from "./utils";
 import {
   ColumnLineage,
@@ -47,7 +48,7 @@ import { Dispatch, SetStateAction } from "react";
 import { COLUMN_PREFIX } from "./constants";
 import { TMoreTables } from "./MoreTables";
 import { CLL } from "./service_utils";
-import { SelectedColumn } from "./Lineage";
+import { Details, SelectedColumn } from "./Lineage";
 
 const getConnectedTables = (right: boolean, table: string) =>
   right ? upstreamTables(table) : downstreamTables(table);
@@ -62,7 +63,8 @@ export const createNewNodesEdges = (
   right: boolean,
   level: number,
   max_expand_table = MAX_EXPAND_TABLE,
-  isVertical = false
+  isVertical = false,
+  details?: Details | null
 ) => {
   const newLevel = calculateNewLevel(right, level);
 
@@ -90,8 +92,19 @@ export const createNewNodesEdges = (
     }
     const existingNode = nodes.find((_n) => _n.id === _t.table);
     if (!existingNode) {
-      nodes.push(createTableNode(_t, newLevel, t));
       tableAdded++;
+      if (!details) {
+        nodes.push(createTableNode(_t, newLevel, t));
+      } else {
+        const opType = details[_t.table].type;
+        if (["cte", "table", "final"].includes(opType)) {
+          nodes.push(createTableNode(_t, newLevel, t));
+        } else if (["join"].includes(opType)) {
+          nodes.push(createOpNode(_t.table, newLevel, t, details[_t.table]));
+        } else {
+          throw new Error("this is it");
+        }
+      }
     }
     addUniqueEdge(_t.table);
   }

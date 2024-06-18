@@ -9,6 +9,7 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import {
   ColumnNode,
+  OpNode,
   SeeMoreNode,
   SelfConnectingEdge,
   StaticTableNode,
@@ -27,6 +28,7 @@ const nodeTypes = {
   table: StaticTableNode,
   seeMore: SeeMoreNode,
   column: ColumnNode,
+  operator: OpNode,
 };
 const edgeTypes = {
   selfConnecting: SelfConnectingEdge,
@@ -99,6 +101,7 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
             currLevel,
             10000,
             true,
+            details
           );
           queue.push(...connectedTables);
         }

@@ -425,3 +425,15 @@ $size: 1.2em;
     height: 1rem;
   }
 }
+
+
+.op_node {
+  width: 2rem;
+  height: 2rem;
+  background: var(--table-node-content-bg);
+  border-radius: 50%;
+  border: 2px solid var(--table-node-border-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

@@ -74,7 +74,7 @@ export const isNotColumn = (x: { id: string }) =>
 export const getSourceTargetHandles = (
   l0: number,
   l1: number,
-  isVertical: boolean
+  isVertical: boolean,
 ) => {
   if (isVertical) {
     if (l0 < l1) return ["bottom", "top"];
@@ -94,7 +94,7 @@ export const createTableEdge = (
   n1: string,
   n2: string,
   right: boolean,
-  isVertical = false
+  isVertical = false,
 ): Edge => {
   const [src, dst] = right ? [n1, n2] : [n2, n1];
   let [sourceHandle, targetHandle] = isVertical
@@ -125,7 +125,7 @@ export const createTableEdge = (
 export const createTableNode = (
   _table: Table,
   level: number,
-  parent: string
+  parent: string,
 ): Node => {
   return {
     id: _table.table,
@@ -137,12 +137,28 @@ export const createTableNode = (
   };
 };
 
+export const createOpNode = (
+  id: string,
+  level: number,
+  parent: string,
+  data: { name: string; type: string },
+): Node => {
+  return {
+    id,
+    data: { ...data, level, parent },
+    position: { x: 100, y: 100 },
+    type: "operator",
+    width: T_NODE_W,
+    height: T_NODE_H,
+  };
+};
+
 export const createColumnNode = (
   t: string,
   c: string,
   viewsType: ViewsTypes | undefined,
   viewsCode: Record<string, [string, string][]>,
-  nodeType: string
+  nodeType: string,
 ): Node => {
   return {
     id: getColumnId(t, c),
@@ -164,13 +180,13 @@ export const createColumnEdge = (
   srcLevel: number,
   dstLevel: number,
   type: string,
-  edgeVisibility: EdgeVisibility
+  edgeVisibility: EdgeVisibility,
 ): Edge => {
   const edgeId = getColumnEdgeId(source, target);
   const [sourceHandle, targetHandle] = getSourceTargetHandles(
     srcLevel,
     dstLevel,
-    false
+    false,
   );
   return {
     id: edgeId,
@@ -252,7 +268,7 @@ export const contains = (arr: [string, string][], x: [string, string]) => {
 export const safeConcat = <T>(
   obj: Record<string, T[]>,
   key: string,
-  values: T[]
+  values: T[],
 ) => {
   obj[key] = obj[key] || [];
   obj[key].push(...values);
@@ -274,7 +290,7 @@ export const deleteIfExists = <T extends Node | Edge>(arr: T[], id: string) => {
 export const calculateExpand = (
   minVal: number,
   maxVal: number,
-  defaultVal: number
+  defaultVal: number,
 ) => {
   if (minVal === -1) return maxVal;
   if (defaultVal >= maxVal) return maxVal;
@@ -285,7 +301,7 @@ export const calculateExpand = (
 export const toggleModelEdges = (
   edges: Edge[],
   isVisible: boolean,
-  highlight = true
+  highlight = true,
 ) => {
   edges.forEach((e) => {
     if (!isColumn(e)) {
@@ -298,7 +314,7 @@ export const toggleModelEdges = (
 export const toggleColumnEdges = (
   edges: Edge[],
   isVisible: boolean,
-  highlight = true
+  highlight = true,
 ) => {
   edges.forEach((e) => {
     if (isColumn(e)) {
