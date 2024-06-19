@@ -381,7 +381,6 @@ class DbtProject:
                 from dbt.context.providers import generate_runtime_macro_context
                 self.adapter.set_macro_context_generator(generate_runtime_macro_context)
             self.config.adapter = self.adapter
-            self.create_parser()
         except Exception as e:
             # reset project
             self.config = None
