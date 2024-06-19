@@ -11,7 +11,6 @@ import {
   WebviewView,
   WebviewViewProvider,
   WebviewViewResolveContext,
-  env,
   window,
   workspace,
 } from "vscode";
@@ -335,23 +334,19 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         return null;
       }
       const { name, namespace, kwargs } = test.test_metadata;
-      const fullName: string = namespace ? `${namespace}.${name}` : name;
+      const testFullName: string = namespace ? `${namespace}.${name}` : name;
 
-      const existingConfig = getColumnTestConfigFromYml(
+      const columnTestConfigFromYml = getColumnTestConfigFromYml(
         existingColumn.tests,
         kwargs,
-        fullName,
+        testFullName,
       );
       // If relationships test, set field and to
       if (isRelationship(kwargs)) {
         const { to, field } = kwargs;
         return {
           relationships: {
-            ...(
-              existingConfig as
-                | { relationships: TestMetadataAcceptedValues }
-                | undefined
-            )?.["relationships"],
+            ...columnTestConfigFromYml,
             field,
             to,
           },
@@ -362,26 +357,19 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       if (isAcceptedValues(kwargs)) {
         return {
           accepted_values: {
-            ...(
-              existingConfig as
-                | { accepted_values: TestMetadataAcceptedValues }
-                | undefined
-            )?.["accepted_values"],
+            ...columnTestConfigFromYml,
             values: kwargs.values,
           },
         };
       }
 
-      if (existingConfig?.[fullName]) {
-        return {
-          [fullName]: existingConfig?.[fullName],
-        };
+      if (columnTestConfigFromYml) {
+        return columnTestConfigFromYml;
       }
 
       // Add extra config from external packages or test macros
-      // Add extra config from external packages or test macros
-      const testMetaKwargs = this.getTestMetadataKwArgs(kwargs, fullName);
-      return testMetaKwargs || fullName;
+      const testMetaKwargs = this.getTestMetadataKwArgs(kwargs, testFullName);
+      return testMetaKwargs || testFullName;
     });
 
     this.terminal.debug(

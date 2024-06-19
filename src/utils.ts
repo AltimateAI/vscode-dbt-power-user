@@ -274,11 +274,11 @@ export const isAcceptedValues = (
 };
 
 export const getColumnTestConfigFromYml = (
-  tests: any[] | undefined,
+  allTests: any[] | undefined,
   kwargs: TestMetadataAcceptedValues | TestMetadataRelationships,
   testName: string,
 ) => {
-  const existingConfigs = tests?.filter((t: any) => {
+  const testsByTestName = allTests?.filter((t: any) => {
     if (typeof t === "string") {
       return t === testName;
     }
@@ -286,7 +286,7 @@ export const getColumnTestConfigFromYml = (
     return key === testName;
   });
 
-  return existingConfigs?.find((t: any) => {
+  const testWithRightConfigValues = testsByTestName?.find((t: any) => {
     if (typeof t === "string") {
       return t === testName;
     }
@@ -307,4 +307,26 @@ export const getColumnTestConfigFromYml = (
 
     return true;
   });
+
+  if (isRelationship(kwargs)) {
+    return (
+      testWithRightConfigValues as
+        | { relationships: TestMetadataAcceptedValues }
+        | undefined
+    )?.["relationships"];
+  }
+
+  if (isAcceptedValues(kwargs)) {
+    return (
+      testWithRightConfigValues as
+        | { accepted_values: TestMetadataAcceptedValues }
+        | undefined
+    )?.["accepted_values"];
+  }
+
+  if (testWithRightConfigValues?.[testName]) {
+    return {
+      [testName]: testWithRightConfigValues?.[testName],
+    };
+  }
 };
