@@ -223,3 +223,10 @@ body {
 .theme-bg {
   background-color: var(--bg-color) !important;
 }
+
+pre[class*="language-"],
+code[class*="language-"] {
+  white-space: normal;
+  overflow: auto;
+  word-break: break-word;
+}
