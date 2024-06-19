@@ -156,14 +156,15 @@ export class SQLLineagePanel implements Disposable {
     const modelId = currNode.uniqueId;
     const parentModels = graphMetaMap.parents.get(modelId)?.nodes || [];
     const modelsToFetch = parentModels.map((n) => n.key);
-    const { mappedNode } = await project.getNodesWithDBColumns(
-      event,
-      modelsToFetch,
-      token,
-    );
+    // const { mappedNode } = await project.getNodesWithDBColumns(
+    //   event,
+    //   modelsToFetch,
+    //   token,
+    // );
     const response = await this.altimate.sqlLineage({
       compiled_sql: compiledSQL,
-      model_info: modelsToFetch.map((n) => ({ model_node: mappedNode[n] })),
+      // model_info: modelsToFetch.map((n) => ({ model_node: mappedNode[n] })),
+      model_info: [],
       model_dialect: project.getAdapterType(),
     });
     const { details } = response;
