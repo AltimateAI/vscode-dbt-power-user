@@ -169,12 +169,19 @@ export class SQLLineagePanel implements Disposable {
     const nodeTypeMapping: Record<string, string> = {};
     for (const modelId of modelsToFetch) {
       const splits = modelId.split(".");
+      if (splits[0] === "source") {
+        // TODO: fix for source
+        const _source = sourceMetaMap.get(splits[splits.length - 2]);
+        if (_source) {
+          nodeTypeMapping["SOURCE"] = "source";
+        }
+        continue;
+      }
       const _node = nodeMetaMap.get(splits[splits.length - 1]);
       if (_node) {
         nodeTypeMapping[_node.alias] = _node.resource_type;
         continue;
       }
-      // TODO: add for source
     }
     nodeTypeMapping[modelName] = currNode.resource_type;
     const FINAL_SELECT = "__final_select__";
