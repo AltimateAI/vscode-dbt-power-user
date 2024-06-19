@@ -44,6 +44,13 @@ export class SQLLineagePanel implements Disposable {
         this.onManifestCacheChanged(event),
       ),
     );
+    window.onDidChangeActiveColorTheme(
+      async (e) => {
+        this.changedActiveColorTheme();
+      },
+      null,
+      this.disposables,
+    );
   }
 
   dispose() {

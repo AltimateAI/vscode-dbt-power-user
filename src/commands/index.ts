@@ -537,7 +537,7 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.sqlLineage", async () => {
         window.withProgress(
           {
-            title: "Retrieving SQL lineage",
+            title: "Retrieving query visualization",
             location: ProgressLocation.Notification,
             cancellable: false,
           },
@@ -568,7 +568,7 @@ export class VSCodeCommands implements Disposable {
             }
             const panel = window.createWebviewPanel(
               SQLLineagePanel.viewType,
-              "SQL Lineage",
+              "Query Visualizer",
               ViewColumn.Two,
               { retainContextWhenHidden: true, enableScripts: true },
             );

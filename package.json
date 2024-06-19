@@ -622,7 +622,7 @@
       },
       {
         "command": "dbtPowerUser.sqlLineage",
-        "title": "SQL Lineage",
+        "title": "Query Visualizer",
         "category": "dbt Power User",
         "icon": "$(debug-console)"
       }
