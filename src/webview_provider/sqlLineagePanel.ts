@@ -166,20 +166,35 @@ export class SQLLineagePanel implements Disposable {
       model_info: modelsToFetch.map((n) => ({ model_node: mappedNode[n] })),
       model_dialect: project.getAdapterType(),
     });
+    const { details } = response;
+
     const nodeTypeMapping: Record<string, string> = {};
     for (const modelId of modelsToFetch) {
       const splits = modelId.split(".");
       if (splits[0] === "source") {
-        // TODO: fix for source
         const _source = sourceMetaMap.get(splits[splits.length - 2]);
+        const _table = splits[splits.length - 1].toLowerCase();
         if (_source) {
-          nodeTypeMapping["SOURCE"] = "source";
+          for (const key in details) {
+            if (details[key].type === "table" && key.toLowerCase() === _table) {
+              nodeTypeMapping[key] = "source";
+              break;
+            }
+          }
+          continue;
         }
-        continue;
       }
       const _node = nodeMetaMap.get(splits[splits.length - 1]);
       if (_node) {
-        nodeTypeMapping[_node.alias] = _node.resource_type;
+        for (const key in details) {
+          if (
+            details[key].type === "table" &&
+            key.toLowerCase() === _node.alias.toLowerCase()
+          ) {
+            nodeTypeMapping[key] = _node.resource_type;
+            break;
+          }
+        }
         continue;
       }
     }
@@ -192,7 +207,6 @@ export class SQLLineagePanel implements Disposable {
           string,
         ],
     );
-    const details = response.details;
     details[modelName] = details[FINAL_SELECT];
     delete details[FINAL_SELECT];
     for (const k in details) {
