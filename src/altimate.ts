@@ -72,10 +72,9 @@ export interface DBTColumnLineageResponse {
 
 interface SQLLineageRequest {
   model_dialect: string;
-  model_info: {
-    model_node: ModelNode;
-  }[];
+  model_info: { model_node: ModelNode }[];
   compiled_sql: string;
+  session_id: string;
 }
 
 export type Details = Record<

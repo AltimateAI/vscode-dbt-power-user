@@ -9,6 +9,7 @@ import {
   window,
   Disposable,
   WebviewPanel,
+  env,
 } from "vscode";
 import { AltimateRequest, Details } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -19,6 +20,7 @@ import {
 import { provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
+import * as crypto from "crypto";
 
 type SQLLineage = {
   tableEdges: [string, string][];
@@ -161,11 +163,14 @@ export class SQLLineagePanel implements Disposable {
     //   modelsToFetch,
     //   token,
     // );
+    const hash = crypto.createHash("md5").update(compiledSQL).digest("hex");
+    const sessionId = `${env.sessionId}-${hash}`;
     const response = await this.altimate.sqlLineage({
       compiled_sql: compiledSQL,
       // model_info: modelsToFetch.map((n) => ({ model_node: mappedNode[n] })),
       model_info: [],
       model_dialect: project.getAdapterType(),
+      session_id: sessionId,
     });
     const { details } = response;
 
