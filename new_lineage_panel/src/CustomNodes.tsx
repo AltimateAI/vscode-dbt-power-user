@@ -592,7 +592,7 @@ const LIGHT_ICONS: Record<string, React.ReactNode> = {
   Filter: <SqlFilterLightIcon />,
   GroupBy: <SqlGroupByLightIcon />,
   Limit: <SqlLimitLightIcon />,
-  OrderBy: <SqlOrderByLightIcon />,
+  Sort: <SqlOrderByLightIcon />,
   Union: <SqlUnionLightIcon />,
 };
 
@@ -604,7 +604,7 @@ const DARK_ICONS: Record<string, React.ReactNode> = {
   Filter: <SqlFilterDarkIcon />,
   GroupBy: <SqlGroupByDarkIcon />,
   Limit: <SqlLimitDarkIcon />,
-  OrderBy: <SqlOrderByDarkIcon />,
+  Sort: <SqlOrderByDarkIcon />,
   Union: <SqlUnionDarkIcon />,
 };
 
