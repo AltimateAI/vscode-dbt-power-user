@@ -398,6 +398,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
           );
 
           break;
+        case "queryResultTab:render":
+          this.emitterService.fire({
+            command: "queryResultTab:render",
+            payload: params,
+          });
+          break;
         default:
           break;
       }

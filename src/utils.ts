@@ -256,3 +256,14 @@ export const getExternalProjectNamesFromDbtLoomConfig = (
   }
   return null;
 };
+
+export function getFormattedDateTime(): string {
+  const now = new Date();
+
+  const date = now.toLocaleDateString("en-GB").replace(/\//g, "-");
+  const time = now
+    .toLocaleTimeString("en-GB", { hour12: false })
+    .replace(/:/g, "-");
+
+  return `${date}__${time}`;
+}
