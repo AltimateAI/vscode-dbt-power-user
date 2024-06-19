@@ -22,8 +22,11 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import {
   getColumnNameByCase,
+  getColumnTestConfigFromYml,
+  isAcceptedValues,
   isColumnNameEqual,
   isQuotedIdentifier,
+  isRelationship,
   provideSingleton,
 } from "../utils";
 import path = require("path");
@@ -238,18 +241,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     await this.resolveWebviewView(this.panel!, this.context!, this.token!);
   };
 
-  private isRelationship(
-    metadata: TestMetadataRelationships | TestMetadataAcceptedValues,
-  ): metadata is TestMetadataRelationships {
-    return (metadata as TestMetadataRelationships).field !== undefined;
-  }
-
-  private isAcceptedValues(
-    metadata: TestMetadataRelationships | TestMetadataAcceptedValues,
-  ): metadata is TestMetadataAcceptedValues {
-    return (metadata as TestMetadataAcceptedValues).values !== undefined;
-  }
-
   private getTestDataByModel(message: any, modelName: string) {
     const tests = message.updatedTests as undefined | TestMetaData[];
 
@@ -345,41 +336,22 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       }
       const { name, namespace, kwargs } = test.test_metadata;
       const fullName: string = namespace ? `${namespace}.${name}` : name;
-      const existingConfigs = existingColumn?.tests?.filter((t: any) => {
-        if (typeof t === "string") {
-          return t === fullName;
-        }
-        const [key] = Object.keys(t);
-        return key === fullName;
-      });
 
-      const existingConfig = existingConfigs.find((t: any) => {
-        if (typeof t === "string") {
-          return t === fullName;
-        }
-
-        if (this.isRelationship(kwargs)) {
-          return (
-            kwargs.field === t.relationships.field &&
-            kwargs.to === t.relationships.to
-          );
-        }
-
-        if (this.isAcceptedValues(kwargs)) {
-          return (
-            kwargs.values?.sort().toString() ===
-            t.accepted_values.values.sort().toString()
-          );
-        }
-
-        return true;
-      });
+      const existingConfig = getColumnTestConfigFromYml(
+        existingColumn.tests,
+        kwargs,
+        fullName,
+      );
       // If relationships test, set field and to
-      if (this.isRelationship(kwargs)) {
+      if (isRelationship(kwargs)) {
         const { to, field } = kwargs;
         return {
           relationships: {
-            ...existingConfig?.["relationships"],
+            ...(
+              existingConfig as
+                | { relationships: TestMetadataAcceptedValues }
+                | undefined
+            )?.["relationships"],
             field,
             to,
           },
@@ -387,10 +359,14 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       }
 
       // set values if test is accepted_values
-      if (this.isAcceptedValues(kwargs)) {
+      if (isAcceptedValues(kwargs)) {
         return {
           accepted_values: {
-            ...existingConfig?.["accepted_values"],
+            ...(
+              existingConfig as
+                | { accepted_values: TestMetadataAcceptedValues }
+                | undefined
+            )?.["accepted_values"],
             values: kwargs.values,
           },
         };

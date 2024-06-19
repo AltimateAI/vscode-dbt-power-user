@@ -11,6 +11,10 @@ import {
 } from "vscode";
 import { readFileSync } from "fs";
 import { parse } from "yaml";
+import {
+  TestMetadataAcceptedValues,
+  TestMetadataRelationships,
+} from "./domain";
 
 export const isEnclosedWithinCodeBlock = (
   document: TextDocument,
@@ -255,4 +259,52 @@ export const getExternalProjectNamesFromDbtLoomConfig = (
     );
   }
   return null;
+};
+
+export const isRelationship = (
+  metadata: TestMetadataRelationships | TestMetadataAcceptedValues,
+): metadata is TestMetadataRelationships => {
+  return (metadata as TestMetadataRelationships).field !== undefined;
+};
+
+export const isAcceptedValues = (
+  metadata: TestMetadataRelationships | TestMetadataAcceptedValues,
+): metadata is TestMetadataAcceptedValues => {
+  return (metadata as TestMetadataAcceptedValues).values !== undefined;
+};
+
+export const getColumnTestConfigFromYml = (
+  tests: any[] | undefined,
+  kwargs: TestMetadataAcceptedValues | TestMetadataRelationships,
+  testName: string,
+) => {
+  const existingConfigs = tests?.filter((t: any) => {
+    if (typeof t === "string") {
+      return t === testName;
+    }
+    const [key] = Object.keys(t);
+    return key === testName;
+  });
+
+  return existingConfigs?.find((t: any) => {
+    if (typeof t === "string") {
+      return t === testName;
+    }
+
+    if (isRelationship(kwargs)) {
+      return (
+        kwargs.field === t.relationships.field &&
+        kwargs.to === t.relationships.to
+      );
+    }
+
+    if (isAcceptedValues(kwargs)) {
+      return (
+        kwargs.values?.sort().toString() ===
+        t.accepted_values.values.sort().toString()
+      );
+    }
+
+    return true;
+  });
 };
