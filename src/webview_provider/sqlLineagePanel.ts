@@ -10,6 +10,7 @@ import {
   Disposable,
   WebviewPanel,
   env,
+  workspace,
 } from "vscode";
 import { AltimateRequest, Details } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -147,7 +148,15 @@ export class SQLLineagePanel implements Disposable {
       return { errorMessage: "Unable to find the project" };
     }
     const modelName = this.getFilename();
-    const compiledSQL = await project.compileNode(modelName);
+    const currentFile = window.activeTextEditor?.document.uri;
+    if (!currentFile) {
+      return { errorMessage: "Unable to get current file" };
+    }
+    const fileContentBytes = await workspace.fs.readFile(currentFile);
+    const compiledSQL = await project.unsafeCompileQuery(
+      fileContentBytes.toString(),
+      modelName,
+    );
     if (!compiledSQL) {
       return { errorMessage: "Unable to compile sql" };
     }
