@@ -589,11 +589,11 @@ const LIGHT_ICONS: Record<string, React.ReactNode> = {
   OUTER_JOIN: <SqlOuterJoinLightIcon />,
   LEFT_JOIN: <SqlLeftJoinLightIcon />,
   RIGHT_JOIN: <SqlRightJoinLightIcon />,
-  Filter: <SqlFilterLightIcon />,
-  GroupBy: <SqlGroupByLightIcon />,
-  Limit: <SqlLimitLightIcon />,
-  Sort: <SqlOrderByLightIcon />,
-  Union: <SqlUnionLightIcon />,
+  FILTER: <SqlFilterLightIcon />,
+  GROUP: <SqlGroupByLightIcon />,
+  LIMIT: <SqlLimitLightIcon />,
+  SORT: <SqlOrderByLightIcon />,
+  UNION: <SqlUnionLightIcon />,
 };
 
 const DARK_ICONS: Record<string, React.ReactNode> = {
@@ -601,11 +601,11 @@ const DARK_ICONS: Record<string, React.ReactNode> = {
   OUTER_JOIN: <SqlOuterJoinDarkIcon />,
   LEFT_JOIN: <SqlLeftJoinDarkIcon />,
   RIGHT_JOIN: <SqlRightJoinDarkIcon />,
-  Filter: <SqlFilterDarkIcon />,
-  GroupBy: <SqlGroupByDarkIcon />,
-  Limit: <SqlLimitDarkIcon />,
-  Sort: <SqlOrderByDarkIcon />,
-  Union: <SqlUnionDarkIcon />,
+  FILTER: <SqlFilterDarkIcon />,
+  GROUP: <SqlGroupByDarkIcon />,
+  LIMIT: <SqlLimitDarkIcon />,
+  SORT: <SqlOrderByDarkIcon />,
+  UNION: <SqlUnionDarkIcon />,
 };
 
 export const OpNode: FunctionComponent<NodeProps> = ({ data }) => {
