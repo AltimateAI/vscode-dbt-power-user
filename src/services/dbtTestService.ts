@@ -4,7 +4,11 @@ import {
   CreateDbtTestRequest,
   UserInputError,
 } from "../altimate";
-import { isColumnNameEqual, provideSingleton } from "../utils";
+import {
+  getColumnTestConfigFromYml,
+  isColumnNameEqual,
+  provideSingleton,
+} from "../utils";
 import { DocGenService } from "./docGenService";
 import { StreamingService } from "./streamingService";
 import { QueryManifestService } from "./queryManifestService";
@@ -25,10 +29,10 @@ export class DbtTestService {
   ) {}
 
   private filterAndStringifyTest = (
-    tests: Record<string, Record<string, unknown>>[],
+    testsPerColumnOrModelFromYml: Record<string, Record<string, unknown>>[],
     test: TestMetaData,
   ) => {
-    if (!tests?.length) {
+    if (!testsPerColumnOrModelFromYml?.length) {
       return;
     }
 
@@ -41,25 +45,25 @@ export class DbtTestService {
     const { name, namespace } = test.test_metadata;
     const fullName = namespace ? `${namespace}.${name}` : name;
 
-    const selectedTest = tests.find(
-      (t: Record<string, Record<string, unknown>>) => {
-        return Boolean(t[fullName]);
-      },
+    const existingConfig = getColumnTestConfigFromYml(
+      testsPerColumnOrModelFromYml,
+      test.test_metadata.kwargs,
+      fullName,
     );
 
-    if (!selectedTest) {
+    if (!existingConfig) {
       this.dbtTerminal.debug("getDbtTestCode", "no test available in yml");
       return;
     }
 
     this.dbtTerminal.debug(
       "getDbtTestCode",
-      "sending selected test from yml",
-      selectedTest,
+      "sending selected config from yml",
+      existingConfig,
     );
 
     // Remove fields which are already handled in UI
-    const filteredConfig = Object.entries(selectedTest[fullName]).reduce(
+    const filteredConfig = Object.entries(existingConfig).reduce(
       (acc: Record<string, unknown>, [key, value]) => {
         if (ignoredFields.includes(key)) {
           return acc;
