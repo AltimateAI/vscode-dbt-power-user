@@ -22,6 +22,18 @@ export const DEFAULT_MIN_ZOOM = 0.05;
 // node styles
 const DEFAULT_COLOR = "#7A899E";
 const HIGHLIGHT_COLOR = "#E38E00";
+
+export const VIEWS_TYPE_COLOR = {
+  Original: "#FDD835",
+  Alias: "#40C8AE",
+  Transformation: "#FF754C",
+  Unchanged: "#BC3FBC",
+  "Not sure": "#247efe",
+};
+
+export type CollectColumn = { column: string; viewsType?: ViewsTypes };
+export type ViewsTypes = keyof typeof VIEWS_TYPE_COLOR;
+
 export const defaultEdgeStyle: React.CSSProperties = {
   stroke: DEFAULT_COLOR,
   strokeWidth: 1,
@@ -79,8 +91,8 @@ export const createTableEdge = (
       n1 === n2
         ? "selfConnecting"
         : n1Level === n2Level
-        ? "smoothstep"
-        : "default",
+          ? "smoothstep"
+          : "default",
   };
 };
 
@@ -99,10 +111,16 @@ export const createTableNode = (
   };
 };
 
-export const createColumnNode = (t: string, c: string): Node => {
+export const createColumnNode = (
+  t: string,
+  c: string,
+  viewsType: ViewsTypes | undefined,
+  viewsCode: Record<string, [string, string][]>,
+  nodeType: string
+): Node => {
   return {
     id: getColumnId(t, c),
-    data: { column: c, table: t },
+    data: { column: c, table: t, viewsType, viewsCode, nodeType },
     parentNode: t,
     extent: "parent",
     draggable: false,
@@ -145,8 +163,15 @@ export const createColumnEdge = (
 export const getColumnEdgeId = (source: string, target: string) =>
   COLUMN_PREFIX + `${source}-${target}`;
 
+export const applyNodeStyling = (n: Node, highlight: boolean) => {
+  n.style = { opacity: highlight ? 1 : 0.5 };
+};
 export const applyEdgeStyling = (e: Edge, highlight: boolean) => {
-  e.style = highlight ? highlightEdgeStyle : defaultEdgeStyle;
+  e.style = highlight
+    ? e.data?.type === "indirect"
+      ? indirectHighlightEdgeStyle
+      : highlightEdgeStyle
+    : defaultEdgeStyle;
   e.markerEnd = highlight ? highlightMarker : defaultMarker;
 };
 
@@ -238,4 +263,30 @@ export const calculateExpand = (
   if (defaultVal >= maxVal) return maxVal;
   if (defaultVal >= minVal) return defaultVal;
   return minVal;
+};
+
+export const toggleModelEdges = (
+  edges: Edge[],
+  isVisible: boolean,
+  highlight = true
+) => {
+  edges.forEach((e) => {
+    if (!isColumn(e)) {
+      e.hidden = !isVisible;
+      if (highlight) applyEdgeStyling(e, isVisible);
+    }
+  });
+};
+
+export const toggleColumnEdges = (
+  edges: Edge[],
+  isVisible: boolean,
+  highlight = true
+) => {
+  edges.forEach((e) => {
+    if (isColumn(e)) {
+      e.hidden = !isVisible;
+      if (highlight) applyEdgeStyling(e, isVisible);
+    }
+  });
 };

@@ -1,4 +1,5 @@
 import { requestExecutor } from "./service_utils";
+import { ViewsTypes } from "./utils";
 
 export type Table = {
   table: string;
@@ -28,6 +29,8 @@ export type ColumnLineage = {
   source: [string, string];
   target: [string, string];
   type: string;
+  viewsType?: ViewsTypes;
+  viewsCode?: [string, string][];
 };
 
 export type ExposureMetaData = {
@@ -92,7 +95,7 @@ export const getConnectedColumns = (body: {
 }) => {
   return requestExecutor(
     "getConnectedColumns",
-    body,
+    body
   ) as Promise<ColumnLineageResponse>;
 };
 

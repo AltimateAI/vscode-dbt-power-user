@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useContext } from "react";
+import React, { FunctionComponent, useContext, useMemo } from "react";
 import {
   BaseEdge,
   EdgeProps,
@@ -14,12 +14,21 @@ import {
   calculateMinLevel,
   calculateNodeCount,
   expandTableLineage,
+  highlightColumnConnections,
   highlightTableConnections,
   layoutElementsOnCanvas,
 } from "./graph";
 import { LineageContext } from "./App";
 import { CLL, openFile } from "./service_utils";
-import { getColY, getSeeMoreId } from "./utils";
+import {
+  getColumnId,
+  getColY,
+  getSeeMoreId,
+  VIEWS_TYPE_COLOR,
+  ViewsTypes,
+  toggleColumnEdges,
+  toggleModelEdges,
+} from "./utils";
 import { TMoreTables } from "./MoreTables";
 
 import TestsIcon from "./assets/icons/tests.svg?react";
@@ -32,6 +41,8 @@ import {
   NodeTypeIcon,
   TableNodePill,
 } from "./components/Column";
+import CodeIcon from "./assets/icons/code.svg?react";
+import { Tooltip, ViewsTypeBadge } from "./components";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -82,7 +93,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     nodeType,
     tests,
     materialization,
-    isExternalProject
+    isExternalProject,
   } = data;
   const flow = useReactFlow();
 
@@ -109,7 +120,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const selected = selectedTable === table;
 
   const highlightTable = () => {
-    if (selectedColumn.name) return;
+    if (selectedColumn.name && selectedColumn.table === table) return;
     const _nodes = flow.getNodes();
     const _edges = flow.getEdges();
     const [nodes, edges] = highlightTableConnections(_nodes, _edges, table);
@@ -146,11 +157,16 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     if (selectedColumn.name) {
       try {
         CLL.start();
+        const currentEdges = flow.getEdges();
+        // Model edges should be hidden when column lineage is selected
+        toggleModelEdges(currentEdges, false);
+        toggleColumnEdges(currentEdges, true);
+        flow.setEdges(currentEdges);
         await bfsTraversal(
           nodes,
           edges,
           right,
-          collectColumns[table].map((c) => ({ table, name: c })),
+          collectColumns[table].map((c) => ({ table, name: c.column })),
           setConfidence,
           setMoreTables,
           setCollectColumns,
@@ -277,12 +293,14 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                   label="Materialization"
                 />
               )}
-              {isExternalProject ? <TableNodePill
+              {isExternalProject ? (
+                <TableNodePill
                   id={"table-node-is-external-" + tableId}
                   icon={<ExternalProjectIcon />}
                   text="ext"
                   label={`External Project: ${table}`}
-                /> : null}
+                />
+              ) : null}
               <div className="spacer" />
               <div
                 className={classNames(
@@ -366,10 +384,44 @@ export const SelfConnectingEdge: FunctionComponent<EdgeProps> = (props) => {
 };
 
 export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
-  const { column, table } = data;
-  const { selectedColumn } = useContext(LineageContext);
+  const { column, table, viewsType, viewsCode, nodeType } = data;
+  const {
+    selectedColumn,
+    setSelectedTable,
+    setSelectedColumn,
+    setViewsCodeModal,
+  } = useContext(LineageContext);
   const isSelected =
     selectedColumn.table === table && selectedColumn.name === column;
+
+  const viewsColor = viewsType && VIEWS_TYPE_COLOR[viewsType as ViewsTypes];
+  const customStyles = viewsColor ? { borderColor: viewsColor } : {};
+  const flow = useReactFlow();
+
+  const handleClick = () => {
+    const currentNode = flow.getNode(getColumnId(table, column));
+    if (!currentNode) {
+      return;
+    }
+    setSelectedTable("");
+    setSelectedColumn({ name: column, table });
+    highlightColumnConnections(currentNode, flow);
+  };
+
+  const viewsCodesFlat = useMemo(() => {
+    const arr = Object.values(
+      (viewsCode as Record<string, [string, string][]>) || {}
+    )
+      .flat()
+      .filter(([, type]) => type === "transform")
+      .map(([code]) => code);
+    const result: string[] = [];
+    for (const item of arr) {
+      if (result.includes(item)) continue;
+      result.push(item);
+    }
+    return result;
+  }, [viewsCode]);
 
   return (
     <div
@@ -377,9 +429,35 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
         styles.column_node,
         isSelected ? styles.selected : styles.default
       )}
+      style={customStyles}
+      onClick={handleClick}
     >
-      {column}
+      <div className={styles.column_name}>{column}</div>
       <BidirectionalHandles />
+      <div className={styles.column_top_right}>
+        {viewsCodesFlat.length > 0 && (
+          <Tooltip tooltipLabel={"Click to view code"}>
+            <div
+              className={styles.column_code_icon}
+              onClick={(e) => {
+                e.stopPropagation();
+                setViewsCodeModal({
+                  table,
+                  viewsType,
+                  viewsCode,
+                  nodeType,
+                  column,
+                });
+              }}
+            >
+              <CodeIcon />
+            </div>
+          </Tooltip>
+        )}
+        {viewsType && viewsType !== "Non select" && (
+          <ViewsTypeBadge viewsType={viewsType} />
+        )}
+      </div>
     </div>
   );
 };

@@ -1,0 +1,105 @@
+.tooltip_container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.tooltip_container:hover .tooltip_text {
+  display: block;
+}
+
+.tooltip_text {
+  display: none;
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px;
+  color: #ffffff;
+  border-radius: 4px;
+  white-space: nowrap;
+  background: #082247;
+}
+
+.views_type_badge {
+  background-color: var(--views-color) !important;
+  font-size: 8px;
+  padding: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  cursor: default;
+}
+
+.lineage_legend {
+  position: absolute;
+  bottom: 1rem;
+  left: 3.5rem;
+  z-index: 4;
+  background-color: var(--card-bg) !important;
+  color: var(--text-color) !important;
+  border: 1px solid var(--input-border-color) !important;
+  border-radius: 5px !important;
+  font-size: 10px !important;
+  padding: 6px !important;
+
+  svg {
+    margin-left: 0.6rem;
+    vertical-align: baseline;
+  }
+}
+
+.column_legend {
+  :global .popover {
+    border-radius: 2px;
+    --bs-popover-bg: --popover-bg;
+    background-color: var(--popover-bg);
+    color: var(--text-color) !important;
+    text-transform: capitalize;
+    border: 1px solid #d5dbe4;
+    :global .popover-body {
+      color: var(--text-color) !important;
+      padding: 0.5rem 1rem;
+      > div {
+        margin-bottom: 1rem;
+        font-size: 10px;
+      }
+    }
+  }
+}
+
+.column_code_icon {
+  background-color: #082247 !important;
+  padding: 2px;
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.edge_select {
+  display: flex;
+  align-items: center;
+  div {
+    height: 2px;
+    width: 12px;
+    border-top: solid 2px #E38E00;
+  }
+}
+
+.edge_non_select {
+  display: flex;
+  align-items: center;
+  div {
+    height: 2px;
+    width: 12px;
+    border-top: dashed 1px #E38E00;
+  }
+}
