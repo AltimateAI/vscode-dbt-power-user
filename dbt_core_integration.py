@@ -368,7 +368,6 @@ class DbtProject:
             self.args.__dict__.update(get_flags().__dict__)
         else:
             set_from_args(self.args, self.args)
-        print(self.args)
         self.config = RuntimeConfig.from_args(self.args)
         if hasattr(self.config, "source_paths"):
             self.config.model_paths = self.config.source_paths
@@ -382,9 +381,7 @@ class DbtProject:
                 from dbt.context.providers import generate_runtime_macro_context
                 self.adapter.set_macro_context_generator(generate_runtime_macro_context)
             self.config.adapter = self.adapter
-            print("init_project")
             self.create_parser()
-            print("init_project done")
 
         except Exception as e:
             # reset project
@@ -394,7 +391,6 @@ class DbtProject:
 
     def parse_project(self) -> None:
         try:
-            print("Parsing project")
             self.create_parser()
             self.dbt.build_flat_graph()
         except Exception as e:
@@ -410,25 +406,9 @@ class DbtProject:
     def create_parser(self) -> None:
         all_projects = self.config.load_dependencies()
         # filter out project with value LoomRunnableConfig class type as those projects are dependency projects
+        # https://github.com/AltimateAI/vscode-dbt-power-user/issues/1224
         all_projects = {k: v for k, v in all_projects.items() if not v.__class__.__name__ == "LoomRunnableConfig"}
-
-        # if value in all_project is of class type LoomRunnableConfig, add project_name to the config
-        # for k, v in all_projects.items():
-        #     if v.__class__.__name__ == "LoomRunnableConfig":
-        #         v.project_name = k
-        #         v.project_root = 'e:\\projects\\altimate\\dbt-loom-example\\core'
-        #         v.macro_paths = 'e:\\projects\\altimate\\dbt-loom-example\\core\\macros'
-        #         v.model_paths = 'e:\\projects\\altimate\\dbt-loom-example\\core\\models'
-        #         v.snapshot_paths = 'e:\\projects\\altimate\\dbt-loom-example\\core\\snapshots'
-        #         v.analysis_paths = 'e:\\projects\\altimate\\dbt-loom-example\\core\\analyses'
-        #         v.test_paths = 'e:\\projects\\altimate\\dbt-loom-example\\core\\tests'
-        #         v.seed_paths = 'e:\\projects\\altimate\\dbt-loom-example\\core\\seeds'
-        #         v.generic_test_paths = 'e:\\projects\\altimate\\dbt-loom-example\\core\\tests'
-        #         v.docs_paths = 'e:\\projects\\altimate\\dbt-loom-example\\core\\docs'
-        #         v.all_source_paths = 'e:\\projects\\altimate\\dbt-loom-example\\core\\sources'
         
-        print( f"{all_projects}")
-
         project_parser = ManifestLoader(
             self.config,
             all_projects,
