@@ -542,37 +542,20 @@ export class VSCodeCommands implements Disposable {
             cancellable: false,
           },
           async (_, token) => {
-            const filename = this.sqlLineagePanel.getFilename();
-            const lineage = await this.sqlLineagePanel.getSQLLineage(token);
-            if (!lineage) {
-              const errorMessage = `No lineage from backend for model ${filename}`;
-              this.dbtTerminal.error(
-                "sqlLineage",
-                errorMessage,
-                new Error(errorMessage),
-                true,
+            try {
+              const lineage = await this.sqlLineagePanel.getSQLLineage(token);
+              const panel = window.createWebviewPanel(
+                SQLLineagePanel.viewType,
+                "Query Visualizer",
+                ViewColumn.Two,
+                { retainContextWhenHidden: true, enableScripts: true },
               );
+              this.sqlLineagePanel.resolveWebviewView(panel, lineage);
+            } catch (e) {
+              const errorMessage = (e as Error)?.message;
+              this.dbtTerminal.error("sqlLineage", errorMessage, e, true);
               window.showErrorMessage(errorMessage);
-              return;
             }
-            if ("errorMessage" in lineage) {
-              const errorMessage = lineage.errorMessage!;
-              this.dbtTerminal.error(
-                "sqlLineage",
-                errorMessage,
-                new Error(errorMessage),
-                true,
-              );
-              window.showErrorMessage(errorMessage);
-              return;
-            }
-            const panel = window.createWebviewPanel(
-              SQLLineagePanel.viewType,
-              "Query Visualizer",
-              ViewColumn.Two,
-              { retainContextWhenHidden: true, enableScripts: true },
-            );
-            this.sqlLineagePanel.resolveWebviewView(panel, lineage);
           },
         );
       }),

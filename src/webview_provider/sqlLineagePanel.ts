@@ -121,7 +121,7 @@ export class SQLLineagePanel implements Disposable {
     return event;
   }
 
-  getFilename() {
+  private getFilename() {
     return path.basename(this.activeTextEditor!.document.fileName, ".sql");
   }
 
@@ -145,24 +145,20 @@ export class SQLLineagePanel implements Disposable {
     return message;
   }
 
-  async getSQLLineage(
-    token: CancellationToken,
-  ): Promise<{ errorMessage: string } | SQLLineage> {
+  async getSQLLineage(token: CancellationToken): Promise<SQLLineage> {
     const event = this.getEvent();
     if (!event) {
-      return {
-        errorMessage: this.getMissingLineageMessage(),
-      };
+      throw new Error(this.getMissingLineageMessage());
     }
     const { graphMetaMap, nodeMetaMap, sourceMetaMap } = event;
     const project = this.getProject();
     if (!project) {
-      return { errorMessage: "Unable to find the project" };
+      throw new Error("Unable to find the project");
     }
     const modelName = this.getFilename();
     const currentFile = this.activeTextEditor?.document.uri;
     if (!currentFile) {
-      return { errorMessage: "Unable to get current file" };
+      throw new Error("Unable to get current file");
     }
     const fileContentBytes = await workspace.fs.readFile(currentFile);
     const compiledSQL = await project.unsafeCompileQuery(
@@ -170,11 +166,11 @@ export class SQLLineagePanel implements Disposable {
       modelName,
     );
     if (!compiledSQL) {
-      return { errorMessage: "Unable to compile sql" };
+      throw new Error(`Unable to compile sql for model ${modelName}`);
     }
     const currNode = nodeMetaMap.get(modelName);
     if (!currNode) {
-      return { errorMessage: "Unable to find model" };
+      throw new Error(`Unable to find model for model ${modelName}`);
     }
     let model_info: { model_node: ModelNode }[] = [];
     const config = workspace.getConfiguration("dbt.lineage");
