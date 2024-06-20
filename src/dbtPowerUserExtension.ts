@@ -21,6 +21,7 @@ import { HoverProviders } from "./hover_provider";
 import { DbtPowerUserActionsCenter } from "./quickpick";
 import { ValidationProvider } from "./validation_provider";
 import { CommentProviders } from "./comment_provider";
+import { VirtualSqlContentProvider } from "./content_provider/virtualSqlContentProvider";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -32,6 +33,7 @@ export class DBTPowerUserExtension implements Disposable {
   static DBT_SQL_SELECTOR = [
     { language: "jinja-sql", scheme: "file" },
     { language: "sql", scheme: "file" },
+    { language: "sql", scheme: VirtualSqlContentProvider.SCHEME },
   ];
   static DBT_YAML_SELECTOR = [
     { language: "yaml", scheme: "file" },

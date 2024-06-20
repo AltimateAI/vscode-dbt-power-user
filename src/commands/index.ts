@@ -533,11 +533,25 @@ export class VSCodeCommands implements Disposable {
       }),
       commands.registerCommand("dbtPowerUser.createPUSqlFile", async () => {
         try {
-          // TODO: current project path
+          if (!window.activeTextEditor) {
+            // TODO: current project path
+            return;
+          }
+          const project = this.dbtProjectContainer.findDBTProject(
+            window.activeTextEditor.document.uri,
+          );
           const uri = Uri.parse(
-            `${VirtualSqlContentProvider.SCHEME}://any/path/to/poweruser-${Date.now()}.sql`,
+            `${VirtualSqlContentProvider.SCHEME}://${project?.projectRoot || "/any/path"}/poweruser-${Date.now()}.sql`,
           );
           workspace.openTextDocument(uri).then((doc) => {
+            languages.setTextDocumentLanguage(doc, "sql");
+            // workspace
+            //   .openTextDocument({
+            //     language: "sql",
+            //     content:
+            //       "-- Type your (dbt) SQL query here\nSELECT * FROM your_table;",
+            //   })
+            //   .then((doc) => {
             window.showTextDocument(doc);
           });
         } catch (e) {
