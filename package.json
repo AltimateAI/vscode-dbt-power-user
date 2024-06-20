@@ -95,6 +95,11 @@
             "type": "number",
             "description": "By default how much lineage should expand.",
             "default": 1
+          },
+          "dbt.lineage.useSchemaForQueryVisualizer": {
+            "type": "boolean",
+            "description": "Fetch schema and use that for query visualizer.",
+            "default": false
           }
         }
       },

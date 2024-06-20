@@ -11,8 +11,9 @@ import {
   WebviewPanel,
   env,
   workspace,
+  commands,
 } from "vscode";
-import { AltimateRequest, Details } from "../altimate";
+import { AltimateRequest, Details, ModelNode } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import {
   ManifestCacheChangedEvent,
@@ -164,20 +165,24 @@ export class SQLLineagePanel implements Disposable {
     if (!currNode) {
       return { errorMessage: "Unable to find model" };
     }
+    let model_info: { model_node: ModelNode }[] = [];
+    const config = workspace.getConfiguration("dbt.lineage");
     const modelId = currNode.uniqueId;
     const parentModels = graphMetaMap.parents.get(modelId)?.nodes || [];
     const modelsToFetch = parentModels.map((n) => n.key);
-    // const { mappedNode } = await project.getNodesWithDBColumns(
-    //   event,
-    //   modelsToFetch,
-    //   token,
-    // );
+    if (config.get("useSchemaForQueryVisualizer", false)) {
+      const { mappedNode } = await project.getNodesWithDBColumns(
+        event,
+        modelsToFetch,
+        token,
+      );
+      model_info = modelsToFetch.map((n) => ({ model_node: mappedNode[n] }));
+    }
     const hash = crypto.createHash("md5").update(compiledSQL).digest("hex");
     const sessionId = `${env.sessionId}-${hash}`;
     const response = await this.altimate.sqlLineage({
       compiled_sql: compiledSQL,
-      // model_info: modelsToFetch.map((n) => ({ model_node: mappedNode[n] })),
-      model_info: [],
+      model_info,
       model_dialect: project.getAdapterType(),
       session_id: sessionId,
     });
@@ -245,11 +250,62 @@ export class SQLLineagePanel implements Disposable {
     this.setupWebviewOptions();
     this.renderWebviewView();
     this.changedActiveColorTheme();
-    this._panel?.webview.postMessage({
+    this._panel.webview.postMessage({
       command: "render",
       args: lineage,
     });
+    this._panel.webview.onDidReceiveMessage(
+      this.handleWebviewMessage,
+      null,
+      [],
+    );
   }
+
+  private handleWebviewMessage = async (message: {
+    command: string;
+    args: any;
+  }) => {
+    this.terminal.debug(
+      "sqlLineagePanel:handleWebviewMessage",
+      "message",
+      message,
+    );
+    const { command, args } = message;
+    const { id, params } = args;
+    // common commands
+    if (command === "openFile") {
+      const { url } = args;
+      if (!url) {
+        return;
+      }
+      await commands.executeCommand("vscode.open", Uri.file(url), {
+        preview: false,
+        preserveFocus: true,
+      });
+      return;
+    }
+
+    if (command === "getLineageSettings") {
+      const config = workspace.getConfiguration("dbt.lineage");
+      this._panel?.webview.postMessage({
+        command: "response",
+        args: {
+          id,
+          status: true,
+          body: {
+            showSelectEdges: config.get("showSelectEdges", true),
+            showNonSelectEdges: config.get("showNonSelectEdges", true),
+            defaultExpansion: config.get("defaultExpansion", 1),
+            useSchemaForQueryVisualizer: config.get(
+              "useSchemaForQueryVisualizer",
+              false,
+            ),
+          },
+        },
+      });
+      return;
+    }
+  };
 
   private setupWebviewOptions() {
     this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };

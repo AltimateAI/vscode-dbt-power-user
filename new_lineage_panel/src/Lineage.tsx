@@ -180,12 +180,14 @@ export const StaticLineageContext = createContext<{
   details: Details;
   selectedTable: string;
   setSelectedTable: Dispatch<SetStateAction<string>>;
+  useSchemaForQueryVisualizer: boolean;
 }>({
   collectColumns: {},
   selectedColumn: undefined,
   details: {},
   selectedTable: "",
   setSelectedTable: noop,
+  useSchemaForQueryVisualizer: false,
 });
 
 export const Lineage = () => {
@@ -382,6 +384,7 @@ export const Lineage = () => {
         setDefaultExpansion,
         viewsCodeModal,
         setViewsCodeModal,
+
       }}
     >
       <PopoverContext.Provider value={{ isOpen, setIsOpen }}>

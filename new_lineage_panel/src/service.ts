@@ -60,6 +60,7 @@ interface LineageSettings {
   showSelectEdges: boolean;
   showNonSelectEdges: boolean;
   defaultExpansion: number;
+  useSchemaForQueryVisualizer: boolean;
 }
 
 export const upstreamTables = (table: string) => {

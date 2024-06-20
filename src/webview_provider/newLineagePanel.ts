@@ -258,6 +258,10 @@ export class NewLineagePanel implements LineagePanelView {
             showSelectEdges: config.get("showSelectEdges", true),
             showNonSelectEdges: config.get("showNonSelectEdges", true),
             defaultExpansion: config.get("defaultExpansion", 1),
+            useSchemaForQueryVisualizer: config.get(
+              "useSchemaForQueryVisualizer",
+              false,
+            ),
           },
         },
       });
