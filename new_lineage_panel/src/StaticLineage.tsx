@@ -44,6 +44,42 @@ type StaticLineageProps = {
   details: Details;
 };
 
+type Range = { id: string; range: [number, number] };
+
+function findOverlappingRanges(ranges: Range[]): Range | null {
+  // Sort ranges by their start point, and if equal, by their end point
+  ranges.sort((a, b) => {
+    if (a.range[0] === b.range[0]) {
+      return a.range[1] - b.range[1];
+    }
+    return a.range[0] - b.range[0];
+  });
+
+  let previousRange: Range = ranges[0];
+
+  for (let i = 1; i < ranges.length; i++) {
+    const currentRange = ranges[i];
+
+    // Check if there is an overlap
+    if (currentRange.range[0] < previousRange.range[1]) {
+      const currDiff = currentRange.range[1] - currentRange.range[0];
+      const prevDiff = previousRange.range[1] - previousRange.range[0];
+      if (currDiff > prevDiff) {
+        return currentRange;
+      } else {
+        return previousRange;
+      }
+    }
+
+    // Update the previous range to the current range
+    if (currentRange.range[1] > previousRange.range[1]) {
+      previousRange = currentRange;
+    }
+  }
+
+  return null;
+}
+
 function findSources(edges: [string, string][]): string[] {
   const inDegree: Map<string, number> = new Map();
   const allVertices: Set<string> = new Set();
@@ -99,8 +135,8 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
             tests: [],
           },
           0,
-          "",
-        ),
+          ""
+        )
       );
       let nodes: Node[] = _ns;
       let edges: Edge[] = [];
@@ -115,7 +151,7 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
           "thisisisis1",
           JSON.parse(JSON.stringify(queue)),
           curr,
-          connectedTables,
+          connectedTables
         );
         createNewNodesEdges(
           nodes,
@@ -134,7 +170,7 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
           currLevel,
           10000,
           true,
-          details,
+          details
         );
         return connectedTables;
       };
@@ -143,7 +179,7 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
         if (visited[curr]) continue;
         visited[curr] = true;
         queue.push(
-          ...getConnectedTables(true, curr),
+          ...getConnectedTables(true, curr)
           // ...getConnectedTables(false, curr),
         );
       }
@@ -158,14 +194,50 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
             async () => ({
               collect_columns: collectColumns,
               highlight_edges: columnEdges,
-            }),
+            })
           );
         nodes = _nodes;
         edges = _edges;
       }
 
-      console.log("thisisisis1", "before layout", nodes, edges);
       layoutElementsOnCanvas(nodes, edges, true);
+      console.log("thisisisis1", "before layout", nodes, edges);
+      while (true as boolean) {
+        const xAxisNodeMap: Record<number, string[]> = {};
+        for (const n of nodes) {
+          xAxisNodeMap[n.position.x] = xAxisNodeMap[n.position.x] || [];
+          xAxisNodeMap[n.position.x].push(n.id);
+        }
+        let anyOverlaps = false;
+        for (const x in xAxisNodeMap) {
+          if (xAxisNodeMap[x].length < 2) continue;
+          const xAxisEdges = edges.filter(
+            (e) =>
+              xAxisNodeMap[x].includes(e.source) &&
+              xAxisNodeMap[x].includes(e.target)
+          );
+          const ranges = xAxisEdges.map(
+            (e) =>
+              ({
+                id: e.id,
+                range: [
+                  nodes.find((n) => n.id === e.source)!.data.level,
+                  nodes.find((n) => n.id === e.target)!.data.level,
+                ],
+              }) as Range
+          );
+          const overlappingRange = findOverlappingRanges(ranges);
+          if (!overlappingRange) continue;
+          anyOverlaps = true;
+          const overlappingEdge = edges.find(
+            (e) => e.id === overlappingRange.id
+          )!;
+          nodes.find((n) => n.id === overlappingEdge.source)!.position.x -= 240;
+          nodes.find((n) => n.id === overlappingEdge.target)!.position.x -= 240;
+          break;
+        }
+        if (!anyOverlaps) break;
+      }
       flow.current?.setNodes(nodes);
       flow.current?.setEdges(edges);
     }, 500);
