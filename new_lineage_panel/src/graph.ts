@@ -69,7 +69,7 @@ export const createNewNodesEdges = (
   const newLevel = calculateNewLevel(right, level);
 
   const addUniqueEdge = (to: string) => {
-    const toLevel = nodes.find((n) => n.id === to)?.data?.level;
+    const toLevel = nodes.find((n) => n.id === to)?.data?.level || 0;
     const _edge = createTableEdge(level, toLevel, t, to, right, isVertical);
     const existingEdge = edges.find((e) => e.id === _edge.id);
     if (!existingEdge) edges.push(_edge);
