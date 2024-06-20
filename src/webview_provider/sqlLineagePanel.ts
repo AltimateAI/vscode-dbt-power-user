@@ -264,15 +264,15 @@ export class SQLLineagePanel implements Disposable {
     this.setupWebviewOptions();
     this.renderWebviewView();
     this.changedActiveColorTheme();
-    this._panel.webview.postMessage({
-      command: "render",
-      args: lineage,
-    });
     this._panel.webview.onDidReceiveMessage(
       this.handleWebviewMessage,
       null,
       [],
     );
+    this._panel.webview.postMessage({
+      command: "render",
+      args: lineage,
+    });
   }
 
   private handleWebviewMessage = async (message: {
