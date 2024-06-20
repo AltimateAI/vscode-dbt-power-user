@@ -121,8 +121,7 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
   useEffect(() => {
     setTimeout(async () => {
       const nodeSources = findSources(tableEdges);
-      const startingNode = details[nodeSources[0]];
-      console.log("thisisisis", startingNode, nodeSources, tableEdges);
+      console.log("nodeSources:", nodeSources);
       const _ns = nodeSources.map((item) =>
         createTableNode(
           {
@@ -147,12 +146,6 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
           ? tableEdges.filter(([src]) => src === curr).map(([, dst]) => dst)
           : tableEdges.filter(([, dst]) => dst === curr).map(([src]) => src);
         const currLevel = nodes.find((n) => n.id === curr)?.data?.level || 0;
-        console.log(
-          "thisisisis1",
-          JSON.parse(JSON.stringify(queue)),
-          curr,
-          connectedTables
-        );
         createNewNodesEdges(
           nodes,
           edges,
@@ -201,7 +194,6 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
       }
 
       layoutElementsOnCanvas(nodes, edges, true);
-      console.log("thisisisis1", "before layout", nodes, edges);
       while (true as boolean) {
         const xAxisNodeMap: Record<number, string[]> = {};
         for (const n of nodes) {
@@ -240,6 +232,7 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
         }
         if (!anyOverlaps) break;
       }
+      console.log("nodes:", nodes, "edges:", edges);
       flow.current?.setNodes(nodes);
       flow.current?.setEdges(edges);
     }, 500);
