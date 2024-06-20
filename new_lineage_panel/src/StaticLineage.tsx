@@ -15,7 +15,7 @@ import {
   SelfConnectingEdge,
   StaticTableNode,
 } from "./CustomNodes";
-import { CollectColumn, createTableNode } from "./utils";
+import { CollectColumn, T_NODE_W, createTableNode } from "./utils";
 import {
   createNewNodesEdges,
   layoutElementsOnCanvas,
@@ -232,8 +232,10 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
           const overlappingEdge = edges.find(
             (e) => e.id === overlappingRange.id
           )!;
-          nodes.find((n) => n.id === overlappingEdge.source)!.position.x -= 240;
-          nodes.find((n) => n.id === overlappingEdge.target)!.position.x -= 240;
+          nodes.find((n) => n.id === overlappingEdge.source)!.position.x -=
+            T_NODE_W;
+          nodes.find((n) => n.id === overlappingEdge.target)!.position.x -=
+            T_NODE_W;
           break;
         }
         if (!anyOverlaps) break;

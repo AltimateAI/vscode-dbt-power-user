@@ -445,13 +445,16 @@ export const StaticTableNode: FunctionComponent<NodeProps> = ({ data }) => {
           <div
             className={classNames(
               "nodrag ms-3",
-              details ? "text-primary" : "text-muted"
+              details && nType !== "unknown" ? "text-primary" : "text-muted"
             )}
           >
             <span
-              className={!details ? styles.cursor_disabled : ""}
+              className={
+                !details || nType === "unknown" ? "cursor-disable" : ""
+              }
               onClick={(e) => {
                 e.stopPropagation();
+                if (nType === "unknown") return;
                 setSelectedTable(table);
               }}
             >

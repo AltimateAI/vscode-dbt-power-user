@@ -183,6 +183,10 @@ body {
   cursor: default;
 }
 
+.cursor-disable {
+  cursor: not-allowed;
+}
+
 .tooltip-container {
   position: relative;
   display: flex;
