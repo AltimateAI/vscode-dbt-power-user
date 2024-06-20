@@ -169,6 +169,7 @@ export type Details = Record<
     }[];
     sql: string;
     nodeType?: string;
+    nodeId?: string;
     name: string;
     type: string;
   }
@@ -180,14 +181,12 @@ export const StaticLineageContext = createContext<{
   details: Details;
   selectedTable: string;
   setSelectedTable: Dispatch<SetStateAction<string>>;
-  useSchemaForQueryVisualizer: boolean;
 }>({
   collectColumns: {},
   selectedColumn: undefined,
   details: {},
   selectedTable: "",
   setSelectedTable: noop,
-  useSchemaForQueryVisualizer: false,
 });
 
 export const Lineage = () => {

@@ -12,6 +12,8 @@ import {
   env,
   workspace,
   commands,
+  ProgressLocation,
+  TextEditor,
 } from "vscode";
 import { AltimateRequest, Details, ModelNode } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -19,10 +21,12 @@ import {
   ManifestCacheChangedEvent,
   ManifestCacheProjectAddedEvent,
 } from "../manifest/event/manifestCacheChangedEvent";
-import { provideSingleton } from "../utils";
+import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import * as crypto from "crypto";
+import { DBTProject } from "../manifest/dbtProject";
+import { NodeMetaData, SourceTable } from "../domain";
 
 type SQLLineage = {
   tableEdges: [string, string][];
@@ -36,6 +40,7 @@ export class SQLLineagePanel implements Disposable {
   private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private disposables: Disposable[] = [];
   private _panel?: WebviewPanel;
+  private activeTextEditor?: TextEditor;
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -55,6 +60,12 @@ export class SQLLineagePanel implements Disposable {
       null,
       this.disposables,
     );
+    this.activeTextEditor = window.activeTextEditor;
+    window.onDidChangeActiveTextEditor((event: TextEditor | undefined) => {
+      if (event) {
+        this.activeTextEditor = event;
+      }
+    });
   }
 
   dispose() {
@@ -92,11 +103,11 @@ export class SQLLineagePanel implements Disposable {
   }
 
   private getEvent(): ManifestCacheProjectAddedEvent | undefined {
-    if (window.activeTextEditor === undefined || this.eventMap === undefined) {
+    if (this.activeTextEditor === undefined || this.eventMap === undefined) {
       return;
     }
 
-    const currentFilePath = window.activeTextEditor.document.uri;
+    const currentFilePath = this.activeTextEditor.document.uri;
     const projectRootpath =
       this.dbtProjectContainer.getProjectRootpath(currentFilePath);
     if (projectRootpath === undefined) {
@@ -111,11 +122,11 @@ export class SQLLineagePanel implements Disposable {
   }
 
   getFilename() {
-    return path.basename(window.activeTextEditor!.document.fileName, ".sql");
+    return path.basename(this.activeTextEditor!.document.fileName, ".sql");
   }
 
   private getProject() {
-    const currentFilePath = window.activeTextEditor?.document.uri;
+    const currentFilePath = this.activeTextEditor?.document.uri;
     if (!currentFilePath) {
       return;
     }
@@ -149,7 +160,7 @@ export class SQLLineagePanel implements Disposable {
       return { errorMessage: "Unable to find the project" };
     }
     const modelName = this.getFilename();
-    const currentFile = window.activeTextEditor?.document.uri;
+    const currentFile = this.activeTextEditor?.document.uri;
     if (!currentFile) {
       return { errorMessage: "Unable to get current file" };
     }
@@ -188,7 +199,8 @@ export class SQLLineagePanel implements Disposable {
     });
     const { details } = response;
 
-    const nodeTypeMapping: Record<string, string> = {};
+    const nodeMapping: Record<string, { nodeType: string; nodeId: string }> =
+      {};
     for (const modelId of modelsToFetch) {
       const splits = modelId.split(".");
       if (splits[0] === "source") {
@@ -197,7 +209,7 @@ export class SQLLineagePanel implements Disposable {
         if (_source) {
           for (const key in details) {
             if (details[key].type === "table" && key.toLowerCase() === _table) {
-              nodeTypeMapping[key] = "source";
+              nodeMapping[key] = { nodeType: "source", nodeId: modelId };
               break;
             }
           }
@@ -211,14 +223,20 @@ export class SQLLineagePanel implements Disposable {
             details[key].type === "table" &&
             key.toLowerCase() === _node.alias.toLowerCase()
           ) {
-            nodeTypeMapping[key] = _node.resource_type;
+            nodeMapping[key] = {
+              nodeType: _node.resource_type,
+              nodeId: modelId,
+            };
             break;
           }
         }
         continue;
       }
     }
-    nodeTypeMapping[modelName] = currNode.resource_type;
+    nodeMapping[modelName] = {
+      nodeType: currNode.resource_type,
+      nodeId: currNode.uniqueId,
+    };
     const FINAL_SELECT = "__final_select__";
     const tableEdges = response.tableEdges.map(
       (edge) =>
@@ -230,7 +248,7 @@ export class SQLLineagePanel implements Disposable {
     details[modelName] = details[FINAL_SELECT];
     delete details[FINAL_SELECT];
     for (const k in details) {
-      details[k]["nodeType"] = nodeTypeMapping[k];
+      details[k] = { ...details[k], ...nodeMapping[k] };
       if (k === modelName) {
         details[k]["name"] = modelName;
       }
@@ -285,6 +303,15 @@ export class SQLLineagePanel implements Disposable {
       return;
     }
 
+    if (command === "getColumns") {
+      const body = await this.getColumns(params);
+      this._panel?.webview.postMessage({
+        command: "response",
+        args: { id, body, status: true },
+      });
+      return;
+    }
+
     if (command === "getLineageSettings") {
       const config = workspace.getConfiguration("dbt.lineage");
       this._panel?.webview.postMessage({
@@ -306,6 +333,161 @@ export class SQLLineagePanel implements Disposable {
       return;
     }
   };
+
+  private async addModelColumnsFromDB(project: DBTProject, node: NodeMetaData) {
+    const columnsFromDB = await project.getColumnsOfModel(node.name);
+    console.log("addColumnsFromDB: ", node.name, " -> ", columnsFromDB);
+    return project.mergeColumnsFromDB(node, columnsFromDB);
+  }
+
+  private async addSourceColumnsFromDB(
+    project: DBTProject,
+    nodeName: string,
+    table: SourceTable,
+  ) {
+    const columnsFromDB = await project.getColumnsOfSource(
+      nodeName,
+      table.name,
+    );
+    console.log("addColumnsFromDB: ", nodeName, " -> ", columnsFromDB);
+    return project.mergeColumnsFromDB(table, columnsFromDB);
+  }
+
+  private async getColumns({
+    table,
+    refresh,
+  }: {
+    table: string;
+    refresh: boolean;
+  }): Promise<
+    | {
+        id: string;
+        purpose: string;
+        columns: {
+          table: string;
+          name: string;
+          datatype: string;
+          can_lineage_expand: boolean;
+          description: string;
+        }[];
+      }
+    | undefined
+  > {
+    const event = this.getEvent();
+    if (!event) {
+      return;
+    }
+    const project = this.getProject();
+    if (!project) {
+      return;
+    }
+    const splits = table.split(".");
+    const nodeType = splits[0];
+    if (nodeType === DBTProject.RESOURCE_TYPE_SOURCE) {
+      const { sourceMetaMap } = event;
+      const sourceName = splits[2];
+      const tableName = splits[3];
+      const node = sourceMetaMap.get(sourceName);
+      if (!node) {
+        return;
+      }
+      const _table = node.tables.find((t) => t.name === tableName);
+      if (!_table) {
+        return;
+      }
+      if (refresh) {
+        const ok = await window.withProgress(
+          {
+            title: "Fetching metadata",
+            location: ProgressLocation.Notification,
+            cancellable: false,
+          },
+          async () => {
+            return await this.addSourceColumnsFromDB(
+              project,
+              node.name,
+              _table,
+            );
+          },
+        );
+        if (!ok) {
+          window.showErrorMessage(
+            extendErrorWithSupportLinks(
+              "Unable to get columns from DB for model: " +
+                node.name +
+                " table: " +
+                _table.name +
+                ".",
+            ),
+          );
+          return;
+        }
+      }
+      return {
+        id: table,
+        purpose: _table.description,
+        columns: Object.values(_table.columns)
+          .map((c) => ({
+            table,
+            name: c.name,
+            datatype: c.data_type?.toLowerCase() || "",
+            can_lineage_expand: false,
+            description: c.description,
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+      };
+    }
+    const tableName = splits[2];
+    const { nodeMetaMap } = event;
+    const node = nodeMetaMap.get(tableName);
+    if (!node) {
+      return;
+    }
+    if (refresh) {
+      if (node.config.materialized === "ephemeral") {
+        window.showInformationMessage(
+          "Cannot fetch columns for ephemeral models.",
+        );
+        return;
+      }
+      const ok = await window.withProgress(
+        {
+          title: "Fetching metadata",
+          location: ProgressLocation.Notification,
+          cancellable: false,
+        },
+        async () => {
+          return await this.addModelColumnsFromDB(project, node);
+        },
+      );
+      if (!ok) {
+        window.showErrorMessage(
+          extendErrorWithSupportLinks(
+            "Unable to get columns from DB for model: " +
+              node.name +
+              " table: " +
+              table +
+              ".",
+          ),
+        );
+        return;
+      }
+    }
+
+    return {
+      id: table,
+      purpose: node.description,
+      columns: Object.values(node.columns)
+        .map((c) => ({
+          table,
+          name: c.name,
+          datatype: c.data_type?.toLowerCase() || "",
+          can_lineage_expand: false,
+          description: c.description,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    };
+  }
 
   private setupWebviewOptions() {
     this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };

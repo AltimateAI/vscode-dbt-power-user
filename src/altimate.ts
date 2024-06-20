@@ -83,6 +83,7 @@ export type Details = Record<
     name: string;
     type: string;
     nodeType?: string;
+    nodeId?: string;
     sql: string;
     columns: { name: string; datatype?: string; expression?: string }[];
   }

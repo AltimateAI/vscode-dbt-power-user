@@ -23,7 +23,7 @@ import {
 import { Details, StaticLineageContext } from "./Lineage";
 import { Modal, SidebarModal } from "./components/Modal";
 import { StaticTableDetails } from "./TableDetails";
-import { getLineageSettings } from "./service";
+import { handleResponse } from "./service_utils";
 
 const nodeTypes = {
   table: StaticTableNode,
@@ -50,14 +50,12 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
   tableEdges,
   details,
 }) => {
+
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
   const [selectedTable, setSelectedTable] = useState("");
-  const [useSchemaForQueryVisualizer, setUseSchemaForQueryVisualizer] = useState(false);
 
   useEffect(() => {
     setTimeout(async () => {
-      const settings = await getLineageSettings();
-      setUseSchemaForQueryVisualizer(settings.useSchemaForQueryVisualizer);
 
       const startingNode = Object.values(details).find(
         (n) => n.type === "final",
@@ -150,7 +148,6 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
         details,
         selectedTable,
         setSelectedTable,
-        useSchemaForQueryVisualizer,
       }}
     >
       <ReactFlowProvider>
@@ -195,6 +192,7 @@ export const StaticLineageContainer = () => {
     const commandMap = {
       render: setProps,
       setTheme,
+      response: handleResponse,
     };
 
     window.addEventListener("message", (event) => {

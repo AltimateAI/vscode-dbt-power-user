@@ -414,13 +414,15 @@ const TableDetails = () => {
 
 export const StaticTableDetails = () => {
   const { details, selectedTable } = useContext(StaticLineageContext);
-  const columns = (details?.[selectedTable]?.columns || []).map((item) => ({
+  const table = details[selectedTable] || {};
+  const _columns = (table.columns || []).map((item) => ({
     ...item,
     description: item.expression,
   }));
-  const sql = details?.[selectedTable]?.sql;
+  const { sql, type, nodeId } = table;
+  const [columns, setColumns] = useState(_columns);
   const [filteredColumn, setFilteredColumn] = useState(columns);
-
+  console.log(columns, filteredColumn)
   return (
     <div className="p-2 h-100 d-flex flex-column gap-md overflow-y">
       <HeaderSection
@@ -439,6 +441,22 @@ export const StaticTableDetails = () => {
         <div className="d-flex flex-column gap-sm h-100">
           <div className="d-flex align-items-center gap-xs">
             <div className="fs-5 fw-semibold">Column</div>
+          <div className="spacer" />
+            {["table", "final"].includes(type) && (
+            <Button
+              size="sm"
+              color="primary"
+              onClick={() => {
+                if (!nodeId) return;
+                getColumns(nodeId, true).then((_data) => {
+                  setColumns(_data.columns)
+                  setFilteredColumn(_data.columns);
+                });
+              }}
+            >
+              Sync with DB
+            </Button>
+          )}
           </div>
           <CustomInput
             bsSize="sm"
