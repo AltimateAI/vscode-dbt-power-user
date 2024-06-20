@@ -537,7 +537,7 @@ export class VSCodeCommands implements Disposable {
       commands.registerCommand("dbtPowerUser.sqlLineage", async () => {
         window.withProgress(
           {
-            title: "Retrieving query visualization",
+            title: "Retrieving SQL visualization",
             location: ProgressLocation.Notification,
             cancellable: false,
           },
