@@ -403,9 +403,14 @@ class DbtProject:
         self._sql_runner = None
         
     def create_parser(self) -> None:
+        all_projects = self.config.load_dependencies()
+        # filter out project with value LoomRunnableConfig class type as those projects are dependency projects
+        # https://github.com/AltimateAI/vscode-dbt-power-user/issues/1224
+        all_projects = {k: v for k, v in all_projects.items() if not v.__class__.__name__ == "LoomRunnableConfig"}
+        
         project_parser = ManifestLoader(
             self.config,
-            self.config.load_dependencies(),
+            all_projects,
             self.adapter.connections.set_query_header,
         )
         self.dbt = project_parser.load()
