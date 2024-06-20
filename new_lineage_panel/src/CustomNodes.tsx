@@ -413,7 +413,7 @@ export const StaticTableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const _columnLen = Object.keys(collectColumns[table] || {}).length;
   const _showColumns = _columnLen > 0;
   const selected = selectedColumn?.table === table;
-  const nType = nodeType as keyof typeof NODE_TYPE_SHORTHAND;
+  const nType = (nodeType || "unknown") as keyof typeof NODE_TYPE_SHORTHAND;
 
   return (
     <div

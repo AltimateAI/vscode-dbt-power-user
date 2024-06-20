@@ -546,7 +546,7 @@ export class VSCodeCommands implements Disposable {
               const lineage = await this.sqlLineagePanel.getSQLLineage(token);
               const panel = window.createWebviewPanel(
                 SQLLineagePanel.viewType,
-                "Query Visualizer",
+                "SQL Visualizer (Beta)",
                 ViewColumn.Two,
                 { retainContextWhenHidden: true, enableScripts: true },
               );

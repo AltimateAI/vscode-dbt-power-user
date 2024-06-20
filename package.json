@@ -627,7 +627,7 @@
       },
       {
         "command": "dbtPowerUser.sqlLineage",
-        "title": "Query Visualizer",
+        "title": "SQL Visualizer (Beta)",
         "category": "dbt Power User",
         "icon": "$(debug-console)"
       }
@@ -783,11 +783,6 @@
         },
         {
           "command": "dbtPowerUser.bigqueryCostEstimate",
-          "group": "dbt@4",
-          "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
-        },
-        {
-          "command": "dbtPowerUser.sqlLineage",
           "group": "dbt@4",
           "when": "resourceLangId =~ /^sql$|^jinja-sql$/"
         }

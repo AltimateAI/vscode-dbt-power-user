@@ -71,6 +71,7 @@ export const NodeTypeIcon: FunctionComponent<{ nodeType: string }> = ({
     {nodeType === "snapshot" && <SnapshotIcon />}
     {nodeType === "semantic_model" && <MetricsIcon />}
     {nodeType === "macros" && <MacrosIcon />}
+    {nodeType === "unknown" && <ModelIcon />}
   </div>
 );
 
@@ -99,6 +100,7 @@ export const NODE_TYPE_STYLES = {
   macros: styles.macros,
   analysis: styles.analysis,
   cte: styles.model,
+  unknown: styles.exposure,
 };
 
 export const NODE_TYPE_SHORTHAND = {
@@ -111,4 +113,5 @@ export const NODE_TYPE_SHORTHAND = {
   macros: "SEM",
   analysis: "ANY",
   cte: "CTE",
+  unknown: "UNK"
 };
