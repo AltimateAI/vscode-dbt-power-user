@@ -5,8 +5,10 @@ import {
   env,
   ProgressLocation,
   Uri,
+  ViewColumn,
   Webview,
   WebviewOptions,
+  WebviewPanel,
   WebviewView,
   WebviewViewResolveContext,
   window,
@@ -16,7 +18,7 @@ import {
 import { readFileSync } from "fs";
 import { PythonException } from "python-bridge";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { provideSingleton } from "../utils";
+import { getFormattedDateTime, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { AltimateRequest } from "../altimate";
 import {
@@ -107,8 +109,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.PreviewResults";
   protected viewPath = "/query-panel";
   protected panelDescription = "Query results panel";
+  private _queryTabData: any;
 
   protected _panel: WebviewView | undefined;
+  protected _tabPanel: WebviewPanel | undefined = undefined;
   private queryExecution?: QueryExecution;
   private incomingMessages: SendMessageProps[] = [];
 
@@ -173,9 +177,46 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           payload.fn as Promise<QueryExecution>,
         );
         break;
+      case "queryResultTab:render":
+        this.dbtTerminal.debug(
+          "queryResultTab:render",
+          "rendering query result tab",
+          payload,
+        );
+        this._queryTabData = payload.queryTabData;
+        const webviewPanel = window.createWebviewPanel(
+          QueryResultPanel.viewType,
+          "query_result_" + getFormattedDateTime(),
+          {
+            viewColumn: ViewColumn.Active,
+          },
+          { enableScripts: true, retainContextWhenHidden: true },
+        );
+        this._tabPanel = webviewPanel;
+        this.renderWebview(webviewPanel);
+
+        break;
       default:
         super.onEvent({ command, payload });
     }
+  }
+
+  private renderWebview(webview: WebviewPanel) {
+    this._webview = webview.webview;
+    this.renderTabWebviewView();
+  }
+
+  protected renderTabWebviewView() {
+    if (!this._webview) {
+      return;
+    }
+
+    this._webview.onDidReceiveMessage(this.handleCommand, this, []);
+
+    this._webview.html = this.getHtml(
+      this._webview,
+      this.dbtProjectContainer.extensionUri,
+    );
   }
 
   public async resolveWebviewView(
@@ -516,6 +557,30 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       if (message) {
         this.sendResponseToWebview(message);
       }
+    }
+  }
+
+  protected async handleCommand(message: HandleCommandProps): Promise<void> {
+    const { command, syncRequestId, ...params } = message;
+
+    try {
+      switch (command) {
+        case "getQueryTabData":
+          this.sendResponseToWebview({
+            command: "response",
+            data: this._queryTabData,
+            syncRequestId,
+          });
+        default:
+          super.handleCommand(message);
+          break;
+      }
+    } catch (err) {
+      this.dbtTerminal.error(
+        "queryResultTab:handleCommand",
+        "error while handling command",
+        err,
+      );
     }
   }
 }

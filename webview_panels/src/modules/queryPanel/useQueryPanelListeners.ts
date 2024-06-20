@@ -22,10 +22,10 @@ import {
 import { HINTS, HINT_VISIBILITY_DELAY } from "./constants";
 import { QueryPanelStateProps } from "./context/types";
 
-const useQueryPanelListeners = (): { loading: boolean; isTab: boolean } => {
+const useQueryPanelListeners = (): { loading: boolean; isPanel: boolean } => {
   const dispatch = useQueryPanelDispatch();
   const { loading, lastHintTimestamp, hintIndex } = useQueryPanelState();
-  const [tabData, setTabData] = useState<Record<string, unknown> | null>(null);
+  const [isPanel, setIsPanel] = useState(true);
   const lastHintTimestampRef = useRef(0);
   const hintInterval = useRef<NodeJS.Timeout>();
   const queryExecutionTimer = useRef<NodeJS.Timeout>();
@@ -159,11 +159,11 @@ const useQueryPanelListeners = (): { loading: boolean; isTab: boolean } => {
   }, [onMesssage]);
 
   useEffect(() => {
-    if (!tabData) {
+    if (isPanel) {
       void executeRequestInSync("getQueryTabData", {}).then((data) => {
         if (data) {
           const typedData = data as QueryPanelStateProps;
-          setTabData(data as Record<string, unknown>);
+          setIsPanel(false);
           handleQueryResults({
             rows: typedData?.queryResults?.data,
             columnNames: typedData?.queryResults?.columnNames,
@@ -175,7 +175,7 @@ const useQueryPanelListeners = (): { loading: boolean; isTab: boolean } => {
     }
   }, []);
 
-  return { loading, isTab: Boolean(tabData) };
+  return { loading, isPanel };
 };
 
 export default useQueryPanelListeners;

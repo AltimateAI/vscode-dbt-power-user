@@ -7,7 +7,7 @@ const OpenInTabButton = (): JSX.Element | null => {
   const handleClick = () => {
     executeRequestInAsync("queryResultTab:render", { queryTabData });
   };
-  if (!queryTabData) {
+  if (!queryTabData?.queryResults) {
     return null;
   }
   return (

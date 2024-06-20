@@ -13,7 +13,7 @@ import ShowInTabButton from "./components/openInTabButton/OpenInTabButton";
 const QueryPanel = (): JSX.Element => {
   const [showCompiledCode, setShowCompiledCode] = useState(false);
 
-  const { loading, isTab } = useQueryPanelListeners();
+  const { loading, isPanel } = useQueryPanelListeners();
 
   useEffect(() => {
     if (loading) {
@@ -31,9 +31,9 @@ const QueryPanel = (): JSX.Element => {
           />
         </Stack>
         <Stack>
-          {!isTab && <ShowOldUxButton />}
-          <ClearResultsButton />
-          {!isTab && <ShowInTabButton />}
+          {isPanel && <ShowOldUxButton />}
+          {isPanel && <ClearResultsButton />}
+          {isPanel && <ShowInTabButton />}
           <HelpButton />
           <FeedbackButton url="https://docs.google.com/forms/d/19wX5b5_xXL6J_Q_GpuWzYddIXbvLxuarv09Y3VRk_EU/viewform" />
         </Stack>
