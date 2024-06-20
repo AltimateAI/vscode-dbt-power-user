@@ -50,13 +50,11 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
   tableEdges,
   details,
 }) => {
-
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
   const [selectedTable, setSelectedTable] = useState("");
 
   useEffect(() => {
     setTimeout(async () => {
-
       const startingNode = Object.values(details).find(
         (n) => n.type === "final",
       )!;
@@ -76,41 +74,44 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
         ),
       ];
       let edges: Edge[] = [];
-      const bfs = (right: boolean) => {
-        const queue = [startingNode.name];
-        const visited: Record<string, boolean> = {};
-        while (queue.length > 0) {
-          const curr = queue.shift()!;
-          if (visited[curr]) continue;
-          visited[curr] = true;
-          const connectedTables = right
-            ? tableEdges.filter(([src]) => src === curr).map(([, dst]) => dst)
-            : tableEdges.filter(([, dst]) => dst === curr).map(([src]) => src);
-          const currLevel = nodes.find((n) => n.id === curr)?.data?.level || 0;
-          createNewNodesEdges(
-            nodes,
-            edges,
-            connectedTables.map((table) => ({
-              table,
-              label: table,
-              upstreamCount: 0,
-              downstreamCount: 0,
-              nodeType: details[table].nodeType || "cte",
-              isExternalProject: false,
-              tests: [],
-            })),
-            curr,
-            right,
-            currLevel,
-            10000,
-            true,
-            details
-          );
-          queue.push(...connectedTables);
-        }
+      const queue = [startingNode.name];
+      const visited: Record<string, boolean> = {};
+      const getConnectedTables = (right: boolean, curr: string) => {
+        const connectedTables = right
+          ? tableEdges.filter(([src]) => src === curr).map(([, dst]) => dst)
+          : tableEdges.filter(([, dst]) => dst === curr).map(([src]) => src);
+        const currLevel = nodes.find((n) => n.id === curr)?.data?.level || 0;
+        createNewNodesEdges(
+          nodes,
+          edges,
+          connectedTables.map((table) => ({
+            table,
+            label: table,
+            upstreamCount: 0,
+            downstreamCount: 0,
+            nodeType: details[table].nodeType || "cte",
+            isExternalProject: false,
+            tests: [],
+          })),
+          curr,
+          right,
+          currLevel,
+          10000,
+          true,
+          details,
+        );
+        return connectedTables;
       };
-      bfs(true);
-      bfs(false);
+      while (queue.length > 0) {
+        const curr = queue.shift()!;
+        if (visited[curr]) continue;
+        visited[curr] = true;
+        queue.push(
+          ...getConnectedTables(true, curr),
+          ...getConnectedTables(false, curr),
+        );
+      }
+
       if (selectedColumn) {
         const columnRK = `${selectedColumn.table}/${selectedColumn.name}`;
         const { nodes: _nodes, edges: _edges } =
