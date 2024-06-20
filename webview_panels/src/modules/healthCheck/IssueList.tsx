@@ -94,7 +94,9 @@ const IssueList = ({
               >
                 <div className="d-flex gap-sm align-items-center">
                   {openAccordion[k] ? <ArrowDownIcon /> : <ArrowRightIcon />}
-                  <span>{v[0].original_file_path}</span>
+                  <span className={classes.originalFilePath}>
+                    {v[0].original_file_path}
+                  </span>
                 </div>
                 <div />
                 <div />
