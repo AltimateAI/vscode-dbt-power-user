@@ -367,6 +367,10 @@
         "category": "dbt Power User"
       },
       {
+        "command": "dbtPowerUser.createPUSqlFile",
+        "title": "Create PowerUser Sql File"
+      },
+      {
         "command": "dbtPowerUser.replyToConversation",
         "title": "Reply",
         "enablement": "!commentIsEmpty",
@@ -635,6 +639,11 @@
       }
     ],
     "menus": {
+      "file/newFile": [
+        {
+          "command": "dbtPowerUser.createPUSqlFile"
+        }
+      ],
       "comments/commentThread/title": [
         {
           "command": "dbtPowerUser.viewInDocEditor",
@@ -1117,7 +1126,7 @@
   "scripts": {
     "prepare": "husky install",
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production",
-    "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
+    "webpack": "webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "watch": "concurrently \"npm:watch --prefix ./new_lineage_panel\" \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",

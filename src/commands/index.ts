@@ -10,6 +10,7 @@ import {
   workspace,
   version,
   extensions,
+  Uri,
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { RunModelType } from "../domain";
@@ -37,6 +38,7 @@ import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { DBTClient } from "../dbt_client";
 import { existsSync, readFileSync } from "fs";
 import { DBTProject } from "../manifest/dbtProject";
+import { VirtualSqlContentProvider } from "../content_provider/virtualSqlContentProvider";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -527,6 +529,20 @@ export class VSCodeCommands implements Disposable {
           this.dbtTerminal.logNewLine();
           this.dbtTerminal.logLine("Diagnostics ended with error...");
           this.dbtTerminal.logLine(`Error=${e}`);
+        }
+      }),
+      commands.registerCommand("dbtPowerUser.createPUSqlFile", async () => {
+        try {
+          // TODO: current project path
+          const uri = Uri.parse(
+            `${VirtualSqlContentProvider.SCHEME}://any/path/to/poweruser-${Date.now()}.sql`,
+          );
+          workspace.openTextDocument(uri).then((doc) => {
+            window.showTextDocument(doc);
+          });
+        } catch (e) {
+          // TODO handle error
+          console.log(e);
         }
       }),
     );
