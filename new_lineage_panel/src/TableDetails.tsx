@@ -12,7 +12,7 @@ import styles from "./styles.module.scss";
 import classNames from "classnames";
 import { Button } from "reactstrap";
 import { getColumns, Columns, Column, Table } from "./service";
-import { aiEnabled, LineageContext } from "./App";
+import { aiEnabled, LineageContext, StaticLineageContext } from "./Lineage";
 import { previewFeature, showInfoNotification, CLL } from "./service_utils";
 import {
   bfsTraversal,
@@ -38,6 +38,7 @@ import {
   toggleModelEdges,
 } from "./utils";
 import PurposeSection from "./components/Purpose";
+import { CodeBlock } from "./components";
 
 const PreviewIcon = () => {
   return (
@@ -49,7 +50,7 @@ const PreviewIcon = () => {
 };
 
 const ColumnCard: FunctionComponent<{
-  column: Column;
+  column: Column & { code?: string };
   handleClick: () => void;
   selected: boolean;
   isSelectable: boolean;
@@ -64,7 +65,7 @@ const ColumnCard: FunctionComponent<{
       data-testid={"table-details-" + column.name}
     >
       <div className="d-flex align-items-center gap-xs">
-        <ColumnDatatype datatype={column.datatype} />
+        <ColumnDatatype datatype={column.datatype || ""} />
         <div className="lines-2">{column.name}</div>
         <div className="spacer" />
         {column.can_lineage_expand && (
@@ -81,6 +82,7 @@ const ColumnCard: FunctionComponent<{
           </div>
         </div>
       )}
+      {column.code && <CodeBlock code={column.code} />}
     </div>
   );
 };
@@ -133,7 +135,7 @@ const ColumnSection: FunctionComponent<{
           onChange={(e) => {
             const _search = e.target.value.toLowerCase();
             setFilteredColumn(
-              columns.filter((c) => c.name.toLowerCase().includes(_search))
+              columns.filter((c) => c.name.toLowerCase().includes(_search)),
             );
           }}
         />
@@ -186,7 +188,7 @@ const TestSection: FunctionComponent<{
           onChange={(e) => {
             const _search = e.target.value.toLowerCase();
             setFilteredTests(
-              tests.filter((t) => t.key.toLowerCase().includes(_search))
+              tests.filter((t) => t.key.toLowerCase().includes(_search)),
             );
           }}
         />
@@ -267,7 +269,7 @@ const TableDetails = () => {
     ) {
       const [_nodes, _edges] = removeColumnNodes(
         flow.getNodes(),
-        flow.getEdges()
+        flow.getEdges(),
       );
       // Model edges will be hidden when column lineage is selected, so unhide them
       toggleModelEdges(_edges, true);
@@ -298,7 +300,7 @@ const TableDetails = () => {
         _nodes,
         _edges,
         _column.table,
-        right
+        right,
       );
       layoutElementsOnCanvas(_nodes, _edges);
     };
@@ -323,7 +325,7 @@ const TableDetails = () => {
     // resetting canvas
     const [nodes, edges] = resetTableHighlights(
       _nodes.filter(isNotColumn),
-      _edges.filter(isNotColumn)
+      _edges.filter(isNotColumn),
     );
     edges.forEach((_e) => (_e.style = defaultEdgeStyle));
     flow.setNodes(nodes);
@@ -342,7 +344,7 @@ const TableDetails = () => {
         setCollectColumns,
         flow,
         _column,
-        { direct: selectCheck, indirect: nonSelectCheck }
+        { direct: selectCheck, indirect: nonSelectCheck },
       );
     try {
       CLL.start();
@@ -355,7 +357,7 @@ const TableDetails = () => {
           setSelectedColumn({ table: "", name: "" });
         } else {
           showInfoNotification(
-            `No lineage found for model ${_column.table} and column ${_column.name}`
+            `No lineage found for model ${_column.table} and column ${_column.name}`,
           );
         }
       }
@@ -365,7 +367,7 @@ const TableDetails = () => {
         _column.table,
         _column.name,
         ", error:",
-        e
+        e,
       );
       setSelectedColumn({ table: "", name: "" });
     } finally {
@@ -406,6 +408,90 @@ const TableDetails = () => {
         />
       )}
       {tab === 1 && <TestSection tests={selectedTableData.tests} />}
+    </div>
+  );
+};
+
+export const StaticTableDetails = () => {
+  const { details, selectedTable } = useContext(StaticLineageContext);
+  const table = details[selectedTable] || {};
+  const _columns = (table.columns || []).map((item) => ({
+    ...item,
+    description: item.expression,
+  }));
+  const { sql, type, nodeId } = table;
+  const [columns, setColumns] = useState(_columns);
+  const [filteredColumn, setFilteredColumn] = useState(columns);
+  console.log(columns, filteredColumn)
+  return (
+    <div className="p-2 h-100 d-flex flex-column gap-md overflow-y">
+      <HeaderSection
+        nodeType={details[selectedTable].nodeType || "cte"}
+        table={selectedTable}
+      />
+      {sql && (
+        <div className={classNames(styles.card, "mb-0 purpose-section")}>
+          <div className="d-flex flex-column gap-sm">
+            <div className="fs-5 fw-semibold">SQL</div>
+            <CodeBlock code={sql} />
+          </div>
+        </div>
+      )}
+      <div className={classNames(styles.card, "mb-0 flex-grow column-section")}>
+        <div className="d-flex flex-column gap-sm h-100">
+          <div className="d-flex align-items-center gap-xs">
+            <div className="fs-5 fw-semibold">Column</div>
+          <div className="spacer" />
+            {["table", "final"].includes(type) && (
+            <Button
+              size="sm"
+              color="primary"
+              onClick={() => {
+                if (!nodeId) return;
+                getColumns(nodeId, true).then((_data) => {
+                  setColumns(_data.columns)
+                  setFilteredColumn(_data.columns);
+                });
+              }}
+            >
+              Sync with DB
+            </Button>
+          )}
+          </div>
+          <CustomInput
+            bsSize="sm"
+            placeholder="Search by column name"
+            type="text"
+            onChange={(e) => {
+              const _search = e.target.value.toLowerCase();
+              setFilteredColumn(
+                columns.filter((c) => c.name.toLowerCase().includes(_search)),
+              );
+            }}
+          />
+          <div className="d-flex align-items-center gap-xs">
+            <div className="text-muted">{filteredColumn.length} columns</div>
+          </div>
+          <div className="d-flex flex-column gap-sm overflow-y">
+            {filteredColumn.map((_column) => (
+              <ColumnCard
+                key={_column.name}
+                column={{
+                  name: _column.name,
+                  table: selectedTable,
+                  datatype: _column.datatype,
+                  can_lineage_expand: false,
+                  description: "",
+                  code: _column.expression,
+                }}
+                handleClick={() => {}}
+                selected={false}
+                isSelectable={false}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

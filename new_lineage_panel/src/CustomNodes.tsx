@@ -18,7 +18,7 @@ import {
   highlightTableConnections,
   layoutElementsOnCanvas,
 } from "./graph";
-import { LineageContext } from "./App";
+import { LineageContext, StaticLineageContext } from "./Lineage";
 import { CLL, openFile } from "./service_utils";
 import {
   getColumnId,
@@ -28,12 +28,33 @@ import {
   ViewsTypes,
   toggleColumnEdges,
   toggleModelEdges,
+  T_NODE_W,
 } from "./utils";
 import { TMoreTables } from "./MoreTables";
 
 import TestsIcon from "./assets/icons/tests.svg?react";
 import EphemeralIcon from "./assets/icons/ephemeral.svg?react";
 import ExternalProjectIcon from "./assets/icons/external-project.svg?react";
+
+import SqlFilterLightIcon from "./assets/icons/sql_filter_light.svg?react";
+import SqlGroupByLightIcon from "./assets/icons/sql_group_by_light.svg?react";
+import SqlInnerJoinLightIcon from "./assets/icons/sql_inner_join_light.svg?react";
+import SqlLeftJoinLightIcon from "./assets/icons/sql_left_join_light.svg?react";
+import SqlLimitLightIcon from "./assets/icons/sql_limit_light.svg?react";
+import SqlOrderByLightIcon from "./assets/icons/sql_order_by_light.svg?react";
+import SqlOuterJoinLightIcon from "./assets/icons/sql_outer_join_light.svg?react";
+import SqlRightJoinLightIcon from "./assets/icons/sql_right_join_light.svg?react";
+import SqlUnionLightIcon from "./assets/icons/sql_union_light.svg?react";
+import SqlFilterDarkIcon from "./assets/icons/sql_filter_dark.svg?react";
+import SqlGroupByDarkIcon from "./assets/icons/sql_group_by_dark.svg?react";
+import SqlInnerJoinDarkIcon from "./assets/icons/sql_inner_join_dark.svg?react";
+import SqlLeftJoinDarkIcon from "./assets/icons/sql_left_join_dark.svg?react";
+import SqlLimitDarkIcon from "./assets/icons/sql_limit_dark.svg?react";
+import SqlOrderByDarkIcon from "./assets/icons/sql_order_by_dark.svg?react";
+import SqlOuterJoinDarkIcon from "./assets/icons/sql_outer_join_dark.svg?react";
+import SqlRightJoinDarkIcon from "./assets/icons/sql_right_join_dark.svg?react";
+import SqlUnionDarkIcon from "./assets/icons/sql_union_dark.svg?react";
+
 import { COLUMNS_SIDEBAR, EXPOSURE_SIDEBAR, TABLES_SIDEBAR } from "./constants";
 import { NODE_TYPE_SHORTHAND } from "./components/Column";
 import {
@@ -79,6 +100,38 @@ const BidirectionalHandles = () => (
       isConnectable={false}
       position={Position.Right}
       style={{ right: HANDLE_OFFSET }}
+    />
+    <Handle
+      id="top"
+      type="source"
+      className="invisible"
+      isConnectable={false}
+      position={Position.Top}
+      style={{ top: HANDLE_OFFSET }}
+    />
+    <Handle
+      id="bottom"
+      type="source"
+      className="invisible"
+      isConnectable={false}
+      position={Position.Bottom}
+      style={{ bottom: HANDLE_OFFSET }}
+    />
+    <Handle
+      id="top"
+      type="target"
+      className="invisible"
+      isConnectable={false}
+      position={Position.Top}
+      style={{ top: HANDLE_OFFSET }}
+    />
+    <Handle
+      id="bottom"
+      type="target"
+      className="invisible"
+      isConnectable={false}
+      position={Position.Bottom}
+      style={{ bottom: HANDLE_OFFSET }}
     />
   </>
 );
@@ -351,6 +404,78 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   );
 };
 
+export const StaticTableNode: FunctionComponent<NodeProps> = ({ data }) => {
+  const { table, nodeType } = data;
+
+  const { selectedColumn, collectColumns, details, setSelectedTable } =
+    useContext(StaticLineageContext);
+
+  const _columnLen = Object.keys(collectColumns[table] || {}).length;
+  const _showColumns = _columnLen > 0;
+  const selected = selectedColumn?.table === table;
+  const nType = (nodeType || "unknown") as keyof typeof NODE_TYPE_SHORTHAND;
+
+  return (
+    <div
+      className="position-relative"
+      style={{
+        opacity: !selectedColumn ? 1 : _showColumns ? 1 : 0.5,
+      }}
+    >
+      <div className={styles.table_node}>
+        <div
+          className={classNames(
+            styles.header,
+            "d-flex flex-column align-items-start",
+            {
+              [styles.selected]: selected,
+              [styles.collapse]: !_showColumns,
+            }
+          )}
+        >
+          <div className={styles.table_header}>
+            <div
+              className={classNames(styles.node_icon, NODE_TYPE_STYLES[nType])}
+            >
+              <NodeTypeIcon nodeType={nType} />
+              <div>{NODE_TYPE_SHORTHAND[nType]}</div>
+            </div>
+            <div className="lines-2">{table}</div>
+          </div>
+          <div
+            className={classNames(
+              "nodrag ms-3",
+              details && nType !== "unknown" ? "text-primary" : "text-muted"
+            )}
+          >
+            <span
+              className={
+                !details || nType === "unknown" ? "cursor-disable" : ""
+              }
+              onClick={(e) => {
+                e.stopPropagation();
+                if (nType === "unknown") return;
+                setSelectedTable(table);
+              }}
+            >
+              View Details
+            </span>
+          </div>
+        </div>
+        {_showColumns && (
+          <div
+            className={classNames(styles.content, {
+              [styles.selected]: selected,
+            })}
+            style={{ height: getColY(_columnLen) }}
+          />
+        )}
+      </div>
+      <BidirectionalHandles />
+    </div>
+  );
+};
+
 export const SeeMoreNode: FunctionComponent<NodeProps> = ({ data }) => {
   const { tables = [], prevTable, right, level } = data as TMoreTables;
   const { setMoreTables, setSidebarScreen } = useContext(LineageContext);
@@ -458,6 +583,49 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
           <ViewsTypeBadge viewsType={viewsType} />
         )}
       </div>
+    </div>
+  );
+};
+
+const LIGHT_ICONS: Record<string, React.ReactNode> = {
+  INNER_JOIN: <SqlInnerJoinLightIcon />,
+  OUTER_JOIN: <SqlOuterJoinLightIcon />,
+  LEFT_JOIN: <SqlLeftJoinLightIcon />,
+  RIGHT_JOIN: <SqlRightJoinLightIcon />,
+  FILTER: <SqlFilterLightIcon />,
+  GROUP: <SqlGroupByLightIcon />,
+  LIMIT: <SqlLimitLightIcon />,
+  SORT: <SqlOrderByLightIcon />,
+  UNION: <SqlUnionLightIcon />,
+};
+
+const DARK_ICONS: Record<string, React.ReactNode> = {
+  INNER_JOIN: <SqlInnerJoinDarkIcon />,
+  OUTER_JOIN: <SqlOuterJoinDarkIcon />,
+  LEFT_JOIN: <SqlLeftJoinDarkIcon />,
+  RIGHT_JOIN: <SqlRightJoinDarkIcon />,
+  FILTER: <SqlFilterDarkIcon />,
+  GROUP: <SqlGroupByDarkIcon />,
+  LIMIT: <SqlLimitDarkIcon />,
+  SORT: <SqlOrderByDarkIcon />,
+  UNION: <SqlUnionDarkIcon />,
+};
+
+export const OpNode: FunctionComponent<NodeProps> = ({ data }) => {
+  const { type, expression } = data;
+  const theme = document.documentElement.getAttribute("data-theme") || "dark";
+  const iconsMap = useMemo(() => {
+    return theme === "dark" ? DARK_ICONS : LIGHT_ICONS;
+  }, [theme]);
+  return (
+    <div style={{ width: T_NODE_W, display: "flex", justifyContent: "center" }}>
+      <BidirectionalHandles />
+      <Tooltip tooltipLabel={expression}>
+        <div className="d-flex flex-column">
+          <div className={styles.op_node}>{iconsMap[type]}</div>
+          <div className={styles.op_type_text}>{type}</div>
+        </div>
+      </Tooltip>
     </div>
   );
 };

@@ -4,3 +4,4 @@ export { default as Chip } from "./Chip";
 export { default as Tooltip } from "./Tooltip";
 export { default as LineageLegend } from "./LineageLegend";
 export * from "./LineageLegend";
+export * from "./CodeBlock";

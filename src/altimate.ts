@@ -70,6 +70,29 @@ export interface DBTColumnLineageResponse {
   confidence?: { confidence: string; message?: string };
 }
 
+interface SQLLineageRequest {
+  model_dialect: string;
+  model_info: { model_node: ModelNode }[];
+  compiled_sql: string;
+  session_id: string;
+}
+
+export type Details = Record<
+  string,
+  {
+    name: string;
+    type: string;
+    nodeType?: string;
+    nodeId?: string;
+    sql: string;
+    columns: { name: string; datatype?: string; expression?: string }[];
+  }
+>;
+type StaticLineageResponse = {
+  tableEdges: [string, string][];
+  details: Details;
+};
+
 interface SQLToModelRequest {
   sql: string;
   adapter: string;
@@ -849,6 +872,13 @@ export class AltimateRequest {
     }>("dbt/dbt_docs_share/verify_upload/", {
       method: "POST",
       body: JSON.stringify({ share_id }),
+    });
+  }
+
+  async sqlLineage(req: SQLLineageRequest) {
+    return this.fetch<StaticLineageResponse>("dbt/v3/sql_lineage", {
+      method: "POST",
+      body: JSON.stringify(req),
     });
   }
 }

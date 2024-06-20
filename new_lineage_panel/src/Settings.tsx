@@ -3,7 +3,7 @@ import "reactflow/dist/style.css";
 import { Input, Label } from "reactstrap";
 import styles from "./styles.module.scss";
 import { CLL } from "./service_utils";
-import { LineageContext, aiEnabled } from "./App";
+import { LineageContext, aiEnabled } from "./Lineage";
 import { CustomInput } from "./components/Form";
 import { persistLineageSettings } from "./service";
 

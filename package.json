@@ -619,6 +619,12 @@
         "title": "Collect diagnostics",
         "category": "dbt Power User",
         "icon": "$(debug-console)"
+      },
+      {
+        "command": "dbtPowerUser.sqlLineage",
+        "title": "SQL Visualizer (Beta)",
+        "category": "dbt Power User",
+        "icon": "$(debug-console)"
       }
     ],
     "keybindings": [
