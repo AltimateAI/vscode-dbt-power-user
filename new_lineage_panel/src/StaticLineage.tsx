@@ -294,18 +294,13 @@ export const StaticLineageContainer = () => {
       document.documentElement.setAttribute("data-theme", theme);
       rerender();
     };
-    const commandMap = {
-      render: setProps,
-      setTheme,
-      response: handleResponse,
-    };
 
     window.addEventListener("message", (event) => {
       console.log("static-lineage:message -> ", event.data);
       const { command, args } = event.data;
-      if ((command as string) in commandMap) {
-        commandMap[command as keyof typeof commandMap](args);
-      }
+      if (command === "render") setProps(args);
+      if (command === "setTheme") setTheme(args);
+      if (command === "response") handleResponse(args);
     });
   }, []);
   if (!props) return <div>Loading...</div>;
