@@ -3,6 +3,7 @@ import ReactFlow, {
   Background,
   Controls,
   Edge,
+  Node,
   ReactFlowInstance,
   ReactFlowProvider,
 } from "reactflow";
@@ -43,6 +44,34 @@ type StaticLineageProps = {
   details: Details;
 };
 
+function findSources(edges: [string, string][]): string[] {
+  const inDegree: Map<string, number> = new Map();
+  const allVertices: Set<string> = new Set();
+
+  // Initialize inDegree and allVertices sets
+  for (const [from, to] of edges) {
+    if (!inDegree.has(from)) {
+      inDegree.set(from, 0);
+    }
+    if (!inDegree.has(to)) {
+      inDegree.set(to, 0);
+    }
+    inDegree.set(to, inDegree.get(to)! + 1);
+    allVertices.add(from);
+    allVertices.add(to);
+  }
+
+  // Find vertices with in-degree of 0
+  const sources: string[] = [];
+  for (const [vertex, degree] of inDegree) {
+    if (degree === 0) {
+      sources.push(vertex);
+    }
+  }
+
+  return sources;
+}
+
 const StaticLineage: FunctionComponent<StaticLineageProps> = ({
   selectedColumn,
   collectColumns = {},
@@ -55,32 +84,39 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
 
   useEffect(() => {
     setTimeout(async () => {
-      const startingNode = Object.values(details).find(
-        (n) => n.type === "final",
-      )!;
-      let nodes = [
+      const nodeSources = findSources(tableEdges);
+      const startingNode = details[nodeSources[0]];
+      console.log("thisisisis", startingNode, nodeSources, tableEdges);
+      const _ns = nodeSources.map((item) =>
         createTableNode(
           {
-            table: startingNode.name,
+            table: item,
             upstreamCount: 0,
             downstreamCount: 0,
-            label: startingNode.name,
-            nodeType: startingNode.nodeType!,
+            label: item,
+            nodeType: details[item].nodeType!,
             isExternalProject: false,
             tests: [],
           },
           0,
           "",
         ),
-      ];
+      );
+      let nodes: Node[] = _ns;
       let edges: Edge[] = [];
-      const queue = [startingNode.name];
+      const queue = [...nodeSources];
       const visited: Record<string, boolean> = {};
       const getConnectedTables = (right: boolean, curr: string) => {
         const connectedTables = right
           ? tableEdges.filter(([src]) => src === curr).map(([, dst]) => dst)
           : tableEdges.filter(([, dst]) => dst === curr).map(([src]) => src);
         const currLevel = nodes.find((n) => n.id === curr)?.data?.level || 0;
+        console.log(
+          "thisisisis1",
+          JSON.parse(JSON.stringify(queue)),
+          curr,
+          connectedTables,
+        );
         createNewNodesEdges(
           nodes,
           edges,
@@ -103,12 +139,12 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
         return connectedTables;
       };
       while (queue.length > 0) {
-        const curr = queue.shift()!;
+        const curr = queue.pop()!;
         if (visited[curr]) continue;
         visited[curr] = true;
         queue.push(
           ...getConnectedTables(true, curr),
-          ...getConnectedTables(false, curr),
+          // ...getConnectedTables(false, curr),
         );
       }
 
@@ -128,6 +164,7 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
         edges = _edges;
       }
 
+      console.log("thisisisis1", "before layout", nodes, edges);
       layoutElementsOnCanvas(nodes, edges, true);
       flow.current?.setNodes(nodes);
       flow.current?.setEdges(edges);
