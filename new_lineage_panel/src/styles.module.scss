@@ -440,9 +440,9 @@ $size: 1.2em;
 
 .op_type_text {
   position: absolute;
-  bottom: -1.5rem;
-  width: 8rem;
-  text-align: center;
+  left: 3.6rem;
   color: var(--primary-accent);
-  left: -2.4rem;
+  height: 3.2rem;
+  display: flex;
+  align-items: center;
 }

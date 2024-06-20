@@ -610,7 +610,6 @@ const DARK_ICONS: Record<string, React.ReactNode> = {
 
 export const OpNode: FunctionComponent<NodeProps> = ({ data }) => {
   const { type, expression } = data;
-  console.log("OpNode", data);
   const theme = document.documentElement.getAttribute("data-theme") || "dark";
   const iconsMap = useMemo(() => {
     return theme === "dark" ? DARK_ICONS : LIGHT_ICONS;
