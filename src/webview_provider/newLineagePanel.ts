@@ -258,6 +258,10 @@ export class NewLineagePanel implements LineagePanelView {
             showSelectEdges: config.get("showSelectEdges", true),
             showNonSelectEdges: config.get("showNonSelectEdges", true),
             defaultExpansion: config.get("defaultExpansion", 1),
+            useSchemaForQueryVisualizer: config.get(
+              "useSchemaForQueryVisualizer",
+              false,
+            ),
           },
         },
       });
@@ -966,7 +970,8 @@ function getHtml(webview: Webview, extensionUri: Uri) {
     .replace(/\/__ROOT__/g, resourceDir)
     .replace(/__ROOT__/g, resourceDir)
     .replace(/__NONCE__/g, getNonce())
-    .replace(/__CSPSOURCE__/g, webview.cspSource);
+    .replace(/__CSPSOURCE__/g, webview.cspSource)
+    .replace(/__LINEAGE_TYPE__/g, "dynamic");
 }
 
 /** Used to enforce a secure CSP */

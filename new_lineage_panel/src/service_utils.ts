@@ -3,10 +3,10 @@ declare const acquireVsCodeApi: () => { postMessage: (v: unknown) => void };
 const vscode = acquireVsCodeApi();
 
 let id = 0;
-const requestMap: Record<
+const requestMap: Map<
   number,
   { resolve: (k: unknown) => void; reject: (reason?: string) => void }
-> = {};
+> = new Map();
 
 export const handleResponse = (args: {
   id: number;
@@ -14,18 +14,20 @@ export const handleResponse = (args: {
   status: boolean;
   error: string;
 }) => {
-  const { resolve, reject } = requestMap[args.id];
+  const obj = requestMap.get(args.id);
+  if (!obj) return;
+  const { resolve, reject } = obj;
   if (args.status) {
     resolve(args.body);
   } else {
     reject(args.error);
   }
-  delete requestMap[args.id];
+  requestMap.delete(args.id);
 };
 
 export const requestExecutor = (url: string, params: unknown) => {
   return new Promise((resolve, reject) => {
-    requestMap[id] = { resolve, reject };
+    requestMap.set(id, { resolve, reject });
     vscode.postMessage({ command: url, args: { id, params } });
     id++;
   });
@@ -113,7 +115,7 @@ export class CLL {
 
   static showCllInProgressMsg() {
     showInfoNotification(
-      "Column lineage is in progress. Either wait for it to complete or cancel the current one.",
+      "Column lineage is in progress. Either wait for it to complete or cancel the current one."
     );
   }
 }
