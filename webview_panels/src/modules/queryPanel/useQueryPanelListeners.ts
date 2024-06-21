@@ -170,6 +170,11 @@ const useQueryPanelListeners = (): { loading: boolean; isPanel: boolean } => {
             columnTypes: typedData?.queryResults?.columnTypes,
             compiled_sql: typedData.compiledCodeMarkup,
           });
+          dispatch(
+            setQueryExecutionInfo({
+              elapsedTime: typedData.queryExecutionInfo!.elapsedTime,
+            }),
+          );
         }
       });
     }
