@@ -7,6 +7,7 @@ import {
 } from "vscode";
 import { provideSingleton } from "../utils";
 
+// TODO: validate if this is needed
 @provideSingleton(VirtualSqlContentProvider)
 export class VirtualSqlContentProvider
   implements TextDocumentContentProvider, Disposable

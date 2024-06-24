@@ -34,6 +34,7 @@ export class DBTPowerUserExtension implements Disposable {
     { language: "jinja-sql", scheme: "file" },
     { language: "sql", scheme: "file" },
     { language: "sql", scheme: VirtualSqlContentProvider.SCHEME },
+    { language: "sql", scheme: "untitled" },
   ];
   static DBT_YAML_SELECTOR = [
     { language: "yaml", scheme: "file" },

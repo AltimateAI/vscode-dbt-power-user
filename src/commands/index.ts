@@ -11,6 +11,7 @@ import {
   version,
   extensions,
   Uri,
+  Range,
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { RunModelType } from "../domain";
@@ -541,10 +542,11 @@ export class VSCodeCommands implements Disposable {
             window.activeTextEditor.document.uri,
           );
           const uri = Uri.parse(
-            `${VirtualSqlContentProvider.SCHEME}://${project?.projectRoot || "/any/path"}/poweruser-${Date.now()}.sql`,
-          );
+            `${project?.projectRoot || "/any/path"}/poweruser-${Date.now()}.sql`,
+          ).with({ scheme: "untitled" });
           workspace.openTextDocument(uri).then((doc) => {
             languages.setTextDocumentLanguage(doc, "sql");
+            // below one does not work while executing sql - could not find project
             // workspace
             //   .openTextDocument({
             //     language: "sql",
@@ -552,7 +554,20 @@ export class VSCodeCommands implements Disposable {
             //       "-- Type your (dbt) SQL query here\nSELECT * FROM your_table;",
             //   })
             //   .then((doc) => {
-            window.showTextDocument(doc);
+            window.showTextDocument(doc).then((editor) => {
+              editor.edit((editBuilder) => {
+                // Replace the entire content of the document
+                // You can adjust the range if you want to replace or insert at specific positions
+                const entireDocumentRange = new Range(
+                  doc.positionAt(0),
+                  doc.positionAt(doc.getText().length),
+                );
+                editBuilder.replace(
+                  entireDocumentRange,
+                  "-- Type your (dbt) SQL query here\nSELECT * FROM your_table",
+                );
+              });
+            });
           });
         } catch (e) {
           // TODO handle error

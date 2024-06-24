@@ -1,7 +1,6 @@
 import { Disposable, workspace } from "vscode";
 import { provideSingleton } from "../utils";
 import { SqlPreviewContentProvider } from "./sqlPreviewContentProvider";
-import { VirtualSqlContentProvider } from "./virtualSqlContentProvider";
 
 @provideSingleton(ContentProviders)
 export class ContentProviders implements Disposable {
@@ -9,17 +8,17 @@ export class ContentProviders implements Disposable {
 
   constructor(
     private sqlPreviewContentProvider: SqlPreviewContentProvider,
-    private virtualSqlContentProvider: VirtualSqlContentProvider,
+    // private virtualSqlContentProvider: VirtualSqlContentProvider,
   ) {
     this.disposables.push(
       workspace.registerTextDocumentContentProvider(
         SqlPreviewContentProvider.SCHEME,
         this.sqlPreviewContentProvider,
       ),
-      workspace.registerTextDocumentContentProvider(
-        VirtualSqlContentProvider.SCHEME,
-        this.virtualSqlContentProvider,
-      ),
+      // workspace.registerTextDocumentContentProvider(
+      //   VirtualSqlContentProvider.SCHEME,
+      //   this.virtualSqlContentProvider,
+      // ),
     );
   }
 
