@@ -216,6 +216,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     try {
       switch (command) {
+        case "setToWorkspaceState":
+          this.dbtProjectContainer.setToWorkspaceState(
+            params.key as string,
+            params.value,
+          );
+          break;
         case "openProblemsTab":
           commands.executeCommand("workbench.action.problems.focus");
 

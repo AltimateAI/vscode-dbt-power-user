@@ -8,15 +8,18 @@ import QueryPanelContent from "./components/QueryPanelContents/QueryPanelContent
 import { useEffect, useState } from "react";
 import classes from "./querypanel.module.scss";
 import ShowOldUxButton from "./components/showOldUxButton/ShowOldUxButton";
+import { QueryPanelTitleTabState } from "./components/QueryPanelContents/types";
 
 const QueryPanel = (): JSX.Element => {
-  const [showCompiledCode, setShowCompiledCode] = useState(false);
+  const [tabState, setTabState] = useState<QueryPanelTitleTabState>(
+    QueryPanelTitleTabState.Preview,
+  );
 
   const { loading } = useQueryPanelListeners();
 
   useEffect(() => {
     if (loading) {
-      setShowCompiledCode(false);
+      setTabState(QueryPanelTitleTabState.Preview);
     }
   }, [loading]);
 
@@ -24,10 +27,7 @@ const QueryPanel = (): JSX.Element => {
     <div className={classes.queryPanel}>
       <Stack className="mb-2 justify-content-between">
         <Stack direction="column" style={{ flex: 1 }}>
-          <QueryPanelTitle
-            setShowCompiledCode={setShowCompiledCode}
-            showCompiledCode={showCompiledCode}
-          />
+          <QueryPanelTitle tabState={tabState} setTabState={setTabState} />
         </Stack>
         <Stack>
           <ShowOldUxButton />
@@ -37,7 +37,7 @@ const QueryPanel = (): JSX.Element => {
         </Stack>
       </Stack>
       <div style={{ flex: 1 }}>
-        <QueryPanelContent showCompiledCode={showCompiledCode} />
+        <QueryPanelContent tabState={tabState} />
       </div>
     </div>
   );

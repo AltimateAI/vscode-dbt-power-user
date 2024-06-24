@@ -5,16 +5,27 @@ import PerspectiveViewer from "../perspective/PerspectiveViewer";
 import QueryPanelError from "./QueryPanelError";
 import { CodeBlock } from "@uicore";
 import PreTag from "@modules/markdown/PreTag";
+import { QueryPanelTitleTabState } from "./types";
+import QueryPanelBookmarks from "../queryPanelBookmarks/QueryPanelBookmarks";
+import QueryPanelQueryHistory from "../queryPanelQueryHistory/QueryPanelQueryHistory";
 
 const QueryPanelContent = ({
-  showCompiledCode,
+  tabState,
 }: {
-  showCompiledCode: boolean;
+  tabState: QueryPanelTitleTabState;
 }): JSX.Element => {
   const { loading, hasError, queryResults, compiledCodeMarkup } =
     useQueryPanelState();
 
-  if (showCompiledCode && compiledCodeMarkup) {
+  if (QueryPanelTitleTabState.Bookmarks === tabState) {
+    return <QueryPanelBookmarks />;
+  }
+
+  if (QueryPanelTitleTabState.QueryHistory === tabState) {
+    return <QueryPanelQueryHistory />;
+  }
+
+  if (QueryPanelTitleTabState.Sql === tabState && compiledCodeMarkup) {
     return (
       <div style={{ width: "fit-content" }}>
         <PreTag text={compiledCodeMarkup}>
