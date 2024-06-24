@@ -117,6 +117,10 @@ const useQueryPanelListeners = (): { loading: boolean } => {
     endQueryExecutionTimer();
   };
 
+  const handleIncomingQueryHistory = (args: QueryHistory[]) => {
+    dispatch(setQueryHistory(args));
+  };
+
   const onMesssage = useCallback(
     (event: MessageEvent<IncomingMessageProps>) => {
       panelLogger.info("query panel onMesssage", event.data);
@@ -134,6 +138,9 @@ const useQueryPanelListeners = (): { loading: boolean } => {
         case "renderLoading":
           panelLogger.info(lastHintTimestampRef.current);
           handleLoading();
+          break;
+        case "queryHistory":
+          handleIncomingQueryHistory(args.args.body as QueryHistory[]);
           break;
         case "getContext":
           // @ts-expect-error valid type

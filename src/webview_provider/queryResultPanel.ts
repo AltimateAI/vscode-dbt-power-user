@@ -102,6 +102,8 @@ interface RecOpenUrl {
   url: string;
 }
 
+const QueryHistoryKey = "queryHistory";
+
 @provideSingleton(QueryResultPanel)
 export class QueryResultPanel extends AltimateWebviewProvider {
   public static readonly viewType = "dbtPowerUser.PreviewResults";
@@ -434,6 +436,14 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     );
   }
 
+  private updateQueryHistory(result: ExecuteSQLResult, query: string) {
+    const history =
+      this.dbtProjectContainer.getFromWorkspaceState(QueryHistoryKey) || [];
+    history.unshift({ query, result, timeStamp: Date.now() });
+    this.dbtProjectContainer.setToWorkspaceState(QueryHistoryKey, history);
+    this.sendResponseToWebview({ command: "queryHistory", data: history });
+  }
+
   /** Runs a query transmitting appropriate notifications to webview */
   public async executeQuery(
     query: string,
@@ -451,6 +461,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         await queryExecutionPromise);
       const output = await queryExecution.executeQuery();
       await this.transmitDataWrapper(output, query);
+      this.updateQueryHistory(output, query);
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         if (exc.exception.type.name === "KeyboardInterrupt") {
