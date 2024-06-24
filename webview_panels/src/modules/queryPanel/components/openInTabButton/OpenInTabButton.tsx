@@ -1,6 +1,6 @@
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
-import { GradientButton } from "@uicore";
+import { Button } from "@uicore";
 
 const OpenInTabButton = (): JSX.Element | null => {
   const queryTabData = useQueryPanelState();
@@ -11,9 +11,9 @@ const OpenInTabButton = (): JSX.Element | null => {
     return null;
   }
   return (
-    <GradientButton outline onClick={handleClick}>
+    <Button outline onClick={handleClick}>
       Open in Tab
-    </GradientButton>
+    </Button>
   );
 };
 

@@ -46,4 +46,3 @@ export { default as Drawer } from "./components/drawer/index";
 export type { DrawerRef } from "./components/drawer/index";
 export type { OptionType } from "./components/select";
 export { default as LoadingButton } from "./components/loadingButton/index";
-export { GradientButton } from "./components/gradientButton/GradientButton";

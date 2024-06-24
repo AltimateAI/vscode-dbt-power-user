@@ -80,6 +80,7 @@ enum InboundCommand {
   CancelQuery = "cancelQuery",
   SetContext = "setContext",
   GetQueryPanelContext = "getQueryPanelContext",
+  GetQueryTabData = "getQueryTabData",
 }
 
 interface RecInfo {
@@ -112,7 +113,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   private _queryTabData: any;
 
   protected _panel: WebviewView | undefined;
-  protected _tabPanel: WebviewPanel | undefined = undefined;
+  private _tabPanel: WebviewPanel | undefined = undefined;
   private queryExecution?: QueryExecution;
   private incomingMessages: SendMessageProps[] = [];
 
@@ -211,7 +212,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       return;
     }
 
-    this._webview.onDidReceiveMessage(this.handleCommand, this, []);
+    this.setupTabWebviewHooks();
 
     this._webview.html = this.getHtml(
       this._webview,
@@ -351,6 +352,32 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     };
     sendQueryPanelViewEvent();
     this._panel!.onDidChangeVisibility(sendQueryPanelViewEvent);
+  }
+
+  private setupTabWebviewHooks() {
+    this._tabPanel!.webview.onDidReceiveMessage(
+      async (message) => {
+        switch (message.command) {
+          case InboundCommand.GetQueryTabData:
+            this.sendResponseToWebview({
+              command: "response",
+              data: this._queryTabData,
+              syncRequestId: message.syncRequestId,
+            });
+          default:
+            super.handleCommand(message);
+        }
+      },
+      this,
+      this._disposables,
+    );
+    const sendQueryTabViewEvent = () => {
+      if (this._panel!.visible) {
+        this.telemetry.sendTelemetryEvent("QueryTabActive");
+      }
+    };
+    sendQueryTabViewEvent();
+    this._panel!.onDidChangeVisibility(sendQueryTabViewEvent);
   }
 
   /** Renders webview content */
@@ -557,30 +584,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       if (message) {
         this.sendResponseToWebview(message);
       }
-    }
-  }
-
-  protected async handleCommand(message: HandleCommandProps): Promise<void> {
-    const { command, syncRequestId, ...params } = message;
-
-    try {
-      switch (command) {
-        case "getQueryTabData":
-          this.sendResponseToWebview({
-            command: "response",
-            data: this._queryTabData,
-            syncRequestId,
-          });
-        default:
-          super.handleCommand(message);
-          break;
-      }
-    } catch (err) {
-      this.dbtTerminal.error(
-        "queryResultTab:handleCommand",
-        "error while handling command",
-        err,
-      );
     }
   }
 }

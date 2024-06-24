@@ -31,9 +31,13 @@ const QueryPanel = (): JSX.Element => {
           />
         </Stack>
         <Stack>
-          {isPanel && <ShowOldUxButton />}
-          {isPanel && <ClearResultsButton />}
-          {isPanel && <ShowInTabButton />}
+          {isPanel && (
+            <>
+              <ShowOldUxButton />
+              <ClearResultsButton />
+              <ShowInTabButton />
+            </>
+          )}
           <HelpButton />
           <FeedbackButton url="https://docs.google.com/forms/d/19wX5b5_xXL6J_Q_GpuWzYddIXbvLxuarv09Y3VRk_EU/viewform" />
         </Stack>
