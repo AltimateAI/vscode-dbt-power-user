@@ -9,15 +9,24 @@ import {
   setLimit,
   setLoading,
   setPerspectiveTheme,
+  setQueryBookmarks,
   setQueryExecutionInfo,
+  setQueryHistory,
   setQueryResults,
   setQueryResultsError,
 } from "./context/queryPanelSlice";
 import useQueryPanelState from "./useQueryPanelState";
 import { panelLogger } from "@modules/logger";
-import { executeRequestInAsync } from "@modules/app/requestExecutor";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
 import { HINTS, HINT_VISIBILITY_DELAY } from "./constants";
-import { QueryPanelStateProps } from "./context/types";
+import {
+  QueryBookmark,
+  QueryHistory,
+  QueryPanelStateProps,
+} from "./context/types";
 
 const useQueryPanelListeners = (): { loading: boolean } => {
   const dispatch = useQueryPanelDispatch();
@@ -144,6 +153,22 @@ const useQueryPanelListeners = (): { loading: boolean } => {
 
   useEffect(() => {
     executeRequestInAsync("getQueryPanelContext", {});
+
+    executeRequestInSync("getQueryHistory", {})
+      .then((queryHistory) => {
+        dispatch(setQueryHistory(queryHistory as QueryHistory[]));
+      })
+      .catch((error) => {
+        panelLogger.error("Error fetching query history", error);
+      });
+
+    executeRequestInSync("getQueryBookmarks", {})
+      .then((queryBookmarks) => {
+        dispatch(setQueryBookmarks(queryBookmarks as QueryBookmark[]));
+      })
+      .catch((error) => {
+        panelLogger.error("Error fetching query bookmarks", error);
+      });
   }, []);
 
   useEffect(() => {

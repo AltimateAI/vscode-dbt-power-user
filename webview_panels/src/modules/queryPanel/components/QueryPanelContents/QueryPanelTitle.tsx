@@ -29,7 +29,7 @@ const QueryPanelTitle = ({
           active={QueryPanelTitleTabState.QueryHistory === tabState}
           onClick={() => toggleTabState(QueryPanelTitleTabState.QueryHistory)}
         >
-          Query history
+          History
         </NavLink>
       </NavItem>
       <NavItem>

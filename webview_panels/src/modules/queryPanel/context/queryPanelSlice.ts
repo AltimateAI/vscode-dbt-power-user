@@ -11,6 +11,8 @@ export const initialState = {
   lastHintTimestamp: 0,
   limit: undefined,
   perspectiveTheme: "Vintage",
+  queryHistory: [],
+  queryBookmarks: [],
 } as QueryPanelStateProps;
 
 const queryPanelSlice = createSlice({
@@ -32,6 +34,18 @@ const queryPanelSlice = createSlice({
       action: PayloadAction<QueryPanelStateProps["hintIndex"]>,
     ) => {
       state.hintIndex = action.payload;
+    },
+    setQueryBookmarks: (
+      state,
+      action: PayloadAction<QueryPanelStateProps["queryBookmarks"]>,
+    ) => {
+      state.queryBookmarks = action.payload;
+    },
+    setQueryHistory: (
+      state,
+      action: PayloadAction<QueryPanelStateProps["queryHistory"]>,
+    ) => {
+      state.queryHistory = action.payload;
     },
     setPerspectiveTheme: (
       state,
@@ -93,6 +107,8 @@ export const {
   setLastHintTimestamp,
   setLimit,
   setPerspectiveTheme,
+  setQueryBookmarks,
+  setQueryHistory,
 } = queryPanelSlice.actions;
 
 export default queryPanelSlice;

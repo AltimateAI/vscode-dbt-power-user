@@ -1,6 +1,10 @@
 import type { Meta } from "@storybook/react";
 import QueryPanelProvider from "./QueryPanelProvider";
 import { Button, Stack } from "@uicore";
+import {
+  QueryBookmarkFactory,
+  QueryHistoryFactory,
+} from "../../testUtils/queryResults";
 
 const meta = {
   title: "Query Panel",
@@ -77,6 +81,12 @@ export const DefaultQueryPanelView = {
       func: (request: Record<string, unknown>): unknown => {
         if (request.command === "getQueryPanelContext") {
           return { lastHintTimestamp: 0 };
+        }
+        if (request.command === "getQueryHistory") {
+          return QueryHistoryFactory.buildList(5);
+        }
+        if (request.command === "getQueryBookmarks") {
+          return QueryBookmarkFactory.buildList(5);
         }
       },
       timer: 500,
