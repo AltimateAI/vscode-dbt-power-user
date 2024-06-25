@@ -91,6 +91,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     );
   }
 
+  public isWebviewView(
+    panel: WebviewPanel | WebviewView,
+  ): panel is WebviewView {
+    return (<WebviewView>panel).show !== undefined;
+  }
+
   protected sendResponseToWebview({
     command,
     data,
@@ -410,6 +416,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             false,
           );
 
+          break;
+        case "queryResultTab:render":
+          this.emitterService.fire({
+            command: "queryResultTab:render",
+            payload: params,
+          });
           break;
         default:
           break;

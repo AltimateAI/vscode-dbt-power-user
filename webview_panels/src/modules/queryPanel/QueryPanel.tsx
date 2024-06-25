@@ -16,7 +16,7 @@ import { setTabState } from "./context/queryPanelSlice";
 const QueryPanel = (): JSX.Element => {
   const { tabState } = useQueryPanelState();
   const dispatch = useQueryPanelDispatch();
-  const { loading } = useQueryPanelListeners();
+  const { loading, isPanel } = useQueryPanelListeners();
 
   useEffect(() => {
     if (loading) {
@@ -35,8 +35,13 @@ const QueryPanel = (): JSX.Element => {
           <QueryPanelTitle tabState={tabState} setTabState={changeTabState} />
         </Stack>
         <Stack>
-          <ShowOldUxButton />
-          <ClearResultsButton />
+          {isPanel && (
+            <>
+              <ShowOldUxButton />
+              <ClearResultsButton />
+              <ShowInTabButton />
+            </>
+          )}
           <HelpButton />
           <FeedbackButton url="https://docs.google.com/forms/d/19wX5b5_xXL6J_Q_GpuWzYddIXbvLxuarv09Y3VRk_EU/viewform" />
         </Stack>
