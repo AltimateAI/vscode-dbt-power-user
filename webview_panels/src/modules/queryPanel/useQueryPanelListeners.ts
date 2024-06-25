@@ -1,5 +1,5 @@
 import { IncomingMessageProps } from "@modules/app/types";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryPanelDispatch } from "./QueryPanelProvider";
 import {
   resetData,
@@ -15,13 +15,17 @@ import {
 } from "./context/queryPanelSlice";
 import useQueryPanelState from "./useQueryPanelState";
 import { panelLogger } from "@modules/logger";
-import { executeRequestInAsync } from "@modules/app/requestExecutor";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
 import { HINTS, HINT_VISIBILITY_DELAY } from "./constants";
 import { QueryPanelStateProps } from "./context/types";
 
-const useQueryPanelListeners = (): { loading: boolean } => {
+const useQueryPanelListeners = (): { loading: boolean; isPanel: boolean } => {
   const dispatch = useQueryPanelDispatch();
   const { loading, lastHintTimestamp, hintIndex } = useQueryPanelState();
+  const [isPanel, setIsPanel] = useState(true);
   const lastHintTimestampRef = useRef(0);
   const hintInterval = useRef<NodeJS.Timeout>();
   const queryExecutionTimer = useRef<NodeJS.Timeout>();
@@ -154,7 +158,29 @@ const useQueryPanelListeners = (): { loading: boolean } => {
     };
   }, [onMesssage]);
 
-  return { loading };
+  useEffect(() => {
+    if (isPanel) {
+      void executeRequestInSync("getQueryTabData", {}).then((data) => {
+        if (data) {
+          const typedData = data as QueryPanelStateProps;
+          setIsPanel(false);
+          handleQueryResults({
+            rows: typedData?.queryResults?.data,
+            columnNames: typedData?.queryResults?.columnNames,
+            columnTypes: typedData?.queryResults?.columnTypes,
+            compiled_sql: typedData.compiledCodeMarkup,
+          });
+          dispatch(
+            setQueryExecutionInfo({
+              elapsedTime: typedData.queryExecutionInfo!.elapsedTime,
+            }),
+          );
+        }
+      });
+    }
+  }, []);
+
+  return { loading, isPanel };
 };
 
 export default useQueryPanelListeners;

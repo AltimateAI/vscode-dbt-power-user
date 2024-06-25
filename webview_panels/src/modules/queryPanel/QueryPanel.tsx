@@ -8,11 +8,12 @@ import QueryPanelContent from "./components/QueryPanelContents/QueryPanelContent
 import { useEffect, useState } from "react";
 import classes from "./querypanel.module.scss";
 import ShowOldUxButton from "./components/showOldUxButton/ShowOldUxButton";
+import ShowInTabButton from "./components/openInTabButton/OpenInTabButton";
 
 const QueryPanel = (): JSX.Element => {
   const [showCompiledCode, setShowCompiledCode] = useState(false);
 
-  const { loading } = useQueryPanelListeners();
+  const { loading, isPanel } = useQueryPanelListeners();
 
   useEffect(() => {
     if (loading) {
@@ -30,8 +31,13 @@ const QueryPanel = (): JSX.Element => {
           />
         </Stack>
         <Stack>
-          <ShowOldUxButton />
-          <ClearResultsButton />
+          {isPanel && (
+            <>
+              <ShowOldUxButton />
+              <ClearResultsButton />
+              <ShowInTabButton />
+            </>
+          )}
           <HelpButton />
           <FeedbackButton url="https://docs.google.com/forms/d/19wX5b5_xXL6J_Q_GpuWzYddIXbvLxuarv09Y3VRk_EU/viewform" />
         </Stack>
