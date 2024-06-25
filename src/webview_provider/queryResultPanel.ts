@@ -80,6 +80,7 @@ enum InboundCommand {
   GetQueryPanelContext = "getQueryPanelContext",
   GetQueryHistory = "getQueryHistory",
   GetQueryBookmarks = "getQueryBookmarks",
+  ExecuteQuery = "executeQuery",
 }
 
 interface RecInfo {
@@ -234,6 +235,8 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._panel!.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
+          case InboundCommand.ExecuteQuery:
+            break;
           case InboundCommand.GetQueryHistory:
             const history =
               this.dbtProjectContainer.getFromWorkspaceState(QueryHistoryKey) ||

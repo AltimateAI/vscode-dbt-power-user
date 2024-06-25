@@ -1,7 +1,8 @@
-import { DeleteIcon, PlayCircleIcon } from "@assets/icons";
+import { DeleteIcon } from "@assets/icons";
 import { QueryHistory } from "@modules/queryPanel/context/types";
 import { IconButton, ListGroupItem } from "@uicore";
 import BookmarkButton from "../queryPanelBookmarks/BookmarkButton";
+import ExecuteQueryButton from "./ExecuteQueryButton";
 
 interface Props {
   queryHistory: QueryHistory;
@@ -27,9 +28,7 @@ const QueryHistoryRow = ({ queryHistory, onSelect }: Props): JSX.Element => {
             year: "2-digit",
           })}
         </span>
-        <IconButton title="Execute query">
-          <PlayCircleIcon />
-        </IconButton>
+        <ExecuteQueryButton query={queryHistory.rawSql} />
         <BookmarkButton queryHistory={queryHistory} />
         <IconButton title="Delete query from history">
           <DeleteIcon />
