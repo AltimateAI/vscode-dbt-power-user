@@ -31,6 +31,14 @@ export const QueryHistoryFactory = Sync.makeFactory<QueryHistory>({
 });
 
 export const QueryBookmarkFactory = Sync.makeFactory<QueryBookmark>({
-  query: Sync.each(() => generateRandomSQLQuery()),
-  timestamp: Sync.each(() => faker.date.past().getTime()),
+  raw_sql: Sync.each(() => generateRandomSQLQuery()),
+  compiled_sql: Sync.each(() => generateRandomSQLQuery()),
+  created_on: Sync.each(() => faker.date.past().toISOString()),
+  adapter_type: faker.lorem.word(),
+  id: faker.datatype.number(),
+  name: faker.lorem.words(),
+  updated_on: Sync.each(() => faker.date.recent().toISOString()),
+  tags: Sync.each(() => [
+    { id: faker.datatype.number(), tag_name: faker.lorem.word() },
+  ]),
 });

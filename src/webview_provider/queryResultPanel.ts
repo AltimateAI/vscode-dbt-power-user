@@ -244,6 +244,11 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             });
             break;
           case InboundCommand.GetQueryBookmarks:
+            const bookmarks = this.altimate.getQueryBookmarks();
+            this.sendResponseToWebview({
+              command: "queryBookmarks",
+              data: bookmarks,
+            });
             break;
           case InboundCommand.GetQueryPanelContext:
             const perspectiveTheme = workspace

@@ -15,7 +15,7 @@ export const initialState = {
   queryHistory: [],
   queryBookmarks: [],
   queryBookmarksEnabled: false,
-  tabState: QueryPanelTitleTabState.QueryHistory,
+  tabState: QueryPanelTitleTabState.Preview,
 } as QueryPanelStateProps;
 
 const queryPanelSlice = createSlice({

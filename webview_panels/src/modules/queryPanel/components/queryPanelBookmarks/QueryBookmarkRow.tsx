@@ -4,7 +4,7 @@ interface Props {
   bookmark: QueryBookmark;
 }
 const QueryBookmarkRow = ({ bookmark }: Props): JSX.Element => {
-  return <div>{bookmark.query}</div>;
+  return <div>{bookmark.raw_sql}</div>;
 };
 
 export default QueryBookmarkRow;

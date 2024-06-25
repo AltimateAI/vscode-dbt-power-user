@@ -144,6 +144,17 @@ interface DbtModel {
   adapter?: string;
 }
 
+export interface QueryBookmark {
+  id: number;
+  compiled_sql: string;
+  raw_sql: string;
+  name: string;
+  adapter_type: string;
+  created_on: string;
+  updated_on: string;
+  tags: { id: number; tag_name: string }[];
+}
+
 export interface QueryAnalysisRequest {
   session_id: string;
   job_type: QueryAnalysisType;
@@ -850,5 +861,9 @@ export class AltimateRequest {
       method: "POST",
       body: JSON.stringify({ share_id }),
     });
+  }
+
+  async getQueryBookmarks() {
+    return await this.fetch<QueryBookmark[]>(`query/bookmark/list`);
   }
 }

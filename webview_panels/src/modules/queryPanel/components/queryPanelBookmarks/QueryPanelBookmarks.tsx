@@ -9,7 +9,7 @@ const QueryPanelBookmarks = (): JSX.Element => {
   return (
     <div>
       {queryBookmarks.map((bookmark) => (
-        <QueryBookmarkRow bookmark={bookmark} key={bookmark.timestamp} />
+        <QueryBookmarkRow bookmark={bookmark} key={bookmark.created_on} />
       ))}
     </div>
   );

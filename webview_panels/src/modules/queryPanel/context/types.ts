@@ -11,8 +11,14 @@ export interface QueryHistory {
 }
 
 export interface QueryBookmark {
-  query: string;
-  timestamp: number;
+  id: number;
+  compiled_sql: string;
+  raw_sql: string;
+  name: string;
+  adapter_type: string;
+  created_on: string;
+  updated_on: string;
+  tags: { id: number; tag_name: string }[];
 }
 
 export interface QueryPanelStateProps {
