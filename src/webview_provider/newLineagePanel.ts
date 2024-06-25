@@ -527,13 +527,14 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     const modelInfos: { compiled_sql?: string; model_node: ModelNode }[] = [];
-    const parent_models: { model_node: ModelNode }[] = [];
+    let upstream_models: string[] = [];
     let auxiliaryTables: string[] = [];
     currAnd1HopTables = Array.from(new Set(currAnd1HopTables));
     if (upstreamExpansion) {
       const currTables = new Set(targets.map((t) => t[0]));
       const hop1Tables = currAnd1HopTables.filter((t) => !currTables.has(t));
       auxiliaryTables = DBTProject.getNonEphemeralParents(event, hop1Tables);
+      upstream_models = hop1Tables;
     }
     const modelsToFetch = Array.from(
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
@@ -564,7 +565,7 @@ export class NewLineagePanel implements LineagePanelView {
     };
     try {
       auxiliaryTables.forEach((key) => {
-        parent_models.push({ model_node: mappedNode[key] });
+        modelInfos.push({ model_node: mappedNode[key] });
       });
 
       for (const key of currAnd1HopTables) {
@@ -655,7 +656,7 @@ export class NewLineagePanel implements LineagePanelView {
         upstream_expansion: upstreamExpansion,
         targets: targets.map((t) => ({ uniqueId: t[0], column_name: t[1] })),
         selected_column: selected_column!,
-        parent_models,
+        upstream_models,
         session_id: sessionId,
       };
       this.terminal.debug(

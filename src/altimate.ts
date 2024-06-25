@@ -47,21 +47,12 @@ export type ModelNode = {
 };
 
 export interface DBTColumnLineageRequest {
-  targets: { uniqueId: string; column_name: string }[];
   model_dialect: string;
-  model_info: {
-    model_node: ModelNode;
-    compiled_sql?: string;
-  }[];
-  schemas?: Schemas | null;
+  targets: { uniqueId: string; column_name: string }[];
+  model_info: { model_node: ModelNode; compiled_sql?: string }[];
   upstream_expansion: boolean;
-  selected_column: {
-    model_node?: ModelNode;
-    column: string;
-  };
-  parent_models: {
-    model_node: ModelNode;
-  }[];
+  upstream_models: string[];
+  selected_column: { model_node?: ModelNode; column: string };
   session_id: string;
 }
 
@@ -707,7 +698,7 @@ export class AltimateRequest {
   }
 
   async getColumnLevelLineage(req: DBTColumnLineageRequest) {
-    return this.fetch<DBTColumnLineageResponse>("dbt/v3/lineage", {
+    return this.fetch<DBTColumnLineageResponse>("dbt/v4/lineage", {
       method: "POST",
       body: JSON.stringify(req),
     });
