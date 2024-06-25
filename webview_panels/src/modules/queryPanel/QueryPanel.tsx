@@ -12,6 +12,7 @@ import { QueryPanelTitleTabState } from "./components/QueryPanelContents/types";
 import useQueryPanelState from "./useQueryPanelState";
 import { useQueryPanelDispatch } from "./QueryPanelProvider";
 import { setTabState } from "./context/queryPanelSlice";
+import ShowInTabButton from "./components/openInTabButton/OpenInTabButton";
 
 const QueryPanel = (): JSX.Element => {
   const { tabState } = useQueryPanelState();
