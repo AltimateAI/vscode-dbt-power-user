@@ -214,6 +214,18 @@ export class QueryResultPanel extends AltimateWebviewProvider {
 
     this.setupTabWebviewHooks();
 
+    const enableNewQueryPanel = workspace
+      .getConfiguration("dbt")
+      .get<boolean>("enableNewQueryPanel", true);
+
+    if (enableNewQueryPanel) {
+      this._tabPanel!.webview.html = super.getHtml(
+        this._webview,
+        this.dbtProjectContainer.extensionUri,
+      );
+      return;
+    }
+
     this._webview.html = this.getHtml(
       this._webview,
       this.dbtProjectContainer.extensionUri,
@@ -354,6 +366,12 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._panel!.onDidChangeVisibility(sendQueryPanelViewEvent);
   }
 
+  private sendQueryTabViewEvent = () => {
+    if (this._panel!.visible) {
+      this.telemetry.sendTelemetryEvent("QueryTabActive");
+    }
+  };
+
   private setupTabWebviewHooks() {
     this._tabPanel!.webview.onDidReceiveMessage(
       async (message) => {
@@ -371,13 +389,9 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       this,
       this._disposables,
     );
-    const sendQueryTabViewEvent = () => {
-      if (this._panel!.visible) {
-        this.telemetry.sendTelemetryEvent("QueryTabActive");
-      }
-    };
-    sendQueryTabViewEvent();
-    this._panel!.onDidChangeVisibility(sendQueryTabViewEvent);
+
+    this.sendQueryTabViewEvent();
+    this._panel!.onDidChangeVisibility(this.sendQueryTabViewEvent);
   }
 
   /** Renders webview content */
