@@ -8,7 +8,6 @@ import {
   ViewColumn,
   Webview,
   WebviewOptions,
-  WebviewPanel,
   WebviewView,
   WebviewViewResolveContext,
   window,
@@ -29,7 +28,6 @@ import {
 import { SharedStateService } from "../services/sharedStateService";
 import {
   AltimateWebviewProvider,
-  HandleCommandProps,
   SendMessageProps,
   SharedStateEventEmitterProps,
 } from "./altimateWebviewProvider";
@@ -112,8 +110,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   protected panelDescription = "Query results panel";
   private _queryTabData: any;
 
-  protected _panel: WebviewView | undefined;
-  private _tabPanel: WebviewPanel | undefined = undefined;
   private queryExecution?: QueryExecution;
   private incomingMessages: SendMessageProps[] = [];
 
@@ -193,43 +189,14 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           },
           { enableScripts: true, retainContextWhenHidden: true },
         );
-        this._tabPanel = webviewPanel;
-        this.renderWebview(webviewPanel);
-
+        this._panel = webviewPanel;
+        this._webview = webviewPanel.webview;
+        this.renderWebviewView(webviewPanel.webview);
+        this.setupWebviewHooks();
         break;
       default:
         super.onEvent({ command, payload });
     }
-  }
-
-  private renderWebview(webview: WebviewPanel) {
-    this._webview = webview.webview;
-    this.renderTabWebviewView();
-  }
-
-  protected renderTabWebviewView() {
-    if (!this._webview) {
-      return;
-    }
-
-    this.setupTabWebviewHooks();
-
-    const enableNewQueryPanel = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("enableNewQueryPanel", true);
-
-    if (enableNewQueryPanel) {
-      this._tabPanel!.webview.html = super.getHtml(
-        this._webview,
-        this.dbtProjectContainer.extensionUri,
-      );
-      return;
-    }
-
-    this._webview.html = this.getHtml(
-      this._webview,
-      this.dbtProjectContainer.extensionUri,
-    );
   }
 
   public async resolveWebviewView(
@@ -255,9 +222,14 @@ export class QueryResultPanel extends AltimateWebviewProvider {
 
   /** Sets options, note that retainContextWhen hidden is set on registration */
   private bindWebviewOptions(context: WebviewViewResolveContext) {
-    this._panel!.title = "Query Results";
-    this._panel!.description = "Preview dbt SQL Results";
-    this._panel!.webview.options = <WebviewOptions>{ enableScripts: true };
+    if (!this._panel) {
+      return;
+    }
+    this._panel.title = "Query Results";
+    if (this.isWebviewView(this._panel)) {
+      this._panel.description = "Preview dbt SQL Results";
+    }
+    this._panel.webview.options = <WebviewOptions>{ enableScripts: true };
   }
 
   /** Primary interface for WebviewView inbound communication */
@@ -265,6 +237,13 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._panel!.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
+          case InboundCommand.GetQueryTabData:
+            this.sendResponseToWebview({
+              command: "response",
+              data: this._queryTabData,
+              syncRequestId: message.syncRequestId,
+            });
+            break;
           case InboundCommand.GetQueryPanelContext:
             const perspectiveTheme = workspace
               .getConfiguration("dbt")
@@ -363,7 +342,9 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       }
     };
     sendQueryPanelViewEvent();
-    this._panel!.onDidChangeVisibility(sendQueryPanelViewEvent);
+    if (this._panel && this.isWebviewView(this._panel)) {
+      this._panel.onDidChangeVisibility(sendQueryPanelViewEvent);
+    }
   }
 
   private sendQueryTabViewEvent = () => {
@@ -371,28 +352,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       this.telemetry.sendTelemetryEvent("QueryTabActive");
     }
   };
-
-  private setupTabWebviewHooks() {
-    this._tabPanel!.webview.onDidReceiveMessage(
-      async (message) => {
-        switch (message.command) {
-          case InboundCommand.GetQueryTabData:
-            this.sendResponseToWebview({
-              command: "response",
-              data: this._queryTabData,
-              syncRequestId: message.syncRequestId,
-            });
-          default:
-            super.handleCommand(message);
-        }
-      },
-      this,
-      this._disposables,
-    );
-
-    this.sendQueryTabViewEvent();
-    this._panel!.onDidChangeVisibility(this.sendQueryTabViewEvent);
-  }
 
   /** Renders webview content */
   protected renderWebviewView(webview: Webview) {
@@ -523,7 +482,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   ) {
     //using id to focus on the webview is more reliable than using the view title
     await commands.executeCommand("dbtPowerUser.PreviewResults.focus");
-    if (this._panel) {
+    if (this._panel && this.isWebviewView(this._panel)) {
       this._panel.show(); // Show the view
       this._panel.webview.postMessage({ command: "focus" }); // keyboard focus
     }

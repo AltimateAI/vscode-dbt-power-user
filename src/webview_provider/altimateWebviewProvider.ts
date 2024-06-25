@@ -91,6 +91,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     );
   }
 
+  public isWebviewView(
+    panel: WebviewPanel | WebviewView,
+  ): panel is WebviewView {
+    return (<WebviewView>panel).show !== undefined;
+  }
+
   protected sendResponseToWebview({
     command,
     data,
