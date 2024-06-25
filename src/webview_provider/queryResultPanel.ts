@@ -78,6 +78,8 @@ enum InboundCommand {
   CancelQuery = "cancelQuery",
   SetContext = "setContext",
   GetQueryPanelContext = "getQueryPanelContext",
+  GetQueryHistory = "getQueryHistory",
+  GetQueryBookmarks = "getQueryBookmarks",
 }
 
 interface RecInfo {
@@ -213,6 +215,17 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._panel!.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
+          case InboundCommand.GetQueryHistory:
+            const history =
+              this.dbtProjectContainer.getFromWorkspaceState(QueryHistoryKey) ||
+              [];
+            this.sendResponseToWebview({
+              command: "queryHistory",
+              data: history,
+            });
+            break;
+          case InboundCommand.GetQueryBookmarks:
+            break;
           case InboundCommand.GetQueryPanelContext:
             const perspectiveTheme = workspace
               .getConfiguration("dbt")
@@ -436,10 +449,23 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     );
   }
 
-  private updateQueryHistory(result: ExecuteSQLResult, query: string) {
+  private updateQueryHistory(
+    result: ExecuteSQLResult,
+    query: string,
+    duration: number,
+  ) {
+    // this.dbtProjectContainer.setToWorkspaceState(QueryHistoryKey, null);
     const history =
       this.dbtProjectContainer.getFromWorkspaceState(QueryHistoryKey) || [];
-    history.unshift({ query, result, timeStamp: Date.now() });
+    const project = this.queryManifestService.getProject();
+    history.unshift({
+      rawSql: query,
+      compiledSql: result.compiled_sql,
+      timestamp: Date.now(),
+      duration,
+      adapter: project?.getAdapterType(),
+      projectName: project?.getProjectName(),
+    });
     this.dbtProjectContainer.setToWorkspaceState(QueryHistoryKey, history);
     this.sendResponseToWebview({ command: "queryHistory", data: history });
   }
@@ -449,6 +475,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     query: string,
     queryExecutionPromise: Promise<QueryExecution>,
   ) {
+    const start = Date.now();
     //using id to focus on the webview is more reliable than using the view title
     await commands.executeCommand("dbtPowerUser.PreviewResults.focus");
     if (this._panel) {
@@ -461,7 +488,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         await queryExecutionPromise);
       const output = await queryExecution.executeQuery();
       await this.transmitDataWrapper(output, query);
-      this.updateQueryHistory(output, query);
+      this.updateQueryHistory(output, query, Date.now() - start);
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         if (exc.exception.type.name === "KeyboardInterrupt") {

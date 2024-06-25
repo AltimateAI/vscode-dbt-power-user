@@ -39,12 +39,21 @@ export class VirtualSqlCodeLensProvider implements CodeLensProvider {
 
     const topOfDocument = new Range(0, 0, 0, 0);
     const projectName = this.getProjectName();
-    const command: Command = {
-      title: `Project: ${projectName}`,
+    const projectSelectorCommand: Command = {
+      title: `Project: ${projectName || "Select a project"}`,
       command: "dbtPowerUser.pickProject", // This command must be implemented and registered in your extension
       arguments: [document.uri], // Optional: pass document URI or other arguments
     };
 
-    return [new CodeLens(topOfDocument, command)];
+    const bookmarkQueryCommand: Command = {
+      title: `Bookmark this query`,
+      command: "dbtPowerUser.pickProject", // This command must be implemented and registered in your extension
+      arguments: [document.uri], // Optional: pass document URI or other arguments
+    };
+
+    return [
+      new CodeLens(topOfDocument, projectSelectorCommand),
+      new CodeLens(topOfDocument, bookmarkQueryCommand),
+    ];
   }
 }

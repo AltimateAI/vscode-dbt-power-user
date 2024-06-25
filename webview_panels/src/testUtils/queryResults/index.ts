@@ -22,11 +22,15 @@ function generateRandomSQLQuery(): string {
 }
 
 export const QueryHistoryFactory = Sync.makeFactory<QueryHistory>({
-  query: Sync.each(() => generateRandomSQLQuery()),
-  timestamp: Sync.each((i) => i),
+  rawSql: Sync.each(() => generateRandomSQLQuery()),
+  compiledSql: Sync.each(() => generateRandomSQLQuery()),
+  adapter: faker.lorem.word(),
+  duration: faker.datatype.number({ min: 1, max: 10000 }),
+  projectName: faker.lorem.word(),
+  timestamp: Sync.each(() => faker.date.past().getTime()),
 });
 
 export const QueryBookmarkFactory = Sync.makeFactory<QueryBookmark>({
   query: Sync.each(() => generateRandomSQLQuery()),
-  timestamp: Sync.each((i) => i),
+  timestamp: Sync.each(() => faker.date.past().getTime()),
 });

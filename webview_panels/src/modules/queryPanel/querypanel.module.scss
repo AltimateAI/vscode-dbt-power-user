@@ -27,4 +27,35 @@
       width: 10rem;
     }
   }
+
+  .queryHistoryList {
+    :global .list-group-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+
+      > div:first-child {
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+        flex: 1;
+        max-width: 60%;
+      }
+
+      > div:last-child {
+        button {
+          display: none;
+        }
+      }
+
+      &:hover {
+        > div:last-child {
+          button {
+            display: inline-block;
+          }
+        }
+      }
+    }
+  }
 }

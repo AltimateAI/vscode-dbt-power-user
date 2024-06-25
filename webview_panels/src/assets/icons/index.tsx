@@ -127,3 +127,15 @@ export const LoadingSpinner = (): JSX.Element => (
 export const LoadingIcon = (
   props: HTMLAttributes<HTMLElement>,
 ): JSX.Element => <Icon icon="loading" className="rotate" {...props} />;
+
+export const PlayCircleIcon = (
+  props: HTMLAttributes<HTMLElement>,
+): JSX.Element => <Icon icon="play-circle" {...props} />;
+
+export const BookmarkIcon = (
+  props: HTMLAttributes<HTMLElement>,
+): JSX.Element => <Icon icon="bookmark" {...props} />;
+
+export const ShareIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
+  <Icon icon="live-share" {...props} />
+);

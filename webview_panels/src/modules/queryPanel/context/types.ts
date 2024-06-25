@@ -1,8 +1,12 @@
 import { TableData } from "@finos/perspective";
 
 export interface QueryHistory {
-  query: string;
+  rawSql: string;
+  compiledSql: string;
   timestamp: number;
+  duration: number;
+  adapter: string;
+  projectName: string;
 }
 
 export interface QueryBookmark {
