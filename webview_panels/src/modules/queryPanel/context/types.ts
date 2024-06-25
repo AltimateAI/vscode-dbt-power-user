@@ -1,4 +1,5 @@
 import { TableData } from "@finos/perspective";
+import { QueryPanelTitleTabState } from "../components/QueryPanelContents/types";
 
 export interface QueryHistory {
   rawSql: string;
@@ -35,4 +36,5 @@ export interface QueryPanelStateProps {
   queryHistory: QueryHistory[];
   queryBookmarks: QueryBookmark[];
   queryBookmarksEnabled: boolean;
+  tabState: QueryPanelTitleTabState;
 }

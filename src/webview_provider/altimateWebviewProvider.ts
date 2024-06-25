@@ -377,6 +377,13 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             });
           }
           break;
+        case "showErrorMessage":
+          const args = params as {
+            infoMessage: string;
+            items: any[];
+          };
+          window.showErrorMessage(args.infoMessage, ...args.items);
+          break;
         case "showWarningMessage":
           this.handleWarningMessage(
             params as Parameters<typeof this.handleWarningMessage>["0"],

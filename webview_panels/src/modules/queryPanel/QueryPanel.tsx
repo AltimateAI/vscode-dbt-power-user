@@ -5,29 +5,34 @@ import ClearResultsButton from "./components/clearResultsButton/ClearResultsButt
 import useQueryPanelListeners from "./useQueryPanelListeners";
 import QueryPanelTitle from "./components/QueryPanelContents/QueryPanelTitle";
 import QueryPanelContent from "./components/QueryPanelContents/QueryPanelContent";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import classes from "./querypanel.module.scss";
 import ShowOldUxButton from "./components/showOldUxButton/ShowOldUxButton";
 import { QueryPanelTitleTabState } from "./components/QueryPanelContents/types";
+import useQueryPanelState from "./useQueryPanelState";
+import { useQueryPanelDispatch } from "./QueryPanelProvider";
+import { setTabState } from "./context/queryPanelSlice";
 
 const QueryPanel = (): JSX.Element => {
-  const [tabState, setTabState] = useState<QueryPanelTitleTabState>(
-    QueryPanelTitleTabState.Preview,
-  );
-
+  const { tabState } = useQueryPanelState();
+  const dispatch = useQueryPanelDispatch();
   const { loading } = useQueryPanelListeners();
 
   useEffect(() => {
     if (loading) {
-      setTabState(QueryPanelTitleTabState.Preview);
+      dispatch(setTabState(QueryPanelTitleTabState.Preview));
     }
   }, [loading]);
+
+  const changeTabState = (state: QueryPanelTitleTabState) => {
+    dispatch(setTabState(state));
+  };
 
   return (
     <div className={classes.queryPanel}>
       <Stack className="mb-2 justify-content-between">
         <Stack direction="column" style={{ flex: 1 }}>
-          <QueryPanelTitle tabState={tabState} setTabState={setTabState} />
+          <QueryPanelTitle tabState={tabState} setTabState={changeTabState} />
         </Stack>
         <Stack>
           <ShowOldUxButton />

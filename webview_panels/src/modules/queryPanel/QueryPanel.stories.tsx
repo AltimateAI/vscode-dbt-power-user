@@ -80,7 +80,13 @@ export const DefaultQueryPanelView = {
     vscode: {
       func: (request: Record<string, unknown>): unknown => {
         if (request.command === "getQueryPanelContext") {
-          return { lastHintTimestamp: 0 };
+          window.postMessage({
+            command: "getContext",
+            lastHintTimestamp: 0,
+            queryBookmarksEnabled: true,
+          });
+
+          return;
         }
         if (request.command === "getQueryHistory") {
           return QueryHistoryFactory.buildList(5);

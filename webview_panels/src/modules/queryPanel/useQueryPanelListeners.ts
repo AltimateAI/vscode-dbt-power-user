@@ -150,8 +150,8 @@ const useQueryPanelListeners = (): { loading: boolean } => {
           dispatch(setLimit(args.limit as number));
           // @ts-expect-error valid type
           dispatch(setPerspectiveTheme(args.perspectiveTheme as string));
-          // @ts-expect-error valid type
           dispatch(
+            // @ts-expect-error valid type
             setQueryBookmarksEnabled(args.queryBookmarksEnabled as boolean),
           );
           break;
@@ -163,7 +163,7 @@ const useQueryPanelListeners = (): { loading: boolean } => {
   );
 
   useEffect(() => {
-    executeRequestInAsync("getQueryPanelContext", {});
+    void executeRequestInSync("getQueryPanelContext", {});
 
     executeRequestInSync("getQueryHistory", {})
       .then((queryHistory) => {

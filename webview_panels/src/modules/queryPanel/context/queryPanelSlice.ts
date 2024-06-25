@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { QueryPanelStateProps } from "./types";
+import { QueryPanelTitleTabState } from "../components/QueryPanelContents/types";
 
 export const initialState = {
   loading: false,
@@ -14,6 +15,7 @@ export const initialState = {
   queryHistory: [],
   queryBookmarks: [],
   queryBookmarksEnabled: false,
+  tabState: QueryPanelTitleTabState.QueryHistory,
 } as QueryPanelStateProps;
 
 const queryPanelSlice = createSlice({
@@ -35,6 +37,12 @@ const queryPanelSlice = createSlice({
       action: PayloadAction<QueryPanelStateProps["hintIndex"]>,
     ) => {
       state.hintIndex = action.payload;
+    },
+    setTabState: (
+      state,
+      action: PayloadAction<QueryPanelStateProps["tabState"]>,
+    ) => {
+      state.tabState = action.payload;
     },
     setQueryBookmarksEnabled: (
       state,
@@ -117,6 +125,7 @@ export const {
   setQueryBookmarks,
   setQueryHistory,
   setQueryBookmarksEnabled,
+  setTabState,
 } = queryPanelSlice.actions;
 
 export default queryPanelSlice;
