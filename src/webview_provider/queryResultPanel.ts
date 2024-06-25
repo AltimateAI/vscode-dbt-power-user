@@ -277,6 +277,8 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             this.sendResponseToWebview({
               command: "queryBookmarks",
               data: bookmarks,
+            });
+            break;
           case InboundCommand.GetQueryTabData:
             this.sendResponseToWebview({
               command: "response",
