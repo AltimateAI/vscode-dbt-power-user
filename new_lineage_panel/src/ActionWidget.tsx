@@ -13,7 +13,7 @@ import GearIcon from "./assets/icons/gear.svg?react";
 import styles from "./styles.module.scss";
 import { HELP_SIDEBAR, SETTINGS_SIDEBAR } from "./constants";
 import { init, openURL, setLegacyLineageView, CLL, requestExecutor } from "./service_utils";
-import { LineageContext, MissingLineageMessage, aiEnabled } from "./App";
+import { LineageContext, MissingLineageMessage, aiEnabled } from "./Lineage";
 import { useReactFlow } from "reactflow";
 import {
   calculateMinLevel,

@@ -413,13 +413,6 @@ $size: 1.2em;
   gap: 0.5rem;
 }
 
-.modal_views_code_container {
-  // padding: 0.5rem;
-  background-color: var(--card-bg);
-  border-radius: 6px;
-  // gap: 0.25rem;
-}
-
 .close_button {
   background-color: var(--primary-accent);
   padding: 0.5rem;
@@ -433,17 +426,23 @@ $size: 1.2em;
   }
 }
 
-.code_editor_container {
-  background-color: var(--code-bg) !important;
-  margin: 0 !important;
-  padding: 0.25rem !important;
-  flex-grow: 1;
-  border-radius: 6px;
+.op_node {
+  width: 3.2rem;
+  height: 3.2rem;
+  padding: 0.3rem;
+  background: var(--table-node-content-bg);
+  border-radius: 50%;
+  border: 2px solid var(--table-node-border-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.code_editor {
-  background-color: var(--code-bg) !important;
-  padding: 0.5rem;
-  width: 100%;
-  line-height: 2 !important;
+.op_type_text {
+  position: absolute;
+  left: 3.6rem;
+  color: var(--primary-accent);
+  height: 3.2rem;
+  display: flex;
+  align-items: center;
 }

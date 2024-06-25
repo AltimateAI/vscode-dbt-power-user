@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import classNames from "classnames";
-import { LineageContext } from "./App";
+import { LineageContext } from "./Lineage";
 import { ExposureMetaData, getExposureDetails } from "./service";
 import { ComponentLoader } from "./components/Loader";
 import styles from "./styles.module.scss";

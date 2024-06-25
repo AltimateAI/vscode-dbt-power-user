@@ -12,6 +12,8 @@ import {
   extensions,
   Uri,
   Range,
+  WebviewPanel,
+  ProgressLocation,
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { RunModelType } from "../domain";
@@ -40,6 +42,8 @@ import { DBTClient } from "../dbt_client";
 import { existsSync, readFileSync } from "fs";
 import { DBTProject } from "../manifest/dbtProject";
 import { VirtualSqlContentProvider } from "../content_provider/virtualSqlContentProvider";
+import { SQLLineagePanel } from "../webview_provider/sqlLineagePanel";
+import { inject } from "inversify";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -58,6 +62,7 @@ export class VSCodeCommands implements Disposable {
     private conversationController: ConversationProvider,
     private pythonEnvironment: PythonEnvironment,
     private dbtClient: DBTClient,
+    private sqlLineagePanel: SQLLineagePanel,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -573,6 +578,31 @@ export class VSCodeCommands implements Disposable {
           // TODO handle error
           console.log(e);
         }
+      }),
+      commands.registerCommand("dbtPowerUser.sqlLineage", async () => {
+        window.withProgress(
+          {
+            title: "Retrieving SQL visualization",
+            location: ProgressLocation.Notification,
+            cancellable: false,
+          },
+          async (_, token) => {
+            try {
+              const lineage = await this.sqlLineagePanel.getSQLLineage(token);
+              const panel = window.createWebviewPanel(
+                SQLLineagePanel.viewType,
+                "SQL Visualizer (Beta)",
+                ViewColumn.Two,
+                { retainContextWhenHidden: true, enableScripts: true },
+              );
+              this.sqlLineagePanel.resolveWebviewView(panel, lineage);
+            } catch (e) {
+              const errorMessage = (e as Error)?.message;
+              this.dbtTerminal.error("sqlLineage", errorMessage, e, true);
+              window.showErrorMessage(errorMessage);
+            }
+          },
+        );
       }),
     );
   }

@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.40.1",
+  "version": "0.40.3",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -626,6 +626,12 @@
       {
         "command": "dbtPowerUser.diagnostics",
         "title": "Collect diagnostics",
+        "category": "dbt Power User",
+        "icon": "$(debug-console)"
+      },
+      {
+        "command": "dbtPowerUser.sqlLineage",
+        "title": "SQL Visualizer (Beta)",
         "category": "dbt Power User",
         "icon": "$(debug-console)"
       }

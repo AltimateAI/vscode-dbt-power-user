@@ -32,6 +32,10 @@ import {
   toggleModelEdges,
   toggleColumnEdges,
   CollectColumn,
+  LEVEL_SEPARATION_VERTICAL,
+  T_NODE_Y_SEPARATION_VERTICAL,
+  defaultEdgeStyle,
+  createOpNode,
 } from "./utils";
 import {
   ColumnLineage,
@@ -44,27 +48,29 @@ import { Dispatch, SetStateAction } from "react";
 import { COLUMN_PREFIX } from "./constants";
 import { TMoreTables } from "./MoreTables";
 import { CLL } from "./service_utils";
-import { SelectedColumn } from "./App";
+import { Details, SelectedColumn } from "./Lineage";
 
 const getConnectedTables = (right: boolean, table: string) =>
   right ? upstreamTables(table) : downstreamTables(table);
 const calculateNewLevel = (right: boolean, i: number) =>
   right ? i + 1 : i - 1;
 
-const createNewNodesEdges = (
+export const createNewNodesEdges = (
   nodes: Node[],
   edges: Edge[],
   tables: Table[],
   t: string,
   right: boolean,
   level: number,
-  max_expand_table = MAX_EXPAND_TABLE
+  max_expand_table = MAX_EXPAND_TABLE,
+  isVertical = false,
+  details?: Details | null
 ) => {
   const newLevel = calculateNewLevel(right, level);
 
   const addUniqueEdge = (to: string) => {
-    const toLevel = nodes.find((n) => n.id === to)?.data?.level;
-    const _edge = createTableEdge(level, toLevel, t, to, right);
+    const toLevel = nodes.find((n) => n.id === to)?.data?.level || 0;
+    const _edge = createTableEdge(level, toLevel, t, to, right, isVertical);
     const existingEdge = edges.find((e) => e.id === _edge.id);
     if (!existingEdge) edges.push(_edge);
   };
@@ -86,14 +92,27 @@ const createNewNodesEdges = (
     }
     const existingNode = nodes.find((_n) => _n.id === _t.table);
     if (!existingNode) {
-      nodes.push(createTableNode(_t, newLevel, t));
       tableAdded++;
+      if (!details) {
+        nodes.push(createTableNode(_t, newLevel, t));
+      } else {
+        const opType = details[_t.table].type;
+        if (["cte", "table", "final"].includes(opType)) {
+          nodes.push(createTableNode(_t, newLevel, t));
+        } else {
+          nodes.push(createOpNode(_t.table, newLevel, t, details[_t.table]));
+        }
+      }
     }
     addUniqueEdge(_t.table);
   }
 };
 
-export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
+export const layoutElementsOnCanvas = (
+  nodes: Node[],
+  edges: Edge[],
+  isVertical = false
+) => {
   let minLevel = Infinity;
   let maxLevel = -Infinity;
   const tableWiseColumnCount: Record<string, number> = {};
@@ -190,10 +209,27 @@ export const layoutElementsOnCanvas = (nodes: Node[], edges: Edge[]) => {
     return basisLevel * (T_NODE_W + T_LEVEL_SEPARATION) + F_OFFSET_X;
   };
 
+  const getYVertical = (level: number) => {
+    const basisLevel = level - minLevel;
+    return basisLevel * (T_NODE_H + LEVEL_SEPARATION_VERTICAL) + F_OFFSET_Y;
+  };
+
+  const getXVertical = (n: Node) => {
+    const _index = tableWiseLevelPos[n.id] || 0;
+    const _columnCount = tableWiseLevelColumnCount[n.id] || 0;
+    return (
+      F_OFFSET_Y +
+      _index * (T_NODE_H + T_NODE_Y_SEPARATION_VERTICAL) +
+      getColY(_columnCount, _index)
+    );
+  };
+
   for (const n of nodes) {
     if (isColumn(n)) continue;
     const { level } = n.data;
-    n.position = { x: getX(level), y: getY(n) };
+    n.position = isVertical
+      ? { x: getXVertical(n), y: getYVertical(level) }
+      : { x: getX(level), y: getY(n) };
   }
 };
 
@@ -471,6 +507,113 @@ const processColumnLineage = async (
   }
 
   return { nodes, edges, collectColumns, newCurr, confidence, seeMoreLineage };
+};
+
+export const staticProcessColumnLineage = async (
+  _nodes: Node[],
+  _edges: Edge[],
+  column_rk: string,
+  postConnectedColumns: (args: {
+    column_fqn: string;
+    edges: { src: string; dst: string }[];
+  }) => Promise<{
+    collect_columns: Record<string, CollectColumn[]>;
+    highlight_edges: [string, string][];
+  }>
+) => {
+  let nodes = _nodes.filter(isNotColumn);
+  let edges = _edges.filter(isNotColumn);
+  [nodes, edges] = resetTableHighlights(nodes, edges);
+
+  const levelMap: Record<string, number> = {};
+  nodes.forEach((n) => (levelMap[n.id] = n.data.level));
+
+  const tableNodes: Record<string, boolean> = {};
+  _nodes
+    .filter((_n) => _n.type === "table")
+    .forEach((_n) => (tableNodes[_n.id] = true));
+  const seeMoreIdTableReverseMap: Record<string, string> = {};
+  const edgesPayload = [];
+  for (const e of _edges) {
+    if (e.id.startsWith(COLUMN_PREFIX)) continue;
+    const sourceTableExist = tableNodes[e.source];
+    const targetTableExist = tableNodes[e.target];
+    if (sourceTableExist && targetTableExist) {
+      edgesPayload.push({ src: e.source, dst: e.target });
+    } else if (sourceTableExist) {
+      const _n = _nodes.find((_n) => _n.id === e.target)!;
+      _n.data.tables.forEach((_t: Table) => {
+        edgesPayload.push({ src: e.source, dst: _t.table });
+        seeMoreIdTableReverseMap[_t.table] = e.target;
+      });
+    } else if (targetTableExist) {
+      const _n = _nodes.find((_n) => _n.id === e.source)!;
+      _n.data.tables.forEach((_t: Table) => {
+        edgesPayload.push({ src: _t.table, dst: e.target });
+        seeMoreIdTableReverseMap[_t.table] = e.source;
+      });
+    } else {
+      // TODO: check is nothing to do in this case
+    }
+  }
+
+  const { collect_columns, highlight_edges } = await postConnectedColumns({
+    column_fqn: column_rk,
+    edges: edgesPayload,
+  });
+
+  for (const t in collect_columns) {
+    if (!tableNodes[t]) continue;
+    collect_columns[t].sort();
+    for (const c of collect_columns[t]) {
+      const nodeType = _nodes.find((n) => n.id === t)?.data?.nodeType;
+      nodes.push(createColumnNode(t, c.column, c.viewsType, {}, nodeType));
+    }
+  }
+
+  edges.forEach((_e) => (_e.style = defaultEdgeStyle));
+  const addToEdges = (
+    id1: string,
+    id2: string,
+    source: string,
+    target: string
+  ) => {
+    const id = getColumnEdgeId(source, target);
+    if (edges.find((e) => e.id === id)) return;
+    edges.push(
+      createColumnEdge(source, target, levelMap[id1], levelMap[id2], "direct", {
+        direct: true,
+      })
+    );
+  };
+  const seeMoreLineage = [];
+
+  for (const e of highlight_edges) {
+    const [t0] = e[0].split("/");
+    const [t1] = e[1].split("/");
+    const sourceTableExist = tableNodes[t0];
+    const targetTableExist = tableNodes[t1];
+    const source = COLUMN_PREFIX + e[0];
+    const target = COLUMN_PREFIX + e[1];
+    if (sourceTableExist && targetTableExist) {
+      addToEdges(t0, t1, source, target);
+    } else if (sourceTableExist) {
+      const seeMoreId = seeMoreIdTableReverseMap[t1];
+      addToEdges(t0, seeMoreId, source, seeMoreId);
+      seeMoreLineage.push(e);
+    } else if (targetTableExist) {
+      const seeMoreId = seeMoreIdTableReverseMap[t0];
+      addToEdges(seeMoreId, t1, seeMoreId, target);
+      seeMoreLineage.push(e);
+    } else {
+      seeMoreLineage.push(e);
+      // TODO: check is nothing to do in this case
+    }
+  }
+
+  layoutElementsOnCanvas(nodes, edges);
+
+  return { nodes, edges, collect_columns };
 };
 
 const mergeNodesEdges = (

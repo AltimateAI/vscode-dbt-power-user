@@ -67,7 +67,6 @@ import { LineageLegend } from "./components";
 import { ViewsCodeModal } from "./Modals";
 
 export let aiEnabled = false;
-export let isDarkMode = false;
 
 const nodeTypes: NodeTypes = {
   table: TableNode,
@@ -160,7 +159,37 @@ export const LineageContext = createContext<{
   setViewsCodeModal: noop,
 });
 
-function App() {
+export type Details = Record<
+  string,
+  {
+    columns: {
+      name: string;
+      datatype?: string;
+      expression?: string;
+    }[];
+    sql: string;
+    nodeType?: string;
+    nodeId?: string;
+    name: string;
+    type: string;
+  }
+>;
+
+export const StaticLineageContext = createContext<{
+  collectColumns: Record<string, CollectColumn[]>;
+  selectedColumn: { table: string; name: string } | undefined;
+  details: Details;
+  selectedTable: string;
+  setSelectedTable: Dispatch<SetStateAction<string>>;
+}>({
+  collectColumns: {},
+  selectedColumn: undefined,
+  details: {},
+  selectedTable: "",
+  setSelectedTable: noop,
+});
+
+export const Lineage = () => {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState("");
@@ -189,7 +218,7 @@ function App() {
   const [nodeCount, setNodeCount] = useState(0);
   const [minRange, setMinRange] = useState<[number, number]>([0, 0]);
   const [viewsCodeModal, setViewsCodeModal] = useState<ViewsCodeModal | null>(
-    null
+    null,
   );
 
   useEffect(() => {
@@ -223,8 +252,8 @@ function App() {
             edges,
             node.table,
             leftExpansion,
-            rightExpansion
-          )
+            rightExpansion,
+          ),
         );
         return;
       }
@@ -252,14 +281,13 @@ function App() {
           edges,
           node.table,
           leftExpansion,
-          rightExpansion
-        )
+          rightExpansion,
+        ),
       );
       rerender();
     };
 
     const setTheme = ({ theme }: { theme: string }) => {
-      isDarkMode = theme === "dark";
       document.documentElement.setAttribute("data-theme", theme);
       rerender();
     };
@@ -355,6 +383,7 @@ function App() {
         setDefaultExpansion,
         viewsCodeModal,
         setViewsCodeModal,
+
       }}
     >
       <PopoverContext.Provider value={{ isOpen, setIsOpen }}>
@@ -415,6 +444,4 @@ function App() {
       </PopoverContext.Provider>
     </LineageContext.Provider>
   );
-}
-
-export default App;
+};
