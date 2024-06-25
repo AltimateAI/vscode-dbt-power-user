@@ -13,6 +13,7 @@ export const initialState = {
   perspectiveTheme: "Vintage",
   queryHistory: [],
   queryBookmarks: [],
+  queryBookmarksEnabled: false,
 } as QueryPanelStateProps;
 
 const queryPanelSlice = createSlice({
@@ -34,6 +35,12 @@ const queryPanelSlice = createSlice({
       action: PayloadAction<QueryPanelStateProps["hintIndex"]>,
     ) => {
       state.hintIndex = action.payload;
+    },
+    setQueryBookmarksEnabled: (
+      state,
+      action: PayloadAction<QueryPanelStateProps["queryBookmarksEnabled"]>,
+    ) => {
+      state.queryBookmarksEnabled = action.payload;
     },
     setQueryBookmarks: (
       state,
@@ -109,6 +116,7 @@ export const {
   setPerspectiveTheme,
   setQueryBookmarks,
   setQueryHistory,
+  setQueryBookmarksEnabled,
 } = queryPanelSlice.actions;
 
 export default queryPanelSlice;

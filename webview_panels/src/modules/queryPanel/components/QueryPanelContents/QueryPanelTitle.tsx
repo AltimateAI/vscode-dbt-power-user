@@ -1,6 +1,7 @@
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import { Nav, NavItem, NavLink } from "@uicore";
 import { QueryPanelTitleTabState } from "./types";
+import { useMemo } from "react";
 
 const QueryPanelTitle = ({
   setTabState,
@@ -16,31 +17,38 @@ const QueryPanelTitle = ({
     queryExecutionInfo,
     compiledCodeMarkup,
     queryResultsRowCount,
+    queryBookmarksEnabled,
   } = useQueryPanelState();
 
   const toggleTabState = (state: QueryPanelTitleTabState) => {
     setTabState(state);
   };
 
-  const commonTabs = (
-    <>
-      <NavItem>
-        <NavLink
-          active={QueryPanelTitleTabState.QueryHistory === tabState}
-          onClick={() => toggleTabState(QueryPanelTitleTabState.QueryHistory)}
-        >
-          History
-        </NavLink>
-      </NavItem>
-      <NavItem>
-        <NavLink
-          active={QueryPanelTitleTabState.Bookmarks === tabState}
-          onClick={() => toggleTabState(QueryPanelTitleTabState.Bookmarks)}
-        >
-          Bookmarks
-        </NavLink>
-      </NavItem>
-    </>
+  const commonTabs = useMemo(
+    () =>
+      queryBookmarksEnabled ? (
+        <>
+          <NavItem>
+            <NavLink
+              active={QueryPanelTitleTabState.QueryHistory === tabState}
+              onClick={() =>
+                toggleTabState(QueryPanelTitleTabState.QueryHistory)
+              }
+            >
+              History
+            </NavLink>
+          </NavItem>
+          <NavItem>
+            <NavLink
+              active={QueryPanelTitleTabState.Bookmarks === tabState}
+              onClick={() => toggleTabState(QueryPanelTitleTabState.Bookmarks)}
+            >
+              Bookmarks
+            </NavLink>
+          </NavItem>
+        </>
+      ) : null,
+    [queryBookmarksEnabled, tabState],
   );
 
   if (loading || hasData || hasError) {

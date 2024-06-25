@@ -76,6 +76,11 @@
             "description": "Enable dbt docs collaboration.",
             "default": true
           },
+          "dbt.enableQueryBookmarks": {
+            "type": "boolean",
+            "description": "Enable Query history and bookmarks feature",
+            "default": false
+          },
           "dbt.enableNewQueryPanel": {
             "type": "boolean",
             "description": "Enable the new query panel in dbt.",
@@ -641,7 +646,8 @@
     "menus": {
       "file/newFile": [
         {
-          "command": "dbtPowerUser.createPUSqlFile"
+          "command": "dbtPowerUser.createPUSqlFile",
+          "when": "dbt.enableQueryBookmarks == true"
         }
       ],
       "comments/commentThread/title": [

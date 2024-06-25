@@ -34,4 +34,5 @@ export interface QueryPanelStateProps {
   perspectiveTheme: string;
   queryHistory: QueryHistory[];
   queryBookmarks: QueryBookmark[];
+  queryBookmarksEnabled: boolean;
 }

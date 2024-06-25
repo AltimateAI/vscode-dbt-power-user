@@ -10,6 +10,7 @@ import {
   setLoading,
   setPerspectiveTheme,
   setQueryBookmarks,
+  setQueryBookmarksEnabled,
   setQueryExecutionInfo,
   setQueryHistory,
   setQueryResults,
@@ -149,7 +150,10 @@ const useQueryPanelListeners = (): { loading: boolean } => {
           dispatch(setLimit(args.limit as number));
           // @ts-expect-error valid type
           dispatch(setPerspectiveTheme(args.perspectiveTheme as string));
-
+          // @ts-expect-error valid type
+          dispatch(
+            setQueryBookmarksEnabled(args.queryBookmarksEnabled as boolean),
+          );
           break;
         default:
           break;

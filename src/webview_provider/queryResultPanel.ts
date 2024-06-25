@@ -137,11 +137,17 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._disposables.push(
       workspace.onDidChangeConfiguration(
         (e) => {
-          if (!e.affectsConfiguration("dbt.enableNewQueryPanel")) {
-            return;
+          if (e.affectsConfiguration("dbt.enableQueryBookmarks")) {
+            this.updateEnableBookmarksInContext();
           }
-          if (this._panel) {
-            this.renderWebviewView(this._panel.webview);
+
+          if (
+            e.affectsConfiguration("dbt.enableQueryBookmarks") ||
+            e.affectsConfiguration("dbt.enableNewQueryPanel")
+          ) {
+            if (this._panel) {
+              this.renderWebviewView(this._panel.webview);
+            }
           }
         },
         this,
@@ -166,6 +172,19 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       },
       null,
       this._disposables,
+    );
+
+    this.updateEnableBookmarksInContext();
+  }
+
+  private updateEnableBookmarksInContext() {
+    // Setting this here to access it in package.json for enabling new file command
+    commands.executeCommand(
+      "setContext",
+      "dbt.enableQueryBookmarks",
+      workspace
+        .getConfiguration("dbt")
+        .get<boolean>("enableQueryBookmarks", false),
     );
   }
 
@@ -230,6 +249,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             const perspectiveTheme = workspace
               .getConfiguration("dbt")
               .get("perspectiveTheme", "Vintage");
+            const queryBookmarksEnabled = workspace
+              .getConfiguration("dbt")
+              .get("enableQueryBookmarks", false);
+
             const limit = workspace
               .getConfiguration("dbt")
               .get<number>("queryLimit");
@@ -241,6 +264,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
                 ) || 0,
               limit,
               perspectiveTheme,
+              queryBookmarksEnabled,
             });
             break;
           case InboundCommand.CancelQuery:
