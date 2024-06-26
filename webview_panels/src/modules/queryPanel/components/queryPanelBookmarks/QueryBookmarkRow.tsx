@@ -2,6 +2,7 @@ import { QueryBookmark } from "@modules/queryPanel/context/types";
 import { ListGroupItem } from "@uicore";
 import ExecuteQueryButton from "../queryPanelQueryHistory/ExecuteQueryButton";
 import BookmarkPrivacySettingButton from "./BookmarkPrivacySettingButton";
+import DeleteBookmarkButton from "./DeleteBookmarkButton";
 
 interface Props {
   bookmark: QueryBookmark;
@@ -25,6 +26,7 @@ const QueryBookmarkRow = ({ bookmark, onSelect }: Props): JSX.Element => {
         </span>
         <ExecuteQueryButton query={bookmark.raw_sql} projectName={""} />
         <BookmarkPrivacySettingButton bookmark={bookmark} />
+        <DeleteBookmarkButton bookmark={bookmark} />
       </div>
     </ListGroupItem>
   );
