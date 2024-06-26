@@ -17,16 +17,14 @@ import {
 } from "vscode";
 import { AltimateRequest, Details, ModelNode } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import {
-  ManifestCacheChangedEvent,
-  ManifestCacheProjectAddedEvent,
-} from "../manifest/event/manifestCacheChangedEvent";
+import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { TelemetryService } from "../telemetry";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import * as crypto from "crypto";
 import { DBTProject } from "../manifest/dbtProject";
 import { NodeMetaData, SourceTable } from "../domain";
+import { QueryManifestService } from "../services/queryManifestService";
 
 type SQLLineage = {
   tableEdges: [string, string][];
@@ -37,7 +35,6 @@ type SQLLineage = {
 @provideSingleton(SQLLineagePanel)
 export class SQLLineagePanel implements Disposable {
   public static readonly viewType = "dbtPowerUser.SQLLineage";
-  private eventMap: Map<string, ManifestCacheProjectAddedEvent> = new Map();
   private disposables: Disposable[] = [];
   private _panel?: WebviewPanel;
   private activeTextEditor?: TextEditor;
@@ -47,12 +44,8 @@ export class SQLLineagePanel implements Disposable {
     private altimate: AltimateRequest,
     private telemetry: TelemetryService,
     private terminal: DBTTerminal,
+    private queryManifestService: QueryManifestService,
   ) {
-    this.disposables.push(
-      dbtProjectContainer.onManifestChanged((event) =>
-        this.onManifestCacheChanged(event),
-      ),
-    );
     window.onDidChangeActiveColorTheme(
       async (e) => {
         this.changedActiveColorTheme();
@@ -77,15 +70,6 @@ export class SQLLineagePanel implements Disposable {
     }
   }
 
-  private onManifestCacheChanged(event: ManifestCacheChangedEvent): void {
-    event.added?.forEach((added) => {
-      this.eventMap.set(added.project.projectRoot.fsPath, added);
-    });
-    event.removed?.forEach((removed) => {
-      this.eventMap.delete(removed.projectRoot.fsPath);
-    });
-  }
-
   changedActiveColorTheme() {
     if (!this._panel) {
       return;
@@ -103,22 +87,11 @@ export class SQLLineagePanel implements Disposable {
   }
 
   private getEvent(): ManifestCacheProjectAddedEvent | undefined {
-    if (this.activeTextEditor === undefined || this.eventMap === undefined) {
+    const currentFilePath = this.activeTextEditor?.document.uri;
+    if (!currentFilePath) {
       return;
     }
-
-    const currentFilePath = this.activeTextEditor.document.uri;
-    const projectRootpath =
-      this.dbtProjectContainer.getProjectRootpath(currentFilePath);
-    if (projectRootpath === undefined) {
-      return;
-    }
-
-    const event = this.eventMap.get(projectRootpath.fsPath);
-    if (event === undefined) {
-      return;
-    }
-    return event;
+    return this.queryManifestService.getEventByDocument(currentFilePath);
   }
 
   private getFilename() {
@@ -130,7 +103,7 @@ export class SQLLineagePanel implements Disposable {
     if (!currentFilePath) {
       return;
     }
-    return this.dbtProjectContainer.findDBTProject(currentFilePath);
+    return this.queryManifestService.getProjectByUri(currentFilePath);
   }
 
   private getMissingLineageMessage() {
@@ -175,8 +148,7 @@ export class SQLLineagePanel implements Disposable {
     let model_info: { model_node: ModelNode }[] = [];
     const config = workspace.getConfiguration("dbt.lineage");
     const modelId = currNode.uniqueId;
-    const parentModels = graphMetaMap.parents.get(modelId)?.nodes || [];
-    const modelsToFetch = parentModels.map((n) => n.key);
+    const modelsToFetch = DBTProject.getNonEphemeralParents(event, [modelId]);
     if (config.get("useSchemaForQueryVisualizer", false)) {
       const { mappedNode } = await project.getNodesWithDBColumns(
         event,
