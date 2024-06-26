@@ -148,8 +148,7 @@ export class SQLLineagePanel implements Disposable {
     let model_info: { model_node: ModelNode }[] = [];
     const config = workspace.getConfiguration("dbt.lineage");
     const modelId = currNode.uniqueId;
-    const parentModels = graphMetaMap.parents.get(modelId)?.nodes || [];
-    const modelsToFetch = parentModels.map((n) => n.key);
+    const modelsToFetch = DBTProject.getNonEphemeralParents(event, [modelId]);
     if (config.get("useSchemaForQueryVisualizer", false)) {
       const { mappedNode } = await project.getNodesWithDBColumns(
         event,
