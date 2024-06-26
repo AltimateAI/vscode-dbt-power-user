@@ -1,16 +1,29 @@
+import styles from "../../querypanel.module.scss";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import QueryBookmarkRow from "./QueryBookmarkRow";
-import { Accordion, ListGroup, Stack } from "@uicore";
-import { useMemo, useState } from "react";
+import {
+  Accordion,
+  ListGroup,
+  Stack,
+  Drawer,
+  DrawerRef,
+  CodeBlock,
+  Label,
+} from "@uicore";
+import { useMemo, useRef, useState } from "react";
 import Filters from "../filters/Filters";
 import { QueryBookmark } from "@modules/queryPanel/context/types";
 
 const QueryPanelBookmarks = (): JSX.Element => {
+  const [activeBookmark, setActiveBookmark] = useState<QueryBookmark | null>(
+    null,
+  );
   const [filters, setFilters] = useState<{
     tags: string[];
     searchQuery?: string;
   }>({ tags: [] });
   const { queryBookmarks } = useQueryPanelState();
+  const drawerRef = useRef<DrawerRef | null>(null);
 
   const onFiltersChange = (data: { tags?: string[]; searchQuery?: string }) => {
     setFilters((prev) => ({ ...prev, ...data }));
@@ -82,6 +95,17 @@ const QueryPanelBookmarks = (): JSX.Element => {
       tags: tagsInSharedBookmarks,
     },
   ];
+
+  const onSelect = (qh: QueryBookmark) => {
+    drawerRef.current?.open();
+    setActiveBookmark(qh);
+  };
+
+  const handleClose = () => {
+    drawerRef.current?.close();
+    setActiveBookmark(null);
+  };
+
   return (
     <div>
       {data.map((item) => (
@@ -98,17 +122,53 @@ const QueryPanelBookmarks = (): JSX.Element => {
           )}
         >
           {() => (
-            <ListGroup>
+            <ListGroup className={styles.queryHistoryList}>
               {item.bookmarks.map((bookmark) => (
                 <QueryBookmarkRow
                   bookmark={bookmark}
                   key={bookmark.created_on}
+                  onSelect={onSelect}
                 />
               ))}
             </ListGroup>
           )}
         </Accordion>
       ))}
+      <Drawer ref={drawerRef} onClose={handleClose}>
+        {activeBookmark ? (
+          <div className={styles.historyDetails}>
+            <h4>{activeBookmark.name}</h4>
+            {activeBookmark.raw_sql ? (
+              <CodeBlock
+                code={activeBookmark.raw_sql}
+                language="sql"
+                fileName="Raw sql"
+              />
+            ) : null}
+            {activeBookmark.compiled_sql ? (
+              <CodeBlock
+                code={activeBookmark.compiled_sql}
+                language="sql"
+                fileName="Raw sql"
+              />
+            ) : null}
+            <div>
+              <Stack>
+                <Label>Tags</Label>
+                {activeBookmark.tags.map((t) => t.tag_name).join(",")}
+              </Stack>
+              <Stack>
+                <Label>Adapter</Label>
+                {activeBookmark.adapter_type}
+              </Stack>
+              <Stack>
+                <Label>Privacy</Label>
+                {activeBookmark.privacy}ms
+              </Stack>
+            </div>
+          </div>
+        ) : null}
+      </Drawer>
     </div>
   );
 };

@@ -5,11 +5,12 @@ import BookmarkPrivacySettingButton from "./BookmarkPrivacySettingButton";
 
 interface Props {
   bookmark: QueryBookmark;
+  onSelect: (bookmark: QueryBookmark) => void;
 }
-const QueryBookmarkRow = ({ bookmark }: Props): JSX.Element => {
+const QueryBookmarkRow = ({ bookmark, onSelect }: Props): JSX.Element => {
   return (
     <ListGroupItem>
-      <div>{bookmark.raw_sql}</div>
+      <div onClick={() => onSelect(bookmark)}>{bookmark.raw_sql}</div>
       <div>
         <span>
           {new Date(bookmark.created_on).toLocaleString("default", {
