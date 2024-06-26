@@ -6,14 +6,17 @@ import Filters from "../filters/Filters";
 import { QueryBookmark } from "@modules/queryPanel/context/types";
 
 const QueryPanelBookmarks = (): JSX.Element => {
-  const [filters, setFilters] = useState<{ tags: string[] }>({ tags: [] });
+  const [filters, setFilters] = useState<{
+    tags: string[];
+    searchQuery?: string;
+  }>({ tags: [] });
   const { queryBookmarks } = useQueryPanelState();
 
-  const onFiltersChange = (tags: string[]) => {
-    setFilters((prev) => ({ ...prev, tags }));
+  const onFiltersChange = (data: { tags?: string[]; searchQuery?: string }) => {
+    setFilters((prev) => ({ ...prev, ...data }));
   };
 
-  const isMatchingFilter = (bookmark: QueryBookmark) => {
+  const isMatchingTags = (bookmark: QueryBookmark) => {
     if (!filters.tags.length) {
       return true;
     }
@@ -22,10 +25,23 @@ const QueryPanelBookmarks = (): JSX.Element => {
     );
   };
 
+  const isMatchingSeachQuery = (bookmark: QueryBookmark) => {
+    if (!filters.searchQuery) {
+      return true;
+    }
+    return bookmark.raw_sql
+      .toLowerCase()
+      .includes(filters.searchQuery.toLowerCase());
+  };
+
+  const isMatchingFilters = (bookmark: QueryBookmark) => {
+    return isMatchingTags(bookmark) && isMatchingSeachQuery(bookmark);
+  };
+
   const myBookmarks = useMemo(() => {
     return queryBookmarks.filter(
       (bookmark) =>
-        bookmark.privacy === "private" && isMatchingFilter(bookmark),
+        bookmark.privacy === "private" && isMatchingFilters(bookmark),
     );
   }, [queryBookmarks, filters]);
 
@@ -37,7 +53,8 @@ const QueryPanelBookmarks = (): JSX.Element => {
 
   const sharedBookmarks = useMemo(() => {
     return queryBookmarks.filter(
-      (bookmark) => bookmark.privacy === "public" && isMatchingFilter(bookmark),
+      (bookmark) =>
+        bookmark.privacy === "public" && isMatchingFilters(bookmark),
     );
   }, [queryBookmarks]);
 

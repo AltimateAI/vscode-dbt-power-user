@@ -2,13 +2,23 @@ import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import QueryHistoryRow from "./QueryHistoryRow";
 import { CodeBlock, Drawer, DrawerRef, ListGroup } from "@uicore";
 import styles from "../../querypanel.module.scss";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { QueryHistory } from "@modules/queryPanel/context/types";
+import Filters from "../filters/Filters";
 
-const QueryPanelQueryHistory = (): JSX.Element => {
+const QueryPanelHistory = (): JSX.Element => {
+  const [filters, setFilters] = useState<{
+    tags: string[];
+    searchQuery?: string;
+  }>({ tags: [] });
+
   const [activeHistory, setActiveHistory] = useState<QueryHistory | null>(null);
   const { queryHistory } = useQueryPanelState();
   const drawerRef = useRef<DrawerRef | null>(null);
+
+  const onFiltersChange = (data: { tags?: string[]; searchQuery?: string }) => {
+    setFilters((prev) => ({ ...prev, ...data }));
+  };
 
   const onSelect = (qh: QueryHistory) => {
     drawerRef.current?.open();
@@ -20,13 +30,28 @@ const QueryPanelQueryHistory = (): JSX.Element => {
     setActiveHistory(null);
   };
 
+  const historyItems = useMemo(() => {
+    return queryHistory.filter((qh) => {
+      if (filters.searchQuery) {
+        return qh.rawSql
+          .toLowerCase()
+          .includes(filters.searchQuery.toLowerCase());
+      }
+      return true;
+    });
+  }, [queryHistory, filters]);
+
   if (!queryHistory.length) {
     return <div>No query history</div>;
   }
   return (
-    <>
+    <section>
+      <header className="d-flex justify-content-between">
+        <h4>History</h4>
+        <Filters tags={[]} onFiltersChange={onFiltersChange} />
+      </header>
       <ListGroup className={styles.queryHistoryList}>
-        {queryHistory.map((qh) => (
+        {historyItems.map((qh) => (
           <QueryHistoryRow
             queryHistory={qh}
             key={qh.timestamp}
@@ -53,8 +78,8 @@ const QueryPanelQueryHistory = (): JSX.Element => {
         <div>Project Name: {activeHistory?.projectName}</div>
         <div>Time taken: {activeHistory?.duration}ms</div>
       </Drawer>
-    </>
+    </section>
   );
 };
 
-export default QueryPanelQueryHistory;
+export default QueryPanelHistory;

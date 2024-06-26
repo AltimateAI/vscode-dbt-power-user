@@ -7,7 +7,7 @@ import { CodeBlock } from "@uicore";
 import PreTag from "@modules/markdown/PreTag";
 import { QueryPanelTitleTabState } from "./types";
 import QueryPanelBookmarks from "../queryPanelBookmarks/QueryPanelBookmarks";
-import QueryPanelQueryHistory from "../queryPanelQueryHistory/QueryPanelQueryHistory";
+import QueryPanelHistory from "../queryPanelQueryHistory/QueryPanelHistory";
 
 const QueryPanelContent = ({
   tabState,
@@ -22,7 +22,7 @@ const QueryPanelContent = ({
   }
 
   if (QueryPanelTitleTabState.QueryHistory === tabState) {
-    return <QueryPanelQueryHistory />;
+    return <QueryPanelHistory />;
   }
 
   if (QueryPanelTitleTabState.Sql === tabState && compiledCodeMarkup) {

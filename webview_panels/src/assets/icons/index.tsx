@@ -143,3 +143,7 @@ export const ShareIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
 export const FilterIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
   <Icon icon="filter" {...props} />
 );
+
+export const SearchIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
+  <Icon icon="search" {...props} />
+);
