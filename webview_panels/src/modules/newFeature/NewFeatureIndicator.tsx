@@ -1,4 +1,5 @@
 import { executeRequestInSync } from "@modules/app/requestExecutor";
+import { Tooltip } from "@uicore";
 import { useEffect, useState } from "react";
 
 const NewFeatureIndicator = ({
@@ -20,7 +21,11 @@ const NewFeatureIndicator = ({
   if (!show) {
     return null;
   }
-  return <div className="new-feature" />;
+  return (
+    <Tooltip title="New feature">
+      <div className="new-feature" />
+    </Tooltip>
+  );
 };
 
 export default NewFeatureIndicator;
