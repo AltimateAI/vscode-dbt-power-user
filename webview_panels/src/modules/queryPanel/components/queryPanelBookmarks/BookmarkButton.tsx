@@ -13,7 +13,7 @@ import {
   PopoverBody,
   Select,
 } from "@uicore";
-import { MouseEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { panelLogger } from "@modules/logger";
 import {
   executeRequestInAsync,
@@ -112,9 +112,7 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
     reset();
   };
 
-  const onOpen = (e: MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
+  const onOpen = () => {
     setShowForm(true);
   };
 

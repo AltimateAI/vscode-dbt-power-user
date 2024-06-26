@@ -19,6 +19,7 @@ export interface QueryBookmark {
   created_on: string;
   updated_on: string;
   tags: { id: number; tag_name: string }[];
+  privacy: "public" | "private";
 }
 
 export interface QueryPanelStateProps {
