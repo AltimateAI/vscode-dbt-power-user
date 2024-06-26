@@ -444,9 +444,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       return columns;
     }
 
-    const existingColumnNames = (model.columns as { name: string }[])?.map(
-      (c) => c.name,
-    );
+    const existingColumnNames =
+      (model.columns as { name: string }[])?.map((c) => c.name) || [];
 
     return this.modifyColumnNames(columns, existingColumnNames);
   }

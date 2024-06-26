@@ -217,6 +217,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._webview = webviewPanel.webview;
     this.renderWebviewView(webviewPanel.webview);
     this.setupWebviewHooks();
+    this.sendQueryTabViewEvent();
   }
 
   protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
@@ -228,6 +229,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         );
         break;
       case "queryResultTab:render":
+        this.dbtProjectContainer.setToGlobalState(
+          "open-query-results-in-tab-clicked",
+          true,
+        );
         this.dbtTerminal.debug(
           "queryResultTab:render",
           "rendering query result tab",
@@ -261,6 +266,8 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     _token.onCancellationRequested(async () => {
       await this.transmitReset();
     });
+    this.sendQueryPanelViewEvent();
+    this._panel.onDidChangeVisibility(this.sendQueryPanelViewEvent);
   }
 
   /** Sets options, note that retainContextWhen hidden is set on registration */
@@ -326,6 +333,8 @@ export class QueryResultPanel extends AltimateWebviewProvider {
               data: this._queryTabData,
               syncRequestId: message.syncRequestId,
             });
+            // reset to bottom panel
+            this._panel = this._bottomPanel;
             break;
           case InboundCommand.GetQueryPanelContext:
             const perspectiveTheme = workspace
@@ -424,21 +433,16 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       this,
       this._disposables,
     );
-    const sendQueryPanelViewEvent = () => {
-      if (this._panel!.visible) {
-        this.telemetry.sendTelemetryEvent("QueryPanelActive");
-      }
-    };
-    sendQueryPanelViewEvent();
-    if (this._panel && this.isWebviewView(this._panel)) {
-      this._panel.onDidChangeVisibility(sendQueryPanelViewEvent);
+  }
+
+  private sendQueryPanelViewEvent() {
+    if (this._panel!.visible) {
+      this.telemetry.sendTelemetryEvent("QueryPanelActive");
     }
   }
 
   private sendQueryTabViewEvent = () => {
-    if (this._panel!.visible) {
-      this.telemetry.sendTelemetryEvent("QueryTabActive");
-    }
+    this.telemetry.sendTelemetryEvent("QueryTabActive");
   };
 
   /** Renders webview content */
