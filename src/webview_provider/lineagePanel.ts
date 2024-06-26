@@ -173,14 +173,6 @@ export class LineagePanel implements WebviewViewProvider, Disposable {
       return;
     }
 
-    if (command === "openURL") {
-      if (!args.url) {
-        return;
-      }
-      env.openExternal(Uri.parse(args.url));
-      return;
-    }
-
     if (command === "reactError") {
       const typeMapper: { [key: string]: string } = {
         generic: "Generic",
