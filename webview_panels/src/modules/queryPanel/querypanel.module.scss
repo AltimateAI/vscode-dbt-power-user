@@ -59,3 +59,24 @@
     }
   }
 }
+
+.historyDetails {
+  display: flex;
+  flex-direction: column;
+
+  :global .card{
+    margin-bottom: 1rem !important;
+  }
+  :global .card-title {
+    padding-bottom: 0.5rem;
+    margin-bottom: 0;
+    padding-left: 0.5rem;
+    padding-top: 0.5rem;
+}
+  pre {
+    border: none !important;
+  }
+  :global .stack-row {
+    justify-content: space-between;
+  }
+}
