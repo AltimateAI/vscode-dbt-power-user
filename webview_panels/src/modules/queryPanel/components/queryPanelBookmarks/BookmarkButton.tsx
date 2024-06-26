@@ -13,7 +13,7 @@ import {
   PopoverBody,
   Select,
 } from "@uicore";
-import { MouseEvent, useRef, useState } from "react";
+import { MouseEvent, useEffect, useRef, useState } from "react";
 import { panelLogger } from "@modules/logger";
 import {
   executeRequestInAsync,
@@ -40,8 +40,21 @@ const schema = Yup.object({
 const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
   const dispatch = useQueryPanelDispatch();
   const [showForm, setShowForm] = useState(false);
+  const [tagsFromDB, setTags] = useState<string[]>([]);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
 
+  useEffect(() => {
+    executeRequestInSync("fetch", {
+      endpoint: "query/bookmark/tags",
+      fetchArgs: {
+        method: "GET",
+      },
+    })
+      .then((response) => {
+        setTags(response as string[]);
+      })
+      .catch((err) => panelLogger.error("Unable to get tags", err));
+  }, []);
   const {
     control,
     handleSubmit,
@@ -137,13 +150,9 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
               name="tags"
               render={({ field: { onChange, ref } }) => (
                 <Select
-                  components={{
-                    DropdownIndicator: null,
-                    Menu: () => null,
-                  }}
                   ref={ref}
                   inputId="tags"
-                  hideOptionIcon
+                  options={tagsFromDB.map((v) => ({ label: v, value: v }))}
                   isCreatable
                   isClearable
                   value={tags?.map((v) => ({ label: v, value: v }) ?? [])}

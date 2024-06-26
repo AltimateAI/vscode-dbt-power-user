@@ -89,10 +89,28 @@ export const DefaultQueryPanelView = {
           return;
         }
         if (request.command === "getQueryHistory") {
-          return QueryHistoryFactory.buildList(5);
+          window.postMessage({
+            command: "queryHistory",
+            args: { body: QueryHistoryFactory.buildList(5) },
+          });
+          return;
         }
         if (request.command === "getQueryBookmarks") {
-          return QueryBookmarkFactory.buildList(5);
+          window.postMessage({
+            command: "queryBookmarks",
+            args: { body: QueryBookmarkFactory.buildList(5) },
+          });
+          return;
+        }
+        if (request.command === "fetch") {
+          switch (request.endpoint) {
+            case "query/bookmark/tags":
+              return ["tag1", "tag2", "tag3"];
+              break;
+
+            default:
+              break;
+          }
         }
       },
       timer: 500,

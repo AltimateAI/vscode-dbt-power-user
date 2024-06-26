@@ -169,8 +169,8 @@ const useQueryPanelListeners = (): { loading: boolean; isPanel: boolean } => {
   useEffect(() => {
     void executeRequestInSync("getQueryPanelContext", {});
 
-    executeRequestInAsync("getQueryHistory", {});
-    executeRequestInAsync("getQueryBookmarks", {});
+    void executeRequestInSync("getQueryHistory", {});
+    void executeRequestInSync("getQueryBookmarks", {});
   }, []);
 
   useEffect(() => {

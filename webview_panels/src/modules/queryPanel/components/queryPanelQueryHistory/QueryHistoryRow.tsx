@@ -1,6 +1,5 @@
-import { DeleteIcon } from "@assets/icons";
 import { QueryHistory } from "@modules/queryPanel/context/types";
-import { IconButton, ListGroupItem } from "@uicore";
+import { ListGroupItem } from "@uicore";
 import BookmarkButton from "../queryPanelBookmarks/BookmarkButton";
 import ExecuteQueryButton from "./ExecuteQueryButton";
 
@@ -33,9 +32,6 @@ const QueryHistoryRow = ({ queryHistory, onSelect }: Props): JSX.Element => {
           projectName={queryHistory.projectName}
         />
         <BookmarkButton queryHistory={queryHistory} />
-        <IconButton title="Delete query from history">
-          <DeleteIcon />
-        </IconButton>
       </div>
     </ListGroupItem>
   );
