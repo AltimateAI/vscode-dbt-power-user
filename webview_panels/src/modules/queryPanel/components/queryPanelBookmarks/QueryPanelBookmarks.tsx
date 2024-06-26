@@ -1,5 +1,6 @@
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import QueryBookmarkRow from "./QueryBookmarkRow";
+import { ListGroup } from "@uicore";
 
 const QueryPanelBookmarks = (): JSX.Element => {
   const { queryBookmarks } = useQueryPanelState();
@@ -7,11 +8,11 @@ const QueryPanelBookmarks = (): JSX.Element => {
     return <div>No query bookmarks</div>;
   }
   return (
-    <div>
+    <ListGroup>
       {queryBookmarks.map((bookmark) => (
         <QueryBookmarkRow bookmark={bookmark} key={bookmark.created_on} />
       ))}
-    </div>
+    </ListGroup>
   );
 };
 

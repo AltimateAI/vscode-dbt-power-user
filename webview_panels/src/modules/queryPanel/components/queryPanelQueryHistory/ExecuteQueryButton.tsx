@@ -4,10 +4,11 @@ import { IconButton } from "@uicore";
 
 interface Props {
   query: string;
+  projectName: string;
 }
-const ExecuteQueryButton = ({ query }: Props): JSX.Element => {
+const ExecuteQueryButton = ({ query, projectName }: Props): JSX.Element => {
   const handleClick = () => {
-    executeRequestInAsync("executeQuery", { query });
+    executeRequestInAsync("executeQuery", { query, projectName });
   };
   return (
     <IconButton title="Execute query" onClick={handleClick}>

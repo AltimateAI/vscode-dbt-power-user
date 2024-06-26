@@ -66,13 +66,14 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
       };
 
       const response = await executeRequestInSync("fetch", {
-        endpoint: "/query/bookmark/",
+        endpoint: "query/bookmark/",
         fetchArgs: {
           body: JSON.stringify(request ?? {}),
           method: "POST",
         },
       });
       panelLogger.info("saved bookmark", response);
+      executeRequestInAsync("getQueryBookmarks", {});
       const actionResponse = await executeRequestInSync(
         "showInformationMessage",
         {

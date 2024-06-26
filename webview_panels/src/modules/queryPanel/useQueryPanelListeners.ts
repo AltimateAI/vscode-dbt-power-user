@@ -144,6 +144,9 @@ const useQueryPanelListeners = (): { loading: boolean; isPanel: boolean } => {
         case "queryHistory":
           handleIncomingQueryHistory(args.args.body as QueryHistory[]);
           break;
+        case "queryBookmarks":
+          dispatch(setQueryBookmarks(args.args.body as QueryBookmark[]));
+          break;
         case "getContext":
           // @ts-expect-error valid type
           dispatch(setLastHintTimestamp(args.lastHintTimestamp as number));
@@ -166,21 +169,8 @@ const useQueryPanelListeners = (): { loading: boolean; isPanel: boolean } => {
   useEffect(() => {
     void executeRequestInSync("getQueryPanelContext", {});
 
-    executeRequestInSync("getQueryHistory", {})
-      .then((queryHistory) => {
-        dispatch(setQueryHistory(queryHistory as QueryHistory[]));
-      })
-      .catch((error) => {
-        panelLogger.error("Error fetching query history", error);
-      });
-
-    executeRequestInSync("getQueryBookmarks", {})
-      .then((queryBookmarks) => {
-        dispatch(setQueryBookmarks(queryBookmarks as QueryBookmark[]));
-      })
-      .catch((error) => {
-        panelLogger.error("Error fetching query bookmarks", error);
-      });
+    executeRequestInAsync("getQueryHistory", {});
+    executeRequestInAsync("getQueryBookmarks", {});
   }, []);
 
   useEffect(() => {

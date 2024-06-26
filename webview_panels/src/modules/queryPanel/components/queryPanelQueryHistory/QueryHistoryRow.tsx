@@ -28,7 +28,10 @@ const QueryHistoryRow = ({ queryHistory, onSelect }: Props): JSX.Element => {
             year: "2-digit",
           })}
         </span>
-        <ExecuteQueryButton query={queryHistory.rawSql} />
+        <ExecuteQueryButton
+          query={queryHistory.rawSql}
+          projectName={queryHistory.projectName}
+        />
         <BookmarkButton queryHistory={queryHistory} />
         <IconButton title="Delete query from history">
           <DeleteIcon />

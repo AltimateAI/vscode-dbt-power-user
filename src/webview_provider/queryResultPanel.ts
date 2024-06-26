@@ -17,7 +17,11 @@ import {
 import { readFileSync } from "fs";
 import { PythonException } from "python-bridge";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { getFormattedDateTime, provideSingleton } from "../utils";
+import {
+  extendErrorWithSupportLinks,
+  getFormattedDateTime,
+  provideSingleton,
+} from "../utils";
 import { TelemetryService } from "../telemetry";
 import { AltimateRequest } from "../altimate";
 import {
@@ -106,7 +110,14 @@ interface RecOpenUrl {
   url: string;
 }
 
-const QueryHistoryKey = "queryHistory";
+interface QueryHistory {
+  rawSql: string;
+  compiledSql: string;
+  timestamp: number;
+  duration: number;
+  adapter: string;
+  projectName: string;
+}
 
 @provideSingleton(QueryResultPanel)
 export class QueryResultPanel extends AltimateWebviewProvider {
@@ -114,9 +125,12 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   protected viewPath = "/query-panel";
   protected panelDescription = "Query results panel";
   private _queryTabData: any;
+  private _bottomPanel: WebviewView | undefined;
 
   private queryExecution?: QueryExecution;
   private incomingMessages: SendMessageProps[] = [];
+
+  private _queryHistory: QueryHistory[] = [];
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
@@ -190,6 +204,21 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     );
   }
 
+  private createQueryResultsPanelVirtualDocument() {
+    const webviewPanel = window.createWebviewPanel(
+      QueryResultPanel.viewType,
+      "query_result_" + getFormattedDateTime(),
+      {
+        viewColumn: ViewColumn.Active,
+      },
+      { enableScripts: true, retainContextWhenHidden: true },
+    );
+    this._panel = webviewPanel;
+    this._webview = webviewPanel.webview;
+    this.renderWebviewView(webviewPanel.webview);
+    this.setupWebviewHooks();
+  }
+
   protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
     switch (command) {
       case "executeQuery":
@@ -205,18 +234,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           payload,
         );
         this._queryTabData = payload.queryTabData;
-        const webviewPanel = window.createWebviewPanel(
-          QueryResultPanel.viewType,
-          "query_result_" + getFormattedDateTime(),
-          {
-            viewColumn: ViewColumn.Active,
-          },
-          { enableScripts: true, retainContextWhenHidden: true },
-        );
-        this._panel = webviewPanel;
-        this._webview = webviewPanel.webview;
-        this.renderWebviewView(webviewPanel.webview);
-        this.setupWebviewHooks();
+        this.createQueryResultsPanelVirtualDocument();
         break;
       default:
         super.onEvent({ command, payload });
@@ -229,6 +247,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     _token: CancellationToken,
   ) {
     this._panel = panel;
+    this._bottomPanel = panel;
     this._webview = panel.webview;
     this.bindWebviewOptions(context);
     this.renderWebviewView(panel.webview);
@@ -256,24 +275,46 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._panel.webview.options = <WebviewOptions>{ enableScripts: true };
   }
 
+  private async executeIncomingQuery(message: {
+    query: string;
+    projectName: string;
+  }) {
+    const project = this.queryManifestService.getProjectByName(
+      message.projectName as string,
+    );
+    if (!project) {
+      window.showErrorMessage(
+        extendErrorWithSupportLinks("Unable to find project to execute query"),
+      );
+      this.dbtTerminal.error(
+        "ExecuteSqlError",
+        "Unable to find project to execute query",
+        Error("Unable to find project to execute query"),
+      );
+      return;
+    }
+
+    this.createQueryResultsPanelVirtualDocument();
+
+    await project.executeSQL(message.query, "");
+  }
+
   /** Primary interface for WebviewView inbound communication */
   private setupWebviewHooks() {
     this._panel!.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
           case InboundCommand.ExecuteQuery:
+            await this.executeIncomingQuery(message);
             break;
           case InboundCommand.GetQueryHistory:
-            const history =
-              this.dbtProjectContainer.getFromWorkspaceState(QueryHistoryKey) ||
-              [];
             this.sendResponseToWebview({
               command: "queryHistory",
-              data: history,
+              data: this._queryHistory,
             });
             break;
           case InboundCommand.GetQueryBookmarks:
-            const bookmarks = this.altimate.getQueryBookmarks();
+            const bookmarks = await this.altimate.getQueryBookmarks();
             this.sendResponseToWebview({
               command: "queryBookmarks",
               data: bookmarks,
@@ -439,6 +480,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         }),
       });
     }
+    this._panel = this._bottomPanel;
   }
 
   /** Sends error result data to webview */
@@ -527,20 +569,29 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     query: string,
     duration: number,
   ) {
-    // this.dbtProjectContainer.setToWorkspaceState(QueryHistoryKey, null);
-    const history =
-      this.dbtProjectContainer.getFromWorkspaceState(QueryHistoryKey) || [];
     const project = this.queryManifestService.getProject();
-    history.unshift({
+    if (!project) {
+      this.dbtTerminal.debug(
+        "updateQueryHistory",
+        "skipping query history update, no project found, may be executed from query history",
+      );
+      return;
+    }
+    this._queryHistory.unshift({
       rawSql: query,
       compiledSql: result.compiled_sql,
       timestamp: Date.now(),
       duration,
-      adapter: project?.getAdapterType(),
-      projectName: project?.getProjectName(),
+      adapter: project.getAdapterType(),
+      projectName: project.getProjectName(),
     });
-    this.dbtProjectContainer.setToWorkspaceState(QueryHistoryKey, history);
-    this.sendResponseToWebview({ command: "queryHistory", data: history });
+    this._bottomPanel?.webview.postMessage({
+      command: "queryHistory",
+      args: {
+        body: this._queryHistory,
+        status: true,
+      },
+    });
   }
 
   /** Runs a query transmitting appropriate notifications to webview */
