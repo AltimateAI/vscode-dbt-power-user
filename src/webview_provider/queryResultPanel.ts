@@ -38,6 +38,7 @@ import {
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { QueryManifestService } from "../services/queryManifestService";
 import { UsersService } from "../services/usersService";
+import { ProjectQuickPick } from "../quickpick/projectQuickPick";
 
 interface JsonObj {
   [key: string]: string | number | undefined;
@@ -140,6 +141,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
+    private projectQuickPick: ProjectQuickPick,
   ) {
     super(
       dbtProjectContainer,
@@ -282,28 +284,61 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._panel.webview.options = <WebviewOptions>{ enableScripts: true };
   }
 
+  private async getProject(projectName?: string) {
+    if (!projectName) {
+      this.dbtTerminal.debug(
+        "getProject",
+        "no project name provided, getting all projects in workspace",
+      );
+      const projects = this.dbtProjectContainer.getProjects();
+      if (projects.length === 1) {
+        this.dbtTerminal.debug(
+          "getProject",
+          `single project in workspace, returning project: ${projects[0].getProjectName()}`,
+        );
+        return projects[0];
+      }
+
+      this.dbtTerminal.debug(
+        "getProject",
+        "multiple projects in workspace, prompting user to select project",
+      );
+
+      const pickedProject = await this.projectQuickPick.projectPicker(
+        await this.dbtProjectContainer.getProjects(),
+      );
+      if (!pickedProject) {
+        throw new Error("No project selected");
+      }
+      projectName = pickedProject.label;
+    }
+
+    const project = this.queryManifestService.getProjectByName(projectName);
+    if (!project) {
+      throw new Error("Unable to find project to execute query");
+    }
+    return project;
+  }
+
   private async executeIncomingQuery(message: {
     query: string;
     projectName: string;
   }) {
-    const project = this.queryManifestService.getProjectByName(
-      message.projectName as string,
-    );
-    if (!project) {
+    try {
+      const project = await this.getProject(message.projectName);
+      this.createQueryResultsPanelVirtualDocument();
+      await project.executeSQL(message.query, "");
+    } catch (error) {
       window.showErrorMessage(
-        extendErrorWithSupportLinks("Unable to find project to execute query"),
+        extendErrorWithSupportLinks((error as Error).message),
       );
       this.dbtTerminal.error(
         "ExecuteSqlError",
-        "Unable to find project to execute query",
-        Error("Unable to find project to execute query"),
+        "Unable to execute query",
+        error,
       );
       return;
     }
-
-    this.createQueryResultsPanelVirtualDocument();
-
-    await project.executeSQL(message.query, "");
   }
 
   /** Primary interface for WebviewView inbound communication */
