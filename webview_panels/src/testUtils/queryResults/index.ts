@@ -41,4 +41,5 @@ export const QueryBookmarkFactory = Sync.makeFactory<QueryBookmark>({
   tags: Sync.each(() => [
     { id: faker.datatype.number(), tag_name: faker.lorem.word() },
   ]),
+  privacy: Sync.each(() => faker.helpers.arrayElement(["public", "private"])),
 });
