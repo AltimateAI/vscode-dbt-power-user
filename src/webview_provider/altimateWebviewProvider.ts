@@ -332,6 +332,15 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             params.value,
           );
           break;
+        case "getFromContext":
+          this.sendResponseToWebview({
+            command: "response",
+            data: this.dbtProjectContainer.getFromGlobalState(
+              params.key as string,
+            ),
+            syncRequestId,
+          });
+          break;
         case "updateConfig":
           if (!this.isUpdateConfigProps(params)) {
             return;

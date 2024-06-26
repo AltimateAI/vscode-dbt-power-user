@@ -175,6 +175,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         );
         break;
       case "queryResultTab:render":
+        this.dbtProjectContainer.setToGlobalState(
+          "open-query-results-in-tab-clicked",
+          true,
+        );
         this.dbtTerminal.debug(
           "queryResultTab:render",
           "rendering query result tab",
