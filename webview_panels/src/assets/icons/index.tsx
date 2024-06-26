@@ -139,3 +139,7 @@ export const BookmarkIcon = (
 export const ShareIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
   <Icon icon="live-share" {...props} />
 );
+
+export const FilterIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
+  <Icon icon="filter" {...props} />
+);
