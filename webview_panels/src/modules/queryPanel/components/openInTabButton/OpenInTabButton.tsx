@@ -18,7 +18,7 @@ const OpenInTabButton = (): JSX.Element | null => {
     <Button outline onClick={handleClick} className="position-relative">
       Open in Tab
       {!isClicked ? (
-        <NewFeatureIndicator featureKey="open-query-results-in-tab-clicked-2" />
+        <NewFeatureIndicator featureKey="open-query-results-in-tab-clicked" />
       ) : null}
     </Button>
   );
