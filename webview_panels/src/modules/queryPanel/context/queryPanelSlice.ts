@@ -108,6 +108,14 @@ const queryPanelSlice = createSlice({
     ) => {
       state.loading = action.payload;
     },
+    removeBookmark: (state, action: PayloadAction<QueryBookmark["id"]>) => {
+      if (!state.queryBookmarks) {
+        return;
+      }
+      state.queryBookmarks = state.queryBookmarks.filter(
+        (bookmark) => bookmark.id !== action.payload,
+      );
+    },
     updateBookmark: (state, action: PayloadAction<QueryBookmark>) => {
       if (!action.payload.id || !state.queryBookmarks) {
         return;
@@ -142,6 +150,7 @@ export const {
   setQueryBookmarksEnabled,
   setTabState,
   updateBookmark,
+  removeBookmark,
 } = queryPanelSlice.actions;
 
 export default queryPanelSlice;

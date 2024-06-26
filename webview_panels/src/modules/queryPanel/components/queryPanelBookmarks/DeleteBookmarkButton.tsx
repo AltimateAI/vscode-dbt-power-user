@@ -19,10 +19,20 @@ const DeleteBookmarkButton = ({
 
   const deleteBookmark = async () => {
     setIsSubmitting(true);
+    const confirmResponse = await executeRequestInSync("showWarningMessage", {
+      infoMessage: "Do you want to delete this bookmark?",
+      items: ["Yes", "No"],
+    });
+    if (confirmResponse === "No") {
+      setIsSubmitting(false);
+      return;
+    }
     try {
       await executeRequestInSync("fetch", {
         endpoint: `query/bookmark/${bookmark.id}`,
-        method: "DELETE",
+        fetchArgs: {
+          method: "DELETE",
+        },
       });
       executeRequestInAsync("showInformationMessage", {
         infoMessage: "Successfully deleted bookmark!",

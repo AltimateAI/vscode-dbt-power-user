@@ -206,7 +206,19 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     );
   }
 
-  private createQueryResultsPanelVirtualDocument() {
+  private async checkIfWebviewReady() {
+    return new Promise<void>((resolve) => {
+      const interval = setInterval(() => {
+        if (this.isWebviewReady) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 500);
+    });
+  }
+
+  private async createQueryResultsPanelVirtualDocument() {
+    this.isWebviewReady = false;
     const webviewPanel = window.createWebviewPanel(
       QueryResultPanel.viewType,
       "query_result_" + getFormattedDateTime(),
@@ -220,6 +232,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this.renderWebviewView(webviewPanel.webview);
     this.setupWebviewHooks();
     this.sendQueryTabViewEvent();
+    await this.checkIfWebviewReady();
   }
 
   protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
@@ -326,8 +339,8 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   }) {
     try {
       const project = await this.getProject(message.projectName);
-      this.createQueryResultsPanelVirtualDocument();
-      await project.executeSQL(message.query, "");
+      await this.createQueryResultsPanelVirtualDocument();
+      await project.executeSQL(message.query, "model");
     } catch (error) {
       window.showErrorMessage(
         extendErrorWithSupportLinks((error as Error).message),
@@ -368,8 +381,12 @@ export class QueryResultPanel extends AltimateWebviewProvider {
               data: this._queryTabData,
               syncRequestId: message.syncRequestId,
             });
-            // reset to bottom panel
-            this._panel = this._bottomPanel;
+            // Reset only if opening query results in a tab using "Open in Tab" button
+            if (this._queryTabData) {
+              // reset to bottom panel
+              this._panel = this._bottomPanel;
+              this._queryTabData = undefined;
+            }
             break;
           case InboundCommand.GetQueryPanelContext:
             const perspectiveTheme = workspace
@@ -519,7 +536,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         }),
       });
     }
-    this._panel = this._bottomPanel;
   }
 
   /** Sends error result data to webview */
@@ -702,6 +718,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       );
     } finally {
       this.queryExecution = undefined;
+      this._panel = this._bottomPanel;
     }
   }
 

@@ -115,7 +115,7 @@ const QueryPanelBookmarks = (): JSX.Element => {
           trigger={() => (
             <Stack className="align-items-center justify-content-between">
               <span>
-                {item.title} ({myBookmarks.length})
+                {item.title} ({item.bookmarks.length})
               </span>
               <Filters tags={item.tags} onFiltersChange={onFiltersChange} />
             </Stack>

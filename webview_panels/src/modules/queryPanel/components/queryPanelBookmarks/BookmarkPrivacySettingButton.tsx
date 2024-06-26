@@ -3,6 +3,7 @@ import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
+import { panelLogger } from "@modules/logger";
 import { updateBookmark } from "@modules/queryPanel/context/queryPanelSlice";
 import { QueryBookmark } from "@modules/queryPanel/context/types";
 import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
@@ -16,17 +17,23 @@ import {
   Popover,
   PopoverBody,
 } from "@uicore";
-import { ChangeEvent, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const BookmarkPrivacySettingButton = ({
   bookmark,
 }: {
   bookmark: QueryBookmark;
 }): JSX.Element => {
+  const [privacy, setPrivacy] = useState(bookmark.privacy);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const queryPanelDispatch = useQueryPanelDispatch();
+
+  panelLogger.log("bookmark", bookmark.privacy);
+  useEffect(() => {
+    setPrivacy(bookmark.privacy);
+  }, [bookmark.privacy]);
 
   const onClose = () => {
     setShowForm(false);
@@ -39,15 +46,18 @@ const BookmarkPrivacySettingButton = ({
   const saveSettings = async () => {
     setIsSubmitting(true);
     try {
+      const endpoint = `query/bookmark/privacy/${bookmark.id}?privacy=${encodeURIComponent(privacy)}`;
       await executeRequestInSync("fetch", {
-        endpoint: `query/bookmark/privacy/${bookmark.id}`,
-        method: "PUT",
-        body: JSON.stringify({ privacy: bookmark.privacy }),
+        endpoint,
+        fetchArgs: {
+          method: "PUT",
+        },
       });
       executeRequestInAsync("showInformationMessage", {
         infoMessage: "Successfully saved bookmark!",
       });
       setShowForm(false);
+      handleUpdate();
     } catch (error) {
       executeRequestInAsync("showErrorMessage", {
         infoMessage: (error as Error).message,
@@ -56,11 +66,11 @@ const BookmarkPrivacySettingButton = ({
     setIsSubmitting(false);
   };
 
-  const handleUpdate = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleUpdate = () => {
     queryPanelDispatch(
       updateBookmark({
         ...bookmark,
-        privacy: e.target.checked ? "public" : "private",
+        privacy,
       }),
     );
   };
@@ -81,8 +91,10 @@ const BookmarkPrivacySettingButton = ({
           <h4>Share bookmark</h4>
           <FormGroup switch>
             <Input
-              onChange={handleUpdate}
-              value={bookmark.privacy}
+              onChange={(e) =>
+                setPrivacy(e.target.checked ? "public" : "private")
+              }
+              checked={privacy === "public"}
               type="switch"
               role="switch"
             />
