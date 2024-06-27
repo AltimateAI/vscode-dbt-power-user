@@ -90,6 +90,11 @@ const AltimateSelect = (props: Props): JSX.Element => {
       borderColor: "var(--stroke--disable)",
       color: "var(--text-color--paragraph)",
     }),
+    container: (styles, cprops) => ({
+      ...styles,
+      // @ts-expect-error TODO fix this type
+      ...props.styles?.container?.(styles, cprops),
+    }),
   };
   const selectName = props.name ?? `select-${Math.random()}`;
 

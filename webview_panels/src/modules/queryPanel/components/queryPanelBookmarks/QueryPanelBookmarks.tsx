@@ -107,36 +107,37 @@ const QueryPanelBookmarks = (): JSX.Element => {
   };
 
   return (
-    <div className={styles.queryHistoryList}>
+    <div>
       {data.map((item) => (
-        <Accordion
-          key={item.title}
-          defaultOpen={item.open}
-          trigger={() => (
-            <Stack className="align-items-center justify-content-between">
-              <span>
-                {item.title} ({item.bookmarks.length})
-              </span>
-              <Filters
-                tags={item.tags}
-                onFiltersChange={onFiltersChange}
-                searchQuery={filters.searchQuery}
-              />
-            </Stack>
-          )}
-        >
-          {() => (
-            <ListGroup>
-              {item.bookmarks.map((bookmark) => (
-                <QueryBookmarkRow
-                  bookmark={bookmark}
-                  key={bookmark.created_on}
-                  onSelect={onSelect}
+        <div key={item.title} className={`mb-4 ${styles.queryHistoryList}`}>
+          <Accordion
+            defaultOpen={item.bookmarks.length > 0}
+            trigger={() => (
+              <header className="d-flex align-items-center justify-content-between">
+                <h4>
+                  {item.title} ({item.bookmarks.length})
+                </h4>
+                <Filters
+                  tags={item.tags}
+                  onFiltersChange={onFiltersChange}
+                  searchQuery={filters.searchQuery}
                 />
-              ))}
-            </ListGroup>
-          )}
-        </Accordion>
+              </header>
+            )}
+          >
+            {() => (
+              <ListGroup>
+                {item.bookmarks.map((bookmark) => (
+                  <QueryBookmarkRow
+                    bookmark={bookmark}
+                    key={bookmark.created_on}
+                    onSelect={onSelect}
+                  />
+                ))}
+              </ListGroup>
+            )}
+          </Accordion>
+        </div>
       ))}
       <Drawer ref={drawerRef} onClose={handleClose}>
         {activeBookmark ? (

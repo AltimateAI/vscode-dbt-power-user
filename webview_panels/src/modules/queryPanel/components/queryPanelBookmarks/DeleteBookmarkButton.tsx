@@ -51,7 +51,6 @@ const DeleteBookmarkButton = ({
       <LoadingButton
         onClick={deleteBookmark}
         loading={isSubmitting}
-        title="Delete bookmark"
         className="bg-transparent"
       >
         <DeleteIcon />

@@ -38,7 +38,7 @@ const Filters = ({
   };
 
   return (
-    <div onClick={stopPropagation}>
+    <div className="d-flex" onClick={stopPropagation}>
       {showSearch ? (
         <Input
           type="search"
@@ -53,15 +53,26 @@ const Filters = ({
           <SearchIcon />
         </IconButton>
       )}
-      {tags.length ? <FilterIcon onClick={() => setShowForm(true)} /> : null}
       {showForm ? (
         <Select
+          components={{ DropdownIndicator: null }}
+          styles={{
+            container: (styles) => ({
+              ...styles,
+              minWidth: 200,
+              marginBottom: "1rem",
+            }),
+          }}
           inputId="tags"
           openMenuOnFocus
           isMulti
           options={tags?.map((v) => ({ label: v, value: v }) ?? [])}
           onChange={handleTagsChange}
         />
+      ) : tags.length ? (
+        <IconButton title="Search query" onClick={() => setShowForm(true)}>
+          <FilterIcon />
+        </IconButton>
       ) : null}
     </div>
   );
