@@ -1,10 +1,11 @@
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import QueryHistoryRow from "./QueryHistoryRow";
-import { CodeBlock, Drawer, DrawerRef, Label, ListGroup, Stack } from "@uicore";
+import { CodeBlock, Label, ListGroup, Stack } from "@uicore";
 import styles from "../../querypanel.module.scss";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { QueryHistory } from "@modules/queryPanel/context/types";
 import Filters from "../filters/Filters";
+import { NoBookmarksIcon } from "@assets/icons";
 
 const QueryPanelHistory = (): JSX.Element => {
   const [filters, setFilters] = useState<{
@@ -14,20 +15,13 @@ const QueryPanelHistory = (): JSX.Element => {
 
   const [activeHistory, setActiveHistory] = useState<QueryHistory | null>(null);
   const { queryHistory } = useQueryPanelState();
-  const drawerRef = useRef<DrawerRef | null>(null);
 
   const onFiltersChange = (data: { tags?: string[]; searchQuery?: string }) => {
     setFilters((prev) => ({ ...prev, ...data }));
   };
 
   const onSelect = (qh: QueryHistory) => {
-    drawerRef.current?.open();
     setActiveHistory(qh);
-  };
-
-  const handleClose = () => {
-    drawerRef.current?.close();
-    setActiveHistory(null);
   };
 
   const historyItems = useMemo(() => {
@@ -41,53 +35,63 @@ const QueryPanelHistory = (): JSX.Element => {
     });
   }, [queryHistory, filters]);
 
-  if (!queryHistory.length) {
-    return <div>No query history</div>;
-  }
   return (
-    <section className={styles.queryHistoryList}>
-      <header className="d-flex justify-content-between">
-        <h4>History</h4>
-        <Filters
-          tags={[]}
-          onFiltersChange={onFiltersChange}
-          searchQuery={filters.searchQuery}
-        />
-      </header>
-      <ListGroup>
-        {historyItems.map((qh) => (
-          <QueryHistoryRow
-            queryHistory={qh}
-            key={qh.timestamp}
-            onSelect={onSelect}
+    <section className={styles.queryTwoCol}>
+      <div className={`${styles.limitWidth} ${styles.queryHistoryList}`}>
+        <header className="d-flex justify-content-between">
+          <h4>History</h4>
+          <Filters
+            tags={[]}
+            onFiltersChange={onFiltersChange}
+            searchQuery={filters.searchQuery}
           />
-        ))}
-      </ListGroup>
-      <Drawer ref={drawerRef} onClose={handleClose}>
+        </header>
+        {historyItems.length === 0 ? (
+          <Stack className={styles.noBookmark} direction="column">
+            <NoBookmarksIcon />
+            <div>
+              <h6>No history available.</h6>
+              <p>
+                This section will show queries exectuted in this session. You
+                can bookmark your queries from query history.
+              </p>
+            </div>
+          </Stack>
+        ) : (
+          <ListGroup>
+            {historyItems.map((qh) => (
+              <QueryHistoryRow
+                queryHistory={qh}
+                key={qh.timestamp}
+                onSelect={onSelect}
+              />
+            ))}
+          </ListGroup>
+        )}
+      </div>
+      {activeHistory ? (
         <div className={styles.historyDetails}>
-          {activeHistory?.rawSql ? (
-            <CodeBlock
-              code={activeHistory.rawSql}
-              language="sql"
-              fileName="Raw sql"
-            />
-          ) : null}
           <div>
             <Stack>
               <Label>Adapter</Label>
-              {activeHistory?.adapter}
+              {activeHistory.adapter}
             </Stack>
             <Stack>
               <Label>Project Name</Label>
-              {activeHistory?.projectName}
+              {activeHistory.projectName}
             </Stack>
             <Stack>
               <Label>Time taken</Label>
-              {activeHistory?.duration}ms
+              {activeHistory.duration}ms
             </Stack>
           </div>
+          <CodeBlock
+            code={activeHistory.rawSql}
+            language="sql"
+            fileName="Raw sql"
+          />
         </div>
-      </Drawer>
+      ) : null}
     </section>
   );
 };

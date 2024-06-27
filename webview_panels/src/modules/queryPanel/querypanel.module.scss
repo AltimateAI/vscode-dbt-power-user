@@ -28,84 +28,110 @@
     }
   }
 
-  .queryHistoryList {
-    background-color: var(--background--01);
-    border-radius: 5px;
-    header {
-      padding: 0.5rem 1rem 0 1rem;
-      border-bottom: 1px solid var(--stroke--default);
+  .noBookmark {
+    min-height: 200px;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    text-align: center;
+    padding: 2rem;
+    svg {
+      background-color: var(--background--base);
+      border-radius: 50%;
+      padding: 0.5rem;
+      box-sizing: content-box;
     }
-    :global .list-group {
-      border-radius: 0;
+  }
+  .queryTwoCol {
+    display: flex;
+    align-items: flex-start;
+    .historyDetails {
+      width: 400px;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--background--02);
       padding: 1rem;
-      :global .list-group-item {
-        background-color: var(--background--base);
-        color: var(--text-color--title);
-        margin-bottom: 1rem;
-        border-radius: 4px;
-        border: none;
-        display: flex;
+      border-radius: 10px;
+
+      :global .card {
+        margin-top: 1rem !important;
+      }
+      :global .card-title {
+        padding-bottom: 0.5rem;
+        margin-bottom: 0;
+        padding-left: 0.5rem;
+        padding-top: 0.5rem;
+      }
+      pre {
+        border: none !important;
+      }
+      :global .stack-row {
         justify-content: space-between;
-        align-items: center;
-        cursor: pointer;
-        padding: 4px 0.5rem;
-        min-height: 2.5rem;
+      }
+    }
+    .limitWidth {
+      width: calc(100% - 400px - 2rem);
+      margin-right: 2rem;
+    }
+    .queryHistoryList {
+      background-color: var(--background--01);
+      border-radius: 5px;
 
-        > div:first-child {
-          text-overflow: ellipsis;
-          overflow: hidden;
-          white-space: nowrap;
-          flex: 1;
-          max-width: 60%;
+      header {
+        padding: 0.5rem 1rem 0 1rem;
+        border-bottom: 1px solid var(--stroke--default);
+      }
+      :global .list-group {
+        border-radius: 0;
+        padding: 1rem;
+        :global .list-group-item {
+          background-color: var(--background--base);
+          color: var(--text-color--title);
+          margin-bottom: 1rem;
+          border-radius: 4px;
+          border: none;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          cursor: pointer;
+          padding: 4px 0.5rem;
+          min-height: 2.5rem;
 
-          .codicon {
-            color: #89d185;
-            margin-right: 0.5rem;
+          > div:first-child {
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+            flex: 1;
+            max-width: 60%;
+
+            .codicon {
+              color: #89d185;
+              margin-right: 0.5rem;
+            }
           }
-        }
 
-        > div:last-child {
-          span {
-            vertical-align: bottom;
-          }
-          button {
-            display: none;
-            padding: 2px 4px;
-            margin-left: 2px;
-          }
-        }
-
-        &:hover {
           > div:last-child {
+            span {
+              vertical-align: bottom;
+            }
             button {
-              display: inline-block;
-              color: var(--text-color--title);
+              display: none;
+              padding: 2px 4px;
+              margin-left: 2px;
+            }
+          }
+
+          &:hover {
+            > div:last-child {
+              button {
+                display: inline-block;
+                color: var(--text-color--title);
+              }
             }
           }
         }
       }
     }
-  }
-}
-
-.historyDetails {
-  display: flex;
-  flex-direction: column;
-
-  :global .card {
-    margin-bottom: 1rem !important;
-  }
-  :global .card-title {
-    padding-bottom: 0.5rem;
-    margin-bottom: 0;
-    padding-left: 0.5rem;
-    padding-top: 0.5rem;
-  }
-  pre {
-    border: none !important;
-  }
-  :global .stack-row {
-    justify-content: space-between;
   }
 }
 

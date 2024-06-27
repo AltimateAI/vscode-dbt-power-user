@@ -1,18 +1,11 @@
 import styles from "../../querypanel.module.scss";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import QueryBookmarkRow from "./QueryBookmarkRow";
-import {
-  Accordion,
-  ListGroup,
-  Stack,
-  Drawer,
-  DrawerRef,
-  CodeBlock,
-  Label,
-} from "@uicore";
-import { useMemo, useRef, useState } from "react";
+import { Accordion, ListGroup, Stack, CodeBlock, Label } from "@uicore";
+import { useMemo, useState } from "react";
 import Filters from "../filters/Filters";
 import { QueryBookmark } from "@modules/queryPanel/context/types";
+import { NoBookmarksIcon } from "@assets/icons";
 
 const QueryPanelBookmarks = (): JSX.Element => {
   const [activeBookmark, setActiveBookmark] = useState<QueryBookmark | null>(
@@ -22,8 +15,7 @@ const QueryPanelBookmarks = (): JSX.Element => {
     tags: string[];
     searchQuery?: string;
   }>({ tags: [] });
-  const { queryBookmarks } = useQueryPanelState();
-  const drawerRef = useRef<DrawerRef | null>(null);
+  const { queryBookmarks = [] } = useQueryPanelState();
 
   const onFiltersChange = (data: { tags?: string[]; searchQuery?: string }) => {
     setFilters((prev) => ({ ...prev, ...data }));
@@ -77,10 +69,6 @@ const QueryPanelBookmarks = (): JSX.Element => {
     }, []);
   }, [sharedBookmarks]);
 
-  if (!queryBookmarks.length) {
-    return <div>No query bookmarks</div>;
-  }
-
   const data = [
     {
       title: "My Bookmarks",
@@ -97,84 +85,80 @@ const QueryPanelBookmarks = (): JSX.Element => {
   ];
 
   const onSelect = (qh: QueryBookmark) => {
-    drawerRef.current?.open();
     setActiveBookmark(qh);
   };
 
-  const handleClose = () => {
-    drawerRef.current?.close();
-    setActiveBookmark(null);
-  };
-
   return (
-    <div>
-      {data.map((item) => (
-        <div key={item.title} className={`mb-4 ${styles.queryHistoryList}`}>
-          <Accordion
-            defaultOpen={item.bookmarks.length > 0}
-            trigger={() => (
-              <header className="d-flex align-items-center justify-content-between">
-                <h4>
-                  {item.title} ({item.bookmarks.length})
-                </h4>
-                <Filters
-                  tags={item.tags}
-                  onFiltersChange={onFiltersChange}
-                  searchQuery={filters.searchQuery}
-                />
-              </header>
-            )}
-          >
-            {() => (
-              <ListGroup>
-                {item.bookmarks.map((bookmark) => (
-                  <QueryBookmarkRow
-                    bookmark={bookmark}
-                    key={bookmark.created_on}
-                    onSelect={onSelect}
+    <section className={styles.queryTwoCol}>
+      <Stack direction="column" className={styles.limitWidth}>
+        {data.map((item, index) => (
+          <div key={item.title} className={`mb-4 ${styles.queryHistoryList}`}>
+            <Accordion
+              defaultOpen={index === 0 ?? item.bookmarks.length > 0}
+              trigger={() => (
+                <header className="d-flex align-items-center justify-content-between">
+                  <h4>
+                    {item.title} ({item.bookmarks.length})
+                  </h4>
+                  <Filters
+                    tags={item.tags}
+                    onFiltersChange={onFiltersChange}
+                    searchQuery={filters.searchQuery}
                   />
-                ))}
-              </ListGroup>
-            )}
-          </Accordion>
-        </div>
-      ))}
-      <Drawer ref={drawerRef} onClose={handleClose}>
-        {activeBookmark ? (
-          <div className={styles.historyDetails}>
-            <h4>{activeBookmark.name}</h4>
-            {activeBookmark.raw_sql ? (
-              <CodeBlock
-                code={activeBookmark.raw_sql}
-                language="sql"
-                fileName="Raw sql"
-              />
-            ) : null}
-            {activeBookmark.compiled_sql ? (
-              <CodeBlock
-                code={activeBookmark.compiled_sql}
-                language="sql"
-                fileName="Raw sql"
-              />
-            ) : null}
-            <div>
-              <Stack>
-                <Label>Tags</Label>
-                {activeBookmark.tags.map((t) => t.tag).join(",")}
-              </Stack>
-              <Stack>
-                <Label>Adapter</Label>
-                {activeBookmark.adapter_type}
-              </Stack>
-              <Stack>
-                <Label>Privacy</Label>
-                {activeBookmark.privacy}ms
-              </Stack>
-            </div>
+                </header>
+              )}
+            >
+              {() =>
+                item.bookmarks.length === 0 ? (
+                  <Stack className={styles.noBookmark} direction="column">
+                    <NoBookmarksIcon />
+                    <h6>No Bookmarks available</h6>
+                  </Stack>
+                ) : (
+                  <ListGroup>
+                    {item.bookmarks.map((bookmark) => (
+                      <QueryBookmarkRow
+                        bookmark={bookmark}
+                        key={bookmark.created_on}
+                        onSelect={onSelect}
+                      />
+                    ))}
+                  </ListGroup>
+                )
+              }
+            </Accordion>
           </div>
-        ) : null}
-      </Drawer>
-    </div>
+        ))}
+      </Stack>
+
+      {activeBookmark ? (
+        <div className={styles.historyDetails}>
+          <h4>{activeBookmark.name}</h4>
+          <div>
+            <Stack>
+              <Label>Tags</Label>
+              {activeBookmark.tags.map((t) => t.tag).join(",")}
+            </Stack>
+            <Stack>
+              <Label>Adapter</Label>
+              {activeBookmark.adapter_type}
+            </Stack>
+            <Stack>
+              <Label>Privacy</Label>
+              {activeBookmark.privacy}ms
+            </Stack>
+          </div>
+
+          {activeBookmark.raw_sql ? (
+            <CodeBlock
+              code={activeBookmark.raw_sql}
+              language="sql"
+              fileName="Raw sql"
+            />
+          ) : null}
+        </div>
+      ) : null}
+    </section>
   );
 };
 
