@@ -34,7 +34,7 @@ const QueryPanelBookmarks = (): JSX.Element => {
       return true;
     }
     return filters.tags.every((tag) =>
-      bookmark.tags.some((bookmarkTag) => bookmarkTag.tag_name === tag),
+      bookmark.tags.some((bookmarkTag) => bookmarkTag.tag === tag),
     );
   };
 
@@ -60,7 +60,7 @@ const QueryPanelBookmarks = (): JSX.Element => {
 
   const tagsInMyBookmarks = useMemo(() => {
     return myBookmarks.reduce<string[]>((acc, bookmark) => {
-      return [...acc, ...bookmark.tags.map((tag) => tag.tag_name)];
+      return [...acc, ...bookmark.tags.map((tag) => tag.tag)];
     }, []);
   }, [myBookmarks]);
 
@@ -73,7 +73,7 @@ const QueryPanelBookmarks = (): JSX.Element => {
 
   const tagsInSharedBookmarks = useMemo(() => {
     return sharedBookmarks.reduce<string[]>((acc, bookmark) => {
-      return [...acc, ...bookmark.tags.map((tag) => tag.tag_name)];
+      return [...acc, ...bookmark.tags.map((tag) => tag.tag)];
     }, []);
   }, [sharedBookmarks]);
 
@@ -155,7 +155,7 @@ const QueryPanelBookmarks = (): JSX.Element => {
             <div>
               <Stack>
                 <Label>Tags</Label>
-                {activeBookmark.tags.map((t) => t.tag_name).join(",")}
+                {activeBookmark.tags.map((t) => t.tag).join(",")}
               </Stack>
               <Stack>
                 <Label>Adapter</Label>

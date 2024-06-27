@@ -18,7 +18,7 @@ export interface QueryBookmark {
   adapter_type: string;
   created_on: string;
   updated_on: string;
-  tags: { id: number; tag_name: string }[];
+  tags: { id: number; tag: string }[];
   privacy: "public" | "private";
 }
 

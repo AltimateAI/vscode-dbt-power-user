@@ -2,7 +2,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import { Controller, useForm } from "react-hook-form";
 import { BookmarkIcon } from "@assets/icons";
-import { QueryHistory } from "@modules/queryPanel/context/types";
+import { QueryBookmark, QueryHistory } from "@modules/queryPanel/context/types";
 import {
   Button,
   IconButton,
@@ -51,7 +51,11 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
       },
     })
       .then((response) => {
-        setTags(response as string[]);
+        setTags(
+          (response as undefined | QueryBookmark["tags"])?.map(
+            (tag) => tag.tag,
+          ) ?? [],
+        );
       })
       .catch((err) => panelLogger.error("Unable to get tags", err));
   }, []);
@@ -100,10 +104,7 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
       onClose();
     } catch (error) {
       panelLogger.error("error saving bookmark", error);
-      executeRequestInAsync("showErrorMessage", {
-        infoMessage: (error as Error).message,
-        items: ["Ok"],
-      });
+      reset(data);
     }
   };
 
