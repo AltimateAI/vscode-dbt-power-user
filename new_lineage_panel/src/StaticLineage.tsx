@@ -15,7 +15,7 @@ import {
   SelfConnectingEdge,
   StaticTableNode,
 } from "./CustomNodes";
-import { CollectColumn, T_NODE_W, createTableNode } from "./utils";
+import { CollectColumn } from "./utils";
 import {
   createNewNodesEdges,
   layoutElementsOnCanvas,
@@ -44,41 +44,6 @@ type StaticLineageProps = {
   details: Details;
 };
 
-type Range = { id: string; range: [number, number] };
-
-function findOverlappingRanges(ranges: Range[]): Range | null {
-  // Sort ranges by their start point, and if equal, by their end point
-  ranges.sort((a, b) => {
-    if (a.range[0] === b.range[0]) {
-      return a.range[1] - b.range[1];
-    }
-    return a.range[0] - b.range[0];
-  });
-
-  let previousRange: Range = ranges[0];
-
-  for (let i = 1; i < ranges.length; i++) {
-    const currentRange = ranges[i];
-
-    // Check if there is an overlap
-    if (currentRange.range[0] < previousRange.range[1]) {
-      const currDiff = currentRange.range[1] - currentRange.range[0];
-      const prevDiff = previousRange.range[1] - previousRange.range[0];
-      if (currDiff > prevDiff) {
-        return currentRange;
-      } else {
-        return previousRange;
-      }
-    }
-
-    // Update the previous range to the current range
-    if (currentRange.range[1] > previousRange.range[1]) {
-      previousRange = currentRange;
-    }
-  }
-
-  return null;
-}
 
 function findSources(edges: [string, string][]): string[] {
   const inDegree: Map<string, number> = new Map();
@@ -121,23 +86,7 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
   useEffect(() => {
     setTimeout(async () => {
       const nodeSources = findSources(tableEdges);
-      console.log("nodeSources:", nodeSources);
-      const _ns = nodeSources.map((item) =>
-        createTableNode(
-          {
-            table: item,
-            upstreamCount: 0,
-            downstreamCount: 0,
-            label: item,
-            nodeType: details[item].nodeType!,
-            isExternalProject: false,
-            tests: [],
-          },
-          0,
-          ""
-        )
-      );
-      let nodes: Node[] = _ns;
+      let nodes: Node[] = [];
       let edges: Edge[] = [];
       const queue = [...nodeSources];
       const visited: Record<string, boolean> = {};
@@ -172,8 +121,8 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
         if (visited[curr]) continue;
         visited[curr] = true;
         queue.push(
-          ...getConnectedTables(true, curr)
-          // ...getConnectedTables(false, curr),
+          ...getConnectedTables(true, curr),
+          ...getConnectedTables(false, curr),
         );
       }
 
@@ -194,45 +143,6 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
       }
 
       layoutElementsOnCanvas(nodes, edges, true);
-      while (true as boolean) {
-        const xAxisNodeMap: Record<number, string[]> = {};
-        for (const n of nodes) {
-          xAxisNodeMap[n.position.x] = xAxisNodeMap[n.position.x] || [];
-          xAxisNodeMap[n.position.x].push(n.id);
-        }
-        let anyOverlaps = false;
-        for (const x in xAxisNodeMap) {
-          if (xAxisNodeMap[x].length < 2) continue;
-          const xAxisEdges = edges.filter(
-            (e) =>
-              xAxisNodeMap[x].includes(e.source) &&
-              xAxisNodeMap[x].includes(e.target)
-          );
-          const ranges = xAxisEdges.map(
-            (e) =>
-              ({
-                id: e.id,
-                range: [
-                  nodes.find((n) => n.id === e.source)!.data.level,
-                  nodes.find((n) => n.id === e.target)!.data.level,
-                ],
-              }) as Range
-          );
-          const overlappingRange = findOverlappingRanges(ranges);
-          if (!overlappingRange) continue;
-          anyOverlaps = true;
-          const overlappingEdge = edges.find(
-            (e) => e.id === overlappingRange.id
-          )!;
-          nodes.find((n) => n.id === overlappingEdge.source)!.position.x -=
-            T_NODE_W;
-          nodes.find((n) => n.id === overlappingEdge.target)!.position.x -=
-            T_NODE_W;
-          break;
-        }
-        if (!anyOverlaps) break;
-      }
-      console.log("nodes:", nodes, "edges:", edges);
       flow.current?.setNodes(nodes);
       flow.current?.setEdges(edges);
     }, 500);
