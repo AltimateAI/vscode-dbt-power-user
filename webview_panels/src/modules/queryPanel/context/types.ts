@@ -1,5 +1,6 @@
 import { TableData } from "@finos/perspective";
 import { QueryPanelTitleTabState } from "../components/QueryPanelContents/types";
+import { User } from "@modules/app/types";
 
 export interface QueryHistory {
   rawSql: string;
@@ -20,6 +21,7 @@ export interface QueryBookmark {
   updated_on: string;
   tags: { id: number; tag: string }[];
   privacy: "public" | "private";
+  created_by_user: User;
 }
 
 export interface QueryPanelStateProps {

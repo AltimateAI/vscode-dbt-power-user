@@ -87,6 +87,7 @@ enum InboundCommand {
   GetQueryBookmarks = "getQueryBookmarks",
   ExecuteQuery = "executeQuery",
   GetQueryTabData = "getQueryTabData",
+  RunAdhocQuery = "runAdhocQuery",
 }
 
 interface RecInfo {
@@ -360,6 +361,9 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._panel!.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
+          case InboundCommand.RunAdhocQuery:
+            commands.executeCommand("dbtPowerUser.createPUSqlFile");
+            break;
           case InboundCommand.ExecuteQuery:
             await this.executeIncomingQuery(message);
             break;

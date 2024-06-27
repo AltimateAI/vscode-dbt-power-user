@@ -3,6 +3,7 @@ import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
+import useAppContext from "@modules/app/useAppContext";
 import { updateBookmark } from "@modules/queryPanel/context/queryPanelSlice";
 import { QueryBookmark } from "@modules/queryPanel/context/types";
 import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
@@ -22,7 +23,10 @@ const BookmarkPrivacySettingButton = ({
   bookmark,
 }: {
   bookmark: QueryBookmark;
-}): JSX.Element => {
+}): JSX.Element | null => {
+  const {
+    state: { currentUser },
+  } = useAppContext();
   const [privacy, setPrivacy] = useState(bookmark.privacy);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -72,6 +76,11 @@ const BookmarkPrivacySettingButton = ({
       }),
     );
   };
+
+  if (currentUser?.id !== bookmark.created_by_user.id) {
+    return null;
+  }
+
   return (
     <>
       <span ref={buttonRef}>

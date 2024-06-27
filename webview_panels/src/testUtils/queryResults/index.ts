@@ -1,6 +1,7 @@
 import { faker } from "@faker-js/faker";
 import { QueryBookmark, QueryHistory } from "@modules/queryPanel/context/types";
 import { Sync } from "factory.ts";
+import { TenantUserFactory } from "../users";
 
 function generateRandomSQLQuery(): string {
   // Generate between 1 to 5 column names
@@ -42,4 +43,5 @@ export const QueryBookmarkFactory = Sync.makeFactory<QueryBookmark>({
     { id: faker.datatype.number(), tag: faker.lorem.word() },
   ]),
   privacy: Sync.each(() => faker.helpers.arrayElement(["public", "private"])),
+  created_by_user: Sync.each(() => TenantUserFactory.build()),
 });
