@@ -104,7 +104,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     syncRequestId,
     ...rest
   }: SendMessageProps) {
-    this._webview?.postMessage({
+    this._panel?.webview?.postMessage({
       command,
       args: {
         syncRequestId,

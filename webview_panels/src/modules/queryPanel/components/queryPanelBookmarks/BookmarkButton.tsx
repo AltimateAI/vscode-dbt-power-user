@@ -91,6 +91,7 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
       });
       panelLogger.info("saved bookmark", response);
       executeRequestInAsync("getQueryBookmarks", {});
+      onClose();
       const actionResponse = await executeRequestInSync(
         "showInformationMessage",
         {
@@ -101,7 +102,6 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
       if (actionResponse === "View bookmark") {
         dispatch(setTabState(QueryPanelTitleTabState.Bookmarks));
       }
-      onClose();
     } catch (error) {
       panelLogger.error("error saving bookmark", error);
       reset(data);

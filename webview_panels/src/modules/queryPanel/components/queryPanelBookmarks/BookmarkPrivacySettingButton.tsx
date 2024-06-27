@@ -3,7 +3,6 @@ import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
-import { panelLogger } from "@modules/logger";
 import { updateBookmark } from "@modules/queryPanel/context/queryPanelSlice";
 import { QueryBookmark } from "@modules/queryPanel/context/types";
 import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
@@ -30,7 +29,6 @@ const BookmarkPrivacySettingButton = ({
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const queryPanelDispatch = useQueryPanelDispatch();
 
-  panelLogger.log("bookmark", bookmark.privacy);
   useEffect(() => {
     setPrivacy(bookmark.privacy);
   }, [bookmark.privacy]);

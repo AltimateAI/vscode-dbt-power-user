@@ -317,11 +317,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         "multiple projects in workspace, prompting user to select project",
       );
 
-      const pickedProject = await this.projectQuickPick.projectPicker(
-        await this.dbtProjectContainer.getProjects(),
-      );
+      const pickedProject = await this.projectQuickPick.projectPicker(projects);
       if (!pickedProject) {
-        throw new Error("No project selected");
+        this.dbtTerminal.debug("getProject", "no project selected, returning");
+        return;
       }
       projectName = pickedProject.label;
     }
@@ -339,8 +338,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   }) {
     try {
       const project = await this.getProject(message.projectName);
-      await this.createQueryResultsPanelVirtualDocument();
-      await project.executeSQL(message.query, "model");
+      if (project) {
+        await this.createQueryResultsPanelVirtualDocument();
+        await project.executeSQL(message.query, "model");
+      }
     } catch (error) {
       window.showErrorMessage(
         extendErrorWithSupportLinks((error as Error).message),
