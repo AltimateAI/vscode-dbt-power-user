@@ -5,6 +5,7 @@ import {
   QueryBookmarkFactory,
   QueryHistoryFactory,
 } from "../../testUtils/queryResults";
+import { TenantUserFactory } from "@testUtils";
 
 const meta = {
   title: "Query Panel",
@@ -32,6 +33,7 @@ const ActionButton = ({
   return <Button onClick={handleAction}>{title}</Button>;
 };
 
+const user = TenantUserFactory.build();
 export const DefaultQueryPanelView = {
   render: (): JSX.Element => {
     return (
@@ -79,6 +81,9 @@ export const DefaultQueryPanelView = {
   parameters: {
     vscode: {
       func: (request: Record<string, unknown>): unknown => {
+        if (request.command === "getCurrentUser") {
+          return user;
+        }
         if (request.command === "getQueryPanelContext") {
           window.postMessage({
             command: "getContext",
@@ -98,14 +103,22 @@ export const DefaultQueryPanelView = {
         if (request.command === "getQueryBookmarks") {
           window.postMessage({
             command: "queryBookmarks",
-            args: { body: QueryBookmarkFactory.buildList(5) },
+            args: {
+              body: QueryBookmarkFactory.buildList(5, {
+                created_by_user: user,
+              }),
+            },
           });
           return;
         }
         if (request.command === "fetch") {
           switch (request.endpoint) {
             case "query/bookmark/tags":
-              return ["tag1", "tag2", "tag3"];
+              return [
+                { id: 1, tag: "tag1" },
+                { id: 2, tag: "tag2" },
+                { id: 3, tag: "tag3" },
+              ];
               break;
 
             default:

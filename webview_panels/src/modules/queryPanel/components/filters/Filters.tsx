@@ -4,9 +4,14 @@ import { ChangeEvent, MouseEvent, useState } from "react";
 
 interface Props {
   tags: string[];
+  searchQuery?: string;
   onFiltersChange: (data: { tags?: string[]; searchQuery?: string }) => void;
 }
-const Filters = ({ tags, onFiltersChange }: Props): JSX.Element | null => {
+const Filters = ({
+  searchQuery,
+  tags,
+  onFiltersChange,
+}: Props): JSX.Element | null => {
   const [showForm, setShowForm] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
 
@@ -19,6 +24,13 @@ const Filters = ({ tags, onFiltersChange }: Props): JSX.Element | null => {
     onFiltersChange({ searchQuery: e.target.value });
   };
 
+  const handleBlur = () => {
+    if (searchQuery) {
+      return;
+    }
+    setShowSearch(false);
+  };
+
   const handleTagsChange = (selectedTags: unknown) => {
     onFiltersChange({
       tags: (selectedTags as OptionType[]).map((tag) => tag.value),
@@ -27,16 +39,20 @@ const Filters = ({ tags, onFiltersChange }: Props): JSX.Element | null => {
 
   return (
     <div onClick={stopPropagation}>
-      <IconButton title="Search query" onClick={() => setShowSearch(true)}>
-        <SearchIcon />
-      </IconButton>
       {showSearch ? (
         <Input
-          type="text"
+          type="search"
           placeholder="Search query"
           onChange={handleSearchQueryChange}
+          onBlur={handleBlur}
+          autoFocus
+          style={{ marginBottom: 4.5 }}
         />
-      ) : null}
+      ) : (
+        <IconButton title="Search query" onClick={() => setShowSearch(true)}>
+          <SearchIcon />
+        </IconButton>
+      )}
       {tags.length ? <FilterIcon onClick={() => setShowForm(true)} /> : null}
       {showForm ? (
         <Select

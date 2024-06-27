@@ -5,13 +5,17 @@ import { BookmarkIcon } from "@assets/icons";
 import { QueryBookmark, QueryHistory } from "@modules/queryPanel/context/types";
 import {
   Button,
+  Col,
+  FormGroup,
   IconButton,
   Input,
+  Label,
   LoadingButton,
   OptionType,
-  Popover,
-  PopoverBody,
+  PopoverWithButton,
+  PopoverWithButtonRef,
   Select,
+  Stack,
 } from "@uicore";
 import { useEffect, useRef, useState } from "react";
 import { panelLogger } from "@modules/logger";
@@ -22,6 +26,7 @@ import {
 import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
 import { setTabState } from "@modules/queryPanel/context/queryPanelSlice";
 import { QueryPanelTitleTabState } from "../QueryPanelContents/types";
+import pageStyles from "../../querypanel.module.scss";
 
 interface Props {
   queryHistory: QueryHistory;
@@ -39,9 +44,8 @@ const schema = Yup.object({
 
 const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
   const dispatch = useQueryPanelDispatch();
-  const [showForm, setShowForm] = useState(false);
   const [tagsFromDB, setTags] = useState<string[]>([]);
-  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const popoverRef = useRef<PopoverWithButtonRef | null>(null);
 
   useEffect(() => {
     executeRequestInSync("fetch", {
@@ -109,80 +113,106 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
   };
 
   const onClose = () => {
-    setShowForm(false);
+    popoverRef.current?.close();
     reset();
   };
 
-  const onOpen = () => {
-    setShowForm(true);
-  };
-
   return (
-    <>
-      <span ref={buttonRef}>
-        <IconButton title="Bookmark this query" onClick={onOpen}>
+    <PopoverWithButton
+      ref={popoverRef}
+      title="Add bookmark"
+      button={
+        <IconButton title="Bookmark this query">
           <BookmarkIcon />
         </IconButton>
-      </span>
-      <Popover
-        isOpen={showForm}
-        target={buttonRef}
-        placement="bottom"
-        hideArrow
-      >
-        <PopoverBody>
-          <h4>Add bookmark</h4>
+      }
+    >
+      {({ styles, close }) => (
+        <div>
           <form onSubmit={handleSubmit(onSubmit)}>
-            <Controller
-              control={control}
-              name="name"
-              render={({ field: { onChange } }) => (
-                <Input
-                  type="text"
-                  onChange={onChange}
-                  placeholder="Bookmark name"
-                />
-              )}
-            />
-            <Controller
-              control={control}
-              name="tags"
-              render={({ field: { onChange, ref } }) => (
-                <Select
-                  ref={ref}
-                  inputId="tags"
-                  options={tagsFromDB.map((v) => ({ label: v, value: v }))}
-                  isCreatable
-                  isClearable
-                  value={tags?.map((v) => ({ label: v, value: v }) ?? [])}
-                  defaultValue={[]}
-                  isMulti
-                  onChange={(updates: unknown) => {
-                    const newValues = ((updates ?? []) as OptionType[])?.map(
-                      (val) => val.value,
-                    );
-                    setValue("tags", newValues);
+            <Stack direction="column">
+              <Controller
+                control={control}
+                name="name"
+                render={({ field: { onChange } }) => (
+                  <FormGroup row>
+                    <Label for="bookmarkName" sm={2} style={{ paddingTop: 3 }}>
+                      Name
+                    </Label>
+                    <Col sm={9}>
+                      <Input
+                        id="bookmarkName"
+                        type="text"
+                        onChange={onChange}
+                        placeholder="Bookmark name"
+                      />
+                    </Col>
+                  </FormGroup>
+                )}
+              />
+              <Controller
+                control={control}
+                name="tags"
+                render={({ field: { onChange, ref } }) => (
+                  <FormGroup row>
+                    <Label for="tags" sm={2} style={{ paddingTop: 3 }}>
+                      Tags
+                    </Label>
+                    <Col sm={9}>
+                      <Select
+                        components={{ DropdownIndicator: null }}
+                        classNames={{
+                          container: () => pageStyles.selectControl,
+                        }}
+                        ref={ref}
+                        inputId="tags"
+                        options={tagsFromDB.map((v) => ({
+                          label: v,
+                          value: v,
+                        }))}
+                        isCreatable
+                        isClearable
+                        value={tags?.map((v) => ({ label: v, value: v }) ?? [])}
+                        defaultValue={[]}
+                        isMulti
+                        onChange={(updates: unknown) => {
+                          const newValues = (
+                            (updates ?? []) as OptionType[]
+                          )?.map((val) => val.value);
+                          setValue("tags", newValues);
 
-                    return onChange(newValues);
-                  }}
-                  placeholder="Type a value and press enter to add"
-                />
-              )}
-            />
-            <div>
+                          return onChange(newValues);
+                        }}
+                        placeholder="Type a value and press enter to add"
+                      />
+                    </Col>
+                  </FormGroup>
+                )}
+              />
+            </Stack>
+            <div className={styles.popoverActions}>
               <LoadingButton
                 loading={isSubmitting}
                 disabled={!isValid}
                 type="submit"
+                color="primary"
               >
                 Save
               </LoadingButton>
-              <Button onClick={onClose}>Cancel</Button>
+              <Button
+                onClick={() => {
+                  close();
+                  onClose();
+                }}
+                outline
+              >
+                Cancel
+              </Button>
             </div>
           </form>
-        </PopoverBody>
-      </Popover>
-    </>
+        </div>
+      )}
+    </PopoverWithButton>
   );
 };
 

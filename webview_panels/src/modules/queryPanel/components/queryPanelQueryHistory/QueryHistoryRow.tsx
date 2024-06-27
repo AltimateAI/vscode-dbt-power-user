@@ -2,6 +2,7 @@ import { QueryHistory } from "@modules/queryPanel/context/types";
 import { ListGroupItem } from "@uicore";
 import BookmarkButton from "../queryPanelBookmarks/BookmarkButton";
 import ExecuteQueryButton from "./ExecuteQueryButton";
+import { FileCodeIcon } from "@assets/icons";
 
 interface Props {
   queryHistory: QueryHistory;
@@ -14,7 +15,10 @@ const QueryHistoryRow = ({ queryHistory, onSelect }: Props): JSX.Element => {
 
   return (
     <ListGroupItem>
-      <div onClick={handleClick}>{queryHistory.rawSql}</div>
+      <div onClick={handleClick}>
+        <FileCodeIcon />
+        {queryHistory.rawSql}
+      </div>
       <div>
         <span>
           {new Date(queryHistory.timestamp).toLocaleString("default", {

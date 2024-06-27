@@ -107,7 +107,7 @@ const QueryPanelBookmarks = (): JSX.Element => {
   };
 
   return (
-    <div>
+    <div className={styles.queryHistoryList}>
       {data.map((item) => (
         <Accordion
           key={item.title}
@@ -117,12 +117,16 @@ const QueryPanelBookmarks = (): JSX.Element => {
               <span>
                 {item.title} ({item.bookmarks.length})
               </span>
-              <Filters tags={item.tags} onFiltersChange={onFiltersChange} />
+              <Filters
+                tags={item.tags}
+                onFiltersChange={onFiltersChange}
+                searchQuery={filters.searchQuery}
+              />
             </Stack>
           )}
         >
           {() => (
-            <ListGroup className={styles.queryHistoryList}>
+            <ListGroup>
               {item.bookmarks.map((bookmark) => (
                 <QueryBookmarkRow
                   bookmark={bookmark}

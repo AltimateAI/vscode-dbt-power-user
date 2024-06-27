@@ -45,12 +45,16 @@ const QueryPanelHistory = (): JSX.Element => {
     return <div>No query history</div>;
   }
   return (
-    <section>
+    <section className={styles.queryHistoryList}>
       <header className="d-flex justify-content-between">
         <h4>History</h4>
-        <Filters tags={[]} onFiltersChange={onFiltersChange} />
+        <Filters
+          tags={[]}
+          onFiltersChange={onFiltersChange}
+          searchQuery={filters.searchQuery}
+        />
       </header>
-      <ListGroup className={styles.queryHistoryList}>
+      <ListGroup>
         {historyItems.map((qh) => (
           <QueryHistoryRow
             queryHistory={qh}

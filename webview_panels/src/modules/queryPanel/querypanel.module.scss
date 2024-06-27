@@ -29,31 +29,58 @@
   }
 
   .queryHistoryList {
-    :global .list-group-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
+    background-color: var(--background--01);
+    border-radius: 5px;
+    header {
+      padding: 0.5rem 1rem 0 1rem;
+      border-bottom: 1px solid var(--stroke--default);
+    }
+    :global .list-group {
+      border-radius: 0;
+      padding: 1rem;
+      :global .list-group-item {
+        background-color: var(--background--base);
+        color: var(--text-color--title);
+        margin-bottom: 1rem;
+        border-radius: 4px;
+        border: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        padding: 4px 0.5rem;
+        min-height: 2.5rem;
 
-      > div:first-child {
-        text-overflow: ellipsis;
-        overflow: hidden;
-        white-space: nowrap;
-        flex: 1;
-        max-width: 60%;
-      }
+        > div:first-child {
+          text-overflow: ellipsis;
+          overflow: hidden;
+          white-space: nowrap;
+          flex: 1;
+          max-width: 60%;
 
-      > div:last-child {
-        button {
-          display: none;
+          .codicon {
+            color: #89d185;
+            margin-right: 0.5rem;
+          }
         }
-      }
 
-      &:hover {
         > div:last-child {
+          span {
+            vertical-align: bottom;
+          }
           button {
-            display: inline-block;
-            color: var(--text-color--title)
+            display: none;
+            padding: 2px 4px;
+            margin-left: 2px;
+          }
+        }
+
+        &:hover {
+          > div:last-child {
+            button {
+              display: inline-block;
+              color: var(--text-color--title);
+            }
           }
         }
       }
@@ -65,7 +92,7 @@
   display: flex;
   flex-direction: column;
 
-  :global .card{
+  :global .card {
     margin-bottom: 1rem !important;
   }
   :global .card-title {
@@ -73,11 +100,26 @@
     margin-bottom: 0;
     padding-left: 0.5rem;
     padding-top: 0.5rem;
-}
+  }
   pre {
     border: none !important;
   }
   :global .stack-row {
     justify-content: space-between;
+  }
+}
+
+.selectControl {
+  border: 1px solid var(--stroke--disable);
+  border-radius: 5px;
+
+  [class*="-control"] {
+    min-height: 28px;
+    height: 28px;
+    align-items: start;
+
+    [class*="-indicatorContainer"] {
+      padding: 4px;
+    }
   }
 }

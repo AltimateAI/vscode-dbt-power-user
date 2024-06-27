@@ -14,8 +14,8 @@ import {
   Input,
   Label,
   LoadingButton,
-  Popover,
-  PopoverBody,
+  PopoverWithButton,
+  PopoverWithButtonRef,
 } from "@uicore";
 import { useEffect, useRef, useState } from "react";
 
@@ -29,21 +29,12 @@ const BookmarkPrivacySettingButton = ({
   } = useAppContext();
   const [privacy, setPrivacy] = useState(bookmark.privacy);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const popoverRef = useRef<PopoverWithButtonRef | null>(null);
   const queryPanelDispatch = useQueryPanelDispatch();
 
   useEffect(() => {
     setPrivacy(bookmark.privacy);
   }, [bookmark.privacy]);
-
-  const onClose = () => {
-    setShowForm(false);
-  };
-
-  const onOpen = () => {
-    setShowForm(true);
-  };
 
   const saveSettings = async () => {
     setIsSubmitting(true);
@@ -58,7 +49,7 @@ const BookmarkPrivacySettingButton = ({
       executeRequestInAsync("showInformationMessage", {
         infoMessage: "Successfully saved bookmark!",
       });
-      setShowForm(false);
+      popoverRef.current?.close();
       handleUpdate();
     } catch (error) {
       executeRequestInAsync("showErrorMessage", {
@@ -82,20 +73,21 @@ const BookmarkPrivacySettingButton = ({
   }
 
   return (
-    <>
-      <span ref={buttonRef}>
-        <IconButton title="Share this bookmark" onClick={onOpen}>
+    <PopoverWithButton
+      ref={popoverRef}
+      title="Share bookmark"
+      button={
+        <IconButton title="Share this bookmark">
           <ShareIcon />
         </IconButton>
-      </span>
-      <Popover
-        isOpen={showForm}
-        target={buttonRef}
-        placement="bottom"
-        hideArrow
-      >
-        <PopoverBody>
-          <h4>Share bookmark</h4>
+      }
+      popoverProps={{
+        placement: "bottom",
+        hideArrow: true,
+      }}
+    >
+      {({ styles, close }) => (
+        <div>
           <FormGroup switch>
             <Input
               onChange={(e) =>
@@ -107,15 +99,21 @@ const BookmarkPrivacySettingButton = ({
             />
             <Label check>Public (shared only within your organization)</Label>
           </FormGroup>
-          <div>
-            <LoadingButton loading={isSubmitting} onClick={saveSettings}>
+          <div className={styles.popoverActions}>
+            <LoadingButton
+              color="primary"
+              loading={isSubmitting}
+              onClick={saveSettings}
+            >
               Save
             </LoadingButton>
-            <Button onClick={onClose}>Cancel</Button>
+            <Button outline onClick={close}>
+              Cancel
+            </Button>
           </div>
-        </PopoverBody>
-      </Popover>
-    </>
+        </div>
+      )}
+    </PopoverWithButton>
   );
 };
 
