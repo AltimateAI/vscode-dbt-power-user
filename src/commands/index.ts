@@ -28,7 +28,10 @@ import { SqlToModel } from "./sqlToModel";
 import { AltimateScan } from "./altimateScan";
 import { WalkthroughCommands } from "./walkthroughCommands";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
+import {
+  ProjectQuickPick,
+  ProjectQuickPickItem,
+} from "../quickpick/projectQuickPick";
 import { ValidateSql } from "./validateSql";
 import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
@@ -63,6 +66,7 @@ export class VSCodeCommands implements Disposable {
     private pythonEnvironment: PythonEnvironment,
     private dbtClient: DBTClient,
     private sqlLineagePanel: SQLLineagePanel,
+    private projectQuickPick: ProjectQuickPick,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -543,9 +547,7 @@ export class VSCodeCommands implements Disposable {
             // TODO: current project path
             return;
           }
-          const project = this.dbtProjectContainer.findDBTProject(
-            window.activeTextEditor.document.uri,
-          );
+          const project = await this.getProject();
           const uri = Uri.parse(
             `${project?.projectRoot || "/any/path"}/poweruser-${Date.now()}.sql`,
           ).with({ scheme: "untitled" });
@@ -695,5 +697,45 @@ export class VSCodeCommands implements Disposable {
         x.dispose();
       }
     }
+  }
+  private async getProject(): Promise<DBTProject | undefined> {
+    const project = window.activeTextEditor
+      ? this.dbtProjectContainer.findDBTProject(
+          window.activeTextEditor.document.uri,
+        )
+      : null;
+    if (project) {
+      return project;
+    }
+    // TODO refactor this with same code from query result panel
+    this.dbtTerminal.debug(
+      "getProject",
+      "no project name provided, getting all projects in workspace",
+    );
+    const projects = this.dbtProjectContainer.getProjects();
+    if (projects.length === 1) {
+      this.dbtTerminal.debug(
+        "getProject",
+        `single project in workspace, returning project: ${projects[0].getProjectName()}`,
+      );
+      return projects[0];
+    }
+
+    this.dbtTerminal.debug(
+      "getProject",
+      "multiple projects in workspace, prompting user to select project",
+    );
+
+    const pickedProject = await this.projectQuickPick.projectPicker(projects);
+    if (!pickedProject) {
+      this.dbtTerminal.debug("getProject", "no project selected, returning");
+      return;
+    }
+
+    this.dbtTerminal.debug(
+      "getProject",
+      `project selected: ${pickedProject.uri}`,
+    );
+    return this.dbtProjectContainer.findDBTProject(pickedProject.uri);
   }
 }
