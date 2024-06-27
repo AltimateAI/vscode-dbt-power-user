@@ -37,7 +37,7 @@ const PopoverWithButton: ForwardRefRenderFunction<
     if (popoverRef.current?.contains(e.target as Node)) {
       return;
     }
-    onClose();
+    // onClose();
   };
 
   const onOpen = (e?: ReactMouseEvent) => {

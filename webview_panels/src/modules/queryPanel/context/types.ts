@@ -16,6 +16,7 @@ export interface QueryBookmark {
   compiled_sql: string;
   raw_sql: string;
   name: string;
+  description: string;
   adapter_type: string;
   created_on: string;
   updated_on: string;

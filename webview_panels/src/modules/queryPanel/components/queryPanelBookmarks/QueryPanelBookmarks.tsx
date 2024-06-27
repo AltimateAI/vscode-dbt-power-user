@@ -2,10 +2,12 @@ import styles from "../../querypanel.module.scss";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import QueryBookmarkRow from "./QueryBookmarkRow";
 import { Accordion, ListGroup, Stack, CodeBlock, Label } from "@uicore";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Filters from "../filters/Filters";
 import { QueryBookmark } from "@modules/queryPanel/context/types";
 import { NoBookmarksIcon } from "@assets/icons";
+import { executeRequestInSync } from "@modules/app/requestExecutor";
+import { panelLogger } from "@modules/logger";
 
 const QueryPanelBookmarks = (): JSX.Element => {
   const [activeBookmark, setActiveBookmark] = useState<QueryBookmark | null>(
@@ -15,40 +17,40 @@ const QueryPanelBookmarks = (): JSX.Element => {
     tags: string[];
     searchQuery?: string;
   }>({ tags: [] });
+  const [filteredBookmarks, setFilteredBookmarks] = useState<QueryBookmark[]>(
+    [],
+  );
   const { queryBookmarks = [] } = useQueryPanelState();
 
   const onFiltersChange = (data: { tags?: string[]; searchQuery?: string }) => {
     setFilters((prev) => ({ ...prev, ...data }));
   };
 
-  const isMatchingTags = (bookmark: QueryBookmark) => {
-    if (!filters.tags.length) {
-      return true;
+  useEffect(() => {
+    if (!filters.tags.length && !filters.searchQuery) {
+      setFilteredBookmarks([]);
+      return;
     }
-    return filters.tags.every((tag) =>
-      bookmark.tags.some((bookmarkTag) => bookmarkTag.tag === tag),
-    );
-  };
 
-  const isMatchingSeachQuery = (bookmark: QueryBookmark) => {
-    if (!filters.searchQuery) {
-      return true;
-    }
-    return bookmark.raw_sql
-      .toLowerCase()
-      .includes(filters.searchQuery.toLowerCase());
-  };
-
-  const isMatchingFilters = (bookmark: QueryBookmark) => {
-    return isMatchingTags(bookmark) && isMatchingSeachQuery(bookmark);
-  };
+    executeRequestInSync("fetch", {
+      endpoint: `query/bookmark/list?${filters.tags.map((t) => `tags_list=${t}`).join("&")}&search_query=${filters.searchQuery}`,
+      fetchArgs: {
+        method: "GET",
+      },
+    })
+      .then((response) => {
+        setFilteredBookmarks(response as QueryBookmark[]);
+      })
+      .catch((error) => {
+        panelLogger.error("Error fetching bookmarks", error);
+      });
+  }, [filters]);
 
   const myBookmarks = useMemo(() => {
-    return queryBookmarks.filter(
-      (bookmark) =>
-        bookmark.privacy === "private" && isMatchingFilters(bookmark),
-    );
-  }, [queryBookmarks, filters]);
+    return (
+      filteredBookmarks.length ? filteredBookmarks : queryBookmarks
+    ).filter((bookmark) => bookmark.privacy === "private");
+  }, [queryBookmarks, filteredBookmarks]);
 
   const tagsInMyBookmarks = useMemo(() => {
     return myBookmarks.reduce<string[]>((acc, bookmark) => {
@@ -57,11 +59,10 @@ const QueryPanelBookmarks = (): JSX.Element => {
   }, [myBookmarks]);
 
   const sharedBookmarks = useMemo(() => {
-    return queryBookmarks.filter(
-      (bookmark) =>
-        bookmark.privacy === "public" && isMatchingFilters(bookmark),
-    );
-  }, [queryBookmarks]);
+    return (
+      filteredBookmarks.length ? filteredBookmarks : queryBookmarks
+    ).filter((bookmark) => bookmark.privacy === "public");
+  }, [queryBookmarks, filteredBookmarks]);
 
   const tagsInSharedBookmarks = useMemo(() => {
     return sharedBookmarks.reduce<string[]>((acc, bookmark) => {
@@ -135,6 +136,10 @@ const QueryPanelBookmarks = (): JSX.Element => {
         <div className={styles.historyDetails}>
           <h4>{activeBookmark.name}</h4>
           <div>
+            <Stack>
+              <Label>Description</Label>
+              <span>{activeBookmark.description}</span>
+            </Stack>
             <Stack>
               <Label>Tags</Label>
               {activeBookmark.tags.map((t) => t.tag).join(",")}
