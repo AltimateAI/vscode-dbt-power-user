@@ -1,11 +1,18 @@
 import styles from "../../querypanel.module.scss";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import QueryBookmarkRow from "./QueryBookmarkRow";
-import { Accordion, ListGroup, Stack, CodeBlock, Label } from "@uicore";
+import {
+  Accordion,
+  ListGroup,
+  Stack,
+  CodeBlock,
+  Label,
+  IconButton,
+} from "@uicore";
 import { useEffect, useMemo, useState } from "react";
 import Filters from "../filters/Filters";
 import { QueryBookmark } from "@modules/queryPanel/context/types";
-import { NoBookmarksIcon } from "@assets/icons";
+import { ChevronRightIcon, NoBookmarksIcon } from "@assets/icons";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 
@@ -89,6 +96,10 @@ const QueryPanelBookmarks = (): JSX.Element => {
     setActiveBookmark(qh);
   };
 
+  const resetActiveBookmark = () => {
+    setActiveBookmark(null);
+  };
+
   return (
     <section className={styles.queryTwoCol}>
       <Stack direction="column" className={styles.limitWidth}>
@@ -134,6 +145,13 @@ const QueryPanelBookmarks = (): JSX.Element => {
 
       {activeBookmark ? (
         <div className={styles.historyDetails}>
+          <IconButton
+            className={styles.closeBtn}
+            color="primary"
+            onClick={resetActiveBookmark}
+          >
+            <ChevronRightIcon />
+          </IconButton>
           <h4>{activeBookmark.name}</h4>
           <div>
             <Stack>

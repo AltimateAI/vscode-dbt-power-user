@@ -1,11 +1,11 @@
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import QueryHistoryRow from "./QueryHistoryRow";
-import { CodeBlock, Label, ListGroup, Stack } from "@uicore";
+import { CodeBlock, IconButton, Label, ListGroup, Stack } from "@uicore";
 import styles from "../../querypanel.module.scss";
 import { useMemo, useState } from "react";
 import { QueryHistory } from "@modules/queryPanel/context/types";
 import Filters from "../filters/Filters";
-import { NoBookmarksIcon } from "@assets/icons";
+import { ChevronRightIcon, NoBookmarksIcon } from "@assets/icons";
 
 const QueryPanelHistory = (): JSX.Element => {
   const [filters, setFilters] = useState<{
@@ -34,6 +34,10 @@ const QueryPanelHistory = (): JSX.Element => {
       return true;
     });
   }, [queryHistory, filters]);
+
+  const resetActiveHistory = () => {
+    setActiveHistory(null);
+  };
 
   return (
     <section className={styles.queryTwoCol}>
@@ -71,6 +75,13 @@ const QueryPanelHistory = (): JSX.Element => {
       </div>
       {activeHistory ? (
         <div className={styles.historyDetails}>
+          <IconButton
+            className={styles.closeBtn}
+            color="primary"
+            onClick={resetActiveHistory}
+          >
+            <ChevronRightIcon />
+          </IconButton>
           <div>
             <Stack>
               <Label>Adapter</Label>

@@ -48,13 +48,22 @@
     align-items: flex-start;
     gap: 2rem;
     .historyDetails {
+      position: relative;
       width: 400px;
       display: flex;
       flex-direction: column;
       background-color: var(--background--02);
       padding: 1rem;
       border-radius: 10px;
+      border-top-left-radius: 0;
 
+      .closeBtn{
+        position: absolute;
+        top: 0;
+        left: -22px;
+        padding: 2px 3px;
+        border-radius: 0;
+      }
       :global .card {
         margin-top: 1rem !important;
       }
