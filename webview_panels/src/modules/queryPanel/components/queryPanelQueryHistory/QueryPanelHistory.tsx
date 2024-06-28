@@ -4,14 +4,11 @@ import { CodeBlock, IconButton, Label, ListGroup, Stack } from "@uicore";
 import styles from "../../querypanel.module.scss";
 import { useMemo, useState } from "react";
 import { QueryHistory } from "@modules/queryPanel/context/types";
-import Filters from "../filters/Filters";
+import Filters, { QueryFilters } from "../filters/Filters";
 import { ChevronRightIcon, NoBookmarksIcon } from "@assets/icons";
 
 const QueryPanelHistory = (): JSX.Element => {
-  const [filters, setFilters] = useState<{
-    tags: string[];
-    searchQuery?: string;
-  }>({ tags: [] });
+  const [filters, setFilters] = useState<QueryFilters>({ tags: [] });
 
   const [activeHistory, setActiveHistory] = useState<QueryHistory | null>(null);
   const { queryHistory } = useQueryPanelState();
@@ -47,7 +44,7 @@ const QueryPanelHistory = (): JSX.Element => {
           <Filters
             tags={[]}
             onFiltersChange={onFiltersChange}
-            searchQuery={filters.searchQuery}
+            filters={filters}
           />
         </header>
         {historyItems.length === 0 ? (

@@ -1,14 +1,20 @@
 import { FilterIcon, SearchIcon } from "@assets/icons";
-import { IconButton, Input, OptionType, Select } from "@uicore";
+import { IconButton, Input, OptionType, Select, Stack } from "@uicore";
 import { ChangeEvent, MouseEvent, useState } from "react";
+import { ActionMeta } from "react-select";
+
+export interface QueryFilters {
+  tags: string[];
+  searchQuery?: string;
+}
 
 interface Props {
   tags: string[];
-  searchQuery?: string;
+  filters: QueryFilters;
   onFiltersChange: (data: { tags?: string[]; searchQuery?: string }) => void;
 }
 const Filters = ({
-  searchQuery,
+  filters: { tags: selectedTags, searchQuery },
   tags,
   onFiltersChange,
 }: Props): JSX.Element | null => {
@@ -31,14 +37,27 @@ const Filters = ({
     setShowSearch(false);
   };
 
-  const handleTagsChange = (selectedTags: unknown) => {
+  const handleTagsBlur = () => {
+    if (selectedTags.length) {
+      return;
+    }
+    setShowForm(false);
+  };
+
+  const handleTagsChange = (
+    changedTags: unknown,
+    triggeredAction: ActionMeta<unknown>,
+  ) => {
+    if (triggeredAction.action === "clear") {
+      setShowForm(false);
+    }
     onFiltersChange({
-      tags: (selectedTags as OptionType[]).map((tag) => tag.value),
+      tags: (changedTags as OptionType[]).map((tag) => tag.value),
     });
   };
 
   return (
-    <div className="d-flex" onClick={stopPropagation}>
+    <Stack className="gap-1" onClick={stopPropagation}>
       {showSearch ? (
         <Input
           type="search"
@@ -46,7 +65,7 @@ const Filters = ({
           onChange={handleSearchQueryChange}
           onBlur={handleBlur}
           autoFocus
-          style={{ marginBottom: 4.5 }}
+          style={{ marginBottom: 4.5, maxHeight: 38 }}
         />
       ) : (
         <IconButton title="Search query" onClick={() => setShowSearch(true)}>
@@ -63,18 +82,20 @@ const Filters = ({
               marginBottom: "1rem",
             }),
           }}
+          autoFocus
           inputId="tags"
           openMenuOnFocus
           isMulti
           options={tags?.map((v) => ({ label: v, value: v }) ?? [])}
           onChange={handleTagsChange}
+          onBlur={handleTagsBlur}
         />
       ) : tags.length ? (
         <IconButton title="Search query" onClick={() => setShowForm(true)}>
           <FilterIcon />
         </IconButton>
       ) : null}
-    </div>
+    </Stack>
   );
 };
 

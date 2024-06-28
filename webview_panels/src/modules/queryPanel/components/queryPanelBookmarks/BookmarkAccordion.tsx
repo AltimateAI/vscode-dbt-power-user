@@ -1,6 +1,6 @@
-import { Accordion, ListGroup, Stack } from "@uicore";
+import { Accordion, ListGroup, Spinner, Stack } from "@uicore";
 import styles from "../../querypanel.module.scss";
-import Filters from "../filters/Filters";
+import Filters, { QueryFilters } from "../filters/Filters";
 import { NoBookmarksIcon } from "@assets/icons";
 import QueryBookmarkRow from "./QueryBookmarkRow";
 import { useEffect, useMemo, useState } from "react";
@@ -16,7 +16,12 @@ interface Props {
   title: string;
   onSelect: (bookmark: QueryBookmark) => void;
 }
-const BookmarkAccordion = ({ privacy, title, onSelect }: Props) => {
+const BookmarkAccordion = ({
+  privacy,
+  title,
+  onSelect,
+}: Props): JSX.Element => {
+  const [isLoading, setIsLoading] = useState(false);
   const [bookmarksResponse, setBookmarksResponse] =
     useState<QueryBookmarkResponse>({
       items: [],
@@ -25,12 +30,13 @@ const BookmarkAccordion = ({ privacy, title, onSelect }: Props) => {
       size: 0,
       total: 0,
     });
-  const [filters, setFilters] = useState<{
-    tags: string[];
-    searchQuery?: string;
-  }>({ tags: [], searchQuery: "" });
+  const [filters, setFilters] = useState<QueryFilters>({
+    tags: [],
+    searchQuery: "",
+  });
 
   useEffect(() => {
+    setIsLoading(true);
     executeRequestInSync("fetch", {
       endpoint: `query/bookmark?privacy=${privacy}${filters.tags.map((t) => `tags_list=${t}`).join("&")}&search_query=${filters.searchQuery}`,
       fetchArgs: {
@@ -42,8 +48,11 @@ const BookmarkAccordion = ({ privacy, title, onSelect }: Props) => {
       })
       .catch((error) => {
         panelLogger.error("Error fetching bookmarks", error);
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
-  }, []);
+  }, [filters]);
 
   const bookmarks = bookmarksResponse.items;
   // TODO: use api to get all tags
@@ -55,6 +64,45 @@ const BookmarkAccordion = ({ privacy, title, onSelect }: Props) => {
 
   const onFiltersChange = (data: { tags?: string[]; searchQuery?: string }) => {
     setFilters((prev) => ({ ...prev, ...data }));
+  };
+
+  const getBookmarksContent = () => {
+    if (isLoading) {
+      return (
+        <Stack
+          direction="column"
+          className="justify-content-center align-items-center p-4 m-4"
+        >
+          <Spinner />
+          Loading...
+        </Stack>
+      );
+    }
+    if (bookmarks.length === 0) {
+      return (
+        <Stack className={styles.noBookmark} direction="column">
+          <NoBookmarksIcon />
+          <div>
+            <h6>No bookmarks available.</h6>
+            <p>
+              This section will show your saved queries. You can bookmark your
+              queries from query history.
+            </p>
+          </div>
+        </Stack>
+      );
+    }
+    return (
+      <ListGroup>
+        {bookmarks.map((bookmark) => (
+          <QueryBookmarkRow
+            key={bookmark.id}
+            bookmark={bookmark}
+            onSelect={onSelect}
+          />
+        ))}
+      </ListGroup>
+    );
   };
 
   return (
@@ -69,29 +117,12 @@ const BookmarkAccordion = ({ privacy, title, onSelect }: Props) => {
             <Filters
               tags={tags}
               onFiltersChange={onFiltersChange}
-              searchQuery={filters.searchQuery}
+              filters={filters}
             />
           </header>
         )}
       >
-        {() =>
-          bookmarks.length === 0 ? (
-            <Stack className={styles.noBookmark} direction="column">
-              <NoBookmarksIcon />
-              <h6>No Bookmarks available</h6>
-            </Stack>
-          ) : (
-            <ListGroup>
-              {bookmarks.map((bookmark) => (
-                <QueryBookmarkRow
-                  bookmark={bookmark}
-                  key={bookmark.created_on}
-                  onSelect={onSelect}
-                />
-              ))}
-            </ListGroup>
-          )
-        }
+        {() => getBookmarksContent()}
       </Accordion>
     </div>
   );
