@@ -12,7 +12,6 @@ import {
   extensions,
   Uri,
   Range,
-  WebviewPanel,
   ProgressLocation,
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
@@ -21,6 +20,7 @@ import {
   deepEqual,
   extendErrorWithSupportLinks,
   getFirstWorkspacePath,
+  getFormattedDateTime,
   provideSingleton,
 } from "../utils";
 import { RunModel } from "./runModel";
@@ -28,10 +28,7 @@ import { SqlToModel } from "./sqlToModel";
 import { AltimateScan } from "./altimateScan";
 import { WalkthroughCommands } from "./walkthroughCommands";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
-import {
-  ProjectQuickPick,
-  ProjectQuickPickItem,
-} from "../quickpick/projectQuickPick";
+import { ProjectQuickPickItem } from "../quickpick/projectQuickPick";
 import { ValidateSql } from "./validateSql";
 import { BigQueryCostEstimate } from "./bigQueryCostEstimate";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
@@ -44,9 +41,8 @@ import { PythonEnvironment } from "../manifest/pythonEnvironment";
 import { DBTClient } from "../dbt_client";
 import { existsSync, readFileSync } from "fs";
 import { DBTProject } from "../manifest/dbtProject";
-import { VirtualSqlContentProvider } from "../content_provider/virtualSqlContentProvider";
 import { SQLLineagePanel } from "../webview_provider/sqlLineagePanel";
-import { inject } from "inversify";
+import { QueryManifestService } from "../services/queryManifestService";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -66,7 +62,7 @@ export class VSCodeCommands implements Disposable {
     private pythonEnvironment: PythonEnvironment,
     private dbtClient: DBTClient,
     private sqlLineagePanel: SQLLineagePanel,
-    private projectQuickPick: ProjectQuickPick,
+    private queryManifestService: QueryManifestService,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -543,24 +539,19 @@ export class VSCodeCommands implements Disposable {
       }),
       commands.registerCommand("dbtPowerUser.createPUSqlFile", async () => {
         try {
-          if (!window.activeTextEditor) {
-            // TODO: current project path
+          const project =
+            await this.queryManifestService.getOrPickProjectFromWorkspace();
+          if (!project) {
+            window.showErrorMessage("No dbt project selected.");
             return;
           }
-          const project = await this.getProject();
+
           const uri = Uri.parse(
-            `${project?.projectRoot || "/any/path"}/poweruser-${Date.now()}.sql`,
+            `${project.projectRoot}/poweruser-${getFormattedDateTime()}.sql`,
           ).with({ scheme: "untitled" });
           workspace.openTextDocument(uri).then((doc) => {
+            // set this to sql language so we can bind codelens and other features
             languages.setTextDocumentLanguage(doc, "sql");
-            // below one does not work while executing sql - could not find project
-            // workspace
-            //   .openTextDocument({
-            //     language: "sql",
-            //     content:
-            //       "-- Type your (dbt) SQL query here\nSELECT * FROM your_table;",
-            //   })
-            //   .then((doc) => {
             window.showTextDocument(doc).then((editor) => {
               editor.edit((editBuilder) => {
                 // Replace the entire content of the document
@@ -577,8 +568,9 @@ export class VSCodeCommands implements Disposable {
             });
           });
         } catch (e) {
-          // TODO handle error
-          console.log(e);
+          const message = (e as Error).message;
+          this.dbtTerminal.error("createPUSqlFile", message, e, true);
+          window.showErrorMessage(message);
         }
       }),
       commands.registerCommand("dbtPowerUser.sqlLineage", async () => {
@@ -697,45 +689,5 @@ export class VSCodeCommands implements Disposable {
         x.dispose();
       }
     }
-  }
-  private async getProject(): Promise<DBTProject | undefined> {
-    const project = window.activeTextEditor
-      ? this.dbtProjectContainer.findDBTProject(
-          window.activeTextEditor.document.uri,
-        )
-      : null;
-    if (project) {
-      return project;
-    }
-    // TODO refactor this with same code from query result panel
-    this.dbtTerminal.debug(
-      "getProject",
-      "no project name provided, getting all projects in workspace",
-    );
-    const projects = this.dbtProjectContainer.getProjects();
-    if (projects.length === 1) {
-      this.dbtTerminal.debug(
-        "getProject",
-        `single project in workspace, returning project: ${projects[0].getProjectName()}`,
-      );
-      return projects[0];
-    }
-
-    this.dbtTerminal.debug(
-      "getProject",
-      "multiple projects in workspace, prompting user to select project",
-    );
-
-    const pickedProject = await this.projectQuickPick.projectPicker(projects);
-    if (!pickedProject) {
-      this.dbtTerminal.debug("getProject", "no project selected, returning");
-      return;
-    }
-
-    this.dbtTerminal.debug(
-      "getProject",
-      `project selected: ${pickedProject.uri}`,
-    );
-    return this.dbtProjectContainer.findDBTProject(pickedProject.uri);
   }
 }

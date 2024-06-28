@@ -7,7 +7,7 @@ const RunAdhocQueryButton = (): JSX.Element => {
   };
   return (
     <Button outline onClick={handleClick}>
-      Run adhoc query
+      + New query
     </Button>
   );
 };

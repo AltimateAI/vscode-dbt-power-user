@@ -7,7 +7,6 @@ import {
   TextDocument,
 } from "vscode";
 import { provideSingleton } from "../utils";
-import { VirtualSqlContentProvider } from "../content_provider/virtualSqlContentProvider";
 import { QueryManifestService } from "../services/queryManifestService";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 
@@ -17,6 +16,7 @@ export class VirtualSqlCodeLensProvider implements CodeLensProvider {
     private dbtProjectContainer: DBTProjectContainer,
     private queryManifestService: QueryManifestService,
   ) {}
+
   private getProjectName() {
     const project = this.dbtProjectContainer.getFromWorkspaceState(
       "dbtPowerUser.projectSelected",
@@ -24,16 +24,17 @@ export class VirtualSqlCodeLensProvider implements CodeLensProvider {
     if (project?.label) {
       return project.label;
     }
+
+    // Find the project name from the current active editor
     return this.queryManifestService.getProject()?.getProjectName();
   }
+
   public provideCodeLenses(
     document: TextDocument,
     token: CancellationToken,
   ): CodeLens[] | Thenable<CodeLens[]> {
-    if (
-      document.uri.scheme !== "untitled" &&
-      document.uri.scheme !== VirtualSqlContentProvider.SCHEME
-    ) {
+    // Enable this code lens only for adhoc query files created using command: dbtPowerUser.createPUSqlFile
+    if (document.uri.scheme !== "untitled" && document.languageId !== "sql") {
       return [];
     }
 
@@ -41,19 +42,10 @@ export class VirtualSqlCodeLensProvider implements CodeLensProvider {
     const projectName = this.getProjectName();
     const projectSelectorCommand: Command = {
       title: `Project: ${projectName || "Select a project"}`,
-      command: "dbtPowerUser.pickProject", // This command must be implemented and registered in your extension
-      arguments: [document.uri], // Optional: pass document URI or other arguments
+      command: "dbtPowerUser.pickProject",
+      arguments: [document.uri],
     };
 
-    const bookmarkQueryCommand: Command = {
-      title: `Bookmark this query`,
-      command: "dbtPowerUser.pickProject", // This command must be implemented and registered in your extension
-      arguments: [document.uri], // Optional: pass document URI or other arguments
-    };
-
-    return [
-      new CodeLens(topOfDocument, projectSelectorCommand),
-      new CodeLens(topOfDocument, bookmarkQueryCommand),
-    ];
+    return [new CodeLens(topOfDocument, projectSelectorCommand)];
   }
 }

@@ -300,30 +300,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
 
   private async getProject(projectName?: string) {
     if (!projectName) {
-      this.dbtTerminal.debug(
-        "getProject",
-        "no project name provided, getting all projects in workspace",
-      );
-      const projects = this.dbtProjectContainer.getProjects();
-      if (projects.length === 1) {
-        this.dbtTerminal.debug(
-          "getProject",
-          `single project in workspace, returning project: ${projects[0].getProjectName()}`,
-        );
-        return projects[0];
-      }
-
-      this.dbtTerminal.debug(
-        "getProject",
-        "multiple projects in workspace, prompting user to select project",
-      );
-
-      const pickedProject = await this.projectQuickPick.projectPicker(projects);
-      if (!pickedProject) {
-        this.dbtTerminal.debug("getProject", "no project selected, returning");
-        return;
-      }
-      projectName = pickedProject.label;
+      return this.queryManifestService.getOrPickProjectFromWorkspace();
     }
 
     const project = this.queryManifestService.getProjectByName(projectName);

@@ -6,19 +6,12 @@ import { SqlPreviewContentProvider } from "./sqlPreviewContentProvider";
 export class ContentProviders implements Disposable {
   private disposables: Disposable[] = [];
 
-  constructor(
-    private sqlPreviewContentProvider: SqlPreviewContentProvider,
-    // private virtualSqlContentProvider: VirtualSqlContentProvider,
-  ) {
+  constructor(private sqlPreviewContentProvider: SqlPreviewContentProvider) {
     this.disposables.push(
       workspace.registerTextDocumentContentProvider(
         SqlPreviewContentProvider.SCHEME,
         this.sqlPreviewContentProvider,
       ),
-      // workspace.registerTextDocumentContentProvider(
-      //   VirtualSqlContentProvider.SCHEME,
-      //   this.virtualSqlContentProvider,
-      // ),
     );
   }
 

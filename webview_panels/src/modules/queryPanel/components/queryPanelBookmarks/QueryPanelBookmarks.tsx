@@ -92,10 +92,10 @@ const QueryPanelBookmarks = (): JSX.Element => {
   return (
     <section className={styles.queryTwoCol}>
       <Stack direction="column" className={styles.limitWidth}>
-        {data.map((item, index) => (
+        {data.map((item) => (
           <div key={item.title} className={`mb-4 ${styles.queryHistoryList}`}>
             <Accordion
-              defaultOpen={index === 0 ?? item.bookmarks.length > 0}
+              defaultOpen
               trigger={() => (
                 <header className="d-flex align-items-center justify-content-between">
                   <h4>
