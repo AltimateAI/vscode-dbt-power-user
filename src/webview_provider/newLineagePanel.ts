@@ -685,6 +685,9 @@ export class NewLineagePanel implements LineagePanelView {
         window.showErrorMessage(
           extendErrorWithSupportLinks(result.errors.join("\n")),
         );
+        this.telemetry.sendTelemetryError("columnLineageApiError", {
+          errors: result.errors,
+        });
       }
       const column_lineage =
         result.column_lineage.map((c) => ({
