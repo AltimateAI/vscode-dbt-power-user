@@ -171,7 +171,6 @@ export class QueryManifestService {
     if (project) {
       return project;
     }
-    // TODO refactor this with same code from query result panel
     this.dbtTerminal.debug(
       "getProject",
       "no project name provided, getting all projects in workspace",

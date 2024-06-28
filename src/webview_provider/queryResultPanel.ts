@@ -38,7 +38,6 @@ import {
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 import { QueryManifestService } from "../services/queryManifestService";
 import { UsersService } from "../services/usersService";
-import { ProjectQuickPick } from "../quickpick/projectQuickPick";
 
 interface JsonObj {
   [key: string]: string | number | undefined;
@@ -132,6 +131,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   private queryExecution?: QueryExecution;
   private incomingMessages: SendMessageProps[] = [];
 
+  // stored only for current session, if user reloads or opens new workspace, this will be reset
   private _queryHistory: QueryHistory[] = [];
 
   public constructor(
@@ -142,7 +142,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     protected dbtTerminal: DBTTerminal,
     protected queryManifestService: QueryManifestService,
     protected usersService: UsersService,
-    private projectQuickPick: ProjectQuickPick,
   ) {
     super(
       dbtProjectContainer,
@@ -319,7 +318,9 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       if (project) {
         await this.createQueryResultsPanelVirtualDocument();
         await project.executeSQL(message.query, "model");
+        return;
       }
+      throw new Error("Unable to find project to execute query");
     } catch (error) {
       window.showErrorMessage(
         extendErrorWithSupportLinks((error as Error).message),
@@ -622,6 +623,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       adapter: project.getAdapterType(),
       projectName: project.getProjectName(),
     });
+    this._queryHistory = this._queryHistory.splice(0, 100);
     this._bottomPanel?.webview.postMessage({
       command: "queryHistory",
       args: {
