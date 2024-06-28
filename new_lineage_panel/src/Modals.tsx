@@ -19,7 +19,7 @@ export function ViewsCodeModal() {
   const viewsCodesFlat = useMemo(() => {
     const arr = Object.values(viewsCodeModal?.viewsCode || [])
       .flat()
-      .filter(([, type]) => type === "transform")
+      .filter(([, type]) => type === "Transformation")
       .map(([code]) => code);
     const result: string[] = [];
     for (const item of arr) {
