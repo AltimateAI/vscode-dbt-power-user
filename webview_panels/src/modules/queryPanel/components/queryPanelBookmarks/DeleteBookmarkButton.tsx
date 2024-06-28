@@ -37,7 +37,7 @@ const DeleteBookmarkButton = ({
       executeRequestInAsync("showInformationMessage", {
         infoMessage: "Successfully deleted bookmark!",
       });
-      queryPanelDispatch(removeBookmark(bookmark.id));
+      queryPanelDispatch(removeBookmark(bookmark));
     } catch (error) {
       executeRequestInAsync("showErrorMessage", {
         infoMessage: (error as Error).message,

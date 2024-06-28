@@ -5,7 +5,7 @@ import { TenantUserFactory } from "../users";
 
 function generateRandomSQLQuery(): string {
   // Generate between 1 to 5 column names
-  const columnsCount = faker.datatype.number({ min: 1, max: 5 });
+  const columnsCount = faker.number.int({ min: 1, max: 5 });
   const columns = Array.from({ length: columnsCount }, () =>
     faker.database.column(),
   ).join(", ");
@@ -26,14 +26,14 @@ export const QueryHistoryFactory = Sync.makeFactory<QueryHistory>({
   rawSql: Sync.each(() => generateRandomSQLQuery()),
   compiledSql: Sync.each(() => generateRandomSQLQuery()),
   adapter: faker.lorem.word(),
-  duration: faker.datatype.number({ min: 1, max: 10000 }),
+  duration: faker.number.int({ min: 1, max: 10000 }),
   projectName: faker.lorem.word(),
   timestamp: Sync.each(() => faker.date.past().getTime()),
 });
 
 const generateRandomTags = () => {
   return faker.helpers.multiple(
-    () => ({ id: faker.datatype.number(), tag: faker.lorem.word() }),
+    () => ({ id: faker.number.int(), tag: faker.lorem.word() }),
     { count: faker.helpers.rangeToNumber({ min: 0, max: 10 }) },
   );
 };
@@ -43,7 +43,7 @@ export const QueryBookmarkFactory = Sync.makeFactory<QueryBookmark>({
   compiled_sql: Sync.each(() => generateRandomSQLQuery()),
   created_on: Sync.each(() => faker.date.past().toISOString()),
   adapter_type: Sync.each(() => faker.lorem.word()),
-  id: Sync.each(() => faker.datatype.number()),
+  id: Sync.each(() => faker.number.int()),
   name: Sync.each(() => faker.lorem.words()),
   description: faker.lorem.paragraph(),
   updated_on: Sync.each(() => faker.date.recent().toISOString()),

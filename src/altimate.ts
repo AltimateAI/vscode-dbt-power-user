@@ -887,7 +887,7 @@ export class AltimateRequest {
   }
 
   async getQueryBookmarks() {
-    return await this.fetch<QueryBookmark[]>(`query/bookmark/list`);
+    return await this.fetch<QueryBookmark[]>(`query/bookmark`);
   }
 
   async sqlLineage(req: SQLLineageRequest) {

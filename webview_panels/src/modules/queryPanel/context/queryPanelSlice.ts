@@ -1,5 +1,9 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { QueryBookmark, QueryPanelStateProps } from "./types";
+import {
+  QueryBookmark,
+  QueryBookmarkResponse,
+  QueryPanelStateProps,
+} from "./types";
 import { QueryPanelTitleTabState } from "../components/QueryPanelContents/types";
 
 export const initialState = {
@@ -13,9 +17,13 @@ export const initialState = {
   limit: undefined,
   perspectiveTheme: "Vintage",
   queryHistory: [],
-  queryBookmarks: [],
+  // TODO: check if we are using this
+  queryBookmarks: {
+    private: { items: [], page: 0, pages: 0, size: 0, total: 0 },
+    public: { items: [], page: 0, pages: 0, size: 0, total: 0 },
+  },
   queryBookmarksEnabled: false,
-  tabState: QueryPanelTitleTabState.Preview,
+  tabState: QueryPanelTitleTabState.Bookmarks,
 } as QueryPanelStateProps;
 
 const queryPanelSlice = createSlice({
@@ -49,12 +57,6 @@ const queryPanelSlice = createSlice({
       action: PayloadAction<QueryPanelStateProps["queryBookmarksEnabled"]>,
     ) => {
       state.queryBookmarksEnabled = action.payload;
-    },
-    setQueryBookmarks: (
-      state,
-      action: PayloadAction<QueryPanelStateProps["queryBookmarks"]>,
-    ) => {
-      state.queryBookmarks = action.payload;
     },
     setQueryHistory: (
       state,
@@ -108,26 +110,36 @@ const queryPanelSlice = createSlice({
     ) => {
       state.loading = action.payload;
     },
-    removeBookmark: (state, action: PayloadAction<QueryBookmark["id"]>) => {
+    setQueryBookmarks: (
+      state,
+      action: PayloadAction<{
+        response: QueryBookmarkResponse;
+        type: "public" | "private";
+      }>,
+    ) => {
+      state.queryBookmarks[action.payload.type] = action.payload.response;
+    },
+    removeBookmark: (state, action: PayloadAction<QueryBookmark>) => {
       if (!state.queryBookmarks) {
         return;
       }
-      state.queryBookmarks = state.queryBookmarks.filter(
-        (bookmark) => bookmark.id !== action.payload,
-      );
+
+      state.queryBookmarks[action.payload.privacy].items = state.queryBookmarks[
+        action.payload.privacy
+      ].items.filter((bookmark) => bookmark.id !== action.payload.id);
     },
     updateBookmark: (state, action: PayloadAction<QueryBookmark>) => {
       if (!action.payload.id || !state.queryBookmarks) {
         return;
       }
-      const index = state.queryBookmarks.findIndex(
-        (bookmark) => bookmark.id === action.payload.id,
-      );
+      const index = state.queryBookmarks[
+        action.payload.privacy
+      ].items.findIndex((bookmark) => bookmark.id === action.payload.id);
       if (index === -1) {
         return;
       }
-      state.queryBookmarks[index] = {
-        ...state.queryBookmarks[index],
+      state.queryBookmarks[action.payload.privacy].items[index] = {
+        ...state.queryBookmarks[action.payload.privacy].items[index],
         ...action.payload,
       };
     },

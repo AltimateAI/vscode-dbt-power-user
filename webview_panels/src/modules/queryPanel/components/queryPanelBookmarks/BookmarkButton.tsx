@@ -97,6 +97,7 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
         },
       });
       panelLogger.info("saved bookmark", response);
+      // TODO fix this
       executeRequestInAsync("getQueryBookmarks", {});
       onClose();
       const actionResponse = await executeRequestInSync(

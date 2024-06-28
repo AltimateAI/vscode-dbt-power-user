@@ -9,7 +9,6 @@ import {
   setLimit,
   setLoading,
   setPerspectiveTheme,
-  setQueryBookmarks,
   setQueryBookmarksEnabled,
   setQueryExecutionInfo,
   setQueryHistory,
@@ -23,11 +22,7 @@ import {
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
 import { HINTS, HINT_VISIBILITY_DELAY } from "./constants";
-import {
-  QueryBookmark,
-  QueryHistory,
-  QueryPanelStateProps,
-} from "./context/types";
+import { QueryHistory, QueryPanelStateProps } from "./context/types";
 
 const useQueryPanelListeners = (): { loading: boolean; isPanel: boolean } => {
   const dispatch = useQueryPanelDispatch();
@@ -144,9 +139,6 @@ const useQueryPanelListeners = (): { loading: boolean; isPanel: boolean } => {
         case "queryHistory":
           handleIncomingQueryHistory(args.args.body as QueryHistory[]);
           break;
-        case "queryBookmarks":
-          dispatch(setQueryBookmarks(args.args.body as QueryBookmark[]));
-          break;
         case "getContext":
           // @ts-expect-error valid type
           dispatch(setLastHintTimestamp(args.lastHintTimestamp as number));
@@ -170,7 +162,6 @@ const useQueryPanelListeners = (): { loading: boolean; isPanel: boolean } => {
     void executeRequestInSync("getQueryPanelContext", {});
 
     void executeRequestInSync("getQueryHistory", {});
-    void executeRequestInSync("getQueryBookmarks", {});
   }, []);
 
   useEffect(() => {

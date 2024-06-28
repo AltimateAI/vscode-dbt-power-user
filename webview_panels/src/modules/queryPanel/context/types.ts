@@ -11,6 +11,14 @@ export interface QueryHistory {
   projectName: string;
 }
 
+export interface QueryBookmarkResponse {
+  items: QueryBookmark[];
+  page: number;
+  pages: number;
+  size: number;
+  total: number;
+}
+
 export interface QueryBookmark {
   id: number;
   compiled_sql: string;
@@ -44,7 +52,10 @@ export interface QueryPanelStateProps {
   limit?: number;
   perspectiveTheme: string;
   queryHistory: QueryHistory[];
-  queryBookmarks: QueryBookmark[];
+  queryBookmarks: {
+    private: QueryBookmarkResponse;
+    public: QueryBookmarkResponse;
+  };
   queryBookmarksEnabled: boolean;
   tabState: QueryPanelTitleTabState;
 }

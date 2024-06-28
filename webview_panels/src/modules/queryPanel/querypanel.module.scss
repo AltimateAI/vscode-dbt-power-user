@@ -129,13 +129,13 @@
           }
 
           > div:last-child {
+            gap: 2px;
             span {
               vertical-align: bottom;
             }
             button {
               display: none;
               padding: 2px 4px;
-              margin-left: 2px;
             }
           }
 

@@ -83,7 +83,6 @@ enum InboundCommand {
   SetContext = "setContext",
   GetQueryPanelContext = "getQueryPanelContext",
   GetQueryHistory = "getQueryHistory",
-  GetQueryBookmarks = "getQueryBookmarks",
   ExecuteQuery = "executeQuery",
   GetQueryTabData = "getQueryTabData",
   RunAdhocQuery = "runAdhocQuery",
@@ -349,13 +348,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             this.sendResponseToWebview({
               command: "queryHistory",
               data: this._queryHistory,
-            });
-            break;
-          case InboundCommand.GetQueryBookmarks:
-            const bookmarks = await this.altimate.getQueryBookmarks();
-            this.sendResponseToWebview({
-              command: "queryBookmarks",
-              data: bookmarks,
             });
             break;
           case InboundCommand.GetQueryTabData:

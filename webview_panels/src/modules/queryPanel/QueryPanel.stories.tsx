@@ -100,19 +100,32 @@ export const DefaultQueryPanelView = {
           });
           return;
         }
-        if (request.command === "getQueryBookmarks") {
-          window.postMessage({
-            command: "queryBookmarks",
-            args: {
-              body: QueryBookmarkFactory.buildList(5, {
-                created_by_user: user,
-              }),
-            },
-          });
-          return;
-        }
+
         if (request.command === "fetch") {
           switch (request.endpoint) {
+            case (request.endpoint as string).match(
+              /query\/bookmark\?privacy=private/,
+            )?.input:
+              return {
+                items: QueryBookmarkFactory.buildList(5, {
+                  privacy: "private",
+                }),
+                page: 1,
+                pages: 1,
+                size: 5,
+                total: 5,
+              };
+            case (request.endpoint as string).match(
+              /query\/bookmark\?privacy=public/,
+            )?.input:
+              return {
+                items: QueryBookmarkFactory.buildList(5, { privacy: "public" }),
+                page: 1,
+                pages: 1,
+                size: 5,
+                total: 5,
+              };
+
             case "query/bookmark/tags":
               return [
                 { id: 1, tag: "tag1" },
