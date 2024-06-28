@@ -25,12 +25,14 @@ import {
 } from "@modules/app/requestExecutor";
 import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
 import {
+  setQueryBookmarksTagsFromDB,
   setRefreshQueryBookmarksTimestamp,
   setTabState,
 } from "@modules/queryPanel/context/queryPanelSlice";
 import { QueryPanelTitleTabState } from "../QueryPanelContents/types";
 import pageStyles from "../../querypanel.module.scss";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
+import { ActionMeta } from "react-select";
 
 interface Props {
   queryHistory: QueryHistory;
@@ -172,12 +174,27 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
                         value={tags?.map((v) => ({ label: v, value: v }) ?? [])}
                         defaultValue={[]}
                         isMulti
-                        onChange={(updates: unknown) => {
+                        onChange={(
+                          updates: unknown,
+                          triggeredAction: ActionMeta<unknown>,
+                        ) => {
                           const newValues = (
                             (updates ?? []) as OptionType[]
                           )?.map((val) => val.value);
                           setValue("tags", newValues);
 
+                          if (triggeredAction.action === "create-option") {
+                            dispatch(
+                              setQueryBookmarksTagsFromDB([
+                                {
+                                  tag: (triggeredAction.option as OptionType)
+                                    .value,
+                                  id: Date.now(),
+                                },
+                                ...queryBookmarksTagsFromDB,
+                              ]),
+                            );
+                          }
                           return onChange(newValues);
                         }}
                         placeholder="Type a value and press enter to add"

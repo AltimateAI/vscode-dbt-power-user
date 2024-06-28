@@ -42,7 +42,7 @@ const BookmarkAccordion = ({
     }
     try {
       const response = await executeRequestInSync("fetch", {
-        endpoint: `query/bookmark?privacy=${privacy}${filters.tags.map((t) => `tags_list=${t}`).join("&")}&search_query=${filters.searchQuery}`,
+        endpoint: `query/bookmark?privacy=${privacy}&${filters.tags.map((t) => `tags_list=${t}`).join("&")}&search_query=${filters.searchQuery}`,
         fetchArgs: {
           method: "GET",
         },

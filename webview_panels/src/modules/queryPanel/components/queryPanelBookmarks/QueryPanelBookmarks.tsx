@@ -78,10 +78,6 @@ const QueryPanelBookmarks = (): JSX.Element => {
           <h4>{activeBookmark.name}</h4>
           <div>
             <Stack>
-              <Label>Description</Label>
-              <span>{activeBookmark.description}</span>
-            </Stack>
-            <Stack>
               <Label>Tags</Label>
               {activeBookmark.tags.map((t) => t.tag).join(",")}
             </Stack>
