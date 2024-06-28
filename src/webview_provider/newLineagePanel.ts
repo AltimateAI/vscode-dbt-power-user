@@ -679,7 +679,13 @@ export class NewLineagePanel implements LineagePanelView {
         apiTime: apiTime.toString(),
         sqlCompilingTime: sqlCompilingTime.toString(),
         schemaFetchingTime: schemaFetchingTime.toString(),
+        modelInfosLength: modelInfos.length.toString(),
       });
+      if (result.errors && result.errors.length > 0) {
+        window.showErrorMessage(
+          extendErrorWithSupportLinks(result.errors.join("\n")),
+        );
+      }
       const column_lineage =
         result.column_lineage.map((c) => ({
           source: [c.source.uniqueId, c.source.column_name],
