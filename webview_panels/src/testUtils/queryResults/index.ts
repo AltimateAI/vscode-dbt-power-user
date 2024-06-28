@@ -31,18 +31,23 @@ export const QueryHistoryFactory = Sync.makeFactory<QueryHistory>({
   timestamp: Sync.each(() => faker.date.past().getTime()),
 });
 
+const generateRandomTags = () => {
+  return faker.helpers.multiple(
+    () => ({ id: faker.datatype.number(), tag: faker.lorem.word() }),
+    { count: faker.helpers.rangeToNumber({ min: 0, max: 10 }) },
+  );
+};
+
 export const QueryBookmarkFactory = Sync.makeFactory<QueryBookmark>({
   raw_sql: Sync.each(() => generateRandomSQLQuery()),
   compiled_sql: Sync.each(() => generateRandomSQLQuery()),
   created_on: Sync.each(() => faker.date.past().toISOString()),
-  adapter_type: faker.lorem.word(),
-  id: faker.datatype.number(),
-  name: faker.lorem.words(),
+  adapter_type: Sync.each(() => faker.lorem.word()),
+  id: Sync.each(() => faker.datatype.number()),
+  name: Sync.each(() => faker.lorem.words()),
   description: faker.lorem.paragraph(),
   updated_on: Sync.each(() => faker.date.recent().toISOString()),
-  tags: Sync.each(() => [
-    { id: faker.datatype.number(), tag: faker.lorem.word() },
-  ]),
+  tags: Sync.each(() => generateRandomTags()),
   privacy: Sync.each(() => faker.helpers.arrayElement(["public", "private"])),
   created_by_user: Sync.each(() => TenantUserFactory.build()),
 });

@@ -34,13 +34,11 @@ interface Props {
 
 interface BookmarkRequest {
   name: string;
-  description: string;
   tags?: string[];
 }
 
 const schema = Yup.object({
   name: Yup.string().required(),
-  description: Yup.string().required(),
   tags: Yup.array().of(Yup.string().required()).optional(),
 }).required();
 
@@ -85,7 +83,6 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
       panelLogger.info("saving bookmark", queryHistory, data);
       const request = {
         bookmark_name: data.name,
-        description: data.description,
         raw_sql: queryHistory.rawSql,
         compiled_sql: queryHistory.compiledSql,
         adapter_type: queryHistory.adapter,
@@ -151,25 +148,6 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
                         type="text"
                         onChange={onChange}
                         placeholder="Bookmark name"
-                      />
-                    </Col>
-                  </FormGroup>
-                )}
-              />
-              <Controller
-                control={control}
-                name="description"
-                render={({ field: { onChange } }) => (
-                  <FormGroup row>
-                    <Label for="description" sm={2} style={{ paddingTop: 3 }}>
-                      Description
-                    </Label>
-                    <Col sm={9}>
-                      <Input
-                        id="description"
-                        type="textarea"
-                        onChange={onChange}
-                        placeholder="Description"
                       />
                     </Col>
                   </FormGroup>
