@@ -1,14 +1,32 @@
 import styles from "../../querypanel.module.scss";
 import { Stack, CodeBlock, Label, IconButton } from "@uicore";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { QueryBookmark } from "@modules/queryPanel/context/types";
 import { ChevronRightIcon } from "@assets/icons";
 import BookmarkAccordion from "./BookmarkAccordion";
+import { executeRequestInSync } from "@modules/app/requestExecutor";
+import { panelLogger } from "@modules/logger";
 
 const QueryPanelBookmarks = (): JSX.Element => {
   const [activeBookmark, setActiveBookmark] = useState<QueryBookmark | null>(
     null,
   );
+  const [tags, setTags] = useState<string[]>([]);
+
+  useEffect(() => {
+    executeRequestInSync("fetch", {
+      endpoint: `query/bookmark/tags`,
+      fetchArgs: {
+        method: "GET",
+      },
+    })
+      .then((response) => {
+        setTags((response as QueryBookmark["tags"]).map((t) => t.tag));
+      })
+      .catch((error) => {
+        panelLogger.error("Error fetching tags", error);
+      });
+  }, []);
 
   const onSelect = (qh: QueryBookmark) => {
     setActiveBookmark(qh);
@@ -25,11 +43,13 @@ const QueryPanelBookmarks = (): JSX.Element => {
           onSelect={onSelect}
           privacy="private"
           title="My bookmarks"
+          tags={tags}
         />
         <BookmarkAccordion
           onSelect={onSelect}
           privacy="public"
           title="Shared bookmarks"
+          tags={tags}
         />
       </Stack>
 

@@ -3,7 +3,7 @@ import styles from "../../querypanel.module.scss";
 import Filters, { QueryFilters } from "../filters/Filters";
 import { NoBookmarksIcon } from "@assets/icons";
 import QueryBookmarkRow from "./QueryBookmarkRow";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import {
@@ -15,11 +15,13 @@ interface Props {
   privacy: "public" | "private";
   title: string;
   onSelect: (bookmark: QueryBookmark) => void;
+  tags: string[];
 }
 const BookmarkAccordion = ({
   privacy,
   title,
   onSelect,
+  tags,
 }: Props): JSX.Element => {
   const [isLoading, setIsLoading] = useState(false);
   const [bookmarksResponse, setBookmarksResponse] =
@@ -55,12 +57,6 @@ const BookmarkAccordion = ({
   }, [filters]);
 
   const bookmarks = bookmarksResponse.items;
-  // TODO: use api to get all tags
-  const tags = useMemo(() => {
-    return bookmarks.reduce<string[]>((acc, bookmark) => {
-      return [...acc, ...bookmark.tags.map((tag) => tag.tag)];
-    }, []);
-  }, [bookmarks]);
 
   const onFiltersChange = (data: { tags?: string[]; searchQuery?: string }) => {
     setFilters((prev) => ({ ...prev, ...data }));
