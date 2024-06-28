@@ -8,6 +8,7 @@
   padding: 0.5rem;
   display: flex;
   flex-direction: column;
+  overflow-y: overlay;
 
   :global .nav-link {
     cursor: pointer;
@@ -45,6 +46,7 @@
   .queryTwoCol {
     display: flex;
     align-items: flex-start;
+    gap: 2rem;
     .historyDetails {
       width: 400px;
       display: flex;
@@ -70,9 +72,16 @@
       }
     }
     .limitWidth {
-      width: calc(100% - 400px - 2rem);
-      margin-right: 2rem;
+      max-width: 100%;
+      min-width: 0;
+      flex: 1;
     }
+    @media (min-width: 1400px) {
+      .limitWidth {
+        max-width: 1440px;
+      }
+    }
+
     .queryHistoryList {
       background-color: var(--background--01);
       border-radius: 5px;
