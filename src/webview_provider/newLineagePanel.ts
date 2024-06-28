@@ -539,12 +539,14 @@ export class NewLineagePanel implements LineagePanelView {
     const modelsToFetch = Array.from(
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
     );
+    let startTime = Date.now();
     const { mappedNode, relationsWithoutColumns } =
       await project.getNodesWithDBColumns(
         event,
         modelsToFetch,
         this.cancellationTokenSource!.token,
       );
+    const schemaFetchingTime = Date.now() - startTime;
 
     const selected_column = {
       model_node: mappedNode[selectedColumn.table],
@@ -563,11 +565,11 @@ export class NewLineagePanel implements LineagePanelView {
       const compiledSql = await project.unsafeCompileNode(node.name);
       modelInfos.push({ compiled_sql: compiledSql, model_node: node });
     };
+    startTime = Date.now();
     try {
       auxiliaryTables.forEach((key) => {
         modelInfos.push({ model_node: mappedNode[key] });
       });
-
       for (const key of currAnd1HopTables) {
         if (this.cancellationTokenSource?.token.isCancellationRequested) {
           return { column_lineage: [] };
@@ -607,6 +609,7 @@ export class NewLineagePanel implements LineagePanelView {
       );
       return;
     }
+    const sqlCompilingTime = Date.now() - startTime;
 
     if (relationsWithoutColumns.length !== 0) {
       window.showErrorMessage(
@@ -664,12 +667,19 @@ export class NewLineagePanel implements LineagePanelView {
         "request",
         request,
       );
+      startTime = Date.now();
       const result = await this.altimate.getColumnLevelLineage(request);
+      const apiTime = Date.now() - startTime;
       this.terminal.debug(
         "newLineagePanel:getConnectedColumns",
         "response",
         result,
       );
+      this.telemetry.sendTelemetryEvent("columnLineageTimes", {
+        apiTime: apiTime.toString(),
+        sqlCompilingTime: sqlCompilingTime.toString(),
+        schemaFetchingTime: schemaFetchingTime.toString(),
+      });
       const column_lineage =
         result.column_lineage.map((c) => ({
           source: [c.source.uniqueId, c.source.column_name],
