@@ -6,6 +6,7 @@ import {
   QueryHistoryFactory,
 } from "../../testUtils/queryResults";
 import { TenantUserFactory } from "@testUtils";
+import { panelLogger } from "@modules/logger";
 
 const meta = {
   title: "Query Panel",
@@ -127,6 +128,7 @@ export const DefaultQueryPanelView = {
               };
 
             case "query/bookmark/tags":
+              panelLogger.info("Fetching tags");
               return [
                 { id: 1, tag: "tag1" },
                 { id: 2, tag: "tag2" },

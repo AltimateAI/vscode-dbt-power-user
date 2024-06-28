@@ -6,19 +6,18 @@ import QueryPanelError from "./QueryPanelError";
 import { CodeBlock } from "@uicore";
 import PreTag from "@modules/markdown/PreTag";
 import { QueryPanelTitleTabState } from "./types";
-import QueryPanelBookmarks from "../queryPanelBookmarks/QueryPanelBookmarks";
 import QueryPanelHistory from "../queryPanelQueryHistory/QueryPanelHistory";
 
 const QueryPanelContent = ({
   tabState,
 }: {
   tabState: QueryPanelTitleTabState;
-}): JSX.Element => {
+}): JSX.Element | null => {
   const { loading, hasError, queryResults, compiledCodeMarkup } =
     useQueryPanelState();
 
   if (QueryPanelTitleTabState.Bookmarks === tabState) {
-    return <QueryPanelBookmarks />;
+    return null;
   }
 
   if (QueryPanelTitleTabState.QueryHistory === tabState) {

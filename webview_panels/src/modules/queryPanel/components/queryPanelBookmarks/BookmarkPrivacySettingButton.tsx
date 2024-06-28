@@ -4,7 +4,7 @@ import {
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
 import useAppContext from "@modules/app/useAppContext";
-import { updateBookmark } from "@modules/queryPanel/context/queryPanelSlice";
+import { setRefreshQueryBookmarksTimestamp } from "@modules/queryPanel/context/queryPanelSlice";
 import { QueryBookmark } from "@modules/queryPanel/context/types";
 import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
 import {
@@ -46,6 +46,16 @@ const BookmarkPrivacySettingButton = ({
           method: "PUT",
         },
       });
+      executeRequestInAsync("sendTelemetryEvent", {
+        eventName:
+          privacy === "public"
+            ? `query-bookmark-shared`
+            : `query-bookmark-unshared`,
+        properties: {
+          name: bookmark.name,
+          id: bookmark.id,
+        },
+      });
       executeRequestInAsync("showInformationMessage", {
         infoMessage: "Successfully saved bookmark!",
       });
@@ -60,12 +70,7 @@ const BookmarkPrivacySettingButton = ({
   };
 
   const handleUpdate = () => {
-    queryPanelDispatch(
-      updateBookmark({
-        ...bookmark,
-        privacy,
-      }),
-    );
+    queryPanelDispatch(setRefreshQueryBookmarksTimestamp(Date.now()));
   };
 
   if (currentUser?.id !== bookmark.created_by_user.id) {

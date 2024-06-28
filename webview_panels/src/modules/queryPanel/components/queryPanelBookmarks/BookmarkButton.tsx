@@ -2,7 +2,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import { Controller, useForm } from "react-hook-form";
 import { BookmarkIcon } from "@assets/icons";
-import { QueryBookmark, QueryHistory } from "@modules/queryPanel/context/types";
+import { QueryHistory } from "@modules/queryPanel/context/types";
 import {
   Button,
   Col,
@@ -17,16 +17,20 @@ import {
   Select,
   Stack,
 } from "@uicore";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { panelLogger } from "@modules/logger";
 import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
 import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
-import { setTabState } from "@modules/queryPanel/context/queryPanelSlice";
+import {
+  setRefreshQueryBookmarksTimestamp,
+  setTabState,
+} from "@modules/queryPanel/context/queryPanelSlice";
 import { QueryPanelTitleTabState } from "../QueryPanelContents/types";
 import pageStyles from "../../querypanel.module.scss";
+import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 
 interface Props {
   queryHistory: QueryHistory;
@@ -44,25 +48,9 @@ const schema = Yup.object({
 
 const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
   const dispatch = useQueryPanelDispatch();
-  const [tagsFromDB, setTags] = useState<string[]>([]);
+  const { queryBookmarksTagsFromDB } = useQueryPanelState();
   const popoverRef = useRef<PopoverWithButtonRef | null>(null);
 
-  useEffect(() => {
-    executeRequestInSync("fetch", {
-      endpoint: "query/bookmark/tags",
-      fetchArgs: {
-        method: "GET",
-      },
-    })
-      .then((response) => {
-        setTags(
-          (response as undefined | QueryBookmark["tags"])?.map(
-            (tag) => tag.tag,
-          ) ?? [],
-        );
-      })
-      .catch((err) => panelLogger.error("Unable to get tags", err));
-  }, []);
   const {
     control,
     handleSubmit,
@@ -97,8 +85,13 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
         },
       });
       panelLogger.info("saved bookmark", response);
-      // TODO fix this
-      executeRequestInAsync("getQueryBookmarks", {});
+      dispatch(setRefreshQueryBookmarksTimestamp(Date.now()));
+      executeRequestInAsync("sendTelemetryEvent", {
+        eventName: `query-bookmark-added`,
+        properties: {
+          name: data.name,
+        },
+      });
       onClose();
       const actionResponse = await executeRequestInSync(
         "showInformationMessage",
@@ -170,9 +163,9 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
                         }}
                         ref={ref}
                         inputId="tags"
-                        options={tagsFromDB.map((v) => ({
-                          label: v,
-                          value: v,
+                        options={queryBookmarksTagsFromDB.map((v) => ({
+                          label: v.tag,
+                          value: v.tag,
                         }))}
                         isCreatable
                         isClearable

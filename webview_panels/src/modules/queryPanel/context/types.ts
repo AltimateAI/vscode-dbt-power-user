@@ -57,5 +57,7 @@ export interface QueryPanelStateProps {
     public: QueryBookmarkResponse;
   };
   queryBookmarksEnabled: boolean;
+  queryBookmarksTagsFromDB: { id: number; tag: string }[];
+  refreshQueryBookmarksTimestamp: number;
   tabState: QueryPanelTitleTabState;
 }

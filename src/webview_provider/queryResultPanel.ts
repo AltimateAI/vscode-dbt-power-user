@@ -230,7 +230,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._webview = webviewPanel.webview;
     this.renderWebviewView(webviewPanel.webview);
     this.setupWebviewHooks();
-    this.sendQueryTabViewEvent();
     await this.checkIfWebviewReady();
   }
 
@@ -254,6 +253,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         );
         this._queryTabData = payload.queryTabData;
         this.createQueryResultsPanelVirtualDocument();
+        this.sendQueryTabViewEvent();
         break;
       default:
         super.onEvent({ command, payload });
@@ -313,9 +313,13 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     projectName: string;
   }) {
     try {
+      const isHistoryTab = Boolean(message.projectName);
       const project = await this.getProject(message.projectName);
       if (project) {
         await this.createQueryResultsPanelVirtualDocument();
+        this.telemetry.sendTelemetryEvent(
+          isHistoryTab ? "QueryHistoryExecuteSql" : "QueryBookmarkExecuteSql",
+        );
         await project.executeSQL(message.query, "model");
         return;
       }
@@ -340,6 +344,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         switch (message.command) {
           case InboundCommand.RunAdhocQuery:
             commands.executeCommand("dbtPowerUser.createPUSqlFile");
+            this.dbtProjectContainer.setToGlobalState(
+              "run-adhoc-query-button-clicked",
+              true,
+            );
             break;
           case InboundCommand.ExecuteQuery:
             await this.executeIncomingQuery(message);

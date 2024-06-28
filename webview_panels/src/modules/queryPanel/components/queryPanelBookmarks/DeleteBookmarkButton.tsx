@@ -3,7 +3,7 @@ import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
-import { removeBookmark } from "@modules/queryPanel/context/queryPanelSlice";
+import { setRefreshQueryBookmarksTimestamp } from "@modules/queryPanel/context/queryPanelSlice";
 import { QueryBookmark } from "@modules/queryPanel/context/types";
 import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
 import { LoadingButton, Tooltip } from "@uicore";
@@ -34,10 +34,17 @@ const DeleteBookmarkButton = ({
           method: "DELETE",
         },
       });
+      executeRequestInAsync("sendTelemetryEvent", {
+        eventName: `query-bookmark-deleted`,
+        properties: {
+          name: bookmark.name,
+          id: bookmark.id,
+        },
+      });
       executeRequestInAsync("showInformationMessage", {
         infoMessage: "Successfully deleted bookmark!",
       });
-      queryPanelDispatch(removeBookmark(bookmark));
+      queryPanelDispatch(setRefreshQueryBookmarksTimestamp(Date.now()));
     } catch (error) {
       executeRequestInAsync("showErrorMessage", {
         infoMessage: (error as Error).message,

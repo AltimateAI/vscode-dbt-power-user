@@ -1,9 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import {
-  QueryBookmark,
-  QueryBookmarkResponse,
-  QueryPanelStateProps,
-} from "./types";
+import { QueryBookmarkResponse, QueryPanelStateProps } from "./types";
 import { QueryPanelTitleTabState } from "../components/QueryPanelContents/types";
 
 export const initialState = {
@@ -17,13 +13,14 @@ export const initialState = {
   limit: undefined,
   perspectiveTheme: "Vintage",
   queryHistory: [],
-  // TODO: check if we are using this
   queryBookmarks: {
     private: { items: [], page: 0, pages: 0, size: 0, total: 0 },
     public: { items: [], page: 0, pages: 0, size: 0, total: 0 },
   },
   queryBookmarksEnabled: false,
-  tabState: QueryPanelTitleTabState.Bookmarks,
+  tabState: QueryPanelTitleTabState.Preview,
+  refreshQueryBookmarksTimestamp: 0,
+  queryBookmarksTagsFromDB: [],
 } as QueryPanelStateProps;
 
 const queryPanelSlice = createSlice({
@@ -39,6 +36,20 @@ const queryPanelSlice = createSlice({
         compiledCodeMarkup: undefined,
         loading: false,
       };
+    },
+    setRefreshQueryBookmarksTimestamp: (
+      state,
+      action: PayloadAction<
+        QueryPanelStateProps["refreshQueryBookmarksTimestamp"]
+      >,
+    ) => {
+      state.refreshQueryBookmarksTimestamp = action.payload;
+    },
+    setQueryBookmarksTagsFromDB: (
+      state,
+      action: PayloadAction<QueryPanelStateProps["queryBookmarksTagsFromDB"]>,
+    ) => {
+      state.queryBookmarksTagsFromDB = action.payload;
     },
     setHintIndex: (
       state,
@@ -119,30 +130,6 @@ const queryPanelSlice = createSlice({
     ) => {
       state.queryBookmarks[action.payload.type] = action.payload.response;
     },
-    removeBookmark: (state, action: PayloadAction<QueryBookmark>) => {
-      if (!state.queryBookmarks) {
-        return;
-      }
-
-      state.queryBookmarks[action.payload.privacy].items = state.queryBookmarks[
-        action.payload.privacy
-      ].items.filter((bookmark) => bookmark.id !== action.payload.id);
-    },
-    updateBookmark: (state, action: PayloadAction<QueryBookmark>) => {
-      if (!action.payload.id || !state.queryBookmarks) {
-        return;
-      }
-      const index = state.queryBookmarks[
-        action.payload.privacy
-      ].items.findIndex((bookmark) => bookmark.id === action.payload.id);
-      if (index === -1) {
-        return;
-      }
-      state.queryBookmarks[action.payload.privacy].items[index] = {
-        ...state.queryBookmarks[action.payload.privacy].items[index],
-        ...action.payload,
-      };
-    },
   },
 });
 
@@ -157,12 +144,12 @@ export const {
   setLastHintTimestamp,
   setLimit,
   setPerspectiveTheme,
-  setQueryBookmarks,
   setQueryHistory,
+  setQueryBookmarks,
   setQueryBookmarksEnabled,
   setTabState,
-  updateBookmark,
-  removeBookmark,
+  setRefreshQueryBookmarksTimestamp,
+  setQueryBookmarksTagsFromDB,
 } = queryPanelSlice.actions;
 
 export default queryPanelSlice;

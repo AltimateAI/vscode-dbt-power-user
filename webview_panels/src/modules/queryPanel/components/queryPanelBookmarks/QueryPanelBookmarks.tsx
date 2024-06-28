@@ -6,12 +6,18 @@ import { ChevronRightIcon } from "@assets/icons";
 import BookmarkAccordion from "./BookmarkAccordion";
 import { executeRequestInSync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
+import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
+import { QueryPanelTitleTabState } from "../QueryPanelContents/types";
+import { setQueryBookmarksTagsFromDB } from "@modules/queryPanel/context/queryPanelSlice";
+import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
 
 const QueryPanelBookmarks = (): JSX.Element => {
   const [activeBookmark, setActiveBookmark] = useState<QueryBookmark | null>(
     null,
   );
-  const [tags, setTags] = useState<string[]>([]);
+  const { queryBookmarks, tabState, queryBookmarksTagsFromDB } =
+    useQueryPanelState();
+  const dispatch = useQueryPanelDispatch();
 
   useEffect(() => {
     executeRequestInSync("fetch", {
@@ -21,7 +27,9 @@ const QueryPanelBookmarks = (): JSX.Element => {
       },
     })
       .then((response) => {
-        setTags((response as QueryBookmark["tags"]).map((t) => t.tag));
+        dispatch(
+          setQueryBookmarksTagsFromDB(response as QueryBookmark["tags"]),
+        );
       })
       .catch((error) => {
         panelLogger.error("Error fetching tags", error);
@@ -36,20 +44,25 @@ const QueryPanelBookmarks = (): JSX.Element => {
     setActiveBookmark(null);
   };
 
+  const tags = queryBookmarksTagsFromDB.map((t) => t.tag);
   return (
-    <section className={styles.queryTwoCol}>
+    <section
+      className={`${styles.queryTwoCol} ${tabState === QueryPanelTitleTabState.Bookmarks ? "" : "d-none"}`}
+    >
       <Stack direction="column" className={styles.limitWidth}>
         <BookmarkAccordion
           onSelect={onSelect}
           privacy="private"
           title="My bookmarks"
           tags={tags}
+          bookmarks={queryBookmarks.private.items}
         />
         <BookmarkAccordion
           onSelect={onSelect}
           privacy="public"
           title="Shared bookmarks"
           tags={tags}
+          bookmarks={queryBookmarks.public.items}
         />
       </Stack>
 

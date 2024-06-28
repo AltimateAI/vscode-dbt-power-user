@@ -14,6 +14,7 @@ import { useQueryPanelDispatch } from "./QueryPanelProvider";
 import { setTabState } from "./context/queryPanelSlice";
 import ShowInTabButton from "./components/openInTabButton/OpenInTabButton";
 import RunAdhocQueryButton from "./components/runAdhocQueryButton/RunAdhocQueryButton";
+import QueryPanelBookmarks from "./components/queryPanelBookmarks/QueryPanelBookmarks";
 
 const QueryPanel = (): JSX.Element => {
   const { tabState } = useQueryPanelState();
@@ -51,6 +52,8 @@ const QueryPanel = (): JSX.Element => {
       </Stack>
       <div style={{ flex: 1 }}>
         <QueryPanelContent tabState={tabState} />
+        {/* Mounted this component always to avoid reloading data when switching to this tab */}
+        <QueryPanelBookmarks />
       </div>
     </div>
   );

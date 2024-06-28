@@ -1,7 +1,8 @@
 import { FilterIcon, SearchIcon } from "@assets/icons";
 import { IconButton, Input, OptionType, Select, Stack } from "@uicore";
-import { ChangeEvent, MouseEvent, useState } from "react";
+import { ChangeEvent, MouseEvent, useEffect, useState } from "react";
 import { ActionMeta } from "react-select";
+import { useDebounce } from "use-debounce";
 
 export interface QueryFilters {
   tags: string[];
@@ -18,16 +19,22 @@ const Filters = ({
   tags,
   onFiltersChange,
 }: Props): JSX.Element | null => {
+  const [text, setText] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [value] = useDebounce(text, 1000);
 
   const stopPropagation = (e: MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
   };
 
+  useEffect(() => {
+    onFiltersChange({ searchQuery: value });
+  }, [value]);
+
   const handleSearchQueryChange = (e: ChangeEvent<HTMLInputElement>) => {
-    onFiltersChange({ searchQuery: e.target.value });
+    setText(e.target.value);
   };
 
   const handleBlur = () => {
