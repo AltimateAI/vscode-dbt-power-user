@@ -946,7 +946,10 @@ export const bfsTraversal = async (
         return newConfidence;
       });
     }
-    currTargetColumns = patchState.newCurr;
+    currTargetColumns = patchState.newCurr.filter(
+      (c) =>
+        edges.filter((e) => (right ? e.source : e.target) == c[0]).length > 0
+    );
     if (!isLineage && currTargetColumns.length > 0) {
       isLineage = true;
     }

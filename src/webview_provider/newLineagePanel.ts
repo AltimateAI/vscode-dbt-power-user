@@ -530,11 +530,15 @@ export class NewLineagePanel implements LineagePanelView {
     let upstream_models: string[] = [];
     let auxiliaryTables: string[] = [];
     currAnd1HopTables = Array.from(new Set(currAnd1HopTables));
+    const currTables = new Set(targets.map((t) => t[0]));
     if (upstreamExpansion) {
-      const currTables = new Set(targets.map((t) => t[0]));
       const hop1Tables = currAnd1HopTables.filter((t) => !currTables.has(t));
       upstream_models = [...hop1Tables];
       auxiliaryTables = DBTProject.getNonEphemeralParents(event, hop1Tables);
+    } else {
+      currAnd1HopTables.push(
+        ...DBTProject.getNonEphemeralParents(event, Array.from(currTables)),
+      );
     }
     const modelsToFetch = Array.from(
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
