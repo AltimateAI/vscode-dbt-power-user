@@ -41,7 +41,59 @@ export const openURL = (url: string) => {
   vscode.postMessage({ command: "openURL", args: { url } });
 };
 
+// This does not post like the above. Need an update
+export const exportToSVG = () => {
+  console.log('Export function started.');
+
+  try {
+    // Select the iframe by ID
+    const iframe = document.querySelector('#active-frame');
+
+    if (!iframe) {
+      console.error('No iframe found.');
+      return;
+    }
+
+    // Access the content of the iframe
+    const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
+
+    // Select the SVG element within the iframe
+    const svgElement = iframeDocument.querySelector('svg');
+
+    if (!svgElement) {
+      console.error('No SVG element found to export.');
+      return;
+    }
+
+    console.log('SVG element found:', svgElement);
+
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(svgElement);
+    console.log('SVG string serialized:', svgString);
+
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const svgUrl = URL.createObjectURL(svgBlob);
+    console.log('SVG Blob URL created:', svgUrl);
+
+    const downloadLink = document.createElement('a');
+    downloadLink.href = svgUrl;
+    downloadLink.download = 'exported_image.svg';
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    console.log('Download link clicked.');
+
+    document.body.removeChild(downloadLink);
+    URL.revokeObjectURL(svgUrl);
+    console.log('Temporary elements removed and URL revoked.');
+  } catch (error) {
+    console.error('Error during export:', error);
+  }
+
+};
+
 export const openChat = () => openURL("https://app.myaltimate.com/contactus");
+
+export const exportLineage = () => exportToSVG();
 
 export const previewFeature = () => {
   vscode.postMessage({ command: "previewFeature", args: {} });
