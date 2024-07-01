@@ -1,11 +1,19 @@
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import QueryHistoryRow from "./QueryHistoryRow";
-import { CodeBlock, IconButton, Label, ListGroup, Stack } from "@uicore";
+import {
+  CodeBlock,
+  IconButton,
+  Label,
+  ListGroup,
+  Stack,
+  Button,
+} from "@uicore";
 import styles from "../../querypanel.module.scss";
 import { useMemo, useState } from "react";
 import { QueryHistory } from "@modules/queryPanel/context/types";
 import Filters, { QueryFilters } from "../filters/Filters";
-import { ChevronRightIcon, NoBookmarksIcon } from "@assets/icons";
+import { ChevronRightIcon, NoHistoryIcon } from "@assets/icons";
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
 
 const QueryPanelHistory = (): JSX.Element => {
   const [filters, setFilters] = useState<QueryFilters>({ tags: [] });
@@ -49,12 +57,18 @@ const QueryPanelHistory = (): JSX.Element => {
         </header>
         {historyItems.length === 0 ? (
           <Stack className={styles.noBookmark} direction="column">
-            <NoBookmarksIcon />
+            <div className="no-results">
+              <NoHistoryIcon />
+            </div>
             <div>
-              <h6>No history available.</h6>
+              <h6>Execute your queries to view in history</h6>
+              <p>Queries can be bookmarked for sharing with team.</p>
               <p>
-                This section will show queries exectuted in this session. You
-                can bookmark your queries from query history.
+                <Button
+                  onClick={() => executeRequestInAsync("runAdhocQuery", {})}
+                >
+                  + New query
+                </Button>
               </p>
             </div>
           </Stack>

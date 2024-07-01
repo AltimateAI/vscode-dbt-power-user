@@ -50,7 +50,7 @@ const QueryPanel = (): JSX.Element => {
           <FeedbackButton url="https://docs.google.com/forms/d/19wX5b5_xXL6J_Q_GpuWzYddIXbvLxuarv09Y3VRk_EU/viewform" />
         </Stack>
       </Stack>
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, maxHeight: "calc(100% - 40px)" }}>
         <QueryPanelContent tabState={tabState} />
         {/* Mounted this component always to avoid reloading data when switching to this tab */}
         <QueryPanelBookmarks />

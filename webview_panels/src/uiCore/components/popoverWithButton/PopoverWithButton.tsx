@@ -12,7 +12,7 @@ import styles from "./styles.module.scss";
 
 interface Props {
   button: ReactNode;
-  title?: string;
+  title?: string | ReactNode;
   width?: number | string;
   popoverProps?: Omit<PopoverProps, "target">;
   children: (args: {

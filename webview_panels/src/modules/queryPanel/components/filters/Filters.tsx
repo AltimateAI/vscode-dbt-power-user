@@ -81,6 +81,7 @@ const Filters = ({
       )}
       {showForm ? (
         <Select
+          closeMenuOnSelect={false}
           components={{ DropdownIndicator: null }}
           styles={{
             container: (styles) => ({

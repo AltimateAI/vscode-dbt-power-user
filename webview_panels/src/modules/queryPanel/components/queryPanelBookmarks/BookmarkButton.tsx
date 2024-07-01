@@ -5,7 +5,6 @@ import { BookmarkIcon } from "@assets/icons";
 import { QueryHistory } from "@modules/queryPanel/context/types";
 import {
   Button,
-  Col,
   FormGroup,
   IconButton,
   Input,
@@ -134,18 +133,16 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
                 control={control}
                 name="name"
                 render={({ field: { onChange } }) => (
-                  <FormGroup row>
-                    <Label for="bookmarkName" sm={2} style={{ paddingTop: 3 }}>
+                  <FormGroup>
+                    <Label for="bookmarkName" style={{ paddingTop: 3 }}>
                       Name
                     </Label>
-                    <Col sm={9}>
-                      <Input
-                        id="bookmarkName"
-                        type="text"
-                        onChange={onChange}
-                        placeholder="Bookmark name"
-                      />
-                    </Col>
+                    <Input
+                      id="bookmarkName"
+                      type="text"
+                      onChange={onChange}
+                      placeholder="Bookmark name"
+                    />
                   </FormGroup>
                 )}
               />
@@ -153,53 +150,52 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
                 control={control}
                 name="tags"
                 render={({ field: { onChange, ref } }) => (
-                  <FormGroup row>
+                  <FormGroup>
                     <Label for="tags" sm={2} style={{ paddingTop: 3 }}>
                       Tags
                     </Label>
-                    <Col sm={9}>
-                      <Select
-                        components={{ DropdownIndicator: null }}
-                        classNames={{
-                          container: () => pageStyles.selectControl,
-                        }}
-                        ref={ref}
-                        inputId="tags"
-                        options={queryBookmarksTagsFromDB.map((v) => ({
-                          label: v.tag,
-                          value: v.tag,
-                        }))}
-                        isCreatable
-                        isClearable
-                        value={tags?.map((v) => ({ label: v, value: v }) ?? [])}
-                        defaultValue={[]}
-                        isMulti
-                        onChange={(
-                          updates: unknown,
-                          triggeredAction: ActionMeta<unknown>,
-                        ) => {
-                          const newValues = (
-                            (updates ?? []) as OptionType[]
-                          )?.map((val) => val.value);
-                          setValue("tags", newValues);
+                    <Select
+                      components={{ DropdownIndicator: null }}
+                      classNames={{
+                        container: () => pageStyles.selectControl,
+                      }}
+                      ref={ref}
+                      inputId="tags"
+                      options={queryBookmarksTagsFromDB.map((v) => ({
+                        label: v.tag,
+                        value: v.tag,
+                      }))}
+                      isCreatable
+                      isClearable
+                      closeMenuOnSelect={false}
+                      value={tags?.map((v) => ({ label: v, value: v }) ?? [])}
+                      defaultValue={[]}
+                      isMulti
+                      onChange={(
+                        updates: unknown,
+                        triggeredAction: ActionMeta<unknown>,
+                      ) => {
+                        const newValues = (
+                          (updates ?? []) as OptionType[]
+                        )?.map((val) => val.value);
+                        setValue("tags", newValues);
 
-                          if (triggeredAction.action === "create-option") {
-                            dispatch(
-                              setQueryBookmarksTagsFromDB([
-                                {
-                                  tag: (triggeredAction.option as OptionType)
-                                    .value,
-                                  id: Date.now(),
-                                },
-                                ...queryBookmarksTagsFromDB,
-                              ]),
-                            );
-                          }
-                          return onChange(newValues);
-                        }}
-                        placeholder="Type a value and press enter to add"
-                      />
-                    </Col>
+                        if (triggeredAction.action === "create-option") {
+                          dispatch(
+                            setQueryBookmarksTagsFromDB([
+                              {
+                                tag: (triggeredAction.option as OptionType)
+                                  .value,
+                                id: Date.now(),
+                              },
+                              ...queryBookmarksTagsFromDB,
+                            ]),
+                          );
+                        }
+                        return onChange(newValues);
+                      }}
+                      placeholder="Type a value and press enter to add"
+                    />
                   </FormGroup>
                 )}
               />

@@ -12,10 +12,10 @@ import {
   FormGroup,
   IconButton,
   Input,
-  Label,
   LoadingButton,
   PopoverWithButton,
   PopoverWithButtonRef,
+  Stack,
 } from "@uicore";
 import { useEffect, useRef, useState } from "react";
 
@@ -80,7 +80,21 @@ const BookmarkPrivacySettingButton = ({
   return (
     <PopoverWithButton
       ref={popoverRef}
-      title="Share bookmark"
+      title={
+        <Stack className="justify-content-between">
+          <span>Share Bookmark</span>
+          <FormGroup switch>
+            <Input
+              onChange={(e) =>
+                setPrivacy(e.target.checked ? "public" : "private")
+              }
+              checked={privacy === "public"}
+              type="switch"
+              role="switch"
+            />
+          </FormGroup>
+        </Stack>
+      }
       button={
         <IconButton title="Share this bookmark">
           <ShareIcon />
@@ -93,17 +107,9 @@ const BookmarkPrivacySettingButton = ({
     >
       {({ styles, close }) => (
         <div>
-          <FormGroup switch>
-            <Input
-              onChange={(e) =>
-                setPrivacy(e.target.checked ? "public" : "private")
-              }
-              checked={privacy === "public"}
-              type="switch"
-              role="switch"
-            />
-            <Label check>Public (shared only within your organization)</Label>
-          </FormGroup>
+          <div className="p3">
+            Public (shared only within your organization)
+          </div>
           <div className={styles.popoverActions}>
             <LoadingButton
               color="primary"

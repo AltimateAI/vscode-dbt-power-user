@@ -110,6 +110,7 @@ export const DefaultQueryPanelView = {
               return {
                 items: QueryBookmarkFactory.buildList(5, {
                   privacy: "private",
+                  created_by_user: user,
                 }),
                 page: 1,
                 pages: 1,
@@ -120,7 +121,10 @@ export const DefaultQueryPanelView = {
               /query\/bookmark\?privacy=public/,
             )?.input:
               return {
-                items: QueryBookmarkFactory.buildList(5, { privacy: "public" }),
+                items: QueryBookmarkFactory.buildList(5, {
+                  privacy: "public",
+                  created_by_user: user,
+                }),
                 page: 1,
                 pages: 1,
                 size: 5,

@@ -1,10 +1,13 @@
-import { Accordion, ListGroup, Spinner, Stack } from "@uicore";
+import { Accordion, Button, ListGroup, Spinner, Stack } from "@uicore";
 import styles from "../../querypanel.module.scss";
 import Filters, { QueryFilters } from "../filters/Filters";
 import { NoBookmarksIcon } from "@assets/icons";
 import QueryBookmarkRow from "./QueryBookmarkRow";
 import { useEffect, useState } from "react";
-import { executeRequestInSync } from "@modules/app/requestExecutor";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
 import {
   QueryBookmark,
@@ -90,13 +93,22 @@ const BookmarkAccordion = ({
     if (bookmarks.length === 0) {
       return (
         <Stack className={styles.noBookmark} direction="column">
-          <NoBookmarksIcon />
+          <div className="no-results">
+            <NoBookmarksIcon />
+          </div>
           <div>
-            <h6>No bookmarks available.</h6>
-            <p>
-              This section will show your saved queries. You can bookmark your
-              queries from query history.
-            </p>
+            <h6>You have not bookmarked any query.</h6>
+            <div>
+              <h6>Execute your queries and add to bookmark from history</h6>
+              <p>Bookmarked queries can be shared with team.</p>
+              <p>
+                <Button
+                  onClick={() => executeRequestInAsync("runAdhocQuery", {})}
+                >
+                  + New query
+                </Button>
+              </p>
+            </div>
           </div>
         </Stack>
       );

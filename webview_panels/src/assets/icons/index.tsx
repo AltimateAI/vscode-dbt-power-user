@@ -8,6 +8,8 @@ export { default as FeedbackIcon } from "./feedback.svg?react";
 export { default as AltimateIcon } from "./altimate.svg?react";
 export { default as CheckBlueIcon } from "./check-blue.svg?react";
 export { default as UncheckIcon } from "./uncheck.svg?react";
+export { default as SelectUncheckedIcon } from "./select-unchecked.svg?react";
+export { default as SelectCheckedIcon } from "./select-checked.svg?react";
 export { default as UserIcon } from "./user.svg?react";
 export { default as BlogIcon } from "./blog.svg?react";
 export { default as ContactUsIcon } from "./contact.svg?react";
@@ -19,6 +21,7 @@ export { default as CheckedSquareIcon } from "./checked-square.svg?react";
 export { default as TestsIcon } from "./tests.svg?react";
 export { default as FolderIcon } from "./folder.svg?react";
 export { default as NoBookmarksIcon } from "./no-bookmarks.svg?react";
+export { default as NoHistoryIcon } from "./no-history.svg?react";
 import LoadingSpinnerUrl from "./spinner.gif";
 import "./styles.css";
 
