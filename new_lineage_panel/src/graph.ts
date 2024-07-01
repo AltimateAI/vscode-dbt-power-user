@@ -379,7 +379,7 @@ const processColumnLineage = async (
     upstreamExpansion: right,
     currAnd1HopTables,
     selectedColumn,
-    showIndirectEdges: edgeVisibility['indirect']
+    showIndirectEdges: edgeVisibility["indirect"],
   });
   CLL.addLinks(column_lineage.length);
   const columnLineage = column_lineage.filter((e) =>
@@ -834,7 +834,7 @@ export const bfsTraversal = async (
   flow: ReactFlowInstance,
   selectedColumn: SelectedColumn,
   edgeVisibility: EdgeVisibility
-) => {
+): Promise<boolean> => {
   let isLineage = false;
   // creating helper data for current lineage once
   const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
@@ -947,13 +947,14 @@ export const bfsTraversal = async (
         return newConfidence;
       });
     }
-    currTargetColumns = patchState.newCurr.filter(
-      (c) =>
-        edges.filter((e) => (right ? e.source : e.target) == c[0]).length > 0
-    );
+    currTargetColumns = patchState.newCurr;
     if (!isLineage && currTargetColumns.length > 0) {
       isLineage = true;
     }
+    currTargetColumns = currTargetColumns.filter(
+      (c) =>
+        edges.filter((e) => (right ? e.source : e.target) === c[0]).length > 0
+    );
     const [_nodes, _edges] = mergeNodesEdges(
       { nodes: flow.getNodes(), edges: flow.getEdges() },
       patchState
