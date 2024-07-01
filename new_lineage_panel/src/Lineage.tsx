@@ -25,6 +25,7 @@ import {
 import { Modal, PopoverContext, SidebarModal } from "./components/Modal";
 import { MoreTables, TMoreTables } from "./MoreTables";
 import {
+  bfsTraversal,
   calculateMinLevel,
   calculateNodeCount,
   expandTableLineage,
@@ -51,6 +52,7 @@ import {
   init,
   columnLineage,
   CllEvents,
+  CLL,
 } from "./service_utils";
 import { ActionWidget } from "./ActionWidget";
 import {
@@ -218,7 +220,7 @@ export const Lineage = () => {
   const [nodeCount, setNodeCount] = useState(0);
   const [minRange, setMinRange] = useState<[number, number]>([0, 0]);
   const [viewsCodeModal, setViewsCodeModal] = useState<ViewsCodeModal | null>(
-    null,
+    null
   );
 
   useEffect(() => {
@@ -252,8 +254,8 @@ export const Lineage = () => {
             edges,
             node.table,
             leftExpansion,
-            rightExpansion,
-          ),
+            rightExpansion
+          )
         );
         return;
       }
@@ -281,8 +283,8 @@ export const Lineage = () => {
           edges,
           node.table,
           leftExpansion,
-          rightExpansion,
-        ),
+          rightExpansion
+        )
       );
       rerender();
     };
@@ -335,20 +337,60 @@ export const Lineage = () => {
   useEffect(() => {
     const _flow = flow.current;
     if (!_flow) return;
-    const _edges = _flow.getEdges();
-    if ((selectCheck && nonSelectCheck) || (!selectCheck && !nonSelectCheck)) {
-      for (const e of _edges) e.hidden = false;
+    (async () => {
+      const _column = selectedColumn;
+      if (nonSelectCheck) {
+        // starting column lineage
+        const _bfsTraversal = (right: boolean) =>
+          bfsTraversal(
+            _flow.getNodes(),
+            _flow.getEdges(),
+            right,
+            [_column],
+            setConfidence,
+            setMoreTables,
+            setCollectColumns,
+            () => [_flow.getNodes(), _flow.getEdges()],
+            (ns, es) => {
+              _flow.setNodes(ns);
+              _flow.setEdges(es);
+            },
+            _column,
+            { direct: selectCheck, indirect: nonSelectCheck }
+          );
+        try {
+          CLL.start();
+          await Promise.all([_bfsTraversal(true), _bfsTraversal(false)]);
+        } catch (e) {
+          console.error(
+            "Error while performing cll for ",
+            _column.table,
+            _column.name,
+            ", error:",
+            e
+          );
+        } finally {
+          CLL.end();
+        }
+      }
+      const _edges = _flow.getEdges();
+      if (
+        (selectCheck && nonSelectCheck) ||
+        (!selectCheck && !nonSelectCheck)
+      ) {
+        for (const e of _edges) e.hidden = false;
+        _flow.setEdges(_edges);
+        return;
+      }
+      for (const e of _edges) {
+        e.hidden = false;
+        const _type = (e.data as { type: string })?.type;
+        if (!_type) continue;
+        if (_type === "direct") e.hidden = !selectCheck;
+        if (_type === "indirect") e.hidden = !nonSelectCheck;
+      }
       _flow.setEdges(_edges);
-      return;
-    }
-    for (const e of _edges) {
-      e.hidden = false;
-      const _type = (e.data as { type: string })?.type;
-      if (!_type) continue;
-      if (_type === "direct") e.hidden = !selectCheck;
-      if (_type === "indirect") e.hidden = !nonSelectCheck;
-    }
-    _flow.setEdges(_edges);
+    })();
   }, [selectCheck, nonSelectCheck]);
 
   return (
@@ -383,7 +425,6 @@ export const Lineage = () => {
         setDefaultExpansion,
         viewsCodeModal,
         setViewsCodeModal,
-
       }}
     >
       <PopoverContext.Provider value={{ isOpen, setIsOpen }}>
