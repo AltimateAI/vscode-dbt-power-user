@@ -510,12 +510,14 @@ export class NewLineagePanel implements LineagePanelView {
     upstreamExpansion,
     currAnd1HopTables,
     selectedColumn,
+    showIndirectEdges,
   }: {
     targets: [string, string][];
     upstreamExpansion: boolean;
     currAnd1HopTables: string[];
     // select_column is used for pricing not business logic
     selectedColumn: { name: string; table: string };
+    showIndirectEdges: boolean;
   }) {
     const event = this.getEvent();
     if (!event) {
@@ -665,6 +667,7 @@ export class NewLineagePanel implements LineagePanelView {
         selected_column: selected_column!,
         upstream_models,
         session_id: sessionId,
+        show_indirect_edges: showIndirectEdges,
       };
       this.terminal.debug(
         "newLineagePanel:getConnectedColumns",

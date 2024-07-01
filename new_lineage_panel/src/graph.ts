@@ -379,6 +379,7 @@ const processColumnLineage = async (
     upstreamExpansion: right,
     currAnd1HopTables,
     selectedColumn,
+    showIndirectEdges: edgeVisibility['indirect']
   });
   CLL.addLinks(column_lineage.length);
   const columnLineage = column_lineage.filter((e) =>
