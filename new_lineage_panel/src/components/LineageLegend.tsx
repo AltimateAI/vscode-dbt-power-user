@@ -4,7 +4,7 @@ import { Button, Popover, PopoverBody } from "reactstrap";
 import { FunctionComponent, useEffect, useState } from "react";
 import UpIcon from "../assets/icons/chevron-up.svg?react";
 import DownIcon from "../assets/icons/chevron-down.svg?react";
-import Tooltip from "./Tooltip";
+import { Tooltip } from "./index";
 import CodeIcon from "../assets/icons/code.svg?react";
 
 export const ViewsTypeBadge: FunctionComponent<{
