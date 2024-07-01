@@ -94,7 +94,7 @@ export class SQLLineagePanel implements Disposable {
     return this.queryManifestService.getEventByDocument(currentFilePath);
   }
 
-  private getFilename() {
+  getActiveEditorFilename() {
     return path.basename(this.activeTextEditor!.document.fileName, ".sql");
   }
 
@@ -128,7 +128,7 @@ export class SQLLineagePanel implements Disposable {
     if (!project) {
       throw new Error("Unable to find the project");
     }
-    const modelName = this.getFilename();
+    const modelName = this.getActiveEditorFilename();
     const currentFile = this.activeTextEditor?.document.uri;
     if (!currentFile) {
       throw new Error("Unable to get current file");

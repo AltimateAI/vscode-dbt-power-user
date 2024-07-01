@@ -543,10 +543,11 @@ export class VSCodeCommands implements Disposable {
           },
           async (_, token) => {
             try {
+              const modelName = this.sqlLineagePanel.getActiveEditorFilename();
               const lineage = await this.sqlLineagePanel.getSQLLineage(token);
               const panel = window.createWebviewPanel(
                 SQLLineagePanel.viewType,
-                "SQL Visualizer (Beta)",
+                `${modelName} (Beta)`,
                 ViewColumn.Two,
                 { retainContextWhenHidden: true, enableScripts: true },
               );
