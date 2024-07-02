@@ -542,6 +542,7 @@ export class NewLineagePanel implements LineagePanelView {
         ...DBTProject.getNonEphemeralParents(event, Array.from(currTables)),
       );
     }
+    currAnd1HopTables = Array.from(new Set(currAnd1HopTables));
     const modelsToFetch = Array.from(
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
     );
