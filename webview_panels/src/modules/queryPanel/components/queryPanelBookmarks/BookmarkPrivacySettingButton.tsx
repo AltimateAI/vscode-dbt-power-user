@@ -5,7 +5,7 @@ import {
 } from "@modules/app/requestExecutor";
 import useAppContext from "@modules/app/useAppContext";
 import { QueryBookmark } from "@modules/queryPanel/context/types";
-import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
+import useQueryPanelCommonActions from "@modules/queryPanel/useQueryPanelCommonActions";
 import {
   Button,
   FormGroup,
@@ -29,7 +29,7 @@ const BookmarkPrivacySettingButton = ({
   const [privacy, setPrivacy] = useState(bookmark.privacy);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const popoverRef = useRef<PopoverWithButtonRef | null>(null);
-  const { refetchBookmarks } = useQueryPanelState();
+  const { refetchBookmarks } = useQueryPanelCommonActions();
 
   useEffect(() => {
     setPrivacy(bookmark.privacy);

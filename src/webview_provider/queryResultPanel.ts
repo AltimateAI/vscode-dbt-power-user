@@ -92,6 +92,7 @@ enum InboundCommand {
   ExecuteQuery = "executeQuery",
   GetQueryTabData = "getQueryTabData",
   RunAdhocQuery = "runAdhocQuery",
+  ViewResultSet = "viewResultSet",
 }
 
 interface RecInfo {
@@ -123,6 +124,9 @@ interface QueryHistory {
   duration: number;
   adapter: string;
   projectName: string;
+  data: JsonObj[];
+  columnNames: string[];
+  columnTypes: string[];
 }
 
 @provideSingleton(QueryResultPanel)
@@ -237,9 +241,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this.renderWebviewView(webviewPanel.webview);
     this.setupWebviewHooks();
     await this.checkIfWebviewReady();
-    this.updateViewTypeToWebview(
-      QueryPanelViewType.OPEN_RESULTS_FROM_HISTORY_BOOKMARKS,
-    );
   }
 
   private updateViewTypeToWebview(viewType: QueryPanelViewType) {
@@ -263,7 +264,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           "open-query-results-in-tab-clicked",
           true,
         );
-        this.updateViewTypeToWebview(QueryPanelViewType.OPEN_RESULTS_IN_TAB);
         this.dbtTerminal.debug(
           "queryResultTab:render",
           "rendering query result tab",
@@ -271,6 +271,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         );
         this._queryTabData = payload.queryTabData;
         this.createQueryResultsPanelVirtualDocument();
+        this.updateViewTypeToWebview(QueryPanelViewType.OPEN_RESULTS_IN_TAB);
         this.sendQueryTabViewEvent();
         break;
       default:
@@ -333,6 +334,9 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         throw new Error("Unable to find project to execute query");
       }
       await this.createQueryResultsPanelVirtualDocument();
+      this.updateViewTypeToWebview(
+        QueryPanelViewType.OPEN_RESULTS_FROM_HISTORY_BOOKMARKS,
+      );
       this.telemetry.sendTelemetryEvent(
         isHistoryTab ? "QueryHistoryExecuteSql" : "QueryBookmarkExecuteSql",
       );
@@ -355,6 +359,25 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this._panel!.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
+          case InboundCommand.ViewResultSet:
+            const queryHistoryData = message.queryHistory;
+            this._queryTabData = {
+              queryResults: {
+                data: queryHistoryData.data,
+                columnNames: queryHistoryData.columnNames,
+                columnTypes: queryHistoryData.columnTypes,
+              },
+              compiledCodeMarkup: queryHistoryData.compiledSql,
+              rawSql: queryHistoryData.rawSql,
+              elapsedTime: {
+                queryExecutionInfo: { elapsedTime: queryHistoryData.duration },
+              },
+            };
+            this.createQueryResultsPanelVirtualDocument();
+            this.updateViewTypeToWebview(
+              QueryPanelViewType.OPEN_RESULTS_IN_TAB,
+            );
+            break;
           case InboundCommand.RunAdhocQuery:
             commands.executeCommand("dbtPowerUser.createPUSqlFile");
             this.dbtProjectContainer.setToGlobalState(
@@ -516,18 +539,21 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     raw_sql: string,
     compiled_sql: string,
   ) {
+    const result = {
+      columnNames,
+      columnTypes,
+      rows,
+      raw_sql,
+      compiled_sql,
+    };
     if (this._panel) {
       await this._panel.webview.postMessage({
         command: OutboundCommand.RenderQuery,
-        ...(<RenderQuery>{
-          columnNames,
-          columnTypes,
-          rows,
-          raw_sql,
-          compiled_sql,
-        }),
+        ...(<RenderQuery>result),
       });
     }
+
+    return result;
   }
 
   /** Sends error result data to webview */
@@ -602,7 +628,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         rows[i] = { ...rows[i], [result.table.column_names[j]]: value };
       });
     }
-    await this.transmitData(
+    return await this.transmitData(
       result.table.column_names,
       result.table.column_types,
       rows,
@@ -612,7 +638,13 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   }
 
   private updateQueryHistory(
-    result: ExecuteSQLResult,
+    result: {
+      columnNames: string[];
+      columnTypes: string[];
+      rows: JsonObj[];
+      raw_sql: string;
+      compiled_sql: string;
+    },
     projectName: string,
     query: string,
     duration: number,
@@ -634,6 +666,9 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       duration,
       adapter: project.getAdapterType(),
       projectName: project.getProjectName(),
+      data: result.rows,
+      columnNames: result.columnNames,
+      columnTypes: result.columnTypes,
     });
     this._queryHistory = this._queryHistory.splice(0, 100);
     this._bottomPanel?.webview.postMessage({
@@ -663,8 +698,8 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       const queryExecution = (this.queryExecution =
         await queryExecutionPromise);
       const output = await queryExecution.executeQuery();
-      await this.transmitDataWrapper(output, query);
-      this.updateQueryHistory(output, projectName, query, Date.now() - start);
+      const result = await this.transmitDataWrapper(output, query);
+      this.updateQueryHistory(result, projectName, query, Date.now() - start);
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         if (exc.exception.type.name === "KeyboardInterrupt") {

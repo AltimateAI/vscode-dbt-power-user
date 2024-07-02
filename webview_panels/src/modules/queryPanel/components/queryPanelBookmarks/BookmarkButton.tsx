@@ -31,6 +31,7 @@ import { QueryPanelTitleTabState } from "../QueryPanelContents/types";
 import pageStyles from "../../querypanel.module.scss";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import { ActionMeta } from "react-select";
+import useQueryPanelCommonActions from "@modules/queryPanel/useQueryPanelCommonActions";
 
 interface Props {
   queryHistory: QueryHistory;
@@ -48,8 +49,9 @@ const schema = Yup.object({
 
 const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
   const dispatch = useQueryPanelDispatch();
-  const { queryBookmarksTagsFromDB, refetchBookmarks } = useQueryPanelState();
+  const { queryBookmarksTagsFromDB } = useQueryPanelState();
   const popoverRef = useRef<PopoverWithButtonRef | null>(null);
+  const { refetchBookmarks } = useQueryPanelCommonActions();
 
   const {
     control,

@@ -17,10 +17,7 @@ export const initialState = {
   limit: undefined,
   perspectiveTheme: "Vintage",
   queryHistory: [],
-  queryBookmarks: {
-    private: undefined,
-    public: undefined,
-  },
+  queryBookmarks: {},
   queryBookmarksEnabled: false,
   tabState: QueryPanelTitleTabState.Preview,
   queryBookmarksTagsFromDB: undefined,

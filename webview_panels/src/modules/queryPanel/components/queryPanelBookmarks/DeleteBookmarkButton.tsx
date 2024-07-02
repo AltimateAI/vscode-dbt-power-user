@@ -4,7 +4,7 @@ import {
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
 import { QueryBookmark } from "@modules/queryPanel/context/types";
-import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
+import useQueryPanelCommonActions from "@modules/queryPanel/useQueryPanelCommonActions";
 import { LoadingButton, Tooltip } from "@uicore";
 import { useState } from "react";
 
@@ -14,7 +14,7 @@ const DeleteBookmarkButton = ({
   bookmark: QueryBookmark;
 }): JSX.Element => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { refetchBookmarks } = useQueryPanelState();
+  const { refetchBookmarks } = useQueryPanelCommonActions();
 
   const deleteBookmark = async () => {
     setIsSubmitting(true);

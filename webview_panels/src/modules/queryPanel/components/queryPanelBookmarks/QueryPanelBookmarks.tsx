@@ -6,17 +6,15 @@ import { ChevronRightIcon } from "@assets/icons";
 import BookmarkAccordion from "./BookmarkAccordion";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import { QueryPanelTitleTabState } from "../QueryPanelContents/types";
+import useQueryPanelCommonActions from "@modules/queryPanel/useQueryPanelCommonActions";
 
 const QueryPanelBookmarks = (): JSX.Element => {
   const [activeBookmark, setActiveBookmark] = useState<QueryBookmark | null>(
     null,
   );
-  const {
-    refetchBookmarkTags,
-    queryBookmarks,
-    tabState,
-    queryBookmarksTagsFromDB,
-  } = useQueryPanelState();
+  const { queryBookmarks, tabState, queryBookmarksTagsFromDB } =
+    useQueryPanelState();
+  const { refetchBookmarkTags } = useQueryPanelCommonActions();
 
   useEffect(() => {
     if (queryBookmarksTagsFromDB) {

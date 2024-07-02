@@ -14,13 +14,14 @@ import { QueryHistory } from "@modules/queryPanel/context/types";
 import Filters, { QueryFilters } from "../filters/Filters";
 import { ChevronRightIcon, NoHistoryIcon } from "@assets/icons";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
+import useQueryPanelCommonActions from "@modules/queryPanel/useQueryPanelCommonActions";
 
 const QueryPanelHistory = (): JSX.Element => {
   const [filters, setFilters] = useState<QueryFilters>({ tags: [] });
 
   const [activeHistory, setActiveHistory] = useState<QueryHistory | null>(null);
-  const { queryHistory, queryBookmarksTagsFromDB, refetchBookmarkTags } =
-    useQueryPanelState();
+  const { queryHistory, queryBookmarksTagsFromDB } = useQueryPanelState();
+  const { refetchBookmarkTags } = useQueryPanelCommonActions();
 
   useEffect(() => {
     if (queryBookmarksTagsFromDB) {
@@ -51,6 +52,12 @@ const QueryPanelHistory = (): JSX.Element => {
 
   const resetActiveHistory = () => {
     setActiveHistory(null);
+  };
+
+  const handleViewResultSet = () => {
+    executeRequestInAsync("viewResultSet", {
+      queryHistory: activeHistory,
+    });
   };
 
   return (
@@ -103,6 +110,11 @@ const QueryPanelHistory = (): JSX.Element => {
             <ChevronRightIcon />
           </IconButton>
           <div>
+            <Stack className="justify-content-end mb-2">
+              <Button color="primary" onClick={handleViewResultSet}>
+                View result set
+              </Button>
+            </Stack>
             <Stack>
               <Label>Adapter</Label>
               {activeHistory.adapter}
