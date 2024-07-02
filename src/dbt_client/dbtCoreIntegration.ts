@@ -910,6 +910,13 @@ export class DBTCoreProjectIntegration
     return result;
   }
 
+  async fetchSqlglotSchema(sql: string, dialect: string): Promise<string[]> {
+    this.throwBridgeErrorIfAvailable();
+    return this.python?.lock<string[]>(
+      (python) => python!`to_dict(fetch_schema_from_sql(${sql}, ${dialect}))`,
+    );
+  }
+
   async getCatalog(): Promise<Catalog> {
     this.throwBridgeErrorIfAvailable();
     return await this.python?.lock<Catalog>(
