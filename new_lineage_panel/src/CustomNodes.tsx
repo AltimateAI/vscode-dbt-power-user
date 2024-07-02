@@ -222,7 +222,11 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
         setConfidence,
         setMoreTables,
         setCollectColumns,
-        flow,
+        () => [flow.getNodes(), flow.getEdges()],
+        (ns, es) => {
+          flow.setNodes(ns);
+          flow.setEdges(es);
+        },
         selectedColumn,
         { direct: selectCheck, indirect: nonSelectCheck }
       );
