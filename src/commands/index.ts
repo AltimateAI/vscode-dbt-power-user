@@ -562,7 +562,7 @@ export class VSCodeCommands implements Disposable {
                 );
                 editBuilder.replace(
                   entireDocumentRange,
-                  "-- Type your (dbt) SQL query here\nSELECT * FROM your_table",
+                  'SELECT * FROM {{ref("")}}',
                 );
               });
             });

@@ -1,15 +1,19 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { QueryBookmarkResponse, QueryPanelStateProps } from "./types";
+import {
+  QueryBookmarkResponse,
+  QueryPanelStateProps,
+  QueryPanelViewType,
+} from "./types";
 import { QueryPanelTitleTabState } from "../components/QueryPanelContents/types";
 
 export const initialState = {
+  viewType: QueryPanelViewType.DEFAULT,
   loading: false,
   queryResults: undefined,
   queryExecutionInfo: undefined,
   queryResultsError: undefined,
   compiledCodeMarkup: undefined,
   hintIndex: -1,
-  lastHintTimestamp: 0,
   limit: undefined,
   perspectiveTheme: "Vintage",
   queryHistory: [],
@@ -51,6 +55,12 @@ const queryPanelSlice = createSlice({
     ) => {
       state.queryBookmarksTagsFromDB = action.payload;
     },
+    setViewType: (
+      state,
+      action: PayloadAction<QueryPanelStateProps["viewType"]>,
+    ) => {
+      state.viewType = action.payload;
+    },
     setHintIndex: (
       state,
       action: PayloadAction<QueryPanelStateProps["hintIndex"]>,
@@ -86,12 +96,6 @@ const queryPanelSlice = createSlice({
       action: PayloadAction<QueryPanelStateProps["compiledCodeMarkup"]>,
     ) => {
       state.compiledCodeMarkup = action.payload;
-    },
-    setLastHintTimestamp: (
-      state,
-      action: PayloadAction<QueryPanelStateProps["lastHintTimestamp"]>,
-    ) => {
-      state.lastHintTimestamp = action.payload;
     },
     setLimit: (state, action: PayloadAction<QueryPanelStateProps["limit"]>) => {
       state.limit = action.payload;
@@ -134,6 +138,7 @@ const queryPanelSlice = createSlice({
 });
 
 export const {
+  setViewType,
   resetData,
   setLoading,
   setHintIndex,
@@ -141,7 +146,6 @@ export const {
   setQueryResultsError,
   setQueryExecutionInfo,
   setQueryResults,
-  setLastHintTimestamp,
   setLimit,
   setPerspectiveTheme,
   setQueryHistory,

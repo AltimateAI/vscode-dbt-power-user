@@ -82,7 +82,11 @@ const BookmarkPrivacySettingButton = ({
       ref={popoverRef}
       title={
         <Stack className="justify-content-between">
-          <span>Share Bookmark</span>
+          <span>
+            {bookmark.privacy === "private"
+              ? "Share Bookmark"
+              : "Unshare bookmark"}
+          </span>
           <FormGroup switch>
             <Input
               onChange={(e) =>

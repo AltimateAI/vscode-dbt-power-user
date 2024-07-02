@@ -7,6 +7,7 @@ import {
 } from "../../testUtils/queryResults";
 import { TenantUserFactory } from "@testUtils";
 import { panelLogger } from "@modules/logger";
+import { QueryPanelViewType } from "./context/types";
 
 const meta = {
   title: "Query Panel",
@@ -88,8 +89,12 @@ export const DefaultQueryPanelView = {
         if (request.command === "getQueryPanelContext") {
           window.postMessage({
             command: "getContext",
-            lastHintTimestamp: 0,
             queryBookmarksEnabled: true,
+          });
+
+          window.postMessage({
+            command: "updateViewType",
+            args: { body: { type: QueryPanelViewType.DEFAULT } },
           });
 
           return;

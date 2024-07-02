@@ -43,6 +43,12 @@ interface JsonObj {
   [key: string]: string | number | undefined;
 }
 
+enum QueryPanelViewType {
+  DEFAULT,
+  OPEN_RESULTS_IN_TAB,
+  OPEN_RESULTS_FROM_HISTORY_BOOKMARKS,
+}
+
 enum OutboundCommand {
   RenderQuery = "renderQuery",
   RenderLoading = "renderLoading",
@@ -231,6 +237,16 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this.renderWebviewView(webviewPanel.webview);
     this.setupWebviewHooks();
     await this.checkIfWebviewReady();
+    this.updateViewTypeToWebview(
+      QueryPanelViewType.OPEN_RESULTS_FROM_HISTORY_BOOKMARKS,
+    );
+  }
+
+  private updateViewTypeToWebview(viewType: QueryPanelViewType) {
+    this.sendResponseToWebview({
+      command: "updateViewType",
+      data: { type: viewType },
+    });
   }
 
   protected async onEvent({ command, payload }: SharedStateEventEmitterProps) {
@@ -246,6 +262,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
           "open-query-results-in-tab-clicked",
           true,
         );
+        this.updateViewTypeToWebview(QueryPanelViewType.OPEN_RESULTS_IN_TAB);
         this.dbtTerminal.debug(
           "queryResultTab:render",
           "rendering query result tab",
@@ -265,6 +282,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     context: WebviewViewResolveContext,
     _token: CancellationToken,
   ) {
+    this.updateViewTypeToWebview(QueryPanelViewType.DEFAULT);
     this._panel = panel;
     this._bottomPanel = panel;
     this._webview = panel.webview;
@@ -272,11 +290,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     this.renderWebviewView(panel.webview);
     this.setupWebviewHooks();
     this.transmitConfig();
-    await this._panel?.webview.postMessage({
-      command: OutboundCommand.GetContext,
-      lastHintTimestamp:
-        this.dbtProjectContainer.getFromGlobalState("lastHintTimestamp") || 0,
-    });
     _token.onCancellationRequested(async () => {
       await this.transmitReset();
     });
@@ -384,10 +397,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
               .get<number>("queryLimit");
             await this._panel!.webview.postMessage({
               command: OutboundCommand.GetContext,
-              lastHintTimestamp:
-                this.dbtProjectContainer.getFromGlobalState(
-                  "lastHintTimestamp",
-                ) || 0,
               limit,
               perspectiveTheme,
               queryBookmarksEnabled,

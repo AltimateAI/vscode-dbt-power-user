@@ -33,7 +33,14 @@ export interface QueryBookmark {
   created_by_user: User;
 }
 
+export enum QueryPanelViewType {
+  DEFAULT,
+  OPEN_RESULTS_IN_TAB,
+  OPEN_RESULTS_FROM_HISTORY_BOOKMARKS,
+}
+
 export interface QueryPanelStateProps {
+  viewType: QueryPanelViewType;
   loading: boolean;
   queryResults?: {
     data: TableData;
@@ -48,7 +55,6 @@ export interface QueryPanelStateProps {
   };
   compiledCodeMarkup?: string;
   hintIndex: number;
-  lastHintTimestamp: number;
   limit?: number;
   perspectiveTheme: string;
   queryHistory: QueryHistory[];

@@ -3,7 +3,7 @@ import styles from "../../querypanel.module.scss";
 import Filters, { QueryFilters } from "../filters/Filters";
 import { NoBookmarksIcon } from "@assets/icons";
 import QueryBookmarkRow from "./QueryBookmarkRow";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   executeRequestInAsync,
   executeRequestInSync,
@@ -38,6 +38,15 @@ const BookmarkAccordion = ({
     tags: [],
     searchQuery: "",
   });
+
+  const hasFilters = useMemo(
+    () => filters.tags.length > 0 || filters.searchQuery,
+    [filters],
+  );
+
+  const clearFilters = () => {
+    setFilters({ tags: [], searchQuery: "" });
+  };
 
   const loadBookmarks = async (showLoading: boolean) => {
     if (showLoading) {
@@ -96,20 +105,29 @@ const BookmarkAccordion = ({
           <div className="no-results">
             <NoBookmarksIcon />
           </div>
-          <div>
-            <h6>You have not bookmarked any query.</h6>
+          {hasFilters ? (
             <div>
-              <h6>Execute your queries and add to bookmark from history</h6>
-              <p>Bookmarked queries can be shared with team.</p>
+              <h6>No results found.</h6>
               <p>
-                <Button
-                  onClick={() => executeRequestInAsync("runAdhocQuery", {})}
-                >
-                  + New query
-                </Button>
+                <Button onClick={clearFilters}>Clear filters</Button>
               </p>
             </div>
-          </div>
+          ) : (
+            <div>
+              <h6>You have not bookmarked any query.</h6>
+              <div>
+                <h6>Execute your queries and add to bookmark from history</h6>
+                <p>Bookmarked queries can be shared with team.</p>
+                <p>
+                  <Button
+                    onClick={() => executeRequestInAsync("runAdhocQuery", {})}
+                  >
+                    + New query
+                  </Button>
+                </p>
+              </div>
+            </div>
+          )}
         </Stack>
       );
     }

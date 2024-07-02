@@ -15,9 +15,10 @@ import { setTabState } from "./context/queryPanelSlice";
 import ShowInTabButton from "./components/openInTabButton/OpenInTabButton";
 import RunAdhocQueryButton from "./components/runAdhocQueryButton/RunAdhocQueryButton";
 import QueryPanelBookmarks from "./components/queryPanelBookmarks/QueryPanelBookmarks";
+import { QueryPanelViewType } from "./context/types";
 
 const QueryPanel = (): JSX.Element => {
-  const { tabState } = useQueryPanelState();
+  const { tabState, viewType } = useQueryPanelState();
   const dispatch = useQueryPanelDispatch();
   const { loading, isPanel } = useQueryPanelListeners();
 
@@ -38,7 +39,7 @@ const QueryPanel = (): JSX.Element => {
           <QueryPanelTitle tabState={tabState} setTabState={changeTabState} />
         </Stack>
         <Stack>
-          {isPanel && (
+          {isPanel && viewType === QueryPanelViewType.DEFAULT && (
             <>
               <RunAdhocQueryButton />
               <ShowOldUxButton />

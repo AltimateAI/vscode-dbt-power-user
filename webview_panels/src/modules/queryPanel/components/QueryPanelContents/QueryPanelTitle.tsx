@@ -2,6 +2,7 @@ import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import { Nav, NavItem, NavLink } from "@uicore";
 import { QueryPanelTitleTabState } from "./types";
 import { useMemo } from "react";
+import { QueryPanelViewType } from "@modules/queryPanel/context/types";
 
 const QueryPanelTitle = ({
   setTabState,
@@ -18,6 +19,7 @@ const QueryPanelTitle = ({
     compiledCodeMarkup,
     queryResultsRowCount,
     queryBookmarksEnabled,
+    viewType,
   } = useQueryPanelState();
 
   const toggleTabState = (state: QueryPanelTitleTabState) => {
@@ -26,7 +28,7 @@ const QueryPanelTitle = ({
 
   const commonTabs = useMemo(
     () =>
-      queryBookmarksEnabled ? (
+      queryBookmarksEnabled && viewType === QueryPanelViewType.DEFAULT ? (
         <>
           <NavItem>
             <NavLink
@@ -48,7 +50,7 @@ const QueryPanelTitle = ({
           </NavItem>
         </>
       ) : null,
-    [queryBookmarksEnabled, tabState],
+    [queryBookmarksEnabled, tabState, viewType],
   );
 
   if (loading || hasData || hasError) {
