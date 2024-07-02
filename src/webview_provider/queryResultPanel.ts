@@ -255,6 +255,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         this.executeQuery(
           payload.query as string,
           payload.fn as Promise<QueryExecution>,
+          payload.projectName as string,
         );
         break;
       case "queryResultTab:render":
@@ -328,15 +329,15 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     try {
       const isHistoryTab = Boolean(message.projectName);
       const project = await this.getProject(message.projectName);
-      if (project) {
-        await this.createQueryResultsPanelVirtualDocument();
-        this.telemetry.sendTelemetryEvent(
-          isHistoryTab ? "QueryHistoryExecuteSql" : "QueryBookmarkExecuteSql",
-        );
-        await project.executeSQL(message.query, "model");
-        return;
+      if (!project) {
+        throw new Error("Unable to find project to execute query");
       }
-      throw new Error("Unable to find project to execute query");
+      await this.createQueryResultsPanelVirtualDocument();
+      this.telemetry.sendTelemetryEvent(
+        isHistoryTab ? "QueryHistoryExecuteSql" : "QueryBookmarkExecuteSql",
+      );
+      await project.executeSQL(message.query, "model");
+      return;
     } catch (error) {
       window.showErrorMessage(
         extendErrorWithSupportLinks((error as Error).message),
@@ -346,7 +347,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         "Unable to execute query",
         error,
       );
-      return;
     }
   }
 
@@ -613,10 +613,13 @@ export class QueryResultPanel extends AltimateWebviewProvider {
 
   private updateQueryHistory(
     result: ExecuteSQLResult,
+    projectName: string,
     query: string,
     duration: number,
   ) {
-    const project = this.queryManifestService.getProject();
+    const project = projectName
+      ? this.queryManifestService.getProjectByName(projectName) // for queries executed from history and bookmarks tab
+      : this.queryManifestService.getProject(); // queries executed from main window
     if (!project) {
       this.dbtTerminal.debug(
         "updateQueryHistory",
@@ -646,6 +649,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   public async executeQuery(
     query: string,
     queryExecutionPromise: Promise<QueryExecution>,
+    projectName: string,
   ) {
     const start = Date.now();
     //using id to focus on the webview is more reliable than using the view title
@@ -660,7 +664,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         await queryExecutionPromise);
       const output = await queryExecution.executeQuery();
       await this.transmitDataWrapper(output, query);
-      this.updateQueryHistory(output, query, Date.now() - start);
+      this.updateQueryHistory(output, projectName, query, Date.now() - start);
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         if (exc.exception.type.name === "KeyboardInterrupt") {

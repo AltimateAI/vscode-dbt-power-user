@@ -909,6 +909,7 @@ select * from renamed
       payload: {
         query,
         fn: this.dbtProjectIntegration.executeSQL(query, limit, modelName),
+        projectName: this.getProjectName(),
       },
     });
   }
