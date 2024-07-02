@@ -536,7 +536,7 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
       (viewsCode as Record<string, [string, string][]>) || {}
     )
       .flat()
-      .filter(([, type]) => type === "transform")
+      .filter(([, type]) => type === "Transformation")
       .map(([code]) => code);
     const result: string[] = [];
     for (const item of arr) {
