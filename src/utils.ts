@@ -332,5 +332,12 @@ export const getColumnTestConfigFromYml = (
 };
 
 export function getFormattedDateTime(): string {
-  return new Date().toLocaleString().replace(/[/ ]/g, "-");
+  const now = new Date();
+
+  const date = now.toLocaleDateString("en-GB").replace(/\//g, "-");
+  const time = now
+    .toLocaleTimeString("en-GB", { hour12: false })
+    .replace(/:/g, "-");
+
+  return `${date}__${time}`;
 }
