@@ -1,8 +1,8 @@
 import sqlglot
-
+from altimate.utils import map_adapter_to_dialect
 
 def fetch_schema(sql: str, dialect: str):
-    parsed_query = sqlglot.parse_one(sql=sql, dialect=dialect)
+    parsed_query = sqlglot.parse_one(sql=sql, dialect=map_adapter_to_dialect(dialect))
     columns = []
     for c in parsed_query.selects:
         if c.key == "column":

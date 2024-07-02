@@ -887,7 +887,7 @@ export class DBTCoreProjectIntegration
     );
   }
 
-  async getBulkSchema(
+  async getBulkSchemaFromDB(
     nodes: DBTNode[],
     cancellationToken: CancellationToken,
   ): Promise<Record<string, DBColumn[]>> {

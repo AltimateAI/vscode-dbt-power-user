@@ -712,11 +712,17 @@ export class DBTProject implements Disposable {
     return result.table.rows.flat();
   }
 
-  async getBulkSchema(req: DBTNode[], cancellationToken: CancellationToken) {
-    return this.dbtProjectIntegration.getBulkSchema(req, cancellationToken);
+  async getBulkSchemaFromDB(
+    req: DBTNode[],
+    cancellationToken: CancellationToken,
+  ) {
+    return this.dbtProjectIntegration.getBulkSchemaFromDB(
+      req,
+      cancellationToken,
+    );
   }
 
-  async getBulkSchemaV2(req: DBTNode[], cancellationToken: CancellationToken) {
+  async getBulkSchema(req: DBTNode[], cancellationToken: CancellationToken) {
     const dbBulkFetchReq: DBTNode[] = [];
     const dialect = this.getAdapterType();
     const sqlglotSchemas: Record<string, DBColumn[]> = {};
@@ -749,7 +755,7 @@ export class DBTProject implements Disposable {
         dbBulkFetchReq.push(r);
       }
     }
-    const dbSchemas = await this.dbtProjectIntegration.getBulkSchema(
+    const dbSchemas = await this.dbtProjectIntegration.getBulkSchemaFromDB(
       dbBulkFetchReq,
       cancellationToken,
     );
@@ -1156,7 +1162,7 @@ select * from renamed
         mappedNode[key] = node;
       }
     }
-    const bulkSchemaResponse = await this.getBulkSchemaV2(
+    const bulkSchemaResponse = await this.getBulkSchema(
       bulkSchemaRequest,
       cancellationToken,
     );
