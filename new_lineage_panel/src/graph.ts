@@ -379,6 +379,7 @@ const processColumnLineage = async (
     upstreamExpansion: right,
     currAnd1HopTables,
     selectedColumn,
+    showIndirectEdges: edgeVisibility["indirect"],
   });
   CLL.addLinks(column_lineage.length);
   const columnLineage = column_lineage.filter((e) =>
@@ -645,7 +646,6 @@ const mergeNodesEdges = (
     }
   });
   patchState.edges.forEach((e) => !edgesId[e.id] && edges.push(e));
-  layoutElementsOnCanvas(nodes, edges);
   return [nodes, edges];
 };
 
@@ -830,10 +830,11 @@ export const bfsTraversal = async (
   >,
   setMoreTables: Dispatch<SetStateAction<TMoreTables>>,
   setCollectColumns: Dispatch<SetStateAction<Record<string, CollectColumn[]>>>,
-  flow: ReactFlowInstance,
+  getNodesEdges: () => [Node[], Edge[]],
+  setNodesEdges: (ns: Node[], es: Edge[]) => void,
   selectedColumn: SelectedColumn,
   edgeVisibility: EdgeVisibility
-) => {
+): Promise<boolean> => {
   let isLineage = false;
   // creating helper data for current lineage once
   const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
@@ -950,19 +951,22 @@ export const bfsTraversal = async (
     if (!isLineage && currTargetColumns.length > 0) {
       isLineage = true;
     }
+    currTargetColumns = currTargetColumns.filter(
+      (c) =>
+        edges.filter((e) => (right ? e.source : e.target) === c[0]).length > 0
+    );
+    const [ns, es] = getNodesEdges();
     const [_nodes, _edges] = mergeNodesEdges(
-      { nodes: flow.getNodes(), edges: flow.getEdges() },
+      { nodes: ns, edges: es },
       patchState
     );
-
     setMoreTables((prev) => ({
       ...prev,
       lineage: [...(prev.lineage || []), ...patchState.seeMoreLineage],
     }));
 
     layoutElementsOnCanvas(_nodes, _edges);
-    flow.setNodes(_nodes);
-    flow.setEdges(_edges);
+    setNodesEdges(_nodes, _edges);
     mergeCollectColumns(setCollectColumns, patchState.collectColumns);
   }
   return isLineage;

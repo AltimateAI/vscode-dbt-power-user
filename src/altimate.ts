@@ -54,6 +54,7 @@ export interface DBTColumnLineageRequest {
   upstream_models: string[];
   selected_column: { model_node?: ModelNode; column: string };
   session_id: string;
+  show_indirect_edges: boolean;
 }
 
 export interface DBTColumnLineageResponse {
