@@ -3,9 +3,8 @@ import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
-import { setRefreshQueryBookmarksTimestamp } from "@modules/queryPanel/context/queryPanelSlice";
 import { QueryBookmark } from "@modules/queryPanel/context/types";
-import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
+import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import { LoadingButton, Tooltip } from "@uicore";
 import { useState } from "react";
 
@@ -15,7 +14,7 @@ const DeleteBookmarkButton = ({
   bookmark: QueryBookmark;
 }): JSX.Element => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const queryPanelDispatch = useQueryPanelDispatch();
+  const { refetchBookmarks } = useQueryPanelState();
 
   const deleteBookmark = async () => {
     setIsSubmitting(true);
@@ -44,7 +43,7 @@ const DeleteBookmarkButton = ({
       executeRequestInAsync("showInformationMessage", {
         infoMessage: "Successfully deleted bookmark!",
       });
-      queryPanelDispatch(setRefreshQueryBookmarksTimestamp(Date.now()));
+      refetchBookmarks();
     } catch (error) {
       executeRequestInAsync("showErrorMessage", {
         infoMessage: (error as Error).message,

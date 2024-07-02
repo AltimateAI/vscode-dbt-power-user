@@ -25,7 +25,6 @@ import {
 import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
 import {
   setQueryBookmarksTagsFromDB,
-  setRefreshQueryBookmarksTimestamp,
   setTabState,
 } from "@modules/queryPanel/context/queryPanelSlice";
 import { QueryPanelTitleTabState } from "../QueryPanelContents/types";
@@ -49,7 +48,7 @@ const schema = Yup.object({
 
 const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
   const dispatch = useQueryPanelDispatch();
-  const { queryBookmarksTagsFromDB } = useQueryPanelState();
+  const { queryBookmarksTagsFromDB, refetchBookmarks } = useQueryPanelState();
   const popoverRef = useRef<PopoverWithButtonRef | null>(null);
 
   const {
@@ -86,7 +85,7 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
         },
       });
       panelLogger.info("saved bookmark", response);
-      dispatch(setRefreshQueryBookmarksTimestamp(Date.now()));
+      refetchBookmarks();
       executeRequestInAsync("sendTelemetryEvent", {
         eventName: `query-bookmark-added`,
         properties: {

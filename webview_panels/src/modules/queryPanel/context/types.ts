@@ -59,11 +59,10 @@ export interface QueryPanelStateProps {
   perspectiveTheme: string;
   queryHistory: QueryHistory[];
   queryBookmarks: {
-    private: QueryBookmarkResponse;
-    public: QueryBookmarkResponse;
+    private?: QueryBookmarkResponse;
+    public?: QueryBookmarkResponse;
   };
   queryBookmarksEnabled: boolean;
   queryBookmarksTagsFromDB: { id: number; tag: string }[];
-  refreshQueryBookmarksTimestamp: number;
   tabState: QueryPanelTitleTabState;
 }

@@ -18,12 +18,11 @@ export const initialState = {
   perspectiveTheme: "Vintage",
   queryHistory: [],
   queryBookmarks: {
-    private: { items: [], page: 0, pages: 0, size: 0, total: 0 },
-    public: { items: [], page: 0, pages: 0, size: 0, total: 0 },
+    private: undefined,
+    public: undefined,
   },
   queryBookmarksEnabled: false,
   tabState: QueryPanelTitleTabState.Preview,
-  refreshQueryBookmarksTimestamp: 0,
   queryBookmarksTagsFromDB: [],
 } as QueryPanelStateProps;
 
@@ -40,14 +39,6 @@ const queryPanelSlice = createSlice({
         compiledCodeMarkup: undefined,
         loading: false,
       };
-    },
-    setRefreshQueryBookmarksTimestamp: (
-      state,
-      action: PayloadAction<
-        QueryPanelStateProps["refreshQueryBookmarksTimestamp"]
-      >,
-    ) => {
-      state.refreshQueryBookmarksTimestamp = action.payload;
     },
     setQueryBookmarksTagsFromDB: (
       state,
@@ -152,7 +143,6 @@ export const {
   setQueryBookmarks,
   setQueryBookmarksEnabled,
   setTabState,
-  setRefreshQueryBookmarksTimestamp,
   setQueryBookmarksTagsFromDB,
 } = queryPanelSlice.actions;
 

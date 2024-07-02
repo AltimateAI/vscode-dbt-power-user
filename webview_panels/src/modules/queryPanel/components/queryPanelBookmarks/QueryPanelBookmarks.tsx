@@ -55,14 +55,14 @@ const QueryPanelBookmarks = (): JSX.Element => {
           privacy="private"
           title="My bookmarks"
           tags={tags}
-          bookmarks={queryBookmarks.private.items}
+          bookmarks={queryBookmarks.private?.items ?? []}
         />
         <BookmarkAccordion
           onSelect={onSelect}
           privacy="public"
           title="Shared bookmarks"
           tags={tags}
-          bookmarks={queryBookmarks.public.items}
+          bookmarks={queryBookmarks.public?.items ?? []}
         />
       </Stack>
 

@@ -4,18 +4,13 @@ import Filters, { QueryFilters } from "../filters/Filters";
 import { NoBookmarksIcon } from "@assets/icons";
 import QueryBookmarkRow from "./QueryBookmarkRow";
 import { useEffect, useMemo, useState } from "react";
-import {
-  executeRequestInAsync,
-  executeRequestInSync,
-} from "@modules/app/requestExecutor";
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import { panelLogger } from "@modules/logger";
-import {
-  QueryBookmark,
-  QueryBookmarkResponse,
-} from "@modules/queryPanel/context/types";
+import { QueryBookmark } from "@modules/queryPanel/context/types";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
 import { setQueryBookmarks } from "@modules/queryPanel/context/queryPanelSlice";
+import { loadBookmarks } from "./utils";
 
 interface Props {
   privacy: "public" | "private";
@@ -31,7 +26,7 @@ const BookmarkAccordion = ({
   tags,
   bookmarks,
 }: Props): JSX.Element => {
-  const { refreshQueryBookmarksTimestamp } = useQueryPanelState();
+  const { viewType, queryBookmarks } = useQueryPanelState();
   const dispatch = useQueryPanelDispatch();
   const [isLoading, setIsLoading] = useState(false);
   const [filters, setFilters] = useState<QueryFilters>({
@@ -45,46 +40,38 @@ const BookmarkAccordion = ({
   );
 
   const clearFilters = () => {
-    setFilters({ tags: [], searchQuery: "" });
+    onFiltersChange({ tags: [], searchQuery: "" });
   };
 
-  const loadBookmarks = async (showLoading: boolean) => {
-    if (showLoading) {
-      setIsLoading(true);
-    }
-    try {
-      const response = await executeRequestInSync("fetch", {
-        endpoint: `query/bookmark?privacy=${privacy}&${filters.tags.map((t) => `tags_list=${t}`).join("&")}&search_query=${filters.searchQuery}`,
-        fetchArgs: {
-          method: "GET",
-        },
-      });
-      dispatch(
-        setQueryBookmarks({
-          response: response as QueryBookmarkResponse,
-          type: privacy,
-        }),
-      );
-    } catch (error) {
-      panelLogger.error("Failed to load bookmarks", error);
-    } finally {
-      setIsLoading(false);
+  const getBookmarks = async (showLoading: boolean) => {
+    panelLogger.info("[BookmarkAccordion] Loading bookmarks", { viewType });
+    const response = await loadBookmarks(
+      (loading: boolean) => {
+        if (showLoading) {
+          setIsLoading(loading);
+        }
+      },
+      privacy,
+      filters,
+    );
+
+    if (response) {
+      dispatch(setQueryBookmarks(response));
     }
   };
 
   useEffect(() => {
-    void loadBookmarks(true);
-  }, [filters]);
-
-  useEffect(() => {
-    if (!refreshQueryBookmarksTimestamp) {
+    if (queryBookmarks[privacy]) {
       return;
     }
-    void loadBookmarks(false);
-  }, [refreshQueryBookmarksTimestamp]);
+    void getBookmarks(false);
+  }, [queryBookmarks[privacy]]);
 
   const onFiltersChange = (data: { tags?: string[]; searchQuery?: string }) => {
     setFilters((prev) => ({ ...prev, ...data }));
+    setTimeout(() => {
+      void getBookmarks(true);
+    }, 10);
   };
 
   const getBookmarksContent = () => {

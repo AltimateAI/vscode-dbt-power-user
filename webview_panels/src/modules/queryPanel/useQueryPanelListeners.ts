@@ -1,5 +1,5 @@
 import { IncomingMessageProps } from "@modules/app/types";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useQueryPanelDispatch } from "./QueryPanelProvider";
 import {
   resetData,
@@ -25,10 +25,9 @@ import {
   QueryPanelViewType,
 } from "./context/types";
 
-const useQueryPanelListeners = (): { loading: boolean; isPanel: boolean } => {
+const useQueryPanelListeners = (): { loading: boolean } => {
   const dispatch = useQueryPanelDispatch();
   const { loading, hintIndex } = useQueryPanelState();
-  const [isPanel, setIsPanel] = useState(true);
   const hintInterval = useRef<NodeJS.Timeout>();
   const hintIndexRef = useRef<number>(hintIndex);
   const queryExecutionTimer = useRef<NodeJS.Timeout>();
@@ -171,28 +170,25 @@ const useQueryPanelListeners = (): { loading: boolean; isPanel: boolean } => {
   }, [onMesssage]);
 
   useEffect(() => {
-    if (isPanel) {
-      void executeRequestInSync("getQueryTabData", {}).then((data) => {
-        if (data) {
-          const typedData = data as QueryPanelStateProps;
-          setIsPanel(false);
-          handleQueryResults({
-            rows: typedData?.queryResults?.data,
-            columnNames: typedData?.queryResults?.columnNames,
-            columnTypes: typedData?.queryResults?.columnTypes,
-            compiled_sql: typedData.compiledCodeMarkup,
-          });
-          dispatch(
-            setQueryExecutionInfo({
-              elapsedTime: typedData.queryExecutionInfo!.elapsedTime,
-            }),
-          );
-        }
-      });
-    }
+    void executeRequestInSync("getQueryTabData", {}).then((data) => {
+      if (data) {
+        const typedData = data as QueryPanelStateProps;
+        handleQueryResults({
+          rows: typedData?.queryResults?.data,
+          columnNames: typedData?.queryResults?.columnNames,
+          columnTypes: typedData?.queryResults?.columnTypes,
+          compiled_sql: typedData.compiledCodeMarkup,
+        });
+        dispatch(
+          setQueryExecutionInfo({
+            elapsedTime: typedData.queryExecutionInfo!.elapsedTime,
+          }),
+        );
+      }
+    });
   }, []);
 
-  return { loading, isPanel };
+  return { loading };
 };
 
 export default useQueryPanelListeners;

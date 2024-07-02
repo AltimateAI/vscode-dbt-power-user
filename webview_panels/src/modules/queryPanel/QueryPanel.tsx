@@ -14,13 +14,12 @@ import { useQueryPanelDispatch } from "./QueryPanelProvider";
 import { setTabState } from "./context/queryPanelSlice";
 import ShowInTabButton from "./components/openInTabButton/OpenInTabButton";
 import RunAdhocQueryButton from "./components/runAdhocQueryButton/RunAdhocQueryButton";
-import QueryPanelBookmarks from "./components/queryPanelBookmarks/QueryPanelBookmarks";
 import { QueryPanelViewType } from "./context/types";
 
 const QueryPanel = (): JSX.Element => {
   const { tabState, viewType } = useQueryPanelState();
   const dispatch = useQueryPanelDispatch();
-  const { loading, isPanel } = useQueryPanelListeners();
+  const { loading } = useQueryPanelListeners();
 
   useEffect(() => {
     if (loading) {
@@ -39,7 +38,7 @@ const QueryPanel = (): JSX.Element => {
           <QueryPanelTitle tabState={tabState} setTabState={changeTabState} />
         </Stack>
         <Stack>
-          {isPanel && viewType === QueryPanelViewType.DEFAULT && (
+          {viewType === QueryPanelViewType.DEFAULT && (
             <>
               <RunAdhocQueryButton />
               <ShowOldUxButton />
@@ -53,8 +52,6 @@ const QueryPanel = (): JSX.Element => {
       </Stack>
       <div style={{ flex: 1, maxHeight: "calc(100% - 40px)" }}>
         <QueryPanelContent tabState={tabState} />
-        {/* Mounted this component always to avoid reloading data when switching to this tab */}
-        <QueryPanelBookmarks />
       </div>
     </div>
   );

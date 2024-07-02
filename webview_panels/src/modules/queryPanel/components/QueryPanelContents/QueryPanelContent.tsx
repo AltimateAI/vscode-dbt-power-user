@@ -7,6 +7,7 @@ import { CodeBlock } from "@uicore";
 import PreTag from "@modules/markdown/PreTag";
 import { QueryPanelTitleTabState } from "./types";
 import QueryPanelHistory from "../queryPanelQueryHistory/QueryPanelHistory";
+import QueryPanelBookmarks from "../queryPanelBookmarks/QueryPanelBookmarks";
 
 const QueryPanelContent = ({
   tabState,
@@ -17,7 +18,7 @@ const QueryPanelContent = ({
     useQueryPanelState();
 
   if (QueryPanelTitleTabState.Bookmarks === tabState) {
-    return null;
+    return <QueryPanelBookmarks />;
   }
 
   if (QueryPanelTitleTabState.QueryHistory === tabState) {

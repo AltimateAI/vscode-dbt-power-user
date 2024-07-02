@@ -30,6 +30,9 @@ const Filters = ({
   };
 
   useEffect(() => {
+    if (value === searchQuery) {
+      return;
+    }
     onFiltersChange({ searchQuery: value });
   }, [value]);
 

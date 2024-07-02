@@ -4,9 +4,8 @@ import {
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
 import useAppContext from "@modules/app/useAppContext";
-import { setRefreshQueryBookmarksTimestamp } from "@modules/queryPanel/context/queryPanelSlice";
 import { QueryBookmark } from "@modules/queryPanel/context/types";
-import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
+import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import {
   Button,
   FormGroup,
@@ -30,7 +29,7 @@ const BookmarkPrivacySettingButton = ({
   const [privacy, setPrivacy] = useState(bookmark.privacy);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const popoverRef = useRef<PopoverWithButtonRef | null>(null);
-  const queryPanelDispatch = useQueryPanelDispatch();
+  const { refetchBookmarks } = useQueryPanelState();
 
   useEffect(() => {
     setPrivacy(bookmark.privacy);
@@ -60,17 +59,13 @@ const BookmarkPrivacySettingButton = ({
         infoMessage: "Successfully saved bookmark!",
       });
       popoverRef.current?.close();
-      handleUpdate();
+      refetchBookmarks();
     } catch (error) {
       executeRequestInAsync("showErrorMessage", {
         infoMessage: (error as Error).message,
       });
     }
     setIsSubmitting(false);
-  };
-
-  const handleUpdate = () => {
-    queryPanelDispatch(setRefreshQueryBookmarksTimestamp(Date.now()));
   };
 
   if (currentUser?.id !== bookmark.created_by_user.id) {
