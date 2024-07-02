@@ -37,18 +37,18 @@ const PopoverWithButton: ForwardRefRenderFunction<
     if (popoverRef.current?.contains(e.target as Node)) {
       return;
     }
-    // onClose();
+    onClose();
   };
 
   const onOpen = (e?: ReactMouseEvent) => {
     e?.stopPropagation();
     setShowPopover(true);
-    document.body.addEventListener("click", onBodyClick);
+    document.body.addEventListener("mouseup", onBodyClick);
   };
 
   const onClose = () => {
     setShowPopover(false);
-    document.body.removeEventListener("click", onBodyClick);
+    document.body.removeEventListener("mouseup", onBodyClick);
   };
 
   useImperativeHandle(ref, () => ({
