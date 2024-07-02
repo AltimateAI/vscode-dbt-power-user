@@ -337,7 +337,7 @@ export const Lineage = () => {
   useEffect(() => {
     const _flow = flow.current;
     if (!_flow) return;
-    (async () => {
+    const handleEdgeVisibilityChanges = async () => {
       const _column = selectedColumn;
       if (nonSelectCheck) {
         // starting column lineage
@@ -390,7 +390,8 @@ export const Lineage = () => {
         if (_type === "indirect") e.hidden = !nonSelectCheck;
       }
       _flow.setEdges(_edges);
-    })();
+    };
+    handleEdgeVisibilityChanges();
   }, [selectCheck, nonSelectCheck]);
 
   return (
