@@ -310,8 +310,7 @@ export class DBTCloudProjectIntegration
 
   async initializeProject(): Promise<void> {
     try {
-      await this.python
-        .ex`from dbt_cloud_integration import validate_sql, to_dict`;
+      await this.python.ex`from dbt_cloud_integration import *`;
       await this.python.ex`from dbt_healthcheck import *`;
     } catch (error) {
       this.terminal.error(
@@ -705,6 +704,13 @@ export class DBTCloudProjectIntegration
       throw exception;
     }
     return JSON.parse(compiledLine[0].data.compiled);
+  }
+
+  async fetchSqlglotSchema(sql: string, dialect: string): Promise<string[]> {
+    this.throwBridgeErrorIfAvailable();
+    return this.python?.lock<string[]>(
+      (python) => python!`to_dict(fetch_schema_from_sql(${sql}, ${dialect}))`,
+    );
   }
 
   async getBulkSchema(

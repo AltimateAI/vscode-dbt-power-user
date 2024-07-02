@@ -374,6 +374,7 @@ export interface DBTProjectIntegration extends Disposable {
     nodes: DBTNode[],
     cancellationToken: CancellationToken,
   ): Promise<Record<string, DBColumn[]>>;
+  fetchSqlglotSchema(sql: string, dialect: string): Promise<string[]>;
   findPackageVersion(packageName: string): string | undefined;
   performDatapilotHealthcheck(
     args: HealthcheckArgs,

@@ -510,12 +510,14 @@ export class NewLineagePanel implements LineagePanelView {
     upstreamExpansion,
     currAnd1HopTables,
     selectedColumn,
+    showIndirectEdges,
   }: {
     targets: [string, string][];
     upstreamExpansion: boolean;
     currAnd1HopTables: string[];
     // select_column is used for pricing not business logic
     selectedColumn: { name: string; table: string };
+    showIndirectEdges: boolean;
   }) {
     const event = this.getEvent();
     if (!event) {
@@ -530,12 +532,17 @@ export class NewLineagePanel implements LineagePanelView {
     let upstream_models: string[] = [];
     let auxiliaryTables: string[] = [];
     currAnd1HopTables = Array.from(new Set(currAnd1HopTables));
+    const currTables = new Set(targets.map((t) => t[0]));
     if (upstreamExpansion) {
-      const currTables = new Set(targets.map((t) => t[0]));
       const hop1Tables = currAnd1HopTables.filter((t) => !currTables.has(t));
       upstream_models = [...hop1Tables];
       auxiliaryTables = DBTProject.getNonEphemeralParents(event, hop1Tables);
+    } else {
+      currAnd1HopTables.push(
+        ...DBTProject.getNonEphemeralParents(event, Array.from(currTables)),
+      );
     }
+    currAnd1HopTables = Array.from(new Set(currAnd1HopTables));
     const modelsToFetch = Array.from(
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
     );
@@ -661,6 +668,7 @@ export class NewLineagePanel implements LineagePanelView {
         selected_column: selected_column!,
         upstream_models,
         session_id: sessionId,
+        show_indirect_edges: showIndirectEdges,
       };
       this.terminal.debug(
         "newLineagePanel:getConnectedColumns",
@@ -676,6 +684,12 @@ export class NewLineagePanel implements LineagePanelView {
         result,
       );
       this.telemetry.sendTelemetryEvent("columnLineageTimes", {
+        apiTime: apiTime.toString(),
+        sqlCompilingTime: sqlCompilingTime.toString(),
+        schemaFetchingTime: schemaFetchingTime.toString(),
+        modelInfosLength: modelInfos.length.toString(),
+      });
+      console.log("lineageTimings:", {
         apiTime: apiTime.toString(),
         sqlCompilingTime: sqlCompilingTime.toString(),
         schemaFetchingTime: schemaFetchingTime.toString(),

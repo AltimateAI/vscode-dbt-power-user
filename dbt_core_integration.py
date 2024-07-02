@@ -125,6 +125,18 @@ def validate_sql(
     except Exception as e:
         raise Exception(str(e))
 
+def fetch_schema_from_sql(sql: str, dialect: str):
+    try:
+        ALTIMATE_PACKAGE_PATH = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "altimate_packages"
+        )
+        with add_path(ALTIMATE_PACKAGE_PATH):
+            from altimate.fetch_schema import fetch_schema
+
+            return fetch_schema(sql, dialect)
+    except Exception as e:
+        raise Exception(str(e))
+
 
 def to_dict(obj):
     if isinstance(obj, agate.Table):

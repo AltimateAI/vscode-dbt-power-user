@@ -342,7 +342,11 @@ const TableDetails = () => {
         setConfidence,
         setMoreTables,
         setCollectColumns,
-        flow,
+        () => [flow.getNodes(), flow.getEdges()],
+        (ns, es) => {
+          flow.setNodes(ns);
+          flow.setEdges(es);
+        },
         _column,
         { direct: selectCheck, indirect: nonSelectCheck },
       );
