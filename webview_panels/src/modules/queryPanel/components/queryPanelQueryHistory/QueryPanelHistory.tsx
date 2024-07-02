@@ -9,7 +9,7 @@ import {
   Button,
 } from "@uicore";
 import styles from "../../querypanel.module.scss";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { QueryHistory } from "@modules/queryPanel/context/types";
 import Filters, { QueryFilters } from "../filters/Filters";
 import { ChevronRightIcon, NoHistoryIcon } from "@assets/icons";
@@ -19,7 +19,16 @@ const QueryPanelHistory = (): JSX.Element => {
   const [filters, setFilters] = useState<QueryFilters>({ tags: [] });
 
   const [activeHistory, setActiveHistory] = useState<QueryHistory | null>(null);
-  const { queryHistory } = useQueryPanelState();
+  const { queryHistory, queryBookmarksTagsFromDB, refetchBookmarkTags } =
+    useQueryPanelState();
+
+  useEffect(() => {
+    if (queryBookmarksTagsFromDB) {
+      return;
+    }
+
+    refetchBookmarkTags();
+  }, [queryBookmarksTagsFromDB]);
 
   const onFiltersChange = (data: { tags?: string[]; searchQuery?: string }) => {
     setFilters((prev) => ({ ...prev, ...data }));

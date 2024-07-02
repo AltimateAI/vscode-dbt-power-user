@@ -1,9 +1,13 @@
 import { useContext } from "react";
 import { QueryPanelContext, useQueryPanelDispatch } from "./QueryPanelProvider";
-import { QueryPanelStateProps } from "./context/types";
+import { QueryBookmark, QueryPanelStateProps } from "./context/types";
 import { panelLogger } from "@modules/logger";
 import { loadBookmarks } from "./components/queryPanelBookmarks/utils";
-import { setQueryBookmarks } from "./context/queryPanelSlice";
+import {
+  setQueryBookmarks,
+  setQueryBookmarksTagsFromDB,
+} from "./context/queryPanelSlice";
+import { executeRequestInSync } from "@modules/app/requestExecutor";
 
 const useQueryPanelState = (): QueryPanelStateProps & {
   hasData: boolean;
@@ -11,6 +15,7 @@ const useQueryPanelState = (): QueryPanelStateProps & {
   hasCode: boolean;
   queryResultsRowCount: number;
   refetchBookmarks: () => void;
+  refetchBookmarkTags: () => void;
 } => {
   const { state } = useContext(QueryPanelContext);
   const dispatch = useQueryPanelDispatch();
@@ -38,6 +43,23 @@ const useQueryPanelState = (): QueryPanelStateProps & {
     void getBookmarks("public");
   };
 
+  const refetchBookmarkTags = () => {
+    executeRequestInSync("fetch", {
+      endpoint: `query/bookmark/tags`,
+      fetchArgs: {
+        method: "GET",
+      },
+    })
+      .then((response) => {
+        dispatch(
+          setQueryBookmarksTagsFromDB(response as QueryBookmark["tags"]),
+        );
+      })
+      .catch((error) => {
+        panelLogger.error("Error fetching tags", error);
+      });
+  };
+
   return {
     ...state,
     hasData,
@@ -45,6 +67,7 @@ const useQueryPanelState = (): QueryPanelStateProps & {
     hasCode,
     queryResultsRowCount: (data as [] | undefined)?.length ?? 0,
     refetchBookmarks,
+    refetchBookmarkTags,
   };
 };
 

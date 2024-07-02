@@ -23,7 +23,7 @@ export const initialState = {
   },
   queryBookmarksEnabled: false,
   tabState: QueryPanelTitleTabState.Preview,
-  queryBookmarksTagsFromDB: [],
+  queryBookmarksTagsFromDB: undefined,
 } as QueryPanelStateProps;
 
 const queryPanelSlice = createSlice({

@@ -4,37 +4,27 @@ import { useEffect, useState } from "react";
 import { QueryBookmark } from "@modules/queryPanel/context/types";
 import { ChevronRightIcon } from "@assets/icons";
 import BookmarkAccordion from "./BookmarkAccordion";
-import { executeRequestInSync } from "@modules/app/requestExecutor";
-import { panelLogger } from "@modules/logger";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import { QueryPanelTitleTabState } from "../QueryPanelContents/types";
-import { setQueryBookmarksTagsFromDB } from "@modules/queryPanel/context/queryPanelSlice";
-import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
 
 const QueryPanelBookmarks = (): JSX.Element => {
   const [activeBookmark, setActiveBookmark] = useState<QueryBookmark | null>(
     null,
   );
-  const { queryBookmarks, tabState, queryBookmarksTagsFromDB } =
-    useQueryPanelState();
-  const dispatch = useQueryPanelDispatch();
+  const {
+    refetchBookmarkTags,
+    queryBookmarks,
+    tabState,
+    queryBookmarksTagsFromDB,
+  } = useQueryPanelState();
 
   useEffect(() => {
-    executeRequestInSync("fetch", {
-      endpoint: `query/bookmark/tags`,
-      fetchArgs: {
-        method: "GET",
-      },
-    })
-      .then((response) => {
-        dispatch(
-          setQueryBookmarksTagsFromDB(response as QueryBookmark["tags"]),
-        );
-      })
-      .catch((error) => {
-        panelLogger.error("Error fetching tags", error);
-      });
-  }, []);
+    if (queryBookmarksTagsFromDB) {
+      return;
+    }
+
+    refetchBookmarkTags();
+  }, [queryBookmarksTagsFromDB]);
 
   const onSelect = (qh: QueryBookmark) => {
     setActiveBookmark(qh);
@@ -44,7 +34,7 @@ const QueryPanelBookmarks = (): JSX.Element => {
     setActiveBookmark(null);
   };
 
-  const tags = queryBookmarksTagsFromDB.map((t) => t.tag);
+  const tags = (queryBookmarksTagsFromDB ?? []).map((t) => t.tag);
   return (
     <section
       className={`${styles.queryTwoCol} ${tabState === QueryPanelTitleTabState.Bookmarks ? "" : "d-none"}`}

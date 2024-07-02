@@ -160,7 +160,7 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
                       }}
                       ref={ref}
                       inputId="tags"
-                      options={queryBookmarksTagsFromDB.map((v) => ({
+                      options={queryBookmarksTagsFromDB?.map((v) => ({
                         label: v.tag,
                         value: v.tag,
                       }))}
@@ -187,7 +187,7 @@ const BookmarkButton = ({ queryHistory }: Props): JSX.Element => {
                                   .value,
                                 id: Date.now(),
                               },
-                              ...queryBookmarksTagsFromDB,
+                              ...(queryBookmarksTagsFromDB ?? []),
                             ]),
                           );
                         }
