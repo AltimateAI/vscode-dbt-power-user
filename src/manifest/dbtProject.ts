@@ -749,7 +749,7 @@ export class DBTProject implements Disposable {
         dbBulkFetchReq.push(r);
       }
     }
-    const dbSchemas = this.dbtProjectIntegration.getBulkSchema(
+    const dbSchemas = await this.dbtProjectIntegration.getBulkSchema(
       dbBulkFetchReq,
       cancellationToken,
     );
