@@ -688,7 +688,7 @@ export class NewLineagePanel implements LineagePanelView {
         schemaFetchingTime: schemaFetchingTime.toString(),
         modelInfosLength: modelInfos.length.toString(),
       });
-      console.log({
+      console.log("lineageTimings:", {
         apiTime: apiTime.toString(),
         sqlCompilingTime: sqlCompilingTime.toString(),
         schemaFetchingTime: schemaFetchingTime.toString(),
