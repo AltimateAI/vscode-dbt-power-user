@@ -527,23 +527,26 @@ export class NewLineagePanel implements LineagePanelView {
     }
 
     const modelInfos: { compiled_sql?: string; model_node: ModelNode }[] = [];
-    const parent_models: { model_node: ModelNode }[] = [];
+    let upstream_models: string[] = [];
     let auxiliaryTables: string[] = [];
     currAnd1HopTables = Array.from(new Set(currAnd1HopTables));
     if (upstreamExpansion) {
       const currTables = new Set(targets.map((t) => t[0]));
       const hop1Tables = currAnd1HopTables.filter((t) => !currTables.has(t));
+      upstream_models = [...hop1Tables];
       auxiliaryTables = DBTProject.getNonEphemeralParents(event, hop1Tables);
     }
     const modelsToFetch = Array.from(
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
     );
+    let startTime = Date.now();
     const { mappedNode, relationsWithoutColumns } =
       await project.getNodesWithDBColumns(
         event,
         modelsToFetch,
         this.cancellationTokenSource!.token,
       );
+    const schemaFetchingTime = Date.now() - startTime;
 
     const selected_column = {
       model_node: mappedNode[selectedColumn.table],
@@ -562,11 +565,11 @@ export class NewLineagePanel implements LineagePanelView {
       const compiledSql = await project.unsafeCompileNode(node.name);
       modelInfos.push({ compiled_sql: compiledSql, model_node: node });
     };
+    startTime = Date.now();
     try {
       auxiliaryTables.forEach((key) => {
-        parent_models.push({ model_node: mappedNode[key] });
+        modelInfos.push({ model_node: mappedNode[key] });
       });
-
       for (const key of currAnd1HopTables) {
         if (this.cancellationTokenSource?.token.isCancellationRequested) {
           return { column_lineage: [] };
@@ -606,6 +609,7 @@ export class NewLineagePanel implements LineagePanelView {
       );
       return;
     }
+    const sqlCompilingTime = Date.now() - startTime;
 
     if (relationsWithoutColumns.length !== 0) {
       window.showErrorMessage(
@@ -655,7 +659,7 @@ export class NewLineagePanel implements LineagePanelView {
         upstream_expansion: upstreamExpansion,
         targets: targets.map((t) => ({ uniqueId: t[0], column_name: t[1] })),
         selected_column: selected_column!,
-        parent_models,
+        upstream_models,
         session_id: sessionId,
       };
       this.terminal.debug(
@@ -663,12 +667,28 @@ export class NewLineagePanel implements LineagePanelView {
         "request",
         request,
       );
+      startTime = Date.now();
       const result = await this.altimate.getColumnLevelLineage(request);
+      const apiTime = Date.now() - startTime;
       this.terminal.debug(
         "newLineagePanel:getConnectedColumns",
         "response",
         result,
       );
+      this.telemetry.sendTelemetryEvent("columnLineageTimes", {
+        apiTime: apiTime.toString(),
+        sqlCompilingTime: sqlCompilingTime.toString(),
+        schemaFetchingTime: schemaFetchingTime.toString(),
+        modelInfosLength: modelInfos.length.toString(),
+      });
+      if (result.errors && result.errors.length > 0) {
+        window.showErrorMessage(
+          extendErrorWithSupportLinks(result.errors.join("\n")),
+        );
+        this.telemetry.sendTelemetryError("columnLineageApiError", {
+          errors: result.errors,
+        });
+      }
       const column_lineage =
         result.column_lineage.map((c) => ({
           source: [c.source.uniqueId, c.source.column_name],
