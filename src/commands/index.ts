@@ -10,7 +10,8 @@ import {
   workspace,
   version,
   extensions,
-  WebviewPanel,
+  Uri,
+  Range,
   ProgressLocation,
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
@@ -19,6 +20,7 @@ import {
   deepEqual,
   extendErrorWithSupportLinks,
   getFirstWorkspacePath,
+  getFormattedDateTime,
   provideSingleton,
 } from "../utils";
 import { RunModel } from "./runModel";
@@ -40,7 +42,7 @@ import { DBTClient } from "../dbt_client";
 import { existsSync, readFileSync } from "fs";
 import { DBTProject } from "../manifest/dbtProject";
 import { SQLLineagePanel } from "../webview_provider/sqlLineagePanel";
-import { inject } from "inversify";
+import { QueryManifestService } from "../services/queryManifestService";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -60,6 +62,7 @@ export class VSCodeCommands implements Disposable {
     private pythonEnvironment: PythonEnvironment,
     private dbtClient: DBTClient,
     private sqlLineagePanel: SQLLineagePanel,
+    private queryManifestService: QueryManifestService,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -532,6 +535,42 @@ export class VSCodeCommands implements Disposable {
           this.dbtTerminal.logNewLine();
           this.dbtTerminal.logLine("Diagnostics ended with error...");
           this.dbtTerminal.logLine(`Error=${e}`);
+        }
+      }),
+      commands.registerCommand("dbtPowerUser.createPUSqlFile", async () => {
+        try {
+          const project =
+            await this.queryManifestService.getOrPickProjectFromWorkspace();
+          if (!project) {
+            window.showErrorMessage("No dbt project selected.");
+            return;
+          }
+
+          const uri = Uri.parse(
+            `${project.projectRoot}/poweruser-${getFormattedDateTime()}.sql`,
+          ).with({ scheme: "untitled" });
+          workspace.openTextDocument(uri).then((doc) => {
+            // set this to sql language so we can bind codelens and other features
+            languages.setTextDocumentLanguage(doc, "sql");
+            window.showTextDocument(doc).then((editor) => {
+              editor.edit((editBuilder) => {
+                // Replace the entire content of the document
+                // You can adjust the range if you want to replace or insert at specific positions
+                const entireDocumentRange = new Range(
+                  doc.positionAt(0),
+                  doc.positionAt(doc.getText().length),
+                );
+                editBuilder.replace(
+                  entireDocumentRange,
+                  'SELECT * FROM {{ref("")}}',
+                );
+              });
+            });
+          });
+        } catch (e) {
+          const message = (e as Error).message;
+          this.dbtTerminal.error("createPUSqlFile", message, e, true);
+          window.showErrorMessage(message);
         }
       }),
       commands.registerCommand("dbtPowerUser.sqlLineage", async () => {

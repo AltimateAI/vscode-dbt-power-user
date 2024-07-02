@@ -10,7 +10,7 @@ const LoadingButton = ({ loading, ...rest }: Props): JSX.Element => {
   return (
     <Button
       {...rest}
-      disabled={loading ?? rest.disabled}
+      disabled={loading || rest.disabled}
       className={`${rest.className ?? ""} ${classes.loadingBtn}`}
     >
       {loading ? <Spinner /> : rest.children}
