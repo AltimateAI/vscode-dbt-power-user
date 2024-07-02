@@ -222,7 +222,11 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
         setConfidence,
         setMoreTables,
         setCollectColumns,
-        flow,
+        () => [flow.getNodes(), flow.getEdges()],
+        (ns, es) => {
+          flow.setNodes(ns);
+          flow.setEdges(es);
+        },
         selectedColumn,
         { direct: selectCheck, indirect: nonSelectCheck }
       );
@@ -263,7 +267,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
       <div
         className={styles.table_node}
         onClick={async () => {
-          if (selectedColumn.name) return;
           const nodes = flow.getNodes();
           const edges = flow.getEdges();
           setMinRange(calculateMinLevel(nodes, edges, table));
