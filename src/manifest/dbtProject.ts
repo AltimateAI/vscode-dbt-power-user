@@ -744,7 +744,7 @@ export class DBTProject implements Disposable {
           }));
         } catch (e) {
           this.terminal.warn(
-            "getBulkSchemaV2",
+            "sqlglotSchemaFetchingFailed",
             `Error while sqlglot schema fetching for ${r.unique_id}`,
             true,
             e,
