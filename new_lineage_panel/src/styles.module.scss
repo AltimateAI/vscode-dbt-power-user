@@ -474,15 +474,14 @@ $size: 1.2em;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 0.15em 0.5em;
-    border-radius: 0.25em;
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
 
     svg {
-      $size: 2em;
+      $size: 2.8rem;
       width: $size;
       height: $size;
     }
-    font-size: 0.75em;
   }
 
   .content {

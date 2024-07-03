@@ -435,7 +435,7 @@ export const StaticTableNode: FunctionComponent<NodeProps> = ({ data }) => {
             }
           )}
         >
-          <div className="d-flex align-items-center w-100 pe-2 gap-sm">
+          <div className="d-flex align-items-center w-100 ps-2 pe-2 gap-sm">
             <div
               className={classNames(styles.node_icon, NODE_TYPE_STYLES[nType])}
             >
