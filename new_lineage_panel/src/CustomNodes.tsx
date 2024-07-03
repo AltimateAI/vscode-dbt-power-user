@@ -48,7 +48,7 @@ import SqlUnionIcon from "./assets/icons/sql_union.svg?react";
 
 import ArrowRightDoubleIcon from "./assets/icons/arrow-right-double.svg?react";
 import { COLUMNS_SIDEBAR, EXPOSURE_SIDEBAR, TABLES_SIDEBAR } from "./constants";
-import { NODE_TYPE_SHORTHAND } from "./components/Column";
+import { NODE_TYPE_SHORTHAND, NodeTypeIconForSQL } from "./components/Column";
 import {
   NODE_TYPE_STYLES,
   NodeTypeIcon,
@@ -430,7 +430,7 @@ export const StaticTableNode: FunctionComponent<NodeProps> = ({ data }) => {
             <div
               className={classNames(styles.node_icon, NODE_TYPE_STYLES[nType])}
             >
-              <NodeTypeIcon nodeType={nType} />
+              <NodeTypeIconForSQL nodeType={nType} />
             </div>
             <div className="lines-2">{table}</div>
             <div className="spacer" />

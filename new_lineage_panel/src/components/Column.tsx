@@ -6,7 +6,13 @@ import ObjectIcon from "../assets/icons/object.svg?react";
 import DatetimeIcon from "../assets/icons/datetime.svg?react";
 import GeospatialIcon from "../assets/icons/geospatial.svg?react";
 
+import ModelIcon from "../assets/icons/model.svg?react";
+import SeedIcon from "../assets/icons/seed.svg?react";
+import SourceIcon from "../assets/icons/source.svg?react";
+import ExposureIcon from "../assets/icons/exposure.svg?react";
 import AnalysisIcon from "../assets/icons/analysis.svg?react";
+import SnapshotIcon from "../assets/icons/snapshot.svg?react";
+import MetricsIcon from "../assets/icons/metrics.svg?react";
 import MacrosIcon from "../assets/icons/macros.svg?react";
 
 import CteDarkIcon from "../assets/icons/dbt_node_cte_dark.svg?react";
@@ -107,7 +113,24 @@ const NodeTypeLightIcon: FunctionComponent<{ nodeType: string }> = ({
   </div>
 );
 
-export const NodeTypeIcon: FunctionComponent<{
+export const NodeTypeIcon: FunctionComponent<{ nodeType: string }> = ({
+  nodeType,
+}) => (
+  <div>
+    {nodeType === "seed" && <SeedIcon />}
+    {nodeType === "model" && <ModelIcon />}
+    {nodeType === "cte" && <ModelIcon />}
+    {nodeType === "source" && <SourceIcon />}
+    {nodeType === "exposure" && <ExposureIcon />}
+    {nodeType === "analysis" && <AnalysisIcon />}
+    {nodeType === "snapshot" && <SnapshotIcon />}
+    {nodeType === "semantic_model" && <MetricsIcon />}
+    {nodeType === "macros" && <MacrosIcon />}
+    {nodeType === "unknown" && <ModelIcon />}
+  </div>
+);
+
+export const NodeTypeIconForSQL: FunctionComponent<{
   nodeType: string;
 }> = ({ nodeType }) => {
   const isDarkMode = getDarkMode();
