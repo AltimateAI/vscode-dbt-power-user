@@ -36,6 +36,8 @@ import {
   T_NODE_Y_SEPARATION_VERTICAL,
   defaultEdgeStyle,
   createOpNode,
+  highlightEdgeStyle,
+  indirectHighlightEdgeStyle,
 } from "./utils";
 import {
   ColumnLineage,
@@ -367,8 +369,6 @@ const processColumnLineage = async (
   right: boolean,
   currAnd1HopTables: string[],
   selectedColumn: SelectedColumn,
-  columnEdgeType: Record<string, string>,
-  isFirst: boolean,
   edgeVisibility: EdgeVisibility
 ) => {
   const nodes: Node[] = [];
@@ -379,6 +379,7 @@ const processColumnLineage = async (
     upstreamExpansion: right,
     currAnd1HopTables,
     selectedColumn,
+    showIndirectEdges: edgeVisibility["indirect"],
   });
   CLL.addLinks(column_lineage.length);
   const columnLineage = column_lineage.filter((e) =>
@@ -419,40 +420,6 @@ const processColumnLineage = async (
   };
 
   const seeMoreLineage: ColumnLineage[] = [];
-
-  // since many edges can come to same node, one node can have multiple direct/indirect edges
-  // 1st pass to collect all type of edges that column at current level can have
-  const columnEdgeTypeCandidates: Record<string, string[]> = {};
-  for (const e of columnLineage) {
-    const sourceId = e.source.join("/");
-    const targetId = e.target.join("/");
-    const getEdgeType = (prevNodeEdgeType: string) => {
-      if (isFirst) return e.type;
-      if (e.type === "indirect") return "indirect";
-      return prevNodeEdgeType || e.type;
-    };
-
-    if (right) {
-      columnEdgeTypeCandidates[targetId] =
-        columnEdgeTypeCandidates[targetId] || [];
-      columnEdgeTypeCandidates[targetId].push(
-        getEdgeType(columnEdgeType[sourceId])
-      );
-    } else {
-      columnEdgeTypeCandidates[sourceId] =
-        columnEdgeTypeCandidates[sourceId] || [];
-      columnEdgeTypeCandidates[sourceId].push(
-        getEdgeType(columnEdgeType[targetId])
-      );
-    }
-  }
-  // 2nd pass to assign edge type to columns at current level
-  for (const k in columnEdgeTypeCandidates) {
-    columnEdgeType[k] = columnEdgeTypeCandidates[k].some((x) => x === "direct")
-      ? "direct"
-      : "indirect";
-  }
-
   for (const e of columnLineage) {
     addToCollectColumns(e.source);
     addToCollectColumns(e.target, e.viewsType);
@@ -466,7 +433,7 @@ const processColumnLineage = async (
     const source = COLUMN_PREFIX + sourceId;
     const target = COLUMN_PREFIX + targetId;
 
-    const edgeType = columnEdgeType[right ? targetId : sourceId];
+    const edgeType = e.type;
     if (sourceTableExist && targetTableExist) {
       addToEdges(t0, t1, source, target, edgeType);
     } else if (sourceTableExist) {
@@ -618,20 +585,17 @@ export const staticProcessColumnLineage = async (
 
 const mergeNodesEdges = (
   prevState: { nodes: Node[]; edges: Edge[] },
-  patchState: { nodes: Node[]; edges: Edge[] }
+  patchState: { nodes: Node[]; edges: Edge[] },
+  selectedColumn: SelectedColumn,
+  right: boolean
 ): [Node[], Edge[]] => {
   const nodes = [...prevState.nodes];
   const edges = [...prevState.edges];
-  const nodesId: Record<string, boolean> = {};
-  const edgesId: Record<string, boolean> = {};
-  nodes.forEach((n) => (nodesId[n.id] = true));
-  edges.forEach((e) => (edgesId[e.id] = true));
   patchState.nodes.forEach((n) => {
-    if (!nodesId[n.id]) {
-      nodes.push(n);
-    }
     const existing = nodes.find((x) => x.id === n.id);
-    if (existing) {
+    if (!existing) {
+      nodes.push(n);
+    } else {
       const viewsCode =
         n.data.viewsCode && Object.keys(n.data.viewsCode).length
           ? n.data.viewsCode
@@ -644,7 +608,48 @@ const mergeNodesEdges = (
       };
     }
   });
-  patchState.edges.forEach((e) => !edgesId[e.id] && edges.push(e));
+
+  patchState.edges.forEach((e) => {
+    if (edges.find((e1) => e1.id === e.id)) return;
+    edges.push(e);
+  });
+
+  if (selectedColumn.name) {
+    const edgeType: Record<string, string> = {};
+    const start = getColumnId(selectedColumn.table, selectedColumn.name);
+    const columnEdgeType: Record<string, string> = { [start]: "direct" };
+    const queue = [start];
+    const visited: Record<string, boolean> = {};
+    const src = right ? "source" : "target";
+    const dst = !right ? "source" : "target";
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      if (visited[curr]) continue;
+      visited[curr] = true;
+      // 1st pass to collect which type of edge comes towards target column
+      for (const e of edges) {
+        if (e[src] !== curr) continue;
+        queue.push(e[dst]);
+        if (columnEdgeType[e[dst]] === "direct") continue;
+        columnEdgeType[e[dst]] =
+          columnEdgeType[e[src]] === "direct" ? e.data.type : "indirect";
+      }
+      // 2nd pass to assign type to edge
+      for (const e of edges) {
+        if (e[src] !== curr) continue;
+        edgeType[e.id] = columnEdgeType[e[dst]];
+      }
+    }
+    for (const e of edges) {
+      if (isNotColumn(e)) continue;
+      e.data.type = edgeType[e.id] || e.data.type;
+      e.style =
+        e.data.type === "direct"
+          ? highlightEdgeStyle
+          : indirectHighlightEdgeStyle;
+    }
+  }
+
   layoutElementsOnCanvas(nodes, edges);
   return [nodes, edges];
 };
@@ -830,10 +835,11 @@ export const bfsTraversal = async (
   >,
   setMoreTables: Dispatch<SetStateAction<TMoreTables>>,
   setCollectColumns: Dispatch<SetStateAction<Record<string, CollectColumn[]>>>,
-  flow: ReactFlowInstance,
+  getNodesEdges: () => [Node[], Edge[]],
+  setNodesEdges: (ns: Node[], es: Edge[]) => void,
   selectedColumn: SelectedColumn,
   edgeVisibility: EdgeVisibility
-) => {
+): Promise<boolean> => {
   let isLineage = false;
   // creating helper data for current lineage once
   const { levelMap, tableNodes, seeMoreIdTableReverseMap } =
@@ -848,8 +854,6 @@ export const bfsTraversal = async (
     c.name,
   ]);
   let currEphemeralNodes: string[] = [];
-  const columnEdgeType: Record<string, string> = {};
-  let isFirst = true;
   while (true as boolean) {
     if (CLL.isCancelled) break;
     currTargetColumns = currTargetColumns.filter((x) => !visited[x.join("/")]);
@@ -931,11 +935,8 @@ export const bfsTraversal = async (
       right,
       Array.from(new Set(currAnd1HopTables)),
       selectedColumn,
-      columnEdgeType,
-      isFirst,
       edgeVisibility
     );
-    isFirst = false;
     if (patchState.confidence?.confidence === "low") {
       setConfidence((prev) => {
         const newConfidence = { ...prev, confidence: "low" };
@@ -950,19 +951,24 @@ export const bfsTraversal = async (
     if (!isLineage && currTargetColumns.length > 0) {
       isLineage = true;
     }
-    const [_nodes, _edges] = mergeNodesEdges(
-      { nodes: flow.getNodes(), edges: flow.getEdges() },
-      patchState
+    currTargetColumns = currTargetColumns.filter(
+      (c) =>
+        edges.filter((e) => (right ? e.source : e.target) === c[0]).length > 0
     );
-
+    const [ns, es] = getNodesEdges();
+    const [_nodes, _edges] = mergeNodesEdges(
+      { nodes: ns, edges: es },
+      patchState,
+      selectedColumn,
+      right
+    );
     setMoreTables((prev) => ({
       ...prev,
       lineage: [...(prev.lineage || []), ...patchState.seeMoreLineage],
     }));
 
     layoutElementsOnCanvas(_nodes, _edges);
-    flow.setNodes(_nodes);
-    flow.setEdges(_edges);
+    setNodesEdges(_nodes, _edges);
     mergeCollectColumns(setCollectColumns, patchState.collectColumns);
   }
   return isLineage;

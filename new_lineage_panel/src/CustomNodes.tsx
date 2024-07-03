@@ -173,7 +173,6 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
   const selected = selectedTable === table;
 
   const highlightTable = () => {
-    if (selectedColumn.name && selectedColumn.table === table) return;
     const _nodes = flow.getNodes();
     const _edges = flow.getEdges();
     const [nodes, edges] = highlightTableConnections(_nodes, _edges, table);
@@ -207,33 +206,35 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
       )
     );
     rerender();
-    if (selectedColumn.name) {
-      try {
-        CLL.start();
-        const currentEdges = flow.getEdges();
-        // Model edges should be hidden when column lineage is selected
-        toggleModelEdges(currentEdges, false);
-        toggleColumnEdges(currentEdges, true);
-        flow.setEdges(currentEdges);
-        await bfsTraversal(
-          nodes,
-          edges,
-          right,
-          collectColumns[table].map((c) => ({ table, name: c.column })),
-          setConfidence,
-          setMoreTables,
-          setCollectColumns,
-          flow,
-          selectedColumn,
-          { direct: selectCheck, indirect: nonSelectCheck }
-        );
-        rerender();
-      } catch (e) {
-        console.log("cll:error:", e);
-      } finally {
-        CLL.end();
-      }
-      return;
+    if (!selectedColumn.name) return;
+    try {
+      CLL.start();
+      const currentEdges = flow.getEdges();
+      // Model edges should be hidden when column lineage is selected
+      toggleModelEdges(currentEdges, false);
+      toggleColumnEdges(currentEdges, true);
+      flow.setEdges(currentEdges);
+      await bfsTraversal(
+        nodes,
+        edges,
+        right,
+        collectColumns[table].map((c) => ({ table, name: c.column })),
+        setConfidence,
+        setMoreTables,
+        setCollectColumns,
+        () => [flow.getNodes(), flow.getEdges()],
+        (ns, es) => {
+          flow.setNodes(ns);
+          flow.setEdges(es);
+        },
+        selectedColumn,
+        { direct: selectCheck, indirect: nonSelectCheck }
+      );
+      rerender();
+    } catch (e) {
+      console.log("cll:error:", e);
+    } finally {
+      CLL.end();
     }
   };
 
