@@ -430,12 +430,19 @@ $size: 1.2em;
   width: 3.2rem;
   height: 3.2rem;
   padding: 0.3rem;
-  background: var(--table-node-content-bg);
   border-radius: 50%;
   border: 2px solid var(--table-node-border-color);
   display: flex;
   justify-content: center;
   align-items: center;
+
+  &.light_mode {
+    background-color: #eaf3ff;
+  }
+
+  &.dark_mode {
+    background-color: #d3e5ff;
+  }
 }
 
 .op_type_text {
