@@ -55,6 +55,7 @@ import SqlOuterJoinDarkIcon from "./assets/icons/sql_outer_join_dark.svg?react";
 import SqlRightJoinDarkIcon from "./assets/icons/sql_right_join_dark.svg?react";
 import SqlUnionDarkIcon from "./assets/icons/sql_union_dark.svg?react";
 
+import ArrowRightDoubleIcon from "./assets/icons/arrow-right-double.svg?react";
 import { COLUMNS_SIDEBAR, EXPOSURE_SIDEBAR, TABLES_SIDEBAR } from "./constants";
 import { NODE_TYPE_SHORTHAND } from "./components/Column";
 import {
@@ -423,7 +424,7 @@ export const StaticTableNode: FunctionComponent<NodeProps> = ({ data }) => {
         opacity: !selectedColumn ? 1 : _showColumns ? 1 : 0.5,
       }}
     >
-      <div className={styles.table_node}>
+      <div className={styles.static_table_node}>
         <div
           className={classNames(
             styles.header,
@@ -434,7 +435,7 @@ export const StaticTableNode: FunctionComponent<NodeProps> = ({ data }) => {
             }
           )}
         >
-          <div className={styles.table_header}>
+          <div className="d-flex align-items-center w-100 pe-2">
             <div
               className={classNames(styles.node_icon, NODE_TYPE_STYLES[nType])}
             >
@@ -442,25 +443,20 @@ export const StaticTableNode: FunctionComponent<NodeProps> = ({ data }) => {
               <div>{NODE_TYPE_SHORTHAND[nType]}</div>
             </div>
             <div className="lines-2">{table}</div>
-          </div>
-          <div
-            className={classNames(
-              "nodrag ms-3",
-              details && nType !== "unknown" ? "text-primary" : "text-muted"
-            )}
-          >
-            <span
-              className={
-                !details || nType === "unknown" ? "cursor-disable" : ""
-              }
+            <div className="spacer" />
+            <div
+              className={classNames(
+                styles.details_btn,
+                !details || nType === "unknown" ? styles.disable : styles.enable
+              )}
               onClick={(e) => {
                 e.stopPropagation();
                 if (nType === "unknown") return;
                 setSelectedTable(table);
               }}
             >
-              View Details
-            </span>
+              <ArrowRightDoubleIcon />
+            </div>
           </div>
         </div>
         {_showColumns && (
