@@ -530,17 +530,21 @@ export class NewLineagePanel implements LineagePanelView {
 
     const modelInfos: { compiled_sql?: string; model_node: ModelNode }[] = [];
     let upstream_models: string[] = [];
-    let auxiliaryTables: string[] = [];
+    let auxiliaryTables: string[] = []; // these are used for better sqlglot parsing
+    let sqlTables: string[] = []; // these are used which models should be compiled sql
     currAnd1HopTables = Array.from(new Set(currAnd1HopTables));
     const currTables = new Set(targets.map((t) => t[0]));
     if (upstreamExpansion) {
       const hop1Tables = currAnd1HopTables.filter((t) => !currTables.has(t));
       upstream_models = [...hop1Tables];
+      sqlTables = [...hop1Tables];
       auxiliaryTables = DBTProject.getNonEphemeralParents(event, hop1Tables);
     } else {
-      currAnd1HopTables.push(
-        ...DBTProject.getNonEphemeralParents(event, Array.from(currTables)),
+      auxiliaryTables = DBTProject.getNonEphemeralParents(
+        event,
+        Array.from(currTables),
       );
+      sqlTables = Array.from(currTables);
     }
     currAnd1HopTables = Array.from(new Set(currAnd1HopTables));
     const modelsToFetch = Array.from(
@@ -559,11 +563,18 @@ export class NewLineagePanel implements LineagePanelView {
       model_node: mappedNode[selectedColumn.table],
       column: selectedColumn.name,
     };
-    const compileSql = async (key: string) => {
+
+    const addToModelInfo = async (key: string) => {
       const node = mappedNode[key];
       if (!node) {
         return;
       }
+
+      if (!sqlTables.includes(key)) {
+        modelInfos.push({ model_node: node });
+        return;
+      }
+
       const nodeType = key.split(".")[0];
       if (!canCompileSQL(nodeType)) {
         modelInfos.push({ model_node: node });
@@ -574,14 +585,11 @@ export class NewLineagePanel implements LineagePanelView {
     };
     startTime = Date.now();
     try {
-      auxiliaryTables.forEach((key) => {
-        modelInfos.push({ model_node: mappedNode[key] });
-      });
-      for (const key of currAnd1HopTables) {
+      for (const key of modelsToFetch) {
         if (this.cancellationTokenSource?.token.isCancellationRequested) {
           return { column_lineage: [] };
         }
-        await compileSql(key);
+        await addToModelInfo(key);
       }
     } catch (exc) {
       if (exc instanceof PythonException) {
