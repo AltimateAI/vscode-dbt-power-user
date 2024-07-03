@@ -435,12 +435,11 @@ export const StaticTableNode: FunctionComponent<NodeProps> = ({ data }) => {
             }
           )}
         >
-          <div className="d-flex align-items-center w-100 pe-2">
+          <div className="d-flex align-items-center w-100 pe-2 gap-sm">
             <div
               className={classNames(styles.node_icon, NODE_TYPE_STYLES[nType])}
             >
               <NodeTypeIcon nodeType={nType} />
-              <div>{NODE_TYPE_SHORTHAND[nType]}</div>
             </div>
             <div className="lines-2">{table}</div>
             <div className="spacer" />

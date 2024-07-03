@@ -99,6 +99,11 @@ const noop = () => {};
 
 export type SelectedColumn = { name: string; table: string };
 
+let _isDarkMode = false;
+
+export const getDarkMode = () => _isDarkMode;
+export const setDarkMode = (v: boolean) => (_isDarkMode = v);
+
 export const LineageContext = createContext<{
   selectedTable: string;
   setSelectedTable: Dispatch<SetStateAction<string>>;
@@ -291,6 +296,7 @@ export const Lineage = () => {
 
     const setTheme = ({ theme }: { theme: string }) => {
       document.documentElement.setAttribute("data-theme", theme);
+      setDarkMode(theme === "dark");
       rerender();
     };
 
