@@ -24,6 +24,8 @@ html {
   --popover-bg: #ffffff;
   --divider-color: #e8e8e8;
   --code-bg: #082247;
+  --btn-disable: #eaf3ff;
+  --btn-disable-text: #374c6a;
 }
 
 html[data-theme="dark"] {
@@ -52,6 +54,8 @@ html[data-theme="dark"] {
   --popover-bg: #28292c;
   --divider-color: #424750;
   --code-bg: #171717;
+  --btn-disable: #374c6a;
+  --btn-disable-text: #eaf3ff;
 }
 
 html[data-theme="dark"] .bs-modal {
@@ -233,4 +237,12 @@ code[class*="language-"] {
   white-space: normal;
   overflow: auto;
   word-break: break-word;
+}
+
+.react-flow__node {
+  z-index: -2 !important;
+}
+
+.react-flow__edge {
+  z-index: -1 !important;
 }

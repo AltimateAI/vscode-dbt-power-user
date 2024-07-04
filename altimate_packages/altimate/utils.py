@@ -24,6 +24,7 @@ ADAPTER_MAPPING = {
     "synapse": "tsql",
     "sqlserver": "tsql",
     "doris": "doris",
+    "athena": "presto",
 }
 
 MULTIPLE_OCCURENCES_STR = "Unable to highlight the exact location in the SQL code due to multiple occurrences."

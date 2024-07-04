@@ -430,12 +430,19 @@ $size: 1.2em;
   width: 3.2rem;
   height: 3.2rem;
   padding: 0.3rem;
-  background: var(--table-node-content-bg);
   border-radius: 50%;
   border: 2px solid var(--table-node-border-color);
   display: flex;
   justify-content: center;
   align-items: center;
+
+  &.light_mode {
+    background-color: #eaf3ff;
+  }
+
+  &.dark_mode {
+    background-color: #d3e5ff;
+  }
 }
 
 .op_type_text {
@@ -445,4 +452,77 @@ $size: 1.2em;
   height: 3.2rem;
   display: flex;
   align-items: center;
+}
+
+.static_table_node {
+  width: $node-width;
+  display: flex;
+  flex-direction: column;
+  cursor: default;
+  color: var(--text-color);
+
+  .header {
+    background: var(--table-node-expand-bg);
+    border-top: 2px solid var(--table-node-border-color);
+    border-left: 2px solid var(--table-node-border-color);
+    border-right: 2px solid var(--table-node-border-color);
+    border-radius: 0.25em 0.25em 0 0;
+    &.collapse {
+      background: var(--table-node-collapse-bg);
+      border-bottom: 2px solid var(--table-node-border-color);
+      border-radius: 0.25em;
+    }
+    &.selected {
+      border-color: #e38e00;
+    }
+  }
+
+  .node_icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+
+    svg {
+      $size: 2.8rem;
+      width: $size;
+      height: $size;
+    }
+  }
+
+  .content {
+    flex-grow: 1;
+    background: var(--table-node-content-bg);
+    border-bottom: 2px solid var(--table-node-border-color);
+    border-left: 2px solid var(--table-node-border-color);
+    border-right: 2px solid var(--table-node-border-color);
+    border-radius: 0 0 0.25em 0.25em;
+    padding: 0.25em;
+    &.selected {
+      border-color: #e38e00;
+    }
+  }
+
+  .details_btn {
+    border-radius: 50%;
+    width: 1.25rem;
+    height: 1.25rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.2rem;
+
+    &.enable {
+      background-color: var(--primary-accent);
+      cursor: pointer;
+      color: #ffffff;
+    }
+
+    &.disable {
+      background-color: var(--btn-disable);
+      color: var(--btn-disable-text);
+      cursor: not-allowed;
+    }
+  }
 }
