@@ -1,7 +1,7 @@
 import { PropsWithChildren } from "react";
 import styles from "./styles.module.scss";
 
-const Tooltip = ({
+export const Tooltip = ({
   children,
   tooltipLabel,
 }: PropsWithChildren<{ tooltipLabel: string }>) => {
@@ -12,5 +12,3 @@ const Tooltip = ({
     </div>
   );
 };
-
-export default Tooltip;

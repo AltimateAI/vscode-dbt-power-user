@@ -21,7 +21,7 @@ import {
   layoutElementsOnCanvas,
   staticProcessColumnLineage,
 } from "./graph";
-import { Details, StaticLineageContext } from "./Lineage";
+import { Details, StaticLineageContext, setDarkMode } from "./Lineage";
 import { Modal, SidebarModal } from "./components/Modal";
 import { StaticTableDetails } from "./TableDetails";
 import { handleResponse } from "./service_utils";
@@ -202,6 +202,7 @@ export const StaticLineageContainer = () => {
   useEffect(() => {
     const setTheme = ({ theme }: { theme: string }) => {
       document.documentElement.setAttribute("data-theme", theme);
+      setDarkMode(theme === "dark");
       rerender();
     };
 

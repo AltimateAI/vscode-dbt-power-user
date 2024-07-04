@@ -370,10 +370,11 @@ export interface DBTProjectIntegration extends Disposable {
   getColumnsOfModel(modelName: string): Promise<DBColumn[]>;
   getCatalog(): Promise<Catalog>;
   getDebounceForRebuildManifest(): number;
-  getBulkSchema(
+  getBulkSchemaFromDB(
     nodes: DBTNode[],
     cancellationToken: CancellationToken,
   ): Promise<Record<string, DBColumn[]>>;
+  fetchSqlglotSchema(sql: string, dialect: string): Promise<string[]>;
   findPackageVersion(packageName: string): string | undefined;
   performDatapilotHealthcheck(
     args: HealthcheckArgs,

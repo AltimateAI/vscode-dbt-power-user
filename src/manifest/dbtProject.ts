@@ -712,8 +712,54 @@ export class DBTProject implements Disposable {
     return result.table.rows.flat();
   }
 
+  async getBulkSchemaFromDB(
+    req: DBTNode[],
+    cancellationToken: CancellationToken,
+  ) {
+    return this.dbtProjectIntegration.getBulkSchemaFromDB(
+      req,
+      cancellationToken,
+    );
+  }
+
   async getBulkSchema(req: DBTNode[], cancellationToken: CancellationToken) {
-    return this.dbtProjectIntegration.getBulkSchema(req, cancellationToken);
+    const dbBulkFetchReq: DBTNode[] = [];
+    const dialect = this.getAdapterType();
+    const sqlglotSchemas: Record<string, DBColumn[]> = {};
+    for (const r of req) {
+      if (r.resource_type === DBTProject.RESOURCE_TYPE_MODEL) {
+        try {
+          const compiledSQL = await this.compileNode(r.name);
+          if (!compiledSQL) {
+            dbBulkFetchReq.push(r);
+            continue;
+          }
+          const columns = await this.dbtProjectIntegration.fetchSqlglotSchema(
+            compiledSQL,
+            dialect,
+          );
+          sqlglotSchemas[r.unique_id] = columns.map((c) => ({
+            column: c,
+            dtype: "string",
+          }));
+        } catch (e) {
+          this.terminal.warn(
+            "sqlglotSchemaFetchingFailed",
+            `Error while sqlglot schema fetching for ${r.unique_id}`,
+            true,
+            e,
+          );
+          dbBulkFetchReq.push(r);
+        }
+      } else {
+        dbBulkFetchReq.push(r);
+      }
+    }
+    const dbSchemas = await this.dbtProjectIntegration.getBulkSchemaFromDB(
+      dbBulkFetchReq,
+      cancellationToken,
+    );
+    return { ...sqlglotSchemas, ...dbSchemas };
   }
 
   async getCatalog(): Promise<Catalog> {
