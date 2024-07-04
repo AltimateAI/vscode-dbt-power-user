@@ -3,6 +3,7 @@ import {
   executeRequestInAsync,
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
+import useAppContext from "@modules/app/useAppContext";
 import { QueryBookmark } from "@modules/queryPanel/context/types";
 import useQueryPanelCommonActions from "@modules/queryPanel/useQueryPanelCommonActions";
 import { LoadingButton, Tooltip } from "@uicore";
@@ -12,7 +13,10 @@ const DeleteBookmarkButton = ({
   bookmark,
 }: {
   bookmark: QueryBookmark;
-}): JSX.Element => {
+}): JSX.Element | null => {
+  const {
+    state: { currentUser },
+  } = useAppContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { refetchBookmarks } = useQueryPanelCommonActions();
 
@@ -51,6 +55,10 @@ const DeleteBookmarkButton = ({
     }
     setIsSubmitting(false);
   };
+
+  if (currentUser?.id !== bookmark.created_by_user.id) {
+    return null;
+  }
 
   return (
     <Tooltip title="Delete this bookmark">

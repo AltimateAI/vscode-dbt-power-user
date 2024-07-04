@@ -64,7 +64,7 @@ const BookmarkAccordion = ({
     if (queryBookmarks[privacy]) {
       return;
     }
-    void getBookmarks(false);
+    void getBookmarks(true);
   }, [queryBookmarks[privacy]]);
 
   const onFiltersChange = (data: { tags?: string[]; searchQuery?: string }) => {

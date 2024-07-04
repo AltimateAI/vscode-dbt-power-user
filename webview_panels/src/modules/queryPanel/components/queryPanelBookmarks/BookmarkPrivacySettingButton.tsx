@@ -98,8 +98,8 @@ const BookmarkPrivacySettingButton = ({
           style={{
             color:
               bookmark.privacy === "public"
-                ? "inherit"
-                : "var(--primary-color)",
+                ? "var(--primary-color)"
+                : "inherit",
           }}
         >
           <ShareIcon />
