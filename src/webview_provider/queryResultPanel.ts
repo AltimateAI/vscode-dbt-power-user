@@ -75,7 +75,6 @@ interface RenderError {
 interface InjectConfig {
   limit?: number;
   darkMode: boolean;
-  enableNewQueryPanel: boolean;
   aiEnabled: boolean;
 }
 
@@ -110,7 +109,6 @@ interface RecError {
 interface RecConfig {
   limit?: number;
   scale?: number;
-  enableNewQueryPanel?: boolean;
 }
 
 interface RecOpenUrl {
@@ -166,12 +164,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         (e) => {
           if (e.affectsConfiguration("dbt.enableQueryBookmarks")) {
             this.updateEnableBookmarksInContext();
-          }
-
-          if (
-            e.affectsConfiguration("dbt.enableQueryBookmarks") ||
-            e.affectsConfiguration("dbt.enableNewQueryPanel")
-          ) {
             if (this._panel) {
               this.renderWebviewView(this._panel.webview);
             }
@@ -180,25 +172,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         this,
         this._disposables,
       ),
-    );
-    window.onDidChangeActiveColorTheme(
-      (e) => {
-        if (this._panel) {
-          const enableNewQueryPanel = workspace
-            .getConfiguration("dbt")
-            .get<boolean>("enableNewQueryPanel", true);
-
-          if (!enableNewQueryPanel) {
-            this._panel.webview.html = getHtml(
-              this._panel.webview,
-              this.dbtProjectContainer.extensionUri,
-            );
-            this.transmitConfig();
-          }
-        }
-      },
-      null,
-      this._disposables,
     );
 
     this.updateEnableBookmarksInContext();
@@ -452,14 +425,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
                 .getConfiguration("dbt")
                 .update("queryScale", configMessage.scale);
             }
-            if ("enableNewQueryPanel" in configMessage) {
-              workspace
-                .getConfiguration("dbt")
-                .update(
-                  "enableNewQueryPanel",
-                  configMessage.enableNewQueryPanel,
-                );
-            }
             if ("perspectiveTheme" in configMessage) {
               workspace
                 .getConfiguration("dbt")
@@ -506,18 +471,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
 
   /** Renders webview content */
   protected renderWebviewView(webview: Webview) {
-    const enableNewQueryPanel = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("enableNewQueryPanel", true);
-
-    if (enableNewQueryPanel) {
-      this._panel!.webview.html = super.getHtml(
-        webview,
-        this.dbtProjectContainer.extensionUri,
-      );
-      return;
-    }
-    this._panel!.webview.html = getHtml(
+    this._panel!.webview.html = super.getHtml(
       webview,
       this.dbtProjectContainer.extensionUri,
     );
@@ -566,15 +520,11 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   /** Sends VSCode config data to webview */
   private transmitConfig() {
     const limit = workspace.getConfiguration("dbt").get<number>("queryLimit");
-    const enableNewQueryPanel = workspace
-      .getConfiguration("dbt")
-      .get<boolean>("enableNewQueryPanel", true);
     if (this._panel) {
       this._panel.webview.postMessage({
         command: OutboundCommand.InjectConfig,
         ...(<InjectConfig>{
           limit,
-          enableNewQueryPanel,
           darkMode: ![
             ColorThemeKind.Light,
             ColorThemeKind.HighContrastLight,
@@ -760,41 +710,4 @@ export class QueryResultPanel extends AltimateWebviewProvider {
       }
     }
   }
-}
-
-/** Gets webview HTML */
-function getHtml(webview: Webview, extensionUri: Uri) {
-  const indexPath = getUri(webview, extensionUri, [
-    "query_panel",
-    "index.html",
-  ]);
-  const resourceDir = getUri(webview, extensionUri, ["query_panel"]);
-  const theme = [
-    ColorThemeKind.Light,
-    ColorThemeKind.HighContrastLight,
-  ].includes(window.activeColorTheme.kind)
-    ? "light"
-    : "dark";
-  return readFileSync(indexPath.fsPath)
-    .toString()
-    .replace(/__ROOT__/g, resourceDir.toString())
-    .replace(/__THEME__/g, theme)
-    .replace(/__NONCE__/g, getNonce())
-    .replace(/__CSPSOURCE__/g, webview.cspSource);
-}
-
-/** Used to enforce a secure CSP */
-function getNonce() {
-  let text = "";
-  const possible =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  for (let i = 0; i < 32; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-  return text;
-}
-
-/** Utility method for generating webview Uris for resources */
-function getUri(webview: Webview, extensionUri: Uri, pathList: string[]) {
-  return webview.asWebviewUri(Uri.joinPath(extensionUri, ...pathList));
 }
