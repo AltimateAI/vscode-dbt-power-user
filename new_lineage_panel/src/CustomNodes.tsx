@@ -55,7 +55,7 @@ import {
   TableNodePill,
 } from "./components/Column";
 import CodeIcon from "./assets/icons/code.svg?react";
-import { Tooltip, ViewsTypeBadge } from "./components";
+import { CodeBlock, Tooltip, ViewsTypeBadge } from "./components";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -592,7 +592,7 @@ export const OpNode: FunctionComponent<NodeProps> = ({ data }) => {
   return (
     <div style={{ width: T_NODE_W, display: "flex", justifyContent: "center" }}>
       <BidirectionalHandles />
-      <Tooltip tooltipLabel={expression}>
+      <Tooltip tooltipLabel={<CodeBlock code={expression} />}>
         <div className="d-flex flex-column">
           <div
             className={classNames(
