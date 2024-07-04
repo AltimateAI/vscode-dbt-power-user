@@ -15,6 +15,7 @@ import Filters, { QueryFilters } from "../filters/Filters";
 import { ChevronRightIcon, NoHistoryIcon } from "@assets/icons";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import useQueryPanelCommonActions from "@modules/queryPanel/useQueryPanelCommonActions";
+import AutoCollapsingNotification from "@modules/AutoCollapsingNotification/AutoCollapsingNotification";
 
 const QueryPanelHistory = (): JSX.Element => {
   const [filters, setFilters] = useState<QueryFilters>({ tags: [] });
@@ -64,7 +65,15 @@ const QueryPanelHistory = (): JSX.Element => {
     <section className={styles.queryTwoCol}>
       <div className={`${styles.limitWidth} ${styles.queryHistoryList}`}>
         <header className="d-flex justify-content-between">
-          <h4>History</h4>
+          <h4 className="d-flex gap-2">
+            History
+            <span className="p4 font-weight-normal">
+              <AutoCollapsingNotification
+                delay={10000}
+                text="History is maintained solely for the duration of the current session and will be purged upon reloading or restarting VSCode."
+              />
+            </span>
+          </h4>
           <Filters
             tags={[]}
             onFiltersChange={onFiltersChange}
@@ -132,6 +141,7 @@ const QueryPanelHistory = (): JSX.Element => {
             code={activeHistory.rawSql}
             language="sql"
             fileName="Code"
+            showLineNumbers
           />
         </div>
       ) : null}

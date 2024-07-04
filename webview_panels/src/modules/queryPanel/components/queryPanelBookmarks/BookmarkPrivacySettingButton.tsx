@@ -72,16 +72,14 @@ const BookmarkPrivacySettingButton = ({
     return null;
   }
 
+  const shareText = bookmark.privacy === "private" ? "Share" : "Unshare";
+
   return (
     <PopoverWithButton
       ref={popoverRef}
       title={
         <Stack className="justify-content-between">
-          <span>
-            {bookmark.privacy === "private"
-              ? "Share Bookmark"
-              : "Unshare bookmark"}
-          </span>
+          <span>{`${shareText} Bookmark`}</span>
           <FormGroup switch>
             <Input
               onChange={(e) =>
@@ -95,7 +93,15 @@ const BookmarkPrivacySettingButton = ({
         </Stack>
       }
       button={
-        <IconButton title="Share this bookmark">
+        <IconButton
+          title={`${shareText} this bookmark`}
+          style={{
+            color:
+              bookmark.privacy === "public"
+                ? "inherit"
+                : "var(--primary-color)",
+          }}
+        >
           <ShareIcon />
         </IconButton>
       }
@@ -106,9 +112,7 @@ const BookmarkPrivacySettingButton = ({
     >
       {({ styles, close }) => (
         <div>
-          <div className="p3">
-            Public (shared only within your organization)
-          </div>
+          <div className="p3">Shared with all users in SaaS instance</div>
           <div className={styles.popoverActions}>
             <LoadingButton
               color="primary"
