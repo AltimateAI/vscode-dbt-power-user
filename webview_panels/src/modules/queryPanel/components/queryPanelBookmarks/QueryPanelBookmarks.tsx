@@ -83,7 +83,7 @@ const QueryPanelBookmarks = (): JSX.Element => {
             <CodeBlock
               code={activeBookmark.raw_sql}
               language="sql"
-              fileName="Raw sql"
+              fileName="Code"
             />
           ) : null}
         </div>

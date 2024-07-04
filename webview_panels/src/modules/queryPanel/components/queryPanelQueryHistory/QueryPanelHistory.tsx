@@ -112,7 +112,7 @@ const QueryPanelHistory = (): JSX.Element => {
           <div>
             <Stack className="justify-content-end mb-2">
               <Button color="primary" onClick={handleViewResultSet}>
-                View result set
+                Show results
               </Button>
             </Stack>
             <Stack>
@@ -131,7 +131,7 @@ const QueryPanelHistory = (): JSX.Element => {
           <CodeBlock
             code={activeHistory.rawSql}
             language="sql"
-            fileName="Raw sql"
+            fileName="Code"
           />
         </div>
       ) : null}

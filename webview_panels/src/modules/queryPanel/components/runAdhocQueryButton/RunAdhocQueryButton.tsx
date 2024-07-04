@@ -7,10 +7,11 @@ const RunAdhocQueryButton = (): JSX.Element => {
     executeRequestInAsync("runAdhocQuery", {});
   };
   return (
-    <Button outline onClick={handleClick} className="position-relative">
-      + New query
-      <NewFeatureIndicator featureKey="run-adhoc-query-button-clicked" />
-    </Button>
+    <NewFeatureIndicator featureKey="run-adhoc-query-button-clicked">
+      <Button outline onClick={handleClick}>
+        + New query
+      </Button>
+    </NewFeatureIndicator>
   );
 };
 

@@ -3,6 +3,7 @@ import { Nav, NavItem, NavLink } from "@uicore";
 import { QueryPanelTitleTabState } from "./types";
 import { useMemo } from "react";
 import { QueryPanelViewType } from "@modules/queryPanel/context/types";
+import NewFeatureIndicator from "@modules/newFeature/NewFeatureIndicator";
 
 const QueryPanelTitle = ({
   setTabState,
@@ -31,14 +32,16 @@ const QueryPanelTitle = ({
       queryBookmarksEnabled && viewType === QueryPanelViewType.DEFAULT ? (
         <>
           <NavItem>
-            <NavLink
-              active={QueryPanelTitleTabState.QueryHistory === tabState}
-              onClick={() =>
-                toggleTabState(QueryPanelTitleTabState.QueryHistory)
-              }
-            >
-              History
-            </NavLink>
+            <NewFeatureIndicator featureKey="query-results-history-clicked">
+              <NavLink
+                active={QueryPanelTitleTabState.QueryHistory === tabState}
+                onClick={() =>
+                  toggleTabState(QueryPanelTitleTabState.QueryHistory)
+                }
+              >
+                History
+              </NavLink>
+            </NewFeatureIndicator>
           </NavItem>
           <NavItem>
             <NavLink

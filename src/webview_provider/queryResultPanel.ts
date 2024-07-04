@@ -260,10 +260,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         );
         break;
       case "queryResultTab:render":
-        this.dbtProjectContainer.setToGlobalState(
-          "open-query-results-in-tab-clicked",
-          true,
-        );
         this.dbtTerminal.debug(
           "queryResultTab:render",
           "rendering query result tab",
@@ -380,10 +376,6 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             break;
           case InboundCommand.RunAdhocQuery:
             commands.executeCommand("dbtPowerUser.createPUSqlFile");
-            this.dbtProjectContainer.setToGlobalState(
-              "run-adhoc-query-button-clicked",
-              true,
-            );
             break;
           case InboundCommand.ExecuteQuery:
             await this.executeIncomingQuery(message);

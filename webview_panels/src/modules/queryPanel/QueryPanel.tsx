@@ -7,7 +7,6 @@ import QueryPanelTitle from "./components/QueryPanelContents/QueryPanelTitle";
 import QueryPanelContent from "./components/QueryPanelContents/QueryPanelContent";
 import { useEffect } from "react";
 import classes from "./querypanel.module.scss";
-import ShowOldUxButton from "./components/showOldUxButton/ShowOldUxButton";
 import { QueryPanelTitleTabState } from "./components/QueryPanelContents/types";
 import useQueryPanelState from "./useQueryPanelState";
 import { useQueryPanelDispatch } from "./QueryPanelProvider";
@@ -41,7 +40,6 @@ const QueryPanel = (): JSX.Element => {
           {viewType === QueryPanelViewType.DEFAULT && (
             <>
               <RunAdhocQueryButton />
-              <ShowOldUxButton />
               <ClearResultsButton />
               <ShowInTabButton />
             </>
