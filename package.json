@@ -81,11 +81,6 @@
             "description": "Enable Query history and bookmarks feature",
             "default": false
           },
-          "dbt.enableNewQueryPanel": {
-            "type": "boolean",
-            "description": "Enable the new query panel in dbt.",
-            "default": true
-          },
           "dbt.lineage.showSelectEdges": {
             "type": "boolean",
             "description": "Show select edges in lineage panel.",
