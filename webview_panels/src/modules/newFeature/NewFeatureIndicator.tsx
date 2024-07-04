@@ -1,4 +1,7 @@
-import { executeRequestInSync } from "@modules/app/requestExecutor";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
 import { Tooltip } from "@uicore";
 import { ReactNode, useEffect, useState } from "react";
 
@@ -20,8 +23,8 @@ const NewFeatureIndicator = ({
       });
   }, []);
 
-  const updateContext = async () => {
-    await executeRequestInSync("setContext", { key: featureKey, value: true });
+  const updateContext = () => {
+    executeRequestInAsync("setContext", { key: featureKey, value: true });
     setShow(false);
   };
 

@@ -13,6 +13,8 @@ import {
   Uri,
   Range,
   ProgressLocation,
+  TextEditorDecorationType,
+  DecorationRangeBehavior,
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { RunModelType } from "../domain";
@@ -549,21 +551,56 @@ export class VSCodeCommands implements Disposable {
           const uri = Uri.parse(
             `${project.projectRoot}/poweruser-${getFormattedDateTime()}.sql`,
           ).with({ scheme: "untitled" });
+          const annotationDecoration: TextEditorDecorationType =
+            window.createTextEditorDecorationType({
+              rangeBehavior: DecorationRangeBehavior.OpenOpen,
+            });
+
+          const contentText =
+            "Enter your query here and execute it just like any dbt model file. This file is unsaved, you can either save it to your project or save it as a bookmark for later usage or share it with your team members.";
+
+          const decorations = [
+            {
+              renderOptions: {
+                before: {
+                  color: "#666666",
+                  contentText,
+                  // hacking to add more css properties
+                  width: "90%;display: block;white-space: pre-line;",
+                },
+              },
+              range: new Range(2, 0, 2, 0),
+            },
+          ];
+
           workspace.openTextDocument(uri).then((doc) => {
             // set this to sql language so we can bind codelens and other features
             languages.setTextDocumentLanguage(doc, "sql");
             window.showTextDocument(doc).then((editor) => {
               editor.edit((editBuilder) => {
-                // Replace the entire content of the document
-                // You can adjust the range if you want to replace or insert at specific positions
                 const entireDocumentRange = new Range(
                   doc.positionAt(0),
                   doc.positionAt(doc.getText().length),
                 );
-                editBuilder.replace(
-                  entireDocumentRange,
-                  'SELECT * FROM {{ref("")}}',
-                );
+                editBuilder.replace(entireDocumentRange, "\n");
+
+                editor.setDecorations(annotationDecoration, decorations);
+                setTimeout(() => {
+                  commands.executeCommand("cursorMove", {
+                    to: "up",
+                    by: "line",
+                    value: 1,
+                  });
+                }, 0);
+                const disposable = workspace.onDidChangeTextDocument((e) => {
+                  const editor = window.activeTextEditor;
+                  if (editor && e.document === editor.document) {
+                    if (editor.document.getText().trim()) {
+                      editor.setDecorations(annotationDecoration, []);
+                      disposable.dispose();
+                    }
+                  }
+                });
               });
             });
           });
