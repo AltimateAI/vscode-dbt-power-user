@@ -76,6 +76,7 @@ export class NewLineagePanel implements LineagePanelView {
   // since lineage can be cancelled from 2 places: progress bar and panel actions
   private cancellationTokenSource: DerivedCancellationTokenSource | undefined;
   private cllProgressResolve: () => void = () => {};
+  private cache: Record<string, ModelNode> = {};
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -551,12 +552,25 @@ export class NewLineagePanel implements LineagePanelView {
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
     );
     let startTime = Date.now();
-    const { mappedNode, relationsWithoutColumns } =
+    const mappedNode: Record<string, ModelNode> = {};
+    const _modelsToFetch: string[] = [];
+    for (const key of modelsToFetch) {
+      if (key in this.cache) {
+        mappedNode[key] = this.cache[key];
+      } else {
+        _modelsToFetch.push(key);
+      }
+    }
+    const { mappedNode: _mappedNode, relationsWithoutColumns } =
       await project.getNodesWithDBColumns(
         event,
-        modelsToFetch,
+        _modelsToFetch,
         this.cancellationTokenSource!.token,
       );
+    for (const key of _modelsToFetch) {
+      this.cache[key] = _mappedNode[key];
+      mappedNode[key] = this.cache[key];
+    }
     const schemaFetchingTime = Date.now() - startTime;
 
     const selected_column = {
