@@ -447,6 +447,9 @@ export class VSCodeCommands implements Disposable {
           const dbtIntegrationMode = workspace
             .getConfiguration("dbt")
             .get<string>("dbtIntegration", "core");
+          const allowListFolders = workspace
+            .getConfiguration("dbt")
+            .get<string[]>("allowListFolders", []);
           this.dbtTerminal.logBlock([
             `Python Path=${this.pythonEnvironment.pythonPath}`,
             `VSCode version=${version}`,
@@ -456,6 +459,7 @@ export class VSCodeCommands implements Disposable {
             }`,
             `DBT integration mode=${dbtIntegrationMode}`,
             `First workspace path=${getFirstWorkspacePath()}`,
+            `AllowList Folders=${allowListFolders}`,
           ]);
           this.dbtTerminal.logNewLine();
 
