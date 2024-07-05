@@ -21,6 +21,11 @@ import {
   Source,
 } from "../webview_provider/docsEditPanel";
 import { QueryManifestService } from "./queryManifestService";
+import {
+  getTelemetryEventName,
+  TelemetryEventPriority,
+  TelemetryEvents,
+} from "../telemetry/events";
 
 interface GenerateDocsForColumnsProps {
   panel: WebviewView | WebviewPanel | undefined;
@@ -282,10 +287,15 @@ export class DocGenService {
 
     const chunks = this.chunk(columns, COLUMNS_PER_CHUNK);
 
-    this.telemetry.sendTelemetryEvent("altimateGenerateDocsForColumn", {
-      model: documentation?.name || "",
-      columns: columns.join(","),
-    });
+    this.telemetry.sendTelemetryEvent(
+      getTelemetryEventName(
+        TelemetryEvents["DocumentationEditor/GenerateColumnsDescription"],
+      ),
+      {
+        model: documentation?.name || "",
+        columns: columns.join(","),
+      },
+    );
 
     window.withProgress(
       {
@@ -389,6 +399,19 @@ export class DocGenService {
               "Could not generate documentation: " + (error as Error).message,
             ),
           );
+          this.telemetry.sendTelemetryError(
+            getTelemetryEventName(
+              TelemetryEvents["DocumentationEditor/GenerateColumnsDescription"],
+              "error",
+              TelemetryEventPriority.High,
+            ),
+            error,
+            {
+              model: documentation?.name || "",
+              columns: columns.join(","),
+            },
+          );
+
           this.telemetry.sendTelemetryError(
             "generateDocsForColumnError",
             error,
