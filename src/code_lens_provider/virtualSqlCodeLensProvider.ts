@@ -33,7 +33,7 @@ export class VirtualSqlCodeLensProvider implements CodeLensProvider {
     document: TextDocument,
     token: CancellationToken,
   ): CodeLens[] | Thenable<CodeLens[]> {
-    // Enable this code lens only for adhoc query files created using command: dbtPowerUser.createPUSqlFile
+    // Enable this code lens only for adhoc query files created using command: dbtPowerUser.createSqlFile
     if (document.uri.scheme !== "untitled" && document.languageId !== "sql") {
       return [];
     }

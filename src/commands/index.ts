@@ -539,7 +539,7 @@ export class VSCodeCommands implements Disposable {
           this.dbtTerminal.logLine(`Error=${e}`);
         }
       }),
-      commands.registerCommand("dbtPowerUser.createPUSqlFile", async () => {
+      commands.registerCommand("dbtPowerUser.createSqlFile", async () => {
         try {
           const project =
             await this.queryManifestService.getOrPickProjectFromWorkspace();
@@ -606,7 +606,7 @@ export class VSCodeCommands implements Disposable {
           });
         } catch (e) {
           const message = (e as Error).message;
-          this.dbtTerminal.error("createPUSqlFile", message, e, true);
+          this.dbtTerminal.error("createSqlFile", message, e, true);
           window.showErrorMessage(message);
         }
       }),

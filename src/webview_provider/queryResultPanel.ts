@@ -348,7 +348,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             );
             break;
           case InboundCommand.RunAdhocQuery:
-            commands.executeCommand("dbtPowerUser.createPUSqlFile");
+            commands.executeCommand("dbtPowerUser.createSqlFile");
             break;
           case InboundCommand.ExecuteQuery:
             await this.executeIncomingQuery(message);

@@ -647,7 +647,7 @@
     "menus": {
       "file/newFile": [
         {
-          "command": "dbtPowerUser.createPUSqlFile",
+          "command": "dbtPowerUser.createSqlFile",
           "when": "dbt.enableQueryBookmarks == true"
         }
       ],
