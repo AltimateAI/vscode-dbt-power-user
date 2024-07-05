@@ -170,7 +170,7 @@
           "dbt.conversationsPollingInterval": {
             "type": "integer",
             "description": "Polling interval to fetch latest conversations (in seconds)",
-            "default": 120,
+            "default": 900,
             "minimum": 30
           },
           "dbt.queryTemplate": {
