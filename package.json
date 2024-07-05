@@ -367,8 +367,8 @@
         "category": "dbt Power User"
       },
       {
-        "command": "dbtPowerUser.createPUSqlFile",
-        "title": "Create PowerUser Sql File"
+        "command": "dbtPowerUser.createSqlFile",
+        "title": "Create Power User SQL file"
       },
       {
         "command": "dbtPowerUser.replyToConversation",
