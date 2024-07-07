@@ -1,7 +1,9 @@
 import { Button } from "reactstrap";
 import styles from "./styles.module.scss";
 import { exportLineage } from "./service_utils";
+// import { saveLineage } from "./exporter";
 
+ // When the saveLineage is imported and used in the onClick this makes the lineage panel white and unusable
 function ExportLineage() {
   return (
     <div className="p-3 h-100 d-flex flex-column overflow-y">
@@ -13,6 +15,7 @@ function ExportLineage() {
           color="primary"
           onClick={() => {
             exportLineage();
+            // saveLineage("active-frame");
           }}
         >
           Download
@@ -20,7 +23,9 @@ function ExportLineage() {
       </div>
       <div className={styles.help_body}>
         <p>
-          Blah Blah
+          Placeholder text for the side panel.
+          This is to contain options related 
+          to download quality and location.
         </p>
         
 
