@@ -3,6 +3,7 @@ import "reactflow/dist/style.css";
 import { Alert, Button, Card, CardBody } from "reactstrap";
 import ResetIcon from "./assets/icons/reset.svg?react";
 import HelpIcon from "./assets/icons/help.svg?react";
+import DownloadIcon from "./assets/icons/download-button.svg?react";
 import FeedbackIcon from "./assets/icons/feedback.svg?react";
 import ExpandIcon from "./assets/icons/expand.svg?react";
 import ArrowLeftDoubleIcon from "./assets/icons/arrow-left-double.svg?react";
@@ -11,7 +12,7 @@ import ArrowLeftIcon from "./assets/icons/arrow-left.svg?react";
 import ArrowRightIcon from "./assets/icons/arrow-right.svg?react";
 import GearIcon from "./assets/icons/gear.svg?react";
 import styles from "./styles.module.scss";
-import { HELP_SIDEBAR, SETTINGS_SIDEBAR } from "./constants";
+import { HELP_SIDEBAR, SETTINGS_SIDEBAR, EXPORT_SIDEBAR } from "./constants";
 import { init, openURL, setLegacyLineageView, CLL, requestExecutor } from "./service_utils";
 import { LineageContext, MissingLineageMessage, aiEnabled } from "./Lineage";
 import { useReactFlow } from "reactflow";
@@ -350,6 +351,10 @@ export const ActionWidget = ({missingLineageMessage}: {missingLineageMessage?: M
       >
         <FeedbackIcon />
         <span>Feedback</span>
+      </ActionButton>
+      <ActionButton onClick={() => setSidebarScreen(EXPORT_SIDEBAR)}>
+        <DownloadIcon />
+        <span>Export Lineage</span>
       </ActionButton>
     </div>
   );

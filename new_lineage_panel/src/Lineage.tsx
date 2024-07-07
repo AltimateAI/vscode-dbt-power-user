@@ -40,12 +40,14 @@ import {
   COLUMNS_SIDEBAR,
   EXPOSURE_SIDEBAR,
   FEEDBACK_SIDEBAR,
+  EXPORT_SIDEBAR,
   HELP_SIDEBAR,
   SETTINGS_SIDEBAR,
 } from "./constants";
 import ExposureDetails from "./ExposureDetails";
 import { Feedback } from "./Feedback";
 import { Help } from "./Help";
+import { ExportLineage } from "./ExportLineage";
 import { Demo } from "./Demo";
 import {
   handleResponse,
@@ -481,6 +483,7 @@ export const Lineage = () => {
                 <Feedback close={() => setSidebarScreen("")} />
               )}
               {sidebarScreen === HELP_SIDEBAR && <Help />}
+              {sidebarScreen === EXPORT_SIDEBAR && <ExportLineage />}
               {sidebarScreen === SETTINGS_SIDEBAR && <Settings />}
             </SidebarModal>
             <Modal isOpen={showDemoModal} close={() => setShowDemoModal(false)}>
