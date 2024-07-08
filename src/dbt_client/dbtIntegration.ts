@@ -29,6 +29,7 @@ import {
   ValidateSqlParseErrorResponse,
 } from "../altimate";
 import { ProjectHealthcheck } from "./dbtCoreIntegration";
+import { NodeMetaData } from "../domain";
 
 interface DBTCommandExecution {
   command: (token?: CancellationToken) => Promise<void>;
@@ -374,6 +375,7 @@ export interface DBTProjectIntegration extends Disposable {
     nodes: DBTNode[],
     cancellationToken: CancellationToken,
   ): Promise<Record<string, DBColumn[]>>;
+  getBulkCompiledSQL(models: NodeMetaData[]): Promise<Record<string, string>>;
   fetchSqlglotSchema(sql: string, dialect: string): Promise<string[]>;
   findPackageVersion(packageName: string): string | undefined;
   performDatapilotHealthcheck(

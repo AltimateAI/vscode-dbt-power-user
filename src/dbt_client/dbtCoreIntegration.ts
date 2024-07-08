@@ -53,6 +53,7 @@ import { ManifestPathType } from "../constants";
 import { DBTTerminal } from "./dbtTerminal";
 import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
+import { NodeMetaData } from "../domain";
 
 const DEFAULT_QUERY_TEMPLATE = "select * from ({query}) as query limit {limit}";
 
@@ -885,6 +886,15 @@ export class DBTCoreProjectIntegration
       (python) =>
         python!`to_dict(project.get_columns_in_relation(project.create_relation(${database}, ${schema}, ${objectName})))`,
     );
+  }
+
+  async getBulkCompiledSQL(models: NodeMetaData[]) {
+    const result: Record<string, string> = {};
+    for (const m of models) {
+      const compiledSQL = await this.unsafeCompileNode(m.uniqueId);
+      result[m.uniqueId] = compiledSQL;
+    }
+    return result;
   }
 
   async getBulkSchemaFromDB(

@@ -40,6 +40,7 @@ import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
 import { ProjectHealthcheck } from "./dbtCoreIntegration";
 import semver = require("semver");
+import { NodeMetaData } from "../domain";
 
 function getDBTPath(
   pythonEnvironment: PythonEnvironment,
@@ -711,6 +712,53 @@ export class DBTCloudProjectIntegration
     return this.python?.lock<string[]>(
       (python) => python!`to_dict(fetch_schema_from_sql(${sql}, ${dialect}))`,
     );
+  }
+
+  async getBulkCompiledSQL(models: NodeMetaData[]) {
+    const queries: string[] = [];
+    for (const node of models) {
+      if (!node.path) {
+        continue;
+      }
+      const fileContentBytes = await workspace.fs.readFile(Uri.file(node.path));
+      const query = fileContentBytes.toString();
+      const tag = `<--- ${node.uniqueId} --->`;
+      queries.push(`${tag} ${query} ${tag}`);
+    }
+    const inlineQuery = queries.join(";");
+    console.log(inlineQuery);
+    const compileQueryCommand = this.dbtCloudCommand(
+      new DBTCommand("Getting catalog...", [
+        "compile",
+        "--inline",
+        inlineQuery.trim().split("\n").join(""),
+        "--output",
+        "json",
+        "--log-format",
+        "json",
+      ]),
+    );
+    const { stdout, stderr } = await compileQueryCommand.execute(
+      new CancellationTokenSource().token,
+    );
+    const compiledLine = stdout
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line.trim()))
+      .filter((line) => line.data.hasOwnProperty("compiled"));
+    const exception = this.processJSONErrors(stderr);
+    if (exception) {
+      throw exception;
+    }
+    const compiledQueries = compiledLine[0].data.compiled;
+    const regex = /<---\s([\w.]+)\s--->\s(.*?)\s<---\s\1\s--->/g;
+    const matches = compiledQueries.matchAll(regex);
+
+    const result: Record<string, string> = {};
+    for (const match of matches) {
+      result[match[1]] = match[2];
+    }
+    return result;
   }
 
   async getBulkSchemaFromDB(

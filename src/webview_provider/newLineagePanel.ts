@@ -564,32 +564,39 @@ export class NewLineagePanel implements LineagePanelView {
       column: selectedColumn.name,
     };
 
-    const addToModelInfo = async (key: string) => {
-      const node = mappedNode[key];
-      if (!node) {
-        return;
-      }
+    if (this.cancellationTokenSource?.token.isCancellationRequested) {
+      return { column_lineage: [] };
+    }
 
-      if (!sqlTables.includes(key)) {
-        modelInfos.push({ model_node: node });
-        return;
-      }
-
-      const nodeType = key.split(".")[0];
-      if (!canCompileSQL(nodeType)) {
-        modelInfos.push({ model_node: node });
-        return;
-      }
-      const compiledSql = await project.unsafeCompileNode(node.name);
-      modelInfos.push({ compiled_sql: compiledSql, model_node: node });
-    };
     startTime = Date.now();
     try {
-      for (const key of modelsToFetch) {
-        if (this.cancellationTokenSource?.token.isCancellationRequested) {
-          return { column_lineage: [] };
+      const modelsToCompile = modelsToFetch.filter((key) => {
+        if (!sqlTables.includes(key)) {
+          return false;
         }
-        await addToModelInfo(key);
+        const nodeType = key.split(".")[0];
+        if (!canCompileSQL(nodeType)) {
+          return false;
+        }
+        return true;
+      });
+      const compiledSqlMap = await project.getBulkCompiledSql(
+        event,
+        modelsToCompile,
+      );
+      for (const key of modelsToFetch) {
+        const node = mappedNode[key];
+        if (!node) {
+          continue;
+        }
+        if (modelsToCompile.includes(key)) {
+          modelInfos.push({
+            compiled_sql: compiledSqlMap[key],
+            model_node: node,
+          });
+        } else {
+          modelInfos.push({ model_node: node });
+        }
       }
     } catch (exc) {
       if (exc instanceof PythonException) {

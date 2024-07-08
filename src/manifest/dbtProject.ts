@@ -56,7 +56,7 @@ import { DBTCloudProjectIntegration } from "../dbt_client/dbtCloudIntegration";
 import { AltimateRequest, NoCredentialsError } from "../altimate";
 import { ValidationProvider } from "../validation_provider";
 import { ModelNode } from "../altimate";
-import { ColumnMetaData } from "../domain";
+import { ColumnMetaData, NodeMetaData } from "../domain";
 import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 import { SharedStateService } from "../services/sharedStateService";
 
@@ -1108,6 +1108,18 @@ select * from renamed
       `found ${packageName} version: ${version}`,
     );
     return version;
+  }
+
+  async getBulkCompiledSql(
+    event: ManifestCacheProjectAddedEvent,
+    models: string[],
+  ) {
+    const { nodeMetaMap } = event;
+    return this.dbtProjectIntegration.getBulkCompiledSQL(
+      models
+        .map((m) => nodeMetaMap.get(m.split(".")[2]))
+        .filter(Boolean) as NodeMetaData[],
+    );
   }
 
   async getNodesWithDBColumns(
