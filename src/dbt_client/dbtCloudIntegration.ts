@@ -731,7 +731,7 @@ export class DBTCloudProjectIntegration
       new DBTCommand("Getting catalog...", [
         "compile",
         "--inline",
-        inlineQuery.trim().split("\n").join(""),
+        inlineQuery.trim().split("\n").join(" "),
         "--output",
         "json",
         "--log-format",
@@ -756,7 +756,8 @@ export class DBTCloudProjectIntegration
 
     const result: Record<string, string> = {};
     for (const match of matches) {
-      result[match[1]] = match[2];
+      // remove comments
+      result[match[1]] = match[2].replace(/\/\*[\s\S]*?\*\//g, "");
     }
     return result;
   }
