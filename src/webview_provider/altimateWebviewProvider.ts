@@ -104,7 +104,7 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     syncRequestId,
     ...rest
   }: SendMessageProps) {
-    this._webview?.postMessage({
+    this._panel?.webview?.postMessage({
       command,
       args: {
         syncRequestId,
@@ -222,6 +222,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
 
     try {
       switch (command) {
+        case "setToWorkspaceState":
+          this.dbtProjectContainer.setToWorkspaceState(
+            params.key as string,
+            params.value,
+          );
+          break;
         case "openProblemsTab":
           commands.executeCommand("workbench.action.problems.focus");
 
@@ -385,6 +391,13 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
               syncRequestId,
             });
           }
+          break;
+        case "showErrorMessage":
+          const args = params as {
+            infoMessage: string;
+            items: any[];
+          };
+          window.showErrorMessage(args.infoMessage, ...args.items);
           break;
         case "showWarningMessage":
           this.handleWarningMessage(

@@ -76,10 +76,10 @@
             "description": "Enable dbt docs collaboration.",
             "default": true
           },
-          "dbt.enableNewQueryPanel": {
+          "dbt.enableQueryBookmarks": {
             "type": "boolean",
-            "description": "Enable the new query panel in dbt.",
-            "default": true
+            "description": "Enable Query history and bookmarks feature",
+            "default": false
           },
           "dbt.lineage.showSelectEdges": {
             "type": "boolean",
@@ -367,6 +367,10 @@
         "category": "dbt Power User"
       },
       {
+        "command": "dbtPowerUser.createSqlFile",
+        "title": "Create Power User SQL file"
+      },
+      {
         "command": "dbtPowerUser.replyToConversation",
         "title": "Reply",
         "enablement": "!commentIsEmpty",
@@ -641,6 +645,12 @@
       }
     ],
     "menus": {
+      "file/newFile": [
+        {
+          "command": "dbtPowerUser.createSqlFile",
+          "when": "dbt.enableQueryBookmarks == true"
+        }
+      ],
       "comments/commentThread/title": [
         {
           "command": "dbtPowerUser.viewInDocEditor",

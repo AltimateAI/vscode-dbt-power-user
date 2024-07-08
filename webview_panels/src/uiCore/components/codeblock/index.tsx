@@ -7,11 +7,13 @@ interface Props {
   code: string;
   language: Parameters<typeof CodeblockLib>["0"]["language"];
   fileName?: string;
+  showLineNumbers?: boolean;
 }
 const CodeBlockComponent = ({
   code,
   language,
   fileName,
+  showLineNumbers,
 }: Props): JSX.Element => {
   const {
     state: { theme },
@@ -20,7 +22,7 @@ const CodeBlockComponent = ({
   return (
     <div className={classes.codeblock}>
       <CodeblockLib
-        showLineNumbers={false}
+        showLineNumbers={showLineNumbers}
         code={code}
         fileName={fileName}
         theme={codeBlockTheme}

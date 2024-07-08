@@ -1,12 +1,17 @@
-import { executeRequestInSync } from "@modules/app/requestExecutor";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
 import { Tooltip } from "@uicore";
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 
 const NewFeatureIndicator = ({
   featureKey,
+  children,
 }: {
   featureKey: string;
-}): JSX.Element | null => {
+  children: ReactNode;
+}): JSX.Element => {
   const [show, setShow] = useState(false);
   useEffect(() => {
     executeRequestInSync("getFromContext", { key: featureKey })
@@ -18,13 +23,21 @@ const NewFeatureIndicator = ({
       });
   }, []);
 
-  if (!show) {
-    return null;
-  }
+  const updateContext = () => {
+    executeRequestInAsync("setContext", { key: featureKey, value: true });
+    setShow(false);
+  };
+
   return (
-    <Tooltip title="New feature">
-      <div className="new-feature" />
-    </Tooltip>
+    <span className="position-relative" onClick={updateContext}>
+      {children}
+
+      {show ? (
+        <Tooltip title="New feature">
+          <div className="new-feature" />
+        </Tooltip>
+      ) : null}
+    </span>
   );
 };
 
