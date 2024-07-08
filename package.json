@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.40.1",
+  "version": "0.41.4",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -170,7 +170,7 @@
           "dbt.conversationsPollingInterval": {
             "type": "integer",
             "description": "Polling interval to fetch latest conversations (in seconds)",
-            "default": 120,
+            "default": 900,
             "minimum": 30
           },
           "dbt.queryTemplate": {
@@ -617,6 +617,12 @@
       {
         "command": "dbtPowerUser.diagnostics",
         "title": "Collect diagnostics",
+        "category": "dbt Power User",
+        "icon": "$(debug-console)"
+      },
+      {
+        "command": "dbtPowerUser.sqlLineage",
+        "title": "SQL Visualizer (Beta)",
         "category": "dbt Power User",
         "icon": "$(debug-console)"
       }
@@ -1133,7 +1139,7 @@
   "devDependencies": {
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.6",
-    "@types/node": "^20.14.2",
+    "@types/node": "^20.14.9",
     "@types/vscode": "^1.81.0",
     "@types/which": "^3.0.4",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
@@ -1146,7 +1152,7 @@
     "eslint-config-prettier": "^8.9.0",
     "eslint-plugin-prettier": "^5.0.1",
     "file-loader": "^6.1.0",
-    "glob": "^10.4.1",
+    "glob": "^10.4.2",
     "husky": "^9.0.11",
     "lint-staged": "^15.2.5",
     "mocha": "^10.3.0",
@@ -1157,7 +1163,7 @@
     "terser-webpack-plugin": "^5.3.10",
     "ts-loader": "^9.4.4",
     "typescript": "^4.9.5",
-    "webpack": "^5.91.0",
+    "webpack": "^5.92.1",
     "webpack-cli": "^5.1.4"
   },
   "extensionDependencies": [
@@ -1179,7 +1185,7 @@
     "reflect-metadata": "^0.2.2",
     "semver": "^7.6.2",
     "which": "^4.0.0",
-    "yaml": "^2.4.3"
+    "yaml": "^2.4.5"
   },
   "lint-staged": {
     "**/webview_panels/**/*.{ts,tsx}": [

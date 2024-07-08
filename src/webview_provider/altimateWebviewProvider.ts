@@ -91,6 +91,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     );
   }
 
+  public isWebviewView(
+    panel: WebviewPanel | WebviewView,
+  ): panel is WebviewView {
+    return (<WebviewView>panel).show !== undefined;
+  }
+
   protected sendResponseToWebview({
     command,
     data,
@@ -326,6 +332,15 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             params.value,
           );
           break;
+        case "getFromContext":
+          this.sendResponseToWebview({
+            command: "response",
+            data: this.dbtProjectContainer.getFromGlobalState(
+              params.key as string,
+            ),
+            syncRequestId,
+          });
+          break;
         case "updateConfig":
           if (!this.isUpdateConfigProps(params)) {
             return;
@@ -397,6 +412,12 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
             false,
           );
 
+          break;
+        case "queryResultTab:render":
+          this.emitterService.fire({
+            command: "queryResultTab:render",
+            payload: params,
+          });
           break;
         default:
           break;

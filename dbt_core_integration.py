@@ -125,6 +125,18 @@ def validate_sql(
     except Exception as e:
         raise Exception(str(e))
 
+def fetch_schema_from_sql(sql: str, dialect: str):
+    try:
+        ALTIMATE_PACKAGE_PATH = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "altimate_packages"
+        )
+        with add_path(ALTIMATE_PACKAGE_PATH):
+            from altimate.fetch_schema import fetch_schema
+
+            return fetch_schema(sql, dialect)
+    except Exception as e:
+        raise Exception(str(e))
+
 
 def to_dict(obj):
     if isinstance(obj, agate.Table):
@@ -403,9 +415,14 @@ class DbtProject:
         self._sql_runner = None
         
     def create_parser(self) -> None:
+        all_projects = self.config.load_dependencies()
+        # filter out project with value LoomRunnableConfig class type as those projects are dependency projects
+        # https://github.com/AltimateAI/vscode-dbt-power-user/issues/1224
+        all_projects = {k: v for k, v in all_projects.items() if not v.__class__.__name__ == "LoomRunnableConfig"}
+        
         project_parser = ManifestLoader(
             self.config,
-            self.config.load_dependencies(),
+            all_projects,
             self.adapter.connections.set_query_header,
         )
         self.dbt = project_parser.load()
@@ -591,7 +608,7 @@ class DbtProject:
         if original_node is not None:
             if isinstance(original_node, str):
                 original_node = self.get_ref_node(original_node)
-            if original_node is not None and "materialized" in original_node.node_info.keys() and original_node.node_info["materialized"] == "incremental":
+            if original_node is not None and isinstance(original_node.node_info, dict) and "materialized" in original_node.node_info.keys() and original_node.node_info["materialized"] == "incremental":
                 sql_node.schema = original_node.schema
                 sql_node.database = original_node.database
                 sql_node.alias = original_node.alias

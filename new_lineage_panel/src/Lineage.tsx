@@ -25,6 +25,7 @@ import {
 import { Modal, PopoverContext, SidebarModal } from "./components/Modal";
 import { MoreTables, TMoreTables } from "./MoreTables";
 import {
+  bfsTraversal,
   calculateMinLevel,
   calculateNodeCount,
   expandTableLineage,
@@ -51,6 +52,7 @@ import {
   init,
   columnLineage,
   CllEvents,
+  CLL,
 } from "./service_utils";
 import { ActionWidget } from "./ActionWidget";
 import {
@@ -67,7 +69,6 @@ import { LineageLegend } from "./components";
 import { ViewsCodeModal } from "./Modals";
 
 export let aiEnabled = false;
-export let isDarkMode = false;
 
 const nodeTypes: NodeTypes = {
   table: TableNode,
@@ -97,6 +98,11 @@ type ViewsCodeModal = {
 const noop = () => {};
 
 export type SelectedColumn = { name: string; table: string };
+
+let _isDarkMode = false;
+
+export const getDarkMode = () => _isDarkMode;
+export const setDarkMode = (v: boolean) => (_isDarkMode = v);
 
 export const LineageContext = createContext<{
   selectedTable: string;
@@ -160,7 +166,37 @@ export const LineageContext = createContext<{
   setViewsCodeModal: noop,
 });
 
-function App() {
+export type Details = Record<
+  string,
+  {
+    columns: {
+      name: string;
+      datatype?: string;
+      expression?: string;
+    }[];
+    sql: string;
+    nodeType?: string;
+    nodeId?: string;
+    name: string;
+    type: string;
+  }
+>;
+
+export const StaticLineageContext = createContext<{
+  collectColumns: Record<string, CollectColumn[]>;
+  selectedColumn: { table: string; name: string } | undefined;
+  details: Details;
+  selectedTable: string;
+  setSelectedTable: Dispatch<SetStateAction<string>>;
+}>({
+  collectColumns: {},
+  selectedColumn: undefined,
+  details: {},
+  selectedTable: "",
+  setSelectedTable: noop,
+});
+
+export const Lineage = () => {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState("");
@@ -259,8 +295,8 @@ function App() {
     };
 
     const setTheme = ({ theme }: { theme: string }) => {
-      isDarkMode = theme === "dark";
       document.documentElement.setAttribute("data-theme", theme);
+      setDarkMode(theme === "dark");
       rerender();
     };
 
@@ -307,20 +343,61 @@ function App() {
   useEffect(() => {
     const _flow = flow.current;
     if (!_flow) return;
-    const _edges = _flow.getEdges();
-    if ((selectCheck && nonSelectCheck) || (!selectCheck && !nonSelectCheck)) {
-      for (const e of _edges) e.hidden = false;
+    const handleEdgeVisibilityChanges = async () => {
+      const _column = selectedColumn;
+      if (nonSelectCheck) {
+        // starting column lineage
+        const _bfsTraversal = (right: boolean) =>
+          bfsTraversal(
+            _flow.getNodes(),
+            _flow.getEdges(),
+            right,
+            [_column],
+            setConfidence,
+            setMoreTables,
+            setCollectColumns,
+            () => [_flow.getNodes(), _flow.getEdges()],
+            (ns, es) => {
+              _flow.setNodes(ns);
+              _flow.setEdges(es);
+            },
+            _column,
+            { direct: selectCheck, indirect: nonSelectCheck }
+          );
+        try {
+          CLL.start();
+          await Promise.all([_bfsTraversal(true), _bfsTraversal(false)]);
+        } catch (e) {
+          console.error(
+            "Error while performing cll for ",
+            _column.table,
+            _column.name,
+            ", error:",
+            e
+          );
+        } finally {
+          CLL.end();
+        }
+      }
+      const _edges = _flow.getEdges();
+      if (
+        (selectCheck && nonSelectCheck) ||
+        (!selectCheck && !nonSelectCheck)
+      ) {
+        for (const e of _edges) e.hidden = false;
+        _flow.setEdges(_edges);
+        return;
+      }
+      for (const e of _edges) {
+        e.hidden = false;
+        const _type = (e.data as { type: string })?.type;
+        if (!_type) continue;
+        if (_type === "direct") e.hidden = !selectCheck;
+        if (_type === "indirect") e.hidden = !nonSelectCheck;
+      }
       _flow.setEdges(_edges);
-      return;
-    }
-    for (const e of _edges) {
-      e.hidden = false;
-      const _type = (e.data as { type: string })?.type;
-      if (!_type) continue;
-      if (_type === "direct") e.hidden = !selectCheck;
-      if (_type === "indirect") e.hidden = !nonSelectCheck;
-    }
-    _flow.setEdges(_edges);
+    };
+    handleEdgeVisibilityChanges();
   }, [selectCheck, nonSelectCheck]);
 
   return (
@@ -415,6 +492,4 @@ function App() {
       </PopoverContext.Provider>
     </LineageContext.Provider>
   );
-}
-
-export default App;
+};

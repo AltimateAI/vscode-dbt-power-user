@@ -4,16 +4,19 @@
   align-items: center;
 }
 
-.tooltip_container:hover .tooltip_text {
+.tooltip_container:hover .tooltip {
   display: block;
 }
 
-.tooltip_text {
+.tooltip {
   display: none;
   position: absolute;
   bottom: 125%;
   left: 50%;
   transform: translateX(-50%);
+}
+
+.tooltip_text {
   padding: 8px;
   color: #ffffff;
   border-radius: 4px;
@@ -90,7 +93,7 @@
   div {
     height: 2px;
     width: 12px;
-    border-top: solid 2px #E38E00;
+    border-top: solid 2px #e38e00;
   }
 }
 
@@ -100,6 +103,26 @@
   div {
     height: 2px;
     width: 12px;
-    border-top: dashed 2px #E38E00;
+    border-top: dashed 1px #e38e00;
   }
+}
+
+.modal_views_code_container {
+  background-color: var(--card-bg);
+  border-radius: 6px;
+}
+
+.code_editor_container {
+  background-color: var(--code-bg) !important;
+  margin: 0 !important;
+  padding: 0.25rem !important;
+  flex-grow: 1;
+  border-radius: 6px;
+}
+
+.code_editor {
+  background-color: var(--code-bg) !important;
+  padding: 0.5rem;
+  width: 100%;
+  line-height: 2 !important;
 }

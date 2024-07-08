@@ -11,7 +11,6 @@ import {
   WebviewView,
   WebviewViewProvider,
   WebviewViewResolveContext,
-  env,
   window,
   workspace,
 } from "vscode";
@@ -22,8 +21,11 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import {
   getColumnNameByCase,
+  getColumnTestConfigFromYml,
+  isAcceptedValues,
   isColumnNameEqual,
   isQuotedIdentifier,
+  isRelationship,
   provideSingleton,
 } from "../utils";
 import path = require("path");
@@ -238,18 +240,6 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     await this.resolveWebviewView(this.panel!, this.context!, this.token!);
   };
 
-  private isRelationship(
-    metadata: TestMetadataRelationships | TestMetadataAcceptedValues,
-  ): metadata is TestMetadataRelationships {
-    return (metadata as TestMetadataRelationships).field !== undefined;
-  }
-
-  private isAcceptedValues(
-    metadata: TestMetadataRelationships | TestMetadataAcceptedValues,
-  ): metadata is TestMetadataAcceptedValues {
-    return (metadata as TestMetadataAcceptedValues).values !== undefined;
-  }
-
   private getTestDataByModel(message: any, modelName: string) {
     const tests = message.updatedTests as undefined | TestMetaData[];
 
@@ -344,21 +334,19 @@ export class DocsEditViewPanel implements WebviewViewProvider {
         return null;
       }
       const { name, namespace, kwargs } = test.test_metadata;
-      const fullName: string = namespace ? `${namespace}.${name}` : name;
-      const existingConfig = existingColumn?.tests?.find((t: any) => {
-        if (typeof t === "string") {
-          return t === fullName;
-        }
-        const [key] = Object.keys(t);
-        return key === fullName;
-      });
+      const testFullName: string = namespace ? `${namespace}.${name}` : name;
 
+      const columnTestConfigFromYml = getColumnTestConfigFromYml(
+        existingColumn.tests,
+        kwargs,
+        testFullName,
+      );
       // If relationships test, set field and to
-      if (this.isRelationship(kwargs)) {
+      if (isRelationship(kwargs)) {
         const { to, field } = kwargs;
         return {
           relationships: {
-            ...existingConfig?.["relationships"],
+            ...columnTestConfigFromYml,
             field,
             to,
           },
@@ -366,25 +354,22 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       }
 
       // set values if test is accepted_values
-      if (this.isAcceptedValues(kwargs)) {
+      if (isAcceptedValues(kwargs)) {
         return {
           accepted_values: {
-            ...existingConfig?.["accepted_values"],
+            ...columnTestConfigFromYml,
             values: kwargs.values,
           },
         };
       }
 
-      if (existingConfig?.[fullName]) {
-        return {
-          [fullName]: existingConfig?.[fullName],
-        };
+      if (columnTestConfigFromYml) {
+        return columnTestConfigFromYml;
       }
 
       // Add extra config from external packages or test macros
-      // Add extra config from external packages or test macros
-      const testMetaKwargs = this.getTestMetadataKwArgs(kwargs, fullName);
-      return testMetaKwargs || fullName;
+      const testMetaKwargs = this.getTestMetadataKwArgs(kwargs, testFullName);
+      return testMetaKwargs || testFullName;
     });
 
     this.terminal.debug(
@@ -459,9 +444,8 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       return columns;
     }
 
-    const existingColumnNames = (model.columns as { name: string }[])?.map(
-      (c) => c.name,
-    );
+    const existingColumnNames =
+      (model.columns as { name: string }[])?.map((c) => c.name) || [];
 
     return this.modifyColumnNames(columns, existingColumnNames);
   }

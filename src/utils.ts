@@ -11,6 +11,10 @@ import {
 } from "vscode";
 import { readFileSync } from "fs";
 import { parse } from "yaml";
+import {
+  TestMetadataAcceptedValues,
+  TestMetadataRelationships,
+} from "./domain";
 
 export const isEnclosedWithinCodeBlock = (
   document: TextDocument,
@@ -256,3 +260,84 @@ export const getExternalProjectNamesFromDbtLoomConfig = (
   }
   return null;
 };
+
+export const isRelationship = (
+  metadata: TestMetadataRelationships | TestMetadataAcceptedValues,
+): metadata is TestMetadataRelationships => {
+  return (metadata as TestMetadataRelationships).field !== undefined;
+};
+
+export const isAcceptedValues = (
+  metadata: TestMetadataRelationships | TestMetadataAcceptedValues,
+): metadata is TestMetadataAcceptedValues => {
+  return (metadata as TestMetadataAcceptedValues).values !== undefined;
+};
+
+export const getColumnTestConfigFromYml = (
+  allTests: any[] | undefined,
+  kwargs: TestMetadataAcceptedValues | TestMetadataRelationships,
+  testName: string,
+) => {
+  const testsByTestName = allTests?.filter((t: any) => {
+    if (typeof t === "string") {
+      return t === testName;
+    }
+    const [key] = Object.keys(t);
+    return key === testName;
+  });
+
+  const testWithRightConfigValues = testsByTestName?.find((t: any) => {
+    if (typeof t === "string") {
+      return t === testName;
+    }
+
+    if (isRelationship(kwargs)) {
+      return (
+        kwargs.field === t.relationships.field &&
+        kwargs.to === t.relationships.to
+      );
+    }
+
+    if (isAcceptedValues(kwargs)) {
+      return (
+        kwargs.values?.sort().toString() ===
+        t.accepted_values.values.sort().toString()
+      );
+    }
+
+    return true;
+  });
+
+  if (isRelationship(kwargs)) {
+    return (
+      testWithRightConfigValues as
+        | { relationships: TestMetadataAcceptedValues }
+        | undefined
+    )?.["relationships"];
+  }
+
+  if (isAcceptedValues(kwargs)) {
+    return (
+      testWithRightConfigValues as
+        | { accepted_values: TestMetadataAcceptedValues }
+        | undefined
+    )?.["accepted_values"];
+  }
+
+  if (testWithRightConfigValues?.[testName]) {
+    return {
+      [testName]: testWithRightConfigValues?.[testName],
+    };
+  }
+};
+
+export function getFormattedDateTime(): string {
+  const now = new Date();
+
+  const date = now.toLocaleDateString("en-GB").replace(/\//g, "-");
+  const time = now
+    .toLocaleTimeString("en-GB", { hour12: false })
+    .replace(/:/g, "-");
+
+  return `${date}__${time}`;
+}

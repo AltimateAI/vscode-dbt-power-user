@@ -47,28 +47,44 @@ export type ModelNode = {
 };
 
 export interface DBTColumnLineageRequest {
-  targets: { uniqueId: string; column_name: string }[];
   model_dialect: string;
-  model_info: {
-    model_node: ModelNode;
-    compiled_sql?: string;
-  }[];
-  schemas?: Schemas | null;
+  targets: { uniqueId: string; column_name: string }[];
+  model_info: { model_node: ModelNode; compiled_sql?: string }[];
   upstream_expansion: boolean;
-  selected_column: {
-    model_node?: ModelNode;
-    column: string;
-  };
-  parent_models: {
-    model_node: ModelNode;
-  }[];
+  upstream_models: string[];
+  selected_column: { model_node?: ModelNode; column: string };
   session_id: string;
+  show_indirect_edges: boolean;
 }
 
 export interface DBTColumnLineageResponse {
   column_lineage: ColumnLineage[];
   confidence?: { confidence: string; message?: string };
+  errors?: string[];
 }
+
+interface SQLLineageRequest {
+  model_dialect: string;
+  model_info: { model_node: ModelNode }[];
+  compiled_sql: string;
+  session_id: string;
+}
+
+export type Details = Record<
+  string,
+  {
+    name: string;
+    type: string;
+    nodeType?: string;
+    nodeId?: string;
+    sql: string;
+    columns: { name: string; datatype?: string; expression?: string }[];
+  }
+>;
+type StaticLineageResponse = {
+  tableEdges: [string, string][];
+  details: Details;
+};
 
 interface SQLToModelRequest {
   sql: string;
@@ -684,7 +700,7 @@ export class AltimateRequest {
   }
 
   async getColumnLevelLineage(req: DBTColumnLineageRequest) {
-    return this.fetch<DBTColumnLineageResponse>("dbt/v3/lineage", {
+    return this.fetch<DBTColumnLineageResponse>("dbt/v4/lineage", {
       method: "POST",
       body: JSON.stringify(req),
     });
@@ -849,6 +865,13 @@ export class AltimateRequest {
     }>("dbt/dbt_docs_share/verify_upload/", {
       method: "POST",
       body: JSON.stringify({ share_id }),
+    });
+  }
+
+  async sqlLineage(req: SQLLineageRequest) {
+    return this.fetch<StaticLineageResponse>("dbt/v3/sql_lineage", {
+      method: "POST",
+      body: JSON.stringify(req),
     });
   }
 }

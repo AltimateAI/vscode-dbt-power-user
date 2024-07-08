@@ -282,6 +282,10 @@ export class NewLineagePanel
             showSelectEdges: config.get("showSelectEdges", true),
             showNonSelectEdges: config.get("showNonSelectEdges", true),
             defaultExpansion: config.get("defaultExpansion", 1),
+            useSchemaForQueryVisualizer: config.get(
+              "useSchemaForQueryVisualizer",
+              false,
+            ),
           },
         },
       });
@@ -532,12 +536,14 @@ export class NewLineagePanel
     upstreamExpansion,
     currAnd1HopTables,
     selectedColumn,
+    showIndirectEdges,
   }: {
     targets: [string, string][];
     upstreamExpansion: boolean;
     currAnd1HopTables: string[];
     // select_column is used for pricing not business logic
     selectedColumn: { name: string; table: string };
+    showIndirectEdges: boolean;
   }) {
     const event = this.queryManifestService.getEventByCurrentProject();
     if (!event?.event) {
@@ -549,36 +555,52 @@ export class NewLineagePanel
     }
 
     const modelInfos: { compiled_sql?: string; model_node: ModelNode }[] = [];
-    const parent_models: { model_node: ModelNode }[] = [];
-    let auxiliaryTables: string[] = [];
+    let upstream_models: string[] = [];
+    let auxiliaryTables: string[] = []; // these are used for better sqlglot parsing
+    let sqlTables: string[] = []; // these are used which models should be compiled sql
     currAnd1HopTables = Array.from(new Set(currAnd1HopTables));
+    const currTables = new Set(targets.map((t) => t[0]));
     if (upstreamExpansion) {
-      const currTables = new Set(targets.map((t) => t[0]));
       const hop1Tables = currAnd1HopTables.filter((t) => !currTables.has(t));
+      upstream_models = [...hop1Tables];
+      sqlTables = [...hop1Tables];
+      auxiliaryTables = DBTProject.getNonEphemeralParents(event, hop1Tables);
+    } else {
       auxiliaryTables = DBTProject.getNonEphemeralParents(
-        event.event,
-        hop1Tables,
+        event,
+        Array.from(currTables),
       );
+      sqlTables = Array.from(currTables);
     }
+    currAnd1HopTables = Array.from(new Set(currAnd1HopTables));
     const modelsToFetch = Array.from(
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
     );
+    let startTime = Date.now();
     const { mappedNode, relationsWithoutColumns } =
       await project.getNodesWithDBColumns(
         event.event,
         modelsToFetch,
         this.cancellationTokenSource!.token,
       );
+    const schemaFetchingTime = Date.now() - startTime;
 
     const selected_column = {
       model_node: mappedNode[selectedColumn.table],
       column: selectedColumn.name,
     };
-    const compileSql = async (key: string) => {
+
+    const addToModelInfo = async (key: string) => {
       const node = mappedNode[key];
       if (!node) {
         return;
       }
+
+      if (!sqlTables.includes(key)) {
+        modelInfos.push({ model_node: node });
+        return;
+      }
+
       const nodeType = key.split(".")[0];
       if (!canCompileSQL(nodeType)) {
         modelInfos.push({ model_node: node });
@@ -587,16 +609,13 @@ export class NewLineagePanel
       const compiledSql = await project.unsafeCompileNode(node.name);
       modelInfos.push({ compiled_sql: compiledSql, model_node: node });
     };
+    startTime = Date.now();
     try {
-      auxiliaryTables.forEach((key) => {
-        parent_models.push({ model_node: mappedNode[key] });
-      });
-
-      for (const key of currAnd1HopTables) {
+      for (const key of modelsToFetch) {
         if (this.cancellationTokenSource?.token.isCancellationRequested) {
           return { column_lineage: [] };
         }
-        await compileSql(key);
+        await addToModelInfo(key);
       }
     } catch (exc) {
       if (exc instanceof PythonException) {
@@ -631,6 +650,7 @@ export class NewLineagePanel
       );
       return;
     }
+    const sqlCompilingTime = Date.now() - startTime;
 
     if (relationsWithoutColumns.length !== 0) {
       window.showErrorMessage(
@@ -680,20 +700,43 @@ export class NewLineagePanel
         upstream_expansion: upstreamExpansion,
         targets: targets.map((t) => ({ uniqueId: t[0], column_name: t[1] })),
         selected_column: selected_column!,
-        parent_models,
+        upstream_models,
         session_id: sessionId,
+        show_indirect_edges: showIndirectEdges,
       };
       this.terminal.debug(
         "newLineagePanel:getConnectedColumns",
         "request",
         request,
       );
+      startTime = Date.now();
       const result = await this.altimate.getColumnLevelLineage(request);
+      const apiTime = Date.now() - startTime;
       this.terminal.debug(
         "newLineagePanel:getConnectedColumns",
         "response",
         result,
       );
+      this.telemetry.sendTelemetryEvent("columnLineageTimes", {
+        apiTime: apiTime.toString(),
+        sqlCompilingTime: sqlCompilingTime.toString(),
+        schemaFetchingTime: schemaFetchingTime.toString(),
+        modelInfosLength: modelInfos.length.toString(),
+      });
+      console.log("lineageTimings:", {
+        apiTime: apiTime.toString(),
+        sqlCompilingTime: sqlCompilingTime.toString(),
+        schemaFetchingTime: schemaFetchingTime.toString(),
+        modelInfosLength: modelInfos.length.toString(),
+      });
+      if (result.errors && result.errors.length > 0) {
+        window.showErrorMessage(
+          extendErrorWithSupportLinks(result.errors.join("\n")),
+        );
+        this.telemetry.sendTelemetryError("columnLineageApiError", {
+          errors: result.errors,
+        });
+      }
       const column_lineage =
         result.column_lineage.map((c) => ({
           source: [c.source.uniqueId, c.source.column_name],
@@ -975,7 +1018,8 @@ function getHtml(webview: Webview, extensionUri: Uri) {
     .replace(/\/__ROOT__/g, resourceDir)
     .replace(/__ROOT__/g, resourceDir)
     .replace(/__NONCE__/g, getNonce())
-    .replace(/__CSPSOURCE__/g, webview.cspSource);
+    .replace(/__CSPSOURCE__/g, webview.cspSource)
+    .replace(/__LINEAGE_TYPE__/g, "dynamic");
 }
 
 /** Used to enforce a secure CSP */
