@@ -593,10 +593,10 @@ export class VSCodeCommands implements Disposable {
                   });
                 }, 0);
                 const disposable = workspace.onDidChangeTextDocument((e) => {
-                  const editor = window.activeTextEditor;
-                  if (editor && e.document === editor.document) {
-                    if (editor.document.getText().trim()) {
-                      editor.setDecorations(annotationDecoration, []);
+                  const activeEditor = window.activeTextEditor;
+                  if (activeEditor && e.document === editor.document) {
+                    if (activeEditor.document.getText().trim()) {
+                      activeEditor.setDecorations(annotationDecoration, []);
                       disposable.dispose();
                     }
                   }
