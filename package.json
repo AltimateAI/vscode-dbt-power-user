@@ -1149,12 +1149,12 @@
   "devDependencies": {
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.6",
-    "@types/node": "^20.14.9",
+    "@types/node": "^20.14.10",
     "@types/vscode": "^1.81.0",
     "@types/which": "^3.0.4",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
-    "@vscode/test-electron": "^2.4.0",
+    "@vscode/test-electron": "^2.4.1",
     "concurrently": "^8.2.2",
     "copy-webpack-plugin": "^11.0.0",
     "cross-env": "^7.0.3",
@@ -1183,7 +1183,7 @@
   "dependencies": {
     "@vscode/codicons": "^0.0.36",
     "@vscode/extension-telemetry": "^0.9.6",
-    "@vscode/vsce": "^2.26.1",
+    "@vscode/vsce": "^2.27.0",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "dayjs": "^1.11.11",
     "inversify": "^6.0.2",
