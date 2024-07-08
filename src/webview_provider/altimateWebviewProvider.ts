@@ -431,6 +431,17 @@ export class AltimateWebviewProvider implements WebviewViewProvider {
     }
   }
 
+  protected async checkIfWebviewReady() {
+    return new Promise<void>((resolve) => {
+      const interval = setInterval(() => {
+        if (this.isWebviewReady) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 500);
+    });
+  }
+
   resolveWebviewView(
     panel: WebviewView,
     context: WebviewViewResolveContext<unknown>,

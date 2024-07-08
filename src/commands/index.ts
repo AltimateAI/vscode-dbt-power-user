@@ -551,7 +551,7 @@ export class VSCodeCommands implements Disposable {
                 ViewColumn.Two,
                 { retainContextWhenHidden: true, enableScripts: true },
               );
-              this.sqlLineagePanel.resolveWebviewView(panel, lineage);
+              this.sqlLineagePanel.renderSqlVisualizer(panel, lineage);
             } catch (e) {
               const errorMessage = (e as Error)?.message;
               this.dbtTerminal.error("sqlLineage", errorMessage, e, true);

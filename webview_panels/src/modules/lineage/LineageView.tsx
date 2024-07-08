@@ -3,7 +3,7 @@ import { ApiHelper, Lineage, CllEvents, CLL } from "@lib";
 import type { Table } from "@lib";
 import { Button } from "@uicore";
 import { useEffect, useState } from "react";
-import { MissingLineageMessage } from "./types";
+import { MissingLineageMessage, StaticLineageProps } from "./types";
 import ActionWidget from "./ActionWidget";
 import { Demo } from "./Demo";
 import useAppContext from "@modules/app/useAppContext";
@@ -18,10 +18,12 @@ const LineageView = (): JSX.Element | null => {
   } = useAppContext();
 
   const [isApiHelperInitialized, setIsApiHelperInitialized] = useState(false);
-  const [renderNode, setRenderNode] = useState<{
-    node?: Table;
-    aiEnabled: boolean;
-  }>({ aiEnabled: false });
+  const [renderNode, setRenderNode] = useState<
+    {
+      node?: Table;
+      aiEnabled: boolean;
+    } & Partial<StaticLineageProps>
+  >({ aiEnabled: false });
   const [missingLineageMessage, setMissingLineageMessage] = useState<
     MissingLineageMessage | undefined
   >();
@@ -61,11 +63,13 @@ const LineageView = (): JSX.Element | null => {
     setIsApiHelperInitialized(true);
   }, [isComponentsApiInitialized]);
 
-  const render = (data: {
-    node?: Table;
-    aiEnabled: boolean;
-    missingLineageMessage?: MissingLineageMessage;
-  }) => {
+  const render = (
+    data: {
+      node?: Table;
+      aiEnabled: boolean;
+      missingLineageMessage?: MissingLineageMessage;
+    } & StaticLineageProps,
+  ) => {
     setMissingLineageMessage(data.missingLineageMessage);
     setRenderNode(data);
   };
@@ -119,6 +123,8 @@ const LineageView = (): JSX.Element | null => {
     return null;
   }
 
+  const lineageType = renderNode.details ? "static" : "dynamic";
+
   return (
     <div className={styles.lineageView}>
       <ActionWidget
@@ -141,7 +147,16 @@ const LineageView = (): JSX.Element | null => {
         )}
       </div>
       <div className={styles.lineageWrap}>
-        <Lineage theme={theme} renderNode={renderNode} />
+        <Lineage
+          theme={theme}
+          renderNode={renderNode}
+          lineageType={lineageType}
+          staticLineage={
+            lineageType === "static"
+              ? (renderNode as StaticLineageProps)
+              : undefined
+          }
+        />
         <Modal isOpen={showDemoModal} close={() => setShowDemoModal(false)}>
           <Demo />
         </Modal>

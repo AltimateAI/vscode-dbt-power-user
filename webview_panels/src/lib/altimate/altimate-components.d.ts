@@ -37,12 +37,18 @@ export declare const CodeBlock: ({
   fileName,
   theme,
   showLineNumbers,
+  className,
 }: Props) => JSX.Element;
+
+export declare interface CollectColumn {
+  column: string;
+  viewsType?: ViewsTypes;
+}
 
 export declare interface Column {
   name: string;
   table: string;
-  datatype: string;
+  datatype?: string;
   can_lineage_expand: boolean;
   description: string;
 }
@@ -139,6 +145,22 @@ export declare interface DbtDocsShareDetails {
   share_id: number;
 }
 
+export declare type Details = Record<
+  string,
+  {
+    columns: {
+      name: string;
+      datatype?: string;
+      expression?: string;
+    }[];
+    sql: string;
+    nodeType?: string;
+    nodeId?: string;
+    name: string;
+    type: string;
+  }
+>;
+
 export declare interface ExposureMetaData {
   description?: string;
   depends_on: {
@@ -173,6 +195,8 @@ export declare const Lineage: (
 declare const LineageProvider: ({
   renderNode,
   theme,
+  lineageType,
+  staticLineage,
 }: LineageProviderProps) => JSX_2.Element;
 
 declare interface LineageProviderProps {
@@ -180,7 +204,9 @@ declare interface LineageProviderProps {
     node?: Table;
     aiEnabled: boolean;
   };
+  staticLineage?: StaticLineage;
   theme: "dark" | "light";
+  lineageType: "static" | "dynamic";
 }
 
 declare interface Props {
@@ -188,7 +214,8 @@ declare interface Props {
   language: "sql" | "yaml" | "markdown" | "json" | "javascript";
   fileName?: string;
   showLineNumbers?: boolean;
-  theme?: "vs" | "vsc-dark-plus" | "solarizedLight";
+  theme?: "vs" | "vsc-dark-plus" | "solarizedLight" | "tomorrow";
+  className?: string;
 }
 
 declare interface Props_2 {
@@ -225,10 +252,16 @@ export declare interface SelectedColumn {
   table: string;
 }
 
+declare interface StaticLineage {
+  tableEdges: [string, string][];
+  details: Details;
+  errorMessage?: undefined;
+}
+
 export declare interface Table {
   table: string;
   label: string;
-  url: string | undefined;
+  url?: string;
   nodeType: string;
   materialization?: string;
   downstreamCount: number;

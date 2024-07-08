@@ -564,10 +564,13 @@ export class NewLineagePanel
       const hop1Tables = currAnd1HopTables.filter((t) => !currTables.has(t));
       upstream_models = [...hop1Tables];
       sqlTables = [...hop1Tables];
-      auxiliaryTables = DBTProject.getNonEphemeralParents(event, hop1Tables);
+      auxiliaryTables = DBTProject.getNonEphemeralParents(
+        event.event,
+        hop1Tables,
+      );
     } else {
       auxiliaryTables = DBTProject.getNonEphemeralParents(
-        event,
+        event.event,
         Array.from(currTables),
       );
       sqlTables = Array.from(currTables);
