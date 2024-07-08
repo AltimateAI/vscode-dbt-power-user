@@ -1,57 +1,51 @@
 import { IncomingMessageProps } from "@modules/app/types";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useQueryPanelDispatch } from "./QueryPanelProvider";
 import {
   resetData,
   setCompiledCodeMarkup,
   setHintIndex,
-  setLastHintTimestamp,
   setLimit,
   setLoading,
   setPerspectiveTheme,
+  setQueryBookmarksEnabled,
   setQueryExecutionInfo,
+  setQueryHistory,
   setQueryResults,
   setQueryResultsError,
+  setViewType,
 } from "./context/queryPanelSlice";
 import useQueryPanelState from "./useQueryPanelState";
 import { panelLogger } from "@modules/logger";
+import { executeRequestInSync } from "@modules/app/requestExecutor";
+import { HINTS } from "./constants";
 import {
-  executeRequestInAsync,
-  executeRequestInSync,
-} from "@modules/app/requestExecutor";
-import { HINTS, HINT_VISIBILITY_DELAY } from "./constants";
-import { QueryPanelStateProps } from "./context/types";
+  QueryHistory,
+  QueryPanelStateProps,
+  QueryPanelViewType,
+} from "./context/types";
 
-const useQueryPanelListeners = (): { loading: boolean; isPanel: boolean } => {
+const useQueryPanelListeners = (): { loading: boolean } => {
   const dispatch = useQueryPanelDispatch();
-  const { loading, lastHintTimestamp, hintIndex } = useQueryPanelState();
-  const [isPanel, setIsPanel] = useState(true);
-  const lastHintTimestampRef = useRef(0);
+  const { loading, hintIndex } = useQueryPanelState();
   const hintInterval = useRef<NodeJS.Timeout>();
+  const hintIndexRef = useRef<number>(hintIndex);
   const queryExecutionTimer = useRef<NodeJS.Timeout>();
   const queryStart = useRef(Date.now());
 
   useEffect(() => {
-    lastHintTimestampRef.current = lastHintTimestamp;
-  }, [lastHintTimestamp]);
+    hintIndexRef.current = hintIndex;
+  }, [hintIndex]);
 
   const handleHintMessage = useCallback(() => {
-    const now = Date.now();
     dispatch(setHintIndex(-1));
-    if (lastHintTimestampRef.current + HINT_VISIBILITY_DELAY < now) {
-      dispatch(setLastHintTimestamp(now));
-      HINTS.sort(() => Math.random() - 0.5);
-      executeRequestInAsync("setContext", {
-        key: "lastHintTimestamp",
-        value: now,
-      });
-      dispatch(setHintIndex((hintIndex + 1) % HINTS.length));
+    HINTS.sort(() => Math.random() - 0.5);
+    dispatch(setHintIndex((hintIndexRef.current + 1) % HINTS.length));
 
-      hintInterval.current = setInterval(() => {
-        dispatch(setHintIndex((hintIndex + 1) % HINTS.length));
-      }, 3500);
-    }
-  }, [dispatch, lastHintTimestampRef.current]);
+    hintInterval.current = setInterval(() => {
+      dispatch(setHintIndex((hintIndexRef.current + 1) % HINTS.length));
+    }, 3500);
+  }, [dispatch, hintIndex]);
 
   const clearData = () => {
     dispatch(resetData());
@@ -112,6 +106,10 @@ const useQueryPanelListeners = (): { loading: boolean; isPanel: boolean } => {
     endQueryExecutionTimer();
   };
 
+  const handleIncomingQueryHistory = (args: QueryHistory[]) => {
+    dispatch(setQueryHistory(args));
+  };
+
   const onMesssage = useCallback(
     (event: MessageEvent<IncomingMessageProps>) => {
       panelLogger.info("query panel onMesssage", event.data);
@@ -127,17 +125,28 @@ const useQueryPanelListeners = (): { loading: boolean; isPanel: boolean } => {
           handleQueryResults(args);
           break;
         case "renderLoading":
-          panelLogger.info(lastHintTimestampRef.current);
           handleLoading();
           break;
+        case "queryHistory":
+          handleIncomingQueryHistory(args.args.body as QueryHistory[]);
+          break;
+        case "updateViewType":
+          dispatch(
+            setViewType(
+              (args.args.body as { type: QueryPanelViewType })
+                .type as QueryPanelViewType,
+            ),
+          );
+          break;
         case "getContext":
-          // @ts-expect-error valid type
-          dispatch(setLastHintTimestamp(args.lastHintTimestamp as number));
           // @ts-expect-error valid type
           dispatch(setLimit(args.limit as number));
           // @ts-expect-error valid type
           dispatch(setPerspectiveTheme(args.perspectiveTheme as string));
-
+          dispatch(
+            // @ts-expect-error valid type
+            setQueryBookmarksEnabled(args.queryBookmarksEnabled as boolean),
+          );
           break;
         default:
           break;
@@ -147,7 +156,9 @@ const useQueryPanelListeners = (): { loading: boolean; isPanel: boolean } => {
   );
 
   useEffect(() => {
-    executeRequestInAsync("getQueryPanelContext", {});
+    void executeRequestInSync("getQueryPanelContext", {});
+
+    void executeRequestInSync("getQueryHistory", {});
   }, []);
 
   useEffect(() => {
@@ -159,28 +170,25 @@ const useQueryPanelListeners = (): { loading: boolean; isPanel: boolean } => {
   }, [onMesssage]);
 
   useEffect(() => {
-    if (isPanel) {
-      void executeRequestInSync("getQueryTabData", {}).then((data) => {
-        if (data) {
-          const typedData = data as QueryPanelStateProps;
-          setIsPanel(false);
-          handleQueryResults({
-            rows: typedData?.queryResults?.data,
-            columnNames: typedData?.queryResults?.columnNames,
-            columnTypes: typedData?.queryResults?.columnTypes,
-            compiled_sql: typedData.compiledCodeMarkup,
-          });
-          dispatch(
-            setQueryExecutionInfo({
-              elapsedTime: typedData.queryExecutionInfo!.elapsedTime,
-            }),
-          );
-        }
-      });
-    }
+    void executeRequestInSync("getQueryTabData", {}).then((data) => {
+      if (data) {
+        const typedData = data as QueryPanelStateProps;
+        handleQueryResults({
+          rows: typedData?.queryResults?.data,
+          columnNames: typedData?.queryResults?.columnNames,
+          columnTypes: typedData?.queryResults?.columnTypes,
+          compiled_sql: typedData.compiledCodeMarkup,
+        });
+        dispatch(
+          setQueryExecutionInfo({
+            elapsedTime: typedData.queryExecutionInfo!.elapsedTime,
+          }),
+        );
+      }
+    });
   }, []);
 
-  return { loading, isPanel };
+  return { loading };
 };
 
 export default useQueryPanelListeners;
