@@ -308,6 +308,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   private getTestDataByColumn(
     message: any,
     columnNameFromWebview: string,
+    project: DBTProject,
     existingColumn?: any,
   ) {
     const tests = message.updatedTests as undefined | TestMetaData[];
@@ -383,9 +384,16 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     if (!data.length) {
       return;
     }
-    return {
-      tests: data,
-    };
+    const dbtVersion = project.getDBTVersion();
+    if (dbtVersion && dbtVersion[0] >= 1 && dbtVersion[1] >= 8) {
+      return {
+        data_tests: data,
+      };
+    } else {
+      return {
+        tests: data,
+      };
+    }
   }
 
   private modifyColumnNames = (
@@ -667,7 +675,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                           name,
                           description: column.description || undefined,
                           data_type: column.type?.toLowerCase(),
-                          ...this.getTestDataByColumn(message, column.name),
+                          ...this.getTestDataByColumn(
+                            message,
+                            column.name,
+                            project,
+                          ),
                           ...(isQuotedIdentifier(
                             column.name,
                             projectByFilePath.getAdapterType(),
@@ -706,6 +718,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                 ...this.getTestDataByColumn(
                                   message,
                                   column.name,
+                                  project,
                                   existingColumn,
                                 ),
                               };
@@ -721,6 +734,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                 ...this.getTestDataByColumn(
                                   message,
                                   column.name,
+                                  project,
                                 ),
                                 ...(isQuotedIdentifier(
                                   column.name,
