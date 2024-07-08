@@ -528,6 +528,8 @@ export class NewLineagePanel implements LineagePanelView {
     if (!project) {
       return;
     }
+    const sessionId = `${env.sessionId}-${selectedColumn.table}-${selectedColumn.name}`;
+    const getCacheKey = (k: string) => `${env.sessionId}-${k}`;
 
     const modelInfos: { compiled_sql?: string; model_node: ModelNode }[] = [];
     let upstream_models: string[] = [];
@@ -555,8 +557,8 @@ export class NewLineagePanel implements LineagePanelView {
     const mappedNode: Record<string, ModelNode> = {};
     const _modelsToFetch: string[] = [];
     for (const key of modelsToFetch) {
-      if (key in this.cache) {
-        mappedNode[key] = this.cache[key];
+      if (getCacheKey(key) in this.cache) {
+        mappedNode[key] = this.cache[getCacheKey(key)];
       } else {
         _modelsToFetch.push(key);
       }
@@ -568,8 +570,8 @@ export class NewLineagePanel implements LineagePanelView {
         this.cancellationTokenSource!.token,
       );
     for (const key of _modelsToFetch) {
-      this.cache[key] = _mappedNode[key];
-      mappedNode[key] = this.cache[key];
+      this.cache[getCacheKey(key)] = _mappedNode[key];
+      mappedNode[key] = this.cache[getCacheKey(key)];
     }
     const schemaFetchingTime = Date.now() - startTime;
 
@@ -681,7 +683,6 @@ export class NewLineagePanel implements LineagePanelView {
       if (this.cancellationTokenSource?.token.isCancellationRequested) {
         return { column_lineage: [] };
       }
-      const sessionId = `${env.sessionId}-${selectedColumn.table}-${selectedColumn.name}`;
       const request = {
         model_dialect: modelDialect,
         model_info: modelInfos,
