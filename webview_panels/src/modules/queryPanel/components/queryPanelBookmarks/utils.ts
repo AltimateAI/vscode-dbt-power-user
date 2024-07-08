@@ -6,14 +6,15 @@ import { QueryBookmarkResponse } from "@modules/queryPanel/context/types";
 export const loadBookmarks = async (
   setIsLoading: (loading: boolean) => void,
   privacy: "public" | "private",
-  filters: QueryFilters,
+  filters: Partial<QueryFilters>,
 ): Promise<
   { response: QueryBookmarkResponse; type: "public" | "private" } | undefined
 > => {
   setIsLoading(true);
   try {
+    panelLogger.info("[loadBookmarks] ", { filters, privacy });
     const response = await executeRequestInSync("fetch", {
-      endpoint: `query/bookmark?privacy=${privacy}&${filters.tags.map((t) => `tags_list=${t}`).join("&")}&search_query=${filters.searchQuery}`,
+      endpoint: `query/bookmark?privacy=${privacy}&${filters.tags?.map((t) => `tags_list=${t}`).join("&")}&search_query=${filters.searchQuery}`,
       fetchArgs: {
         method: "GET",
       },

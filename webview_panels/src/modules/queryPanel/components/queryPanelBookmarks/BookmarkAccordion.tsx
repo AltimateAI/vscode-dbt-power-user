@@ -26,7 +26,7 @@ const BookmarkAccordion = ({
   tags,
   bookmarks,
 }: Props): JSX.Element => {
-  const { viewType, queryBookmarks } = useQueryPanelState();
+  const { queryBookmarks } = useQueryPanelState();
   const dispatch = useQueryPanelDispatch();
   const [isLoading, setIsLoading] = useState(false);
   const [filters, setFilters] = useState<QueryFilters>({
@@ -43,8 +43,14 @@ const BookmarkAccordion = ({
     onFiltersChange({ tags: [], searchQuery: "" });
   };
 
-  const getBookmarks = async (showLoading: boolean) => {
-    panelLogger.info("[BookmarkAccordion] Loading bookmarks", { viewType });
+  const getBookmarks = async (
+    showLoading: boolean,
+    newFilters?: Partial<QueryFilters>,
+  ) => {
+    panelLogger.info("[BookmarkAccordion] Loading bookmarks", {
+      newFilters,
+      filters,
+    });
     const response = await loadBookmarks(
       (loading: boolean) => {
         if (showLoading) {
@@ -52,7 +58,7 @@ const BookmarkAccordion = ({
         }
       },
       privacy,
-      filters,
+      newFilters ?? filters,
     );
 
     if (response) {
@@ -70,7 +76,7 @@ const BookmarkAccordion = ({
   const onFiltersChange = (data: { tags?: string[]; searchQuery?: string }) => {
     setFilters((prev) => ({ ...prev, ...data }));
     setTimeout(() => {
-      void getBookmarks(true);
+      void getBookmarks(true, data);
     }, 10);
   };
 

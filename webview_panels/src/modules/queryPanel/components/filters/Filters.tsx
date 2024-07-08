@@ -3,6 +3,7 @@ import { IconButton, Input, OptionType, Select, Stack } from "@uicore";
 import { ChangeEvent, MouseEvent, useEffect, useState } from "react";
 import { ActionMeta } from "react-select";
 import { useDebounce } from "use-debounce";
+import styles from "../../querypanel.module.scss";
 
 export interface QueryFilters {
   tags: string[];
@@ -76,6 +77,7 @@ const Filters = ({
           onBlur={handleBlur}
           autoFocus
           style={{ marginBottom: 4.5, maxHeight: 38 }}
+          className={styles.searchInput}
         />
       ) : (
         <IconButton title="Search query" onClick={() => setShowSearch(true)}>
@@ -87,8 +89,8 @@ const Filters = ({
           closeMenuOnSelect={false}
           components={{ DropdownIndicator: null }}
           styles={{
-            container: (styles) => ({
-              ...styles,
+            container: (s) => ({
+              ...s,
               minWidth: 200,
               marginBottom: "1rem",
             }),
