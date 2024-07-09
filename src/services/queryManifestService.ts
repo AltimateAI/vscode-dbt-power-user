@@ -8,6 +8,7 @@ import {
 } from "../manifest/event/manifestCacheChangedEvent";
 import { provideSingleton } from "../utils";
 import { SharedStateService } from "./sharedStateService";
+import { ProjectQuickPick } from "../quickpick/projectQuickPick";
 
 @provideSingleton(QueryManifestService)
 export class QueryManifestService {
@@ -17,6 +18,7 @@ export class QueryManifestService {
     private dbtProjectContainer: DBTProjectContainer,
     private dbtTerminal: DBTTerminal,
     protected emitterService: SharedStateService,
+    private projectQuickPick: ProjectQuickPick,
   ) {
     dbtProjectContainer.onDBTProjectsInitialization(() => {
       this.emitterService.fire({
@@ -156,5 +158,47 @@ export class QueryManifestService {
       .map(([key]) => key);
 
     return items;
+  }
+
+  // get project based on current active editor
+  // if no editor, then ask user to pick project
+  public async getOrPickProjectFromWorkspace() {
+    const project = window.activeTextEditor
+      ? this.dbtProjectContainer.findDBTProject(
+          window.activeTextEditor.document.uri,
+        )
+      : null;
+    if (project) {
+      return project;
+    }
+    this.dbtTerminal.debug(
+      "getProject",
+      "no project name provided, getting all projects in workspace",
+    );
+    const projects = this.dbtProjectContainer.getProjects();
+    if (projects.length === 1) {
+      this.dbtTerminal.debug(
+        "getProject",
+        `single project in workspace, returning project: ${projects[0].getProjectName()}`,
+      );
+      return projects[0];
+    }
+
+    this.dbtTerminal.debug(
+      "getProject",
+      "multiple projects in workspace, prompting user to select project",
+    );
+
+    const pickedProject = await this.projectQuickPick.projectPicker(projects);
+    if (!pickedProject) {
+      this.dbtTerminal.debug("getProject", "no project selected, returning");
+      return;
+    }
+
+    this.dbtTerminal.debug(
+      "getProject",
+      `project selected: ${pickedProject.uri}`,
+    );
+    return this.dbtProjectContainer.findDBTProject(pickedProject.uri);
   }
 }
