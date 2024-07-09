@@ -146,21 +146,24 @@ export class SQLLineagePanel implements Disposable {
       throw new Error(`Unable to find model for model ${modelName}`);
     }
     let model_info: { model_node: ModelNode }[] = [];
+    const config = workspace.getConfiguration("dbt.lineage");
     const modelId = currNode.uniqueId;
     const modelsToFetch = DBTProject.getNonEphemeralParents(event, [modelId]);
-    const dbSchemaFetchingModels = await project.getDBSchemaFetchingModels(
-      event,
-      modelsToFetch,
-    );
-    if (dbSchemaFetchingModels.length > 0) {
+    let shouldFetchSchema = false;
+    if (currNode.path) {
+      const sql = (
+        await workspace.fs.readFile(Uri.file(currNode.path))
+      ).toString();
+      shouldFetchSchema = await project.validateWhetherSqlHasColumns(sql);
+    }
+
+    if (config.get("useSchemaForQueryVisualizer", false) || shouldFetchSchema) {
       const { mappedNode } = await project.getNodesWithDBColumns(
         event,
-        dbSchemaFetchingModels,
+        modelsToFetch,
         token,
       );
-      model_info = dbSchemaFetchingModels.map((n) => ({
-        model_node: mappedNode[n],
-      }));
+      model_info = modelsToFetch.map((n) => ({ model_node: mappedNode[n] }));
     }
     const hash = crypto.createHash("md5").update(compiledSQL).digest("hex");
     const sessionId = `${env.sessionId}-${hash}`;
