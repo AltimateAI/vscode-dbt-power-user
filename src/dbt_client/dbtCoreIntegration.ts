@@ -910,6 +910,16 @@ export class DBTCoreProjectIntegration
     return result;
   }
 
+  async validateWhetherSqlHasColumns(
+    sql: string,
+    dialect: string,
+  ): Promise<boolean> {
+    this.throwBridgeErrorIfAvailable();
+    return this.python?.lock<boolean>(
+      (python) => python!`to_dict(fetch_schema_from_sql(${sql}, ${dialect}))`,
+    );
+  }
+
   async fetchSqlglotSchema(sql: string, dialect: string): Promise<string[]> {
     this.throwBridgeErrorIfAvailable();
     return this.python?.lock<string[]>(

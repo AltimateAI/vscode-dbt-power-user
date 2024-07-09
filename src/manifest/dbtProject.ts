@@ -722,6 +722,50 @@ export class DBTProject implements Disposable {
     );
   }
 
+  async getDBSchemaFetchingModels(
+    event: ManifestCacheProjectAddedEvent,
+    modelsToFetch: string[],
+  ) {
+    const dialect = this.getAdapterType();
+    const { nodeMetaMap, sourceMetaMap } = event;
+    const fetchSchemaMap: Record<string, boolean> = {};
+    for (const key of modelsToFetch) {
+      const splits = key.split(".");
+      const resource_type = splits[0];
+      if (resource_type === DBTProject.RESOURCE_TYPE_MODEL) {
+        const node = nodeMetaMap.get(splits[2]);
+        if (!node) {
+          continue;
+        }
+        if (!node.path) {
+          fetchSchemaMap[key] = true;
+          continue;
+        }
+        try {
+          const sql = (
+            await workspace.fs.readFile(Uri.file(node.path))
+          ).toString();
+          fetchSchemaMap[key] =
+            await this.dbtProjectIntegration.validateWhetherSqlHasColumns(
+              sql,
+              dialect,
+            );
+        } catch (e) {
+          this.terminal.error(
+            "validateWhetherSqlHasColumnsError",
+            "Error while validating whether sql has columns",
+            e,
+            true,
+          );
+          fetchSchemaMap[key] = true;
+        }
+      } else if (DBTProject.isResourceHasDbColumns(resource_type)) {
+        fetchSchemaMap[key] = true;
+      }
+    }
+    return Object.keys(fetchSchemaMap).filter((k) => fetchSchemaMap[k]);
+  }
+
   async getBulkSchema(req: DBTNode[], cancellationToken: CancellationToken) {
     const dbBulkFetchReq: DBTNode[] = [];
     const dialect = this.getAdapterType();
@@ -1115,10 +1159,13 @@ select * from renamed
     modelsToFetch: string[],
     cancellationToken: CancellationToken,
   ) {
-    const { nodeMetaMap, sourceMetaMap } = event;
     const mappedNode: Record<string, ModelNode> = {};
-    const bulkSchemaRequest: DBTNode[] = [];
     const relationsWithoutColumns: string[] = [];
+    if (modelsToFetch.length === 0) {
+      return { mappedNode, relationsWithoutColumns };
+    }
+    const { nodeMetaMap, sourceMetaMap } = event;
+    const bulkSchemaRequest: DBTNode[] = [];
 
     for (const key of modelsToFetch) {
       const splits = key.split(".");
