@@ -20,7 +20,6 @@ export { default as EmptySquareIcon } from "./square.svg?react";
 export { default as CheckedSquareIcon } from "./checked-square.svg?react";
 export { default as TestsIcon } from "./tests.svg?react";
 export { default as FolderIcon } from "./folder.svg?react";
-export { default as PlayCircleIcon } from "./play-circle.svg?react";
 export { default as NoBookmarksIcon } from "./no-bookmarks.svg?react";
 export { default as NoHistoryIcon } from "./no-history.svg?react";
 import LoadingSpinnerUrl from "./spinner.gif";

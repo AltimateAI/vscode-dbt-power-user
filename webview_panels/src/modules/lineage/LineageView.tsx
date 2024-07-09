@@ -8,7 +8,10 @@ import ActionWidget from "./ActionWidget";
 import { Demo } from "./Demo";
 import useAppContext from "@modules/app/useAppContext";
 import { panelLogger } from "@modules/logger";
-import { executeRequestInSync } from "@modules/app/requestExecutor";
+import {
+  executeRequestInAsync,
+  executeRequestInSync,
+} from "@modules/app/requestExecutor";
 import styles from "./lineage.module.scss";
 import { Modal } from "./components/PageModal";
 
@@ -19,11 +22,12 @@ const LineageView = (): JSX.Element | null => {
 
   const [isApiHelperInitialized, setIsApiHelperInitialized] = useState(false);
   const [renderNode, setRenderNode] = useState<
-    {
-      node?: Table;
-      aiEnabled: boolean;
-    } & Partial<StaticLineageProps>
-  >({ aiEnabled: false });
+    | ({
+        node?: Table;
+        aiEnabled: boolean;
+      } & Partial<StaticLineageProps>)
+    | undefined
+  >();
   const [missingLineageMessage, setMissingLineageMessage] = useState<
     MissingLineageMessage | undefined
   >();
@@ -113,13 +117,14 @@ const LineageView = (): JSX.Element | null => {
 
     panelLogger.info("lineage:onload");
     document.documentElement.classList.add(styles.lineageBody);
+    executeRequestInAsync("init", {});
     // hide demo button after 10s
     setTimeout(() => {
       setShowDemoButton(false);
     }, 10000);
   }, []);
 
-  if (!isApiHelperInitialized) {
+  if (!isApiHelperInitialized || !renderNode) {
     return null;
   }
 

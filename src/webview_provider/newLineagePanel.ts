@@ -978,12 +978,13 @@ export class NewLineagePanel
     return { node, aiEnabled };
   }
 
-  protected renderWebviewView(webview: Webview) {
-    const enableLineagePanelV2 = workspace
+  private isV2Enabled = () =>
+    workspace
       .getConfiguration("dbt")
       .get<boolean>("enableLineagePanelV2", false);
 
-    if (enableLineagePanelV2) {
+  protected renderWebviewView(webview: Webview) {
+    if (this.isV2Enabled()) {
       this._panel!.webview.html = super.getHtml(
         webview,
         this.dbtProjectContainer.extensionUri,
