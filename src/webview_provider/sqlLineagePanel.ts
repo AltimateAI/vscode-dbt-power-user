@@ -154,7 +154,7 @@ export class SQLLineagePanel implements Disposable {
       const sql = (
         await workspace.fs.readFile(Uri.file(currNode.path))
       ).toString();
-      shouldFetchSchema = await project.validateWhetherSqlHasColumns(sql);
+      shouldFetchSchema = !(await project.validateWhetherSqlHasColumns(sql));
     }
 
     if (config.get("useSchemaForQueryVisualizer", false) || shouldFetchSchema) {

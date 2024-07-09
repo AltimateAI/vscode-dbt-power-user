@@ -712,7 +712,8 @@ export class DBTCloudProjectIntegration
   ): Promise<boolean> {
     this.throwBridgeErrorIfAvailable();
     return this.python?.lock<boolean>(
-      (python) => python!`to_dict(fetch_schema_from_sql(${sql}, ${dialect}))`,
+      (python) =>
+        python!`to_dict(validate_whether_sql_has_columns(${sql}, ${dialect}))`,
     );
   }
 
