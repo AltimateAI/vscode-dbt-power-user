@@ -9,7 +9,7 @@ const Modal = ({
   isOpen,
   children,
   close,
-}: PropsWithChildren<{ isOpen: boolean; close: () => void }>) => {
+}: PropsWithChildren<{ isOpen: boolean; close: () => void }>): JSX.Element => {
   useEffect(() => {
     elem.style.display = isOpen ? "block" : "none";
   }, [isOpen]);
