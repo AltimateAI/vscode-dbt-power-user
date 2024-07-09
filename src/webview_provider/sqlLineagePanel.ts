@@ -34,7 +34,7 @@ type SQLLineage = {
 
 @provideSingleton(SQLLineagePanel)
 export class SQLLineagePanel implements Disposable {
-  public static readonly viewType = "dbtPowerUser.SQLLineage";
+  public static readonly viewType = "dbtPowerUser.sqlLineage";
   private disposables: Disposable[] = [];
   private _panel?: WebviewPanel;
   private activeTextEditor?: TextEditor;

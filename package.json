@@ -626,7 +626,7 @@
       },
       {
         "command": "dbtPowerUser.sqlLineage",
-        "title": "SQL Visualizer (Beta)",
+        "title": "Visualize SQL",
         "category": "dbt Power User",
         "icon": "$(debug-console)"
       }
