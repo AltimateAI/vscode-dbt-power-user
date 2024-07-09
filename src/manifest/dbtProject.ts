@@ -1167,6 +1167,7 @@ select * from renamed
           alias: table.identifier,
           uniqueId: key,
           columns: table.columns,
+          path: table.path,
         };
         mappedNode[key] = node;
       } else if (DBTProject.isResourceNode(resource_type)) {
