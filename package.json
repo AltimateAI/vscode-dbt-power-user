@@ -701,6 +701,10 @@
         {
           "command": "dbtPowerUser.translateQuery",
           "group": "datapilot@4"
+        },
+        {
+          "command": "dbtPowerUser.sqlLineage",
+          "group": "datapilot@5"
         }
       ],
       "editor/title": [
