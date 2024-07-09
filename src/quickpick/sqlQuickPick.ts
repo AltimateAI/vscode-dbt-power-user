@@ -77,7 +77,7 @@ export class DbtSQLAction {
           ),
           new SQLActionItem(
             "Visualize SQL",
-            new ThemeIcon("preview"),
+            new ThemeIcon("eye"),
             "Visualize the sql query",
             "dbtPowerUser.sqlLineage",
           ),

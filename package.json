@@ -628,7 +628,7 @@
         "command": "dbtPowerUser.sqlLineage",
         "title": "Visualize SQL",
         "category": "dbt Power User",
-        "icon": "$(debug-console)"
+        "icon": "$(eye)"
       }
     ],
     "keybindings": [
