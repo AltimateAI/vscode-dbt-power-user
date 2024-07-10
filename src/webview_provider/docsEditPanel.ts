@@ -389,6 +389,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       dbtVersion &&
       dbtVersion[0] >= 1 &&
       dbtVersion[1] >= 8 &&
+      existingColumn &&
       existingColumn.name === columnNameFromWebview &&
       existingColumn.tests === undefined
     ) {
