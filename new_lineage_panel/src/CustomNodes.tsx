@@ -46,6 +46,7 @@ import SqlOrderByIcon from "./assets/icons/sql_order_by.svg?react";
 import SqlOuterJoinIcon from "./assets/icons/sql_outer_join.svg?react";
 import SqlRightJoinIcon from "./assets/icons/sql_right_join.svg?react";
 import SqlUnionIcon from "./assets/icons/sql_union.svg?react";
+import SqlSelectIcon from "./assets/icons/sql_select.svg?react";
 
 import ArrowRightDoubleIcon from "./assets/icons/arrow-right-double.svg?react";
 import { COLUMNS_SIDEBAR, EXPOSURE_SIDEBAR, TABLES_SIDEBAR } from "./constants";
@@ -585,6 +586,7 @@ const SQL_ICONS: Record<string, React.ReactNode> = {
   LIMIT: <SqlLimitIcon />,
   SORT: <SqlOrderByIcon />,
   UNION: <SqlUnionIcon />,
+  SELECT: <SqlSelectIcon />,
 };
 
 export const OpNode: FunctionComponent<NodeProps> = ({ data }) => {
