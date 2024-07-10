@@ -389,7 +389,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       if (
         existingColumn &&
         existingColumn.name === columnNameFromWebview &&
-        existingColumn?.tests === undefined
+        existingColumn.tests === undefined
       ) {
         return {
           data_tests: data,
