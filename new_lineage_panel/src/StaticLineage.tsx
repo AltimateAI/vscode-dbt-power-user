@@ -171,7 +171,7 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
         <ActionButton
           onClick={() => {
             openURL(
-              "https://docs.google.com/forms/d/10_YT2XDwpbkDXio-7TEYPQXsJfCBFqYUa7t0ImzyZvE/viewform"
+              "https://app.myaltimate.com/contactus"
             );
           }}
         >
