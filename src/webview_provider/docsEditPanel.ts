@@ -43,6 +43,7 @@ import {
   TestMetadataRelationships,
 } from "../domain";
 import { DbtTestService } from "../services/dbtTestService";
+import { gte } from "semver";
 
 export enum Source {
   YAML = "YAML",
@@ -387,16 +388,15 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     const dbtVersion = project.getDBTVersion();
     if (
       dbtVersion &&
-      dbtVersion[0] >= 1 &&
-      dbtVersion[1] >= 8 &&
-      existingColumn &&
-      existingColumn.name === columnNameFromWebview &&
-      existingColumn.tests === undefined
+      gte(dbtVersion.join("."), "1.8.0") && // Compare versions
+      existingColumn?.name === columnNameFromWebview &&
+      existingColumn?.tests === undefined
     ) {
       return {
         data_tests: data,
       };
     }
+
     return {
       tests: data,
     };
