@@ -199,6 +199,7 @@ export class DBTCommand {
     public logToTerminal: boolean = false,
     public executionStrategy?: DBTCommandExecutionStrategy,
     public token?: CancellationToken,
+    public downloadArtifacts: boolean = false,
   ) {}
 
   addArgument(arg: string) {

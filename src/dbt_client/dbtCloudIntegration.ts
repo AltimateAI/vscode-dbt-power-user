@@ -376,6 +376,7 @@ export class DBTCloudProjectIntegration
       );
       command.addArgument("--log-format");
       command.addArgument("json");
+      command.downloadArtifacts = true;
       this.rebuildManifestCancellationTokenSource =
         new CancellationTokenSource();
       command.setToken(this.rebuildManifestCancellationTokenSource.token);
@@ -538,7 +539,7 @@ export class DBTCloudProjectIntegration
       .join(".");
     const downloadArtifactsVersion = "0.37.20";
     if (semver.gte(currentVersion, downloadArtifactsVersion)) {
-      if (["parse"].includes(command.args[0])) {
+      if (command.downloadArtifacts) {
         command.addArgument("--download-artifacts");
       }
     }
@@ -715,49 +716,32 @@ export class DBTCloudProjectIntegration
   }
 
   async getBulkCompiledSQL(models: NodeMetaData[]) {
-    const queries: string[] = [];
-    for (const node of models) {
-      if (!node.path) {
-        continue;
-      }
-      const fileContentBytes = await workspace.fs.readFile(Uri.file(node.path));
-      const query = fileContentBytes.toString();
-      const tag = `<--- ${node.uniqueId} --->`;
-      queries.push(`${tag} ${query} ${tag}`);
-    }
-    const inlineQuery = queries.join(";");
-    console.log(inlineQuery);
     const compileQueryCommand = this.dbtCloudCommand(
       new DBTCommand("Getting catalog...", [
         "compile",
-        "--inline",
-        inlineQuery.trim().split("\n").join(" "),
-        "--output",
-        "json",
-        "--log-format",
-        "json",
+        "--download-artifacts",
+        "--model",
+        models.map((item) => item.name).join(" "),
       ]),
     );
-    const { stdout, stderr } = await compileQueryCommand.execute(
+    const { stderr } = await compileQueryCommand.execute(
       new CancellationTokenSource().token,
     );
-    const compiledLine = stdout
-      .trim()
-      .split("\n")
-      .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
     }
-    const compiledQueries = compiledLine[0].data.compiled;
-    const regex = /<---\s([\w.]+)\s--->\s(.*?)\s<---\s\1\s--->/g;
-    const matches = compiledQueries.matchAll(regex);
 
     const result: Record<string, string> = {};
-    for (const match of matches) {
-      // remove comments
-      result[match[1]] = match[2].replace(/\/\*[\s\S]*?\*\//g, "");
+    for (const node of models) {
+      if (!node.compiled_path) {
+        continue;
+      }
+      const fileContentBytes = await workspace.fs.readFile(
+        Uri.file(node.compiled_path),
+      );
+      const query = fileContentBytes.toString();
+      result[node.uniqueId] = query;
     }
     return result;
   }
