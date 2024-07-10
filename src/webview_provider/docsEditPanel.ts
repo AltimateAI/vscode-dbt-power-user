@@ -385,15 +385,16 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       return;
     }
     const dbtVersion = project.getDBTVersion();
-    if (dbtVersion && dbtVersion[0] >= 1 && dbtVersion[1] >= 8) {
-      if (
-        existingColumn.name === columnNameFromWebview &&
-        existingColumn.tests === undefined
-      ) {
-        return {
-          data_tests: data,
-        };
-      }
+    if (
+      dbtVersion &&
+      dbtVersion[0] >= 1 &&
+      dbtVersion[1] >= 8 &&
+      existingColumn.name === columnNameFromWebview &&
+      existingColumn.tests === undefined
+    ) {
+      return {
+        data_tests: data,
+      };
     }
     return {
       tests: data,
