@@ -24,7 +24,9 @@ import {
 import { Details, StaticLineageContext, setDarkMode } from "./Lineage";
 import { Modal, SidebarModal } from "./components/Modal";
 import { StaticTableDetails } from "./TableDetails";
-import { handleResponse } from "./service_utils";
+import { handleResponse, openURL } from "./service_utils";
+import { ActionButton } from "./ActionWidget";
+import FeedbackIcon from "./assets/icons/feedback.svg?react";
 
 const nodeTypes = {
   table: StaticTableNode,
@@ -165,6 +167,18 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
         setSelectedTable,
       }}
     >
+      <div className="top-right-container">
+        <ActionButton
+          onClick={() => {
+            openURL(
+              "https://docs.google.com/forms/d/10_YT2XDwpbkDXio-7TEYPQXsJfCBFqYUa7t0ImzyZvE/viewform"
+            );
+          }}
+        >
+          <FeedbackIcon />
+          <span>Feedback</span>
+        </ActionButton>
+      </div>
       <ReactFlowProvider>
         <div style={{ width: "100%", height: "100vh" }}>
           <ReactFlow

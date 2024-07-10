@@ -266,6 +266,13 @@ export class SQLLineagePanel implements Disposable {
     );
     const { command, args } = message;
     const { id, params } = args;
+    if (command === "openURL") {
+      if (!args.url) {
+        return;
+      }
+      env.openExternal(Uri.parse(args.url));
+      return;
+    }
     // common commands
     if (command === "openFile") {
       const { url } = args;
