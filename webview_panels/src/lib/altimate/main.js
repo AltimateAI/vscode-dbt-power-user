@@ -40,12 +40,12 @@ var Sn = /* @__PURE__ */ ((e) => (
     typeof globalThis < "u"
       ? globalThis
       : typeof window < "u"
-      ? window
-      : typeof global < "u"
-      ? global
-      : typeof self < "u"
-      ? self
-      : {};
+        ? window
+        : typeof global < "u"
+          ? global
+          : typeof self < "u"
+            ? self
+            : {};
 function $t(e) {
   return e && e.__esModule && Object.prototype.hasOwnProperty.call(e, "default")
     ? e.default
@@ -882,12 +882,12 @@ Check the top-level render call using <` +
                 h === null
                   ? (de = "null")
                   : qt(h)
-                  ? (de = "array")
-                  : h !== void 0 && h.$$typeof === t
-                  ? ((de = "<" + (G(h.type) || "Unknown") + " />"),
-                    (ne =
-                      " Did you accidentally export a JSX literal instead of a component?"))
-                  : (de = typeof h),
+                    ? (de = "array")
+                    : h !== void 0 && h.$$typeof === t
+                      ? ((de = "<" + (G(h.type) || "Unknown") + " />"),
+                        (ne =
+                          " Did you accidentally export a JSX literal instead of a component?"))
+                      : (de = typeof h),
                   _(
                     "React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: %s.%s",
                     de,
@@ -2560,10 +2560,10 @@ var Lr = { exports: {} };
                       R && L
                         ? u.SplitType.both
                         : R
-                        ? u.SplitType.head
-                        : L
-                        ? u.SplitType.tail
-                        : u.SplitType.none),
+                          ? u.SplitType.head
+                          : L
+                            ? u.SplitType.tail
+                            : u.SplitType.none),
                     H.setAttribute("data-" + d.DATASET_SPLIT_TYPE, x),
                     A.parentNode.replaceChild(G, A),
                     H
@@ -2751,8 +2751,8 @@ const pi = (e) => {
           ? void 0
           : o.querySelector("td:nth-child(3)")
         : (n = On()) == null
-        ? void 0
-        : n.firstChild
+          ? void 0
+          : n.firstChild
       : Tn();
   },
   vi = (e) => {
@@ -3098,8 +3098,8 @@ var Rn = {
       return e.finalized_ || !Ne(n)
         ? n
         : n === Zt(e.base_, t)
-        ? (Jt(e), (e.copy_[t] = gn(n, e)))
-        : n;
+          ? (Jt(e), (e.copy_[t] = gn(n, e)))
+          : n;
     },
     has(e, t) {
       return t in Le(e);
@@ -3191,10 +3191,10 @@ function Ri(e, t, o) {
     ? "value" in n
       ? n.value
       : // This is a very special case, if the prop is a getter defined by the
-      // prototype, we should invoke it with the draft as context!
-      (r = n.get) == null
-      ? void 0
-      : r.call(e.draft_)
+        // prototype, we should invoke it with the draft as context!
+        (r = n.get) == null
+        ? void 0
+        : r.call(e.draft_)
     : void 0;
 }
 function Yr(e, t) {
@@ -3316,8 +3316,8 @@ function gn(e, t) {
   const o = Bt(e)
     ? ze("MapSet").proxyMap_(e, t)
     : Ht(e)
-    ? ze("MapSet").proxySet_(e, t)
-    : Di(e, t);
+      ? ze("MapSet").proxySet_(e, t)
+      : Di(e, t);
   return (t ? t.scope_ : qr()).drafts_.push(o), o;
 }
 function Kr(e) {
@@ -4252,10 +4252,12 @@ const ca = {
       },
       setConversations: (e, t) => {
         t.payload &&
-          (e.conversations = t.payload.reduce(
+          ((e.conversations = t.payload.reduce(
             (o, n) => ((o[n.conversation_group_id] = n), o),
             {},
-          ));
+          )),
+          (e.selectedConversationId =
+            e.selectedConversationId || t.payload[0].conversation_group_id));
       },
     },
   }),
@@ -4720,9 +4722,7 @@ const Fa = ({
       title: e.title,
       children: /* @__PURE__ */ w.jsx("button", {
         ...e,
-        className: `btn ${e.color ? `btn-${e.color}` : ""} ${
-          e.className ?? ""
-        } ${La.iconButton}`,
+        className: `btn ${e.color ? `btn-${e.color}` : ""} ${e.className ?? ""} ${La.iconButton}`,
         type: e.type ?? "button",
         children: e.children,
       }),
@@ -5527,11 +5527,17 @@ const Va = (e) => {
     fileName: o,
     theme: n = "vs",
     showLineNumbers: r,
+    titleActions: i,
   }) =>
     /* @__PURE__ */ w.jsxs(jt, {
       className: es.codeblock,
       children: [
-        o ? /* @__PURE__ */ w.jsx(kr, { children: o }) : null,
+        o
+          ? /* @__PURE__ */ w.jsxs(kr, {
+              className: "d-flex justify-content-between",
+              children: [o, " ", i],
+            })
+          : null,
         /* @__PURE__ */ w.jsx(Mt, {
           children: /* @__PURE__ */ w.jsx(oi, {
             showLineNumbers: r,
@@ -5763,9 +5769,7 @@ const Va = (e) => {
         : _n(
             /* @__PURE__ */ w.jsx("div", {
               ref: n,
-              className: `altimate-highlighter ${
-                t === e.conversation_group_id ? "active" : ""
-              }`,
+              className: `altimate-highlighter ${t === e.conversation_group_id ? "active" : ""}`,
               style: { top: a.top, height: a.bottom - a.top },
               onClick: i,
               children: /* @__PURE__ */ w.jsx(ja, {}),
@@ -6261,10 +6265,10 @@ function yr(e) {
           pt(e, n, o[n]);
         })
       : Object.getOwnPropertyDescriptors
-      ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(o))
-      : mr(Object(o)).forEach(function (n) {
-          Object.defineProperty(e, n, Object.getOwnPropertyDescriptor(o, n));
-        });
+        ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(o))
+        : mr(Object(o)).forEach(function (n) {
+            Object.defineProperty(e, n, Object.getOwnPropertyDescriptor(o, n));
+          });
   }
   return e;
 }
@@ -6336,10 +6340,10 @@ function Ke(e) {
           pt(e, n, o[n]);
         })
       : Object.getOwnPropertyDescriptors
-      ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(o))
-      : Er(Object(o)).forEach(function (n) {
-          Object.defineProperty(e, n, Object.getOwnPropertyDescriptor(o, n));
-        });
+        ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(o))
+        : Er(Object(o)).forEach(function (n) {
+            Object.defineProperty(e, n, Object.getOwnPropertyDescriptor(o, n));
+          });
   }
   return e;
 }
@@ -6479,10 +6483,10 @@ function st(e) {
           pt(e, n, o[n]);
         })
       : Object.getOwnPropertyDescriptors
-      ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(o))
-      : br(Object(o)).forEach(function (n) {
-          Object.defineProperty(e, n, Object.getOwnPropertyDescriptor(o, n));
-        });
+        ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(o))
+        : br(Object(o)).forEach(function (n) {
+            Object.defineProperty(e, n, Object.getOwnPropertyDescriptor(o, n));
+          });
   }
   return e;
 }
@@ -7465,19 +7469,19 @@ Valid keys: ` +
         return C === "symbol"
           ? !0
           : D
-          ? D["@@toStringTag"] === "Symbol" ||
-            (typeof Symbol == "function" && D instanceof Symbol)
-          : !1;
+            ? D["@@toStringTag"] === "Symbol" ||
+              (typeof Symbol == "function" && D instanceof Symbol)
+            : !1;
       }
       function T(C) {
         var D = typeof C;
         return Array.isArray(C)
           ? "array"
           : C instanceof RegExp
-          ? "object"
-          : I(D, C)
-          ? "symbol"
-          : D;
+            ? "object"
+            : I(D, C)
+              ? "symbol"
+              : D;
       }
       function x(C) {
         if (typeof C > "u" || C === null) return "" + C;
@@ -8303,10 +8307,10 @@ function Fr(e) {
           ee(e, n, o[n]);
         })
       : Object.getOwnPropertyDescriptors
-      ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(o))
-      : Nr(Object(o)).forEach(function (n) {
-          Object.defineProperty(e, n, Object.getOwnPropertyDescriptor(o, n));
-        });
+        ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(o))
+        : Nr(Object(o)).forEach(function (n) {
+            Object.defineProperty(e, n, Object.getOwnPropertyDescriptor(o, n));
+          });
   }
   return e;
 }
@@ -8790,10 +8794,10 @@ function De(e) {
           ee(e, n, o[n]);
         })
       : Object.getOwnPropertyDescriptors
-      ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(o))
-      : jr(Object(o)).forEach(function (n) {
-          Object.defineProperty(e, n, Object.getOwnPropertyDescriptor(o, n));
-        });
+        ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(o))
+        : jr(Object(o)).forEach(function (n) {
+            Object.defineProperty(e, n, Object.getOwnPropertyDescriptor(o, n));
+          });
   }
   return e;
 }
@@ -10903,27 +10907,27 @@ const ic = /* @__PURE__ */ $t(oc),
     return e
       ? /* @__PURE__ */ w.jsx("div", { children: "Loading..." })
       : !(t != null && t.catalog_presigned_url) ||
-        !(t != null && t.manifest_presigned_url)
-      ? /* @__PURE__ */ w.jsx("div", {
-          children: "Unable to load required artifacts. Please try again.",
-        })
-      : /* @__PURE__ */ w.jsxs("div", {
-          children: [
-            /* @__PURE__ */ w.jsxs("div", {
-              className: "d-flex justify-content-end mb-2",
-              children: [
-                /* @__PURE__ */ w.jsx(Pc, {}),
-                /* @__PURE__ */ w.jsx(ss, {}),
-              ],
-            }),
-            /* @__PURE__ */ w.jsx(Ac, {}),
-            /* @__PURE__ */ w.jsx(Nc, {
-              shareDetails: t,
-              onSelectionEnd: i,
-            }),
-            r ? /* @__PURE__ */ w.jsx(is, { pos: r, onAddComment: a }) : null,
-          ],
-        });
+          !(t != null && t.manifest_presigned_url)
+        ? /* @__PURE__ */ w.jsx("div", {
+            children: "Unable to load required artifacts. Please try again.",
+          })
+        : /* @__PURE__ */ w.jsxs("div", {
+            children: [
+              /* @__PURE__ */ w.jsxs("div", {
+                className: "d-flex justify-content-end mb-2",
+                children: [
+                  /* @__PURE__ */ w.jsx(Pc, {}),
+                  /* @__PURE__ */ w.jsx(ss, {}),
+                ],
+              }),
+              /* @__PURE__ */ w.jsx(Ac, {}),
+              /* @__PURE__ */ w.jsx(Nc, {
+                shareDetails: t,
+                onSelectionEnd: i,
+              }),
+              r ? /* @__PURE__ */ w.jsx(is, { pos: r, onAddComment: a }) : null,
+            ],
+          });
   },
   jc = Fc,
   Mc = ({ shareId: e, userId: t, conversationGroupId: o, source: n }) =>
