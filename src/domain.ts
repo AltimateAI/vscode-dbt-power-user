@@ -40,7 +40,7 @@ export interface NodeMetaData {
   resource_type: string;
   depends_on: DependsOn;
   is_external_project: boolean;
-  compiled_path: string | null;
+  compiled_path: string;
 }
 
 export interface ColumnMetaData {

@@ -54,7 +54,6 @@ export class NodeParser {
           config,
           resource_type,
           depends_on,
-          compiled_path,
         } = nodesMap;
         const fullPath = createFullPathForNode(
           projectName,
@@ -80,7 +79,7 @@ export class NodeParser {
           is_external_project: Boolean(
             externalProjectNames?.includes(package_name),
           ),
-          compiled_path,
+          compiled_path: `${project.getTargetPath()}/compiled/${package_name}/${original_file_path}`,
         });
       }
       this.terminal.debug(

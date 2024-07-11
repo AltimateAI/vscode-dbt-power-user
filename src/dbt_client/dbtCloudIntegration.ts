@@ -721,7 +721,11 @@ export class DBTCloudProjectIntegration
         "compile",
         "--download-artifacts",
         "--model",
-        models.map((item) => item.name).join(" "),
+        '"' + models.map((item) => item.name).join(" ") + '"',
+        "--output",
+        "json",
+        "--log-format",
+        "json",
       ]),
     );
     const { stderr } = await compileQueryCommand.execute(
@@ -731,7 +735,6 @@ export class DBTCloudProjectIntegration
     if (exception) {
       throw exception;
     }
-
     const result: Record<string, string> = {};
     for (const node of models) {
       if (!node.compiled_path) {
