@@ -523,7 +523,6 @@ export class NewLineagePanel implements LineagePanelView {
     if (!project) {
       return;
     }
-    const sessionId = `${env.sessionId}-${selectedColumn.table}-${selectedColumn.name}`;
 
     const modelInfos: ModelInfo[] = [];
     let upstream_models: string[] = [];
@@ -672,6 +671,7 @@ export class NewLineagePanel implements LineagePanelView {
       if (this.cancellationTokenSource?.token.isCancellationRequested) {
         return { column_lineage: [] };
       }
+      const sessionId = `${env.sessionId}-${selectedColumn.table}-${selectedColumn.name}`;
       const request = {
         model_dialect: modelDialect,
         model_info: modelInfos,
