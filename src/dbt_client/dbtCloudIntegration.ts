@@ -716,24 +716,30 @@ export class DBTCloudProjectIntegration
   }
 
   async getBulkCompiledSQL(models: NodeMetaData[]) {
-    const compileQueryCommand = this.dbtCloudCommand(
-      new DBTCommand("Getting catalog...", [
-        "compile",
-        "--download-artifacts",
-        "--model",
-        '"' + models.map((item) => item.name).join(" ") + '"',
-        "--output",
-        "json",
-        "--log-format",
-        "json",
-      ]),
-    );
-    const { stderr } = await compileQueryCommand.execute(
-      new CancellationTokenSource().token,
-    );
-    const exception = this.processJSONErrors(stderr);
-    if (exception) {
-      throw exception;
+    const downloadArtifactsVersion = "0.37.20";
+    const currentVersion = this.getVersion()
+      .map((part) => new String(part))
+      .join(".");
+    if (semver.gte(currentVersion, downloadArtifactsVersion)) {
+      const compileQueryCommand = this.dbtCloudCommand(
+        new DBTCommand("Getting catalog...", [
+          "compile",
+          "--download-artifacts",
+          "--model",
+          '"' + models.map((item) => item.name).join(" ") + '"',
+          "--output",
+          "json",
+          "--log-format",
+          "json",
+        ]),
+      );
+      const { stderr } = await compileQueryCommand.execute(
+        new CancellationTokenSource().token,
+      );
+      const exception = this.processJSONErrors(stderr);
+      if (exception) {
+        throw exception;
+      }
     }
     const result: Record<string, string> = {};
     for (const node of models) {
