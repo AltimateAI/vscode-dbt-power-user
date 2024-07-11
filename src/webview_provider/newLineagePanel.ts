@@ -76,8 +76,6 @@ export class NewLineagePanel implements LineagePanelView {
   // since lineage can be cancelled from 2 places: progress bar and panel actions
   private cancellationTokenSource: DerivedCancellationTokenSource | undefined;
   private cllProgressResolve: () => void = () => {};
-  private cache: Record<string, ModelNode> = {};
-  private currSession: string = "";
 
   public constructor(
     private dbtProjectContainer: DBTProjectContainer,
@@ -85,19 +83,6 @@ export class NewLineagePanel implements LineagePanelView {
     private telemetry: TelemetryService,
     private terminal: DBTTerminal,
   ) {}
-
-  private getValueFromCache(key: string): ModelNode | undefined {
-    if (this.currSession !== env.sessionId) {
-      this.cache = {};
-      this.currSession = env.sessionId;
-      return;
-    }
-    return this.cache[key];
-  }
-
-  private setValueToCache(key: string, value: ModelNode) {
-    this.cache[key] = value;
-  }
 
   public changedActiveTextEditor(event: TextEditor | undefined) {
     if (event === undefined) {
@@ -563,26 +548,12 @@ export class NewLineagePanel implements LineagePanelView {
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
     );
     let startTime = Date.now();
-    const mappedNode: Record<string, ModelNode> = {};
-    const _modelsToFetch: string[] = [];
-    for (const key of modelsToFetch) {
-      const existingValue = this.getValueFromCache(key);
-      if (existingValue) {
-        mappedNode[key] = existingValue;
-      } else {
-        _modelsToFetch.push(key);
-      }
-    }
-    const { mappedNode: _mappedNode, relationsWithoutColumns } =
+    const { mappedNode, relationsWithoutColumns } =
       await project.getNodesWithDBColumns(
         event,
-        _modelsToFetch,
+        modelsToFetch,
         this.cancellationTokenSource!.token,
       );
-    for (const key of _modelsToFetch) {
-      mappedNode[key] = _mappedNode[key];
-      this.setValueToCache(key, _mappedNode[key]);
-    }
     const schemaFetchingTime = Date.now() - startTime;
 
     const selected_column = {
