@@ -5,35 +5,41 @@ import ClearResultsButton from "./components/clearResultsButton/ClearResultsButt
 import useQueryPanelListeners from "./useQueryPanelListeners";
 import QueryPanelTitle from "./components/QueryPanelContents/QueryPanelTitle";
 import QueryPanelContent from "./components/QueryPanelContents/QueryPanelContent";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import classes from "./querypanel.module.scss";
-import ShowOldUxButton from "./components/showOldUxButton/ShowOldUxButton";
+import { QueryPanelTitleTabState } from "./components/QueryPanelContents/types";
+import useQueryPanelState from "./useQueryPanelState";
+import { useQueryPanelDispatch } from "./QueryPanelProvider";
+import { setTabState } from "./context/queryPanelSlice";
 import ShowInTabButton from "./components/openInTabButton/OpenInTabButton";
+import RunAdhocQueryButton from "./components/runAdhocQueryButton/RunAdhocQueryButton";
+import { QueryPanelViewType } from "./context/types";
 
 const QueryPanel = (): JSX.Element => {
-  const [showCompiledCode, setShowCompiledCode] = useState(false);
-
-  const { loading, isPanel } = useQueryPanelListeners();
+  const { tabState, viewType } = useQueryPanelState();
+  const dispatch = useQueryPanelDispatch();
+  const { loading } = useQueryPanelListeners();
 
   useEffect(() => {
     if (loading) {
-      setShowCompiledCode(false);
+      dispatch(setTabState(QueryPanelTitleTabState.Preview));
     }
   }, [loading]);
+
+  const changeTabState = (state: QueryPanelTitleTabState) => {
+    dispatch(setTabState(state));
+  };
 
   return (
     <div className={classes.queryPanel}>
       <Stack className="mb-2 justify-content-between">
         <Stack direction="column" style={{ flex: 1 }}>
-          <QueryPanelTitle
-            setShowCompiledCode={setShowCompiledCode}
-            showCompiledCode={showCompiledCode}
-          />
+          <QueryPanelTitle tabState={tabState} setTabState={changeTabState} />
         </Stack>
         <Stack>
-          {isPanel && (
+          {viewType === QueryPanelViewType.DEFAULT && (
             <>
-              <ShowOldUxButton />
+              <RunAdhocQueryButton />
               <ClearResultsButton />
               <ShowInTabButton />
             </>
@@ -42,8 +48,8 @@ const QueryPanel = (): JSX.Element => {
           <FeedbackButton url="https://docs.google.com/forms/d/19wX5b5_xXL6J_Q_GpuWzYddIXbvLxuarv09Y3VRk_EU/viewform" />
         </Stack>
       </Stack>
-      <div style={{ flex: 1 }}>
-        <QueryPanelContent showCompiledCode={showCompiledCode} />
+      <div style={{ flex: 1, maxHeight: "calc(100% - 40px)" }}>
+        <QueryPanelContent tabState={tabState} />
       </div>
     </div>
   );

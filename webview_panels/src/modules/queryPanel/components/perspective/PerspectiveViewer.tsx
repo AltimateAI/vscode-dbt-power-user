@@ -6,13 +6,13 @@ import {
   HTMLPerspectiveViewerElement,
   PerspectiveViewerConfig,
 } from "@finos/perspective-viewer";
+import "./themes.css";
 import "@finos/perspective-viewer/dist/css/pro.css";
 import "@finos/perspective-viewer/dist/css/pro-dark.css";
 import "@finos/perspective-viewer/dist/css/vaporwave.css";
 import "@finos/perspective-viewer/dist/css/solarized.css";
 import "@finos/perspective-viewer/dist/css/solarized-dark.css";
 import "@finos/perspective-viewer/dist/css/monokai.css";
-import "./themes.css";
 import { useEffect, useRef, useState } from "react";
 import { panelLogger } from "@modules/logger";
 import useAppContext from "@modules/app/useAppContext";
