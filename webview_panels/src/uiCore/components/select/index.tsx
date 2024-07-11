@@ -6,7 +6,12 @@ import Select, {
 } from "react-select";
 import CreatableSelect from "react-select/creatable";
 import { Label } from "../../index";
-import { CheckBlueIcon, UncheckIcon } from "@assets/icons";
+import {
+  CheckBlueIcon,
+  SelectCheckedIcon,
+  SelectUncheckedIcon,
+  UncheckIcon,
+} from "@assets/icons";
 import "./select.module.scss";
 
 const { Option } = components;
@@ -35,7 +40,13 @@ const IconOption = (
         <Label check={isMulti}>
           <span style={{ marginRight: 10 }}>
             {hideOptionIcon ? null : isSelected ? (
-              <CheckBlueIcon />
+              isMulti ? (
+                <SelectCheckedIcon />
+              ) : (
+                <CheckBlueIcon />
+              )
+            ) : isMulti ? (
+              <SelectUncheckedIcon />
             ) : (
               <UncheckIcon />
             )}
@@ -89,6 +100,11 @@ const AltimateSelect = (props: Props): JSX.Element => {
       backgroundColor: "var(--background--base)",
       borderColor: "var(--stroke--disable)",
       color: "var(--text-color--paragraph)",
+    }),
+    container: (styles, cprops) => ({
+      ...styles,
+      // @ts-expect-error TODO fix this type
+      ...props.styles?.container?.(styles, cprops),
     }),
   };
   const selectName = props.name ?? `select-${Math.random()}`;
