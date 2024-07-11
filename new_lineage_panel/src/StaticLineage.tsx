@@ -15,7 +15,7 @@ import {
   SelfConnectingEdge,
   StaticTableNode,
 } from "./CustomNodes";
-import { CollectColumn } from "./utils";
+import { CollectColumn, createTableNode } from "./utils";
 import {
   createNewNodesEdges,
   layoutElementsOnCanvas,
@@ -24,7 +24,9 @@ import {
 import { Details, StaticLineageContext, setDarkMode } from "./Lineage";
 import { Modal, SidebarModal } from "./components/Modal";
 import { StaticTableDetails } from "./TableDetails";
-import { handleResponse } from "./service_utils";
+import { handleResponse, openURL } from "./service_utils";
+import { ActionButton } from "./ActionWidget";
+import FeedbackIcon from "./assets/icons/feedback.svg?react";
 
 const nodeTypes = {
   table: StaticTableNode,
@@ -44,33 +46,32 @@ type StaticLineageProps = {
   details: Details;
 };
 
-
-function findSources(edges: [string, string][]): string[] {
+function findSources(edges: [string, string][]) {
   const inDegree: Map<string, number> = new Map();
-  const allVertices: Set<string> = new Set();
+  const outDegree: Map<string, number> = new Map();
 
-  // Initialize inDegree and allVertices sets
   for (const [from, to] of edges) {
-    if (!inDegree.has(from)) {
-      inDegree.set(from, 0);
-    }
-    if (!inDegree.has(to)) {
-      inDegree.set(to, 0);
-    }
+    if (!inDegree.has(from)) inDegree.set(from, 0);
+    if (!inDegree.has(to)) inDegree.set(to, 0);
     inDegree.set(to, inDegree.get(to)! + 1);
-    allVertices.add(from);
-    allVertices.add(to);
+
+    if (!outDegree.has(from)) outDegree.set(from, 0);
+    if (!outDegree.has(to)) outDegree.set(to, 0);
+    outDegree.set(from, outDegree.get(from)! + 1);
   }
 
   // Find vertices with in-degree of 0
   const sources: string[] = [];
+  const sinks: string[] = [];
   for (const [vertex, degree] of inDegree) {
-    if (degree === 0) {
-      sources.push(vertex);
-    }
+    if (degree === 0) sources.push(vertex);
   }
 
-  return sources;
+  for (const [vertex, degree] of outDegree) {
+    if (degree === 0) sinks.push(vertex);
+  }
+
+  return { sources, sinks };
 }
 
 const StaticLineage: FunctionComponent<StaticLineageProps> = ({
@@ -84,11 +85,22 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
   const [selectedTable, setSelectedTable] = useState("");
 
   useEffect(() => {
+    const _createTable = (table: string) => ({
+      table,
+      label: table,
+      upstreamCount: 0,
+      downstreamCount: 0,
+      nodeType: details[table].nodeType || "cte",
+      isExternalProject: false,
+      tests: [],
+    });
     setTimeout(async () => {
-      const nodeSources = findSources(tableEdges);
-      let nodes: Node[] = [];
+      const { sinks } = findSources(tableEdges);
+      let nodes: Node[] = sinks.map((n) =>
+        createTableNode(_createTable(n), 0, "")
+      );
       let edges: Edge[] = [];
-      const queue = [...nodeSources];
+      const queue = [...sinks];
       const visited: Record<string, boolean> = {};
       const getConnectedTables = (right: boolean, curr: string) => {
         const connectedTables = right
@@ -98,15 +110,7 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
         createNewNodesEdges(
           nodes,
           edges,
-          connectedTables.map((table) => ({
-            table,
-            label: table,
-            upstreamCount: 0,
-            downstreamCount: 0,
-            nodeType: details[table].nodeType || "cte",
-            isExternalProject: false,
-            tests: [],
-          })),
+          connectedTables.map(_createTable),
           curr,
           right,
           currLevel,
@@ -121,8 +125,8 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
         if (visited[curr]) continue;
         visited[curr] = true;
         queue.push(
-          ...getConnectedTables(true, curr),
-          ...getConnectedTables(false, curr),
+          // ...getConnectedTables(true, curr)
+          ...getConnectedTables(false, curr)
         );
       }
 
@@ -165,6 +169,16 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
         setSelectedTable,
       }}
     >
+      <div className="top-right-container">
+        <ActionButton
+          onClick={() => {
+            openURL("https://app.myaltimate.com/contactus");
+          }}
+        >
+          <FeedbackIcon />
+          <span>Feedback</span>
+        </ActionButton>
+      </div>
       <ReactFlowProvider>
         <div style={{ width: "100%", height: "100vh" }}>
           <ReactFlow

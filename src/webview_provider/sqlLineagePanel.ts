@@ -34,7 +34,7 @@ type SQLLineage = {
 
 @provideSingleton(SQLLineagePanel)
 export class SQLLineagePanel implements Disposable {
-  public static readonly viewType = "dbtPowerUser.SQLLineage";
+  public static readonly viewType = "dbtPowerUser.sqlLineage";
   private disposables: Disposable[] = [];
   private _panel?: WebviewPanel;
   private activeTextEditor?: TextEditor;
@@ -149,7 +149,15 @@ export class SQLLineagePanel implements Disposable {
     const config = workspace.getConfiguration("dbt.lineage");
     const modelId = currNode.uniqueId;
     const modelsToFetch = DBTProject.getNonEphemeralParents(event, [modelId]);
-    if (config.get("useSchemaForQueryVisualizer", false)) {
+    let shouldFetchSchema = false;
+    if (currNode.path) {
+      const sql = (
+        await workspace.fs.readFile(Uri.file(currNode.path))
+      ).toString();
+      shouldFetchSchema = !(await project.validateWhetherSqlHasColumns(sql));
+    }
+
+    if (config.get("useSchemaForQueryVisualizer", false) || shouldFetchSchema) {
       const { mappedNode } = await project.getNodesWithDBColumns(
         event,
         modelsToFetch,
@@ -258,6 +266,13 @@ export class SQLLineagePanel implements Disposable {
     );
     const { command, args } = message;
     const { id, params } = args;
+    if (command === "openURL") {
+      if (!args.url) {
+        return;
+      }
+      env.openExternal(Uri.parse(args.url));
+      return;
+    }
     // common commands
     if (command === "openFile") {
       const { url } = args;

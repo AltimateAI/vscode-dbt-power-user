@@ -722,6 +722,24 @@ export class DBTProject implements Disposable {
     );
   }
 
+  async validateWhetherSqlHasColumns(sql: string) {
+    const dialect = this.getAdapterType();
+    try {
+      return await this.dbtProjectIntegration.validateWhetherSqlHasColumns(
+        sql,
+        dialect,
+      );
+    } catch (e) {
+      this.terminal.error(
+        "validateWhetherSqlHasColumnsError",
+        "Error while validating whether sql has columns",
+        e,
+        true,
+      );
+      return false;
+    }
+  }
+
   async getBulkSchema(req: DBTNode[], cancellationToken: CancellationToken) {
     const dbBulkFetchReq: DBTNode[] = [];
     const dialect = this.getAdapterType();
@@ -1115,10 +1133,13 @@ select * from renamed
     modelsToFetch: string[],
     cancellationToken: CancellationToken,
   ) {
-    const { nodeMetaMap, sourceMetaMap } = event;
     const mappedNode: Record<string, ModelNode> = {};
-    const bulkSchemaRequest: DBTNode[] = [];
     const relationsWithoutColumns: string[] = [];
+    if (modelsToFetch.length === 0) {
+      return { mappedNode, relationsWithoutColumns };
+    }
+    const { nodeMetaMap, sourceMetaMap } = event;
+    const bulkSchemaRequest: DBTNode[] = [];
 
     for (const key of modelsToFetch) {
       const splits = key.split(".");
