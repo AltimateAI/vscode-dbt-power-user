@@ -4252,12 +4252,10 @@ const ca = {
       },
       setConversations: (e, t) => {
         t.payload &&
-          ((e.conversations = t.payload.reduce(
+          (e.conversations = t.payload.reduce(
             (o, n) => ((o[n.conversation_group_id] = n), o),
             {},
-          )),
-          (e.selectedConversationId =
-            e.selectedConversationId || t.payload[0].conversation_group_id));
+          ));
       },
     },
   }),
@@ -4722,7 +4720,9 @@ const Fa = ({
       title: e.title,
       children: /* @__PURE__ */ w.jsx("button", {
         ...e,
-        className: `btn ${e.color ? `btn-${e.color}` : ""} ${e.className ?? ""} ${La.iconButton}`,
+        className: `btn ${e.color ? `btn-${e.color}` : ""} ${
+          e.className ?? ""
+        } ${La.iconButton}`,
         type: e.type ?? "button",
         children: e.children,
       }),
@@ -5769,7 +5769,9 @@ const Va = (e) => {
         : _n(
             /* @__PURE__ */ w.jsx("div", {
               ref: n,
-              className: `altimate-highlighter ${t === e.conversation_group_id ? "active" : ""}`,
+              className: `altimate-highlighter ${
+                t === e.conversation_group_id ? "active" : ""
+              }`,
               style: { top: a.top, height: a.bottom - a.top },
               onClick: i,
               children: /* @__PURE__ */ w.jsx(ja, {}),

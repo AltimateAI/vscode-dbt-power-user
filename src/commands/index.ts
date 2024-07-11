@@ -541,7 +541,7 @@ export class VSCodeCommands implements Disposable {
       }),
       commands.registerCommand(
         "dbtPowerUser.createSqlFile",
-        async ({ code, name }: { code?: string; name?: string }) => {
+        async ({ code, fileName }: { code?: string; fileName?: string }) => {
           try {
             const project =
               await this.queryManifestService.getOrPickProjectFromWorkspace();
@@ -550,7 +550,7 @@ export class VSCodeCommands implements Disposable {
               return;
             }
 
-            const fileNamePrefix = name || "poweruser";
+            const fileNamePrefix = fileName || "poweruser";
             const uri = Uri.parse(
               `${project.projectRoot}/${fileNamePrefix}-${getFormattedDateTime()}.sql`,
             ).with({ scheme: "untitled" });
