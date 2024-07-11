@@ -737,14 +737,32 @@ export class DBTCloudProjectIntegration
     }
     const result: Record<string, string> = {};
     for (const node of models) {
-      if (!node.compiled_path) {
+      try {
+        const fileContentBytes = await workspace.fs.readFile(
+          Uri.file(node.compiled_path),
+        );
+        const query = fileContentBytes.toString();
+        result[node.uniqueId] = query;
         continue;
+      } catch (e) {
+        this.terminal.error(
+          "getBulkCompiledSQL",
+          `Unable to find compiled sql file for model ${node.uniqueId}`,
+          e,
+          true,
+        );
       }
-      const fileContentBytes = await workspace.fs.readFile(
-        Uri.file(node.compiled_path),
-      );
-      const query = fileContentBytes.toString();
-      result[node.uniqueId] = query;
+
+      try {
+        result[node.uniqueId] = await this.unsafeCompileNode(node.name);
+      } catch (e) {
+        this.terminal.error(
+          "getBulkCompiledSQL",
+          `Unable to compile sql for model ${node.uniqueId}`,
+          e,
+          true,
+        );
+      }
     }
     return result;
   }
