@@ -32,6 +32,6 @@
       "@vscodeApi": ["src/modules/vscode/index.ts"]
     }
   },
-  "include": ["src", "vite.config.ts"],
+  "include": ["src", "vite.config.ts", "../src/telemetry/events.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

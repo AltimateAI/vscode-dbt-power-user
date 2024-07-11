@@ -16,6 +16,8 @@ import Relationships from "./Relationships";
 import { useEffect, useMemo } from "react";
 import useTestFormSave, { TestOperation } from "../hooks/useTestFormSave";
 import { SaveRequest } from "../types";
+import { sendTelemetryEvent } from "../../telemetry";
+import { TelemetryEvents } from "../../../../../../../src/telemetry/events";
 
 interface Props {
   formType: DbtGenericTests;
@@ -76,6 +78,16 @@ const TestForm = ({ formType, onClose, column }: Props): JSX.Element | null => {
     return false;
   }, [formType, fieldValue, toValue, acceptedValues]);
 
+  const handleSaveClick = handleSubmit((d) => {
+    sendTelemetryEvent(
+      formType === DbtGenericTests.ACCEPTED_VALUES
+        ? TelemetryEvents["DocumentationEditor/AcceptedValuesSaveClick"]
+        : TelemetryEvents["DocumentationEditor/RelationshipsSaveClick"],
+    );
+    handleSave({ ...d, test: formType }, column, TestOperation.CREATE);
+    onClose();
+  });
+
   if (
     formType !== DbtGenericTests.RELATIONSHIPS &&
     formType !== DbtGenericTests.ACCEPTED_VALUES
@@ -106,14 +118,7 @@ const TestForm = ({ formType, onClose, column }: Props): JSX.Element | null => {
       <CardFooter>
         <Stack className="mt-3">
           <Button
-            onClick={handleSubmit((d) => {
-              handleSave(
-                { ...d, test: formType },
-                column,
-                TestOperation.CREATE,
-              );
-              onClose();
-            })}
+            onClick={handleSaveClick}
             color="primary"
             disabled={disableFormSubmit}
           >

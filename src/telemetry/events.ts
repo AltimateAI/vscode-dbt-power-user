@@ -5,21 +5,55 @@ export enum TelemetryEventPriority {
   "Low" = "Low",
 }
 
-export const getTelemetryEventName = (
-  name: TelemetryEvents,
-  type: "event" | "error" = "event",
-  errorPriority?: TelemetryEventPriority,
-) => {
-  if (errorPriority) {
-    return `${name}/${type}/${errorPriority}`;
-  }
-  if (type === "error") {
-    return `${name}/${type}`;
-  }
-  return name;
-};
-
 // List of event names
 export enum TelemetryEvents {
-  "DocumentationEditor/GenerateColumnsDescription" = "DocumentationEditor/GenerateColumnsDescription",
+  "DocumentationEditor/Load" = "DocumentationEditor/Load",
+  "DocumentationEditor/SyncWithDBClick" = "DocumentationEditor/SyncWithDBClick",
+  "DocumentationEditor/SyncWithDBSuccess" = "DocumentationEditor/SyncWithDBSuccess",
+  "DocumentationEditor/SyncWithDBFail" = "DocumentationEditor/SyncWithDBFail",
+  "DocumentationEditor/TestsTabClick" = "DocumentationEditor/TestsTabClick",
+  "DocumentationEditor/SettingsOpen" = "DocumentationEditor/SettingsOpen",
+  "DocumentationEditor/SettingsUpdate" = "DocumentationEditor/SettingsUpdate",
+  "DocumentationEditor/HelpOpen" = "DocumentationEditor/HelpOpen",
+  "DocumentationEditor/HelpTestsOpen" = "DocumentationEditor/HelpTestsOpen",
+  "DocumentationEditor/HelpDocumentationLinkInDocumentationClick" = "DocumentationEditor/HelpDocumentationLinkInDocumentationClick",
+  "DocumentationEditor/HelpContactusLinkInDocumentationClick" = "DocumentationEditor/HelpContactusLinkInDocumentationClick",
+  "DocumentationEditor/HelpDocumentationLinkInTestsClick" = "DocumentationEditor/HelpDocumentationLinkInTestsClick",
+  "DocumentationEditor/HelpContactusLinkInTestsClick" = "DocumentationEditor/HelpContactusLinkInTestsClick",
+  "DocumentationEditor/FeedbackClick" = "DocumentationEditor/FeedbackClick",
+  "DocumentationEditor/SaveClick" = "DocumentationEditor/SaveClick",
+  "DocumentationEditor/SaveSuccess" = "DocumentationEditor/SaveSuccess",
+  "DocumentationEditor/SaveFail" = "DocumentationEditor/SaveFail",
+  "DocumentationEditor/SaveDialogTypeChanges" = "DocumentationEditor/SaveDialogTypeChanges",
+  "DocumentationEditor/SaveNewFilePathSelect" = "DocumentationEditor/SaveNewFilePathSelect",
+  "DocumentationEditor/BulkGenerateAllClick" = "DocumentationEditor/BulkGenerateAllClick",
+  "DocumentationEditor/BulkGenerateAllSuccess" = "DocumentationEditor/BulkGenerateAllSuccess",
+  "DocumentationEditor/BulkGenerateAllFail" = "DocumentationEditor/BulkGenerateAllFail",
+  "DocumentationEditor/BulkGenerateMissingColumnsClick" = "DocumentationEditor/BulkGenerateMissingColumnsClick",
+  "DocumentationEditor/BulkGenerateMissingColumnsSuccess" = "DocumentationEditor/BulkGenerateMissingColumnsSuccess",
+  "DocumentationEditor/BulkGenerateMissingColumnsFail" = "DocumentationEditor/BulkGenerateMissingColumnsFail",
+  "DocumentationEditor/GenerateDescForModelClick" = "DocumentationEditor/GenerateDescForModelClick",
+  "DocumentationEditor/GenerateDescForColumnClick" = "DocumentationEditor/GenerateDescForColumnClick",
+  "DocumentationEditor/GenerateDescForColumnFail" = "DocumentationEditor/GenerateDescForColumnFail",
+  "DocumentationEditor/GenerateDescForColumnSuccess" = "DocumentationEditor/GenerateDescForColumnSuccess",
+  "DocumentationEditor/GenerateDescForModelFail" = "DocumentationEditor/GenerateDescForModelFail",
+  "DocumentationEditor/GenerateDescForModelSuccess" = "DocumentationEditor/GenerateDescForModelSuccess",
+  "DocumentationEditor/GenerateDescByDatapilotForModelClick" = "DocumentationEditor/GenerateDescByDatapilotForModelClick",
+  "DocumentationEditor/GenerateDescByDatapilotForColumnClick" = "DocumentationEditor/GenerateDescByDatapilotForColumnClick",
+  "DocumentationEditor/ColumnTestClick" = "DocumentationEditor/ColumnTestClick",
+  "DocumentationEditor/ModelTestClick" = "DocumentationEditor/ModelTestClick",
+  "DocumentationEditor/AddTestClick" = "DocumentationEditor/AddTestClick",
+  "DocumentationEditor/AddCustomTestClick" = "DocumentationEditor/AddCustomTestClick",
+  "DocumentationEditor/GetDistinctColumnValues" = "DocumentationEditor/GetDistinctColumnValues",
+  "DocumentationEditor/GetDistinctColumnValuesSuccess" = "DocumentationEditor/GetDistinctColumnValuesSuccess",
+  "DocumentationEditor/GetDistinctColumnValuesFail" = "DocumentationEditor/GetDistinctColumnValuesFail",
+  "DocumentationEditor/AcceptedValuesSaveClick" = "DocumentationEditor/AcceptedValuesSaveClick",
+  "DocumentationEditor/RelationshipsToSelect" = "DocumentationEditor/RelationshipsToSelect",
+  "DocumentationEditor/RelationshipsFieldSelect" = "DocumentationEditor/RelationshipsFieldSelect",
+  "DocumentationEditor/RelationshipsSaveClick" = "DocumentationEditor/RelationshipsSaveClick",
+  "DocumentationEditor/TestEditClick" = "DocumentationEditor/TestEditClick",
+  "DocumentationEditor/TestEditCancel" = "DocumentationEditor/TestEditCancel",
+  "DocumentationEditor/TestEditUpdateClick" = "DocumentationEditor/TestEditUpdateClick",
+  "DocumentationEditor/TestDeleteClick" = "DocumentationEditor/TestDeleteClick",
+  "DocumentationEditor/AddTestSelect" = "DocumentationEditor/AddTestSelect",
 }

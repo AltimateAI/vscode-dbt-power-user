@@ -23,6 +23,8 @@ import classes from "./styles.module.scss";
 import { addDefaultActions } from "./utils";
 import ConversationsRightPanel from "./components/conversation/ConversationsRightPanel";
 import useIncomingDocsDataHandler from "./useIncomingDocsDataHandler";
+import { TelemetryEvents } from "../../../../src/telemetry/events";
+import { sendTelemetryEvent } from "./components/telemetry";
 
 const DocumentationEditor = (): JSX.Element => {
   const {
@@ -38,6 +40,9 @@ const DocumentationEditor = (): JSX.Element => {
       return;
     }
     dispatch(addToSelectedPage(page));
+    if (page === Pages.TESTS) {
+      sendTelemetryEvent(TelemetryEvents["DocumentationEditor/TestsTabClick"]);
+    }
   };
 
   const modelTests = useMemo(() => {

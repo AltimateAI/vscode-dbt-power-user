@@ -29,6 +29,8 @@ import { DeleteIcon, EditIcon } from "@assets/icons";
 import { findDbtTestType } from "./utils";
 import TestDetails from "./TestDetails";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
+import { sendTelemetryEvent } from "../telemetry";
+import { TelemetryEvents } from "../../../../../../src/telemetry/events";
 
 const schema = Yup.object({
   to: Yup.string().optional(),
@@ -67,6 +69,10 @@ const DisplayTestDetails = ({
     type !== EntityType.MODEL;
 
   const handleDelete = () => {
+    sendTelemetryEvent(TelemetryEvents["DocumentationEditor/TestDeleteClick"], {
+      test: test.test_metadata?.name ?? "",
+      entityName: column,
+    });
     panelLogger.info("delete test", test);
     handleSave(
       { test: test.test_metadata?.name as DbtGenericTests },
@@ -77,6 +83,10 @@ const DisplayTestDetails = ({
   };
 
   const handleEdit = () => {
+    sendTelemetryEvent(TelemetryEvents["DocumentationEditor/TestEditClick"], {
+      test: test.test_metadata?.name ?? "",
+      entityName: column,
+    });
     setIsInEditMode(true);
     if (test.test_metadata?.name === DbtGenericTests.ACCEPTED_VALUES) {
       setValue(
@@ -100,6 +110,10 @@ const DisplayTestDetails = ({
   };
 
   const handleCancel = () => {
+    sendTelemetryEvent(TelemetryEvents["DocumentationEditor/TestEditCancel"], {
+      test: test.test_metadata?.name ?? "",
+      entityName: column,
+    });
     setIsInEditMode(false);
   };
 
@@ -144,6 +158,10 @@ const DisplayTestDetails = ({
       return;
     }
 
+    sendTelemetryEvent(
+      TelemetryEvents["DocumentationEditor/TestEditUpdateClick"],
+      { test: test.test_metadata?.name ?? "", entityName: column },
+    );
     handleSave(
       { ...data, test: testName as DbtGenericTests },
       column,

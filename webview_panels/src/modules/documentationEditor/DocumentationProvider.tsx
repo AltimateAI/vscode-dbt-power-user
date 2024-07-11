@@ -34,6 +34,8 @@ import { ContextProps } from "./types";
 import { getGenerationsInModel } from "./utils";
 import DocumentationEditor from "./DocumentationEditor";
 import { ConversationGroup, DbtDocsShareDetails } from "@lib";
+import { TelemetryEvents } from "../../../../src/telemetry/events";
+import { sendTelemetryEvent } from "./components/telemetry";
 
 export const DocumentationContext = createContext<ContextProps>({
   state: initialState,
@@ -201,6 +203,7 @@ const DocumentationProvider = (): JSX.Element => {
   }, [state.project, state.currentDocsData?.name]);
 
   useEffect(() => {
+    sendTelemetryEvent(TelemetryEvents["DocumentationEditor/Load"]);
     window.addEventListener("message", onMesssage);
     // Load current editor documentation
     executeRequestInAsync("getCurrentModelDocumentation", {});

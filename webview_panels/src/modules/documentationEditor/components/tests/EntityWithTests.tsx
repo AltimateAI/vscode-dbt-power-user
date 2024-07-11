@@ -8,6 +8,8 @@ import DisplayTestDetails from "./DisplayTestDetails";
 import classes from "../../styles.module.scss";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { TestsIcon } from "@assets/icons";
+import { sendTelemetryEvent } from "../telemetry";
+import { TelemetryEvents } from "../../../../../../src/telemetry/events";
 
 interface Props {
   title: string;
@@ -33,6 +35,12 @@ const EntityWithTests = ({ title, tests, type }: Props): JSX.Element | null => {
 
   const onSelect = (test: DBTModelTest) => {
     setSelectedTest(test);
+    sendTelemetryEvent(
+      type === EntityType.MODEL
+        ? TelemetryEvents["DocumentationEditor/ModelTestClick"]
+        : TelemetryEvents["DocumentationEditor/ColumnTestClick"],
+      { entityName: title, testName: test.test_metadata?.name ?? test.key },
+    );
     drawerRef.current?.open();
   };
 

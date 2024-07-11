@@ -4,6 +4,8 @@ import { OptionType, Label, Select } from "@uicore";
 import { useEffect, useMemo, useState } from "react";
 import { Control, Controller } from "react-hook-form";
 import { SaveRequest } from "../types";
+import { sendTelemetryEvent } from "../../telemetry";
+import { TelemetryEvents } from "../../../../../../../src/telemetry/events";
 
 interface Props {
   control: Control<SaveRequest, unknown>;
@@ -116,6 +118,10 @@ const Relationships = ({
               }
               onChange={(val: unknown) => {
                 const selectedModel = (val as OptionType).value;
+                sendTelemetryEvent(
+                  TelemetryEvents["DocumentationEditor/RelationshipsToSelect"],
+                  { to: selectedModel },
+                );
                 getColumnsOfModel(selectedModel).catch((err) =>
                   panelLogger.error(
                     `error while fetching colums of model: ${selectedModel}`,
@@ -145,7 +151,16 @@ const Relationships = ({
                   : undefined
               }
               value={toFieldOptions.find((c) => c.value === value)}
-              onChange={(val: unknown) => onChange((val as OptionType).value)}
+              onChange={(val: unknown) => {
+                sendTelemetryEvent(
+                  TelemetryEvents[
+                    "DocumentationEditor/RelationshipsFieldSelect"
+                  ],
+                  { field: (val as OptionType).value },
+                );
+
+                return onChange((val as OptionType).value);
+              }}
             />
           )}
         />

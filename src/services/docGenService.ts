@@ -286,16 +286,16 @@ export class DocGenService {
       : message.columnNames;
 
     const chunks = this.chunk(columns, COLUMNS_PER_CHUNK);
+    const telemetryEventName = isBulkGen
+      ? message.isAll
+        ? TelemetryEvents["DocumentationEditor/BulkGenerateAllClick"]
+        : TelemetryEvents["DocumentationEditor/BulkGenerateMissingColumnsClick"]
+      : TelemetryEvents["DocumentationEditor/GenerateDescForColumnClick"];
 
-    this.telemetry.sendTelemetryEvent(
-      getTelemetryEventName(
-        TelemetryEvents["DocumentationEditor/GenerateColumnsDescription"],
-      ),
-      {
-        model: documentation?.name || "",
-        columns: columns.join(","),
-      },
-    );
+    this.telemetry.startTelemetryEvent(telemetryEventName, {
+      model: documentation?.name || "",
+      columns: columns.join(","),
+    });
 
     window.withProgress(
       {
@@ -320,7 +320,6 @@ export class DocGenService {
             increment: 0,
           });
 
-          const startTime = Date.now();
           const compiledSql = await project.unsafeCompileQuery(queryText);
           const columnIndexCount = isBulkGen
             ? chunks.length * COLUMNS_PER_CHUNK
@@ -384,14 +383,10 @@ export class DocGenService {
             })),
             message.syncRequestId,
           );
-          this.telemetry.sendTelemetryEvent(
-            "altimateGenerateDocsForColumn",
-            {
-              model: documentation?.name || "",
-              columns: columns.join(","),
-            },
-            { timeTaken: Date.now() - startTime },
-          );
+          this.telemetry.endTelemetryEvent(telemetryEventName, undefined, {
+            model: documentation?.name || "",
+            columns: columns.join(","),
+          });
         } catch (error) {
           this.transmitError(panel);
           window.showErrorMessage(
@@ -399,23 +394,10 @@ export class DocGenService {
               "Could not generate documentation: " + (error as Error).message,
             ),
           );
-          this.telemetry.sendTelemetryError(
-            getTelemetryEventName(
-              TelemetryEvents["DocumentationEditor/GenerateColumnsDescription"],
-              "error",
-              TelemetryEventPriority.High,
-            ),
-            error,
-            {
-              model: documentation?.name || "",
-              columns: columns.join(","),
-            },
-          );
-
-          this.telemetry.sendTelemetryError(
-            "generateDocsForColumnError",
-            error,
-          );
+          this.telemetry.endTelemetryEvent(telemetryEventName, error, {
+            model: documentation?.name || "",
+            columns: columns.join(","),
+          });
         }
       },
     );
@@ -436,9 +418,12 @@ export class DocGenService {
     if (!project) {
       return;
     }
-    this.telemetry.sendTelemetryEvent("altimateGenerateDocsForModel", {
-      model: documentation?.name || "",
-    });
+    this.telemetry.startTelemetryEvent(
+      TelemetryEvents["DocumentationEditor/GenerateDescForModelClick"],
+      {
+        model: documentation?.name || "",
+      },
+    );
 
     window.withProgress(
       {
@@ -451,7 +436,6 @@ export class DocGenService {
           return;
         }
         try {
-          const startTime = Date.now();
           const compiledSql = await project.unsafeCompileQuery(queryText);
           const sessionID = `${
             env.sessionId
@@ -496,12 +480,12 @@ export class DocGenService {
             message.syncRequestId,
             panel,
           );
-          this.telemetry.sendTelemetryEvent(
-            "altimateGenerateDocsForModel",
+          this.telemetry.endTelemetryEvent(
+            TelemetryEvents["DocumentationEditor/GenerateDescForModelClick"],
+            undefined,
             {
               model: documentation?.name || "",
             },
-            { timeTaken: Date.now() - startTime },
           );
         } catch (error) {
           this.transmitError(panel);
@@ -510,7 +494,13 @@ export class DocGenService {
               "Could not generate documentation: " + (error as Error).message,
             ),
           );
-          this.telemetry.sendTelemetryError("generateDocsForModelError", error);
+          this.telemetry.endTelemetryEvent(
+            TelemetryEvents["DocumentationEditor/GenerateDescForModelClick"],
+            error,
+            {
+              model: documentation?.name || "",
+            },
+          );
         }
       },
     );

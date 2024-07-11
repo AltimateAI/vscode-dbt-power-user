@@ -18,6 +18,8 @@ import classes from "../../styles.module.scss";
 import useTestFormSave, { TestOperation } from "./hooks/useTestFormSave";
 import CustomTestButton from "./CustomTestButton";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
+import { sendTelemetryEvent } from "../telemetry";
+import { TelemetryEvents } from "../../../../../../src/telemetry/events";
 
 interface Props {
   title: string;
@@ -32,6 +34,11 @@ const AddTest = ({ title, currentTests, type }: Props): JSX.Element => {
   const { handleSave } = useTestFormSave();
 
   const handleNewTestClick = (test: DbtGenericTests) => {
+    sendTelemetryEvent(TelemetryEvents["DocumentationEditor/AddTestSelect"], {
+      test,
+      type,
+      entityName: title,
+    });
     if (test === DbtGenericTests.NOT_NULL || test === DbtGenericTests.UNIQUE) {
       handleSave({ test }, title, TestOperation.CREATE);
       setShowButtons(false);
@@ -43,6 +50,10 @@ const AddTest = ({ title, currentTests, type }: Props): JSX.Element => {
 
   const handleOpen = () => {
     setShowButtons((prev) => !prev);
+    sendTelemetryEvent(TelemetryEvents["DocumentationEditor/AddTestClick"], {
+      type,
+      entityName: title,
+    });
   };
   const onClose = () => {
     setFormType(null);
