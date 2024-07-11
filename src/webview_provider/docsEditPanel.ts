@@ -43,6 +43,7 @@ import {
   TestMetadataRelationships,
 } from "../domain";
 import { DbtTestService } from "../services/dbtTestService";
+import { gte } from "semver";
 
 export enum Source {
   YAML = "YAML",
@@ -308,6 +309,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
   private getTestDataByColumn(
     message: any,
     columnNameFromWebview: string,
+    project: DBTProject,
     existingColumn?: any,
   ) {
     const tests = message.updatedTests as undefined | TestMetaData[];
@@ -383,6 +385,18 @@ export class DocsEditViewPanel implements WebviewViewProvider {
     if (!data.length) {
       return;
     }
+    const dbtVersion = project.getDBTVersion();
+    if (
+      dbtVersion &&
+      gte(dbtVersion.join("."), "1.8.0") && // Compare versions
+      existingColumn?.name === columnNameFromWebview &&
+      existingColumn?.tests === undefined
+    ) {
+      return {
+        data_tests: data,
+      };
+    }
+
     return {
       tests: data,
     };
@@ -667,7 +681,11 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                           name,
                           description: column.description || undefined,
                           data_type: column.type?.toLowerCase(),
-                          ...this.getTestDataByColumn(message, column.name),
+                          ...this.getTestDataByColumn(
+                            message,
+                            column.name,
+                            project,
+                          ),
                           ...(isQuotedIdentifier(
                             column.name,
                             projectByFilePath.getAdapterType(),
@@ -706,6 +724,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                 ...this.getTestDataByColumn(
                                   message,
                                   column.name,
+                                  project,
                                   existingColumn,
                                 ),
                               };
@@ -721,6 +740,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                                 ...this.getTestDataByColumn(
                                   message,
                                   column.name,
+                                  project,
                                 ),
                                 ...(isQuotedIdentifier(
                                   column.name,
