@@ -99,7 +99,6 @@ export class DBTProject implements Disposable {
   readonly onRebuildManifestStatusChange =
     this._onRebuildManifestStatusChange.event;
 
-  private lastRunWatcher: FileSystemWatcher;
   private dbSchemaCache: Record<string, ModelNode> = {};
 
   constructor(
@@ -153,14 +152,6 @@ export class DBTProject implements Disposable {
         break;
     }
 
-    this.lastRunWatcher = workspace.createFileSystemWatcher(
-      new RelativePattern(this.getTargetPath()!, `run_results.json`),
-    );
-
-    this.lastRunWatcher.onDidChange((e) => this.invalidateCacheUsingLastRun(e));
-    this.lastRunWatcher.onDidCreate((e) => this.invalidateCacheUsingLastRun(e));
-    this.lastRunWatcher.onDidDelete((e) => this.invalidateCacheUsingLastRun(e));
-
     this.disposables.push(
       this.dbtProjectIntegration,
       this.targetWatchersFactory.createTargetWatchers(
@@ -172,7 +163,6 @@ export class DBTProject implements Disposable {
       ),
       this.sourceFileWatchers,
       this.projectConfigDiagnostics,
-      this.lastRunWatcher,
     );
 
     this.terminal.debug(
@@ -181,6 +171,17 @@ export class DBTProject implements Disposable {
         this.projectRoot
       }`,
     );
+  }
+
+  private createLastRunResultsWatcher() {
+    const watcher = workspace.createFileSystemWatcher(
+      new RelativePattern(this.getTargetPath()!, `run_results.json`),
+    );
+
+    watcher.onDidChange((e) => this.invalidateCacheUsingLastRun(e));
+    watcher.onDidCreate((e) => this.invalidateCacheUsingLastRun(e));
+    watcher.onDidDelete((e) => this.invalidateCacheUsingLastRun(e));
+    return watcher;
   }
 
   private async invalidateCacheUsingLastRun(file: Uri) {
@@ -342,6 +343,7 @@ export class DBTProject implements Disposable {
           await this.rebuildManifest();
         }, this.dbtProjectIntegration.getDebounceForRebuildManifest()),
       ),
+      this.createLastRunResultsWatcher(),
     );
 
     this.terminal.debug(

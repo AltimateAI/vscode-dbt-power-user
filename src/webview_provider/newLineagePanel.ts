@@ -16,7 +16,7 @@ import {
   workspace,
   env,
 } from "vscode";
-import { AltimateRequest, ModelInfo, ModelNode } from "../altimate";
+import { AltimateRequest, ModelInfo } from "../altimate";
 import {
   ExposureMetaData,
   GraphMetaMap,
