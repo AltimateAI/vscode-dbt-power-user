@@ -6,7 +6,6 @@ import {
   WebviewView,
   env,
   window,
-  workspace,
 } from "vscode";
 import { AltimateRequest, DocsGenerateResponse } from "../altimate";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
@@ -21,11 +20,7 @@ import {
   Source,
 } from "../webview_provider/docsEditPanel";
 import { QueryManifestService } from "./queryManifestService";
-import {
-  getTelemetryEventName,
-  TelemetryEventPriority,
-  TelemetryEvents,
-} from "../telemetry/events";
+import { TelemetryEvents } from "../telemetry/events";
 
 interface GenerateDocsForColumnsProps {
   panel: WebviewView | WebviewPanel | undefined;
