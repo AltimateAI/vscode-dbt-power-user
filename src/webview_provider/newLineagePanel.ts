@@ -547,12 +547,15 @@ export class NewLineagePanel implements LineagePanelView {
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
     );
     let startTime = Date.now();
-    const { mappedNode, relationsWithoutColumns } =
-      await project.getNodesWithDBColumns(
-        event,
-        modelsToFetch,
-        this.cancellationTokenSource!.token,
-      );
+    const {
+      mappedNode,
+      relationsWithoutColumns,
+      mappedCompiledSql: mappedCompiledSqlArtifacts,
+    } = await project.getNodesWithDBColumns(
+      event,
+      modelsToFetch,
+      this.cancellationTokenSource!.token,
+    );
     const schemaFetchingTime = Date.now() - startTime;
 
     const selected_column = {
@@ -578,7 +581,8 @@ export class NewLineagePanel implements LineagePanelView {
       });
       const compiledSqlMap = await project.getBulkCompiledSql(
         event,
-        modelsToCompile,
+        // since some models would already be compiled while getting columns
+        modelsToCompile.filter((key) => !mappedCompiledSqlArtifacts[key]),
       );
       for (const key of modelsToFetch) {
         const node = mappedNode[key];
@@ -587,7 +591,8 @@ export class NewLineagePanel implements LineagePanelView {
         }
         if (modelsToCompile.includes(key)) {
           modelInfos.push({
-            compiled_sql: compiledSqlMap[key],
+            compiled_sql:
+              mappedCompiledSqlArtifacts[key] || compiledSqlMap[key],
             model_node: node,
           });
         } else {

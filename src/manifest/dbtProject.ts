@@ -1108,7 +1108,7 @@ select * from renamed
     const mappedNode: Record<string, ModelNode> = {};
     const relationsWithoutColumns: string[] = [];
     if (modelsToFetch.length === 0) {
-      return { mappedNode, relationsWithoutColumns };
+      return { mappedNode, relationsWithoutColumns, mappedCompiledSql: {} };
     }
     const { nodeMetaMap, sourceMetaMap } = event;
     const bulkSchemaRequest: DBTNode[] = [];
@@ -1223,7 +1223,11 @@ select * from renamed
       }
     }
 
-    return { mappedNode, relationsWithoutColumns };
+    return {
+      mappedNode,
+      relationsWithoutColumns,
+      mappedCompiledSql: sqlglotSchemaResponse,
+    };
   }
 
   async applyDeferConfig(): Promise<void> {
