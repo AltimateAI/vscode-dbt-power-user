@@ -5,9 +5,9 @@ import classes from "./styles.module.scss";
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   color?: string;
 }
-const IconButton = ({ title, ...props }: Props): JSX.Element => {
+const IconButton = (props: Props): JSX.Element => {
   return (
-    <Tooltip title={title}>
+    <Tooltip title={props.title}>
       <button
         {...props}
         className={`btn ${props.color ? `btn-${props.color}` : ""} ${

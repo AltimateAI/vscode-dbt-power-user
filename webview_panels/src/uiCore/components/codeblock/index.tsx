@@ -2,18 +2,21 @@ import useAppContext from "@modules/app/useAppContext";
 import { Themes } from "@modules/app/types";
 import { CodeBlock as CodeblockLib } from "@lib";
 import classes from "./codeblock.module.scss";
+import { ReactNode } from "react";
 
 interface Props {
   code: string;
   language: Parameters<typeof CodeblockLib>["0"]["language"];
   fileName?: string;
   showLineNumbers?: boolean;
+  titleActions?: ReactNode;
 }
 const CodeBlockComponent = ({
   code,
   language,
   fileName,
   showLineNumbers,
+  titleActions,
 }: Props): JSX.Element => {
   const {
     state: { theme },
@@ -27,6 +30,7 @@ const CodeBlockComponent = ({
         fileName={fileName}
         theme={codeBlockTheme}
         language={language}
+        titleActions={titleActions}
       />
     </div>
   );

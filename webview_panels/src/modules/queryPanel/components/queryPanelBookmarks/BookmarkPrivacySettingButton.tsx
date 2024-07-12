@@ -32,7 +32,8 @@ const BookmarkPrivacySettingButton = ({
   const { refetchBookmarks } = useQueryPanelCommonActions();
 
   useEffect(() => {
-    setPrivacy(bookmark.privacy);
+    // Modify the setting when opening the popover to avoid one extra action from user
+    setPrivacy(bookmark.privacy === "private" ? "public" : "private");
   }, [bookmark.privacy]);
 
   const saveSettings = async () => {
