@@ -199,7 +199,7 @@ export class DBTProject implements Disposable {
       }
     } catch (e) {
       this.terminal.error(
-        "invalidCache",
+        "invalidateCacheUsingLastRun",
         `Unable to parse run_results.json ${e}`,
         e,
         true,
