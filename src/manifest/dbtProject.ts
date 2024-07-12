@@ -1167,10 +1167,12 @@ select * from renamed
     const sqlglotSchemaRequest = bulkSchemaRequest.filter(
       (r) => r.resource_type === DBTProject.RESOURCE_TYPE_MODEL,
     );
+    let startTime = Date.now();
     const sqlglotSchemaResponse = await this.getBulkCompiledSql(
       event,
       sqlglotSchemaRequest.map((r) => r.unique_id),
     );
+    const compiledSqlTime = Date.now() - startTime;
 
     if (cancellationToken.isCancellationRequested) {
       return {
@@ -1183,6 +1185,7 @@ select * from renamed
     const sqlglotSchemas: Record<string, DBColumn[]> = {};
     const dialect = this.getAdapterType();
 
+    startTime = Date.now();
     for (const r of sqlglotSchemaRequest) {
       if (!sqlglotSchemaResponse[r.unique_id]) {
         dbSchemaRequest.push(r);
@@ -1208,6 +1211,7 @@ select * from renamed
         dbSchemaRequest.push(r);
       }
     }
+    const sqlglotSchemaTime = Date.now() - startTime;
 
     if (cancellationToken.isCancellationRequested) {
       return {
@@ -1217,11 +1221,13 @@ select * from renamed
       };
     }
 
+    startTime = Date.now();
     const dbSchemaResponse =
       await this.dbtProjectIntegration.getBulkSchemaFromDB(
         dbSchemaRequest,
         cancellationToken,
       );
+    const dbFetchTime = Date.now() - startTime;
 
     const bulkSchemaResponse = { ...dbSchemaResponse, ...sqlglotSchemas };
 
@@ -1241,6 +1247,19 @@ select * from renamed
         relationsWithoutColumns.push(key);
       }
     }
+
+    console.log("getNodesWithDBColumnsTimes", {
+      compiledSqlTime,
+      sqlglotSchemaTime,
+      dbFetchTime,
+      modelInfosLength: modelsToFetch.length,
+    });
+    this.telemetry.sendTelemetryEvent("getNodesWithDBColumnsTimes", {
+      compiledSqlTime: compiledSqlTime.toString(),
+      sqlglotSchemaTime: sqlglotSchemaTime.toString(),
+      dbFetchTime: dbFetchTime.toString(),
+      modelInfosLength: modelsToFetch.length.toString(),
+    });
 
     return {
       mappedNode,
