@@ -1172,6 +1172,14 @@ select * from renamed
       sqlglotSchemaRequest.map((r) => r.unique_id),
     );
 
+    if (cancellationToken.isCancellationRequested) {
+      return {
+        mappedNode,
+        relationsWithoutColumns,
+        mappedCompiledSql: sqlglotSchemaResponse,
+      };
+    }
+
     const sqlglotSchemas: Record<string, DBColumn[]> = {};
     const dialect = this.getAdapterType();
 
@@ -1199,6 +1207,14 @@ select * from renamed
         );
         dbSchemaRequest.push(r);
       }
+    }
+
+    if (cancellationToken.isCancellationRequested) {
+      return {
+        mappedNode,
+        relationsWithoutColumns,
+        mappedCompiledSql: sqlglotSchemaResponse,
+      };
     }
 
     const dbSchemaResponse =
