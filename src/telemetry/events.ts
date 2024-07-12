@@ -7,6 +7,7 @@ export enum TelemetryEventPriority {
 
 // List of event names
 export enum TelemetryEvents {
+  "Datapilot/Feedback" = "Datapilot/Feedback",
   "DocumentationEditor/Load" = "DocumentationEditor/Load",
   "DocumentationEditor/SyncWithDBClick" = "DocumentationEditor/SyncWithDBClick",
   "DocumentationEditor/SyncWithDBSuccess" = "DocumentationEditor/SyncWithDBSuccess",

@@ -507,7 +507,7 @@ export class DocGenService {
     panel,
     syncRequestId,
   }: FeedbackRequestProps) {
-    this.telemetry.sendTelemetryEvent("altimateGenerateDocsSendFeedback");
+    this.telemetry.startTelemetryEvent(TelemetryEvents["Datapilot/Feedback"]);
     window.withProgress(
       {
         title: "Sending feedback",
@@ -552,7 +552,14 @@ export class DocGenService {
               },
             });
           }
+          this.telemetry.endTelemetryEvent(
+            TelemetryEvents["Datapilot/Feedback"],
+          );
         } catch (error) {
+          this.telemetry.endTelemetryEvent(
+            TelemetryEvents["Datapilot/Feedback"],
+            error,
+          );
           this.transmitError(panel);
           window.showErrorMessage(
             extendErrorWithSupportLinks(
