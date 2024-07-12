@@ -2,7 +2,6 @@ import {
   Dispatch,
   SetStateAction,
   createContext,
-  useCallback,
   useEffect,
   useRef,
   useState,
@@ -197,14 +196,6 @@ export const StaticLineageContext = createContext<{
   setSelectedTable: noop,
 });
 
-const hostCommands: MessageEvent[] = [];
-const recordPreInitHostCommands = (event: MessageEvent) => {
-  console.log("lineage:message -> ", event.data);
-  hostCommands.push(event);
-};
-
-window.addEventListener("message", recordPreInitHostCommands);
-
 export const Lineage = () => {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
   const [isOpen, setIsOpen] = useState(false);
@@ -237,7 +228,7 @@ export const Lineage = () => {
     null
   );
 
-  const setupLineage = useCallback(async () => {
+  useEffect(() => {
     const render = async (args: {
       node?: Table;
       aiEnabled: boolean;
@@ -249,8 +240,8 @@ export const Lineage = () => {
       aiEnabled = args.aiEnabled;
       setMissingLineageMessage(args.missingLineageMessage);
       const { node } = args;
-      const _flow = flow.current!;
-      if (!node) return;
+      const _flow = flow.current;
+      if (!_flow || !node) return;
       const existingNode = _flow.getNode(node.table);
       if (existingNode) {
         setSelectedTable(node.table);
@@ -322,32 +313,27 @@ export const Lineage = () => {
       setTheme,
       columnLineage: (data: { event: CllEvents }) => {
         if (data.event === CllEvents.CANCEL) {
-          const _flow = flow.current!;
-          const edges = _flow.getEdges();
-          toggleModelEdges(edges, true);
-          toggleColumnEdges(edges, false);
-          _flow.setEdges(edges);
+          if (flow.current) {
+            const edges = flow.current.getEdges();
+            toggleModelEdges(edges, true);
+            toggleColumnEdges(edges, false);
+            flow.current.setEdges(edges);
+          }
         }
         columnLineage(data);
       },
     };
-
-    const executeHostCommands = async (event: MessageEvent) => {
+    window.addEventListener("message", (event) => {
       console.log("lineage:message -> ", event.data);
       const { command, args } = event.data;
       if ((command as string) in commandMap) {
-        await commandMap[command as keyof typeof commandMap](args);
+        commandMap[command as keyof typeof commandMap](args);
       }
-    };
-    for (const event of hostCommands) await executeHostCommands(event);
-    window.removeEventListener("message", recordPreInitHostCommands);
-    window.addEventListener("message", executeHostCommands);
+    });
     console.log("lineage:onload");
     init();
     applySettings();
-  }, []);
 
-  useEffect(() => {
     // hide demo button after 10s
     setTimeout(() => {
       setShowDemoButton(false);
@@ -471,10 +457,7 @@ export const Lineage = () => {
               <ReactFlow
                 defaultNodes={[]}
                 defaultEdges={[]}
-                onInit={(_flow) => {
-                  flow.current = _flow;
-                  setupLineage();
-                }}
+                onInit={(_flow) => (flow.current = _flow)}
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
                 style={{ background: "var(--bg-color)" }}
