@@ -31,19 +31,20 @@ export class TelemetryService implements vscode.Disposable {
     measurements?: { [key: string]: number },
   ) {
     const start = this.eventMeasurements.get(eventName);
-    const suffix = error ? "Fail" : "Success";
     if (error) {
-      this.sendTelemetryError(`${eventName}${suffix}`, error, properties, {
-        ...(measurements || {}),
-        duration: new Date().getTime() - start,
-      });
-    } else {
-      this.sendTelemetryEvent(`${eventName}${suffix}`, properties, {
+      this.sendTelemetryError(`${eventName}Error`, error, properties, {
         ...(measurements || {}),
         duration: new Date().getTime() - start,
       });
     }
-    this.eventMeasurements.delete(eventName);
+  }
+
+  private getFeatureName(eventName: string) {
+    const [featureName, rest] = eventName.split("/");
+    if (rest) {
+      return { feature: featureName };
+    }
+    return {};
   }
 
   sendTelemetryEvent(
@@ -54,6 +55,7 @@ export class TelemetryService implements vscode.Disposable {
     this.telemetryReporter.sendTelemetryEvent(
       eventName,
       {
+        ...this.getFeatureName(eventName),
         ...properties,
         instanceName: vscode.workspace
           .getConfiguration("dbt")
@@ -81,6 +83,7 @@ export class TelemetryService implements vscode.Disposable {
     this.telemetryReporter.sendTelemetryErrorEvent(
       eventName,
       {
+        ...this.getFeatureName(eventName),
         ...properties,
         instanceName: vscode.workspace
           .getConfiguration("dbt")

@@ -796,13 +796,10 @@ export class DocsEditViewPanel implements WebviewViewProvider {
                       },
                     });
                   }
-                  this.telemetry.sendTelemetryEvent(
-                    TelemetryEvents["DocumentationEditor/SaveSuccess"],
-                  );
                 } catch (error) {
                   this.transmitError();
                   this.telemetry.sendTelemetryError(
-                    TelemetryEvents["DocumentationEditor/SaveFail"],
+                    TelemetryEvents["DocumentationEditor/SaveError"],
                     error,
                   );
                   window.showErrorMessage(
