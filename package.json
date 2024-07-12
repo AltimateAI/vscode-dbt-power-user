@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.41.5",
+  "version": "0.42.1",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -626,9 +626,9 @@
       },
       {
         "command": "dbtPowerUser.sqlLineage",
-        "title": "SQL Visualizer (Beta)",
+        "title": "Visualize SQL (Beta)",
         "category": "dbt Power User",
-        "icon": "$(debug-console)"
+        "icon": "$(eye)"
       }
     ],
     "keybindings": [
@@ -701,6 +701,10 @@
         {
           "command": "dbtPowerUser.translateQuery",
           "group": "datapilot@4"
+        },
+        {
+          "command": "dbtPowerUser.sqlLineage",
+          "group": "datapilot@5"
         }
       ],
       "editor/title": [

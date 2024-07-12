@@ -708,6 +708,17 @@ export class DBTCloudProjectIntegration
     return JSON.parse(compiledLine[0].data.compiled);
   }
 
+  async validateWhetherSqlHasColumns(
+    sql: string,
+    dialect: string,
+  ): Promise<boolean> {
+    this.throwBridgeErrorIfAvailable();
+    return this.python?.lock<boolean>(
+      (python) =>
+        python!`to_dict(validate_whether_sql_has_columns(${sql}, ${dialect}))`,
+    );
+  }
+
   async fetchSqlglotSchema(sql: string, dialect: string): Promise<string[]> {
     this.throwBridgeErrorIfAvailable();
     return this.python?.lock<string[]>(

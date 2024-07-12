@@ -1,9 +1,10 @@
-import React, { FunctionComponent, useContext, useMemo } from "react";
+import React, { FunctionComponent, useContext, useMemo, useState } from "react";
 import {
   BaseEdge,
   EdgeProps,
   Handle,
   NodeProps,
+  NodeToolbar,
   Position,
   useReactFlow,
 } from "reactflow";
@@ -45,6 +46,7 @@ import SqlOrderByIcon from "./assets/icons/sql_order_by.svg?react";
 import SqlOuterJoinIcon from "./assets/icons/sql_outer_join.svg?react";
 import SqlRightJoinIcon from "./assets/icons/sql_right_join.svg?react";
 import SqlUnionIcon from "./assets/icons/sql_union.svg?react";
+import SqlSelectIcon from "./assets/icons/sql_select.svg?react";
 
 import ArrowRightDoubleIcon from "./assets/icons/arrow-right-double.svg?react";
 import { COLUMNS_SIDEBAR, EXPOSURE_SIDEBAR, TABLES_SIDEBAR } from "./constants";
@@ -584,16 +586,27 @@ const SQL_ICONS: Record<string, React.ReactNode> = {
   LIMIT: <SqlLimitIcon />,
   SORT: <SqlOrderByIcon />,
   UNION: <SqlUnionIcon />,
+  SELECT: <SqlSelectIcon />,
 };
 
 export const OpNode: FunctionComponent<NodeProps> = ({ data }) => {
   const { type, expression } = data;
   const isDarkMode = getDarkMode();
+  const [isInside, setIsInside] = useState(false);
   return (
-    <div style={{ width: T_NODE_W, display: "flex", justifyContent: "center" }}>
-      <BidirectionalHandles />
-      <Tooltip tooltipLabel={<CodeBlock code={expression} />}>
-        <div className="d-flex flex-column">
+    <>
+      <NodeToolbar isVisible={isInside} position={data.toolbarPosition}>
+        <CodeBlock code={expression} />
+      </NodeToolbar>
+      <div
+        style={{ width: T_NODE_W, display: "flex", justifyContent: "center" }}
+      >
+        <BidirectionalHandles />
+        <div
+          className="d-flex flex-column"
+          onMouseEnter={() => setIsInside(true)}
+          onMouseLeave={() => setIsInside(false)}
+        >
           <div
             className={classNames(
               styles.op_node,
@@ -604,7 +617,7 @@ export const OpNode: FunctionComponent<NodeProps> = ({ data }) => {
           </div>
           <div className={styles.op_type_text}>{type}</div>
         </div>
-      </Tooltip>
-    </div>
+      </div>
+    </>
   );
 };

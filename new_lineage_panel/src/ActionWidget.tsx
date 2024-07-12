@@ -27,7 +27,7 @@ import { BetterPopover } from "./components/Modal";
 import { DEFAULT_MIN_ZOOM, calculateExpand } from "./utils";
 import { InfoIcon } from "./components/InfoIcon";
 
-const ActionButton = ({
+export const ActionButton = ({
   onClick,
   children,
 }: PropsWithChildren<{
