@@ -891,8 +891,17 @@ export class DBTCoreProjectIntegration
   async getBulkCompiledSQL(models: NodeMetaData[]) {
     const result: Record<string, string> = {};
     for (const m of models) {
-      const compiledSQL = await this.unsafeCompileNode(m.uniqueId);
-      result[m.uniqueId] = compiledSQL;
+      try {
+        const compiledSQL = await this.unsafeCompileNode(m.uniqueId);
+        result[m.uniqueId] = compiledSQL;
+      } catch (e) {
+        this.dbtTerminal.error(
+          "getBulkCompiledSQL",
+          `Unable to compile sql for model ${m.uniqueId}`,
+          e,
+          true,
+        );
+      }
     }
     return result;
   }
