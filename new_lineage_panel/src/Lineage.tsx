@@ -197,14 +197,6 @@ export const StaticLineageContext = createContext<{
   setSelectedTable: noop,
 });
 
-const hostCommands: MessageEvent[] = [];
-const recordPreInitHostCommands = (event: MessageEvent) => {
-  console.log("lineage:message -> ", event.data);
-  hostCommands.push(event);
-};
-
-window.addEventListener("message", recordPreInitHostCommands);
-
 export const Lineage = () => {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
   const [isOpen, setIsOpen] = useState(false);
@@ -336,13 +328,13 @@ export const Lineage = () => {
       console.log("lineage:message -> ", event.data);
       const { command, args } = event.data;
       if ((command as string) in commandMap) {
-        await commandMap[command as keyof typeof commandMap](args);
+        const action = commandMap[command as keyof typeof commandMap];
+        if (typeof action === "function") {
+          await action(args);
+        }
       }
     };
 
-    console.log("lineage:preInitCommands", hostCommands)
-    for (const event of hostCommands) await executeHostCommands(event);
-    window.removeEventListener("message", recordPreInitHostCommands);
     window.addEventListener("message", executeHostCommands);
     console.log("lineage:onload");
     init();
