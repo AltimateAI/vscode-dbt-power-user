@@ -339,8 +339,6 @@ export const Lineage = () => {
         await commandMap[command as keyof typeof commandMap](args);
       }
     };
-
-    console.log("lineage:preInitCommands", hostCommands)
     for (const event of hostCommands) await executeHostCommands(event);
     window.removeEventListener("message", recordPreInitHostCommands);
     window.addEventListener("message", executeHostCommands);
