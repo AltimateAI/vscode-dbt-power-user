@@ -892,7 +892,7 @@ export class DBTCoreProjectIntegration
     const result: Record<string, string> = {};
     for (const m of models) {
       try {
-        const compiledSQL = await this.unsafeCompileNode(m.uniqueId);
+        const compiledSQL = await this.unsafeCompileNode(m.name);
         result[m.uniqueId] = compiledSQL;
       } catch (e) {
         this.dbtTerminal.error(
