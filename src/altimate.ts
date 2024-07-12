@@ -44,19 +44,12 @@ export type ModelNode = {
   alias: string;
   uniqueId: string;
   columns: { [columnName: string]: ColumnMetaData };
-  path: string | undefined;
-};
-
-export type ModelInfo = {
-  model_node: ModelNode;
-  compiled_sql?: string;
-  raw_sql?: string;
 };
 
 export interface DBTColumnLineageRequest {
   model_dialect: string;
   targets: { uniqueId: string; column_name: string }[];
-  model_info: ModelInfo[];
+  model_info: { model_node: ModelNode; compiled_sql?: string }[];
   upstream_expansion: boolean;
   upstream_models: string[];
   selected_column: { model_node?: ModelNode; column: string };

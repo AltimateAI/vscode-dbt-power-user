@@ -16,7 +16,7 @@ import {
   workspace,
   env,
 } from "vscode";
-import { AltimateRequest, ModelInfo } from "../altimate";
+import { AltimateRequest, ModelNode } from "../altimate";
 import {
   ExposureMetaData,
   GraphMetaMap,
@@ -524,7 +524,7 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
 
-    const modelInfos: ModelInfo[] = [];
+    const modelInfos: { compiled_sql?: string; model_node: ModelNode }[] = [];
     let upstream_models: string[] = [];
     let auxiliaryTables: string[] = []; // these are used for better sqlglot parsing
     let sqlTables: string[] = []; // these are used which models should be compiled sql
@@ -577,15 +577,7 @@ export class NewLineagePanel implements LineagePanelView {
         return;
       }
       const compiledSql = await project.unsafeCompileNode(node.name);
-      let rawSql: string = "";
-      if (node.path) {
-        rawSql = (await workspace.fs.readFile(Uri.file(node.path))).toString();
-      }
-      modelInfos.push({
-        compiled_sql: compiledSql,
-        model_node: node,
-        raw_sql: rawSql,
-      });
+      modelInfos.push({ compiled_sql: compiledSql, model_node: node });
     };
     startTime = Date.now();
     try {
