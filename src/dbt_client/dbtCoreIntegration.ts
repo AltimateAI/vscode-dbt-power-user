@@ -910,6 +910,9 @@ export class DBTCoreProjectIntegration
     nodes: DBTNode[],
     cancellationToken: CancellationToken,
   ): Promise<Record<string, DBColumn[]>> {
+    if (nodes.length === 0) {
+      return {};
+    }
     const result: Record<string, DBColumn[]> = {};
     for (const n of nodes) {
       if (cancellationToken.isCancellationRequested) {
