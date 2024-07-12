@@ -1092,6 +1092,9 @@ select * from renamed
     event: ManifestCacheProjectAddedEvent,
     models: string[],
   ) {
+    if (models.length === 0) {
+      return {};
+    }
     const { nodeMetaMap } = event;
     return this.dbtProjectIntegration.getBulkCompiledSQL(
       models
