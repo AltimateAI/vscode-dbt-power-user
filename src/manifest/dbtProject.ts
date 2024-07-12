@@ -1248,13 +1248,13 @@ select * from renamed
       }
     }
 
-    console.log("getNodesWithDBColumnsTimes", {
+    console.log("getNodesWithDBColumnsTimings", {
       compiledSqlTime,
       sqlglotSchemaTime,
       dbFetchTime,
       modelInfosLength: modelsToFetch.length,
     });
-    this.telemetry.sendTelemetryEvent("getNodesWithDBColumnsTimes", {
+    this.telemetry.sendTelemetryEvent("getNodesWithDBColumnsTimings", {
       compiledSqlTime: compiledSqlTime.toString(),
       sqlglotSchemaTime: sqlglotSchemaTime.toString(),
       dbFetchTime: dbFetchTime.toString(),
