@@ -15,7 +15,12 @@ import {
   SelfConnectingEdge,
   StaticTableNode,
 } from "./CustomNodes";
-import { CollectColumn, createTableNode } from "./utils";
+import {
+  CollectColumn,
+  createOpNode,
+  createTableEdge,
+  createTableNode,
+} from "./utils";
 import {
   createNewNodesEdges,
   layoutElementsOnCanvas,
@@ -44,6 +49,7 @@ type StaticLineageProps = {
   columnEdges?: [string, string][];
   tableEdges: [string, string][];
   details: Details;
+  nodePositions: Record<string, [number, number]>;
 };
 
 function findSources(edges: [string, string][]) {
@@ -80,6 +86,7 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
   columnEdges = [],
   tableEdges,
   details,
+  nodePositions,
 }) => {
   const flow = useRef<ReactFlowInstance<unknown, unknown>>();
   const [selectedTable, setSelectedTable] = useState("");
@@ -95,6 +102,34 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
       tests: [],
     });
     setTimeout(async () => {
+      if (nodePositions) {
+        const nodes: Node[] = Object.keys(nodePositions).map((n) => {
+          const opType = details[n].type;
+          if (["cte", "table", "final"].includes(opType)) {
+            return createTableNode(_createTable(n), 0, "");
+          }
+          return createOpNode(n, 0, "", details[n]);
+        });
+        const edges = tableEdges.map(([src, dst]) =>
+          createTableEdge(
+            nodePositions[src][1],
+            nodePositions[dst][1],
+            src,
+            dst,
+            true,
+            true
+          )
+        );
+
+        for (const n of nodes) {
+          if (!nodePositions[n.id]) continue;
+          const [x, y] = nodePositions[n.id];
+          n.position = { x, y };
+        }
+        flow.current?.setNodes(nodes);
+        flow.current?.setEdges(edges);
+        return;
+      }
       const { sinks } = findSources(tableEdges);
       let nodes: Node[] = sinks.map((n) =>
         createTableNode(_createTable(n), 0, "")
@@ -150,7 +185,15 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
       flow.current?.setNodes(nodes);
       flow.current?.setEdges(edges);
     }, 500);
-  }, [collectColumns, columnEdges, details, flow, selectedColumn, tableEdges]);
+  }, [
+    collectColumns,
+    columnEdges,
+    details,
+    flow,
+    nodePositions,
+    selectedColumn,
+    tableEdges,
+  ]);
 
   useEffect(() => {
     const timerId = setTimeout(() => {
