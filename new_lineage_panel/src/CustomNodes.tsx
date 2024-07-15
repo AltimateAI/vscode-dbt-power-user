@@ -499,12 +499,8 @@ export const SelfConnectingEdge: FunctionComponent<EdgeProps> = (props) => {
 
 export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
   const { column, table, viewsType, viewsCode, nodeType } = data;
-  const {
-    selectedColumn,
-    setSelectedTable,
-    setSelectedColumn,
-    setViewsCodeModal,
-  } = useContext(LineageContext);
+  const { selectedColumn, setSelectedTable, setSelectedColumn, setModalArgs } =
+    useContext(LineageContext);
   const isSelected =
     selectedColumn.table === table && selectedColumn.name === column;
 
@@ -555,12 +551,9 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
               className={styles.column_code_icon}
               onClick={(e) => {
                 e.stopPropagation();
-                setViewsCodeModal({
-                  table,
-                  viewsType,
-                  viewsCode,
-                  nodeType,
-                  column,
+                setModalArgs({
+                  type: "views_code",
+                  args: { table, viewsType, viewsCode, nodeType, column },
                 });
               }}
             >

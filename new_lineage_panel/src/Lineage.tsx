@@ -66,7 +66,7 @@ import {
 import { Settings } from "./Settings";
 import { Table, getLineageSettings } from "./service";
 import { LineageLegend } from "./components";
-import { ViewsCodeModal } from "./Modals";
+import { LineageModal } from "./Modals";
 
 export let aiEnabled = false;
 
@@ -87,13 +87,17 @@ export interface MissingLineageMessage {
   type: "warning" | "error";
 }
 
-type ViewsCodeModal = {
+export type ViewsCodeModalArgs = {
   table: string;
   column: string;
   viewsType: ViewsTypes;
   viewsCode: Record<string, [string, string][]>;
   nodeType: string;
 };
+
+export type ModalArgs =
+  | { type: "none" }
+  | { type: "views_code"; args: ViewsCodeModalArgs };
 
 const noop = () => {};
 
@@ -132,8 +136,8 @@ export const LineageContext = createContext<{
   setNonSelectCheck: Dispatch<boolean>;
   defaultExpansion: number;
   setDefaultExpansion: Dispatch<number>;
-  viewsCodeModal: ViewsCodeModal | null;
-  setViewsCodeModal: Dispatch<SetStateAction<ViewsCodeModal | null>>;
+  modalArgs: ModalArgs;
+  setModalArgs: Dispatch<SetStateAction<ModalArgs>>;
 }>({
   selectedTable: "",
   setSelectedTable: noop,
@@ -162,8 +166,8 @@ export const LineageContext = createContext<{
   setNonSelectCheck: noop,
   defaultExpansion: 0,
   setDefaultExpansion: noop,
-  viewsCodeModal: null,
-  setViewsCodeModal: noop,
+  modalArgs: { type: "none" },
+  setModalArgs: noop,
 });
 
 export type Details = Record<
@@ -224,9 +228,7 @@ export const Lineage = () => {
   const [defaultExpansion, setDefaultExpansion] = useState(5);
   const [nodeCount, setNodeCount] = useState(0);
   const [minRange, setMinRange] = useState<[number, number]>([0, 0]);
-  const [viewsCodeModal, setViewsCodeModal] = useState<ViewsCodeModal | null>(
-    null
-  );
+  const [modalArgs, setModalArgs] = useState<ModalArgs>({ type: "none" });
 
   useEffect(() => {
     const render = async (args: {
@@ -430,8 +432,8 @@ export const Lineage = () => {
         setNonSelectCheck,
         defaultExpansion,
         setDefaultExpansion,
-        viewsCodeModal,
-        setViewsCodeModal,
+        modalArgs,
+        setModalArgs,
       }}
     >
       <PopoverContext.Provider value={{ isOpen, setIsOpen }}>
@@ -486,7 +488,7 @@ export const Lineage = () => {
             <Modal isOpen={showDemoModal} close={() => setShowDemoModal(false)}>
               <Demo />
             </Modal>
-            <ViewsCodeModal />
+            <LineageModal />
           </div>
         </ReactFlowProvider>
       </PopoverContext.Provider>

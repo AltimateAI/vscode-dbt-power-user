@@ -1,23 +1,27 @@
-import { useContext, useMemo } from "react";
+import { Dispatch, SetStateAction, useContext, useMemo } from "react";
 import { CodeBlock, ViewsTypeBadge } from "./components";
-import { LineageContext } from "./Lineage";
+import { LineageContext, ModalArgs, ViewsCodeModalArgs } from "./Lineage";
 import { Modal, ModalBody } from "reactstrap";
 import styles from "./styles.module.scss";
 import { HeaderSection } from "./TableDetails";
 import CloseIcon from "./assets/icons/x-close.svg?react";
 import { useReactFlow } from "reactflow";
 
-export function ViewsCodeModal() {
-  const { viewsCodeModal, setViewsCodeModal } = useContext(LineageContext);
-
+function ViewsCodeModal({
+  viewsCodeModal: viewsCodeArgs,
+  setModalArgs,
+}: {
+  viewsCodeModal: ViewsCodeModalArgs;
+  setModalArgs: Dispatch<SetStateAction<ModalArgs>>;
+}) {
   const flow = useReactFlow();
   const table = useMemo(() => {
-    if (!viewsCodeModal) return "";
-    return flow.getNode(viewsCodeModal.table)?.data?.label;
-  }, [flow, viewsCodeModal]);
+    if (!viewsCodeArgs) return "";
+    return flow.getNode(viewsCodeArgs.table)?.data?.label;
+  }, [flow, viewsCodeArgs]);
 
   const viewsCodesFlat = useMemo(() => {
-    const arr = Object.values(viewsCodeModal?.viewsCode || [])
+    const arr = Object.values(viewsCodeArgs?.viewsCode || [])
       .flat()
       .filter(([, type]) => type === "Transformation")
       .map(([code]) => code);
@@ -27,14 +31,13 @@ export function ViewsCodeModal() {
       result.push(item);
     }
     return result;
-  }, [viewsCodeModal?.viewsCode]);
+  }, [viewsCodeArgs?.viewsCode]);
 
-  if (!viewsCodeModal) return;
   return (
     <Modal
       size="lg"
-      isOpen={Boolean(viewsCodeModal)}
-      toggle={() => setViewsCodeModal(null)}
+      isOpen={Boolean(viewsCodeArgs)}
+      toggle={() => setModalArgs({ type: "none" })}
       centered
       unmountOnClose
       scrollable
@@ -43,25 +46,25 @@ export function ViewsCodeModal() {
       <ModalBody>
         <div
           className={styles.close_button}
-          onClick={() => setViewsCodeModal(null)}
+          onClick={() => setModalArgs({ type: "none" })}
         >
           <CloseIcon />
         </div>
         <div className="d-flex flex-column gap-sm">
           {table && (
-            <HeaderSection nodeType={viewsCodeModal.nodeType} table={table} />
+            <HeaderSection nodeType={viewsCodeArgs.nodeType} table={table} />
           )}
           <div className="d-flex flex-column gap-xs">
             <div className="text-dark-grey fs-xs">Column</div>
             <div className={styles.model_views_type}>
-              {viewsCodeModal.column}
+              {viewsCodeArgs.column}
             </div>
           </div>
           <div className="d-flex flex-column gap-xs">
             <div className="text-dark-grey fs-xs">Type</div>
             <div className={styles.model_views_type}>
-              <ViewsTypeBadge viewsType={viewsCodeModal.viewsType} />
-              {viewsCodeModal.viewsType}
+              <ViewsTypeBadge viewsType={viewsCodeArgs.viewsType} />
+              {viewsCodeArgs.viewsType}
             </div>
           </div>
           {viewsCodesFlat.length > 0 && (
@@ -78,4 +81,18 @@ export function ViewsCodeModal() {
       </ModalBody>
     </Modal>
   );
+}
+
+export function LineageModal() {
+  const { modalArgs, setModalArgs } = useContext(LineageContext);
+  if (modalArgs.type === "none") return null;
+  if (modalArgs.type === "views_code") {
+    return (
+      <ViewsCodeModal
+        setModalArgs={setModalArgs}
+        viewsCodeModal={modalArgs.args}
+      />
+    );
+  }
+  return null;
 }
