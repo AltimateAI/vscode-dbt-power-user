@@ -306,8 +306,18 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                 <div>{NODE_TYPE_SHORTHAND[nType]}</div>
               </div>
               <div className="lines-2">{label}</div>
-              {errors?.[table] && (
-                <Tooltip tooltipLabel={errors?.[table].join("\n")}>
+              {errors?.[table]?.length && (
+                <Tooltip
+                  tooltipLabel={
+                    <div className={styles.error_tooltip}>
+                      {errors[table].map((line, i) => (
+                        <div key={i} className="mb-1">
+                          {i + 1}. {line}
+                        </div>
+                      ))}
+                    </div>
+                  }
+                >
                   <AlertErrorIcon />
                 </Tooltip>
               )}
