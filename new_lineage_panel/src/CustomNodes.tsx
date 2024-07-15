@@ -308,9 +308,7 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
               <div className="lines-2">{label}</div>
               {errors?.[table] && (
                 <Tooltip tooltipLabel={errors?.[table].join("\n")}>
-                  <div className="me-2">
-                    <AlertErrorIcon />
-                  </div>
+                  <AlertErrorIcon />
                 </Tooltip>
               )}
             </div>
