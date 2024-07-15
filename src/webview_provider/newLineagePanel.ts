@@ -577,14 +577,10 @@ export class NewLineagePanel implements LineagePanelView {
       if (!node) {
         continue;
       }
-      if (modelsToCompile.includes(key)) {
         modelInfos.push({
-          compiled_sql: mappedCompiledSql[key],
+          compiled_sql: modelsToCompile.includes(key) ? mappedCompiledSql[key] : undefined,
           model_node: node,
         });
-      } else {
-        modelInfos.push({ model_node: node });
-      }
     }
 
     if (relationsWithoutColumns.length !== 0) {
