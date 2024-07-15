@@ -596,7 +596,9 @@ export const OpNode: FunctionComponent<NodeProps> = ({ data }) => {
   return (
     <>
       <NodeToolbar isVisible={isInside} position={data.toolbarPosition}>
-        <CodeBlock code={expression} />
+        <div style={{ fontSize: "0.5rem" }}>
+          <CodeBlock code={expression} />
+        </div>
       </NodeToolbar>
       <div
         style={{ width: T_NODE_W, display: "flex", justifyContent: "center" }}
