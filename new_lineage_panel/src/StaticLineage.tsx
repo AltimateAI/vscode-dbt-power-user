@@ -27,11 +27,12 @@ import {
   staticProcessColumnLineage,
 } from "./graph";
 import { Details, StaticLineageContext, setDarkMode } from "./Lineage";
-import { Modal, SidebarModal } from "./components/Modal";
+import { SidebarModal } from "./components/Modal";
 import { StaticTableDetails } from "./TableDetails";
 import { handleResponse, openURL } from "./service_utils";
 import { ActionButton } from "./ActionWidget";
 import FeedbackIcon from "./assets/icons/feedback.svg?react";
+import { LineageModal } from "./Modals";
 
 const nodeTypes = {
   table: StaticTableNode,
@@ -246,7 +247,7 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
       >
         {Boolean(selectedTable) && <StaticTableDetails />}
       </SidebarModal>
-      <Modal isOpen={false} close={() => {}} />
+      <LineageModal />
     </StaticLineageContext.Provider>
   );
 };

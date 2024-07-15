@@ -95,9 +95,15 @@ export type ViewsCodeModalArgs = {
   nodeType: string;
 };
 
+export type OpNodeArgs = {
+  op_type: string;
+  op_code: string;
+};
+
 export type ModalArgs =
   | { type: "none" }
-  | { type: "views_code"; args: ViewsCodeModalArgs };
+  | { type: "views_code"; args: ViewsCodeModalArgs }
+  | { type: "op_node"; args: OpNodeArgs };
 
 const noop = () => {};
 
