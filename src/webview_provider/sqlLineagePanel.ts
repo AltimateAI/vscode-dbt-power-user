@@ -29,7 +29,7 @@ import { QueryManifestService } from "../services/queryManifestService";
 type SQLLineage = {
   tableEdges: [string, string][];
   details: Details;
-  nodePositions: Record<string, [number, number]>;
+  nodePositions?: Record<string, [number, number]>;
   errorMessage?: undefined;
 };
 
@@ -230,8 +230,10 @@ export class SQLLineagePanel implements Disposable {
         details[k]["name"] = modelName;
       }
     }
-    nodePositions[modelName] = nodePositions[FINAL_SELECT];
-    delete nodePositions[FINAL_SELECT];
+    if (nodePositions) {
+      nodePositions[modelName] = nodePositions[FINAL_SELECT];
+      delete nodePositions[FINAL_SELECT];
+    }
     return { tableEdges, details, nodePositions };
   }
 

@@ -84,7 +84,7 @@ export type Details = Record<
 type StaticLineageResponse = {
   tableEdges: [string, string][];
   details: Details;
-  nodePositions: Record<string, [number, number]>;
+  nodePositions?: Record<string, [number, number]>;
 };
 
 interface SQLToModelRequest {
