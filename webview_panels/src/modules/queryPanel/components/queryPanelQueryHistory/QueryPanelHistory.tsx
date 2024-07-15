@@ -12,7 +12,7 @@ import styles from "../../querypanel.module.scss";
 import { useEffect, useMemo, useState } from "react";
 import { QueryHistory } from "@modules/queryPanel/context/types";
 import Filters, { QueryFilters } from "../filters/Filters";
-import { ChevronRightIcon, NoHistoryIcon } from "@assets/icons";
+import { ChevronRightIcon, NoHistoryIcon, OpenNewIcon } from "@assets/icons";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import useQueryPanelCommonActions from "@modules/queryPanel/useQueryPanelCommonActions";
 import AutoCollapsingNotification from "@modules/AutoCollapsingNotification/AutoCollapsingNotification";
@@ -59,6 +59,10 @@ const QueryPanelHistory = (): JSX.Element => {
     executeRequestInAsync("viewResultSet", {
       queryHistory: activeHistory,
     });
+  };
+
+  const handleOpenNewClick = () => {
+    executeRequestInAsync("openCodeInEditor", { code: activeHistory?.rawSql });
   };
 
   return (
@@ -142,6 +146,13 @@ const QueryPanelHistory = (): JSX.Element => {
             language="sql"
             fileName="Code"
             showLineNumbers
+            titleActions={
+              <span>
+                <IconButton title="Open in editor" onClick={handleOpenNewClick}>
+                  <OpenNewIcon />
+                </IconButton>
+              </span>
+            }
           />
         </div>
       ) : null}

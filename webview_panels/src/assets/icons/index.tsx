@@ -155,3 +155,7 @@ export const SearchIcon = (props: HTMLAttributes<HTMLElement>): JSX.Element => (
 export const FileCodeIcon = (
   props: HTMLAttributes<HTMLElement>,
 ): JSX.Element => <Icon icon="file-code" {...props} />;
+
+export const OpenNewIcon = (
+  props: HTMLAttributes<HTMLElement>,
+): JSX.Element => <Icon icon="link-external" {...props} />;

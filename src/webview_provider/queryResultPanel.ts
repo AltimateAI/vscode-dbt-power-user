@@ -92,6 +92,7 @@ enum InboundCommand {
   GetQueryTabData = "getQueryTabData",
   RunAdhocQuery = "runAdhocQuery",
   ViewResultSet = "viewResultSet",
+  OpenCodeInEditor = "openCodeInEditor",
 }
 
 interface RecInfo {
@@ -323,11 +324,24 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     }
   }
 
+  private async handleOpenCodeInEditor(message: {
+    code: string;
+    name: string;
+  }) {
+    commands.executeCommand("dbtPowerUser.createSqlFile", {
+      code: message.code,
+      name: message.name,
+    });
+  }
+
   /** Primary interface for WebviewView inbound communication */
   private setupWebviewHooks() {
     this._panel!.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
+          case InboundCommand.OpenCodeInEditor:
+            this.handleOpenCodeInEditor(message);
+            break;
           case InboundCommand.ViewResultSet:
             const queryHistoryData = message.queryHistory;
             this._queryTabData = {

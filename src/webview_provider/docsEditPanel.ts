@@ -340,7 +340,7 @@ export class DocsEditViewPanel implements WebviewViewProvider {
       const testFullName: string = namespace ? `${namespace}.${name}` : name;
 
       const columnTestConfigFromYml = getColumnTestConfigFromYml(
-        existingColumn.tests,
+        existingColumn?.tests,
         kwargs,
         testFullName,
       );
