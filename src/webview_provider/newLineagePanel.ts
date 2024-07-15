@@ -707,7 +707,7 @@ export class NewLineagePanel implements LineagePanelView {
         schemaFetchingTime: schemaFetchingTime.toString(),
         modelInfosLength: modelInfos.length.toString(),
       });
-      if (result.errors && result.errors.length > 0) {
+      if (!result.errors_dict && result.errors && result.errors.length > 0) {
         window.showErrorMessage(
           extendErrorWithSupportLinks(result.errors.join("\n")),
         );
@@ -723,7 +723,11 @@ export class NewLineagePanel implements LineagePanelView {
           viewsType: c.views_type,
           viewsCode: c.views_code,
         })) || [];
-      return { column_lineage, confindence: result.confidence };
+      return {
+        column_lineage,
+        confindence: result.confidence,
+        errors: result.errors_dict,
+      };
     } catch (error) {
       if (error instanceof AbortError) {
         window.showErrorMessage(

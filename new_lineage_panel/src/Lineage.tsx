@@ -135,6 +135,8 @@ export const LineageContext = createContext<{
   setDefaultExpansion: Dispatch<number>;
   viewsCodeModal: ViewsCodeModal | null;
   setViewsCodeModal: Dispatch<SetStateAction<ViewsCodeModal | null>>;
+  errors: Record<string, string[]>;
+  setErrors: Dispatch<SetStateAction<Record<string, string[]>>>;
 }>({
   selectedTable: "",
   setSelectedTable: noop,
@@ -165,6 +167,8 @@ export const LineageContext = createContext<{
   setDefaultExpansion: noop,
   viewsCodeModal: null,
   setViewsCodeModal: noop,
+  errors: {},
+  setErrors: noop,
 });
 
 export type Details = Record<
@@ -211,6 +215,7 @@ export const Lineage = () => {
   const [collectColumns, setCollectColumns] = useState<
     Record<string, CollectColumn[]>
   >({});
+  const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [confidence, setConfidence] = useState<Confidence>({
     confidence: "high",
   });
@@ -308,21 +313,23 @@ export const Lineage = () => {
       setDefaultExpansion(settings.defaultExpansion);
     };
 
-    const commandMap = new Map(Object.entries({
-      render,
-      response: handleResponse,
-      setTheme,
-      columnLineage: (data: { event: CllEvents }) => {
-        if (data.event === CllEvents.CANCEL) {
-          const _flow = flow.current!;
-          const edges = _flow.getEdges();
-          toggleModelEdges(edges, true);
-          toggleColumnEdges(edges, false);
-          _flow.setEdges(edges);
-        }
-        columnLineage(data);
-      },
-    }));
+    const commandMap = new Map(
+      Object.entries({
+        render,
+        response: handleResponse,
+        setTheme,
+        columnLineage: (data: { event: CllEvents }) => {
+          if (data.event === CllEvents.CANCEL) {
+            const _flow = flow.current!;
+            const edges = _flow.getEdges();
+            toggleModelEdges(edges, true);
+            toggleColumnEdges(edges, false);
+            _flow.setEdges(edges);
+          }
+          columnLineage(data);
+        },
+      })
+    );
 
     const executeHostCommands = async (event: MessageEvent) => {
       console.log("lineage:message -> ", event.data);
@@ -370,7 +377,8 @@ export const Lineage = () => {
               _flow.setEdges(es);
             },
             _column,
-            { direct: selectCheck, indirect: nonSelectCheck }
+            { direct: selectCheck, indirect: nonSelectCheck },
+            setErrors
           );
         try {
           CLL.start();
@@ -440,6 +448,8 @@ export const Lineage = () => {
         setDefaultExpansion,
         viewsCodeModal,
         setViewsCodeModal,
+        errors,
+        setErrors,
       }}
     >
       <PopoverContext.Provider value={{ isOpen, setIsOpen }}>

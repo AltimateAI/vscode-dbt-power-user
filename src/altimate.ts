@@ -68,6 +68,7 @@ export interface DBTColumnLineageResponse {
   column_lineage: ColumnLineage[];
   confidence?: { confidence: string; message?: string };
   errors?: string[];
+  errors_dict?: Record<string, string[]>;
 }
 
 interface SQLLineageRequest {
