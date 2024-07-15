@@ -1,10 +1,9 @@
-import React, { FunctionComponent, useContext, useMemo, useState } from "react";
+import React, { FunctionComponent, useContext, useMemo } from "react";
 import {
   BaseEdge,
   EdgeProps,
   Handle,
   NodeProps,
-  NodeToolbar,
   Position,
   useReactFlow,
 } from "reactflow";
@@ -57,7 +56,8 @@ import {
   TableNodePill,
 } from "./components/Column";
 import CodeIcon from "./assets/icons/code.svg?react";
-import { CodeBlock, Tooltip, ViewsTypeBadge } from "./components";
+import { Tooltip, ViewsTypeBadge } from "./components";
+import { ModalContext } from "./Modals";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -499,12 +499,9 @@ export const SelfConnectingEdge: FunctionComponent<EdgeProps> = (props) => {
 
 export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
   const { column, table, viewsType, viewsCode, nodeType } = data;
-  const {
-    selectedColumn,
-    setSelectedTable,
-    setSelectedColumn,
-    setViewsCodeModal,
-  } = useContext(LineageContext);
+  const { selectedColumn, setSelectedTable, setSelectedColumn } =
+    useContext(LineageContext);
+  const { setModalArgs } = useContext(ModalContext);
   const isSelected =
     selectedColumn.table === table && selectedColumn.name === column;
 
@@ -555,12 +552,9 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
               className={styles.column_code_icon}
               onClick={(e) => {
                 e.stopPropagation();
-                setViewsCodeModal({
-                  table,
-                  viewsType,
-                  viewsCode,
-                  nodeType,
-                  column,
+                setModalArgs({
+                  type: "views_code",
+                  args: { table, viewsType, viewsCode, nodeType, column },
                 });
               }}
             >
@@ -576,7 +570,7 @@ export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
   );
 };
 
-const SQL_ICONS: Record<string, React.ReactNode> = {
+export const SQL_ICONS: Record<string, React.ReactNode> = {
   INNER_JOIN: <SqlInnerJoinIcon />,
   OUTER_JOIN: <SqlOuterJoinIcon />,
   LEFT_JOIN: <SqlLeftJoinIcon />,
@@ -590,34 +584,29 @@ const SQL_ICONS: Record<string, React.ReactNode> = {
 };
 
 export const OpNode: FunctionComponent<NodeProps> = ({ data }) => {
+  const { setModalArgs } = useContext(ModalContext);
   const { type, expression } = data;
   const isDarkMode = getDarkMode();
-  const [isInside, setIsInside] = useState(false);
   return (
-    <>
-      <NodeToolbar isVisible={isInside} position={data.toolbarPosition}>
-        <CodeBlock code={expression} />
-      </NodeToolbar>
-      <div
-        style={{ width: T_NODE_W, display: "flex", justifyContent: "center" }}
-      >
-        <BidirectionalHandles />
+    <div style={{ width: T_NODE_W, display: "flex", justifyContent: "center" }}>
+      <BidirectionalHandles />
+      <div className="d-flex flex-column">
         <div
-          className="d-flex flex-column"
-          onMouseEnter={() => setIsInside(true)}
-          onMouseLeave={() => setIsInside(false)}
+          className={classNames(
+            styles.op_node,
+            isDarkMode ? styles.dark_mode : styles.light_mode
+          )}
+          onClick={() => {
+            setModalArgs({
+              type: "op_node",
+              args: { op_code: expression, op_type: type },
+            });
+          }}
         >
-          <div
-            className={classNames(
-              styles.op_node,
-              isDarkMode ? styles.dark_mode : styles.light_mode
-            )}
-          >
-            {SQL_ICONS[type]}
-          </div>
-          <div className={styles.op_type_text}>{type}</div>
+          {SQL_ICONS[type]}
         </div>
+        <div className={styles.op_type_text}>{type}</div>
       </div>
-    </>
+    </div>
   );
 };
