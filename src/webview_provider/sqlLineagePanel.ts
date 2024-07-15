@@ -304,7 +304,7 @@ export class SQLLineagePanel implements Disposable {
           status: true,
           body: {
             showSelectEdges: config.get("showSelectEdges", true),
-            showNonSelectEdges: config.get("showNonSelectEdges", true),
+            showNonSelectEdges: config.get("showNonSelectEdges", false),
             defaultExpansion: config.get("defaultExpansion", 1),
             useSchemaForQueryVisualizer: config.get(
               "useSchemaForQueryVisualizer",
