@@ -1186,6 +1186,7 @@ select * from renamed
     const dialect = this.getAdapterType();
 
     startTime = Date.now();
+    // can't parallelize because underlying python lock
     for (const r of sqlglotSchemaRequest) {
       if (!sqlglotSchemaResponse[r.unique_id]) {
         dbSchemaRequest.push(r);
