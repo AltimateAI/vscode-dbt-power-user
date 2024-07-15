@@ -737,7 +737,7 @@ export class DBTCloudProjectIntegration
           "compile",
           "--download-artifacts",
           "--model",
-          '"' + models.map((item) => item.name).join(" ") + '"',
+          `"${models.map((item) => item.name).join(" ")}"`,
           "--output",
           "json",
           "--log-format",
@@ -755,6 +755,7 @@ export class DBTCloudProjectIntegration
     const result: Record<string, string> = {};
     for (const node of models) {
       try {
+        // compiled sql file exists
         const fileContentBytes = await workspace.fs.readFile(
           Uri.file(node.compiled_path),
         );
@@ -771,6 +772,7 @@ export class DBTCloudProjectIntegration
       }
 
       try {
+        // compiled sql file doesn't exists or dbt below 0.37.20
         result[node.uniqueId] = await this.unsafeCompileNode(node.name);
       } catch (e) {
         this.terminal.error(
