@@ -89,7 +89,7 @@
           "dbt.lineage.showNonSelectEdges": {
             "type": "boolean",
             "description": "Show non-select edges in lineage panel.",
-            "default": true
+            "default": false
           },
           "dbt.lineage.defaultExpansion": {
             "type": "number",
