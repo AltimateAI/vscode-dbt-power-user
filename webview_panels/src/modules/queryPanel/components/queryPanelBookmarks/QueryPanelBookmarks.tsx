@@ -2,11 +2,12 @@ import styles from "../../querypanel.module.scss";
 import { Stack, CodeBlock, Label, IconButton } from "@uicore";
 import { useEffect, useState } from "react";
 import { QueryBookmark } from "@modules/queryPanel/context/types";
-import { ChevronRightIcon } from "@assets/icons";
+import { ChevronRightIcon, OpenNewIcon } from "@assets/icons";
 import BookmarkAccordion from "./BookmarkAccordion";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import { QueryPanelTitleTabState } from "../QueryPanelContents/types";
 import useQueryPanelCommonActions from "@modules/queryPanel/useQueryPanelCommonActions";
+import { executeRequestInAsync } from "@modules/app/requestExecutor";
 
 const QueryPanelBookmarks = (): JSX.Element => {
   const [activeBookmark, setActiveBookmark] = useState<QueryBookmark | null>(
@@ -30,6 +31,13 @@ const QueryPanelBookmarks = (): JSX.Element => {
 
   const resetActiveBookmark = () => {
     setActiveBookmark(null);
+  };
+
+  const handleOpenNewClick = () => {
+    executeRequestInAsync("openCodeInEditor", {
+      code: activeBookmark?.raw_sql,
+      name: activeBookmark?.name,
+    });
   };
 
   const tags = (queryBookmarksTagsFromDB ?? []).map((t) => t.tag);
@@ -74,8 +82,8 @@ const QueryPanelBookmarks = (): JSX.Element => {
               {activeBookmark.adapter_type}
             </Stack>
             <Stack>
-              <Label>Privacy</Label>
-              {activeBookmark.privacy}
+              <Label>Shared</Label>
+              {activeBookmark.privacy === "private" ? "No" : "Yes"}
             </Stack>
           </div>
 
@@ -85,6 +93,16 @@ const QueryPanelBookmarks = (): JSX.Element => {
               language="sql"
               fileName="Code"
               showLineNumbers
+              titleActions={
+                <span>
+                  <IconButton
+                    title="Open in editor"
+                    onClick={handleOpenNewClick}
+                  >
+                    <OpenNewIcon />
+                  </IconButton>
+                </span>
+              }
             />
           ) : null}
         </div>

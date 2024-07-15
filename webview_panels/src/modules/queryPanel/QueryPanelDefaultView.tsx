@@ -1,4 +1,4 @@
-import { Stack } from "@uicore";
+import { Alert, Stack } from "@uicore";
 import HelpContent from "./components/help/HelpContent";
 import QueryLimit from "./components/queryLimit/QueryLimit";
 
@@ -20,6 +20,13 @@ const QueryPanelDefaultView = (): JSX.Element => {
             and share them with your team.
             <br />
             You can also rerun queries directly from your history or bookmarks.
+          </p>
+          <p>
+            <Alert color="warning">
+              This feature is in private beta. If you are interested, please{" "}
+              <a href="https://app.myaltimate.com/contactus">contact us</a> to
+              try it out!
+            </Alert>
           </p>
         </div>
         <HelpContent />

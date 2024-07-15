@@ -1,6 +1,5 @@
-/// <reference types="react" />
-
 import { JSX as JSX_2 } from "react/jsx-runtime";
+import { ReactNode } from "react";
 
 export declare const ApiHelper: {
   get: <T>(
@@ -21,6 +20,7 @@ export declare const CodeBlock: ({
   fileName,
   theme,
   showLineNumbers,
+  titleActions,
 }: Props_4) => JSX.Element;
 
 export declare interface Conversation {
@@ -131,6 +131,7 @@ declare interface Props_4 {
   fileName?: string;
   showLineNumbers?: boolean;
   theme?: "vs" | "vsc-dark-plus" | "solarizedLight";
+  titleActions?: ReactNode;
 }
 
 declare interface User {

@@ -34,7 +34,10 @@ export class VirtualSqlCodeLensProvider implements CodeLensProvider {
     token: CancellationToken,
   ): CodeLens[] | Thenable<CodeLens[]> {
     // Enable this code lens only for adhoc query files created using command: dbtPowerUser.createSqlFile
-    if (document.uri.scheme !== "untitled" && document.languageId !== "sql") {
+    if (
+      document.uri.scheme !== "untitled" &&
+      document.languageId !== "jinja-sql"
+    ) {
       return [];
     }
 
