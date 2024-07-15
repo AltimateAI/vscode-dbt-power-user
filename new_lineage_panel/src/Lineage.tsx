@@ -58,7 +58,6 @@ import { ActionWidget } from "./ActionWidget";
 import {
   CollectColumn,
   DEFAULT_MIN_ZOOM,
-  ViewsTypes,
   createTableNode,
   toggleColumnEdges,
   toggleModelEdges,
@@ -86,24 +85,6 @@ export interface MissingLineageMessage {
   message: string;
   type: "warning" | "error";
 }
-
-export type ViewsCodeModalArgs = {
-  table: string;
-  column: string;
-  viewsType: ViewsTypes;
-  viewsCode: Record<string, [string, string][]>;
-  nodeType: string;
-};
-
-export type OpNodeArgs = {
-  op_type: string;
-  op_code: string;
-};
-
-export type ModalArgs =
-  | { type: "none" }
-  | { type: "views_code"; args: ViewsCodeModalArgs }
-  | { type: "op_node"; args: OpNodeArgs };
 
 const noop = () => {};
 
@@ -142,8 +123,6 @@ export const LineageContext = createContext<{
   setNonSelectCheck: Dispatch<boolean>;
   defaultExpansion: number;
   setDefaultExpansion: Dispatch<number>;
-  modalArgs: ModalArgs;
-  setModalArgs: Dispatch<SetStateAction<ModalArgs>>;
 }>({
   selectedTable: "",
   setSelectedTable: noop,
@@ -172,8 +151,6 @@ export const LineageContext = createContext<{
   setNonSelectCheck: noop,
   defaultExpansion: 0,
   setDefaultExpansion: noop,
-  modalArgs: { type: "none" },
-  setModalArgs: noop,
 });
 
 export type Details = Record<
@@ -234,7 +211,6 @@ export const Lineage = () => {
   const [defaultExpansion, setDefaultExpansion] = useState(5);
   const [nodeCount, setNodeCount] = useState(0);
   const [minRange, setMinRange] = useState<[number, number]>([0, 0]);
-  const [modalArgs, setModalArgs] = useState<ModalArgs>({ type: "none" });
 
   useEffect(() => {
     const render = async (args: {
@@ -438,8 +414,6 @@ export const Lineage = () => {
         setNonSelectCheck,
         defaultExpansion,
         setDefaultExpansion,
-        modalArgs,
-        setModalArgs,
       }}
     >
       <PopoverContext.Provider value={{ isOpen, setIsOpen }}>

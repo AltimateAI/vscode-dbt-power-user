@@ -27,7 +27,7 @@ import {
   staticProcessColumnLineage,
 } from "./graph";
 import { Details, StaticLineageContext, setDarkMode } from "./Lineage";
-import { SidebarModal } from "./components/Modal";
+import { Modal, SidebarModal } from "./components/Modal";
 import { StaticTableDetails } from "./TableDetails";
 import { handleResponse, openURL } from "./service_utils";
 import { ActionButton } from "./ActionWidget";
@@ -247,6 +247,7 @@ const StaticLineage: FunctionComponent<StaticLineageProps> = ({
       >
         {Boolean(selectedTable) && <StaticTableDetails />}
       </SidebarModal>
+      <Modal isOpen={false} close={() => {}} />
       <LineageModal />
     </StaticLineageContext.Provider>
   );

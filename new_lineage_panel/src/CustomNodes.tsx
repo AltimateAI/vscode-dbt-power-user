@@ -57,6 +57,7 @@ import {
 } from "./components/Column";
 import CodeIcon from "./assets/icons/code.svg?react";
 import { Tooltip, ViewsTypeBadge } from "./components";
+import { ModalContext } from "./Modals";
 
 const HANDLE_OFFSET = "-1px";
 
@@ -498,8 +499,9 @@ export const SelfConnectingEdge: FunctionComponent<EdgeProps> = (props) => {
 
 export const ColumnNode: FunctionComponent<NodeProps> = ({ data }) => {
   const { column, table, viewsType, viewsCode, nodeType } = data;
-  const { selectedColumn, setSelectedTable, setSelectedColumn, setModalArgs } =
+  const { selectedColumn, setSelectedTable, setSelectedColumn } =
     useContext(LineageContext);
+  const { setModalArgs } = useContext(ModalContext);
   const isSelected =
     selectedColumn.table === table && selectedColumn.name === column;
 
@@ -582,7 +584,7 @@ export const SQL_ICONS: Record<string, React.ReactNode> = {
 };
 
 export const OpNode: FunctionComponent<NodeProps> = ({ data }) => {
-  const { setModalArgs } = useContext(LineageContext);
+  const { setModalArgs } = useContext(ModalContext);
   const { type, expression } = data;
   const isDarkMode = getDarkMode();
   return (
@@ -595,7 +597,6 @@ export const OpNode: FunctionComponent<NodeProps> = ({ data }) => {
             isDarkMode ? styles.dark_mode : styles.light_mode
           )}
           onClick={() => {
-            console.log("onCLicks")
             setModalArgs({
               type: "op_node",
               args: { op_code: expression, op_type: type },

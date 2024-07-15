@@ -1,12 +1,41 @@
-import { useContext, useMemo } from "react";
+import {
+  createContext,
+  Dispatch,
+  SetStateAction,
+  useContext,
+  useMemo,
+} from "react";
 import { CodeBlock, ViewsTypeBadge } from "./components";
-import { LineageContext, OpNodeArgs, ViewsCodeModalArgs } from "./Lineage";
-import { Modal, ModalBody } from "reactstrap";
 import styles from "./styles.module.scss";
 import { HeaderSection } from "./TableDetails";
 import CloseIcon from "./assets/icons/x-close.svg?react";
 import { useReactFlow } from "reactflow";
 import { SQL_ICONS } from "./CustomNodes";
+import { ViewsTypes } from "./utils";
+import { Modal, ModalBody } from "reactstrap";
+
+export type ViewsCodeModalArgs = {
+  table: string;
+  column: string;
+  viewsType: ViewsTypes;
+  viewsCode: Record<string, [string, string][]>;
+  nodeType: string;
+};
+
+export type OpNodeArgs = {
+  op_type: string;
+  op_code: string;
+};
+
+export type ModalArgs =
+  | { type: "none" }
+  | { type: "views_code"; args: ViewsCodeModalArgs }
+  | { type: "op_node"; args: OpNodeArgs };
+
+export const ModalContext = createContext<{
+  modalArgs: ModalArgs;
+  setModalArgs: Dispatch<SetStateAction<ModalArgs>>;
+}>({ modalArgs: { type: "none" }, setModalArgs: () => {} });
 
 function ViewsCodeModal({
   viewsCodeArgs,
@@ -78,13 +107,12 @@ function OpNodeModal({ opNodeArgs }: { opNodeArgs: OpNodeArgs }) {
 }
 
 export function LineageModal() {
-  const { modalArgs, setModalArgs } = useContext(LineageContext);
-  console.log("thishishis", modalArgs)
+  const { modalArgs, setModalArgs } = useContext(ModalContext);
   return (
     <Modal
       size="lg"
       isOpen={modalArgs.type !== "none"}
-      toggle={() => setModalArgs({ type: "none" })}
+      close={() => setModalArgs({ type: "none" })}
       centered
       unmountOnClose
       scrollable
