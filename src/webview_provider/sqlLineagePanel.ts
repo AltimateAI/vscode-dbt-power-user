@@ -29,6 +29,7 @@ import { QueryManifestService } from "../services/queryManifestService";
 type SQLLineage = {
   tableEdges: [string, string][];
   details: Details;
+  nodePositions?: Record<string, [number, number]>;
   errorMessage?: undefined;
 };
 
@@ -173,7 +174,7 @@ export class SQLLineagePanel implements Disposable {
       model_dialect: project.getAdapterType(),
       session_id: sessionId,
     });
-    const { details } = response;
+    const { details, nodePositions } = response;
 
     const nodeMapping: Record<string, { nodeType: string; nodeId: string }> =
       {};
@@ -229,7 +230,11 @@ export class SQLLineagePanel implements Disposable {
         details[k]["name"] = modelName;
       }
     }
-    return { tableEdges, details };
+    if (nodePositions) {
+      nodePositions[modelName] = nodePositions[FINAL_SELECT];
+      delete nodePositions[FINAL_SELECT];
+    }
+    return { tableEdges, details, nodePositions };
   }
 
   resolveWebviewView(
