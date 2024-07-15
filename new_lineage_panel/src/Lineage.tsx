@@ -308,7 +308,7 @@ export const Lineage = () => {
       setDefaultExpansion(settings.defaultExpansion);
     };
 
-    const commandMap = {
+    const commandMap = new Map(Object.entries({
       render,
       response: handleResponse,
       setTheme,
@@ -322,13 +322,13 @@ export const Lineage = () => {
         }
         columnLineage(data);
       },
-    };
+    }));
 
     const executeHostCommands = async (event: MessageEvent) => {
       console.log("lineage:message -> ", event.data);
       const { command, args } = event.data;
-      if ((command as string) in commandMap) {
-        const action = commandMap[command as keyof typeof commandMap];
+      if (commandMap.has(command)) {
+        const action = commandMap.get(command);
         if (typeof action === "function") {
           await action(args);
         }
