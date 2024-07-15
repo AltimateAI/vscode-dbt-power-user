@@ -9,6 +9,7 @@ export interface QueryHistory {
   duration: number;
   adapter: string;
   projectName: string;
+  modelName: string;
 }
 
 export interface QueryBookmarkResponse {

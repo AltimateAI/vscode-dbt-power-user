@@ -238,6 +238,7 @@ export interface ExecuteSQLResult {
   };
   raw_sql: string;
   compiled_sql: string;
+  modelName: string;
 }
 
 export class ExecuteSQLError extends Error {

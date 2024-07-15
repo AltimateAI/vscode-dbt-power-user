@@ -423,7 +423,7 @@ export class DBTCoreProjectIntegration
         } finally {
           await queryThread.end();
         }
-        return { ...result, compiled_stmt: compiledQuery };
+        return { ...result, compiled_stmt: compiledQuery, modelName };
       },
     );
   }

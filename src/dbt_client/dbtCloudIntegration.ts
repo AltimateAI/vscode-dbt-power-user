@@ -303,6 +303,7 @@ export class DBTCloudProjectIntegration
           },
           compiled_sql: compiledSql,
           raw_sql: query,
+          modelName,
         };
       },
     );
