@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Control, Controller } from "react-hook-form";
 import { SaveRequest } from "../types";
 import { sendTelemetryEvent } from "../../telemetry";
-import { TelemetryEvents } from "../../../../../../../src/telemetry/events";
+import { TelemetryEvents } from "@telemetryEvents";
 
 interface Props {
   control: Control<SaveRequest, unknown>;

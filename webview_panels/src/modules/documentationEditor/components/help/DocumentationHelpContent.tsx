@@ -1,7 +1,7 @@
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { Alert, Button, Stack } from "@uicore";
-import { TelemetryEvents } from "../../../../../../src/telemetry/events";
+import { TelemetryEvents } from "@telemetryEvents";
 import { sendTelemetryEvent } from "../telemetry";
 
 const DocumentationHelpContent = ({

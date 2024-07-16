@@ -6,7 +6,7 @@ import { RequestTypes } from "@modules/dataPilot/types";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { sendTelemetryEvent } from "../telemetry";
-import { TelemetryEvents } from "../../../../../../src/telemetry/events";
+import { TelemetryEvents } from "@telemetryEvents";
 
 interface Props {
   column: string;

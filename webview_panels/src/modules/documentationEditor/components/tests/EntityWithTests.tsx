@@ -9,7 +9,7 @@ import classes from "../../styles.module.scss";
 import useDocumentationContext from "@modules/documentationEditor/state/useDocumentationContext";
 import { TestsIcon } from "@assets/icons";
 import { sendTelemetryEvent } from "../telemetry";
-import { TelemetryEvents } from "../../../../../../src/telemetry/events";
+import { TelemetryEvents } from "@telemetryEvents";
 
 interface Props {
   title: string;

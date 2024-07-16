@@ -5,7 +5,7 @@ import { sendTelemetryEvent } from "@modules/documentationEditor/components/tele
 import { Pages } from "@modules/documentationEditor/state/types";
 import { Button, ButtonGroup, Drawer } from "@uicore";
 import { useState } from "react";
-import { TelemetryEvents } from "../../../../src/telemetry/events";
+import { TelemetryEvents } from "@telemetryEvents";
 
 const HelpButton = (): JSX.Element => {
   const [selectedPage, setSelectedPage] = useState(Pages.DOCUMENTATION);

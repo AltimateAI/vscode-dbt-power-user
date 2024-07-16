@@ -17,7 +17,7 @@ import { useEffect, useMemo } from "react";
 import useTestFormSave, { TestOperation } from "../hooks/useTestFormSave";
 import { SaveRequest } from "../types";
 import { sendTelemetryEvent } from "../../telemetry";
-import { TelemetryEvents } from "../../../../../../../src/telemetry/events";
+import { TelemetryEvents } from "@telemetryEvents";
 
 interface Props {
   formType: DbtGenericTests;

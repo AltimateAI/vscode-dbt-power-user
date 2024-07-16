@@ -11,7 +11,7 @@ import useDocumentationContext from "@modules/documentationEditor/state/useDocum
 import { updateUserInstructions } from "@modules/documentationEditor/state/documentationSlice";
 import { panelLogger } from "@modules/logger";
 import { sendTelemetryEvent } from "../telemetry";
-import { TelemetryEvents } from "../../../../../../src/telemetry/events";
+import { TelemetryEvents } from "@telemetryEvents";
 
 const DocGeneratorSettings = (): JSX.Element => {
   const {

@@ -1,5 +1,5 @@
 import { Stack } from "@uicore";
-import { TelemetryEvents } from "../../../../../../src/telemetry/events";
+import { TelemetryEvents } from "@telemetryEvents";
 import { sendTelemetryEvent } from "../telemetry";
 
 const TestHelpContent = (): JSX.Element => {

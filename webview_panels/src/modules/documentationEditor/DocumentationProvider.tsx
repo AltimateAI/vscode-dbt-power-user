@@ -34,7 +34,7 @@ import { ContextProps } from "./types";
 import { getGenerationsInModel } from "./utils";
 import DocumentationEditor from "./DocumentationEditor";
 import { ConversationGroup, DbtDocsShareDetails } from "@lib";
-import { TelemetryEvents } from "../../../../src/telemetry/events";
+import { TelemetryEvents } from "@telemetryEvents";
 import { sendTelemetryEvent } from "./components/telemetry";
 
 export const DocumentationContext = createContext<ContextProps>({

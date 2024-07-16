@@ -1,5 +1,5 @@
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
-import { TelemetryEvents } from "../../../../../../src/telemetry/events";
+import { TelemetryEvents } from "@telemetryEvents";
 
 export const sendTelemetryEvent = (
   eventName: TelemetryEvents,

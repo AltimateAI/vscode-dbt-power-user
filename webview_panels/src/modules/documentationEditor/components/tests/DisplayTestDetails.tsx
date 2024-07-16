@@ -30,7 +30,7 @@ import { findDbtTestType } from "./utils";
 import TestDetails from "./TestDetails";
 import { EntityType } from "@modules/dataPilot/components/docGen/types";
 import { sendTelemetryEvent } from "../telemetry";
-import { TelemetryEvents } from "../../../../../../src/telemetry/events";
+import { TelemetryEvents } from "@telemetryEvents";
 
 const schema = Yup.object({
   to: Yup.string().optional(),

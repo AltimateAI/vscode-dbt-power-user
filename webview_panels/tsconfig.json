@@ -29,7 +29,8 @@
       "@assets/*": ["src/assets/*"],
       "@modules/*": ["src/modules/*"],
       "@testUtils": ["src/testUtils/index.ts"],
-      "@vscodeApi": ["src/modules/vscode/index.ts"]
+      "@vscodeApi": ["src/modules/vscode/index.ts"],
+      "@telemetryEvents": ["../src/telemetry/events.ts"]
     }
   },
   "include": ["src", "vite.config.ts", "../src/telemetry/events.ts"],
