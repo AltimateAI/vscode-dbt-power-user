@@ -9,11 +9,11 @@ import { TelemetryService } from "../telemetry";
 import { provideSingleton } from "../utils";
 import { AltimateWebviewProvider } from "./altimateWebviewProvider";
 
-@provideSingleton(HomeViewProvider)
-export class HomeViewProvider extends AltimateWebviewProvider {
-  public static readonly viewType = "poweruser_home_view";
-  protected viewPath = "/home-view";
-  protected panelDescription = "dbt Power user home view";
+@provideSingleton(DbtPowerUserViewProvider)
+export class DbtPowerUserViewProvider extends AltimateWebviewProvider {
+  public static readonly viewType = "dbt_poweruser_view";
+  protected viewPath = "/dbtPowerUser-view";
+  protected panelDescription = "";
 
   public constructor(
     protected dbtProjectContainer: DBTProjectContainer,
@@ -37,8 +37,8 @@ export class HomeViewProvider extends AltimateWebviewProvider {
     this._disposables.push(
       workspace.onDidChangeConfiguration(
         (e) => {
-          if (e.affectsConfiguration("dbt.enableHomeView")) {
-            this.updateEnableHomeviewInContext();
+          if (e.affectsConfiguration("dbt.enableNewDbtPoweruserView")) {
+            this.updateEnableNewDbtPoweruserViewInContext();
             if (this._panel) {
               this.renderWebviewView(this._panel.webview);
             }
@@ -48,15 +48,17 @@ export class HomeViewProvider extends AltimateWebviewProvider {
         this._disposables,
       ),
     );
-    this.updateEnableHomeviewInContext();
+    this.updateEnableNewDbtPoweruserViewInContext();
   }
 
-  private updateEnableHomeviewInContext() {
+  private updateEnableNewDbtPoweruserViewInContext() {
     // Setting this here to access it in package.json for enabling new file command
     commands.executeCommand(
       "setContext",
-      "dbt.enableHomeView",
-      workspace.getConfiguration("dbt").get<boolean>("enableHomeView", false),
+      "dbt.enableNewDbtPoweruserView",
+      workspace
+        .getConfiguration("dbt")
+        .get<boolean>("enableNewDbtPoweruserView", false),
     );
   }
 }
