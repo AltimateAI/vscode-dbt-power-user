@@ -19,7 +19,7 @@ import HomeView from "@modules/home/HomeView";
 // The key should be used as viewPath value in providers ex: src/webview_provider/insightsPanel.ts
 export const AvailableRoutes = {
   "/": { component: <Home /> },
-  "/home": { component: <HomeView /> },
+  "/home-view": { component: <HomeView /> },
   "/insights": { component: <Insights /> },
   "/datapilot": { component: <DataPilotPanel /> },
   "/docs-generator": {

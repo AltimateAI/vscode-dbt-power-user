@@ -76,6 +76,11 @@
             "description": "Enable dbt docs collaboration.",
             "default": true
           },
+          "dbt.enableHomeView": {
+            "type": "boolean",
+            "description": "Enable Home view in dbt Power User.",
+            "default": false
+          },
           "dbt.enableQueryBookmarks": {
             "type": "boolean",
             "description": "Enable Query history and bookmarks feature",
@@ -284,7 +289,8 @@
         {
           "type": "webview",
           "id": "poweruser_home_view",
-          "name": "Home"
+          "name": "Home",
+          "when": "dbt.enableHomeView == true"
         },
         {
           "id": "model_test_treeview",

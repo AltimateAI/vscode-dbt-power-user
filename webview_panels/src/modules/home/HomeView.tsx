@@ -1,5 +1,5 @@
 const HomeView = (): JSX.Element => {
-  return <div>HomeView</div>;
+  return <div>Home View</div>;
 };
 
 export default HomeView;
