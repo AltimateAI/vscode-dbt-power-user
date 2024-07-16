@@ -16,7 +16,7 @@ import {
   workspace,
   env,
 } from "vscode";
-import { AltimateRequest, ModelInfo, ModelNode } from "../altimate";
+import { AltimateRequest, ModelInfo } from "../altimate";
 import {
   ExposureMetaData,
   GraphMetaMap,
@@ -30,7 +30,6 @@ import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { LineagePanelView } from "./lineagePanel";
 import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
-import { PythonException } from "python-bridge";
 import { AbortError } from "node-fetch";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
@@ -577,12 +576,29 @@ export class NewLineagePanel implements LineagePanelView {
       if (!node) {
         continue;
       }
-      modelInfos.push({
-        compiled_sql: modelsToCompile.includes(key)
-          ? mappedCompiledSql[key]
-          : undefined,
-        model_node: node,
-      });
+      if (modelsToCompile.includes(key)) {
+        // rawSql only for debuging propose in backend
+        let rawSql: string = "";
+        if (node.path) {
+          try {
+            rawSql = (
+              await workspace.fs.readFile(Uri.file(node.path))
+            ).toString();
+          } catch (e) {
+            this.terminal.warn(
+              "readRawSql",
+              `Unable to read raw sql file ${node.path}`,
+            );
+          }
+        }
+        modelInfos.push({
+          model_node: node,
+          compiled_sql: mappedCompiledSql[key],
+          raw_sql: rawSql,
+        });
+      } else {
+        modelInfos.push({ model_node: node });
+      }
     }
 
     if (relationsWithoutColumns.length !== 0) {
