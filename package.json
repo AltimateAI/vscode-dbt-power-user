@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/AltimateAI/vscode-dbt-power-user/issues"
   },
-  "version": "0.42.1",
+  "version": "0.42.2",
   "engines": {
     "vscode": "^1.81.0"
   },
@@ -89,7 +89,7 @@
           "dbt.lineage.showNonSelectEdges": {
             "type": "boolean",
             "description": "Show non-select edges in lineage panel.",
-            "default": true
+            "default": false
           },
           "dbt.lineage.defaultExpansion": {
             "type": "number",
@@ -1171,7 +1171,7 @@
     "lint-staged": "^15.2.5",
     "mocha": "^10.3.0",
     "ovsx": "^0.8.4",
-    "prettier": "^3.3.2",
+    "prettier": "^3.3.3",
     "prettier-eslint": "^15.0.1",
     "prettier-plugin-organize-imports": "^3.2.4",
     "terser-webpack-plugin": "^5.3.10",
