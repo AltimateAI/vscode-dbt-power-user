@@ -408,6 +408,16 @@ export class VSCodeCommands implements Disposable {
           );
           this.dbtTerminal.logNewLine();
 
+          // Printing env vars
+          this.dbtTerminal.logBlockWithHeader(
+            [
+              "Printing all python paths...",
+              "* Please remove any sensitive information before sending it to us",
+            ],
+            this.pythonEnvironment.allPythonPaths.map(({ path }) => path),
+          );
+          this.dbtTerminal.logNewLine();
+
           // Printing extension settings
           const dbtSettings = workspace.getConfiguration().inspect("dbt");
           const globalValue: any = dbtSettings?.globalValue || {};

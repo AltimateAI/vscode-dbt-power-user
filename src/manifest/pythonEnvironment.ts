@@ -17,6 +17,7 @@ export class PythonEnvironment implements Disposable {
   private executionDetails?: PythonExecutionDetails;
   private disposables: Disposable[] = [];
   private environmentVariableSource: Record<string, EnvFrom> = {};
+  public allPythonPaths: { path: string; pathType: string }[] = [];
   constructor(
     private telemetry: TelemetryService,
     private commandProcessExecutionFactory: CommandProcessExecutionFactory,
@@ -117,6 +118,7 @@ export class PythonEnvironment implements Disposable {
     await extension.exports.ready;
 
     const api = extension.exports;
+    this.allPythonPaths = await api.environment.getEnvironmentPaths();
 
     const dbtInstalledPythonPath: string[] = [];
     // TODO: support multiple workspacefolders for python detection
