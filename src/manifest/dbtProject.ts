@@ -180,7 +180,6 @@ export class DBTProject implements Disposable {
 
     watcher.onDidChange((e) => this.invalidateCacheUsingLastRun(e));
     watcher.onDidCreate((e) => this.invalidateCacheUsingLastRun(e));
-    watcher.onDidDelete((e) => this.invalidateCacheUsingLastRun(e));
     return watcher;
   }
 
