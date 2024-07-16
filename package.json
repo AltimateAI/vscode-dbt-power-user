@@ -282,6 +282,11 @@
     "views": {
       "dbt_view": [
         {
+          "type": "webview",
+          "id": "poweruser_home_view",
+          "name": "Home"
+        },
+        {
           "id": "model_test_treeview",
           "name": "Model Tests"
         },
