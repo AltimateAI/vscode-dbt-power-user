@@ -428,7 +428,6 @@ export const StaticTableDetails = () => {
   const { sql, type, nodeId } = table;
   const [columns, setColumns] = useState(_columns);
   const [filteredColumn, setFilteredColumn] = useState(columns);
-  console.log(columns, filteredColumn);
   return (
     <div className="p-2 h-100 d-flex flex-column gap-md overflow-y">
       <HeaderSection
