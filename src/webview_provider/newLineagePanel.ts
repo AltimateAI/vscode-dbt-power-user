@@ -256,7 +256,7 @@ export class NewLineagePanel implements LineagePanelView {
           status: true,
           body: {
             showSelectEdges: config.get("showSelectEdges", true),
-            showNonSelectEdges: config.get("showNonSelectEdges", true),
+            showNonSelectEdges: config.get("showNonSelectEdges", false),
             defaultExpansion: config.get("defaultExpansion", 1),
           },
         },
@@ -546,89 +546,44 @@ export class NewLineagePanel implements LineagePanelView {
     const modelsToFetch = Array.from(
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
     );
-    let startTime = Date.now();
-    const { mappedNode, relationsWithoutColumns } =
+    const { mappedNode, relationsWithoutColumns, mappedCompiledSql } =
       await project.getNodesWithDBColumns(
         event,
         modelsToFetch,
         this.cancellationTokenSource!.token,
       );
-    const schemaFetchingTime = Date.now() - startTime;
 
     const selected_column = {
       model_node: mappedNode[selectedColumn.table],
       column: selectedColumn.name,
     };
 
-    const addToModelInfo = async (key: string) => {
-      const node = mappedNode[key];
-      if (!node) {
-        return;
-      }
+    if (this.cancellationTokenSource?.token.isCancellationRequested) {
+      return { column_lineage: [] };
+    }
 
+    const modelsToCompile = modelsToFetch.filter((key) => {
       if (!sqlTables.includes(key)) {
-        modelInfos.push({ model_node: node });
-        return;
+        return false;
       }
-
       const nodeType = key.split(".")[0];
       if (!canCompileSQL(nodeType)) {
-        modelInfos.push({ model_node: node });
-        return;
+        return false;
       }
-      const compiledSql = await project.unsafeCompileNode(node.name);
-      let rawSql: string = "";
-      if (node.path) {
-        rawSql = (await workspace.fs.readFile(Uri.file(node.path))).toString();
+      return true;
+    });
+    for (const key of modelsToFetch) {
+      const node = mappedNode[key];
+      if (!node) {
+        continue;
       }
       modelInfos.push({
-        compiled_sql: compiledSql,
+        compiled_sql: modelsToCompile.includes(key)
+          ? mappedCompiledSql[key]
+          : undefined,
         model_node: node,
-        raw_sql: rawSql,
       });
-    };
-    startTime = Date.now();
-    try {
-      for (const key of modelsToFetch) {
-        if (this.cancellationTokenSource?.token.isCancellationRequested) {
-          return { column_lineage: [] };
-        }
-        await addToModelInfo(key);
-      }
-    } catch (exc) {
-      if (exc instanceof PythonException) {
-        window.showErrorMessage(
-          extendErrorWithSupportLinks(
-            `An error occured while trying to compute lineage of your model: ` +
-              exc.exception.message +
-              ".",
-          ),
-        );
-        this.telemetry.sendTelemetryError(
-          "columnLineageCompileNodePythonError",
-          exc,
-        );
-        this.terminal.debug(
-          "newLineagePanel:getConnectedColumns",
-          "Error encountered while compiling/retrieving schema for model: " +
-            exc.exception.message,
-          exc,
-        );
-        return;
-      }
-      this.telemetry.sendTelemetryError(
-        "columnLineageCompileNodeUnknownError",
-        exc,
-      );
-      // Unknown error
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "Column lineage failed: " + (exc as Error).message,
-        ),
-      );
-      return;
     }
-    const sqlCompilingTime = Date.now() - startTime;
 
     if (relationsWithoutColumns.length !== 0) {
       window.showErrorMessage(
@@ -687,7 +642,7 @@ export class NewLineagePanel implements LineagePanelView {
         "request",
         request,
       );
-      startTime = Date.now();
+      const startTime = Date.now();
       const result = await this.altimate.getColumnLevelLineage(request);
       const apiTime = Date.now() - startTime;
       this.terminal.debug(
@@ -697,14 +652,10 @@ export class NewLineagePanel implements LineagePanelView {
       );
       this.telemetry.sendTelemetryEvent("columnLineageTimes", {
         apiTime: apiTime.toString(),
-        sqlCompilingTime: sqlCompilingTime.toString(),
-        schemaFetchingTime: schemaFetchingTime.toString(),
         modelInfosLength: modelInfos.length.toString(),
       });
       console.log("lineageTimings:", {
         apiTime: apiTime.toString(),
-        sqlCompilingTime: sqlCompilingTime.toString(),
-        schemaFetchingTime: schemaFetchingTime.toString(),
         modelInfosLength: modelInfos.length.toString(),
       });
       if (!result.errors_dict && result.errors && result.errors.length > 0) {
