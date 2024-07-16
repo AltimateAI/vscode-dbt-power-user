@@ -299,27 +299,6 @@ export class SQLLineagePanel implements Disposable {
       });
       return;
     }
-
-    if (command === "getLineageSettings") {
-      const config = workspace.getConfiguration("dbt.lineage");
-      this._panel?.webview.postMessage({
-        command: "response",
-        args: {
-          id,
-          status: true,
-          body: {
-            showSelectEdges: config.get("showSelectEdges", true),
-            showNonSelectEdges: config.get("showNonSelectEdges", true),
-            defaultExpansion: config.get("defaultExpansion", 1),
-            useSchemaForQueryVisualizer: config.get(
-              "useSchemaForQueryVisualizer",
-              false,
-            ),
-          },
-        },
-      });
-      return;
-    }
   };
 
   private async addModelColumnsFromDB(project: DBTProject, node: NodeMetaData) {
