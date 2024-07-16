@@ -256,7 +256,7 @@ export class NewLineagePanel implements LineagePanelView {
           status: true,
           body: {
             showSelectEdges: config.get("showSelectEdges", true),
-            showNonSelectEdges: config.get("showNonSelectEdges", true),
+            showNonSelectEdges: config.get("showNonSelectEdges", false),
             defaultExpansion: config.get("defaultExpansion", 1),
           },
         },
