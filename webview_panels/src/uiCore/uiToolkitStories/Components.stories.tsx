@@ -1,4 +1,10 @@
-import { LikeIcon, SettingsIcon, ShinesIcon, PreviewIcon } from "@assets/icons";
+import {
+  LikeIcon,
+  SettingsIcon,
+  ShinesIcon,
+  PreviewIcon,
+  FileCodeIcon,
+} from "@assets/icons";
 import type { Meta } from "@storybook/react";
 import {
   Button,
@@ -18,6 +24,9 @@ import {
   Stack,
   Tag,
 } from "..";
+import Treeview from "../components/treeview";
+import { panelLogger } from "@modules/logger";
+import { MouseEvent } from "react";
 
 const meta = {
   title: "UiToolKit/Components",
@@ -39,12 +48,50 @@ export const UIKit = {
       { value: "strawberry", label: "Strawberry" },
       { value: "vanilla", label: "Vanilla" },
     ];
+    const handleClick = (e: MouseEvent) => {
+      panelLogger.log("like clicked", e);
+    };
     return (
       <Container style={{ background: "var(--background--base)" }}>
         <CardTitle tag="h3">
           Components for VSCode Power user extension
         </CardTitle>
         <br />
+        <Stack>
+          <Treeview
+            data={[
+              { id: "1", name: "Unread" },
+              { id: "2", name: "Threads" },
+              {
+                id: "3",
+                name: "Chat Rooms",
+                children: [
+                  { id: "c1", name: "General" },
+                  { id: "c2", name: "Random" },
+                  { id: "c3", name: "Open Source Projects" },
+                ],
+              },
+              {
+                id: "4",
+                name: "Direct Messages",
+                children: [
+                  {
+                    id: "d1",
+                    icon: <FileCodeIcon />,
+                    name: "Alice",
+                    actions: [
+                      <IconButton key="like" onClick={handleClick}>
+                        <LikeIcon />
+                      </IconButton>,
+                    ],
+                  },
+                  { id: "d2", name: "Bob" },
+                  { id: "d3", name: "Charlie" },
+                ],
+              },
+            ]}
+          />
+        </Stack>
         <Stack>
           <Button color="primary">primary</Button>
           <Button>secondary</Button>

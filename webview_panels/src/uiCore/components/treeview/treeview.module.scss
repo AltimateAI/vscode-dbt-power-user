@@ -1,0 +1,6 @@
+.node {
+    cursor: pointer;
+    &:hover{
+        background-color: var(--vscode-list-hoverBackground);
+    }
+}
