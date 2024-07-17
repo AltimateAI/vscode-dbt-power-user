@@ -131,6 +131,7 @@ const BookmarkAccordion = ({
             key={bookmark.id}
             bookmark={bookmark}
             onSelect={onSelect}
+            isSharedView={privacy === "public"}
           />
         ))}
       </ListGroup>
