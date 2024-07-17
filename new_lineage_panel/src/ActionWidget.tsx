@@ -11,8 +11,19 @@ import ArrowLeftIcon from "./assets/icons/arrow-left.svg?react";
 import ArrowRightIcon from "./assets/icons/arrow-right.svg?react";
 import GearIcon from "./assets/icons/gear.svg?react";
 import styles from "./styles.module.scss";
-import { HELP_SIDEBAR, SETTINGS_SIDEBAR } from "./constants";
-import { init, openURL, setLegacyLineageView, CLL, requestExecutor } from "./service_utils";
+import {
+  FEEDBACK_SIDEBAR,
+  HELP_SIDEBAR,
+  RESET,
+  SETTINGS_SIDEBAR,
+} from "./constants";
+import {
+  init,
+  openURL,
+  setLegacyLineageView,
+  CLL,
+  requestExecutor,
+} from "./service_utils";
 import { LineageContext, MissingLineageMessage, aiEnabled } from "./Lineage";
 import { useReactFlow } from "reactflow";
 import {
@@ -65,10 +76,10 @@ const AutoExpansionPopover = () => {
 
   useEffect(() => {
     setLeftExpansion(
-      calculateExpand(minRange[0], maxRange[0], defaultExpansion)
+      calculateExpand(minRange[0], maxRange[0], defaultExpansion),
     );
     setRightExpansion(
-      calculateExpand(minRange[1], maxRange[1], defaultExpansion)
+      calculateExpand(minRange[1], maxRange[1], defaultExpansion),
     );
   }, [
     defaultExpansion,
@@ -86,8 +97,8 @@ const AutoExpansionPopover = () => {
           flow.getEdges(),
           selectedTable,
           leftExpansion,
-          rightExpansion
-        )
+          rightExpansion,
+        ),
       );
     })();
   }, [flow, leftExpansion, rightExpansion, selectedTable, setNodeCount]);
@@ -105,7 +116,7 @@ const AutoExpansionPopover = () => {
         edges,
         selectedTable,
         -Infinity,
-        Infinity
+        Infinity,
       );
       let minLevel = Infinity;
       let maxLevel = -Infinity;
@@ -176,7 +187,7 @@ const AutoExpansionPopover = () => {
                     e.stopPropagation();
                     if (!selectedTable) return;
                     setRightExpansion((i) =>
-                      i + 1 <= maxRange[1] ? i + 1 : i
+                      i + 1 <= maxRange[1] ? i + 1 : i,
                     );
                   }}
                 >
@@ -214,7 +225,7 @@ const AutoExpansionPopover = () => {
                 flow.getEdges(),
                 selectedTable,
                 selectedTableData.level - leftExpansion,
-                selectedTableData.level + rightExpansion
+                selectedTableData.level + rightExpansion,
               );
               highlightTableConnections(nodes, edges, selectedTable);
               layoutElementsOnCanvas(nodes, edges);
@@ -228,8 +239,8 @@ const AutoExpansionPopover = () => {
                   edges,
                   selectedTable,
                   leftExpansion,
-                  rightExpansion
-                )
+                  rightExpansion,
+                ),
               );
               rerender();
               close();
@@ -243,7 +254,11 @@ const AutoExpansionPopover = () => {
   );
 };
 
-export const ActionWidget = ({missingLineageMessage}: {missingLineageMessage?: MissingLineageMessage}) => {
+export const ActionWidget = ({
+  missingLineageMessage,
+}: {
+  missingLineageMessage?: MissingLineageMessage;
+}) => {
   const {
     selectedColumn,
     confidence,
@@ -254,9 +269,37 @@ export const ActionWidget = ({missingLineageMessage}: {missingLineageMessage?: M
   } = useContext(LineageContext);
   const flow = useReactFlow();
 
+  type ButtonTextVisibility = {
+    [key: string]: boolean;
+  };
+  const [buttonTextVisibility, setButtonTextVisibility] =
+    useState<ButtonTextVisibility>({
+      COLUMNS_SIDEBAR: false,
+      EXPOSURE_SIDEBAR: false,
+      TABLES_SIDEBAR: false,
+      FEEDBACK_SIDEBAR: false,
+      HELP_SIDEBAR: false,
+      SETTINGS_SIDEBAR: false,
+      RESET: false,
+    });
+
+  const handleMouseIn = (buttonName: string) => {
+    setButtonTextVisibility((prevState) => ({
+      ...prevState,
+      [buttonName]: true,
+    }));
+  };
+
+  const handleMouseOut = (buttonName: string) => {
+    setButtonTextVisibility((prevState) => ({
+      ...prevState,
+      [buttonName]: false,
+    }));
+  };
+
   const openProblemsTab = () => {
-    return requestExecutor("openProblemsTab", { });
-  }
+    return requestExecutor("openProblemsTab", {});
+  };
 
   return (
     <div className="top-right-container">
@@ -306,10 +349,15 @@ export const ActionWidget = ({missingLineageMessage}: {missingLineageMessage?: M
           </div>
         </CardBody>
       </Card>
-      <ActionButton onClick={() => setSidebarScreen(SETTINGS_SIDEBAR)}>
-        <GearIcon />
-        Settings
-      </ActionButton>
+      <div
+        onMouseEnter={() => handleMouseIn(SETTINGS_SIDEBAR)}
+        onMouseLeave={() => handleMouseOut(SETTINGS_SIDEBAR)}
+      >
+        <ActionButton onClick={() => setSidebarScreen(SETTINGS_SIDEBAR)}>
+          <GearIcon />
+          {buttonTextVisibility[SETTINGS_SIDEBAR] && "Settings"}
+        </ActionButton>
+      </div>
       <ActionButton
         onClick={() => {
           setLegacyLineageView();
@@ -318,39 +366,54 @@ export const ActionWidget = ({missingLineageMessage}: {missingLineageMessage?: M
       >
         Show Legacy UX
       </ActionButton>
-      <ActionButton onClick={() => setSidebarScreen(HELP_SIDEBAR)}>
-        <HelpIcon />
-        <span>Help</span>
-      </ActionButton>
-      <ActionButton
-        onClick={() => {
-          flow.setNodes([]);
-          flow.setEdges([]);
-          setSelectedColumn({ table: "", name: "" });
-          setCollectColumns({});
-          setMoreTables({});
-          init();
-          CLL.cancel();
-        }}
-        data-testid="reset-btn"
+      <div
+        onMouseEnter={() => handleMouseIn(HELP_SIDEBAR)}
+        onMouseLeave={() => handleMouseOut(HELP_SIDEBAR)}
       >
-        <ResetIcon />
-        <span>Reset</span>
-      </ActionButton>
-      <ActionButton
-        onClick={() => {
-          // setSidebarScreen(FEEDBACK_SIDEBAR);
-          // TODO: going to be deprecated
-          openURL(
-            aiEnabled
-              ? "https://docs.google.com/forms/d/e/1FAIpQLScsvmEdZ56F1GAFZq_SW7ejYe0dwpHe-N69qiQBz4ekN4gPNQ/viewform"
-              : "https://docs.google.com/forms/d/10_YT2XDwpbkDXio-7TEYPQXsJfCBFqYUa7t0ImzyZvE/viewform"
-          );
-        }}
+        <ActionButton onClick={() => setSidebarScreen(HELP_SIDEBAR)}>
+          <HelpIcon />
+          {buttonTextVisibility[HELP_SIDEBAR] && <span>Help</span>}
+        </ActionButton>
+      </div>
+      <div
+        onMouseEnter={() => handleMouseIn(RESET)}
+        onMouseLeave={() => handleMouseOut(RESET)}
       >
-        <FeedbackIcon />
-        <span>Feedback</span>
-      </ActionButton>
+        <ActionButton
+          onClick={() => {
+            flow.setNodes([]);
+            flow.setEdges([]);
+            setSelectedColumn({ table: "", name: "" });
+            setCollectColumns({});
+            setMoreTables({});
+            init();
+            CLL.cancel();
+          }}
+          data-testid="reset-btn"
+        >
+          <ResetIcon />
+          {buttonTextVisibility[RESET] && <span>Reset</span>}
+        </ActionButton>
+      </div>
+      <div
+        onMouseEnter={() => handleMouseIn(FEEDBACK_SIDEBAR)}
+        onMouseLeave={() => handleMouseOut(FEEDBACK_SIDEBAR)}
+      >
+        <ActionButton
+          onClick={() => {
+            // setSidebarScreen(FEEDBACK_SIDEBAR);
+            // TODO: going to be deprecated
+            openURL(
+              aiEnabled
+                ? "https://docs.google.com/forms/d/e/1FAIpQLScsvmEdZ56F1GAFZq_SW7ejYe0dwpHe-N69qiQBz4ekN4gPNQ/viewform"
+                : "https://docs.google.com/forms/d/10_YT2XDwpbkDXio-7TEYPQXsJfCBFqYUa7t0ImzyZvE/viewform",
+            );
+          }}
+        >
+          <FeedbackIcon />
+          {buttonTextVisibility[FEEDBACK_SIDEBAR] && <span>Feedback</span>}
+        </ActionButton>
+      </div>
     </div>
   );
 };

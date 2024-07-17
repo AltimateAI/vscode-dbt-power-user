@@ -5,6 +5,7 @@ export const TABLES_SIDEBAR = "tables";
 export const FEEDBACK_SIDEBAR = "feedback";
 export const HELP_SIDEBAR = "help";
 export const SETTINGS_SIDEBAR = "settings";
+export const RESET = "reset";
 
 // react flow prefix for node types
 export const COLUMN_PREFIX = "column-";
