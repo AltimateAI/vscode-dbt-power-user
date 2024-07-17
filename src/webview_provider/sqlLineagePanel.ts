@@ -29,6 +29,7 @@ import { UsersService } from "../services/usersService";
 type SQLLineage = {
   tableEdges: [string, string][];
   details: Details;
+  nodePositions?: Record<string, [number, number]>;
   errorMessage?: undefined;
 };
 
@@ -37,8 +38,8 @@ export class SQLLineagePanel
   extends AltimateWebviewProvider
   implements Disposable
 {
-  public static readonly viewType = "dbtPowerUser.SQLLineage";
   protected viewPath = "/lineage";
+  public static readonly viewType = "dbtPowerUser.sqlLineage";
   private disposables: Disposable[] = [];
   private activeTextEditor?: TextEditor;
 
@@ -163,7 +164,15 @@ export class SQLLineagePanel
     const config = workspace.getConfiguration("dbt.lineage");
     const modelId = currNode.uniqueId;
     const modelsToFetch = DBTProject.getNonEphemeralParents(event, [modelId]);
-    if (config.get("useSchemaForQueryVisualizer", false)) {
+    let shouldFetchSchema = false;
+    if (currNode.path) {
+      const sql = (
+        await workspace.fs.readFile(Uri.file(currNode.path))
+      ).toString();
+      shouldFetchSchema = !(await project.validateWhetherSqlHasColumns(sql));
+    }
+
+    if (config.get("useSchemaForQueryVisualizer", false) || shouldFetchSchema) {
       const { mappedNode } = await project.getNodesWithDBColumns(
         event,
         modelsToFetch,
@@ -179,7 +188,7 @@ export class SQLLineagePanel
       model_dialect: project.getAdapterType(),
       session_id: sessionId,
     });
-    const { details } = response;
+    const { details, nodePositions } = response;
 
     const nodeMapping: Record<string, { nodeType: string; nodeId: string }> =
       {};
@@ -235,7 +244,11 @@ export class SQLLineagePanel
         details[k]["name"] = modelName;
       }
     }
-    return { tableEdges, details };
+    if (nodePositions) {
+      nodePositions[modelName] = nodePositions[FINAL_SELECT];
+      delete nodePositions[FINAL_SELECT];
+    }
+    return { tableEdges, details, nodePositions };
   }
 
   async renderSqlVisualizer(

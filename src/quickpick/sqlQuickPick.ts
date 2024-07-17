@@ -75,6 +75,12 @@ export class DbtSQLAction {
             "Convert sql to dbt model (Preview feature)",
             "dbtPowerUser.sqlToModel",
           ),
+          new SQLActionItem(
+            "Visualize SQL",
+            new ThemeIcon("preview"),
+            "Visualize the sql query",
+            "dbtPowerUser.sqlLineage",
+          ),
         ];
 
         const project = this.getProject();

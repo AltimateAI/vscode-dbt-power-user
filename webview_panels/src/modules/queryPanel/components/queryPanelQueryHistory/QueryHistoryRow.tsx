@@ -34,6 +34,7 @@ const QueryHistoryRow = ({ queryHistory, onSelect }: Props): JSX.Element => {
         <ExecuteQueryButton
           query={queryHistory.rawSql}
           projectName={queryHistory.projectName}
+          editorName={queryHistory.modelName}
         />
         <BookmarkButton queryHistory={queryHistory} />
       </div>
