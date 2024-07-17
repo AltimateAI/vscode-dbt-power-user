@@ -154,9 +154,9 @@ const LineageView = (): JSX.Element | null => {
       <div className={styles.lineageWrap}>
         <Lineage
           theme={theme}
-          renderNode={renderNode}
+          dynamicLineage={renderNode}
           lineageType={lineageType}
-          staticLineage={
+          sqlLineage={
             lineageType === "static"
               ? (renderNode as StaticLineageProps)
               : undefined
