@@ -136,6 +136,18 @@ def fetch_schema_from_sql(sql: str, dialect: str):
             return fetch_schema(sql, dialect)
     except Exception as e:
         raise Exception(str(e))
+    
+def validate_whether_sql_has_columns(sql: str, dialect: str):
+    try:
+        ALTIMATE_PACKAGE_PATH = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "altimate_packages"
+        )
+        with add_path(ALTIMATE_PACKAGE_PATH):
+            from altimate.fetch_schema import validate_whether_sql_has_columns
+
+            return validate_whether_sql_has_columns(sql, dialect)
+    except Exception as e:
+        raise Exception(str(e))
 
 
 def to_dict(obj):

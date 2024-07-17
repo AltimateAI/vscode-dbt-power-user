@@ -1,23 +1,55 @@
-import { useContext, useMemo } from "react";
+import {
+  createContext,
+  Dispatch,
+  SetStateAction,
+  useContext,
+  useMemo,
+} from "react";
 import { CodeBlock, ViewsTypeBadge } from "./components";
-import { LineageContext } from "./Lineage";
-import { Modal, ModalBody } from "reactstrap";
 import styles from "./styles.module.scss";
 import { HeaderSection } from "./TableDetails";
 import CloseIcon from "./assets/icons/x-close.svg?react";
 import { useReactFlow } from "reactflow";
+import { SQL_ICONS } from "./CustomNodes";
+import { ViewsTypes } from "./utils";
+import { Modal, ModalBody } from "reactstrap";
 
-export function ViewsCodeModal() {
-  const { viewsCodeModal, setViewsCodeModal } = useContext(LineageContext);
+export type ViewsCodeModalArgs = {
+  table: string;
+  column: string;
+  viewsType: ViewsTypes;
+  viewsCode: Record<string, [string, string][]>;
+  nodeType: string;
+};
 
+export type OpNodeArgs = {
+  op_type: string;
+  op_code: string;
+};
+
+export type ModalArgs =
+  | { type: "none" }
+  | { type: "views_code"; args: ViewsCodeModalArgs }
+  | { type: "op_node"; args: OpNodeArgs };
+
+export const ModalContext = createContext<{
+  modalArgs: ModalArgs;
+  setModalArgs: Dispatch<SetStateAction<ModalArgs>>;
+}>({ modalArgs: { type: "none" }, setModalArgs: () => {} });
+
+function ViewsCodeModal({
+  viewsCodeArgs,
+}: {
+  viewsCodeArgs: ViewsCodeModalArgs;
+}) {
   const flow = useReactFlow();
   const table = useMemo(() => {
-    if (!viewsCodeModal) return "";
-    return flow.getNode(viewsCodeModal.table)?.data?.label;
-  }, [flow, viewsCodeModal]);
+    if (!viewsCodeArgs) return "";
+    return flow.getNode(viewsCodeArgs.table)?.data?.label;
+  }, [flow, viewsCodeArgs]);
 
   const viewsCodesFlat = useMemo(() => {
-    const arr = Object.values(viewsCodeModal?.viewsCode || [])
+    const arr = Object.values(viewsCodeArgs?.viewsCode || [])
       .flat()
       .filter(([, type]) => type === "Transformation")
       .map(([code]) => code);
@@ -27,14 +59,60 @@ export function ViewsCodeModal() {
       result.push(item);
     }
     return result;
-  }, [viewsCodeModal?.viewsCode]);
+  }, [viewsCodeArgs?.viewsCode]);
 
-  if (!viewsCodeModal) return;
+  return (
+    <div className="d-flex flex-column gap-sm">
+      {table && (
+        <HeaderSection nodeType={viewsCodeArgs.nodeType} table={table} />
+      )}
+      <div className="d-flex flex-column gap-xs">
+        <div className="text-dark-grey fs-xs">Column</div>
+        <div className={styles.model_views_type}>{viewsCodeArgs.column}</div>
+      </div>
+      <div className="d-flex flex-column gap-xs">
+        <div className="text-dark-grey fs-xs">Type</div>
+        <div className={styles.model_views_type}>
+          <ViewsTypeBadge viewsType={viewsCodeArgs.viewsType} />
+          {viewsCodeArgs.viewsType}
+        </div>
+      </div>
+      {viewsCodesFlat.length > 0 && (
+        <div className="d-flex flex-column gap-xs">
+          <div className="text-dark-grey fs-xs">List of transformations</div>
+          {viewsCodesFlat.map((code) => (
+            <CodeBlock key={code} code={code} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OpNodeModal({ opNodeArgs }: { opNodeArgs: OpNodeArgs }) {
+  return (
+    <div className="d-flex flex-column gap-sm">
+      <div className={styles.table_details_header}>
+        {SQL_ICONS[opNodeArgs.op_type]}
+        <div className="d-flex align-items-center">
+          <div className="fw-semibold fs-5 lines-2">{opNodeArgs.op_type}</div>
+        </div>
+      </div>
+      <div className="d-flex flex-column gap-xs">
+        <div className="text-dark-grey fs-xs">Code</div>
+        <CodeBlock code={opNodeArgs.op_code} />
+      </div>
+    </div>
+  );
+}
+
+export function LineageModal() {
+  const { modalArgs, setModalArgs } = useContext(ModalContext);
   return (
     <Modal
       size="lg"
-      isOpen={Boolean(viewsCodeModal)}
-      toggle={() => setViewsCodeModal(null)}
+      isOpen={modalArgs.type !== "none"}
+      close={() => setModalArgs({ type: "none" })}
       centered
       unmountOnClose
       scrollable
@@ -43,38 +121,16 @@ export function ViewsCodeModal() {
       <ModalBody>
         <div
           className={styles.close_button}
-          onClick={() => setViewsCodeModal(null)}
+          onClick={() => setModalArgs({ type: "none" })}
         >
           <CloseIcon />
         </div>
-        <div className="d-flex flex-column gap-sm">
-          {table && (
-            <HeaderSection nodeType={viewsCodeModal.nodeType} table={table} />
-          )}
-          <div className="d-flex flex-column gap-xs">
-            <div className="text-dark-grey fs-xs">Column</div>
-            <div className={styles.model_views_type}>
-              {viewsCodeModal.column}
-            </div>
-          </div>
-          <div className="d-flex flex-column gap-xs">
-            <div className="text-dark-grey fs-xs">Type</div>
-            <div className={styles.model_views_type}>
-              <ViewsTypeBadge viewsType={viewsCodeModal.viewsType} />
-              {viewsCodeModal.viewsType}
-            </div>
-          </div>
-          {viewsCodesFlat.length > 0 && (
-            <div className="d-flex flex-column gap-xs">
-              <div className="text-dark-grey fs-xs">
-                List of transformations
-              </div>
-              {viewsCodesFlat.map((code) => (
-                <CodeBlock key={code} code={code} />
-              ))}
-            </div>
-          )}
-        </div>
+        {modalArgs.type === "views_code" && (
+          <ViewsCodeModal viewsCodeArgs={modalArgs.args} />
+        )}
+        {modalArgs.type === "op_node" && (
+          <OpNodeModal opNodeArgs={modalArgs.args} />
+        )}
       </ModalBody>
     </Modal>
   );

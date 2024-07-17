@@ -237,11 +237,3 @@ code[class*="language-"] {
   overflow: auto;
   word-break: break-word;
 }
-
-.react-flow__node {
-  z-index: -2 !important;
-}
-
-.react-flow__edge {
-  z-index: -1 !important;
-}

@@ -79,6 +79,7 @@ export class NodeParser {
           is_external_project: Boolean(
             externalProjectNames?.includes(package_name),
           ),
+          compiled_path: `${project.getTargetPath()}/compiled/${package_name}/${original_file_path}`,
         });
       }
       this.terminal.debug(

@@ -29,12 +29,13 @@ import { QueryManifestService } from "../services/queryManifestService";
 type SQLLineage = {
   tableEdges: [string, string][];
   details: Details;
+  nodePositions?: Record<string, [number, number]>;
   errorMessage?: undefined;
 };
 
 @provideSingleton(SQLLineagePanel)
 export class SQLLineagePanel implements Disposable {
-  public static readonly viewType = "dbtPowerUser.SQLLineage";
+  public static readonly viewType = "dbtPowerUser.sqlLineage";
   private disposables: Disposable[] = [];
   private _panel?: WebviewPanel;
   private activeTextEditor?: TextEditor;
@@ -149,7 +150,15 @@ export class SQLLineagePanel implements Disposable {
     const config = workspace.getConfiguration("dbt.lineage");
     const modelId = currNode.uniqueId;
     const modelsToFetch = DBTProject.getNonEphemeralParents(event, [modelId]);
-    if (config.get("useSchemaForQueryVisualizer", false)) {
+    let shouldFetchSchema = false;
+    if (currNode.path) {
+      const sql = (
+        await workspace.fs.readFile(Uri.file(currNode.path))
+      ).toString();
+      shouldFetchSchema = !(await project.validateWhetherSqlHasColumns(sql));
+    }
+
+    if (config.get("useSchemaForQueryVisualizer", false) || shouldFetchSchema) {
       const { mappedNode } = await project.getNodesWithDBColumns(
         event,
         modelsToFetch,
@@ -165,7 +174,7 @@ export class SQLLineagePanel implements Disposable {
       model_dialect: project.getAdapterType(),
       session_id: sessionId,
     });
-    const { details } = response;
+    const { details, nodePositions } = response;
 
     const nodeMapping: Record<string, { nodeType: string; nodeId: string }> =
       {};
@@ -221,7 +230,11 @@ export class SQLLineagePanel implements Disposable {
         details[k]["name"] = modelName;
       }
     }
-    return { tableEdges, details };
+    if (nodePositions) {
+      nodePositions[modelName] = nodePositions[FINAL_SELECT];
+      delete nodePositions[FINAL_SELECT];
+    }
+    return { tableEdges, details, nodePositions };
   }
 
   resolveWebviewView(
@@ -258,6 +271,13 @@ export class SQLLineagePanel implements Disposable {
     );
     const { command, args } = message;
     const { id, params } = args;
+    if (command === "openURL") {
+      if (!args.url) {
+        return;
+      }
+      env.openExternal(Uri.parse(args.url));
+      return;
+    }
     // common commands
     if (command === "openFile") {
       const { url } = args;
@@ -276,27 +296,6 @@ export class SQLLineagePanel implements Disposable {
       this._panel?.webview.postMessage({
         command: "response",
         args: { id, body, status: true },
-      });
-      return;
-    }
-
-    if (command === "getLineageSettings") {
-      const config = workspace.getConfiguration("dbt.lineage");
-      this._panel?.webview.postMessage({
-        command: "response",
-        args: {
-          id,
-          status: true,
-          body: {
-            showSelectEdges: config.get("showSelectEdges", true),
-            showNonSelectEdges: config.get("showNonSelectEdges", true),
-            defaultExpansion: config.get("defaultExpansion", 1),
-            useSchemaForQueryVisualizer: config.get(
-              "useSchemaForQueryVisualizer",
-              false,
-            ),
-          },
-        },
       });
       return;
     }

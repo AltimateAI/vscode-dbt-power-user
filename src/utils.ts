@@ -339,5 +339,5 @@ export function getFormattedDateTime(): string {
     .toLocaleTimeString("en-GB", { hour12: false })
     .replace(/:/g, "-");
 
-  return `${date}__${time}`;
+  return `${date}-${time}`;
 }
