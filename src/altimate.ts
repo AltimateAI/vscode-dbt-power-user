@@ -70,7 +70,7 @@ interface SQLLineageRequest {
   session_id: string;
 }
 
-export type Details = Record<
+export type SqlLineageDetails = Record<
   string,
   {
     name: string;
@@ -81,9 +81,9 @@ export type Details = Record<
     columns: { name: string; datatype?: string; expression?: string }[];
   }
 >;
-type StaticLineageResponse = {
+type SqlLineageResponse = {
   tableEdges: [string, string][];
-  details: Details;
+  details: SqlLineageDetails;
   nodePositions?: Record<string, [number, number]>;
 };
 
@@ -885,7 +885,7 @@ export class AltimateRequest {
   }
 
   async sqlLineage(req: SQLLineageRequest) {
-    return this.fetch<StaticLineageResponse>("dbt/v3/sql_lineage", {
+    return this.fetch<SqlLineageResponse>("dbt/v3/sql_lineage", {
       method: "POST",
       body: JSON.stringify(req),
     });
