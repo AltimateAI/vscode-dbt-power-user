@@ -7,8 +7,13 @@ import DeleteBookmarkButton from "./DeleteBookmarkButton";
 interface Props {
   bookmark: QueryBookmark;
   onSelect: (bookmark: QueryBookmark) => void;
+  isSharedView?: boolean;
 }
-const QueryBookmarkRow = ({ bookmark, onSelect }: Props): JSX.Element => {
+const QueryBookmarkRow = ({
+  bookmark,
+  onSelect,
+  isSharedView,
+}: Props): JSX.Element => {
   return (
     <ListGroupItem>
       <Stack onClick={() => onSelect(bookmark)}>
@@ -32,6 +37,10 @@ const QueryBookmarkRow = ({ bookmark, onSelect }: Props): JSX.Element => {
         </Stack>
       </Stack>
       <Stack>
+        {isSharedView ? (
+          <span className="me-2">{bookmark.created_by_user.first_name}</span>
+        ) : null}
+
         <span>
           {new Date(bookmark.created_on).toLocaleString("default", {
             hour: "2-digit",
@@ -43,7 +52,11 @@ const QueryBookmarkRow = ({ bookmark, onSelect }: Props): JSX.Element => {
             year: "2-digit",
           })}
         </span>
-        <ExecuteQueryButton query={bookmark.raw_sql} projectName={""} />
+        <ExecuteQueryButton
+          query={bookmark.raw_sql}
+          projectName={""}
+          editorName={bookmark.name}
+        />
         <BookmarkPrivacySettingButton bookmark={bookmark} />
         <DeleteBookmarkButton bookmark={bookmark} />
       </Stack>
