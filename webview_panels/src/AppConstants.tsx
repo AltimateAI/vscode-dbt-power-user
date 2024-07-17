@@ -5,7 +5,7 @@ import DocumentationProvider from "@modules/documentationEditor/DocumentationPro
 import DataPilotPanel from "@modules/dataPilot";
 import DbtDocsView from "@modules/dbtDocs/DbtDocsView";
 import QueryPanelProvider from "@modules/queryPanel/QueryPanelProvider";
-import HomeView from "@modules/home/HomeView";
+import DbtPowerUserView from "@modules/home/DbtPowerUserView";
 
 // TODO: lazy loading breaks loading dynamic webviews when having css because of vite dynamic loading
 // research on how to fix that and then use lazy loading
@@ -19,7 +19,7 @@ import HomeView from "@modules/home/HomeView";
 // The key should be used as viewPath value in providers ex: src/webview_provider/insightsPanel.ts
 export const AvailableRoutes = {
   "/": { component: <Home /> },
-  "/dbtPowerUser-view": { component: <HomeView /> },
+  "/dbtPowerUser-view": { component: <DbtPowerUserView /> },
   "/insights": { component: <Insights /> },
   "/datapilot": { component: <DataPilotPanel /> },
   "/docs-generator": {

@@ -4,10 +4,11 @@ import { NodeRendererProps, Tree } from "react-arborist";
 import { TreeProps } from "react-arborist/dist/module/types/tree-props";
 import styles from "./treeview.module.scss";
 
-interface NodeType extends Record<string, unknown> {
+export interface NodeType extends Record<string, unknown> {
   name: string;
   icon?: ReactNode;
   actions?: ReactNode[];
+  id: string;
 }
 const Node = ({ node, style, dragHandle }: NodeRendererProps<NodeType>) => {
   return (

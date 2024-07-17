@@ -407,11 +407,11 @@ class IconActionsTreeviewProvider implements TreeDataProvider<ActionTreeItem> {
   }
 }
 
-class ModelTreeItem extends NodeTreeItem {
+export class ModelTreeItem extends NodeTreeItem {
   contextValue = "model";
 }
 
-class SourceTreeItem extends NodeTreeItem {
+export class SourceTreeItem extends NodeTreeItem {
   iconPath = {
     light: path.join(
       path.resolve(__dirname),
@@ -422,7 +422,7 @@ class SourceTreeItem extends NodeTreeItem {
   contextValue = "source";
 }
 
-class SeedTreeItem extends NodeTreeItem {
+export class SeedTreeItem extends NodeTreeItem {
   iconPath = {
     light: path.join(path.resolve(__dirname), "../media/images/seed_light.svg"),
     dark: path.join(path.resolve(__dirname), "../media/images/seed_dark.svg"),
@@ -430,7 +430,7 @@ class SeedTreeItem extends NodeTreeItem {
   contextValue = "seed";
 }
 
-class SnapshotTreeItem extends NodeTreeItem {
+export class SnapshotTreeItem extends NodeTreeItem {
   contextValue = "snapshot";
   iconPath = {
     light: path.join(
@@ -444,7 +444,7 @@ class SnapshotTreeItem extends NodeTreeItem {
   };
 }
 
-class ExposureTreeItem extends NodeTreeItem {
+export class ExposureTreeItem extends NodeTreeItem {
   contextValue = "exposure";
   iconPath = {
     light: path.join(
@@ -458,11 +458,11 @@ class ExposureTreeItem extends NodeTreeItem {
   };
 }
 
-class AnalysisTreeItem extends NodeTreeItem {
+export class AnalysisTreeItem extends NodeTreeItem {
   contextValue = "analysis";
 }
 
-class TestTreeItem extends NodeTreeItem {
+export class TestTreeItem extends NodeTreeItem {
   iconPath = {
     light: path.join(
       path.resolve(__dirname),
