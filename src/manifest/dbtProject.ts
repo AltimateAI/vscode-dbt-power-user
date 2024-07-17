@@ -184,7 +184,7 @@ export class DBTProject implements Disposable {
   }
 
   private async invalidateCacheUsingLastRun(file: Uri) {
-    const fileContent = (await workspace.fs.readFile(file)).toString();
+    const fileContent = readFileSync(file.path, "utf8").toString();
     if (!fileContent) {
       return;
     }
