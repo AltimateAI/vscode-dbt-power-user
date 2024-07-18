@@ -2807,7 +2807,7 @@ code.highlight.source-code + span[id^="tooltip-"] {
   padding: 8px;
   background: var(--primary-accent, #247efe);
 }
-._component_1sc6a_1 {
+._component_13r39_1 {
   position: absolute;
   width: 100%;
   height: 100%;
@@ -2816,6 +2816,21 @@ code.highlight.source-code + span[id^="tooltip-"] {
   justify-content: center;
   align-items: center;
   flex-direction: column;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border-left-color: var(--primary-color);
+  margin: 0 auto;
+  animation: _spin_13r39_1 1s linear infinite;
+}
+@keyframes _spin_13r39_1 {
+  0% {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 ._level_tag_x6wwh_1 {
   width: min-content;

@@ -200,6 +200,7 @@ declare const LineageProvider: ({
   sqlLineage,
   dynamicLineage,
   staticLineage,
+  allowSyncColumnsWithDB,
 }: LineageProviderProps) => JSX_2.Element;
 
 declare interface LineageProviderProps {
@@ -211,6 +212,7 @@ declare interface LineageProviderProps {
   staticLineage?: StaticLineage;
   theme: "dark" | "light";
   lineageType: "static" | "dynamic" | "sql";
+  allowSyncColumnsWithDB?: boolean;
 }
 
 export declare interface ModalArgs {

@@ -161,6 +161,7 @@ const LineageView = (): JSX.Element | null => {
               ? (renderNode as StaticLineageProps)
               : undefined
           }
+          allowSyncColumnsWithDB
         />
         <Modal isOpen={showDemoModal} close={() => setShowDemoModal(false)}>
           <Demo />
