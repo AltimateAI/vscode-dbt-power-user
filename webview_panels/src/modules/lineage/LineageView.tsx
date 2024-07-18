@@ -128,7 +128,7 @@ const LineageView = (): JSX.Element | null => {
     return null;
   }
 
-  const lineageType = renderNode.details ? "static" : "dynamic";
+  const lineageType = renderNode.details ? "sql" : "dynamic";
 
   return (
     <div className={styles.lineageView}>
@@ -154,10 +154,10 @@ const LineageView = (): JSX.Element | null => {
       <div className={styles.lineageWrap}>
         <Lineage
           theme={theme}
-          renderNode={renderNode}
+          dynamicLineage={renderNode}
           lineageType={lineageType}
-          staticLineage={
-            lineageType === "static"
+          sqlLineage={
+            lineageType === "sql"
               ? (renderNode as StaticLineageProps)
               : undefined
           }

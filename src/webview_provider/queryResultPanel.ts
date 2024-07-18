@@ -190,7 +190,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     );
   }
 
-  private async checkIfWebviewReady() {
+  async checkIfWebviewReady() {
     return new Promise<void>((resolve) => {
       const interval = setInterval(() => {
         if (this.isWebviewReady) {

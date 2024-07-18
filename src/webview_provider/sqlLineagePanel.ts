@@ -12,7 +12,7 @@ import {
   ProgressLocation,
   TextEditor,
 } from "vscode";
-import { AltimateRequest, Details, ModelNode } from "../altimate";
+import { AltimateRequest, SqlLineageDetails, ModelNode } from "../altimate";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { ManifestCacheProjectAddedEvent } from "../manifest/event/manifestCacheChangedEvent";
 import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
@@ -28,7 +28,7 @@ import { UsersService } from "../services/usersService";
 
 type SQLLineage = {
   tableEdges: [string, string][];
-  details: Details;
+  details: SqlLineageDetails;
   nodePositions?: Record<string, [number, number]>;
   errorMessage?: undefined;
 };
@@ -190,8 +190,7 @@ export class SQLLineagePanel
     });
     const { details, nodePositions } = response;
 
-    const nodeMapping: Record<string, { nodeType: string; nodeId: string }> =
-      {};
+    const nodeMapping: Record<string, { nodeId: string; type: string }> = {};
     for (const modelId of modelsToFetch) {
       const splits = modelId.split(".");
       if (splits[0] === "source") {
@@ -200,7 +199,7 @@ export class SQLLineagePanel
         if (_source) {
           for (const key in details) {
             if (details[key].type === "table" && key.toLowerCase() === _table) {
-              nodeMapping[key] = { nodeType: "source", nodeId: modelId };
+              nodeMapping[key] = { nodeId: modelId, type: "source" };
               break;
             }
           }
@@ -214,10 +213,7 @@ export class SQLLineagePanel
             details[key].type === "table" &&
             key.toLowerCase() === _node.alias.toLowerCase()
           ) {
-            nodeMapping[key] = {
-              nodeType: _node.resource_type,
-              nodeId: modelId,
-            };
+            nodeMapping[key] = { nodeId: modelId, type: _node.resource_type };
             break;
           }
         }
@@ -225,8 +221,8 @@ export class SQLLineagePanel
       }
     }
     nodeMapping[modelName] = {
-      nodeType: currNode.resource_type,
       nodeId: currNode.uniqueId,
+      type: currNode.resource_type,
     };
     const FINAL_SELECT = "__final_select__";
     const tableEdges = response.tableEdges.map(
