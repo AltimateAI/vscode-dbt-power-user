@@ -114,7 +114,7 @@ export class DBTClient implements Disposable {
     }
     if (!this.pythonEnvironment.isPython3) {
       const answer = await window.showErrorMessage(
-        "Extension only supports python 3. Select python 3 interpreter",
+        "Only Python 3 is supported by dbt, please select a Python 3 interpreter",
         PythonInterpreterPromptAnswer.SELECT,
       );
       if (answer === PythonInterpreterPromptAnswer.SELECT) {
