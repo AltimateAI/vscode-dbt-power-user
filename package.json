@@ -1167,7 +1167,7 @@
     "eslint-plugin-prettier": "^5.0.1",
     "file-loader": "^6.1.0",
     "glob": "^10.4.2",
-    "husky": "^9.0.11",
+    "husky": "^9.1.0",
     "lint-staged": "^15.2.5",
     "mocha": "^10.3.0",
     "ovsx": "^0.8.4",
@@ -1187,7 +1187,7 @@
   "dependencies": {
     "@vscode/codicons": "^0.0.36",
     "@vscode/extension-telemetry": "^0.9.6",
-    "@vscode/vsce": "^2.27.0",
+    "@vscode/vsce": "^2.29.0",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "dayjs": "^1.11.11",
     "inversify": "^6.0.2",
