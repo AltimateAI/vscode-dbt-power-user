@@ -126,10 +126,13 @@ const LineageView = (): JSX.Element | null => {
       <ActionWidget
         missingLineageMessage={missingLineageMessage}
         aiEnabled={renderNode.aiEnabled}
+        lineageType={lineageType}
       />
-      <div className="bottom-right-container">
-        <DemoButton />
-      </div>
+      {lineageType === "sql" ? null : (
+        <div className="bottom-right-container">
+          <DemoButton />
+        </div>
+      )}
       <div className={styles.lineageWrap}>
         <Lineage
           theme={theme}

@@ -10,10 +10,19 @@ import styles from "./lineage.module.scss";
 const ActionWidget = ({
   missingLineageMessage,
   aiEnabled,
+  lineageType,
 }: {
   missingLineageMessage?: MissingLineageMessage;
   aiEnabled: boolean;
+  lineageType: "sql" | "dynamic";
 }): JSX.Element => {
+  if (lineageType === "sql") {
+    return (
+      <div className={styles.actionWidget}>
+        <FeedbackButton url="https://app.myaltimate.com/contactus" />
+      </div>
+    );
+  }
   return (
     <div className={styles.actionWidget}>
       <MissingLineageMessageComponent
