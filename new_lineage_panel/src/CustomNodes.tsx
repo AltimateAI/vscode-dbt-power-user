@@ -47,6 +47,7 @@ import SqlRightJoinIcon from "./assets/icons/sql_right_join.svg?react";
 import SqlUnionIcon from "./assets/icons/sql_union.svg?react";
 import SqlSelectIcon from "./assets/icons/sql_select.svg?react";
 
+import AlertErrorIcon from "./assets/icons/alert-error.svg?react";
 import ArrowRightDoubleIcon from "./assets/icons/arrow-right-double.svg?react";
 import { COLUMNS_SIDEBAR, EXPOSURE_SIDEBAR, TABLES_SIDEBAR } from "./constants";
 import { NODE_TYPE_SHORTHAND, NodeTypeIconForSQL } from "./components/Column";
@@ -160,6 +161,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
     selectCheck,
     nonSelectCheck,
     setSelectedTable,
+    errors,
+    setErrors,
   } = useContext(LineageContext);
 
   const _columnLen = Object.keys(collectColumns[table] || {}).length;
@@ -222,7 +225,8 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
           flow.setEdges(es);
         },
         selectedColumn,
-        { direct: selectCheck, indirect: nonSelectCheck }
+        { direct: selectCheck, indirect: nonSelectCheck },
+        setErrors
       );
       rerender();
     } catch (e) {
@@ -302,6 +306,21 @@ export const TableNode: FunctionComponent<NodeProps> = ({ data }) => {
                 <div>{NODE_TYPE_SHORTHAND[nType]}</div>
               </div>
               <div className="lines-2">{label}</div>
+              {errors?.[table]?.length && (
+                <Tooltip
+                  tooltipLabel={
+                    <div className={styles.error_tooltip}>
+                      {errors[table].map((line, i) => (
+                        <div key={i} className="mb-1">
+                          {i + 1}. {line}
+                        </div>
+                      ))}
+                    </div>
+                  }
+                >
+                  <AlertErrorIcon />
+                </Tooltip>
+              )}
             </div>
             <div
               className={classNames(

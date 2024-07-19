@@ -16,7 +16,7 @@ import {
   workspace,
   env,
 } from "vscode";
-import { AltimateRequest, ModelNode } from "../altimate";
+import { AltimateRequest, ModelInfo } from "../altimate";
 import {
   ExposureMetaData,
   GraphMetaMap,
@@ -30,7 +30,6 @@ import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { LineagePanelView } from "./lineagePanel";
 import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
-import { PythonException } from "python-bridge";
 import { AbortError } from "node-fetch";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
@@ -524,7 +523,7 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
 
-    const modelInfos: { compiled_sql?: string; model_node: ModelNode }[] = [];
+    const modelInfos: ModelInfo[] = [];
     let upstream_models: string[] = [];
     let auxiliaryTables: string[] = []; // these are used for better sqlglot parsing
     let sqlTables: string[] = []; // these are used which models should be compiled sql
@@ -577,12 +576,29 @@ export class NewLineagePanel implements LineagePanelView {
       if (!node) {
         continue;
       }
-      modelInfos.push({
-        compiled_sql: modelsToCompile.includes(key)
-          ? mappedCompiledSql[key]
-          : undefined,
-        model_node: node,
-      });
+      if (modelsToCompile.includes(key)) {
+        // rawSql only for debuging propose in backend
+        let rawSql: string = "";
+        if (node.path) {
+          try {
+            rawSql = (
+              await workspace.fs.readFile(Uri.file(node.path))
+            ).toString();
+          } catch (e) {
+            this.terminal.warn(
+              "readRawSql",
+              `Unable to read raw sql file ${node.path}`,
+            );
+          }
+        }
+        modelInfos.push({
+          model_node: node,
+          compiled_sql: mappedCompiledSql[key],
+          raw_sql: rawSql,
+        });
+      } else {
+        modelInfos.push({ model_node: node });
+      }
     }
 
     if (relationsWithoutColumns.length !== 0) {
@@ -658,7 +674,7 @@ export class NewLineagePanel implements LineagePanelView {
         apiTime: apiTime.toString(),
         modelInfosLength: modelInfos.length.toString(),
       });
-      if (result.errors && result.errors.length > 0) {
+      if (!result.errors_dict && result.errors && result.errors.length > 0) {
         window.showErrorMessage(
           extendErrorWithSupportLinks(result.errors.join("\n")),
         );
@@ -674,7 +690,11 @@ export class NewLineagePanel implements LineagePanelView {
           viewsType: c.views_type,
           viewsCode: c.views_code,
         })) || [];
-      return { column_lineage, confindence: result.confidence };
+      return {
+        column_lineage,
+        confindence: result.confidence,
+        errors: result.errors_dict,
+      };
     } catch (error) {
       if (error instanceof AbortError) {
         window.showErrorMessage(
