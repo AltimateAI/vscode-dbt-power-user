@@ -10,7 +10,7 @@ html.lineageBody {
     --divider-color: #e8e8e8;
     --primary-accent: #247efe;
 
-     &:global.vscode-dark {
+    &:global.vscode-dark {
       --text-color: #ffffff;
       --modal-bg: #484e55;
       --popover-bg: #28292c;
@@ -50,6 +50,28 @@ html.lineageBody {
 
         :global .btn-outline-secondary {
           background-color: var(--background--02);
+        }
+      }
+    }
+    .demoModal {
+      overflow: hidden;
+      :global .modal-content {
+        width: 84%;
+        height: 94%;
+        margin: auto;
+        margin-top: 2%;
+        border-radius: 8px;
+
+        :global .close-btn {
+          position: absolute;
+          top: 0px;
+          right: -2rem;
+          color: #ffffff;
+          cursor: pointer;
+          background-color: var(--primary-color);
+          display: flex;
+          padding: 0.5rem;
+          border-radius: 0 0.25rem 0.25rem 0;
         }
       }
     }

@@ -36,6 +36,7 @@ export declare const CodeBlock: ({
   code,
   language,
   fileName,
+  editorTheme,
   theme,
   showLineNumbers,
   className,
@@ -230,7 +231,8 @@ declare interface Props {
   language: "sql" | "yaml" | "markdown" | "json" | "javascript";
   fileName?: string;
   showLineNumbers?: boolean;
-  theme?: "vs" | "vsc-dark-plus" | "solarizedLight" | "tomorrow";
+  editorTheme?: "vs" | "vsc-dark-plus" | "solarizedLight" | "tomorrow";
+  theme: "light" | "dark";
   className?: string;
   titleActions?: ReactNode;
 }

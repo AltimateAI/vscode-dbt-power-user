@@ -1,11 +1,8 @@
-import { PlayCircleIcon } from "@assets/icons";
 import { ApiHelper, Lineage, CllEvents, CLL } from "@lib";
 import type { Table } from "@lib";
-import { Button } from "@uicore";
 import { useEffect, useState } from "react";
 import { MissingLineageMessage, StaticLineageProps } from "./types";
 import ActionWidget from "./ActionWidget";
-import { Demo } from "./Demo";
 import useAppContext from "@modules/app/useAppContext";
 import { panelLogger } from "@modules/logger";
 import {
@@ -13,7 +10,7 @@ import {
   executeRequestInSync,
 } from "@modules/app/requestExecutor";
 import styles from "./lineage.module.scss";
-import { Modal } from "./components/PageModal";
+import DemoButton from "./components/demo/DemoButton";
 
 const LineageView = (): JSX.Element | null => {
   const {
@@ -31,8 +28,6 @@ const LineageView = (): JSX.Element | null => {
   const [missingLineageMessage, setMissingLineageMessage] = useState<
     MissingLineageMessage | undefined
   >();
-  const [showDemoButton, setShowDemoButton] = useState(true);
-  const [showDemoModal, setShowDemoModal] = useState(false);
 
   useEffect(() => {
     if (!isComponentsApiInitialized) {
@@ -118,10 +113,6 @@ const LineageView = (): JSX.Element | null => {
     panelLogger.info("lineage:onload");
     document.documentElement.classList.add(styles.lineageBody);
     executeRequestInAsync("init", {});
-    // hide demo button after 10s
-    setTimeout(() => {
-      setShowDemoButton(false);
-    }, 10000);
   }, []);
 
   if (!isApiHelperInitialized || !renderNode) {
@@ -137,19 +128,7 @@ const LineageView = (): JSX.Element | null => {
         aiEnabled={renderNode.aiEnabled}
       />
       <div className="bottom-right-container">
-        {showDemoButton && (
-          <Button
-            color="primary"
-            className="d-flex gap-sm align-items-center"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowDemoModal((b) => !b);
-            }}
-          >
-            Quick demo of Column Lineage
-            <PlayCircleIcon />
-          </Button>
-        )}
+        <DemoButton />
       </div>
       <div className={styles.lineageWrap}>
         <Lineage
@@ -163,9 +142,6 @@ const LineageView = (): JSX.Element | null => {
           }
           allowSyncColumnsWithDB
         />
-        <Modal isOpen={showDemoModal} close={() => setShowDemoModal(false)}>
-          <Demo />
-        </Modal>
       </div>
     </div>
   );
