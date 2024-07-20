@@ -135,7 +135,7 @@ const ColumnSection: FunctionComponent<{
           onChange={(e) => {
             const _search = e.target.value.toLowerCase();
             setFilteredColumn(
-              columns.filter((c) => c.name.toLowerCase().includes(_search)),
+              columns.filter((c) => c.name.toLowerCase().includes(_search))
             );
           }}
         />
@@ -188,7 +188,7 @@ const TestSection: FunctionComponent<{
           onChange={(e) => {
             const _search = e.target.value.toLowerCase();
             setFilteredTests(
-              tests.filter((t) => t.key.toLowerCase().includes(_search)),
+              tests.filter((t) => t.key.toLowerCase().includes(_search))
             );
           }}
         />
@@ -235,6 +235,7 @@ const TableDetails = () => {
     setSidebarScreen,
     selectCheck,
     nonSelectCheck,
+    setErrors,
   } = useContext(LineageContext);
   const flow = useReactFlow();
   const [filteredColumn, setFilteredColumn] = useState<Column[]>([]);
@@ -269,7 +270,7 @@ const TableDetails = () => {
     ) {
       const [_nodes, _edges] = removeColumnNodes(
         flow.getNodes(),
-        flow.getEdges(),
+        flow.getEdges()
       );
       // Model edges will be hidden when column lineage is selected, so unhide them
       toggleModelEdges(_edges, true);
@@ -300,7 +301,7 @@ const TableDetails = () => {
         _nodes,
         _edges,
         _column.table,
-        right,
+        right
       );
       layoutElementsOnCanvas(_nodes, _edges);
     };
@@ -325,7 +326,7 @@ const TableDetails = () => {
     // resetting canvas
     const [nodes, edges] = resetTableHighlights(
       _nodes.filter(isNotColumn),
-      _edges.filter(isNotColumn),
+      _edges.filter(isNotColumn)
     );
     edges.forEach((_e) => (_e.style = defaultEdgeStyle));
     flow.setNodes(nodes);
@@ -349,6 +350,7 @@ const TableDetails = () => {
         },
         _column,
         { direct: selectCheck, indirect: nonSelectCheck },
+        setErrors
       );
     try {
       CLL.start();
@@ -361,7 +363,7 @@ const TableDetails = () => {
           setSelectedColumn({ table: "", name: "" });
         } else {
           showInfoNotification(
-            `No lineage found for model ${_column.table} and column ${_column.name}`,
+            `No lineage found for model ${_column.table} and column ${_column.name}`
           );
         }
       }
@@ -371,7 +373,7 @@ const TableDetails = () => {
         _column.table,
         _column.name,
         ", error:",
-        e,
+        e
       );
       setSelectedColumn({ table: "", name: "" });
     } finally {
@@ -426,7 +428,6 @@ export const StaticTableDetails = () => {
   const { sql, type, nodeId } = table;
   const [columns, setColumns] = useState(_columns);
   const [filteredColumn, setFilteredColumn] = useState(columns);
-  console.log(columns, filteredColumn)
   return (
     <div className="p-2 h-100 d-flex flex-column gap-md overflow-y">
       <HeaderSection
@@ -445,22 +446,22 @@ export const StaticTableDetails = () => {
         <div className="d-flex flex-column gap-sm h-100">
           <div className="d-flex align-items-center gap-xs">
             <div className="fs-5 fw-semibold">Column</div>
-          <div className="spacer" />
+            <div className="spacer" />
             {["table", "final"].includes(type) && (
-            <Button
-              size="sm"
-              color="primary"
-              onClick={() => {
-                if (!nodeId) return;
-                getColumns(nodeId, true).then((_data) => {
-                  setColumns(_data.columns)
-                  setFilteredColumn(_data.columns);
-                });
-              }}
-            >
-              Sync with DB
-            </Button>
-          )}
+              <Button
+                size="sm"
+                color="primary"
+                onClick={() => {
+                  if (!nodeId) return;
+                  getColumns(nodeId, true).then((_data) => {
+                    setColumns(_data.columns);
+                    setFilteredColumn(_data.columns);
+                  });
+                }}
+              >
+                Sync with DB
+              </Button>
+            )}
           </div>
           <CustomInput
             bsSize="sm"
@@ -469,7 +470,7 @@ export const StaticTableDetails = () => {
             onChange={(e) => {
               const _search = e.target.value.toLowerCase();
               setFilteredColumn(
-                columns.filter((c) => c.name.toLowerCase().includes(_search)),
+                columns.filter((c) => c.name.toLowerCase().includes(_search))
               );
             }}
           />

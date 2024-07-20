@@ -369,18 +369,20 @@ const processColumnLineage = async (
   right: boolean,
   currAnd1HopTables: string[],
   selectedColumn: SelectedColumn,
-  edgeVisibility: EdgeVisibility
+  edgeVisibility: EdgeVisibility,
+  setErrors: Dispatch<SetStateAction<Record<string, string[]>>>
 ) => {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
-  const { column_lineage, confidence } = await getConnectedColumns({
+  const { column_lineage, confidence, errors } = await getConnectedColumns({
     targets: curr,
     upstreamExpansion: right,
     currAnd1HopTables,
     selectedColumn,
     showIndirectEdges: edgeVisibility["indirect"],
   });
+  setErrors((prev) => ({ ...prev, ...errors }));
   CLL.addLinks(column_lineage.length);
   const columnLineage = column_lineage.filter((e) =>
     right ? contains(curr, e.source) : contains(curr, e.target)
@@ -838,7 +840,8 @@ export const bfsTraversal = async (
   getNodesEdges: () => [Node[], Edge[]],
   setNodesEdges: (ns: Node[], es: Edge[]) => void,
   selectedColumn: SelectedColumn,
-  edgeVisibility: EdgeVisibility
+  edgeVisibility: EdgeVisibility,
+  setErrors: Dispatch<SetStateAction<Record<string, string[]>>>
 ): Promise<boolean> => {
   let isLineage = false;
   // creating helper data for current lineage once
@@ -854,6 +857,7 @@ export const bfsTraversal = async (
     c.name,
   ]);
   let currEphemeralNodes: string[] = [];
+  setErrors({});
   while (true as boolean) {
     if (CLL.isCancelled) break;
     currTargetColumns = currTargetColumns.filter((x) => !visited[x.join("/")]);
@@ -935,7 +939,8 @@ export const bfsTraversal = async (
       right,
       Array.from(new Set(currAnd1HopTables)),
       selectedColumn,
-      edgeVisibility
+      edgeVisibility,
+      setErrors,
     );
     if (patchState.confidence?.confidence === "low") {
       setConfidence((prev) => {
