@@ -413,6 +413,16 @@ export class VSCodeCommands implements Disposable {
           );
           this.dbtTerminal.logNewLine();
 
+          // Printing env vars
+          this.dbtTerminal.logBlockWithHeader(
+            [
+              "Printing all python paths...",
+              "* Please remove any sensitive information before sending it to us",
+            ],
+            this.pythonEnvironment.allPythonPaths.map(({ path }) => path),
+          );
+          this.dbtTerminal.logNewLine();
+
           // Printing extension settings
           const dbtSettings = workspace.getConfiguration().inspect("dbt");
           const globalValue: any = dbtSettings?.globalValue || {};
@@ -452,6 +462,9 @@ export class VSCodeCommands implements Disposable {
           const dbtIntegrationMode = workspace
             .getConfiguration("dbt")
             .get<string>("dbtIntegration", "core");
+          const allowListFolders = workspace
+            .getConfiguration("dbt")
+            .get<string[]>("allowListFolders", []);
           this.dbtTerminal.logBlock([
             `Python Path=${this.pythonEnvironment.pythonPath}`,
             `VSCode version=${version}`,
@@ -461,6 +474,7 @@ export class VSCodeCommands implements Disposable {
             }`,
             `DBT integration mode=${dbtIntegrationMode}`,
             `First workspace path=${getFirstWorkspacePath()}`,
+            `AllowList Folders=${allowListFolders}`,
           ]);
           this.dbtTerminal.logNewLine();
 
