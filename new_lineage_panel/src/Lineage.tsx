@@ -2,6 +2,7 @@ import {
   Dispatch,
   SetStateAction,
   createContext,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -123,6 +124,8 @@ export const LineageContext = createContext<{
   setNonSelectCheck: Dispatch<boolean>;
   defaultExpansion: number;
   setDefaultExpansion: Dispatch<number>;
+  errors: Record<string, string[]>;
+  setErrors: Dispatch<SetStateAction<Record<string, string[]>>>;
 }>({
   selectedTable: "",
   setSelectedTable: noop,
@@ -151,6 +154,8 @@ export const LineageContext = createContext<{
   setNonSelectCheck: noop,
   defaultExpansion: 0,
   setDefaultExpansion: noop,
+  errors: {},
+  setErrors: noop,
 });
 
 export type Details = Record<
@@ -197,6 +202,7 @@ export const Lineage = () => {
   const [collectColumns, setCollectColumns] = useState<
     Record<string, CollectColumn[]>
   >({});
+  const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [confidence, setConfidence] = useState<Confidence>({
     confidence: "high",
   });
@@ -212,7 +218,7 @@ export const Lineage = () => {
   const [nodeCount, setNodeCount] = useState(0);
   const [minRange, setMinRange] = useState<[number, number]>([0, 0]);
 
-  useEffect(() => {
+  const setupLineage = useCallback(async () => {
     const render = async (args: {
       node?: Table;
       aiEnabled: boolean;
@@ -224,8 +230,8 @@ export const Lineage = () => {
       aiEnabled = args.aiEnabled;
       setMissingLineageMessage(args.missingLineageMessage);
       const { node } = args;
-      const _flow = flow.current;
-      if (!_flow || !node) return;
+      const _flow = flow.current!;
+      if (!node) return;
       const existingNode = _flow.getNode(node.table);
       if (existingNode) {
         setSelectedTable(node.table);
@@ -291,33 +297,42 @@ export const Lineage = () => {
       setDefaultExpansion(settings.defaultExpansion);
     };
 
-    const commandMap = {
-      render,
-      response: handleResponse,
-      setTheme,
-      columnLineage: (data: { event: CllEvents }) => {
-        if (data.event === CllEvents.CANCEL) {
-          if (flow.current) {
-            const edges = flow.current.getEdges();
+    const commandMap = new Map(
+      Object.entries({
+        render,
+        response: handleResponse,
+        setTheme,
+        columnLineage: (data: { event: CllEvents }) => {
+          if (data.event === CllEvents.CANCEL) {
+            const _flow = flow.current!;
+            const edges = _flow.getEdges();
             toggleModelEdges(edges, true);
             toggleColumnEdges(edges, false);
-            flow.current.setEdges(edges);
+            _flow.setEdges(edges);
           }
-        }
-        columnLineage(data);
-      },
-    };
-    window.addEventListener("message", (event) => {
+          columnLineage(data);
+        },
+      })
+    );
+
+    const executeHostCommands = async (event: MessageEvent) => {
       console.log("lineage:message -> ", event.data);
       const { command, args } = event.data;
-      if ((command as string) in commandMap) {
-        commandMap[command as keyof typeof commandMap](args);
+      if (commandMap.has(command)) {
+        const action = commandMap.get(command);
+        if (typeof action === "function") {
+          await action(args);
+        }
       }
-    });
+    };
+
+    window.addEventListener("message", executeHostCommands);
     console.log("lineage:onload");
     init();
     applySettings();
+  }, []);
 
+  useEffect(() => {
     // hide demo button after 10s
     setTimeout(() => {
       setShowDemoButton(false);
@@ -346,7 +361,8 @@ export const Lineage = () => {
               _flow.setEdges(es);
             },
             _column,
-            { direct: selectCheck, indirect: nonSelectCheck }
+            { direct: selectCheck, indirect: nonSelectCheck },
+            setErrors
           );
         try {
           CLL.start();
@@ -414,6 +430,8 @@ export const Lineage = () => {
         setNonSelectCheck,
         defaultExpansion,
         setDefaultExpansion,
+        errors,
+        setErrors,
       }}
     >
       <PopoverContext.Provider value={{ isOpen, setIsOpen }}>
@@ -439,7 +457,10 @@ export const Lineage = () => {
               <ReactFlow
                 defaultNodes={[]}
                 defaultEdges={[]}
-                onInit={(_flow) => (flow.current = _flow)}
+                onInit={(_flow) => {
+                  flow.current = _flow;
+                  setupLineage();
+                }}
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
                 style={{ background: "var(--bg-color)" }}
