@@ -614,6 +614,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     duration: number,
     modelName: string,
   ) {
+    // Do not update query history if bookmarks are disabled
+    if (!workspace.getConfiguration("dbt").get("enableQueryBookmarks", false)) {
+      return;
+    }
     const project = projectName
       ? this.queryManifestService.getProjectByName(projectName) // for queries executed from history and bookmarks tab
       : this.queryManifestService.getProject(); // queries executed from main window
