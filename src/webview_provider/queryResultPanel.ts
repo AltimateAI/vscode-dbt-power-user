@@ -333,8 +333,8 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     name: string;
   }) {
     commands.executeCommand("dbtPowerUser.createSqlFile", {
-      code: message.code,
-      name: message.name,
+      code: message?.code,
+      name: message?.name,
     });
   }
 
@@ -482,7 +482,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   }
 
   private sendQueryPanelViewEvent() {
-    if (this._panel!.visible) {
+    if (this._panel?.visible) {
       this.telemetry.sendTelemetryEvent("QueryPanelActive");
     }
   }
