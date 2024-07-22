@@ -16,7 +16,7 @@ import {
   workspace,
   env,
 } from "vscode";
-import { AltimateRequest, ModelNode } from "../altimate";
+import { AltimateRequest, ModelInfo } from "../altimate";
 import {
   ExposureMetaData,
   GraphMetaMap,
@@ -30,7 +30,6 @@ import { extendErrorWithSupportLinks, provideSingleton } from "../utils";
 import { LineagePanelView } from "./lineagePanel";
 import { DBTProject } from "../manifest/dbtProject";
 import { TelemetryService } from "../telemetry";
-import { PythonException } from "python-bridge";
 import { AbortError } from "node-fetch";
 import { DBTTerminal } from "../dbt_client/dbtTerminal";
 
@@ -524,7 +523,7 @@ export class NewLineagePanel implements LineagePanelView {
       return;
     }
 
-    const modelInfos: { compiled_sql?: string; model_node: ModelNode }[] = [];
+    const modelInfos: ModelInfo[] = [];
     let upstream_models: string[] = [];
     let auxiliaryTables: string[] = []; // these are used for better sqlglot parsing
     let sqlTables: string[] = []; // these are used which models should be compiled sql
@@ -546,81 +545,61 @@ export class NewLineagePanel implements LineagePanelView {
     const modelsToFetch = Array.from(
       new Set([...currAnd1HopTables, ...auxiliaryTables, selectedColumn.table]),
     );
-    let startTime = Date.now();
-    const { mappedNode, relationsWithoutColumns } =
+    const { mappedNode, relationsWithoutColumns, mappedCompiledSql } =
       await project.getNodesWithDBColumns(
         event,
         modelsToFetch,
         this.cancellationTokenSource!.token,
       );
-    const schemaFetchingTime = Date.now() - startTime;
 
     const selected_column = {
       model_node: mappedNode[selectedColumn.table],
       column: selectedColumn.name,
     };
 
-    const addToModelInfo = async (key: string) => {
-      const node = mappedNode[key];
-      if (!node) {
-        return;
-      }
+    if (this.cancellationTokenSource?.token.isCancellationRequested) {
+      return { column_lineage: [] };
+    }
 
+    const modelsToCompile = modelsToFetch.filter((key) => {
       if (!sqlTables.includes(key)) {
-        modelInfos.push({ model_node: node });
-        return;
+        return false;
       }
-
       const nodeType = key.split(".")[0];
       if (!canCompileSQL(nodeType)) {
-        modelInfos.push({ model_node: node });
-        return;
+        return false;
       }
-      const compiledSql = await project.unsafeCompileNode(node.name);
-      modelInfos.push({ compiled_sql: compiledSql, model_node: node });
-    };
-    startTime = Date.now();
-    try {
-      for (const key of modelsToFetch) {
-        if (this.cancellationTokenSource?.token.isCancellationRequested) {
-          return { column_lineage: [] };
+      return true;
+    });
+    for (const key of modelsToFetch) {
+      const node = mappedNode[key];
+      if (!node) {
+        continue;
+      }
+      if (modelsToCompile.includes(key)) {
+        // rawSql only for debuging propose in backend
+        let rawSql: string = "";
+        if (node.path) {
+          try {
+            rawSql = (
+              await workspace.fs.readFile(Uri.file(node.path))
+            ).toString();
+          } catch (e) {
+            this.terminal.warn(
+              "readRawSql",
+              `Unable to read raw sql file ${node.path}`,
+            );
+          }
         }
-        await addToModelInfo(key);
+        modelInfos.push({
+          model_node: node,
+          compiled_sql: mappedCompiledSql[key],
+          raw_sql: rawSql,
+        });
+      } else {
+        modelInfos.push({ model_node: node });
       }
-    } catch (exc) {
-      if (exc instanceof PythonException) {
-        window.showErrorMessage(
-          extendErrorWithSupportLinks(
-            `An error occured while trying to compute lineage of your model: ` +
-              exc.exception.message +
-              ".",
-          ),
-        );
-        this.telemetry.sendTelemetryError(
-          "columnLineageCompileNodePythonError",
-          exc,
-        );
-        this.terminal.debug(
-          "newLineagePanel:getConnectedColumns",
-          "Error encountered while compiling/retrieving schema for model: " +
-            exc.exception.message,
-          exc,
-        );
-        return;
-      }
-      this.telemetry.sendTelemetryError(
-        "columnLineageCompileNodeUnknownError",
-        exc,
-      );
-      // Unknown error
-      window.showErrorMessage(
-        extendErrorWithSupportLinks(
-          "Column lineage failed: " + (exc as Error).message,
-        ),
-      );
-      return;
     }
-    const sqlCompilingTime = Date.now() - startTime;
 
     if (relationsWithoutColumns.length !== 0) {
       window.showErrorMessage(
@@ -679,7 +658,7 @@ export class NewLineagePanel implements LineagePanelView {
         "request",
         request,
       );
-      startTime = Date.now();
+      const startTime = Date.now();
       const result = await this.altimate.getColumnLevelLineage(request);
       const apiTime = Date.now() - startTime;
       this.terminal.debug(
@@ -689,17 +668,13 @@ export class NewLineagePanel implements LineagePanelView {
       );
       this.telemetry.sendTelemetryEvent("columnLineageTimes", {
         apiTime: apiTime.toString(),
-        sqlCompilingTime: sqlCompilingTime.toString(),
-        schemaFetchingTime: schemaFetchingTime.toString(),
         modelInfosLength: modelInfos.length.toString(),
       });
       console.log("lineageTimings:", {
         apiTime: apiTime.toString(),
-        sqlCompilingTime: sqlCompilingTime.toString(),
-        schemaFetchingTime: schemaFetchingTime.toString(),
         modelInfosLength: modelInfos.length.toString(),
       });
-      if (result.errors && result.errors.length > 0) {
+      if (!result.errors_dict && result.errors && result.errors.length > 0) {
         window.showErrorMessage(
           extendErrorWithSupportLinks(result.errors.join("\n")),
         );
@@ -715,7 +690,11 @@ export class NewLineagePanel implements LineagePanelView {
           viewsType: c.views_type,
           viewsCode: c.views_code,
         })) || [];
-      return { column_lineage, confindence: result.confidence };
+      return {
+        column_lineage,
+        confindence: result.confidence,
+        errors: result.errors_dict,
+      };
     } catch (error) {
       if (error instanceof AbortError) {
         window.showErrorMessage(

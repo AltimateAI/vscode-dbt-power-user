@@ -29,6 +29,7 @@ import {
   ValidateSqlParseErrorResponse,
 } from "../altimate";
 import { ProjectHealthcheck } from "./dbtCoreIntegration";
+import { NodeMetaData } from "../domain";
 
 interface DBTCommandExecution {
   command: (token?: CancellationToken) => Promise<void>;
@@ -198,6 +199,7 @@ export class DBTCommand {
     public logToTerminal: boolean = false,
     public executionStrategy?: DBTCommandExecutionStrategy,
     public token?: CancellationToken,
+    public downloadArtifacts: boolean = false,
   ) {}
 
   addArgument(arg: string) {
@@ -238,6 +240,7 @@ export interface ExecuteSQLResult {
   };
   raw_sql: string;
   compiled_sql: string;
+  modelName: string;
 }
 
 export class ExecuteSQLError extends Error {
@@ -374,6 +377,7 @@ export interface DBTProjectIntegration extends Disposable {
     nodes: DBTNode[],
     cancellationToken: CancellationToken,
   ): Promise<Record<string, DBColumn[]>>;
+  getBulkCompiledSQL(models: NodeMetaData[]): Promise<Record<string, string>>;
   validateWhetherSqlHasColumns(sql: string, dialect: string): Promise<boolean>;
   fetchSqlglotSchema(sql: string, dialect: string): Promise<string[]>;
   findPackageVersion(packageName: string): string | undefined;

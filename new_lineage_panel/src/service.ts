@@ -54,6 +54,7 @@ export type ExposureMetaData = {
 interface ColumnLineageResponse {
   column_lineage: ColumnLineage[];
   confidence?: { confidence: string; operator_list?: string[] };
+  errors?: Record<string, string[]>
 }
 
 interface LineageSettings {

@@ -29,6 +29,7 @@ export const QueryHistoryFactory = Sync.makeFactory<QueryHistory>({
   duration: faker.number.int({ min: 1, max: 10000 }),
   projectName: faker.lorem.word(),
   timestamp: Sync.each(() => faker.date.past().getTime()),
+  modelName: faker.lorem.word(),
 });
 
 const generateRandomTags = () => {

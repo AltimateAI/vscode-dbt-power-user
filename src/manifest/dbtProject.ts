@@ -56,7 +56,7 @@ import { DBTCloudProjectIntegration } from "../dbt_client/dbtCloudIntegration";
 import { AltimateRequest, NoCredentialsError } from "../altimate";
 import { ValidationProvider } from "../validation_provider";
 import { ModelNode } from "../altimate";
-import { ColumnMetaData } from "../domain";
+import { ColumnMetaData, NodeMetaData } from "../domain";
 import { AltimateConfigProps } from "../webview_provider/insightsPanel";
 import { SharedStateService } from "../services/sharedStateService";
 import { TelemetryEvents } from "../telemetry/events";
@@ -760,46 +760,6 @@ export class DBTProject implements Disposable {
     }
   }
 
-  async getBulkSchema(req: DBTNode[], cancellationToken: CancellationToken) {
-    const dbBulkFetchReq: DBTNode[] = [];
-    const dialect = this.getAdapterType();
-    const sqlglotSchemas: Record<string, DBColumn[]> = {};
-    for (const r of req) {
-      if (r.resource_type === DBTProject.RESOURCE_TYPE_MODEL) {
-        try {
-          const compiledSQL = await this.compileNode(r.name);
-          if (!compiledSQL) {
-            dbBulkFetchReq.push(r);
-            continue;
-          }
-          const columns = await this.dbtProjectIntegration.fetchSqlglotSchema(
-            compiledSQL,
-            dialect,
-          );
-          sqlglotSchemas[r.unique_id] = columns.map((c) => ({
-            column: c,
-            dtype: "string",
-          }));
-        } catch (e) {
-          this.terminal.warn(
-            "sqlglotSchemaFetchingFailed",
-            `Error while sqlglot schema fetching for ${r.unique_id}`,
-            true,
-            e,
-          );
-          dbBulkFetchReq.push(r);
-        }
-      } else {
-        dbBulkFetchReq.push(r);
-      }
-    }
-    const dbSchemas = await this.dbtProjectIntegration.getBulkSchemaFromDB(
-      dbBulkFetchReq,
-      cancellationToken,
-    );
-    return { ...sqlglotSchemas, ...dbSchemas };
-  }
-
   async getCatalog(): Promise<Catalog> {
     try {
       return this.dbtProjectIntegration.getCatalog();
@@ -1148,6 +1108,21 @@ select * from renamed
     return version;
   }
 
+  async getBulkCompiledSql(
+    event: ManifestCacheProjectAddedEvent,
+    models: string[],
+  ) {
+    if (models.length === 0) {
+      return {};
+    }
+    const { nodeMetaMap } = event;
+    return this.dbtProjectIntegration.getBulkCompiledSQL(
+      models
+        .map((m) => nodeMetaMap.get(m.split(".")[2]))
+        .filter(Boolean) as NodeMetaData[],
+    );
+  }
+
   async getNodesWithDBColumns(
     event: ManifestCacheProjectAddedEvent,
     modelsToFetch: string[],
@@ -1156,7 +1131,7 @@ select * from renamed
     const mappedNode: Record<string, ModelNode> = {};
     const relationsWithoutColumns: string[] = [];
     if (modelsToFetch.length === 0) {
-      return { mappedNode, relationsWithoutColumns };
+      return { mappedNode, relationsWithoutColumns, mappedCompiledSql: {} };
     }
     const { nodeMetaMap, sourceMetaMap } = event;
     const bulkSchemaRequest: DBTNode[] = [];
@@ -1187,6 +1162,7 @@ select * from renamed
           alias: table.identifier,
           uniqueId: key,
           columns: table.columns,
+          path: table.path,
         };
         mappedNode[key] = node;
       } else if (DBTProject.isResourceNode(resource_type)) {
@@ -1204,11 +1180,83 @@ select * from renamed
         mappedNode[key] = node;
       }
     }
-    const bulkSchemaResponse = await this.getBulkSchema(
-      bulkSchemaRequest,
-      cancellationToken,
+
+    const dbSchemaRequest = bulkSchemaRequest.filter(
+      (r) => r.resource_type !== DBTProject.RESOURCE_TYPE_MODEL,
     );
+
+    const sqlglotSchemaRequest = bulkSchemaRequest.filter(
+      (r) => r.resource_type === DBTProject.RESOURCE_TYPE_MODEL,
+    );
+    let startTime = Date.now();
+    const sqlglotSchemaResponse = await this.getBulkCompiledSql(
+      event,
+      sqlglotSchemaRequest.map((r) => r.unique_id),
+    );
+    const compiledSqlTime = Date.now() - startTime;
+
+    if (cancellationToken.isCancellationRequested) {
+      return {
+        mappedNode,
+        relationsWithoutColumns,
+        mappedCompiledSql: sqlglotSchemaResponse,
+      };
+    }
+
+    const sqlglotSchemas: Record<string, DBColumn[]> = {};
+    const dialect = this.getAdapterType();
+
+    startTime = Date.now();
+    // can't parallelize because underlying python lock
+    for (const r of sqlglotSchemaRequest) {
+      if (!sqlglotSchemaResponse[r.unique_id]) {
+        dbSchemaRequest.push(r);
+        continue;
+      }
+
+      try {
+        const columns = await this.dbtProjectIntegration.fetchSqlglotSchema(
+          sqlglotSchemaResponse[r.unique_id],
+          dialect,
+        );
+        sqlglotSchemas[r.unique_id] = columns.map((c) => ({
+          column: c,
+          dtype: "string",
+        }));
+      } catch (e) {
+        this.terminal.warn(
+          "sqlglotSchemaFetchingFailed",
+          `Error while sqlglot schema fetching for ${r.unique_id}`,
+          true,
+          e,
+        );
+        dbSchemaRequest.push(r);
+      }
+    }
+    const sqlglotSchemaTime = Date.now() - startTime;
+
+    if (cancellationToken.isCancellationRequested) {
+      return {
+        mappedNode,
+        relationsWithoutColumns,
+        mappedCompiledSql: sqlglotSchemaResponse,
+      };
+    }
+
+    startTime = Date.now();
+    const dbSchemaResponse =
+      await this.dbtProjectIntegration.getBulkSchemaFromDB(
+        dbSchemaRequest,
+        cancellationToken,
+      );
+    const dbFetchTime = Date.now() - startTime;
+
+    const bulkSchemaResponse = { ...dbSchemaResponse, ...sqlglotSchemas };
+
     for (const key of modelsToFetch) {
+      if (!bulkSchemaRequest.find((r) => r.unique_id === key)) {
+        continue;
+      }
       const node = mappedNode[key];
       if (!node) {
         continue;
@@ -1222,7 +1270,24 @@ select * from renamed
       }
     }
 
-    return { mappedNode, relationsWithoutColumns };
+    console.log("getNodesWithDBColumnsTimings", {
+      compiledSqlTime,
+      sqlglotSchemaTime,
+      dbFetchTime,
+      modelInfosLength: modelsToFetch.length,
+    });
+    this.telemetry.sendTelemetryEvent("getNodesWithDBColumnsTimings", {
+      compiledSqlTime: compiledSqlTime.toString(),
+      sqlglotSchemaTime: sqlglotSchemaTime.toString(),
+      dbFetchTime: dbFetchTime.toString(),
+      modelInfosLength: modelsToFetch.length.toString(),
+    });
+
+    return {
+      mappedNode,
+      relationsWithoutColumns,
+      mappedCompiledSql: sqlglotSchemaResponse,
+    };
   }
 
   async applyDeferConfig(): Promise<void> {

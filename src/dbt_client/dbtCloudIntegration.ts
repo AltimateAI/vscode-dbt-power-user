@@ -40,6 +40,7 @@ import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
 import { ProjectHealthcheck } from "./dbtCoreIntegration";
 import semver = require("semver");
+import { NodeMetaData } from "../domain";
 
 function getDBTPath(
   pythonEnvironment: PythonEnvironment,
@@ -303,6 +304,7 @@ export class DBTCloudProjectIntegration
           },
           compiled_sql: compiledSql,
           raw_sql: query,
+          modelName,
         };
       },
     );
@@ -375,6 +377,7 @@ export class DBTCloudProjectIntegration
       );
       command.addArgument("--log-format");
       command.addArgument("json");
+      command.downloadArtifacts = true;
       this.rebuildManifestCancellationTokenSource =
         new CancellationTokenSource();
       command.setToken(this.rebuildManifestCancellationTokenSource.token);
@@ -537,7 +540,7 @@ export class DBTCloudProjectIntegration
       .join(".");
     const downloadArtifactsVersion = "0.37.20";
     if (semver.gte(currentVersion, downloadArtifactsVersion)) {
-      if (["parse"].includes(command.args[0])) {
+      if (command.downloadArtifacts) {
         command.addArgument("--download-artifacts");
       }
     }
@@ -724,10 +727,73 @@ export class DBTCloudProjectIntegration
     );
   }
 
+  async getBulkCompiledSQL(models: NodeMetaData[]) {
+    const downloadArtifactsVersion = "0.37.20";
+    const currentVersion = this.getVersion()
+      .map((part) => new String(part))
+      .join(".");
+    if (semver.gte(currentVersion, downloadArtifactsVersion)) {
+      const compileQueryCommand = this.dbtCloudCommand(
+        new DBTCommand("Getting catalog...", [
+          "compile",
+          "--download-artifacts",
+          "--model",
+          `"${models.map((item) => item.name).join(" ")}"`,
+          "--output",
+          "json",
+          "--log-format",
+          "json",
+        ]),
+      );
+      const { stderr } = await compileQueryCommand.execute(
+        new CancellationTokenSource().token,
+      );
+      const exception = this.processJSONErrors(stderr);
+      if (exception) {
+        throw exception;
+      }
+    }
+    const result: Record<string, string> = {};
+    for (const node of models) {
+      try {
+        // compiled sql file exists
+        const fileContentBytes = await workspace.fs.readFile(
+          Uri.file(node.compiled_path),
+        );
+        const query = fileContentBytes.toString();
+        result[node.uniqueId] = query;
+        continue;
+      } catch (e) {
+        this.terminal.error(
+          "getBulkCompiledSQL",
+          `Unable to find compiled sql file for model ${node.uniqueId}`,
+          e,
+          true,
+        );
+      }
+
+      try {
+        // compiled sql file doesn't exists or dbt below 0.37.20
+        result[node.uniqueId] = await this.unsafeCompileNode(node.name);
+      } catch (e) {
+        this.terminal.error(
+          "getBulkCompiledSQL",
+          `Unable to compile sql for model ${node.uniqueId}`,
+          e,
+          true,
+        );
+      }
+    }
+    return result;
+  }
+
   async getBulkSchemaFromDB(
     nodes: DBTNode[],
     cancellationToken: CancellationToken,
   ): Promise<Record<string, DBColumn[]>> {
+    if (nodes.length === 0) {
+      return {};
+    }
     this.throwIfNotAuthenticated();
     this.throwBridgeErrorIfAvailable();
     const bulkModelQuery = `

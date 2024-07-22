@@ -53,6 +53,7 @@ import { ManifestPathType } from "../constants";
 import { DBTTerminal } from "./dbtTerminal";
 import { ValidationProvider } from "../validation_provider";
 import { DeferToProdService } from "../services/deferToProdService";
+import { NodeMetaData } from "../domain";
 
 const DEFAULT_QUERY_TEMPLATE = "select * from ({query}) as query limit {limit}";
 
@@ -423,7 +424,7 @@ export class DBTCoreProjectIntegration
         } finally {
           await queryThread.end();
         }
-        return { ...result, compiled_stmt: compiledQuery };
+        return { ...result, compiled_stmt: compiledQuery, modelName };
       },
     );
   }
@@ -887,10 +888,31 @@ export class DBTCoreProjectIntegration
     );
   }
 
+  async getBulkCompiledSQL(models: NodeMetaData[]) {
+    const result: Record<string, string> = {};
+    for (const m of models) {
+      try {
+        const compiledSQL = await this.unsafeCompileNode(m.name);
+        result[m.uniqueId] = compiledSQL;
+      } catch (e) {
+        this.dbtTerminal.error(
+          "getBulkCompiledSQL",
+          `Unable to compile sql for model ${m.uniqueId}`,
+          e,
+          true,
+        );
+      }
+    }
+    return result;
+  }
+
   async getBulkSchemaFromDB(
     nodes: DBTNode[],
     cancellationToken: CancellationToken,
   ): Promise<Record<string, DBColumn[]>> {
+    if (nodes.length === 0) {
+      return {};
+    }
     const result: Record<string, DBColumn[]> = {};
     for (const n of nodes) {
       if (cancellationToken.isCancellationRequested) {
