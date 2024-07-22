@@ -11,12 +11,7 @@ import ArrowLeftIcon from "./assets/icons/arrow-left.svg?react";
 import ArrowRightIcon from "./assets/icons/arrow-right.svg?react";
 import GearIcon from "./assets/icons/gear.svg?react";
 import styles from "./styles.module.scss";
-import {
-  FEEDBACK_SIDEBAR,
-  HELP_SIDEBAR,
-  RESET,
-  SETTINGS_SIDEBAR,
-} from "./constants";
+import { HELP_SIDEBAR, RESET, SETTINGS_SIDEBAR } from "./constants";
 import {
   init,
   openURL,
@@ -38,22 +33,55 @@ import { BetterPopover } from "./components/Modal";
 import { DEFAULT_MIN_ZOOM, calculateExpand } from "./utils";
 import { InfoIcon } from "./components/InfoIcon";
 
-export const ActionButton = ({
+interface ActionButtonProps {
+  onClick: React.MouseEventHandler<HTMLButtonElement>;
+  buttonName?: string; // Optional prop
+  buttonTextVisibility?: Record<string, boolean>; // Optional prop
+  setButtonTextVisibility?: React.Dispatch<
+    React.SetStateAction<Record<string, boolean>>
+  >; // Optional prop
+}
+
+export const ActionButton: React.FC<PropsWithChildren<ActionButtonProps>> = ({
   onClick,
   children,
-}: PropsWithChildren<{
-  onClick: React.MouseEventHandler<HTMLButtonElement>;
-}>) => {
+  buttonName,
+  buttonTextVisibility,
+  setButtonTextVisibility,
+}) => {
+  const handleMouseIn = () => {
+    if (setButtonTextVisibility && buttonName) {
+      setButtonTextVisibility((prevState) => ({
+        ...prevState,
+        [buttonName]: true,
+      }));
+    }
+  };
+
+  const handleMouseOut = () => {
+    if (setButtonTextVisibility && buttonName) {
+      setButtonTextVisibility((prevState) => ({
+        ...prevState,
+        [buttonName]: false,
+      }));
+    }
+  };
+
   return (
-    <Button
-      size="sm"
-      outline
-      color="secondary"
-      onClick={onClick}
-      className="d-flex align-items-center gap-xs theme-bg"
-    >
-      {children}
-    </Button>
+    <div onMouseEnter={handleMouseIn} onMouseLeave={handleMouseOut}>
+      <Button
+        size="sm"
+        outline
+        color="secondary"
+        onClick={onClick}
+        className="d-flex align-items-center gap-xs theme-bg"
+      >
+        {children}
+        {buttonTextVisibility &&
+          buttonName &&
+          buttonTextVisibility[buttonName] && <span>{buttonName}</span>}
+      </Button>
+    </div>
   );
 };
 
@@ -283,20 +311,6 @@ export const ActionWidget = ({
       RESET: false,
     });
 
-  const handleMouseIn = (buttonName: string) => {
-    setButtonTextVisibility((prevState) => ({
-      ...prevState,
-      [buttonName]: true,
-    }));
-  };
-
-  const handleMouseOut = (buttonName: string) => {
-    setButtonTextVisibility((prevState) => ({
-      ...prevState,
-      [buttonName]: false,
-    }));
-  };
-
   const openProblemsTab = () => {
     return requestExecutor("openProblemsTab", {});
   };
@@ -349,15 +363,14 @@ export const ActionWidget = ({
           </div>
         </CardBody>
       </Card>
-      <div
-        onMouseEnter={() => handleMouseIn(SETTINGS_SIDEBAR)}
-        onMouseLeave={() => handleMouseOut(SETTINGS_SIDEBAR)}
+      <ActionButton
+        onClick={() => setSidebarScreen(SETTINGS_SIDEBAR)}
+        buttonName="Settings"
+        buttonTextVisibility={buttonTextVisibility}
+        setButtonTextVisibility={setButtonTextVisibility}
       >
-        <ActionButton onClick={() => setSidebarScreen(SETTINGS_SIDEBAR)}>
-          <GearIcon />
-          {buttonTextVisibility[SETTINGS_SIDEBAR] && "Settings"}
-        </ActionButton>
-      </div>
+        <GearIcon />
+      </ActionButton>
       <ActionButton
         onClick={() => {
           setLegacyLineageView();
@@ -366,54 +379,47 @@ export const ActionWidget = ({
       >
         Show Legacy UX
       </ActionButton>
-      <div
-        onMouseEnter={() => handleMouseIn(HELP_SIDEBAR)}
-        onMouseLeave={() => handleMouseOut(HELP_SIDEBAR)}
+      <ActionButton
+        onClick={() => setSidebarScreen(HELP_SIDEBAR)}
+        buttonName="Help"
+        buttonTextVisibility={buttonTextVisibility}
+        setButtonTextVisibility={setButtonTextVisibility}
       >
-        <ActionButton onClick={() => setSidebarScreen(HELP_SIDEBAR)}>
-          <HelpIcon />
-          {buttonTextVisibility[HELP_SIDEBAR] && <span>Help</span>}
-        </ActionButton>
-      </div>
-      <div
-        onMouseEnter={() => handleMouseIn(RESET)}
-        onMouseLeave={() => handleMouseOut(RESET)}
+        <HelpIcon />
+      </ActionButton>
+      <ActionButton
+        onClick={() => {
+          flow.setNodes([]);
+          flow.setEdges([]);
+          setSelectedColumn({ table: "", name: "" });
+          setCollectColumns({});
+          setMoreTables({});
+          init();
+          CLL.cancel();
+        }}
+        buttonName={RESET}
+        buttonTextVisibility={buttonTextVisibility}
+        setButtonTextVisibility={setButtonTextVisibility}
+        data-testid="reset-btn"
       >
-        <ActionButton
-          onClick={() => {
-            flow.setNodes([]);
-            flow.setEdges([]);
-            setSelectedColumn({ table: "", name: "" });
-            setCollectColumns({});
-            setMoreTables({});
-            init();
-            CLL.cancel();
-          }}
-          data-testid="reset-btn"
-        >
-          <ResetIcon />
-          {buttonTextVisibility[RESET] && <span>Reset</span>}
-        </ActionButton>
-      </div>
-      <div
-        onMouseEnter={() => handleMouseIn(FEEDBACK_SIDEBAR)}
-        onMouseLeave={() => handleMouseOut(FEEDBACK_SIDEBAR)}
+        <ResetIcon />
+      </ActionButton>
+      <ActionButton
+        onClick={() => {
+          // setSidebarScreen(FEEDBACK_SIDEBAR);
+          // TODO: going to be deprecated
+          openURL(
+            aiEnabled
+              ? "https://docs.google.com/forms/d/e/1FAIpQLScsvmEdZ56F1GAFZq_SW7ejYe0dwpHe-N69qiQBz4ekN4gPNQ/viewform"
+              : "https://docs.google.com/forms/d/10_YT2XDwpbkDXio-7TEYPQXsJfCBFqYUa7t0ImzyZvE/viewform",
+          );
+        }}
+        buttonName="Feedback"
+        buttonTextVisibility={buttonTextVisibility}
+        setButtonTextVisibility={setButtonTextVisibility}
       >
-        <ActionButton
-          onClick={() => {
-            // setSidebarScreen(FEEDBACK_SIDEBAR);
-            // TODO: going to be deprecated
-            openURL(
-              aiEnabled
-                ? "https://docs.google.com/forms/d/e/1FAIpQLScsvmEdZ56F1GAFZq_SW7ejYe0dwpHe-N69qiQBz4ekN4gPNQ/viewform"
-                : "https://docs.google.com/forms/d/10_YT2XDwpbkDXio-7TEYPQXsJfCBFqYUa7t0ImzyZvE/viewform",
-            );
-          }}
-        >
-          <FeedbackIcon />
-          {buttonTextVisibility[FEEDBACK_SIDEBAR] && <span>Feedback</span>}
-        </ActionButton>
-      </div>
+        <FeedbackIcon />
+      </ActionButton>
     </div>
   );
 };
