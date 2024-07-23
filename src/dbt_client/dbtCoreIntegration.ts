@@ -327,7 +327,7 @@ export class DBTCoreProjectIntegration
         const args = { sql: query, limit };
         const queryTemplateFromMacro = await this.python?.lock(
           (python) =>
-            python!`to_dict(project.execute_macro('get_limit_subquery_sql', ${args}))`,
+            python!`to_dict(project.execute_macro('get_show_sql', ${args}))`,
         );
 
         this.dbtTerminal.debug(
@@ -341,7 +341,7 @@ export class DBTCoreProjectIntegration
         };
       }
     } catch (err) {
-      console.error("Error while getting get_limit_subquery_sql macro", err);
+      console.error("Error while getting get_show_sql macro", err);
       this.telemetry.sendTelemetryError(
         "executeMacroGetLimitSubquerySQLError",
         err,
