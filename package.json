@@ -1167,7 +1167,7 @@
     "eslint-plugin-prettier": "^5.2.1",
     "file-loader": "^6.1.0",
     "glob": "^10.4.2",
-    "husky": "^9.1.0",
+    "husky": "^9.1.1",
     "lint-staged": "^15.2.5",
     "mocha": "^10.3.0",
     "ovsx": "^0.8.4",
