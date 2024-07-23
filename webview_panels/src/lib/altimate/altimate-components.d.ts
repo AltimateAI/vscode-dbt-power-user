@@ -321,6 +321,7 @@ export declare interface Table {
     key: string;
     path: string;
   }[];
+  schema?: string;
 }
 
 declare interface User {
