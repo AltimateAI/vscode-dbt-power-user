@@ -33413,11 +33413,10 @@ const iv = ({ datatype: e, color: t, size: n = "1rem" }) => {
   mv = ({ data: e }) => {
     const { table: t, nodeType: n } = e,
       {
-        state: { sqlLineage: o, selectedTable: r },
+        state: { sqlLineage: o },
       } = Pe(),
-      a = Be();
-    console.log("thisisit1->", r, t, o);
-    const i = n || "unknown";
+      r = Be(),
+      a = n || "unknown";
     return /* @__PURE__ */ h.jsxs("div", {
       className: "position-relative",
       children: [
@@ -33431,8 +33430,8 @@ const iv = ({ datatype: e, color: t, size: n = "1rem" }) => {
               className: "d-flex align-items-center w-100 ps-2 pe-2 gap-sm",
               children: [
                 /* @__PURE__ */ h.jsx("div", {
-                  className: we(Z.node_icon, vl[i]),
-                  children: /* @__PURE__ */ h.jsx(lv, { nodeType: i }),
+                  className: we(Z.node_icon, vl[a]),
+                  children: /* @__PURE__ */ h.jsx(lv, { nodeType: a }),
                 }),
                 /* @__PURE__ */ h.jsx("div", {
                   className: "lines-2",
@@ -33442,10 +33441,10 @@ const iv = ({ datatype: e, color: t, size: n = "1rem" }) => {
                 /* @__PURE__ */ h.jsx("div", {
                   className: we(
                     Z.details_btn,
-                    !o || i === "unknown" ? Z.disable : Z.enable,
+                    !o || a === "unknown" ? Z.disable : Z.enable,
                   ),
-                  onClick: (s) => {
-                    s.stopPropagation(), i !== "unknown" && a(bn(t));
+                  onClick: (i) => {
+                    i.stopPropagation(), a !== "unknown" && r(bn(t));
                   },
                   children: /* @__PURE__ */ h.jsx($2, {}),
                 }),
