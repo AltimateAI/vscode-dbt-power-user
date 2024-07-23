@@ -19,12 +19,11 @@ const LineageView = (): JSX.Element | null => {
 
   const [isApiHelperInitialized, setIsApiHelperInitialized] = useState(false);
   const [renderNode, setRenderNode] = useState<
-    | ({
-        node?: Table;
-        aiEnabled: boolean;
-      } & Partial<StaticLineageProps>)
-    | undefined
-  >();
+    {
+      node?: Table;
+      aiEnabled: boolean;
+    } & Partial<StaticLineageProps>
+  >({ aiEnabled: true });
   const [missingLineageMessage, setMissingLineageMessage] = useState<
     MissingLineageMessage | undefined
   >();
@@ -70,6 +69,10 @@ const LineageView = (): JSX.Element | null => {
     } & StaticLineageProps,
   ) => {
     setMissingLineageMessage(data.missingLineageMessage);
+    const event = new CustomEvent("renderStartNode", {
+      detail: data,
+    });
+    document.dispatchEvent(event);
     setRenderNode(data);
   };
 
