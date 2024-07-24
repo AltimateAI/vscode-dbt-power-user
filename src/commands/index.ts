@@ -1,3 +1,4 @@
+import * as os from "os";
 import {
   commands,
   CommentReply,
@@ -15,6 +16,11 @@ import {
   ProgressLocation,
   TextEditorDecorationType,
   DecorationRangeBehavior,
+  WorkspaceEdit,
+  NotebookCellData,
+  NotebookCellKind,
+  NotebookRange,
+  NotebookEdit,
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { RunModelType } from "../domain";
@@ -45,6 +51,12 @@ import { existsSync, readFileSync } from "fs";
 import { DBTProject } from "../manifest/dbtProject";
 import { SQLLineagePanel } from "../webview_provider/sqlLineagePanel";
 import { QueryManifestService } from "../services/queryManifestService";
+import { NotebookFileSystemProvider } from "../file_system_providers/notebookFileSystemProvider";
+import { join } from "path";
+import {
+  RawNotebook,
+  RawNotebookCell,
+} from "../notebook_provider/sampleSerializer";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -554,8 +566,94 @@ export class VSCodeCommands implements Disposable {
         }
       }),
       commands.registerCommand(
+        "dbtPowerUser.createJinjaSqlNotebook",
+        async (
+          args: { notebookId?: string; fileName?: string } | undefined,
+        ) => {
+          const { notebookId, fileName } = args || {};
+          // TODO: is this needed
+          // workspace.updateWorkspaceFolders(0, 0, {
+          //   uri: Uri.parse("memfs:/"),
+          //   name: "MemFS - Sample",
+          // });
+          const project =
+            await this.queryManifestService.getOrPickProjectFromWorkspace();
+          if (!project) {
+            window.showErrorMessage("No dbt project selected.");
+            return;
+          }
+
+          const memFs = new NotebookFileSystemProvider();
+          const fileNamePrefix = notebookId || fileName || "poweruser";
+          const uri = Uri.parse(
+            `${project.projectRoot}/${fileNamePrefix}.notebook`,
+          ).with({ scheme: "untitled" });
+          //         const hashedProjectRoot = DBTProject.hashProjectRoot(project.projectRoot.fsPath);
+          // const tempFolder = join(os.tmpdir(), hashedProjectRoot);
+
+          // const uri = Uri.parse(`${tempFolder}/untitled.notebook`, true).with({ scheme: "memfs" });;
+          // await memFs.writeFile(uri, Buffer.from(''), { create: true, overwrite: true });
+          workspace.openNotebookDocument(uri).then((doc) => {
+            // set this to sql language so we can bind codelens and other features
+            // languages.setTextDocumentLanguage(doc, "jinja-sql");
+            window.showNotebookDocument(doc).then((editor) => {
+              if (!notebookId) {
+                return;
+              }
+              const notebooks =
+                this.dbtProjectContainer.getFromGlobalState("notebooks") || {};
+              const contents = notebooks[notebookId];
+
+              let raw: RawNotebookCell[];
+              try {
+                raw = (<RawNotebook>JSON.parse(contents)).cells;
+              } catch {
+                raw = [
+                  {
+                    cell_type: "code",
+                    source: [],
+                  },
+                ];
+              }
+
+              const cellData = raw.map(
+                (item) =>
+                  new NotebookCellData(
+                    NotebookCellKind.Code,
+                    item.source?.join("\n"),
+                    "jinja-sql",
+                  ),
+              );
+
+              // Get the active notebook editor
+              const notebookEditor = window.activeNotebookEditor;
+              if (notebookEditor) {
+                // Create notebook cells
+                const cells = cellData.map(
+                  (data) =>
+                    new NotebookCellData(
+                      data.kind,
+                      data.value,
+                      data.languageId,
+                    ),
+                );
+
+                // Apply the cell data to the notebook
+                const edit = new WorkspaceEdit();
+                // edit.replace(notebookEditor.notebook.uri, new NotebookEdit(new NotebookRange(0, 0), cells));
+                edit.set(notebookEditor.notebook.uri, [
+                  new NotebookEdit(new NotebookRange(0, 0), cells),
+                ]);
+                workspace.applyEdit(edit);
+              }
+            });
+          });
+        },
+      ),
+      commands.registerCommand(
         "dbtPowerUser.createSqlFile",
-        async ({ code, fileName }: { code?: string; fileName?: string }) => {
+        async (args: { code?: string; fileName?: string } | undefined) => {
+          const { code, fileName } = args || {};
           try {
             const project =
               await this.queryManifestService.getOrPickProjectFromWorkspace();

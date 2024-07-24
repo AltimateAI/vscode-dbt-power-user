@@ -3,4 +3,5 @@ export enum QueryPanelTitleTabState {
   Sql,
   QueryHistory,
   Bookmarks,
+  Notebooks,
 }

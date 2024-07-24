@@ -392,6 +392,10 @@
         "title": "Create Power User SQL file"
       },
       {
+        "command": "dbtPowerUser.createJinjaSqlNotebook",
+        "title": "Create Power User Jinja SQL notebook"
+      },
+      {
         "command": "dbtPowerUser.notebookItem",
         "title": "Sample notebook button",
         "icon": {
@@ -701,6 +705,11 @@
         {
           "command": "dbtPowerUser.createSqlFile",
           "when": "dbt.enableQueryBookmarks == true"
+        },
+        {
+          "command": "dbtPowerUser.createJinjaSqlNotebook",
+          "when": "dbt.enableQueryBookmarks == true",
+          "group": "notebook"
         }
       ],
       "comments/commentThread/title": [

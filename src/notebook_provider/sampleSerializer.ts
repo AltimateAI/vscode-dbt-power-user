@@ -8,11 +8,11 @@ import {
 } from "vscode";
 import { provideSingleton } from "../utils";
 
-interface RawNotebook {
+export interface RawNotebook {
   cells: RawNotebookCell[];
 }
 
-interface RawNotebookCell {
+export interface RawNotebookCell {
   source: string[];
   cell_type: "code" | "markdown";
 }

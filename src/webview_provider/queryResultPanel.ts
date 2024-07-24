@@ -88,9 +88,11 @@ enum InboundCommand {
   SetContext = "setContext",
   GetQueryPanelContext = "getQueryPanelContext",
   GetQueryHistory = "getQueryHistory",
+  GetNotebooks = "getNotebooks",
   ExecuteQuery = "executeQuery",
   GetQueryTabData = "getQueryTabData",
   RunAdhocQuery = "runAdhocQuery",
+  OpenNewNotebook = "openNewNotebook",
   ViewResultSet = "viewResultSet",
   OpenCodeInEditor = "openCodeInEditor",
 }
@@ -372,6 +374,12 @@ export class QueryResultPanel extends AltimateWebviewProvider {
               fileName: "Custom Query",
             });
             break;
+          case InboundCommand.OpenNewNotebook:
+            commands.executeCommand("dbtPowerUser.createJinjaSqlNotebook", {
+              fileName: "Untitled",
+              notebookId: message.notebookId,
+            });
+            break;
           case InboundCommand.ExecuteQuery:
             await this.executeIncomingQuery(message);
             break;
@@ -379,6 +387,13 @@ export class QueryResultPanel extends AltimateWebviewProvider {
             this.sendResponseToWebview({
               command: "queryHistory",
               data: this._queryHistory,
+            });
+            break;
+          case InboundCommand.GetNotebooks:
+            this.sendResponseToWebview({
+              command: "response",
+              syncRequestId: message.syncRequestId,
+              data: this.dbtProjectContainer.getFromGlobalState("notebooks"),
             });
             break;
           case InboundCommand.GetQueryTabData:
