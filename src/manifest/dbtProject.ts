@@ -1155,6 +1155,7 @@ select * from renamed
 
     for (const key of modelsToFetch) {
       if (this.dbSchemaCache[key]) {
+        this.telemetry.sendTelemetryEvent("dbSchemaCacheHit", { model: key });
         mappedNode[key] = this.dbSchemaCache[key];
         continue;
       }
