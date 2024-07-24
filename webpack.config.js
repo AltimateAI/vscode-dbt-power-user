@@ -97,4 +97,51 @@ const config = {
   },
 };
 
-module.exports = config;
+const rendererConfig = {
+  devtool: "source-map",
+  target: ["web", "es5"],
+  externals: {
+    vscode: "commonjs vscode",
+  },
+  entry: "./src/notebookrenderer/index.tsx",
+  output: {
+    path: path.resolve(__dirname, "dist"),
+    filename: "renderer.js",
+    libraryTarget: "module",
+  },
+  resolve: {
+    extensions: [".ts", ".tsx", ".css"],
+  },
+  experiments: {
+    outputModule: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /\.tsx?$/,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: "ts-loader",
+            options: {
+              configFile: path.resolve(
+                __dirname,
+                "./src/notebookrenderer/tsconfig.json",
+              ),
+              projectReferences: true,
+              compilerOptions: {
+                module: "esnext",
+              },
+            },
+          },
+        ],
+      },
+      {
+        test: /\.css$/i,
+        use: ["raw-loader"],
+      },
+    ],
+  },
+};
+
+module.exports = [config, rendererConfig];

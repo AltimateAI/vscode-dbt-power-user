@@ -39,6 +39,27 @@
   ],
   "main": "./dist/extension",
   "contributes": {
+    "notebookRenderer": [
+      {
+        "id": "my-notebook",
+        "displayName": "Github Issues Notebook Renderer",
+        "entrypoint": "./dist/renderer.js",
+        "mimeTypes": [
+          "x-application/github-issues"
+        ]
+      }
+    ],
+    "notebooks": [
+      {
+        "type": "my-notebook",
+        "displayName": "My Notebook",
+        "selector": [
+          {
+            "filenamePattern": "*.notebook"
+          }
+        ]
+      }
+    ],
     "snippets": [
       {
         "language": "jinja-sql",
@@ -1137,7 +1158,7 @@
   "scripts": {
     "prepare": "husky install",
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production",
-    "webpack": "npm run panel:webviews && npm run panel:lineage && webpack --mode development",
+    "webpack": "webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "watch": "concurrently \"npm:watch --prefix ./new_lineage_panel\" \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",
@@ -1195,6 +1216,7 @@
     "node-abort-controller": "^3.1.1",
     "node-fetch": "^3.3.2",
     "parse-diff": "^0.11.1",
+    "preact": "^10.23.0",
     "python-bridge": "github:mdesmet/node-python-bridge#feat/detached",
     "reflect-metadata": "^0.2.2",
     "semver": "^7.6.3",

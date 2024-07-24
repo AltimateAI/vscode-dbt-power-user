@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2019",
+    "sourceMap": true,
+    "strict": true,
+    "moduleResolution": "Node",
+    "noUnusedParameters": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "../../out/src/renderer",
+    "rootDir": ".",
+    "lib": ["ES2019", "dom"],
+    "jsx": "react",
+    "jsxFactory": "h",
+    "esModuleInterop": true,
+    "composite": true
+  },
+
+  "include": ["."],
+  "references": [{ "path": "../../webview_panels/tsconfig.node.json" }]
+}

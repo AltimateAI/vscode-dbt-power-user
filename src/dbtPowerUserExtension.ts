@@ -21,6 +21,7 @@ import { HoverProviders } from "./hover_provider";
 import { DbtPowerUserActionsCenter } from "./quickpick";
 import { ValidationProvider } from "./validation_provider";
 import { CommentProviders } from "./comment_provider";
+import { NotebookProviders } from "./notebook_provider";
 
 enum PromptAnswer {
   YES = "Yes",
@@ -63,6 +64,7 @@ export class DBTPowerUserExtension implements Disposable {
     private hoverProviders: HoverProviders,
     private validationProvider: ValidationProvider,
     private commentProviders: CommentProviders,
+    private notebookProviders: NotebookProviders,
   ) {
     this.disposables.push(
       this.dbtProjectContainer,
@@ -80,6 +82,7 @@ export class DBTPowerUserExtension implements Disposable {
       this.hoverProviders,
       this.validationProvider,
       this.commentProviders,
+      this.notebookProviders,
     );
   }
 
