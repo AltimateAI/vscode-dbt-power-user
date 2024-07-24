@@ -22,7 +22,6 @@ export class DocumentationCodeLensProvider implements CodeLensProvider {
     token: CancellationToken,
   ): ProviderResult<CodeLens[]> {
     const codeLenses: CodeLens[] = [];
-    console.log(document.fileName);
     if (document.fileName.endsWith(".sql")) {
       codeLenses.push(
         new CodeLens(new Range(0, 0, 1, 1), {
