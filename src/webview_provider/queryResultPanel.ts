@@ -322,8 +322,8 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     name: string;
   }) {
     commands.executeCommand("dbtPowerUser.createSqlFile", {
-      code: message.code,
-      name: message.name,
+      code: message?.code,
+      name: message?.name,
     });
   }
 
@@ -471,7 +471,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
   }
 
   private sendQueryPanelViewEvent() {
-    if (this._panel!.visible) {
+    if (this._panel?.visible) {
       this.telemetry.sendTelemetryEvent("QueryPanelActive");
     }
   }
@@ -603,6 +603,10 @@ export class QueryResultPanel extends AltimateWebviewProvider {
     duration: number,
     modelName: string,
   ) {
+    // Do not update query history if bookmarks are disabled
+    if (!workspace.getConfiguration("dbt").get("enableQueryBookmarks", false)) {
+      return;
+    }
     const project = projectName
       ? this.queryManifestService.getProjectByName(projectName) // for queries executed from history and bookmarks tab
       : this.queryManifestService.getProject(); // queries executed from main window
