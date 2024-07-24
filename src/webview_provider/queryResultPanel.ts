@@ -691,6 +691,7 @@ export class QueryResultPanel extends AltimateWebviewProvider {
         Date.now() - start,
         output.modelName,
       );
+      return result;
     } catch (exc: any) {
       if (exc instanceof PythonException) {
         if (exc.exception.type.name === "KeyboardInterrupt") {

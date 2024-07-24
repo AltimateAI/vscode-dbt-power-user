@@ -1,20 +1,52 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "ES2019",
+    // "module": "commonjs",
+    // "target": "ES2019",
     "sourceMap": true,
-    "strict": true,
-    "moduleResolution": "Node",
-    "noUnusedParameters": true,
-    "skipLibCheck": true,
+    // "strict": true,
+    // "moduleResolution": "Node",
+    // "noUnusedParameters": true,
+    // "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "../../out/src/renderer",
-    "rootDir": ".",
-    "lib": ["ES2019", "dom"],
-    "jsx": "react",
-    "jsxFactory": "h",
+    // "rootDir": ".",
+    // "lib": ["ES2019", "dom"],
+    // "jsx": "react",
+    // "jsxFactory": "h",
     "esModuleInterop": true,
-    "composite": true
+    "composite": true,
+
+    "target": "ES5",
+    "useDefineForClassFields": true,
+    "lib": ["ES2015", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
+    // "noEmit": true,
+    "jsx": "react-jsx",
+    // "outDir": "dist",
+
+    /* Linting */
+    "strict": true,
+    "strictNullChecks": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "downlevelIteration": true,
+    "baseUrl": ".",
+    "paths": {
+      "@uicore": ["src/uiCore/index.ts"],
+      "@lib": ["src/lib/index.ts"],
+      "@assets/*": ["src/assets/*"],
+      "@modules/*": ["src/modules/*"],
+      "@testUtils": ["src/testUtils/index.ts"],
+      "@vscodeApi": ["src/modules/vscode/index.ts"]
+    }
   },
 
   "include": ["."],

@@ -2,7 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 // @ts-nocheck
-import { h, render } from "preact";
+import React from "react";
+import ReactDOM from "react-dom/client";
 import type { ActivationFunction } from "vscode-notebook-renderer";
 import { AllItems } from "./renderer";
 import rendererCss from "./renderer.css";
@@ -25,7 +26,9 @@ export const activate: ActivationFunction = () => {
         root.id = "root";
         shadow.append(root);
       }
-      render(<AllItems items={info.json()} />, shadow.querySelector("#root")!);
+      ReactDOM.createRoot(shadow.querySelector("#root")!).render(
+        <AllItems items={info.json()} />,
+      );
     },
   };
 };

@@ -3,20 +3,20 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { FunctionComponent, h } from "preact";
-import { useEffect, useMemo, useState } from "preact/hooks";
 import { IssueClosedIcon, IssueOpenIcon, PRIcon } from "./icons";
 
 const defaultMaxCount = 13;
 
-export const AllItems: FunctionComponent<{
+export const AllItems = ({
+  items: rawItems,
+}: {
   items: ReadonlyArray<unknown>;
-}> = ({ items: rawItems }) => {
+}) => {
   return (
     <div>
       <IssueOpenIcon /> Entered sql:{" "}
       <pre>
-        <code>{rawItems.sql}</code>
+        <code>{rawItems.raw_sql}</code>
       </pre>
     </div>
   );

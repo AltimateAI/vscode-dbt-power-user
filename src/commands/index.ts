@@ -644,7 +644,12 @@ export class VSCodeCommands implements Disposable {
                 edit.set(notebookEditor.notebook.uri, [
                   new NotebookEdit(new NotebookRange(0, 0), cells),
                 ]);
-                workspace.applyEdit(edit);
+                workspace.applyEdit(edit).then(() => {
+                  // Save the notebook
+                  // setTimeout(() => {
+                  //   notebookEditor.notebook.save();
+                  // }, 100);
+                });
               }
             });
           });

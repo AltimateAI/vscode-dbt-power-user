@@ -103,7 +103,7 @@ const rendererConfig = {
   externals: {
     vscode: "commonjs vscode",
   },
-  entry: "./src/notebookrenderer/index.tsx",
+  entry: "./webview_panels/src/notebook/index.tsx",
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "renderer.js",
@@ -126,11 +126,13 @@ const rendererConfig = {
             options: {
               configFile: path.resolve(
                 __dirname,
-                "./src/notebookrenderer/tsconfig.json",
+                "./webview_panels/tsconfig.json",
               ),
               projectReferences: true,
               compilerOptions: {
                 module: "esnext",
+                noEmit: false,
+                outDir: "../../out/src/renderer",
               },
             },
           },

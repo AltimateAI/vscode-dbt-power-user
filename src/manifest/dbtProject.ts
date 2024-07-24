@@ -63,7 +63,9 @@ import { SharedStateService } from "../services/sharedStateService";
 interface FileNameTemplateMap {
   [key: string]: string;
 }
-
+interface JsonObj {
+  [key: string]: string | number | undefined;
+}
 export class DBTProject implements Disposable {
   static DBT_PROJECT_FILE = "dbt_project.yml";
   static MANIFEST_FILE = "manifest.json";
@@ -910,7 +912,11 @@ select * from renamed
     }
   }
 
-  async executeSQL(query: string, modelName: string) {
+  async executeSQL(
+    query: string,
+    modelName: string,
+    returnImmediately?: boolean,
+  ) {
     const limit = workspace
       .getConfiguration("dbt")
       .get<number>("queryLimit", 500);
@@ -928,6 +934,30 @@ select * from renamed
       limit: limit.toString(),
     });
 
+    if (returnImmediately) {
+      const execution = await this.dbtProjectIntegration.executeSQL(
+        query,
+        limit,
+        modelName,
+      );
+      const result = await execution.executeQuery();
+      const rows: JsonObj[] = [];
+      // Convert compressed array format to dict[]
+      for (let i = 0; i < result.table.rows.length; i++) {
+        result.table.rows[i].forEach((value: any, j: any) => {
+          rows[i] = { ...rows[i], [result.table.column_names[j]]: value };
+        });
+      }
+      const data = {
+        columnNames: result.table.column_names,
+        columnTypes: result.table.column_types,
+        rows,
+        raw_sql: query,
+        compiled_sql: result.compiled_sql,
+      };
+
+      return data;
+    }
     this.eventEmitterService.fire({
       command: "executeQuery",
       payload: {

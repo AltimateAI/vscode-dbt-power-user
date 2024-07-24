@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
+import { SharedStateService } from "../services/sharedStateService";
+import { QueryManifestService } from "../services/queryManifestService";
 
 interface RawNotebookCell {
   source: string[];
@@ -16,7 +18,11 @@ export class NotebookKernel {
   private _executionOrder = 0;
   private readonly _controller: vscode.NotebookController;
 
-  constructor(private dbtProjectContainer: DBTProjectContainer) {
+  constructor(
+    private dbtProjectContainer: DBTProjectContainer,
+    private eventEmitterService: SharedStateService,
+    private queryManifestService: QueryManifestService,
+  ) {
     this._controller = vscode.notebooks.createNotebookController(
       this._id,
       "my-notebook",
@@ -134,10 +140,23 @@ export class NotebookKernel {
     execution.start(Date.now());
 
     try {
+      // TODO: clean this up
+      const project =
+        await this.queryManifestService.getOrPickProjectFromWorkspace();
+      if (!project) {
+        vscode.window.showErrorMessage("No dbt project selected.");
+        return;
+      }
+      const result = await project.executeSQL(
+        cell.document.getText(),
+
+        "",
+        true,
+      );
       execution.replaceOutput([
         new vscode.NotebookCellOutput([
           vscode.NotebookCellOutputItem.json(
-            { sql: cell.document.getText() },
+            result,
             "x-application/github-issues",
           ),
         ]),
