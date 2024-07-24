@@ -26,8 +26,8 @@ export class DocumentationCodeLensProvider implements CodeLensProvider {
     if (document.fileName.endsWith(".sql")) {
       codeLenses.push(
         new CodeLens(new Range(0, 0, 1, 1), {
-          title: "Add documentation",
-          tooltip: "Add documentation for the model",
+          title: "Add documentation or tests",
+          tooltip: "Add documentation or tests for this model",
           command: "dbtPowerUser.DocsEdit.focus",
           arguments: [],
         }),
@@ -72,8 +72,8 @@ export class DocumentationCodeLensProvider implements CodeLensProvider {
                     position.col,
                   ),
                   {
-                    title: "Add documentation",
-                    tooltip: "Add documentation for the model",
+                    title: "Add documentation or tests",
+                    tooltip: "Add documentation or tests for this model",
                     command: "dbtPowerUser.showDocumentation",
                     arguments: [properties.value.source],
                   },
