@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 export class SampleKernel {
   private readonly _id = "test-notebook-serializer-kernel";
   private readonly _label = "Altimate dbt kernel";
-  private readonly _supportedLanguages = ["sql"];
+  private readonly _supportedLanguages = ["sql", "jinja-sql"];
 
   private _executionOrder = 0;
   private readonly _controller: vscode.NotebookController;
@@ -18,6 +18,12 @@ export class SampleKernel {
     this._controller.supportedLanguages = this._supportedLanguages;
     this._controller.supportsExecutionOrder = true;
     this._controller.executeHandler = this._executeAll.bind(this);
+    // this._controller.updateNotebookAffinity = async (
+    //   notebook: vscode.NotebookDocument,
+    //   affinity: vscode.NotebookControllerAffinity,
+    // ) => {
+    //   console.log("updateNotebookAffinity", notebook.uri.toString(), affinity);
+    // };
   }
 
   dispose(): void {

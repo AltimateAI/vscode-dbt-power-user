@@ -45,7 +45,7 @@ export class SampleSerializer implements NotebookSerializer, Disposable {
         new NotebookCellData(
           NotebookCellKind.Code,
           item.source?.join("\n"),
-          "sql",
+          "jinja-sql",
         ),
     );
 

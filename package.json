@@ -392,6 +392,19 @@
         "title": "Create Power User SQL file"
       },
       {
+        "command": "dbtPowerUser.notebookItem",
+        "title": "Sample notebook button",
+        "icon": {
+          "light": "./media/images/sql-action-light.svg",
+          "dark": "./media/images/sql-action-dark.svg"
+        }
+      },
+      {
+        "command": "dbtPowerUser.notebookItem1",
+        "title": "Pick project",
+        "icon": "$(home)"
+      },
+      {
         "command": "dbtPowerUser.replyToConversation",
         "title": "Reply",
         "enablement": "!commentIsEmpty",
@@ -666,6 +679,24 @@
       }
     ],
     "menus": {
+      "notebook/cell/title": [
+        {
+          "command": "dbtPowerUser.notebookItem",
+          "group": "inline/output@1"
+        }
+      ],
+      "notebook/cell/execute": [
+        {
+          "command": "dbtPowerUser.notebookItem",
+          "group": "navigation"
+        }
+      ],
+      "notebook/toolbar": [
+        {
+          "command": "dbtPowerUser.notebookItem1",
+          "group": "navigation"
+        }
+      ],
       "file/newFile": [
         {
           "command": "dbtPowerUser.createSqlFile",
