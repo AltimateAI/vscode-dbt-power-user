@@ -757,6 +757,8 @@ export class AltimateRequest {
         "checkApiConnectivity",
         "Unable to connect to backend",
         e,
+        true,
+        { url },
       );
       return false;
     }
