@@ -45,6 +45,7 @@ import { existsSync, readFileSync } from "fs";
 import { DBTProject } from "../manifest/dbtProject";
 import { SQLLineagePanel } from "../webview_provider/sqlLineagePanel";
 import { QueryManifestService } from "../services/queryManifestService";
+import { AltimateRequest } from "../altimate";
 
 @provideSingleton(VSCodeCommands)
 export class VSCodeCommands implements Disposable {
@@ -65,6 +66,7 @@ export class VSCodeCommands implements Disposable {
     private dbtClient: DBTClient,
     private sqlLineagePanel: SQLLineagePanel,
     private queryManifestService: QueryManifestService,
+    private altimate: AltimateRequest,
   ) {
     this.disposables.push(
       commands.registerCommand(
@@ -465,6 +467,7 @@ export class VSCodeCommands implements Disposable {
           const allowListFolders = workspace
             .getConfiguration("dbt")
             .get<string[]>("allowListFolders", []);
+          const apiConnectivity = await this.altimate.checkApiConnectivity();
           this.dbtTerminal.logBlock([
             `Python Path=${this.pythonEnvironment.pythonPath}`,
             `VSCode version=${version}`,
@@ -474,6 +477,7 @@ export class VSCodeCommands implements Disposable {
             }`,
             `DBT integration mode=${dbtIntegrationMode}`,
             `First workspace path=${getFirstWorkspacePath()}`,
+            `API connectivity=${apiConnectivity}`,
             `AllowList Folders=${allowListFolders}`,
           ]);
           this.dbtTerminal.logNewLine();
