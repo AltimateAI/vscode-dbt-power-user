@@ -324,7 +324,7 @@ export class DBTCoreProjectIntegration
       const dbtVersion = await this.version;
       //dbt supports limit macro after v1.5
       if (dbtVersion && dbtVersion[0] >= 1 && dbtVersion[1] >= 5) {
-        const args = { sql: query, limit };
+        const args = { compiled_code: query, limit };
         const queryTemplateFromMacro = await this.python?.lock(
           (python) =>
             python!`to_dict(project.execute_macro('get_show_sql', ${args}))`,
