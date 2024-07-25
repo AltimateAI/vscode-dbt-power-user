@@ -327,7 +327,7 @@ export class DBTCoreProjectIntegration
         const args = { compiled_code: query, limit };
         const queryTemplateFromMacro = await this.python?.lock(
           (python) =>
-            python!`to_dict(project.execute_macro('get_show_sql', ${args}))`,
+            python!`to_dict(project.execute_macro('get_show_sql', ${args}, ${query}))`,
         );
 
         this.dbtTerminal.debug(
