@@ -22,6 +22,5 @@
     ".vscode-test",
     "new_lineage_panel",
     "webview_panels"
-  ],
-  "references": [{ "path": "./notebookrenderer/tsconfig.json" }]
+  ]
 }
