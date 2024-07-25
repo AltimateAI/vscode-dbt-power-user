@@ -2,6 +2,16 @@
 
 
 .documentation-wrapper {
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  box-sizing: border-box;
+  top: 0;
+  left: 0;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  overflow-y: overlay;
   :global .btn-group {
     margin-bottom: var(--spacing-3xl);
   }
@@ -102,7 +112,8 @@
   }
 }
 .doc-generator {
-  max-height: calc(100vh - 100px);
+  max-height: calc(100% - 40px);
+  flex-grow: 1;
   display: flex;
   flex-direction: column;
 
@@ -118,10 +129,8 @@
   & .body-wrap {
     overflow: hidden;
     & .body {
-      width: 80%;
-      min-width: var(--bs-breakpoint-md);
+      width: 100%;
       overflow: overlay;
-      padding-right: 1rem;
 
       & :global .alert {
         margin-top: 12px;
