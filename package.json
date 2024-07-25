@@ -1199,7 +1199,7 @@
     "reflect-metadata": "^0.2.2",
     "semver": "^7.6.3",
     "which": "^4.0.0",
-    "yaml": "^2.4.5"
+    "yaml": "^2.5.0"
   },
   "lint-staged": {
     "**/webview_panels/**/*.{ts,tsx}": [
