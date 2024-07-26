@@ -951,7 +951,7 @@ select * from renamed
       const data = {
         columnNames: result.table.column_names,
         columnTypes: result.table.column_types,
-        rows,
+        data: rows,
         raw_sql: query,
         compiled_sql: result.compiled_sql,
       };

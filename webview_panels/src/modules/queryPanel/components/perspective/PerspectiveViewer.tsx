@@ -13,11 +13,11 @@ import "@finos/perspective-viewer/dist/css/vaporwave.css";
 import "@finos/perspective-viewer/dist/css/solarized.css";
 import "@finos/perspective-viewer/dist/css/solarized-dark.css";
 import "@finos/perspective-viewer/dist/css/monokai.css";
-import { useEffect, useRef, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 import { panelLogger } from "@modules/logger";
 import useAppContext from "@modules/app/useAppContext";
-// import classes from "./perspective.module.scss";
-// import perspectiveStyles from "./perspective.scss?inline";
+import classes from "./perspective.module.scss";
+import perspectiveStyles from "./perspective.scss?inline";
 import { executeRequestInAsync } from "@modules/app/requestExecutor";
 import useQueryPanelState from "@modules/queryPanel/useQueryPanelState";
 import { useQueryPanelDispatch } from "@modules/queryPanel/QueryPanelProvider";
@@ -27,11 +27,13 @@ interface Props {
   data: TableData;
   columnNames: string[];
   columnTypes: string[];
+  styles?: CSSProperties ;
 }
 const PerspectiveViewer = ({
   columnNames,
   columnTypes,
   data,
+  styles
 }: Props): JSX.Element => {
   const {
     state: { theme },
@@ -129,7 +131,7 @@ const PerspectiveViewer = ({
     shadowRoot.getElementById(id)?.remove();
 
     const style = document.createElement("style");
-    // style.textContent = perspectiveStyles;
+    style.textContent = perspectiveStyles;
     style.id = id;
     shadowRoot.appendChild(style);
     shadowRoot.querySelector("regular-table")?.setAttribute("theme", theme);
@@ -244,8 +246,9 @@ const PerspectiveViewer = ({
 
   return (
     <perspective-viewer
-      // class={classes.altimatePerspectiveViewer}
+      class={classes.altimatePerspectiveViewer}
       ref={perspectiveViewerRef}
+      style={styles}
     ></perspective-viewer>
   );
 };

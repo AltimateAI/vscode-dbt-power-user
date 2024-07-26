@@ -140,6 +140,8 @@ export class NotebookKernel {
     execution.start(Date.now());
 
     try {
+      // clear the existing output
+      void execution.clearOutput();
       // TODO: clean this up
       const project =
         await this.queryManifestService.getOrPickProjectFromWorkspace();
@@ -155,10 +157,7 @@ export class NotebookKernel {
       );
       execution.replaceOutput([
         new vscode.NotebookCellOutput([
-          vscode.NotebookCellOutputItem.json(
-            result,
-            "x-application/github-issues",
-          ),
+          vscode.NotebookCellOutputItem.json(result, "application/json"),
         ]),
       ]);
 

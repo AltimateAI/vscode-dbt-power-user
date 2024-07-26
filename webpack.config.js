@@ -111,6 +111,17 @@ const rendererConfig = {
   },
   resolve: {
     extensions: [".ts", ".tsx", ".css"],
+    alias: {
+      "@uicore": path.resolve(__dirname, "./webview_panels/src/uiCore"),
+      "@assets": path.resolve(__dirname, "./webview_panels/src/assets"),
+      "@modules": path.resolve(__dirname, "./webview_panels/src/modules"),
+      "@testUtils": path.resolve(__dirname, "./webview_panels/src/testUtils"),
+      "@vscodeApi": path.resolve(
+        __dirname,
+        "./webview_panels/src/modules/vscode",
+      ),
+      "@lib": path.resolve(__dirname, "./webview_panels/src/lib"),
+    },
   },
   experiments: {
     outputModule: true,
@@ -136,6 +147,13 @@ const rendererConfig = {
               },
             },
           },
+          // {
+          //   loader: "esbuild-loader",
+          //   options: {
+          //     loader: "tsx", // Remove this if you're not using JSX
+          //     target: "es2015", // Syntax to compile to (see options below for possible values)
+          //   },
+          // },
         ],
       },
       {
@@ -146,4 +164,4 @@ const rendererConfig = {
   },
 };
 
-module.exports = [config, rendererConfig];
+module.exports = [config];

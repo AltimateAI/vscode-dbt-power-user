@@ -41,11 +41,11 @@
   "contributes": {
     "notebookRenderer": [
       {
-        "id": "my-notebook",
+        "id": "my-notebook-renderer",
         "displayName": "Github Issues Notebook Renderer",
-        "entrypoint": "./dist/renderer.js",
+        "entrypoint": "./webview_panels/dist/assets/renderer.js",
         "mimeTypes": [
-          "x-application/github-issues"
+          "application/json"
         ]
       }
     ],
@@ -1223,6 +1223,7 @@
     "concurrently": "^8.2.2",
     "copy-webpack-plugin": "^11.0.0",
     "cross-env": "^7.0.3",
+    "esbuild-loader": "^4.2.2",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^8.9.0",
     "eslint-plugin-prettier": "^5.2.1",

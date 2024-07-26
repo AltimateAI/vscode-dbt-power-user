@@ -1,3 +1,4 @@
+import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js'
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import svgr from "vite-plugin-svgr";
@@ -9,6 +10,7 @@ export default defineConfig({
   plugins: [
     svgr(),
     react(),
+    cssInjectedByJsPlugin(),
     {
       name: "copy-codicons",
       renderStart: () => {
@@ -20,14 +22,28 @@ export default defineConfig({
       },
     },
   ],
+  define: {
+    'process.env': {}
+  },
   build: {
+    lib: {
+      entry: "./src/notebook/index.tsx", // Entry point for your library
+      // exports: "named", // Use named exports
+      formats: ["es"],
+      // name: "NotebookRenderer", // Name of the library
+    },
+    minify: false,
+    commonjsOptions: {},
+    
     rollupOptions: {
-      input: "./src/main.tsx",
+      // input: './src/notebook/index.tsx',
       output: {
-        entryFileNames: `assets/[name].js`,
+        entryFileNames: `assets/renderer.js`,
         chunkFileNames: `assets/[name].js`,
         assetFileNames: `assets/[name].[ext]`,
+        // exports: "named",
       },
+
     },
   },
   resolve: {
