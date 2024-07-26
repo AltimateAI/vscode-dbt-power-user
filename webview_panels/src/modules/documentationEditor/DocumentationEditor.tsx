@@ -157,7 +157,7 @@ const DocumentationEditor = (): JSX.Element => {
         </Stack>
         <CommonActionButtons />
       </Stack>
-      <div className={classes.docGenerator}>
+      <div className={`${classes.docGenerator} ${classes.limitWidth}`}>
         <Stack className={classes.head}>
           <Stack>
             <h3 className="mb-2">Model: {currentDocsData.name}</h3>

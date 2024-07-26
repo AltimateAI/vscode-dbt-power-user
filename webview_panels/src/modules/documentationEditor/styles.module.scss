@@ -116,7 +116,7 @@
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-
+  
   & .head {
     justify-content: space-between;
     > div {
@@ -332,5 +332,16 @@
   textarea{
     top: 5px !important;
     height: 80% !important;
+  }
+}
+
+.limitWidth {
+  max-width: 100%;
+  min-width: 0;
+  flex: 1;
+}
+@media (min-width: 1400px) {
+  .limitWidth {
+    max-width: 1440px;
   }
 }
