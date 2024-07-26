@@ -630,7 +630,7 @@ class DbtProject:
         return sql_node
 
     @lru_cache(maxsize=100)
-    def get_macro_function(self, macro_name: str) -> Callable[[Dict[str, Any]], Any]:
+    def get_macro_function(self, macro_name: str, compiled_code: Optional[str] = None) -> Callable[[Dict[str, Any]], Any]:
         """Get macro as a function which takes a dict via argument named `kwargs`,
         ie: `kwargs={"relation": ...}`
 
@@ -638,8 +638,11 @@ class DbtProject:
         make_schema_fn({'name': '__test_schema_1'})\n
         make_schema_fn({'name': '__test_schema_2'})"""
         if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 8:
+            model_context = {}
+            if compiled_code is not None:
+                model_context["compiled_code"] = compiled_code
             return partial(
-                self.adapter.execute_macro, macro_name=macro_name
+                self.adapter.execute_macro, macro_name=macro_name, context_override=model_context,
             )
         else:
             return partial(
@@ -656,9 +659,10 @@ class DbtProject:
         self,
         macro: str,
         kwargs: Optional[Dict[str, Any]] = None,
+        compiled_code: Optional[str] = None
     ) -> Any:
         """Wraps adapter execute_macro. Execute a macro like a function."""
-        return self.get_macro_function(macro)(kwargs=kwargs)
+        return self.get_macro_function(macro, compiled_code)(kwargs=kwargs)
 
     def execute_sql(self, raw_sql: str, original_node: Optional[Union["ManifestNode", str]] = None) -> DbtAdapterExecutionResult:
         """Execute dbt SQL statement against database"""
