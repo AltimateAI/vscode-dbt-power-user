@@ -1,9 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
-/* eslint-disable no-console */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// import ReactDOM from "react-dom/client";
 import type { ActivationFunction, OutputItem } from "vscode-notebook-renderer";
 // import rendererCss from "./renderer.scss?inline";
 import AllItems from "./renderer";
@@ -15,6 +9,8 @@ import "../main.scss";
 
 // import React from "react";
 import ReactDOM from "react-dom/client";
+import { panelLogger } from "@modules/logger";
+import { QueryPanelStateProps } from "@modules/queryPanel/context/types";
 
 export const activate: ActivationFunction = () => {
   const style = document.createElement("style");
@@ -23,8 +19,9 @@ export const activate: ActivationFunction = () => {
 
   return {
     renderOutputItem(info: OutputItem, element: HTMLElement) {
-      const data = info.json();
-      console.log("renderOutputItem", info.json(), element);
+      const data =
+        info.json() as unknown as QueryPanelStateProps["queryResults"];
+      panelLogger.log("renderOutputItem", info.json(), element);
       // let shadow = element.shadowRoot;
       // if (!shadow) {
       //   shadow = element.attachShadow({ mode: "open" });
@@ -36,10 +33,10 @@ export const activate: ActivationFunction = () => {
       //   element.append(root);
       // }
       const root = document.createElement("div");
-        root.id = "root";
-        element.append(root);
+      root.id = "root";
+      element.append(root);
       ReactDOM.createRoot(root).render(
-        <AllItems items={data} />,
+        data ? <AllItems items={data} /> : <div>No result</div>,
         // <pre><code>
         //   {JSON.stringify(data, null, 2)}
         //   </code></pre>,

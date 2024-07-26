@@ -1,4 +1,4 @@
-import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js'
+import cssInjectedByJsPlugin from "vite-plugin-css-injected-by-js";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import svgr from "vite-plugin-svgr";
@@ -10,7 +10,20 @@ export default defineConfig({
   plugins: [
     svgr(),
     react(),
-    cssInjectedByJsPlugin(),
+    cssInjectedByJsPlugin({
+      //   cssAssetsFilterFunction: (outputAsset) => {
+      //     console.log("outputAsset.fileName", outputAsset.fileName)
+      //     return outputAsset.fileName !== 'assets/style.css';
+      // }
+      jsAssetsFilterFunction: function customJsAssetsfilterFunction(
+        outputChunk,
+      ) {
+        return (
+          outputChunk.fileName == "assets/renderer.js" ||
+          outputChunk.fileName == "assets/main.js"
+        );
+      },
+    }),
     {
       name: "copy-codicons",
       renderStart: () => {
@@ -23,27 +36,26 @@ export default defineConfig({
     },
   ],
   define: {
-    'process.env': {}
+    "process.env": {},
   },
   build: {
     lib: {
-      entry: "./src/notebook/index.tsx", // Entry point for your library
+      entry: { main: "./src/main.tsx", renderer: "./src/notebook/index.tsx" },
       // exports: "named", // Use named exports
       formats: ["es"],
+      // fileName: `assets/renderer.js`,
       // name: "NotebookRenderer", // Name of the library
     },
-    minify: false,
+    // minify: false,
     commonjsOptions: {},
-    
+
     rollupOptions: {
-      // input: './src/notebook/index.tsx',
+      // input: "./src/main.tsx",
       output: {
-        entryFileNames: `assets/renderer.js`,
+        entryFileNames: `assets/[name].js`,
         chunkFileNames: `assets/[name].js`,
         assetFileNames: `assets/[name].[ext]`,
-        // exports: "named",
       },
-
     },
   },
   resolve: {
