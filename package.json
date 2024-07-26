@@ -629,6 +629,11 @@
         "title": "Visualize SQL (Beta)",
         "category": "dbt Power User",
         "icon": "$(eye)"
+      },
+      {
+        "command": "dbtPowerUser.showDocumentation",
+        "title": "Show documentation",
+        "category": "dbt Power User"
       }
     ],
     "keybindings": [
