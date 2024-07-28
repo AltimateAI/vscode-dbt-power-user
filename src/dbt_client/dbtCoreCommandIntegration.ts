@@ -113,8 +113,17 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
     const compiledLine = stdout
       .trim()
       .split("\n")
-      .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
+      .map((line) => {
+        try {
+          return JSON.parse(line.trim());
+        } catch (err) {}
+      })
+      .filter(
+        (line) =>
+          line &&
+          line.hasOwnProperty("data") &&
+          line.data.hasOwnProperty("compiled"),
+      );
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
@@ -139,8 +148,17 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
     const compiledLine = stdout
       .trim()
       .split("\n")
-      .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
+      .map((line) => {
+        try {
+          return JSON.parse(line.trim());
+        } catch (err) {}
+      })
+      .filter(
+        (line) =>
+          line &&
+          line.hasOwnProperty("data") &&
+          line.data.hasOwnProperty("compiled"),
+      );
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
@@ -165,8 +183,17 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
     const compiledLine = stdout
       .trim()
       .split("\n")
-      .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
+      .map((line) => {
+        try {
+          return JSON.parse(line.trim());
+        } catch (err) {}
+      })
+      .filter(
+        (line) =>
+          line &&
+          line.hasOwnProperty("data") &&
+          line.data.hasOwnProperty("compiled"),
+      );
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
@@ -194,8 +221,17 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
     const compiledLine = stdout
       .trim()
       .split("\n")
-      .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
+      .map((line) => {
+        try {
+          return JSON.parse(line.trim());
+        } catch (err) {}
+      })
+      .filter(
+        (line) =>
+          line &&
+          line.hasOwnProperty("data") &&
+          line.data.hasOwnProperty("compiled"),
+      );
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
@@ -220,8 +256,17 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
     const compiledLine = stdout
       .trim()
       .split("\n")
-      .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
+      .map((line) => {
+        try {
+          return JSON.parse(line.trim());
+        } catch (err) {}
+      })
+      .filter(
+        (line) =>
+          line &&
+          line.hasOwnProperty("data") &&
+          line.data.hasOwnProperty("compiled"),
+      );
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
@@ -241,10 +286,17 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
         jsonErrors
           .trim()
           .split("\n")
-          .map((line) => JSON.parse(line.trim()))
+          .map((line) => {
+            try {
+              return JSON.parse(line.trim());
+            } catch (err) {}
+          })
           .filter(
             (line) =>
-              line.info.level === "error" || line.info.level === "fatal",
+              line &&
+              line.hasOwnProperty("info") &&
+              line.info.hasOwnProperty("level") &&
+              (line.info.level === "error" || line.info.level === "fatal"),
           )
           .map((line) => line.info.msg),
       );
@@ -308,8 +360,17 @@ export class DBTCoreCommandProjectIntegration extends DBTCoreProjectIntegration 
     const compiledLine = stdout
       .trim()
       .split("\n")
-      .map((line) => JSON.parse(line.trim()))
-      .filter((line) => line.data.hasOwnProperty("compiled"));
+      .map((line) => {
+        try {
+          return JSON.parse(line.trim());
+        } catch (err) {}
+      })
+      .filter(
+        (line) =>
+          line &&
+          line.hasOwnProperty("data") &&
+          line.data.hasOwnProperty("compiled"),
+      );
     const exception = this.processJSONErrors(stderr);
     if (exception) {
       throw exception;
