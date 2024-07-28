@@ -97,7 +97,7 @@ export class SqlPreviewContentProvider
         .getConfiguration("dbt")
         .get<string>("dbtIntegration", "core");
       if (
-        dbtIntegrationMode === "core" &&
+        dbtIntegrationMode.startsWith("core") &&
         manifestPathType === ManifestPathType.REMOTE
       ) {
         this.altimateRequest.sendDeferToProdEvent(ManifestPathType.REMOTE);
