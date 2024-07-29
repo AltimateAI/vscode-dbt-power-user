@@ -324,10 +324,10 @@ export class DBTCoreProjectIntegration
       const dbtVersion = await this.version;
       //dbt supports limit macro after v1.5
       if (dbtVersion && dbtVersion[0] >= 1 && dbtVersion[1] >= 5) {
-        const args = { sql: query, limit };
+        const args = { compiled_code: query, limit };
         const queryTemplateFromMacro = await this.python?.lock(
           (python) =>
-            python!`to_dict(project.execute_macro('get_limit_subquery_sql', ${args}))`,
+            python!`to_dict(project.execute_macro('get_show_sql', ${args}, ${query}))`,
         );
 
         this.dbtTerminal.debug(
@@ -341,7 +341,7 @@ export class DBTCoreProjectIntegration
         };
       }
     } catch (err) {
-      console.error("Error while getting get_limit_subquery_sql macro", err);
+      console.error("Error while getting get_show_sql macro", err);
       this.telemetry.sendTelemetryError(
         "executeMacroGetLimitSubquerySQLError",
         err,

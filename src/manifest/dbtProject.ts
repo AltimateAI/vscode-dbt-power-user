@@ -10,6 +10,7 @@ import {
   Disposable,
   Event,
   EventEmitter,
+  FileSystemWatcher,
   languages,
   Range,
   RelativePattern,
@@ -99,6 +100,8 @@ export class DBTProject implements Disposable {
   readonly onRebuildManifestStatusChange =
     this._onRebuildManifestStatusChange.event;
 
+  private dbSchemaCache: Record<string, ModelNode> = {};
+
   constructor(
     private PythonEnvironment: PythonEnvironment,
     private sourceFileWatchersFactory: SourceFileWatchersFactory,
@@ -169,6 +172,39 @@ export class DBTProject implements Disposable {
         this.projectRoot
       }`,
     );
+  }
+
+  private createLastRunResultsWatcher() {
+    const watcher = workspace.createFileSystemWatcher(
+      new RelativePattern(this.getTargetPath()!, `run_results.json`),
+    );
+
+    watcher.onDidChange((e) => this.invalidateCacheUsingLastRun(e));
+    watcher.onDidCreate((e) => this.invalidateCacheUsingLastRun(e));
+    return watcher;
+  }
+
+  private async invalidateCacheUsingLastRun(file: Uri) {
+    const fileContent = readFileSync(file.path, "utf8").toString();
+    if (!fileContent) {
+      return;
+    }
+
+    try {
+      const runResults = JSON.parse(fileContent);
+      for (const n of runResults["results"]) {
+        if (n["unique_id"] in this.dbSchemaCache) {
+          delete this.dbSchemaCache[n["unique_id"]];
+        }
+      }
+    } catch (e) {
+      this.terminal.error(
+        "invalidateCacheUsingLastRun",
+        `Unable to parse run_results.json ${e}`,
+        e,
+        true,
+      );
+    }
   }
 
   public getProjectName() {
@@ -307,6 +343,7 @@ export class DBTProject implements Disposable {
           await this.rebuildManifest();
         }, this.dbtProjectIntegration.getDebounceForRebuildManifest()),
       ),
+      this.createLastRunResultsWatcher(),
     );
 
     this.terminal.debug(
@@ -1137,6 +1174,11 @@ select * from renamed
     const bulkSchemaRequest: DBTNode[] = [];
 
     for (const key of modelsToFetch) {
+      if (this.dbSchemaCache[key]) {
+        this.telemetry.sendTelemetryEvent("dbSchemaCacheHit", { model: key });
+        mappedNode[key] = this.dbSchemaCache[key];
+        continue;
+      }
       const splits = key.split(".");
       const resource_type = splits[0];
       if (resource_type === DBTProject.RESOURCE_TYPE_SOURCE) {
@@ -1267,6 +1309,9 @@ select * from renamed
       );
       if (!dbColumnAdded) {
         relationsWithoutColumns.push(key);
+      } else {
+        // only adding to cache when successfully fetched columns from db
+        this.dbSchemaCache[key] = mappedNode[key];
       }
     }
 
