@@ -79,7 +79,7 @@
           "dbt.enableQueryBookmarks": {
             "type": "boolean",
             "description": "Enable Query history and bookmarks feature",
-            "default": false
+            "default": true
           },
           "dbt.lineage.showSelectEdges": {
             "type": "boolean",
