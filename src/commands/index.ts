@@ -21,6 +21,8 @@ import {
   NotebookCellKind,
   NotebookRange,
   NotebookEdit,
+  NotebookDocument,
+  NotebookEditor,
 } from "vscode";
 import { SqlPreviewContentProvider } from "../content_provider/sqlPreviewContentProvider";
 import { RunModelType } from "../domain";
@@ -586,7 +588,7 @@ export class VSCodeCommands implements Disposable {
           const memFs = new NotebookFileSystemProvider();
           const fileNamePrefix = notebookId || fileName || "poweruser";
           const uri = Uri.parse(
-            `${project.projectRoot}/${fileNamePrefix}.notebook`,
+            `${project.projectRoot}/${fileNamePrefix}.ipynb`,
           ).with({ scheme: "untitled" });
           //         const hashedProjectRoot = DBTProject.hashProjectRoot(project.projectRoot.fsPath);
           // const tempFolder = join(os.tmpdir(), hashedProjectRoot);
@@ -638,18 +640,65 @@ export class VSCodeCommands implements Disposable {
                     ),
                 );
 
-                // Apply the cell data to the notebook
-                const edit = new WorkspaceEdit();
-                // edit.replace(notebookEditor.notebook.uri, new NotebookEdit(new NotebookRange(0, 0), cells));
-                edit.set(notebookEditor.notebook.uri, [
-                  new NotebookEdit(new NotebookRange(0, 0), cells),
-                ]);
-                workspace.applyEdit(edit).then(() => {
-                  // Save the notebook
-                  // setTimeout(() => {
-                  //   notebookEditor.notebook.save();
-                  // }, 100);
+                // Function to backup the state of the notebook
+                function backupNotebookState(notebook: NotebookDocument) {
+                  return notebook
+                    .getCells()
+                    .map((cell) => cell.document.getText());
+                }
+
+                // Function to restore the state of the notebook
+                async function restoreNotebookState(
+                  notebook: NotebookDocument,
+                  backup: string[],
+                ) {
+                  const edit = new WorkspaceEdit();
+                  notebook.getCells().forEach((cell, index) => {
+                    edit.replace(
+                      cell.document.uri,
+                      new Range(0, 0, cell.document.lineCount, 0),
+                      backup[index],
+                    );
+                  });
+                  await workspace.applyEdit(edit);
+                }
+
+                async function applyCellsWithoutDirty(
+                  notebookEditor: NotebookEditor,
+                  cells: NotebookCellData[],
+                ) {
+                  const backup = backupNotebookState(notebookEditor.notebook);
+
+                  // Apply the cell data to the notebook
+                  const edit = new WorkspaceEdit();
+                  edit.set(notebookEditor.notebook.uri, [
+                    new NotebookEdit(new NotebookRange(0, 0), cells),
+                  ]);
+
+                  await workspace.applyEdit(edit);
+
+                  // Restore the original state to make it appear as not dirty
+                  await restoreNotebookState(notebookEditor.notebook, backup);
+                }
+
+                applyCellsWithoutDirty(notebookEditor, cells).then(() => {
+                  console.log(
+                    "Cells applied without marking the document as dirty.",
+                  );
                 });
+                // Apply the cell data to the notebook
+                // const edit = new WorkspaceEdit();
+                // // edit.replace(notebookEditor.notebook.uri, new NotebookEdit(new NotebookRange(0, 0), cells));
+                // edit.set(notebookEditor.notebook.uri, [
+                //   new NotebookEdit(new NotebookRange(0, 0), cells),
+                // ]);
+                // workspace.applyEdit(edit).then(() => {
+                //   // notebookEditor.notebook.isDirty = false;
+                //   // Save the notebook
+                //   // setTimeout(() => {
+                //   //   notebookEditor.notebook.save();
+                //   // }, 100);
+                // });
               }
             });
           });

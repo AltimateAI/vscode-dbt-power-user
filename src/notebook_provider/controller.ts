@@ -3,6 +3,8 @@ import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
 import { SharedStateService } from "../services/sharedStateService";
 import { QueryManifestService } from "../services/queryManifestService";
+import path = require("path");
+import { Jupyter } from "@vscode/jupyter-extension";
 
 interface RawNotebookCell {
   source: string[];
@@ -25,7 +27,7 @@ export class NotebookKernel {
   ) {
     this._controller = vscode.notebooks.createNotebookController(
       this._id,
-      "my-notebook",
+      "jupyter-notebook",
       this._label,
     );
 
@@ -43,12 +45,61 @@ export class NotebookKernel {
     this._controller.supportedLanguages = this._supportedLanguages;
     this._controller.supportsExecutionOrder = true;
     this._controller.executeHandler = this._executeAll.bind(this);
+    this._controller.onDidChangeSelectedNotebooks(
+      this.onDidChangeSelectedNotebooks,
+      this,
+      [],
+    );
     // this._controller.updateNotebookAffinity = async (
     //   notebook: vscode.NotebookDocument,
     //   affinity: vscode.NotebookControllerAffinity,
     // ) => {
     //   console.log("updateNotebookAffinity", notebook.uri.toString(), affinity);
     // };
+  }
+
+  private async onDidChangeSelectedNotebooks(event: {
+    notebook: vscode.NotebookDocument;
+    selected: boolean;
+  }) {
+    // const jupyterExt =
+    //   vscode.extensions.getExtension<Jupyter>("ms-toolsai.jupyter");
+    // if (!jupyterExt) {
+    //   throw new Error("Jupyter Extension not installed");
+    // }
+    // if (!jupyterExt.isActive) {
+    //   jupyterExt.activate();
+    // }
+    // jupyterExt.exports.kernels.
+    // const isControllerChanged = event.selected;
+    // if (!isControllerChanged) {
+    //   return;
+    // }
+    // const uri = vscode.window.activeNotebookEditor?.notebook.uri;
+    // if (!uri) {
+    //   return;
+    // }
+    // // If current notebook belongs to project, dont do anything
+    // if (this.queryManifestService.getProjectByUri(uri)) {
+    //   return;
+    // }
+    // const project =
+    //   await this.queryManifestService.getOrPickProjectFromWorkspace();
+    // if (!project) {
+    //   vscode.window.showErrorMessage("No dbt project selected");
+    //   return;
+    // }
+    // await vscode.commands.executeCommand(
+    //   "workbench.action.revertAndCloseActiveEditor",
+    // );
+    // const fileUri = vscode.Uri.parse(
+    //   `${project.projectRoot}/${path.basename(uri.fsPath)}`,
+    // ).with({ scheme: uri.scheme || "untitled" });
+    // vscode.workspace.openNotebookDocument(fileUri).then((doc) => {
+    //   // set this to sql language so we can bind codelens and other features
+    //   // languages.setTextDocumentLanguage(doc, "jinja-sql");
+    //   vscode.window.showNotebookDocument(doc).then((editor) => {});
+    // });
   }
 
   private async customSave(uri: vscode.Uri) {

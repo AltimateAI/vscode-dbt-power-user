@@ -13,11 +13,11 @@ export class NotebookProviders implements Disposable {
   ) {
     this.disposables.push(
       notebooks.registerNotebookCellStatusBarItemProvider(
-        "my-notebook",
+        "jupyter-notebook",
         new NotebookStatusBarProvider(),
       ),
       workspace.registerNotebookSerializer(
-        "my-notebook",
+        "jupyter-notebook",
         this.notebookProvider,
         {},
       ),

@@ -1203,7 +1203,7 @@
   "scripts": {
     "prepare": "husky install",
     "vscode:prepublish": "npm run panel:webviews && npm run panel:lineage && webpack --mode production",
-    "webpack": "npm run panel:webviews && webpack --mode development",
+    "webpack": "webpack --mode development",
     "webpack-dev": "npm run panel:webviews && npm run panel:lineage && webpack --mode development --watch",
     "watch": "concurrently \"npm:watch --prefix ./new_lineage_panel\" \"npm:watch --prefix ./webview_panels\" \"webpack --mode development --watch\"",
     "test-compile": "tsc -p ./",
@@ -1259,6 +1259,7 @@
     "@finos/perspective-viewer-datagrid": "^2.10.0",
     "@vscode/codicons": "^0.0.36",
     "@vscode/extension-telemetry": "^0.9.6",
+    "@vscode/jupyter-extension": "^1.1.1",
     "@vscode/vsce": "^2.31.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "dayjs": "^1.11.12",
