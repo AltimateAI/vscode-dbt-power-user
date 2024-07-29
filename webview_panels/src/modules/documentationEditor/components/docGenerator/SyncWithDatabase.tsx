@@ -16,9 +16,9 @@ const SyncWithDatabase = (): JSX.Element => {
       color="warning"
       onClick={onSyncBtnClick}
       className={classes.syncBtn}
-    >
-      <RefreshIcon /> Sync with the Database
-    </Button>
+      icon={<RefreshIcon />}
+      buttonText="Sync with the Database"
+    />
   );
 };
 

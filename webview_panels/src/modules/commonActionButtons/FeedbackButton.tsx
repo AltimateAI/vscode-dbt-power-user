@@ -10,9 +10,12 @@ const FeedbackButton = ({ url }: { url: string }): JSX.Element => {
     });
   };
   return (
-    <Button outline onClick={handleFeedbackClick}>
-      <FeedbackIcon /> Feedback
-    </Button>
+    <Button
+      outline
+      onClick={handleFeedbackClick}
+      icon={<FeedbackIcon />}
+      buttonText="Feedback"
+    />
   );
 };
 

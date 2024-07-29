@@ -122,9 +122,7 @@ const BookmarkPrivacySettingButton = ({
             >
               Save
             </LoadingButton>
-            <Button outline onClick={close}>
-              Cancel
-            </Button>
+            <Button outline onClick={close} buttonText="Cancel" />
           </div>
         </div>
       )}

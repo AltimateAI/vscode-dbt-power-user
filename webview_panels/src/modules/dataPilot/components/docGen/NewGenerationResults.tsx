@@ -77,9 +77,8 @@ const NewGenerationResults = ({
                     <Button
                       color="primary"
                       onClick={() => handleDocInsert(result)}
-                    >
-                      Insert
-                    </Button>
+                      buttonText="Insert"
+                    />
                   </Stack>
                   <ResultFeedbackButtons
                     getFeedbackData={(data: Feedback) =>

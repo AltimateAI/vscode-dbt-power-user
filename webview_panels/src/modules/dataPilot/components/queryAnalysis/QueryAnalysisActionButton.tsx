@@ -86,9 +86,8 @@ const QueryAnalysisActionButton = ({ action }: Props): JSX.Element => {
         className={`${classes.actionButton} ${
           isDefaultButton ? classes.default : ""
         }`}
-      >
-        {action.title}
-      </Button>
+        buttonText={action.title}
+      />
     </>
   );
 };

@@ -24,15 +24,13 @@ const HelpButton = (): JSX.Element => {
         <Button
           color={selectedPage === Pages.DOCUMENTATION ? "primary" : "secondary"}
           onClick={() => handleClick(Pages.DOCUMENTATION)}
-        >
-          Documentation
-        </Button>
+          buttonText="Documentation"
+        />
         <Button
           color={selectedPage === Pages.TESTS ? "primary" : "secondary"}
           onClick={() => handleClick(Pages.TESTS)}
-        >
-          Tests
-        </Button>
+          buttonText="Tests"
+        />
       </ButtonGroup>
       {selectedPage === Pages.DOCUMENTATION ? (
         <DocumentationHelpContent />

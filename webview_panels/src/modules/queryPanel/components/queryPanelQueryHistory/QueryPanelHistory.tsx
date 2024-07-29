@@ -95,9 +95,8 @@ const QueryPanelHistory = (): JSX.Element => {
               <p>
                 <Button
                   onClick={() => executeRequestInAsync("runAdhocQuery", {})}
-                >
-                  + New query
-                </Button>
+                  buttonText="+ New query"
+                />
               </p>
             </div>
           </Stack>
@@ -124,9 +123,11 @@ const QueryPanelHistory = (): JSX.Element => {
           </IconButton>
           <div>
             <Stack className="justify-content-end mb-2">
-              <Button color="primary" onClick={handleViewResultSet}>
-                Show results
-              </Button>
+              <Button
+                color="primary"
+                onClick={handleViewResultSet}
+                buttonText="Show results"
+              />
             </Stack>
             <Stack>
               <Label>Adapter</Label>

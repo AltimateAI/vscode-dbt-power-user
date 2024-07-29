@@ -24,9 +24,11 @@ const QueryPanelLoader = (): JSX.Element => {
           {hint.message} <a href={hint.link}>Docs</a>
         </div>
       ) : null}
-      <Button color="primary" onClick={handleCancelQuery}>
-        Cancel query
-      </Button>
+      <Button
+        color="primary"
+        onClick={handleCancelQuery}
+        buttonText="Cancel query"
+      />
     </Stack>
   );
 };

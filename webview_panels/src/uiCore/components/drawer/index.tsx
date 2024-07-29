@@ -54,9 +54,7 @@ const Drawer: ForwardRefRenderFunction<DrawerRef, Props> = (
   return (
     <>
       {buttonText ? (
-        <Button {...buttonProps} onClick={handleShow}>
-          {buttonText}
-        </Button>
+        <Button {...buttonProps} onClick={handleShow} buttonText={buttonText} />
       ) : null}
 
       <Offcanvas

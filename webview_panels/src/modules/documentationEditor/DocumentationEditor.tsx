@@ -125,35 +125,36 @@ const DocumentationEditor = (): JSX.Element => {
           <Button
             color={isDocumentationPageSelected ? "primary" : "secondary"}
             onClick={() => handleClick(Pages.DOCUMENTATION)}
-          >
-            <span className="d-inline-block me-2">
-              {isDocumentationPageSelected ? (
-                <CheckedSquareIcon />
-              ) : (
-                <EmptySquareIcon />
-              )}
-            </span>
-            Documentation
-          </Button>
+            icon={
+              <span className="d-inline-block me-2">
+                {isDocumentationPageSelected ? (
+                  <CheckedSquareIcon />
+                ) : (
+                  <EmptySquareIcon />
+                )}
+              </span>
+            }
+            buttonText="Documentation"
+          />
           <Button
             color={isTestsPageSelected ? "primary" : "secondary"}
             onClick={() => handleClick(Pages.TESTS)}
-          >
-            <span className="d-inline-block me-2">
-              {isTestsPageSelected ? (
-                <CheckedSquareIcon />
-              ) : (
-                <EmptySquareIcon />
-              )}
-            </span>
-            Tests
-          </Button>
+            icon={
+              <span className="d-inline-block me-2">
+                {isTestsPageSelected ? (
+                  <CheckedSquareIcon />
+                ) : (
+                  <EmptySquareIcon />
+                )}
+              </span>
+            }
+            buttonText="Tests"
+          />
           {/* <Button
           color={activePage === Pages.TAGS ? "primary" : "secondary"}
           onClick={() => handleClick(Pages.TAGS)}
-        >
-          Tags
-        </Button> */}
+          buttonText="Tags"
+        /> */}
         </Stack>
         <CommonActionButtons />
       </Stack>

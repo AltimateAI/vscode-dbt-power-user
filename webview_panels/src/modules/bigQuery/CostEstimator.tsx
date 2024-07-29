@@ -34,14 +34,13 @@ const BigQueryCostEstimator = (): JSX.Element => {
               disabled={isEstimating}
               onClick={triggerCostEstimate}
               color="primary"
-            >
-              Estimate cost
-            </Button>
+              buttonText="Estimate cost"
+            />
           </CardBody>
         </Card>
       </Col>
       <Col>
-        {estimatedCost ?? isEstimating ? (
+        {(estimatedCost ?? isEstimating) ? (
           <Card>
             <CardTitle tag="h5">Estimated BigQuery Cost</CardTitle>
             <CardBody>

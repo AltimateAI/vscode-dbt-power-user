@@ -72,9 +72,8 @@ const AddTest = ({ title, currentTests, type }: Props): JSX.Element => {
                       className={classes.newTestTag}
                       onClick={() => handleNewTestClick(test)}
                       outline
-                    >
-                      {test}
-                    </Button>
+                      buttonText={test}
+                    />
                   </Tooltip>
                 ))}
           <Tooltip title="Generate test using Datapilot">

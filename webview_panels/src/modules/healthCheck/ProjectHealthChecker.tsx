@@ -98,9 +98,8 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
               };
               props.setConfigPath(path[0]);
             }}
-          >
-            {props.configPath || "Select config path"}
-          </Button>
+            buttonText={props.configPath || "Select config path"}
+          />
         )}
       </div>
       <div className="d-flex align-items-center gap-sm">
@@ -121,9 +120,10 @@ const SaasConfigSelector = (props: SaasConfigSelectorProps) => {
                 e.stopPropagation();
                 void props.loadConfigs();
               }}
-            >
-              {props.isConfigLoading ? <LoadingIcon /> : <RefreshIcon />}
-            </Button>
+              buttonText={
+                props.isConfigLoading ? <LoadingIcon /> : <RefreshIcon />
+              }
+            />
             <div className={classes.accordionContainer + " w-100"}>
               <Accordion
                 trigger={(open) => (
@@ -353,16 +353,14 @@ const ProjectHealthcheckInput = ({
                 }
               }}
               disabled={!isStartScanEnabled}
-            >
-              Start scan
-            </Button>
+              buttonText="Start scan"
+            />
             <Button
               color={selectedProject ? "primary" : "secondary"}
               onClick={handleClearProblems}
               disabled={!selectedProject}
-            >
-              Clear problems
-            </Button>
+              buttonText="Clear problems"
+            />
           </Stack>
         </Stack>
       </CardBody>
