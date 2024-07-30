@@ -11,8 +11,14 @@ import ArrowLeftIcon from "./assets/icons/arrow-left.svg?react";
 import ArrowRightIcon from "./assets/icons/arrow-right.svg?react";
 import GearIcon from "./assets/icons/gear.svg?react";
 import styles from "./styles.module.scss";
-import { HELP_SIDEBAR, SETTINGS_SIDEBAR } from "./constants";
-import { init, openURL, setLegacyLineageView, CLL, requestExecutor } from "./service_utils";
+import { HELP_SIDEBAR, RESET, SETTINGS_SIDEBAR } from "./constants";
+import {
+  init,
+  openURL,
+  setLegacyLineageView,
+  CLL,
+  requestExecutor,
+} from "./service_utils";
 import { LineageContext, MissingLineageMessage, aiEnabled } from "./Lineage";
 import { useReactFlow } from "reactflow";
 import {
@@ -27,22 +33,55 @@ import { BetterPopover } from "./components/Modal";
 import { DEFAULT_MIN_ZOOM, calculateExpand } from "./utils";
 import { InfoIcon } from "./components/InfoIcon";
 
-export const ActionButton = ({
+interface ActionButtonProps {
+  onClick: React.MouseEventHandler<HTMLButtonElement>;
+  buttonName?: string; // Optional prop
+  buttonTextVisibility?: Record<string, boolean>; // Optional prop
+  setButtonTextVisibility?: React.Dispatch<
+    React.SetStateAction<Record<string, boolean>>
+  >; // Optional prop
+}
+
+export const ActionButton: React.FC<PropsWithChildren<ActionButtonProps>> = ({
   onClick,
   children,
-}: PropsWithChildren<{
-  onClick: React.MouseEventHandler<HTMLButtonElement>;
-}>) => {
+  buttonName,
+  buttonTextVisibility,
+  setButtonTextVisibility,
+}) => {
+  const handleMouseIn = () => {
+    if (setButtonTextVisibility && buttonName) {
+      setButtonTextVisibility((prevState) => ({
+        ...prevState,
+        [buttonName]: true,
+      }));
+    }
+  };
+
+  const handleMouseOut = () => {
+    if (setButtonTextVisibility && buttonName) {
+      setButtonTextVisibility((prevState) => ({
+        ...prevState,
+        [buttonName]: false,
+      }));
+    }
+  };
+
   return (
-    <Button
-      size="sm"
-      outline
-      color="secondary"
-      onClick={onClick}
-      className="d-flex align-items-center gap-xs theme-bg"
-    >
-      {children}
-    </Button>
+    <div onMouseEnter={handleMouseIn} onMouseLeave={handleMouseOut}>
+      <Button
+        size="sm"
+        outline
+        color="secondary"
+        onClick={onClick}
+        className="d-flex align-items-center gap-xs theme-bg"
+      >
+        {children}
+        {buttonTextVisibility &&
+          buttonName &&
+          buttonTextVisibility[buttonName] && <span>{buttonName}</span>}
+      </Button>
+    </div>
   );
 };
 
@@ -65,10 +104,10 @@ const AutoExpansionPopover = () => {
 
   useEffect(() => {
     setLeftExpansion(
-      calculateExpand(minRange[0], maxRange[0], defaultExpansion)
+      calculateExpand(minRange[0], maxRange[0], defaultExpansion),
     );
     setRightExpansion(
-      calculateExpand(minRange[1], maxRange[1], defaultExpansion)
+      calculateExpand(minRange[1], maxRange[1], defaultExpansion),
     );
   }, [
     defaultExpansion,
@@ -86,8 +125,8 @@ const AutoExpansionPopover = () => {
           flow.getEdges(),
           selectedTable,
           leftExpansion,
-          rightExpansion
-        )
+          rightExpansion,
+        ),
       );
     })();
   }, [flow, leftExpansion, rightExpansion, selectedTable, setNodeCount]);
@@ -105,7 +144,7 @@ const AutoExpansionPopover = () => {
         edges,
         selectedTable,
         -Infinity,
-        Infinity
+        Infinity,
       );
       let minLevel = Infinity;
       let maxLevel = -Infinity;
@@ -176,7 +215,7 @@ const AutoExpansionPopover = () => {
                     e.stopPropagation();
                     if (!selectedTable) return;
                     setRightExpansion((i) =>
-                      i + 1 <= maxRange[1] ? i + 1 : i
+                      i + 1 <= maxRange[1] ? i + 1 : i,
                     );
                   }}
                 >
@@ -214,7 +253,7 @@ const AutoExpansionPopover = () => {
                 flow.getEdges(),
                 selectedTable,
                 selectedTableData.level - leftExpansion,
-                selectedTableData.level + rightExpansion
+                selectedTableData.level + rightExpansion,
               );
               highlightTableConnections(nodes, edges, selectedTable);
               layoutElementsOnCanvas(nodes, edges);
@@ -228,8 +267,8 @@ const AutoExpansionPopover = () => {
                   edges,
                   selectedTable,
                   leftExpansion,
-                  rightExpansion
-                )
+                  rightExpansion,
+                ),
               );
               rerender();
               close();
@@ -243,7 +282,11 @@ const AutoExpansionPopover = () => {
   );
 };
 
-export const ActionWidget = ({missingLineageMessage}: {missingLineageMessage?: MissingLineageMessage}) => {
+export const ActionWidget = ({
+  missingLineageMessage,
+}: {
+  missingLineageMessage?: MissingLineageMessage;
+}) => {
   const {
     selectedColumn,
     confidence,
@@ -254,9 +297,23 @@ export const ActionWidget = ({missingLineageMessage}: {missingLineageMessage?: M
   } = useContext(LineageContext);
   const flow = useReactFlow();
 
+  type ButtonTextVisibility = {
+    [key: string]: boolean;
+  };
+  const [buttonTextVisibility, setButtonTextVisibility] =
+    useState<ButtonTextVisibility>({
+      COLUMNS_SIDEBAR: false,
+      EXPOSURE_SIDEBAR: false,
+      TABLES_SIDEBAR: false,
+      FEEDBACK_SIDEBAR: false,
+      HELP_SIDEBAR: false,
+      SETTINGS_SIDEBAR: false,
+      RESET: false,
+    });
+
   const openProblemsTab = () => {
-    return requestExecutor("openProblemsTab", { });
-  }
+    return requestExecutor("openProblemsTab", {});
+  };
 
   return (
     <div className="top-right-container">
@@ -306,9 +363,13 @@ export const ActionWidget = ({missingLineageMessage}: {missingLineageMessage?: M
           </div>
         </CardBody>
       </Card>
-      <ActionButton onClick={() => setSidebarScreen(SETTINGS_SIDEBAR)}>
+      <ActionButton
+        onClick={() => setSidebarScreen(SETTINGS_SIDEBAR)}
+        buttonName="Settings"
+        buttonTextVisibility={buttonTextVisibility}
+        setButtonTextVisibility={setButtonTextVisibility}
+      >
         <GearIcon />
-        Settings
       </ActionButton>
       <ActionButton
         onClick={() => {
@@ -318,9 +379,13 @@ export const ActionWidget = ({missingLineageMessage}: {missingLineageMessage?: M
       >
         Show Legacy UX
       </ActionButton>
-      <ActionButton onClick={() => setSidebarScreen(HELP_SIDEBAR)}>
+      <ActionButton
+        onClick={() => setSidebarScreen(HELP_SIDEBAR)}
+        buttonName="Help"
+        buttonTextVisibility={buttonTextVisibility}
+        setButtonTextVisibility={setButtonTextVisibility}
+      >
         <HelpIcon />
-        <span>Help</span>
       </ActionButton>
       <ActionButton
         onClick={() => {
@@ -332,10 +397,12 @@ export const ActionWidget = ({missingLineageMessage}: {missingLineageMessage?: M
           init();
           CLL.cancel();
         }}
+        buttonName={RESET}
+        buttonTextVisibility={buttonTextVisibility}
+        setButtonTextVisibility={setButtonTextVisibility}
         data-testid="reset-btn"
       >
         <ResetIcon />
-        <span>Reset</span>
       </ActionButton>
       <ActionButton
         onClick={() => {
@@ -344,12 +411,14 @@ export const ActionWidget = ({missingLineageMessage}: {missingLineageMessage?: M
           openURL(
             aiEnabled
               ? "https://docs.google.com/forms/d/e/1FAIpQLScsvmEdZ56F1GAFZq_SW7ejYe0dwpHe-N69qiQBz4ekN4gPNQ/viewform"
-              : "https://docs.google.com/forms/d/10_YT2XDwpbkDXio-7TEYPQXsJfCBFqYUa7t0ImzyZvE/viewform"
+              : "https://docs.google.com/forms/d/10_YT2XDwpbkDXio-7TEYPQXsJfCBFqYUa7t0ImzyZvE/viewform",
           );
         }}
+        buttonName="Feedback"
+        buttonTextVisibility={buttonTextVisibility}
+        setButtonTextVisibility={setButtonTextVisibility}
       >
         <FeedbackIcon />
-        <span>Feedback</span>
       </ActionButton>
     </div>
   );
