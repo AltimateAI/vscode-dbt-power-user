@@ -588,7 +588,7 @@ export class VSCodeCommands implements Disposable {
           const memFs = new NotebookFileSystemProvider();
           const fileNamePrefix = notebookId || fileName || "poweruser";
           const uri = Uri.parse(
-            `${project.projectRoot}/${fileNamePrefix}.ipynb`,
+            `${project.projectRoot}/${fileNamePrefix}.notebook`,
           ).with({ scheme: "untitled" });
           //         const hashedProjectRoot = DBTProject.hashProjectRoot(project.projectRoot.fsPath);
           // const tempFolder = join(os.tmpdir(), hashedProjectRoot);

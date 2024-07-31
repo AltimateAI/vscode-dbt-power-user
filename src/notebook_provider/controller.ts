@@ -1,3 +1,4 @@
+import { PythonExtension } from "@vscode/python-extension";
 import * as vscode from "vscode";
 import { provideSingleton } from "../utils";
 import { DBTProjectContainer } from "../manifest/dbtProjectContainer";
@@ -5,6 +6,7 @@ import { SharedStateService } from "../services/sharedStateService";
 import { QueryManifestService } from "../services/queryManifestService";
 import path = require("path");
 import { Jupyter } from "@vscode/jupyter-extension";
+import { createPythonServer } from "./pythonServer";
 
 interface RawNotebookCell {
   source: string[];
@@ -15,7 +17,7 @@ interface RawNotebookCell {
 export class NotebookKernel {
   private readonly _id = "test-notebook-serializer-kernel";
   private readonly _label = "Altimate dbt kernel";
-  private readonly _supportedLanguages = ["sql", "jinja-sql", "python"];
+  private readonly _supportedLanguages = ["python", "sql", "jinja-sql"];
 
   private _executionOrder = 0;
   private readonly _controller: vscode.NotebookController;
@@ -27,7 +29,7 @@ export class NotebookKernel {
   ) {
     this._controller = vscode.notebooks.createNotebookController(
       this._id,
-      "jupyter-notebook",
+      "my-notebook",
       this._label,
     );
 
@@ -252,8 +254,33 @@ export class NotebookKernel {
       }
 
       let result;
+      const outputCells = [];
       if (cell.document.languageId === "python") {
-        result = await project.executePython(cell.document.getText());
+        // const pythonApi: PythonExtension = await PythonExtension.api();
+        // const server = createPythonServer([
+        //   pythonApi.environments.getActiveEnvironmentPath().path,
+        // ]);
+        // result = (await server.execute(cell.document.getText()))?.output;
+
+        result = (await project.executePython(
+          cell.document.getText(),
+        )) as any[];
+        for (const item of result) {
+          try {
+            const text =
+              item.startsWith("'") && item.endsWith("'")
+                ? item.slice(1, -1)
+                : item;
+            outputCells.push(
+              vscode.NotebookCellOutputItem.json(
+                JSON.parse(text),
+                "application/json",
+              ),
+            );
+          } catch (_e) {
+            outputCells.push(vscode.NotebookCellOutputItem.stdout(item));
+          }
+        }
       } else {
         result = await project.executeSQL(
           cell.document.getText(),
@@ -261,14 +288,12 @@ export class NotebookKernel {
           "",
           true,
         );
+        outputCells.push(
+          vscode.NotebookCellOutputItem.json(result, "application/json"),
+        );
       }
 
-      execution.replaceOutput([
-        new vscode.NotebookCellOutput([
-          vscode.NotebookCellOutputItem.stdout(JSON.stringify(result)),
-          // vscode.NotebookCellOutputItem.json(result, "application/json"),
-        ]),
-      ]);
+      execution.replaceOutput(new vscode.NotebookCellOutput(outputCells));
 
       execution.end(true, Date.now());
     } catch (err) {

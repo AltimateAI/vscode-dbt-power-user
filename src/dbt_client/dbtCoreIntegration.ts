@@ -558,9 +558,9 @@ export class DBTCoreProjectIntegration
     ];
   }
 
-  // print('hi')
   async executePython(code: string) {
-    return executePythonCode(code, this.python);
+    await this.python.ex`from dbt_core_integration import execute_python`;
+    return await this.python.lock((python) => python`execute_python(${code})`);
   }
 
   async rebuildManifest(): Promise<void> {

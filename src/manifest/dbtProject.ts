@@ -733,6 +733,10 @@ export class DBTProject implements Disposable {
     return this.dbtProjectIntegration.getColumnsOfSource(sourceName, tableName);
   }
 
+  async executePython(code: string) {
+    return this.dbtProjectIntegration.executePython(code);
+  }
+
   async getColumnValues(model: string, column: string) {
     this.terminal.debug(
       "getColumnValues",
@@ -1351,9 +1355,5 @@ select * from renamed
 
   throwDiagnosticsErrorIfAvailable() {
     this.dbtProjectIntegration.throwDiagnosticsErrorIfAvailable();
-  }
-
-  async executePython(code: string) {
-    return this.dbtProjectIntegration.executePython(code);
   }
 }

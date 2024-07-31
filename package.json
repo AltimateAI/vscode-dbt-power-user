@@ -1261,6 +1261,7 @@
     "@vscode/codicons": "^0.0.36",
     "@vscode/extension-telemetry": "^0.9.6",
     "@vscode/jupyter-extension": "^1.1.1",
+    "@vscode/python-extension": "^1.0.5",
     "@vscode/vsce": "^2.31.1",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "dayjs": "^1.11.12",
@@ -1275,6 +1276,7 @@
     "react-dom": "^18.3.1",
     "reflect-metadata": "^0.2.2",
     "semver": "^7.6.3",
+    "vscode-jsonrpc": "^8.2.1",
     "which": "^4.0.0",
     "yaml": "^2.4.5"
   },

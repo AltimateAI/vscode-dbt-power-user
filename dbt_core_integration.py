@@ -1,3 +1,7 @@
+import jupyter_client
+import queue
+import traceback
+import io
 from decimal import Decimal
 import dbt.adapters.factory
 
@@ -45,6 +49,11 @@ from dbt.parser.sql import SqlBlockParser, SqlMacroParser
 from dbt.task.sql import SqlCompileRunner, SqlExecuteRunner
 from dbt.tracking import disable_tracking
 from dbt.version import __version__ as dbt_version
+
+STDIN = sys.stdin
+STDOUT = sys.stdout
+STDERR = sys.stderr
+USER_GLOBALS = {}
 
 DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER = (
     int(v) if v.isnumeric() else v for v in dbt_version.split(".")
@@ -256,6 +265,145 @@ def find_package_paths(project_directories):
 disable_tracking()
 fire_event = lambda e: None
 
+def _send_message(msg: str):
+    length_msg = len(msg)
+    STDOUT.buffer.write(f"Content-Length: {length_msg}\r\n\r\n{msg}".encode())
+    STDOUT.buffer.flush()
+
+
+def send_message(**kwargs):
+    return ()
+
+
+def print_log(msg: str):
+    send_message(method="log", params=msg)
+
+
+def send_response(
+    response: str,
+    response_id: int,
+    execution_status: bool = True,  # noqa: FBT001, FBT002
+):
+    return json.dumps({"jsonrpc": "2.0", "id":response_id,
+        "result":{"status": execution_status, "output": response}})
+
+def execute(request, user_globals):
+    str_output = CustomIO("<stdout>", encoding="utf-8")
+    str_error = CustomIO("<stderr>", encoding="utf-8")
+    str_input = CustomIO("<stdin>", encoding="utf-8", newline="\n")
+
+    with contextlib.redirect_stdout(str_output), contextlib.redirect_stderr(str_error):
+        original_stdin = sys.stdin
+        try:
+            sys.stdin = str_input
+            execution_status = exec_user_input(request["params"], user_globals)
+        finally:
+            sys.stdin = original_stdin
+
+    return send_response(str_output.get_value(), request["id"], execution_status)
+    
+
+def exec_function(user_input):
+    try:
+        compile(user_input, "<stdin>", "eval")
+    except SyntaxError:
+        return exec
+    return eval
+
+def exec_user_input(user_input, user_globals) -> bool:
+    user_input = user_input[0] if isinstance(user_input, list) else user_input
+
+    try:
+        callable_ = exec_function(user_input)
+        retval = callable_(user_input, user_globals)
+        if retval is not None:
+            print(retval)
+        return True
+    except KeyboardInterrupt:
+        print(traceback.format_exc())
+        return False
+    except Exception:
+        print(traceback.format_exc())
+        return False
+
+class JupyterKernelExecutor:
+    def __init__(self):
+        self.kernel_manager = jupyter_client.KernelManager()
+        self.kernel_manager.start_kernel()
+        self.kernel_client = self.kernel_manager.client()
+        self.kernel_client.start_channels()
+
+    def execute(self, code):
+        # Execute the code
+        self.kernel_client.execute(code)
+
+        # Capture and return the output
+        output = []
+        start_time = datetime.now()
+        while True:
+            try:
+                msg = self.kernel_client.get_iopub_msg(timeout=1)
+                if msg['msg_type'] == 'stream':
+                    output.append(msg['content']['text'])
+                elif msg['msg_type'] == 'execute_result':
+                    output.append(msg['content']['data']['text/plain'])
+                elif msg['msg_type'] == 'error':
+                    output.append('\n'.join(msg['content']['traceback']))
+                    break
+                elif msg['msg_type'] == 'status' and msg['content']['execution_state'] == 'idle':
+                    break
+            except queue.Empty:
+                if datetime.now() - start_time > 10:  # Timeout after 10 seconds
+                    break
+        return output
+
+    def shutdown(self):
+        # Shutdown the kernel client and kernel manager
+        self.kernel_client.stop_channels()
+        self.kernel_manager.shutdown_kernel()
+        del self.kernel_client
+
+
+# Notebook kernel which will responsible for creating kernel executors for each notebook
+# should shut down kernel after notebook is closed
+# also store the cell outputs/data and use it for further executions
+# TODO: implement as required - extract to separate file
+class AltimateNotebookKernel:
+    def __init__(self):
+        self.executor = JupyterKernelExecutor()
+    
+    def execute(self, code):
+        return self.executor.execute(code)
+
+    def shutdown(self):
+        self.executor.shutdown()
+
+# TODO: move this to notebook specific class
+executor = JupyterKernelExecutor()
+def execute_python(code: str):
+    # TODO: create executor when notebook is opened with altimate kernel
+    # use AltimateNotebookKernel
+    response = executor.execute(code)
+    # TODO: shutdown when notebook is closed or kernel is changed
+    # self.executor.shutdown()
+    return response
+
+class CustomIO(io.TextIOWrapper):
+    """Custom stream object to replace stdio."""
+
+    def __init__(self, name, encoding="utf-8", newline=None):
+        self._buffer = io.BytesIO()
+        self._custom_name = name
+        super().__init__(self._buffer, encoding=encoding, newline=newline)
+
+    def close(self):
+        """Provide this close method which is used by some tools."""
+        # This is intentionally empty.
+
+    def get_value(self) -> str:
+        """Returns value from the buffer as string."""
+        self.seek(0)
+        return self.read()
 
 class ConfigInterface:
     """This mimic dbt-core args based interface for dbt-core
@@ -330,11 +478,10 @@ class DbtAdapterCompilationResult:
         self.compiled_sql = compiled_sql
         self.node = node
 
-
 class DbtProject:
     """Container for a dbt project. The dbt attribute is the primary interface for
     dbt-core. The adapter attribute is the primary interface for the dbt adapter"""
-
+        
     def __init__(
         self,
         target: Optional[str] = None,
@@ -872,3 +1019,4 @@ class DbtProject:
             return self.adapter.validate_sql(compiled_sql)
         except Exception as e:
             raise Exception(str(e))
+        
