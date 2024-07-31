@@ -15,7 +15,7 @@ interface RawNotebookCell {
 export class NotebookKernel {
   private readonly _id = "test-notebook-serializer-kernel";
   private readonly _label = "Altimate dbt kernel";
-  private readonly _supportedLanguages = ["sql", "jinja-sql"];
+  private readonly _supportedLanguages = ["sql", "jinja-sql", "python"];
 
   private _executionOrder = 0;
   private readonly _controller: vscode.NotebookController;
@@ -33,10 +33,10 @@ export class NotebookKernel {
 
     // TODO: move this right place
     // Intercept save commands
-    vscode.commands.registerCommand(
-      "workbench.action.files.save",
-      (uri: vscode.Uri) => this.customSave(uri),
-    );
+    // vscode.commands.registerCommand(
+    //   "workbench.action.files.save",
+    //   (uri: vscode.Uri) => this.customSave(uri),
+    // );
     // vscode.commands.registerCommand(
     //   "workbench.action.files.saveAs",
     //   this.customSaveAs,
@@ -187,6 +187,56 @@ export class NotebookKernel {
   private async _doExecution(cell: vscode.NotebookCell): Promise<void> {
     const execution = this._controller.createNotebookCellExecution(cell);
 
+    // if (!vscode.window.activeNotebookEditor?.notebook.uri) {
+    //   return;
+    // }
+    // const jupyterExt =
+    //   vscode.extensions.getExtension<Jupyter>("ms-toolsai.jupyter");
+    // if (!jupyterExt) {
+    //   throw new Error("Jupyter Extension not installed");
+    // }
+    // if (!jupyterExt.isActive) {
+    //   jupyterExt.activate();
+    // }
+
+    // if (cell.document.languageId !== "jinja-sql") {
+    //   jupyterExt.exports.kernels
+    //     .getKernel(vscode.window.activeNotebookEditor.notebook.uri)
+    //     .then(async (kernel) => {
+    //       execution.executionOrder = ++this._executionOrder;
+    //       execution.start(Date.now());
+    //       try {
+    //         if (!kernel){
+    //           throw new Error("Kernel not found");
+    //         }
+    //         // clear the existing output
+    //         void execution.clearOutput();
+    //         const text = cell.document.getText();
+    //         const result = kernel.executeCode(
+    //           text,
+    //           null as unknown as vscode.CancellationToken,
+    //         );
+    //         execution.replaceOutput([
+    //           new vscode.NotebookCellOutput([
+    //             vscode.NotebookCellOutputItem.text(
+    //               JSON.stringify(result),
+    //               "text/plain",
+    //             ),
+    //           ]),
+    //         ]);
+
+    //         execution.end(true, Date.now());
+    //       } catch (err) {
+    //         execution.replaceOutput([
+    //           new vscode.NotebookCellOutput([
+    //             vscode.NotebookCellOutputItem.error(err as Error),
+    //           ]),
+    //         ]);
+    //         execution.end(false, Date.now());
+    //       }
+    //     });
+    //   return;
+    // }
     execution.executionOrder = ++this._executionOrder;
     execution.start(Date.now());
 
@@ -200,15 +250,23 @@ export class NotebookKernel {
         vscode.window.showErrorMessage("No dbt project selected.");
         return;
       }
-      const result = await project.executeSQL(
-        cell.document.getText(),
 
-        "",
-        true,
-      );
+      let result;
+      if (cell.document.languageId === "python") {
+        result = await project.executePython(cell.document.getText());
+      } else {
+        result = await project.executeSQL(
+          cell.document.getText(),
+
+          "",
+          true,
+        );
+      }
+
       execution.replaceOutput([
         new vscode.NotebookCellOutput([
-          vscode.NotebookCellOutputItem.json(result, "application/json"),
+          vscode.NotebookCellOutputItem.stdout(JSON.stringify(result)),
+          // vscode.NotebookCellOutputItem.json(result, "application/json"),
         ]),
       ]);
 

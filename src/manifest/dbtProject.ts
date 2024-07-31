@@ -1352,4 +1352,8 @@ select * from renamed
   throwDiagnosticsErrorIfAvailable() {
     this.dbtProjectIntegration.throwDiagnosticsErrorIfAvailable();
   }
+
+  async executePython(code: string) {
+    return this.dbtProjectIntegration.executePython(code);
+  }
 }

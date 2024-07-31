@@ -1257,6 +1257,7 @@
     "@finos/perspective-viewer": "^2.10.0",
     "@finos/perspective-viewer-d3fc": "^2.10.1",
     "@finos/perspective-viewer-datagrid": "^2.10.0",
+    "@jupyterlab/services": "^7.2.4",
     "@vscode/codicons": "^0.0.36",
     "@vscode/extension-telemetry": "^0.9.6",
     "@vscode/jupyter-extension": "^1.1.1",

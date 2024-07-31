@@ -1,3 +1,4 @@
+import { exec } from "child_process";
 import {
   CancellationToken,
   Diagnostic,
@@ -11,6 +12,7 @@ import {
   workspace,
 } from "vscode";
 import {
+  executePythonCode,
   extendErrorWithSupportLinks,
   getFirstWorkspacePath,
   getProjectRelativePath,
@@ -554,6 +556,11 @@ export class DBTCoreProjectIntegration
       ...(this.projectConfigDiagnostics.get(projectURI) || []),
       ...(this.rebuildManifestDiagnostics.get(projectURI) || []),
     ];
+  }
+
+  // print('hi')
+  async executePython(code: string) {
+    return executePythonCode(code, this.python);
   }
 
   async rebuildManifest(): Promise<void> {
