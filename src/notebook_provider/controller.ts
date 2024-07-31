@@ -189,9 +189,9 @@ export class NotebookKernel {
   private async _doExecution(cell: vscode.NotebookCell): Promise<void> {
     const execution = this._controller.createNotebookCellExecution(cell);
 
-    // if (!vscode.window.activeNotebookEditor?.notebook.uri) {
-    //   return;
-    // }
+    if (!vscode.window.activeNotebookEditor?.notebook.uri) {
+      return;
+    }
     // const jupyterExt =
     //   vscode.extensions.getExtension<Jupyter>("ms-toolsai.jupyter");
     // if (!jupyterExt) {
@@ -289,8 +289,31 @@ export class NotebookKernel {
           true,
         );
         outputCells.push(
-          vscode.NotebookCellOutputItem.json(result, "application/json"),
+          vscode.NotebookCellOutputItem.json(
+            result,
+            "application/perspective-json",
+          ),
         );
+
+        // Testing new cell creation
+        // Will be used based on data after execution
+        const newCell = new vscode.NotebookCellData(
+          vscode.NotebookCellKind.Code,
+          "select * from ref",
+          "jinja-sql",
+        );
+        const edit = new vscode.WorkspaceEdit();
+        edit.set(vscode.window.activeNotebookEditor.notebook.uri, [
+          new vscode.NotebookEdit(
+            new vscode.NotebookRange(
+              vscode.window.activeNotebookEditor.notebook.cellCount,
+              vscode.window.activeNotebookEditor.notebook.cellCount,
+            ),
+            [newCell],
+          ),
+        ]);
+
+        await vscode.workspace.applyEdit(edit);
       }
 
       execution.replaceOutput(new vscode.NotebookCellOutput(outputCells));

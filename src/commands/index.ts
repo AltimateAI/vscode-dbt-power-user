@@ -588,120 +588,136 @@ export class VSCodeCommands implements Disposable {
           const memFs = new NotebookFileSystemProvider();
           const fileNamePrefix = notebookId || fileName || "poweruser";
           const uri = Uri.parse(
-            `${project.projectRoot}/${fileNamePrefix}.notebook`,
+            `${project.projectRoot}/${fileNamePrefix}-${Date.now()}.notebook`,
           ).with({ scheme: "untitled" });
           //         const hashedProjectRoot = DBTProject.hashProjectRoot(project.projectRoot.fsPath);
           // const tempFolder = join(os.tmpdir(), hashedProjectRoot);
 
           // const uri = Uri.parse(`${tempFolder}/untitled.notebook`, true).with({ scheme: "memfs" });;
           // await memFs.writeFile(uri, Buffer.from(''), { create: true, overwrite: true });
-          workspace.openNotebookDocument(uri).then((doc) => {
-            // set this to sql language so we can bind codelens and other features
-            // languages.setTextDocumentLanguage(doc, "jinja-sql");
-            window.showNotebookDocument(doc).then((editor) => {
-              if (!notebookId) {
-                return;
-              }
-              const notebooks =
-                this.dbtProjectContainer.getFromGlobalState("notebooks") || {};
-              const contents = notebooks[notebookId];
+          workspace.openNotebookDocument(uri).then(
+            (doc) => {
+              // set this to sql language so we can bind codelens and other features
+              // languages.setTextDocumentLanguage(doc, "jinja-sql");
+              window.showNotebookDocument(doc).then(
+                (editor) => {
+                  if (!notebookId) {
+                    return;
+                  }
+                  const notebooks =
+                    this.dbtProjectContainer.getFromGlobalState("notebooks") ||
+                    {};
+                  const contents = notebooks[notebookId];
 
-              let raw: RawNotebookCell[];
-              try {
-                raw = (<RawNotebook>JSON.parse(contents)).cells;
-              } catch {
-                raw = [
-                  {
-                    cell_type: "code",
-                    source: [],
-                  },
-                ];
-              }
+                  let raw: RawNotebookCell[];
+                  try {
+                    raw = (<RawNotebook>JSON.parse(contents)).cells;
+                  } catch {
+                    raw = [
+                      {
+                        cell_type: "code",
+                        source: [],
+                      },
+                    ];
+                  }
 
-              const cellData = raw.map(
-                (item) =>
-                  new NotebookCellData(
-                    NotebookCellKind.Code,
-                    item.source?.join("\n"),
-                    "jinja-sql",
-                  ),
-              );
-
-              // Get the active notebook editor
-              const notebookEditor = window.activeNotebookEditor;
-              if (notebookEditor) {
-                // Create notebook cells
-                const cells = cellData.map(
-                  (data) =>
-                    new NotebookCellData(
-                      data.kind,
-                      data.value,
-                      data.languageId,
-                    ),
-                );
-
-                // Function to backup the state of the notebook
-                function backupNotebookState(notebook: NotebookDocument) {
-                  return notebook
-                    .getCells()
-                    .map((cell) => cell.document.getText());
-                }
-
-                // Function to restore the state of the notebook
-                async function restoreNotebookState(
-                  notebook: NotebookDocument,
-                  backup: string[],
-                ) {
-                  const edit = new WorkspaceEdit();
-                  notebook.getCells().forEach((cell, index) => {
-                    edit.replace(
-                      cell.document.uri,
-                      new Range(0, 0, cell.document.lineCount, 0),
-                      backup[index],
-                    );
-                  });
-                  await workspace.applyEdit(edit);
-                }
-
-                async function applyCellsWithoutDirty(
-                  notebookEditor: NotebookEditor,
-                  cells: NotebookCellData[],
-                ) {
-                  const backup = backupNotebookState(notebookEditor.notebook);
-
-                  // Apply the cell data to the notebook
-                  const edit = new WorkspaceEdit();
-                  edit.set(notebookEditor.notebook.uri, [
-                    new NotebookEdit(new NotebookRange(0, 0), cells),
-                  ]);
-
-                  await workspace.applyEdit(edit);
-
-                  // Restore the original state to make it appear as not dirty
-                  await restoreNotebookState(notebookEditor.notebook, backup);
-                }
-
-                applyCellsWithoutDirty(notebookEditor, cells).then(() => {
-                  console.log(
-                    "Cells applied without marking the document as dirty.",
+                  const cellData = raw.map(
+                    (item) =>
+                      new NotebookCellData(
+                        NotebookCellKind.Code,
+                        item.source?.join("\n"),
+                        "jinja-sql",
+                      ),
                   );
-                });
-                // Apply the cell data to the notebook
-                // const edit = new WorkspaceEdit();
-                // // edit.replace(notebookEditor.notebook.uri, new NotebookEdit(new NotebookRange(0, 0), cells));
-                // edit.set(notebookEditor.notebook.uri, [
-                //   new NotebookEdit(new NotebookRange(0, 0), cells),
-                // ]);
-                // workspace.applyEdit(edit).then(() => {
-                //   // notebookEditor.notebook.isDirty = false;
-                //   // Save the notebook
-                //   // setTimeout(() => {
-                //   //   notebookEditor.notebook.save();
-                //   // }, 100);
-                // });
-              }
-            });
-          });
+
+                  // Get the active notebook editor
+                  const notebookEditor = window.activeNotebookEditor;
+                  if (notebookEditor) {
+                    // Create notebook cells
+                    const cells = cellData.map(
+                      (data) =>
+                        new NotebookCellData(
+                          data.kind,
+                          data.value,
+                          data.languageId,
+                        ),
+                    );
+
+                    // Function to backup the state of the notebook
+                    function backupNotebookState(notebook: NotebookDocument) {
+                      return notebook
+                        .getCells()
+                        .map((cell) => cell.document.getText());
+                    }
+
+                    // Function to restore the state of the notebook
+                    async function restoreNotebookState(
+                      notebook: NotebookDocument,
+                      backup: string[],
+                    ) {
+                      const edit = new WorkspaceEdit();
+                      notebook.getCells().forEach((cell, index) => {
+                        edit.replace(
+                          cell.document.uri,
+                          new Range(0, 0, cell.document.lineCount, 0),
+                          backup[index],
+                        );
+                      });
+                      await workspace.applyEdit(edit);
+                    }
+
+                    async function applyCellsWithoutDirty(
+                      notebookEditor: NotebookEditor,
+                      cells: NotebookCellData[],
+                    ) {
+                      const backup = backupNotebookState(
+                        notebookEditor.notebook,
+                      );
+
+                      // Apply the cell data to the notebook
+                      const edit = new WorkspaceEdit();
+                      edit.set(notebookEditor.notebook.uri, [
+                        new NotebookEdit(new NotebookRange(0, 0), cells),
+                      ]);
+
+                      await workspace.applyEdit(edit);
+
+                      // Restore the original state to make it appear as not dirty
+                      await restoreNotebookState(
+                        notebookEditor.notebook,
+                        backup,
+                      );
+                    }
+
+                    applyCellsWithoutDirty(notebookEditor, cells).then(() => {
+                      console.log(
+                        "Cells applied without marking the document as dirty.",
+                      );
+                    });
+                    // Apply the cell data to the notebook
+                    // const edit = new WorkspaceEdit();
+                    // // edit.replace(notebookEditor.notebook.uri, new NotebookEdit(new NotebookRange(0, 0), cells));
+                    // edit.set(notebookEditor.notebook.uri, [
+                    //   new NotebookEdit(new NotebookRange(0, 0), cells),
+                    // ]);
+                    // workspace.applyEdit(edit).then(() => {
+                    //   // notebookEditor.notebook.isDirty = false;
+                    //   // Save the notebook
+                    //   // setTimeout(() => {
+                    //   //   notebookEditor.notebook.save();
+                    //   // }, 100);
+                    // });
+                  }
+                },
+                (e) => {
+                  window.showErrorMessage((e as Error).message);
+                },
+              );
+            },
+            (e) => {
+              window.showErrorMessage((e as Error).message);
+            },
+          );
         },
       ),
       commands.registerCommand(
