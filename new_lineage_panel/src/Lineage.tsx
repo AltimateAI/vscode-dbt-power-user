@@ -492,7 +492,7 @@ export const Lineage = () => {
                 <Feedback close={() => setSidebarScreen("")} />
               )}
               {sidebarScreen === HELP_SIDEBAR && <Help />}
-              {sidebarScreen === SETTINGS_SIDEBAR && <Settings />}
+              {sidebarScreen === SETTINGS_SIDEBAR && <Settings applySettings={applySettings} />}
             </SidebarModal>
             <Modal isOpen={showDemoModal} close={() => setShowDemoModal(false)}>
               <Demo />
